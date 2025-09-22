@@ -488,7 +488,7 @@
 
                                                             <TextBlock Grid.Row="14" Grid.Column="0"
                                                                        Text="Arguments:"
-                                                                       ToolTip.Tip="Namespace option index if action is TSLPatcher. For 'execute' action, any command-line arguments to send. For 'DelDuplicate', the extension to delete when duplicates are found."
+                                                                       ToolTip.Tip="Namespace option index if action is Patcher. For 'execute' action, any command-line arguments to send. For 'DelDuplicate', the extension to delete when duplicates are found."
                                                                        IsVisible="{Binding !IsVisible, ElementName=optionChooser}" />
                                                             <TextBox Grid.Row="15"
                                                                      Grid.Column="0"
@@ -793,7 +793,7 @@
                           ToolTip.Tip="Sometimes config files have simple mistakes, this attempts to use some common sense to fix common errors in a TOML file. This only
 executes when an error is detected during a validation." />
                 <CheckBox Content="Don't ask for Admin" IsChecked="{Binding noAdmin}"
-                          ToolTip.Tip="Activating this toggles __COMPAT_LAYER=RunAsInvoker for 'TSLPatcher' and 'Execute' instructions. It signals Windows to
+                          ToolTip.Tip="Activating this toggles __COMPAT_LAYER=RunAsInvoker for 'Patcher' and 'Execute' instructions. It signals Windows to
 launch executables as if they already have admin rights, preventing unnecessary UAC checks. Handy for older apps without an app.manifest (e.g. TSLPatcher). Note: enabling this
 setting might cause permission issues. Instead, running ModSync as administrator is recommended.
 On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant."/>
@@ -803,13 +803,6 @@ On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant."/
                         <Binding Converter="{StaticResource IsUnixConverter}" />
                     </CheckBox.IsVisible>
                 </CheckBox>
-                <TextBlock Text="Patcher Option:"
-                           ToolTip.Tip="Mods have been packaged with TSLPatcher for the last 20 years. However, TSLPatcher is only supported on Windows, and lacks a CLI for
-ModSync to use. Therefore, HoloPatcher is recommended for faster/more streamlined installations." />
-                <ComboBox HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                          ItemsSource="{Binding AllAvailablePatchers}"
-                          SelectedItem="{Binding patcherOptionString}"
-                          IsTabStop="True" />
                 <TextBlock Text="Theme:" />
                 <ComboBox x:Name="StyleComboBox" SelectedIndex="1" HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Center"

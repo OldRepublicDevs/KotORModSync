@@ -33,15 +33,6 @@ namespace KOTORModSync.Core
 	[SuppressMessage(category: "ReSharper", checkId: "UnusedMember.Global")]
 	public sealed class MainConfig : INotifyPropertyChanged
 	{
-		public enum AvailablePatchers
-		{
-			[Description("Use TSLPatcher")]
-			TSLPatcher = 0,
-
-			[DefaultValue(true)]
-			[Description("Use HoloPatcher")]
-			HoloPatcher = 1,
-		}
 
 		[Description("Only components with the selected compatibility level will be installed")]
 		public enum CompatibilityLevel
@@ -56,7 +47,6 @@ namespace KOTORModSync.Core
 		{
 			currentCompatibilityLevel = CompatibilityLevel.Compatible;
 			debugLogging = false;
-			patcherOption = AvailablePatchers.HoloPatcher;
 			attemptFixes = true;
 			noAdmin = false;
 			caseInsensitivePathing = true;
@@ -70,22 +60,6 @@ namespace KOTORModSync.Core
 		public static IEnumerable<string> AllCompatibilityLevels => Enum.GetValues(typeof( CompatibilityLevel ))
 			.Cast<CompatibilityLevel>().Select(compatibilityLvl => compatibilityLvl.ToString());
 
-		[UsedImplicitly]
-		[NotNull]
-		public static IEnumerable<string> AllAvailablePatchers
-		{
-			get
-			{
-				var patchers = Enum.GetValues(typeof(AvailablePatchers))
-					.Cast<AvailablePatchers>();
-				// If not on Windows, filter out TSLPatcher
-				if (Utility.Utility.GetOperatingSystem() != OSPlatform.Windows)
-				{
-					patchers = patchers.Where(p => p != AvailablePatchers.TSLPatcher);
-				}
-				return patchers.Select(patcher => patcher.ToString());
-			}
-		}
 
 		public static bool NoAdmin { get; private set; }
 
@@ -131,23 +105,6 @@ namespace KOTORModSync.Core
 		public static bool ArchiveDeepCheck { get; private set; }
 		public bool archiveDeepCheck { get => ArchiveDeepCheck; set => ArchiveDeepCheck = value; }
 
-		public static AvailablePatchers PatcherOption { get; private set; }
-
-		public AvailablePatchers patcherOption
-		{
-			get => PatcherOption;
-			set
-			{
-				PatcherOption = value;
-				OnPropertyChanged();
-			}
-		}
-
-		[NotNull] public string patcherOptionString
-		{
-			get => PatcherOption.ToString();
-			set => PatcherOption = (AvailablePatchers)Enum.Parse(typeof( AvailablePatchers ), value);
-		}
 
 		public static CompatibilityLevel CurrentCompatibilityLevel { get; private set; }
 

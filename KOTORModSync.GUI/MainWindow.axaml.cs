@@ -14,6 +14,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Collections;
@@ -24,10 +25,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
-using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 using JetBrains.Annotations;
 using KOTORModSync.CallbackDialogs;
@@ -60,9 +59,13 @@ namespace KOTORModSync
 		private bool _installRunning;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
-		private Window _outputWindow;
+		private OutputWindow _outputWindow;
 		private bool _progressWindowClosed;
 		private string _searchText;
+		private CancellationTokenSource _modSuggestCts;
+		private CancellationTokenSource _installSuggestCts;
+		private bool _suppressPathEvents;
+		private bool _suppressComboEvents;
 
 
 		public bool IsClosingMainWindow;
@@ -75,6 +78,7 @@ namespace KOTORModSync
 				DataContext = this;
 				InitializeControls();
 				InitializeTopMenu();
+				InitializePathPickers();
 
 				// Initialize the logger
 				Logger.Initialize();
@@ -106,6 +110,550 @@ namespace KOTORModSync
 			}
 		}
 
+		private void InitializePathPickers()
+		{
+			try
+			{
+				TextBox modInput = this.FindControl<TextBox>("ModPathInput");
+				ComboBox modCombo = this.FindControl<ComboBox>("ModPathSuggestions");
+				TextBox installInput = this.FindControl<TextBox>("InstallPathInput");
+				ComboBox installCombo = this.FindControl<ComboBox>("InstallPathSuggestions");
+				TextBlock currentModPathDisplay = this.FindControl<TextBlock>("CurrentModPathDisplay");
+				TextBlock currentKotorPathDisplay = this.FindControl<TextBlock>("CurrentKotorPathDisplay");
+				
+				if ( modInput is null || modCombo is null || installInput is null || installCombo is null || 
+				     currentModPathDisplay is null || currentKotorPathDisplay is null )
+				{
+					return;
+				}
+
+				// Set initial display values
+				UpdatePathDisplays(currentModPathDisplay, currentKotorPathDisplay);
+
+				// Load recent mod directories and default game directories
+				LoadRecentModDirectories(modCombo);
+				installCombo.ItemsSource = GetDefaultPathsForGame();
+
+				// Set initial text values
+				modInput.Text = MainConfig.SourcePath?.FullName ?? string.Empty;
+				installInput.Text = MainConfig.DestinationPath?.FullName ?? string.Empty;
+
+				// Subscribe to text changes for suggestions
+				_ = modInput.GetObservable(TextBox.TextProperty).Subscribe(_ =>
+				{
+					if ( _suppressPathEvents ) return;
+					UpdatePathSuggestions(modInput, modCombo, ref _modSuggestCts);
+				});
+				_ = installInput.GetObservable(TextBox.TextProperty).Subscribe(_ =>
+				{
+					if ( _suppressPathEvents ) return;
+					UpdatePathSuggestions(installInput, installCombo, ref _installSuggestCts);
+				});
+
+				// Lost focus event handlers
+				modInput.LostFocus += ModPathInput_LostFocus;
+				installInput.LostFocus += InstallPathInput_LostFocus;
+				
+				// Key down event handlers
+				modInput.KeyDown += OnPathInputKeyDown;
+				installInput.KeyDown += OnPathInputKeyDown;
+
+				// ComboBox selection changed event handlers
+				modCombo.SelectionChanged += ModPathSuggestions_SelectionChanged;
+				installCombo.SelectionChanged += InstallPathSuggestions_SelectionChanged;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+		
+		private static void UpdatePathDisplays(TextBlock modPathDisplay, TextBlock kotorPathDisplay)
+		{
+			if (modPathDisplay != null)
+			{
+				modPathDisplay.Text = MainConfig.SourcePath?.FullName ?? "Not set";
+			}
+			
+			if (kotorPathDisplay != null)
+			{
+				kotorPathDisplay.Text = MainConfig.DestinationPath?.FullName ?? "Not set";
+			}
+		}
+		
+		private void UpdatePathDisplays()
+		{
+			TextBlock modPathDisplay = this.FindControl<TextBlock>("CurrentModPathDisplay");
+			TextBlock kotorPathDisplay = this.FindControl<TextBlock>("CurrentKotorPathDisplay");
+			UpdatePathDisplays(modPathDisplay, kotorPathDisplay);
+		}
+		
+		private void ModPathInput_LostFocus(object sender, RoutedEventArgs e)
+		{
+			if (sender is TextBox tb)
+			{
+				if ( _suppressPathEvents ) return;
+				bool applied = TryApplySourcePath(tb.Text);
+				if (applied)
+				{
+					UpdatePathDisplays();
+				}
+				UpdatePathSuggestions(tb, this.FindControl<ComboBox>("ModPathSuggestions"), ref _modSuggestCts);
+			}
+		}
+		
+		private void InstallPathInput_LostFocus(object sender, RoutedEventArgs e)
+		{
+			if (sender is TextBox tb)
+			{
+				if ( _suppressPathEvents ) return;
+				bool applied = TryApplyInstallPath(tb.Text);
+				if (applied)
+				{
+					UpdatePathDisplays();
+				}
+				UpdatePathSuggestions(tb, this.FindControl<ComboBox>("InstallPathSuggestions"), ref _installSuggestCts);
+			}
+		}
+		
+		private void ModPathSuggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			if ( _suppressComboEvents ) return;
+			if (sender is ComboBox comboBox && comboBox.SelectedItem is string path)
+			{
+				_suppressPathEvents = true;
+				_suppressComboEvents = true;
+				TextBox modInput = this.FindControl<TextBox>("ModPathInput");
+				if (modInput != null)
+				{
+					modInput.Text = path;
+					if (TryApplySourcePath(path))
+					{
+						UpdatePathDisplays();
+					}
+					// Do not refresh ItemsSource here to avoid recursive selection updates
+				}
+				_suppressPathEvents = false;
+				_suppressComboEvents = false;
+			}
+		}
+		
+		private void InstallPathSuggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			if ( _suppressComboEvents ) return;
+			if (sender is ComboBox comboBox && comboBox.SelectedItem is string path)
+			{
+				_suppressPathEvents = true;
+				_suppressComboEvents = true;
+				TextBox installInput = this.FindControl<TextBox>("InstallPathInput");
+				if (installInput != null)
+				{
+					installInput.Text = path;
+					if (TryApplyInstallPath(path))
+					{
+						UpdatePathDisplays();
+					}
+					// Do not refresh ItemsSource here to avoid recursive selection updates
+				}
+				_suppressPathEvents = false;
+				_suppressComboEvents = false;
+			}
+		}
+
+		private static IEnumerable<string> GetDefaultPathsForMods()
+		{
+			OSPlatform os = Utility.GetOperatingSystem();
+			var list = new List<string>();
+			if ( os == OSPlatform.Windows )
+			{
+				list.AddRange(new []
+				{
+					Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+					Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
+				});
+			}
+			else if ( os == OSPlatform.Linux || os == OSPlatform.OSX )
+			{
+				list.AddRange(new []
+				{
+					Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
+				});
+			}
+			return list.Where(Directory.Exists).Distinct().ToList();
+		}
+
+		private static IEnumerable<string> GetDefaultPathsForGame()
+		{
+			OSPlatform os = Utility.GetOperatingSystem();
+			var results = new List<string>();
+			if ( os == OSPlatform.Windows )
+			{
+				results.AddRange(new []
+				{
+					@"C:\Program Files\Steam\steamapps\common\swkotor",
+					@"C:\Program Files (x86)\Steam\steamapps\common\swkotor",
+					@"C:\Program Files\LucasArts\SWKotOR",
+					@"C:\Program Files (x86)\LucasArts\SWKotOR",
+					@"C:\GOG Games\Star Wars - KotOR",
+					@"C:\Program Files\Steam\steamapps\common\Knights of the Old Republic II",
+					@"C:\Program Files (x86)\Steam\steamapps\common\Knights of the Old Republic II",
+					@"C:\Program Files\LucasArts\SWKotOR2",
+					@"C:\Program Files (x86)\LucasArts\SWKotOR2",
+					@"C:\GOG Games\Star Wars - KotOR2",
+				});
+			}
+			else if ( os == OSPlatform.OSX )
+			{
+				results.AddRange(new []
+				{
+					"~/Library/Application Support/Steam/steamapps/common/swkotor/Knights of the Old Republic.app/Contents/Assets",
+					"~/Library/Application Support/Steam/steamapps/common/Knights of the Old Republic II/Knights of the Old Republic II.app/Contents/Assets",
+					"~/Library/Application Support/Steam/steamapps/common/Knights of the Old Republic II/KOTOR2.app/Contents/GameData/",
+				});
+			}
+			else if ( os == OSPlatform.Linux )
+			{
+				results.AddRange(new []
+				{
+					"~/.steam/debian-installation/steamapps/common/swkotor",
+					"~/.steam/root/steamapps/common/swkotor",
+					"~/.steam/debian-installation/steamapps/common/Knights of the Old Republic II",
+					"~/.steam/root/steamapps/common/Knights of the Old Republic II",
+					"~/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/Knights of the Old Republic II/steamassets",
+				});
+			}
+			IEnumerable<string> expanded = results.Select(p => Environment.ExpandEnvironmentVariables(p).Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+			return expanded.Where(Directory.Exists).Distinct().ToList();
+		}
+
+
+
+		private bool TryApplySourcePath(string text)
+		{
+			try
+			{
+				string p = ExpandPath(text);
+				if ( string.IsNullOrWhiteSpace(p) || !Directory.Exists(p) ) return false;
+				MainConfigInstance.sourcePath = new DirectoryInfo(p);
+				AddToRecentMods(text);
+				return true;
+			}
+			catch ( Exception ex ) 
+			{ 
+				Logger.LogException(ex);
+				return false;
+			}
+		}
+
+		private bool TryApplyInstallPath(string text)
+		{
+			try
+			{
+				string p = ExpandPath(text);
+				if ( string.IsNullOrWhiteSpace(p) || !Directory.Exists(p) ) return false;
+				MainConfigInstance.destinationPath = new DirectoryInfo(p);
+				return true;
+			}
+			catch ( Exception ex ) 
+			{ 
+				Logger.LogException(ex);
+				return false;
+			}
+		}
+		
+		private static void LoadRecentModDirectories(ComboBox modCombo)
+		{
+			try
+			{
+				string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+				string folder = Path.Combine(appData, "KOTORModSync");
+				string file = Path.Combine(folder, "recent_mod_dirs.txt");
+				
+				var paths = new List<string>();
+				
+				// Add default paths first
+				paths.AddRange(GetDefaultPathsForMods());
+				
+				// Add recent paths from file if they exist
+				if (File.Exists(file))
+				{
+					string[] recentPaths = File.ReadAllLines(file);
+					foreach (string path in recentPaths)
+					{
+						if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path) && !paths.Contains(path))
+						{
+							paths.Insert(0, path); // Add at the beginning to prioritize recent paths
+						}
+					}
+				}
+				
+				modCombo.ItemsSource = paths;
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex);
+				// Fallback to default paths if loading recents fails
+				modCombo.ItemsSource = GetDefaultPathsForMods();
+			}
+		}
+
+		private static string ExpandPath(string path)
+		{
+			if ( string.IsNullOrWhiteSpace(path) ) return string.Empty;
+			string p = Environment.ExpandEnvironmentVariables(path);
+			if ( p.StartsWith("~") )
+			{
+				string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+				p = Path.Combine(home, p.Substring(1).TrimStart('\\','/'));
+			}
+			p = p.Replace('/', Path.DirectorySeparatorChar);
+			return p;
+		}
+
+		private static void UpdatePathSuggestions(TextBox input, ComboBox combo, ref CancellationTokenSource cts)
+		{
+			try
+			{
+				cts?.Cancel();
+				cts = new CancellationTokenSource();
+				CancellationToken token = cts.Token;
+				string typed = input.Text ?? string.Empty;
+				_ = Task.Run(() =>
+				{
+					var results = new List<string>();
+					string expanded = ExpandPath(typed);
+					if ( string.IsNullOrWhiteSpace(expanded) ) 
+					{
+						// If empty, return default paths based on the input type
+						if (input.Name == "ModPathInput")
+						{
+							return GetDefaultPathsForMods().ToList() as IList<string>;
+						}
+						else if (input.Name == "InstallPathInput")
+						{
+							return GetDefaultPathsForGame().ToList() as IList<string>;
+						}
+						return results as IList<string>;
+					}
+
+					string normalized = expanded;
+					bool endsWithSep = normalized.EndsWith(Path.DirectorySeparatorChar);
+					
+					// Handle root directory case (like C:\)
+					bool isRootDir = false;
+					if (Utility.GetOperatingSystem() == OSPlatform.Windows)
+					{
+						// Check if this is a drive root (e.g., "C:\")
+						if (normalized.Length >= 2 && normalized[1] == ':' && 
+						   (normalized.Length == 2 || (normalized.Length == 3 && normalized[2] == Path.DirectorySeparatorChar)))
+						{
+							isRootDir = true;
+							normalized = normalized.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+						}
+					}
+					else
+					{
+						// For Unix systems, check if this is the root directory
+						if (normalized == "/" || normalized.EndsWith(":/"))
+						{
+							isRootDir = true;
+						}
+					}
+					
+					string baseDir;
+					string fragment;
+					
+					if (isRootDir)
+					{
+						baseDir = normalized;
+						fragment = string.Empty;
+					}
+					else
+					{
+						baseDir = endsWithSep ? normalized : Path.GetDirectoryName(normalized);
+						if ( string.IsNullOrEmpty(baseDir) )
+							baseDir = Path.GetPathRoot(normalized);
+						fragment = endsWithSep ? string.Empty : Path.GetFileName(normalized);
+					}
+
+					if ( !string.IsNullOrEmpty(baseDir) && Directory.Exists(baseDir) )
+					{
+						IEnumerable<string> dirs = Enumerable.Empty<string>();
+						try 
+						{ 
+							dirs = Directory.EnumerateDirectories(baseDir); 
+						} 
+						catch (Exception ex) 
+						{ 
+							Logger.LogVerbose($"Failed to enumerate directories in {baseDir}: {ex.Message}");
+						}
+						
+						if (string.IsNullOrEmpty(fragment))
+						{
+							// If no fragment, add all directories
+							results.AddRange(dirs);
+						}
+						else
+						{
+							// Filter directories by fragment
+							results.AddRange(dirs.Where(d => 
+								Path.GetFileName(d).IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0));
+						}
+					}
+					
+					return results as IList<string>;
+				}, token).ContinueWith(t =>
+				{
+					if ( token.IsCancellationRequested || t.IsFaulted ) return;
+					Dispatcher.UIThread.Post(() => 
+					{
+						// If this is the mod directory combo, preserve recent paths
+						if (combo.Name == "ModPathSuggestions" && combo.ItemsSource is IEnumerable<string> existingItems)
+						{
+							var newResults = t.Result.ToList();
+							
+							// Add any existing items that aren't already in the results
+							foreach (string item in existingItems)
+							{
+								if (!newResults.Contains(item) && Directory.Exists(item))
+								{
+									newResults.Add(item);
+								}
+							}
+							
+							var current = (combo.ItemsSource as IEnumerable<string>)?.ToList();
+							if (current is null || !current.SequenceEqual(newResults))
+								combo.ItemsSource = newResults;
+						}
+						else
+						{
+							var current = (combo.ItemsSource as IEnumerable<string>)?.ToList();
+							if (current is null || !current.SequenceEqual(t.Result))
+								combo.ItemsSource = t.Result;
+						}
+						
+						// Only auto-open when the corresponding TextBox has focus
+						if (t.Result.Count > 0 && input.IsKeyboardFocusWithin)
+							combo.IsDropDownOpen = true;
+					});
+				});
+			}
+			catch (Exception ex) 
+			{ 
+				Logger.LogVerbose($"Error updating path suggestions: {ex.Message}");
+			}
+		}
+
+		private void OnPathInputKeyDown(object sender, KeyEventArgs e)
+		{
+			try
+			{
+				if ( e.Key != Key.Enter ) return;
+				if ( !(sender is TextBox tb) ) return;
+				if ( _suppressPathEvents ) return;
+				string name = tb.Name ?? string.Empty;
+				if ( name == "ModPathInput" )
+					_ = TryApplySourcePath(tb.Text);
+				else if ( name == "InstallPathInput" )
+					_ = TryApplyInstallPath(tb.Text);
+			}
+			catch { }
+		}
+
+		// simplistic MRU using user settings file under AppData
+		private void AddToRecentMods(string path)
+		{
+			try
+			{
+				if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+					return;
+					
+				string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+				string folder = Path.Combine(appData, "KOTORModSync");
+				string file = Path.Combine(folder, "recent_mod_dirs.txt");
+				_ = Directory.CreateDirectory(folder);
+
+				// Read existing entries, limited to 20 most recent
+				List<string> existing = File.Exists(file) 
+					? new List<string>(File.ReadAllLines(file).Where(p => !string.IsNullOrWhiteSpace(p) && Directory.Exists(p)))
+					: new List<string>();
+
+				// Remove the path if it exists (to reinsert at the beginning)
+				_ = existing.Remove(path);
+				
+				// Add the new path at the beginning
+				existing.Insert(0, path);
+				
+				// Keep only the 20 most recent entries
+				if (existing.Count > 20)
+				{
+					existing = existing.Take(20).ToList();
+				}
+				
+				// Save to file
+				File.WriteAllLines(file, existing);
+				
+				// Intentionally do NOT mutate ComboBox.ItemsSource here
+				
+				// Update the path display
+				UpdatePathDisplays();
+			}
+			catch (Exception ex)
+			{
+				Logger.LogVerbose($"Error adding to recent mods: {ex.Message}");
+			}
+		}
+
+		[UsedImplicitly]
+		private async void BrowseModDir_Click(object sender, RoutedEventArgs e)
+		{
+			string[] result = await ShowFileDialog(isFolderDialog: true, windowName: "Select your mod directory");
+			if ( result?.Length > 0 )
+			{
+				TextBox modInput = this.FindControl<TextBox>("ModPathInput");
+				if (modInput != null)
+				{
+					modInput.Text = result[0];
+					if (TryApplySourcePath(result[0]))
+					{
+						UpdatePathDisplays();
+						
+						// Update suggestions
+						ComboBox modCombo = this.FindControl<ComboBox>("ModPathSuggestions");
+						if (modCombo != null)
+						{
+							UpdatePathSuggestions(modInput, modCombo, ref _modSuggestCts);
+						}
+					}
+				}
+			}
+		}
+
+		[UsedImplicitly]
+		private async void BrowseInstallDir_Click(object sender, RoutedEventArgs e)
+		{
+			string[] result = await ShowFileDialog(isFolderDialog: true, windowName: "Select your KOTOR directory");
+			if ( result?.Length > 0 )
+			{
+				TextBox installInput = this.FindControl<TextBox>("InstallPathInput");
+				if (installInput != null)
+				{
+					installInput.Text = result[0];
+					if (TryApplyInstallPath(result[0]))
+					{
+						UpdatePathDisplays();
+						
+						// Update suggestions
+						ComboBox installCombo = this.FindControl<ComboBox>("InstallPathSuggestions");
+						if (installCombo != null)
+						{
+							UpdatePathSuggestions(installInput, installCombo, ref _installSuggestCts);
+						}
+					}
+				}
+			}
+		}
+
 		public static List<Component> ComponentsList => MainConfig.AllComponents;
 
 		[CanBeNull]
@@ -132,7 +680,7 @@ namespace KOTORModSync
 
 		private bool _ignoreInternalTabChange { get; set; }
 
-		private ICommand ItemClickCommand => new RelayCommand(
+		private RelayCommand ItemClickCommand => new RelayCommand(
 			parameter =>
 			{
 				if ( parameter is Component component )
@@ -513,8 +1061,9 @@ namespace KOTORModSync
 			switch ( storageItem )
 			{
 				// Check if the storageItem is a file
-				case IStorageFile file when fileExt.Equals(value: ".toml", StringComparison.OrdinalIgnoreCase)
+				case IStorageFile _ when fileExt.Equals(value: ".toml", StringComparison.OrdinalIgnoreCase)
 					|| fileExt.Equals(value: ".tml", StringComparison.OrdinalIgnoreCase):
+
 					{
 						// File has .toml extension
 						if ( MainConfig.AllComponents.Count > 0 )
@@ -533,8 +1082,7 @@ namespace KOTORModSync
 						await ProcessComponentsAsync(MainConfig.AllComponents);
 						break;
 					}
-				case IStorageFile file:
-
+				case IStorageFile _:
 					(IArchive archive, FileStream archiveStream) = ArchiveHelper.OpenArchive(filePath);
 					if ( archive is null || archiveStream is null )
 						return;
@@ -543,7 +1091,7 @@ namespace KOTORModSync
 					await Logger.LogVerboseAsync(exePath);
 
 					break;
-				case IStorageFolder folder:
+				case IStorageFolder _:
 					// Handle folder logic
 					// Folder specific processing here
 					break;
@@ -757,8 +1305,7 @@ namespace KOTORModSync
 
 		[ItemCanBeNull]
 		private async Task<string> SaveFile(
-			string saveFileName = null,
-			[CanBeNull] IReadOnlyList<FilePickerFileType> defaultExts = null
+			string saveFileName = null
 		)
 		{
 			try
@@ -793,7 +1340,6 @@ namespace KOTORModSync
 		[CanBeNull]
 		private async Task<string[]> ShowFileDialog(
 			bool isFolderDialog,
-			[CanBeNull] IReadOnlyList<FilePickerFileType> filters = null,
 			bool allowMultiple = false,
 			IStorageFolder startFolder = null,
 			string windowName = null
@@ -921,7 +1467,6 @@ namespace KOTORModSync
 				string[] result = await ShowFileDialog(
 					windowName: "Load the TOML instruction file you've downloaded/created",
 					isFolderDialog: false
-					//filters: filters //TODO: fix filters, don't seem to work on all operating systems.
 				);
 				if ( result is null || result.Length <= 0 )
 					return;
@@ -1053,7 +1598,7 @@ namespace KOTORModSync
 				}
 
 				await Logger.LogVerboseAsync($"Selected files: [{string.Join($",{Environment.NewLine}", filePaths)}]");
-				var files = filePaths.ToList();
+				List<string> files = filePaths.ToList();
 				if ( files.Count == 0 )
 				{
 					_ = Logger.LogVerboseAsync( "No files chosen in BrowseSourceFiles_Click, returning to previous values" );
@@ -1063,7 +1608,7 @@ namespace KOTORModSync
 				if ( files.IsNullOrEmptyOrAllNull() )
 				{
 					throw new ArgumentOutOfRangeException(
-						nameof( files ),
+						nameof(sender),
 						$"Invalid files found. Please report this issue to the developer: [{string.Join(separator: ",", files)}]"
 					);
 				}
@@ -1434,85 +1979,72 @@ namespace KOTORModSync
 
 				bool holopatcherIsExecutable = true;
 				bool holopatcherTestExecute = true;
-				if ( MainConfig.PatcherOption == MainConfig.AvailablePatchers.HoloPatcher )
+				string baseDir = Utility.GetBaseDirectory();
+				string resourcesDir = Utility.GetResourcesDirectory(baseDir);
+				FileSystemInfo patcherCliPath = null;
+				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 				{
-					holopatcherTestExecute = false;
-					string baseDir = Utility.GetBaseDirectory();
-					string resourcesDir = Utility.GetResourcesDirectory(baseDir);
-					FileSystemInfo patcherCliPath = null;
-					if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
+					patcherCliPath = new FileInfo(Path.Combine(resourcesDir, path2: "holopatcher.exe"));
+				}
+				else
+				{
+					// Handling OSX specific paths
+					// FIXME: .app's aren't accepting command-line arguments correctly.
+					string[] possibleOSXPaths =
 					{
-						patcherCliPath = new FileInfo(Path.Combine(resourcesDir, path2: "holopatcher.exe"));
-					}
-					else
+						Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
+						Path.Combine(resourcesDir, path2: "holopatcher"),
+						Path.Combine(
+							baseDir,
+							"Resources",
+							"HoloPatcher.app",
+							"Contents",
+							"MacOS",
+							"holopatcher"
+						),
+						Path.Combine(baseDir, path2: "Resources", path3: "holopatcher"),
+					};
+
+					OSPlatform thisOperatingSystem = Utility.GetOperatingSystem();
+					foreach ( string path in possibleOSXPaths )
 					{
-						// Handling OSX specific paths
-						// FIXME: .app's aren't accepting command-line arguments correctly.
-						string[] possibleOSXPaths =
+						patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app")
+							? PathHelper.GetCaseSensitivePath(new DirectoryInfo(path))
+							: (FileSystemInfo)PathHelper.GetCaseSensitivePath(new FileInfo(path));
+
+						if ( patcherCliPath.Exists )
 						{
-							Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
-							Path.Combine(resourcesDir, path2: "holopatcher"),
-							Path.Combine(
-								baseDir,
-								"Resources",
-								"HoloPatcher.app",
-								"Contents",
-								"MacOS",
-								"holopatcher"
-							),
-							Path.Combine(baseDir, path2: "Resources", path3: "holopatcher"),
-						};
-
-						OSPlatform thisOperatingSystem = Utility.GetOperatingSystem();
-						foreach ( string path in possibleOSXPaths )
-						{
-							if ( thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app") )
-							{
-								patcherCliPath = PathHelper.GetCaseSensitivePath(new DirectoryInfo(path));
-							}
-							else
-							{
-								patcherCliPath = PathHelper.GetCaseSensitivePath(new FileInfo(path));
-							}
-
-							if ( patcherCliPath.Exists )
-							{
-								await Logger.LogVerboseAsync($"Found holopatcher at '{patcherCliPath.FullName}'...");
-								break;
-							}
-
-							await Logger.LogVerboseAsync($"Holopatcher not found at '{patcherCliPath.FullName}'...");
+							await Logger.LogVerboseAsync($"Found holopatcher at '{patcherCliPath.FullName}'...");
+							break;
 						}
+
+						await Logger.LogVerboseAsync($"Holopatcher not found at '{patcherCliPath.FullName}'...");
 					}
-
-					if ( patcherCliPath is null || !patcherCliPath.Exists )
-					{
-						return (false,
-							"HoloPatcher could not be found in the Resources directory. Please ensure your AV isn't quarantining it and the file exists.");
-					}
-
-					//await Logger.LogVerboseAsync("Ensuring the holopatcher binary has executable permissions...");
-					//try
-					//{
-					//	await PlatformAgnosticMethods.MakeExecutableAsync(patcherCliPath);
-					//}
-					//catch ( Exception e )
-					//{
-					//	await Logger.LogExceptionAsync(e);
-					//	holopatcherIsExecutable = false;
-					//}
-
-					(int, string, string) result = await PlatformAgnosticMethods.ExecuteProcessAsync(
-						patcherCliPath.FullName,
-						args: "--install"
-					);
-					if ( result.Item1 == 2 ) // should return syntax error code since we passed no arguments
-						holopatcherTestExecute = true;
 				}
-				else if ( !(Utility.GetOperatingSystem() == OSPlatform.Windows) )
+
+				if ( patcherCliPath is null || !patcherCliPath.Exists )
 				{
-					return (false, "TSLPatcher is not supported on non-windows operating systems, please use the HoloPatcher patcher option.");
+					return (false,
+						"HoloPatcher could not be found in the Resources directory. Please ensure your AV isn't quarantining it and the file exists.");
 				}
+
+				await Logger.LogVerboseAsync("Ensuring the holopatcher binary has executable permissions...");
+				try
+				{
+					await PlatformAgnosticMethods.MakeExecutableAsync(patcherCliPath);
+				}
+				catch ( Exception e )
+				{
+					await Logger.LogExceptionAsync(e);
+					holopatcherIsExecutable = false;
+				}
+
+				(int, string, string) result = await PlatformAgnosticMethods.ExecuteProcessAsync(
+					patcherCliPath.FullName,
+					args: "--install"
+				);
+				if ( result.Item1 == 2 ) // should return syntax error code since we passed no arguments
+					holopatcherTestExecute = true;
 
 				if ( MainConfig.AllComponents.IsNullOrEmptyCollection() )
 					return (false, "No instructions loaded! Press 'Load Instructions File' or create some instructions first.");
@@ -1659,7 +2191,7 @@ namespace KOTORModSync
 				}
 
 				// ReSharper disable once InvertIf
-				if ( fileSystemInfos.Any() )
+				if ( fileSystemInfos.Count != 0 )
 				{
 					informationMessage =
 						"You have duplicate files/folders in your installation directory in a case-insensitive environment."
@@ -1742,7 +2274,9 @@ namespace KOTORModSync
 						this,
 						$"Cannot remove '{CurrentComponent.Name}', there are several components that rely on it. Please address this problem first. {Environment.NewLine} Continue removing anyway?"
 					) != true )
+					{
 						return;
+					}
 				}
 
 				// Remove the selected component from the collection
@@ -1947,19 +2481,33 @@ namespace KOTORModSync
 					return;
 				}
 
-				if ( await ConfirmationDialog.ShowConfirmationDialog(
-						this,
-						$"Are you certain you'd like to use the patcher '{MainConfig.PatcherOption}' for all mods? If not, please choose one now on the right before proceeding."
-					)
-					!= true )
-				{
-					return;
-				}
-
 				if ( await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really install all mods?") != true )
 					return;
 
 				var progressWindow = new ProgressWindow { ProgressBar = { Value = 0 }, Topmost = true };
+				DateTime installStartTime = DateTime.UtcNow;
+				int warningCount = 0;
+				int errorCount = 0;
+				void logCounter(string message)
+				{
+					try
+					{
+						if ( string.IsNullOrEmpty(message) )
+							return;
+						// Logged message format: [timestamp] [Warning]/[Error] ...
+						if ( message.IndexOf("[Warning]", StringComparison.OrdinalIgnoreCase) >= 0 )
+							warningCount++;
+						if ( message.IndexOf("[Error]", StringComparison.OrdinalIgnoreCase) >= 0 )
+							errorCount++;
+					}
+					catch { /* best effort */ }
+				}
+				void exceptionCounter(Exception _) { try { errorCount++; } catch { } }
+				Logger.Logged += logCounter;
+				Logger.ExceptionLogged += exceptionCounter;
+				progressWindow.CancelRequested += (_, __) =>
+					// Trigger existing closing flow which asks for confirmation
+					progressWindow.Close();
 
 				bool isClosingProgressWindow = false;
 				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
@@ -2027,11 +2575,18 @@ namespace KOTORModSync
 									+ Environment.NewLine
 									+ component.Directions;
 
-								double percentComplete = (double)index / selectedMods.Count;
-								progressWindow.ProgressBar.Value = percentComplete;
-								progressWindow.InstalledRemaining.Text = $"{index}/{selectedMods.Count} Total Installed";
-								progressWindow.PercentCompleted.Text = $"{Math.Round(percentComplete * 100)}%";
+								double percentComplete = selectedMods.Count == 0 ? 0 : (double)index / selectedMods.Count;
 								progressWindow.Topmost = true;
+								int installedCount = index;
+								progressWindow.UpdateMetrics(
+									percentComplete,
+									installedCount,
+									selectedMods.Count,
+									installStartTime,
+									warningCount,
+									errorCount,
+									component.Name
+								);
 
 								// Additional fallback options
 								await Task.Delay(millisecondsDelay: 100); // Introduce a small delay
@@ -2098,6 +2653,9 @@ namespace KOTORModSync
 					_installRunning = false;
 					isClosingProgressWindow = true;
 					progressWindow.Close();
+					// Unsubscribe metrics counters
+					Logger.Logged -= logCounter;
+					Logger.ExceptionLogged -= exceptionCounter;
 				}
 			}
 			catch ( Exception ex )
@@ -2135,8 +2693,7 @@ namespace KOTORModSync
 			try
 			{
 				string file = await SaveFile(
-					saveFileName: "mod_documentation.txt",
-					new List<FilePickerFileType> { FilePickerFileTypes.TextPlain }
+					saveFileName: "mod_documentation.txt"
 				);
 
 				if ( file is null )
@@ -2346,7 +2903,7 @@ namespace KOTORModSync
 
 				// Assign to instruction.
 				thisInstruction.Arguments = index.ToString();
-				thisInstruction.Action = Instruction.ActionType.TSLPatcher;
+				thisInstruction.Action = Instruction.ActionType.Patcher;
 			}
 			catch ( Exception exception )
 			{
@@ -2578,8 +3135,7 @@ namespace KOTORModSync
 			try
 			{
 				string filePath = await SaveFile(
-					saveFileName: "my_toml_instructions.toml",
-					new List<FilePickerFileType> { new FilePickerFileType("toml"), new FilePickerFileType("tml") }
+					saveFileName: "my_toml_instructions.toml"
 				);
 				if ( filePath is null )
 					return;
@@ -2800,7 +3356,7 @@ namespace KOTORModSync
 		}
 
 		[NotNull]
-		private Control CreateComponentHeader([NotNull] Component component, int index)
+		private Grid CreateComponentHeader([NotNull] Component component, int index)
 		{
 			if ( component is null )
 				throw new ArgumentNullException(nameof( component ));
@@ -2990,7 +3546,7 @@ namespace KOTORModSync
 			return rootItem;
 		}
 
-		private async Task ProcessComponentsAsync([NotNull][ItemNotNull] IReadOnlyList<Component> componentsList)
+		private async Task ProcessComponentsAsync([NotNull][ItemNotNull] List<Component> componentsList)
 		{
 			try
 			{
@@ -3207,20 +3763,8 @@ namespace KOTORModSync
 					return;
 				}
 
-				// clear existing style before adding a new one.
-				Styles.Clear();
-				Styles.Add(new FluentTheme());
-				Styles.Clear();
 
-				if ( !stylePath.Equals(value: "default", StringComparison.OrdinalIgnoreCase) )
-				{
-					// Apply the selected style dynamically
-					var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
-					Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
-				}
-
-				// manually update each control in the main window.
-				// TraverseControls( this, comboBox );
+				ThemeManager.UpdateStyle(stylePath);
 			}
 			catch ( Exception exception )
 			{

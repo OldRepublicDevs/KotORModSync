@@ -19,7 +19,7 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class ConfirmMessageTestReplace
 	{
-		private string _testDirectoryPath;
+		private string? _testDirectoryPath;
 
 		[SetUp]
 		public void SetUp()
@@ -29,35 +29,40 @@ namespace KOTORModSync.Tests
 		}
 
 		[TearDown]
-		public void TearDown() => Directory.Delete(_testDirectoryPath, true);
+		public void TearDown()
+		{
+			if (_testDirectoryPath != null)
+			{
+				Directory.Delete(_testDirectoryPath, true);
+			}
+		}
 
 		[Test]
-		public void DisableConfirmations_NullDirectory_ThrowsArgumentNullException()
-		{
-			Assert.Throws<ArgumentNullException>(() => IniHelper.ReplaceIniPattern(null!, pattern:@"^\s*ConfirmMessage\s*=\s*.*$", replacement:"ConfirmMessage=N/A"));
-		}
+		public void DisableConfirmations_NullDirectory_ThrowsArgumentNullException() => _ = Assert.Throws<ArgumentNullException>(() => IniHelper.ReplaceIniPattern(null!, pattern: @"^\s*ConfirmMessage\s*=\s*.*$", replacement: "ConfirmMessage=N/A"));
 
 		[Test]
 		public void DisableConfirmations_NoIniFiles_ThrowsInvalidOperationException()
 		{
-			DirectoryInfo directory = new DirectoryInfo(_testDirectoryPath);
+			Assert.That(_testDirectoryPath, Is.Not.Null);
+			var directory = new DirectoryInfo(_testDirectoryPath!);
 
-			Assert.Throws<InvalidOperationException>(() => IniHelper.ReplaceIniPattern(directory, pattern:@"^\s*ConfirmMessage\s*=\s*.*$", replacement:"ConfirmMessage=N/A"));
+			_ = Assert.Throws<InvalidOperationException>(() => IniHelper.ReplaceIniPattern(directory, pattern: @"^\s*ConfirmMessage\s*=\s*.*$", replacement: "ConfirmMessage=N/A"));
 		}
 
 		[Test]
 		public void DisableConfirmations_ConfirmMessageExists_ReplacesWithN_A()
 		{
+			Assert.That(_testDirectoryPath, Is.Not.Null);
 			const string iniFileName = "sample.ini";
 			const string content = "[Settings]\nConfirmMessage=suffer the consequences by proceeding. Continue anyway?";
 
-			File.WriteAllText(Path.Combine(_testDirectoryPath, iniFileName), content);
+			File.WriteAllText(Path.Combine(_testDirectoryPath!, iniFileName), content);
 
-			var directory = new DirectoryInfo(_testDirectoryPath);
+			var directory = new DirectoryInfo(_testDirectoryPath!);
 
 			IniHelper.ReplaceIniPattern(directory, pattern:@"^\s*ConfirmMessage\s*=\s*.*$", replacement:"ConfirmMessage=N/A");
 
-			string modifiedContent = File.ReadAllText(Path.Combine(_testDirectoryPath, iniFileName));
+			string modifiedContent = File.ReadAllText(Path.Combine(_testDirectoryPath!, iniFileName));
 			Assert.That(modifiedContent, Does.Contain("ConfirmMessage=N/A"));
 		}
 	}

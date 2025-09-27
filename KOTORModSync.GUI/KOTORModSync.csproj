@@ -55,7 +55,7 @@
 
   <!-- Customization -->
   <ItemGroup>
-    <Content Include="icon53.ico" />
+    <EmbeddedResource Include="icon53.ico" />
     <None Include="Info.plist" Pack="true" PackagePath="Contents\" /> <!-- For .app packaging on mac os -->
   </ItemGroup>
   <ItemGroup>
@@ -73,14 +73,14 @@
   <ItemGroup>
     <ProjectCapability Include="Avalonia" />
     <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
-    <PackageReference Include="Avalonia" Version="11.0.7" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.0.7" />
-    <PackageReference Include="Avalonia.LinuxFramebuffer" Version="11.0.7" />
-    <PackageReference Include="Avalonia.Controls.ItemsRepeater" Version="11.0.7" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.7" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.7" />
+    <PackageReference Include="Avalonia" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
+    <PackageReference Include="Avalonia.LinuxFramebuffer" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Controls.ItemsRepeater" Version="11.1.5" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.7" />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.5" />
     <PackageReference Include="Dotnet.Bundle" Version="*" />
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +91,18 @@
         <Generator>MSBuild:Compile</Generator>
     </AvaloniaXaml>
     <AvaloniaXaml Update="Styles\KotorStyle.axaml">
+        <Generator>MSBuild:Compile</Generator>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Controls\ActionButtonsControl.axaml">
+        <Generator>MSBuild:Compile</Generator>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Controls\BrowseButtonsControl.axaml">
+        <Generator>MSBuild:Compile</Generator>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Controls\InstructionEditorControl.axaml">
+        <Generator>MSBuild:Compile</Generator>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Controls\OptionEditorControl.axaml">
         <Generator>MSBuild:Compile</Generator>
     </AvaloniaXaml>
   </ItemGroup>
@@ -109,6 +121,18 @@
     </Compile>
     <Compile Update="Controls\DependencyControl.axaml.cs">
       <DependentUpon>DependencyControl.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\ActionButtonsControl.axaml.cs">
+      <DependentUpon>ActionButtonsControl.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\BrowseButtonsControl.axaml.cs">
+      <DependentUpon>BrowseButtonsControl.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\InstructionEditorControl.axaml.cs">
+      <DependentUpon>InstructionEditorControl.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\OptionEditorControl.axaml.cs">
+      <DependentUpon>OptionEditorControl.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' ">

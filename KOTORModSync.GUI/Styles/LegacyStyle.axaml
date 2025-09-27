@@ -5,6 +5,13 @@
             <!-- Add Controls for Previewer Here -->
         </Border>
     </Design.PreviewWith>
+    <!-- AutoCompleteBox validity colors shown only when focused -->
+    <Style Selector="AutoCompleteBox:focus.invalid /template/ Border#PART_Border">
+        <Setter Property="BorderBrush" Value="#C62828" />
+    </Style>
+    <Style Selector="AutoCompleteBox:focus.valid /template/ Border#PART_Border">
+        <Setter Property="BorderBrush" Value="#2E7D32" />
+    </Style>
     <Style Selector="TextBlock">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="Normal" />

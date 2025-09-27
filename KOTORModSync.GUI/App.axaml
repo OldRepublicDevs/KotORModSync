@@ -4,5 +4,7 @@
              RequestedThemeVariant="Light">
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://KOTORModSync/Styles/KotorStyle.axaml" />
+        <StyleInclude Source="avares://KOTORModSync/Styles/ContentPresenterFix.axaml" />
     </Application.Styles>
 </Application>

@@ -131,10 +131,7 @@ namespace KOTORModSync
 				}
 			);
 
-			if ( tcs is null )
-				throw new NullReferenceException(nameof( tcs ));
-
-			return await tcs.Task;
+			return tcs is null ? throw new NullReferenceException(nameof( tcs )) : await tcs.Task;
 		}
 	}
 }

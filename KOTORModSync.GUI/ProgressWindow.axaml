@@ -1,17 +1,99 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        SizeToContent="Height"
-        Title="Progress Window" Width="600" Height="400"
-        x:Class="KOTORModSync.ProgressWindow">
-    <StackPanel>
-        <TextBlock x:Name="ProgressTextBlock" HorizontalAlignment="Center" VerticalAlignment="Center"
-                   TextAlignment="Center" FontSize="16" TextWrapping="Wrap"
-                   Margin="10" />
-        <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="1" Value="0" HorizontalAlignment="Center"
-                     VerticalAlignment="Bottom" Width="200" Margin="10" />
-        <DockPanel Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock x:Name="PercentCompleted" Text="0%" Margin="10" TextAlignment="Center" />
-            <TextBlock x:Name="InstalledRemaining" Text="0/0 Components Installed" Margin="10" TextAlignment="Center" />
-        </DockPanel>
-    </StackPanel>
+        x:Class="KOTORModSync.ProgressWindow"
+        Title="Installing Mods"
+        Width="800" Height="520"
+        SizeToContent="Manual"
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="#000000"
+                    TintOpacity="1"
+                    MaterialOpacity="0.65" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+
+        <Border Margin="16" Padding="16" CornerRadius="8" Background="#1A000000">
+            <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" ColumnDefinitions="*">
+                <!-- Header -->
+                <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,12">
+                    <TextBlock Text="Installing mods" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                        <TextBlock x:Name="PercentCompleted" Text="0%" VerticalAlignment="Center" />
+                        <TextBlock Text="|" Margin="2,0" />
+                        <TextBlock x:Name="InstalledRemaining" Text="0/0 Total Installed" VerticalAlignment="Center" />
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- Progress message / directions -->
+                <Border Grid.Row="1" CornerRadius="6" Padding="12" Background="#26000000">
+                    <ScrollViewer MaxHeight="120">
+                        <TextBlock x:Name="ProgressTextBlock"
+                                   FontSize="14"
+                                   TextAlignment="Left"
+                                   TextWrapping="Wrap"
+                                   Margin="0" />
+                    </ScrollViewer>
+                </Border>
+
+                <!-- Progress bars -->
+                <StackPanel Grid.Row="2" Margin="0,12,0,12" Spacing="8">
+                    <ProgressBar x:Name="ProgressBar"
+                                 Minimum="0" Maximum="1" Value="0"
+                                 Height="18" ShowProgressText="True" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Current step:" />
+                        <TextBlock x:Name="CurrentOperationText" Text="Preparing..." />
+                    </StackPanel>
+                    <ProgressBar x:Name="CurrentStepProgress" IsIndeterminate="True" Height="6" />
+                </StackPanel>
+
+                <!-- Metrics grid -->
+                <Grid Grid.Row="3" ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto" Margin="0,0,0,12">
+                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
+                        <TextBlock Text="Elapsed" FontWeight="Bold" />
+                        <TextBlock x:Name="ElapsedText" Text="00:00:00" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2">
+                        <TextBlock Text="Remaining (est.)" FontWeight="Bold" />
+                        <TextBlock x:Name="RemainingText" Text="--:--:--" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Spacing="2">
+                        <TextBlock Text="Rate" FontWeight="Bold" />
+                        <TextBlock x:Name="RateText" Text="0 mods/min" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="3" Spacing="2">
+                        <TextBlock Text="Components" FontWeight="Bold" />
+                        <TextBlock x:Name="ComponentsSummaryText" Text="0 of 0" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2">
+                        <TextBlock Text="Warnings" FontWeight="Bold" />
+                        <TextBlock x:Name="WarningsText" Text="0" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
+                        <TextBlock Text="Errors" FontWeight="Bold" />
+                        <TextBlock x:Name="ErrorsText" Text="0" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2" Grid.ColumnSpan="2">
+                        <TextBlock Text="Stage" FontWeight="Bold" />
+                        <TextBlock x:Name="StageText" Text="Installing" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Footer / actions -->
+                <DockPanel Grid.Row="4">
+                    <TextBlock Text="Do not close this window while installation is in progress." VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel" Click="OnCancelClick" MinWidth="100" />
+                    </StackPanel>
+                </DockPanel>
+            </Grid>
+        </Border>
+    </Panel>
 </Window>

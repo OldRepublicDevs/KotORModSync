@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KOTORModSync.Controls.BrowseButtonsControl">
+    <StackPanel>
+        <Button HorizontalAlignment="Stretch"
+                Content="Browse Files"
+                Click="BrowseSourceFiles_Click"
+                Tag="{Binding ElementName=SourceTextBox}" />
+        <Button HorizontalAlignment="Stretch"
+                Content="Browse Folder"
+                Click="BrowseSourceFromFolders_Click"
+                Tag="{Binding ElementName=SourceTextBox}" />
+    </StackPanel>
+</UserControl>

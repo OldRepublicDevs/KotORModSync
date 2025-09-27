@@ -132,7 +132,7 @@ namespace KOTORModSync.Core
 							continue;
 						case Instruction.ActionType.Execute:
 							break;
-						case Instruction.ActionType.TSLPatcher:
+						case Instruction.ActionType.Patcher:
 							break;
 						case Instruction.ActionType.Move:
 							break;
@@ -143,8 +143,6 @@ namespace KOTORModSync.Core
 						case Instruction.ActionType.Delete:
 							break;
 						case Instruction.ActionType.DelDuplicate:
-							break;
-						case Instruction.ActionType.HoloPatcher:
 							break;
 						case Instruction.ActionType.Run:
 							break;
@@ -172,11 +170,11 @@ namespace KOTORModSync.Core
 
 						// ensure tslpatcher.exe sourcePaths use the action 'tslpatcher'
 						if ( sourcePath.EndsWith(value: "tslpatcher.exe", StringComparison.OrdinalIgnoreCase)
-							&& instruction.Action != Instruction.ActionType.TSLPatcher )
+							&& instruction.Action != Instruction.ActionType.Patcher )
 						{
 							AddWarning(
 								message:
-								"'tslpatcher.exe' used in Source path without the action 'tslpatcher', was this intentional?",
+								"'tslpatcher.exe' used in Source path without the ActionType 'Patcher', was this intentional?",
 								instruction
 							);
 						}
@@ -305,17 +303,17 @@ namespace KOTORModSync.Core
 				{
 					case Instruction.ActionType.Unset:
 						continue;
-					// tslpatcher must always use <<kotorDirectory>> and nothing else.
-					case Instruction.ActionType.TSLPatcher when string.IsNullOrEmpty(instruction.Destination):
+					// patcher must always use <<kotorDirectory>> and nothing else.
+					case Instruction.ActionType.Patcher when string.IsNullOrEmpty(instruction.Destination):
 						AddWarning(
 							message:
-							"Destination must be <<kotorDirectory>> with 'TSLPatcher' action, setting it now automatically.",
+							"Destination must be <<kotorDirectory>> with 'Patcher' action, setting it now automatically.",
 							instruction
 						);
 						instruction.Destination = "<<kotorDirectory>>";
 						break;
 
-					case Instruction.ActionType.TSLPatcher when !instruction.Destination.Equals(
+					case Instruction.ActionType.Patcher when !instruction.Destination.Equals(
 						value: "<<kotorDirectory>>",
 						StringComparison.OrdinalIgnoreCase
 					):
@@ -378,7 +376,6 @@ namespace KOTORModSync.Core
 					case Instruction.ActionType.Move:
 					case Instruction.ActionType.Copy:
 					case Instruction.ActionType.DelDuplicate:
-					case Instruction.ActionType.HoloPatcher:
 					default:
 						string destinationPath = null;
 						if ( !string.IsNullOrEmpty(instruction.Destination) )

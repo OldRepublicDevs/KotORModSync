@@ -92,7 +92,6 @@ namespace KOTORModSync.Core
 		[NotNull] private string _name = string.Empty;
 
 		[NotNull] private ObservableCollection<Option> _options = new ObservableCollection<Option>();
-		[NotNull] private string _requiredPatcher = string.Empty;
 
 		[NotNull] private List<Guid> _restrictions = new List<Guid>();
 
@@ -286,6 +285,10 @@ namespace KOTORModSync.Core
 				OnPropertyChanged();
 			}
 		}
+		private static readonly string[] s_separator = new[]
+						{
+							"\r\n", "\n",
+						};
 
 		// used for the ui.
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -322,8 +325,7 @@ namespace KOTORModSync.Core
 
 		private static StringBuilder FixSerializedTomlDict(
 			[NotNull] Dictionary<string, object> serializedComponentDict,
-			[CanBeNull] StringBuilder tomlString = null,
-			[CanBeNull] List<string> nestedKeys = null
+			[CanBeNull] StringBuilder tomlString = null
 		)
 		{
 			if ( serializedComponentDict is null )
@@ -408,10 +410,7 @@ namespace KOTORModSync.Core
 				else
 				{
 					ModLink = modLink.Split(
-						new[]
-						{
-							"\r\n", "\n",
-						},
+						s_separator,
 						StringSplitOptions.None
 					).ToList();
 				}
@@ -554,7 +553,15 @@ namespace KOTORModSync.Core
 
 				var instruction = new Instruction();
 				string strAction = GetValueOrDefault<string>(instructionDict, key: "Action");
-				if ( Enum.TryParse(strAction, ignoreCase: true, out Instruction.ActionType action) )
+				
+				// Handle backward compatibility for TSLPatcher and HoloPatcher -> Patcher
+				if (string.Equals(strAction, "TSLPatcher", StringComparison.OrdinalIgnoreCase) ||
+				    string.Equals(strAction, "HoloPatcher", StringComparison.OrdinalIgnoreCase))
+				{
+					instruction.Action = Instruction.ActionType.Patcher;
+					_ = Logger.LogAsync($" -- Deserialize instruction #{index + 1} action '{strAction}' -> Patcher (backward compatibility)");
+				}
+				else if ( Enum.TryParse(strAction, ignoreCase: true, out Instruction.ActionType action) )
 				{
 					instruction.Action = action;
 					_ = Logger.LogAsync($" -- Deserialize instruction #{index + 1} action '{action}'");
@@ -739,27 +746,22 @@ namespace KOTORModSync.Core
 					{
 						foreach ( object item in enumerableValue )
 						{
-							if ( listElementType == typeof( Guid )
-								&& Guid.TryParse(item?.ToString(), out Guid guidItem) )
-							{
-								addMethod?.Invoke(
+							_ = listElementType == typeof( Guid )
+								&& Guid.TryParse(item?.ToString(), out Guid guidItem)
+								? (addMethod?.Invoke(
 									list,
 									new[]
 									{
 										(object)guidItem,
 									}
-								);
-							}
-							else
-							{
-								addMethod?.Invoke(
+								))
+								: (addMethod?.Invoke(
 									list,
 									new[]
 									{
 										item,
 									}
-								);
-							}
+								));
 						}
 					}
 					else
@@ -827,7 +829,7 @@ namespace KOTORModSync.Core
 			}
 
 			// Get the array of Component tables
-			IDictionary<string, object> tomlTable = tomlDocument.ToModel();
+			TomlTable tomlTable = tomlDocument.ToModel();
 
 			IList<TomlTable> componentTableThing = new List<TomlTable>();
 			switch ( tomlTable["thisMod"] )
@@ -893,7 +895,7 @@ namespace KOTORModSync.Core
 					}
 				}
 
-				IDictionary<string, object> tomlTable = tomlDocument.ToModel();
+				TomlTable tomlTable = tomlDocument.ToModel();
 
 				// Get the array of Component tables
 				var componentTables = (IList<TomlTable>)tomlTable[key: "thisMod"];
@@ -954,7 +956,7 @@ namespace KOTORModSync.Core
 		}
 
 		private async Task<(InstallExitCode, Dictionary<SHA1, FileInfo>)> ExecuteInstructionsAsync(
-			[NotNull][ItemNotNull] IList<Instruction> theseInstructions,
+			[NotNull][ItemNotNull] ObservableCollection<Instruction> theseInstructions,
 			[NotNull][ItemNotNull] List<Component> componentsList
 		)
 		{
@@ -1045,8 +1047,7 @@ namespace KOTORModSync.Core
 						instruction.SetRealPaths(noValidate: true);
 						exitCode = instruction.RenameFile();
 						break;
-					case Instruction.ActionType.HoloPatcher:
-					case Instruction.ActionType.TSLPatcher:
+					case Instruction.ActionType.Patcher:
 						instruction.SetRealPaths();
 						exitCode = await instruction.ExecuteTSLPatcherAsync();
 						break;

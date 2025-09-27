@@ -125,6 +125,7 @@
         <Setter Property="Background" Value="#031332" />
         <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
+
     <Style Selector="CheckBox:pointerover">
         <Setter Property="Foreground" Value="#3AAAFF" />
         <Setter Property="BorderBrush" Value="#FFFFFF" />

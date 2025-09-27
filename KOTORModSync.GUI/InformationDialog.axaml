@@ -1,25 +1,39 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="KOTORModSync.InformationDialog"
-        Title="Information" Width="400" Height="300" WindowStartupLocation="CenterScreen">
-    <Grid RowDefinitions="*,*,*">
-        <TextBlock x:Name="TitleTextBlock"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="16"
-                   Text="{Binding Title}"
-                   Margin="10"
-                   Grid.Row="0" />
-        <TextBlock x:Name="InfoTextBlock"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="16"
-                   TextWrapping="Wrap"
-                   Margin="10"
-                   Grid.Row="1" />
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                    Margin="10">
-            <Button Content="OK" Click="OKButton_Click" MinWidth="80" Margin="5" />
-        </StackPanel>
-    </Grid>
+        Title="Information" Width="460" Height="300" WindowStartupLocation="CenterScreen"
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial BackgroundSource="Digger" TintColor="#000000" TintOpacity="1" MaterialOpacity="0.65" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+
+        <Border Margin="16" Padding="16" CornerRadius="8" Background="#1A000000">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <TextBlock x:Name="TitleTextBlock"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           FontSize="18" FontWeight="Bold"
+                           Text="{Binding Title}"
+                           Margin="0,0,0,8"
+                           Grid.Row="0" />
+
+                <ScrollViewer Grid.Row="1" MaxHeight="180">
+                    <TextBlock x:Name="InfoTextBlock"
+                               HorizontalAlignment="Stretch"
+                               VerticalAlignment="Top"
+                               FontSize="14"
+                               TextWrapping="Wrap" />
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="OK" Click="OKButton_Click" MinWidth="100" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Panel>
 </Window>

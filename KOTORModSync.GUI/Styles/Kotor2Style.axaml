@@ -125,6 +125,13 @@
         <Setter Property="Background" Value="#09241D" />
         <Setter Property="Foreground" Value="#33C3A2" />
     </Style>
+    <!-- AutoCompleteBox validity colors shown only when focused -->
+    <Style Selector="AutoCompleteBox:focus.invalid /template/ Border#PART_Border">
+        <Setter Property="BorderBrush" Value="#C62828" />
+    </Style>
+    <Style Selector="AutoCompleteBox:focus.valid /template/ Border#PART_Border">
+        <Setter Property="BorderBrush" Value="#2E7D32" />
+    </Style>
     <Style Selector="CheckBox:pointerover">
         <Setter Property="Foreground" Value="#43FFD4" />
         <Setter Property="BorderBrush" Value="#43FFD4" />

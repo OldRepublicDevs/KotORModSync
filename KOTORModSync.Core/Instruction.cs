@@ -55,14 +55,13 @@ namespace KOTORModSync.Core
 			Unset,
 			Extract,
 			Execute,
-			TSLPatcher,
+			Patcher,
 			Move,
 			Copy,
 			Rename,
 			Delete,
 			DelDuplicate,
 			Choose,
-			HoloPatcher,
 			Run,
 		}
 
@@ -577,13 +576,13 @@ namespace KOTORModSync.Core
 						$"Skipping '{fileName}' Reason: fileNameWithoutExtension is null/empty somehow?"
 					);
 				}
-				else if ( !fileNameCounts.ContainsKey(fileNameWithoutExtension) )
+				else if ( !fileNameCounts.TryGetValue(fileNameWithoutExtension, out int value) )
 				{
 					_ = Logger.LogVerboseAsync(
 						$"Skipping '{fileName}' Reason: Not present in dictionary, ergo does not have a desired extension."
 					);
 				}
-				else if ( fileNameCounts[fileNameWithoutExtension] <= 1 )
+				else if ( value <= 1 )
 				{
 					_ = Logger.LogVerboseAsync(
 						$"Skipping '{fileName}' Reason: '{fileNameWithoutExtension}' is the only file with this name."
@@ -1012,67 +1011,51 @@ namespace KOTORModSync.Core
 
 					
 					FileSystemInfo patcherCliPath = null;
-					switch ( MainConfig.PatcherOption )
+
+					string baseDir = Utility.Utility.GetBaseDirectory();
+					string resourcesDir = Utility.Utility.GetResourcesDirectory(baseDir);
+					if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
 					{
-						case MainConfig.AvailablePatchers.HoloPatcher:
-							string baseDir = Utility.Utility.GetBaseDirectory();
-							string resourcesDir = Utility.Utility.GetResourcesDirectory(baseDir);
-							if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
-							{
-								patcherCliPath = new FileInfo(Path.Combine(resourcesDir, "holopatcher.exe"));
-							}
-							else
-							{
-								// Handling OSX specific paths
-								// FIXME: .app's aren't accepting command-line arguments correctly.
-								string[] possibleOSXPaths = {
-									Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
-									Path.Combine(resourcesDir, "holopatcher"),
-									Path.Combine(baseDir, "Resources", "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
-									Path.Combine(baseDir, "Resources", "holopatcher")
-								};
+						patcherCliPath = new FileInfo(Path.Combine(resourcesDir, "holopatcher.exe"));
+					}
+					else
+					{
+						// Handling OSX specific paths
+						// FIXME: .app's aren't accepting command-line arguments correctly.
+						string[] possibleOSXPaths = {
+							Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
+							Path.Combine(resourcesDir, "holopatcher"),
+							Path.Combine(baseDir, "Resources", "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
+							Path.Combine(baseDir, "Resources", "holopatcher")
+						};
 
-								OSPlatform thisOperatingSystem = Utility.Utility.GetOperatingSystem();
-								foreach ( string path in possibleOSXPaths )
-								{
-									if ( thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app") )
-									{
-										patcherCliPath = PathHelper.GetCaseSensitivePath(new DirectoryInfo(path));
-									}
-									else
-									{
-										patcherCliPath = PathHelper.GetCaseSensitivePath(new FileInfo(path));
-									}
-									if ( patcherCliPath.Exists )
-									{
-										await Logger.LogVerboseAsync($"Found holopatcher at '{patcherCliPath.FullName}'...");
-										break;
-									}
-
-									await Logger.LogVerboseAsync($"Holopatcher not found at '{patcherCliPath.FullName}'...");
-								}
+						OSPlatform thisOperatingSystem = Utility.Utility.GetOperatingSystem();
+						foreach ( string path in possibleOSXPaths )
+						{
+							patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app")
+								? PathHelper.GetCaseSensitivePath(new DirectoryInfo(path))
+								: (FileSystemInfo)PathHelper.GetCaseSensitivePath(new FileInfo(path));
+							if ( patcherCliPath.Exists )
+							{
+								await Logger.LogVerboseAsync($"Found holopatcher at '{patcherCliPath.FullName}'...");
+								break;
 							}
 
-							if ( patcherCliPath is null || !patcherCliPath.Exists )
-								throw new FileNotFoundException($"Could not load HoloPatcher from the '{resourcesDir}' directory!");
-							break;
-						case MainConfig.AvailablePatchers.TSLPatcher:
-						default:
-							patcherCliPath = new FileInfo(t);
-							if (int.TryParse(Arguments.Trim(), out int namespaceId))
-							{
-								string message = $"If asked to pick an option, select the {Serializer.ToOrdinal(namespaceId + 1)} from the top.";
-								_ = CallbackObjects.InformationCallback.ShowInformationDialog(message);
-								await Logger.LogWarningAsync(message);
-							}
-
-							break;
+							await Logger.LogVerboseAsync($"Holopatcher not found at '{patcherCliPath.FullName}'...");
+						}
 					}
 
-					if ( MainConfig.PatcherOption == MainConfig.AvailablePatchers.TSLPatcher )
-						await Logger.LogAsync("Starting TSLPatcher...");
-					else
-						await Logger.LogAsync($"Using CLI to run command: '{patcherCliPath} {args}'");
+					if ( patcherCliPath is null || !patcherCliPath.Exists )
+						throw new FileNotFoundException($"Could not load HoloPatcher from the '{resourcesDir}' directory!");
+					patcherCliPath = new FileInfo(t);
+					if (int.TryParse(Arguments.Trim(), out int namespaceId))
+					{
+						string message = $"If asked to pick an option, select the {Serializer.ToOrdinal(namespaceId + 1)} from the top.";
+						_ = CallbackObjects.InformationCallback.ShowInformationDialog(message);
+						await Logger.LogWarningAsync(message);
+					}
+
+					await Logger.LogAsync($"Using CLI to run command: '{patcherCliPath} {args}'");
 
 					// ReSharper disable twice UnusedVariable
 					(int exitCode, string output, string error) = await PlatformAgnosticMethods.ExecuteProcessAsync(
@@ -1093,46 +1076,10 @@ namespace KOTORModSync.Core
 
 						await Logger.LogAsync(string.Join(Environment.NewLine, installErrors));
 
-						// Attempt to uninstall the failed mod if using HoloPatcher:
-						if ( MainConfig.PatcherOption == MainConfig.AvailablePatchers.HoloPatcher ) {
-							/*argList.ForEach(item =>
-							{
-								if (item.Contains("--install"))
-								{
-									int index = argList.IndexOf(item);
-									argList[index] = item.Replace("--install", "--uninstall");
-								}
-							});
-
-							args = string.Join(separator: " ", argList);
-							(int _, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
-								patcherCliPath.FullName,
-								args,
-								noAdmin: MainConfig.NoAdmin
-							);*/
-						}
 						return ActionExitCode.TSLPatcherError;
 					}
 					catch ( Exception )
 					{
-						// Attempt to uninstall the failed mod if using HoloPatcher:
-						if ( MainConfig.PatcherOption == MainConfig.AvailablePatchers.HoloPatcher ) {
-							/*argList.ForEach(item =>
-							{
-								if (item.Contains("--install"))
-								{
-									int index = argList.IndexOf(item);
-									argList[index] = item.Replace("--install", "--uninstall");
-								}
-							});
-
-							args = string.Join(separator: " ", argList);
-							(int _, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
-								patcherCliPath.FullName,
-								args,
-								noAdmin: MainConfig.NoAdmin
-							);*/
-						}
 						return ActionExitCode.TSLPatcherLogNotFound;
 					}
 				}

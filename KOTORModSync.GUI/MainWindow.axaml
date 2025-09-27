@@ -508,7 +508,8 @@ On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant."/
                 <TextBlock x:Name="CurrentModPathDisplay" Margin="10,0,0,5" FontStyle="Italic" FontSize="12" TextWrapping="Wrap" />
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" >
                     <TextBox x:Name="ModPathInput" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch"
-                             Watermark="Enter mod directory path" KeyDown="OnPathInputKeyDown" LostFocus="ModPathInput_LostFocus" />
+                             Watermark="Enter mod directory path" KeyDown="OnPathInputKeyDown" LostFocus="ModPathInput_LostFocus"
+                             FontSize="10" TextWrapping="NoWrap" />
                     <Button Grid.Row="0" Grid.Column="1" Content="..." Click="BrowseModDir_Click" />
                     <ComboBox x:Name="ModPathSuggestions" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
                               SelectionChanged="ModPathSuggestions_SelectionChanged" />
@@ -517,7 +518,8 @@ On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant."/
                 <TextBlock x:Name="CurrentKotorPathDisplay" Margin="10,0,0,5" FontStyle="Italic" FontSize="12" TextWrapping="Wrap" />
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" >
                     <TextBox x:Name="InstallPathInput" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch"
-                             Watermark="Enter KOTOR installation directory" KeyDown="OnPathInputKeyDown" LostFocus="InstallPathInput_LostFocus" />
+                             Watermark="Enter KOTOR installation directory" KeyDown="OnPathInputKeyDown" LostFocus="InstallPathInput_LostFocus"
+                             FontSize="10" TextWrapping="NoWrap" />
                     <Button Grid.Row="0" Grid.Column="1" Content="..." Click="BrowseInstallDir_Click" />
                     <ComboBox x:Name="InstallPathSuggestions" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
                               SelectionChanged="InstallPathSuggestions_SelectionChanged" />

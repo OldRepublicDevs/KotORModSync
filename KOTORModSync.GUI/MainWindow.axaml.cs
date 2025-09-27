@@ -138,17 +138,15 @@ namespace KOTORModSync
 				modInput.Text = MainConfig.SourcePath?.FullName ?? string.Empty;
 				installInput.Text = MainConfig.DestinationPath?.FullName ?? string.Empty;
 
-				// Subscribe to text changes for validation and suggestions
+				// Subscribe to text changes for suggestions
 				_ = modInput.GetObservable(TextBox.TextProperty).Subscribe(_ =>
 				{
 					if ( _suppressPathEvents ) return;
-					ValidatePathTextbox(modInput);
 					UpdatePathSuggestions(modInput, modCombo, ref _modSuggestCts);
 				});
 				_ = installInput.GetObservable(TextBox.TextProperty).Subscribe(_ =>
 				{
 					if ( _suppressPathEvents ) return;
-					ValidatePathTextbox(installInput);
 					UpdatePathSuggestions(installInput, installCombo, ref _installSuggestCts);
 				});
 
@@ -201,8 +199,6 @@ namespace KOTORModSync
 					UpdatePathDisplays();
 				}
 				UpdatePathSuggestions(tb, this.FindControl<ComboBox>("ModPathSuggestions"), ref _modSuggestCts);
-				_ = tb.Classes.Remove("valid");
-				_ = tb.Classes.Remove("invalid");
 			}
 		}
 		
@@ -217,8 +213,6 @@ namespace KOTORModSync
 					UpdatePathDisplays();
 				}
 				UpdatePathSuggestions(tb, this.FindControl<ComboBox>("InstallPathSuggestions"), ref _installSuggestCts);
-				_ = tb.Classes.Remove("valid");
-				_ = tb.Classes.Remove("invalid");
 			}
 		}
 		
@@ -333,13 +327,6 @@ namespace KOTORModSync
 		}
 
 
-		private static void ValidatePathTextbox(TextBox box)
-		{
-			if ( box is null ) return;
-			bool exists = !string.IsNullOrWhiteSpace(box.Text) && Directory.Exists(ExpandPath(box.Text));
-			box.Classes.Set("valid", exists);
-			box.Classes.Set("invalid", !exists);
-		}
 
 		private bool TryApplySourcePath(string text)
 		{

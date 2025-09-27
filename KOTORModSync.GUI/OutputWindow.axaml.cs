@@ -161,7 +161,7 @@ namespace KOTORModSync
 					}
 
 					_viewModel.AppendLog(message);
-					var last = _viewModel.LogLines.LastOrDefault();
+					LogLine last = _viewModel.LogLines.LastOrDefault();
 					if ( last != null )
 						last.IsHighlighted = last.Level == "Error" || last.Level == "Warning";
 				}

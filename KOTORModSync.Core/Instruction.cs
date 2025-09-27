@@ -576,13 +576,13 @@ namespace KOTORModSync.Core
 						$"Skipping '{fileName}' Reason: fileNameWithoutExtension is null/empty somehow?"
 					);
 				}
-				else if ( !fileNameCounts.ContainsKey(fileNameWithoutExtension) )
+				else if ( !fileNameCounts.TryGetValue(fileNameWithoutExtension, out int value) )
 				{
 					_ = Logger.LogVerboseAsync(
 						$"Skipping '{fileName}' Reason: Not present in dictionary, ergo does not have a desired extension."
 					);
 				}
-				else if ( fileNameCounts[fileNameWithoutExtension] <= 1 )
+				else if ( value <= 1 )
 				{
 					_ = Logger.LogVerboseAsync(
 						$"Skipping '{fileName}' Reason: '{fileNameWithoutExtension}' is the only file with this name."

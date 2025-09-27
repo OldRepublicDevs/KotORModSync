@@ -188,7 +188,7 @@
                                             Padding="10">
                                             <StackPanel>
                                                 <DockPanel Margin="10,0,0,0">
-                                                    <CheckBox Name="IsSelected"
+                                                    <CheckBox Name="OptionIsSelectedCheckBox"
                                                         VerticalContentAlignment="Center"
                                                         VerticalAlignment="Center"
                                                         IsChecked="{Binding IsSelected, Mode=TwoWay}"
@@ -222,7 +222,7 @@
                                                                                     Xaml.PossibleNullReferenceException
                                                                                     Xaml.BindingWithContextNotResolved -->
                                                                                     <Binding
-                                                                                        Path="$parent[ItemsRepeater].DataContext.Instructions" />
+                                                                                        Path="$parent[ItemsRepeater].ItemsSource" />
                                                                                     <Binding
                                                                                         Path="." />
                                                                                 </MultiBinding.Bindings>
@@ -276,11 +276,8 @@
                                                         <MultiBinding
                                                             Converter="{StaticResource IndexConverter}">
                                                             <MultiBinding.Bindings>
-                                                                <!-- ReSharper disable once
-                                                                Xaml.PossibleNullReferenceException
-                                                                Xaml.BindingWithContextNotResolved -->
-                                                                <Binding
-                                                                    Path="$parent[ItemsRepeater].DataContext.Instructions" />
+                                                                <!-- ReSharper disable once Xaml.PossibleNullReferenceException -->
+                                                                <Binding Path="$parent[ItemsRepeater].ItemsSource" />
                                                                 <Binding Path="." />
                                                             </MultiBinding.Bindings>
                                                         </MultiBinding>
@@ -472,7 +469,7 @@
                         Content="Set Directories" Click="SetDirectories_Click"
                         ToolTip.Tip="Define your KOTOR install directory, and the folder where your mods are downloaded." />
                 <Button Grid.Row="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                        Content="Pre-install Validation" Click="ValidateButton_Click"
+                        Content="Validate" Click="ValidateButton_Click"
                         ToolTip.Tip="Validates all mods on disk, and their TOMLIN instructions, to ensure instructions can logically execute." />
                 <Button Grid.Row="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                         Content="Start Install" Click="StartInstall_Click"
@@ -508,9 +505,23 @@ On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant."/
                     <ComboBoxItem Content="TSL Style" Tag="/Styles/Kotor2Style.axaml" />
                 </ComboBox>
                 <TextBlock Text="Mod Location:" />
-                <TextBlock Text="{Binding sourcePathFullName}" />
+                <TextBlock x:Name="CurrentModPathDisplay" Margin="10,0,0,5" FontStyle="Italic" FontSize="12" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" >
+                    <TextBox x:Name="ModPathInput" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch"
+                             Watermark="Enter mod directory path" KeyDown="OnPathInputKeyDown" LostFocus="ModPathInput_LostFocus" />
+                    <Button Grid.Row="0" Grid.Column="1" Content="..." Click="BrowseModDir_Click" />
+                    <ComboBox x:Name="ModPathSuggestions" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
+                              SelectionChanged="ModPathSuggestions_SelectionChanged" />
+                </Grid>
                 <TextBlock Text="Kotor Directory:" />
-                <TextBlock Text="{Binding destinationPathFullName}" />
+                <TextBlock x:Name="CurrentKotorPathDisplay" Margin="10,0,0,5" FontStyle="Italic" FontSize="12" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" >
+                    <TextBox x:Name="InstallPathInput" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch"
+                             Watermark="Enter KOTOR installation directory" KeyDown="OnPathInputKeyDown" LostFocus="InstallPathInput_LostFocus" />
+                    <Button Grid.Row="0" Grid.Column="1" Content="..." Click="BrowseInstallDir_Click" />
+                    <ComboBox x:Name="InstallPathSuggestions" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
+                              SelectionChanged="InstallPathSuggestions_SelectionChanged" />
+                </Grid>
             </StackPanel>
         </StackPanel>
         <!--<ContentControl

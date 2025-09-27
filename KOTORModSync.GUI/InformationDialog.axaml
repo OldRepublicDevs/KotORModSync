@@ -22,12 +22,13 @@
                            Margin="0,0,0,8"
                            Grid.Row="0" />
 
-                <ScrollViewer Grid.Row="1" MaxHeight="180">
+                <ScrollViewer Grid.Row="1" MaxHeight="180" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="InfoTextBlock"
                                HorizontalAlignment="Stretch"
                                VerticalAlignment="Top"
                                FontSize="14"
-                               TextWrapping="Wrap" />
+                               TextWrapping="Wrap"
+                               TextTrimming="None" />
                 </ScrollViewer>
 
                 <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">

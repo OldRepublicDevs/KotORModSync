@@ -78,7 +78,7 @@ namespace KOTORModSync
 				DataContext = this;
 				InitializeControls();
 				InitializeTopMenu();
-				InitializePathPickers();
+				InitializeDirectoryPickers();
 
 				// Initialize the logger
 				Logger.Initialize();
@@ -197,6 +197,7 @@ namespace KOTORModSync
 				if (applied)
 				{
 					UpdatePathDisplays();
+					UpdateStepProgress(); // Update step progress when directory is set
 				}
 				UpdatePathSuggestions(tb, this.FindControl<ComboBox>("ModPathSuggestions"), ref _modSuggestCts);
 			}
@@ -211,6 +212,7 @@ namespace KOTORModSync
 				if (applied)
 				{
 					UpdatePathDisplays();
+					UpdateStepProgress(); // Update step progress when directory is set
 				}
 				UpdatePathSuggestions(tb, this.FindControl<ComboBox>("InstallPathSuggestions"), ref _installSuggestCts);
 			}
@@ -230,6 +232,7 @@ namespace KOTORModSync
 					if (TryApplySourcePath(path))
 					{
 						UpdatePathDisplays();
+						UpdateStepProgress(); // Update step progress when directory is set
 					}
 					// Do not refresh ItemsSource here to avoid recursive selection updates
 				}
@@ -252,6 +255,7 @@ namespace KOTORModSync
 					if (TryApplyInstallPath(path))
 					{
 						UpdatePathDisplays();
+						UpdateStepProgress(); // Update step progress when directory is set
 					}
 					// Do not refresh ItemsSource here to avoid recursive selection updates
 				}
@@ -552,10 +556,14 @@ namespace KOTORModSync
 				if ( !(sender is TextBox tb) ) return;
 				if ( _suppressPathEvents ) return;
 				string name = tb.Name ?? string.Empty;
+				bool pathSet = false;
 				if ( name == "ModPathInput" )
-					_ = TryApplySourcePath(tb.Text);
+					pathSet = TryApplySourcePath(tb.Text);
 				else if ( name == "InstallPathInput" )
-					_ = TryApplyInstallPath(tb.Text);
+					pathSet = TryApplyInstallPath(tb.Text);
+				
+				if (pathSet)
+					UpdateStepProgress(); // Update step progress when directory is set via Enter key
 			}
 			catch { }
 		}
@@ -617,6 +625,7 @@ namespace KOTORModSync
 					if (TryApplySourcePath(result[0]))
 					{
 						UpdatePathDisplays();
+						UpdateStepProgress(); // Update step progress when directory is set
 						
 						// Update suggestions
 						ComboBox modCombo = this.FindControl<ComboBox>("ModPathSuggestions");
@@ -642,6 +651,7 @@ namespace KOTORModSync
 					if (TryApplyInstallPath(result[0]))
 					{
 						UpdatePathDisplays();
+						UpdateStepProgress(); // Update step progress when directory is set
 						
 						// Update suggestions
 						ComboBox installCombo = this.FindControl<ComboBox>("InstallPathSuggestions");
@@ -1154,6 +1164,9 @@ namespace KOTORModSync
 			MainConfigInstance = new MainConfig();
 
 			MainConfigStackPanel.DataContext = MainConfigInstance;
+
+			// Update initial step progress
+			UpdateStepProgress();
 
 			_ = Logger.LogVerboseAsync("Setting up window move event handlers...");
 			// Attach event handlers
@@ -2095,6 +2108,7 @@ namespace KOTORModSync
 
 				await Logger.LogAsync("Validating individual components, this might take a while...");
 				bool individuallyValidated = true;
+				var failedComponents = new List<Component>();
 				foreach ( Component component in MainConfig.AllComponents )
 				{
 					if ( !component.IsSelected )
@@ -2133,7 +2147,12 @@ namespace KOTORModSync
 
 					var validator = new ComponentValidation(component, MainConfig.AllComponents);
 					await Logger.LogVerboseAsync($" == Validating '{component.Name}' == ");
-					individuallyValidated &= validator.Run();
+					bool thisValid = validator.Run();
+					individuallyValidated &= thisValid;
+					if (!thisValid)
+					{
+						failedComponents.Add(component);
+					}
 				}
 
 				await Logger.LogVerboseAsync("Finished validating all components.");
@@ -2173,6 +2192,50 @@ namespace KOTORModSync
 					informationMessage = "The Mod directory is not writable!"
 						+ " Please ensure administrative privileges or choose a new mod directory.";
 					await Logger.LogErrorAsync(informationMessage);
+				}
+
+				// If any components failed, highlight them in the left list and build a detailed message
+				if (failedComponents.Count > 0)
+				{
+					try
+					{
+						TreeViewItem rootItem = LeftTreeView.Items.OfType<TreeViewItem>().FirstOrDefault();
+						if (rootItem != null)
+						{
+							// Clear previous validation highlights
+							void ClearHighlights(ItemsControl parent)
+							{
+								foreach (var child in parent.Items.OfType<TreeViewItem>())
+								{
+									if (child.Header is Border b)
+										b.Classes.Remove("validation-failed");
+									ClearHighlights(child);
+								}
+							}
+							ClearHighlights(rootItem);
+
+							foreach (var failed in failedComponents)
+							{
+								TreeViewItem item = FindExistingItem(rootItem, failed);
+								if (item != null)
+								{
+									// add a red border highlight to header
+									if (item.Header is Border headerBorder)
+									{
+										headerBorder.Classes.Add("validation-failed");
+									}
+								}
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						await Logger.LogExceptionAsync(ex);
+					}
+
+					// Detailed validation summary
+					var names = string.Join(", ", failedComponents.Select(c => c.Name));
+					informationMessage = $"Some components failed to validate: {names}.\nThey are highlighted in the left list. Check the Output window for exact errors.";
 				}
 
 				if ( !noDuplicateComponents )
@@ -2216,8 +2279,15 @@ namespace KOTORModSync
 		{
 			try
 			{
-				(bool _, string informationMessage) = await PreinstallValidation();
+				(bool validationResult, string informationMessage) = await PreinstallValidation();
 				await InformationDialog.ShowInformationDialog(this, informationMessage);
+				
+				// Update step progress after validation
+				if (validationResult)
+				{
+					// Validation succeeded - this counts as progress toward Step 4
+					UpdateStepProgress();
+				}
 			}
 			catch ( Exception ex )
 			{
@@ -2343,6 +2413,9 @@ namespace KOTORModSync
 				{
 					await Logger.LogVerboseAsync("User cancelled selecting <<modDirectory>>");
 				}
+				
+				// Update step progress when directories are set via traditional dialog
+				UpdateStepProgress();
 			}
 			catch ( ArgumentNullException ) { }
 			catch ( Exception ex )
@@ -2432,6 +2505,14 @@ namespace KOTORModSync
 					else
 					{
 						await Logger.LogAsync($"Successfully installed '{name}'");
+						
+						// Mark Step 4 as complete after successful single mod installation
+						CheckBox step4Check = this.FindControl<CheckBox>("Step4Checkbox");
+						if (step4Check != null)
+						{
+							step4Check.IsChecked = true;
+						}
+						UpdateStepProgress();
 					}
 				}
 				catch ( Exception )
@@ -2466,6 +2547,9 @@ namespace KOTORModSync
 					await InformationDialog.ShowInformationDialog(this, informationMessage);
 					return;
 				}
+				
+				// Update step progress after successful validation during installation
+				UpdateStepProgress();
 
 				if ( await ConfirmationDialog.ShowConfirmationDialog(
 						this,
@@ -2641,6 +2725,14 @@ namespace KOTORModSync
 							message: "Install Completed. Check the output window for information."
 						);
 						await Logger.LogAsync("Install completed.");
+						
+						// Mark Step 4 as complete after successful installation
+						CheckBox step4Check = this.FindControl<CheckBox>("Step4Checkbox");
+						if (step4Check != null)
+						{
+							step4Check.IsChecked = true;
+						}
+						UpdateStepProgress();
 					}
 				}
 				catch ( Exception )
@@ -3324,6 +3416,9 @@ namespace KOTORModSync
 					ComponentCheckboxUnchecked(thisComponent, new HashSet<Component>());
 				else
 					Logger.LogVerbose($"Could not determine new checkBox checked bool for {thisComponent.Name}");
+				
+				// Update step progress when mod selection changes
+				UpdateStepProgress();
 			}
 			catch ( Exception exception )
 			{
@@ -3356,14 +3451,14 @@ namespace KOTORModSync
 		}
 
 		[NotNull]
-		private Grid CreateComponentHeader([NotNull] Component component, int index)
+		private Control CreateComponentHeader([NotNull] Component component, int index)
 		{
 			if ( component is null )
 				throw new ArgumentNullException(nameof( component ));
 
 			CheckBox checkBox = CreateComponentCheckbox(component);
 
-			var header = new Grid
+			var headerGrid = new Grid
 			{
 				ColumnDefinitions =
 				{
@@ -3373,7 +3468,7 @@ namespace KOTORModSync
 				},
 			};
 
-			header.Children.Add(checkBox);
+			headerGrid.Children.Add(checkBox);
 			Grid.SetColumn(checkBox, value: 0);
 
 			var indexTextBlock = new TextBlock
@@ -3383,17 +3478,26 @@ namespace KOTORModSync
 				FontWeight = FontWeight.DemiBold,
 				Margin = new Thickness(left: 0, top: 0, right: 5, bottom: 0),
 			};
-			header.Children.Add(indexTextBlock);
+			headerGrid.Children.Add(indexTextBlock);
 			Grid.SetColumn(indexTextBlock, value: 1);
 
 			var nameTextBlock = new TextBlock
 			{
 				VerticalAlignment = VerticalAlignment.Center, Text = $"{component.Name}", Focusable = false,
 			};
-			header.Children.Add(nameTextBlock);
+			headerGrid.Children.Add(nameTextBlock);
 			Grid.SetColumn(nameTextBlock, value: 2);
 
-			return header;
+			// Wrap header grid in a Border so we can style validation state via Border properties
+			var headerBorder = new Border
+			{
+				Child = headerGrid,
+				Padding = new Thickness(2),
+				Background = Brushes.Transparent,
+				BorderThickness = new Thickness(0),
+			};
+
+			return headerBorder;
 		}
 
 
@@ -3522,6 +3626,8 @@ namespace KOTORModSync
 							manualSet = false;
 						}
 
+						// Update step progress when all components are selected
+						UpdateStepProgress();
 						break;
 					case false:
 						foreach ( Component component in MainConfig.AllComponents )
@@ -3537,6 +3643,8 @@ namespace KOTORModSync
 							manualSet = false;
 						}
 
+						// Update step progress when all components are deselected
+						UpdateStepProgress();
 						break;
 				}
 
@@ -3595,9 +3703,15 @@ namespace KOTORModSync
 				LeftTreeView.ExpandSubTree(rootItem);
 
 				if ( componentsList.Count > 0 || TabControl is null )
+				{
+					// Update step progress after components are loaded
+					UpdateStepProgress();
 					return;
+				}
 
 				SetTabInternal(TabControl, InitialTab);
+				// Update step progress after initial tab is set
+				UpdateStepProgress();
 			}
 			catch ( Exception ex )
 			{
@@ -3919,6 +4033,340 @@ namespace KOTORModSync
 			catch ( Exception exception )
 			{
 				await Logger.LogExceptionAsync(exception);
+			}
+		}
+
+		// Getting Started Tab Event Handlers
+		private void HomeButton_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				TabControl tabControl = this.FindControl<TabControl>("TabControl");
+				TabItem initialTab = this.FindControl<TabItem>("InitialTab");
+				if (tabControl != null && initialTab != null)
+				{
+					tabControl.SelectedItem = initialTab;
+				}
+			}
+			catch (Exception exception)
+			{
+				Logger.LogException(exception);
+			}
+		}
+
+		private async void Step1Button_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				// Open the Set Directories dialog
+				await ShowSetDirectoriesDialog();
+				UpdateStepProgress();
+			}
+			catch (Exception exception)
+			{
+				await Logger.LogExceptionAsync(exception);
+			}
+		}
+
+		private async void Step2Button_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				// Trigger load instruction file
+				await LoadInstructionFile();
+				UpdateStepProgress();
+			}
+			catch (Exception exception)
+			{
+				await Logger.LogExceptionAsync(exception);
+			}
+		}
+
+		private async void GettingStartedValidateButton_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await RunValidation();
+				UpdateStepProgress();
+			}
+			catch (Exception exception)
+			{
+				await Logger.LogExceptionAsync(exception);
+			}
+		}
+
+		private async void InstallButton_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await StartInstallation();
+				UpdateStepProgress();
+			}
+			catch (Exception exception)
+			{
+				await Logger.LogExceptionAsync(exception);
+			}
+		}
+
+		private async Task ShowSetDirectoriesDialog()
+		{
+			// Navigate to the Set Directories tab or open dialog
+			Menu topMenu = this.FindControl<Menu>("TopMenu");
+			if (topMenu?.Items.Count > 0 && topMenu.Items[1] is MenuItem fileMenu)
+			{
+				if (fileMenu.Items?.Count > 1 && fileMenu.Items[1] is MenuItem setDirItem)
+				{
+					// Simulate clicking the Set Directories menu item
+					await Task.Delay(100); // Brief delay for UI responsiveness
+					SetDirectories_Click(setDirItem, new RoutedEventArgs());
+				}
+			}
+		}
+
+		private async Task LoadInstructionFile()
+		{
+			// Navigate to Load Installation File
+			Menu topMenu = this.FindControl<Menu>("TopMenu");
+			if (topMenu?.Items.Count > 0 && topMenu.Items[1] is MenuItem fileMenu)
+			{
+				if (fileMenu.Items?.Count > 0 && fileMenu.Items[0] is MenuItem loadFileItem)
+				{
+					// Simulate clicking the Load Installation File menu item
+					await Task.Delay(100); // Brief delay for UI responsiveness
+					LoadInstallFile_Click(loadFileItem, new RoutedEventArgs());
+				}
+			}
+		}
+
+		private async Task RunValidation()
+		{
+			// Run the validation process
+			await Task.Delay(100); // Brief delay for UI responsiveness
+			ValidateButton_Click(null, new RoutedEventArgs());
+		}
+
+		private async Task StartInstallation()
+		{
+			// Start the installation process
+			await Task.Delay(100); // Brief delay for UI responsiveness
+			StartInstall_Click(null, new RoutedEventArgs());
+		}
+
+		private void UpdateStepProgress()
+		{
+			try
+			{
+				// Find the step completion indicators and progress bar
+				Border step1Border = this.FindControl<Border>("Step1Border");
+				Border step1Indicator = this.FindControl<Border>("Step1CompleteIndicator");
+				TextBlock step1Text = this.FindControl<TextBlock>("Step1CompleteText");
+				
+				Border step2Border = this.FindControl<Border>("Step2Border");
+				Border step2Indicator = this.FindControl<Border>("Step2CompleteIndicator");
+				TextBlock step2Text = this.FindControl<TextBlock>("Step2CompleteText");
+				
+				Border step3Border = this.FindControl<Border>("Step3Border");
+				Border step3Indicator = this.FindControl<Border>("Step3CompleteIndicator");
+				TextBlock step3Text = this.FindControl<TextBlock>("Step3CompleteText");
+				
+				Border step4Border = this.FindControl<Border>("Step4Border");
+				Border step4Indicator = this.FindControl<Border>("Step4CompleteIndicator");
+				TextBlock step4Text = this.FindControl<TextBlock>("Step4CompleteText");
+				
+				ProgressBar progressBar = this.FindControl<ProgressBar>("OverallProgressBar");
+				TextBlock progressText = this.FindControl<TextBlock>("ProgressText");
+
+				if (progressBar == null || progressText == null)
+					return;
+
+				// Check Step 1: Directories are set
+				bool step1Complete = !string.IsNullOrEmpty(MainConfig.SourcePath?.FullName) && 
+				                    !string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName);
+				UpdateStepCompletion(step1Border, step1Indicator, step1Text, step1Complete);
+
+				// Check Step 2: Components are loaded (only counts after Step 1)
+				bool step2Complete = step1Complete && (MainConfig.AllComponents?.Count > 0);
+				UpdateStepCompletion(step2Border, step2Indicator, step2Text, step2Complete);
+
+				// Check Step 3: At least one component is selected (only counts after Step 2)
+				bool step3Complete = step2Complete && (MainConfig.AllComponents?.Any(c => c.IsSelected) == true);
+				UpdateStepCompletion(step3Border, step3Indicator, step3Text, step3Complete);
+
+				// Check Step 4: Installation completed (only counts after Step 3)
+				bool step4Complete = step3Complete && step4Indicator?.Background != null && 
+				                    step4Indicator.Background != Brushes.Transparent;
+				
+				// Update progress bar (0-4 scale)
+				int completedSteps = (step1Complete ? 1 : 0) + (step2Complete ? 1 : 0) + 
+				                   (step3Complete ? 1 : 0) + (step4Complete ? 1 : 0);
+				progressBar.Value = completedSteps;
+
+				// Update progress text
+				string[] messages = {
+					"Complete the steps above to get started",
+					"Great start! Continue with the next steps",
+					"Almost there! Just a few more steps",
+					"Excellent progress! You're almost ready",
+					"🎉 All steps completed! You're ready to install mods"
+				};
+				progressText.Text = messages[Math.Min(completedSteps, messages.Length - 1)];
+				
+				// No need to update displays - using reusable DirectoryPickerControl now
+			}
+			catch (Exception exception)
+			{
+				Logger.LogException(exception);
+			}
+		}
+
+		private void UpdateStepCompletion(Border stepBorder, Border indicator, TextBlock text, bool isComplete)
+		{
+			if (stepBorder == null || indicator == null || text == null) return;
+
+			if (isComplete)
+			{
+				// COMPLETION EFFECT - Fill the entire step area with theme color
+				stepBorder.Background = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)); // Green
+				stepBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)); // Lighter green
+				stepBorder.BorderThickness = new Thickness(3);
+				
+				indicator.Background = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)); // Lighter green
+				text.Foreground = Brushes.White;
+				text.Text = "🎉 COMPLETE! 🎉";
+			}
+			else
+			{
+				// Reset to normal state
+				stepBorder.Background = Brushes.Transparent;
+				stepBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // Blue
+				stepBorder.BorderThickness = new Thickness(2);
+				
+				indicator.Background = Brushes.Transparent;
+				text.Foreground = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)); // Green
+				text.Text = "✓ Complete";
+			}
+		}
+
+
+		private void MarkStep4Complete()
+		{
+			try
+			{
+				Border step4Indicator = this.FindControl<Border>("Step4CompleteIndicator");
+				if (step4Indicator != null)
+				{
+					// Mark as completed by giving it a background
+					step4Indicator.Background = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
+				}
+				UpdateStepProgress();
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		// Directory Picker Event Handler - handles both sidebar and Step 1 directory changes
+		private void OnDirectoryChanged(object sender, Controls.DirectoryChangedEventArgs e)
+		{
+			try
+			{
+				if (e.PickerType == Controls.DirectoryPickerType.ModDirectory)
+				{
+					// Update MainConfig
+					MainConfigInstance.sourcePath = new DirectoryInfo(e.Path);
+					Logger.Log($"Mod directory set to: {e.Path}");
+					
+					// Update all mod directory pickers
+					SyncDirectoryPickers(Controls.DirectoryPickerType.ModDirectory, e.Path);
+				}
+				else if (e.PickerType == Controls.DirectoryPickerType.KotorDirectory)
+				{
+					// Update MainConfig
+					MainConfigInstance.destinationPath = new DirectoryInfo(e.Path);
+					Logger.Log($"KOTOR installation directory set to: {e.Path}");
+					
+					// Update all kotor directory pickers
+					SyncDirectoryPickers(Controls.DirectoryPickerType.KotorDirectory, e.Path);
+				}
+
+				// Update step progress
+				UpdateStepProgress();
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private void InitializeDirectoryPickers()
+		{
+			try
+			{
+				// Initialize current paths from MainConfig
+				Controls.DirectoryPickerControl modPicker = this.FindControl<Controls.DirectoryPickerControl>("ModDirectoryPicker");
+				Controls.DirectoryPickerControl kotorPicker = this.FindControl<Controls.DirectoryPickerControl>("KotorDirectoryPicker");
+				Controls.DirectoryPickerControl step1ModPicker = this.FindControl<Controls.DirectoryPickerControl>("Step1ModDirectoryPicker");
+				Controls.DirectoryPickerControl step1KotorPicker = this.FindControl<Controls.DirectoryPickerControl>("Step1KotorDirectoryPicker");
+
+				if (modPicker != null && MainConfig.SourcePath != null)
+				{
+					modPicker.SetCurrentPath(MainConfig.SourcePath.FullName);
+				}
+				
+				if (kotorPicker != null && MainConfig.DestinationPath != null)
+				{
+					kotorPicker.SetCurrentPath(MainConfig.DestinationPath.FullName);
+				}
+
+				if (step1ModPicker != null && MainConfig.SourcePath != null)
+				{
+					step1ModPicker.SetCurrentPath(MainConfig.SourcePath.FullName);
+				}
+				
+				if (step1KotorPicker != null && MainConfig.DestinationPath != null)
+				{
+					step1KotorPicker.SetCurrentPath(MainConfig.DestinationPath.FullName);
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private void SyncDirectoryPickers(Controls.DirectoryPickerType pickerType, string path)
+		{
+			try
+			{
+				var allPickers = new List<Controls.DirectoryPickerControl>();
+				
+				if (pickerType == Controls.DirectoryPickerType.ModDirectory)
+				{
+					Controls.DirectoryPickerControl mainPicker = this.FindControl<Controls.DirectoryPickerControl>("ModDirectoryPicker");
+					Controls.DirectoryPickerControl step1Picker = this.FindControl<Controls.DirectoryPickerControl>("Step1ModDirectoryPicker");
+					
+					if (mainPicker != null) allPickers.Add(mainPicker);
+					if (step1Picker != null) allPickers.Add(step1Picker);
+				}
+				else if (pickerType == Controls.DirectoryPickerType.KotorDirectory)
+				{
+					Controls.DirectoryPickerControl mainPicker = this.FindControl<Controls.DirectoryPickerControl>("KotorDirectoryPicker");
+					Controls.DirectoryPickerControl step1Picker = this.FindControl<Controls.DirectoryPickerControl>("Step1KotorDirectoryPicker");
+					
+					if (mainPicker != null) allPickers.Add(mainPicker);
+					if (step1Picker != null) allPickers.Add(step1Picker);
+				}
+
+				// Update all pickers with the new path
+				foreach ( Controls.DirectoryPickerControl picker in allPickers)
+				{
+					picker.SetCurrentPath(path);
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex);
 			}
 		}
 

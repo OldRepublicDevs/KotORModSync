@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="120"
+             x:Class="KOTORModSync.Controls.DirectoryPickerControl">
+    
+    <StackPanel>
+        <!-- Title -->
+        <TextBlock x:Name="TitleTextBlock" FontWeight="Bold" Margin="0,0,0,5" />
+        
+        <!-- Current Path Display -->
+        <TextBlock x:Name="CurrentPathDisplay" Margin="10,0,0,5" FontStyle="Italic" FontSize="12" TextWrapping="Wrap" />
+        
+        <!-- Input Grid -->
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+            <!-- TextBox -->
+            <TextBox x:Name="PathInput" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch"
+                     KeyDown="OnPathInputKeyDown" LostFocus="PathInput_LostFocus"
+                     FontSize="10" TextWrapping="NoWrap" />
+            
+            <!-- Browse Button -->
+            <Button Grid.Row="0" Grid.Column="1" Content="..." Click="BrowseButton_Click" />
+            
+            <!-- ComboBox -->
+            <ComboBox x:Name="PathSuggestions" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
+                      SelectionChanged="PathSuggestions_SelectionChanged" />
+        </Grid>
+    </StackPanel>
+</UserControl>

@@ -1432,85 +1432,77 @@ namespace KOTORModSync
 
 				bool holopatcherIsExecutable = true;
 				bool holopatcherTestExecute = true;
-				if ( MainConfig.PatcherOption == MainConfig.AvailablePatchers.HoloPatcher )
+				string baseDir = Utility.GetBaseDirectory();
+				string resourcesDir = Utility.GetResourcesDirectory(baseDir);
+				FileSystemInfo patcherCliPath = null;
+				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 				{
-					holopatcherTestExecute = false;
-					string baseDir = Utility.GetBaseDirectory();
-					string resourcesDir = Utility.GetResourcesDirectory(baseDir);
-					FileSystemInfo patcherCliPath = null;
-					if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
+					patcherCliPath = new FileInfo(Path.Combine(resourcesDir, path2: "holopatcher.exe"));
+				}
+				else
+				{
+					// Handling OSX specific paths
+					// FIXME: .app's aren't accepting command-line arguments correctly.
+					string[] possibleOSXPaths =
 					{
-						patcherCliPath = new FileInfo(Path.Combine(resourcesDir, path2: "holopatcher.exe"));
-					}
-					else
+						Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
+						Path.Combine(resourcesDir, path2: "holopatcher"),
+						Path.Combine(
+							baseDir,
+							"Resources",
+							"HoloPatcher.app",
+							"Contents",
+							"MacOS",
+							"holopatcher"
+						),
+						Path.Combine(baseDir, path2: "Resources", path3: "holopatcher"),
+					};
+
+					OSPlatform thisOperatingSystem = Utility.GetOperatingSystem();
+					foreach ( string path in possibleOSXPaths )
 					{
-						// Handling OSX specific paths
-						// FIXME: .app's aren't accepting command-line arguments correctly.
-						string[] possibleOSXPaths =
+						if ( thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app") )
 						{
-							Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
-							Path.Combine(resourcesDir, path2: "holopatcher"),
-							Path.Combine(
-								baseDir,
-								"Resources",
-								"HoloPatcher.app",
-								"Contents",
-								"MacOS",
-								"holopatcher"
-							),
-							Path.Combine(baseDir, path2: "Resources", path3: "holopatcher"),
-						};
-
-						OSPlatform thisOperatingSystem = Utility.GetOperatingSystem();
-						foreach ( string path in possibleOSXPaths )
-						{
-							if ( thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app") )
-							{
-								patcherCliPath = PathHelper.GetCaseSensitivePath(new DirectoryInfo(path));
-							}
-							else
-							{
-								patcherCliPath = PathHelper.GetCaseSensitivePath(new FileInfo(path));
-							}
-
-							if ( patcherCliPath.Exists )
-							{
-								await Logger.LogVerboseAsync($"Found holopatcher at '{patcherCliPath.FullName}'...");
-								break;
-							}
-
-							await Logger.LogVerboseAsync($"Holopatcher not found at '{patcherCliPath.FullName}'...");
+							patcherCliPath = PathHelper.GetCaseSensitivePath(new DirectoryInfo(path));
 						}
-					}
+						else
+						{
+							patcherCliPath = PathHelper.GetCaseSensitivePath(new FileInfo(path));
+						}
 
-					if ( patcherCliPath is null || !patcherCliPath.Exists )
-					{
-						return (false,
-							"HoloPatcher could not be found in the Resources directory. Please ensure your AV isn't quarantining it and the file exists.");
-					}
+						if ( patcherCliPath.Exists )
+						{
+							await Logger.LogVerboseAsync($"Found holopatcher at '{patcherCliPath.FullName}'...");
+							break;
+						}
 
-					await Logger.LogVerboseAsync("Ensuring the holopatcher binary has executable permissions...");
-					try
-					{
-						await PlatformAgnosticMethods.MakeExecutableAsync(patcherCliPath);
+						await Logger.LogVerboseAsync($"Holopatcher not found at '{patcherCliPath.FullName}'...");
 					}
-					catch ( Exception e )
-					{
-						await Logger.LogExceptionAsync(e);
-						holopatcherIsExecutable = false;
-					}
-
-					(int, string, string) result = await PlatformAgnosticMethods.ExecuteProcessAsync(
-						patcherCliPath.FullName,
-						args: "--install"
-					);
-					if ( result.Item1 == 2 ) // should return syntax error code since we passed no arguments
-						holopatcherTestExecute = true;
 				}
-				else if ( !(Utility.GetOperatingSystem() == OSPlatform.Windows) )
+
+				if ( patcherCliPath is null || !patcherCliPath.Exists )
 				{
-					return (false, "TSLPatcher is not supported on non-windows operating systems, please use the HoloPatcher patcher option.");
+					return (false,
+						"HoloPatcher could not be found in the Resources directory. Please ensure your AV isn't quarantining it and the file exists.");
 				}
+
+				await Logger.LogVerboseAsync("Ensuring the holopatcher binary has executable permissions...");
+				try
+				{
+					await PlatformAgnosticMethods.MakeExecutableAsync(patcherCliPath);
+				}
+				catch ( Exception e )
+				{
+					await Logger.LogExceptionAsync(e);
+					holopatcherIsExecutable = false;
+				}
+
+				(int, string, string) result = await PlatformAgnosticMethods.ExecuteProcessAsync(
+					patcherCliPath.FullName,
+					args: "--install"
+				);
+				if ( result.Item1 == 2 ) // should return syntax error code since we passed no arguments
+					holopatcherTestExecute = true;
 
 				if ( MainConfig.AllComponents.IsNullOrEmptyCollection() )
 					return (false, "No instructions loaded! Press 'Load Instructions File' or create some instructions first.");
@@ -1947,15 +1939,6 @@ namespace KOTORModSync
 					return;
 				}
 
-				if ( await ConfirmationDialog.ShowConfirmationDialog(
-						this,
-						$"Are you certain you'd like to use the patcher '{MainConfig.PatcherOption}' for all mods? If not, please choose one now on the right before proceeding."
-					)
-					!= true )
-				{
-					return;
-				}
-
 				if ( await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really install all mods?") != true )
 					return;
 
@@ -2379,7 +2362,7 @@ namespace KOTORModSync
 
 				// Assign to instruction.
 				thisInstruction.Arguments = index.ToString();
-				thisInstruction.Action = Instruction.ActionType.TSLPatcher;
+				thisInstruction.Action = Instruction.ActionType.Patcher;
 			}
 			catch ( Exception exception )
 			{

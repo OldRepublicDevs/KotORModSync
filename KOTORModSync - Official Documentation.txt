@@ -37,7 +37,7 @@ KOTORModSync is capable of handling the following Actions:
 Move -> Move a file to a folder
 Copy -> Copy a file to a folder
 Execute -> Execute an executable file
-TSLPatcher -> Execute a TSLPatcher install from the given tslpatchdata directory path.
+Patcher -> Execute a Patcher install from the given tslpatchdata directory path.
 Rename -> Renames a file
 Choose -> Defines an instruction that'll choose between a list of GUID options.
 DelDuplicate -> An instruction that will deletes all files containing the specified extension, when the filenames duplicate.
@@ -46,11 +46,11 @@ Delete -> Deletes a file.
 
 All of these instructions have the following fields:
 Source -> List of files to handle. If the instruction is 'Choose', this will instead be a list of GUIDs.
-Destination -> Applicable to the 'Move', 'Copy', 'Rename', 'TSLPatcher', and 'Delete' Actions ONLY. This will usually be a location in the install (kotor) directory, or in the case of rename it's the new filename to rename to.
+Destination -> Applicable to the 'Move', 'Copy', 'Rename', 'Patcher', and 'Delete' Actions ONLY. This will usually be a location in the install (kotor) directory, or in the case of rename it's the new filename to rename to.
 Overwrite -> Applicable to the 'Move', 'Copy', and 'Rename' Actions ONLY. When 'True', means that the file will be overwritten, when false, means that the file will be skipped if it exists.
 Dependencies -> List of Mods/Options that are REQUIRED to be SELECTED for this specific single instruction to run. If ANY of the mods/options in this list are not selected, this instruction will not be run.
 Restrictions -> List of Mods/Options that CANNOT BE SELECTED in order for this specific single instruction to run. Basically the opposite of the above.
-Arguments -> Applicable to the 'DelDuplicate', 'Execute', and 'TSLPatcher' actions ONLY. For TSLPatcher, this is the namespace option index listed in 'namespaces.ini' indexed based starting at 0 for the first option. For 'DelDuplicate', this is the extension of the files we want deleted if they duplicate. For 'Execute', this defines the extra command line arguments to send to the program before we launch it.
+Arguments -> Applicable to the 'DelDuplicate', 'Execute', and 'Patcher' actions ONLY. For Patcher, this is the namespace option index listed in 'namespaces.ini' indexed based starting at 0 for the first option. For 'DelDuplicate', this is the extension of the files we want deleted if they duplicate. For 'Execute', this defines the extra command line arguments to send to the program before we launch it.
 
 Options explanations:
 An Options is defined just like an individual mod, only nested in a real mod. In case that's not clear, it has the following properties:
@@ -63,6 +63,6 @@ This can all be pretty overwhelming but what's important to understand is that K
 
 Patcher Options:
 KMS supports the following KOTOR patchers:
-TSLPatcher - the default patcher included with mods.
-PyKotorCLI (now HoloPatcher in the latest version!) - A cli I wrote to the PyKotor library created by Cortisol: http:\\github.com\NickHugi\PyKotor
-- PyKotorCLI/HoloPatcher allows an install of all selected mods, without bugging a user to click through multiple TSLPatcher windows and praying they choose the correct option. From my tests, PyKotor installs mods much more efficiently and faster than TSLPatcher, and is supported on linux/mac!
+TSLPatcher - the default patcher included with mods. Older mods typically this will be TSLPatcher, newer mods this typically means HoloPatcher.
+HoloPatcher (now HoloPatcher in the latest version!) - A cli I wrote to the PyKotor library created by Cortisol: http:\\github.com\NickHugi\PyKotor
+- HoloPatcher allows an install of all selected mods, without bugging a user to click through multiple Patcher windows and praying they choose the correct option. From my tests, PyKotor installs mods much more efficiently and faster than TSLPatcher, and is supported on linux/mac!

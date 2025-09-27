@@ -554,7 +554,15 @@ namespace KOTORModSync.Core
 
 				var instruction = new Instruction();
 				string strAction = GetValueOrDefault<string>(instructionDict, key: "Action");
-				if ( Enum.TryParse(strAction, ignoreCase: true, out Instruction.ActionType action) )
+				
+				// Handle backward compatibility for TSLPatcher and HoloPatcher -> Patcher
+				if (string.Equals(strAction, "TSLPatcher", StringComparison.OrdinalIgnoreCase) ||
+				    string.Equals(strAction, "HoloPatcher", StringComparison.OrdinalIgnoreCase))
+				{
+					instruction.Action = Instruction.ActionType.Patcher;
+					_ = Logger.LogAsync($" -- Deserialize instruction #{index + 1} action '{strAction}' -> Patcher (backward compatibility)");
+				}
+				else if ( Enum.TryParse(strAction, ignoreCase: true, out Instruction.ActionType action) )
 				{
 					instruction.Action = action;
 					_ = Logger.LogAsync($" -- Deserialize instruction #{index + 1} action '{action}'");
@@ -1045,8 +1053,7 @@ namespace KOTORModSync.Core
 						instruction.SetRealPaths(noValidate: true);
 						exitCode = instruction.RenameFile();
 						break;
-					case Instruction.ActionType.HoloPatcher:
-					case Instruction.ActionType.TSLPatcher:
+					case Instruction.ActionType.Patcher:
 						instruction.SetRealPaths();
 						exitCode = await instruction.ExecuteTSLPatcherAsync();
 						break;

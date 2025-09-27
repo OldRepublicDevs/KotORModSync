@@ -2,17 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="KOTORModSync.ConfirmationDialog"
         Title="Confirm Action" Width="460" Height="260"
-        TransparencyLevelHint="AcrylicBlur"
-        Background="Transparent"
+        Background="#000116"
         ExtendClientAreaToDecorationsHint="True">
     <Panel>
-        <ExperimentalAcrylicBorder IsHitTestVisible="False">
-            <ExperimentalAcrylicBorder.Material>
-                <ExperimentalAcrylicMaterial BackgroundSource="Digger" TintColor="#000000" TintOpacity="1" MaterialOpacity="0.65" />
-            </ExperimentalAcrylicBorder.Material>
-        </ExperimentalAcrylicBorder>
-
-        <Border Margin="16" Padding="16" CornerRadius="8" Background="#1A000000">
+        <Border Margin="16" Padding="16" CornerRadius="8" Background="#010116" BorderBrush="#062766" BorderThickness="2">
             <Grid RowDefinitions="*,Auto" ColumnDefinitions="*">
                 <ScrollViewer Grid.Row="0" MaxHeight="140">
                     <TextBlock x:Name="ConfirmTextBlock" TextAlignment="Center" FontSize="16" TextWrapping="Wrap" />

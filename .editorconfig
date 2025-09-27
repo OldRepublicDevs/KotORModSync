@@ -236,7 +236,7 @@ csharp_space_between_parentheses = control_flow_statements
 csharp_space_between_square_brackets = false
 
 # License header
-file_header_template = Copyright 2021-2023 KOTORModSync\nLicensed under the GNU General Public License v3.0 (GPLv3).\nSee LICENSE.txt file in the project root for full license information.
+file_header_template = Copyright 2021-2025 KOTORModSync\nLicensed under the GNU General Public License v3.0 (GPLv3).\nSee LICENSE.txt file in the project root for full license information.
 csharp_style_namespace_declarations = block_scoped:suggestion
 csharp_style_prefer_method_group_conversion = true:suggestion
 csharp_style_prefer_top_level_statements = true:suggestion

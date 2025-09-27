@@ -7,16 +7,9 @@
         Title="Log Viewer"
         Width="1000" Height="600"
         MinWidth="600" MinHeight="400"
-        TransparencyLevelHint="AcrylicBlur"
         Background="Transparent"
         ExtendClientAreaToDecorationsHint="True">
     <Panel>
-        <ExperimentalAcrylicBorder IsHitTestVisible="False">
-            <ExperimentalAcrylicBorder.Material>
-                <ExperimentalAcrylicMaterial BackgroundSource="Digger" TintColor="#000000" TintOpacity="1" MaterialOpacity="0.65" />
-            </ExperimentalAcrylicBorder.Material>
-        </ExperimentalAcrylicBorder>
-
         <Border Margin="20" Padding="0" CornerRadius="12" Background="#010116">
             <Grid RowDefinitions="Auto,Auto,*">
                 <!-- Header -->

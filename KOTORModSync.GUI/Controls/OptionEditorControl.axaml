@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+             xmlns:converters="clr-namespace:KOTORModSync.Converters"
+             xmlns:controls="clr-namespace:KOTORModSync.Controls"
+             x:Class="KOTORModSync.Controls.OptionEditorControl">
+    <UserControl.Resources>
+        <converters:IndexConverter x:Key="IndexConverter" />
+        <converters:ListToStringConverter x:Key="ListToStringConverter" />
+    </UserControl.Resources>
+    
+    <StackPanel>
+        <DockPanel>
+            <TextBlock FontWeight="Bold">
+                <TextBlock.Text>
+                    <MultiBinding Converter="{StaticResource IndexConverter}">
+                        <MultiBinding.Bindings>
+                            <Binding Path="$parent[ItemsRepeater].DataContext.Options" />
+                            <Binding Path="." />
+                        </MultiBinding.Bindings>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+            <Button Content="New Option Here"
+                    Click="AddNewOption_Click"
+                    Tag="{Binding}" />
+        </DockPanel>
+        <Border BorderThickness="2" Margin="10">
+            <Grid RowDefinitions="*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*"
+                  ColumnDefinitions="*,Auto"
+                  Margin="10">
+
+                <DockPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
+                    <TextBlock Text="Name:" VerticalAlignment="Center" Margin="0,0,20,0" />
+                    <controls:ActionButtonsControl
+                        DeleteItem="DeleteOption_Click"
+                        MoveItemUp="MoveOptionUp_Click"
+                        MoveItemDown="MoveOptionDown_Click" />
+                </DockPanel>
+                
+                <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding Name}"
+                         VerticalAlignment="Center" Margin="0,0,20,0" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Description:"
+                           VerticalAlignment="Center" Margin="0,0,20,0" />
+                <TextBox Grid.Row="3" Grid.Column="0" Text="{Binding Description}"
+                         Focusable="True" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Dependencies:"
+                           ToolTip.Tip="This option will not be installed if ANY of these dependency mods are NOT SELECTED for install." />
+                <controls:DependencyControl Grid.Row="5" Grid.Column="0"
+                                            ThisGuidList="{Binding Dependencies}" />
+
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="Restrictions:"
+                           ToolTip.Tip="This option will not be installed if ANY of these restricted mods are SELECTED for install." />
+                <controls:DependencyControl Grid.Row="7" Grid.Column="0"
+                                            ThisGuidList="{Binding Restrictions}" />
+                                            
+                <Expander Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2"
+                          Header="Instructions" IsExpanded="False">
+                    <StackPanel>
+                        <ItemsRepeater x:Name="optionInstructionsRepeater"
+                                       ItemsSource="{Binding Instructions}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate DataType="core:Instruction">
+                                    <controls:InstructionEditorControl
+                                        AddNewInstruction="AddNewInstruction_Click"
+                                        DeleteInstruction="DeleteInstruction_Click"
+                                        MoveInstructionUp="MoveInstructionUp_Click"
+                                        MoveInstructionDown="MoveInstructionDown_Click"
+                                        BrowseSourceFiles="BrowseSourceFiles_Click"
+                                        BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
+                                        BrowseDestination="BrowseDestination_Click" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                        <Button Content="Create Instructions"
+                                Click="AddNewInstruction_Click" Tag="{Binding}" />
+                    </StackPanel>
+                </Expander>
+
+            </Grid>
+        </Border>
+    </StackPanel>
+</UserControl>

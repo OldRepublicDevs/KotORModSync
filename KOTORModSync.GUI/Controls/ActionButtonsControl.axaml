@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KOTORModSync.Controls.ActionButtonsControl">
+    <DockPanel>
+        <Button Content="Delete This Item"
+                Click="DeleteItem_Click"
+                Tag="{Binding}" />
+        <Button Content="▲  Up  ▲"
+                Click="MoveItemUp_Click"
+                Tag="{Binding}"
+                HorizontalContentAlignment="Center" />
+        <Button Content="▼ Down ▼"
+                Click="MoveItemDown_Click"
+                Tag="{Binding}"
+                HorizontalContentAlignment="Center" />
+    </DockPanel>
+</UserControl>

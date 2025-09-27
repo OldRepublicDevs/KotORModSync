@@ -254,8 +254,11 @@ namespace KOTORModSync.Tests
 				JsonConvert.DeserializeObject<Dictionary<DirectoryInfo, SHA1>>(json)!;
 
 			Assert.That(loadedChecksums, Has.Count.EqualTo(directoryChecksums.Count));
-			CollectionAssert.AreEquivalent(directoryChecksums.Keys, loadedChecksums!.Keys);
-			CollectionAssert.AreEquivalent(directoryChecksums.Values, loadedChecksums.Values);
+			Assert.Multiple(() =>
+			{
+				Assert.That(loadedChecksums!.Keys, Is.EquivalentTo(directoryChecksums.Keys));
+				Assert.That(loadedChecksums.Values, Is.EquivalentTo(directoryChecksums.Values));
+			});
 
 			// Clean up
 			File.Delete(filePath);

@@ -24,10 +24,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
-using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 using JetBrains.Annotations;
 using KOTORModSync.CallbackDialogs;
@@ -60,7 +58,7 @@ namespace KOTORModSync
 		private bool _installRunning;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
-		private Window _outputWindow;
+		private OutputWindow _outputWindow;
 		private bool _progressWindowClosed;
 		private string _searchText;
 
@@ -132,7 +130,7 @@ namespace KOTORModSync
 
 		private bool _ignoreInternalTabChange { get; set; }
 
-		private ICommand ItemClickCommand => new RelayCommand(
+		private RelayCommand ItemClickCommand => new RelayCommand(
 			parameter =>
 			{
 				if ( parameter is Component component )
@@ -513,8 +511,9 @@ namespace KOTORModSync
 			switch ( storageItem )
 			{
 				// Check if the storageItem is a file
-				case IStorageFile file when fileExt.Equals(value: ".toml", StringComparison.OrdinalIgnoreCase)
+				case IStorageFile _ when fileExt.Equals(value: ".toml", StringComparison.OrdinalIgnoreCase)
 					|| fileExt.Equals(value: ".tml", StringComparison.OrdinalIgnoreCase):
+
 					{
 						// File has .toml extension
 						if ( MainConfig.AllComponents.Count > 0 )
@@ -533,8 +532,7 @@ namespace KOTORModSync
 						await ProcessComponentsAsync(MainConfig.AllComponents);
 						break;
 					}
-				case IStorageFile file:
-
+				case IStorageFile _:
 					(IArchive archive, FileStream archiveStream) = ArchiveHelper.OpenArchive(filePath);
 					if ( archive is null || archiveStream is null )
 						return;
@@ -543,7 +541,7 @@ namespace KOTORModSync
 					await Logger.LogVerboseAsync(exePath);
 
 					break;
-				case IStorageFolder folder:
+				case IStorageFolder _:
 					// Handle folder logic
 					// Folder specific processing here
 					break;
@@ -1053,7 +1051,7 @@ namespace KOTORModSync
 				}
 
 				await Logger.LogVerboseAsync($"Selected files: [{string.Join($",{Environment.NewLine}", filePaths)}]");
-				var files = filePaths.ToList();
+				List<string> files = filePaths.ToList();
 				if ( files.Count == 0 )
 				{
 					_ = Logger.LogVerboseAsync( "No files chosen in BrowseSourceFiles_Click, returning to previous values" );
@@ -1063,7 +1061,7 @@ namespace KOTORModSync
 				if ( files.IsNullOrEmptyOrAllNull() )
 				{
 					throw new ArgumentOutOfRangeException(
-						nameof( files ),
+						nameof(sender),
 						$"Invalid files found. Please report this issue to the developer: [{string.Join(separator: ",", files)}]"
 					);
 				}
@@ -1659,7 +1657,7 @@ namespace KOTORModSync
 				}
 
 				// ReSharper disable once InvertIf
-				if ( fileSystemInfos.Any() )
+				if ( fileSystemInfos.Count != 0 )
 				{
 					informationMessage =
 						"You have duplicate files/folders in your installation directory in a case-insensitive environment."
@@ -1742,7 +1740,9 @@ namespace KOTORModSync
 						this,
 						$"Cannot remove '{CurrentComponent.Name}', there are several components that rely on it. Please address this problem first. {Environment.NewLine} Continue removing anyway?"
 					) != true )
+					{
 						return;
+					}
 				}
 
 				// Remove the selected component from the collection
@@ -1960,6 +1960,29 @@ namespace KOTORModSync
 					return;
 
 				var progressWindow = new ProgressWindow { ProgressBar = { Value = 0 }, Topmost = true };
+				DateTime installStartTime = DateTime.UtcNow;
+				int warningCount = 0;
+				int errorCount = 0;
+				void logCounter(string message)
+				{
+					try
+					{
+						if ( string.IsNullOrEmpty(message) )
+							return;
+						// Logged message format: [timestamp] [Warning]/[Error] ...
+						if ( message.IndexOf("[Warning]", StringComparison.OrdinalIgnoreCase) >= 0 )
+							warningCount++;
+						if ( message.IndexOf("[Error]", StringComparison.OrdinalIgnoreCase) >= 0 )
+							errorCount++;
+					}
+					catch { /* best effort */ }
+				}
+				void exceptionCounter(Exception _) { try { errorCount++; } catch { } }
+				Logger.Logged += logCounter;
+				Logger.ExceptionLogged += exceptionCounter;
+				progressWindow.CancelRequested += (_, __) =>
+					// Trigger existing closing flow which asks for confirmation
+					progressWindow.Close();
 
 				bool isClosingProgressWindow = false;
 				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
@@ -2027,11 +2050,18 @@ namespace KOTORModSync
 									+ Environment.NewLine
 									+ component.Directions;
 
-								double percentComplete = (double)index / selectedMods.Count;
-								progressWindow.ProgressBar.Value = percentComplete;
-								progressWindow.InstalledRemaining.Text = $"{index}/{selectedMods.Count} Total Installed";
-								progressWindow.PercentCompleted.Text = $"{Math.Round(percentComplete * 100)}%";
+								double percentComplete = selectedMods.Count == 0 ? 0 : (double)index / selectedMods.Count;
 								progressWindow.Topmost = true;
+								int installedCount = index;
+								progressWindow.UpdateMetrics(
+									percentComplete,
+									installedCount,
+									selectedMods.Count,
+									installStartTime,
+									warningCount,
+									errorCount,
+									component.Name
+								);
 
 								// Additional fallback options
 								await Task.Delay(millisecondsDelay: 100); // Introduce a small delay
@@ -2098,6 +2128,9 @@ namespace KOTORModSync
 					_installRunning = false;
 					isClosingProgressWindow = true;
 					progressWindow.Close();
+					// Unsubscribe metrics counters
+					Logger.Logged -= logCounter;
+					Logger.ExceptionLogged -= exceptionCounter;
 				}
 			}
 			catch ( Exception ex )
@@ -2800,7 +2833,7 @@ namespace KOTORModSync
 		}
 
 		[NotNull]
-		private Control CreateComponentHeader([NotNull] Component component, int index)
+		private Grid CreateComponentHeader([NotNull] Component component, int index)
 		{
 			if ( component is null )
 				throw new ArgumentNullException(nameof( component ));
@@ -2990,7 +3023,7 @@ namespace KOTORModSync
 			return rootItem;
 		}
 
-		private async Task ProcessComponentsAsync([NotNull][ItemNotNull] IReadOnlyList<Component> componentsList)
+		private async Task ProcessComponentsAsync([NotNull][ItemNotNull] List<Component> componentsList)
 		{
 			try
 			{
@@ -3207,20 +3240,8 @@ namespace KOTORModSync
 					return;
 				}
 
-				// clear existing style before adding a new one.
-				Styles.Clear();
-				Styles.Add(new FluentTheme());
-				Styles.Clear();
 
-				if ( !stylePath.Equals(value: "default", StringComparison.OrdinalIgnoreCase) )
-				{
-					// Apply the selected style dynamically
-					var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
-					Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
-				}
-
-				// manually update each control in the main window.
-				// TraverseControls( this, comboBox );
+				ThemeManager.UpdateStyle(stylePath);
 			}
 			catch ( Exception exception )
 			{

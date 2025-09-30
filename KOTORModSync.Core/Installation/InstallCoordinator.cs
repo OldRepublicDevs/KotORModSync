@@ -1,0 +1,183 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the GNU General Public License v3.0 (GPLv3).
+// See LICENSE.txt file in the project root for full license information.
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using JetBrains.Annotations;
+
+namespace KOTORModSync.Core.Installation
+{
+	public sealed class InstallCoordinator
+	{
+		public InstallCoordinator()
+		{
+			SessionManager = new InstallSessionManager();
+			BackupManager = new BackupManager();
+		}
+
+		public InstallSessionManager SessionManager { get; }
+		public BackupManager BackupManager { get; }
+
+		public async Task<ResumeResult> InitializeAsync([NotNull] IList<Component> components, [NotNull] DirectoryInfo destinationPath, CancellationToken cancellationToken)
+		{
+			await SessionManager.InitializeAsync(components, destinationPath);
+			await BackupManager.EnsureSnapshotAsync(destinationPath, cancellationToken);
+			SessionManager.UpdateBackupPath(BackupManager.BackupPath);
+			await SessionManager.SaveAsync();
+			List<Component> ordered = GetOrderedInstallList(components);
+			return new ResumeResult(SessionManager.State.SessionId, ordered);
+		}
+
+		public static List<Component> GetOrderedInstallList([NotNull][ItemNotNull] IList<Component> components)
+		{
+			if ( components == null )
+				throw new ArgumentNullException(nameof(components));
+
+			var componentMap = components.ToDictionary(c => c.Guid);
+			// Build graph where edges point from dependency to dependent
+			var adjacency = new Dictionary<Guid, List<Guid>>();
+			var indegree = new Dictionary<Guid, int>();
+
+			foreach ( Component component in components )
+			{
+				adjacency[component.Guid] = new List<Guid>();
+				indegree[component.Guid] = 0;
+			}
+
+			foreach ( Component component in components )
+			{
+				foreach ( Guid dependency in component.Dependencies )
+				{
+					if ( !componentMap.ContainsKey(dependency) )
+						continue;
+
+					adjacency[dependency].Add(component.Guid);
+					indegree[component.Guid]++;
+				}
+
+				foreach ( Guid installAfter in component.InstallAfter )
+				{
+					if ( !componentMap.ContainsKey(installAfter) )
+						continue;
+
+					adjacency[installAfter].Add(component.Guid);
+					indegree[component.Guid]++;
+				}
+
+				foreach ( Guid installBefore in component.InstallBefore )
+				{
+					if ( !componentMap.ContainsKey(installBefore) )
+						continue;
+
+					aggAdjacency(component.Guid, installBefore);
+				}
+			}
+
+			var queue = new Queue<Guid>(indegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
+			var ordered = new List<Component>();
+
+			while ( queue.Count > 0 )
+			{
+				Guid current = queue.Dequeue();
+				ordered.Add(componentMap[current]);
+
+				foreach ( Guid dependent in adjacency[current] )
+				{
+					indegree[dependent]--;
+					if ( indegree[dependent] == 0 )
+						queue.Enqueue(dependent);
+				}
+			}
+
+			// If there was a cycle, append remaining components in original order
+			if ( ordered.Count != components.Count )
+			{
+				foreach ( Component component in components )
+				{
+					if ( !ordered.Contains(component) )
+						ordered.Add(component);
+				}
+			}
+
+			return ordered;
+
+			void aggAdjacency(Guid from, Guid to)
+			{
+				adjacency[from].Add(to);
+				indegree[to]++;
+			}
+		}
+
+		public static void MarkBlockedDescendants([NotNull] IList<Component> orderedComponents, Guid failedComponentId)
+		{
+			var visited = new HashSet<Guid>();
+			var stack = new Stack<Guid>();
+			stack.Push(failedComponentId);
+
+			Dictionary<Guid, List<Guid>> dependentsMap = BuildDependentsMap(orderedComponents);
+
+			while ( stack.Count > 0 )
+			{
+				Guid current = stack.Pop();
+				if ( !dependentsMap.TryGetValue(current, out List<Guid> dependents) )
+					continue;
+
+				foreach ( Guid dependentId in dependents )
+				{
+					if ( visited.Add(dependentId) )
+					{
+						Component dependent = orderedComponents.FirstOrDefault(c => c.Guid == dependentId);
+						if ( dependent != null && dependent.InstallState == Component.ComponentInstallState.Pending )
+						{
+							dependent.InstallState = Component.ComponentInstallState.Blocked;
+						}
+
+						stack.Push(dependentId);
+					}
+				}
+			}
+		}
+
+		private static Dictionary<Guid, List<Guid>> BuildDependentsMap(IList<Component> components)
+		{
+			var map = new Dictionary<Guid, List<Guid>>();
+			var componentMap = components.ToDictionary(c => c.Guid);
+
+			foreach ( Component component in components )
+			{
+				void addEdge(Guid from, Guid to)
+				{
+					if ( !componentMap.ContainsKey(to) )
+						return;
+					if ( !map.TryGetValue(from, out List<Guid> list) )
+					{
+						list = new List<Guid>();
+						map[from] = list;
+					}
+					if ( !list.Contains(to) )
+						list.Add(to);
+				}
+
+				foreach ( Guid dependency in component.Dependencies )
+					addEdge(dependency, component.Guid);
+
+				foreach ( Guid installAfter in component.InstallAfter )
+					addEdge(installAfter, component.Guid);
+
+				foreach ( Guid installBefore in component.InstallBefore )
+					addEdge(component.Guid, installBefore);
+			}
+
+			return map;
+		}
+
+		public static void ClearSessionForTests(DirectoryInfo directoryInfo) => throw new NotImplementedException();
+
+	}
+}
+

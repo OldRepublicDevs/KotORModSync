@@ -20,6 +20,8 @@
         <converters:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
+        <converters:NotChooseActionVisibility x:Key="NotChooseActionVisibility" />
+        <converters:GuidToComponentConverter x:Key="GuidToComponentConverter" />
         <converters:GuidListConverter x:Key="GuidListConverter" />
         <converters:IsWindowsConverter x:Key="IsWindowsConverter" />
         <converters:IsUnixConverter x:Key="IsUnixConverter" />
@@ -41,33 +43,53 @@
 
     <Panel>
 
-    <Grid x:Name="MainGrid" MinWidth="200" RowDefinitions="Auto,*">
-        <Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" x:Name="TopMenu"/>
+    <Grid x:Name="MainGrid" MinWidth="200" RowDefinitions="Auto,Auto,*">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" MinWidth="250" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" MinWidth="250" />
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
-            <TextBlock x:Name="TitleTextBlock" Text="KOTORModSync" FontSize="24"
-                   FontWeight="Bold" HorizontalAlignment="Center" />
-            <Button x:Name="HomeButton" Content="🏠 Getting Started" 
-                    HorizontalAlignment="Right" VerticalAlignment="Center"
-                    Margin="0,0,150,0" Click="HomeButton_Click"
-                    ToolTip.Tip="Return to the getting started guide" />
+        <!-- Header row: menu (left), centered title (middle), window controls (right) -->
+        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Menu x:Name="TopMenu" Grid.Column="0" />
+            <TextBlock x:Name="TitleTextBlock" Grid.Column="1" Text="KOTORModSync" FontSize="24"
+                       FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="0">
+                <Button Content="-" Click="MinimizeButton_Click" HorizontalContentAlignment="Center"
+                        VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+                <Button Content="▢" Click="ToggleMaximizeButton_Click"
+                        HorizontalContentAlignment="Center" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+                <Button Content="X" Click="CloseButton_Click"
+                        HorizontalContentAlignment="Center" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+            </StackPanel>
         </Grid>
-        <DockPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" HorizontalAlignment="Right"
-                   VerticalAlignment="Center">
-            <Button Content="-" Click="MinimizeButton_Click" HorizontalContentAlignment="Center"
-                    VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
-            <Button Content="▢" Click="ToggleMaximizeButton_Click"
-                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
-            <Button Content="X" Click="CloseButton_Click"
-                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
-        </DockPanel>
+        <!-- Getting Started button row -->
+        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,4,10,4">
+                <ToggleSwitch x:Name="EditorModeToggle" Content="Editor Mode"
+                              IsChecked="{Binding EditorMode, Mode=TwoWay}"
+                              VerticalAlignment="Center" Margin="0,0,20,0"
+                              ToolTip.Tip="Toggle to enable Editor Mode: exposes Raw/GUI edit tabs, editing buttons, and creation tools. When off, the UI is simplified for end users installing mods." />
+                <Button x:Name="HomeButton" Content="🏠 Getting Started"
+                        Click="HomeButton_Click"
+                        ToolTip.Tip="Return to the getting started guide" />
+                <Button x:Name="OutputWindowButton" Content="📊 Output Window"
+                        Click="OpenOutputWindow_Click"
+                        ToolTip.Tip="Open the output window to view detailed logs"
+                        Margin="10,0,0,0" />
+                <Button x:Name="HeaderSettingsButton" Content="⚙️ Settings"
+                        Click="OpenSettings_Click"
+                        ToolTip.Tip="Open settings dialog to configure preferences"
+                        Margin="10,0,0,0" />
+            </StackPanel>
+        </Grid>
 
-        <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="Auto,*,Auto" Margin="0,0,10,0">
+        <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,*,Auto" Margin="0,0,10,0">
             <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
             <TextBox Grid.Row="0" Margin="0,0,0,2" HorizontalAlignment="Stretch"
                      Name="SearchBox" ToolTip.Tip="Search for a mod by name" Text="{Binding SearchText}" />
@@ -75,7 +97,7 @@
                 <TreeView x:Name="LeftTreeView" />
             </ScrollViewer>
             <Grid Grid.Row="2" Grid.Column="0" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Margin="3,1"
-                RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,*">
+                RowDefinitions="Auto,Auto,Auto,Auto,*" ColumnDefinitions="*,*" IsVisible="{Binding EditorMode}">
                 <Button Grid.Row="0" Grid.Column="0" HorizontalContentAlignment="Center"
                     HorizontalAlignment="Stretch"
                     VerticalContentAlignment="Center"
@@ -93,145 +115,134 @@
                 <Button Grid.Row="2" Grid.Column="0" HorizontalContentAlignment="Center"
                         HorizontalAlignment="Stretch" Content="Save Config" Click="SaveModFile_Click" />
                 <Button Grid.Row="2" Grid.Column="1" HorizontalContentAlignment="Center"
+                        HorizontalAlignment="Stretch" Content="Close TOML" Click="CloseTOMLFile_Click" />
+                <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" HorizontalContentAlignment="Center"
                         HorizontalAlignment="Stretch" Content="Refresh List" Click="RefreshComponents_Click" />
-                <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                <Button Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
                     HorizontalContentAlignment="Center"
                         HorizontalAlignment="Stretch" Content="Test Install Single Mod" Click="InstallModSingle_Click" />
             </Grid>
         </Grid>
-        <GridSplitter Grid.Column="0" Grid.Row="1" Width="5" HorizontalAlignment="Right" />
-        <TabControl Grid.Row="1" Grid.Column="1" x:Name="TabControl"
+        <GridSplitter Grid.Column="0" Grid.Row="2" Width="5" HorizontalAlignment="Right" />
+        <TabControl Grid.Row="2" Grid.Column="1" x:Name="TabControl"
             SelectionChanged="TabControl_SelectionChanged"
-            HorizontalAlignment="Left">
-            <TabItem x:Name="InitialTab" Header="Getting Started" IsVisible="True">
+            HorizontalAlignment="Stretch">
+            <TabItem x:Name="InitialTab" Header="Getting Started" IsVisible="False">
                 <TabItem.Content>
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="20" Spacing="20">
-                            <TextBlock Text="Welcome to KOTORModSync!" FontSize="28" FontWeight="Bold" 
-                                     HorizontalAlignment="Center" Foreground="#A8B348" />
-                            
-                            <TextBlock Text="Follow these steps to install your KOTOR mods:" FontSize="16" 
+                            <TextBlock Text="Welcome to KOTORModSync!" Classes="welcome-title" />
+
+                            <TextBlock Text="Follow these steps to install your KOTOR mods:" FontSize="16"
                                      HorizontalAlignment="Center" Margin="0,0,0,10" />
-                            
+
                             <!-- Step 1: Directories -->
-                            <Border x:Name="Step1Border" BorderBrush="#3AAAFF" BorderThickness="2" CornerRadius="8" Padding="15">
+                            <Border x:Name="Step1Border" Classes="step-border">
                                 <StackPanel>
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <TextBlock Grid.Column="0" Text="1️⃣" FontSize="20" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="Set Directories" FontSize="18" FontWeight="Bold" 
-                                                 VerticalAlignment="Center" Margin="10,0" />
-                                        <Border Grid.Column="2" x:Name="Step1CompleteIndicator" 
-                                              Background="Transparent" CornerRadius="4" Padding="8,4">
-                                            <TextBlock x:Name="Step1CompleteText" Text="✓ Complete" 
-                                                     Foreground="#2E7D32" FontWeight="Bold" />
+                                        <TextBlock Grid.Column="0" Text="1️⃣" Classes="step-number" />
+                                        <TextBlock Grid.Column="1" Text="Set Directories" Classes="step-title" />
+                                        <Border Grid.Column="2" x:Name="Step1CompleteIndicator" Classes="step-pending">
+                                            <TextBlock x:Name="Step1CompleteText" Text="Pending" Classes="step-pending-text" />
                                         </Border>
                                     </Grid>
-                                    <TextBlock Text="Configure your mod directory and KOTOR installation directory" 
+                                    <TextBlock Text="Configure your mod directory and KOTOR installation directory"
                                              Margin="30,10,0,10" TextWrapping="Wrap" />
-                                    
+
                                     <!-- Directory Controls -->
                                     <StackPanel Margin="30,10,0,10">
-                                        <controls:DirectoryPickerControl x:Name="Step1ModDirectoryPicker" 
-                                                                       Title="Mod Location:" 
+                                        <controls:DirectoryPickerControl x:Name="Step1ModDirectoryPicker"
+                                                                       Title="Mod Location:"
                                                                        Watermark="Enter mod directory path"
                                                                        PickerType="ModDirectory"
                                                                        DirectoryChanged="OnDirectoryChanged"
                                                                        Margin="0,0,0,10" />
-                                                                       
-                                        <controls:DirectoryPickerControl x:Name="Step1KotorDirectoryPicker" 
-                                                                       Title="Kotor Directory:" 
+
+                                        <controls:DirectoryPickerControl x:Name="Step1KotorDirectoryPicker"
+                                                                       Title="Kotor Directory:"
                                                                        Watermark="Enter KOTOR installation directory"
                                                                        PickerType="KotorDirectory"
                                                                        DirectoryChanged="OnDirectoryChanged" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
-                            
+
                             <!-- Step 2: Load Instructions -->
-                            <Border x:Name="Step2Border" BorderBrush="#3AAAFF" BorderThickness="2" CornerRadius="8" Padding="15">
+                            <Border x:Name="Step2Border" Classes="step-border">
                                 <StackPanel>
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <TextBlock Grid.Column="0" Text="2️⃣" FontSize="20" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="Load Instruction File" FontSize="18" FontWeight="Bold" 
-                                                 VerticalAlignment="Center" Margin="10,0" />
-                                        <Border Grid.Column="2" x:Name="Step2CompleteIndicator" 
-                                              Background="Transparent" CornerRadius="4" Padding="8,4">
-                                            <TextBlock x:Name="Step2CompleteText" Text="✓ Complete" 
-                                                     Foreground="#2E7D32" FontWeight="Bold" />
+                                        <TextBlock Grid.Column="0" Text="2️⃣" Classes="step-number" />
+                                        <TextBlock Grid.Column="1" Text="Load Instruction File" Classes="step-title" />
+                                        <Border Grid.Column="2" x:Name="Step2CompleteIndicator" Classes="step-pending">
+                                            <TextBlock x:Name="Step2CompleteText" Text="Pending" Classes="step-pending-text" />
                                         </Border>
                                     </Grid>
-                                    <TextBlock Text="Load a mod configuration file or create a new one" 
+                                    <TextBlock Text="Load a mod configuration file or create a new one"
                                              Margin="30,10,0,10" TextWrapping="Wrap" />
-                                    <Button x:Name="Step2Button" Content="📄 Load Instruction File" 
-                                          Click="Step2Button_Click" HorizontalAlignment="Left"
-                                          ToolTip.Tip="Click 'Load Installation File' in the top menu" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                        <Button x:Name="Step2Button" Content="📄 Load Instruction File"
+                                              Click="Step2Button_Click" HorizontalAlignment="Left"
+                                              ToolTip.Tip="Click 'Load Installation File' in the top menu"
+                                              Margin="0,0,10,0" />
+                                        <Button x:Name="GettingStartedSettingsButton" Content="⚙️ Settings"
+                                              Click="OpenSettings_Click" HorizontalAlignment="Left"
+                                              ToolTip.Tip="Open settings dialog to configure preferences" />
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
-                            
+
                             <!-- Step 3: Select Mods -->
-                            <Border x:Name="Step3Border" BorderBrush="#3AAAFF" BorderThickness="2" CornerRadius="8" Padding="15">
+                            <Border x:Name="Step3Border" Classes="step-border">
                                 <StackPanel>
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <TextBlock Grid.Column="0" Text="3️⃣" FontSize="20" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="Select Mods &amp; Options" FontSize="18" FontWeight="Bold" 
-                                                 VerticalAlignment="Center" Margin="10,0" />
-                                        <Border Grid.Column="2" x:Name="Step3CompleteIndicator" 
-                                              Background="Transparent" CornerRadius="4" Padding="8,4">
-                                            <TextBlock x:Name="Step3CompleteText" Text="✓ Complete" 
-                                                     Foreground="#2E7D32" FontWeight="Bold" />
+                                        <TextBlock Grid.Column="0" Text="3️⃣" Classes="step-number" />
+                                        <TextBlock Grid.Column="1" Text="Select Mods &amp; Options" Classes="step-title" />
+                                        <Border Grid.Column="2" x:Name="Step3CompleteIndicator" Classes="step-pending">
+                                            <TextBlock x:Name="Step3CompleteText" Text="Pending" Classes="step-pending-text" />
                                         </Border>
                                     </Grid>
-                                    <TextBlock Text="Choose which mods to install from the list on the left, and configure any options" 
+                                    <TextBlock Text="Choose which mods to install from the list on the left, and configure any options"
                                              Margin="30,10,0,10" TextWrapping="Wrap" />
-                                    <TextBlock Text="👈 Use the left panel to select mods and customize their options" 
+                                    <TextBlock Text="👈 Use the left panel to select mods and customize their options"
                                              Margin="30,5,0,10" FontStyle="Italic" />
                                 </StackPanel>
                             </Border>
-                            
+
                             <!-- Step 4: Install -->
-                            <Border x:Name="Step4Border" BorderBrush="#3AAAFF" BorderThickness="2" CornerRadius="8" Padding="15">
+                            <Border x:Name="Step4Border" Classes="step-border">
                                 <StackPanel>
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <TextBlock Grid.Column="0" Text="4️⃣" FontSize="20" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="Validate &amp; Install" FontSize="18" FontWeight="Bold" 
-                                                 VerticalAlignment="Center" Margin="10,0" />
-                                        <Border Grid.Column="2" x:Name="Step4CompleteIndicator" 
-                                              Background="Transparent" CornerRadius="4" Padding="8,4">
-                                            <TextBlock x:Name="Step4CompleteText" Text="✓ Complete" 
-                                                     Foreground="#2E7D32" FontWeight="Bold" />
-                                        </Border>
+                                        <TextBlock Grid.Column="0" Text="4️⃣" Classes="step-number" />
+                                        <TextBlock Grid.Column="1" Text="Validate &amp; Install" Classes="step-title" />
                                     </Grid>
-                                    <TextBlock Text="Validate your configuration and start the installation process" 
+                                    <TextBlock Text="Validate your configuration and start the installation process"
                                              Margin="30,10,0,10" TextWrapping="Wrap" />
                                     <StackPanel Orientation="Horizontal" Margin="30,5,0,0">
-                                        <Button x:Name="ValidateButton" Content="🔍 Validate" 
+                                        <Button x:Name="ValidateButton" Content="🔍 Validate"
                                               Click="GettingStartedValidateButton_Click" Margin="0,0,10,0"
                                               ToolTip.Tip="Check for any issues before installation" />
-                                        <Button x:Name="InstallButton" Content="⚡ Start Install" 
+                                        <Button x:Name="InstallButton" Content="⚡ Start Install"
                                               Click="InstallButton_Click"
                                               ToolTip.Tip="Begin the mod installation process" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
-                            
+
                             <!-- Progress Section -->
-                            <Border BorderBrush="#A8B348" BorderThickness="2" CornerRadius="8" Padding="15"
-                                  Background="#0A1A0A">
+                            <Border Classes="progress-section">
                                 <StackPanel>
-                                    <TextBlock Text="📊 Progress Overview" FontSize="16" FontWeight="Bold" 
+                                    <TextBlock Text="📊 Progress Overview" FontSize="16" FontWeight="Bold"
                                              HorizontalAlignment="Center" Margin="0,0,0,10" />
-                                    <ProgressBar x:Name="OverallProgressBar" Height="20" Minimum="0" Maximum="4" Value="0"
-                                               Foreground="#A8B348" Background="#062766" />
+                                    <ProgressBar x:Name="OverallProgressBar" Height="20" Minimum="0" Maximum="4" Value="0"/>
                                     <TextBlock x:Name="ProgressText" Text="Complete the steps above to get started"
                                              HorizontalAlignment="Center" Margin="0,5,0,0" FontStyle="Italic" />
                                 </StackPanel>
                             </Border>
-                            
+
                             <!-- Additional Help -->
-                            <Border BorderBrush="#666666" BorderThickness="1" CornerRadius="8" Padding="15"
-                                  Background="#0F0F2F">
+                            <Border Classes="help-section">
                                 <StackPanel>
-                                    <TextBlock Text="💡 Need Help?" FontSize="16" FontWeight="Bold" 
+                                    <TextBlock Text="💡 Need Help?" FontSize="16" FontWeight="Bold"
                                              HorizontalAlignment="Center" Margin="0,0,0,10" />
                                     <TextBlock TextWrapping="Wrap" HorizontalAlignment="Center">
                                         <Run Text="• Check the "/>
@@ -244,15 +255,23 @@
                                         <LineBreak/>
                                         <Run Text="• Enable "/>
                                         <Run Text="Verbose Logging" FontWeight="Bold" />
-                                        <Run Text=" in the right panel for more details"/>
+                                        <Run Text=" in Settings for more details"/>
                                     </TextBlock>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                                        <Button x:Name="GettingStartedOpenOutputButton" Content="📊 Open Output Window"
+                                              Click="OpenOutputWindow_Click" Margin="0,0,10,0"
+                                              ToolTip.Tip="Open the output window to view detailed logs" />
+                                        <Button x:Name="GettingStartedHelpSettingsButton" Content="⚙️ Settings"
+                                              Click="OpenSettings_Click"
+                                              ToolTip.Tip="Open settings dialog to configure preferences" />
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem.Content>
             </TabItem>
-            <TabItem x:Name="SummaryTabItem" Header="Summary">
+            <TabItem x:Name="SummaryTabItem" Header="Summary" IsVisible="False">
                 <TabItem.Content>
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                         VerticalScrollBarVisibility="Auto">
@@ -438,14 +457,39 @@
                                                         Margin="10,0,0,0"
                                                         FontWeight="DemiBold"
                                                         TextWrapping="Wrap" />
+
+                                                    <!-- For non-Choose actions, keep existing summary -->
+                                                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0"
+                                                                IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}">
                                                     <TextBlock
                                                         Text="{Binding Source, Converter={StaticResource ListToStringConverter}}"
-                                                        Margin="10,0,0,0"
                                                         TextWrapping="Wrap" />
+                                                        <TextBlock Text="  " />
                                                     <TextBlock
                                                         Text="{Binding Arguments}"
-                                                        Margin="10,0,0,0"
                                                         TextWrapping="Wrap" />
+                                                    </StackPanel>
+
+                                                    <!-- For Choose actions, show resolved components/options with jump buttons -->
+                                                    <ItemsControl Margin="10,0,0,0"
+                                                                  IsVisible="{Binding Action, Converter={StaticResource ChooseActionVisibility}}">
+                                                        <ItemsControl.Items>
+                                                            <!-- Bind to Source GUID list (already strings); convert each to Guid and then to label in code-behind if necessary. We'll display via GuidToComponentConverter. -->
+                                                        </ItemsControl.Items>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                    <TextBlock
+                                                                        Text="{Binding ., Converter={StaticResource GuidToComponentConverter}}"
+                                                                        ToolTip.Tip="{Binding .}"
+                                                                        TextWrapping="Wrap"/>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                        <ItemsControl.ItemsSource>
+                                                            <Binding Path="Source" Converter="{StaticResource GuidListConverter}"/>
+                                                        </ItemsControl.ItemsSource>
+                                                    </ItemsControl>
                                                 </DockPanel>
                                             </Grid>
                                         </Border>
@@ -457,7 +501,7 @@
                 </TabItem.Content>
             </TabItem>
 
-            <TabItem x:Name="GuiEditTabItem" Header="GUI Edit">
+            <TabItem x:Name="GuiEditTabItem" Header="GUI Edit" IsVisible="{Binding EditorMode}">
                 <TabItem.Content>
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                         VerticalScrollBarVisibility="Auto">
@@ -588,7 +632,7 @@
                     </ScrollViewer>
                 </TabItem.Content>
             </TabItem>
-            <TabItem x:Name="RawEditTabItem" Header="Raw Edit"
+            <TabItem x:Name="RawEditTabItem" Header="Raw Edit" IsVisible="{Binding EditorMode}"
                      ToolTip.Tip="Click 'Apply Editor Changes' to save raw changes">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                     <StackPanel HorizontalAlignment="Stretch">
@@ -607,64 +651,6 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
-        <GridSplitter Grid.Column="1" Grid.Row="1" Width="5" HorizontalAlignment="Right" />
-        <StackPanel Grid.Row="1" Grid.Column="2">
-            <Grid RowDefinitions="*,*,*,*,*,*,*,*">
-                <Button Grid.Row="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                        Content="Load Installation File" Click="LoadInstallFile_Click"
-                        ToolTip.Tip="Load a TOMLIN instruction file from disk." />
-                <Button Grid.Row="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                        Content="Set Directories" Click="SetDirectories_Click"
-                        ToolTip.Tip="Define your KOTOR install directory, and the folder where your mods are downloaded." />
-                <Button Grid.Row="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                        Content="Validate" Click="ValidateButton_Click"
-                        ToolTip.Tip="Validates all mods on disk, and their TOMLIN instructions, to ensure instructions can logically execute." />
-                <Button Grid.Row="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                        Content="Start Install" Click="StartInstall_Click"
-                        ToolTip.Tip="Starts a full installation of all selected mods." />
-                <Button Grid.Row="4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                        Content="Open Output Window" Click="OpenOutputWindow_Click" />
-            </Grid>
-
-            <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
-            <StackPanel x:Name="MainConfigStackPanel" DataContext="{Binding MainConfigInstance}">
-                <CheckBox Content="Verbose Logging" IsChecked="{Binding debugLogging}"
-                          ToolTip.Tip="Shows extra output in both the logfile and the output window."/>
-                <CheckBox Content="Auto-Fix Config Errors" IsChecked="{Binding attemptFixes}"
-                          ToolTip.Tip="Sometimes config files have simple mistakes, this attempts to use some common sense to fix common errors in a TOML file. This only
-executes when an error is detected during a validation." />
-                <CheckBox Content="Don't ask for Admin" IsChecked="{Binding noAdmin}"
-                          ToolTip.Tip="Activating this toggles __COMPAT_LAYER=RunAsInvoker for 'Patcher' and 'Execute' instructions. It signals Windows to
-launch executables as if they already have admin rights, preventing unnecessary UAC checks. Handy for older apps without an app.manifest (e.g. TSLPatcher). Note: enabling this
-setting might cause permission issues. Instead, running ModSync as administrator is recommended.
-On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant."/>
-                <CheckBox Content="Mock case-insensitive filesystem" IsChecked="{Binding caseInsensitivePathing}"
-                          ToolTip.Tip="Attempt to perform case-insensitive file/folder lookups for all instructions. Somewhat slow, especially on HDDs.">
-                    <CheckBox.IsVisible>
-                        <Binding Converter="{StaticResource IsUnixConverter}" />
-                    </CheckBox.IsVisible>
-                </CheckBox>
-                <TextBlock Text="Theme:" />
-                <ComboBox x:Name="StyleComboBox" SelectedIndex="1" HorizontalAlignment="Stretch"
-                          HorizontalContentAlignment="Center"
-                          SelectionChanged="StyleComboBox_SelectionChanged">
-                    <ComboBoxItem Content="Plain Style" Tag="default" />
-                    <ComboBoxItem Content="K1 Style" Tag="/Styles/KotorStyle.axaml" />
-                    <ComboBoxItem Content="TSL Style" Tag="/Styles/Kotor2Style.axaml" />
-                </ComboBox>
-                <controls:DirectoryPickerControl x:Name="ModDirectoryPicker" 
-                                               Title="Mod Location:" 
-                                               Watermark="Enter mod directory path"
-                                               PickerType="ModDirectory"
-                                               DirectoryChanged="OnDirectoryChanged" />
-                                               
-                <controls:DirectoryPickerControl x:Name="KotorDirectoryPicker" 
-                                               Title="Kotor Directory:" 
-                                               Watermark="Enter KOTOR installation directory"
-                                               PickerType="KotorDirectory"
-                                               DirectoryChanged="OnDirectoryChanged" />
-            </StackPanel>
-        </StackPanel>
         <!--<ContentControl
         Grid.Row="4" Content="{Binding LogViewer}" />-->
     </Grid>

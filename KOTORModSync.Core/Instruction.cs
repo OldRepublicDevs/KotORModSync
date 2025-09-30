@@ -3,7 +3,6 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -67,6 +66,7 @@ namespace KOTORModSync.Core
 
 
 		private ActionType _action;
+		private Guid _guid = Guid.NewGuid();
 
 		[NotNull] private string _arguments = string.Empty;
 
@@ -80,7 +80,20 @@ namespace KOTORModSync.Core
 
 		[NotNull][ItemNotNull] private List<string> _source = new List<string>();
 
-		public static IEnumerable<string> ActionTypes => Enum.GetValues(typeof( ActionType )).Cast<ActionType>()
+		public Guid Guid
+		{
+			get => _guid;
+			set
+			{
+				if ( _guid == value )
+					return;
+
+				_guid = value;
+				OnPropertyChanged();
+			}
+		}
+
+		public static IEnumerable<string> ActionTypes => Enum.GetValues(typeof(ActionType)).Cast<ActionType>()
 			.Select(actionType => actionType.ToString());
 
 		[JsonIgnore]
@@ -94,14 +107,16 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		[JsonProperty(nameof( Action ))]
+		[JsonProperty(nameof(Action))]
 		public string ActionString
 		{
 			get => Action.ToString();
-			set => Action = (ActionType)Enum.Parse(typeof( ActionType ), value);
+			set => Action = (ActionType)Enum.Parse(typeof(ActionType), value);
 		}
 
-		[NotNull][ItemNotNull] public List<string> Source
+		[NotNull]
+		[ItemNotNull]
+		public List<string> Source
 		{
 			get => _source;
 			set
@@ -111,7 +126,8 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		[NotNull] public string Destination
+		[NotNull]
+		public string Destination
 		{
 			get => _destination;
 			set
@@ -142,7 +158,8 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		[NotNull] public List<Guid> Dependencies
+		[NotNull]
+		public List<Guid> Dependencies
 		{
 			get => _dependencies;
 			set
@@ -152,7 +169,8 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		[NotNull] public List<Guid> Restrictions
+		[NotNull]
+		public List<Guid> Restrictions
 		{
 			get => _restrictions;
 			set
@@ -183,9 +201,9 @@ namespace KOTORModSync.Core
 		{
 			// Get real path then enumerate the files/folders with wildcards and add them to the list
 			if ( Source is null )
-				throw new NullReferenceException(nameof( Source ));
+				throw new NullReferenceException(nameof(Source));
 
-			
+
 			List<string> newSourcePaths = Source.ConvertAll(Utility.Utility.ReplaceCustomVariables);
 			if ( !noParse )
 			{
@@ -194,7 +212,7 @@ namespace KOTORModSync.Core
 				if ( !noValidate )
 				{
 					if ( newSourcePaths.IsNullOrEmptyOrAllNull() )
-						throw new NullReferenceException(nameof( newSourcePaths ));  // todo: output strings in Source list
+						throw new NullReferenceException(nameof(newSourcePaths));  // todo: output strings in Source list
 
 					if ( newSourcePaths.Any(f => !File.Exists(f)) )
 					{
@@ -243,7 +261,7 @@ namespace KOTORModSync.Core
 			try
 			{
 				RealSourcePaths = argSourcePaths
-					?? RealSourcePaths ?? throw new ArgumentNullException(nameof( argSourcePaths ));
+					?? RealSourcePaths ?? throw new ArgumentNullException(nameof(argSourcePaths));
 
 				ActionExitCode exitCode = ActionExitCode.Success;
 				int maxCount = MainConfig.UseMultiThreadedIO
@@ -367,8 +385,8 @@ namespace KOTORModSync.Core
 								);
 							argDestinationPath = argDestinationPath
 								?? thisArchive.Directory
-								?? throw new ArgumentNullException(nameof( argDestinationPath ));
-							
+								?? throw new ArgumentNullException(nameof(argDestinationPath));
+
 							await Logger.LogAsync($"Extracting archive '{sourcePath}'...");
 
 							// (attempt to) handle self-extracting executable archives (7zip)
@@ -431,7 +449,7 @@ namespace KOTORModSync.Core
 												isFile: false
 											).Item1;
 										}
-									
+
 										string destinationRelDirPath = MainConfig.SourcePath is null
 											? destinationDirectory
 											: PathHelper.GetRelativePath(
@@ -463,7 +481,7 @@ namespace KOTORModSync.Core
 												cancellationToken
 											);
 										}
-										catch (ObjectDisposedException)
+										catch ( ObjectDisposedException )
 										{
 											return;
 										}
@@ -510,7 +528,7 @@ namespace KOTORModSync.Core
 			if ( !(directoryPath is null) && !directoryPath.Exists && MainConfig.CaseInsensitivePathing )
 				directoryPath = PathHelper.GetCaseSensitivePath(directoryPath);
 			if ( directoryPath?.Exists != true )
-				throw new ArgumentException(message: "Invalid directory path.", nameof( directoryPath ));
+				throw new ArgumentException(message: "Invalid directory path.", nameof(directoryPath));
 
 			var sourceExtensions = Source.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
 			compatibleExtensions = compatibleExtensions
@@ -615,8 +633,8 @@ namespace KOTORModSync.Core
 			if ( sourcePaths is null )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths is null )
-				throw new ArgumentNullException(nameof( sourcePaths ));
-			
+				throw new ArgumentNullException(nameof(sourcePaths));
+
 			ActionExitCode exitCode = ActionExitCode.Success;
 			try
 			{
@@ -680,8 +698,8 @@ namespace KOTORModSync.Core
 			if ( sourcePaths.IsNullOrEmptyCollection() )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths.IsNullOrEmptyCollection() )
-				throw new ArgumentNullException(nameof( sourcePaths ));
-			
+				throw new ArgumentNullException(nameof(sourcePaths));
+
 			ActionExitCode exitCode = ActionExitCode.Success;
 			try
 			{
@@ -779,12 +797,12 @@ namespace KOTORModSync.Core
 			if ( sourcePaths.IsNullOrEmptyCollection() )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths.IsNullOrEmptyCollection() )
-				throw new ArgumentNullException(nameof( sourcePaths ));
+				throw new ArgumentNullException(nameof(sourcePaths));
 
 			if ( destinationPath?.Exists != true )
 				destinationPath = RealDestinationPath;
 			if ( destinationPath?.Exists != true )
-				throw new ArgumentNullException(nameof( destinationPath ));
+				throw new ArgumentNullException(nameof(destinationPath));
 
 			int maxCount = MainConfig.UseMultiThreadedIO
 				? 16
@@ -852,7 +870,7 @@ namespace KOTORModSync.Core
 				}
 
 				if ( sourcePaths is null )
-					throw new NullReferenceException(nameof( sourcePaths ));
+					throw new NullReferenceException(nameof(sourcePaths));
 
 				var tasks = sourcePaths.Select(CopyIndividualFileAsync).ToList();
 
@@ -877,12 +895,12 @@ namespace KOTORModSync.Core
 			if ( sourcePaths.IsNullOrEmptyCollection() )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths.IsNullOrEmptyCollection() )
-				throw new ArgumentNullException(nameof( sourcePaths ));
+				throw new ArgumentNullException(nameof(sourcePaths));
 
 			if ( destinationPath?.Exists != true )
 				destinationPath = RealDestinationPath;
 			if ( destinationPath?.Exists != true )
-				throw new ArgumentNullException(nameof( destinationPath ));
+				throw new ArgumentNullException(nameof(destinationPath));
 
 			int maxCount = MainConfig.UseMultiThreadedIO
 				? 16
@@ -951,7 +969,7 @@ namespace KOTORModSync.Core
 				}
 
 				if ( sourcePaths is null )
-					throw new NullReferenceException(nameof( sourcePaths ));
+					throw new NullReferenceException(nameof(sourcePaths));
 
 				var tasks = sourcePaths.Select(MoveIndividualFileAsync).ToList();
 				try
@@ -976,7 +994,7 @@ namespace KOTORModSync.Core
 				{
 					DirectoryInfo tslPatcherDirectory = File.Exists(t)
 						? PathHelper.TryGetValidDirectoryInfo(Path.GetDirectoryName(t)) // It's a file, create DirectoryInfo instance of the parent.
-						: new DirectoryInfo(t);						     				// It's a folder, create a DirectoryInfo instance
+						: new DirectoryInfo(t);                                         // It's a folder, create a DirectoryInfo instance
 
 					if ( tslPatcherDirectory?.Exists != true )
 						throw new DirectoryNotFoundException($"The directory '{t}' could not be located on the disk.");
@@ -991,9 +1009,9 @@ namespace KOTORModSync.Core
 					if ( File.Exists(fullInstallLogFile) )
 						File.Delete(fullInstallLogFile);
 
-					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern:@"^\s*PlaintextLog\s*=\s*0\s*$", replacement:"PlaintextLog=1");
-					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern:@"^\s*LookupGameFolder\s*=\s*1\s*$", replacement:"LookupGameFolder=0");
-					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern:@"^\s*ConfirmMessage\s*=\s*.*$", replacement:"ConfirmMessage=N/A");
+					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern: @"^\s*PlaintextLog\s*=\s*0\s*$", replacement: "PlaintextLog=1");
+					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern: @"^\s*LookupGameFolder\s*=\s*1\s*$", replacement: "LookupGameFolder=0");
+					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern: @"^\s*ConfirmMessage\s*=\s*.*$", replacement: "ConfirmMessage=N/A");
 
 					var argList = new List<string>
 					{
@@ -1002,14 +1020,14 @@ namespace KOTORModSync.Core
 						$"--tslpatchdata=\"{tslPatcherDirectory}\"",
 					};
 
-					if (!string.IsNullOrEmpty(Arguments))
+					if ( !string.IsNullOrEmpty(Arguments) )
 					{
 						argList.Add($"--namespace-option-index={Arguments}");
 					}
 
 					string args = string.Join(separator: " ", argList);
 
-					
+
 					FileSystemInfo patcherCliPath = null;
 
 					string baseDir = Utility.Utility.GetBaseDirectory();
@@ -1048,7 +1066,7 @@ namespace KOTORModSync.Core
 					if ( patcherCliPath is null || !patcherCliPath.Exists )
 						throw new FileNotFoundException($"Could not load HoloPatcher from the '{resourcesDir}' directory!");
 					patcherCliPath = new FileInfo(t);
-					if (int.TryParse(Arguments.Trim(), out int namespaceId))
+					if ( int.TryParse(Arguments.Trim(), out int namespaceId) )
 					{
 						string message = $"If asked to pick an option, select the {Serializer.ToOrdinal(namespaceId + 1)} from the top.";
 						_ = CallbackObjects.InformationCallback.ShowInformationDialog(message);
@@ -1100,7 +1118,7 @@ namespace KOTORModSync.Core
 				if ( sourcePaths == null )
 					sourcePaths = RealSourcePaths;
 				if ( sourcePaths == null )
-					throw new ArgumentNullException(nameof( sourcePaths ));
+					throw new ArgumentNullException(nameof(sourcePaths));
 
 				ActionExitCode exitCode = ActionExitCode.Success; // Track the success status
 				foreach ( string sourcePath in sourcePaths )
@@ -1148,7 +1166,7 @@ namespace KOTORModSync.Core
 			if ( sourcePaths == null )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths == null )
-				throw new ArgumentNullException(nameof( sourcePaths ));
+				throw new ArgumentNullException(nameof(sourcePaths));
 
 			foreach ( string sourcePath in sourcePaths )
 			{

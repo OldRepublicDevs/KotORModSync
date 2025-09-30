@@ -21,10 +21,10 @@ namespace KOTORModSync.Core.Utility
 		public static string ToOrdinal(object numberObj)
 		{
 			if ( !(numberObj is int number) )
-				throw new ArgumentException(message: "Not a valid number", nameof( numberObj ));
+				throw new ArgumentException(message: "Not a valid number", nameof(numberObj));
 
 			// Negative numbers have the same ordinal suffix as their positive counterpart
-			if (number < 0)
+			if ( number < 0 )
 				return "-" + ToOrdinal(-number);
 
 			int lastDigit = number % 10;
@@ -39,7 +39,7 @@ namespace KOTORModSync.Core.Utility
 					return number + "th";
 				default:
 					// Determine the suffix for numbers ending in 1, 2, or 3, otherwise use "th"
-					switch (lastDigit)
+					switch ( lastDigit )
 					{
 						case 1:
 							return number + "st";
@@ -57,7 +57,7 @@ namespace KOTORModSync.Core.Utility
 		public static string FixGuidString([NotNull] string guidString)
 		{
 			if ( string.IsNullOrWhiteSpace(guidString) )
-				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof( guidString ));
+				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(guidString));
 
 			// Remove any whitespace characters
 			guidString = Regex.Replace(guidString, pattern: @"\s", replacement: "");
@@ -91,9 +91,9 @@ namespace KOTORModSync.Core.Utility
 		public static void DeserializePathInDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
 		{
 			if ( dict.Count == 0 )
-				throw new ArgumentException(message: "Value cannot be null or empty.", nameof( dict ));
+				throw new ArgumentException(message: "Value cannot be null or empty.", nameof(dict));
 			if ( string.IsNullOrEmpty(key) )
-				throw new ArgumentException(message: "Value cannot be null or empty.", nameof( key ));
+				throw new ArgumentException(message: "Value cannot be null or empty.", nameof(key));
 
 			if ( !dict.TryGetValue(key, out object pathValue) )
 				return;
@@ -180,7 +180,7 @@ namespace KOTORModSync.Core.Utility
 		[NotNull]
 		public static string PrefixPath([NotNull] string path) =>
 			string.IsNullOrWhiteSpace(path)
-				? throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof( path ))
+				? throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(path))
 				: !path.StartsWith(value: "<<modDirectory>>", StringComparison.OrdinalIgnoreCase)
 				&& !path.StartsWith(value: "<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase)
 					? PathHelper.FixPathFormatting("<<modDirectory>>" + Path.DirectorySeparatorChar + path)
@@ -224,7 +224,8 @@ namespace KOTORModSync.Core.Utility
 		{
 			var settings = new JsonSerializerSettings
 			{
-				TypeNameHandling = TypeNameHandling.None, NullValueHandling = NullValueHandling.Ignore,
+				TypeNameHandling = TypeNameHandling.None,
+				NullValueHandling = NullValueHandling.Ignore,
 			};
 
 			string jsonString = JsonConvert.SerializeObject(obj, settings);
@@ -250,13 +251,13 @@ namespace KOTORModSync.Core.Utility
 		[NotNull]
 		private static List<object> ConvertJArrayToList([NotNull] JArray jArray) =>
 			jArray is null
-				? throw new ArgumentNullException(nameof( jArray ))
+				? throw new ArgumentNullException(nameof(jArray))
 				: jArray.Select(ConvertJTokenToObject).ToList();
 
 		[NotNull]
 		private static Dictionary<string, object> ConvertJObjectToDictionary([NotNull] JObject jObject) =>
 			jObject is null
-				? throw new ArgumentNullException(nameof( jObject ))
+				? throw new ArgumentNullException(nameof(jObject))
 				: jObject.Properties().ToDictionary(
 					property => property.Name,
 					property => ConvertJTokenToObject(property.Value)

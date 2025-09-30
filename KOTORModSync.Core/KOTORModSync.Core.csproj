@@ -13,7 +13,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>http://github.com/th3w1zard1/KOTORModSync</PackageProjectUrl>
     <RepositoryUrl>http://github.com/th3w1zard1/KOTORModSync</RepositoryUrl>
-    <Copyright>2023 th3w1zard1</Copyright>
+    <Copyright>2025 th3w1zard1</Copyright>
     <Title>KOTORModSync</Title>
   </PropertyGroup>
 
@@ -33,6 +33,7 @@
     <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
     <PackageReference Include="Tomlyn" Version="0.17.0" />
   </ItemGroup>
+
 
   <ItemGroup>
     <Folder Include="Data\test data and notes\" />

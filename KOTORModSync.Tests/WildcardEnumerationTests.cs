@@ -2,8 +2,8 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // See LICENSE.txt file in the project root for full license information.
 
-using KOTORModSync.Core;
 using System.Security.Policy;
+using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
 
 namespace KOTORModSync.Tests
@@ -60,10 +60,10 @@ namespace KOTORModSync.Tests
 			foreach ( KeyValuePair<string, string> kvp in pathsToTest )
 			{
 				string wildcardPath = Path.Combine(_basePath, kvp.Value);
-				List<string> paths = new()
-				{
+				List<string> paths =
+				[
 					wildcardPath,
-				};
+				];
 				List<string> files = PathHelper.EnumerateFilesWithWildcards(paths);
 
 				Console.WriteLine($"Files found for path: {wildcardPath}");

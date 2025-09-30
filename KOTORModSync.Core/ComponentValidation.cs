@@ -36,7 +36,7 @@ namespace KOTORModSync.Core
 
 		public ComponentValidation([NotNull] Component component, [CanBeNull] List<Component> componentsList = null)
 		{
-			ComponentToValidate = component ?? throw new ArgumentNullException(nameof( component ));
+			ComponentToValidate = component ?? throw new ArgumentNullException(nameof(component));
 			if ( componentsList is null )
 				return;
 
@@ -152,7 +152,7 @@ namespace KOTORModSync.Core
 
 					// ReSharper disable once ConditionIsAlwaysTrueOrFalse
 					if ( instruction.Source is null )
-						// ReSharper disable twice HeuristicUnreachableCode
+					// ReSharper disable twice HeuristicUnreachableCode
 					{
 						AddWarning(message: "Instruction does not have a 'Source' key defined", instruction);
 						success = false;
@@ -448,11 +448,11 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( sourcePath is null )
-				throw new ArgumentNullException(nameof( sourcePath ));
+				throw new ArgumentNullException(nameof(sourcePath));
 			if ( allArchives is null )
-				throw new ArgumentNullException(nameof( allArchives ));
+				throw new ArgumentNullException(nameof(allArchives));
 			if ( instruction is null )
-				throw new ArgumentNullException(nameof( instruction ));
+				throw new ArgumentNullException(nameof(instruction));
 
 			bool foundInAnyArchive = false;
 			bool hasError = false;
@@ -504,7 +504,7 @@ namespace KOTORModSync.Core
 
 			if ( _componentsList is null )
 			{
-				AddError(new NullReferenceException(nameof( _componentsList )).Message, instruction);
+				AddError(new NullReferenceException(nameof(_componentsList)).Message, instruction);
 				return (false, archiveNameFound);
 			}
 
@@ -532,9 +532,9 @@ namespace KOTORModSync.Core
 		private static ArchivePathCode IsPathInArchive([NotNull] string relativePath, [NotNull] string archivePath)
 		{
 			if ( relativePath is null )
-				throw new ArgumentNullException(nameof( relativePath ));
+				throw new ArgumentNullException(nameof(relativePath));
 			if ( archivePath is null )
-				throw new ArgumentNullException(nameof( archivePath ));
+				throw new ArgumentNullException(nameof(archivePath));
 
 			if ( !ArchiveHelper.IsArchive(archivePath) )
 				return ArchivePathCode.NotAnArchive;

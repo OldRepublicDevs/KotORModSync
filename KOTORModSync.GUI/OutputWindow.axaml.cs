@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -33,7 +34,7 @@ namespace KOTORModSync
 		{
 			_logBuilder.Enqueue(message);
 			LogLines.Add(LogLine.FromMessage(message));
-			OnPropertyChanged(nameof( LogText ));
+			OnPropertyChanged(nameof(LogText));
 		}
 
 		public void RemoveOldestLog()
@@ -41,7 +42,7 @@ namespace KOTORModSync
 			_ = _logBuilder.Dequeue();
 			if ( LogLines.Count > 0 )
 				LogLines.RemoveAt(0);
-			OnPropertyChanged(nameof( LogText ));
+			OnPropertyChanged(nameof(LogText));
 		}
 
 		private void OnPropertyChanged(string propertyName)
@@ -100,7 +101,7 @@ namespace KOTORModSync
 			InitializeControls();
 			ThemeManager.ApplyCurrentToWindow(this);
 			ThemeManager.StyleChanged += OnGlobalStyleChanged;
-			
+
 			// Attach window move event handlers
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
@@ -122,7 +123,7 @@ namespace KOTORModSync
 			string logDir = Path.Combine(Utility.GetBaseDirectory(), "Logs");
 			if ( !Directory.Exists(logDir) )
 				_ = Directory.CreateDirectory(logDir);
-			
+
 			string logFilePath = Path.Combine(logDir, logfileName + ".log");
 			if ( !File.Exists(logFilePath) )
 				_ = File.Create(logFilePath);
@@ -241,7 +242,7 @@ namespace KOTORModSync
 				if ( string.IsNullOrEmpty(filePath) )
 					return;
 
-				await File.WriteAllTextAsync(filePath, _viewModel.LogText ?? string.Empty);
+				await Task.Run(() => File.WriteAllText(filePath, _viewModel.LogText ?? string.Empty));
 			}
 			catch ( Exception ex )
 			{
@@ -272,5 +273,12 @@ namespace KOTORModSync
 
 		private void InputElement_OnPointerReleased([NotNull] object sender, [NotNull] PointerEventArgs e) =>
 			_mouseDownForWindowMoving = false;
+
+		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
+			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 	}
 }

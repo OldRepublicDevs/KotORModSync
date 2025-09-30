@@ -1,0 +1,99 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the GNU General Public License v3.0 (GPLv3).
+// See LICENSE.txt file in the project root for full license information.
+
+using KOTORModSync.Core;
+using KOTORModSync.Core.Installation;
+using KOTORModSync.Core.Services;
+using KOTORModSync.Tests.TestHelpers;
+
+namespace KOTORModSync.Tests
+{
+	[TestFixture]
+	public sealed class InstallCoordinatorTests
+	{
+		private DirectoryInfo? _workingDirectory;
+		private MainConfig? _mainConfigInstance;
+
+		[SetUp]
+		public void SetUp()
+		{
+			string tempRoot = Path.Combine(Path.GetTempPath(), "KOTORModSyncTests", Guid.NewGuid().ToString("N"));
+			_workingDirectory = Directory.CreateDirectory(tempRoot);
+			_ = Directory.CreateDirectory(Path.Combine(tempRoot, Component.CheckpointFolderName));
+
+			_mainConfigInstance = new MainConfig
+			{
+				destinationPath = _workingDirectory,
+				sourcePath = _workingDirectory
+			};
+
+			_mainConfigInstance.allComponents = [];
+			InstallCoordinator.ClearSessionForTests(_workingDirectory!);
+		}
+
+		[TearDown]
+		public void TearDown()
+		{
+			if ( _workingDirectory != null && _workingDirectory.Exists )
+			{
+				Directory.Delete(_workingDirectory.FullName, recursive: true);
+			}
+		}
+
+		[Test]
+		public async Task InstallCoordinator_CreatesCheckpointAndBackup()
+		{
+			Component component = TestComponentFactory.CreateComponent("SingleComponent", _workingDirectory!);
+			_mainConfigInstance!.allComponents = [component];
+
+			var coordinator = new InstallCoordinator();
+			ResumeResult resume = await coordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, CancellationToken.None);
+
+			Assert.That(resume.OrderedComponents, Has.Count.EqualTo(1), "Coordinator should return component order");
+			string sessionPath = Path.Combine(MainConfig.DestinationPath.FullName, Component.CheckpointFolderName, "install_session.json");
+			Assert.That(File.Exists(sessionPath), "Checkpoint state should be written to disk");
+
+			string backupPath = Path.Combine(MainConfig.DestinationPath.FullName, Component.CheckpointFolderName, "last_good_backup.zip");
+			Assert.That(File.Exists(backupPath), Is.True, "Backup manager should create backup snapshot");
+		}
+
+		[Test]
+		public async Task SessionManager_Persists_ComponentState_BetweenRuns()
+		{
+			Component component = TestComponentFactory.CreateComponent("ResumeComponent", _workingDirectory!);
+			_mainConfigInstance!.allComponents = [component];
+
+			var coordinator = new InstallCoordinator();
+			_ = await coordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, CancellationToken.None);
+
+			component.InstallState = Component.ComponentInstallState.Completed;
+			coordinator.SessionManager.UpdateComponentState(component);
+			await coordinator.SessionManager.SaveAsync();
+
+			var secondCoordinator = new InstallCoordinator();
+			ResumeResult resume = await secondCoordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, CancellationToken.None);
+
+			Component rehydratedComponent = resume.OrderedComponents.Single();
+			Assert.That(rehydratedComponent.InstallState, Is.EqualTo(Component.ComponentInstallState.Completed), "Component state should resume from checkpoint");
+		}
+
+		[Test]
+		public async Task InstallationService_RespectsCheckpointSkippingCompleted()
+		{
+			Component component1 = TestComponentFactory.CreateComponent("CompletedComponent", _workingDirectory!);
+			component1.InstallState = Component.ComponentInstallState.Completed;
+			Component component2 = TestComponentFactory.CreateComponent("PendingComponent", _workingDirectory!);
+			_mainConfigInstance!.allComponents = [component1, component2];
+
+			Component.InstallExitCode exitCode = await InstallationService.InstallAllSelectedComponentsAsync(MainConfig.AllComponents, null, CancellationToken.None);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(exitCode, Is.EqualTo(Component.InstallExitCode.Success));
+				Assert.That(component1.InstallState, Is.EqualTo(Component.ComponentInstallState.Completed));
+				Assert.That(component2.InstallState, Is.EqualTo(Component.ComponentInstallState.Completed));
+			});
+		}
+	}
+}

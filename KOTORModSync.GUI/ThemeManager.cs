@@ -13,52 +13,63 @@ namespace KOTORModSync
 {
 	internal static class ThemeManager
 	{
-		private static Uri _currentStyleUri;
+		private static Uri s_currentStyleUri;
 
 		public static event Action<Uri> StyleChanged;
 
 		public static void UpdateStyle([JetBrains.Annotations.CanBeNull] string stylePath)
 		{
 			Uri newUri = null;
-			if ( !string.IsNullOrEmpty(stylePath) && !stylePath.Equals(value: "default", StringComparison.OrdinalIgnoreCase) )
+			if ( !string.IsNullOrEmpty(stylePath) )
 				newUri = new Uri("avares://KOTORModSync" + stylePath);
 
-			_currentStyleUri = newUri;
+			s_currentStyleUri = newUri;
 			ApplyToAllOpenWindows();
-			StyleChanged?.Invoke(_currentStyleUri);
-            // Remove any previous custom styles (but keep FluentTheme)
-            //Styles.Clear();
-            //Styles.Add(new FluentTheme());
-            //Styles.Clear();
-            for (int i = Application.Current.Styles.Count - 1; i >= 0; i--)
-            {
-                if (Application.Current.Styles[i] is StyleInclude styleInclude && 
-                    styleInclude.Source != null && 
-                    styleInclude.Source.ToString().Contains("/Styles/"))
-                {
-                    Application.Current.Styles.RemoveAt(i);
-                }
-            }
-            if ( !stylePath.Equals(value: "default", StringComparison.OrdinalIgnoreCase) )
-            {
-                // Apply the selected style dynamically
-                var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
-                Application.Current.Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
-            }
+			StyleChanged?.Invoke(s_currentStyleUri);
+			// Remove any previous custom styles (but keep FluentTheme)
+			//Styles.Clear();
+			//Styles.Add(new FluentTheme());
+			//Styles.Clear();
+			for ( int i = Application.Current.Styles.Count - 1; i >= 0; i-- )
+			{
+				if ( Application.Current.Styles[i] is StyleInclude styleInclude &&
+					styleInclude.Source != null &&
+					styleInclude.Source.ToString().Contains("/Styles/") )
+				{
+					Application.Current.Styles.RemoveAt(i);
+				}
+			}
+			if ( !string.IsNullOrEmpty(stylePath) )
+			{
+				// Apply the selected style dynamically
+				var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
+				Application.Current.Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
+			}
 		}
 
-		public static void ApplyCurrentToWindow(Window window)
+		public static void ApplyCurrentToWindow(Window window) => ApplyToWindow(window, s_currentStyleUri);
+
+		public static string GetCurrentStylePath()
 		{
-			ApplyToWindow(window, _currentStyleUri);
+			if ( s_currentStyleUri == null )
+				return "/Styles/KotorStyle.axaml";
+
+			string path = s_currentStyleUri.ToString();
+			// Extract just the path part after "avares://KOTORModSync"
+			if ( path.StartsWith("avares://KOTORModSync") )
+			{
+				return path.Substring("avares://KOTORModSync".Length);
+			}
+			return "/Styles/KotorStyle.axaml";
 		}
 
 		private static void ApplyToAllOpenWindows()
 		{
-			if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.Windows != null && desktop.Windows.Count > 0)
+			if ( Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.Windows != null && desktop.Windows.Count > 0 )
 			{
-				foreach (Window w in desktop.Windows)
+				foreach ( Window w in desktop.Windows )
 				{
-					ApplyToWindow(w, _currentStyleUri);
+					ApplyToWindow(w, s_currentStyleUri);
 				}
 			}
 		}

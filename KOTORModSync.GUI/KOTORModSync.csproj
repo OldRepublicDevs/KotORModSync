@@ -16,13 +16,16 @@
 
   <!-- Target Platforms/Frameworks -->
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net462</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net462</TargetFrameworks>
     <Platforms>x86;x64</Platforms>
     <UseAppHost>true</UseAppHost>
   </PropertyGroup>
 
   <!-- RuntimeIdentifiers for both TargetFrameworks -->
   <PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
+    <RuntimeIdentifiers>win-x86;win-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)'=='net9.0'">
     <RuntimeIdentifiers>win-x86;win-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)'=='net462'">
@@ -105,6 +108,14 @@
     <AvaloniaXaml Update="Controls\OptionEditorControl.axaml">
         <Generator>MSBuild:Compile</Generator>
     </AvaloniaXaml>
+    <AvaloniaXaml Update="RegexImportDialog.axaml">
+      <Generator>MSBuild:Compile</Generator>
+      <Class>RegexImportDialog</Class>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="SettingsDialog.axaml">
+      <Generator>MSBuild:Compile</Generator>
+      <Class>SettingsDialog</Class>
+    </AvaloniaXaml>
   </ItemGroup>
   <ItemGroup>
     <Compile Update="ConfirmationDialog.axaml.cs">
@@ -133,6 +144,15 @@
     </Compile>
     <Compile Update="Controls\OptionEditorControl.axaml.cs">
       <DependentUpon>OptionEditorControl.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="RegexImportDialog.axaml.cs">
+      <DependentUpon>RegexImportDialog.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="RegexImportDialogViewModel.cs">
+      <DependentUpon>RegexImportDialog.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="SettingsDialog.axaml.cs">
+      <DependentUpon>SettingsDialog.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' ">
@@ -206,7 +226,7 @@
 
   <!-- Licensing -->
   <PropertyGroup>
-    <Copyright>2023 th3w1zard1</Copyright>
+    <Copyright>2025 th3w1zard1</Copyright>
     <Title>KOTORModSync</Title>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>

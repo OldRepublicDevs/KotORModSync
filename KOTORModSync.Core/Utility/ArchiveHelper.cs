@@ -25,11 +25,13 @@ namespace KOTORModSync.Core.Utility
 	{
 		public static readonly ExtractionOptions DefaultExtractionOptions = new ExtractionOptions
 		{
-			ExtractFullPath = false, Overwrite = true, PreserveFileTime = true,
+			ExtractFullPath = false,
+			Overwrite = true,
+			PreserveFileTime = true,
 		};
 
 		public static bool IsArchive([NotNull] string filePath) => IsArchive(
-			new FileInfo(filePath ?? throw new ArgumentNullException(nameof( filePath )))
+			new FileInfo(filePath ?? throw new ArgumentNullException(nameof(filePath)))
 		);
 
 		public static bool IsArchive([NotNull] FileInfo thisFile) =>
@@ -41,7 +43,7 @@ namespace KOTORModSync.Core.Utility
 		public static (IArchive, FileStream) OpenArchive(string archivePath)
 		{
 			if ( archivePath is null || !File.Exists(archivePath) )
-				throw new ArgumentException(message: "Path must be a valid file on disk.", nameof( archivePath ));
+				throw new ArgumentException(message: "Path must be a valid file on disk.", nameof(archivePath));
 
 			try
 			{
@@ -78,7 +80,7 @@ namespace KOTORModSync.Core.Utility
 
 			try
 			{
-				SevenZipBase.SetLibraryPath( Path.Combine(Utility.GetResourcesDirectory(), "7z.dll") ); // Path to 7z.dll
+				SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll")); // Path to 7z.dll
 				bool valid;
 				using ( var extractor = new SevenZipExtractor(filePath) )
 				{
@@ -121,9 +123,9 @@ namespace KOTORModSync.Core.Utility
 			string exePath = null;
 			bool tslPatchDataFolderExists = false;
 
-			using (IReader reader = archive.ExtractAllEntries())
+			using ( IReader reader = archive.ExtractAllEntries() )
 			{
-				while (reader.MoveToNextEntry())
+				while ( reader.MoveToNextEntry() )
 				{
 					if ( reader.Entry.IsDirectory )
 						continue;
@@ -132,16 +134,16 @@ namespace KOTORModSync.Core.Utility
 					string directory = Path.GetDirectoryName(reader.Entry.Key);
 
 					// Check for exe file
-					if (fileName.EndsWith(value: ".exe", StringComparison.OrdinalIgnoreCase))
+					if ( fileName.EndsWith(value: ".exe", StringComparison.OrdinalIgnoreCase) )
 					{
-						if (exePath != null)
+						if ( exePath != null )
 							return null;  // Multiple exe files found in the archive.
 
 						exePath = reader.Entry.Key;
 					}
 
 					// Check for 'tslpatchdata' folder
-					if (!(directory is null) && directory.Contains("tslpatchdata"))
+					if ( !(directory is null) && directory.Contains("tslpatchdata") )
 					{
 						tslPatchDataFolderExists = true;
 					}
@@ -150,7 +152,7 @@ namespace KOTORModSync.Core.Utility
 
 			if (
 				exePath != null
-				&& tslPatchDataFolderExists 
+				&& tslPatchDataFolderExists
 				// ReSharper disable once PossibleNullReferenceException
 				&& Path.GetDirectoryName(exePath).Contains("tslpatchdata")
 			)
@@ -166,7 +168,7 @@ namespace KOTORModSync.Core.Utility
 			if ( !(Utility.GetOperatingSystem() == OSPlatform.Windows) )
 				throw new NotImplementedException("Non-windows OS's are not currently supported");
 
-			SevenZipBase.SetLibraryPath( Path.Combine(Utility.GetResourcesDirectory(), "7z.dll") ); // Path to 7z.dll
+			SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll")); // Path to 7z.dll
 			var extractor = new SevenZipExtractor(stream);
 			extractor.ExtractArchive(destinationDirectory);
 		}
@@ -175,9 +177,9 @@ namespace KOTORModSync.Core.Utility
 		public static void OutputModTree([NotNull] DirectoryInfo directory, [NotNull] string outputPath)
 		{
 			if ( directory == null )
-				throw new ArgumentNullException(nameof( directory ));
+				throw new ArgumentNullException(nameof(directory));
 			if ( outputPath == null )
-				throw new ArgumentNullException(nameof( outputPath ));
+				throw new ArgumentNullException(nameof(outputPath));
 
 			Dictionary<string, object> root = GenerateArchiveTreeJson(directory);
 			try
@@ -203,7 +205,7 @@ namespace KOTORModSync.Core.Utility
 		public static Dictionary<string, object> GenerateArchiveTreeJson([NotNull] DirectoryInfo directory)
 		{
 			if ( directory == null )
-				throw new ArgumentNullException(nameof( directory ));
+				throw new ArgumentNullException(nameof(directory));
 
 			var root = new Dictionary<string, object>
 			{
@@ -278,7 +280,7 @@ namespace KOTORModSync.Core.Utility
 		private static List<ModDirectory.ArchiveEntry> TraverseArchiveEntries([NotNull] string archivePath)
 		{
 			if ( archivePath == null )
-				throw new ArgumentNullException(nameof( archivePath ));
+				throw new ArgumentNullException(nameof(archivePath));
 
 			var archiveEntries = new List<ModDirectory.ArchiveEntry>();
 
@@ -301,7 +303,8 @@ namespace KOTORModSync.Core.Utility
 					)
 					select new ModDirectory.ArchiveEntry
 					{
-						Name = pathParts[pathParts.Length - 1], Path = entry.Key,
+						Name = pathParts[pathParts.Length - 1],
+						Path = entry.Key,
 					}
 				);
 
@@ -321,9 +324,9 @@ namespace KOTORModSync.Core.Utility
 		)
 		{
 			if ( entry == null )
-				throw new ArgumentNullException(nameof( entry ));
+				throw new ArgumentNullException(nameof(entry));
 			if ( currentDirectory == null )
-				throw new ArgumentNullException(nameof( currentDirectory ));
+				throw new ArgumentNullException(nameof(currentDirectory));
 
 			string[] pathParts = entry.Key.Split('/');
 			bool isFile = !entry.IsDirectory;

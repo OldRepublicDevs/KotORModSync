@@ -1,33 +1,52 @@
 <Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="KOTORModSync.InformationDialog"
-        Title="Information" Width="460" Height="300" WindowStartupLocation="CenterScreen"
-        Background="#000116"
-        ExtendClientAreaToDecorationsHint="True">
-    <Panel>
-        <Border Margin="16" Padding="16" CornerRadius="8" Background="#010116" BorderBrush="#062766" BorderThickness="2">
-            <Grid RowDefinitions="Auto,*,Auto">
-                <TextBlock x:Name="TitleTextBlock"
-                           HorizontalAlignment="Left"
-                           VerticalAlignment="Center"
-                           FontSize="18" FontWeight="Bold"
-                           Text="{Binding Title}"
-                           Margin="0,0,0,8"
-                           Grid.Row="0" />
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  x:Class="KOTORModSync.InformationDialog"
+  Title="Information"
+  Width="460"
+  MinWidth="400"
+  MinHeight="200"
+  SizeToContent="Height"
+  WindowStartupLocation="CenterOwner"
+  ExtendClientAreaToDecorationsHint="True"
+  ExtendClientAreaChromeHints="NoChrome"
+  ExtendClientAreaTitleBarHeightHint="-1"
+  SystemDecorations="BorderOnly"
+  Classes="information-dialog">
+  <Grid RowDefinitions="Auto,*">
+    <!-- Dialog content in its own row below the close button -->
+    <Border Grid.Row="1"
+      x:Name="DialogBorder"
+      Margin="16,0,16,16"
+      Padding="16"
+      CornerRadius="8">
+      <Grid RowDefinitions="*,Auto" ColumnDefinitions="*">
+        <ScrollViewer Grid.Row="0"
+          MaxHeight="200"
+          VerticalScrollBarVisibility="Auto"
+          HorizontalScrollBarVisibility="Disabled">
+          <TextBlock x:Name="InfoTextBlock"
+            TextAlignment="Center"
+            TextWrapping="Wrap" />
+        </ScrollViewer>
+        <StackPanel Grid.Row="1"
+          Orientation="Horizontal"
+          HorizontalAlignment="Right"
+          Spacing="8"
+          Margin="0,16,0,0">
+          <Button
+            Content="OK"
+            Click="OKButton_Click"
+            MinWidth="100" />
+        </StackPanel>
+      </Grid>
+    </Border>
 
-                <ScrollViewer Grid.Row="1" MaxHeight="180" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="InfoTextBlock"
-                               HorizontalAlignment="Stretch"
-                               VerticalAlignment="Top"
-                               FontSize="14"
-                               TextWrapping="Wrap"
-                               TextTrimming="None" />
-                </ScrollViewer>
-
-                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                    <Button Content="OK" Click="OKButton_Click" MinWidth="100" />
-                </StackPanel>
-            </Grid>
-        </Border>
-    </Panel>
+    <!-- Custom Window Controls - positioned above text area -->
+    <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal"
+      Spacing="0" Margin="0,8,8,0">
+      <Button Content="X" Click="CloseButton_Click"
+        HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+        HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+    </StackPanel>
+  </Grid>
 </Window>

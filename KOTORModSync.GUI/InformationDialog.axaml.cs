@@ -8,9 +8,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
 using JetBrains.Annotations;
-using Avalonia.Markup.Xaml.Styling;
 
 namespace KOTORModSync
 {
@@ -21,18 +21,18 @@ namespace KOTORModSync
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
 
-        public InformationDialog()
-        {
-            InitializeComponent();
-            // Apply current theme to dialog
-            ThemeManager.ApplyCurrentToWindow(this);
-            
-            // Attach window move event handlers
-            PointerPressed += InputElement_OnPointerPressed;
-            PointerMoved += InputElement_OnPointerMoved;
-            PointerReleased += InputElement_OnPointerReleased;
-            PointerExited += InputElement_OnPointerReleased;
-        }
+		public InformationDialog()
+		{
+			InitializeComponent();
+			// Apply current theme to dialog
+			ThemeManager.ApplyCurrentToWindow(this);
+
+			// Attach window move event handlers
+			PointerPressed += InputElement_OnPointerPressed;
+			PointerMoved += InputElement_OnPointerMoved;
+			PointerReleased += InputElement_OnPointerReleased;
+			PointerExited += InputElement_OnPointerReleased;
+		}
 
 		[CanBeNull]
 		public string InfoText
@@ -49,7 +49,9 @@ namespace KOTORModSync
 		{
 			var dialog = new InformationDialog
 			{
-				Title = title, InfoText = message, Topmost = true,
+				Title = title,
+				InfoText = message,
+				Topmost = true,
 			};
 			_ = await dialog.ShowDialog<bool?>(parentWindow);
 		}
@@ -58,7 +60,7 @@ namespace KOTORModSync
 		{
 			base.OnOpened(e);
 			UpdateInfoText();
-		} 		// ReSharper disable twice UnusedParameter.Local
+		}       // ReSharper disable twice UnusedParameter.Local
 		private void OKButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => Close();
 		private void UpdateInfoText() => Dispatcher.UIThread.InvokeAsync(() => InfoTextBlock.Text = InfoText);
 
@@ -85,5 +87,8 @@ namespace KOTORModSync
 
 		private void InputElement_OnPointerReleased([NotNull] object sender, [NotNull] PointerEventArgs e) =>
 			_mouseDownForWindowMoving = false;
+
+		private void CloseButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+			Close();
 	}
 }

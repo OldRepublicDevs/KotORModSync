@@ -18,7 +18,7 @@ namespace KOTORModSync
 	public partial class OptionsDialog : Window
 	{
 		public static readonly AvaloniaProperty OptionsListProperty =
-			AvaloniaProperty.Register<OptionsDialog, List<string>>(nameof( OptionsList ));
+			AvaloniaProperty.Register<OptionsDialog, List<string>>(nameof(OptionsList));
 
 		public OptionsDialog()
 		{
@@ -47,18 +47,22 @@ namespace KOTORModSync
 			Close();
 		}
 
+		private void CloseButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+			Close();
+
 		public event EventHandler<string> OptionSelected;
 
 		private void OnOpened([CanBeNull] object sender, [CanBeNull] EventArgs e)
 		{
 			if ( OptionsList is null )
-				throw new NullReferenceException(nameof( OptionsList ));
+				throw new NullReferenceException(nameof(OptionsList));
 
 			foreach ( string option in OptionsList )
 			{
 				var radioButton = new RadioButton
 				{
-					Content = option, GroupName = "OptionsGroup",
+					Content = option,
+					GroupName = "OptionsGroup",
 				};
 				OptionStackPanel.Children.Add(radioButton);
 			}
@@ -88,7 +92,7 @@ namespace KOTORModSync
 			// Center the window on the screen
 			Screen screen = Screens.ScreenFromVisual(this);
 			if ( screen is null )
-				throw new NullReferenceException(nameof( screen ));
+				throw new NullReferenceException(nameof(screen));
 
 			double screenWidth = screen.Bounds.Width;
 			double screenHeight = screen.Bounds.Height;
@@ -112,7 +116,7 @@ namespace KOTORModSync
 					{
 						OptionsList = optionsList,
 						Topmost = true,
-						
+
 					};
 
 					optionsDialog.Closed += ClosedHandler;
@@ -131,7 +135,7 @@ namespace KOTORModSync
 				}
 			);
 
-			return tcs is null ? throw new NullReferenceException(nameof( tcs )) : await tcs.Task;
+			return tcs is null ? throw new NullReferenceException(nameof(tcs)) : await tcs.Task;
 		}
 	}
 }

@@ -50,7 +50,7 @@ namespace KOTORModSync.Converters
 			try
 			{
 				if ( url is null )
-					throw new ArgumentNullException(nameof( url ));
+					throw new ArgumentNullException(nameof(url));
 
 				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri _) )
 					throw new ArgumentException("Invalid URL");
@@ -61,7 +61,8 @@ namespace KOTORModSync.Converters
 					_ = Process.Start(
 						new ProcessStartInfo
 						{
-							FileName = url, UseShellExecute = true,
+							FileName = url,
+							UseShellExecute = true,
 						}
 					);
 				}

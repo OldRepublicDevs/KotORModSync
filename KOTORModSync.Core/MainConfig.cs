@@ -34,18 +34,8 @@ namespace KOTORModSync.Core
 	public sealed class MainConfig : INotifyPropertyChanged
 	{
 
-		[Description("Only components with the selected compatibility level will be installed")]
-		public enum CompatibilityLevel
-		{
-			[Description("Fully Compatible")] Compatible = 0,
-			[Description("Mostly Compatible")] MostlyCompatible = 1,
-			[Description("Not Tested")] Untested = 2,
-			[Description("INCOMPATIBLE")] Incompatible = 3,
-		}
-
 		public MainConfig()
 		{
-			currentCompatibilityLevel = CompatibilityLevel.Compatible;
 			debugLogging = false;
 			attemptFixes = true;
 			noAdmin = false;
@@ -53,12 +43,7 @@ namespace KOTORModSync.Core
 		}
 
 		[NotNull]
-		public static string CurrentVersion => "1.1.0b4";
-
-		[UsedImplicitly]
-		[NotNull]
-		public static IEnumerable<string> AllCompatibilityLevels => Enum.GetValues(typeof( CompatibilityLevel ))
-			.Cast<CompatibilityLevel>().Select(compatibilityLvl => compatibilityLvl.ToString());
+		public static string CurrentVersion => "1.2.0";
 
 
 		public static bool NoAdmin { get; private set; }
@@ -93,7 +78,8 @@ namespace KOTORModSync.Core
 
 		public static DirectoryInfo LastOutputDirectory { get; private set; }
 
-		[CanBeNull] public DirectoryInfo lastOutputDirectory
+		[CanBeNull]
+		public DirectoryInfo lastOutputDirectory
 		{
 			get => LastOutputDirectory;
 			set => LastOutputDirectory = value;
@@ -105,42 +91,26 @@ namespace KOTORModSync.Core
 		public static bool ArchiveDeepCheck { get; private set; }
 		public bool archiveDeepCheck { get => ArchiveDeepCheck; set => ArchiveDeepCheck = value; }
 
-
-		public static CompatibilityLevel CurrentCompatibilityLevel { get; private set; }
-
-		public CompatibilityLevel currentCompatibilityLevel
-		{
-			get => CurrentCompatibilityLevel;
-			set
-			{
-				CurrentCompatibilityLevel = value;
-				OnPropertyChanged();
-			}
-		}
-
-		[NotNull] public string currentCompatibilityString
-		{
-			get => CurrentCompatibilityLevel.ToString();
-			set => CurrentCompatibilityLevel = (CompatibilityLevel)Enum.Parse(typeof( CompatibilityLevel ), value);
-		}
-
 		[NotNull][ItemNotNull] public static List<Component> AllComponents { get; set; } = new List<Component>();
 
-		[NotNull][ItemNotNull] public List<Component> allComponents
+		[NotNull]
+		[ItemNotNull]
+		public List<Component> allComponents
 		{
 			get => AllComponents;
-			set => AllComponents = value ?? throw new ArgumentNullException(nameof( value ));
+			set => AllComponents = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
 		[CanBeNull] public static DirectoryInfo SourcePath { get; private set; }
 
-		[CanBeNull] public DirectoryInfo sourcePath
+		[CanBeNull]
+		public DirectoryInfo sourcePath
 		{
 			get => SourcePath;
 			set
 			{
 				SourcePath = value;
-				OnPropertyChanged(nameof( sourcePathFullName ));
+				OnPropertyChanged(nameof(sourcePathFullName));
 			}
 		}
 
@@ -148,13 +118,14 @@ namespace KOTORModSync.Core
 
 		[CanBeNull] public static DirectoryInfo DestinationPath { get; private set; }
 
-		[CanBeNull] public DirectoryInfo destinationPath
+		[CanBeNull]
+		public DirectoryInfo destinationPath
 		{
 			get => DestinationPath;
 			set
 			{
 				DestinationPath = value;
-				OnPropertyChanged(nameof( destinationPathFullName ));
+				OnPropertyChanged(nameof(destinationPathFullName));
 			}
 		}
 

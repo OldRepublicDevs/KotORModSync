@@ -119,7 +119,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 		public static string ConvertWindowsPathToCaseSensitive([NotNull] string path)
 		{
 			if ( string.IsNullOrWhiteSpace(path) )
-				throw new ArgumentException($"'{nameof( path )}' cannot be null or whitespace.", nameof( path ));
+				throw new ArgumentException($"'{nameof(path)}' cannot be null or whitespace.", nameof(path));
 
 			if ( Utility.Utility.GetOperatingSystem() != OSPlatform.Windows )
 				return path;
@@ -179,16 +179,16 @@ namespace KOTORModSync.Core.FileSystemUtils
 		)
 		{
 			if ( string.IsNullOrWhiteSpace(relativeTo) )
-				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof( relativeTo ));
+				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(relativeTo));
 			if ( string.IsNullOrWhiteSpace(path) )
-				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof( path ));
+				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(path));
 
-			if ( !Enum.IsDefined(typeof( StringComparison ), comparisonType) )
+			if ( !Enum.IsDefined(typeof(StringComparison), comparisonType) )
 			{
 				throw new InvalidEnumArgumentException(
-					nameof( comparisonType ),
+					nameof(comparisonType),
 					(int)comparisonType,
-					typeof( StringComparison )
+					typeof(StringComparison)
 				);
 			}
 
@@ -341,7 +341,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 		public static (string, bool?) GetCaseSensitivePath(string path, bool? isFile = null)
 		{
 			if ( string.IsNullOrWhiteSpace(path) )
-				throw new ArgumentException($"'{nameof( path )}' cannot be null or whitespace.", nameof( path ));
+				throw new ArgumentException($"'{nameof(path)}' cannot be null or whitespace.", nameof(path));
 
 			string formattedPath = Path.GetFullPath(FixPathFormatting(path));
 
@@ -435,9 +435,9 @@ namespace KOTORModSync.Core.FileSystemUtils
 		private static int GetMatchingCharactersCount(string str1, string str2)
 		{
 			if ( string.IsNullOrEmpty(str1) )
-				throw new ArgumentException(message: "Value cannot be null or empty.", nameof( str1 ));
+				throw new ArgumentException(message: "Value cannot be null or empty.", nameof(str1));
 			if ( string.IsNullOrEmpty(str2) )
-				throw new ArgumentException(message: "Value cannot be null or empty.", nameof( str2 ));
+				throw new ArgumentException(message: "Value cannot be null or empty.", nameof(str2));
 
 			// don't consider a match if any char in the paths are not case-insensitive matches.
 			if ( !str1.Equals(str2, StringComparison.OrdinalIgnoreCase) )
@@ -458,9 +458,9 @@ namespace KOTORModSync.Core.FileSystemUtils
 		public static async Task MoveFileAsync(string sourcePath, string destinationPath)
 		{
 			if ( sourcePath is null )
-				throw new ArgumentNullException(nameof( sourcePath ));
+				throw new ArgumentNullException(nameof(sourcePath));
 			if ( destinationPath is null )
-				throw new ArgumentNullException(nameof( destinationPath ));
+				throw new ArgumentNullException(nameof(destinationPath));
 
 			using ( var sourceStream = new FileStream(
 					sourcePath,
@@ -494,7 +494,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 		)
 		{
 			if ( filesAndFolders is null )
-				throw new ArgumentNullException(nameof( filesAndFolders ));
+				throw new ArgumentNullException(nameof(filesAndFolders));
 
 			var result = new List<string>();
 			var uniquePaths = new HashSet<string>(filesAndFolders);
@@ -570,7 +570,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 						{
 							// Get all files in the parent directory.
 							if ( !(thisDuplicateFolder is DirectoryInfo dirInfo) )
-								throw new NullReferenceException(nameof( dirInfo ));
+								throw new NullReferenceException(nameof(dirInfo));
 
 							checkFiles = dirInfo.EnumerateFilesSafely(
 								searchPattern: "*",
@@ -603,9 +603,9 @@ namespace KOTORModSync.Core.FileSystemUtils
 		public static bool WildcardPathMatch(string input, string patternInput)
 		{
 			if ( input is null )
-				throw new ArgumentNullException(nameof( input ));
+				throw new ArgumentNullException(nameof(input));
 			if ( patternInput is null )
-				throw new ArgumentNullException(nameof( patternInput ));
+				throw new ArgumentNullException(nameof(patternInput));
 
 			// Fix path formatting
 			input = FixPathFormatting(input);
@@ -640,9 +640,9 @@ namespace KOTORModSync.Core.FileSystemUtils
 		private static bool WildcardMatch(string input, string patternInput)
 		{
 			if ( input is null )
-				throw new ArgumentNullException(nameof( input ));
+				throw new ArgumentNullException(nameof(input));
 			if ( patternInput is null )
-				throw new ArgumentNullException(nameof( patternInput ));
+				throw new ArgumentNullException(nameof(patternInput));
 
 			// Escape special characters in the pattern
 			patternInput = Regex.Escape(patternInput);
@@ -660,7 +660,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 		public static string FixPathFormatting([NotNull] string path)
 		{
 			if ( path is null )
-				throw new ArgumentNullException(nameof( path ));
+				throw new ArgumentNullException(nameof(path));
 
 			if ( string.IsNullOrWhiteSpace(path) )
 				return path;
@@ -705,7 +705,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 		)
 		{
 			if ( path is null )
-				throw new ArgumentNullException(nameof( path ));
+				throw new ArgumentNullException(nameof(path));
 
 			string formattedPath = FixPathFormatting(path);
 			if ( !PathValidator.IsValidPath(formattedPath) )

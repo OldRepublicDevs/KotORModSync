@@ -17,7 +17,7 @@ namespace KOTORModSync.Converters
 			[CanBeNull] object parameter,
 			[NotNull] CultureInfo culture
 		) =>
-			value is bool isExpanded && targetType == typeof( string )
+			value is bool isExpanded && targetType == typeof(string)
 				? isExpanded
 					? "▼"
 					: "▶"

@@ -16,10 +16,10 @@ namespace KOTORModSync.Tests
 		{
 			// Set up the initial values for destinationPath and sourcePaths
 			_destinationPath = new DirectoryInfo("DestinationPath");
-			_sourcePaths = new List<string>
-			{
+			_sourcePaths =
+			[
 				"SourcePath1", "SourcePath2", "SourcePath3",
-			};
+			];
 		}
 
 		[TearDown]
@@ -43,10 +43,10 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateTemporaryArchive("validArchive.zip");
-			_sourcePaths = new List<string>
-			{
+			_sourcePaths =
+			[
 				archivePath,
-			};
+			];
 
 			// Act
 			Instruction.ActionExitCode extractionResult =
@@ -68,10 +68,10 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateTemporaryArchive("invalidArchive.zip");
-			_sourcePaths = new List<string>
-			{
+			_sourcePaths =
+			[
 				archivePath,
-			};
+			];
 
 			// Act
 			Instruction.ActionExitCode extractionResult =
@@ -98,7 +98,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			if ( _sourcePaths is null )
-				throw new NullReferenceException(nameof( _sourcePaths ));
+				throw new NullReferenceException(nameof(_sourcePaths));
 
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
@@ -119,10 +119,10 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateTemporaryArchive("archiveWithPermissionDenied.zip");
-			_sourcePaths = new List<string>
-			{
+			_sourcePaths =
+			[
 				archivePath,
-			};
+			];
 
 			// Act
 			Instruction.ActionExitCode extractionResult =

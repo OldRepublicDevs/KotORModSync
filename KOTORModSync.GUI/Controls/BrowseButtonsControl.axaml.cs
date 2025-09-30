@@ -9,12 +9,12 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Controls
 {
-    public partial class BrowseButtonsControl : UserControl
-    {
+	public partial class BrowseButtonsControl : UserControl
+	{
 		public BrowseButtonsControl() => InitializeComponent();
 
 		public event EventHandler<RoutedEventArgs> BrowseSourceFiles;
-        public event EventHandler<RoutedEventArgs> BrowseSourceFromFolders;
+		public event EventHandler<RoutedEventArgs> BrowseSourceFromFolders;
 
 		private void BrowseSourceFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseSourceFiles?.Invoke(sender, e);
 

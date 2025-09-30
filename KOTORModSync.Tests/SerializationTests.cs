@@ -35,7 +35,7 @@ namespace KOTORModSync.Tests
 			object? serialized = Serializer.SerializeObject(guid);
 
 			if ( serialized is null )
-				throw new NullReferenceException(nameof( serialized ));
+				throw new NullReferenceException(nameof(serialized));
 
 			Assert.That(
 				serialized,
@@ -48,14 +48,17 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void TestSerializeListOfGuid()
 		{
-			List<Guid> list = new()
-			{
+			List<Guid> list =
+			[
 				Guid.NewGuid(), Guid.NewGuid(),
-			};
+			];
 			object? serialized = Serializer.SerializeObject(list);
 
-			Assert.That(serialized, Is.InstanceOf<IEnumerable<object>>());
-			Assert.That((IEnumerable<object>)serialized, Is.All.InstanceOf<string>());
+			Assert.Multiple(() =>
+			{
+				Assert.That(serialized, Is.InstanceOf<IEnumerable<object>>());
+				Assert.That((IEnumerable<object>)serialized, Is.All.InstanceOf<string>());
+			});
 		}
 
 		[Test]

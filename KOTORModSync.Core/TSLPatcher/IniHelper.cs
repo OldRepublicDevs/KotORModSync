@@ -19,7 +19,7 @@ namespace KOTORModSync.Core.TSLPatcher
 		public static void ReplaceIniPattern([NotNull] DirectoryInfo directory, string pattern, string replacement)
 		{
 			if ( directory == null )
-				throw new ArgumentNullException(nameof( directory ));
+				throw new ArgumentNullException(nameof(directory));
 
 			FileInfo[] iniFiles = directory.GetFilesSafely(searchPattern: "*.ini", SearchOption.AllDirectories);
 			if ( iniFiles.Length == 0 )
@@ -42,7 +42,7 @@ namespace KOTORModSync.Core.TSLPatcher
 		)
 		{
 			if ( string.IsNullOrWhiteSpace(archivePath) )
-				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof( archivePath ));
+				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(archivePath));
 
 			(IArchive archive, FileStream thisStream) = ArchiveHelper.OpenArchive(archivePath);
 			using ( thisStream )
@@ -61,7 +61,7 @@ namespace KOTORModSync.Core.TSLPatcher
 		)
 		{
 			if ( archiveStream is null )
-				throw new ArgumentNullException(nameof( archiveStream ));
+				throw new ArgumentNullException(nameof(archiveStream));
 
 			using ( IArchive archive = ArchiveFactory.Open(archiveStream) )
 			{
@@ -86,10 +86,10 @@ namespace KOTORModSync.Core.TSLPatcher
 		)
 		{
 			if ( currentDirectory is null )
-				throw new ArgumentNullException(nameof( currentDirectory ));
+				throw new ArgumentNullException(nameof(currentDirectory));
 
 			IEnumerable<IArchiveEntry> archiveEntries = entries as IArchiveEntry[]
-				?? entries?.ToArray() ?? throw new NullReferenceException(nameof( entries ));
+				?? entries?.ToArray() ?? throw new NullReferenceException(nameof(entries));
 			foreach ( IArchiveEntry entry in archiveEntries )
 			{
 				if ( entry != null && entry.IsDirectory )
@@ -134,7 +134,7 @@ namespace KOTORModSync.Core.TSLPatcher
 		public static Dictionary<string, Dictionary<string, string>> ParseNamespacesIni(StreamReader reader)
 		{
 			if ( reader is null )
-				throw new ArgumentNullException(nameof( reader ));
+				throw new ArgumentNullException(nameof(reader));
 
 			var sections = new Dictionary<string, Dictionary<string, string>>();
 			Dictionary<string, string> currentSection = null;

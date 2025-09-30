@@ -24,10 +24,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Avalonia.Headless.NUnit" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\KOTORModSync.Core\KOTORModSync.Core.csproj" />
+    <ProjectReference Include="..\KOTORModSync.GUI\KOTORModSync.csproj" />
   </ItemGroup>
 
 </Project>

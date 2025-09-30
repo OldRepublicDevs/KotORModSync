@@ -3,6 +3,10 @@
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=IO/@EntryIndexedValue">IO</s:String>
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=SFX/@EntryIndexedValue">SFX</s:String>
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=TSL/@EntryIndexedValue">TSL</s:String>
+	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ECSharpKeepExistingMigration/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ECSharpPlaceEmbeddedOnSameLineMigration/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ECSharpUseContinuousIndentInsideBracesMigration/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EMigrateBlankLinesAroundFieldToBlankLinesAroundProperty/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=app_002Emanifest/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=MacOS/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=ajunta/@EntryIndexedValue">True</s:Boolean>
@@ -22,7 +26,7 @@
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=hacky/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Holo/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Holocron/@EntryIndexedValue">True</s:Boolean>
-	
+
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=holopatcher/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=iflag/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=installlog/@EntryIndexedValue">True</s:Boolean>
@@ -69,4 +73,31 @@
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=whoami/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=winsat/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=wmic/@EntryIndexedValue">True</s:Boolean>
-	<s:Boolean x:Key="/Default/UserDictionary/Words/=zard/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=zard/@EntryIndexedValue">True</s:Boolean>
+
+	<!-- Code Style Settings to align with .editorconfig -->
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Arguments/ArgumentsStyle/@EntryValue">Named</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Arguments/StringLiteralArgumentsStyle/@EntryValue">Named</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/IfElseBraces/@EntryValue">RequiredForMultiline</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/ForBraces/@EntryValue">RequiredForMultiline</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/WhileBraces/@EntryValue">RequiredForMultiline</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/UsingBraces/@EntryValue">RequiredForMultiline</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/FixedBraces/@EntryValue">RequiredForMultiline</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/LockBraces/@EntryValue">RequiredForMultiline</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/ForEachBraces/@EntryValue">RequiredForMultiline</s:String>
+	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/DoWhileBraces/@EntryValue">RequiredForMultiline</s:String>
+
+	<!-- Ensure ReSharper respects .editorconfig settings -->
+	<s:Boolean x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/ReadSettingsFromEditorConfig/@EntryValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/ReadSettingsFromProjectSettings/@EntryValue">True</s:Boolean>
+
+	<!-- Disable braces style inspections entirely -->
+	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/UsePreferredBracesStyle/@EntryValue">DoNotShow</s:String>
+	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/RedundantBraces/@EntryValue">DoNotShow</s:String>
+	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/InconsistentBracesStyle/@EntryValue">DoNotShow</s:String>
+
+	<!-- Disable argument style inspections entirely -->
+	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/ArgumentsStyleLiteralHighlighting/@EntryValue">DoNotShow</s:String>
+	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/ArgumentsStyleStringLiteralHighlighting/@EntryValue">DoNotShow</s:String>
+	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/InconsistentArgumentsStyle/@EntryValue">DoNotShow</s:String>
+</wpf:ResourceDictionary>

@@ -19,7 +19,7 @@ namespace KOTORModSync.Controls
 	{
 		[NotNull]
 		public static readonly StyledProperty<List<Guid>> ThisGuidListProperty =
-			AvaloniaProperty.Register<DependencyControl, List<Guid>>(nameof( ThisGuidList ));
+			AvaloniaProperty.Register<DependencyControl, List<Guid>>(nameof(ThisGuidList));
 		public DependencyControl() => InitializeComponent();
 
 		[NotNull]
@@ -30,7 +30,8 @@ namespace KOTORModSync.Controls
 			set => SetValue(ThisGuidListProperty, value);
 		}
 
-		[NotNull][UsedImplicitly]
+		[NotNull]
+		[UsedImplicitly]
 #pragma warning disable CA1822
 		public List<Component> ThisComponentList => MainWindow.ComponentsList;
 #pragma warning restore CA1822

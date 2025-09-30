@@ -34,12 +34,12 @@ namespace KOTORModSync.Core.Utility
 		[NotNull]
 		public static string Sha1ToString([NotNull] SHA1 sha1) =>
 			sha1 == null
-				? throw new ArgumentNullException(nameof( sha1 ))
+				? throw new ArgumentNullException(nameof(sha1))
 				: string.Concat(sha1.Hash.Select(b => b.ToString(format: "x2")));
 
 		[NotNull]
 		public static string StringToSha1([NotNull] string s) => s == null
-			? throw new ArgumentNullException(nameof( s ))
+			? throw new ArgumentNullException(nameof(s))
 			: string.Concat(
 				SHA1.Create()
 					.ComputeHash(
@@ -156,7 +156,7 @@ namespace KOTORModSync.Core.Utility
 		)
 		{
 			if ( filePath == null )
-				throw new ArgumentNullException(nameof( filePath ));
+				throw new ArgumentNullException(nameof(filePath));
 
 			string json = JsonConvert.SerializeObject(checksums);
 			using ( var writer = new StreamWriter(filePath) )
@@ -169,7 +169,7 @@ namespace KOTORModSync.Core.Utility
 		public static async Task<Dictionary<FileInfo, SHA1>> LoadChecksumsFromFileAsync([NotNull] FileInfo filePath)
 		{
 			if ( filePath == null )
-				throw new ArgumentNullException(nameof( filePath ));
+				throw new ArgumentNullException(nameof(filePath));
 
 			if ( !File.Exists(filePath.FullName) )
 				return new Dictionary<FileInfo, SHA1>();
@@ -209,13 +209,13 @@ namespace KOTORModSync.Core.Utility
 						}
 
 						if ( hashBytes is null )
-							throw new NullReferenceException(nameof( hashBytes ));
+							throw new NullReferenceException(nameof(hashBytes));
 
 						await Logger.LogAsync($"Hash for {fileInfo.FullName}: {BitConverter.ToString(hashBytes)}");
 
 						var sha1 = SHA1.Create();
 						byte[] computedHash = sha1?.ComputeHash(fileBytes)
-							?? throw new NullReferenceException(nameof( computedHash ));
+							?? throw new NullReferenceException(nameof(computedHash));
 
 						await Logger.LogAsync(
 							$"Computed hash for {fileInfo.FullName}: {BitConverter.ToString(computedHash)}"
@@ -235,7 +235,7 @@ namespace KOTORModSync.Core.Utility
 		private static bool TryConvertHexStringToBytes([NotNull] string hexString, [CanBeNull] out byte[] bytes)
 		{
 			if ( hexString == null )
-				throw new ArgumentNullException(nameof( hexString ));
+				throw new ArgumentNullException(nameof(hexString));
 
 			int numberChars = hexString.Length;
 			if ( numberChars % 2 != 0 )

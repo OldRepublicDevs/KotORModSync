@@ -1,0 +1,83 @@
+using System.Collections.ObjectModel;
+using Avalonia.Controls.Documents;
+using Avalonia.Headless.NUnit;
+using Avalonia.Media;
+using KOTORModSync.Core.Parsing;
+
+namespace KOTORModSync.Tests
+{
+	[TestFixture]
+	public class RegexPreviewHighlightingTests
+	{
+		[AvaloniaTest]
+		public void GenerateHighlightedPreview_ProducesColoredInlines()
+		{
+			const string md = "___\r\n### Heading\r\n**Name:** Foo\r\n**Author:** Bar\r\n";
+
+			var profile = MarkdownImportProfile.CreateDefault();
+			profile.Mode = RegexMode.Raw;
+			profile.RawRegexPattern = @"(?ms)^\s*_{3,}\s*\r?\n\s*###\s*(?<heading>[^\r\n]+)[\s\S]*?(?<name>Foo)[\s\S]*?";
+
+			var vm = new RegexImportDialogViewModel(md, profile);
+			vm.OnProfileChanged();
+
+			ObservableCollection<Inline> inlines = vm.HighlightedPreview;
+			Assert.That(inlines, Is.Not.Null, "Inlines collection should not be null");
+			Assert.That(inlines, Is.Not.Empty, "Expected at least one inline generated for preview");
+
+			// 1) There should be more than one run (split text implies highlighting inserted)
+			Assert.That(inlines, Has.Count.GreaterThan(1), "Expected multiple runs inlines indicating segmentation");
+
+			bool anyBold = false;
+			bool anyColoredNonWhite = false;
+			bool containsNameText = false;
+			int boldCount = 0;
+			int coloredCount = 0;
+			int totalRunChars = 0;
+
+			foreach ( Inline inline in inlines )
+			{
+				if ( inline is Run run )
+				{
+					totalRunChars += run.Text?.Length ?? 0;
+					if ( run.Text != null && run.Text.Contains("Foo") )
+						containsNameText = true;
+
+					if ( run.FontWeight == FontWeight.Bold )
+					{
+						anyBold = true;
+						boldCount++;
+					}
+
+					if ( run.Foreground is SolidColorBrush brush )
+					{
+						// We consider pure white un-highlighted baseline
+						if ( brush.Color != Colors.White )
+						{
+							anyColoredNonWhite = true;
+							coloredCount++;
+						}
+					}
+				}
+			}
+
+			Assert.Multiple(() =>
+			{
+				// 2) We expect at least one bold run (highlighted capture)
+				Assert.That(anyBold, Is.True, "Expected bold run for highlighted group");
+				// 3) At least one non-white colored run
+				Assert.That(anyColoredNonWhite, Is.True, "Expected a colored (non-white) run for highlighted group");
+				// 4) The captured text should appear in at least one run
+				Assert.That(containsNameText, Is.True, "Expected highlighted run to contain captured group text");
+				// 5) There should be a non-trivial amount of text represented
+				Assert.That(totalRunChars, Is.GreaterThan(10), "Expected non-trivial text content in runs");
+				// 6) Sanity: counts of bold/colored are positive
+				Assert.That(boldCount, Is.GreaterThanOrEqualTo(1));
+				Assert.That(coloredCount, Is.GreaterThanOrEqualTo(1));
+			});
+
+		}
+	}
+}
+
+

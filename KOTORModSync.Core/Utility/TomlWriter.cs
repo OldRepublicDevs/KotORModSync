@@ -16,7 +16,7 @@ namespace KOTORModSync.Core.Utility
 		{
 			if ( data.Count == 0 )
 			{
-				throw new ArgumentException(message: "Value cannot be null or an empty collection.", nameof( data ));
+				throw new ArgumentException(message: "Value cannot be null or an empty collection.", nameof(data));
 			}
 
 			var sb = new StringBuilder();
@@ -40,9 +40,9 @@ namespace KOTORModSync.Core.Utility
 		)
 		{
 			if ( key == null )
-				throw new ArgumentNullException(nameof( key ));
+				throw new ArgumentNullException(nameof(key));
 			if ( sb == null )
-				throw new ArgumentNullException(nameof( sb ));
+				throw new ArgumentNullException(nameof(sb));
 
 			if ( value == null )
 				return;
@@ -92,7 +92,7 @@ namespace KOTORModSync.Core.Utility
 			switch ( value )
 			{
 				case null:
-					throw new ArgumentNullException(nameof( value ));
+					throw new ArgumentNullException(nameof(value));
 				case string str:
 					return $"\"{EscapeTomlString(str)}\"";
 				case bool boolean:

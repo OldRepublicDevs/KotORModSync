@@ -19,7 +19,6 @@ using KOTORModSync.Core.FileSystemUtils;
 
 namespace KOTORModSync.Core.Utility
 {
-	[SuppressMessage(category: "ReSharper", checkId: "MemberCanBePrivate.Global")]
 	public static class PlatformAgnosticMethods
 	{
 		// Overload for a string representation of the folder path.
@@ -34,11 +33,11 @@ namespace KOTORModSync.Core.Utility
 				Parallel.Invoke(() => maxParallelism = Math.Max(val1: 1, maxParallelism / 2));
 			}
 
-			var maxDiskSpeedTask = Task.Run(
+			Task<double> maxDiskSpeedTask = Task.Run(
 				() =>
 				{
 					if ( thisDir is null )
-						throw new NullReferenceException(nameof( thisDir ));
+						throw new NullReferenceException(nameof(thisDir));
 
 					return GetMaxDiskSpeed(Path.GetPathRoot(thisDir.FullName));
 				}
@@ -95,12 +94,12 @@ namespace KOTORModSync.Core.Utility
 		{
 			if ( string.IsNullOrWhiteSpace(output) )
 			{
-				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof( output ));
+				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(output));
 			}
 
 			if ( string.IsNullOrWhiteSpace(command) )
 			{
-				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof( command ));
+				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(command));
 			}
 
 			string pattern = string.Empty;
@@ -293,7 +292,7 @@ namespace KOTORModSync.Core.Utility
 			}
 		}
 
-		public static async Task MakeExecutableAsync([NotNull] FileSystemInfo fileOrApp )
+		public static async Task MakeExecutableAsync([NotNull] FileSystemInfo fileOrApp)
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
@@ -303,7 +302,7 @@ namespace KOTORModSync.Core.Utility
 
 			// For Linux/macOS: Using chmod for setting execute permissions for the current user.
 			if ( fileOrApp is null )
-				throw new ArgumentNullException(nameof( fileOrApp ));
+				throw new ArgumentNullException(nameof(fileOrApp));
 
 			if ( !fileOrApp.Exists && MainConfig.CaseInsensitivePathing )
 				fileOrApp = PathHelper.GetCaseSensitivePath(fileOrApp);
@@ -320,7 +319,8 @@ namespace KOTORModSync.Core.Utility
 						RedirectStandardOutput = true,
 						RedirectStandardError = true,
 						UseShellExecute = false,
-						CreateNoWindow = true };
+						CreateNoWindow = true
+					};
 
 					using ( var process = Process.Start(startInfo) )
 					{
@@ -349,7 +349,7 @@ namespace KOTORModSync.Core.Utility
 		)
 		{
 			if ( programFile is null )
-				throw new ArgumentNullException(nameof( programFile ));
+				throw new ArgumentNullException(nameof(programFile));
 			string verb = null;
 			string actualProgramFile = programFile;
 			string actualArgs = args;
@@ -359,7 +359,7 @@ namespace KOTORModSync.Core.Utility
 			// Adjust settings for admin privileges
 			if ( askAdmin && !MainConfig.NoAdmin )
 			{
-				if (Utility.GetOperatingSystem() == OSPlatform.Windows)
+				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 				{
 					verb = "runas";
 				}
@@ -423,7 +423,7 @@ namespace KOTORModSync.Core.Utility
 		)
 		{
 			if ( programFile is null )
-				throw new ArgumentNullException(nameof( programFile ));
+				throw new ArgumentNullException(nameof(programFile));
 
 			List<ProcessStartInfo> processStartInfos = GetProcessStartInfo(
 				programFile: programFile,
@@ -512,7 +512,7 @@ namespace KOTORModSync.Core.Utility
 								}
 								catch ( Exception exception )
 								{
-									_ = Logger.LogExceptionAsync( exception, $"Exception while gathering the output from '{programFile}'" );
+									_ = Logger.LogExceptionAsync(exception, $"Exception while gathering the output from '{programFile}'");
 								}
 							};
 							AutoResetEvent localOutputWaitHandle = outputWaitHandle;
@@ -540,7 +540,7 @@ namespace KOTORModSync.Core.Utility
 								}
 								catch ( Exception exception )
 								{
-									_ = Logger.LogExceptionAsync( exception, $"Exception while gathering the error output from '{programFile}'" );
+									_ = Logger.LogExceptionAsync(exception, $"Exception while gathering the error output from '{programFile}'");
 								}
 							};
 
@@ -563,7 +563,7 @@ namespace KOTORModSync.Core.Utility
 									}
 									catch ( Exception exception )
 									{
-										Logger.LogException( exception, customMessage: "Exception while running the process." );
+										Logger.LogException(exception, customMessage: "Exception while running the process.");
 										return (-3, null, null); // unhandled internal exception
 									}
 								},
@@ -581,14 +581,14 @@ namespace KOTORModSync.Core.Utility
 					await Logger.LogVerboseAsync(
 						$"Exception occurred for startInfo: '{startInfo}', attempting to use different parameters"
 					);
-					if (!MainConfig.NoAdmin && isAdmin is true)
+					if ( !MainConfig.NoAdmin && isAdmin is true )
 					{
-						if (Utility.GetOperatingSystem() == OSPlatform.Windows && startInfo.UseShellExecute && !startInfo.Verb.Equals("runas", StringComparison.InvariantCultureIgnoreCase))
+						if ( Utility.GetOperatingSystem() == OSPlatform.Windows && startInfo.UseShellExecute && !startInfo.Verb.Equals("runas", StringComparison.InvariantCultureIgnoreCase) )
 						{
 							startInfo.Verb = "runas";
 							index--;
 						}
-						else if (Utility.GetOperatingSystem() != OSPlatform.Windows && !startInfo.FileName.Equals("sudo", StringComparison.InvariantCultureIgnoreCase) )
+						else if ( Utility.GetOperatingSystem() != OSPlatform.Windows && !startInfo.FileName.Equals("sudo", StringComparison.InvariantCultureIgnoreCase) )
 						{
 							startInfo.FileName = "sudo";
 							string tempFile = programFile.Trim('"').Trim('\'');

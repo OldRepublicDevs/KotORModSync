@@ -5,6 +5,7 @@
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using JetBrains.Annotations;
 
 namespace KOTORModSync
@@ -15,6 +16,13 @@ namespace KOTORModSync
 
 		public ProgressWindow() => InitializeComponent();
 		public void Dispose() => Close();
+
+		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
+			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
 
 		public void UpdateMetrics(

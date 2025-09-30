@@ -11,35 +11,40 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
-using Avalonia.Markup.Xaml.Styling;
 
 namespace KOTORModSync
 {
 	public partial class ConfirmationDialog : Window
 	{
 		private static readonly AvaloniaProperty s_confirmTextProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof( ConfirmText ));
+			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(ConfirmText));
+
+		private static readonly AvaloniaProperty s_yesButtonTextProperty =
+			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(YesButtonText), "Yes");
+
+		private static readonly AvaloniaProperty s_noButtonTextProperty =
+			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonText), "No");
 
 		private static readonly RoutedEvent<RoutedEventArgs> s_yesButtonClickedEvent =
 			RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
-				nameof( YesButtonClicked ),
+				nameof(YesButtonClicked),
 				RoutingStrategies.Bubble
 			);
 
 		private static readonly RoutedEvent<RoutedEventArgs> s_noButtonClickedEvent =
 			RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
-				nameof( NoButtonClicked ),
+				nameof(NoButtonClicked),
 				RoutingStrategies.Bubble
 			);
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
-		
+
 		public ConfirmationDialog()
 		{
 			InitializeComponent();
 			// Apply current theme to dialog
 			ThemeManager.ApplyCurrentToWindow(this);
-			
+
 			// Attach window move event handlers
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
@@ -54,9 +59,25 @@ namespace KOTORModSync
 			set => SetValue(s_confirmTextProperty, value);
 		}
 
+		[CanBeNull]
+		public string YesButtonText
+		{
+			get => GetValue(s_yesButtonTextProperty) as string;
+			set => SetValue(s_yesButtonTextProperty, value);
+		}
+
+		[CanBeNull]
+		public string NoButtonText
+		{
+			get => GetValue(s_noButtonTextProperty) as string;
+			set => SetValue(s_noButtonTextProperty, value);
+		}
+
 		public static async Task<bool?> ShowConfirmationDialog(
 			[CanBeNull] Window parentWindow,
-			[CanBeNull] string confirmText
+			[CanBeNull] string confirmText,
+			[CanBeNull] string yesButtonText = null,
+			[CanBeNull] string noButtonText = null
 		)
 		{
 			var tcs = new TaskCompletionSource<bool?>();
@@ -69,6 +90,8 @@ namespace KOTORModSync
 						var confirmationDialog = new ConfirmationDialog
 						{
 							ConfirmText = confirmText,
+							YesButtonText = yesButtonText ?? "Yes",
+							NoButtonText = noButtonText ?? "No",
 							Topmost = true,
 						};
 
@@ -137,6 +160,9 @@ namespace KOTORModSync
 
 		private void NoButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
 			RaiseEvent(new RoutedEventArgs(s_noButtonClickedEvent));
+
+		private void CloseButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+			Close();
 
 		private void InputElement_OnPointerMoved([NotNull] object sender, [NotNull] PointerEventArgs e)
 		{

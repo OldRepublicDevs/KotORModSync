@@ -27,7 +27,7 @@ namespace KOTORModSync.Tests
 		public void TearDown()
 		{
 			// Delete the temporary file
-			Assert.That(_filePath, Is.Not.Null, nameof( _filePath ) + " != null");
+			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
 			File.Delete(_filePath);
 		}
 
@@ -83,7 +83,7 @@ namespace KOTORModSync.Tests
 		public void SaveAndLoadTOMLFile_MatchingComponents()
 		{
 			// Read the original TOMLIN file contents
-			Assert.That(_filePath, Is.Not.Null, nameof( _filePath ) + " is null");
+			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " is null");
 			string tomlContents = File.ReadAllText(_filePath);
 
 			// Fix whitespace issues
@@ -142,7 +142,7 @@ namespace KOTORModSync.Tests
 			List<Component> originalComponents = Component.ReadComponentsFromFile(_filePath);
 
 			// Modify the TOML file contents
-			Assert.That(_filePath, Is.Not.Null, nameof( _filePath ) + " != null");
+			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
 			string tomlContents = File.ReadAllText(_filePath);
 
 			// Convert field names and values to mixed case
@@ -173,7 +173,7 @@ namespace KOTORModSync.Tests
 			List<Component> originalComponents = Component.ReadComponentsFromFile(_filePath);
 
 			// Modify the TOMLIN file contents
-			Assert.That(_filePath, Is.Not.Null, nameof( _filePath ) + " != null");
+			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
 			string tomlContents = File.ReadAllText(_filePath);
 
 			// Add mixed line endings and extra whitespaces
@@ -249,7 +249,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			// ReSharper disable once CollectionNeverUpdated.Local
-			List<Component> originalComponents = new();
+			List<Component> originalComponents = [];
 			// Act
 			Component.OutputConfigFile(originalComponents, _filePath);
 
@@ -267,8 +267,8 @@ namespace KOTORModSync.Tests
 		public void SaveAndLoadTOMLFile_DuplicateGuids()
 		{
 			// Arrange
-			List<Component> originalComponents = new()
-			{
+			List<Component> originalComponents =
+			[
 				new Component
 				{
 					Name = "Component 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
@@ -281,7 +281,7 @@ namespace KOTORModSync.Tests
 				{
 					Name = "Component 3", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
 				},
-			};
+			];
 
 			// Act
 			Component.OutputConfigFile(originalComponents, _filePath);
@@ -328,10 +328,9 @@ namespace KOTORModSync.Tests
 		public void SaveAndLoadTOMLFile_MultipleRounds()
 		{
 			// Arrange
-			List<List<Component>> rounds = new()
-			{
-				new List<Component>
-				{
+			List<List<Component>> rounds =
+			[
+				[
 					new()
 					{
 						Name = "Component 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
@@ -340,9 +339,8 @@ namespace KOTORModSync.Tests
 					{
 						Name = "Component 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
 					},
-				},
-				new List<Component>
-				{
+				],
+				[
 					new()
 					{
 						Name = "Component 3", Guid = Guid.Parse("{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}"),
@@ -355,9 +353,8 @@ namespace KOTORModSync.Tests
 					{
 						Name = "Component 5", Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
 					},
-				},
-				new List<Component>
-				{
+				],
+				[
 					new()
 					{
 						Name = "Component 6", Guid = Guid.Parse("{EF04A28E-5031-4A95-A85A-9A1B29A31710}"),
@@ -374,8 +371,8 @@ namespace KOTORModSync.Tests
 					{
 						Name = "Component 9", Guid = Guid.Parse("{D6B5C60F-26A7-4595-A0E2-2DE567A376DE}"),
 					},
-				},
-			};
+				],
+			];
 			// Act and Assert
 			foreach ( List<Component> components in rounds )
 			{

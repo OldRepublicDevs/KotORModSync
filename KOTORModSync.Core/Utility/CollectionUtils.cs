@@ -15,7 +15,7 @@ namespace KOTORModSync.Core.Utility
 		public static void RemoveEmptyCollections([NotNull] IDictionary<string, object> thisTable)
 		{
 			if ( thisTable is null )
-				throw new ArgumentNullException(nameof( thisTable ));
+				throw new ArgumentNullException(nameof(thisTable));
 
 			var itemsToRemove = new List<string>();
 
@@ -87,7 +87,7 @@ namespace KOTORModSync.Core.Utility
 		public static void RemoveEmptyCollections([NotNull][ItemCanBeNull] IList<object> list)
 		{
 			if ( list is null )
-				throw new ArgumentNullException(nameof( list ));
+				throw new ArgumentNullException(nameof(list));
 
 			for ( int i = list.Count - 1; i >= 0; i-- )
 			{

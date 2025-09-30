@@ -15,13 +15,10 @@ namespace KOTORModSync.Converters
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			if ( value is null )
-				return Instruction.ActionType.Unset.ToString();
-
+				return nameof(Instruction.ActionType.Unset);
 			if ( value is Instruction.ActionType actionType )
 				return actionType.ToString();
-
-			if ( value is string strValue
-				&& Enum.TryParse(strValue, ignoreCase: true, out Instruction.ActionType result) )
+			if ( value is string strValue && Enum.TryParse(strValue, ignoreCase: true, out Instruction.ActionType result) )
 				return result.ToString();
 
 			string msg = $"Valid actions are [{string.Join(separator: ", ", Instruction.ActionTypes)}]";
@@ -32,16 +29,12 @@ namespace KOTORModSync.Converters
 		{
 			if ( value is Instruction.ActionType actual )
 				return actual.ToString();
+			if ( !(value?.ToString() is string strValue) )
+				return nameof(Instruction.ActionType.Unset);
+			if ( Enum.TryParse(strValue, ignoreCase: true, out Instruction.ActionType result) )
+				return result.ToString();
 
-			if ( value?.ToString() is string strValue )
-			{
-				if ( Enum.TryParse(strValue, ignoreCase: true, out Instruction.ActionType result) )
-				{
-					return result.ToString();
-				}
-			}
-
-			return Instruction.ActionType.Unset.ToString();
+			return nameof(Instruction.ActionType.Unset);
 		}
 	}
 }

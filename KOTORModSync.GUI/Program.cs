@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-//using System.Threading;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync
@@ -17,13 +17,11 @@ namespace KOTORModSync
 		// SynchronizationContext-reliant code before AppMain is called: things aren't initialized
 		// yet and stuff might break.
 		[STAThread]
-		public static void Main(string[] args)
-		{
+		public static void Main(string[] args) =>
 			//var consoleThread = new Thread(ConsoleLoop);
 			//consoleThread.Start();
 
 			_ = BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-		}
 
 		private static void ConsoleLoop()
 		{
@@ -168,7 +166,8 @@ namespace KOTORModSync
 							if ( File.Exists(filePath) )
 							{
 								string source = File.ReadAllText(filePath);
-								List<Component> components = ModParser.ParseMods(source);
+								MarkdownParserResult parseResult = ModParser.Parse(source);
+								List<Component> components = (List<Component>)parseResult.Components;
 								foreach ( Component mod in components )
 								{
 									Console.WriteLine($"Name: {mod.Name}");

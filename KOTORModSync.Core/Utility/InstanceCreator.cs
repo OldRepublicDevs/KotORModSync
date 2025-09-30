@@ -18,7 +18,7 @@ namespace KOTORModSync.Core.Utility
 		[CanBeNull]
 		public static T CreateInstance<T>([CanBeNull] params object[] constructorParameters)
 		{
-			Type type = typeof( T );
+			Type type = typeof(T);
 
 			if ( type.IsGenericType && type.GetGenericTypeDefinition().GetConstructor(Type.EmptyTypes) != null )
 			{
@@ -41,15 +41,15 @@ namespace KOTORModSync.Core.Utility
 			}
 
 			if ( constructorParameters is null )
-				throw new NullReferenceException(nameof( constructorParameters ));
+				throw new NullReferenceException(nameof(constructorParameters));
 
 			int parameterCount = constructorParameters.Length;
 			foreach ( ConstructorInfo constructor in from constructor in constructors
-				let parameters = constructor.GetParameters()
-				where parameters.Length == parameterCount
-				let match = AreParametersCompatible(parameters, constructorParameters)
-				where match
-				select constructor )
+													 let parameters = constructor.GetParameters()
+													 where parameters.Length == parameterCount
+													 let match = AreParametersCompatible(parameters, constructorParameters)
+													 where match
+													 select constructor )
 			{
 				return (T)constructor.Invoke(constructorParameters);
 			}
@@ -64,9 +64,9 @@ namespace KOTORModSync.Core.Utility
 		)
 		{
 			if ( parameters == null )
-				throw new ArgumentNullException(nameof( parameters ));
+				throw new ArgumentNullException(nameof(parameters));
 			if ( constructorParameters == null )
-				throw new ArgumentNullException(nameof( constructorParameters ));
+				throw new ArgumentNullException(nameof(constructorParameters));
 
 			for ( int i = 0; i < parameters.Length; i++ )
 			{

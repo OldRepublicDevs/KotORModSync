@@ -19,7 +19,8 @@ namespace KOTORModSync.Core.FileSystemUtils
 		private string _str;
 
 		public CaseAwarePath(params string[] args) :
-			this((object[])args) { } // Call the more general constructor directly
+			this((object[])args)
+		{ } // Call the more general constructor directly
 
 		public CaseAwarePath(params object[] args)
 		{
@@ -132,7 +133,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		private string GetCaseSensitivePath()
 		{
-			var parts = _str.Split(Path.DirectorySeparatorChar).ToList();
+			List<string> parts = _str.Split(Path.DirectorySeparatorChar).ToList();
 
 			for ( int i = 1; i < parts.Count; i++ )
 			{

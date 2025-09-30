@@ -69,7 +69,7 @@ namespace KOTORModSync.Tests
 			string fileExtension = ".txt";
 
 			// Act
-			new Instruction().DeleteDuplicateFile(new DirectoryInfo(directory), fileExtension, compatibleExtensions: new List<string>{".txt", ".png", ".jpg"});
+			new Instruction().DeleteDuplicateFile(new DirectoryInfo(directory), fileExtension, compatibleExtensions: [".txt", ".png", ".jpg"]);
 
 			// Assert
 			Assert.Multiple(

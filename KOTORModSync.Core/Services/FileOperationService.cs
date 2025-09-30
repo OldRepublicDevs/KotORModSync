@@ -5,10 +5,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Utility;
 using SharpCompress.Archives;
 
@@ -24,21 +24,21 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="filePath">Path to the file to validate</param>
 		/// <returns>True if file is valid, false otherwise</returns>
-		public bool ValidateInstructionFile([NotNull] string filePath)
+		public static bool ValidateInstructionFile([NotNull] string filePath)
 		{
-			if (string.IsNullOrEmpty(filePath))
+			if ( string.IsNullOrEmpty(filePath) )
 				return false;
 
-			if (!PathValidator.IsValidPath(filePath))
+			if ( !PathValidator.IsValidPath(filePath) )
 				return false;
 
 			var fileInfo = new FileInfo(filePath);
-			if (!fileInfo.Exists)
+			if ( !fileInfo.Exists )
 				return false;
 
 			// Verify the file size
 			const int maxInstructionSize = 524288000; // instruction file larger than 500mb is probably unsupported
-			if (fileInfo.Length > maxInstructionSize)
+			if ( fileInfo.Length > maxInstructionSize )
 			{
 				Logger.Log($"Invalid instruction file selected: '{fileInfo.Name}'");
 				return false;
@@ -47,7 +47,7 @@ namespace KOTORModSync.Core.Services
 			// Check file extension
 			string fileExt = Path.GetExtension(filePath);
 			return fileExt.Equals(".toml", StringComparison.OrdinalIgnoreCase) ||
-			       fileExt.Equals(".tml", StringComparison.OrdinalIgnoreCase);
+				   fileExt.Equals(".tml", StringComparison.OrdinalIgnoreCase);
 		}
 
 		/// <summary>
@@ -57,10 +57,10 @@ namespace KOTORModSync.Core.Services
 		/// <returns>List of loaded components</returns>
 		public List<Component> LoadComponentsFromFile([NotNull] string filePath)
 		{
-			if (string.IsNullOrEmpty(filePath))
+			if ( string.IsNullOrEmpty(filePath) )
 				throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
 
-			if (!ValidateInstructionFile(filePath))
+			if ( !ValidateInstructionFile(filePath) )
 				throw new InvalidOperationException($"Invalid instruction file: {filePath}");
 
 			return Component.ReadComponentsFromFile(filePath);
@@ -71,12 +71,15 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="markdownContent">Markdown content to parse</param>
 		/// <returns>List of parsed components</returns>
-		public List<Component> LoadComponentsFromMarkdown([NotNull] string markdownContent)
+		public static MarkdownParserResult LoadComponentsFromMarkdown([NotNull] string markdownContent, [CanBeNull] MarkdownImportProfile profile = null)
 		{
-			if (string.IsNullOrEmpty(markdownContent))
+			if ( string.IsNullOrEmpty(markdownContent) )
 				throw new ArgumentException("Markdown content cannot be null or empty", nameof(markdownContent));
 
-			return ModParser.ParseMods(markdownContent) ?? new List<Component>();
+			MarkdownParser parser = profile is null
+				? ModParser.CreateParser(MarkdownImportProfile.CreateDefault())
+				: ModParser.CreateParser(profile);
+			return parser.Parse(markdownContent);
 		}
 
 		/// <summary>
@@ -84,18 +87,18 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="components">Components to save</param>
 		/// <param name="filePath">Path where to save the file</param>
-		public async Task SaveComponentsToFileAsync([NotNull][ItemNotNull] List<Component> components, [NotNull] string filePath)
+		public static async Task SaveComponentsToFileAsync([NotNull][ItemNotNull] List<Component> components, [NotNull] string filePath)
 		{
-			if (components == null)
+			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
-			if (string.IsNullOrEmpty(filePath))
+			if ( string.IsNullOrEmpty(filePath) )
 				throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
 
 			await Logger.LogVerboseAsync($"Saving TOML config to {filePath}");
 
-			using (var writer = new StreamWriter(filePath))
+			using ( var writer = new StreamWriter(filePath) )
 			{
-				foreach (Component component in components)
+				foreach ( Component component in components )
 				{
 					string tomlContents = component.SerializeComponent();
 					await writer.WriteLineAsync(tomlContents);
@@ -108,9 +111,9 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="components">Components to document</param>
 		/// <returns>Generated documentation string</returns>
-		public string GenerateComponentDocumentation([NotNull][ItemNotNull] List<Component> components)
+		public static string GenerateComponentDocumentation([NotNull][ItemNotNull] List<Component> components)
 		{
-			if (components == null)
+			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
 
 			return Component.GenerateModDocumentation(components);
@@ -121,22 +124,22 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="filePath">Path where to save the documentation</param>
 		/// <param name="documentation">Documentation content</param>
-		public async Task SaveDocumentationToFileAsync([NotNull] string filePath, [NotNull] string documentation)
+		public static async Task SaveDocumentationToFileAsync([NotNull] string filePath, [NotNull] string documentation)
 		{
-			if (string.IsNullOrEmpty(filePath))
+			if ( string.IsNullOrEmpty(filePath) )
 				throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
-			if (string.IsNullOrEmpty(documentation))
+			if ( string.IsNullOrEmpty(documentation) )
 				throw new ArgumentException("Documentation cannot be null or empty", nameof(documentation));
 
 			try
 			{
-				using (var writer = new StreamWriter(filePath))
+				using ( var writer = new StreamWriter(filePath) )
 				{
 					await writer.WriteAsync(documentation);
 					await writer.FlushAsync();
 				}
 			}
-			catch (Exception e)
+			catch ( Exception e )
 			{
 				await Logger.LogExceptionAsync(e);
 				throw;
@@ -148,22 +151,22 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="filePath">Path to the archive file</param>
 		/// <returns>Path to executable found in archive, or null if none found</returns>
-		public async Task<string> AnalyzeArchiveForExecutableAsync([NotNull] string filePath)
+		public static async Task<string> AnalyzeArchiveForExecutableAsync([NotNull] string filePath)
 		{
-			if (string.IsNullOrEmpty(filePath))
+			if ( string.IsNullOrEmpty(filePath) )
 				throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
 
 			try
 			{
 				(IArchive archive, FileStream archiveStream) = ArchiveHelper.OpenArchive(filePath);
-				if (archive is null || archiveStream is null)
+				if ( archive is null || archiveStream is null )
 					return null;
 
 				string exePath = ArchiveHelper.AnalyzeArchiveForExe(archiveStream, archive);
 				await Logger.LogVerboseAsync(exePath);
 				return exePath;
 			}
-			catch (Exception e)
+			catch ( Exception e )
 			{
 				await Logger.LogExceptionAsync(e);
 				return null;
@@ -174,13 +177,13 @@ namespace KOTORModSync.Core.Services
 		/// Fixes file and folder permissions for a given path
 		/// </summary>
 		/// <param name="folderPath">Path to fix permissions for</param>
-		public async Task FixPathPermissionsAsync([NotNull] string folderPath)
+		public static async Task FixPathPermissionsAsync([NotNull] string folderPath)
 		{
-			if (string.IsNullOrEmpty(folderPath))
+			if ( string.IsNullOrEmpty(folderPath) )
 				throw new ArgumentException("Folder path cannot be null or empty", nameof(folderPath));
 
 			DirectoryInfo directory = PathHelper.TryGetValidDirectoryInfo(folderPath);
-			if (directory is null || !directory.Exists)
+			if ( directory is null || !directory.Exists )
 			{
 				await Logger.LogErrorAsync($"Directory not found: '{folderPath}', skipping...");
 				return;
@@ -197,11 +200,11 @@ namespace KOTORModSync.Core.Services
 		/// <returns>Number of files/folders renamed</returns>
 		public async Task<int> FixIOSCaseSensitivityAsync([NotNull] string folderPath)
 		{
-			if (string.IsNullOrEmpty(folderPath))
+			if ( string.IsNullOrEmpty(folderPath) )
 				throw new ArgumentException("Folder path cannot be null or empty", nameof(folderPath));
 
 			var directory = new DirectoryInfo(folderPath);
-			if (!directory.Exists)
+			if ( !directory.Exists )
 			{
 				await Logger.LogErrorAsync($"Directory not found: '{directory.FullName}', skipping...");
 				return 0;
@@ -210,21 +213,21 @@ namespace KOTORModSync.Core.Services
 			return await FixIOSCaseSensitivityCoreAsync(directory);
 		}
 
-		private async Task<int> FixIOSCaseSensitivityCoreAsync([NotNull] DirectoryInfo gameDirectory)
+		private static async Task<int> FixIOSCaseSensitivityCoreAsync([NotNull] DirectoryInfo gameDirectory)
 		{
 			try
 			{
 				int numObjectsRenamed = 0;
 				// Process all files in the current directory
-				foreach (FileInfo file in gameDirectory.GetFilesSafely())
+				foreach ( FileInfo file in gameDirectory.GetFilesSafely() )
 				{
 					string lowercaseName = file.Name.ToLowerInvariant();
 					string dirName = file.DirectoryName;
-					if (dirName is null)
+					if ( dirName is null )
 						continue;
 
 					string lowercasePath = Path.Combine(dirName, lowercaseName);
-					if (lowercasePath != file.FullName)
+					if ( lowercasePath != file.FullName )
 					{
 						await Logger.LogAsync($"Rename file '{file.FullName}' -> '{lowercasePath}'");
 						File.Move(file.FullName, lowercasePath);
@@ -233,15 +236,15 @@ namespace KOTORModSync.Core.Services
 				}
 
 				// Recursively process all subdirectories
-				foreach (DirectoryInfo directory in gameDirectory.GetDirectoriesSafely())
+				foreach ( DirectoryInfo directory in gameDirectory.GetDirectoriesSafely() )
 				{
 					string lowercaseName = directory.Name.ToLowerInvariant();
 					string dirParentPath = directory.Parent?.FullName;
-					if (dirParentPath is null)
+					if ( dirParentPath is null )
 						continue;
 
 					string lowercasePath = Path.Combine(dirParentPath, lowercaseName);
-					if (lowercasePath != directory.FullName)
+					if ( lowercasePath != directory.FullName )
 					{
 						await Logger.LogAsync($"Rename folder '{directory.FullName}' -> '{lowercasePath}'");
 						Directory.Move(directory.FullName, lowercasePath);
@@ -259,7 +262,7 @@ namespace KOTORModSync.Core.Services
 
 				return numObjectsRenamed;
 			}
-			catch (Exception exception)
+			catch ( Exception exception )
 			{
 				await Logger.LogExceptionAsync(exception);
 				return -1;

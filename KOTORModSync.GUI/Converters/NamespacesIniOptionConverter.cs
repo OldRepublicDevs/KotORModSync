@@ -29,15 +29,15 @@ namespace KOTORModSync.Converters
 				if ( parentComponent is null )
 					return null;
 
-				return (from archivePath in GetAllArchivesFromInstructions(parentComponent)
-					where !string.IsNullOrEmpty(archivePath)
-					let result = IniHelper.ReadNamespacesIniFromArchive(archivePath)
-					where result != null && result.Any()
-					let optionNames = result
-						.Where(section => section.Value?.TryGetValue(key: "Name", out _) ?? false)
-						.Select(section => section.Value["Name"]).ToList()
-					where optionNames.Any()
-					select optionNames).FirstOrDefault();
+				return (from archivePath in NamespacesIniOptionConverter.GetAllArchivesFromInstructions(parentComponent)
+						where !string.IsNullOrEmpty(archivePath)
+						let result = IniHelper.ReadNamespacesIniFromArchive(archivePath)
+						where result != null && result.Any()
+						let optionNames = result
+							.Where(section => section.Value?.TryGetValue(key: "Name", out _) ?? false)
+							.Select(section => section.Value["Name"]).ToList()
+						where optionNames.Any()
+						select optionNames).FirstOrDefault();
 			}
 			catch ( Exception ex )
 			{
@@ -46,13 +46,13 @@ namespace KOTORModSync.Converters
 			}
 		}
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
 		[NotNull]
-		public List<string> GetAllArchivesFromInstructions([NotNull] Component parentComponent)
+		public static List<string> GetAllArchivesFromInstructions([NotNull] Component parentComponent)
 		{
 			if ( parentComponent is null )
-				throw new ArgumentNullException(nameof( parentComponent ));
+				throw new ArgumentNullException(nameof(parentComponent));
 
 			var allArchives = new List<string>();
 

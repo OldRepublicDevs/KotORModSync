@@ -21,10 +21,10 @@ namespace KOTORModSync.Converters
 					return null;
 
 				var selectedComponentNames = (from cGuid in guids
-					let foundComponent = Component.FindComponentFromGuid(cGuid, componentsList)
-					select !(foundComponent is null)
-						? foundComponent.Name
-						: cGuid.ToString()).ToList();
+											  let foundComponent = Component.FindComponentFromGuid(cGuid, componentsList)
+											  select !(foundComponent is null)
+												  ? foundComponent.Name
+												  : cGuid.ToString()).ToList();
 
 				if ( selectedComponentNames.Count == 0 )
 					selectedComponentNames.Add("None");

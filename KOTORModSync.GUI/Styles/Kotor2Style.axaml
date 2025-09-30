@@ -1,4 +1,5 @@
-<Styles xmlns="https://github.com/avaloniaui"
+<Styles xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:noNamespaceSchemaLocation="Kotor2Style.xsd" xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Design.PreviewWith>
         <Border Padding="20">
@@ -10,14 +11,14 @@
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="Margin" Value="0,5,0,2" />
-        <Setter Property="Foreground" Value="#33C3A2" />
+        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
 
     <Style Selector="MenuItem">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="Margin" Value="0,5,0,2" />
-        <Setter Property="Foreground" Value="#33C3A2" />
+        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
 
     <Style Selector="TextBlock">
@@ -25,96 +26,96 @@
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="Margin" Value="0,5,0,2" />
-        <Setter Property="Foreground" Value="#33C3A2" />
+        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
 
     <Style Selector="SelectableTextBlock">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="Normal" />
-        <Setter Property="Foreground" Value="#33C3A2" />
+        <Setter Property="Foreground" Value="#2FB393" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="Margin" Value="0,5,0,2" />
     </Style>
 
     <Style Selector="Border">
-        <Setter Property="BorderBrush" Value="#33C3A2" />
+        <Setter Property="BorderBrush" Value="#2FB393" />
     </Style>
 
     <Style Selector="Button:pointerover">
-        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="Foreground" Value="#F2F2F2" />
     </Style>
     <Style Selector="Button:pointerover /template/ContentPresenter">
-        <Setter Property="BorderBrush" Value="#CDFFFFFF" />
-        <Setter Property="Background" Value="#05110D" />
-        <Setter Property="TextBlock.Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#E0F2F1" />
+        <Setter Property="Background" Value="#0A1813" />
+        <Setter Property="TextBlock.Foreground" Value="#F2F2F2" />
     </Style>
     <Style Selector="Button">
         <Setter Property="BorderThickness" Value="2" />
-        <Setter Property="BorderBrush" Value="#CD134D40" />
+        <Setter Property="BorderBrush" Value="#C0143D36" />
         <Setter Property="Padding" Value="10" />
         <Setter Property="MinWidth" Value="100" />
-        <Setter Property="Background" Value="#05110D" />
-        <Setter Property="Foreground" Value="#33C3A2" />
+        <Setter Property="Background" Value="#0A1813" />
+        <Setter Property="Foreground" Value="#2FB393" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="FontSize" Value="14" />
     </Style>
 
     <Style Selector="Expander">
-        <Setter Property="Background" Value="#09241D" />
-        <Setter Property="Foreground" Value="#33C3A2" />
+        <Setter Property="Background" Value="#11382E" />
+        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
     <Style Selector="Expander /template/ ContentPresenter">
-        <Setter Property="Background" Value="#05110D" />
+        <Setter Property="Background" Value="#0A1813" />
     </Style>
     <Style Selector="Expander:expanded /template/ Border#ExpanderContent">
-        <Setter Property="Background" Value="#05110D" />
+        <Setter Property="Background" Value="#0A1813" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="0" />
     </Style>
     <Style Selector="Expander /template/ Border#ExpanderContent">
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="Background" Value="#11382E" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="0" />
     </Style>
 
     <Style Selector="TextBox:focus /template/ TextBlock#PART_Watermark">
-        <Setter Property="Foreground" Value="#33C3A2" />
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="TextBox:focus /template/Border[IsFocused=True]">
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="TextBox:focus">
-        <Setter Property="Foreground" Value="#33C3A2" />
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
-        <Setter Property="BorderBrush" Value="#FFFFFF" />
-        <Setter Property="TextBlock.Foreground" Value="#09241D" />
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="BorderBrush" Value="#E0F2F1" />
+        <Setter Property="TextBlock.Foreground" Value="#11382E" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="TextBox:focus /template/ ContentPresenter">
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="TextBox:focus /template/ TextBlock#PART_Watermark">
-        <Setter Property="Foreground" Value="#33C3A2" />
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="TextBox:pointerover">
-        <Setter Property="Foreground" Value="#43FFD4" />
+        <Setter Property="Foreground" Value="#3FE6C0" />
     </Style>
     <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
-        <Setter Property="BorderBrush" Value="#FFFFFF" />
-        <Setter Property="TextBlock.Foreground" Value="#09241D" />
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="BorderBrush" Value="#E0F2F1" />
+        <Setter Property="TextBlock.Foreground" Value="#11382E" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="TextBox">
-        <Setter Property="CaretBrush" Value="AliceBlue" />
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="CaretBrush" Value="#E0F2F1" />
+        <Setter Property="Background" Value="#11382E" />
         <Setter Property="FontFamily" Value="Verdana" />
-        <Setter Property="Foreground" Value="#33C3A2" />
-        <Setter Property="BorderBrush" Value="#134D40" />
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="BorderBrush" Value="#176B5A" />
         <Setter Property="BorderThickness" Value="2" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="TextWrapping" Value="Wrap" />
@@ -122,43 +123,84 @@
 
     <Style Selector="ComboBox">
         <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="Background" Value="#09241D" />
-        <Setter Property="Foreground" Value="#33C3A2" />
+        <Setter Property="Background" Value="#11382E" />
+        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
-    <!-- AutoCompleteBox validity colors shown only when focused -->
-    <Style Selector="AutoCompleteBox:focus.invalid /template/ Border#PART_Border">
-        <Setter Property="BorderBrush" Value="#C62828" />
-    </Style>
-    <Style Selector="AutoCompleteBox:focus.valid /template/ Border#PART_Border">
-        <Setter Property="BorderBrush" Value="#2E7D32" />
-    </Style>
+
     <Style Selector="CheckBox:pointerover">
-        <Setter Property="Foreground" Value="#43FFD4" />
-        <Setter Property="BorderBrush" Value="#43FFD4" />
+        <Setter Property="Foreground" Value="#3FE6C0" />
+        <Setter Property="BorderBrush" Value="#3FE6C0" />
     </Style>
     <Style Selector="CheckBox:hover">
-        <Setter Property="Foreground" Value="#43FFD4" />
-        <Setter Property="BorderBrush" Value="#43FFD4" />
+        <Setter Property="Foreground" Value="#3FE6C0" />
+        <Setter Property="BorderBrush" Value="#3FE6C0" />
     </Style>
     <Style Selector="CheckBox:checked">
-        <Setter Property="Foreground" Value="#33C3A2" />
-        <Setter Property="BorderBrush" Value="#33C3A2" />
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="BorderBrush" Value="#2FB393" />
     </Style>
     <Style Selector="CheckBox:unchecked">
-        <Setter Property="Foreground" Value="#33C3A2" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="CheckBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Background" Value="#11382E" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="CheckBox:pointerover">
+        <Setter Property="Foreground" Value="#3FE6C0" />
+        <Setter Property="BorderBrush" Value="#3FE6C0" />
+    </Style>
+    <Style Selector="CheckBox:hover">
+        <Setter Property="Foreground" Value="#3FE6C0" />
+        <Setter Property="BorderBrush" Value="#3FE6C0" />
+    </Style>
+    <Style Selector="CheckBox:checked">
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="BorderBrush" Value="#2FB393" />
+    </Style>
+    <Style Selector="CheckBox:unchecked">
+        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
     <Style Selector="CheckBox:pointerover /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#43FFD4" />
+        <Setter Property="Background" Value="#3FE6C0" />
+    </Style>
+
+    <!-- ToggleSwitch styling to ensure proper visibility/colors -->
+    <Style Selector="ToggleSwitch">
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="Background" Value="#11382E" /> <!-- DO NOT CHANGE THIS COLOR -->
+    </Style>
+    <Style Selector="ToggleSwitch:unchecked">
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="Background" Value="#11382E" /> <!-- DO NOT CHANGE THIS COLOR -->
+    </Style>
+    <Style Selector="ToggleSwitch:pointerover">
+        <Setter Property="Foreground" Value="#3FE6C0" />
+    </Style>
+    <Style Selector="ToggleSwitch:checked">
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="Background" Value="#11382E" /> <!-- DO NOT CHANGE THIS COLOR -->
+    </Style>
+
+    <Style Selector="ToggleSwitch /template/ Ellipse">
+        <Setter Property="Fill" Value="#2FB393" />
+        <Setter Property="Stroke" Value="#2FB393" />
+        <Setter Property="StrokeThickness" Value="1" />
     </Style>
 
     <Style Selector="TreeView">
         <Setter Property="MinWidth" Value="150" />
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="ListBox">
         <Setter Property="Margin" Value="2" />
         <Setter Property="MinWidth" Value="150" />
-        <Setter Property="Background" Value="#09241D" />
+        <Setter Property="Background" Value="#11382E" />
     </Style>
     <Style Selector="ScrollViewer">
         <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
@@ -172,6 +214,202 @@
         <Setter Property="Fill" Value="Transparent" />
     </Style>
     <Style Selector="Window">
-        <Setter Property="Background" Value="#05110D" />
+        <Setter Property="Background" Value="#0A1813" />
     </Style>
+
+    <!-- Window Control Buttons Styling -->
+    <Style Selector="Window /template/ Button#PART_MinimizeButton">
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Window /template/ Button#PART_MaximizeButton">
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Window /template/ Button#PART_CloseButton">
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Window /template/ Button#PART_MinimizeButton:pointerover">
+        <Setter Property="Background" Value="#2FB393" />
+    </Style>
+    <Style Selector="Window /template/ Button#PART_MaximizeButton:pointerover">
+        <Setter Property="Background" Value="#2FB393" />
+    </Style>
+    <Style Selector="Window /template/ Button#PART_CloseButton:pointerover">
+        <Setter Property="Background" Value="#FF4444" />
+    </Style>
+
+    <Style Selector="TabItem">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabItem:selected">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabItem /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="TextBlock.Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabStripItem">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabStripItem:selected">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabStripItem /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="TextBlock.Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabStripItem">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabStripItem:selected">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabStripItem /template/ ContentPresenter">
+        <Setter Property="TextBlock.Foreground" Value="#2FB393" />
+    </Style>
+
+    <!-- Getting Started Step Styling - More specific to override general Border style -->
+    <Style Selector="Border.step-border">
+        <Setter Property="BorderBrush" Value="#2FB393" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="15" />
+    </Style>
+
+    <Style Selector="Border.step-complete">
+        <Setter Property="Background" Value="#1A4D3A" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <Style Selector="Border.step-pending">
+        <Setter Property="Background" Value="#4A4A4A" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <Style Selector="TextBlock.step-complete-text">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#A0E7D6" />
+    </Style>
+
+    <Style Selector="TextBlock.step-pending-text">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#888888" />
+    </Style>
+
+    <Style Selector="TextBlock.welcome-title">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="#A0E7D6" />
+    </Style>
+
+    <Style Selector="TextBlock.step-title">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="10,0" />
+    </Style>
+
+    <Style Selector="TextBlock.step-number">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Progress Section Styling -->
+    <Style Selector="Border.progress-section">
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="#2FB393" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="15" />
+    </Style>
+
+    <Style Selector="Border.help-section">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="#2FB393" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="15" />
+    </Style>
+
+    <!-- ConfirmationDialog Styling -->
+    <Style Selector="Window.confirmation-dialog">
+        <Setter Property="Background" Value="#0A1813" />
+    </Style>
+    <Style Selector="Border#DialogBorder">
+        <Setter Property="Background" Value="#11382E" />
+        <Setter Property="BorderBrush" Value="#2FB393" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="TextBlock#ConfirmTextBlock">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+
+    <!-- InformationDialog Styling -->
+    <Style Selector="Window.information-dialog">
+        <Setter Property="Background" Value="#0A1813" />
+    </Style>
+    <Style Selector="TextBlock#TitleTextBlock">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TextBlock#InfoTextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+
+    <!-- OptionsDialog Styling -->
+    <Style Selector="Window.options-dialog">
+        <Setter Property="Background" Value="#0A1813" />
+    </Style>
+    <Style Selector="TextBlock#OptionTextBox">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="Border#OptionItemBorder">
+        <Setter Property="Background" Value="#11382E" />
+    </Style>
+
+    <!-- RegexImportDialog Styling -->
+    <Style Selector="Window.regex-import-dialog">
+        <Setter Property="Background" Value="#0A1813" />
+    </Style>
+    <Style Selector="TextBlock#DescriptionTextBlock">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TextBlock#RawTitleTextBlock">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TextBlock#PreviewTitleTextBlock">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TextBox#RawRegexTextBox">
+        <Setter Property="FontFamily" Value="Consolas,Courier New,monospace" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock#PreviewTextBlock">
+        <Setter Property="FontFamily" Value="Consolas,Courier New,monospace" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+
+    <!-- Regex highlight palette -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="RegexHighlight.Background" Color="#0A1813"/>
+            <SolidColorBrush x:Key="RegexHighlight.Default" Color="#2FB393"/>
+            <SolidColorBrush x:Key="RegexHighlight.Heading" Color="#A0E7D6"/>
+            <SolidColorBrush x:Key="RegexHighlight.Name" Color="#2FB393"/>
+            <SolidColorBrush x:Key="RegexHighlight.Author" Color="#6ED1B9"/>
+            <SolidColorBrush x:Key="RegexHighlight.Description" Color="#E6D37A"/>
+            <SolidColorBrush x:Key="RegexHighlight.Masters" Color="#FFC591"/>
+            <SolidColorBrush x:Key="RegexHighlight.CategoryTier" Color="#BBA6FF"/>
+            <SolidColorBrush x:Key="RegexHighlight.NonEnglish" Color="#B0BEC5"/>
+            <SolidColorBrush x:Key="RegexHighlight.InstallationMethod" Color="#66FFA6"/>
+            <SolidColorBrush x:Key="RegexHighlight.InstallationInstructions" Color="#FFA07A"/>
+        </ResourceDictionary>
+    </Styles.Resources>
 </Styles>

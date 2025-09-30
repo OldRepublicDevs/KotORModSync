@@ -18,7 +18,7 @@ namespace KOTORModSync.Core.Utility
 		public static string ReplaceCustomVariables([NotNull] string path)
 		{
 			if ( path is null )
-				throw new ArgumentNullException(nameof( path ));
+				throw new ArgumentNullException(nameof(path));
 
 			return path.Replace(
 				oldValue: "<<modDirectory>>",
@@ -33,7 +33,7 @@ namespace KOTORModSync.Core.Utility
 		public static string RestoreCustomVariables([NotNull] string fullPath)
 		{
 			if ( fullPath is null )
-				throw new ArgumentNullException(nameof( fullPath ));
+				throw new ArgumentNullException(nameof(fullPath));
 
 			return fullPath.Replace(
 				oldValue: MainConfig.SourcePath?.FullName ?? string.Empty,
@@ -44,7 +44,7 @@ namespace KOTORModSync.Core.Utility
 			);
 		}
 
-		public static bool IsRunningInsideAppBundle(string baseDirectory=null)
+		public static bool IsRunningInsideAppBundle(string baseDirectory = null)
 		{
 			baseDirectory = baseDirectory ?? GetBaseDirectory();
 			return baseDirectory.IndexOf(value: ".app/Contents/MacOS", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -64,11 +64,11 @@ namespace KOTORModSync.Core.Utility
 		[NotNull]
 		public static OSPlatform GetOperatingSystem()
 		{
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+			if ( RuntimeInformation.IsOSPlatform(OSPlatform.OSX) )
 				return OSPlatform.OSX;
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			if ( RuntimeInformation.IsOSPlatform(OSPlatform.Windows) )
 				return OSPlatform.Windows;
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			if ( RuntimeInformation.IsOSPlatform(OSPlatform.Linux) )
 				return OSPlatform.Linux;
 
 			// Fallbacks
@@ -90,7 +90,7 @@ namespace KOTORModSync.Core.Utility
 		}
 
 		[NotNull]
-		public static string GetResourcesDirectory(string baseDirectory=null)
+		public static string GetResourcesDirectory(string baseDirectory = null)
 		{
 			baseDirectory = baseDirectory ?? GetBaseDirectory();
 
@@ -101,7 +101,7 @@ namespace KOTORModSync.Core.Utility
 					path2: "Resources"
 				);
 			}
-			
+
 			// Navigate up two levels from 'MacOS' to get to KOTORModSync.app/Contents/MacOS/../../
 			var directoryInfo = new DirectoryInfo(baseDirectory);
 			if ( !(directoryInfo.Parent?.Parent is null) )
@@ -118,7 +118,7 @@ namespace KOTORModSync.Core.Utility
 		public static object GetEnumDescription([NotNull] Enum value)
 		{
 			if ( value is null )
-				throw new ArgumentNullException(nameof( value ));
+				throw new ArgumentNullException(nameof(value));
 
 			Type type = value.GetType();
 			string name = Enum.GetName(type, value);
@@ -134,7 +134,7 @@ namespace KOTORModSync.Core.Utility
 		public static bool IsDirectoryWritable([NotNull] DirectoryInfo dirPath)
 		{
 			if ( dirPath is null )
-				throw new ArgumentNullException(nameof( dirPath ));
+				throw new ArgumentNullException(nameof(dirPath));
 
 			try
 			{

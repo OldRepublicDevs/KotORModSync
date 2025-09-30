@@ -14,417 +14,472 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Controls
 {
-    public partial class DirectoryPickerControl : UserControl
-    {
-        public static readonly StyledProperty<string> TitleProperty =
-            AvaloniaProperty.Register<DirectoryPickerControl, string>(nameof(Title));
+	public partial class DirectoryPickerControl : UserControl
+	{
+		public static readonly StyledProperty<string> TitleProperty =
+			AvaloniaProperty.Register<DirectoryPickerControl, string>(nameof(Title));
 
-        public static readonly StyledProperty<string> WatermarkProperty =
-            AvaloniaProperty.Register<DirectoryPickerControl, string>(nameof(Watermark));
+		public static readonly StyledProperty<string> WatermarkProperty =
+			AvaloniaProperty.Register<DirectoryPickerControl, string>(nameof(Watermark));
 
-        public static readonly StyledProperty<DirectoryPickerType> PickerTypeProperty =
-            AvaloniaProperty.Register<DirectoryPickerControl, DirectoryPickerType>(nameof(PickerType));
+		public static readonly StyledProperty<DirectoryPickerType> PickerTypeProperty =
+			AvaloniaProperty.Register<DirectoryPickerControl, DirectoryPickerType>(nameof(PickerType));
 
-        public string Title
-        {
-            get => GetValue(TitleProperty);
-            set => SetValue(TitleProperty, value);
-        }
+		public string Title
+		{
+			get => GetValue(TitleProperty);
+			set => SetValue(TitleProperty, value);
+		}
 
-        public string Watermark
-        {
-            get => GetValue(WatermarkProperty);
-            set => SetValue(WatermarkProperty, value);
-        }
+		public string Watermark
+		{
+			get => GetValue(WatermarkProperty);
+			set => SetValue(WatermarkProperty, value);
+		}
 
-        public DirectoryPickerType PickerType
-        {
-            get => GetValue(PickerTypeProperty);
-            set => SetValue(PickerTypeProperty, value);
-        }
+		public DirectoryPickerType PickerType
+		{
+			get => GetValue(PickerTypeProperty);
+			set => SetValue(PickerTypeProperty, value);
+		}
 
-        // Events
-        public event EventHandler<DirectoryChangedEventArgs> DirectoryChanged;
+		// Events
+		public event EventHandler<DirectoryChangedEventArgs> DirectoryChanged;
 
-        private TextBlock _titleTextBlock;
-        private TextBlock _currentPathDisplay;
-        private TextBox _pathInput;
-        private ComboBox _pathSuggestions;
-        private bool _suppressEvents = false;
-        private bool _suppressSelection = false;
+		private TextBlock _titleTextBlock;
+		private TextBlock _currentPathDisplay;
+		private TextBox _pathInput;
+		private ComboBox _pathSuggestions;
+		private bool _suppressEvents = false;
+		private bool _suppressSelection = false;
+		// Persist current value even if visual children are not yet available
+		private string _pendingPath;
 
-        public DirectoryPickerControl()
-        {
-            InitializeComponent();
-            DataContext = this;
-        }
+		public DirectoryPickerControl()
+		{
+			InitializeComponent();
+			DataContext = this;
+			Logger.LogVerbose($"DirectoryPickerControl[Type={PickerType}] constructed");
+		}
 
-        protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
-        {
-            base.OnApplyTemplate(e);
+		protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+		{
+			base.OnApplyTemplate(e);
 
-            _titleTextBlock = this.FindControl<TextBlock>("TitleTextBlock");
-            _currentPathDisplay = this.FindControl<TextBlock>("CurrentPathDisplay");
-            _pathInput = this.FindControl<TextBox>("PathInput");
-            _pathSuggestions = this.FindControl<ComboBox>("PathSuggestions");
+			_titleTextBlock = this.FindControl<TextBlock>("TitleTextBlock");
+			_currentPathDisplay = this.FindControl<TextBlock>("CurrentPathDisplay");
+			_pathInput = this.FindControl<TextBox>("PathInput");
+			_pathSuggestions = this.FindControl<ComboBox>("PathSuggestions");
 
-            UpdateTitle();
-            UpdateWatermark();
-            InitializePathSuggestions();
-        }
+			Logger.LogVerbose("DirectoryPickerControl.OnApplyTemplate");
+			UpdateTitle();
+			UpdateWatermark();
+			InitializePathSuggestions();
+			// Re-apply pending path if set prior to template application
+			if ( !string.IsNullOrEmpty(_pendingPath) )
+			{
+				Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnApplyTemplate: '{_pendingPath}'");
+				SetCurrentPath(_pendingPath);
+			}
+		}
 
-        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-        {
-            base.OnPropertyChanged(change);
+		protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+		{
+			base.OnAttachedToVisualTree(e);
+			Logger.LogVerbose("DirectoryPickerControl.OnAttachedToVisualTree");
+			// Ensure suggestions reflect environment when attached
+			InitializePathSuggestions();
+			if ( !string.IsNullOrEmpty(_pendingPath) )
+			{
+				Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnAttachedToVisualTree: '{_pendingPath}'");
+				SetCurrentPath(_pendingPath);
+			}
+		}
 
-            if (change.Property == TitleProperty)
-            {
-                UpdateTitle();
-            }
-            else if (change.Property == WatermarkProperty)
-            {
-                UpdateWatermark();
-            }
-            else if (change.Property == PickerTypeProperty)
-            {
-                InitializePathSuggestions();
-            }
-        }
+		protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+		{
+			base.OnPropertyChanged(change);
 
-        private void UpdateTitle()
-        {
-            if (_titleTextBlock != null)
-            {
-                _titleTextBlock.Text = Title ?? string.Empty;
-            }
-        }
+			if ( change.Property == TitleProperty )
+			{
+				UpdateTitle();
+			}
+			else if ( change.Property == WatermarkProperty )
+			{
+				UpdateWatermark();
+			}
+			else if ( change.Property == PickerTypeProperty )
+			{
+				InitializePathSuggestions();
+			}
+		}
 
-        private void UpdateWatermark()
-        {
-            if (_pathInput != null)
-            {
-                _pathInput.Watermark = Watermark ?? string.Empty;
-            }
-        }
+		private void UpdateTitle()
+		{
+			if ( _titleTextBlock != null )
+			{
+				_titleTextBlock.Text = Title ?? string.Empty;
+			}
+		}
 
-        private void InitializePathSuggestions()
-        {
-            if (_pathSuggestions == null) return;
+		private void UpdateWatermark()
+		{
+			if ( _pathInput != null )
+			{
+				_pathInput.Watermark = Watermark ?? string.Empty;
+			}
+		}
 
-            try
-            {
-                if (PickerType == DirectoryPickerType.ModDirectory)
-                {
-                    InitializeModDirectoryPaths();
-                }
-                else if (PickerType == DirectoryPickerType.KotorDirectory)
-                {
-                    InitializeKotorDirectoryPaths();
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
-        }
+		private void InitializePathSuggestions()
+		{
+			if ( _pathSuggestions == null ) return;
 
-        private void InitializeModDirectoryPaths()
-        {
-            try
-            {
+			try
+			{
+				if ( PickerType == DirectoryPickerType.ModDirectory )
+				{
+					InitializeModDirectoryPaths();
+				}
+				else if ( PickerType == DirectoryPickerType.KotorDirectory )
+				{
+					InitializeKotorDirectoryPaths();
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private void InitializeModDirectoryPaths()
+		{
+			try
+			{
 				List<string> recentPaths = LoadRecentModPaths();
-                _pathSuggestions.ItemsSource = recentPaths;
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
-        }
+				_pathSuggestions.ItemsSource = recentPaths;
+				Logger.LogVerbose($"DirectoryPickerControl(ModDirectory) initialized suggestions: {recentPaths?.Count ?? 0} entries");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
 
-        private void InitializeKotorDirectoryPaths()
-        {
-            try
-            {
+		private void InitializeKotorDirectoryPaths()
+		{
+			try
+			{
 				List<string> defaultPaths = GetDefaultPathsForGame();
-                _pathSuggestions.ItemsSource = defaultPaths.Where(Directory.Exists).ToList();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
-        }
+				_pathSuggestions.ItemsSource = defaultPaths.Where(Directory.Exists).ToList();
+				Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) initialized defaults: {defaultPaths?.Count ?? 0} total, {(_pathSuggestions.ItemsSource as System.Collections.ICollection)?.Count ?? 0} exist");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
 
-        private List<string> GetDefaultPathsForGame()
-        {
-            var paths = new List<string>();
+		private List<string> GetDefaultPathsForGame()
+		{
+			var paths = new List<string>();
 			OSPlatform osType = global::KOTORModSync.Core.Utility.Utility.GetOperatingSystem();
+			Logger.LogVerbose($"DirectoryPickerControl.GetDefaultPathsForGame OS={osType}");
 
-            if (osType == OSPlatform.Windows)
-            {
-                // Steam paths
-                paths.AddRange(new[]
-                {
-                    @"C:\Program Files (x86)\Steam\steamapps\common\swkotor",
-                    @"C:\Program Files (x86)\Steam\steamapps\common\Knights of the Old Republic II",
-                    @"C:\Program Files\Steam\steamapps\common\swkotor",
-                    @"C:\Program Files\Steam\steamapps\common\Knights of the Old Republic II"
-                });
+			if ( osType == OSPlatform.Windows )
+			{
+				// Steam paths
+				paths.AddRange(new[]
+				{
+					@"C:\Program Files (x86)\Steam\steamapps\common\swkotor",
+					@"C:\Program Files (x86)\Steam\steamapps\common\Knights of the Old Republic II",
+					@"C:\Program Files\Steam\steamapps\common\swkotor",
+					@"C:\Program Files\Steam\steamapps\common\Knights of the Old Republic II"
+				});
 
-                // GOG paths
-                paths.AddRange(new[]
-                {
-                    @"C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR",
-                    @"C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR2",
-                    @"C:\Program Files\GOG Galaxy\Games\Star Wars - KotOR",
-                    @"C:\Program Files\GOG Galaxy\Games\Star Wars - KotOR2"
-                });
+				// GOG paths
+				paths.AddRange(new[]
+				{
+					@"C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR",
+					@"C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR2",
+					@"C:\Program Files\GOG Galaxy\Games\Star Wars - KotOR",
+					@"C:\Program Files\GOG Galaxy\Games\Star Wars - KotOR2"
+				});
 
-                // Origin paths
-                paths.AddRange(new[]
-                {
-                    @"C:\Program Files (x86)\Origin Games\Star Wars Knights of the Old Republic",
-                    @"C:\Program Files (x86)\Origin Games\Star Wars Knights of the Old Republic II - The Sith Lords",
-                    @"C:\Program Files\Origin Games\Star Wars Knights of the Old Republic",
-                    @"C:\Program Files\Origin Games\Star Wars Knights of the Old Republic II - The Sith Lords"
-                });
-            }
-            else if (osType == OSPlatform.OSX)
-            {
+				// Origin paths
+				paths.AddRange(new[]
+				{
+					@"C:\Program Files (x86)\Origin Games\Star Wars Knights of the Old Republic",
+					@"C:\Program Files (x86)\Origin Games\Star Wars Knights of the Old Republic II - The Sith Lords",
+					@"C:\Program Files\Origin Games\Star Wars Knights of the Old Republic",
+					@"C:\Program Files\Origin Games\Star Wars Knights of the Old Republic II - The Sith Lords"
+				});
+			}
+			else if ( osType == OSPlatform.OSX )
+			{
 				string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                paths.AddRange(new[]
-                {
-                    Path.Combine(homeDir, "Library/Application Support/Steam/steamapps/common/swkotor"),
-                    Path.Combine(homeDir, "Library/Application Support/Steam/steamapps/common/Knights of the Old Republic II"),
-                    "/Applications/Knights of the Old Republic.app",
-                    "/Applications/Knights of the Old Republic II.app"
-                });
-            }
-            else if (osType == OSPlatform.Linux)
-            {
+				paths.AddRange(new[]
+				{
+					Path.Combine(homeDir, "Library/Application Support/Steam/steamapps/common/swkotor"),
+					Path.Combine(homeDir, "Library/Application Support/Steam/steamapps/common/Knights of the Old Republic II"),
+					"/Applications/Knights of the Old Republic.app",
+					"/Applications/Knights of the Old Republic II.app"
+				});
+			}
+			else if ( osType == OSPlatform.Linux )
+			{
 				string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                paths.AddRange(new[]
-                {
-                    Path.Combine(homeDir, ".steam/steam/steamapps/common/swkotor"),
-                    Path.Combine(homeDir, ".steam/steam/steamapps/common/Knights of the Old Republic II"),
-                    Path.Combine(homeDir, ".local/share/Steam/steamapps/common/swkotor"),
-                    Path.Combine(homeDir, ".local/share/Steam/steamapps/common/Knights of the Old Republic II")
-                });
-            }
+				paths.AddRange(new[]
+				{
+					Path.Combine(homeDir, ".steam/steam/steamapps/common/swkotor"),
+					Path.Combine(homeDir, ".steam/steam/steamapps/common/Knights of the Old Republic II"),
+					Path.Combine(homeDir, ".local/share/Steam/steamapps/common/swkotor"),
+					Path.Combine(homeDir, ".local/share/Steam/steamapps/common/Knights of the Old Republic II")
+				});
+			}
 
-            return paths;
-        }
+			Logger.LogVerbose($"DirectoryPickerControl.GetDefaultPathsForGame returning {paths.Count} paths");
+			return paths;
+		}
 
-        private List<string> LoadRecentModPaths()
-        {
-            try
-            {
+		private List<string> LoadRecentModPaths()
+		{
+			try
+			{
 				string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "KOTORModSync");
 				string recentFile = Path.Combine(appDataPath, "recent_mod_paths.txt");
 
-                if (File.Exists(recentFile))
-                {
-                    return File.ReadAllLines(recentFile).Where(Directory.Exists).Take(10).ToList();
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
+				if ( File.Exists(recentFile) )
+				{
+					return File.ReadAllLines(recentFile).Where(Directory.Exists).Take(10).ToList();
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
 
-            return new List<string>();
-        }
+			return new List<string>();
+		}
 
-        private void SaveRecentModPath(string path)
-        {
-            if (PickerType != DirectoryPickerType.ModDirectory) return;
+		private void SaveRecentModPath(string path)
+		{
+			if ( PickerType != DirectoryPickerType.ModDirectory ) return;
 
-            try
-            {
+			try
+			{
 				string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "KOTORModSync");
 				_ = Directory.CreateDirectory(appDataPath);
 				string recentFile = Path.Combine(appDataPath, "recent_mod_paths.txt");
 
 				List<string> recentPaths = LoadRecentModPaths();
 				_ = recentPaths.Remove(path);
-                recentPaths.Insert(0, path);
-                recentPaths = recentPaths.Take(10).ToList();
+				recentPaths.Insert(0, path);
+				recentPaths = recentPaths.Take(10).ToList();
 
-                File.WriteAllLines(recentFile, recentPaths);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
-        }
+				File.WriteAllLines(recentFile, recentPaths);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
 
-        public void SetCurrentPath(string path)
-        {
-            try
-            {
-                _suppressEvents = true;
-                
-                if (_currentPathDisplay != null)
-                {
-                    _currentPathDisplay.Text = string.IsNullOrEmpty(path) ? "Not set" : path;
-                }
-                
-                if (_pathInput != null)
-                {
-                    _pathInput.Text = path ?? string.Empty;
-                }
-                
-                _suppressEvents = false;
-            }
-            catch (Exception ex)
-            {
-                _suppressEvents = false;
-                Logger.LogException(ex);
-            }
-        }
+		public void SetCurrentPath(string path)
+		{
+			try
+			{
+				_pendingPath = path;
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] SetCurrentPath -> '{path}'");
+				_suppressEvents = true;
 
-        private async void BrowseButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var topLevel = TopLevel.GetTopLevel(this);
-                if (topLevel?.StorageProvider == null) return;
+				if ( _currentPathDisplay != null )
+				{
+					_currentPathDisplay.Text = string.IsNullOrEmpty(path) ? "Not set" : path;
+				}
 
-                var options = new FolderPickerOpenOptions
-                {
-                    Title = PickerType == DirectoryPickerType.ModDirectory ? "Select Mod Directory" : "Select KOTOR Installation Directory",
-                    AllowMultiple = false
-                };
+				if ( _pathInput != null )
+				{
+					_pathInput.Text = path ?? string.Empty;
+				}
+
+				_suppressEvents = false;
+			}
+			catch ( Exception ex )
+			{
+				_suppressEvents = false;
+				Logger.LogException(ex);
+			}
+		}
+
+		public string GetCurrentPath()
+		{
+			try
+			{
+				string value = _pathInput?.Text ?? _pendingPath ?? string.Empty;
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] GetCurrentPath -> '{value}'");
+				return value;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+				return string.Empty;
+			}
+		}
+
+		private async void BrowseButton_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				var topLevel = TopLevel.GetTopLevel(this);
+				if ( topLevel?.StorageProvider == null ) return;
+
+				var options = new FolderPickerOpenOptions
+				{
+					Title = PickerType == DirectoryPickerType.ModDirectory ? "Select Mod Directory" : "Select KOTOR Installation Directory",
+					AllowMultiple = false
+				};
 
 				IReadOnlyList<IStorageFolder> result = await topLevel.StorageProvider.OpenFolderPickerAsync(options);
-                if (result?.Count > 0)
-                {
+				if ( result?.Count > 0 )
+				{
 					string selectedPath = result[0].Path.LocalPath;
-                    ApplyPath(selectedPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
-        }
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Browse selected '{selectedPath}'");
+					ApplyPath(selectedPath);
+				}
+				else
+				{
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Browse cancelled/no result");
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
 
-        private void OnPathInputKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter && _pathInput != null && !string.IsNullOrWhiteSpace(_pathInput.Text))
-            {
-                ApplyPath(_pathInput.Text.Trim());
-                e.Handled = true;
-            }
-        }
+		private void OnPathInputKeyDown(object sender, KeyEventArgs e)
+		{
+			if ( e.Key == Key.Enter && _pathInput != null && !string.IsNullOrWhiteSpace(_pathInput.Text) )
+			{
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Enter pressed with '{_pathInput.Text}'");
+				ApplyPath(_pathInput.Text.Trim());
+				e.Handled = true;
+			}
+		}
 
-        private void PathInput_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (_suppressEvents || _pathInput == null) return;
-            
-            if (!string.IsNullOrWhiteSpace(_pathInput.Text))
-            {
-                ApplyPath(_pathInput.Text.Trim());
-            }
-        }
+		private void PathInput_LostFocus(object sender, RoutedEventArgs e)
+		{
+			if ( _suppressEvents || _pathInput == null ) return;
 
-        private void PathSuggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_suppressEvents || _suppressSelection || _pathSuggestions?.SelectedItem == null) return;
+			if ( !string.IsNullOrWhiteSpace(_pathInput.Text) )
+			{
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] PathInput lost focus, applying '{_pathInput.Text}'");
+				ApplyPath(_pathInput.Text.Trim());
+			}
+		}
 
-            string selectedPath = _pathSuggestions.SelectedItem?.ToString();
-            if (string.IsNullOrEmpty(selectedPath)) return;
+		private void PathSuggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			if ( _suppressEvents || _suppressSelection || _pathSuggestions?.SelectedItem == null ) return;
 
-            try
-            {
-                _suppressSelection = true;
-                // Defer to end of event cycle to avoid re-entrancy with ItemsSource updates
-                Dispatcher.UIThread.Post(() =>
-                {
-                    ApplyPath(selectedPath);
-                }, DispatcherPriority.Background);
-            }
-            finally
-            {
-                _suppressSelection = false;
-            }
-        }
+			string selectedPath = _pathSuggestions.SelectedItem?.ToString();
+			if ( string.IsNullOrEmpty(selectedPath) ) return;
 
-        private void ApplyPath(string path)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) return;
+			try
+			{
+				_suppressSelection = true;
+				// Defer to end of event cycle to avoid re-entrancy with ItemsSource updates
+				Dispatcher.UIThread.Post(() =>
+				{
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Suggestion selected '{selectedPath}'");
+					ApplyPath(selectedPath);
+				}, DispatcherPriority.Background);
+			}
+			finally
+			{
+				_suppressSelection = false;
+			}
+		}
 
-                _suppressEvents = true;
+		private void ApplyPath(string path)
+		{
+			try
+			{
+				if ( string.IsNullOrWhiteSpace(path) || !Directory.Exists(path) ) return;
 
-                // Update displays
-                SetCurrentPath(path);
+				_suppressEvents = true;
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] ApplyPath '{path}'");
 
-                // Save to recent if mod directory
-                if (PickerType == DirectoryPickerType.ModDirectory)
-                {
-                    SaveRecentModPath(path);
-                    // Refresh suggestions list safely without causing selection recursion
-                    RefreshSuggestionsSafely();
-                }
+				// Update displays
+				SetCurrentPath(path);
 
-                // Fire event
-                DirectoryChanged?.Invoke(this, new DirectoryChangedEventArgs(path, PickerType));
+				// Save to recent if mod directory
+				if ( PickerType == DirectoryPickerType.ModDirectory )
+				{
+					SaveRecentModPath(path);
+					// Refresh suggestions list safely without causing selection recursion
+					RefreshSuggestionsSafely();
+				}
 
-                _suppressEvents = false;
-            }
-            catch (Exception ex)
-            {
-                _suppressEvents = false;
-                Logger.LogException(ex);
-            }
-        }
+				// Fire event
+				DirectoryChanged?.Invoke(this, new DirectoryChangedEventArgs(path, PickerType));
 
-        private void RefreshSuggestionsSafely()
-        {
-            if (_pathSuggestions == null) return;
+				_suppressEvents = false;
+			}
+			catch ( Exception ex )
+			{
+				_suppressEvents = false;
+				Logger.LogException(ex);
+			}
+		}
 
-            try
-            {
-                _suppressEvents = true;
-                _suppressSelection = true;
+		private void RefreshSuggestionsSafely()
+		{
+			if ( _pathSuggestions == null ) return;
 
-                if (PickerType == DirectoryPickerType.ModDirectory)
-                {
-                    List<string> recent = LoadRecentModPaths();
-                    _pathSuggestions.ItemsSource = recent;
-                }
-                else if (PickerType == DirectoryPickerType.KotorDirectory)
-                {
-                    List<string> defaults = GetDefaultPathsForGame().Where(Directory.Exists).ToList();
-                    _pathSuggestions.ItemsSource = defaults;
-                }
+			try
+			{
+				_suppressEvents = true;
+				_suppressSelection = true;
 
-                // Do not force SelectedItem to avoid triggering SelectionChanged repeatedly
-            }
-            finally
-            {
-                _suppressSelection = false;
-                _suppressEvents = false;
-            }
-        }
-    }
+				if ( PickerType == DirectoryPickerType.ModDirectory )
+				{
+					List<string> recent = LoadRecentModPaths();
+					_pathSuggestions.ItemsSource = recent;
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Refreshed suggestions: {recent?.Count ?? 0}");
+				}
+				else if ( PickerType == DirectoryPickerType.KotorDirectory )
+				{
+					List<string> defaults = GetDefaultPathsForGame().Where(Directory.Exists).ToList();
+					_pathSuggestions.ItemsSource = defaults;
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Refreshed defaults that exist: {defaults?.Count ?? 0}");
+				}
 
-    public enum DirectoryPickerType
-    {
-        ModDirectory,
-        KotorDirectory
-    }
+				// Do not force SelectedItem to avoid triggering SelectionChanged repeatedly
+			}
+			finally
+			{
+				_suppressSelection = false;
+				_suppressEvents = false;
+			}
+		}
+	}
 
-    public class DirectoryChangedEventArgs : EventArgs
-    {
-        public string Path { get; }
-        public DirectoryPickerType PickerType { get; }
+	public enum DirectoryPickerType
+	{
+		ModDirectory,
+		KotorDirectory
+	}
 
-        public DirectoryChangedEventArgs(string path, DirectoryPickerType pickerType)
-        {
-            Path = path;
-            PickerType = pickerType;
-        }
-    }
+	public class DirectoryChangedEventArgs : EventArgs
+	{
+		public string Path { get; }
+		public DirectoryPickerType PickerType { get; }
+
+		public DirectoryChangedEventArgs(string path, DirectoryPickerType pickerType)
+		{
+			Path = path;
+			PickerType = pickerType;
+		}
+	}
 }

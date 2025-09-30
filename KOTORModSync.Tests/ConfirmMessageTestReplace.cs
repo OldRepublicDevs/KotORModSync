@@ -3,13 +3,13 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System;
-using System.IO;
-using System.Linq;
 using KOTORModSync.Core.TSLPatcher;
 using NUnit.Framework;
 
@@ -31,7 +31,7 @@ namespace KOTORModSync.Tests
 		[TearDown]
 		public void TearDown()
 		{
-			if (_testDirectoryPath != null)
+			if ( _testDirectoryPath != null )
 			{
 				Directory.Delete(_testDirectoryPath, true);
 			}
@@ -60,7 +60,7 @@ namespace KOTORModSync.Tests
 
 			var directory = new DirectoryInfo(_testDirectoryPath!);
 
-			IniHelper.ReplaceIniPattern(directory, pattern:@"^\s*ConfirmMessage\s*=\s*.*$", replacement:"ConfirmMessage=N/A");
+			IniHelper.ReplaceIniPattern(directory, pattern: @"^\s*ConfirmMessage\s*=\s*.*$", replacement: "ConfirmMessage=N/A");
 
 			string modifiedContent = File.ReadAllText(Path.Combine(_testDirectoryPath!, iniFileName));
 			Assert.That(modifiedContent, Does.Contain("ConfirmMessage=N/A"));

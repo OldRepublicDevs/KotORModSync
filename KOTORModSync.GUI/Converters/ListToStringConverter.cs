@@ -48,7 +48,7 @@ namespace KOTORModSync.Converters
 					return null;
 				}
 
-				if ( targetType != typeof( List<Guid> ) )
+				if ( targetType != typeof(List<Guid>) )
 				{
 					return text.Split(
 						new[]
@@ -96,7 +96,7 @@ namespace KOTORModSync.Converters
 		{
 			if ( input is null )
 			{
-				throw new ArgumentNullException(nameof( input ));
+				throw new ArgumentNullException(nameof(input));
 			}
 
 			string pattern = $@"(?:(?!{Environment.NewLine})[^\S{Environment.NewLine}])+";

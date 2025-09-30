@@ -144,7 +144,7 @@ Name=hk50 with tslrcm
 			StreamReader? reader = null;
 
 			// Act & Assert
-			Assert.Throws<ArgumentNullException>(() => IniHelper.ParseNamespacesIni(reader));
+			_ = Assert.Throws<ArgumentNullException>(() => IniHelper.ParseNamespacesIni(reader));
 		}
 
 		[Test]

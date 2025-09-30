@@ -9,13 +9,13 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Controls
 {
-    public partial class ActionButtonsControl : UserControl
-    {
+	public partial class ActionButtonsControl : UserControl
+	{
 		public ActionButtonsControl() => InitializeComponent();
 
 		public event EventHandler<RoutedEventArgs> DeleteItem;
-        public event EventHandler<RoutedEventArgs> MoveItemUp;
-        public event EventHandler<RoutedEventArgs> MoveItemDown;
+		public event EventHandler<RoutedEventArgs> MoveItemUp;
+		public event EventHandler<RoutedEventArgs> MoveItemDown;
 
 		private void DeleteItem_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => DeleteItem?.Invoke(sender, e);
 

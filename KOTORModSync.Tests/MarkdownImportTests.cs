@@ -78,22 +78,22 @@ ___";
 			Assert.That(matches.Count, Is.EqualTo(3));
 		}
 
-	[Test]
-	public void RawRegexPattern_ExtractsModName()
-	{
-		// Arrange
-		var profile = MarkdownImportProfile.CreateDefault();
-		var parser = new MarkdownParser(profile);
+		[Test]
+		public void RawRegexPattern_ExtractsModName()
+		{
+			// Arrange
+			var profile = MarkdownImportProfile.CreateDefault();
+			var parser = new MarkdownParser(profile);
 
-		// Act
-		MarkdownParserResult result = parser.Parse(SampleMarkdown);
-		var names = result.Components.Select(c => c.Name).ToList();
+			// Act
+			MarkdownParserResult result = parser.Parse(SampleMarkdown);
+			var names = result.Components.Select(c => c.Name).ToList();
 
-		// Assert
-		Assert.That(names, Does.Contain("KOTOR Dialogue Fixes"));
-		Assert.That(names, Does.Contain("Character Startup Changes"));
-		Assert.That(names, Does.Contain("Ultimate Korriban High Resolution"));
-	}
+			// Assert
+			Assert.That(names, Does.Contain("KOTOR Dialogue Fixes"));
+			Assert.That(names, Does.Contain("Character Startup Changes"));
+			Assert.That(names, Does.Contain("Ultimate Korriban High Resolution"));
+		}
 
 		[Test]
 		public void RawRegexPattern_ExtractsAuthor()
@@ -146,24 +146,24 @@ ___";
 			});
 		}
 
-	[Test]
-	public void RawRegexPattern_ExtractsCategoryTier()
-	{
-		// Arrange
-		var profile = MarkdownImportProfile.CreateDefault();
-		var parser = new MarkdownParser(profile);
+		[Test]
+		public void RawRegexPattern_ExtractsCategoryTier()
+		{
+			// Arrange
+			var profile = MarkdownImportProfile.CreateDefault();
+			var parser = new MarkdownParser(profile);
 
-		// Act
-		MarkdownParserResult result = parser.Parse(SampleMarkdown);
-		var categoryTiers = result.Components
-			.Select(c => $"{c.Category} / {c.Tier}")
-			.ToList();
+			// Act
+			MarkdownParserResult result = parser.Parse(SampleMarkdown);
+			var categoryTiers = result.Components
+				.Select(c => $"{c.Category} / {c.Tier}")
+				.ToList();
 
-		// Assert
-		Assert.That(categoryTiers, Does.Contain("Immersion / 1 - Essential"));
-		Assert.That(categoryTiers, Does.Contain("Mechanics Change / 2 - Recommended"));
-		Assert.That(categoryTiers, Does.Contain("Graphics Improvement / 1 - Essential"));
-	}
+			// Assert
+			Assert.That(categoryTiers, Does.Contain("Immersion / 1 - Essential"));
+			Assert.That(categoryTiers, Does.Contain("Mechanics Change / 2 - Recommended"));
+			Assert.That(categoryTiers, Does.Contain("Graphics Improvement / 1 - Essential"));
+		}
 
 		[Test]
 		public void RawRegexPattern_ExtractsInstallationMethod()

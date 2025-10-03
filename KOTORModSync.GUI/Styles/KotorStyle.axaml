@@ -415,6 +415,22 @@
             <SolidColorBrush x:Key="RegexHighlight.NonEnglish" Color="#B0BEC5"/>
             <SolidColorBrush x:Key="RegexHighlight.InstallationMethod" Color="#50FA7B"/>
             <SolidColorBrush x:Key="RegexHighlight.InstallationInstructions" Color="#F78C6C"/>
+
+            <!-- Component Merge Conflict Resources -->
+            <SolidColorBrush x:Key="MergeStatus.NewBrush" Color="#90EE90"/><!-- LightGreen -->
+            <SolidColorBrush x:Key="MergeStatus.ExistingOnlyBrush" Color="#D3D3D3"/><!-- LightGray -->
+            <SolidColorBrush x:Key="MergeStatus.MatchedBrush" Color="#FFD700"/><!-- Gold/Yellow -->
+            <SolidColorBrush x:Key="MergeStatus.UpdatedBrush" Color="#FFA500"/><!-- Orange -->
+            <SolidColorBrush x:Key="MergeStatus.DefaultBrush" Color="#FFFFFF"/><!-- White -->
+
+            <SolidColorBrush x:Key="MergeSelection.BorderBrush" Color="#00FFFF"/><!-- Cyan -->
+            <SolidColorBrush x:Key="MergeSelection.BackgroundBrush" Color="#2800FFFF"/><!-- Semi-transparent Cyan (40 alpha) -->
+
+            <SolidColorBrush x:Key="MergeSource.IncomingBrush" Color="#A8B348"/><!-- Theme accent green -->
+            <SolidColorBrush x:Key="MergeSource.ExistingBrush" Color="#3AAAFF"/><!-- Theme primary blue -->
+
+            <SolidColorBrush x:Key="MergePosition.ChangedBrush" Color="#FFA500"/><!-- Orange for position changes -->
+            <SolidColorBrush x:Key="MergePosition.NewBrush" Color="#FFD700"/><!-- Yellow for new positions -->
         </ResourceDictionary>
     </Styles.Resources>
 </Styles>

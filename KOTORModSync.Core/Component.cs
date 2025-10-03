@@ -28,24 +28,6 @@ namespace KOTORModSync.Core
 {
 	public class Component : INotifyPropertyChanged
 	{
-		public const string DefaultMarkdownNamePattern = @"^\*\*Name:\*\* \[(?<name>[^\]]+)\]\((?<link>[^)]+)\)";
-		public const string DefaultMarkdownAuthorPattern = @"^\*\*Author:\*\* (?<author>.+)$";
-		public const string DefaultMarkdownDescriptionPattern = @"^\*\*Description:\*\* (?<description>.+)$";
-		public const string DefaultMarkdownCategoryTierPattern = @"^\*\*Category & Tier:\*\* (?<category>[^/]+)/ (?<tier>.+)$";
-		public const string DefaultMarkdownInstallationMethodPattern = @"^\*\*Installation Method:\*\* (?<method>.+)$";
-		public const string DefaultMarkdownDirectionsPattern = @"^\*\*Installation Instructions:\*\* (?<directions>[\s\S]+?)^(?:___|###|$)";
-		public const string DefaultMarkdownOptionPattern = @"^\*\*Installation Instructions:\*\* (?<directions>[\s\S]+?)";
-		public enum ExecutionResult
-		{
-			[Description("Success")] Success,
-
-			[Description("Directory permission denied.")]
-			DirectoryPermissionDenied,
-
-			[Description("Component installation failed.")]
-			ComponentInstallationFailed,
-		}
-
 		public enum InstallExitCode
 		{
 			[Description("Completed Successfully")]
@@ -284,7 +266,6 @@ namespace KOTORModSync.Core
 		private static readonly SemaphoreSlim s_checkpointSemaphore = new SemaphoreSlim(1, 1);
 		private const string CheckpointFileName = "install_state.json";
 		public const string CheckpointFolderName = ".kotor_modsync";
-		private const string BackupFolderSuffix = "KOTORModSyncBackup";
 		private static readonly JsonSerializerSettings s_checkpointSerializerSettings = new JsonSerializerSettings
 		{
 			Formatting = Formatting.Indented,
@@ -304,6 +285,8 @@ namespace KOTORModSync.Core
 		[NotNull] private List<Guid> _restrictions = new List<Guid>();
 
 		[NotNull] private string _tier = string.Empty;
+
+		private bool _isDownloaded;
 
 		/*
 		public DateTime SourceLastModified { get; set; }
@@ -557,6 +540,19 @@ namespace KOTORModSync.Core
 				OnPropertyChanged();
 			}
 		}
+
+		public bool IsDownloaded
+		{
+			get => _isDownloaded;
+			set
+			{
+				if ( _isDownloaded == value )
+					return;
+				_isDownloaded = value;
+				OnPropertyChanged();
+			}
+		}
+
 		private static readonly string[] s_separator = new[]
 						{
 							"\r\n", "\n",
@@ -1020,20 +1016,20 @@ namespace KOTORModSync.Core
 						{
 							_ = listElementType == typeof(Guid)
 								&& Guid.TryParse(item?.ToString(), out Guid guidItem)
-								? (addMethod?.Invoke(
+								? addMethod?.Invoke(
 									list,
 									new[]
 									{
 										(object)guidItem,
 									}
-								))
-								: (addMethod?.Invoke(
+								)
+								: addMethod?.Invoke(
 									list,
 									new[]
 									{
 										item,
 									}
-								));
+								);
 						}
 					}
 					else
@@ -1174,8 +1170,6 @@ namespace KOTORModSync.Core
 
 				// Deserialize each IDictionary<string, object> into a Component object
 				var components = new List<Component>();
-				if ( componentTables is null )
-					return components;
 
 				foreach ( TomlTable tomlComponent in componentTables )
 				{
@@ -1199,7 +1193,7 @@ namespace KOTORModSync.Core
 
 		public async Task<InstallExitCode> InstallAsync(
 			[NotNull] List<Component> componentsList,
-			[CanBeNull] CancellationToken cancellationToken = default
+			CancellationToken cancellationToken = default
 		)
 		{
 			if ( componentsList is null )
@@ -1303,7 +1297,7 @@ namespace KOTORModSync.Core
 
 				if ( checkpoint.State == InstructionInstallState.Completed )
 				{
-					Logger.LogVerbose(
+					await Logger.LogVerboseAsync(
 						$"Skipping instruction #{instructionIndex} '{instruction.Action}' for component '{Name}' (already completed)."
 					);
 					continue;
@@ -1311,14 +1305,14 @@ namespace KOTORModSync.Core
 
 				if ( checkpoint.State == InstructionInstallState.Running )
 				{
-					Logger.LogWarning(
+					await Logger.LogWarningAsync(
 						$"Instruction #{instructionIndex} '{instruction.Action}' for component '{Name}' was left in Running state. Retrying from scratch."
 					);
 				}
 
 				if ( checkpoint.State == InstructionInstallState.Failed )
 				{
-					Logger.LogVerbose(
+					await Logger.LogVerboseAsync(
 						$"Retrying previously failed instruction #{instructionIndex} '{instruction.Action}' for component '{Name}'."
 					);
 				}

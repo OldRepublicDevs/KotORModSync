@@ -26,6 +26,7 @@
     </PackageReference>
     <PackageReference Include="Avalonia.Headless.NUnit" Version="11.2.5" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
+    <PackageReference Include="MegaApiClient" Version="1.10.5" />
   </ItemGroup>
 
   <ItemGroup>

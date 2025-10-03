@@ -19,11 +19,11 @@ using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
+using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
-using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -35,6 +35,7 @@ using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
+using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Utility;
 using ReactiveUI;
 using SharpCompress.Archives;
@@ -75,6 +76,7 @@ namespace KOTORModSync
 		private bool _rootSelectionState;
 		private bool _editorMode;
 		private bool _isClosingProgressWindow;
+		private FileSystemWatcher _modDirectoryWatcher;
 
 
 		public bool IsClosingMainWindow;
@@ -85,7 +87,7 @@ namespace KOTORModSync
 			set
 			{
 				if ( _rootSelectionState == value ) return;
-				SetAndRaise(RootSelectionStateProperty, ref _rootSelectionState, value);
+				_ = SetAndRaise(RootSelectionStateProperty, ref _rootSelectionState, value);
 			}
 		}
 
@@ -95,7 +97,7 @@ namespace KOTORModSync
 			set
 			{
 				if ( _editorMode == value ) return;
-				SetAndRaise(EditorModeProperty, ref _editorMode, value);
+				_ = SetAndRaise(EditorModeProperty, ref _editorMode, value);
 				UpdateMenuVisibility();
 			}
 		}
@@ -148,6 +150,9 @@ namespace KOTORModSync
 
 				AddHandler(DragDrop.DropEvent, Drop);
 				AddHandler(DragDrop.DragOverEvent, DragOver);
+
+				// Initialize file system watcher for mod directory
+				InitializeModDirectoryWatcher();
 			}
 			catch ( Exception e )
 			{
@@ -159,14 +164,10 @@ namespace KOTORModSync
 		private static void UpdatePathDisplays(TextBlock modPathDisplay, TextBlock kotorPathDisplay)
 		{
 			if ( modPathDisplay != null )
-			{
 				modPathDisplay.Text = MainConfig.SourcePath?.FullName ?? "Not set";
-			}
 
 			if ( kotorPathDisplay != null )
-			{
 				kotorPathDisplay.Text = MainConfig.DestinationPath?.FullName ?? "Not set";
-			}
 		}
 
 		private void UpdatePathDisplays()
@@ -324,7 +325,7 @@ namespace KOTORModSync
 					{
 						// Check if this is a drive root (e.g., "C:\")
 						if ( normalized.Length >= 2 && normalized[1] == ':' &&
-						   (normalized.Length == 2 || (normalized.Length == 3 && normalized[2] == Path.DirectorySeparatorChar)) )
+							 (normalized.Length == 2 || (normalized.Length == 3 && normalized[2] == Path.DirectorySeparatorChar)) )
 						{
 							isRootDir = true;
 							normalized = normalized.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
@@ -393,9 +394,7 @@ namespace KOTORModSync
 							foreach ( string item in existingItems )
 							{
 								if ( !newResults.Contains(item) && Directory.Exists(item) )
-								{
 									newResults.Add(item);
-								}
 							}
 
 							var current = (combo.ItemsSource as IEnumerable<string>)?.ToList();
@@ -500,7 +499,7 @@ namespace KOTORModSync
 				if ( modCombo != null )
 					UpdatePathSuggestions(modInput, modCombo, ref _modSuggestCts);
 			}
-			catch (Exception exc)
+			catch ( Exception exc )
 			{
 				await Logger.LogExceptionAsync(exc);
 			}
@@ -528,7 +527,7 @@ namespace KOTORModSync
 				if ( installCombo != null )
 					UpdatePathSuggestions(installInput, installCombo, ref _installSuggestCts);
 			}
-			catch (Exception exc)
+			catch ( Exception exc )
 			{
 				await Logger.LogExceptionAsync(exc);
 			}
@@ -565,7 +564,7 @@ namespace KOTORModSync
 			parameter =>
 			{
 				if ( parameter is Component component )
-				    LoadComponentDetails(component);
+					LoadComponentDetails(component);
 			}
 		);
 
@@ -621,7 +620,7 @@ namespace KOTORModSync
 				new MenuItem
 				{
 					Header = "Fix iOS case sensitivity.",
-					Command = ReactiveCommand.Create( () => FixIOSCaseSensitivityClick(new object(), new RoutedEventArgs()) ),
+					Command = ReactiveCommand.Create( () => FixIosCaseSensitivityClick(new object(), new RoutedEventArgs()) ),
 				},
 				new MenuItem
 				{
@@ -965,11 +964,11 @@ namespace KOTORModSync
 				{
 					// Check if the storageItem is a file
 					case IStorageFile _ when fileExt.Equals(value: ".toml", StringComparison.OrdinalIgnoreCase)
-					                         || fileExt.Equals(value: ".tml", StringComparison.OrdinalIgnoreCase):
+											 || fileExt.Equals(value: ".tml", StringComparison.OrdinalIgnoreCase):
 
 						{
 							// Use the unified TOML loading method
-							_ = await LoadTOMLFile(filePath, fileType: "TOML file");
+							_ = await LoadTomlFile(filePath, fileType: "TOML file");
 							break;
 						}
 					case IStorageFile _:
@@ -988,7 +987,7 @@ namespace KOTORModSync
 						throw new NullReferenceException(filePath);
 				}
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
 			}
@@ -1031,7 +1030,7 @@ namespace KOTORModSync
 			TitleTextBlock.Text = Title;
 
 			ColumnDefinition componentListColumn = MainGrid.ColumnDefinitions[0]
-				?? throw new NullReferenceException(message: "Column 0 of MainGrid (component list column) not defined.");
+												   ?? throw new NullReferenceException(message: "Column 0 of MainGrid (component list column) not defined.");
 
 			// Column 0
 			componentListColumn.Width = new GridLength(300);
@@ -1134,7 +1133,7 @@ namespace KOTORModSync
 			foreach ( ILogical child in visual.LogicalChildren )
 			{
 				if ( child is Control childControl )
-				    FindProblemControls(childControl);
+					FindProblemControls(childControl);
 			}
 		}
 
@@ -1227,8 +1226,6 @@ namespace KOTORModSync
 			return null;
 		}
 
-		[ItemCanBeNull]
-		[CanBeNull]
 		private async Task<string[]> ShowFileDialog(
 			bool isFolderDialog,
 			bool allowMultiple = false,
@@ -1303,7 +1300,7 @@ namespace KOTORModSync
 					return;
 
 				// Use the unified TOML loading method
-				_ = await LoadTOMLFile(filePath, fileType: "instruction file");
+				_ = await LoadTomlFile(filePath, fileType: "instruction file");
 			}
 			catch ( Exception ex )
 			{
@@ -1329,8 +1326,7 @@ namespace KOTORModSync
 					string fileContents = await reader.ReadToEndAsync();
 
 					// Open Regex Import Dialog to let user adjust patterns and preview matches
-					var dialog = new RegexImportDialog(fileContents, MarkdownImportProfile.CreateDefault(),
-						async () => await ShowConfigLoadConfirmation(fileType: "markdown file"));
+					var dialog = new RegexImportDialog(fileContents, MarkdownImportProfile.CreateDefault());
 					MarkdownParserResult parseResult = null;
 					dialog.Closed += async (_, __) =>
 					{
@@ -1339,7 +1335,7 @@ namespace KOTORModSync
 							parseResult = vm.ConfirmLoad();
 							await Logger.LogAsync($"Markdown parsing completed. Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLink.Count) ?? 0} total links.");
 							if ( !(parseResult.Warnings?.Count > 0) )
-							    return;
+								return;
 							await Logger.LogWarningAsync($"Markdown parsing completed with {parseResult.Warnings.Count} warnings.");
 							foreach ( string warning in parseResult.Warnings )
 								await Logger.LogWarningAsync($"  - {warning}");
@@ -1357,18 +1353,44 @@ namespace KOTORModSync
 					}
 					else
 					{
-						// Ask user which merge strategy to use for markdown (since markdown doesn't have GUIDs, default to name/author matching)
-						MergeStrategy? mergeStrategy = await ShowMergeStrategyDialog(fileType: "markdown");
-						if ( mergeStrategy == null ) // User cancelled
+						// Ask user what to do with existing components
+						bool? confirmResult = await ShowConfigLoadConfirmation(fileType: "markdown file");
+
+						if ( confirmResult == true ) // User clicked "Merge"
+						{
+							// Show conflict resolution dialog
+							var conflictDialog = new ComponentMergeConflictDialog(
+										MainConfig.AllComponents,
+										new List<Component>(parseResult.Components),
+										"Currently Loaded Components",
+										"Markdown File",
+										FuzzyMatcher.FuzzyMatchComponents);
+
+							await conflictDialog.ShowDialog(this);
+
+							if ( conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null )
+							{
+								int originalCount = MainConfig.AllComponents.Count;
+								MainConfigInstance.allComponents = conflictDialog.MergedComponents;
+								int newCount = MainConfig.AllComponents.Count;
+								await Logger.LogAsync($"Merged {parseResult.Components.Count} parsed components with existing {originalCount} components. Total components now: {newCount}");
+							}
+							else
+							{
+								await Logger.LogAsync("Merge cancelled by user.");
+								return;
+							}
+						}
+						else if ( confirmResult == false ) // User clicked "Overwrite"
+						{
+							// Replace all existing components with new ones
+							MainConfigInstance.allComponents = new List<Component>(parseResult.Components);
+							await Logger.LogAsync($"Overwrote existing config with {parseResult.Components.Count} components from markdown.");
+						}
+						else // User cancelled (null)
+						{
 							return;
-
-						int originalCount = MainConfig.AllComponents.Count;
-						MergeHeuristicsOptions heuristics = (dialog.DataContext as RegexImportDialogViewModel)?.Heuristics ?? MergeHeuristicsOptions.CreateDefault();
-						ComponentMergeService.MergeInto(MainConfig.AllComponents, new List<Component>(parseResult.Components), mergeStrategy.Value, heuristics);
-						int newCount = MainConfig.AllComponents.Count;
-
-						string strategyName = mergeStrategy.Value == MergeStrategy.ByGuid ? "GUID matching" : "name/author matching";
-						await Logger.LogAsync($"Merged {parseResult.Components.Count} parsed components into existing {originalCount} components using {strategyName}. Total components now: {newCount}");
+						}
 					}
 					await ProcessComponentsAsync(MainConfig.AllComponents);
 				}
@@ -1389,7 +1411,7 @@ namespace KOTORModSync
 			{
 				string url = textBlock.Text;
 				if ( string.IsNullOrEmpty(url) )
-				    throw new InvalidOperationException(message: "url (textBlock.Text) cannot be null/empty");
+					throw new InvalidOperationException(message: "url (textBlock.Text) cannot be null/empty");
 
 				UrlUtilities.OpenUrl(url);
 			}
@@ -1407,7 +1429,7 @@ namespace KOTORModSync
 				var button = (Button)sender;
 				// Get the item's data context based on the clicked button
 				Instruction thisInstruction = (Instruction)button.DataContext
-					?? throw new NullReferenceException(message: "Could not find instruction instance");
+											  ?? throw new NullReferenceException(message: "Could not find instruction instance");
 
 				// Open the file dialog to select a file
 
@@ -1483,7 +1505,7 @@ namespace KOTORModSync
 			{
 				var button = (Button)sender;
 				Instruction thisInstruction = (Instruction)button.DataContext
-					?? throw new NullReferenceException(message: "Could not find instruction instance");
+											  ?? throw new NullReferenceException(message: "Could not find instruction instance");
 
 				if ( !(button.Tag is TextBox sourceTextBox) )
 					return;
@@ -1536,7 +1558,7 @@ namespace KOTORModSync
 			{
 				Button button = (Button)sender ?? throw new InvalidOperationException();
 				Instruction thisInstruction = (Instruction)button.DataContext
-					?? throw new NullReferenceException(message: "Could not find instruction instance");
+											  ?? throw new NullReferenceException(message: "Could not find instruction instance");
 
 				IStorageFolder startFolder = null;
 				if ( !(MainConfig.DestinationPath is null) )
@@ -1633,7 +1655,7 @@ namespace KOTORModSync
 			}
 		}
 
-		private async void FixIOSCaseSensitivityClick([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		private async void FixIosCaseSensitivityClick([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
 			try
 			{
@@ -1807,7 +1829,7 @@ namespace KOTORModSync
 			{
 				await ProcessComponentsAsync(MainConfig.AllComponents);
 			}
-			catch (Exception exc)
+			catch ( Exception exc )
 			{
 				await Logger.LogExceptionAsync(exc);
 			}
@@ -1864,9 +1886,9 @@ namespace KOTORModSync
 				if ( MainConfig.AllComponents.Any(c => c.Dependencies.Any(g => g == CurrentComponent.Guid)) )
 				{
 					if ( await ConfirmationDialog.ShowConfirmationDialog( // TODO: log the duplicated components.
-						this,
-						$"Cannot remove '{CurrentComponent.Name}', there are several components that rely on it. Please address this problem first. {Environment.NewLine} Continue removing anyway?"
-					) != true )
+							this,
+							$"Cannot remove '{CurrentComponent.Name}', there are several components that rely on it. Please address this problem first. {Environment.NewLine} Continue removing anyway?"
+						) != true )
 					{
 						return;
 					}
@@ -2074,16 +2096,18 @@ namespace KOTORModSync
 				UpdateStepProgress();
 
 				if ( await ConfirmationDialog.ShowConfirmationDialog(
-						this,
-						"WARNING! While there is code in place to prevent incorrect instructions from running,"
-						+ $" the program cannot predict every possible mistake a user could make in a config file.{Environment.NewLine}"
-						+ " Additionally, some mod builds can be 20GB or larger! Due to this, KOTORModSync will not explicitly create any backups."
-						+ " Please ensure you've backed up your Install directory"
-						+ $" and you've ensured you're running a Vanilla installation.{Environment.NewLine}{Environment.NewLine}"
-						+ " Are you sure you're ready to continue?"
-					)
-					!= true )
+						 this,
+						 "WARNING! While there is code in place to prevent incorrect instructions from running,"
+						 + $" the program cannot predict every possible mistake a user could make in a config file.{Environment.NewLine}"
+						 + " Additionally, some mod builds can be 20GB or larger! Due to this, KOTORModSync will not explicitly create any backups."
+						 + " Please ensure you've backed up your Install directory"
+						 + $" and you've ensured you're running a Vanilla installation.{Environment.NewLine}{Environment.NewLine}"
+						 + " Are you sure you're ready to continue?"
+					 )
+					 != true )
+				{
 					return;
+				}
 
 				if ( await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really install all mods?") != true )
 					return;
@@ -2106,8 +2130,10 @@ namespace KOTORModSync
 					}
 					catch { /* best effort */ }
 				}
-				void ExceptionCounter(Exception _) { try { errorCount++; }
-					catch (Exception ex)
+				void ExceptionCounter(Exception _)
+				{
+					try { errorCount++; }
+					catch ( Exception ex )
 					{
 						Logger.LogException(ex);
 					}
@@ -2177,12 +2203,12 @@ namespace KOTORModSync
 							async () =>
 							{
 								progressWindow.ProgressTextBlock.Text = $"Installing '{component.Name}'..."
-									+ Environment.NewLine
-									+ Environment.NewLine
-									+ "Executing the provided directions..."
-									+ Environment.NewLine
-									+ Environment.NewLine
-									+ component.Directions;
+																		+ Environment.NewLine
+																		+ Environment.NewLine
+																		+ "Executing the provided directions..."
+																		+ Environment.NewLine
+																		+ Environment.NewLine
+																		+ component.Directions;
 
 								double percentComplete = selectedMods.Count == 0 ? 0 : (double)index / selectedMods.Count;
 								progressWindow.Topmost = true;
@@ -2244,7 +2270,7 @@ namespace KOTORModSync
 					}
 
 					if ( exitCode != Component.InstallExitCode.Success )
-					    return;
+						return;
 					await InformationDialog.ShowInformationDialog(
 						this,
 						message: "Install Completed. Check the output window for information."
@@ -2254,7 +2280,7 @@ namespace KOTORModSync
 					// Mark Step 4 as complete after successful installation
 					CheckBox step4Check = this.FindControl<CheckBox>(name: "Step4Checkbox");
 					if ( step4Check != null )
-					    step4Check.IsChecked = true;
+						step4Check.IsChecked = true;
 					UpdateStepProgress();
 				}
 				catch ( Exception )
@@ -2464,7 +2490,7 @@ namespace KOTORModSync
 					await Logger.LogExceptionAsync(exception);
 				}
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
 			}
@@ -2581,8 +2607,8 @@ namespace KOTORModSync
 		private void RawEditTextBox_LostFocus([NotNull] object sender, [NotNull] RoutedEventArgs e) => e.Handled = true;
 
 		private bool CurrentComponentHasChanges() => CurrentComponent != null
-			&& !string.IsNullOrWhiteSpace(RawEditTextBox.Text)
-			&& RawEditTextBox.Text != CurrentComponent.SerializeComponent();
+													 && !string.IsNullOrWhiteSpace(RawEditTextBox.Text)
+													 && RawEditTextBox.Text != CurrentComponent.SerializeComponent();
 
 		/// <summary>
 		/// Loads a TOML file with merge strategy choice
@@ -2590,7 +2616,7 @@ namespace KOTORModSync
 		/// <param name="filePath">Path to the TOML file</param>
 		/// <param name="fileType">Type of file for display purposes</param>
 		/// <returns>True if successful, false if cancelled or failed</returns>
-		private async Task<bool> LoadTOMLFile(string filePath, string fileType = "instruction file")
+		private async Task<bool> LoadTomlFile(string filePath, string fileType = "instruction file")
 		{
 			try
 			{
@@ -2625,18 +2651,52 @@ namespace KOTORModSync
 					if ( mergeStrategy == null ) // User cancelled
 						return false;
 
-					int originalCount = MainConfig.AllComponents.Count;
-					ComponentMergeService.MergeInto(MainConfig.AllComponents, newComponents, mergeStrategy.Value);
-					int newCount = MainConfig.AllComponents.Count;
+					// Show conflict resolution dialog
+					var conflictDialog = new ComponentMergeConflictDialog(
+						MainConfig.AllComponents,
+						newComponents,
+						"Currently Loaded Components",
+						fileType,
+						(existing, incoming) =>
+						{
+							// Match based on selected strategy
+							if ( mergeStrategy.Value == MergeStrategy.ByGuid )
+							{
+								return existing.Guid == incoming.Guid;
+							}
+							else
+							{
+								// Use fuzzy matching for name/author
+								return FuzzyMatcher.FuzzyMatchComponents(existing, incoming);
+							}
+						});
 
-					string strategyName = mergeStrategy.Value == MergeStrategy.ByGuid ? "GUID matching" : "name/author matching";
-					await Logger.LogAsync($"Merged {newComponents.Count} components from {fileType} into existing {originalCount} components using {strategyName}. Total components now: {newCount}");
+					await conflictDialog.ShowDialog(this);
+
+					if ( conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null )
+					{
+						int originalCount = MainConfig.AllComponents.Count;
+						MainConfigInstance.allComponents = conflictDialog.MergedComponents;
+						int newCount = MainConfig.AllComponents.Count;
+
+						string strategyName = mergeStrategy.Value == MergeStrategy.ByGuid ? "GUID matching" : "name/author matching";
+						await Logger.LogAsync($"Merged {newComponents.Count} components from {fileType} with existing {originalCount} components using {strategyName}. Total components now: {newCount}");
+					}
+					else
+					{
+						await Logger.LogAsync("Merge cancelled by user.");
+						return false;
+					}
 				}
-				else // User clicked "Overwrite"
+				else if ( result == false ) // User clicked "Overwrite"
 				{
 					// Replace all existing components with new ones
 					MainConfigInstance.allComponents = newComponents;
 					await Logger.LogAsync($"Overwrote existing config with {newComponents.Count} components from {fileType}.");
+				}
+				else // User cancelled
+				{
+					return false;
 				}
 
 				await ProcessComponentsAsync(MainConfig.AllComponents);
@@ -2657,8 +2717,8 @@ namespace KOTORModSync
 		private async Task<MergeStrategy?> ShowMergeStrategyDialog(string fileType = "TOML")
 		{
 			string confirmText = $"How would you like to merge the {fileType} components?\n\n" +
-				"• GUID Matching: Matches components by their unique GUID (recommended for TOML files)\n" +
-				"• Name/Author Matching: Matches components by name and author using fuzzy matching";
+								 "• GUID Matching: Matches components by their unique GUID (recommended for TOML files)\n" +
+								 "• Name/Author Matching: Matches components by name and author using fuzzy matching";
 
 			bool? result = await ConfirmationDialog.ShowConfirmationDialog(this, confirmText, yesButtonText: "GUID Matching", noButtonText: "Name/Author Matching");
 
@@ -2702,11 +2762,11 @@ namespace KOTORModSync
 				}
 
 				if ( !noPrompt
-					&& await ConfirmationDialog.ShowConfirmationDialog(
-						this,
-						confirmText: "Are you sure you want to save?"
-					)
-					!= true )
+					 && await ConfirmationDialog.ShowConfirmationDialog(
+						 this,
+						 confirmText: "Are you sure you want to save?"
+					 )
+					 != true )
 				{
 					return false;
 				}
@@ -2715,15 +2775,15 @@ namespace KOTORModSync
 				if ( CurrentComponent is null )
 				{
 					output = "CurrentComponent is null which shouldn't ever happen in this context."
-						+ Environment.NewLine
-						+ "Please report this issue to a developer, this should never happen.";
+							 + Environment.NewLine
+							 + "Please report this issue to a developer, this should never happen.";
 
 					await Logger.LogErrorAsync(output);
 					await InformationDialog.ShowInformationDialog(this, output);
 					return false;
 				}
 
-				if (RawEditTextBox.Text != null)
+				if ( RawEditTextBox.Text != null )
 				{
 					var newComponent = Component.DeserializeTomlComponent(RawEditTextBox.Text);
 					if ( newComponent is null )
@@ -2748,8 +2808,8 @@ namespace KOTORModSync
 							? "."
 							: $" '{newComponent.Name}'.";
 						output = $"Could not find the index of component{componentName}"
-						         + " Ensure you single-clicked on a component on the left before pressing save."
-						         + " Please back up your work and try again.";
+								 + " Ensure you single-clicked on a component on the left before pressing save."
+								 + " Please back up your work and try again.";
 						await Logger.LogErrorAsync(output);
 						await InformationDialog.ShowInformationDialog(this, output);
 
@@ -2793,12 +2853,7 @@ namespace KOTORModSync
 			}
 		}
 
-		/// <summary>
-		/// Shows a unified confirmation dialog for config loading scenarios.
-		/// </summary>
-		/// <param name="fileType">The type of file being loaded (e.g., "TOML", "markdown", "instruction file")</param>
-		/// <returns>True if user wants to proceed, false if cancelled.</returns>
-		private async Task<bool> ShowConfigLoadConfirmation(string fileType)
+		private async Task<bool?> ShowConfigLoadConfirmation(string fileType)
 		{
 			if ( MainConfig.AllComponents.Count == 0 )
 				return true; // No existing config, proceed without confirmation
@@ -2808,7 +2863,7 @@ namespace KOTORModSync
 				return false;
 
 			string confirmText = $"You already have a config loaded. Do you want to merge the {fileType} with existing components or load it as a new config?";
-			return await ConfirmationDialog.ShowConfirmationDialog(this, confirmText, yesButtonText: "Merge", noButtonText: "Overwrite") == true;
+			return await ConfirmationDialog.ShowConfirmationDialog(this, confirmText, yesButtonText: "Merge", noButtonText: "Overwrite");
 		}
 
 		private async void MoveComponentListItem([CanBeNull] Component componentToMove, int relativeIndex)
@@ -2986,7 +3041,7 @@ namespace KOTORModSync
 				if ( rootItem != null )
 				{
 					DockPanel headerPanel = (DockPanel)rootItem.Header
-						?? throw new InvalidCastException(message: "The TreeView isn't supported: header must be wrapped by top-level DockPanel");
+											?? throw new InvalidCastException(message: "The TreeView isn't supported: header must be wrapped by top-level DockPanel");
 					CheckBox checkBox = headerPanel.Children.OfType<CheckBox>().FirstOrDefault();
 
 					if ( checkBox != null && !suppressErrors )
@@ -2997,7 +3052,7 @@ namespace KOTORModSync
 				_ = visitedComponents.Add(component);
 
 				// Handling OTHER component's defined dependencies based on the change to THIS component.
-				foreach ( Component c in MainConfig.AllComponents.Where(c => c.IsSelected && c.Dependencies.Contains(component.Guid)))
+				foreach ( Component c in MainConfig.AllComponents.Where(c => c.IsSelected && c.Dependencies.Contains(component.Guid)) )
 				{
 					c.IsSelected = false;
 					ComponentCheckboxUnchecked(c, visitedComponents);
@@ -3044,7 +3099,6 @@ namespace KOTORModSync
 			var checkBox = new CheckBox
 			{
 				Name = $"IsSelected_{component.Guid}",
-				IsChecked = component.IsSelected,
 				VerticalContentAlignment = VerticalAlignment.Center,
 				VerticalAlignment = VerticalAlignment.Center,
 				Tag = component,
@@ -3073,12 +3127,41 @@ namespace KOTORModSync
 				{
 					new ColumnDefinition(value: 0, GridUnitType.Auto),
 					new ColumnDefinition(value: 0, GridUnitType.Auto),
+					new ColumnDefinition(value: 0, GridUnitType.Auto),
 					new ColumnDefinition(value: 1, GridUnitType.Star),
 				},
 			};
 
 			headerGrid.Children.Add(checkBox);
 			Grid.SetColumn(checkBox, value: 0);
+
+			// Download status icon
+			var downloadIcon = new TextBlock
+			{
+				VerticalAlignment = VerticalAlignment.Center,
+				Margin = new Thickness(left: 5, top: 0, right: 5, bottom: 0),
+				FontSize = 14,
+			};
+
+			// Bind to IsDownloaded property
+			var downloadBinding = new Binding(path: "IsDownloaded")
+			{
+				Source = component,
+				Converter = new FuncValueConverter<bool, string>(isDownloaded => isDownloaded ? "✅" : "⬇️")
+			};
+			_ = downloadIcon.Bind(TextBlock.TextProperty, downloadBinding);
+
+			var tooltipBinding = new Binding(path: "IsDownloaded")
+			{
+				Source = component,
+				Converter = new FuncValueConverter<bool, string>(isDownloaded =>
+					isDownloaded ? "Mod files are downloaded" : "Mod files need to be downloaded")
+			};
+			ToolTip.SetTip(downloadIcon, null);
+			_ = downloadIcon.Bind(ToolTip.TipProperty, tooltipBinding);
+
+			headerGrid.Children.Add(downloadIcon);
+			Grid.SetColumn(downloadIcon, value: 1);
 
 			var indexTextBlock = new TextBlock
 			{
@@ -3088,7 +3171,7 @@ namespace KOTORModSync
 				Margin = new Thickness(left: 0, top: 0, right: 5, bottom: 0),
 			};
 			headerGrid.Children.Add(indexTextBlock);
-			Grid.SetColumn(indexTextBlock, value: 1);
+			Grid.SetColumn(indexTextBlock, value: 2);
 
 			var nameTextBlock = new TextBlock
 			{
@@ -3097,7 +3180,7 @@ namespace KOTORModSync
 				Focusable = false,
 			};
 			headerGrid.Children.Add(nameTextBlock);
-			Grid.SetColumn(nameTextBlock, value: 2);
+			Grid.SetColumn(nameTextBlock, value: 3);
 
 			// Wrap header grid in a Border so we can style validation state via Border properties
 			var headerBorder = new Border
@@ -3231,7 +3314,7 @@ namespace KOTORModSync
 						}
 
 						if ( MainConfig.AllComponents.Any(component => component.IsSelected)
-							&& MainConfig.AllComponents.Any(component => !component.IsSelected) )
+							 && MainConfig.AllComponents.Any(component => !component.IsSelected) )
 						{
 							manualSet = true;
 							localRootCheckBox.IsChecked = null;
@@ -3503,7 +3586,7 @@ namespace KOTORModSync
 					ApplyTheme(selectedTheme);
 				}
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
 			}
@@ -3712,9 +3795,7 @@ namespace KOTORModSync
 				TabControl tabControl = this.FindControl<TabControl>("TabControl");
 				TabItem initialTab = this.FindControl<TabItem>("InitialTab");
 				if ( tabControl != null && initialTab != null )
-				{
 					SetTabInternal(tabControl, initialTab);
-				}
 			}
 			catch ( Exception exception )
 			{
@@ -3850,7 +3931,7 @@ namespace KOTORModSync
 
 				// Check Step 1: Directories are set
 				bool step1Complete = !string.IsNullOrEmpty(MainConfig.SourcePath?.FullName) &&
-									!string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName);
+									 !string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName);
 				UpdateStepCompletion(step1Border, step1Indicator, step1Text, step1Complete);
 
 				// Check Step 2: Components are loaded (only counts after Step 1)
@@ -3863,11 +3944,12 @@ namespace KOTORModSync
 
 				// Check Step 4: Installation completed (only counts after Step 3)
 				bool step4Complete = step3Complete && step4Indicator?.Background != null &&
-									!Equals(step4Indicator.Background, Brushes.Transparent);
+									 !Equals(step4Indicator.Background, Brushes.Transparent);
+				UpdateStepCompletion(step4Border, step4Indicator, step4Text, step4Complete);
 
 				// Update progress bar (0-4 scale)
 				int completedSteps = (step1Complete ? 1 : 0) + (step2Complete ? 1 : 0) +
-								   (step3Complete ? 1 : 0) + (step4Complete ? 1 : 0);
+									 (step3Complete ? 1 : 0) + (step4Complete ? 1 : 0);
 				progressBar.Value = completedSteps;
 
 				// Update progress text
@@ -3962,24 +4044,16 @@ namespace KOTORModSync
 				DirectoryPickerControl step1KotorPicker = this.FindControl<DirectoryPickerControl>("Step1KotorDirectoryPicker");
 
 				if ( modPicker != null && MainConfig.SourcePath != null )
-				{
 					modPicker.SetCurrentPath(MainConfig.SourcePath.FullName);
-				}
 
 				if ( kotorPicker != null && MainConfig.DestinationPath != null )
-				{
 					kotorPicker.SetCurrentPath(MainConfig.DestinationPath.FullName);
-				}
 
 				if ( step1ModPicker != null && MainConfig.SourcePath != null )
-				{
 					step1ModPicker.SetCurrentPath(MainConfig.SourcePath.FullName);
-				}
 
 				if ( step1KotorPicker != null && MainConfig.DestinationPath != null )
-				{
 					step1KotorPicker.SetCurrentPath(MainConfig.DestinationPath.FullName);
-				}
 			}
 			catch ( Exception ex )
 			{
@@ -4011,10 +4085,7 @@ namespace KOTORModSync
 				}
 
 				// Update all pickers with the new path
-				foreach ( DirectoryPickerControl picker in allPickers )
-				{
-					picker.SetCurrentPath(path);
-				}
+				foreach ( DirectoryPickerControl picker in allPickers ) picker.SetCurrentPath(path);
 
 				// Update step progress when directories are synchronized from settings window
 				UpdateStepProgress();
@@ -4025,144 +4096,256 @@ namespace KOTORModSync
 			}
 		}
 
-	}
-
-	internal partial class SettingsDialog : Window
-	{
-		[CanBeNull] private MainConfig _mainConfigInstance;
-
-		public MainConfig MainConfigInstance
+		private void InitializeModDirectoryWatcher()
 		{
-			get => _mainConfigInstance;
-			set
-			{
-				_mainConfigInstance = value;
-				DataContext = this;
-			}
-		}
-
-		[CanBeNull]
-		public MainWindow ParentWindow { get; set; }
-
-		public SettingsDialog() => InitializeComponent();
-
-		private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
-
-		public void InitializeFromMainWindow(Window mainWindow)
-		{
-			// Access MainConfigInstance through casting and store parent reference
-			if ( mainWindow is MainWindow mw )
-			{
-				MainConfigInstance = mw.MainConfigInstance;
-				ParentWindow = mw;
-			}
-
-			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow start");
-			Logger.LogVerbose($"SettingsDialog: Source='{MainConfigInstance?.sourcePathFullName}', Dest='{MainConfigInstance?.destinationPathFullName}'");
-
-			// Initialize directory pickers with current values
-			ComboBox styleComboBox = this.FindControl<ComboBox>("StyleComboBox");
-
-			// Set the current theme selection based on the actual current theme
-			string currentTheme = ThemeManager.GetCurrentStylePath();
-			Logger.LogVerbose($"SettingsDialog: Current theme path='{currentTheme}'");
-
-			// Map theme paths to ComboBox indices
-			int selectedIndex = 0;
-			if ( string.Equals(currentTheme, "/Styles/KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) )
-				selectedIndex = 0; // K1 Style
-			else if ( string.Equals(currentTheme, "/Styles/Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) )
-				selectedIndex = 1; // TSL Style
-
-			Logger.LogVerbose($"SettingsDialog: Setting ComboBox SelectedIndex to {selectedIndex}");
-			if ( styleComboBox != null )
-				styleComboBox.SelectedIndex = selectedIndex;
-
-			// Initialize directory picker controls with current paths
-			DirectoryPickerControl modDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "ModDirectoryPicker");
-			DirectoryPickerControl kotorDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "KotorDirectoryPicker");
-
-			if ( modDirectoryPicker != null && MainConfigInstance != null )
-			{
-				Logger.LogVerbose($"SettingsDialog: Applying mod dir -> '{MainConfigInstance.sourcePathFullName}'");
-				modDirectoryPicker.SetCurrentPath(MainConfigInstance.sourcePathFullName ?? string.Empty);
-			}
-
-			if ( kotorDirectoryPicker != null && MainConfigInstance != null )
-			{
-				Logger.LogVerbose($"SettingsDialog: Applying kotor dir -> '{MainConfigInstance.destinationPathFullName}'");
-				kotorDirectoryPicker.SetCurrentPath(MainConfigInstance.destinationPathFullName ?? string.Empty);
-			}
-
-			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow end");
-		}
-
-		[UsedImplicitly]
-		private void OnDirectoryChanged(object sender, DirectoryChangedEventArgs e)
-		{
-			// Handle directory changes and update MainConfig
-			if ( MainConfigInstance == null ) return;
-
 			try
 			{
-				Logger.LogVerbose($"SettingsDialog.OnDirectoryChanged type={e.PickerType} path='{e.Path}'");
-				if ( e.PickerType == DirectoryPickerType.ModDirectory )
-				{
-					// Update mod directory path
-					var modDirectory = new DirectoryInfo(e.Path);
-					MainConfigInstance.sourcePath = modDirectory;
-					Logger.LogVerbose($"SettingsDialog: MainConfig.sourcePath set -> '{MainConfigInstance.sourcePathFullName}'");
-				}
-				else if ( e.PickerType == DirectoryPickerType.KotorDirectory )
-				{
-					// Update KOTOR directory path
-					var kotorDirectory = new DirectoryInfo(e.Path);
-					MainConfigInstance.destinationPath = kotorDirectory;
-					Logger.LogVerbose($"SettingsDialog: MainConfig.destinationPath set -> '{MainConfigInstance.destinationPathFullName}'");
-				}
-
-				// Trigger synchronization in the parent MainWindow to update Step 1 pickers
-				if ( ParentWindow == null )
-				    return;
-				Logger.LogVerbose("SettingsDialog: Triggering parent window directory synchronization");
-				ParentWindow.SyncDirectoryPickers(e.PickerType, e.Path);
+				if ( MainConfig.SourcePath != null && Directory.Exists(MainConfig.SourcePath.FullName) )
+					SetupModDirectoryWatcher(MainConfig.SourcePath.FullName);
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex);
+				Logger.LogException(ex, "Failed to initialize mod directory watcher");
 			}
 		}
 
-		[UsedImplicitly]
-		private void StyleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		private void SetupModDirectoryWatcher(string path)
 		{
-			// Handle theme selection changes
-			if ( sender is ComboBox comboBox && comboBox.SelectedItem is ComboBoxItem _selectedItem )
+			try
 			{
-				// This will be handled by the main window when the dialog closes
+				// Dispose existing watcher if any
+				_modDirectoryWatcher?.Dispose();
+
+				_modDirectoryWatcher = new FileSystemWatcher
+				{
+					Path = path,
+					NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
+					Filter = "*.*",
+					EnableRaisingEvents = true,
+				};
+
+				_modDirectoryWatcher.Created += OnModDirectoryChanged;
+				_modDirectoryWatcher.Deleted += OnModDirectoryChanged;
+				_modDirectoryWatcher.Changed += OnModDirectoryChanged;
+
+				Logger.LogVerbose($"File system watcher initialized for: {path}");
+
+				// Initial scan
+				ScanModDirectoryForDownloads();
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to setup mod directory watcher");
 			}
 		}
 
-		[UsedImplicitly]
-		private void OK_Click(object sender, RoutedEventArgs e) => Close(dialogResult: true);
-		[UsedImplicitly]
-		private void Cancel_Click(object sender, RoutedEventArgs e) => Close(dialogResult: false);
-
-		[UsedImplicitly]
-		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
-
-		[UsedImplicitly]
-		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
-			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-
-		[UsedImplicitly]
-		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
-
-		public string GetSelectedTheme()
+		private void OnModDirectoryChanged(object sender, FileSystemEventArgs e)
 		{
-			ComboBox styleComboBox = this.FindControl<ComboBox>(name: "StyleComboBox");
-			return styleComboBox?.SelectedItem is ComboBoxItem selectedItem ? selectedItem.Tag?.ToString() ?? "/Styles/KotorStyle.axaml" : "/Styles/KotorStyle.axaml";
+			// Debounce file system events by dispatching to UI thread
+			Dispatcher.UIThread.Post(() =>
+			{
+				try
+				{
+					ScanModDirectoryForDownloads();
+				}
+				catch ( Exception ex )
+				{
+					Logger.LogException(ex, "Error processing mod directory change");
+				}
+			}, DispatcherPriority.Background);
 		}
-	}
 
+		private void ScanModDirectoryForDownloads()
+		{
+			try
+			{
+				if ( MainConfig.SourcePath == null || !Directory.Exists(MainConfig.SourcePath.FullName) )
+					return;
+
+				if ( MainConfig.AllComponents.Count == 0 )
+					return;
+
+				// Get all archive files in mod directory
+				string[] archiveExtensions = { ".zip", ".rar", ".7z", ".tar", ".gz" };
+				var filesInModDir = Directory.GetFiles(MainConfig.SourcePath.FullName, searchPattern: "*.*", SearchOption.TopDirectoryOnly)
+					.Where(f => archiveExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+					.Select(Path.GetFileName)
+					.ToList();
+
+				int downloadedCount = 0;
+				int totalSelected = 0;
+
+				// Check each component
+				foreach ( Component component in MainConfig.AllComponents )
+				{
+					if ( !component.IsSelected )
+						continue;
+
+					totalSelected++;
+
+					// Check if any instruction source files exist in mod directory
+					bool hasAllFiles = true;
+					foreach ( Instruction instruction in component.Instructions )
+					{
+						foreach ( string source in instruction.Source )
+						{
+							// Extract just the filename from the source path
+							string fileName = Path.GetFileName(source);
+							if ( !filesInModDir.Any(f => f.Equals(fileName, StringComparison.OrdinalIgnoreCase)) )
+							{
+								hasAllFiles = false;
+								break;
+							}
+						}
+						if ( !hasAllFiles ) break;
+					}
+
+					component.IsDownloaded = hasAllFiles;
+					if ( hasAllFiles ) downloadedCount++;
+				}
+
+				// Update download status text
+				TextBlock statusText = this.FindControl<TextBlock>("DownloadStatusText");
+				if ( statusText != null )
+				{
+					if ( totalSelected == 0 )
+					{
+						statusText.Text = "No mods selected for installation.";
+						statusText.Foreground = Brushes.Gray;
+					}
+					else if ( downloadedCount == totalSelected )
+					{
+						statusText.Text = $"✅ All {totalSelected} selected mod(s) are downloaded!";
+						statusText.Foreground = Brushes.Green;
+					}
+					else
+					{
+						statusText.Text = $"⚠️ {downloadedCount}/{totalSelected} selected mod(s) downloaded. {totalSelected - downloadedCount} missing.";
+						statusText.Foreground = Brushes.Orange;
+					}
+				}
+
+				Logger.LogVerbose($"Download scan complete: {downloadedCount}/{totalSelected} mods ready");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error scanning mod directory for downloads");
+			}
+		}
+
+		private async void ScrapeDownloadsButton_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				if ( MainConfig.SourcePath == null || !Directory.Exists(MainConfig.SourcePath.FullName) )
+				{
+					await InformationDialog.ShowInformationDialog(this,
+						"Please set your Mod Directory in Settings before downloading mods.");
+					return;
+				}
+
+				if ( MainConfig.AllComponents.Count == 0 )
+				{
+					await InformationDialog.ShowInformationDialog(this,
+						"Please load an instruction file before downloading mods.");
+					return;
+				}
+
+				// Get selected components that need downloads
+				var componentsToDownload = MainConfig.AllComponents
+					.Where(c => c.IsSelected && !c.IsDownloaded && c.ModLink.Count > 0)
+					.ToList();
+
+				if ( componentsToDownload.Count == 0 )
+				{
+					await InformationDialog.ShowInformationDialog(this,
+						"All selected mods are already downloaded, or no download links are available.");
+					return;
+				}
+
+				Logger.Log($"Starting download for {componentsToDownload.Count} mod(s)...");
+
+				// Initialize download handlers
+				var httpClient = new System.Net.Http.HttpClient();
+				httpClient.Timeout = TimeSpan.FromMinutes(10);
+
+				var handlers = new List<IDownloadHandler>
+				{
+					new DeadlyStreamDownloadHandler(httpClient),
+					new MegaDownloadHandler(),
+					new DirectDownloadHandler(httpClient),
+				};
+
+				var downloadManager = new DownloadManager(handlers);
+
+				int successCount = 0;
+				int failCount = 0;
+
+				foreach ( Component component in componentsToDownload )
+				{
+					await Logger.LogAsync($"Downloading: {component.Name}");
+
+					List<DownloadResult> results = await downloadManager.DownloadAllAsync(
+						component.ModLink,
+						MainConfig.SourcePath.FullName);
+
+					foreach ( DownloadResult result in results )
+					{
+						if ( result.Success )
+						{
+							await Logger.LogAsync($"  ✅ Downloaded: {result.FilePath}");
+							successCount++;
+						}
+						else
+						{
+							await Logger.LogErrorAsync($"  ❌ Failed: {result.Message}");
+							failCount++;
+						}
+					}
+				}
+
+				// Refresh download status
+				ScanModDirectoryForDownloads();
+
+				string summaryMessage = $"Download complete!\n\nSuccessful: {successCount}\nFailed: {failCount}";
+				if ( failCount > 0 )
+					summaryMessage += "\n\nSome downloads failed. You may need to download them manually.";
+
+				await InformationDialog.ShowInformationDialog(this, summaryMessage);
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Error during mod download");
+				await InformationDialog.ShowInformationDialog(this,
+					$"An error occurred while downloading mods:\n\n{ex.Message}");
+			}
+		}
+
+		private void OpenModDirectoryButton_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				if ( MainConfig.SourcePath == null || !Directory.Exists(MainConfig.SourcePath.FullName) )
+				{
+					Logger.LogWarning("Mod directory is not set or does not exist.");
+					return;
+				}
+
+				// Open the directory in the file explorer
+				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
+					_ = System.Diagnostics.Process.Start("explorer.exe", MainConfig.SourcePath.FullName);
+				else if ( Utility.GetOperatingSystem() == OSPlatform.OSX )
+					_ = System.Diagnostics.Process.Start("open", MainConfig.SourcePath.FullName);
+				else // Linux
+					_ = System.Diagnostics.Process.Start("xdg-open", MainConfig.SourcePath.FullName);
+
+				Logger.Log($"Opened mod directory: {MainConfig.SourcePath.FullName}");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to open mod directory");
+			}
+		}
+
+	}
 }

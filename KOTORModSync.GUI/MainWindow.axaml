@@ -1,9 +1,9 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
-        x:Class="KOTORModSync.MainWindow"
         xmlns:controls="clr-namespace:KOTORModSync.Controls"
         xmlns:converters="clr-namespace:KOTORModSync.Converters"
+        x:Class="KOTORModSync.MainWindow"
         Title="KOTORModSync"
         Width="1280" Height="720" MinWidth="600" MinHeight="400"
         ExtendClientAreaToDecorationsHint="True"
@@ -91,8 +91,10 @@
 
         <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,*,Auto" Margin="0,0,10,0">
             <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
-            <TextBox Grid.Row="0" Margin="0,0,0,2" HorizontalAlignment="Stretch"
-                     Name="SearchBox" ToolTip.Tip="Search for a mod by name" Text="{Binding SearchText}" />
+            <controls:SearchBox Grid.Row="0" Margin="0,0,0,2" HorizontalAlignment="Stretch"
+                               Name="SearchBox"
+                               SearchText="{Binding SearchText, Mode=TwoWay}"
+                               Watermark="Search mods by name or author..."/>
             <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
                 <TreeView x:Name="LeftTreeView" />
             </ScrollViewer>
@@ -208,12 +210,40 @@
                                 </StackPanel>
                             </Border>
 
-                            <!-- Step 4: Install -->
                             <Border x:Name="Step4Border" Classes="step-border">
                                 <StackPanel>
                                     <Grid ColumnDefinitions="Auto,*,Auto">
                                         <TextBlock Grid.Column="0" Text="4️⃣" Classes="step-number" />
+                                        <TextBlock Grid.Column="1" Text="Download Mods" Classes="step-title" />
+                                        <Border Grid.Column="2" x:Name="Step4CompleteIndicator" Classes="step-pending">
+                                            <TextBlock x:Name="Step4CompleteText" Text="Pending" Classes="step-pending-text" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="Make sure each selected mod is downloaded into your Mod Directory before installing."
+                                             Margin="30,10,0,10" TextWrapping="Wrap" />
+                                    <TextBlock Text="The downloader will attempt to fetch files automatically, but you may need to grab some manually."
+                                             Margin="30,0,0,10" TextWrapping="Wrap" />
+                                    <StackPanel Orientation="Horizontal" Margin="30,5,0,0" Spacing="10">
+                                        <Button x:Name="ScrapeDownloadsButton" Content="Fetch Downloads" Click="ScrapeDownloadsButton_Click"
+                                                ToolTip.Tip="Try to download all missing mod archives automatically" />
+                                        <Button x:Name="OpenModDirectoryButton" Content="Open Mod Directory" Click="OpenModDirectoryButton_Click"
+                                                ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="DownloadStatusText" Margin="30,10,0,0" TextWrapping="Wrap"
+                                               Foreground="Gray"
+                                               Text="Status: Waiting for download scan..." />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Step 4: Install -->
+                            <Border x:Name="Step5Border" Classes="step-border">
+                                <StackPanel>
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <TextBlock Grid.Column="0" Text="5️⃣" Classes="step-number" />
                                         <TextBlock Grid.Column="1" Text="Validate &amp; Install" Classes="step-title" />
+                                        <Border Grid.Column="2" x:Name="Step5CompleteIndicator" Classes="step-pending">
+                                            <TextBlock x:Name="Step5CompleteText" Text="Pending" Classes="step-pending-text" />
+                                        </Border>
                                     </Grid>
                                     <TextBlock Text="Validate your configuration and start the installation process"
                                              Margin="30,10,0,10" TextWrapping="Wrap" />
@@ -233,7 +263,7 @@
                                 <StackPanel>
                                     <TextBlock Text="📊 Progress Overview" FontSize="16" FontWeight="Bold"
                                              HorizontalAlignment="Center" Margin="0,0,0,10" />
-                                    <ProgressBar x:Name="OverallProgressBar" Height="20" Minimum="0" Maximum="4" Value="0"/>
+                                    <ProgressBar x:Name="OverallProgressBar" Height="20" Minimum="0" Maximum="5" Value="0"/>
                                     <TextBlock x:Name="ProgressText" Text="Complete the steps above to get started"
                                              HorizontalAlignment="Center" Margin="0,5,0,0" FontStyle="Italic" />
                                 </StackPanel>

@@ -9,7 +9,7 @@ namespace KOTORModSync.Core.Services
 	{
 		private static string Normalize([NotNull] string value, bool ignoreCase, bool ignorePunctuation, bool trim)
 		{
-			string s = value ?? string.Empty;
+			string s = value;
 			if ( trim ) s = s.Trim();
 			if ( ignorePunctuation )
 			{
@@ -37,8 +37,8 @@ namespace KOTORModSync.Core.Services
 		[NotNull]
 		private static string NormalizeKey([NotNull] Component c)
 		{
-			string name = c?.Name ?? string.Empty;
-			string author = c?.Author ?? string.Empty;
+			string name = c.Name;
+			string author = c.Author;
 			return (name + "|" + author).Trim().ToLowerInvariant();
 		}
 
@@ -53,13 +53,19 @@ namespace KOTORModSync.Core.Services
 
 			// Fast path exact matches first
 			var map = existing.ToDictionary(NormalizeKey, c => c);
+			var matchedExisting = new HashSet<Component>();
+			var result = new List<Component>();
 
+			// Process parsed list in order, preserving its sequence
 			foreach ( Component incoming in parsed )
 			{
 				string key = NormalizeKey(incoming);
+
 				if ( options.UseNameExact && options.UseAuthorExact && map.TryGetValue(key, out Component match) )
 				{
 					UpdateComponent(match, incoming);
+					result.Add(match);
+					matchedExisting.Add(match);
 				}
 				else
 				{
@@ -68,121 +74,75 @@ namespace KOTORModSync.Core.Services
 					if ( heuristicMatch != null )
 					{
 						UpdateComponent(heuristicMatch, incoming, options);
+						result.Add(heuristicMatch);
+						_ = matchedExisting.Add(heuristicMatch);
 					}
 					else if ( options.AddNewWhenNoMatchFound )
 					{
-						// New mod: add without touching others
-						existing.Add(incoming);
+						// New mod: add at its position in the parsed list
+						result.Add(incoming);
 						map[key] = incoming;
 					}
 				}
 			}
+
+			// Add any existing components that weren't in the parsed list
+			// These maintain their relative order from the original existing list
+			foreach ( Component existingComponent in existing )
+			{
+				if ( matchedExisting.Contains(existingComponent) )
+				    continue;
+				// Find the best insertion point based on surrounding components
+				int insertIndex = FindInsertionPointByNameAuthor(result, existingComponent, existing);
+				result.Insert(insertIndex, existingComponent);
+			}
+
+			// Replace the existing list with the merged result
+			existing.Clear();
+			existing.AddRange(result);
 		}
 
 
 		/// <summary>
-		/// Update-only merge: updates properties on existing components from parsed ones.
-		/// Does NOT add new components and does NOT remove any existing components here.
-		/// GUIDs on existing items are preserved.
+		/// Finds the best insertion point for an unmatched existing component
+		/// based on its position relative to matched components
 		/// </summary>
-		public static void UpdateExistingFromParsed(
-			[NotNull] List<Component> existing,
-			[NotNull] List<Component> parsed,
-			[CanBeNull] MergeHeuristicsOptions options = null)
+		private static int FindInsertionPointByNameAuthor(
+			[NotNull] List<Component> result,
+			[NotNull] Component componentToInsert,
+			[NotNull] List<Component> originalExisting)
 		{
-			if ( existing == null )
-				throw new ArgumentNullException(nameof(existing));
-			if ( parsed == null )
-				throw new ArgumentNullException(nameof(parsed));
+			// Find the position of this component in the original existing list
+			int originalIndex = originalExisting.IndexOf(componentToInsert);
+			if ( originalIndex < 0 ) return result.Count;
 
-			if ( options == null ) options = MergeHeuristicsOptions.CreateDefault();
-
-			// Fast exact map for quick hits
-			var map = existing.ToDictionary(NormalizeKey, c => c);
-
-			foreach ( Component incoming in parsed )
+			// Look for the nearest matched component after this one in the original list
+			for ( int i = originalIndex + 1; i < originalExisting.Count; i++ )
 			{
-				string key = NormalizeKey(incoming);
-				if ( options.UseNameExact && options.UseAuthorExact && map.TryGetValue(key, out Component match) )
+				Component afterComponent = originalExisting[i];
+				int afterIndexInResult = result.IndexOf(afterComponent);
+				if ( afterIndexInResult >= 0 )
 				{
-					UpdateComponent(match, incoming, options);
-					continue;
+					// Insert before this component
+					return afterIndexInResult;
 				}
-
-				Component heuristicMatch = FindHeuristicMatch(existing, incoming, options);
-				if ( heuristicMatch != null )
-				{
-					UpdateComponent(heuristicMatch, incoming, options);
-				}
-				// else: no match found -> skip (do not add new)
-			}
-		}
-
-		/// <summary>
-		/// Reorders the existing list so that matched items follow the order of the parsed list,
-		/// while keeping unmatched existing items in their original positions.
-		/// This does not add or remove any components.
-		/// </summary>
-		public static void ReorderExistingToParsed(
-			[NotNull] List<Component> existing,
-			[NotNull] List<Component> parsed,
-			[CanBeNull] MergeHeuristicsOptions options = null)
-		{
-			if ( existing == null )
-				throw new ArgumentNullException(nameof(existing));
-			if ( parsed == null )
-				throw new ArgumentNullException(nameof(parsed));
-
-			if ( options == null ) options = MergeHeuristicsOptions.CreateDefault();
-
-			// Build mapping from parsed to existing components (matched items)
-			var matchedInOrder = new List<Component>();
-			var matchedSet = new HashSet<Component>();
-			var exactMap = existing.ToDictionary(NormalizeKey, c => c);
-
-			foreach ( Component p in parsed )
-			{
-				Component match = null;
-				if ( options.UseNameExact && options.UseAuthorExact )
-					_ = exactMap.TryGetValue(NormalizeKey(p), out match);
-				if ( match == null )
-					match = FindHeuristicMatch(existing, p, options);
-				if ( match != null && matchedSet.Add(match) )
-					matchedInOrder.Add(match);
 			}
 
-			if ( matchedInOrder.Count == 0 )
-				return; // nothing to reorder
-
-			// Collect slots (indices) of matched items within existing list
-			var slots = existing
-				.Select((c, i) => new { c, i })
-				.Where(x => matchedSet.Contains(x.c))
-				.Select(x => x.i)
-				.ToList();
-
-			if ( slots.Count != matchedInOrder.Count )
-				return; // safety: should be equal
-
-			// Assign matched items in parsed order into the existing slots
-			for ( int k = 0; k < slots.Count; k++ )
-			{
-				int idx = slots[k];
-				existing[idx] = matchedInOrder[k];
-			}
+			// No matched component found after, so append at the end
+			return result.Count;
 		}
 
 		private static Component FindHeuristicMatch([NotNull] List<Component> existing, [NotNull] Component incoming, [NotNull] MergeHeuristicsOptions opt)
 		{
-			string inName = Normalize(incoming.Name ?? string.Empty, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
-			string inAuthor = Normalize(incoming.Author ?? string.Empty, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
+			string inName = Normalize(incoming.Name, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
+			string inAuthor = Normalize(incoming.Author, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
 
 			double bestScore = 0.0;
 			Component best = null;
 			foreach ( Component e in existing )
 			{
-				string exName = Normalize(e.Name ?? string.Empty, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
-				string exAuthor = Normalize(e.Author ?? string.Empty, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
+				string exName = Normalize(e.Name, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
+				string exAuthor = Normalize(e.Author, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
 
 				double score = 0.0;
 				if ( opt.UseNameExact && !string.IsNullOrEmpty(inName) && inName == exName ) score += 1.0;
@@ -210,7 +170,7 @@ namespace KOTORModSync.Core.Services
 
 		private static string GetPrimaryDomain([NotNull] Component c)
 		{
-			string url = c.ModLink?.FirstOrDefault();
+			string url = c.ModLink.FirstOrDefault();
 			if ( string.IsNullOrWhiteSpace(url) ) return null;
 			try
 			{
@@ -227,24 +187,34 @@ namespace KOTORModSync.Core.Services
 		{
 			if ( options == null ) options = MergeHeuristicsOptions.CreateDefault();
 			// Keep target.Guid and selection/state; update content properties
-			if ( !(options.SkipBlankUpdates && IsBlank(source.Author)) ) target.Author = string.IsNullOrWhiteSpace(source.Author) ? target.Author : source.Author;
-			if ( !(options.SkipBlankUpdates && IsBlank(source.Category)) ) target.Category = string.IsNullOrWhiteSpace(source.Category) ? target.Category : source.Category;
-			if ( !(options.SkipBlankUpdates && IsBlank(source.Tier)) ) target.Tier = string.IsNullOrWhiteSpace(source.Tier) ? target.Tier : source.Tier;
-			if ( !(options.SkipBlankUpdates && IsBlank(source.Description)) ) target.Description = string.IsNullOrWhiteSpace(source.Description) ? target.Description : source.Description;
-			if ( !(options.SkipBlankUpdates && IsBlank(source.Directions)) ) target.Directions = string.IsNullOrWhiteSpace(source.Directions) ? target.Directions : source.Directions;
-			if ( !(options.SkipBlankUpdates && IsBlank(source.InstallationMethod)) ) target.InstallationMethod = string.IsNullOrWhiteSpace(source.InstallationMethod) ? target.InstallationMethod : source.InstallationMethod;
+			if ( !(options.SkipBlankUpdates && IsBlank(source.Author)) )
+			    target.Author = string.IsNullOrWhiteSpace(source.Author) ? target.Author : source.Author;
+			if ( !(options.SkipBlankUpdates && IsBlank(source.Category)) )
+				target.Category = string.IsNullOrWhiteSpace(source.Category) ? target.Category : source.Category;
+			if ( !(options.SkipBlankUpdates && IsBlank(source.Tier)) )
+			    target.Tier = string.IsNullOrWhiteSpace(source.Tier) ? target.Tier : source.Tier;
+			if ( !(options.SkipBlankUpdates && IsBlank(source.Description)) )
+			    target.Description = string.IsNullOrWhiteSpace(source.Description) ? target.Description : source.Description;
+			if ( !(options.SkipBlankUpdates && IsBlank(source.Directions)) )
+			    target.Directions = string.IsNullOrWhiteSpace(source.Directions) ? target.Directions : source.Directions;
+			if ( !(options.SkipBlankUpdates && IsBlank(source.InstallationMethod)) )
+			    target.InstallationMethod = string.IsNullOrWhiteSpace(source.InstallationMethod) ? target.InstallationMethod : source.InstallationMethod;
 
 			// Merge language and links (union)
-			if ( source.Language?.Count > 0 )
+			if ( source.Language.Count > 0 )
 			{
-				var set = new HashSet<string>(target.Language ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
-				foreach ( string lang in source.Language ) if ( !string.IsNullOrWhiteSpace(lang) ) _ = set.Add(lang);
+				var set = new HashSet<string>(target.Language, StringComparer.OrdinalIgnoreCase);
+				foreach ( string lang in source.Language )
+				{
+					if ( !string.IsNullOrWhiteSpace(lang) )
+						_ = set.Add(lang);
+				}
 				target.Language = set.ToList();
 			}
 
-			if ( source.ModLink?.Count > 0 )
+			if ( source.ModLink.Count > 0 )
 			{
-				var set = new HashSet<string>(target.ModLink ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+				var set = new HashSet<string>(target.ModLink, StringComparer.OrdinalIgnoreCase);
 				foreach ( string link in source.ModLink )
 				{
 					if ( string.IsNullOrWhiteSpace(link) ) continue;
@@ -262,25 +232,37 @@ namespace KOTORModSync.Core.Services
 			if ( source.Dependencies?.Count > 0 )
 			{
 				var set = new HashSet<Guid>(target.Dependencies ?? new List<Guid>());
-				foreach ( Guid g in source.Dependencies ) _ = set.Add(g);
+				foreach ( Guid g in source.Dependencies )
+				{
+					_ = set.Add(g);
+				}
 				target.Dependencies = set.ToList();
 			}
 			if ( source.Restrictions?.Count > 0 )
 			{
 				var set = new HashSet<Guid>(target.Restrictions ?? new List<Guid>());
-				foreach ( Guid g in source.Restrictions ) _ = set.Add(g);
+				foreach ( Guid g in source.Restrictions )
+				{
+					_ = set.Add(g);
+				}
 				target.Restrictions = set.ToList();
 			}
 			if ( source.InstallAfter?.Count > 0 )
 			{
 				var set = new HashSet<Guid>(target.InstallAfter ?? new List<Guid>());
-				foreach ( Guid g in source.InstallAfter ) _ = set.Add(g);
+				foreach ( Guid g in source.InstallAfter )
+				{
+					_ = set.Add(g);
+				}
 				target.InstallAfter = set.ToList();
 			}
 			if ( source.InstallBefore?.Count > 0 )
 			{
 				var set = new HashSet<Guid>(target.InstallBefore ?? new List<Guid>());
-				foreach ( Guid g in source.InstallBefore ) _ = set.Add(g);
+				foreach ( Guid g in source.InstallBefore )
+				{
+					_ = set.Add(g);
+				}
 				target.InstallBefore = set.ToList();
 			}
 
@@ -290,12 +272,14 @@ namespace KOTORModSync.Core.Services
 				if ( target.Instructions == null || target.Instructions.Count == 0 )
 				{
 					foreach ( Instruction instr in source.Instructions )
+					{
 						target.Instructions.Add(instr);
+					}
 				}
 				else
 				{
 					// Heuristic: consider new instructions different if Action+Destination combo not present
-					var existingKeys = new HashSet<string>(target.Instructions.Select(i => (i.ActionString + "|" + (i.Destination ?? string.Empty)).ToLowerInvariant()));
+					var existingKeys = new HashSet<string>(target.Instructions.Select(i => (i.ActionString + "|" + i.Destination).ToLowerInvariant()));
 					foreach ( Instruction instr in source.Instructions )
 					{
 						string key = (instr.ActionString + "|" + (instr.Destination ?? string.Empty)).ToLowerInvariant();
@@ -308,7 +292,7 @@ namespace KOTORModSync.Core.Services
 			// Merge Options: match by Name (case-insensitive). Do not change IsSelected.
 			if ( source.Options != null && source.Options.Count > 0 )
 			{
-				Dictionary<string, Option> optMap = target.Options?.ToDictionary(o => (o.Name ?? string.Empty).Trim().ToLowerInvariant())
+				Dictionary<string, Option> optMap = target.Options?.ToDictionary(o => o.Name.Trim().ToLowerInvariant())
 						  ?? new Dictionary<string, Option>();
 				foreach ( Option srcOpt in source.Options )
 				{
@@ -319,7 +303,7 @@ namespace KOTORModSync.Core.Services
 						// append instructions if not present
 						if ( srcOpt.Instructions != null && srcOpt.Instructions.Count > 0 )
 						{
-							var keys = new HashSet<string>(trgOpt.Instructions.Select(i => (i.ActionString + "|" + (i.Destination ?? string.Empty)).ToLowerInvariant()));
+							var keys = new HashSet<string>(trgOpt.Instructions.Select(i => (i.ActionString + "|" + i.Destination).ToLowerInvariant()));
 							foreach ( Instruction instr in srcOpt.Instructions )
 							{
 								string key = (instr.ActionString + "|" + (instr.Destination ?? string.Empty)).ToLowerInvariant();

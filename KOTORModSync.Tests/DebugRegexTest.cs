@@ -54,7 +54,7 @@ ___";
 			MatchCollection matches = regex.Matches(sample);
 
 			Console.WriteLine($"Found {matches.Count} matches");
-			for (int i = 0; i < matches.Count; i++)
+			for ( int i = 0; i < matches.Count; i++ )
 			{
 				Match match = matches[i];
 				Console.WriteLine($"Match {i + 1}:");

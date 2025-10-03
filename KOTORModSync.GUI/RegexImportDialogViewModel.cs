@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -16,7 +17,6 @@ using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
-using Component = KOTORModSync.Core.Component;
 
 namespace KOTORModSync
 {
@@ -26,7 +26,7 @@ namespace KOTORModSync
 		private string _previewSummary;
 		private string _previewMarkdown;
 		private ObservableCollection<Inline> _highlightedPreview;
-		private int _selectedTabIndex = 1; // Default to Raw tab (index 1)
+		private int _selectedTabIndex; // Default to Simple tab (index 0)
 
 		public MergeHeuristicsOptions Heuristics { get; private set; }
 
@@ -74,6 +74,7 @@ namespace KOTORModSync
 			}
 		}
 
+		[UsedImplicitly]
 		public int SelectedTabIndex
 		{
 			get => _selectedTabIndex;
@@ -92,12 +93,11 @@ namespace KOTORModSync
 		{
 			var parser = new MarkdownParser(Profile,
 				logInfo => Logger.Log(logInfo),
-				logVerbose => Logger.LogVerbose(logVerbose));
+				Logger.LogVerbose);
 			MarkdownParserResult result = parser.Parse(_markdown);
 			int comp = result.Components?.Count ?? 0;
-			int links = 0;
-			foreach ( Component c in result.Components )
-				links += c.ModLink?.Count ?? 0;
+			Debug.Assert(result.Components != null, "result.Components != null");
+			int links = result.Components.Sum(c => c.ModLink.Count);
 			PreviewSummary = $"Components: {comp} | Links: {links}";
 
 			// Generate highlighted preview and update counts
@@ -162,22 +162,20 @@ namespace KOTORModSync
 						foreach ( string groupName in groupColors.Keys )
 						{
 							Group group = match.Groups[groupName];
-							if ( group.Success && group.Length > 0 )
+							if ( !group.Success || group.Length <= 0 )
+							    continue;
+							Logger.LogVerbose($"RAW group '{groupName}': '{group.Value}'");
+							bool overlaps = processedRanges.Any(range => !(group.Index >= range.end || group.Index + group.Length <= range.start));
+							if ( overlaps )
+								continue;
+							int relativeStart = group.Index - match.Index;
+							if ( relativeStart > 0 )
 							{
-								Logger.LogVerbose($"RAW group '{groupName}': '{group.Value}'");
-								bool overlaps = processedRanges.Any(range => !(group.Index >= range.end || group.Index + group.Length <= range.start));
-								if ( !overlaps )
-								{
-									int relativeStart = group.Index - match.Index;
-									if ( relativeStart > 0 )
-									{
-										string beforeGroup = match.Value.Substring(0, relativeStart);
-										if ( !string.IsNullOrEmpty(beforeGroup) ) inlines.Add(new Run(beforeGroup) { Foreground = Brushes.White });
-									}
-									inlines.Add(new Run(group.Value) { Foreground = groupColors[groupName], FontWeight = FontWeight.Bold });
-									processedRanges.Add((group.Index, group.Index + group.Length));
-								}
+								string beforeGroup = match.Value.Substring(0, relativeStart);
+								if ( !string.IsNullOrEmpty(beforeGroup) ) inlines.Add(new Run(beforeGroup) { Foreground = Brushes.White });
 							}
+							inlines.Add(new Run(group.Value) { Foreground = groupColors[groupName], FontWeight = FontWeight.Bold });
+							processedRanges.Add((group.Index, group.Index + group.Length));
 						}
 
 						if ( processedRanges.Count == 0 ) inlines.Add(new Run(match.Value) { Foreground = Brushes.White });
@@ -207,7 +205,7 @@ namespace KOTORModSync
 						string sectionText;
 						int sectionTextStartInDoc;
 						Group contentGroup = section.Groups["content"];
-						if ( contentGroup != null && contentGroup.Success )
+						if ( contentGroup.Success )
 						{
 							sectionText = contentGroup.Value;
 							sectionTextStartInDoc = contentGroup.Index;
@@ -230,7 +228,7 @@ namespace KOTORModSync
 							foreach ( Match m in r.Matches(sectionText) )
 							{
 								Group g = m.Groups[groupName];
-								if ( g != null && g.Success && g.Length > 0 )
+								if ( g.Success && g.Length > 0 )
 								{
 									int absStart = sectionTextStartInDoc + g.Index;
 									int absEnd = absStart + g.Length;
@@ -292,12 +290,10 @@ namespace KOTORModSync
 			// Update the preview summary with match counts
 			var parser = new MarkdownParser(Profile,
 				logInfo => Logger.Log(logInfo),
-				logVerbose => Logger.LogVerbose(logVerbose));
+				Logger.LogVerbose);
 			MarkdownParserResult result = parser.Parse(_markdown);
-			int comp = result.Components?.Count ?? 0;
-			int links = 0;
-			foreach ( Component c in result.Components )
-				links += c.ModLink?.Count ?? 0;
+			int comp = result.Components.Count;
+			int links = result.Components.Sum(c => c.ModLink.Count);
 			PreviewSummary = $"Components: {comp} | Links: {links}";
 		}
 
@@ -309,7 +305,7 @@ namespace KOTORModSync
 		{
 			var parser = new MarkdownParser(Profile,
 				logInfo => Logger.Log(logInfo),
-				logVerbose => Logger.LogVerbose(logVerbose));
+				Logger.LogVerbose);
 			return parser.Parse(_markdown);
 		}
 

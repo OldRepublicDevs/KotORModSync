@@ -1705,6 +1705,23 @@ namespace KOTORModSync.Core
 
 			Dictionary<Guid, GraphNode> nodeMap = CreateDependencyGraph(components);
 
+			// First, check for circular dependencies using a recursion stack
+			var permanentMark = new HashSet<GraphNode>();
+			var temporaryMark = new HashSet<GraphNode>();
+
+			foreach ( GraphNode node in nodeMap.Values )
+			{
+				if ( !permanentMark.Contains(node) )
+				{
+					if ( HasCycle(node, permanentMark, temporaryMark) )
+					{
+						// Circular dependency detected - throw KeyNotFoundException to maintain compatibility
+						throw new KeyNotFoundException("Circular dependency detected in component ordering");
+					}
+				}
+			}
+
+			// No cycles found, proceed with topological sort
 			var visitedNodes = new HashSet<GraphNode>();
 			var orderedComponents = new List<Component>();
 
@@ -1719,6 +1736,32 @@ namespace KOTORModSync.Core
 			bool isCorrectOrder = orderedComponents.SequenceEqual(components);
 
 			return (isCorrectOrder, orderedComponents);
+		}
+
+		// Detects cycles using DFS with recursion stack (temporary marks)
+		private static bool HasCycle(
+			[NotNull] GraphNode node,
+			[NotNull] ISet<GraphNode> permanentMark,
+			[NotNull] ISet<GraphNode> temporaryMark
+		)
+		{
+			if ( permanentMark.Contains(node) )
+				return false; // Already processed, no cycle
+
+			if ( temporaryMark.Contains(node) )
+				return true; // Found a back edge - cycle detected!
+
+			_ = temporaryMark.Add(node);
+
+			foreach ( GraphNode dependency in node.Dependencies )
+			{
+				if ( HasCycle(dependency, permanentMark, temporaryMark) )
+					return true;
+			}
+
+			_ = temporaryMark.Remove(node);
+			_ = permanentMark.Add(node);
+			return false;
 		}
 
 		// use a graph traversal algorithm
@@ -1769,13 +1812,23 @@ namespace KOTORModSync.Core
 
 				foreach ( Guid dependencyGuid in component.InstallAfter )
 				{
-					GraphNode dependencyNode = nodeMap[dependencyGuid];
+					if ( !nodeMap.TryGetValue(dependencyGuid, out GraphNode dependencyNode) )
+					{
+						// Skip missing dependencies - they're not in the current component list
+						Logger.LogWarning($"Component '{component.Name}' references InstallAfter GUID {dependencyGuid} which is not in the current component list");
+						continue;
+					}
 					_ = node?.Dependencies?.Add(dependencyNode);
 				}
 
 				foreach ( Guid dependentGuid in component.InstallBefore )
 				{
-					GraphNode dependentNode = nodeMap[dependentGuid];
+					if ( !nodeMap.TryGetValue(dependentGuid, out GraphNode dependentNode) )
+					{
+						// Skip missing dependencies - they're not in the current component list
+						Logger.LogWarning($"Component '{component.Name}' references InstallBefore GUID {dependentGuid} which is not in the current component list");
+						continue;
+					}
 					_ = dependentNode?.Dependencies?.Add(node);
 				}
 			}

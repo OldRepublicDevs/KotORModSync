@@ -69,9 +69,12 @@ namespace KOTORModSync
 			var recursionStack = new HashSet<Guid>();
 			var currentPath = new List<Guid>();
 
-			foreach ( Guid guid in componentsByGuid.Keys.Where(guid => !visited.Contains(guid)).Where(guid => DfsDetectCycle(guid, graph, visited, recursionStack, currentPath, result)))
+			foreach ( Guid guid in componentsByGuid.Keys.Where(guid => !visited.Contains(guid)))
 			{
-				result.HasCircularDependencies = true;
+				if (DfsDetectCycle(guid, graph, visited, recursionStack, currentPath, result))
+				{
+					result.HasCircularDependencies = true;
+				}
 			}
 
 			// Build detailed error message
@@ -143,8 +146,8 @@ namespace KOTORModSync
 		List<Guid> currentPath,
 		CircularDependencyResult result)
 	{
-			_ = visited.Add(node);
-			_ = recursionStack.Add(node);
+		_ = visited.Add(node);
+		_ = recursionStack.Add(node);
 		currentPath.Add(node);
 
 		if ( graph.TryGetValue(node, out List<Guid> neighbors) )
@@ -176,7 +179,7 @@ namespace KOTORModSync
 			}
 		}
 
-			_ = recursionStack.Remove(node);
+		_ = recursionStack.Remove(node);
 		currentPath.RemoveAt(currentPath.Count - 1);
 		return false;
 	}

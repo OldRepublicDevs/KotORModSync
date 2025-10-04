@@ -3949,8 +3949,7 @@ namespace KOTORModSync
 			try
 			{
 				// Clear the existing list
-				if ( ModListBox != null )
-					ModListBox.Items.Clear();
+				ModListBox?.Items.Clear();
 
 				// Use the ComponentProcessingService to process components
 				ComponentProcessingResult result = await ComponentProcessingService.ProcessComponentsAsync(componentsList);
@@ -3976,6 +3975,9 @@ namespace KOTORModSync
 					CircularDependencyDetector.CircularDependencyResult cycleInfo =
 						CircularDependencyDetector.DetectCircularDependencies(componentsList);
 
+					// Only show dialog if there are actual circular dependencies
+					if ( !cycleInfo.HasCircularDependencies || cycleInfo.Cycles.Count <= 0 )
+					    return;
 					(bool retry, List<Component> resolvedComponents) = await CircularDependencyResolutionDialog.ShowResolutionDialog(
 						this,
 						componentsList,

@@ -55,6 +55,10 @@ namespace KOTORModSync
 			List<Component> components,
 			CircularDependencyDetector.CircularDependencyResult cycleInfo)
 		{
+			// Don't show dialog if there are no circular dependencies
+			if (!cycleInfo.HasCircularDependencies || cycleInfo.Cycles.Count == 0)
+			    return (false, components);
+
 			var dialog = new CircularDependencyResolutionDialog(components, cycleInfo);
 			await dialog.ShowDialog(owner);
 			return (dialog.UserRetried, dialog.ResolvedComponents);

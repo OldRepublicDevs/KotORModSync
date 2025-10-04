@@ -1820,6 +1820,9 @@ namespace KOTORModSync
 			}
 		}
 
+		private HashSet<string> _selectedCategories = new HashSet<string>();
+		private string _selectedMinTier = "Any";
+
 		private void FilterModList(string searchText)
 		{
 			try
@@ -1836,12 +1839,115 @@ namespace KOTORModSync
 				};
 
 				List<Component> filteredComponents = _modManagementService.SearchMods(searchText, searchOptions);
+
+				// Apply tier and category filters
+				filteredComponents = ApplyTierAndCategoryFilters(filteredComponents);
+
 				PopulateModList(filteredComponents);
 			}
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex);
 			}
+		}
+
+		private List<Component> ApplyTierAndCategoryFilters(List<Component> components)
+		{
+			// Define tier hierarchy (lower index = higher priority)
+			var tierHierarchy = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+			{
+				{ "Essential", 0 },
+				{ "Recommended", 1 },
+				{ "Suggested", 2 },
+				{ "Optional", 3 }
+			};
+
+			int minTierLevel = _selectedMinTier == "Any" ? int.MaxValue :
+				(tierHierarchy.TryGetValue(_selectedMinTier, out int level) ? level : int.MaxValue);
+
+			return components.Where(c =>
+			{
+				// Check tier filter
+				if ( minTierLevel != int.MaxValue )
+				{
+					if ( string.IsNullOrEmpty(c.Tier) )
+						return false;
+
+					if ( tierHierarchy.TryGetValue(c.Tier, out int componentTierLevel) )
+					{
+						if ( componentTierLevel < minTierLevel )
+							return false;
+					}
+				}
+
+				// Check category filter
+				if ( _selectedCategories.Count > 0 )
+				{
+					if ( string.IsNullOrEmpty(c.Category) || !_selectedCategories.Contains(c.Category) )
+						return false;
+				}
+
+				return true;
+			}).ToList();
+		}
+
+		private void RefreshCategoryCheckboxes()
+		{
+			try
+			{
+				StackPanel categoryPanel = this.FindControl<StackPanel>("CategoryFilterPanel");
+				if ( categoryPanel == null )
+					return;
+
+				// Get all unique categories from loaded components
+				var categories = MainConfig.AllComponents
+					.Select(c => c.Category)
+					.Where(cat => !string.IsNullOrEmpty(cat))
+					.Distinct()
+					.OrderBy(cat => cat)
+					.ToList();
+
+				// Clear existing checkboxes
+				categoryPanel.Children.Clear();
+
+				// Initialize selected categories if empty (all selected by default)
+				if ( _selectedCategories.Count == 0 )
+				{
+					_selectedCategories = new HashSet<string>(categories, StringComparer.OrdinalIgnoreCase);
+				}
+
+				// Create checkbox for each category
+				foreach ( string category in categories )
+				{
+					var checkBox = new CheckBox
+					{
+						Content = category,
+						IsChecked = _selectedCategories.Contains(category),
+						Margin = new Thickness(0, 2, 0, 2)
+					};
+
+					checkBox.IsCheckedChanged += (s, e) =>
+					{
+						if ( checkBox.IsChecked == true )
+							_ = _selectedCategories.Add(category);
+						else
+							_ = _selectedCategories.Remove(category);
+
+						ApplyAllFilters();
+					};
+
+					categoryPanel.Children.Add(checkBox);
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private void ApplyAllFilters()
+		{
+			FilterModList(SearchText ?? string.Empty);
 		}
 
 		private void RefreshModList()
@@ -2019,11 +2125,58 @@ namespace KOTORModSync
 		{
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
-			if ( sender is ComboBox )
+
+			// Don't start window drag if clicking on interactive controls
+			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
 			_mouseDownForWindowMoving = true;
 			_originalPoint = e.GetCurrentPoint(this);
+		}
+
+		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		{
+			// Get the element under the pointer
+			if ( !(e.Source is Visual source) )
+				return false;
+
+			// Walk up the visual tree to check if we're clicking on an interactive element
+			Visual current = source;
+			while ( current != null && current != this )
+			{
+				// Check if we're clicking on any interactive control
+				if ( current is Button ||
+				     current is TextBox ||
+				     current is ComboBox ||
+				     current is ListBox ||
+				     current is MenuItem ||
+				     current is Menu ||
+				     current is Expander ||
+				     current is Slider ||
+				     current is TabControl ||
+				     current is TabItem )
+				{
+					return true;
+				}
+
+				// Check if the element has context menu or flyout open
+				if ( current is Control control )
+				{
+					if ( control.ContextMenu?.IsOpen == true )
+						return true;
+
+					if ( control is Button button && button.Flyout?.IsOpen == true )
+						return true;
+
+					if ( control is DropDownButton dropDownButton && dropDownButton.Flyout?.IsOpen == true )
+						return true;
+				}
+
+				// Move up the visual tree
+				current = current.GetVisualParent() as Visual;
+			}
+
+			return false;
 		}
 
 		private void InputElement_OnPointerReleased([NotNull] object sender, [NotNull] PointerEventArgs e) =>
@@ -4068,6 +4221,9 @@ namespace KOTORModSync
 				// Populate the list box with components
 				PopulateModList(componentsToProcess);
 
+				// Refresh category filter checkboxes with loaded components
+				RefreshCategoryCheckboxes();
+
 				if ( componentsToProcess.Count > 0 || TabControl is null )
 				{
 					// Show the tabs when components are loaded
@@ -4921,8 +5077,6 @@ namespace KOTORModSync
 					return;
 				}
 
-				Logger.Log($"Starting download for {componentsToDownload.Count} mod(s)...");
-
 				// Create and show the download progress window
 				var progressWindow = new DownloadProgressWindow();
 				_currentDownloadWindow = progressWindow;
@@ -5072,6 +5226,142 @@ namespace KOTORModSync
 				Logger.LogException(ex, "Failed to open mod directory");
 			}
 		}
+
+		#region Filter Event Handlers
+
+		[UsedImplicitly]
+		private void TierFilter_Changed(object sender, SelectionChangedEventArgs e)
+		{
+			try
+			{
+				var comboBox = sender as ComboBox;
+				if ( !(comboBox?.SelectedItem is ComboBoxItem selectedItem) )
+				    return;
+				_selectedMinTier = selectedItem.Content?.ToString() ?? "Any";
+				ApplyAllFilters();
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		[UsedImplicitly]
+		private void SelectFilteredMods_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				if ( ModListBox == null )
+					return;
+
+				// Select all visible (filtered) mods
+				foreach ( object item in ModListBox.Items )
+				{
+					if ( item is Component component )
+					{
+						component.IsSelected = true;
+						ComponentCheckboxChecked(component, new HashSet<Component>());
+					}
+				}
+
+				UpdateModCounts();
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		[UsedImplicitly]
+		private void DeselectFilteredMods_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				if ( ModListBox == null )
+					return;
+
+				// Deselect all visible (filtered) mods
+				foreach ( object item in ModListBox.Items )
+				{
+					if ( item is Component component )
+					{
+						component.IsSelected = false;
+						ComponentCheckboxUnchecked(component, new HashSet<Component>());
+					}
+				}
+
+				UpdateModCounts();
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		[UsedImplicitly]
+		private void SelectAllCategories_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				StackPanel categoryPanel = this.FindControl<StackPanel>("CategoryFilterPanel");
+				if ( categoryPanel == null )
+					return;
+
+				// Check all category checkboxes
+				foreach ( Control child in categoryPanel.Children )
+				{
+					if ( child is CheckBox checkBox )
+						checkBox.IsChecked = true;
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		[UsedImplicitly]
+		private void DeselectAllCategories_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				StackPanel categoryPanel = this.FindControl<StackPanel>("CategoryFilterPanel");
+				if ( categoryPanel == null )
+					return;
+
+				// Uncheck all category checkboxes
+				foreach ( Control child in categoryPanel.Children )
+				{
+					if ( child is CheckBox checkBox )
+						checkBox.IsChecked = false;
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		[UsedImplicitly]
+		private void ClearAllFilters_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				// Reset tier filter
+				ComboBox minTierComboBox = this.FindControl<ComboBox>("MinTierComboBox");
+				if ( minTierComboBox != null )
+					minTierComboBox.SelectedIndex = 0; // "Any"
+
+				// Select all categories
+				SelectAllCategories_Click(sender, e);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		#endregion
 
 	}
 }

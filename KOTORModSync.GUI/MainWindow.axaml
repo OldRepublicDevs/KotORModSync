@@ -94,7 +94,7 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto" Margin="0,0,10,0">
+        <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,0,10,0">
             <!-- Search Box -->
             <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
             <controls:SearchBox Grid.Row="0" Margin="0,0,0,2" HorizontalAlignment="Stretch"
@@ -102,8 +102,90 @@
                                SearchText="{Binding SearchText, Mode=TwoWay}"
                                Watermark="Search mods by name or author..."/>
 
+            <!-- Filter Panel -->
+            <Expander Grid.Row="1"
+                      Header="🔍 Filters"
+                      IsExpanded="False"
+                      Margin="0,0,0,2">
+                <Border Classes="mod-list-header" Padding="8" Margin="0,2,0,0">
+                    <StackPanel Spacing="10">
+                        <!-- Tier Filter -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Tier" FontWeight="SemiBold" FontSize="12" />
+                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                          Text="Min:"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,8,0"
+                                          FontSize="11" />
+                                <ComboBox Grid.Row="0" Grid.Column="1"
+                                         x:Name="MinTierComboBox"
+                                         HorizontalAlignment="Stretch"
+                                         SelectedIndex="0"
+                                         SelectionChanged="TierFilter_Changed">
+                                    <ComboBoxItem Content="Any" />
+                                    <ComboBoxItem Content="Essential" />
+                                    <ComboBoxItem Content="Recommended" />
+                                    <ComboBoxItem Content="Suggested" />
+                                    <ComboBoxItem Content="Optional" />
+                                </ComboBox>
+
+                                <StackPanel Grid.Row="1" Grid.Column="1"
+                                           Orientation="Horizontal"
+                                           Spacing="6"
+                                           Margin="0,6,0,0">
+                                    <Button Content="Select Filtered"
+                                           Click="SelectFilteredMods_Click"
+                                           FontSize="11"
+                                           Padding="6,3"
+                                           HorizontalAlignment="Stretch" />
+                                    <Button Content="Deselect Filtered"
+                                           Click="DeselectFilteredMods_Click"
+                                           FontSize="11"
+                                           Padding="6,3"
+                                           HorizontalAlignment="Stretch" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Category Filter -->
+                        <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0"
+                                          Text="Categories"
+                                          FontWeight="SemiBold"
+                                          FontSize="12"
+                                          VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                    <Button Content="All"
+                                           Click="SelectAllCategories_Click"
+                                           FontSize="10"
+                                           Padding="4,2" />
+                                    <Button Content="None"
+                                           Click="DeselectAllCategories_Click"
+                                           FontSize="10"
+                                           Padding="4,2" />
+                                </StackPanel>
+                            </Grid>
+                            <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="CategoryFilterPanel" Spacing="2" />
+                            </ScrollViewer>
+                        </StackPanel>
+
+                        <!-- Filter Actions -->
+                        <StackPanel Spacing="4">
+                            <Button Content="🗑️ Clear All Filters"
+                                   Click="ClearAllFilters_Click"
+                                   HorizontalAlignment="Stretch"
+                                   FontSize="11"
+                                   Padding="6,3" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Expander>
+
             <!-- Select All/Deselect All Header -->
-            <Border Grid.Row="1"
+            <Border Grid.Row="2"
                     Classes="mod-list-header"
                     Padding="8,4"
                     Margin="0,0,0,2">
@@ -136,7 +218,7 @@
             </Border>
 
             <!-- Mod List -->
-            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled">
                 <ScrollViewer.ContextMenu>
                     <ContextMenu x:Name="ModListContextMenu" />
                 </ScrollViewer.ContextMenu>
@@ -154,7 +236,7 @@
             </ScrollViewer>
 
             <!-- Mod Tools Button -->
-            <DropDownButton Grid.Row="3"
+            <DropDownButton Grid.Row="4"
                             x:Name="GlobalActionsButton"
                             Content="⚙️ Mod Tools"
                             HorizontalAlignment="Stretch"

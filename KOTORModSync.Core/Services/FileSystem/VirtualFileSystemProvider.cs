@@ -145,7 +145,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 			// If file was explicitly removed/moved, it doesn't exist even if still on disk
 			if ( _removedFiles.Contains(path) )
 			{
-				Console.WriteLine($"[VFS] FileExists: path={path}, REMOVED, result=False");
+				//Console.WriteLine($"[VFS] FileExists: path={path}, REMOVED, result=False");
 				return false;
 			}
 
@@ -153,28 +153,24 @@ namespace KOTORModSync.Core.Services.FileSystem
 			bool onDisk = File.Exists(path);
 			bool result = inVirtual || onDisk;
 
-			Console.WriteLine($"[VFS] FileExists: path={path}, inVirtual={inVirtual}, onDisk={onDisk}, result={result}");
+			//Console.WriteLine($"[VFS] FileExists: path={path}, inVirtual={inVirtual}, onDisk={onDisk}, result={result}");
 			if ( !result && _virtualFiles.Count > 0 )
 			{
-				Console.WriteLine($"[VFS] FileExists: Virtual files ({_virtualFiles.Count}):");
-				foreach ( var f in _virtualFiles.Take(10) )
-				{
-					Console.WriteLine($"[VFS]   - {f}");
-				}
-				if ( _virtualFiles.Count > 10 )
-					Console.WriteLine($"[VFS]   ... and {_virtualFiles.Count - 10} more");
+				//Console.WriteLine($"[VFS] FileExists: Virtual files ({_virtualFiles.Count}):");
+				//foreach ( var f in _virtualFiles.Take(10) )
+				//{
+					//Console.WriteLine($"[VFS]   - {f}");
+				//}
+				//if ( _virtualFiles.Count > 10 )
+					//Console.WriteLine($"[VFS]   ... and {_virtualFiles.Count - 10} more");
 			}
 
 			return result;
 		}
 
-		public bool DirectoryExists(string path)
-		{
-			if ( string.IsNullOrWhiteSpace(path) )
-				return false;
-
-			return _virtualDirectories.Contains(path) || Directory.Exists(path);
-		}
+		public bool DirectoryExists(string path) => string.IsNullOrWhiteSpace(path)
+		                                                     ? false
+															 : _virtualDirectories.Contains(path) || Directory.Exists(path);
 
 		public Task CopyFileAsync(string sourcePath, string destinationPath, bool overwrite)
 		{
@@ -198,16 +194,12 @@ namespace KOTORModSync.Core.Services.FileSystem
 
 			// If source is an archive, copy its metadata too
 			if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
-			{
 				_archiveContents[destinationPath] = new HashSet<string>(archiveContents, StringComparer.OrdinalIgnoreCase);
-			}
 
 			// Ensure parent directory exists
 			string parentDir = Path.GetDirectoryName(destinationPath);
 			if ( !string.IsNullOrEmpty(parentDir) && !DirectoryExists(parentDir) )
-			{
 				_ = _virtualDirectories.Add(parentDir);
-			}
 
 			return Task.CompletedTask;
 		}
@@ -221,7 +213,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 			{
 				AddIssue(ValidationSeverity.Error, "MoveFile",
 					$"Source file does not exist: {sourcePath}", sourcePath);
-				Console.WriteLine($"[VFS] MoveFileAsync: ERROR - source does not exist!");
+				Console.WriteLine("[VFS] MoveFileAsync: ERROR - source does not exist!");
 				return Task.CompletedTask;
 			}
 
@@ -253,9 +245,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 			// Ensure parent directory exists
 			string parentDir = Path.GetDirectoryName(destinationPath);
 			if ( !string.IsNullOrEmpty(parentDir) && !DirectoryExists(parentDir) )
-			{
 				_ = _virtualDirectories.Add(parentDir);
-			}
 
 			return Task.CompletedTask;
 		}
@@ -428,16 +418,14 @@ namespace KOTORModSync.Core.Services.FileSystem
 						// File must be directly in this directory (not in subdirectories)
 						return string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase);
 					}
-					else
-					{
-						// File must be in this directory or any subdirectory
-						// Check if fileDir equals normalizedDir OR starts with normalizedDir + separator
-						if ( string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase) )
-							return true;
 
-						string dirWithSeparator = normalizedDir + Path.DirectorySeparatorChar;
-						return fileDir.StartsWith(dirWithSeparator, StringComparison.OrdinalIgnoreCase);
-					}
+					// File must be in this directory or any subdirectory
+					// Check if fileDir equals normalizedDir OR starts with normalizedDir + separator
+					if ( string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase) )
+						return true;
+
+					string dirWithSeparator = normalizedDir + Path.DirectorySeparatorChar;
+					return fileDir.StartsWith(dirWithSeparator, StringComparison.OrdinalIgnoreCase);
 				})
 				.ToList();
 
@@ -464,15 +452,13 @@ namespace KOTORModSync.Core.Services.FileSystem
 		public Task<(int exitCode, string output, string error)> ExecuteProcessAsync(string programPath, string arguments)
 		{
 			// For dry-run, just validate the program exists
-			if ( !FileExists(programPath) )
-			{
-				AddIssue(ValidationSeverity.Error, "ExecuteProcess",
-					$"Program file does not exist: {programPath}", programPath);
-				return Task.FromResult((1, string.Empty, $"Program not found: {programPath}"));
-			}
+			if ( FileExists(programPath) )
+				return Task.FromResult((0, "[Dry-run: Program execution simulated]", string.Empty));
+			AddIssue(ValidationSeverity.Error, "ExecuteProcess",
+				$"Program file does not exist: {programPath}", programPath);
+			return Task.FromResult((1, string.Empty, $"Program not found: {programPath}"));
 
 			// Simulate successful execution
-			return Task.FromResult((0, "[Dry-run: Program execution simulated]", string.Empty));
 		}
 
 		public string GetActualPath(string path) => path;

@@ -105,7 +105,7 @@ namespace KOTORModSync.Core.Services.Download
 									 "• An API key is required but not configured\n" +
 									 "• The mod page requires login/authentication\n\n" +
 									 $"Please download manually from: {url}\n\n" +
-									 "Or configure a Nexus Mods API key in settings for automated downloads.\n\n" +
+									 "Or configure a Nexus Mods API key in settings (coming soon) for automated downloads.\n\n" +
 									 $"Technical details: {httpEx.Message}";
 
 				progress?.Report(new DownloadProgress

@@ -125,6 +125,11 @@
                                                           Click="LinkSelectedMenuItem_Click"
                                                           IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
                                                 <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
+                                                <Separator IsVisible="{Binding HasGuidConflict}"/>
+                                                <MenuItem Header="🆔 Use this component's GUID"
+                                                          IsVisible="{Binding HasGuidConflict}"
+                                                          Click="UseThisGuid_Click"
+                                                          ToolTip.Tip="{Binding GuidConflictTooltip}"/>
                                             </ContextMenu>
                                         </Border.ContextMenu>
                                         <Grid ColumnDefinitions="Auto,Auto,60,*" RowDefinitions="Auto,Auto,Auto">
@@ -211,6 +216,11 @@
                                                           Click="LinkSelectedMenuItem_Click"
                                                           IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
                                                 <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
+                                                <Separator IsVisible="{Binding HasGuidConflict}"/>
+                                                <MenuItem Header="🆔 Use this component's GUID"
+                                                          IsVisible="{Binding HasGuidConflict}"
+                                                          Click="UseThisGuid_Click"
+                                                          ToolTip.Tip="{Binding GuidConflictTooltip}"/>
                                             </ContextMenu>
                                         </Border.ContextMenu>
                                         <Grid ColumnDefinitions="Auto,Auto,60,*" RowDefinitions="Auto,Auto,Auto">
@@ -319,22 +329,6 @@
                     </Grid>
                 </Border>
 
-                <!-- Component Details Comparison -->
-                <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
-                        Margin="5,5,0,0" Height="120"
-                        IsVisible="{Binding ComparisonVisible}">
-                    <Grid RowDefinitions="Auto,*">
-                        <TextBlock Grid.Row="0" Text="📋 Component Details"
-                                   FontWeight="SemiBold" Padding="6"
-                                   FontSize="11"
-                                   Background="{DynamicResource ThemeBackgroundBrush}"/>
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <TextBlock Text="{Binding ComparisonText}"
-                                       FontFamily="Consolas" FontSize="10"
-                                       Padding="6" TextWrapping="Wrap"/>
-                        </ScrollViewer>
-                    </Grid>
-                </Border>
             </Grid>
         </Grid>
 

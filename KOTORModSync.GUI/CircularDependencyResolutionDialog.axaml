@@ -1,0 +1,121 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="KOTORModSync.CircularDependencyResolutionDialog"
+        Title="⚠️ Circular Dependency Resolution"
+        Width="900" Height="700"
+        MinWidth="700" MinHeight="500"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource ThemeBackgroundBrush}"
+        Foreground="{DynamicResource ThemeForegroundBrush}">
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{DynamicResource ThemeControlHighlightLowBrush}"
+                BorderThickness="0,0,0,1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                Padding="20">
+            <StackPanel Spacing="10">
+                <TextBlock Text="⚠️ CIRCULAR DEPENDENCY DETECTED" FontSize="18" FontWeight="Bold"/>
+                <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" Opacity="0.9"/>
+                <TextBlock Text="💡 Uncheck components below to break the cycle, then click 'Retry' to continue."
+                           TextWrapping="Wrap" FontStyle="Italic" Opacity="0.7"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" ColumnDefinitions="2*,*" Margin="20">
+            <!-- Component List -->
+            <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                    Background="{DynamicResource ThemeBackgroundBrush}" Margin="0,0,10,0">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="📋 Component List" FontWeight="SemiBold"
+                               Padding="15,10" FontSize="14"
+                               Background="{DynamicResource ThemeControlHighlightLowBrush}"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Components}" Padding="10">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,5" Padding="10" CornerRadius="4"
+                                            Background="{Binding BackgroundBrush}"
+                                            BorderThickness="1" BorderBrush="{Binding BorderBrush}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <CheckBox Grid.Column="0"
+                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                      VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Author}" Opacity="0.7" FontSize="11"/>
+                                                <TextBlock Text="{Binding CycleInfo}"
+                                                           Foreground="{Binding CycleInfoColor}"
+                                                           FontSize="11" Margin="0,5,0,0"
+                                                           IsVisible="{Binding IsInCycle}"/>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="2" Text="{Binding StatusIcon}"
+                                                       FontSize="24" VerticalAlignment="Center"
+                                                       ToolTip.Tip="{Binding StatusTooltip}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Recommendations Panel -->
+            <Border Grid.Column="1" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                    Background="{DynamicResource ThemeBackgroundBrush}">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="💡 Recommendations" FontWeight="SemiBold"
+                               Padding="15,10" FontSize="14"
+                               Background="{DynamicResource ThemeControlHighlightLowBrush}"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="15">
+                        <StackPanel Spacing="15">
+                            <TextBlock Text="Quick Fixes:" FontWeight="Bold"/>
+                            <ItemsControl ItemsSource="{Binding Suggestions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Text}"
+                                                Command="{Binding $parent[Window].DataContext.ApplySuggestionCommand}"
+                                                CommandParameter="{Binding}"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left"
+                                                Padding="10,8" Margin="0,0,0,5"
+                                                Background="{DynamicResource ThemeControlHighlightLowBrush}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Separator/>
+
+                            <TextBlock Text="Cycle Details:" FontWeight="Bold" Margin="0,10,0,0"/>
+                            <TextBlock Text="{Binding DetailedCycleInfo}"
+                                       TextWrapping="Wrap" FontFamily="Consolas" FontSize="10"
+                                       Opacity="0.8"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="{DynamicResource ThemeControlHighlightLowBrush}"
+                BorderThickness="0,1,0,1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                Padding="20,10">
+            <TextBlock Text="{Binding StatusText}" FontStyle="Italic"/>
+        </Border>
+
+        <!-- Buttons -->
+        <Border Grid.Row="3" Padding="20" Background="{DynamicResource ThemeBackgroundBrush}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                <Button Content="🔄 Retry" Click="Retry_Click" Width="120" Height="35"
+                        Classes="AccentButton" FontWeight="SemiBold"/>
+                <Button Content="Cancel" Click="Cancel_Click" Width="120" Height="35"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
+

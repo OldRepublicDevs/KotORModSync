@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core.FileSystemUtils;
@@ -20,14 +21,8 @@ namespace KOTORModSync.Core.Services
 	/// </summary>
 	public class InstallationService
 	{
-		private readonly ComponentManagerService _componentManager;
-		private readonly FileOperationService _fileOperation;
-
-		public InstallationService()
-		{
-			_componentManager = new ComponentManagerService();
-			_fileOperation = new FileOperationService();
-		}
+		private readonly ComponentManagerService _componentManager = new ComponentManagerService();
+		private readonly FileOperationService _fileOperation = new FileOperationService();
 
 		/// <summary>
 		/// Validates the installation environment and components
@@ -46,7 +41,7 @@ namespace KOTORModSync.Core.Services
 					return (false, "Please set your directories first");
 
 				bool holopatcherIsExecutable = true;
-				bool holopatcherTestExecute = true;
+				bool holopatcherTestExecute = false;
 				string baseDir = Utility.Utility.GetBaseDirectory();
 				string resourcesDir = Utility.Utility.GetResourcesDirectory(baseDir);
 				FileSystemInfo patcherCliPath = null;
@@ -58,7 +53,7 @@ namespace KOTORModSync.Core.Services
 				{
 					// Handling OSX specific paths
 					// FIXME: .app's aren't accepting command-line arguments correctly.
-					string[] possibleOSXPaths =
+					string[] possibleOsxPaths =
 					{
 						Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
 						Path.Combine(resourcesDir, path2: "holopatcher"),
@@ -74,7 +69,7 @@ namespace KOTORModSync.Core.Services
 					};
 
 					OSPlatform thisOperatingSystem = Utility.Utility.GetOperatingSystem();
-					foreach ( string path in possibleOSXPaths )
+					foreach ( string path in possibleOsxPaths )
 					{
 						patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app")
 							? PathHelper.GetCaseSensitivePath(new DirectoryInfo(path))
@@ -267,8 +262,12 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="component">Component to install</param>
 		/// <param name="allComponents">All components for dependency resolution</param>
+		/// <param name="cancellationToken"></param>
 		/// <returns>Installation exit code</returns>
-		public static async Task<Component.InstallExitCode> InstallSingleComponentAsync([NotNull] Component component, [NotNull][ItemNotNull] List<Component> allComponents)
+		public static async Task<Component.InstallExitCode> InstallSingleComponentAsync(
+			[NotNull] Component component,
+			[NotNull][ItemNotNull] List<Component> allComponents,
+			CancellationToken cancellationToken = default)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -284,7 +283,7 @@ namespace KOTORModSync.Core.Services
 			}
 
 			// Install the component
-			return await component.InstallAsync(allComponents);
+			return await component.InstallAsync(allComponents, cancellationToken);
 		}
 
 		/// <summary>
@@ -297,7 +296,7 @@ namespace KOTORModSync.Core.Services
 		public static async Task<Component.InstallExitCode> InstallAllSelectedComponentsAsync(
 			[NotNull][ItemNotNull] List<Component> allComponents,
 			[CanBeNull] Action<int, int, string> progressCallback = null,
-			[CanBeNull] System.Threading.CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default)
 		{
 			if ( allComponents == null )
 				throw new ArgumentNullException(nameof(allComponents));
@@ -308,7 +307,7 @@ namespace KOTORModSync.Core.Services
 				throw new InvalidOperationException("DestinationPath must be set before installing.");
 
 			ResumeResult resume = await coordinator.InitializeAsync(allComponents, destination, cancellationToken);
-			List<Component> orderedComponents = resume.OrderedComponents.Where(component => component.IsSelected).ToList();
+			var orderedComponents = resume.OrderedComponents.Where(component => component.IsSelected).ToList();
 			int total = orderedComponents.Count;
 			Component.InstallExitCode exitCode = Component.InstallExitCode.Success;
 

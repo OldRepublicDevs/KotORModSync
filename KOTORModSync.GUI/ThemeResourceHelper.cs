@@ -22,11 +22,10 @@ namespace KOTORModSync
 		/// <returns>The brush from resources, or the fallback if not found</returns>
 		public static IBrush GetBrush(string resourceKey, IBrush fallback = null)
 		{
-			if (Application.Current?.Resources.TryGetResource(resourceKey, null, out var resource) == true)
-			{
-				if (resource is IBrush brush)
-					return brush;
-			}
+			if ( Application.Current?.Resources.TryGetResource(resourceKey, null, out object resource) != true )
+				return fallback ?? Brushes.Transparent;
+			if (resource is IBrush brush)
+				return brush;
 			return fallback ?? Brushes.Transparent;
 		}
 

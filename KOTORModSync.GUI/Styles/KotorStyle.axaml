@@ -1,5 +1,4 @@
-<Styles xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns="https://github.com/avaloniaui"
+<Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Design.PreviewWith>
         <Border Padding="20">
@@ -206,6 +205,22 @@
         <Setter Property="Margin" Value="2" />
         <Setter Property="MinWidth" Value="150" />
         <Setter Property="Background" Value="#031332" />
+    </Style>
+
+    <!-- ListBoxItem styling for mod list -->
+    <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ListBoxItem:selected">
+        <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="ScrollViewer">
         <Setter Property="VerticalScrollBarVisibility" Value="Auto" />

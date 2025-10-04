@@ -1,0 +1,221 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+        xmlns:controls="clr-namespace:KOTORModSync.Controls"
+        x:Class="KOTORModSync.ModManagementDialog"
+        Title="Mod Management Tools"
+        Width="800" Height="600" MinWidth="600" MinHeight="400"
+        WindowStartupLocation="CenterOwner">
+
+    <Window.Styles>
+        <StyleInclude Source="/Styles/KotorStyle.axaml" />
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#031332" Padding="10">
+            <TextBlock Text="Mod Management Tools" FontSize="18" FontWeight="Bold" Foreground="White" />
+        </Border>
+
+        <!-- Main Content -->
+        <TabControl Grid.Row="1" Margin="10">
+            <!-- Batch Operations Tab -->
+            <TabItem Header="Batch Operations">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10" Spacing="20">
+                        <TextBlock Text="Batch Operations" FontSize="16" FontWeight="Bold" />
+
+					<Expander Header="Selection Operations" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Select All Mods" Click="SelectAllMods_Click" />
+                                <Button Content="Deselect All Mods" Click="DeselectAllMods_Click" />
+                                <Button Content="Invert Selection" Click="InvertSelection_Click" />
+                            </StackPanel>
+					</Expander>
+
+					<Expander Header="Validation Operations" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Validate All Mods" Click="ValidateAllMods_Click" />
+                                <Button Content="Check File Availability" Click="CheckFileAvailability_Click" />
+                            </StackPanel>
+					</Expander>
+
+					<Expander Header="Sorting Operations" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Sort by Name (A-Z)" Click="SortByName_Click" />
+                                <Button Content="Sort by Name (Z-A)" Click="SortByNameDesc_Click" />
+                                <Button Content="Sort by Author" Click="SortByAuthor_Click" />
+                                <Button Content="Sort by Category" Click="SortByCategory_Click" />
+                                <Button Content="Sort by Tier" Click="SortByTier_Click" />
+                            </StackPanel>
+					</Expander>
+
+					<Expander Header="Metadata Operations" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Set All to Downloaded" Click="SetAllDownloaded_Click" />
+                                <Button Content="Set All to Not Downloaded" Click="SetAllNotDownloaded_Click" />
+                                <Button Content="Update Categories" Click="UpdateCategories_Click" />
+                            </StackPanel>
+					</Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Import/Export Tab -->
+            <TabItem Header="Import/Export">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10" Spacing="20">
+                        <TextBlock Text="Import and Export Operations" FontSize="16" FontWeight="Bold" />
+
+					<Expander Header="Import Operations" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Import from TOML File" Click="ImportFromToml_Click" />
+                                <Button Content="Import from JSON" Click="ImportFromJson_Click" />
+                                <Button Content="Import from XML" Click="ImportFromXml_Click" />
+                            </StackPanel>
+					</Expander>
+
+					<Expander Header="Export Operations" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Export to TOML File" Click="ExportToToml_Click" />
+                                <Button Content="Export to JSON" Click="ExportToJson_Click" />
+                                <Button Content="Export to XML" Click="ExportToXml_Click" />
+                            </StackPanel>
+					</Expander>
+
+					<Expander Header="Merge Strategies" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <RadioButton GroupName="MergeStrategy" Content="Replace existing components" IsChecked="True" />
+                                <RadioButton GroupName="MergeStrategy" Content="Merge by GUID" />
+                                <RadioButton GroupName="MergeStrategy" Content="Merge by Name/Author" />
+                            </StackPanel>
+					</Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Statistics Tab -->
+            <TabItem Header="Statistics">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10" Spacing="20">
+                        <TextBlock Text="Mod Collection Statistics" FontSize="16" FontWeight="Bold" />
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Total Mods:" FontWeight="Bold" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TotalMods}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Selected Mods:" FontWeight="Bold" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedMods}" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Downloaded Mods:" FontWeight="Bold" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DownloadedMods}" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Average Instructions/Mod:" FontWeight="Bold" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AverageInstructionsPerMod, StringFormat=F1}" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Average Options/Mod:" FontWeight="Bold" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AverageOptionsPerMod, StringFormat=F1}" />
+                        </Grid>
+
+                        <TextBlock Text="Categories:" FontWeight="Bold" Margin="0,20,0,10" />
+                        <ItemsRepeater ItemsSource="{Binding Categories}">
+                            <ItemsRepeater.ItemTemplate>
+								<DataTemplate>
+									<TextBlock>
+										<TextBlock.Text>
+											<MultiBinding StringFormat="{}{0}: {1}">
+												<Binding Path="Key" />
+												<Binding Path="Value" />
+											</MultiBinding>
+										</TextBlock.Text>
+									</TextBlock>
+								</DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+
+                        <TextBlock Text="Tiers:" FontWeight="Bold" Margin="0,20,0,10" />
+                        <ItemsRepeater ItemsSource="{Binding Tiers}">
+                            <ItemsRepeater.ItemTemplate>
+								<DataTemplate>
+									<TextBlock>
+										<TextBlock.Text>
+											<MultiBinding StringFormat="{}{0}: {1}">
+												<Binding Path="Key" />
+												<Binding Path="Value" />
+											</MultiBinding>
+										</TextBlock.Text>
+									</TextBlock>
+								</DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+
+                        <TextBlock Text="Authors:" FontWeight="Bold" Margin="0,20,0,10" />
+                        <ItemsRepeater ItemsSource="{Binding Authors}">
+                            <ItemsRepeater.ItemTemplate>
+								<DataTemplate>
+									<TextBlock>
+										<TextBlock.Text>
+											<MultiBinding StringFormat="{}{0}: {1}">
+												<Binding Path="Key" />
+												<Binding Path="Value" />
+											</MultiBinding>
+										</TextBlock.Text>
+									</TextBlock>
+								</DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Advanced Tools Tab -->
+            <TabItem Header="Advanced Tools">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10" Spacing="20">
+                        <TextBlock Text="Advanced Mod Management Tools" FontSize="16" FontWeight="Bold" />
+
+						<Expander Header="Dependency Management" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Check Dependency Chains" Click="CheckDependencyChains_Click" />
+                                <Button Content="Resolve Conflicts" Click="ResolveConflicts_Click" />
+                                <Button Content="Generate Dependency Graph" Click="GenerateDependencyGraph_Click" />
+                            </StackPanel>
+						</Expander>
+
+						<Expander Header="Performance Tools" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Optimize Installation Order" Click="OptimizeInstallationOrder_Click" />
+                                <Button Content="Analyze Mod Sizes" Click="AnalyzeModSizes_Click" />
+                                <Button Content="Check for Redundant Files" Click="CheckRedundantFiles_Click" />
+                            </StackPanel>
+						</Expander>
+
+						<Expander Header="Security Tools" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Scan for Malware" Click="ScanForMalware_Click" />
+                                <Button Content="Check File Integrity" Click="CheckFileIntegrity_Click" />
+                                <Button Content="Validate Digital Signatures" Click="ValidateDigitalSignatures_Click" />
+                            </StackPanel>
+						</Expander>
+
+						<Expander Header="Maintenance Tools" IsExpanded="True">
+                            <StackPanel Spacing="10">
+                                <Button Content="Clean Orphaned Files" Click="CleanOrphanedFiles_Click" />
+                                <Button Content="Update Mod Links" Click="UpdateModLinks_Click" />
+                                <Button Content="Archive Old Versions" Click="ArchiveOldVersions_Click" />
+                            </StackPanel>
+						</Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="#031332" Padding="10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                <Button Content="Apply Changes" Click="ApplyChanges_Click" />
+                <Button Content="Cancel" Click="Cancel_Click" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

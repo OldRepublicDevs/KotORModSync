@@ -73,93 +73,206 @@ namespace KOTORModSync
 			return string.Join(" ", input.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
 		}
 
-		/// <summary>
-		/// Checks if two strings are similar enough based on multiple criteria:
-		/// 1. Exact match
-		/// 2. One contains the other
-		/// 3. High similarity ratio (>= threshold)
-		/// 4. Significant word overlap
-		/// </summary>
-		private static bool AreSimilar(string s1, string s2, double threshold = 0.75)
-		{
-			if ( string.IsNullOrEmpty(s1) || string.IsNullOrEmpty(s2) )
-				return false;
-
-			string norm1 = Normalize(s1);
-			string norm2 = Normalize(s2);
-
-			// Exact match after normalization
-			if ( norm1 == norm2 )
-				return true;
-
-			// One contains the other (for cases like "Ajunta Pall Appearance" vs "Ajunta Pall Unique Appearance")
-			if ( norm1.Contains(norm2) || norm2.Contains(norm1) )
-			{
-				// But only if they share a significant portion (at least 60% of shorter string)
-				int minLen = Math.Min(norm1.Length, norm2.Length);
-				int maxLen = Math.Max(norm1.Length, norm2.Length);
-				return (double)minLen / maxLen >= 0.6;
-			}
-
-			// Check similarity ratio
-			double ratio = SimilarityRatio(norm1, norm2);
-			if ( ratio >= threshold )
-				return true;
-
-			// Check word overlap (for cases with reordered words)
-			string[] words1 = norm1.Split(' ');
-			string[] words2 = norm2.Split(' ');
-
-			// Count common words (excluding very short words like "a", "of", etc.)
-			string[] commonWords = words1.Where(w => w.Length > 2 && words2.Contains(w)).ToArray();
-			int totalUniqueWords = words1.Union(words2).Count(w => w.Length > 2);
-
-			if ( totalUniqueWords > 0 )
-			{
-				double wordOverlap = (double)commonWords.Length / totalUniqueWords;
-				// If most meaningful words match, consider it a match
-				return wordOverlap >= 0.7;
-			}
-
+	/// <summary>
+	/// Checks if two strings are similar enough based on multiple criteria:
+	/// 1. Exact match
+	/// 2. One contains the other
+	/// 3. High similarity ratio (>= threshold)
+	/// 4. Significant word overlap
+	/// 5. Common prefix (base name)
+	/// </summary>
+	private static bool AreSimilar(string s1, string s2, double threshold = 0.75)
+	{
+		if ( string.IsNullOrEmpty(s1) || string.IsNullOrEmpty(s2) )
 			return false;
-		}
 
-		/// <summary>
-		/// Performs fuzzy matching between two components based on their name and author.
-		/// Returns true if the components are likely the same mod.
-		/// </summary>
-		/// <param name="existingName">Name of the existing component</param>
-		/// <param name="existingAuthor">Author of the existing component</param>
-		/// <param name="incomingName">Name of the incoming component</param>
-		/// <param name="incomingAuthor">Author of the incoming component</param>
-		/// <returns>True if components are likely a match</returns>
-		public static bool FuzzyMatch(string existingName, string existingAuthor, string incomingName, string incomingAuthor)
+		string norm1 = Normalize(s1);
+		string norm2 = Normalize(s2);
+
+		// Exact match after normalization
+		if ( norm1 == norm2 )
+			return true;
+
+		// One contains the other (for cases like "Ajunta Pall Appearance" vs "Ajunta Pall Unique Appearance")
+		if ( norm1.Contains(norm2) || norm2.Contains(norm1) )
 		{
-			// Normalize inputs
-			string normExistingName = Normalize(existingName);
-			string normExistingAuthor = Normalize(existingAuthor);
-			string normIncomingName = Normalize(incomingName);
-			string normIncomingAuthor = Normalize(incomingAuthor);
-
-			// If authors are very different, probably not a match (unless one is empty/unknown)
-			bool authorMatches = string.IsNullOrWhiteSpace(normExistingAuthor) ||
-			                     string.IsNullOrWhiteSpace(normIncomingAuthor) ||
-			                     normExistingAuthor == "unknown author" ||
-			                     normIncomingAuthor == "unknown author" ||
-			                     AreSimilar(normExistingAuthor, normIncomingAuthor, threshold: 0.8);
-
-			if ( !authorMatches )
-				return false;
-
-			// Check if names are similar
-			// Use a slightly lower threshold for names since they might have variations like "Unique", "Enhanced", etc.
-			return AreSimilar(normExistingName, normIncomingName, threshold: 0.70);
+			// But only if they share a significant portion (at least 60% of shorter string)
+			int minLen = Math.Min(norm1.Length, norm2.Length);
+			int maxLen = Math.Max(norm1.Length, norm2.Length);
+			return (double)minLen / maxLen >= 0.6;
 		}
 
-		/// <summary>
-		/// Wrapper for Component objects.
-		/// </summary>
-		public static bool FuzzyMatchComponents(Core.Component existing, Core.Component incoming) => FuzzyMatch(existing.Name, existing.Author, incoming.Name, incoming.Author);
+		// Check similarity ratio
+		double ratio = SimilarityRatio(norm1, norm2);
+		if ( ratio >= threshold )
+			return true;
+
+		// Word-based analysis
+		string[] words1 = norm1.Split(' ');
+		string[] words2 = norm2.Split(' ');
+
+		// Count common words (excluding very short words like "a", "of", etc.)
+		string[] meaningfulWords1 = words1.Where(w => w.Length > 2).ToArray();
+		string[] meaningfulWords2 = words2.Where(w => w.Length > 2).ToArray();
+		string[] commonWords = meaningfulWords1.Where(w => meaningfulWords2.Contains(w)).ToArray();
+		int totalUniqueWords = meaningfulWords1.Union(meaningfulWords2).Distinct().Count();
+
+		if ( totalUniqueWords > 0 )
+		{
+			// If they share a common prefix of 2+ words, likely the same mod
+			// (e.g., "Senni Vek Restoration" vs "Senni Vek Mod")
+			if ( meaningfulWords1.Length >= 2 && meaningfulWords2.Length >= 2 )
+			{
+				int commonPrefixLength = 0;
+				int minWords = Math.Min(meaningfulWords1.Length, meaningfulWords2.Length);
+				for ( int i = 0; i < minWords; i++ )
+				{
+					if ( meaningfulWords1[i] == meaningfulWords2[i] )
+						commonPrefixLength++;
+					else
+						break;
+				}
+
+				// If at least 2 words match at the start, consider it a match
+				// This handles "Senni Vek Restoration" vs "Senni Vek Mod"
+				if ( commonPrefixLength >= 2 )
+					return true;
+			}
+
+			double wordOverlap = (double)commonWords.Length / totalUniqueWords;
+			// Lowered threshold from 0.7 to 0.6 for better matching
+			// If most meaningful words match, consider it a match
+			if ( wordOverlap >= 0.6 )
+				return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Checks if two author strings match, accounting for cases like "Quanon" vs "Quanon, patch by JCarter426".
+	/// </summary>
+	private static bool AuthorsMatch(string author1, string author2)
+	{
+		string norm1 = Normalize(author1);
+		string norm2 = Normalize(author2);
+
+		// Empty or unknown authors always match
+		if ( string.IsNullOrWhiteSpace(norm1) || string.IsNullOrWhiteSpace(norm2) ||
+		     norm1 == "unknown author" || norm2 == "unknown author" )
+			return true;
+
+		// Exact match
+		if ( norm1 == norm2 )
+			return true;
+
+		// Check if one author name is a prefix of the other (handles "Quanon" vs "Quanon, patch by...")
+		// This is common when one entry has additional credits
+		if ( norm1.StartsWith(norm2 + ",") || norm1.StartsWith(norm2 + " ") ||
+		     norm2.StartsWith(norm1 + ",") || norm2.StartsWith(norm1 + " ") )
+			return true;
+
+		// Check if shorter author appears at the start of longer author
+		string shorter = norm1.Length < norm2.Length ? norm1 : norm2;
+		string longer = norm1.Length < norm2.Length ? norm2 : norm1;
+		if ( longer.StartsWith(shorter) && shorter.Length >= 3 ) // At least 3 chars to avoid false positives
+			return true;
+
+		// Fall back to fuzzy matching for cases like typos
+		return AreSimilar(norm1, norm2, threshold: 0.8);
+	}
+
+	/// <summary>
+	/// Performs fuzzy matching between two components based on their name and author.
+	/// Returns true if the components are likely the same mod.
+	/// </summary>
+	/// <param name="existingName">Name of the existing component</param>
+	/// <param name="existingAuthor">Author of the existing component</param>
+	/// <param name="incomingName">Name of the incoming component</param>
+	/// <param name="incomingAuthor">Author of the incoming component</param>
+	/// <returns>True if components are likely a match</returns>
+	public static bool FuzzyMatch(string existingName, string existingAuthor, string incomingName, string incomingAuthor)
+	{
+		// Normalize inputs
+		string normExistingName = Normalize(existingName);
+		string normIncomingName = Normalize(incomingName);
+
+		// If authors don't match, probably not the same mod
+		return AuthorsMatch(existingAuthor, incomingAuthor) &&
+		       // Check if names are similar
+		       // Use a slightly lower threshold for names since they might have variations like "Unique", "Enhanced", etc.
+		       AreSimilar(normExistingName, normIncomingName, threshold: 0.70);
+	}
+
+	/// <summary>
+	/// Calculates a similarity score (0.0 to 1.0) between two components.
+	/// Higher score means more similar.
+	/// </summary>
+	public static double GetMatchScore(string existingName, string existingAuthor, string incomingName, string incomingAuthor)
+	{
+		// If authors don't match, score is 0
+		if ( !AuthorsMatch(existingAuthor, incomingAuthor) )
+			return 0.0;
+
+		string norm1 = Normalize(existingName);
+		string norm2 = Normalize(incomingName);
+
+		// Exact match = perfect score
+		if ( norm1 == norm2 )
+			return 1.0;
+
+		// Calculate base similarity ratio
+		double baseScore = SimilarityRatio(norm1, norm2);
+
+		// Boost score if one contains the other
+		if ( norm1.Contains(norm2) || norm2.Contains(norm1) )
+		{
+			int minLen = Math.Min(norm1.Length, norm2.Length);
+			int maxLen = Math.Max(norm1.Length, norm2.Length);
+			double containmentScore = (double)minLen / maxLen;
+			baseScore = Math.Max(baseScore, containmentScore);
+		}
+
+		// Word-based scoring
+		string[] words1 = norm1.Split(' ');
+		string[] words2 = norm2.Split(' ');
+		string[] meaningfulWords1 = words1.Where(w => w.Length > 2).ToArray();
+		string[] meaningfulWords2 = words2.Where(w => w.Length > 2).ToArray();
+
+		if ( meaningfulWords1.Length > 0 && meaningfulWords2.Length > 0 )
+		{
+			string[] commonWords = meaningfulWords1.Where(w => meaningfulWords2.Contains(w)).ToArray();
+			int totalUniqueWords = meaningfulWords1.Union(meaningfulWords2).Distinct().Count();
+			double wordOverlapScore = (double)commonWords.Length / totalUniqueWords;
+
+			// Check common prefix
+			int commonPrefixLength = 0;
+			int minWords = Math.Min(meaningfulWords1.Length, meaningfulWords2.Length);
+			for ( int i = 0; i < minWords; i++ )
+			{
+				if ( meaningfulWords1[i] == meaningfulWords2[i] )
+					commonPrefixLength++;
+				else
+					break;
+			}
+			double prefixScore = (double)commonPrefixLength / Math.Max(meaningfulWords1.Length, meaningfulWords2.Length);
+
+			// Use the best of these scores
+			baseScore = Math.Max(baseScore, Math.Max(wordOverlapScore, prefixScore));
+		}
+
+		return baseScore;
+	}
+
+	/// <summary>
+	/// Wrapper for Component objects - returns true if components match.
+	/// </summary>
+	public static bool FuzzyMatchComponents(Core.Component existing, Core.Component incoming) => FuzzyMatch(existing.Name, existing.Author, incoming.Name, incoming.Author);
+
+	/// <summary>
+	/// Wrapper for Component objects - returns similarity score.
+	/// </summary>
+	public static double GetComponentMatchScore(Core.Component existing, Core.Component incoming) => GetMatchScore(existing.Name, existing.Author, incoming.Name, incoming.Author);
 	}
 }
 

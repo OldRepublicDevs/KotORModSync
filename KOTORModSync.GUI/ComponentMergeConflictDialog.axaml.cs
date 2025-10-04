@@ -79,9 +79,16 @@ namespace KOTORModSync
 
 		private void Continue_Click(object sender, RoutedEventArgs e)
 		{
-			UserConfirmed = true;
-			MergedComponents = ViewModel.GetMergedComponents();
-			Close();
+			try
+			{
+				MergedComponents = ViewModel.GetMergedComponents();
+				UserConfirmed = true;
+				Close();
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error merging components");
+			}
 		}
 
 		private void Cancel_Click(object sender, RoutedEventArgs e)
@@ -96,13 +103,9 @@ namespace KOTORModSync
 				return;
 			// Single click: highlight and show details
 			if ( item.IsFromExisting )
-			{
 				ViewModel.SelectedExistingItem = item;
-			}
 			else
-			{
 				ViewModel.SelectedIncomingItem = item;
-			}
 
 			e.Handled = true;
 		}
@@ -113,13 +116,9 @@ namespace KOTORModSync
 			if ( !(sender is Border border) || !(border.DataContext is ComponentConflictItem item) )
 				return;
 			if ( item.IsFromExisting )
-			{
 				ViewModel.SelectedExistingItem = item;
-			}
 			else
-			{
 				ViewModel.SelectedIncomingItem = item;
-			}
 		}
 
 		private void LinkSelectedMenuItem_Click(object sender, RoutedEventArgs e)
@@ -145,6 +144,24 @@ namespace KOTORModSync
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Error unlinking component");
+			}
+		}
+
+		private void UseThisGuid_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				if ( !(sender is MenuItem menuItem) || !(menuItem.Parent is ContextMenu contextMenu) || !(contextMenu.Parent is Border border) )
+					return;
+
+				if ( !(border.DataContext is ComponentConflictItem item) )
+					return;
+
+				ViewModel.ChooseGuidForItem(item);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error choosing GUID");
 			}
 		}
 	}

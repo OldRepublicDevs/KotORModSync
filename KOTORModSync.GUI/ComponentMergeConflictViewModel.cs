@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Avalonia.Media;
 using JetBrains.Annotations;
+using KOTORModSync.Core;
 using Component = KOTORModSync.Core.Component;
 
 namespace KOTORModSync
@@ -33,6 +34,8 @@ namespace KOTORModSync
 		private ComponentConflictItem _selectedExistingItem;
 		private ComponentConflictItem _selectedIncomingItem;
 		private string _searchText = string.Empty;
+		private readonly Dictionary<Tuple<ComponentConflictItem, ComponentConflictItem>, GuidConflictResolver.GuidResolution> _guidResolutions =
+			new Dictionary<Tuple<ComponentConflictItem, ComponentConflictItem>, GuidConflictResolver.GuidResolution>();
 
 		public ComponentMergeConflictViewModel(
 			[NotNull] List<Component> existingComponents,
@@ -174,21 +177,21 @@ namespace KOTORModSync
 				OnPropertyChanged(nameof(CanLinkItems));
 
 				// Auto-highlight matching item in incoming list
-				if ( value != null )
+				if ( value == null )
+					return;
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p => p.Existing == value);
+				if ( matchedPair.Incoming == null )
+					return;
+				// Clear other incoming highlights first
+				foreach ( ComponentConflictItem item in IncomingComponents )
 				{
-					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p => p.Existing == value);
-					if ( matchedPair.Incoming != null )
-					{
-						// Clear other incoming highlights first
-						foreach ( ComponentConflictItem item in IncomingComponents )
-							if ( item != matchedPair.Incoming )
-								item.IsVisuallySelected = false;
-
-						_selectedIncomingItem = matchedPair.Incoming;
-						matchedPair.Incoming.IsVisuallySelected = true;
-						OnPropertyChanged(nameof(SelectedIncomingItem));
-					}
+					if ( item != matchedPair.Incoming )
+						item.IsVisuallySelected = false;
 				}
+
+				_selectedIncomingItem = matchedPair.Incoming;
+				matchedPair.Incoming.IsVisuallySelected = true;
+				OnPropertyChanged(nameof(SelectedIncomingItem));
 			}
 		}
 
@@ -215,23 +218,21 @@ namespace KOTORModSync
 				OnPropertyChanged(nameof(CanLinkItems));
 
 				// Auto-highlight matching item in existing list
-				if ( value != null )
+				if ( value == null )
+					return;
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p => p.Incoming == value);
+				if ( matchedPair.Existing == null )
+					return;
+				// Clear other existing highlights first
+				foreach ( ComponentConflictItem item in ExistingComponents )
 				{
-					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p => p.Incoming == value);
-					if ( matchedPair.Existing != null )
-					{
-						// Clear other existing highlights first
-						foreach ( ComponentConflictItem item in ExistingComponents )
-						{
-							if ( item != matchedPair.Existing )
-								item.IsVisuallySelected = false;
-						}
-
-						_selectedExistingItem = matchedPair.Existing;
-						matchedPair.Existing.IsVisuallySelected = true;
-						OnPropertyChanged(nameof(SelectedExistingItem));
-					}
+					if ( item != matchedPair.Existing )
+						item.IsVisuallySelected = false;
 				}
+
+				_selectedExistingItem = matchedPair.Existing;
+				matchedPair.Existing.IsVisuallySelected = true;
+				OnPropertyChanged(nameof(SelectedExistingItem));
 			}
 		}
 
@@ -277,11 +278,10 @@ namespace KOTORModSync
 				if ( _selectedExistingItem != null )
 				{
 					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p => p.Existing == _selectedExistingItem);
-					if ( matchedPair.Incoming != null )
-					{
-						_ = sb.AppendLine("\n🔄 DIFFERENCES FROM INCOMING:");
-						CompareComponents(component, matchedPair.Incoming.Component, sb);
-					}
+					if ( matchedPair.Incoming == null )
+						return sb.ToString();
+					_ = sb.AppendLine("\n🔄 DIFFERENCES FROM INCOMING:");
+					CompareComponents(component, matchedPair.Incoming.Component, sb);
 				}
 				else if ( _selectedIncomingItem != null )
 				{
@@ -378,35 +378,77 @@ namespace KOTORModSync
 			var existingSet = new HashSet<Component>();
 			var incomingSet = new HashSet<Component>();
 
-			// Find matches
+			// Build a list of all potential matches with scores
+			var potentialMatches = new List<(Component Existing, Component Incoming, double Score)>();
+
 			foreach ( Component existing in existingComponents )
 			{
-				Component match = incomingComponents.FirstOrDefault(inc => matchFunc(existing, inc));
+				foreach ( Component incoming in incomingComponents )
+				{
+					if ( !matchFunc(existing, incoming) )
+						continue;
+					double score = FuzzyMatcher.GetComponentMatchScore(existing, incoming);
+					potentialMatches.Add((existing, incoming, score));
+				}
+			}
 
-				var existingItem = new ComponentConflictItem(existing, true, match != null ? ComponentConflictStatus.Matched : ComponentConflictStatus.ExistingOnly);
+			// Sort by score descending to prioritize best matches
+			potentialMatches = potentialMatches.OrderByDescending(m => m.Score).ToList();
+
+			// Create one-to-one matches, picking best matches first
+			foreach ( (Component existing, Component incoming, double _) in potentialMatches )
+			{
+				// Skip if either component is already matched
+				if ( existingSet.Contains(existing) || incomingSet.Contains(incoming) )
+					continue;
+
+				var existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.Matched);
+				var incomingItem = new ComponentConflictItem(incoming, false, ComponentConflictStatus.Matched);
+
 				existingItem.PropertyChanged += OnItemSelectionChanged;
+				incomingItem.PropertyChanged += OnItemSelectionChanged;
 
-				if ( match != null )
+				incomingItem.IsSelected = true; // Default: prefer incoming for matches
+				existingItem.IsSelected = false;
+
+				var pair = Tuple.Create(existingItem, incomingItem);
+				_matchedPairs.Add((existingItem, incomingItem));
+
+				// Resolve GUID conflict intelligently
+				GuidConflictResolver.GuidResolution guidResolution = GuidConflictResolver.ResolveGuidConflict(existing, incoming);
+				if ( guidResolution != null )
 				{
-					var incomingItem = new ComponentConflictItem(match, false, ComponentConflictStatus.Matched);
-					incomingItem.PropertyChanged += OnItemSelectionChanged;
-					incomingItem.IsSelected = true; // Default: prefer incoming for matches
-					existingItem.IsSelected = false;
+					_guidResolutions[pair] = guidResolution;
 
-					_matchedPairs.Add((existingItem, incomingItem));
-					_ = existingSet.Add(existing);
-					_ = incomingSet.Add(match);
+					// Mark items if they have unresolved GUID conflicts
+					if ( guidResolution.RequiresManualResolution )
+					{
+						existingItem.HasGuidConflict = true;
+						incomingItem.HasGuidConflict = true;
+						existingItem.GuidConflictTooltip = guidResolution.ConflictReason;
+						incomingItem.GuidConflictTooltip = guidResolution.ConflictReason;
+					}
+				}
 
-					ExistingComponents.Add(existingItem);
-					IncomingComponents.Add(incomingItem);
-				}
-				else
-				{
-					existingItem.IsSelected = true; // Keep unmatched existing
-					_existingOnly.Add(existingItem);
-					_ = existingSet.Add(existing);
-					ExistingComponents.Add(existingItem);
-				}
+				_ = existingSet.Add(existing);
+				_ = incomingSet.Add(incoming);
+
+				ExistingComponents.Add(existingItem);
+				IncomingComponents.Add(incomingItem);
+			}
+
+			// Add unmatched existing items
+			foreach ( Component existing in existingComponents )
+			{
+				if ( existingSet.Contains(existing) )
+					continue;
+
+				var existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.ExistingOnly);
+				existingItem.PropertyChanged += OnItemSelectionChanged;
+				existingItem.IsSelected = true; // Keep unmatched existing
+				_existingOnly.Add(existingItem);
+				_ = existingSet.Add(existing);
+				ExistingComponents.Add(existingItem);
 			}
 
 			// Add incoming-only items
@@ -475,8 +517,8 @@ namespace KOTORModSync
 			foreach ( ComponentConflictItem item in ExistingComponents )
 			{
 				if ( !hasSearch ||
-					item.Name.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
-					item.Author.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 )
+					 item.Name.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+					 item.Author.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 )
 				{
 					FilteredExistingComponents.Add(item);
 				}
@@ -485,8 +527,8 @@ namespace KOTORModSync
 			foreach ( ComponentConflictItem item in IncomingComponents )
 			{
 				if ( !hasSearch ||
-					item.Name.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
-					item.Author.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 )
+					 item.Name.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+					 item.Author.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 )
 				{
 					FilteredIncomingComponents.Add(item);
 				}
@@ -495,7 +537,46 @@ namespace KOTORModSync
 
 		// Manual linking of components
 		private bool CanLinkSelected() => _selectedExistingItem != null && _selectedIncomingItem != null &&
-				   !_matchedPairs.Any(p => p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
+										  !_matchedPairs.Any(p => p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
+
+		/// <summary>
+		/// Manually chooses the GUID from the specified item when there's a conflict
+		/// </summary>
+		public void ChooseGuidForItem(ComponentConflictItem item)
+		{
+			// Find the matched pair for this item
+			(ComponentConflictItem Existing, ComponentConflictItem Incoming) pair =
+				_matchedPairs.FirstOrDefault(p => p.Existing == item || p.Incoming == item);
+
+			if ( pair.Existing == null || pair.Incoming == null )
+				return;
+
+			var pairKey = Tuple.Create(pair.Existing, pair.Incoming);
+
+			if ( !_guidResolutions.TryGetValue(pairKey, out GuidConflictResolver.GuidResolution resolution) )
+				return;
+
+			// User clicked on this item, so use this item's GUID
+			if ( item == pair.Existing )
+			{
+				resolution.ChosenGuid = pair.Existing.Component.Guid;
+				resolution.RejectedGuid = pair.Incoming.Component.Guid;
+				resolution.RequiresManualResolution = false; // User has resolved it
+			}
+			else
+			{
+				resolution.ChosenGuid = pair.Incoming.Component.Guid;
+				resolution.RejectedGuid = pair.Existing.Component.Guid;
+				resolution.RequiresManualResolution = false; // User has resolved it
+			}
+
+			// Clear the conflict indicators
+			pair.Existing.HasGuidConflict = false;
+			pair.Incoming.HasGuidConflict = false;
+
+			// Update preview to reflect the change
+			UpdatePreview();
+		}
 
 		private bool CanUnlinkSelected()
 		{
@@ -539,43 +620,38 @@ namespace KOTORModSync
 			(ComponentConflictItem Existing, ComponentConflictItem Incoming) pairToRemove = default;
 
 			if ( _selectedExistingItem != null )
-			{
 				pairToRemove = _matchedPairs.FirstOrDefault(p => p.Existing == _selectedExistingItem);
-			}
 			else if ( _selectedIncomingItem != null )
-			{
-				pairToRemove = _matchedPairs.FirstOrDefault(p => p.Incoming == _selectedIncomingItem);
-			}
+			    pairToRemove = _matchedPairs.FirstOrDefault(p => p.Incoming == _selectedIncomingItem);
 
-			if ( pairToRemove.Existing != null )
-			{
-				ComponentConflictItem existingToUnlink = pairToRemove.Existing;
-				ComponentConflictItem incomingToUnlink = pairToRemove.Incoming;
+			if ( pairToRemove.Existing == null )
+			    return;
+			ComponentConflictItem existingToUnlink = pairToRemove.Existing;
+			ComponentConflictItem incomingToUnlink = pairToRemove.Incoming;
 
-				// Remove from matched pairs
-				_matchedPairs.Remove(pairToRemove);
+			// Remove from matched pairs
+			_matchedPairs.Remove(pairToRemove);
 
-				// Update statuses
-				existingToUnlink.UpdateStatus(ComponentConflictStatus.ExistingOnly);
-				incomingToUnlink.UpdateStatus(ComponentConflictStatus.New);
+			// Update statuses
+			existingToUnlink.UpdateStatus(ComponentConflictStatus.ExistingOnly);
+			incomingToUnlink.UpdateStatus(ComponentConflictStatus.New);
 
-				// Add to "only" lists
-				if ( !_existingOnly.Contains(existingToUnlink) )
-					_existingOnly.Add(existingToUnlink);
-				if ( !_incomingOnly.Contains(incomingToUnlink) )
-					_incomingOnly.Add(incomingToUnlink);
+			// Add to "only" lists
+			if ( !_existingOnly.Contains(existingToUnlink) )
+				_existingOnly.Add(existingToUnlink);
+			if ( !_incomingOnly.Contains(incomingToUnlink) )
+				_incomingOnly.Add(incomingToUnlink);
 
-				// Keep both selected by default
-				existingToUnlink.IsSelected = true;
-				incomingToUnlink.IsSelected = true;
+			// Keep both selected by default
+			existingToUnlink.IsSelected = true;
+			incomingToUnlink.IsSelected = true;
 
-				UpdatePreview();
-				OnPropertyChanged(nameof(ConflictDescription));
-				OnPropertyChanged(nameof(MergeImpactSummary));
-				OnPropertyChanged(nameof(LinkButtonText));
-				LinkSelectedCommand.RaiseCanExecuteChanged();
-				UnlinkSelectedCommand.RaiseCanExecuteChanged();
-			}
+			UpdatePreview();
+			OnPropertyChanged(nameof(ConflictDescription));
+			OnPropertyChanged(nameof(MergeImpactSummary));
+			OnPropertyChanged(nameof(LinkButtonText));
+			LinkSelectedCommand.RaiseCanExecuteChanged();
+			UnlinkSelectedCommand.RaiseCanExecuteChanged();
 		}
 
 		private void OnItemSelectionChanged(object sender, PropertyChangedEventArgs e)
@@ -746,13 +822,13 @@ namespace KOTORModSync
 				{
 					result.Add(new PreviewItem
 					{
-					OrderNumber = $"{order++}.",
-					Name = incomingItem.Name,
-					Source = "From: Incoming (New)",
-					SourceColor = ThemeResourceHelper.MergeSourceIncomingBrush,
-					Component = incomingItem.Component,
-					StatusIcon = "✨",
-					PositionChange = "NEW",
+						OrderNumber = $"{order++}.",
+						Name = incomingItem.Name,
+						Source = "From: Incoming (New)",
+						SourceColor = ThemeResourceHelper.MergeSourceIncomingBrush,
+						Component = incomingItem.Component,
+						StatusIcon = "✨",
+						PositionChange = "NEW",
 						PositionChangeColor = ThemeResourceHelper.MergeStatusNewBrush
 					});
 				}
@@ -778,17 +854,202 @@ namespace KOTORModSync
 				ComponentConflictItem afterComponent = ExistingComponents[i];
 				int afterIndexInResult = result.FindIndex(p => p.Component == afterComponent.Component);
 				if ( afterIndexInResult >= 0 )
-				{
 					return afterIndexInResult;
-				}
 			}
 
 			return result.Count;
 		}
 
-		public List<Component> GetMergedComponents() => PreviewComponents.Select(p => p.Component).ToList();
+	public List<Component> GetMergedComponents()
+		{
+			var mergedComponents = new List<Component>();
+			var guidMap = new Dictionary<Guid, Guid>(); // Maps old GUIDs to new GUIDs
 
-		public event PropertyChangedEventHandler PropertyChanged;
+			foreach ( PreviewItem previewItem in PreviewComponents )
+			{
+				Component component = previewItem.Component;
+
+			// If this component came from a match, actually merge the data
+			(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
+				_matchedPairs.FirstOrDefault(p => p.Existing.Component == component || p.Incoming.Component == component);
+
+			if ( matchedPair.Existing != null && matchedPair.Incoming != null )
+			{
+				// This is a matched pair - merge ALL fields from both components
+				// User's checkbox selection determines which wins for conflicts
+				var pair = Tuple.Create(matchedPair.Existing, matchedPair.Incoming);
+
+				// Merge: take non-empty values, user's selection wins conflicts
+				Component mergedComponent = MergeComponentData(
+					matchedPair.Existing.Component,
+					matchedPair.Incoming.Component,
+					matchedPair.Incoming.IsSelected // Use incoming if it's selected
+				);
+
+				// Apply intelligent GUID resolution
+				if ( _guidResolutions.TryGetValue(pair, out GuidConflictResolver.GuidResolution resolution) )
+				{
+					Guid chosenGuid = resolution.ChosenGuid;
+					Guid rejectedGuid = resolution.RejectedGuid;
+
+					// Apply the chosen GUID to the merged component
+					mergedComponent.Guid = chosenGuid;
+
+					// Track the mapping for updating references
+					if ( chosenGuid != rejectedGuid )
+						guidMap[rejectedGuid] = chosenGuid;
+				}
+
+				mergedComponents.Add(mergedComponent);
+			}
+			else
+			{
+				// Not a matched pair, just use the component as-is
+				mergedComponents.Add(component);
+			}
+			}
+
+			// Update all GUID references in dependencies, restrictions, and install-after
+			foreach ( Component component in mergedComponents )
+			{
+				// Update Dependencies
+				for ( int i = 0; i < component.Dependencies.Count; i++ )
+				{
+					if ( guidMap.TryGetValue(component.Dependencies[i], out Guid newGuid) )
+						component.Dependencies[i] = newGuid;
+				}
+
+				// Update Restrictions
+				for ( int i = 0; i < component.Restrictions.Count; i++ )
+				{
+					if ( guidMap.TryGetValue(component.Restrictions[i], out Guid newGuid) )
+						component.Restrictions[i] = newGuid;
+				}
+
+				// Update InstallAfter
+				for ( int i = 0; i < component.InstallAfter.Count; i++ )
+				{
+					if ( guidMap.TryGetValue(component.InstallAfter[i], out Guid newGuid) )
+					    component.InstallAfter[i] = newGuid;
+				}
+			}
+
+		// Don't do cycle detection here - that only happens when Component.ConfirmComponentsInstallOrder fails
+		// This merge is just combining two lists, not processing install order
+		return mergedComponents;
+	}
+
+	/// <summary>
+	/// Intelligently merges two components.
+	/// For each field: uses non-null/non-empty value if only one exists.
+	/// For conflicts (both have values): uses the selected component's value based on user's checkbox choice.
+	/// </summary>
+	private Component MergeComponentData(Component existing, Component incoming, bool useIncomingForConflicts)
+	{
+		// Helper to merge string fields
+		string MergeString(string existingVal, string incomingVal)
+		{
+			bool existingHasValue = !string.IsNullOrWhiteSpace(existingVal);
+			bool incomingHasValue = !string.IsNullOrWhiteSpace(incomingVal);
+
+			if ( !existingHasValue && !incomingHasValue ) return null;
+			if ( !existingHasValue ) return incomingVal;
+			if ( !incomingHasValue ) return existingVal;
+
+			// Both have values - CONFLICT - use user's selection
+			return useIncomingForConflicts ? incomingVal : existingVal;
+		}
+
+		// Create merged component
+		var merged = new Component
+		{
+			// GUID will be set by caller based on intelligent GUID resolution
+			Guid = existing.Guid,
+
+			// Merge all string fields
+			Name = MergeString(existing.Name, incoming.Name),
+			Author = MergeString(existing.Author, incoming.Author),
+			Description = MergeString(existing.Description, incoming.Description),
+			Directions = MergeString(existing.Directions, incoming.Directions),
+			Category = MergeString(existing.Category, incoming.Category),
+			Tier = MergeString(existing.Tier, incoming.Tier),
+			InstallationMethod = MergeString(existing.InstallationMethod, incoming.InstallationMethod),
+
+			// Merge lists - ALWAYS keep existing Instructions/Dependencies/Restrictions/InstallAfter if they exist
+			// These are structural and shouldn't be lost
+			Instructions = existing.Instructions.Count > 0 ? existing.Instructions :
+						   incoming.Instructions.Count > 0 ? incoming.Instructions :
+						   new ObservableCollection<Instruction>(),
+
+			Dependencies = existing.Dependencies.Count > 0 ? existing.Dependencies :
+						   incoming.Dependencies.Count > 0 ? incoming.Dependencies :
+						   new List<Guid>(),
+
+			Restrictions = existing.Restrictions.Count > 0 ? existing.Restrictions :
+						   incoming.Restrictions.Count > 0 ? incoming.Restrictions :
+						   new List<Guid>(),
+
+			InstallAfter = existing.InstallAfter.Count > 0 ? existing.InstallAfter :
+						   incoming.InstallAfter.Count > 0 ? incoming.InstallAfter :
+						   new List<Guid>(),
+
+			Options = existing.Options.Count > 0 ? existing.Options :
+					  incoming.Options.Count > 0 ? incoming.Options :
+					  new ObservableCollection<Option>(),
+
+			// ModLink - combine both if both exist, otherwise use whichever has data
+			ModLink = MergeLists(existing.ModLink, incoming.ModLink, deduplicate: true),
+
+			// Language - prefer whichever has data
+			Language = incoming.Language.Count > 0 ? incoming.Language :
+					   existing.Language.Count > 0 ? existing.Language :
+					   new List<string>(),
+
+			// State fields - always preserve existing state
+			IsSelected = existing.IsSelected,
+			InstallState = existing.InstallState,
+			IsDownloaded = existing.IsDownloaded
+		};
+
+		return merged;
+	}
+
+	/// <summary>
+	/// Merges two lists, optionally deduplicating.
+	/// </summary>
+	private List<T> MergeLists<T>(List<T> existingList, List<T> incomingList, bool deduplicate = false)
+	{
+		if ( existingList == null && incomingList == null )
+			return new List<T>();
+
+		if ( existingList == null || existingList.Count == 0 )
+			return incomingList != null ? new List<T>(incomingList) : new List<T>();
+
+		if ( incomingList == null || incomingList.Count == 0 )
+			return new List<T>(existingList);
+
+		// Both have data - combine them
+		var merged = new List<T>(existingList);
+
+		if ( deduplicate )
+		{
+			// Add only unique items from incoming
+			foreach ( T item in incomingList )
+			{
+				if ( !merged.Contains(item) )
+					merged.Add(item);
+			}
+		}
+		else
+		{
+			// Add all items from incoming
+			merged.AddRange(incomingList);
+		}
+
+		return merged;
+	}
+
+	public event PropertyChangedEventHandler PropertyChanged;
 
 		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 	}
@@ -809,6 +1070,8 @@ namespace KOTORModSync
 		private ComponentConflictStatus _status;
 		private string _statusIcon;
 		private IBrush _statusColor;
+		private bool _hasGuidConflict;
+		private string _guidConflictTooltip;
 
 		public ComponentConflictItem([NotNull] Component component, bool isFromExisting, ComponentConflictStatus status)
 		{
@@ -819,8 +1082,8 @@ namespace KOTORModSync
 			SizeInfo = $"{component.Instructions.Count} instruction(s)";
 			IsFromExisting = isFromExisting;
 			_status = status;
-			_statusIcon = GetStatusIcon(status);
-			_statusColor = GetStatusColor(status);
+			_statusIcon = ComponentConflictItem.GetStatusIcon(status);
+			_statusColor = ComponentConflictItem.GetStatusColor(status);
 		}
 
 		public Component Component { get; }
@@ -890,16 +1153,38 @@ namespace KOTORModSync
 		public IBrush SelectionBorderBrush => _isVisuallySelected ? ThemeResourceHelper.MergeSelectionBorderBrush : Brushes.Transparent;
 		public IBrush SelectionBackground => _isVisuallySelected ? ThemeResourceHelper.MergeSelectionBackgroundBrush : Brushes.Transparent;
 
+		public bool HasGuidConflict
+		{
+			get => _hasGuidConflict;
+			set
+			{
+				if ( _hasGuidConflict == value ) return;
+				_hasGuidConflict = value;
+				OnPropertyChanged();
+			}
+		}
+
+		public string GuidConflictTooltip
+		{
+			get => _guidConflictTooltip;
+			set
+			{
+				if ( _guidConflictTooltip == value ) return;
+				_guidConflictTooltip = value;
+				OnPropertyChanged();
+			}
+		}
+
 		public void UpdateStatus(ComponentConflictStatus newStatus)
 		{
 			if ( Status == newStatus ) return;
 
 			Status = newStatus;
-			StatusIcon = GetStatusIcon(newStatus);
-			StatusColor = GetStatusColor(newStatus);
+			StatusIcon = ComponentConflictItem.GetStatusIcon(newStatus);
+			StatusColor = ComponentConflictItem.GetStatusColor(newStatus);
 		}
 
-		private string GetStatusIcon(ComponentConflictStatus status)
+		private static string GetStatusIcon(ComponentConflictStatus status)
 		{
 			if ( status == ComponentConflictStatus.New )
 				return "✨";
@@ -912,7 +1197,7 @@ namespace KOTORModSync
 			return "";
 		}
 
-		private IBrush GetStatusColor(ComponentConflictStatus status)
+		private static IBrush GetStatusColor(ComponentConflictStatus status)
 		{
 			if ( status == ComponentConflictStatus.New )
 				return ThemeResourceHelper.MergeStatusNewBrush;

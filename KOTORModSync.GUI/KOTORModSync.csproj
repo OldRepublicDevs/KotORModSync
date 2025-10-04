@@ -122,6 +122,22 @@
       <Generator>MSBuild:Compile</Generator>
       <Class>SettingsDialog</Class>
     </AvaloniaXaml>
+    <AvaloniaXaml Update="Controls\SearchBox.axaml">
+      <Generator>MSBuild:Compile</Generator>
+      <Class>SearchBox</Class>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Controls\ComponentMergeConflictDialog.axaml">
+      <Generator>MSBuild:Compile</Generator>
+      <Class>ComponentMergeConflictDialog</Class>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Controls\CircularDependencyResolutionDialog.axaml">
+      <Generator>MSBuild:Compile</Generator>
+      <Class>CircularDependencyResolutionDialog</Class>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Controls\ModListItem.axaml">
+      <Generator>MSBuild:Compile</Generator>
+      <Class>ModListItem</Class>
+    </AvaloniaXaml>
   </ItemGroup>
   <ItemGroup>
     <Compile Update="ConfirmationDialog.axaml.cs">
@@ -151,6 +167,12 @@
     <Compile Update="Controls\OptionEditorControl.axaml.cs">
       <DependentUpon>OptionEditorControl.axaml</DependentUpon>
     </Compile>
+    <Compile Update="Controls\ComponentMergeConflictDialog.axaml.cs">
+      <DependentUpon>ComponentMergeConflictDialog.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\SearchBox.axaml.cs">
+      <DependentUpon>SearchBox.axaml</DependentUpon>
+    </Compile>
     <Compile Update="RegexImportDialog.axaml.cs">
       <DependentUpon>RegexImportDialog.axaml</DependentUpon>
     </Compile>
@@ -159,6 +181,12 @@
     </Compile>
     <Compile Update="SettingsDialog.axaml.cs">
       <DependentUpon>SettingsDialog.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\CircularDependencyResolutionDialog.axaml.cs">
+      <DependentUpon>CircularDependencyResolutionDialog.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\ModListItem.axaml.cs">
+      <DependentUpon>ModListItem.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' ">

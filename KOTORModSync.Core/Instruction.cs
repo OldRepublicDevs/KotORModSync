@@ -18,16 +18,19 @@ using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.TSLPatcher;
 using KOTORModSync.Core.Utility;
 using Newtonsoft.Json;
-using SharpCompress.Archives;
-using SharpCompress.Archives.Rar;
-using SharpCompress.Archives.SevenZip;
-using SharpCompress.Archives.Zip;
-using SharpCompress.Readers;
 
 namespace KOTORModSync.Core
 {
 	public sealed class Instruction : INotifyPropertyChanged
 	{
+		[CanBeNull]
+		private Services.FileSystem.IFileSystemProvider _fileSystemProvider;
+
+		/// <summary>
+		/// Sets the file system provider for this instruction. Call before executing any actions.
+		/// </summary>
+		internal void SetFileSystemProvider([NotNull] Services.FileSystem.IFileSystemProvider provider) => _fileSystemProvider = provider ?? throw new ArgumentNullException(nameof(provider));
+
 		public enum ActionExitCode
 		{
 			UnauthorizedAccessException = -1,
@@ -66,7 +69,7 @@ namespace KOTORModSync.Core
 
 
 		private ActionType _action;
-		private Guid _guid = Guid.NewGuid();
+		private Guid _guid;
 
 		[NotNull] private string _arguments = string.Empty;
 
@@ -82,7 +85,12 @@ namespace KOTORModSync.Core
 
 		public Guid Guid
 		{
-			get => _guid;
+			get
+			{
+				if ( _guid == Guid.Empty )
+					_guid = Guid.NewGuid();
+				return _guid;
+			}
 			set
 			{
 				if ( _guid == value )
@@ -199,6 +207,9 @@ namespace KOTORModSync.Core
 		// noParse: Don't perform any manipulations on Source or Destination, besides the aforementioned ReplaceCustomVariables.
 		internal void SetRealPaths(bool noParse = false, bool noValidate = false)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling SetRealPaths. Call SetFileSystemProvider() first.");
+
 			// Get real path then enumerate the files/folders with wildcards and add them to the list
 			if ( Source is null )
 				throw new NullReferenceException(nameof(Source));
@@ -207,14 +218,20 @@ namespace KOTORModSync.Core
 			List<string> newSourcePaths = Source.ConvertAll(Utility.Utility.ReplaceCustomVariables);
 			if ( !noParse )
 			{
-				newSourcePaths = PathHelper.EnumerateFilesWithWildcards(newSourcePaths);
+				// Use provider for wildcard expansion
+				newSourcePaths = PathHelper.EnumerateFilesWithWildcards(newSourcePaths, _fileSystemProvider);
 
 				if ( !noValidate )
 				{
 					if ( newSourcePaths.IsNullOrEmptyOrAllNull() )
-						throw new NullReferenceException(nameof(newSourcePaths));  // todo: output strings in Source list
+					{
+						throw new FileNotFoundException(
+							$"Could not find any files matching the pattern in the 'Source' path on disk! Got [{string.Join(separator: ", ", Source)}]"
+						);
+					}
 
-					if ( newSourcePaths.Any(f => !File.Exists(f)) )
+					// Use file system provider instead of File.Exists
+					if ( newSourcePaths.Any(f => !_fileSystemProvider.FileExists(f)) )
 					{
 						throw new FileNotFoundException(
 							$"Could not find all files in the 'Source' path on disk! Got [{string.Join(separator: ", ", Source)}]"
@@ -238,14 +255,25 @@ namespace KOTORModSync.Core
 				return;
 			}
 
-			if ( !noValidate && !thisDestination?.Exists == true )
+			// For Copy, Move, Rename, and Extract, the destination directory might not exist yet.
+			// The file system providers are responsible for creating it. So we don't validate, just create the DirectoryInfo
+			// For Rename, the destination is a file path, not a directory, so we also skip directory validation
+			bool skipDestinationValidation = Action == ActionType.Copy || Action == ActionType.Move || Action == ActionType.Rename || Action == ActionType.Extract;
+
+			if ( skipDestinationValidation && thisDestination == null )
+			{
+				thisDestination = new DirectoryInfo(destinationPath);
+			}
+
+			// Use file system provider instead of Directory.Exists
+			if ( !noValidate && !skipDestinationValidation && thisDestination != null && !_fileSystemProvider.DirectoryExists(thisDestination.FullName) )
 			{
 				if ( MainConfig.CaseInsensitivePathing )
 				{
 					thisDestination = PathHelper.GetCaseSensitivePath(thisDestination);
 				}
 
-				if ( !noValidate && !thisDestination?.Exists == true )
+				if ( thisDestination != null && !_fileSystemProvider.DirectoryExists(thisDestination.FullName) )
 					throw new DirectoryNotFoundException("Could not find the 'Destination' path on disk!");
 			}
 
@@ -258,276 +286,66 @@ namespace KOTORModSync.Core
 			[NotNull][ItemNotNull] List<string> argSourcePaths = null
 		)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling ExtractFileAsync. Call SetFileSystemProvider() first.");
+
 			try
 			{
 				RealSourcePaths = argSourcePaths
 					?? RealSourcePaths ?? throw new ArgumentNullException(nameof(argSourcePaths));
 
-				ActionExitCode exitCode = ActionExitCode.Success;
-				int maxCount = MainConfig.UseMultiThreadedIO
-					? 16
-					: 1;
-				using ( var semaphore = new SemaphoreSlim(initialCount: 1, maxCount) )
+				// Delegate to file system provider
+				foreach ( string sourcePath in RealSourcePaths )
 				{
+					string destinationPath = argDestinationPath?.FullName ?? Path.GetDirectoryName(sourcePath);
+					if ( string.IsNullOrEmpty(destinationPath) )
+					{
+						await Logger.LogErrorAsync($"Could not determine destination path for archive: {sourcePath}");
+						return ActionExitCode.InvalidArchive;
+					}
+
 					try
 					{
-						using ( var cts = new CancellationTokenSource() )
-						{
-							try
-							{
-								var extractionTasks = RealSourcePaths
-									.Select(sourcePath => InnerExtractFileAsync(sourcePath, cts.Token)).ToList();
-
-								await Task.WhenAll(extractionTasks); // Wait for all extraction tasks to complete
-							}
-							catch ( IndexOutOfRangeException )
-							{
-								await Logger.LogWarningAsync(
-									"Falling back to 7-Zip and restarting entire archive extraction due to the above error."
-								);
-								cts.Cancel();
-								cts.Token.ThrowIfCancellationRequested();
-							}
-							catch ( OperationCanceledException ex )
-							{
-								await Logger.LogWarningAsync(ex.Message);
-								cts.Cancel();
-								cts.Token.ThrowIfCancellationRequested();
-							}
-							catch ( IOException ex )
-							{
-								await Logger.LogExceptionAsync(ex);
-								cts.Cancel();
-								if ( exitCode == ActionExitCode.Success )
-								{
-									exitCode = ActionExitCode.IOException;
-								}
-							}
-							catch ( Exception ex )
-							{
-								await Logger.LogExceptionAsync(ex);
-								cts.Cancel();
-								if ( exitCode == ActionExitCode.Success )
-								{
-									exitCode = ActionExitCode.UnknownError;
-								}
-							}
-						}
+						List<string> extractedFiles = await _fileSystemProvider.ExtractArchiveAsync(sourcePath, destinationPath);
+						await Logger.LogAsync($"Extracted {extractedFiles.Count} file(s) from '{Path.GetFileName(sourcePath)}' to '{destinationPath}'");
 					}
-					catch ( OperationCanceledException )
+					catch ( Exception ex )
 					{
-						// Restarting all tasks using ArchiveHelper.ExtractWith7Zip
-						try
-						{
-							await Logger.LogAsync("Starting 7z.dll fallback extraction...");
-							foreach ( string archivePath in RealSourcePaths )
-							{
-								var thisArchive = new FileInfo(archivePath);
-								using ( FileStream stream = File.OpenRead(archivePath) )
-								{
-									string destinationDirectory = Path.Combine(
-										argDestinationPath?.FullName ?? archivePath,
-										Path.GetFileNameWithoutExtension(thisArchive.Name)
-									);
-									if ( MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory) )
-									{
-										destinationDirectory = PathHelper.GetCaseSensitivePath(
-											destinationDirectory,
-											isFile: false
-										).Item1;
-									}
-
-									string destinationRelDirPath = MainConfig.DestinationPath is null
-										? destinationDirectory
-										: PathHelper.GetRelativePath(
-											MainConfig.DestinationPath.FullName,
-											destinationDirectory
-										);
-									if ( !Directory.Exists(destinationDirectory) )
-									{
-										_ = Logger.LogAsync($"Create directory '{destinationRelDirPath}'");
-										_ = Directory.CreateDirectory(destinationDirectory);
-									}
-
-									_ = Logger.LogAsync(
-										$"Fallback extraction of '{thisArchive.Name}' to '{destinationRelDirPath}'"
-									);
-									ArchiveHelper.ExtractWith7Zip(stream, destinationDirectory);
-									_ = Logger.LogAsync($"Fallback extraction of '{thisArchive.Name}' completed.");
-								}
-							}
-						}
-						catch ( Exception ex )
-						{
-							await Logger.LogExceptionAsync(ex);
-							if ( exitCode == ActionExitCode.Success )
-								exitCode = ActionExitCode.FallbackArchiveExtractionFailed;
-						}
-					}
-
-					return exitCode; // Extraction succeeded
-
-					async Task InnerExtractFileAsync(string sourcePath, CancellationToken cancellationToken)
-					{
-						if ( cancellationToken.IsCancellationRequested )
-							return;
-
-						await semaphore.WaitAsync(cancellationToken); // Wait for a semaphore slot
-
-						try
-						{
-							var thisArchive = new FileInfo(sourcePath);
-							string sourceRelDirPath = MainConfig.SourcePath is null
-								? sourcePath
-								: PathHelper.GetRelativePath(
-									MainConfig.SourcePath.FullName,
-									sourcePath
-								);
-							argDestinationPath = argDestinationPath
-								?? thisArchive.Directory
-								?? throw new ArgumentNullException(nameof(argDestinationPath));
-
-							await Logger.LogAsync($"Extracting archive '{sourcePath}'...");
-
-							// (attempt to) handle self-extracting executable archives (7zip)
-							if ( thisArchive.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase) )
-							{
-								(int, string, string) result = await PlatformAgnosticMethods.ExecuteProcessAsync(
-									thisArchive.FullName,
-									$" -o\"{thisArchive.DirectoryName}\" -y"
-								);
-
-								if ( result.Item1 == 0 )
-									return;
-
-								exitCode = ActionExitCode.InvalidSelfExtractingExecutable;
-								throw new InvalidOperationException(
-									$"'{sourceRelDirPath}' is not a self-extracting executable as previously assumed. Cannot extract."
-								);
-							}
-
-							using ( FileStream stream = File.OpenRead(thisArchive.FullName) )
-							{
-								IArchive archive;
-
-								switch ( thisArchive.Extension.ToLowerInvariant() )
-								{
-									case ".zip":
-										archive = ZipArchive.Open(stream);
-										break;
-									case ".rar":
-										archive = RarArchive.Open(stream);
-										break;
-									case ".7z":
-										archive = SevenZipArchive.Open(stream);
-										break;
-									default:
-										archive = ArchiveFactory.Open(stream);
-										break;
-								}
-
-								using ( archive )
-								using ( IReader reader = archive.ExtractAllEntries() )
-								{
-									while ( reader.MoveToNextEntry() )
-									{
-										if ( reader.Entry.IsDirectory )
-											continue;
-
-										string extractFolderName = Path.GetFileNameWithoutExtension(thisArchive.Name);
-										string destinationItemPath = Path.Combine(
-											argDestinationPath.FullName,
-											extractFolderName,
-											reader.Entry.Key
-										);
-										string destinationDirectory = Path.GetDirectoryName(destinationItemPath)
-											?? throw new NullReferenceException($"Path.GetDirectoryName({destinationItemPath})");
-										if ( MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory) )
-										{
-											destinationDirectory = PathHelper.GetCaseSensitivePath(
-												destinationDirectory,
-												isFile: false
-											).Item1;
-										}
-
-										string destinationRelDirPath = MainConfig.SourcePath is null
-											? destinationDirectory
-											: PathHelper.GetRelativePath(
-												MainConfig.SourcePath.FullName,
-												destinationDirectory
-											);
-
-										if ( !Directory.Exists(destinationDirectory) )
-										{
-											await Logger.LogVerboseAsync($"Create directory '{destinationRelDirPath}'");
-											_ = Directory.CreateDirectory(destinationDirectory);
-										}
-
-										await Logger.LogVerboseAsync($"Extract '{reader.Entry.Key}' to '{destinationRelDirPath}'");
-
-										try
-										{
-											IReader localReader = reader;
-											await Task.Run(
-												() =>
-												{
-													if ( localReader.Cancelled )
-														return;
-													localReader.WriteEntryToDirectory(
-														destinationDirectory,
-														ArchiveHelper.DefaultExtractionOptions
-													);
-												},
-												cancellationToken
-											);
-										}
-										catch ( ObjectDisposedException )
-										{
-											return;
-										}
-										catch ( UnauthorizedAccessException )
-										{
-											await Logger.LogWarningAsync(
-												$"Skipping file '{reader.Entry.Key}' due to lack of permissions."
-											);
-										}
-									}
-								}
-							}
-						}
-						finally
-						{
-							_ = semaphore.Release(); // Release the semaphore slot
-						}
+						await Logger.LogExceptionAsync(ex);
+						return ActionExitCode.InvalidArchive;
 					}
 				}
+
+				return ActionExitCode.Success;
 			}
-			catch ( IOException ex2 )
+			catch ( ArgumentNullException ex )
 			{
-				await Logger.LogExceptionAsync(ex2);
-				return ActionExitCode.IOException;
+				await Logger.LogExceptionAsync(ex);
+				return ActionExitCode.InvalidArchive;
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
-				return ActionExitCode.UnknownError; // Extraction failed
+				return ActionExitCode.UnknownError;
 			}
 		}
 
-
 		public void DeleteDuplicateFile(
-			DirectoryInfo directoryPath = null,
-			string fileExtension = null,
-			bool caseInsensitive = true,
-			List<string> compatibleExtensions = null
-		)
+				DirectoryInfo directoryPath = null,
+				string fileExtension = null,
+				bool caseInsensitive = true,
+				List<string> compatibleExtensions = null
+			)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling DeleteDuplicateFile. Call SetFileSystemProvider() first.");
+
 			// internal args
 			if ( directoryPath is null )
 				directoryPath = RealDestinationPath;
-			if ( !(directoryPath is null) && !directoryPath.Exists && MainConfig.CaseInsensitivePathing )
+			if ( !(directoryPath is null) && !_fileSystemProvider.DirectoryExists(directoryPath.FullName) && MainConfig.CaseInsensitivePathing )
 				directoryPath = PathHelper.GetCaseSensitivePath(directoryPath);
-			if ( directoryPath?.Exists != true )
+			if ( directoryPath is null || !_fileSystemProvider.DirectoryExists(directoryPath.FullName) )
 				throw new ArgumentException(message: "Invalid directory path.", nameof(directoryPath));
 
 			var sourceExtensions = Source.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
@@ -540,38 +358,37 @@ namespace KOTORModSync.Core
 			if ( string.IsNullOrEmpty(fileExtension) )
 				fileExtension = Arguments;
 
-			FileInfo[] files = directoryPath.GetFilesSafely();
+			List<string> filesList = _fileSystemProvider.GetFilesInDirectory(directoryPath.FullName);
 			Dictionary<string, int> fileNameCounts = caseInsensitive
 				? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
 				: new Dictionary<string, int>();
 
-			foreach ( FileInfo fileInfo in files )
+			foreach ( string fileNameWithoutExtension in from filePath in filesList
+														 select _fileSystemProvider.GetFileName(filePath) into fileName
+														 let fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName)
+														 let thisExtension = Path.GetExtension(fileName)
+														 let compatibleExtensionFound = caseInsensitive
+						 ? compatibleExtensions.Any(ext => ext.Equals(thisExtension, StringComparison.OrdinalIgnoreCase))
+						 : compatibleExtensions.Contains(thisExtension)
+														 where compatibleExtensionFound
+														 select fileNameWithoutExtension )
 			{
-				string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name);
-				string thisExtension = fileInfo.Extension;
-
-				bool compatibleExtensionFound = caseInsensitive
-					? compatibleExtensions.Any(ext => ext.Equals(thisExtension, StringComparison.OrdinalIgnoreCase))
-					: compatibleExtensions.Contains(thisExtension);
-
-				if ( compatibleExtensionFound )
-				{
-					_ = fileNameCounts.TryGetValue(fileNameWithoutExtension, out int count);
-					fileNameCounts[fileNameWithoutExtension] = count + 1;
-				}
+				_ = fileNameCounts.TryGetValue(fileNameWithoutExtension, out int count);
+				fileNameCounts[fileNameWithoutExtension] = count + 1;
 			}
 
-			foreach ( FileInfo thisFile in files )
+			foreach ( string filePath in filesList )
 			{
-				if ( !ShouldDeleteFile(thisFile) )
+				if ( !ShouldDeleteFile(filePath) )
 					continue;
 
 				try
 				{
-					thisFile.Delete();
-					_ = Logger.LogAsync($"Deleted file: '{thisFile}'");
+					_ = _fileSystemProvider.DeleteFileAsync(filePath);
+					string fileName = _fileSystemProvider.GetFileName(filePath);
+					_ = Logger.LogAsync($"Deleted file: '{fileName}'");
 					_ = Logger.LogVerboseAsync(
-						$"Leaving alone '{fileNameCounts[Path.GetFileNameWithoutExtension(thisFile.Name)] - 1}' file(s) with the same name of '{Path.GetFileNameWithoutExtension(thisFile.Name)}'."
+						$"Leaving alone '{fileNameCounts[Path.GetFileNameWithoutExtension(fileName)] - 1}' file(s) with the same name of '{Path.GetFileNameWithoutExtension(fileName)}'."
 					);
 				}
 				catch ( Exception ex )
@@ -582,11 +399,11 @@ namespace KOTORModSync.Core
 
 			return;
 
-			bool ShouldDeleteFile(FileSystemInfo fileSystemInfoItem)
+			bool ShouldDeleteFile(string filePath)
 			{
-				string fileName = fileSystemInfoItem.Name;
+				string fileName = _fileSystemProvider?.GetFileName(filePath);
 				string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-				string fileExtensionFromFile = fileSystemInfoItem.Extension;
+				string fileExtensionFromFile = Path.GetExtension(fileName);
 
 				if ( string.IsNullOrEmpty(fileNameWithoutExtension) )
 				{
@@ -630,6 +447,9 @@ namespace KOTORModSync.Core
 			[ItemNotNull][NotNull] List<string> sourcePaths = null
 		)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling DeleteFile. Call SetFileSystemProvider() first.");
+
 			if ( sourcePaths is null )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths is null )
@@ -642,7 +462,7 @@ namespace KOTORModSync.Core
 				foreach ( string thisFilePath in sourcePaths )
 				{
 					string realFilePath = thisFilePath;
-					if ( MainConfig.CaseInsensitivePathing && !File.Exists(realFilePath) )
+					if ( MainConfig.CaseInsensitivePathing && !_fileSystemProvider.FileExists(realFilePath) )
 						realFilePath = PathHelper.GetCaseSensitivePath(realFilePath).Item1;
 					string sourceRelDirPath = MainConfig.SourcePath is null
 						? thisFilePath
@@ -651,16 +471,16 @@ namespace KOTORModSync.Core
 							thisFilePath
 						);
 
-					if ( !Path.IsPathRooted(realFilePath) || !File.Exists(realFilePath) )
+					if ( !Path.IsPathRooted(realFilePath) || !_fileSystemProvider.FileExists(realFilePath) )
 					{
 						Logger.LogWarning($"Invalid wildcards or file does not exist: '{sourceRelDirPath}'");
 						exitCode = ActionExitCode.FileNotFoundPost;
 					}
 
-					// Delete the file synchronously
+					// Delete the file using provider
 					try
 					{
-						File.Delete(realFilePath);
+						_ = _fileSystemProvider.DeleteFileAsync(realFilePath);
 						_ = Logger.LogAsync($"Deleting '{sourceRelDirPath}'...");
 					}
 					catch ( Exception ex )
@@ -695,6 +515,9 @@ namespace KOTORModSync.Core
 			[ItemNotNull][NotNull] List<string> sourcePaths = null
 		)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling RenameFile. Call SetFileSystemProvider() first.");
+
 			if ( sourcePaths.IsNullOrEmptyCollection() )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths.IsNullOrEmptyCollection() )
@@ -714,7 +537,7 @@ namespace KOTORModSync.Core
 							sourcePath
 						);
 					// Check if the source file already exists
-					if ( !File.Exists(sourcePath) )
+					if ( !_fileSystemProvider.FileExists(sourcePath) )
 					{
 						Logger.LogError($"'{sourceRelDirPath}' does not exist!");
 						if ( exitCode == ActionExitCode.Success )
@@ -736,7 +559,7 @@ namespace KOTORModSync.Core
 							MainConfig.DestinationPath.FullName,
 							destinationFilePath
 						);
-					if ( File.Exists(destinationFilePath) )
+					if ( _fileSystemProvider.FileExists(destinationFilePath) )
 					{
 						if ( !Overwrite )
 						{
@@ -752,14 +575,14 @@ namespace KOTORModSync.Core
 						_ = Logger.LogAsync(
 							$"Removing pre-existing file '{destinationRelDirPath}' Reason: Overwrite set to True"
 						);
-						File.Delete(destinationFilePath);
+						_ = _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 					}
 
-					// Move the file
+					// Rename the file using provider
 					try
 					{
 						_ = Logger.LogAsync($"Rename '{sourceRelDirPath}' to '{destinationRelDirPath}'");
-						File.Move(sourcePath, destinationFilePath);
+						_ = _fileSystemProvider.RenameFileAsync(sourcePath, Destination, Overwrite);
 					}
 					catch ( IOException ex )
 					{
@@ -794,14 +617,17 @@ namespace KOTORModSync.Core
 			[NotNull] DirectoryInfo destinationPath = null
 		)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling CopyFileAsync. Call SetFileSystemProvider() first.");
+
 			if ( sourcePaths.IsNullOrEmptyCollection() )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths.IsNullOrEmptyCollection() )
 				throw new ArgumentNullException(nameof(sourcePaths));
 
-			if ( destinationPath?.Exists != true )
+			if ( destinationPath == null )
 				destinationPath = RealDestinationPath;
-			if ( destinationPath?.Exists != true )
+			if ( destinationPath == null )
 				throw new ArgumentNullException(nameof(destinationPath));
 
 			int maxCount = MainConfig.UseMultiThreadedIO
@@ -836,7 +662,7 @@ namespace KOTORModSync.Core
 							);
 
 						// Check if the destination file already exists
-						if ( File.Exists(destinationFilePath) )
+						if ( _fileSystemProvider.FileExists(destinationFilePath) )
 						{
 							if ( !Overwrite )
 							{
@@ -852,11 +678,11 @@ namespace KOTORModSync.Core
 								$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
 								+ $" deleting pre-existing file '{destinationRelDirPath}' Reason: Overwrite set to True"
 							);
-							File.Delete(destinationFilePath);
+							await _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 						}
 
 						await Logger.LogAsync($"Copy '{sourceRelDirPath}' to '{destinationRelDirPath}'");
-						File.Copy(sourcePath, destinationFilePath);
+						await _fileSystemProvider.CopyFileAsync(sourcePath, destinationFilePath, Overwrite);
 					}
 					catch ( Exception ex )
 					{
@@ -892,14 +718,17 @@ namespace KOTORModSync.Core
 			[NotNull] DirectoryInfo destinationPath = null
 		)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling MoveFileAsync. Call SetFileSystemProvider() first.");
+
 			if ( sourcePaths.IsNullOrEmptyCollection() )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths.IsNullOrEmptyCollection() )
 				throw new ArgumentNullException(nameof(sourcePaths));
 
-			if ( destinationPath?.Exists != true )
+			if ( destinationPath == null )
 				destinationPath = RealDestinationPath;
-			if ( destinationPath?.Exists != true )
+			if ( destinationPath == null )
 				throw new ArgumentNullException(nameof(destinationPath));
 
 			int maxCount = MainConfig.UseMultiThreadedIO
@@ -935,7 +764,7 @@ namespace KOTORModSync.Core
 							);
 
 						// Check if the destination file already exists
-						if ( File.Exists(destinationFilePath) )
+						if ( _fileSystemProvider.FileExists(destinationFilePath) )
 						{
 							if ( !Overwrite )
 							{
@@ -951,11 +780,11 @@ namespace KOTORModSync.Core
 								$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
 								+ $" deleting pre-existing file '{destinationRelDirPath}' Reason: Overwrite set to True"
 							);
-							File.Delete(destinationFilePath);
+							await _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 						}
 
 						await Logger.LogAsync($"Move '{sourceRelDirPath}' to '{destinationRelDirPath}'");
-						File.Move(sourcePath, destinationFilePath);
+						await _fileSystemProvider.MoveFileAsync(sourcePath, destinationFilePath, Overwrite);
 					}
 					catch ( Exception ex )
 					{
@@ -988,26 +817,29 @@ namespace KOTORModSync.Core
 		// todo: define exit codes here.
 		public async Task<ActionExitCode> ExecuteTSLPatcherAsync()
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling ExecuteTSLPatcherAsync. Call SetFileSystemProvider() first.");
+
 			try
 			{
 				foreach ( string t in RealSourcePaths )
 				{
-					DirectoryInfo tslPatcherDirectory = File.Exists(t)
-						? PathHelper.TryGetValidDirectoryInfo(Path.GetDirectoryName(t)) // It's a file, create DirectoryInfo instance of the parent.
+					DirectoryInfo tslPatcherDirectory = _fileSystemProvider.FileExists(t)
+						? PathHelper.TryGetValidDirectoryInfo(_fileSystemProvider.GetDirectoryName(t)) // It's a file, create DirectoryInfo instance of the parent.
 						: new DirectoryInfo(t);                                         // It's a folder, create a DirectoryInfo instance
 
-					if ( tslPatcherDirectory?.Exists != true )
+					if ( tslPatcherDirectory is null || !_fileSystemProvider.DirectoryExists(tslPatcherDirectory.FullName) )
 						throw new DirectoryNotFoundException($"The directory '{t}' could not be located on the disk.");
 
 					//PlaintextLog=0
 					string fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.rtf");
-					if ( File.Exists(fullInstallLogFile) )
-						File.Delete(fullInstallLogFile);
+					if ( _fileSystemProvider.FileExists(fullInstallLogFile) )
+						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
 
 					//PlaintextLog=1
 					fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.txt");
-					if ( File.Exists(fullInstallLogFile) )
-						File.Delete(fullInstallLogFile);
+					if ( _fileSystemProvider.FileExists(fullInstallLogFile) )
+						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
 
 					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern: @"^\s*PlaintextLog\s*=\s*0\s*$", replacement: "PlaintextLog=1");
 					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern: @"^\s*LookupGameFolder\s*=\s*1\s*$", replacement: "LookupGameFolder=0");
@@ -1020,10 +852,7 @@ namespace KOTORModSync.Core
 						$"--tslpatchdata=\"{tslPatcherDirectory}\"",
 					};
 
-					if ( !string.IsNullOrEmpty(Arguments) )
-					{
-						argList.Add($"--namespace-option-index={Arguments}");
-					}
+					if ( !string.IsNullOrEmpty(Arguments) ) argList.Add($"--namespace-option-index={Arguments}");
 
 					string args = string.Join(separator: " ", argList);
 
@@ -1040,7 +869,7 @@ namespace KOTORModSync.Core
 					{
 						// Handling OSX specific paths
 						// FIXME: .app's aren't accepting command-line arguments correctly.
-						string[] possibleOSXPaths = {
+						string[] possibleOsxPaths = {
 							Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
 							Path.Combine(resourcesDir, "holopatcher"),
 							Path.Combine(baseDir, "Resources", "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
@@ -1048,7 +877,7 @@ namespace KOTORModSync.Core
 						};
 
 						OSPlatform thisOperatingSystem = Utility.Utility.GetOperatingSystem();
-						foreach ( string path in possibleOSXPaths )
+						foreach ( string path in possibleOsxPaths )
 						{
 							patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app")
 								? PathHelper.GetCaseSensitivePath(new DirectoryInfo(path))
@@ -1076,19 +905,17 @@ namespace KOTORModSync.Core
 					await Logger.LogAsync($"Using CLI to run command: '{patcherCliPath} {args}'");
 
 					// ReSharper disable twice UnusedVariable
-					(int exitCode, string output, string error) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+					(int exitCode, string output, string error) = await _fileSystemProvider.ExecuteProcessAsync(
 						patcherCliPath.FullName,
 						args
 					);
 					await Logger.LogVerboseAsync($"'{patcherCliPath.Name}' exited with exit code {exitCode}");
 					if ( exitCode != 0 )
-					{
 						return ActionExitCode.PatcherError;
-					}
 
 					try
 					{
-						List<string> installErrors = VerifyInstall();
+						List<string> installErrors = await VerifyInstall();
 						if ( installErrors.Count <= 0 )
 							continue;
 
@@ -1113,6 +940,9 @@ namespace KOTORModSync.Core
 
 		public async Task<ActionExitCode> ExecuteProgramAsync([ItemNotNull] List<string> sourcePaths = null)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling ExecuteProgramAsync. Call SetFileSystemProvider() first.");
+
 			try
 			{
 				if ( sourcePaths == null )
@@ -1126,9 +956,9 @@ namespace KOTORModSync.Core
 					try
 					{
 						(int childExitCode, string output, string error) =
-							await PlatformAgnosticMethods.ExecuteProcessAsync(
+							await _fileSystemProvider.ExecuteProcessAsync(
 								sourcePath,
-								args: Utility.Utility.ReplaceCustomVariables(Arguments)
+								Utility.Utility.ReplaceCustomVariables(Arguments)
 							);
 
 						_ = Logger.LogVerboseAsync(output + Environment.NewLine + error);
@@ -1161,31 +991,41 @@ namespace KOTORModSync.Core
 
 		// parse TSLPatcher's installlog.rtf (or installlog.txt) for errors.
 		[NotNull]
-		private List<string> VerifyInstall([ItemNotNull] List<string> sourcePaths = null)
+		private async Task<List<string>> VerifyInstall([ItemNotNull] List<string> sourcePaths = null)
 		{
+			if ( _fileSystemProvider == null )
+				throw new InvalidOperationException("File system provider must be set before calling VerifyInstall. Call SetFileSystemProvider() first.");
+
 			if ( sourcePaths == null )
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths == null )
 				throw new ArgumentNullException(nameof(sourcePaths));
 
+			// For dry-run (virtual file system), we can't actually verify install logs
+			// since the patcher didn't really run. Just return empty list.
+			if ( _fileSystemProvider.IsDryRun )
+			{
+				Logger.LogVerbose("Skipping install log verification for dry-run");
+				return new List<string>();
+			}
+
 			foreach ( string sourcePath in sourcePaths )
 			{
-				string tslPatcherDirPath = Path.GetDirectoryName(sourcePath)
+				string tslPatcherDirPath = _fileSystemProvider.GetDirectoryName(sourcePath)
 					?? throw new DirectoryNotFoundException($"Could not retrieve parent directory of '{sourcePath}'.");
 
 				//PlaintextLog=0
 				string fullInstallLogFile = Path.Combine(tslPatcherDirPath, path2: "installlog.rtf");
-				if ( !File.Exists(fullInstallLogFile) )
+				if ( !_fileSystemProvider.FileExists(fullInstallLogFile) )
 				{
 					//PlaintextLog=1
 					fullInstallLogFile = Path.Combine(tslPatcherDirPath, path2: "installlog.txt");
-					if ( !File.Exists(fullInstallLogFile) )
-					{
+					if ( !_fileSystemProvider.FileExists(fullInstallLogFile) )
 						throw new FileNotFoundException(message: "Install log file not found.", fullInstallLogFile);
-					}
 				}
 
-				string installLogContent = File.ReadAllText(fullInstallLogFile);
+				// Use file system provider to read the log file
+				string installLogContent = await _fileSystemProvider.ReadFileAsync(fullInstallLogFile);
 
 				return installLogContent.Split(Environment.NewLine.ToCharArray()).Where(
 					thisLine => thisLine.Contains("Error: ") || thisLine.Contains("[Error]")

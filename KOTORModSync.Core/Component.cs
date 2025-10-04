@@ -570,7 +570,7 @@ namespace KOTORModSync.Core
 		{
 			var serializedComponentDict = (Dictionary<string, object>)Serializer.SerializeObject(this);
 			if ( serializedComponentDict is null )
-				throw new NullReferenceException(nameof( serializedComponentDict ));
+				throw new NullReferenceException(nameof(serializedComponentDict));
 
 			CollectionUtils.RemoveEmptyCollections(serializedComponentDict);
 			StringBuilder tomlString = FixSerializedTomlDict(serializedComponentDict);
@@ -597,7 +597,7 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( serializedComponentDict is null )
-				throw new ArgumentNullException(nameof( serializedComponentDict ));
+				throw new ArgumentNullException(nameof(serializedComponentDict));
 
 			if ( tomlString is null )
 				tomlString = new StringBuilder();
@@ -611,7 +611,7 @@ namespace KOTORModSync.Core
 					continue;
 
 				Type listEntriesType = propertyList.GetType().GetGenericArguments()[0];
-				if ( !listEntriesType.IsClass || listEntriesType == typeof( string ) )
+				if ( !listEntriesType.IsClass || listEntriesType == typeof(string) )
 					continue;
 
 				bool found = false;
@@ -700,9 +700,9 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( components is null )
-				throw new ArgumentNullException(nameof( components ));
+				throw new ArgumentNullException(nameof(components));
 			if ( filePath is null )
-				throw new ArgumentNullException(nameof( filePath ));
+				throw new ArgumentNullException(nameof(filePath));
 
 			var stringBuilder = new StringBuilder();
 
@@ -721,7 +721,7 @@ namespace KOTORModSync.Core
 		public static string GenerateModDocumentation([NotNull][ItemNotNull] List<Component> componentsList)
 		{
 			if ( componentsList is null )
-				throw new ArgumentNullException(nameof( componentsList ));
+				throw new ArgumentNullException(nameof(componentsList));
 
 			var sb = new StringBuilder();
 			const string indentation = "    ";
@@ -943,9 +943,9 @@ namespace KOTORModSync.Core
 			try
 			{
 				if ( dict is null )
-					throw new ArgumentNullException(nameof( dict ));
+					throw new ArgumentNullException(nameof(dict));
 				if ( key is null )
-					throw new ArgumentNullException(nameof( key ));
+					throw new ArgumentNullException(nameof(key));
 
 				if ( !dict.TryGetValue(key, out object value) )
 				{
@@ -959,7 +959,7 @@ namespace KOTORModSync.Core
 					value = val2;
 				}
 
-				Type targetType = typeof( T );
+				Type targetType = typeof(T);
 				switch ( value )
 				{
 					case null:
@@ -971,10 +971,10 @@ namespace KOTORModSync.Core
 						{
 							return required
 								? throw new KeyNotFoundException($"'{key}' field cannot be empty.")
-								: default( T );
+								: default(T);
 						}
 
-						if ( targetType == typeof( Guid ) )
+						if ( targetType == typeof(Guid) )
 						{
 							string guidStr = Serializer.FixGuidString(valueStr);
 							return !string.IsNullOrEmpty(guidStr) && Guid.TryParse(guidStr, out Guid guid)
@@ -984,7 +984,7 @@ namespace KOTORModSync.Core
 									: (T)(object)Guid.Empty;
 						}
 
-						if ( targetType == typeof( string ) )
+						if ( targetType == typeof(string) )
 							return (T)(object)valueStr;
 
 						break;
@@ -993,13 +993,13 @@ namespace KOTORModSync.Core
 				Type genericListDefinition = targetType.IsGenericType
 					? targetType.GetGenericTypeDefinition()
 					: null;
-				if ( genericListDefinition == typeof( List<> ) || genericListDefinition == typeof( IList<> ) )
+				if ( genericListDefinition == typeof(List<>) || genericListDefinition == typeof(IList<>) )
 				{
-					Type[] genericArgs = typeof( T ).GetGenericArguments();
+					Type[] genericArgs = typeof(T).GetGenericArguments();
 					Type listElementType = genericArgs.Length > 0
 						? genericArgs[0]
-						: typeof( string );
-					Type listType = typeof( List<> ).MakeGenericType(listElementType);
+						: typeof(string);
+					Type listType = typeof(List<>).MakeGenericType(listElementType);
 
 					var list = (T)Activator.CreateInstance(listType);
 					MethodInfo addMethod = list?.GetType().GetMethod(name: "Add");
@@ -1008,7 +1008,7 @@ namespace KOTORModSync.Core
 					{
 						foreach ( object item in enumerableValue )
 						{
-							if ( listElementType == typeof( Guid )
+							if ( listElementType == typeof(Guid)
 								&& Guid.TryParse(item?.ToString(), out Guid guidItem) )
 							{
 								addMethod?.Invoke(
@@ -1047,7 +1047,7 @@ namespace KOTORModSync.Core
 
 				try
 				{
-					return (T)Convert.ChangeType(value, typeof( T ));
+					return (T)Convert.ChangeType(value, typeof(T));
 				}
 				catch ( Exception e )
 				{
@@ -1074,7 +1074,7 @@ namespace KOTORModSync.Core
 		public static Component DeserializeTomlComponent([NotNull] string tomlString)
 		{
 			if ( tomlString is null )
-				throw new ArgumentNullException(nameof( tomlString ));
+				throw new ArgumentNullException(nameof(tomlString));
 
 			tomlString = Serializer.FixWhitespaceIssues(tomlString);
 
@@ -1125,7 +1125,7 @@ namespace KOTORModSync.Core
 		public static List<Component> ReadComponentsFromFile([NotNull] string filePath)
 		{
 			if ( filePath is null )
-				throw new ArgumentNullException(nameof( filePath ));
+				throw new ArgumentNullException(nameof(filePath));
 
 			try
 			{
@@ -1190,6 +1190,10 @@ namespace KOTORModSync.Core
 			}
 		}
 
+		/// <summary>
+		/// Installs this component using real file system operations.
+		/// This wraps ExecuteInstructionsAsync and adds checkpoint/state management.
+		/// </summary>
 		public async Task<InstallExitCode> InstallAsync([NotNull] List<Component> componentsList, CancellationToken cancellationToken)
 		{
 			if ( componentsList is null )
@@ -1206,10 +1210,14 @@ namespace KOTORModSync.Core
 				await s_checkpointSemaphore.WaitAsync(cancellationToken);
 				try
 				{
+					// Use real file system for actual installation
+					var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
+
 					InstallExitCode exitCode = await ExecuteInstructionsAsync(
 						Instructions,
 						componentsList,
-						cancellationToken
+						cancellationToken,
+						realFileSystem
 					);
 					await Logger.LogAsync((string)Utility.Utility.GetEnumDescription(exitCode));
 					if ( exitCode == InstallExitCode.Success )
@@ -1217,7 +1225,12 @@ namespace KOTORModSync.Core
 						InstallState = ComponentInstallState.Completed;
 						LastCompletedUtc = DateTimeOffset.UtcNow;
 					}
-					else if ( exitCode == InstallExitCode.DependencyViolation || exitCode == InstallExitCode.UserCancelledInstall )
+					else if ( exitCode == InstallExitCode.DependencyViolation )
+					{
+						InstallState = ComponentInstallState.Blocked;
+						LastCompletedUtc = DateTimeOffset.UtcNow;
+					}
+					else
 					{
 						InstallState = ComponentInstallState.Failed;
 						LastCompletedUtc = DateTimeOffset.UtcNow;
@@ -1258,22 +1271,29 @@ namespace KOTORModSync.Core
 			return InstallExitCode.UnknownError;
 		}
 
-		private async Task<InstallExitCode> ExecuteInstructionsAsync(
+		/// <summary>
+		/// Executes instructions using the provided file system provider.
+		/// Pass RealFileSystemProvider for actual installation or VirtualFileSystemProvider for dry-run validation.
+		/// This method is COMPLETELY agnostic to whether it's dry-run or real - it just uses the provider.
+		/// NO dry-run checks allowed in this method.
+		/// </summary>
+		internal async Task<InstallExitCode> ExecuteInstructionsAsync(
 			[NotNull][ItemNotNull] ObservableCollection<Instruction> theseInstructions,
 			[NotNull][ItemNotNull] List<Component> componentsList,
-			CancellationToken cancellationToken
+			CancellationToken cancellationToken,
+			[NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider
 		)
 		{
 			if ( theseInstructions is null )
 				throw new ArgumentNullException(nameof(theseInstructions));
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
+			if ( fileSystemProvider is null )
+				throw new ArgumentNullException(nameof(fileSystemProvider));
 
 			bool shouldInstall = ShouldInstallComponent(componentsList);
 			if ( !shouldInstall )
 			{
-				InstallState = ComponentInstallState.Blocked;
-				PersistCheckpoint();
 				return InstallExitCode.DependencyViolation;
 			}
 
@@ -1283,47 +1303,15 @@ namespace KOTORModSync.Core
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
-				int index = instructionIndex;
 				Instruction instruction = theseInstructions[instructionIndex - 1];
 
-				InstructionCheckpoint checkpoint = GetOrCreateInstructionCheckpoint(
-					instruction.Guid,
-					instructionIndex
-				);
-
-				if ( checkpoint.State == InstructionInstallState.Completed )
-				{
-					await Logger.LogVerboseAsync(
-						$"Skipping instruction #{instructionIndex} '{instruction.Action}' for component '{Name}' (already completed)."
-					);
-					continue;
-				}
-
-				if ( checkpoint.State == InstructionInstallState.Running )
-				{
-					await Logger.LogWarningAsync(
-						$"Instruction #{instructionIndex} '{instruction.Action}' for component '{Name}' was left in Running state. Retrying from scratch."
-					);
-				}
-
-				if ( checkpoint.State == InstructionInstallState.Failed )
-				{
-					await Logger.LogVerboseAsync(
-						$"Retrying previously failed instruction #{instructionIndex} '{instruction.Action}' for component '{Name}'."
-					);
-				}
+				// Set file system provider on instruction so it can use it
+				instruction.SetFileSystemProvider(fileSystemProvider);
 
 				if ( !ShouldRunInstruction(instruction, componentsList) )
 				{
-					checkpoint.State = InstructionInstallState.Skipped;
-					checkpoint.LastUpdatedUtc = DateTimeOffset.UtcNow;
-					PersistCheckpoint();
 					continue;
 				}
-
-				checkpoint.State = InstructionInstallState.Running;
-				checkpoint.LastUpdatedUtc = DateTimeOffset.UtcNow;
-				PersistCheckpoint();
 
 				// Get the original check-sums before making any modifications
 				/*await Logger.LogAsync( "Checking file hashes of the install location for mismatch..." );
@@ -1410,7 +1398,8 @@ namespace KOTORModSync.Core
 							InstallExitCode optionExitCode = await ExecuteInstructionsAsync(
 								thisOption.Instructions,
 								componentsList,
-								cancellationToken
+								cancellationToken,
+								fileSystemProvider  // Pass the same provider recursively
 							);
 							installExitCode = optionExitCode;
 
@@ -1420,9 +1409,7 @@ namespace KOTORModSync.Core
 								await Logger.LogErrorAsync($"Failed to install chosen option {i + 1} in main instruction index {instructionIndex}");
 								exitCode = Instruction.ActionExitCode.OptionalInstallFailed;
 								if ( optionExitCode == InstallExitCode.UserCancelledInstall )
-								{
 									return optionExitCode;
-								}
 								break;
 							}
 						}
@@ -1451,39 +1438,9 @@ namespace KOTORModSync.Core
 					await Logger.LogErrorAsync(
 						$"FAILED Instruction #{instructionIndex} Action '{instruction.ActionString}'"
 					);
-					checkpoint.State = InstructionInstallState.Failed;
-					checkpoint.LastUpdatedUtc = DateTimeOffset.UtcNow;
-					PersistCheckpoint();
-					bool? confirmationResult = await PromptUserInstallError(
-						$"An error occurred during the installation of '{Name}':"
-						+ Environment.NewLine
-						+ Utility.Utility.GetEnumDescription(exitCode)
-					);
 
-					switch ( confirmationResult )
-					{
-						// repeat instruction
-						case true:
-							checkpoint.State = InstructionInstallState.Pending;
-							checkpoint.LastUpdatedUtc = DateTimeOffset.UtcNow;
-							PersistCheckpoint();
-							instructionIndex--;
-							continue;
-
-						// execute next instruction
-						case false:
-							checkpoint.State = InstructionInstallState.Skipped;
-							checkpoint.LastUpdatedUtc = DateTimeOffset.UtcNow;
-							PersistCheckpoint();
-							continue;
-
-						// case null: cancel installing this mod (user closed confirmation dialog)
-						default:
-							InstallState = ComponentInstallState.Failed;
-							LastCompletedUtc = DateTimeOffset.UtcNow;
-							PersistCheckpoint();
-							return InstallExitCode.UserCancelledInstall;
-					}
+					// Just return the error - let caller handle prompts/checkpoints
+					return InstallExitCode.UnknownError;
 				}
 
 				/*if (instruction.ExpectedChecksums != null)
@@ -1514,27 +1471,7 @@ namespace KOTORModSync.Core
 				    }
 				}*/
 
-				checkpoint.State = InstructionInstallState.Completed;
-				checkpoint.LastUpdatedUtc = DateTimeOffset.UtcNow;
-				PersistCheckpoint();
 				_ = Logger.LogAsync($"Successfully completed instruction #{instructionIndex} '{instruction.Action}'");
-				continue;
-
-				async Task<bool?> PromptUserInstallError(string message) =>
-					await CallbackObjects.ConfirmCallback.ShowConfirmationDialog(
-						message
-						+ Environment.NewLine
-						+ $"Instruction #{index} action '{instruction.Action}'"
-						+ Environment.NewLine
-						+ "Retry this Instruction?"
-						+ Environment.NewLine
-						+ Environment.NewLine
-						+ " 'YES': RETRY this Instruction"
-						+ Environment.NewLine
-						+ " 'NO':  SKIP this Instruction"
-						+ Environment.NewLine
-						+ $" or CLOSE THIS WINDOW to ABORT the installation of '{Name}'."
-					);
 			}
 
 			return installExitCode;
@@ -1548,11 +1485,11 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( dependencyGuids is null )
-				throw new ArgumentNullException(nameof( dependencyGuids ));
+				throw new ArgumentNullException(nameof(dependencyGuids));
 			if ( restrictionGuids is null )
-				throw new ArgumentNullException(nameof( restrictionGuids ));
+				throw new ArgumentNullException(nameof(restrictionGuids));
 			if ( componentsList == null )
-				throw new ArgumentNullException(nameof( componentsList ));
+				throw new ArgumentNullException(nameof(componentsList));
 
 			var conflicts = new Dictionary<string, List<Component>>();
 			if ( dependencyGuids.Count > 0 )
@@ -1569,7 +1506,8 @@ namespace KOTORModSync.Core
 						// Only needed for 'dependencies' not 'restrictions'.
 						var componentGuidNotFound = new Component
 						{
-							Name = "Component Undefined with GUID.", Guid = requiredGuid,
+							Name = "Component Undefined with GUID.",
+							Guid = requiredGuid,
 						};
 						dependencyConflicts.Add(componentGuidNotFound);
 					}
@@ -1606,7 +1544,7 @@ namespace KOTORModSync.Core
 		public bool ShouldInstallComponent([NotNull][ItemNotNull] List<Component> componentsList)
 		{
 			if ( componentsList is null )
-				throw new ArgumentNullException(nameof( componentsList ));
+				throw new ArgumentNullException(nameof(componentsList));
 
 			Dictionary<string, List<Component>> conflicts = GetConflictingComponents(
 				Dependencies,
@@ -1626,9 +1564,9 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( instruction is null )
-				throw new ArgumentNullException(nameof( instruction ));
+				throw new ArgumentNullException(nameof(instruction));
 			if ( componentsList is null )
-				throw new ArgumentNullException(nameof( componentsList ));
+				throw new ArgumentNullException(nameof(componentsList));
 
 			Dictionary<string, List<Component>> conflicts = GetConflictingComponents(
 				instruction.Dependencies,
@@ -1645,7 +1583,7 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( componentsList is null )
-				throw new ArgumentNullException(nameof( componentsList ));
+				throw new ArgumentNullException(nameof(componentsList));
 
 			Component foundComponent = null;
 			foreach ( Component component in componentsList )
@@ -1679,9 +1617,9 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( guidsToFind is null )
-				throw new ArgumentNullException(nameof( guidsToFind ));
+				throw new ArgumentNullException(nameof(guidsToFind));
 			if ( componentsList is null )
-				throw new ArgumentNullException(nameof( componentsList ));
+				throw new ArgumentNullException(nameof(componentsList));
 
 			var foundComponents = new List<Component>();
 			foreach ( Guid guidToFind in guidsToFind )
@@ -1701,7 +1639,7 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( components is null )
-				throw new ArgumentNullException(nameof( components ));
+				throw new ArgumentNullException(nameof(components));
 
 			Dictionary<Guid, GraphNode> nodeMap = CreateDependencyGraph(components);
 
@@ -1772,11 +1710,11 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( node is null )
-				throw new ArgumentNullException(nameof( node ));
+				throw new ArgumentNullException(nameof(node));
 			if ( visitedNodes is null )
-				throw new ArgumentNullException(nameof( visitedNodes ));
+				throw new ArgumentNullException(nameof(visitedNodes));
 			if ( orderedComponents is null )
-				throw new ArgumentNullException(nameof( orderedComponents ));
+				throw new ArgumentNullException(nameof(orderedComponents));
 
 			_ = visitedNodes.Add(node);
 
@@ -1796,7 +1734,7 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( components is null )
-				throw new ArgumentNullException(nameof( components ));
+				throw new ArgumentNullException(nameof(components));
 
 			var nodeMap = new Dictionary<Guid, GraphNode>();
 
@@ -1886,7 +1824,8 @@ namespace KOTORModSync.Core
 		{
 			var option = new Option
 			{
-				Name = Path.GetFileNameWithoutExtension(Path.GetTempFileName()), Guid = Guid.NewGuid(),
+				Name = Path.GetFileNameWithoutExtension(Path.GetTempFileName()),
+				Guid = Guid.NewGuid(),
 			};
 			if ( Instructions.IsNullOrEmptyOrAllNull() )
 			{

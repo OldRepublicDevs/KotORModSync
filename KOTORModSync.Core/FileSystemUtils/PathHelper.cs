@@ -488,13 +488,19 @@ namespace KOTORModSync.Core.FileSystemUtils
 			File.Delete(sourcePath);
 		}
 
+		/// <summary>
+		/// Enumerates files with wildcard support using the provided file system provider.
+		/// </summary>
 		public static List<string> EnumerateFilesWithWildcards(
 			IEnumerable<string> filesAndFolders,
+			Services.FileSystem.IFileSystemProvider fileSystemProvider,
 			bool includeSubFolders = true
 		)
 		{
 			if ( filesAndFolders is null )
 				throw new ArgumentNullException(nameof(filesAndFolders));
+			if ( fileSystemProvider is null )
+				throw new ArgumentNullException(nameof(fileSystemProvider));
 
 			var result = new List<string>();
 			var uniquePaths = new HashSet<string>(filesAndFolders);
@@ -507,19 +513,31 @@ namespace KOTORModSync.Core.FileSystemUtils
 				try
 				{
 					string formattedPath = FixPathFormatting(path);
+					Console.WriteLine($"[PathHelper] EnumerateFilesWithWildcards: path={path}, formatted={formattedPath}");
 
 					// ReSharper disable once AssignNullToNotNullAttribute
 					if ( !ContainsWildcards(formattedPath) )
 					{
+						Console.WriteLine("[PathHelper] No wildcards, checking FileExists...");
+
 						// Handle non-wildcard paths
-						if ( !File.Exists(formattedPath) )
+						if ( !fileSystemProvider.FileExists(formattedPath) )
 						{
+							Console.WriteLine("[PathHelper] Not found, trying case-sensitive...");
 							(string, bool?) returnTuple = GetCaseSensitivePath(formattedPath);
 							formattedPath = returnTuple.Item1;
+							Console.WriteLine($"[PathHelper] Case-sensitive: {formattedPath}");
 						}
 
-						if ( File.Exists(formattedPath) )
+						if ( fileSystemProvider.FileExists(formattedPath) )
+						{
+							Console.WriteLine($"[PathHelper] EXISTS! Adding: {formattedPath}");
 							result.Add(formattedPath);
+						}
+						else
+						{
+							Console.WriteLine($"[PathHelper] NOT FOUND: {formattedPath}");
+						}
 
 						continue;
 					}
@@ -540,25 +558,28 @@ namespace KOTORModSync.Core.FileSystemUtils
 						currentDir = parentDirectory;
 					}
 
-					if ( !Directory.Exists(currentDir) )
+					if ( !fileSystemProvider.DirectoryExists(currentDir) )
 						continue;
 
-					var currentDirInfo = new DirectoryInfo(currentDir);
-
-					IEnumerable<FileInfo> checkFiles = currentDirInfo.EnumerateFilesSafely(
-						searchPattern: "*",
+					// Use file system provider to get files
+					List<string> checkFiles = fileSystemProvider.GetFilesInDirectory(
+						currentDir,
+						"*",
 						includeSubFolders
 							? SearchOption.AllDirectories
 							: SearchOption.TopDirectoryOnly
 					);
 
 					result.AddRange(
-						from thisFile in checkFiles
-						where thisFile != null && WildcardPathMatch(thisFile.FullName, formattedPath)
-						select thisFile.FullName
+						from filePath in checkFiles
+						where !string.IsNullOrEmpty(filePath) && WildcardPathMatch(filePath, formattedPath)
+						select filePath
 					);
 
-					if ( MainConfig.CaseInsensitivePathing )
+					// For case-insensitive pathing, check duplicate folders
+					// Note: For virtual file system (dry-run), this is skipped as the virtual
+					// provider handles case-insensitivity internally
+					if ( MainConfig.CaseInsensitivePathing && !fileSystemProvider.IsDryRun )
 					{
 						IEnumerable<FileSystemInfo> duplicates = FindCaseInsensitiveDuplicates(
 							currentDir,
@@ -572,17 +593,18 @@ namespace KOTORModSync.Core.FileSystemUtils
 							if ( !(thisDuplicateFolder is DirectoryInfo dirInfo) )
 								throw new NullReferenceException(nameof(dirInfo));
 
-							checkFiles = dirInfo.EnumerateFilesSafely(
-								searchPattern: "*",
+							List<string> duplicateFiles = fileSystemProvider.GetFilesInDirectory(
+								dirInfo.FullName,
+								"*",
 								includeSubFolders
 									? SearchOption.AllDirectories
 									: SearchOption.TopDirectoryOnly
 							);
 
 							result.AddRange(
-								from thisFile in checkFiles
-								where thisFile != null && WildcardPathMatch(thisFile.FullName, formattedPath)
-								select thisFile.FullName
+								from filePath in duplicateFiles
+								where !string.IsNullOrEmpty(filePath) && WildcardPathMatch(filePath, formattedPath)
+								select filePath
 							);
 						}
 					}

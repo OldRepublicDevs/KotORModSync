@@ -21,6 +21,8 @@
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
         <converters:NotChooseActionVisibility x:Key="NotChooseActionVisibility" />
+        <converters:PatcherActionVisibility x:Key="PatcherActionVisibility" />
+        <converters:NotPatcherActionVisibility x:Key="NotPatcherActionVisibility" />
         <converters:GuidToComponentConverter x:Key="GuidToComponentConverter" />
         <converters:GuidListConverter x:Key="GuidListConverter" />
         <converters:IsWindowsConverter x:Key="IsWindowsConverter" />
@@ -263,12 +265,20 @@
                                     <StackPanel Orientation="Horizontal" Margin="30,5,0,0" Spacing="10">
                                         <Button x:Name="ScrapeDownloadsButton" Content="Fetch Downloads" Click="ScrapeDownloadsButton_Click"
                                                 ToolTip.Tip="Try to download all missing mod archives automatically" />
-                                        <Button x:Name="OpenModDirectoryButton" Content="Open Mod Directory" Click="OpenModDirectoryButton_Click"
-                                                ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="DownloadStatusText" Margin="30,10,0,0" TextWrapping="Wrap"
+                                <Button x:Name="OpenModDirectoryButton" Content="Open Mod Directory" Click="OpenModDirectoryButton_Click"
+                                        ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
+                                </StackPanel>
+                                <Button x:Name="DownloadStatusButton"
+                                        Margin="30,10,0,0"
+                                        HorizontalAlignment="Left"
+                                        Click="DownloadStatusButton_Click"
+                                        ToolTip.Tip="Click to view download progress and status"
+                                        Cursor="Hand">
+                                    <TextBlock x:Name="DownloadStatusText"
+                                               TextWrapping="Wrap"
                                                Foreground="Gray"
                                                Text="Status: Waiting for download scan..." />
+                                </Button>
                                 </StackPanel>
                             </Border>
 

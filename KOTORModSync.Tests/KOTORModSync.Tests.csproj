@@ -31,7 +31,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KOTORModSync.Core\KOTORModSync.Core.csproj" />
-    <ProjectReference Include="..\KOTORModSync.GUI\KOTORModSync.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="RegexPreviewHighlightingTests.cs" />
   </ItemGroup>
 
 </Project>

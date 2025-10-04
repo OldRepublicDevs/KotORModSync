@@ -254,8 +254,11 @@ namespace KOTORModSync.Core
 				if ( instruction.Action != Instruction.ActionType.Extract )
 					continue;
 
+				// Use real file system for validation (before installation)
+				var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
 				List<string> realPaths = PathHelper.EnumerateFilesWithWildcards(
 					instruction.Source.ConvertAll(Utility.Utility.ReplaceCustomVariables),
+					realFileSystem,
 					includeSubFolders: false
 				);
 				if ( realPaths is null )

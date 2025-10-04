@@ -7,9 +7,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Services.Validation;
 using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services
@@ -126,7 +129,7 @@ namespace KOTORModSync.Core.Services
 				if ( !isInstallDirectoryWritable )
 				{
 					if ( onConfirmationRequested != null &&
-						await onConfirmationRequested("The Install directory is not writable! Would you like to attempt to gain access now?") == true )
+						await onConfirmationRequested("The Install directory is not writable! Would you like to attempt to gain access now?") )
 					{
 						await FilePermissionHelper.FixPermissionsAsync(MainConfig.DestinationPath);
 						isInstallDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.DestinationPath);
@@ -136,7 +139,7 @@ namespace KOTORModSync.Core.Services
 				if ( !isModDirectoryWritable )
 				{
 					if ( onConfirmationRequested != null &&
-						await onConfirmationRequested("Your mod directory is not writable! Would you like to attempt to gain access now?") == true )
+						await onConfirmationRequested("Your mod directory is not writable! Would you like to attempt to gain access now?") )
 					{
 						await FilePermissionHelper.FixPermissionsAsync(MainConfig.SourcePath);
 						isModDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.SourcePath);
@@ -194,6 +197,15 @@ namespace KOTORModSync.Core.Services
 
 				await Logger.LogVerboseAsync("Finished validating all components.");
 
+				// Perform dry-run validation to detect instruction-level issues
+				await Logger.LogAsync("Performing dry-run validation of installation order and instructions...");
+				DryRunValidationResult dryRunResult = await DryRunValidator.ValidateInstallationAsync(
+					MainConfig.AllComponents,
+					CancellationToken.None
+				);
+
+				bool dryRunPassed = dryRunResult.IsValid;
+
 				string informationMessage = string.Empty;
 
 				if ( !holopatcherIsExecutable )
@@ -247,6 +259,40 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogErrorAsync(informationMessage);
 				}
 
+				// Handle dry-run validation results
+				if ( !dryRunPassed )
+				{
+					await Logger.LogErrorAsync("Dry-run validation failed! Installation would encounter errors.");
+					await Logger.LogErrorAsync(dryRunResult.GetSummaryMessage());
+
+					// Log detailed issues to output window
+					foreach ( ValidationIssue issue in dryRunResult.Issues.Where(i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical) )
+					{
+						await Logger.LogErrorAsync($"[{issue.Category}] {issue.Message}");
+						if ( issue.AffectedComponent != null )
+						{
+							await Logger.LogErrorAsync($"  Component: {issue.AffectedComponent.Name}");
+						}
+						if ( issue.InstructionIndex > 0 )
+						{
+							await Logger.LogErrorAsync($"  Instruction: #{issue.InstructionIndex}");
+						}
+					}
+
+					informationMessage = "Dry-run validation detected issues with the installation instructions.\n"
+						+ "The installation would likely fail or produce incorrect results.\n"
+						+ "Check the Output window for detailed information about each issue.";
+				}
+				else if ( dryRunResult.HasWarnings )
+				{
+					await Logger.LogWarningAsync("Dry-run validation passed with warnings.");
+
+					foreach ( ValidationIssue issue in dryRunResult.Issues.Where(i => i.Severity == ValidationSeverity.Warning) )
+					{
+						await Logger.LogWarningAsync($"[{issue.Category}] {issue.Message}");
+					}
+				}
+
 				// ReSharper disable once InvertIf
 				if ( fileSystemInfos.Count != 0 )
 				{
@@ -256,10 +302,31 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogErrorAsync(informationMessage);
 				}
 
-				return !informationMessage.Equals(string.Empty)
-					? ((bool success, string informationMessage))(false, informationMessage)
-					: ((bool success, string informationMessage))(true,
-						"No issues found. If you encounter any problems during the installation, please submit a bug report.");
+				// Return failure if there are any critical issues
+				bool hasErrors = !string.IsNullOrEmpty(informationMessage) ||
+					!holopatcherIsExecutable ||
+					!holopatcherTestExecute ||
+					!isInstallDirectoryWritable ||
+					!isModDirectoryWritable ||
+					!noDuplicateComponents ||
+					!individuallyValidated ||
+					!dryRunPassed ||
+					fileSystemInfos.Count != 0;
+
+				if ( hasErrors )
+				{
+					return (false, informationMessage);
+				}
+
+				// Success message
+				string successMessage = "✓ All validation checks passed successfully!";
+				if ( dryRunResult.HasWarnings )
+				{
+					successMessage += $"\n⚠ {dryRunResult.Issues.Count(i => i.Severity == ValidationSeverity.Warning)} warning(s) found - review the Output window.";
+				}
+				successMessage += "\n\nYou can proceed with the installation. If you encounter any problems, please submit a bug report.";
+
+				return (true, successMessage);
 			}
 			catch ( Exception e )
 			{

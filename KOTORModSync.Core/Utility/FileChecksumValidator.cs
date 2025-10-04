@@ -68,7 +68,7 @@ namespace KOTORModSync.Core.Utility
 							new FileInfo(Path.Combine(_destinationPath, x.Key)),
 							out SHA1 expectedSha1
 						)
-						// ReSharper disable once PossibleNullReferenceException
+						&& expectedSha1?.Hash != null
 						&& BitConverter.ToString(expectedSha1.Hash).Replace(oldValue: "-", newValue: "").Equals(
 							x.Value,
 							StringComparison.OrdinalIgnoreCase
@@ -83,6 +83,8 @@ namespace KOTORModSync.Core.Utility
 			{
 				FileInfo expectedFileInfo = expectedChecksum.Key;
 				SHA1 expectedSha1 = expectedChecksum.Value;
+				if ( expectedSha1?.Hash == null )
+					continue;
 				string expectedSha1String = BitConverter.ToString(expectedSha1.Hash)
 					.Replace(oldValue: "-", newValue: "");
 

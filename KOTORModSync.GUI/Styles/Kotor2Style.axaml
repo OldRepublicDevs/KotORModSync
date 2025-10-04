@@ -448,6 +448,92 @@
     </Style>
 
 
+    <!-- Download Window Styles -->
+    <Style Selector="Border.download-item">
+        <Setter Property="Background" Value="#0A1813" />
+        <Setter Property="BorderBrush" Value="#176B5A" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style Selector="Border.download-item:pointerover">
+        <Setter Property="Background" Value="#11382E" />
+        <Setter Property="BorderBrush" Value="#2FB393" />
+    </Style>
+
+    <!-- Clickable link button style -->
+    <Style Selector="Button.link-button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.link-button:pointerover">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="#A0E7D6" />
+        <Setter Property="TextBlock.TextDecorations" Value="Underline" />
+    </Style>
+
+    <Style Selector="Border.download-header">
+        <Setter Property="Background" Value="#11382E" />
+        <Setter Property="BorderBrush" Value="#176B5A" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+
+    <Style Selector="Border.download-footer">
+        <Setter Property="Background" Value="#11382E" />
+        <Setter Property="BorderBrush" Value="#176B5A" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+
+    <Style Selector="TextBlock.download-status-text">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="#888888" />
+    </Style>
+
+    <Style Selector="TextBlock.download-error-text">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="#E74856" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="TextBlock.download-success-text">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="#A0E7D6" />
+    </Style>
+
+    <Style Selector="ProgressBar.download-progress">
+        <Setter Property="Height" Value="6" />
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="Background" Value="#176B5A" />
+    </Style>
+
+    <Style Selector="Border.download-section">
+        <Setter Property="Background" Value="#0A1813" />
+        <Setter Property="BorderBrush" Value="#176B5A" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <Style Selector="TextBlock.download-label">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#888888" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+
+    <Style Selector="TextBlock.download-value">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+
     <!-- Regex highlight palette -->
     <Styles.Resources>
         <ResourceDictionary>
@@ -484,6 +570,11 @@
             <SolidColorBrush x:Key="MergeDiff.AddedBrush" Color="#11382E"/><!-- Theme dark teal, readable with #2FB393 text -->
             <SolidColorBrush x:Key="MergeDiff.RemovedBrush" Color="#3A1A1A"/><!-- Deep muted red, readable with #F2F2F2 text -->
             <SolidColorBrush x:Key="MergeDiff.ModifiedBrush" Color="#3A2814"/><!-- Better contrast brown/orange for teal/purple text -->
+
+            <!-- Dependency Unlink Dialog Resources -->
+            <SolidColorBrush x:Key="Dependency.WarningForeground" Color="#E6D37A"/><!-- Warning gold matching theme -->
+            <SolidColorBrush x:Key="Dependency.WarningBackground" Color="#1EE6D37A"/><!-- Semi-transparent gold (30 alpha) -->
+            <SolidColorBrush x:Key="Dependency.WarningBorder" Color="#E6D37A"/><!-- Warning border -->
         </ResourceDictionary>
     </Styles.Resources>
 </Styles>

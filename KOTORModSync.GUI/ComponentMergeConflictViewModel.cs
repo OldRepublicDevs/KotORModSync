@@ -1354,12 +1354,12 @@ namespace KOTORModSync
 					if ( conflictItem != null )
 					{
 						// Check if there's a matching existing component
-						(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p => p.Incoming == conflictItem);
+						(ComponentConflictItem existing, ComponentConflictItem incoming) = _matchedPairs.FirstOrDefault(p => p.Incoming == conflictItem);
 
-						if ( matchedPair.Existing != null )
+						if ( existing != null )
 						{
 							// There's a matching existing component
-							if ( matchedPair.Existing.IsSelected && conflictItem.IsSelected )
+							if ( existing.IsSelected && conflictItem.IsSelected )
 							{
 								// Both selected: will merge/update the existing one
 								componentDiffType = DiffType.Modified;
@@ -1440,13 +1440,13 @@ namespace KOTORModSync
 			}
 		}
 
-		public int GetComponentLineNumber(ComponentConflictItem item)
-		{
-			if ( item == null ) return 0;
+	public int GetComponentLineNumber(ComponentConflictItem item)
+	{
+		if ( item == null ) return 0;
 
-			Dictionary<Component, int> map = item.IsFromExisting ? _existingComponentLineNumbers : _incomingComponentLineNumbers;
-			return map.GetValueOrDefault(item.Component, 0);
-		}
+		Dictionary<Component, int> map = item.IsFromExisting ? _existingComponentLineNumbers : _incomingComponentLineNumbers;
+		return map.ContainsKey(item.Component) ? map[item.Component] : 0;
+	}
 
 		// Track which line each component starts at in the TOML views
 		private readonly Dictionary<Component, int> _existingComponentLineNumbers = new Dictionary<Component, int>();
@@ -1476,51 +1476,6 @@ namespace KOTORModSync
 			return sb.ToString();
 		}
 
-		/// <summary>
-		/// Generates TOML lines with component tracking for proper selection syncing
-		/// </summary>
-		private static List<TomlDiffResult> GenerateTomlLinesWithComponents(List<Component> components)
-		{
-			var results = new List<TomlDiffResult>();
-			if ( components == null || components.Count == 0 )
-			{
-				results.Add(new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "# No components selected", LineNumber = 1 });
-				return results;
-			}
-
-			int currentLine = 1;
-
-			// Header
-			results.Add(new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "# Component List", LineNumber = currentLine++ });
-			results.Add(new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++ });
-
-			for ( int i = 0; i < components.Count; i++ )
-			{
-				Component component = components[i];
-				string componentGuid = component.Guid.ToString();
-
-				if ( i > 0 )
-					results.Add(new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++, ComponentGuid = componentGuid });
-
-				// Component header comment
-				results.Add(new TomlDiffResult
-				{
-					DiffType = DiffType.Unchanged,
-					Text = $"# Component {i + 1}: {component.Name}",
-					LineNumber = currentLine++,
-					ComponentGuid = componentGuid
-				});
-
-				// Component TOML lines
-				string componentToml = component.SerializeComponent();
-				string[] lines = componentToml.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-
-				results.AddRange(lines.Select(line => new TomlDiffResult { DiffType = DiffType.Unchanged, Text = line, LineNumber = currentLine++, ComponentGuid = componentGuid }));
-			}
-
-			return results;
-		}
-
 		private void UpdateCurrentTomlDiff()
 		{
 			try
@@ -1546,7 +1501,7 @@ namespace KOTORModSync
 				string originalToml = component.SerializeComponent();
 				string mergedToml = mergedComponent.SerializeComponent();
 
-				List<TomlDiffResult> diffResults = ComponentMergeConflictViewModel.GenerateTomlDiff(originalToml, mergedToml);
+				List<TomlDiffResult> diffResults = GenerateTomlDiff(originalToml, mergedToml);
 
 				foreach ( TomlDiffResult result in diffResults )
 				{
@@ -1791,8 +1746,8 @@ namespace KOTORModSync
 				SizeInfo = $"{component.Instructions.Count} instruction(s)";
 				IsFromExisting = isFromExisting;
 				_status = status;
-				_statusIcon = ComponentConflictItem.GetStatusIcon(status);
-				_statusColor = ComponentConflictItem.GetStatusColor(status);
+				_statusIcon = GetStatusIcon(status);
+				_statusColor = GetStatusColor(status);
 			}
 
 			public Component Component { get; }

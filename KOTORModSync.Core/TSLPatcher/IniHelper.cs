@@ -48,9 +48,7 @@ namespace KOTORModSync.Core.TSLPatcher
 			using ( thisStream )
 			{
 				if ( !(archive is null) && !(thisStream is null) )
-				{
-					return TraverseDirectories(archive.Entries, string.Empty);
-				}
+				    return TraverseDirectories(archive.Entries, string.Empty);
 			}
 
 			return null; // Folder 'tslpatchdata' or 'namespaces.ini' not found in the archive.
@@ -63,18 +61,31 @@ namespace KOTORModSync.Core.TSLPatcher
 			if ( archiveStream is null )
 				throw new ArgumentNullException(nameof(archiveStream));
 
-			using ( IArchive archive = ArchiveFactory.Open(archiveStream) )
+			try
 			{
-				foreach ( IArchiveEntry entry in archive.Entries )
+				using ( IArchive archive = ArchiveFactory.Open(archiveStream) )
 				{
-					if ( !entry.IsDirectory || !entry.Key.Contains("tslpatchdata") )
-						continue;
-
-					using ( var reader = new StreamReader(entry.OpenEntryStream()) )
+					foreach ( IArchiveEntry entry in archive.Entries )
 					{
-						return ParseNamespacesIni(reader);
+						if ( !entry.IsDirectory || !entry.Key.Contains("tslpatchdata") )
+							continue;
+
+						using ( var reader = new StreamReader(entry.OpenEntryStream()) )
+						{
+							return ParseNamespacesIni(reader);
+						}
 					}
 				}
+			}
+			catch ( InvalidOperationException )
+			{
+				// Archive type cannot be determined
+				return null;
+			}
+			catch ( Exception )
+			{
+				// Any other archive-related exception
+				return null;
 			}
 
 			return null; // Folder 'tslpatchdata' or 'namespaces.ini' not found in the archive.

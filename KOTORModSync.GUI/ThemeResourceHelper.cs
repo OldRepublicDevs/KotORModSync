@@ -24,7 +24,7 @@ namespace KOTORModSync
 		{
 			if ( Application.Current?.Resources.TryGetResource(resourceKey, null, out object resource) != true )
 				return fallback ?? Brushes.Transparent;
-			if (resource is IBrush brush)
+			if ( resource is IBrush brush )
 				return brush;
 			return fallback ?? Brushes.Transparent;
 		}
@@ -54,6 +54,12 @@ namespace KOTORModSync
 		public static IBrush MergeDiffAddedBrush => GetBrush("MergeDiff.AddedBrush", Brushes.DarkGreen);
 		public static IBrush MergeDiffRemovedBrush => GetBrush("MergeDiff.RemovedBrush", Brushes.DarkRed);
 		public static IBrush MergeDiffModifiedBrush => GetBrush("MergeDiff.ModifiedBrush", Brushes.DarkGoldenrod);
+
+		// Dependency Unlink Brushes
+		public static IBrush DependencyWarningForeground => GetBrush("Dependency.WarningForeground", Brushes.Gold);
+		public static IBrush DependencyWarningBackground => GetBrush("Dependency.WarningBackground",
+			new SolidColorBrush(Color.FromArgb(30, 255, 193, 7)));
+		public static IBrush DependencyWarningBorder => GetBrush("Dependency.WarningBorder", Brushes.Gold);
 	}
 }
 

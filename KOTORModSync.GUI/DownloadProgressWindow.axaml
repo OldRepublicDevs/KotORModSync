@@ -1,0 +1,169 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="using:KOTORModSync.Converters"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="KOTORModSync.DownloadProgressWindow"
+        Title="Download Progress"
+        Width="900" Height="650"
+        MinWidth="700" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+	<Window.Resources>
+		<converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter"/>
+	</Window.Resources>
+
+	<Grid RowDefinitions="Auto,*,Auto">
+		<!-- Header -->
+		<Border Grid.Row="0" Classes="download-header" Padding="16,12">
+			<Grid ColumnDefinitions="*,Auto">
+				<StackPanel Grid.Column="0">
+					<TextBlock Text="Downloading Mod Files" Classes="step-title"/>
+					<TextBlock x:Name="SummaryText"
+					           Text="Preparing downloads..."
+					           Classes="secondary-text"
+					           Margin="0,4,0,0"/>
+				</StackPanel>
+
+				<StackPanel Grid.Column="1" Spacing="8" Orientation="Horizontal">
+					<Button x:Name="PauseButton"
+					        Content="Pause"
+					        IsVisible="False"
+					        Width="80"/>
+					<Button x:Name="CancelButton"
+					        Content="Cancel"
+					        Width="80"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<!-- Download List -->
+		<ScrollViewer Grid.Row="1" Padding="16">
+			<ItemsControl x:Name="DownloadItemsControl">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+					<Border Classes="download-item" Cursor="Hand" PointerPressed="DownloadItem_PointerPressed">
+						<Border.ContextMenu>
+							<ContextMenu>
+								<MenuItem Header="Open Download Folder" Click="OpenFolderMenuItem_Click"/>
+								<MenuItem Header="Copy Download URL" Click="CopyUrlMenuItem_Click"/>
+								<Separator/>
+								<MenuItem Header="View Details" Click="ViewDetailsMenuItem_Click"/>
+							</ContextMenu>
+						</Border.ContextMenu>
+
+							<Grid RowDefinitions="Auto,Auto,Auto,Auto">
+								<!-- Mod Name and Status Icon -->
+								<Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+									<TextBlock Grid.Column="0"
+									           Text="{Binding StatusIcon}"
+									           FontSize="20"
+									           VerticalAlignment="Center"
+									           Margin="0,0,8,0"/>
+
+									<TextBlock Grid.Column="1"
+									           Text="{Binding ModName}"
+									           FontSize="14"
+									           FontWeight="SemiBold"
+									           TextWrapping="Wrap"
+									           VerticalAlignment="Center"/>
+
+									<TextBlock Grid.Column="2"
+									           Text="{Binding ProgressPercentage, StringFormat={}{0:F1}%}"
+									           FontSize="13"
+									           FontWeight="SemiBold"
+									           VerticalAlignment="Center"
+									           Margin="8,0,0,0"/>
+								</Grid>
+
+								<!-- Progress Bar -->
+								<ProgressBar Grid.Row="1"
+								             Classes="download-progress"
+								             Margin="0,8,0,0"
+								             Minimum="0"
+								             Maximum="100"
+								             Value="{Binding ProgressPercentage}"/>
+
+							<!-- Status Message -->
+							<TextBlock Grid.Row="2"
+							           Text="{Binding StatusMessage}"
+							           Classes="download-status-text"
+							           TextWrapping="Wrap"
+							           Margin="0,6,0,0"
+							           IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
+
+						<!-- Error Message -->
+						<TextBlock Grid.Row="3"
+						           x:Name="ErrorMessageBlock"
+						           Classes="download-error-text"
+						           TextWrapping="Wrap"
+						           Margin="0,6,0,0"
+						           IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}">
+							<TextBlock.Text>
+								<Binding Path="ErrorMessage" />
+							</TextBlock.Text>
+						</TextBlock>
+
+								<!-- Download Stats -->
+								<Grid Grid.Row="3"
+								      ColumnDefinitions="Auto,Auto,Auto,Auto,*"
+								      Margin="0,6,0,0">
+									<TextBlock Grid.Column="0"
+									           Text="{Binding DownloadedSize}"
+									           Classes="download-status-text"
+									           IsVisible="{Binding IsInProgress}"/>
+									<TextBlock Grid.Column="1"
+									           Text=" / "
+									           Classes="download-status-text"
+									           IsVisible="{Binding IsInProgress}"/>
+									<TextBlock Grid.Column="2"
+									           Text="{Binding TotalSize}"
+									           Classes="download-status-text"
+									           IsVisible="{Binding IsInProgress}"/>
+									<TextBlock Grid.Column="3"
+									           Text=" • "
+									           Classes="download-status-text"
+									           Margin="6,0"
+									           IsVisible="{Binding IsInProgress}"/>
+									<TextBlock Grid.Column="4"
+									           Text="{Binding DownloadSpeed}"
+									           Classes="download-status-text"
+									           IsVisible="{Binding IsInProgress}"/>
+								</Grid>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
+
+		<!-- Footer -->
+		<Border Grid.Row="2" Classes="download-footer" Padding="16,12">
+			<Grid ColumnDefinitions="*,Auto">
+				<StackPanel Grid.Column="0" Spacing="4">
+					<TextBlock x:Name="OverallProgressText"
+					           Text="Overall Progress: 0 / 0"
+					           FontSize="13"
+					           FontWeight="SemiBold"/>
+					<ProgressBar x:Name="OverallProgressBar"
+					             Classes="download-progress"
+					             Minimum="0"
+					             Maximum="100"
+					             Value="0"
+					             Height="8"/>
+				</StackPanel>
+
+				<Button Grid.Column="1"
+				        x:Name="CloseButton"
+				        Content="Close"
+				        IsEnabled="False"
+				        Width="100"
+				        Margin="12,0,0,0"
+				        VerticalAlignment="Center"/>
+			</Grid>
+		</Border>
+	</Grid>
+</Window>
+

@@ -1,0 +1,530 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the GNU General Public License v3.0 (GPLv3).
+// See LICENSE.txt file in the project root for full license information.
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using JetBrains.Annotations;
+using KOTORModSync.Core.FileSystemUtils;
+using SharpCompress.Archives;
+using SharpCompress.Archives.Rar;
+using SharpCompress.Archives.SevenZip;
+using SharpCompress.Archives.Zip;
+
+namespace KOTORModSync.Core.Services.FileSystem
+{
+	/// <summary>
+	/// Virtual file system provider for dry-run validation.
+	/// Tracks file locations in memory without making actual file system changes.
+	/// </summary>
+	public class VirtualFileSystemProvider : IFileSystemProvider
+	{
+		private readonly HashSet<string> _virtualFiles;
+		private readonly HashSet<string> _virtualDirectories;
+		private readonly HashSet<string> _removedFiles; // Track files that have been deleted/moved from their original location
+		private readonly List<ValidationIssue> _issues;
+		private readonly Dictionary<string, HashSet<string>> _archiveContents;
+
+		public bool IsDryRun => true;
+
+		[NotNull]
+		[ItemNotNull]
+		public IReadOnlyList<ValidationIssue> ValidationIssues => _issues.AsReadOnly();
+
+		public VirtualFileSystemProvider()
+		{
+			_virtualFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			_virtualDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			_removedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			_issues = new List<ValidationIssue>();
+			_archiveContents = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+		}
+
+		/// <summary>
+		/// Initializes the virtual file system with the current state of the real file system.
+		/// </summary>
+		internal async Task InitializeFromRealFileSystem(string rootPath)
+		{
+			if ( !Directory.Exists(rootPath) )
+				return;
+
+			try
+			{
+				foreach ( FileInfo file in new DirectoryInfo(rootPath).GetFilesSafely("*.*", SearchOption.AllDirectories) )
+				{
+					_virtualFiles.Add(file.FullName);
+
+					// Pre-scan archives to know their contents synchronously during initialization
+					if ( IsArchiveFile(file.FullName) )
+					{
+						await ScanArchiveContentsAsync(file.FullName);
+					}
+				}
+
+				foreach ( DirectoryInfo dir in new DirectoryInfo(rootPath).GetDirectoriesSafely("*", SearchOption.AllDirectories) )
+				{
+					_ = _virtualDirectories.Add(dir.FullName);
+				}
+			}
+			catch ( Exception ex )
+			{
+				AddIssue(ValidationSeverity.Warning, "FileSystemInitialization",
+					$"Could not fully initialize virtual file system from real file system: {ex.Message}", null);
+			}
+		}
+
+		/// <summary>
+		/// Scans an archive file to determine its contents.
+		/// </summary>
+		private async Task ScanArchiveContentsAsync([NotNull] string archivePath)
+		{
+			if ( _archiveContents.ContainsKey(archivePath) )
+				return;
+
+			var contents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			try
+			{
+				using ( FileStream stream = File.OpenRead(archivePath) )
+				{
+					IArchive archive = GetArchiveFromPath(archivePath, stream);
+					if ( archive == null )
+					{
+						AddIssue(ValidationSeverity.Error, "ArchiveValidation",
+							$"Could not open archive: {archivePath}", archivePath);
+						return;
+					}
+
+					using ( archive )
+					{
+						foreach ( IArchiveEntry entry in archive.Entries.Where(e => !e.IsDirectory) )
+						{
+							contents.Add(entry.Key);
+						}
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				AddIssue(ValidationSeverity.Error, "ArchiveValidation",
+					$"Failed to scan archive '{Path.GetFileName(archivePath)}': {ex.Message}", archivePath);
+			}
+
+			_archiveContents[archivePath] = contents;
+			await Task.CompletedTask;
+		}
+
+		private static IArchive GetArchiveFromPath([NotNull] string path, [NotNull] Stream stream)
+		{
+			string extension = Path.GetExtension(path).ToLowerInvariant();
+
+			if ( extension == ".zip" )
+				return ZipArchive.Open(stream);
+			if ( extension == ".rar" )
+				return RarArchive.Open(stream);
+			if ( extension == ".7z" )
+				return SevenZipArchive.Open(stream);
+
+			return ArchiveFactory.Open(stream);
+		}
+
+		private static bool IsArchiveFile([NotNull] string path)
+		{
+			string extension = Path.GetExtension(path).ToLowerInvariant();
+			return extension == ".zip" || extension == ".rar" || extension == ".7z" || extension == ".exe";
+		}
+
+		public bool FileExists(string path)
+		{
+			if ( string.IsNullOrWhiteSpace(path) )
+				return false;
+
+			// If file was explicitly removed/moved, it doesn't exist even if still on disk
+			if ( _removedFiles.Contains(path) )
+			{
+				Console.WriteLine($"[VFS] FileExists: path={path}, REMOVED, result=False");
+				return false;
+			}
+
+			bool inVirtual = _virtualFiles.Contains(path);
+			bool onDisk = File.Exists(path);
+			bool result = inVirtual || onDisk;
+
+			Console.WriteLine($"[VFS] FileExists: path={path}, inVirtual={inVirtual}, onDisk={onDisk}, result={result}");
+			if ( !result && _virtualFiles.Count > 0 )
+			{
+				Console.WriteLine($"[VFS] FileExists: Virtual files ({_virtualFiles.Count}):");
+				foreach ( var f in _virtualFiles.Take(10) )
+				{
+					Console.WriteLine($"[VFS]   - {f}");
+				}
+				if ( _virtualFiles.Count > 10 )
+					Console.WriteLine($"[VFS]   ... and {_virtualFiles.Count - 10} more");
+			}
+
+			return result;
+		}
+
+		public bool DirectoryExists(string path)
+		{
+			if ( string.IsNullOrWhiteSpace(path) )
+				return false;
+
+			return _virtualDirectories.Contains(path) || Directory.Exists(path);
+		}
+
+		public Task CopyFileAsync(string sourcePath, string destinationPath, bool overwrite)
+		{
+			if ( !FileExists(sourcePath) )
+			{
+				AddIssue(ValidationSeverity.Error, "CopyFile",
+					$"Source file does not exist: {sourcePath}", sourcePath);
+				return Task.CompletedTask;
+			}
+
+			if ( FileExists(destinationPath) && !overwrite )
+			{
+				AddIssue(ValidationSeverity.Warning, "CopyFile",
+					$"Destination file already exists and overwrite is false: {destinationPath}", destinationPath);
+				return Task.CompletedTask;
+			}
+
+			// Simulate copy by adding to virtual files
+			_ = _virtualFiles.Add(destinationPath);
+			_ = _removedFiles.Remove(destinationPath); // Destination now exists
+
+			// If source is an archive, copy its metadata too
+			if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
+			{
+				_archiveContents[destinationPath] = new HashSet<string>(archiveContents, StringComparer.OrdinalIgnoreCase);
+			}
+
+			// Ensure parent directory exists
+			string parentDir = Path.GetDirectoryName(destinationPath);
+			if ( !string.IsNullOrEmpty(parentDir) && !DirectoryExists(parentDir) )
+			{
+				_ = _virtualDirectories.Add(parentDir);
+			}
+
+			return Task.CompletedTask;
+		}
+
+		public Task MoveFileAsync(string sourcePath, string destinationPath, bool overwrite)
+		{
+			Console.WriteLine($"[VFS] MoveFileAsync: source={sourcePath}");
+			Console.WriteLine($"[VFS] MoveFileAsync: dest={destinationPath}");
+
+			if ( !FileExists(sourcePath) )
+			{
+				AddIssue(ValidationSeverity.Error, "MoveFile",
+					$"Source file does not exist: {sourcePath}", sourcePath);
+				Console.WriteLine($"[VFS] MoveFileAsync: ERROR - source does not exist!");
+				return Task.CompletedTask;
+			}
+
+			if ( FileExists(destinationPath) && !overwrite )
+			{
+				AddIssue(ValidationSeverity.Warning, "MoveFile",
+					$"Destination file already exists and overwrite is false: {destinationPath}", destinationPath);
+				return Task.CompletedTask;
+			}
+
+			// Simulate move by removing source and adding destination
+			bool removed = _virtualFiles.Remove(sourcePath);
+			_ = _virtualFiles.Add(destinationPath);
+			_ = _removedFiles.Add(sourcePath); // Mark source as removed
+			_ = _removedFiles.Remove(destinationPath); // Destination now exists
+			Console.WriteLine($"[VFS] MoveFileAsync: Removed={removed}, total files now={_virtualFiles.Count}");
+			foreach ( string f in _virtualFiles.Take(10) )
+			{
+				Console.WriteLine($"[VFS]   - {f}");
+			}
+
+			// If source is an archive, move its metadata too
+			if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
+			{
+				_ = _archiveContents.Remove(sourcePath);
+				_archiveContents[destinationPath] = archiveContents;
+			}
+
+			// Ensure parent directory exists
+			string parentDir = Path.GetDirectoryName(destinationPath);
+			if ( !string.IsNullOrEmpty(parentDir) && !DirectoryExists(parentDir) )
+			{
+				_ = _virtualDirectories.Add(parentDir);
+			}
+
+			return Task.CompletedTask;
+		}
+
+		public Task DeleteFileAsync(string path)
+		{
+			if ( !FileExists(path) )
+			{
+				AddIssue(ValidationSeverity.Warning, "DeleteFile",
+					$"Attempting to delete non-existent file: {path}", path);
+				return Task.CompletedTask;
+			}
+
+			_ = _virtualFiles.Remove(path);
+			_ = _removedFiles.Add(path); // Mark as removed
+
+			// If it's an archive, remove its metadata too
+			if ( IsArchiveFile(path) )
+				_ = _archiveContents.Remove(path);
+
+			return Task.CompletedTask;
+		}
+
+		public Task RenameFileAsync(string sourcePath, string newFileName, bool overwrite)
+		{
+			if ( !FileExists(sourcePath) )
+			{
+				AddIssue(ValidationSeverity.Error, "RenameFile",
+					$"Source file does not exist: {sourcePath}", sourcePath);
+				return Task.CompletedTask;
+			}
+
+			string directory = Path.GetDirectoryName(sourcePath) ?? string.Empty;
+			string destinationPath = Path.Combine(directory, newFileName);
+
+			if ( FileExists(destinationPath) && !overwrite )
+			{
+				AddIssue(ValidationSeverity.Warning, "RenameFile",
+					$"Destination file already exists and overwrite is false: {destinationPath}", destinationPath);
+				return Task.CompletedTask;
+			}
+
+			// Simulate rename
+			_ = _virtualFiles.Remove(sourcePath);
+			_virtualFiles.Add(destinationPath);
+			_ = _removedFiles.Add(sourcePath); // Mark source as removed
+			_ = _removedFiles.Remove(destinationPath); // Destination now exists
+
+			// If source is an archive, rename its metadata too
+			if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
+			{
+				_ = _archiveContents.Remove(sourcePath);
+				_archiveContents[destinationPath] = archiveContents;
+			}
+
+			return Task.CompletedTask;
+		}
+
+		public Task<string> ReadFileAsync(string path)
+		{
+			// For dry-run, we don't actually read file contents
+			// Just validate that the file exists
+			if ( !FileExists(path) )
+			{
+				AddIssue(ValidationSeverity.Error, "ReadFile",
+					$"Cannot read non-existent file: {path}", path);
+				return Task.FromResult(string.Empty);
+			}
+
+			// Return empty string for virtual reads
+			// Real file content doesn't matter for validation
+			return Task.FromResult(string.Empty);
+		}
+
+		public Task WriteFileAsync(string path, string contents)
+		{
+			// Simulate writing a file - just mark it as existing
+			_virtualFiles.Add(path);
+
+			// Ensure parent directory exists
+			string directory = GetDirectoryName(path);
+			if ( !string.IsNullOrEmpty(directory) )
+				_ = _virtualDirectories.Add(directory);
+
+			return Task.CompletedTask;
+		}
+
+		public Task CreateDirectoryAsync(string path)
+		{
+			if ( !DirectoryExists(path) )
+				_ = _virtualDirectories.Add(path);
+
+			return Task.CompletedTask;
+		}
+
+		public async Task<List<string>> ExtractArchiveAsync(string archivePath, string destinationPath)
+		{
+			var extractedFiles = new List<string>();
+
+			if ( !FileExists(archivePath) )
+			{
+				AddIssue(ValidationSeverity.Error, "ExtractArchive",
+					$"Archive file does not exist: {archivePath}", archivePath);
+				return extractedFiles;
+			}
+
+			// Ensure archive contents are scanned
+			if ( !_archiveContents.ContainsKey(archivePath) )
+				await ScanArchiveContentsAsync(archivePath);
+
+			if ( !_archiveContents.TryGetValue(archivePath, out HashSet<string> contents) )
+			{
+				AddIssue(ValidationSeverity.Error, "ExtractArchive",
+					$"Could not determine archive contents: {archivePath}", archivePath);
+				return extractedFiles;
+			}
+
+			// Simulate extraction by adding all archive entries to virtual file system
+			string extractFolderName = Path.GetFileNameWithoutExtension(archivePath);
+
+			Console.WriteLine($"[VFS] ExtractArchive: archivePath={archivePath}");
+			Console.WriteLine($"[VFS] ExtractArchive: destinationPath={destinationPath}");
+			Console.WriteLine($"[VFS] ExtractArchive: extractFolderName={extractFolderName}");
+			Console.WriteLine($"[VFS] ExtractArchive: contents.Count={contents.Count}");
+
+			foreach ( string entryPath in contents )
+			{
+				// Normalize path separators (archives often use forward slashes)
+				string normalizedEntry = entryPath.Replace('/', Path.DirectorySeparatorChar);
+				string fullPath = Path.Combine(destinationPath, extractFolderName, normalizedEntry);
+				// Further normalize to ensure consistent separator usage
+				fullPath = fullPath.Replace('/', Path.DirectorySeparatorChar).Replace("\\\\", "\\");
+
+				Console.WriteLine($"[VFS] ExtractArchive: Adding virtual file: {fullPath}");
+
+				_ = _virtualFiles.Add(fullPath);
+				_ = _removedFiles.Remove(fullPath); // Extracted file now exists
+				extractedFiles.Add(fullPath);
+
+				// Ensure parent directory exists
+				string parentDir = Path.GetDirectoryName(fullPath);
+				if ( !string.IsNullOrEmpty(parentDir) )
+					_ = _virtualDirectories.Add(parentDir);
+			}
+
+			Console.WriteLine($"[VFS] ExtractArchive: Total virtual files now: {_virtualFiles.Count}");
+
+			return extractedFiles;
+		}
+
+		public List<string> GetFilesInDirectory(string directoryPath, string searchPattern = "*.*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
+		{
+			if ( !DirectoryExists(directoryPath) )
+				return new List<string>();
+
+			// Normalize directory path - ensure it ends with separator for proper matching
+			string normalizedDir = directoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+			// Just return files in the directory - let PathHelper.WildcardPathMatch do ALL pattern matching
+			// This mirrors how Directory.GetFiles() works - it returns files, then PathHelper filters them
+			var files = _virtualFiles
+				.Where(f =>
+				{
+					string fileDir = Path.GetDirectoryName(f);
+					if ( string.IsNullOrEmpty(fileDir) )
+						return false;
+
+					if ( searchOption == SearchOption.TopDirectoryOnly )
+					{
+						// File must be directly in this directory (not in subdirectories)
+						return string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase);
+					}
+					else
+					{
+						// File must be in this directory or any subdirectory
+						// Check if fileDir equals normalizedDir OR starts with normalizedDir + separator
+						if ( string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase) )
+							return true;
+
+						string dirWithSeparator = normalizedDir + Path.DirectorySeparatorChar;
+						return fileDir.StartsWith(dirWithSeparator, StringComparison.OrdinalIgnoreCase);
+					}
+				})
+				.ToList();
+
+			// NOTE: searchPattern is intentionally ignored here
+			// PathHelper.EnumerateFilesWithWildcards always passes "*" and then uses
+			// PathHelper.WildcardPathMatch for ALL filtering - we just provide the raw file list
+			return files;
+		}
+
+		public List<string> GetDirectoriesInDirectory(string directoryPath) => !DirectoryExists(directoryPath)
+				? new List<string>()
+				: _virtualDirectories
+				.Where(d =>
+				{
+					string parentDir = Path.GetDirectoryName(d);
+					return string.Equals(parentDir, directoryPath, StringComparison.OrdinalIgnoreCase);
+				})
+				.ToList();
+
+		public string GetFileName(string path) => Path.GetFileName(path);
+
+		public string GetDirectoryName(string path) => Path.GetDirectoryName(path);
+
+		public Task<(int exitCode, string output, string error)> ExecuteProcessAsync(string programPath, string arguments)
+		{
+			// For dry-run, just validate the program exists
+			if ( !FileExists(programPath) )
+			{
+				AddIssue(ValidationSeverity.Error, "ExecuteProcess",
+					$"Program file does not exist: {programPath}", programPath);
+				return Task.FromResult((1, string.Empty, $"Program not found: {programPath}"));
+			}
+
+			// Simulate successful execution
+			return Task.FromResult((0, "[Dry-run: Program execution simulated]", string.Empty));
+		}
+
+		public string GetActualPath(string path) => path;
+
+
+		private void AddIssue(ValidationSeverity severity, [NotNull] string category, [NotNull] string message, [CanBeNull] string affectedPath) =>
+			_issues.Add(new ValidationIssue
+			{
+				Severity = severity,
+				Category = category,
+				Message = message,
+				AffectedPath = affectedPath,
+				Timestamp = DateTimeOffset.UtcNow
+			});
+
+		/// <summary>
+		/// Gets all tracked files in the virtual file system.
+		/// </summary>
+		[NotNull]
+		public List<string> GetTrackedFiles() => new List<string>(_virtualFiles);
+
+		/// <summary>
+		/// Gets all validation issues encountered during dry-run.
+		/// </summary>
+		[NotNull]
+		public List<ValidationIssue> GetValidationIssues() => new List<ValidationIssue>(_issues);
+	}
+
+	/// <summary>
+	/// Represents a validation issue found during dry-run.
+	/// </summary>
+	public class ValidationIssue
+	{
+		public ValidationSeverity Severity { get; set; }
+		public string Category { get; set; }
+		public string Message { get; set; }
+		public string AffectedPath { get; set; }
+		public DateTimeOffset Timestamp { get; set; }
+		public Component AffectedComponent { get; set; }
+		public Instruction AffectedInstruction { get; set; }
+		public int InstructionIndex { get; set; }
+	}
+
+	/// <summary>
+	/// Severity level for validation issues.
+	/// </summary>
+	public enum ValidationSeverity
+	{
+		Info,
+		Warning,
+		Error,
+		Critical
+	}
+}
+

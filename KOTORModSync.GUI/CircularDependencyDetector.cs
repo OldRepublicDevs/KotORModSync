@@ -44,23 +44,21 @@ namespace KOTORModSync
 				// Add edges for dependencies
 				foreach ( Guid depGuid in component.Dependencies )
 				{
-					if ( componentsByGuid.ContainsKey(depGuid) )
-					{
-						if ( !graph.ContainsKey(component.Guid) )
-							graph[component.Guid] = new List<Guid>();
-						graph[component.Guid].Add(depGuid);
-					}
+					if ( !componentsByGuid.ContainsKey(depGuid) )
+					    continue;
+					if ( !graph.ContainsKey(component.Guid) )
+						graph[component.Guid] = new List<Guid>();
+					graph[component.Guid].Add(depGuid);
 				}
 
 				// Add edges for InstallAfter (soft dependencies)
 				foreach ( Guid afterGuid in component.InstallAfter )
 				{
-					if ( componentsByGuid.ContainsKey(afterGuid) )
-					{
-						if ( !graph.ContainsKey(component.Guid) )
-							graph[component.Guid] = new List<Guid>();
-						graph[component.Guid].Add(afterGuid);
-					}
+					if ( !componentsByGuid.ContainsKey(afterGuid) )
+					    continue;
+					if ( !graph.ContainsKey(component.Guid) )
+						graph[component.Guid] = new List<Guid>();
+					graph[component.Guid].Add(afterGuid);
 				}
 			}
 
@@ -69,12 +67,10 @@ namespace KOTORModSync
 			var recursionStack = new HashSet<Guid>();
 			var currentPath = new List<Guid>();
 
-			foreach ( Guid guid in componentsByGuid.Keys.Where(guid => !visited.Contains(guid)))
+			foreach ( Guid guid in componentsByGuid.Keys.Where(guid => !visited.Contains(guid)) )
 			{
-				if (DfsDetectCycle(guid, graph, visited, recursionStack, currentPath, result))
-				{
-					result.HasCircularDependencies = true;
-				}
+				if ( DfsDetectCycle(guid, graph, visited, recursionStack, currentPath, result) )
+				    result.HasCircularDependencies = true;
 			}
 
 			// Build detailed error message
@@ -93,32 +89,27 @@ namespace KOTORModSync
 					for ( int j = 0; j < cycle.Count; j++ )
 					{
 						Guid guid = cycle[j];
-						if ( componentsByGuid.TryGetValue(guid, out Component comp) )
-						{
-							_ = sb.Append($"  {j + 1}. {comp.Name}");
-							if ( !string.IsNullOrWhiteSpace(comp.Author) )
-								_ = sb.Append($" by {comp.Author}");
+						if ( !componentsByGuid.TryGetValue(guid, out Component comp) )
+						    continue;
+						_ = sb.Append($"  {j + 1}. {comp.Name}");
+						if ( !string.IsNullOrWhiteSpace(comp.Author) )
+							_ = sb.Append($" by {comp.Author}");
 
-							// Show what it depends on
-							if ( j < cycle.Count - 1 )
-							{
-								Guid nextGuid = cycle[j + 1];
-								if ( componentsByGuid.TryGetValue(nextGuid, out Component nextComp) )
-								{
-									_ = sb.Append($" → depends on → {nextComp.Name}");
-								}
-							}
-							else
-							{
-								// Last item cycles back to first
-								Guid firstGuid = cycle[0];
-								if ( componentsByGuid.TryGetValue(firstGuid, out Component firstComp) )
-								{
-									_ = sb.Append($" → depends on → {firstComp.Name} (CYCLE!)");
-								}
-							}
-							_ = sb.AppendLine();
+						// Show what it depends on
+						if ( j < cycle.Count - 1 )
+						{
+							Guid nextGuid = cycle[j + 1];
+							if ( componentsByGuid.TryGetValue(nextGuid, out Component nextComp) )
+								_ = sb.Append($" → depends on → {nextComp.Name}");
 						}
+						else
+						{
+							// Last item cycles back to first
+							Guid firstGuid = cycle[0];
+							if ( componentsByGuid.TryGetValue(firstGuid, out Component firstComp) )
+								_ = sb.Append($" → depends on → {firstComp.Name} (CYCLE!)");
+						}
+						_ = sb.AppendLine();
 					}
 					_ = sb.AppendLine();
 				}
@@ -134,86 +125,87 @@ namespace KOTORModSync
 			return result;
 		}
 
-	/// <summary>
-	/// DFS helper method to detect cycles.
-	/// Returns true if a cycle is detected.
-	/// </summary>
-	private static bool DfsDetectCycle(
-		Guid node,
-		Dictionary<Guid, List<Guid>> graph,
-		HashSet<Guid> visited,
-		HashSet<Guid> recursionStack,
-		List<Guid> currentPath,
-		CircularDependencyResult result)
-	{
-		_ = visited.Add(node);
-		_ = recursionStack.Add(node);
-		currentPath.Add(node);
-
-		if ( graph.TryGetValue(node, out List<Guid> neighbors) )
+		/// <summary>
+		/// DFS helper method to detect cycles.
+		/// Returns true if a cycle is detected.
+		/// </summary>
+		private static bool DfsDetectCycle(
+			Guid node,
+			Dictionary<Guid, List<Guid>> graph,
+			HashSet<Guid> visited,
+			HashSet<Guid> recursionStack,
+			List<Guid> currentPath,
+			CircularDependencyResult result)
 		{
-			foreach ( Guid neighbor in neighbors )
+			_ = visited.Add(node);
+			_ = recursionStack.Add(node);
+			currentPath.Add(node);
+
+			if ( graph.TryGetValue(node, out List<Guid> neighbors) )
 			{
-				if ( !visited.Contains(neighbor) )
+				foreach ( Guid neighbor in neighbors )
 				{
-					if ( DfsDetectCycle(neighbor, graph, visited, recursionStack, currentPath, result) )
+					if ( !visited.Contains(neighbor) )
+					{
+						if ( DfsDetectCycle(neighbor, graph, visited, recursionStack, currentPath, result) )
+							return true;
+					}
+					else if ( recursionStack.Contains(neighbor) )
+					{
+						// Found a cycle! Extract the cycle from currentPath
+						int cycleStartIndex = currentPath.IndexOf(neighbor);
+						var cycle = currentPath.Skip(cycleStartIndex).ToList();
+						cycle.Add(neighbor); // Complete the cycle
+
+						// Check if this cycle is already recorded (avoid duplicates)
+						bool isDuplicate = result.Cycles.Any(existingCycle =>
+							existingCycle.Count == cycle.Count &&
+							existingCycle.Intersect(cycle).Count() == cycle.Count);
+
+						if ( !isDuplicate )
+							result.Cycles.Add(cycle);
+
 						return true;
-				}
-				else if ( recursionStack.Contains(neighbor) )
-				{
-					// Found a cycle! Extract the cycle from currentPath
-					int cycleStartIndex = currentPath.IndexOf(neighbor);
-					var cycle = currentPath.Skip(cycleStartIndex).ToList();
-					cycle.Add(neighbor); // Complete the cycle
-
-					// Check if this cycle is already recorded (avoid duplicates)
-					bool isDuplicate = result.Cycles.Any(existingCycle =>
-						existingCycle.Count == cycle.Count &&
-						existingCycle.Intersect(cycle).Count() == cycle.Count);
-
-					if ( !isDuplicate )
-						result.Cycles.Add(cycle);
-
-					return true;
+					}
 				}
 			}
+
+			_ = recursionStack.Remove(node);
+			currentPath.RemoveAt(currentPath.Count - 1);
+			return false;
 		}
 
-		_ = recursionStack.Remove(node);
-		currentPath.RemoveAt(currentPath.Count - 1);
-		return false;
-	}
-
-	/// <summary>
-	/// Suggests which components could be unchecked to break circular dependencies.
-	/// Uses minimum vertex cover algorithm to find the smallest set of components to remove.
-	/// </summary>
-	public static List<Component> SuggestComponentsToRemove(CircularDependencyResult result)
-	{
-		if ( !result.HasCircularDependencies )
-			return new List<Component>();
-
-		// Count how many cycles each component appears in
-		var componentCycleCount = new Dictionary<Guid, int>();
-		foreach ( List<Guid> cycle in result.Cycles )
+		/// <summary>
+		/// Suggests which components could be unchecked to break circular dependencies.
+		/// Uses minimum vertex cover algorithm to find the smallest set of components to remove.
+		/// </summary>
+		public static List<Component> SuggestComponentsToRemove(CircularDependencyResult result)
 		{
-			foreach ( Guid guid in cycle )
+			if ( !result.HasCircularDependencies )
+				return new List<Component>();
+
+			// Count how many cycles each component appears in
+			var componentCycleCount = new Dictionary<Guid, int>();
+			foreach ( List<Guid> cycle in result.Cycles )
 			{
-				componentCycleCount.TryAdd(guid, 0);
-				componentCycleCount[guid]++;
+				foreach ( Guid guid in cycle )
+				{
+					if ( !componentCycleCount.ContainsKey(guid) )
+						componentCycleCount[guid] = 0;
+					componentCycleCount[guid]++;
+				}
 			}
+
+			// Sort by cycle count descending - removing components that appear in more cycles is more effective
+			var suggestions = componentCycleCount
+				.OrderByDescending(kvp => kvp.Value)
+				.Select(kvp => result.ComponentsByGuid.ContainsKey(kvp.Key) ? result.ComponentsByGuid[kvp.Key] : null)
+				.Where(comp => !(comp is null))
+				.Take(3) // Suggest up to 3 components
+				.ToList();
+
+			return suggestions;
 		}
-
-		// Sort by cycle count descending - removing components that appear in more cycles is more effective
-		var suggestions = componentCycleCount
-			.OrderByDescending(kvp => kvp.Value)
-			.Select(kvp => result.ComponentsByGuid.GetValueOrDefault(kvp.Key))
-			.Where(comp => !(comp is null))
-			.Take(3) // Suggest up to 3 components
-			.ToList();
-
-		return suggestions;
-	}
 	}
 }
 

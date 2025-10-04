@@ -21,6 +21,24 @@ namespace KOTORModSync.Core.Utility
 {
 	public static class PlatformAgnosticMethods
 	{
+		[StructLayout(LayoutKind.Sequential)]
+		private struct MEMORYSTATUSEX
+		{
+			public uint dwLength;
+			public uint dwMemoryLoad;
+			public ulong ullTotalPhys;
+			public ulong ullAvailPhys;
+			public ulong ullTotalPageFile;
+			public ulong ullAvailPageFile;
+			public ulong ullTotalVirtual;
+			public ulong ullAvailVirtual;
+			public ulong ullAvailExtendedVirtual;
+		}
+
+		[DllImport("kernel32.dll", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
+
 		// Overload for a string representation of the folder path.
 		public static async Task<int> CalculateMaxDegreeOfParallelismAsync([CanBeNull] DirectoryInfo thisDir)
 		{
@@ -36,10 +54,9 @@ namespace KOTORModSync.Core.Utility
 			Task<double> maxDiskSpeedTask = Task.Run(
 				() =>
 				{
-					if ( thisDir is null )
-						throw new NullReferenceException(nameof(thisDir));
-
-					return GetMaxDiskSpeed(Path.GetPathRoot(thisDir.FullName));
+					return thisDir is null
+					       ? throw new NullReferenceException(nameof(thisDir))
+						   : GetMaxDiskSpeed(Path.GetPathRoot(thisDir.FullName));
 				}
 			);
 			double maxDiskSpeed = await maxDiskSpeedTask;
@@ -65,6 +82,23 @@ namespace KOTORModSync.Core.Utility
 
 		public static long GetAvailableMemory()
 		{
+			// Try Windows API first (most reliable on Windows)
+			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
+			{
+				try
+				{
+					var memStatus = new MEMORYSTATUSEX
+					{
+						dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX))
+					};
+					if ( GlobalMemoryStatusEx(ref memStatus) ) return (long)memStatus.ullAvailPhys;
+				}
+				catch ( Exception )
+				{
+					// Fall through to command-line methods
+				}
+			}
+
 			// Check if the required command/method exists on the current platform
 			(int ExitCode, string Output, string Error) result = TryExecuteCommand("sysctl -n hw.memsize");
 			string command = "sysctl";
@@ -93,14 +127,10 @@ namespace KOTORModSync.Core.Utility
 		private static long ParseAvailableMemory([NotNull] string output, [NotNull] string command)
 		{
 			if ( string.IsNullOrWhiteSpace(output) )
-			{
 				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(output));
-			}
 
 			if ( string.IsNullOrWhiteSpace(command) )
-			{
 				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(command));
-			}
 
 			string pattern = string.Empty;
 			switch ( command.ToLowerInvariant() )
@@ -360,18 +390,14 @@ namespace KOTORModSync.Core.Utility
 			if ( askAdmin && !MainConfig.NoAdmin )
 			{
 				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
-				{
 					verb = "runas";
-				}
 				else
 				{
 					actualProgramFile = "sudo";
 					string tempFile = programFile.Trim('"').Trim('\'');
 					actualArgs = $"\"{tempFile}\" {args}";
 					if ( MainConfig.NoAdmin )
-					{
-						actualArgs = $"-n true {actualArgs}";
-					}
+					    actualArgs = $"-n true {actualArgs}";
 				}
 			}
 
@@ -407,7 +433,7 @@ namespace KOTORModSync.Core.Utility
 			};
 
 			// Select the appropriate ProcessStartInfo based on the conditions
-			return useShellExecute is true || askAdmin is true
+			return useShellExecute is true || askAdmin
 				? new List<ProcessStartInfo> { shellExecuteStartInfo }
 				: new List<ProcessStartInfo> { sameShellStartInfo, shellExecuteStartInfo };
 		}
@@ -506,16 +532,13 @@ namespace KOTORModSync.Core.Utility
 
 									_ = output.AppendLine(e.Data);
 									if ( noLogging is false )
-									{
-										_ = Logger.LogAsync(e.Data);
-									}
+									    _ = Logger.LogAsync(e.Data);
 								}
 								catch ( Exception exception )
 								{
 									_ = Logger.LogExceptionAsync(exception, $"Exception while gathering the output from '{programFile}'");
 								}
 							};
-							AutoResetEvent localOutputWaitHandle = outputWaitHandle;
 							process.ErrorDataReceived += (sender, e) =>
 							{
 								try

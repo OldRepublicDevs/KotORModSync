@@ -1,6 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
              xmlns:converters="clr-namespace:KOTORModSync.Converters"
              xmlns:controls="clr-namespace:KOTORModSync.Controls"
              x:Class="KOTORModSync.Controls.InstructionEditorControl">
@@ -9,7 +8,10 @@
         <converters:ActionConverter x:Key="ActionConverter" />
         <converters:ListToStringConverter x:Key="ListToStringConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
+        <converters:PatcherActionVisibility x:Key="PatcherActionVisibility" />
+        <converters:NotPatcherActionVisibility x:Key="NotPatcherActionVisibility" />
         <converters:GuidListConverter x:Key="GuidListConverter" />
+        <converters:NamespacesIniOptionConverter x:Key="NamespacesIniOptionConverter" />
     </UserControl.Resources>
 
     <StackPanel>
@@ -103,7 +105,17 @@
                 <TextBlock Grid.Row="14" Grid.Column="0" Text="Arguments:"
                            ToolTip.Tip="Namespace option index if action is TSLPatcher. For 'execute' action, any command-line arguments to send. For 'DelDuplicate', the extension to delete when duplicates are found."
                            IsVisible="{Binding !IsVisible, ElementName=optionChooser}" />
+
+                <!-- For Patcher action, show ComboBox with namespace options -->
+                <ComboBox Grid.Row="15" Grid.Column="0" Focusable="True"
+                          IsVisible="{Binding Action, Converter={StaticResource PatcherActionVisibility}}"
+                          ItemsSource="{Binding ., Converter={StaticResource NamespacesIniOptionConverter}}"
+                          SelectedIndex="{Binding Arguments}"
+                          ToolTip.Tip="Select the namespace option for TSLPatcher" />
+
+                <!-- For non-Patcher actions, show regular TextBox -->
                 <TextBox Grid.Row="15" Grid.Column="0" Focusable="True"
+                         IsVisible="{Binding Action, Converter={StaticResource NotPatcherActionVisibility}}"
                          Text="{Binding Arguments}" />
 
             </Grid>

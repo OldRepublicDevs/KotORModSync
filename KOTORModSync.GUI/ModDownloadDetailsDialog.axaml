@@ -1,0 +1,176 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="using:KOTORModSync.Converters"
+        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="550"
+        x:Class="KOTORModSync.ModDownloadDetailsDialog"
+        Title="Download Details"
+        Width="700" Height="550"
+        MinWidth="600" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <Window.Resources>
+        <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+    </Window.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="Auto,*">
+                <TextBlock Grid.Column="0"
+                           x:Name="StatusIconText"
+                           Text="❓"
+                           FontSize="32"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0" />
+                <StackPanel Grid.Column="1">
+                    <TextBlock x:Name="ModNameText"
+                               Text="Mod Name"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+                    <TextBlock x:Name="StatusText"
+                               Text="Status"
+                               FontSize="14"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel>
+                <!-- Download Information -->
+                <Border Classes="download-section">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Download Information" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+                        <Grid ColumnDefinitions="120,*">
+                            <TextBlock Grid.Column="0" Text="URL:" Classes="download-label" />
+                            <TextBlock Grid.Column="1" x:Name="UrlText" Classes="download-value" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="120,*">
+                            <TextBlock Grid.Column="0" Text="File Path:" Classes="download-label" />
+                            <TextBlock Grid.Column="1" x:Name="FilePathText" Classes="download-value" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="120,*">
+                            <TextBlock Grid.Column="0" Text="File Size:" Classes="download-label" />
+                            <TextBlock Grid.Column="1" x:Name="FileSizeText" Classes="download-value" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="120,*">
+                            <TextBlock Grid.Column="0" Text="Download Speed:" Classes="download-label" />
+                            <TextBlock Grid.Column="1" x:Name="DownloadSpeedText" Classes="download-value" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="120,*">
+                            <TextBlock Grid.Column="0" Text="Duration:" Classes="download-label" />
+                            <TextBlock Grid.Column="1" x:Name="DurationText" Classes="download-value" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Status Message -->
+                <Border Classes="download-section"
+                        x:Name="StatusMessageSection"
+                        IsVisible="{Binding Text, ElementName=StatusMessageText, Converter={StaticResource StringNotEmptyConverter}}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Status Message" FontSize="15" FontWeight="SemiBold" />
+                        <TextBlock x:Name="StatusMessageText"
+                                   Classes="download-status-text"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Error Details -->
+                <Border Classes="download-section" x:Name="ErrorSection" IsVisible="False">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Error Details"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Classes="download-error-text" />
+                        <TextBlock x:Name="ErrorMessageText"
+                                   Classes="download-error-text"
+                                   TextWrapping="Wrap" />
+
+                        <TextBlock Text="Exception Details:"
+                                   FontWeight="SemiBold"
+                                   Margin="0,8,0,4"
+                                   x:Name="ExceptionHeader"
+                                   IsVisible="False" />
+                        <TextBox x:Name="ExceptionDetailsText"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 MinHeight="100"
+                                 MaxHeight="200"
+                                 FontFamily="Consolas"
+                                 FontSize="11"
+                                 IsVisible="False" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Download Logs -->
+                <Border Classes="download-section">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Download Logs" FontSize="15" FontWeight="SemiBold" />
+                        <TextBlock Text="Detailed log of all operations performed during this download:"
+                                   Classes="secondary-text" Margin="0,0,0,8" />
+				<ScrollViewer MinHeight="200" MaxHeight="400" VerticalScrollBarVisibility="Auto">
+					<TextBox x:Name="LogsTextBox"
+					         IsReadOnly="True"
+					         TextWrapping="Wrap"
+					         AcceptsReturn="True"
+					         FontFamily="Consolas"
+					         FontSize="10"
+					         BorderThickness="0"
+					         Background="Transparent"/>
+				</ScrollViewer>
+                    </StackPanel>
+                </Border>
+
+                <!-- Timing Information -->
+                <Border Classes="download-section">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Timing Information" FontSize="15" FontWeight="SemiBold" />
+
+                        <Grid ColumnDefinitions="120,*">
+                            <TextBlock Grid.Column="0" Text="Start Time:" Classes="download-label" />
+                            <TextBlock Grid.Column="1" x:Name="StartTimeText" Classes="download-value" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="120,*">
+                            <TextBlock Grid.Column="0" Text="End Time:" Classes="download-label" />
+                            <TextBlock Grid.Column="1" x:Name="EndTimeText" Classes="download-value" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+            <Button x:Name="OpenFolderButton"
+                    Content="Open Download Folder"
+                    Width="180"
+                    IsEnabled="False" />
+            <Button x:Name="CopyErrorButton"
+                    Content="Copy Error Details"
+                    Width="140"
+                    IsVisible="False" />
+            <Button x:Name="RetryButton"
+                    Content="Retry Download"
+                    Width="120"
+                    IsVisible="False" />
+            <Button x:Name="CloseButton"
+                    Content="Close"
+                    Width="80" />
+        </StackPanel>
+    </Grid>
+</Window>
+

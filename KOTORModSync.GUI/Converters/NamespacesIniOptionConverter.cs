@@ -72,6 +72,7 @@ namespace KOTORModSync.Converters
 
 				List<string> realPaths = PathHelper.EnumerateFilesWithWildcards(
 					instruction.Source.ConvertAll(Utility.ReplaceCustomVariables),
+					new KOTORModSync.Core.Services.FileSystem.RealFileSystemProvider(),
 					includeSubFolders: false
 				);
 				if ( !realPaths?.IsNullOrEmptyCollection() ?? false )

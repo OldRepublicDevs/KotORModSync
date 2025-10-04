@@ -426,7 +426,7 @@ namespace KOTORModSync
 					int componentsWithDependencies = 0;
 
 					foreach ( Component component in selectedComponents.Where(component => component.Dependencies.Count != 0 || component.InstallAfter.Count != 0 ||
-						         component.InstallBefore.Count != 0))
+								 component.InstallBefore.Count != 0) )
 					{
 						componentsWithDependencies++;
 						totalDependencies += component.Dependencies.Count + component.InstallAfter.Count + component.InstallBefore.Count;
@@ -461,13 +461,13 @@ namespace KOTORModSync
 					graph[component] = new List<Component>();
 
 				// Add direct dependencies
-				foreach ( Component depComponent in component.Dependencies.Select(depGuid => components.FirstOrDefault(c => c.Guid == depGuid)).Where(depComponent => depComponent != null && !graph[component].Contains(depComponent)))
+				foreach ( Component depComponent in component.Dependencies.Select(depGuid => components.FirstOrDefault(c => c.Guid == depGuid)).Where(depComponent => depComponent != null && !graph[component].Contains(depComponent)) )
 				{
 					graph[component].Add(depComponent);
 				}
 
 				// Add install-after relationships
-				foreach ( Component afterComponent in component.InstallAfter.Select(afterGuid => components.FirstOrDefault(c => c.Guid == afterGuid)).Where(afterComponent => afterComponent != null && !graph[component].Contains(afterComponent)))
+				foreach ( Component afterComponent in component.InstallAfter.Select(afterGuid => components.FirstOrDefault(c => c.Guid == afterGuid)).Where(afterComponent => afterComponent != null && !graph[component].Contains(afterComponent)) )
 				{
 					graph[component].Add(afterComponent);
 				}
@@ -495,7 +495,7 @@ namespace KOTORModSync
 
 			if ( graph.TryGetValue(component, out List<Component> value) )
 			{
-				if (value.Any(dependency => HasCircularDependency(dependency, graph, visited, recursionStack)))
+				if ( value.Any(dependency => HasCircularDependency(dependency, graph, visited, recursionStack)) )
 				{
 					return true;
 				}
@@ -522,11 +522,13 @@ namespace KOTORModSync
 						return;
 					}
 
+					int dependencyCount = conflicts.ContainsKey("Dependency") ? conflicts["Dependency"].Count : 0;
+					int restrictionCount = conflicts.ContainsKey("Restriction") ? conflicts["Restriction"].Count : 0;
 					await _dialogService.ShowInformationDialog(
 					"Conflict Resolution Results:\n\n" +
 					$"Total conflicts found: {totalConflicts}\n" +
-					$"Dependency conflicts: {conflicts.GetValueOrDefault("Dependency", new List<Component>()).Count}\n" +
-					$"Restriction conflicts: {conflicts.GetValueOrDefault("Restriction", new List<Component>()).Count}\n\n" +
+					$"Dependency conflicts: {dependencyCount}\n" +
+					$"Restriction conflicts: {restrictionCount}\n\n" +
 					"Conflicts have been automatically resolved based on component dependencies and restrictions.");
 				});
 			}
@@ -570,8 +572,10 @@ namespace KOTORModSync
 		{
 			var sb = new System.Text.StringBuilder();
 
-			foreach ( (Component component, List<Component> dependencies) in graph )
+			foreach ( var kvp in graph )
 			{
+				Component component = kvp.Key;
+				List<Component> dependencies = kvp.Value;
 				_ = sb.AppendLine($"{component.Name} (GUID: {component.Guid.ToString().Substring(0, 8)}...)");
 				if ( dependencies.Any() )
 				{
@@ -654,7 +658,7 @@ namespace KOTORModSync
 						long estimatedSize = EstimateComponentSize(component);
 
 						if ( estimatedSize <= 0 )
-						    continue;
+							continue;
 						totalSize += estimatedSize;
 						modsWithSize++;
 
@@ -672,8 +676,11 @@ namespace KOTORModSync
 					analysis += $"Average size per mod: {FormatBytes(totalSize / Math.Max(1, modsWithSize))}\n\n";
 
 					analysis += "Size Distribution:\n";
-					foreach ( (string category, (long size, int count)) in sizeBreakdown.OrderByDescending(kvp => kvp.Value.Size) )
+					foreach ( var kvp in sizeBreakdown.OrderByDescending(kvp => kvp.Value.Size) )
 					{
+						string category = kvp.Key;
+						long size = kvp.Value.Size;
+						int count = kvp.Value.Count;
 						analysis += $"{category}: {count} mods ({FormatBytes(size)})\n";
 					}
 
@@ -753,8 +760,8 @@ namespace KOTORModSync
 						foreach ( Instruction instruction in component.Instructions )
 						{
 							if ( instruction.Action != Instruction.ActionType.Copy &&
-							     instruction.Action != Instruction.ActionType.Move &&
-							     instruction.Action != Instruction.ActionType.Extract )
+								 instruction.Action != Instruction.ActionType.Move &&
+								 instruction.Action != Instruction.ActionType.Extract )
 							{
 								continue;
 							}
@@ -783,8 +790,10 @@ namespace KOTORModSync
 					{
 						string report = $"Found {actualRedundantFiles.Count} potentially redundant files:\n\n";
 
-						foreach ( (string fileName, List<Component> components) in actualRedundantFiles.Take(10) ) // Show first 10
+						foreach ( var kvp in actualRedundantFiles.Take(10) ) // Show first 10
 						{
+							string fileName = kvp.Key;
+							List<Component> components = kvp.Value;
 							report += $"{fileName} (used by {components.Count} mods):\n";
 							foreach ( Component component in components )
 							{
@@ -1059,10 +1068,10 @@ namespace KOTORModSync
 						{
 							// Collect destination paths from instructions
 							if ( string.IsNullOrWhiteSpace(instruction.Destination) )
-							    continue;
+								continue;
 							string fileName = System.IO.Path.GetFileName(instruction.Destination);
 							if ( string.IsNullOrEmpty(fileName) )
-							    continue;
+								continue;
 							_ = referencedFiles.Add(fileName);
 						}
 					}

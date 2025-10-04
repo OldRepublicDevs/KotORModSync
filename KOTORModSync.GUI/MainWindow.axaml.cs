@@ -540,6 +540,7 @@ namespace KOTORModSync
 		}
 
 		public MainConfig MainConfigInstance = new MainConfig();
+		private DownloadProgressWindow _currentDownloadWindow;
 
 		[CanBeNull]
 		public Component CurrentComponent
@@ -1165,7 +1166,7 @@ namespace KOTORModSync
 					else if ( e.Key == Key.Delete )
 					{
 						CurrentComponent = component;
-						RemoveComponentButton_Click(null, null);
+						_ = DeleteModWithConfirmation(component);
 						e.Handled = true;
 					}
 					// Space - Toggle selection
@@ -1181,6 +1182,36 @@ namespace KOTORModSync
 					Logger.LogException(ex);
 				}
 			};
+		}
+
+		[UsedImplicitly]
+		private async Task DeleteModWithConfirmation(Component component)
+		{
+			try
+			{
+				if ( component == null )
+				{
+					Logger.Log(message: "No component provided for deletion.");
+					return;
+				}
+
+				bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
+					this,
+					$"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
+					yesButtonText: "Delete",
+					noButtonText: "Cancel"
+				);
+
+				if ( confirm == true )
+				{
+					CurrentComponent = component;
+					RemoveComponentButton_Click(null, null);
+				}
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+			}
 		}
 
 		// Build context menu for a specific component (individual mod operations only)
@@ -1244,10 +1275,19 @@ namespace KOTORModSync
 				_ = contextMenu.Items.Add(new MenuItem
 				{
 					Header = "🗑️ Delete Mod",
-					Command = ReactiveCommand.Create(() =>
+					Command = ReactiveCommand.CreateFromTask(async () =>
 					{
 						CurrentComponent = component;
+						bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
+							this,
+							$"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
+							yesButtonText: "Delete",
+							noButtonText: "Cancel"
+						);
+						if ( confirm == true )
+						{
 						RemoveComponentButton_Click(null, null);
+						}
 					})
 				});
 
@@ -1429,7 +1469,7 @@ namespace KOTORModSync
 					Command = ReactiveCommand.Create(async () =>
 					{
 						ModStatistics stats = _modManagementService.GetModStatistics();
-						string statsText = $"📊 Mod Statistics\n\n" +
+						string statsText = "📊 Mod Statistics\n\n" +
 										   $"Total Mods: {stats.TotalMods}\n" +
 										   $"Selected: {stats.SelectedMods}\n" +
 										   $"Downloaded: {stats.DownloadedMods}\n\n" +
@@ -1492,8 +1532,8 @@ namespace KOTORModSync
 
 			_ = menu.Items.Add(new Separator());
 
-			if ( EditorMode )
-			{
+			if ( !EditorMode )
+				return;
 				// Global operations
 				_ = menu.Items.Add(new MenuItem
 				{
@@ -1501,11 +1541,10 @@ namespace KOTORModSync
 					Command = ReactiveCommand.Create(() =>
 					{
 						Component newMod = _modManagementService.CreateMod();
-						if ( newMod != null )
-						{
+					if ( newMod == null )
+						return;
 							SetCurrentComponent(newMod);
 							SetTabInternal(TabControl, GuiEditTabItem);
-						}
 					})
 				});
 
@@ -1545,7 +1584,7 @@ namespace KOTORModSync
 					Command = ReactiveCommand.Create(async () =>
 					{
 						ModStatistics stats = _modManagementService.GetModStatistics();
-						string statsText = $"📊 Mod Statistics\n\n" +
+					string statsText = "📊 Mod Statistics\n\n" +
 										   $"Total Mods: {stats.TotalMods}\n" +
 										   $"Selected: {stats.SelectedMods}\n" +
 										   $"Downloaded: {stats.DownloadedMods}\n\n" +
@@ -1573,7 +1612,6 @@ namespace KOTORModSync
 					Header = "❌ Close TOML",
 					Command = ReactiveCommand.Create(() => CloseTOMLFile_Click(null, null))
 				});
-			}
 		}
 
 		private void SetupDragAndDrop()
@@ -1704,7 +1742,7 @@ namespace KOTORModSync
 			{
 				var dialogService = new ModManagementDialogService(this, _modManagementService,
 					() => MainConfigInstance.allComponents.ToList(),
-					(components) => { MainConfigInstance.allComponents = components; });
+					(components) => MainConfigInstance.allComponents = components);
 
 				var dialog = new ModManagementDialog(_modManagementService, dialogService);
 				await dialog.ShowDialog(this);
@@ -2677,7 +2715,6 @@ namespace KOTORModSync
 			}
 		}
 
-		[UsedImplicitly]
 		private async void RemoveComponentButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e)
 		{
 			// Get the selected component from the TreeView
@@ -2689,15 +2726,49 @@ namespace KOTORModSync
 					return;
 				}
 
-				// todo:
-				if ( MainConfig.AllComponents.Any(c => c.Dependencies.Any(g => g == CurrentComponent.Guid)) )
+				// Check for dependent components
+				var dependentComponents = MainConfig.AllComponents
+					.Where(c => c.Dependencies.Contains(CurrentComponent.Guid) ||
+							   c.Restrictions.Contains(CurrentComponent.Guid) ||
+							   c.InstallBefore.Contains(CurrentComponent.Guid) ||
+							   c.InstallAfter.Contains(CurrentComponent.Guid))
+					.ToList();
+
+				if ( dependentComponents.Any() )
 				{
-					if ( await ConfirmationDialog.ShowConfirmationDialog( // TODO: log the duplicated components.
-							this,
-							$"Cannot remove '{CurrentComponent.Name}', there are several components that rely on it. Please address this problem first. {Environment.NewLine} Continue removing anyway?"
-						) != true )
+					// Log the dependent components
+					Logger.Log($"Cannot remove '{CurrentComponent.Name}' - {dependentComponents.Count} components depend on it:");
+					foreach ( Component dependent in dependentComponents )
 					{
+						var dependencyTypes = new List<string>();
+						if ( dependent.Dependencies.Contains(CurrentComponent.Guid) )
+							dependencyTypes.Add("Dependency");
+						if ( dependent.Restrictions.Contains(CurrentComponent.Guid) )
+							dependencyTypes.Add("Restriction");
+						if ( dependent.InstallBefore.Contains(CurrentComponent.Guid) )
+							dependencyTypes.Add("InstallBefore");
+						if ( dependent.InstallAfter.Contains(CurrentComponent.Guid) )
+							dependencyTypes.Add("InstallAfter");
+
+						Logger.Log($"  - {dependent.Name} ({string.Join(", ", dependencyTypes)})");
+					}
+
+					// Show dependency unlinking dialog
+					(bool confirmed, List<Component> componentsToUnlink) = await DependencyUnlinkDialog.ShowUnlinkDialog(
+						this, CurrentComponent, dependentComponents);
+
+					if ( !confirmed )
 						return;
+
+					// Unlink the dependencies
+					foreach ( Component componentToUnlink in componentsToUnlink )
+					{
+						componentToUnlink.Dependencies.Remove(CurrentComponent.Guid);
+						componentToUnlink.Restrictions.Remove(CurrentComponent.Guid);
+						componentToUnlink.InstallBefore.Remove(CurrentComponent.Guid);
+						componentToUnlink.InstallAfter.Remove(CurrentComponent.Guid);
+
+						Logger.Log($"Unlinked dependencies from '{componentToUnlink.Name}'");
 					}
 				}
 
@@ -3705,24 +3776,24 @@ namespace KOTORModSync
 					case ModOperation.Move:
 						Dispatcher.UIThread.Post(async () =>
 						{
+							try
+						{
 							await ProcessComponentsAsync(MainConfig.AllComponents);
 							UpdateModCounts();
+							}
+							catch ( Exception ex )
+							{
+								await Logger.LogExceptionAsync(ex);
+							}
 						});
 						break;
 					case ModOperation.Read:
-						break;
 					case ModOperation.Update:
-						break;
 					case ModOperation.Duplicate:
-						break;
 					case ModOperation.AddDependency:
-						break;
 					case ModOperation.RemoveDependency:
-						break;
 					case ModOperation.AddRestriction:
-						break;
 					case ModOperation.RemoveRestriction:
-						break;
 					case ModOperation.Batch:
 						break;
 					default:
@@ -4852,59 +4923,127 @@ namespace KOTORModSync
 
 				Logger.Log($"Starting download for {componentsToDownload.Count} mod(s)...");
 
+				// Create and show the download progress window
+				var progressWindow = new DownloadProgressWindow();
+				_currentDownloadWindow = progressWindow;
+
+				// Create a dictionary to track download progress for each URL
+				var urlToProgressMap = new Dictionary<string, DownloadProgress>();
+
+				// Add all downloads to the progress window
+				foreach ( Component component in componentsToDownload )
+				{
+					foreach ( string url in component.ModLink )
+					{
+						var progressItem = new DownloadProgress
+						{
+							ModName = component.Name,
+							Url = url,
+							Status = DownloadStatus.Pending,
+							StatusMessage = "Waiting to start...",
+							ProgressPercentage = 0
+						};
+
+						progressWindow.AddDownload(progressItem);
+						urlToProgressMap[url] = progressItem;
+					}
+				}
+
+				// Show the window
+				progressWindow.Show();
+
+				// Start downloads in background
+				_ = Task.Run(async () =>
+				{
+					try
+					{
 				// Initialize download handlers
 				var httpClient = new System.Net.Http.HttpClient();
 				httpClient.Timeout = TimeSpan.FromMinutes(10);
 
 				var handlers = new List<IDownloadHandler>
 						{
+				// Specific handlers MUST come before DirectDownloadHandler
+				// because DirectDownloadHandler accepts any HTTP/HTTPS URL
 							new DeadlyStreamDownloadHandler(httpClient),
 							new MegaDownloadHandler(),
-							new DirectDownloadHandler(httpClient),
+				new NexusModsDownloadHandler(httpClient, null), // TODO: Add API key support
+				new GameFrontDownloadHandler(httpClient),
+				new DirectDownloadHandler(httpClient), // Keep this last as fallback
 						};
 
 				var downloadManager = new DownloadManager(handlers);
 
-				int successCount = 0;
-				int failCount = 0;
+						// Use the new progress-aware download method with cancellation support
+						await downloadManager.DownloadAllWithProgressAsync(
+						urlToProgressMap,
+						MainConfig.SourcePath.FullName,
+						progressWindow.CancellationToken);
 
-				foreach ( Component component in componentsToDownload )
-				{
-					await Logger.LogAsync($"Downloading: {component.Name}");
+						// Mark downloads as completed
+						progressWindow.MarkCompleted();
 
-					List<DownloadResult> results = await downloadManager.DownloadAllAsync(
-						component.ModLink,
-						MainConfig.SourcePath.FullName);
-
-					foreach ( DownloadResult result in results )
-					{
-						if ( result.Success )
-						{
-							await Logger.LogAsync($"  ✅ Downloaded: {result.FilePath}");
-							successCount++;
-						}
-						else
-						{
-							await Logger.LogErrorAsync($"  ❌ Failed: {result.Message}");
-							failCount++;
-						}
+						// Refresh download status on UI thread
+						await Dispatcher.UIThread.InvokeAsync(ScanModDirectoryForDownloads);
 					}
-				}
-
-				// Refresh download status
-				ScanModDirectoryForDownloads();
-
-				string summaryMessage = $"Download complete!\n\nSuccessful: {successCount}\nFailed: {failCount}";
-				if ( failCount > 0 )
-					summaryMessage += "\n\nSome downloads failed. You may need to download them manually.";
-
-				await InformationDialog.ShowInformationDialog(this, summaryMessage);
+					catch ( Exception ex )
+					{
+						await Logger.LogExceptionAsync(ex, "Error during mod download");
+						await Dispatcher.UIThread.InvokeAsync(async () =>
+						{
+							await InformationDialog.ShowInformationDialog(this,
+								$"An error occurred while downloading mods:\n\n{ex.Message}");
+						});
+					}
+				});
 			}
 			catch ( Exception ex )
 			{
-				await Logger.LogExceptionAsync(ex, "Error during mod download");
+				await Logger.LogExceptionAsync(ex, "Error starting download process");
 				await InformationDialog.ShowInformationDialog(this,
-					$"An error occurred while downloading mods:\n\n{ex.Message}");
+					$"An error occurred while starting downloads:\n\n{ex.Message}");
+			}
+		}
+
+		private async void DownloadStatusButton_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				// If download window is active, bring it to the front
+				if ( _currentDownloadWindow != null && _currentDownloadWindow.IsVisible )
+				{
+					_currentDownloadWindow.Activate();
+					_currentDownloadWindow.Focus();
+					return;
+				}
+
+				// Otherwise show download status summary dialog
+				int downloadedCount = MainConfig.AllComponents.Count(c => c.IsSelected && c.IsDownloaded);
+				int totalSelected = MainConfig.AllComponents.Count(c => c.IsSelected);
+
+				string statusMessage;
+				if ( totalSelected == 0 )
+				{
+					statusMessage = "No mods are currently selected for installation.";
+				}
+				else if ( downloadedCount == totalSelected )
+				{
+					statusMessage = $"All {totalSelected} selected mod(s) are downloaded and ready for installation!";
+				}
+				else
+				{
+					int missing = totalSelected - downloadedCount;
+					statusMessage = "Download Status:\n\n" +
+									$"• Downloaded: {downloadedCount}/{totalSelected}\n" +
+									$"• Missing: {missing}\n\n" +
+									"Click 'Fetch Downloads' to automatically download missing mods.";
+				}
+
+				await InformationDialog.ShowInformationDialog(this, statusMessage);
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Error showing download status");
 			}
 		}
 

@@ -223,7 +223,7 @@ namespace KOTORModSync.Controls
 				_ = sb.AppendLine();
 				_ = sb.AppendLine("📝 Description:");
 				string desc = component.Description.Length > 200
-					? string.Concat(component.Description.AsSpan(0, 200), "...")
+					? component.Description.Substring(0, 200) + "..."
 					: component.Description;
 				_ = sb.AppendLine(desc);
 			}

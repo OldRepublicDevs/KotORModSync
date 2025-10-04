@@ -176,7 +176,27 @@ namespace KOTORModSync.Core.Installation
 			return map;
 		}
 
-		public static void ClearSessionForTests(DirectoryInfo directoryInfo) => throw new NotImplementedException();
+		public static void ClearSessionForTests(DirectoryInfo directoryInfo)
+		{
+			if ( directoryInfo == null )
+				return;
+
+			string sessionFolder = Path.Combine(directoryInfo.FullName, ".kotor_modsync");
+			if ( !Directory.Exists(sessionFolder) )
+			    return;
+			try
+			{
+				Directory.Delete(sessionFolder, recursive: true);
+			}
+			catch ( IOException )
+			{
+				// Ignore if folder is in use
+			}
+			catch ( UnauthorizedAccessException )
+			{
+				// Ignore if we don't have permission
+			}
+		}
 
 	}
 }

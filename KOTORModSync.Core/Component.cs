@@ -593,8 +593,7 @@ namespace KOTORModSync.Core
 
 		private static StringBuilder FixSerializedTomlDict(
 			[NotNull] Dictionary<string, object> serializedComponentDict,
-			[CanBeNull] StringBuilder tomlString = null,
-			[CanBeNull] List<string> nestedKeys = null
+			[CanBeNull] StringBuilder tomlString = null
 		)
 		{
 			if ( serializedComponentDict is null )
@@ -638,12 +637,6 @@ namespace KOTORModSync.Core
 						},
 					};
 					_ = tomlString.AppendLine(Toml.FromModel(model).Replace($"thisMod.{key}", $"[thisMod.{key}]"));
-
-					/*if (classInstanceObj is Dictionary<string, object> anotherDict)
-					{
-					    // Call the method recursively to process the nested dictionary
-					    FixSerializedTomlDict(anotherDict, tomlString);
-					}*/
 				}
 
 				if ( found )

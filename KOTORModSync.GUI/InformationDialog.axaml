@@ -10,8 +10,7 @@
   ExtendClientAreaToDecorationsHint="True"
   ExtendClientAreaChromeHints="NoChrome"
   ExtendClientAreaTitleBarHeightHint="-1"
-  SystemDecorations="BorderOnly"
-  Classes="information-dialog">
+  SystemDecorations="BorderOnly">
   <Grid RowDefinitions="Auto,*">
     <!-- Dialog content in its own row below the close button -->
     <Border Grid.Row="1"

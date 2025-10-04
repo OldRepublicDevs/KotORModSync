@@ -48,6 +48,12 @@ namespace KOTORModSync
 		// Position Change Brushes
 		public static IBrush MergePositionChangedBrush => GetBrush("MergePosition.ChangedBrush", Brushes.Orange);
 		public static IBrush MergePositionNewBrush => GetBrush("MergePosition.NewBrush", Brushes.Yellow);
+
+		// TOML Diff Brushes
+		public static IBrush MergeDiffUnchangedBrush => GetBrush("MergeDiff.UnchangedBrush", Brushes.Black);
+		public static IBrush MergeDiffAddedBrush => GetBrush("MergeDiff.AddedBrush", Brushes.DarkGreen);
+		public static IBrush MergeDiffRemovedBrush => GetBrush("MergeDiff.RemovedBrush", Brushes.DarkRed);
+		public static IBrush MergeDiffModifiedBrush => GetBrush("MergeDiff.ModifiedBrush", Brushes.DarkGoldenrod);
 	}
 }
 

@@ -54,16 +54,16 @@ namespace KOTORModSync
 
 			// Get components involved in cycles
 			var componentsInCycles = new HashSet<Guid>();
-			foreach (var cycle in cycleInfo.Cycles)
+			foreach ( List<Guid> cycle in cycleInfo.Cycles)
 			{
-				foreach (var guid in cycle)
+				foreach ( Guid guid in cycle)
 				{
 					componentsInCycles.Add(guid);
 				}
 			}
 
 			// Build component items
-			foreach (var component in components)
+			foreach ( Component component in components)
 			{
 				bool isInCycle = componentsInCycles.Contains(component.Guid);
 				var item = new ComponentItem(component, isInCycle);
@@ -72,8 +72,8 @@ namespace KOTORModSync
 			}
 
 			// Build suggestions
-			var suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
-			foreach (var suggestion in suggestedComponents)
+			List<Component> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
+			foreach ( Component suggestion in suggestedComponents)
 			{
 				Suggestions.Add(new SuggestionItem
 				{
@@ -115,7 +115,7 @@ namespace KOTORModSync
 			if (!(parameter is SuggestionItem suggestion))
 				return;
 
-			var componentItem = Components.FirstOrDefault(c => c.Component == suggestion.Component);
+			ComponentItem componentItem = Components.FirstOrDefault(c => c.Component == suggestion.Component);
 			if (componentItem != null)
 			{
 				componentItem.IsSelected = false;

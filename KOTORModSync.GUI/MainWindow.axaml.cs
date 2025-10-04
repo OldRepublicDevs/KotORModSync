@@ -16,12 +16,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
-using Avalonia.Data;
-using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -42,11 +38,6 @@ using SharpCompress.Archives;
 using static KOTORModSync.Core.Services.ModManagementService;
 using Component = KOTORModSync.Core.Component;
 using NotNullAttribute = JetBrains.Annotations.NotNullAttribute;
-
-// ReSharper disable AsyncVoidMethod
-
-
-
 
 
 namespace KOTORModSync
@@ -85,7 +76,10 @@ namespace KOTORModSync
 		private readonly InstallationService _installationService;
 
 		// ModManagementService provides comprehensive mod management functionality
-		private ModManagementService _modManagementService;
+		private readonly ModManagementService _modManagementService;
+
+		// Public property for binding
+		public ModManagementService ModManagementService => _modManagementService;
 
 		// UI control properties
 		private ListBox ModListBox => this.FindControl<ListBox>("ModListBoxElement");
@@ -110,6 +104,7 @@ namespace KOTORModSync
 				_ = SetAndRaise(EditorModeProperty, ref _editorMode, value);
 				UpdateMenuVisibility();
 				RefreshModListItems();
+				BuildGlobalActionsMenu();
 			}
 		}
 
@@ -173,6 +168,9 @@ namespace KOTORModSync
 
 				// Initialize file system watcher for mod directory
 				InitializeModDirectoryWatcher();
+
+				// Initialize global actions menu
+				BuildGlobalActionsMenu();
 			}
 			catch ( Exception e )
 			{
@@ -551,14 +549,6 @@ namespace KOTORModSync
 		}
 
 		private bool IgnoreInternalTabChange { get; set; }
-
-		private RelayCommand ItemClickCommand => new RelayCommand(
-			parameter =>
-			{
-				if ( parameter is Component component )
-					LoadComponentDetails(component);
-			}
-		);
 
 		private void InitializeTopMenu()
 		{
@@ -944,7 +934,7 @@ namespace KOTORModSync
 					if ( ModListBox.ContainerFromItem(item) is ListBoxItem container )
 					{
 						// Find the ModListItem control
-						var modListItem = container.GetVisualDescendants().OfType<Controls.ModListItem>().FirstOrDefault();
+						ModListItem modListItem = container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault();
 						if ( modListItem != null )
 						{
 							// Trigger context menu rebuild
@@ -1193,61 +1183,34 @@ namespace KOTORModSync
 			};
 		}
 
-		// Build context menu for a specific component
+		// Build context menu for a specific component (individual mod operations only)
 		public ContextMenu BuildContextMenuForComponent(Component component)
 		{
 			var contextMenu = new ContextMenu();
 
-			// Refresh and Validate All Mods - available in both modes, at top
-			_ = contextMenu.Items.Add(new MenuItem
-			{
-				Header = "🔄 Refresh List",
-				Command = ReactiveCommand.Create(() => RefreshComponents_Click(null, null)),
-				InputGesture = new KeyGesture(Key.F5)
-			});
+			if ( component == null )
+				return contextMenu;
 
+			// Basic operations - available for all modes
 			_ = contextMenu.Items.Add(new MenuItem
 			{
-				Header = "🔄 Validate All Mods",
-				Command = ReactiveCommand.Create(async () =>
+				Header = component.IsSelected ? "☑️ Deselect Mod" : "☐ Select Mod",
+				Command = ReactiveCommand.Create(() =>
 				{
-					Dictionary<Component, ModValidationResult> results = _modManagementService.ValidateAllMods();
-					int errorCount = results.Count(r => !r.Value.IsValid);
-					int warningCount = results.Sum(r => r.Value.Warnings.Count);
-
-					await InformationDialog.ShowInformationDialog(this,
-						"Validation complete!\n\n" +
-						$"Errors: {errorCount}\n" +
-						$"Warnings: {warningCount}\n\n" +
-						$"Valid mods: {results.Count(r => r.Value.IsValid)}/{results.Count}");
+					component.IsSelected = !component.IsSelected;
+					UpdateModCounts();
+					if ( component.IsSelected )
+						ComponentCheckboxChecked(component, new HashSet<Component>());
+					else
+						ComponentCheckboxUnchecked(component, new HashSet<Component>());
 				})
 			});
 
-			_ = contextMenu.Items.Add(new Separator());
-
-			if ( component != null )
-			{
-				// Basic operations
-				_ = contextMenu.Items.Add(new MenuItem
-				{
-					Header = component.IsSelected ? "☑️ Deselect Mod" : "☐ Select Mod",
-					Command = ReactiveCommand.Create(() =>
-					{
-						component.IsSelected = !component.IsSelected;
-						UpdateModCounts();
-						if ( component.IsSelected )
-							ComponentCheckboxChecked(component, new HashSet<Component>());
-						else
-							ComponentCheckboxUnchecked(component, new HashSet<Component>());
-					})
-				});
-
-				_ = contextMenu.Items.Add(new Separator());
-			}
-
 			// Editor mode items
-			if ( EditorMode && component != null )
+			if ( EditorMode )
 			{
+				_ = contextMenu.Items.Add(new Separator());
+
 				// Movement operations
 				_ = contextMenu.Items.Add(new MenuItem
 				{
@@ -1357,14 +1320,66 @@ namespace KOTORModSync
 						}
 					})
 				});
-
-				_ = contextMenu.Items.Add(new Separator());
 			}
+
+			return contextMenu;
+		}
+
+		// Build global actions menu (for DropDownButton and Mod List context menu)
+		private void BuildGlobalActionsMenu()
+		{
+			// Build DropDownButton menu
+			DropDownButton globalActionsButton = this.FindControl<DropDownButton>("GlobalActionsButton");
+			if ( globalActionsButton?.Flyout is MenuFlyout globalActionsFlyout )
+			{
+				BuildMenuFlyoutItems(globalActionsFlyout);
+			}
+
+			// Build Mod List context menu - find the ScrollViewer that contains the ListBox
+			ListBox modListBox = this.FindControl<ListBox>("ModListBoxElement");
+			var scrollViewer = modListBox?.Parent as ScrollViewer;
+			if ( scrollViewer?.ContextMenu is ContextMenu modListContextMenu )
+			{
+				BuildContextMenuItems(modListContextMenu);
+			}
+		}
+
+		// Helper method to build menu items for MenuFlyout (DropDownButton)
+		private void BuildMenuFlyoutItems(MenuFlyout menu)
+		{
+			menu.Items.Clear();
+
+			// Refresh and Validate All Mods - available in both modes, at top
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "🔄 Refresh List",
+				Command = ReactiveCommand.Create(() => RefreshComponents_Click(null, null)),
+				InputGesture = new KeyGesture(Key.F5)
+			});
+
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "🔄 Validate All Mods",
+				Command = ReactiveCommand.Create(async () =>
+				{
+					Dictionary<Component, ModValidationResult> results = _modManagementService.ValidateAllMods();
+					int errorCount = results.Count(r => !r.Value.IsValid);
+					int warningCount = results.Sum(r => r.Value.Warnings.Count);
+
+					await InformationDialog.ShowInformationDialog(this,
+						"Validation complete!\n\n" +
+						$"Errors: {errorCount}\n" +
+						$"Warnings: {warningCount}\n\n" +
+						$"Valid mods: {results.Count(r => r.Value.IsValid)}/{results.Count}");
+				})
+			});
+
+			_ = menu.Items.Add(new Separator());
 
 			if ( EditorMode )
 			{
 				// Global operations
-				_ = contextMenu.Items.Add(new MenuItem
+				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "➕ Add New Mod",
 					Command = ReactiveCommand.Create(() =>
@@ -1378,37 +1393,37 @@ namespace KOTORModSync
 					})
 				});
 
-				_ = contextMenu.Items.Add(new Separator());
+				_ = menu.Items.Add(new Separator());
 
 				// Selection operations (useful for ordered lists)
-				_ = contextMenu.Items.Add(new MenuItem
+				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "🔎 Select by Name",
 					Command = ReactiveCommand.Create(() => _modManagementService.SortMods())
 				});
 
-				_ = contextMenu.Items.Add(new MenuItem
+				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "🔎 Select by Category",
 					Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Category))
 				});
 
-				_ = contextMenu.Items.Add(new MenuItem
+				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "🔎 Select by Tier",
 					Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Tier))
 				});
 
-				_ = contextMenu.Items.Add(new Separator());
+				_ = menu.Items.Add(new Separator());
 
 				// Tools and utilities
-				_ = contextMenu.Items.Add(new MenuItem
+				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "⚙️ Mod Management Tools",
 					Command = ReactiveCommand.Create(async () => await ShowModManagementDialog())
 				});
 
-				_ = contextMenu.Items.Add(new MenuItem
+				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "📈 Mod Statistics",
 					Command = ReactiveCommand.Create(async () =>
@@ -1427,24 +1442,138 @@ namespace KOTORModSync
 					})
 				});
 
-				_ = contextMenu.Items.Add(new Separator());
+				_ = menu.Items.Add(new Separator());
 
 				// File operations at the bottom
-				_ = contextMenu.Items.Add(new MenuItem
+				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "💾 Save Config",
 					Command = ReactiveCommand.Create(() => SaveModFileAs_Click(null, null)),
 					InputGesture = new KeyGesture(Key.S, KeyModifiers.Control)
 				});
 
-				_ = contextMenu.Items.Add(new MenuItem
+				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "❌ Close TOML",
 					Command = ReactiveCommand.Create(() => CloseTOMLFile_Click(null, null))
 				});
 			}
+		}
 
-			return contextMenu;
+		// Helper method to build menu items for ContextMenu (right-click)
+		private void BuildContextMenuItems(ContextMenu menu)
+		{
+			menu.Items.Clear();
+
+			// Refresh and Validate All Mods - available in both modes, at top
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "🔄 Refresh List",
+				Command = ReactiveCommand.Create(() => RefreshComponents_Click(null, null)),
+				InputGesture = new KeyGesture(Key.F5)
+			});
+
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "🔄 Validate All Mods",
+				Command = ReactiveCommand.Create(async () =>
+				{
+					Dictionary<Component, ModValidationResult> results = _modManagementService.ValidateAllMods();
+					int errorCount = results.Count(r => !r.Value.IsValid);
+					int warningCount = results.Sum(r => r.Value.Warnings.Count);
+
+					await InformationDialog.ShowInformationDialog(this,
+						"Validation complete!\n\n" +
+						$"Errors: {errorCount}\n" +
+						$"Warnings: {warningCount}\n\n" +
+						$"Valid mods: {results.Count(r => r.Value.IsValid)}/{results.Count}");
+				})
+			});
+
+			_ = menu.Items.Add(new Separator());
+
+			if ( EditorMode )
+			{
+				// Global operations
+				_ = menu.Items.Add(new MenuItem
+				{
+					Header = "➕ Add New Mod",
+					Command = ReactiveCommand.Create(() =>
+					{
+						Component newMod = _modManagementService.CreateMod();
+						if ( newMod != null )
+						{
+							SetCurrentComponent(newMod);
+							SetTabInternal(TabControl, GuiEditTabItem);
+						}
+					})
+				});
+
+				_ = menu.Items.Add(new Separator());
+
+				// Selection operations (useful for ordered lists)
+				_ = menu.Items.Add(new MenuItem
+				{
+					Header = "🔎 Select by Name",
+					Command = ReactiveCommand.Create(() => _modManagementService.SortMods())
+				});
+
+				_ = menu.Items.Add(new MenuItem
+				{
+					Header = "🔎 Select by Category",
+					Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Category))
+				});
+
+				_ = menu.Items.Add(new MenuItem
+				{
+					Header = "🔎 Select by Tier",
+					Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Tier))
+				});
+
+				_ = menu.Items.Add(new Separator());
+
+				// Tools and utilities
+				_ = menu.Items.Add(new MenuItem
+				{
+					Header = "⚙️ Mod Management Tools",
+					Command = ReactiveCommand.Create(async () => await ShowModManagementDialog())
+				});
+
+				_ = menu.Items.Add(new MenuItem
+				{
+					Header = "📈 Mod Statistics",
+					Command = ReactiveCommand.Create(async () =>
+					{
+						ModStatistics stats = _modManagementService.GetModStatistics();
+						string statsText = $"📊 Mod Statistics\n\n" +
+										   $"Total Mods: {stats.TotalMods}\n" +
+										   $"Selected: {stats.SelectedMods}\n" +
+										   $"Downloaded: {stats.DownloadedMods}\n\n" +
+										   $"Categories:\n{string.Join("\n", stats.Categories.Select(c => $"  • {c.Key}: {c.Value}"))}\n\n" +
+										   $"Tiers:\n{string.Join("\n", stats.Tiers.Select(t => $"  • {t.Key}: {t.Value}"))}\n\n" +
+										   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
+										   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
+
+						await InformationDialog.ShowInformationDialog(this, statsText);
+					})
+				});
+
+				_ = menu.Items.Add(new Separator());
+
+				// File operations at the bottom
+				_ = menu.Items.Add(new MenuItem
+				{
+					Header = "💾 Save Config",
+					Command = ReactiveCommand.Create(() => SaveModFileAs_Click(null, null)),
+					InputGesture = new KeyGesture(Key.S, KeyModifiers.Control)
+				});
+
+				_ = menu.Items.Add(new MenuItem
+				{
+					Header = "❌ Close TOML",
+					Command = ReactiveCommand.Create(() => CloseTOMLFile_Click(null, null))
+				});
+			}
 		}
 
 		private void SetupDragAndDrop()
@@ -2453,7 +2582,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				(bool validationResult, string informationMessage) = await _installationService.ValidateInstallationEnvironmentAsync(
+				(bool validationResult, string informationMessage) = await InstallationService.ValidateInstallationEnvironmentAsync(
 					MainConfigInstance,
 					async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
 				);
@@ -2751,7 +2880,7 @@ namespace KOTORModSync
 					return;
 				}
 
-				(bool success, string informationMessage) = await _installationService.ValidateInstallationEnvironmentAsync(
+				(bool success, string informationMessage) = await InstallationService.ValidateInstallationEnvironmentAsync(
 					MainConfigInstance,
 					async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
 				);
@@ -2844,7 +2973,7 @@ namespace KOTORModSync
 
 						// If the result is true, the user confirmed they want to close the window
 						if ( !(result is true) )
-						    return;
+							return;
 						// Mark the window as in the process of closing
 						_isClosingProgressWindow = true;
 
@@ -3468,7 +3597,7 @@ namespace KOTORModSync
 				}
 
 				if ( RawEditTextBox.Text == null )
-				    return true;
+					return true;
 				var newComponent = Component.DeserializeTomlComponent(RawEditTextBox.Text);
 				if ( newComponent is null )
 				{
@@ -3492,8 +3621,8 @@ namespace KOTORModSync
 						? "."
 						: $" '{newComponent.Name}'.";
 					output = $"Could not find the index of component{componentName}"
-					         + " Ensure you single-clicked on a component on the left before pressing save."
-					         + " Please back up your work and try again.";
+							 + " Ensure you single-clicked on a component on the left before pressing save."
+							 + " Please back up your work and try again.";
 					await Logger.LogErrorAsync(output);
 					await InformationDialog.ShowInformationDialog(this, output);
 
@@ -3546,7 +3675,7 @@ namespace KOTORModSync
 				return false;
 
 			string confirmText = $"You already have a config loaded. Do you want to merge the {fileType} with existing components or load it as a new config?";
-			return await ConfirmationDialog.ShowConfirmationDialog(this, confirmText, yesButtonText: "Merge", noButtonText: "Overwrite");
+			return await ConfirmationDialog.ShowConfirmationDialog(this, confirmText, yesButtonText: "Merge", noButtonText: "Load as New");
 		}
 
 		private async void MoveComponentListItem([CanBeNull] Component componentToMove, int relativeIndex)
@@ -3556,7 +3685,7 @@ namespace KOTORModSync
 				if ( componentToMove == null )
 					return;
 
-				_modManagementService.MoveModRelative(componentToMove, relativeIndex);
+				_ = _modManagementService.MoveModRelative(componentToMove, relativeIndex);
 				await ProcessComponentsAsync(MainConfig.AllComponents);
 			}
 			catch ( Exception ex )
@@ -3580,6 +3709,24 @@ namespace KOTORModSync
 							UpdateModCounts();
 						});
 						break;
+					case ModOperation.Read:
+						break;
+					case ModOperation.Update:
+						break;
+					case ModOperation.Duplicate:
+						break;
+					case ModOperation.AddDependency:
+						break;
+					case ModOperation.RemoveDependency:
+						break;
+					case ModOperation.AddRestriction:
+						break;
+					case ModOperation.RemoveRestriction:
+						break;
+					case ModOperation.Batch:
+						break;
+					default:
+						throw new ArgumentOutOfRangeException();
 				}
 			}
 			catch ( Exception ex )
@@ -3796,110 +3943,6 @@ namespace KOTORModSync
 
 		// Public method that can be called from ModListItem
 		public void OnComponentCheckBoxChanged(object sender, RoutedEventArgs e) => OnCheckBoxChanged(sender, e);
-
-		[NotNull]
-		private CheckBox CreateComponentCheckbox([NotNull] Component component)
-		{
-			if ( component is null )
-				throw new ArgumentNullException(nameof(component));
-
-			var checkBox = new CheckBox
-			{
-				Name = $"IsSelected_{component.Guid}",
-				VerticalContentAlignment = VerticalAlignment.Center,
-				VerticalAlignment = VerticalAlignment.Center,
-				Tag = component,
-				[ToolTip.TipProperty] = "If checked, this mod will be installed.",
-			};
-			var binding = new Binding(path: "IsSelected") { Source = component, Mode = BindingMode.TwoWay };
-
-			checkBox.IsCheckedChanged += OnCheckBoxChanged;
-
-			_ = checkBox.Bind(ToggleButton.IsCheckedProperty, binding);
-
-			return checkBox;
-		}
-
-		[NotNull]
-		private Border CreateComponentHeader([NotNull] Component component, int index)
-		{
-			if ( component is null )
-				throw new ArgumentNullException(nameof(component));
-
-			CheckBox checkBox = CreateComponentCheckbox(component);
-
-			var headerGrid = new Grid
-			{
-				ColumnDefinitions =
-						{
-							new ColumnDefinition(value: 0, GridUnitType.Auto),
-							new ColumnDefinition(value: 0, GridUnitType.Auto),
-							new ColumnDefinition(value: 0, GridUnitType.Auto),
-							new ColumnDefinition(value: 1, GridUnitType.Star),
-						},
-			};
-
-			headerGrid.Children.Add(checkBox);
-			Grid.SetColumn(checkBox, value: 0);
-
-			// Download status icon
-			var downloadIcon = new TextBlock
-			{
-				VerticalAlignment = VerticalAlignment.Center,
-				Margin = new Thickness(left: 5, top: 0, right: 5, bottom: 0),
-				FontSize = 14,
-			};
-
-			// Bind to IsDownloaded property
-			var downloadBinding = new Binding(path: "IsDownloaded")
-			{
-				Source = component,
-				Converter = new FuncValueConverter<bool, string>(isDownloaded => isDownloaded ? "✅" : "⬇️")
-			};
-			_ = downloadIcon.Bind(TextBlock.TextProperty, downloadBinding);
-
-			var tooltipBinding = new Binding(path: "IsDownloaded")
-			{
-				Source = component,
-				Converter = new FuncValueConverter<bool, string>(isDownloaded =>
-					isDownloaded ? "Mod files are downloaded" : "Mod files need to be downloaded")
-			};
-			ToolTip.SetTip(downloadIcon, null);
-			_ = downloadIcon.Bind(ToolTip.TipProperty, tooltipBinding);
-
-			headerGrid.Children.Add(downloadIcon);
-			Grid.SetColumn(downloadIcon, value: 1);
-
-			var indexTextBlock = new TextBlock
-			{
-				VerticalAlignment = VerticalAlignment.Center,
-				Text = $"{index + 1}: ",
-				FontWeight = FontWeight.DemiBold,
-				Margin = new Thickness(left: 0, top: 0, right: 5, bottom: 0),
-			};
-			headerGrid.Children.Add(indexTextBlock);
-			Grid.SetColumn(indexTextBlock, value: 2);
-
-			var nameTextBlock = new TextBlock
-			{
-				VerticalAlignment = VerticalAlignment.Center,
-				Text = $"{component.Name}",
-				Focusable = false,
-			};
-			headerGrid.Children.Add(nameTextBlock);
-			Grid.SetColumn(nameTextBlock, value: 3);
-
-			// Wrap header grid in a Border so we can style validation state via Border properties
-			var headerBorder = new Border
-			{
-				Child = headerGrid,
-				Padding = new Thickness(uniformLength: 2),
-				Background = Brushes.Transparent,
-				BorderThickness = new Thickness(uniformLength: 0),
-			};
-
-			return headerBorder;
-		}
 
 		private async Task ProcessComponentsAsync([NotNull][ItemNotNull] List<Component> componentsList)
 		{

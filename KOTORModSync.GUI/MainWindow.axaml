@@ -92,7 +92,7 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="0,0,10,0">
+        <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto" Margin="0,0,10,0">
             <!-- Search Box -->
             <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
             <controls:SearchBox Grid.Row="0" Margin="0,0,0,2" HorizontalAlignment="Stretch"
@@ -102,9 +102,7 @@
 
             <!-- Select All/Deselect All Header -->
             <Border Grid.Row="1"
-                    Background="#031332"
-                    BorderBrush="#062766"
-                    BorderThickness="0,0,0,1"
+                    Classes="mod-list-header"
                     Padding="8,4"
                     Margin="0,0,0,2">
                 <Grid ColumnDefinitions="Auto,*,Auto">
@@ -122,40 +120,29 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                         <TextBlock x:Name="ModCountText"
                                    Text="0 mods"
-                                   FontSize="11"
-                                   VerticalAlignment="Center"
-                                   Foreground="#888888" />
+                                   Classes="secondary-text"
+                                   VerticalAlignment="Center" />
                         <TextBlock Text="•"
-                                   FontSize="11"
-                                   VerticalAlignment="Center"
-                                   Foreground="#888888" />
+                                   Classes="secondary-text"
+                                   VerticalAlignment="Center" />
                         <TextBlock x:Name="SelectedCountText"
                                    Text="0 selected"
-                                   FontSize="11"
-                                   VerticalAlignment="Center"
-                                   Foreground="#888888" />
+                                   Classes="secondary-text"
+                                   VerticalAlignment="Center" />
                     </StackPanel>
                 </Grid>
             </Border>
 
             <!-- Mod List -->
             <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.ContextMenu>
+                    <ContextMenu x:Name="ModListContextMenu" />
+                </ScrollViewer.ContextMenu>
                 <ListBox x:Name="ModListBoxElement"
                          Background="Transparent"
                          BorderThickness="0"
                          SelectionMode="Single"
                          Padding="0">
-                    <ListBox.Styles>
-                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                            <Setter Property="Background" Value="#1A3AAAFF" />
-                        </Style>
-                        <Style Selector="ListBoxItem:selected">
-                            <Setter Property="Background" Value="#1A3AAAFF" />
-                        </Style>
-                        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-                            <Setter Property="Background" Value="#0A3AAAFF" />
-                        </Style>
-                    </ListBox.Styles>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="core:Component">
                             <controls:ModListItem DataContext="{Binding}" />
@@ -163,6 +150,17 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </ScrollViewer>
+
+            <!-- Mod Tools Button -->
+            <DropDownButton Grid.Row="3"
+                            x:Name="GlobalActionsButton"
+                            Content="⚙️ Mod Tools"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left">
+                <DropDownButton.Flyout>
+                    <MenuFlyout Placement="Top" />
+                </DropDownButton.Flyout>
+            </DropDownButton>
         </Grid>
         <GridSplitter Grid.Column="0" Grid.Row="2" Width="5" HorizontalAlignment="Right" />
         <TabControl Grid.Row="2" Grid.Column="1" x:Name="TabControl"
@@ -418,10 +416,7 @@
                                 Margin="0,0,0,10">
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate DataType="core:Option">
-                                        <Border BorderThickness="2"
-                                            BorderBrush="LightGray"
-                                            Margin="10,10,0,0"
-                                            Padding="10">
+                                        <Border Classes="option-border">
                                             <StackPanel>
                                                 <DockPanel Margin="10,0,0,0">
                                                     <CheckBox Name="OptionIsSelectedCheckBox"
@@ -624,27 +619,39 @@
                                         AcceptsReturn="True"
                                         Text="{Binding ModLink, Converter={StaticResource ListToStringConverter}}" />
 
-                                    <TextBlock Text="Dependencies:"
-                                        Margin="0, 15, 0, 5"
-                                        ToolTip.Tip="This mod will not be installed if any of these dependencies are NOT SELECTED for install." />
-                                    <controls:DependencyControl
-                                        ThisGuidList="{Binding Dependencies}" />
+                                <TextBlock Text="Dependencies:"
+                                    Margin="0, 15, 0, 5"
+                                    ToolTip.Tip="This mod will not be installed if any of these dependencies are NOT SELECTED for install." />
+                                <controls:DependencyControl
+                                    ThisGuidList="{Binding Dependencies}"
+                                    CurrentComponent="{Binding $parent[Window].CurrentComponent}"
+                                    ModManagementService="{Binding $parent[Window].ModManagementService}"
+                                    DependencyType="Dependency" />
 
-                                    <TextBlock Text="Restrictions:"
-                                        Margin="0, 15, 0, 5"
-                                        ToolTip.Tip="This mod will not be installed if any of these restrictions are SELECTED for install." />
-                                    <controls:DependencyControl
-                                        ThisGuidList="{Binding Restrictions}" />
+                                <TextBlock Text="Restrictions:"
+                                    Margin="0, 15, 0, 5"
+                                    ToolTip.Tip="This mod will not be installed if any of these restrictions are SELECTED for install." />
+                                <controls:DependencyControl
+                                    ThisGuidList="{Binding Restrictions}"
+                                    CurrentComponent="{Binding $parent[Window].CurrentComponent}"
+                                    ModManagementService="{Binding $parent[Window].ModManagementService}"
+                                    DependencyType="Restriction" />
 
-                                    <TextBlock Text="InstallBefore:"
-                                        Margin="0, 15, 0, 5" />
-                                    <controls:DependencyControl
-                                        ThisGuidList="{Binding InstallBefore}" />
+                                <TextBlock Text="InstallBefore:"
+                                    Margin="0, 15, 0, 5" />
+                                <controls:DependencyControl
+                                    ThisGuidList="{Binding InstallBefore}"
+                                    CurrentComponent="{Binding $parent[Window].CurrentComponent}"
+                                    ModManagementService="{Binding $parent[Window].ModManagementService}"
+                                    DependencyType="InstallBefore" />
 
-                                    <TextBlock Text="InstallAfter:"
-                                        Margin="0, 15, 0, 5" />
-                                    <controls:DependencyControl
-                                        ThisGuidList="{Binding InstallAfter}" />
+                                <TextBlock Text="InstallAfter:"
+                                    Margin="0, 15, 0, 5" />
+                                <controls:DependencyControl
+                                    ThisGuidList="{Binding InstallAfter}"
+                                    CurrentComponent="{Binding $parent[Window].CurrentComponent}"
+                                    ModManagementService="{Binding $parent[Window].ModManagementService}"
+                                    DependencyType="InstallAfter" />
                                 </StackPanel>
                             </Expander>
 

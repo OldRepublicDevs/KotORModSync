@@ -14,117 +14,114 @@ using KOTORModSync.Core.Services;
 
 namespace KOTORModSync
 {
-    public partial class ModManagementDialog : Window
-    {
-        private readonly ModManagementService _modManagementService;
-        private readonly List<Component> _originalComponents;
-        private readonly IModManagementDialogService _dialogService;
-        private bool _modificationsApplied;
+	public partial class ModManagementDialog : Window
+	{
+		private readonly ModManagementService _modManagementService;
+		private readonly List<Component> _originalComponents;
+		private readonly IModManagementDialogService _dialogService;
+		private bool _modificationsApplied;
 
-        public bool ModificationsApplied => _modificationsApplied;
+		public bool ModificationsApplied => _modificationsApplied;
 
-        public ModManagementDialog()
-        {
-            InitializeComponent();
-        }
+		public ModManagementDialog() => InitializeComponent();
 
-        public ModManagementDialog(ModManagementService modManagementService, IModManagementDialogService dialogService)
-        {
-            _modManagementService = modManagementService ?? throw new ArgumentNullException(nameof(modManagementService));
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-            _originalComponents = MainConfig.AllComponents.ToList();
-            _modificationsApplied = false;
+		public ModManagementDialog(ModManagementService modManagementService, IModManagementDialogService dialogService)
+		{
+			_modManagementService = modManagementService ?? throw new ArgumentNullException(nameof(modManagementService));
+			_dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+			_originalComponents = MainConfig.AllComponents.ToList();
+			_modificationsApplied = false;
 
-            InitializeComponent();
-            DataContext = _modManagementService.GetModStatistics();
-        }
+			InitializeComponent();
+			DataContext = _modManagementService.GetModStatistics();
+		}
 
 		private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 
 		#region Batch Operations
 
 		private async void SelectAllMods_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformBatchOperationAsync(async () =>
-		        {
-			        ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
-				        _originalComponents,
-				        ModManagementService.BatchModOperation.SetSelected,
-				        new Dictionary<string, object> { ["selected"] = true });
+		{
+			try
+			{
+				await PerformBatchOperationAsync(async () =>
+				{
+					ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
+						_originalComponents,
+						ModManagementService.BatchModOperation.SetSelected,
+						new Dictionary<string, object> { ["selected"] = true });
 
-			        ShowBatchResult("Select All", result);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					ShowBatchResult("Select All", result);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to select all mods");
-	        }
-        }
+			}
+		}
 
-        private async void DeselectAllMods_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformBatchOperationAsync(async () =>
-		        {
-			        ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
-				        _originalComponents,
-				        ModManagementService.BatchModOperation.SetSelected,
-				        new Dictionary<string, object> { ["selected"] = false });
+		private async void DeselectAllMods_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformBatchOperationAsync(async () =>
+				{
+					ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
+						_originalComponents,
+						ModManagementService.BatchModOperation.SetSelected,
+						new Dictionary<string, object> { ["selected"] = false });
 
-			        ShowBatchResult("Deselect All", result);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					ShowBatchResult("Deselect All", result);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to deselect all mods");
-	        }
-        }
+			}
+		}
 
-        private async void InvertSelection_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformBatchOperationAsync(async () =>
-		        {
-			        ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
-				        _originalComponents,
-				        ModManagementService.BatchModOperation.SetSelected,
-				        new Dictionary<string, object> { ["invert"] = true });
+		private async void InvertSelection_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformBatchOperationAsync(async () =>
+				{
+					ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
+					_originalComponents,
+					ModManagementService.BatchModOperation.SetSelected,
+					new Dictionary<string, object> { ["invert"] = true });
 
-			        ShowBatchResult("Invert Selection", result);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					ShowBatchResult("Invert Selection", result);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to invert selection");
-	        }
-        }
+			}
+		}
 
-        private async void ValidateAllMods_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformBatchOperationAsync(async () =>
-		        {
-			        Dictionary<Component, ModManagementService.ModValidationResult> results = _modManagementService.ValidateAllMods();
-			        int errorCount = results.Count(r => !r.Value.IsValid);
-			        int warningCount = results.Sum(r => r.Value.Warnings.Count);
+		private async void ValidateAllMods_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformBatchOperationAsync(async () =>
+				{
+					Dictionary<Component, ModManagementService.ModValidationResult> results = _modManagementService.ValidateAllMods();
+					int errorCount = results.Count(r => !r.Value.IsValid);
+					int warningCount = results.Sum(r => r.Value.Warnings.Count);
 
-			        await _dialogService.ShowInformationDialog(
-				        $"Validation complete!\n\n" +
-				        $"Errors: {errorCount}\n" +
-				        $"Warnings: {warningCount}\n\n" +
-				        $"Valid mods: {results.Count(r => r.Value.IsValid)}/{results.Count}");
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					await _dialogService.ShowInformationDialog(
+				"Validation complete!\n\n" +
+				$"Errors: {errorCount}\n" +
+				$"Warnings: {warningCount}\n\n" +
+				$"Valid mods: {results.Count(r => r.Value.IsValid)}/{results.Count}");
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to validate all mods");
-	        }
-        }
+			}
+		}
 
 		private async void CheckFileAvailability_Click(object sender, RoutedEventArgs e)
 		{
@@ -135,1223 +132,1186 @@ namespace KOTORModSync
 					int availableCount = 0;
 					int unavailableCount = 0;
 
-					foreach (Component component in _originalComponents.Where(c => c.IsSelected))
+					foreach ( Component component in _originalComponents.Where(c => c.IsSelected) )
 					{
-						if (component.IsDownloaded)
+						if ( component.IsDownloaded )
 							availableCount++;
 						else
 							unavailableCount++;
 					}
 
 					await _dialogService.ShowInformationDialog(
-						"File Availability Check:\n\n" +
-						$"Available: {availableCount}\n" +
-						$"Unavailable: {unavailableCount}");
+					"File Availability Check:\n\n" +
+				$"Available: {availableCount}\n" +
+				$"Unavailable: {unavailableCount}");
 				});
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex, "Failed to check file availability");
 			}
 		}
 
-        private void SortByName_Click(object sender, RoutedEventArgs e)
-        {
-            _modManagementService.SortMods();
-            _modificationsApplied = true;
-        }
+		private void SortByName_Click(object sender, RoutedEventArgs e)
+		{
+			_modManagementService.SortMods();
+			_modificationsApplied = true;
+		}
 
-        private void SortByNameDesc_Click(object sender, RoutedEventArgs e)
-        {
-            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Name, ModManagementService.SortOrder.Descending);
-            _modificationsApplied = true;
-        }
+		private void SortByNameDesc_Click(object sender, RoutedEventArgs e)
+		{
+			_modManagementService.SortMods(ModManagementService.ModSortCriteria.Name, ModManagementService.SortOrder.Descending);
+			_modificationsApplied = true;
+		}
 
-        private void SortByAuthor_Click(object sender, RoutedEventArgs e)
-        {
-            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Author);
-            _modificationsApplied = true;
-        }
+		private void SortByAuthor_Click(object sender, RoutedEventArgs e)
+		{
+			_modManagementService.SortMods(ModManagementService.ModSortCriteria.Author);
+			_modificationsApplied = true;
+		}
 
-        private void SortByCategory_Click(object sender, RoutedEventArgs e)
-        {
-            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Category);
-            _modificationsApplied = true;
-        }
+		private void SortByCategory_Click(object sender, RoutedEventArgs e)
+		{
+			_modManagementService.SortMods(ModManagementService.ModSortCriteria.Category);
+			_modificationsApplied = true;
+		}
 
-        private void SortByTier_Click(object sender, RoutedEventArgs e)
-        {
-            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Tier);
-            _modificationsApplied = true;
-        }
+		private void SortByTier_Click(object sender, RoutedEventArgs e)
+		{
+			_modManagementService.SortMods(ModManagementService.ModSortCriteria.Tier);
+			_modificationsApplied = true;
+		}
 
-        private async void SetAllDownloaded_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformBatchOperationAsync(async () =>
-		        {
-			        ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
-				        _originalComponents,
-				        ModManagementService.BatchModOperation.SetDownloaded,
-				        new Dictionary<string, object> { ["downloaded"] = true });
+		private async void SetAllDownloaded_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformBatchOperationAsync(async () =>
+				{
+					ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
+						_originalComponents,
+						ModManagementService.BatchModOperation.SetDownloaded,
+						new Dictionary<string, object> { ["downloaded"] = true });
 
-			        ShowBatchResult("Set All Downloaded", result);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					ShowBatchResult("Set All Downloaded", result);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to set all mods downloaded");
-	        }
-        }
+			}
+		}
 
-        private async void SetAllNotDownloaded_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformBatchOperationAsync(async () =>
-		        {
-			        ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
-				        _originalComponents,
-				        ModManagementService.BatchModOperation.SetDownloaded,
-				        new Dictionary<string, object> { ["downloaded"] = false });
+		private async void SetAllNotDownloaded_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformBatchOperationAsync(async () =>
+				{
+					ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
+						_originalComponents,
+						ModManagementService.BatchModOperation.SetDownloaded,
+						new Dictionary<string, object> { ["downloaded"] = false });
 
-			        ShowBatchResult("Set All Not Downloaded", result);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					ShowBatchResult("Set All Not Downloaded", result);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to set all mods not downloaded");
-	        }
-        }
+			}
+		}
 
-        private async void UpdateCategories_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformBatchOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to update categories.");
-				        return;
-			        }
+		private async void UpdateCategories_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformBatchOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to update categories.");
+						return;
+					}
 
-			        // Get existing categories
-			        var existingCategories = _originalComponents
-				        .Where(c => !string.IsNullOrWhiteSpace(c.Category))
-				        .Select(c => c.Category)
-				        .Distinct()
-				        .OrderBy(c => c)
-				        .ToList();
+					// Get existing categories
+					var existingCategories = _originalComponents
+						.Where(c => !string.IsNullOrWhiteSpace(c.Category))
+						.Select(c => c.Category)
+						.Distinct()
+						.OrderBy(c => c)
+						.ToList();
 
-			        // Show dialog with category options
-			        string categoryOptions = existingCategories.Any()
-				        ? "\n\nExisting categories:\n  • " + string.Join("\n  • ", existingCategories)
-				        : "\n\nNo existing categories found.";
+					// Show dialog with category options
+					string categoryOptions = existingCategories.Any()
+						? "\n\nExisting categories:\n  • " + string.Join("\n  • ", existingCategories)
+						: "\n\nNo existing categories found.";
 
-			        // For now, prompt user to enter a category name via confirmation dialog
-			        // In a full implementation, this would be a custom dialog with dropdown + text input
-			        bool? proceed = await _dialogService.ShowConfirmationDialog(
-				        $"Update category for {selectedComponents.Count} selected mod(s)?{categoryOptions}\n\n" +
-				        "This feature requires a custom input dialog.\n" +
-				        "For now, you can edit categories individually in the mod editor.\n\n" +
-				        "Would you like to clear all categories for selected mods?",
-				        "Clear Categories",
-				        "Cancel");
+					// For now, prompt user to enter a category name via confirmation dialog
+					// In a full implementation, this would be a custom dialog with dropdown + text input
+					bool? proceed = await _dialogService.ShowConfirmationDialog(
+						$"Update category for {selectedComponents.Count} selected mod(s)?{categoryOptions}\n\n" +
+						"This feature requires a custom input dialog.\n" +
+						"For now, you can edit categories individually in the mod editor.\n\n" +
+						"Would you like to clear all categories for selected mods?",
+						"Clear Categories",
+						"Cancel");
 
-			        if (proceed == true)
-			        {
-				        ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
-					        selectedComponents,
-					        ModManagementService.BatchModOperation.UpdateCategory,
-					        new Dictionary<string, object> { ["category"] = string.Empty });
+					if ( proceed == true )
+					{
+						ModManagementService.BatchOperationResult result = await _modManagementService.PerformBatchOperation(
+							selectedComponents,
+							ModManagementService.BatchModOperation.UpdateCategory,
+							new Dictionary<string, object> { ["category"] = string.Empty });
 
-				        ShowBatchResult("Clear Categories", result);
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
-		        await Logger.LogExceptionAsync(ex, "Failed to update categories");
-	        }
-        }
+						ShowBatchResult("Clear Categories", result);
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Failed to update categories");
+			}
+		}
 
-        #endregion
+		#endregion
 
-        #region Import/Export Operations
+		#region Import/Export Operations
 
-        private async void ImportFromToml_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformImportOperationAsync(async () =>
-		        {
-			        string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from TOML file");
-			        if (files != null && files.Length > 0)
-			        {
-				        List<Component> imported = await _modManagementService.ImportMods(files[0]);
-				        await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
-				        _modificationsApplied = true;
-				        _dialogService.RefreshStatistics();
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+		private async void ImportFromToml_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformImportOperationAsync(async () =>
+				{
+					string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from TOML file");
+					if ( files != null && files.Length > 0 )
+					{
+						List<Component> imported = await _modManagementService.ImportMods(files[0]);
+						await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
+						_modificationsApplied = true;
+						_dialogService.RefreshStatistics();
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to import from TOML file");
-	        }
-        }
+			}
+		}
 
-        private async void ImportFromJson_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformImportOperationAsync(async () =>
-		        {
-			        string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from JSON file");
-			        if (files != null && files.Length > 0)
-			        {
-				        List<Component> imported = await _modManagementService.ImportMods(files[0]);
-				        await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
-				        _modificationsApplied = true;
-				        _dialogService.RefreshStatistics();
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+		private async void ImportFromJson_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformImportOperationAsync(async () =>
+				{
+					string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from JSON file");
+					if ( files != null && files.Length > 0 )
+					{
+						List<Component> imported = await _modManagementService.ImportMods(files[0]);
+						await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
+						_modificationsApplied = true;
+						_dialogService.RefreshStatistics();
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to import from JSON file");
-	        }
-        }
+			}
+		}
 
-        private async void ImportFromXml_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformImportOperationAsync(async () =>
-		        {
-			        string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from XML file");
-			        if (files != null && files.Length > 0)
-			        {
-				        List<Component> imported = await _modManagementService.ImportMods(files[0]);
-				        await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
-				        _modificationsApplied = true;
-				        _dialogService.RefreshStatistics();
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+		private async void ImportFromXml_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformImportOperationAsync(async () =>
+				{
+					string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from XML file");
+					if ( files != null && files.Length > 0 )
+					{
+						List<Component> imported = await _modManagementService.ImportMods(files[0]);
+						await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
+						_modificationsApplied = true;
+						_dialogService.RefreshStatistics();
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to import from XML file");
-	        }
-        }
+			}
+		}
 
-        private async void ExportToToml_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformExportOperationAsync(async () =>
-		        {
-			        string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.toml");
-			        if (filePath != null)
-			        {
-				        bool success = await _modManagementService.ExportMods(_originalComponents, filePath);
-				        await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+		private async void ExportToToml_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformExportOperationAsync(async () =>
+				{
+					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.toml");
+					if ( filePath != null )
+					{
+						bool success = await _modManagementService.ExportMods(_originalComponents, filePath);
+						await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to export to TOML file");
-	        }
-        }
+			}
+		}
 
-        private async void ExportToJson_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformExportOperationAsync(async () =>
-		        {
-			        string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.json");
-			        if (filePath != null)
-			        {
-				        bool success = await _modManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.JSON);
-				        await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+		private async void ExportToJson_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformExportOperationAsync(async () =>
+				{
+					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.json");
+					if ( filePath != null )
+					{
+						bool success = await _modManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Json);
+						await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to export to JSON file");
-	        }
-        }
+			}
+		}
 
-        private async void ExportToXml_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformExportOperationAsync(async () =>
-		        {
-			        string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.xml");
-			        if (filePath != null)
-			        {
-				        bool success = await _modManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.XML);
-				        await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+		private async void ExportToXml_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformExportOperationAsync(async () =>
+				{
+					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.xml");
+					if ( filePath != null )
+					{
+						bool success = await _modManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Xml);
+						await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to export to XML file");
-	        }
-        }
+			}
+		}
 
-        #endregion
+		#endregion
 
-        #region Advanced Tools
+		#region Advanced Tools
 
-        private async void CheckDependencyChains_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to analyze dependencies.");
-				        return;
-			        }
+		private async void CheckDependencyChains_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to analyze dependencies.");
+						return;
+					}
 
-			        int totalDependencies = 0;
-			        int componentsWithDependencies = 0;
-			        int circularDependencies = 0;
+					int totalDependencies = 0;
+					int componentsWithDependencies = 0;
 
-			        foreach ( Component component in selectedComponents)
-			        {
-				        if (component.Dependencies.Any() || component.InstallAfter.Any() || component.InstallBefore.Any())
-				        {
-					        componentsWithDependencies++;
-					        totalDependencies += component.Dependencies.Count + component.InstallAfter.Count + component.InstallBefore.Count;
-				        }
-			        }
+					foreach ( Component component in selectedComponents.Where(component => component.Dependencies.Count != 0 || component.InstallAfter.Count != 0 ||
+						         component.InstallBefore.Count != 0))
+					{
+						componentsWithDependencies++;
+						totalDependencies += component.Dependencies.Count + component.InstallAfter.Count + component.InstallBefore.Count;
+					}
 
 					// Check for circular dependencies
 					Dictionary<Component, List<Component>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
-			        circularDependencies = DetectCircularDependencies(dependencyGraph);
+					int circularDependencies = ModManagementDialog.DetectCircularDependencies(dependencyGraph);
 
-			        await _dialogService.ShowInformationDialog(
-				        "Dependency Analysis Results:\n\n" +
-				        $"Selected mods: {selectedComponents.Count}\n" +
-				        $"Mods with dependencies: {componentsWithDependencies}\n" +
-				        $"Total dependency relationships: {totalDependencies}\n" +
-				        $"Circular dependencies detected: {circularDependencies}\n\n" +
-				        "Dependencies help ensure mods are installed in the correct order.");
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					await _dialogService.ShowInformationDialog(
+					"Dependency Analysis Results:\n\n" +
+					$"Selected mods: {selectedComponents.Count}\n" +
+					$"Mods with dependencies: {componentsWithDependencies}\n" +
+					$"Total dependency relationships: {totalDependencies}\n" +
+					$"Circular dependencies detected: {circularDependencies}\n\n" +
+					"Dependencies help ensure mods are installed in the correct order.");
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to check dependency chains");
-	        }
-        }
+			}
+		}
 
-        private static Dictionary<Component, List<Component>> BuildDependencyGraph(List<Component> components)
-        {
-            var graph = new Dictionary<Component, List<Component>>();
+		private static Dictionary<Component, List<Component>> BuildDependencyGraph(List<Component> components)
+		{
+			var graph = new Dictionary<Component, List<Component>>();
 
-            foreach ( Component component in components)
-            {
-                if (!graph.ContainsKey(component))
-                    graph[component] = new List<Component>();
+			foreach ( Component component in components )
+			{
+				if ( !graph.ContainsKey(component) )
+					graph[component] = new List<Component>();
 
-                // Add direct dependencies
-                foreach ( Guid depGuid in component.Dependencies)
-                {
-					Component depComponent = components.FirstOrDefault(c => c.Guid == depGuid);
-                    if (depComponent != null && !graph[component].Contains(depComponent))
-                        graph[component].Add(depComponent);
-                }
+				// Add direct dependencies
+				foreach ( Component depComponent in component.Dependencies.Select(depGuid => components.FirstOrDefault(c => c.Guid == depGuid)).Where(depComponent => depComponent != null && !graph[component].Contains(depComponent)))
+				{
+					graph[component].Add(depComponent);
+				}
 
-                // Add install-after relationships
-                foreach ( Guid afterGuid in component.InstallAfter)
-                {
-					Component afterComponent = components.FirstOrDefault(c => c.Guid == afterGuid);
-                    if (afterComponent != null && !graph[component].Contains(afterComponent))
-                        graph[component].Add(afterComponent);
-                }
-            }
+				// Add install-after relationships
+				foreach ( Component afterComponent in component.InstallAfter.Select(afterGuid => components.FirstOrDefault(c => c.Guid == afterGuid)).Where(afterComponent => afterComponent != null && !graph[component].Contains(afterComponent)))
+				{
+					graph[component].Add(afterComponent);
+				}
+			}
 
-            return graph;
-        }
+			return graph;
+		}
 
-        private int DetectCircularDependencies(Dictionary<Component, List<Component>> graph)
-        {
-            var visited = new HashSet<Component>();
-            var recursionStack = new HashSet<Component>();
-            int circularCount = 0;
+		private static int DetectCircularDependencies(Dictionary<Component, List<Component>> graph)
+		{
+			var visited = new HashSet<Component>();
+			var recursionStack = new HashSet<Component>();
 
-            foreach ( Component component in graph.Keys)
-            {
+			return graph.Keys.Count(component => HasCircularDependency(component, graph, visited, recursionStack));
+		}
 
-                if ( HasCircularDependency(component, graph, visited, recursionStack))
-                    circularCount++;
-            }
+		private static bool HasCircularDependency(Component component, Dictionary<Component, List<Component>> graph,
+										 HashSet<Component> visited, HashSet<Component> recursionStack)
+		{
+			if ( recursionStack.Contains(component) )
+				return true;
 
-            return circularCount;
-        }
+			_ = visited.Add(component);
+			_ = recursionStack.Add(component);
 
-        private static bool HasCircularDependency(Component component, Dictionary<Component, List<Component>> graph,
-                                         HashSet<Component> visited, HashSet<Component> recursionStack)
-        {
-            if (recursionStack.Contains(component))
-                return true;
+			if ( graph.TryGetValue(component, out List<Component> value) )
+			{
+				if (value.Any(dependency => HasCircularDependency(dependency, graph, visited, recursionStack)))
+				{
+					return true;
+				}
+			}
 
-            visited.Add(component);
-            recursionStack.Add(component);
+			_ = recursionStack.Remove(component);
+			return false;
+		}
 
-            if (graph.TryGetValue(component, out List<Component> value) )
-            {
-                foreach ( Component dependency in value )
-                {
+		private async void ResolveConflicts_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var components = _originalComponents.ToList();
+					Dictionary<string, List<Component>> conflicts = Component.GetConflictingComponents(new List<Guid>(), new List<Guid>(), components);
 
-                    if (HasCircularDependency(dependency, graph, visited, recursionStack))
-                        return true;
-                }
-            }
+					int totalConflicts = conflicts.Sum(kvp => kvp.Value.Count);
 
-            recursionStack.Remove(component);
-            return false;
-        }
+					if ( totalConflicts == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No conflicts detected between components.");
+						return;
+					}
 
-        private async void ResolveConflicts_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var components = _originalComponents.ToList();
-			        Dictionary<string, List<Component>> conflicts = Component.GetConflictingComponents(new List<Guid>(), new List<Guid>(), components);
-
-			        int totalConflicts = conflicts.Sum(kvp => kvp.Value.Count);
-
-			        if (totalConflicts == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No conflicts detected between components.");
-				        return;
-			        }
-
-			        await _dialogService.ShowInformationDialog(
-				        "Conflict Resolution Results:\n\n" +
-				        $"Total conflicts found: {totalConflicts}\n" +
-				        $"Dependency conflicts: {conflicts.GetValueOrDefault("Dependency", new List<Component>()).Count}\n" +
-				        $"Restriction conflicts: {conflicts.GetValueOrDefault("Restriction", new List<Component>()).Count}\n\n" +
-				        "Conflicts have been automatically resolved based on component dependencies and restrictions.");
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					await _dialogService.ShowInformationDialog(
+					"Conflict Resolution Results:\n\n" +
+					$"Total conflicts found: {totalConflicts}\n" +
+					$"Dependency conflicts: {conflicts.GetValueOrDefault("Dependency", new List<Component>()).Count}\n" +
+					$"Restriction conflicts: {conflicts.GetValueOrDefault("Restriction", new List<Component>()).Count}\n\n" +
+					"Conflicts have been automatically resolved based on component dependencies and restrictions.");
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to resolve conflicts");
-	        }
-        }
+			}
+		}
 
-        private async void GenerateDependencyGraph_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to generate dependency graph.");
-				        return;
-			        }
+		private async void GenerateDependencyGraph_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to generate dependency graph.");
+						return;
+					}
 
-			        Dictionary<Component, List<Component>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
-			        string graphText = ModManagementDialog.GenerateGraphText(dependencyGraph);
+					Dictionary<Component, List<Component>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
+					string graphText = ModManagementDialog.GenerateGraphText(dependencyGraph);
 
-			        // For now, just show the graph in a dialog. In a real implementation,
-			        // you might want to save this to a file or display it in a visual graph control
-			        await _dialogService.ShowInformationDialog(
-				        $"Dependency Graph for {selectedComponents.Count} selected mods:\n\n" +
-				        graphText +
-				        "\n\nNote: This is a text representation. A visual graph view could be implemented in the future.");
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					// For now, just show the graph in a dialog. In a real implementation,
+					// you might want to save this to a file or display it in a visual graph control
+					await _dialogService.ShowInformationDialog(
+					$"Dependency Graph for {selectedComponents.Count} selected mods:\n\n" +
+					graphText +
+					"\n\nNote: This is a text representation. A visual graph view could be implemented in the future.");
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to generate dependency graph");
-	        }
-        }
+			}
+		}
 
-        private static string GenerateGraphText(Dictionary<Component, List<Component>> graph)
-        {
-            var sb = new System.Text.StringBuilder();
+		private static string GenerateGraphText(Dictionary<Component, List<Component>> graph)
+		{
+			var sb = new System.Text.StringBuilder();
 
-            foreach ((Component component, List<Component> dependencies) in graph)
-            {
-                _ = sb.AppendLine($"{component.Name} (GUID: {component.Guid.ToString().Substring(0, 8)}...)");
-                if (dependencies.Any())
-                {
-                    _ = sb.AppendLine("  Depends on:");
-                    foreach ( Component dep in dependencies)
-                    {
+			foreach ( (Component component, List<Component> dependencies) in graph )
+			{
+				_ = sb.AppendLine($"{component.Name} (GUID: {component.Guid.ToString().Substring(0, 8)}...)");
+				if ( dependencies.Any() )
+				{
+					_ = sb.AppendLine("  Depends on:");
+					foreach ( Component dep in dependencies )
+					{
 						_ = sb.AppendLine($"    - {dep.Name}");
-                    }
-                }
-                else
-                {
-                    _ = sb.AppendLine("  No dependencies");
-                }
-                _ = sb.AppendLine();
-            }
+					}
+				}
+				else
+				{
+					_ = sb.AppendLine("  No dependencies");
+				}
+				_ = sb.AppendLine();
+			}
 
-            return sb.ToString();
-        }
+			return sb.ToString();
+		}
 
-        private async void OptimizeInstallationOrder_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to optimize installation order.");
-				        return;
-			        }
+		private async void OptimizeInstallationOrder_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to optimize installation order.");
+						return;
+					}
 
-			        (bool isCorrectOrder, List<Component> reorderedComponents) = Component.ConfirmComponentsInstallOrder(selectedComponents);
+					(bool isCorrectOrder, List<Component> reorderedComponents) = Component.ConfirmComponentsInstallOrder(selectedComponents);
 
-			        if (isCorrectOrder && reorderedComponents == null)
-			        {
-				        await _dialogService.ShowInformationDialog("Installation order is already optimal for the selected mods.");
-			        }
-			        else
-			        {
-				        string originalOrder = string.Join(" → ", selectedComponents.Select(c => c.Name));
-				        string newOrder = reorderedComponents != null
-					        ? string.Join(" → ", reorderedComponents.Select(c => c.Name))
-					        : "Already optimal";
+					if ( isCorrectOrder && reorderedComponents == null )
+					{
+						await _dialogService.ShowInformationDialog("Installation order is already optimal for the selected mods.");
+					}
+					else
+					{
+						string originalOrder = string.Join(" → ", selectedComponents.Select(c => c.Name));
+						string newOrder = reorderedComponents != null
+						? string.Join(" → ", reorderedComponents.Select(c => c.Name))
+						: "Already optimal";
 
-				        await _dialogService.ShowInformationDialog(
-					        "Installation Order Optimization:\n\n" +
-					        $"Original order: {originalOrder}\n\n" +
-					        $"Optimized order: {newOrder}\n\n" +
-					        "The installation order has been optimized based on component dependencies.");
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+						await _dialogService.ShowInformationDialog(
+						"Installation Order Optimization:\n\n" +
+						$"Original order: {originalOrder}\n\n" +
+						$"Optimized order: {newOrder}\n\n" +
+						"The installation order has been optimized based on component dependencies.");
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to optimize installation order");
-	        }
-        }
+			}
+		}
 
-        private async void AnalyzeModSizes_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to analyze sizes.");
-				        return;
-			        }
+		private async void AnalyzeModSizes_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to analyze sizes.");
+						return;
+					}
 
-			        long totalSize = 0;
-			        int modsWithSize = 0;
-			        var sizeBreakdown = new Dictionary<string, (long Size, int Count)>();
+					long totalSize = 0;
+					int modsWithSize = 0;
+					var sizeBreakdown = new Dictionary<string, (long Size, int Count)>();
 
-			        foreach ( Component component in selectedComponents)
-			        {
-				        // Estimate size based on instructions and mod links
-				        long estimatedSize = ModManagementDialog.EstimateComponentSize(component);
+					foreach ( Component component in selectedComponents )
+					{
+						// Estimate size based on instructions and mod links
+						long estimatedSize = EstimateComponentSize(component);
 
-				        if (estimatedSize > 0)
-				        {
-					        totalSize += estimatedSize;
-					        modsWithSize++;
+						if ( estimatedSize <= 0 )
+						    continue;
+						totalSize += estimatedSize;
+						modsWithSize++;
 
-					        // Categorize by size ranges
-					        string category = ModManagementDialog.GetSizeCategory(estimatedSize);
-					        if (sizeBreakdown.ContainsKey(category))
-					        {
-						        sizeBreakdown[category] = (sizeBreakdown[category].Size + estimatedSize, sizeBreakdown[category].Count + 1);
-					        }
-					        else
-					        {
-						        sizeBreakdown[category] = (estimatedSize, 1);
-					        }
-				        }
-			        }
+						// Categorize by size ranges
+						string category = GetSizeCategory(estimatedSize);
+						if ( sizeBreakdown.ContainsKey(category) )
+							sizeBreakdown[category] = (sizeBreakdown[category].Size + estimatedSize, sizeBreakdown[category].Count + 1);
+						else
+							sizeBreakdown[category] = (estimatedSize, 1);
+					}
 
-			        string analysis = $"Mod Size Analysis for {selectedComponents.Count} mods:\n\n";
-			        analysis += $"Mods with size data: {modsWithSize}\n";
-			        analysis += $"Total estimated size: {ModManagementDialog.FormatBytes(totalSize)}\n";
-			        analysis += $"Average size per mod: {ModManagementDialog.FormatBytes(totalSize / Math.Max(1, modsWithSize))}\n\n";
+					string analysis = $"Mod Size Analysis for {selectedComponents.Count} mods:\n\n";
+					analysis += $"Mods with size data: {modsWithSize}\n";
+					analysis += $"Total estimated size: {FormatBytes(totalSize)}\n";
+					analysis += $"Average size per mod: {FormatBytes(totalSize / Math.Max(1, modsWithSize))}\n\n";
 
-			        analysis += "Size Distribution:\n";
-			        foreach ((string category, (long size, int count)) in sizeBreakdown.OrderByDescending(kvp => kvp.Value.Size))
-			        {
-				        analysis += $"{category}: {count} mods ({ModManagementDialog.FormatBytes(size)})\n";
-			        }
+					analysis += "Size Distribution:\n";
+					foreach ( (string category, (long size, int count)) in sizeBreakdown.OrderByDescending(kvp => kvp.Value.Size) )
+					{
+						analysis += $"{category}: {count} mods ({FormatBytes(size)})\n";
+					}
 
-			        await _dialogService.ShowInformationDialog(analysis);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					await _dialogService.ShowInformationDialog(analysis);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to analyze mod sizes");
-	        }
-        }
+			}
+		}
 
-        private static long EstimateComponentSize(Component component)
-        {
-            long size = 0;
+		private static long EstimateComponentSize(Component component)
+		{
+			long size = 0;
 
-            // Count instructions that might indicate file operations
-            foreach ( Instruction instruction in component.Instructions)
-            {
-                if (instruction.Action == Instruction.ActionType.Extract ||
-                    instruction.Action == Instruction.ActionType.Copy ||
-                    instruction.Action == Instruction.ActionType.Move)
-                {
-                    size += 1024 * 1024; // Estimate 1MB per file operation
-                }
-            }
+			// Count instructions that might indicate file operations
+			foreach ( Instruction instruction in component.Instructions )
+			{
+				if ( instruction.Action == Instruction.ActionType.Extract ||
+					instruction.Action == Instruction.ActionType.Copy ||
+					instruction.Action == Instruction.ActionType.Move )
+				{
+					size += 1024 * 1024; // Estimate 1MB per file operation
+				}
+			}
 
-            // Add size based on mod links (if any)
-            if (component.ModLink.Count != 0 )
-            {
-                size += 50 * 1024 * 1024; // Estimate 50MB per mod link
-            }
+			// Add size based on mod links (if any)
+			if ( component.ModLink.Count != 0 )
+				size += 50 * 1024 * 1024; // Estimate 50MB per mod link
 
-            return size;
-        }
+			return size;
+		}
 
-        private static string GetSizeCategory(long bytes)
-        {
-            if (bytes < 1024 * 1024) return "< 1 MB";
-            if (bytes < 10 * 1024 * 1024) return "1-10 MB";
-            if (bytes < 50 * 1024 * 1024) return "10-50 MB";
-            if (bytes < 100 * 1024 * 1024) return "50-100 MB";
-            return "> 100 MB";
-        }
+		private static string GetSizeCategory(long bytes)
+		{
+			if ( bytes < 1024 * 1024 ) return "< 1 MB";
+			if ( bytes < 10 * 1024 * 1024 ) return "1-10 MB";
+			if ( bytes < 50 * 1024 * 1024 ) return "10-50 MB";
+			if ( bytes < 100 * 1024 * 1024 ) return "50-100 MB";
+			return "> 100 MB";
+		}
 
-        private static string FormatBytes(long bytes)
-        {
-            string[] units = { "B", "KB", "MB", "GB" };
-            double size = bytes;
-            int unitIndex = 0;
+		private static string FormatBytes(long bytes)
+		{
+			string[] units = { "B", "KB", "MB", "GB" };
+			double size = bytes;
+			int unitIndex = 0;
 
-            while (size >= 1024 && unitIndex < units.Length - 1)
-            {
-                size /= 1024;
-                unitIndex++;
-            }
+			while ( size >= 1024 && unitIndex < units.Length - 1 )
+			{
+				size /= 1024;
+				unitIndex++;
+			}
 
-            return $"{size:F1} {units[unitIndex]}";
-        }
+			return $"{size:F1} {units[unitIndex]}";
+		}
 
-        private async void CheckRedundantFiles_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to check for redundant files.");
-				        return;
-			        }
+		private async void CheckRedundantFiles_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to check for redundant files.");
+						return;
+					}
 
-			        var redundantFiles = new Dictionary<string, List<Component>>();
+					var redundantFiles = new Dictionary<string, List<Component>>();
 
-			        // Collect all files referenced by instructions
-			        foreach ( Component component in selectedComponents)
-			        {
-				        foreach ( Instruction instruction in component.Instructions)
-				        {
-					        if (instruction.Action == Instruction.ActionType.Copy ||
-					            instruction.Action == Instruction.ActionType.Move ||
-					            instruction.Action == Instruction.ActionType.Extract)
-					        {
-						        foreach ( string sourcePath in instruction.Source)
-						        {
-							        string fileName = System.IO.Path.GetFileName(sourcePath);
-							        if ( string.IsNullOrEmpty(fileName) )
-									    continue;
-							        if (redundantFiles.ContainsKey(fileName))
-							        {
-								        redundantFiles[fileName].Add(component);
-							        }
-							        else
-							        {
-								        redundantFiles[fileName] = new List<Component> { component };
-							        }
-						        }
-					        }
-				        }
-			        }
+					// Collect all files referenced by instructions
+					foreach ( Component component in selectedComponents )
+					{
+						foreach ( Instruction instruction in component.Instructions )
+						{
+							if ( instruction.Action != Instruction.ActionType.Copy &&
+							     instruction.Action != Instruction.ActionType.Move &&
+							     instruction.Action != Instruction.ActionType.Extract )
+							{
+								continue;
+							}
 
-			        // Find files that appear in multiple components
-			        var actualRedundantFiles = redundantFiles.Where(kvp => kvp.Value.Count > 1).ToList();
+							foreach ( string sourcePath in instruction.Source )
+							{
+								string fileName = System.IO.Path.GetFileName(sourcePath);
+								if ( string.IsNullOrEmpty(fileName) )
+									continue;
+								if ( redundantFiles.ContainsKey(fileName) )
+									redundantFiles[fileName].Add(component);
+								else
+									redundantFiles[fileName] = new List<Component> { component };
+							}
+						}
+					}
 
-			        if (actualRedundantFiles.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No redundant files found across selected mods.");
-			        }
-			        else
-			        {
-				        string report = $"Found {actualRedundantFiles.Count} potentially redundant files:\n\n";
+					// Find files that appear in multiple components
+					var actualRedundantFiles = redundantFiles.Where(kvp => kvp.Value.Count > 1).ToList();
 
-				        foreach ((string fileName, List<Component> components) in actualRedundantFiles.Take(10)) // Show first 10
-				        {
-					        report += $"{fileName} (used by {components.Count} mods):\n";
-					        foreach ( Component component in components)
-					        {
-						        report += $"  - {component.Name}\n";
-					        }
-					        report += "\n";
-				        }
+					if ( actualRedundantFiles.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No redundant files found across selected mods.");
+					}
+					else
+					{
+						string report = $"Found {actualRedundantFiles.Count} potentially redundant files:\n\n";
 
-				        if (actualRedundantFiles.Count > 10)
-				        {
-					        report += $"... and {actualRedundantFiles.Count - 10} more files.\n";
-				        }
+						foreach ( (string fileName, List<Component> components) in actualRedundantFiles.Take(10) ) // Show first 10
+						{
+							report += $"{fileName} (used by {components.Count} mods):\n";
+							foreach ( Component component in components )
+							{
+								report += $"  - {component.Name}\n";
+							}
+							report += "\n";
+						}
 
-				        await _dialogService.ShowInformationDialog(report);
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+						if ( actualRedundantFiles.Count > 10 )
+						{
+							report += $"... and {actualRedundantFiles.Count - 10} more files.\n";
+						}
+
+						await _dialogService.ShowInformationDialog(report);
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to check redundant files");
-	        }
-        }
+			}
+		}
 
-        private async void ScanForMalware_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to scan for malware.");
-				        return;
-			        }
+		private async void ScanForMalware_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to scan for malware.");
+						return;
+					}
 
-			        // Basic malware pattern detection (this is a simplified example)
-			        string[] suspiciousPatterns = {".exe", ".bat", ".cmd", ".scr", ".pif", ".com", ".jar", ".vbs", ".js", ".wsf", ".hta"};
+					// Basic malware pattern detection (this is a simplified example)
+					string[] suspiciousPatterns = { ".exe", ".bat", ".cmd", ".scr", ".pif", ".com", ".jar", ".vbs", ".js", ".wsf", ".hta" };
 
-			        var suspiciousFiles = new List<string>();
-			        var suspiciousComponents = new List<Component>();
+					var suspiciousFiles = new List<string>();
+					var suspiciousComponents = new List<Component>();
 
-			        foreach ( Component component in selectedComponents)
-			        {
-				        foreach ( Instruction instruction in component.Instructions)
-				        {
-					        if ( instruction.Action != Instruction.ActionType.Execute &&
-					             instruction.Action != Instruction.ActionType.Run )
-					        {
-						        continue;
-					        }
+					foreach ( Component component in selectedComponents )
+					{
+						foreach ( Instruction instruction in component.Instructions )
+						{
+							if ( instruction.Action != Instruction.ActionType.Execute &&
+							 instruction.Action != Instruction.ActionType.Run )
+							{
+								continue;
+							}
 
-					        foreach ( string sourcePath in instruction.Source)
-					        {
-						        string extension = System.IO.Path.GetExtension(sourcePath).ToLowerInvariant();
-						        if ( !suspiciousPatterns.Contains(extension) )
-								    continue;
-						        if ( suspiciousFiles.Contains(sourcePath) )
-								    continue;
-						        suspiciousFiles.Add(sourcePath);
-						        if (!suspiciousComponents.Contains(component))
-							        suspiciousComponents.Add(component);
-					        }
-				        }
-			        }
+							foreach ( string sourcePath in instruction.Source )
+							{
+								string extension = System.IO.Path.GetExtension(sourcePath).ToLowerInvariant();
+								if ( !suspiciousPatterns.Contains(extension) )
+									continue;
+								if ( suspiciousFiles.Contains(sourcePath) )
+									continue;
+								suspiciousFiles.Add(sourcePath);
+								if ( !suspiciousComponents.Contains(component) )
+									suspiciousComponents.Add(component);
+							}
+						}
+					}
 
-			        if (suspiciousFiles.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog(
-					        "Malware Scan Results:\n\n" +
-					        "✅ No suspicious executable files found in selected mods.\n\n" +
-					        "Note: This is a basic scan. For comprehensive security, use dedicated antivirus software.");
-			        }
-			        else
-			        {
-				        string report = $"Malware Scan Results - Found {suspiciousFiles.Count} suspicious files:\n\n";
-				        report += $"Affected mods: {string.Join(", ", suspiciousComponents.Select(c => c.Name))}\n\n";
-				        report += "Suspicious files:\n";
+					if ( suspiciousFiles.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog(
+						"Malware Scan Results:\n\n" +
+						"✅ No suspicious executable files found in selected mods.\n\n" +
+						"Note: This is a basic scan. For comprehensive security, use dedicated antivirus software.");
+					}
+					else
+					{
+						string report = $"Malware Scan Results - Found {suspiciousFiles.Count} suspicious files:\n\n";
+						report += $"Affected mods: {string.Join(", ", suspiciousComponents.Select(c => c.Name))}\n\n";
+						report += "Suspicious files:\n";
 
-				        foreach ( string file in suspiciousFiles.Take(10))
-				        {
-					        report += $"  - {file}\n";
-				        }
+						foreach ( string file in suspiciousFiles.Take(10) )
+						{
+							report += $"  - {file}\n";
+						}
 
-				        if (suspiciousFiles.Count > 10)
-				        {
-					        report += $"... and {suspiciousFiles.Count - 10} more files.\n";
-				        }
+						if ( suspiciousFiles.Count > 10 )
+							report += $"... and {suspiciousFiles.Count - 10} more files.\n";
 
-				        report += "\n⚠️  Warning: These files may be legitimate mod tools or patches.\n" +
-				                  "Please verify with the mod author before removing.";
+						report += "\n⚠️  Warning: These files may be legitimate mod tools or patches.\n" +
+							  "Please verify with the mod author before removing.";
 
-				        await _dialogService.ShowInformationDialog(report);
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+						await _dialogService.ShowInformationDialog(report);
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to scan for malware");
-	        }
-        }
+			}
+		}
 
-        private async void CheckFileIntegrity_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to check file integrity.");
-				        return;
-			        }
+		private async void CheckFileIntegrity_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to check file integrity.");
+						return;
+					}
 
-			        int totalInstructions = 0;
-			        int instructionsWithChecksums = 0;
-			        int componentsWithChecksums = 0;
-			        var componentsWithoutChecksums = new List<Component>();
+					int totalInstructions = 0;
+					int instructionsWithChecksums = 0;
+					int componentsWithChecksums = 0;
+					var componentsWithoutChecksums = new List<Component>();
 
-			        foreach ( Component component in selectedComponents)
-			        {
-				        bool hasChecksums = false;
+					foreach ( Component component in selectedComponents )
+					{
+						bool hasChecksums = false;
 
-				        foreach ( Instruction instruction in component.Instructions)
-				        {
-					        totalInstructions++;
+						foreach ( Instruction instruction in component.Instructions )
+						{
+							totalInstructions++;
 
-					        if (instruction.ExpectedChecksums != null && instruction.ExpectedChecksums.Any())
-					        {
-						        instructionsWithChecksums++;
-						        hasChecksums = true;
-					        }
-				        }
+							if ( instruction.ExpectedChecksums != null && instruction.ExpectedChecksums.Any() )
+							{
+								instructionsWithChecksums++;
+								hasChecksums = true;
+							}
+						}
 
-				        if (hasChecksums)
-				        {
-					        componentsWithChecksums++;
-				        }
-				        else
-				        {
-					        componentsWithoutChecksums.Add(component);
-				        }
-			        }
+						if ( hasChecksums )
+							componentsWithChecksums++;
+						else
+							componentsWithoutChecksums.Add(component);
 
-			        string report = "File Integrity Check Results:\n\n";
-			        report += $"Total instructions analyzed: {totalInstructions}\n";
-			        report += $"Instructions with checksums: {instructionsWithChecksums}\n";
-			        report += $"Components with checksums: {componentsWithChecksums}/{selectedComponents.Count}\n\n";
+					}
 
-			        if (componentsWithoutChecksums.Any())
-			        {
-				        report += "Components without checksum validation:\n";
-				        foreach ( Component component in componentsWithoutChecksums.Take(10))
-				        {
-					        report += $"  - {component.Name}\n";
-				        }
+					string report = "File Integrity Check Results:\n\n";
+					report += $"Total instructions analyzed: {totalInstructions}\n";
+					report += $"Instructions with checksums: {instructionsWithChecksums}\n";
+					report += $"Components with checksums: {componentsWithChecksums}/{selectedComponents.Count}\n\n";
 
-				        if (componentsWithoutChecksums.Count > 10)
-				        {
-					        report += $"... and {componentsWithoutChecksums.Count - 10} more.\n";
-				        }
+					if ( componentsWithoutChecksums.Any() )
+					{
+						report += "Components without checksum validation:\n";
+						foreach ( Component component in componentsWithoutChecksums.Take(10) )
+						{
+							report += $"  - {component.Name}\n";
+						}
 
-				        report += "\n💡 Tip: Add checksums to instructions for better integrity verification.";
-			        }
-			        else
-			        {
-				        report += "✅ All selected components have checksum validation configured.";
-			        }
+						if ( componentsWithoutChecksums.Count > 10 )
+							report += $"... and {componentsWithoutChecksums.Count - 10} more.\n";
 
-			        await _dialogService.ShowInformationDialog(report);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+						report += "\n💡 Tip: Add checksums to instructions for better integrity verification.";
+					}
+					else
+					{
+						report += "✅ All selected components have checksum validation configured.";
+					}
+
+					await _dialogService.ShowInformationDialog(report);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to check file integrity");
-	        }
-        }
+			}
+		}
 
-        private async void ValidateDigitalSignatures_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to validate digital signatures.");
-				        return;
-			        }
+		private async void ValidateDigitalSignatures_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to validate digital signatures.");
+						return;
+					}
 
-			        int totalInstructions = 0;
-			        int instructionsWithSignatures = 0;
-			        int componentsWithSignatures = 0;
-			        var componentsWithoutSignatures = new List<Component>();
+					int totalInstructions = 0;
+					int instructionsWithSignatures = 0;
+					int componentsWithSignatures = 0;
+					var componentsWithoutSignatures = new List<Component>();
 
-			        foreach ( Component component in selectedComponents)
-			        {
-				        bool hasSignatures = false;
+					foreach ( Component component in selectedComponents )
+					{
+						bool hasSignatures = false;
 
-				        foreach ( Instruction instruction in component.Instructions)
-				        {
-					        totalInstructions++;
+						foreach ( Instruction instruction in component.Instructions )
+						{
+							totalInstructions++;
 
-					        // Check if instruction has signature validation configured
-					        // (This would depend on how signature validation is implemented in the core)
-					        if (instruction.Action == Instruction.ActionType.Execute &&
-					            instruction.Source.Any(s => s.Contains("signature") || s.Contains("cert")))
-					        {
-						        instructionsWithSignatures++;
-						        hasSignatures = true;
-					        }
-				        }
+							// Check if instruction has signature validation configured
+							// (This would depend on how signature validation is implemented in the core)
+							if ( instruction.Action == Instruction.ActionType.Execute &&
+							instruction.Source.Any(s => s.Contains("signature") || s.Contains("cert")) )
+							{
+								instructionsWithSignatures++;
+								hasSignatures = true;
+							}
+						}
 
-				        if (hasSignatures)
-					        componentsWithSignatures++;
-				        else
-					        componentsWithoutSignatures.Add(component);
-			        }
+						if ( hasSignatures )
+							componentsWithSignatures++;
+						else
+							componentsWithoutSignatures.Add(component);
+					}
 
-			        string report = $"Digital Signature Validation Results:\n\n";
-			        report += $"Total instructions analyzed: {totalInstructions}\n";
-			        report += $"Instructions with signature validation: {instructionsWithSignatures}\n";
-			        report += $"Components with signature validation: {componentsWithSignatures}/{selectedComponents.Count}\n\n";
+					string report = "Digital Signature Validation Results:\n\n";
+					report += $"Total instructions analyzed: {totalInstructions}\n";
+					report += $"Instructions with signature validation: {instructionsWithSignatures}\n";
+					report += $"Components with signature validation: {componentsWithSignatures}/{selectedComponents.Count}\n\n";
 
-			        if (componentsWithoutSignatures.Count != 0 )
-			        {
-				        report += "Components without signature validation:\n";
-				        foreach ( Component component in componentsWithoutSignatures.Take(10))
-				        {
-					        report += $"  - {component.Name}\n";
-				        }
+					if ( componentsWithoutSignatures.Count != 0 )
+					{
+						report += "Components without signature validation:\n";
+						foreach ( Component component in componentsWithoutSignatures.Take(10) )
+						{
+							report += $"  - {component.Name}\n";
+						}
 
-				        if (componentsWithoutSignatures.Count > 10)
-					        report += $"... and {componentsWithoutSignatures.Count - 10} more.\n";
+						if ( componentsWithoutSignatures.Count > 10 )
+							report += $"... and {componentsWithoutSignatures.Count - 10} more.\n";
 
-				        report += "\n💡 Tip: Consider adding digital signature validation for executable instructions.";
-			        }
-			        else if (instructionsWithSignatures > 0)
-			        {
-				        report += "✅ All selected components have digital signature validation configured.";
-			        }
-			        else
-			        {
-				        report += "ℹ️  No digital signature validation is currently configured for any instructions.";
-			        }
+						report += "\n💡 Tip: Consider adding digital signature validation for executable instructions.";
+					}
+					else if ( instructionsWithSignatures > 0 )
+					{
+						report += "✅ All selected components have digital signature validation configured.";
+					}
+					else
+					{
+						report += "ℹ️  No digital signature validation is currently configured for any instructions.";
+					}
 
-			        await _dialogService.ShowInformationDialog(report);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					await _dialogService.ShowInformationDialog(report);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to validate digital signatures");
-	        }
-        }
+			}
+		}
 
-        private async void CleanOrphanedFiles_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        bool? confirm = await _dialogService.ShowConfirmationDialog(
-				        "This will scan the KOTOR installation directory for files that are not referenced by any mod instructions.\n\n" +
-				        "⚠️  WARNING: This is an analysis tool. No files will be deleted automatically.\n\n" +
-				        "Continue with orphaned file analysis?",
-				        "Yes, Analyze",
-				        "Cancel");
+		private async void CleanOrphanedFiles_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					bool? confirm = await _dialogService.ShowConfirmationDialog(
+					"This will scan the KOTOR installation directory for files that are not referenced by any mod instructions.\n\n" +
+					"⚠️  WARNING: This is an analysis tool. No files will be deleted automatically.\n\n" +
+					"Continue with orphaned file analysis?",
+					"Yes, Analyze",
+					"Cancel");
 
-			        if (confirm != true)
-				        return;
+					if ( confirm != true )
+						return;
 
-			        // Build a set of all files that are referenced by instructions
-			        var referencedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-			        foreach (Component component in _originalComponents)
-			        {
-				        foreach (Instruction instruction in component.Instructions)
-				        {
-					        // Collect destination paths from instructions
-					        if (!string.IsNullOrWhiteSpace(instruction.Destination))
-					        {
-						        string fileName = System.IO.Path.GetFileName(instruction.Destination);
-						        if (!string.IsNullOrEmpty(fileName))
-						        {
-							        referencedFiles.Add(fileName);
-						        }
-					        }
-				        }
-			        }
+					// Build a set of all files that are referenced by instructions
+					var referencedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+					foreach ( Component component in _originalComponents )
+					{
+						foreach ( Instruction instruction in component.Instructions )
+						{
+							// Collect destination paths from instructions
+							if ( string.IsNullOrWhiteSpace(instruction.Destination) )
+							    continue;
+							string fileName = System.IO.Path.GetFileName(instruction.Destination);
+							if ( string.IsNullOrEmpty(fileName) )
+							    continue;
+							_ = referencedFiles.Add(fileName);
+						}
+					}
 
-			        // Report analysis results
-			        int totalInstructions = _originalComponents.Sum(c => c.Instructions.Count);
-			        int totalFiles = referencedFiles.Count;
+					// Report analysis results
+					int totalInstructions = _originalComponents.Sum(c => c.Instructions.Count);
+					int totalFiles = referencedFiles.Count;
 
-			        await _dialogService.ShowInformationDialog(
-				        $"Orphaned File Analysis:\n\n" +
-				        $"✅ Analysis complete!\n\n" +
-				        $"Total instructions scanned: {totalInstructions}\n" +
-				        $"Unique files referenced: {totalFiles}\n\n" +
-				        "To identify orphaned files, you would need to:\n" +
-				        "1. Scan your KOTOR installation directory\n" +
-				        "2. Compare against this reference list\n" +
-				        "3. Manually review and delete unneeded files\n\n" +
-				        "⚠️  Note: Automatic deletion is intentionally not implemented to prevent accidental data loss.");
-		        });
-	        }
-	        catch (Exception ex)
-	        {
-		        await Logger.LogExceptionAsync(ex, "Failed to clean orphaned files");
-	        }
-        }
+					await _dialogService.ShowInformationDialog(
+					"Orphaned File Analysis:\n\n" +
+					"✅ Analysis complete!\n\n" +
+					$"Total instructions scanned: {totalInstructions}\n" +
+					$"Unique files referenced: {totalFiles}\n\n" +
+					"To identify orphaned files, you would need to:\n" +
+					"1. Scan your KOTOR installation directory\n" +
+					"2. Compare against this reference list\n" +
+					"3. Manually review and delete unneeded files\n\n" +
+					"⚠️  Note: Automatic deletion is intentionally not implemented to prevent accidental data loss.");
+				});
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Failed to clean orphaned files");
+			}
+		}
 
-        private async void UpdateModLinks_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
-			        if (selectedComponents.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog("No mods selected. Please select mods to check mod links.");
-				        return;
-			        }
+		private async void UpdateModLinks_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					var selectedComponents = _originalComponents.Where(c => c.IsSelected).ToList();
+					if ( selectedComponents.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog("No mods selected. Please select mods to check mod links.");
+						return;
+					}
 
-			        int totalLinks = 0;
-			        int validLinks = 0;
-			        int brokenLinks = 0;
-			        var componentsWithBrokenLinks = new List<Component>();
+					int totalLinks = 0;
+					int validLinks = 0;
+					int brokenLinks = 0;
+					var componentsWithBrokenLinks = new List<Component>();
 
-			        foreach ( Component component in selectedComponents)
-			        {
-				        foreach ( string link in component.ModLink)
-				        {
-					        totalLinks++;
+					foreach ( Component component in selectedComponents )
+					{
+						foreach ( string link in component.ModLink )
+						{
+							totalLinks++;
 
-					        // Basic URL validation (simplified)
-					        if (Uri.TryCreate(link, UriKind.Absolute, out Uri uri) &&
-					            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
-					        {
-						        validLinks++;
-					        }
-					        else
-					        {
-						        brokenLinks++;
-						        if (!componentsWithBrokenLinks.Contains(component))
-							        componentsWithBrokenLinks.Add(component);
-					        }
-				        }
-			        }
+							// Basic URL validation (simplified)
+							if ( Uri.TryCreate(link, UriKind.Absolute, out Uri uri) &&
+							(uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) )
+							{
+								validLinks++;
+							}
+							else
+							{
+								brokenLinks++;
+								if ( !componentsWithBrokenLinks.Contains(component) )
+									componentsWithBrokenLinks.Add(component);
+							}
+						}
+					}
 
-			        string report = $"Mod Links Validation Results:\n\n";
-			        report += $"Total mod links checked: {totalLinks}\n";
-			        report += $"Valid links: {validLinks}\n";
-			        report += $"Potentially broken links: {brokenLinks}\n\n";
+					string report = "Mod Links Validation Results:\n\n";
+					report += $"Total mod links checked: {totalLinks}\n";
+					report += $"Valid links: {validLinks}\n";
+					report += $"Potentially broken links: {brokenLinks}\n\n";
 
-			        if (componentsWithBrokenLinks.Any())
-			        {
-				        report += "Components with potentially broken links:\n";
-				        foreach ( Component component in componentsWithBrokenLinks.Take(10))
-				        {
-					        report += $"  - {component.Name}\n";
-				        }
+					if ( componentsWithBrokenLinks.Any() )
+					{
+						report += "Components with potentially broken links:\n";
+						foreach ( Component component in componentsWithBrokenLinks.Take(10) )
+						{
+							report += $"  - {component.Name}\n";
+						}
 
-				        if (componentsWithBrokenLinks.Count > 10)
-				        {
-					        report += $"... and {componentsWithBrokenLinks.Count - 10} more.\n";
-				        }
+						if ( componentsWithBrokenLinks.Count > 10 )
+							report += $"... and {componentsWithBrokenLinks.Count - 10} more.\n";
 
-				        report += "\n💡 Tip: Verify these links are still accessible and update if necessary.";
-			        }
-			        else
-			        {
-				        report += "✅ All mod links appear to be valid URLs.";
-			        }
+						report += "\n💡 Tip: Verify these links are still accessible and update if necessary.";
+					}
+					else
+					{
+						report += "✅ All mod links appear to be valid URLs.";
+					}
 
-			        await _dialogService.ShowInformationDialog(report);
-		        });
-	        }
-	        catch (Exception ex)
-	        {
+					await _dialogService.ShowInformationDialog(report);
+				});
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to check mod links");
-	        }
-        }
+			}
+		}
 
-        private async void ArchiveOldVersions_Click(object sender, RoutedEventArgs e)
-        {
-	        try
-	        {
-		        await PerformOperationAsync(async () =>
-		        {
-			        bool? confirm = await _dialogService.ShowConfirmationDialog(
-				        "This will analyze your mod collection for potential duplicate versions.\n\n" +
-				        "⚠️  Note: This is an analysis tool. No files will be moved automatically.\n\n" +
-				        "Continue with version analysis?",
-				        "Yes, Analyze",
-				        "Cancel");
+		private async void ArchiveOldVersions_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await PerformOperationAsync(async () =>
+				{
+					bool? confirm = await _dialogService.ShowConfirmationDialog(
+					"This will analyze your mod collection for potential duplicate versions.\n\n" +
+					"⚠️  Note: This is an analysis tool. No files will be moved automatically.\n\n" +
+					"Continue with version analysis?",
+					"Yes, Analyze",
+					"Cancel");
 
-			        if (confirm != true)
-				        return;
+					if ( confirm != true )
+						return;
 
-			        // Group mods by name similarity to find potential duplicates
-			        var modsByName = new Dictionary<string, List<Component>>();
-			        foreach (Component component in _originalComponents)
-			        {
-				        // Extract base name without version numbers
-				        string baseName = System.Text.RegularExpressions.Regex.Replace(
-					        component.Name,
-					        @"\s*[vV]?\d+\.?\d*\.?\d*\s*$",
-					        "").Trim();
+					// Group mods by name similarity to find potential duplicates
+					var modsByName = new Dictionary<string, List<Component>>();
+					foreach ( Component component in _originalComponents )
+					{
+						// Extract base name without version numbers
+						string baseName = System.Text.RegularExpressions.Regex.Replace(
+						component.Name,
+						@"\s*[vV]?\d+\.?\d*\.?\d*\s*$",
+						"").Trim();
 
-				        if (!modsByName.ContainsKey(baseName))
-					        modsByName[baseName] = new List<Component>();
+						if ( !modsByName.ContainsKey(baseName) )
+							modsByName[baseName] = new List<Component>();
 
-				        modsByName[baseName].Add(component);
-			        }
+						modsByName[baseName].Add(component);
+					}
 
-			        // Find potential duplicates (same base name, multiple versions)
-			        var potentialDuplicates = modsByName
-				        .Where(kvp => kvp.Value.Count > 1)
-				        .ToList();
+					// Find potential duplicates (same base name, multiple versions)
+					var potentialDuplicates = modsByName
+					.Where(kvp => kvp.Value.Count > 1)
+					.ToList();
 
-			        if (potentialDuplicates.Count == 0)
-			        {
-				        await _dialogService.ShowInformationDialog(
-					        "Version Analysis:\n\n" +
-					        "✅ No potential duplicate versions found!\n\n" +
-					        "All mod names appear to be unique.");
-			        }
-			        else
-			        {
-				        var report = new System.Text.StringBuilder();
-				        report.AppendLine("Version Analysis:\n");
-				        report.AppendLine($"Found {potentialDuplicates.Count} mod(s) with potential duplicates:\n");
+					if ( potentialDuplicates.Count == 0 )
+					{
+						await _dialogService.ShowInformationDialog(
+						"Version Analysis:\n\n" +
+						"✅ No potential duplicate versions found!\n\n" +
+						"All mod names appear to be unique.");
+					}
+					else
+					{
+						var report = new System.Text.StringBuilder();
+						_ = report.AppendLine("Version Analysis:\n");
+						_ = report.AppendLine($"Found {potentialDuplicates.Count} mod(s) with potential duplicates:\n");
 
-				        foreach (var group in potentialDuplicates.Take(10))
-				        {
-					        report.AppendLine($"'{group.Key}' has {group.Value.Count} version(s):");
-					        foreach (Component comp in group.Value)
-						        report.AppendLine($"  • {comp.Name}");
-					        report.AppendLine();
-				        }
+						foreach ( KeyValuePair<string, List<Component>> group in potentialDuplicates.Take(10) )
+						{
+							_ = report.AppendLine($"'{group.Key}' has {group.Value.Count} version(s):");
+							foreach ( Component comp in group.Value )
+								_ = report.AppendLine($"  • {comp.Name}");
+							_ = report.AppendLine();
+						}
 
-				        if (potentialDuplicates.Count > 10)
-					        report.AppendLine($"... and {potentialDuplicates.Count - 10} more groups.\n");
+						if ( potentialDuplicates.Count > 10 )
+							_ = report.AppendLine($"... and {potentialDuplicates.Count - 10} more groups.\n");
 
-				        report.AppendLine("💡 Tip: Review these mods and consider keeping only the latest version.");
-				        report.AppendLine("\n⚠️  Note: Automatic archiving is intentionally not implemented to prevent accidental data loss.");
+						_ = report.AppendLine("💡 Tip: Review these mods and consider keeping only the latest version.");
+						_ = report.AppendLine("\n⚠️  Note: Automatic archiving is intentionally not implemented to prevent accidental data loss.");
 
-				        await _dialogService.ShowInformationDialog(report.ToString());
-			        }
-		        });
-	        }
-	        catch (Exception ex)
-	        {
-		        await Logger.LogExceptionAsync(ex, "Failed to archive old versions");
-	        }
-        }
+						await _dialogService.ShowInformationDialog(report.ToString());
+					}
+				});
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Failed to archive old versions");
+			}
+		}
 
-        #endregion
+		#endregion
 
-        #region Helper Methods
+		#region Helper Methods
 
-        private async Task PerformBatchOperationAsync(Func<Task> operation)
-        {
-            try
-            {
-                await operation();
-                _modificationsApplied = true;
-                _dialogService.RefreshStatistics();
-            }
-            catch (Exception ex)
-            {
-                await _dialogService.ShowInformationDialog($"Operation failed: {ex.Message}");
-            }
-        }
+		private async Task PerformBatchOperationAsync(Func<Task> operation)
+		{
+			try
+			{
+				await operation();
+				_modificationsApplied = true;
+				_dialogService.RefreshStatistics();
+			}
+			catch ( Exception ex )
+			{
+				await _dialogService.ShowInformationDialog($"Operation failed: {ex.Message}");
+			}
+		}
 
-        private async Task PerformImportOperationAsync(Func<Task> operation)
-        {
-            try
-            {
-                await operation();
-                _modificationsApplied = true;
-                _dialogService.RefreshStatistics();
-            }
-            catch (Exception ex)
-            {
-                await _dialogService.ShowInformationDialog($"Import failed: {ex.Message}");
-            }
-        }
+		private async Task PerformImportOperationAsync(Func<Task> operation)
+		{
+			try
+			{
+				await operation();
+				_modificationsApplied = true;
+				_dialogService.RefreshStatistics();
+			}
+			catch ( Exception ex )
+			{
+				await _dialogService.ShowInformationDialog($"Import failed: {ex.Message}");
+			}
+		}
 
-        private async Task PerformExportOperationAsync(Func<Task> operation)
-        {
-            try
-            {
-                await operation();
-            }
-            catch (Exception ex)
-            {
-                await _dialogService.ShowInformationDialog($"Export failed: {ex.Message}");
-            }
-        }
+		private async Task PerformExportOperationAsync(Func<Task> operation)
+		{
+			try
+			{
+				await operation();
+			}
+			catch ( Exception ex )
+			{
+				await _dialogService.ShowInformationDialog($"Export failed: {ex.Message}");
+			}
+		}
 
-        private async Task PerformOperationAsync(Func<Task> operation)
-        {
-            try
-            {
-                await operation();
-            }
-            catch (Exception ex)
-            {
-                await _dialogService.ShowInformationDialog($"Operation failed: {ex.Message}");
-            }
-        }
+		private async Task PerformOperationAsync(Func<Task> operation)
+		{
+			try
+			{
+				await operation();
+			}
+			catch ( Exception ex )
+			{
+				await _dialogService.ShowInformationDialog($"Operation failed: {ex.Message}");
+			}
+		}
 
-        private async void ShowBatchResult(string operationName, ModManagementService.BatchOperationResult result)
-        {
-	        try
-	        {
-		        string message = $"{operationName} completed:\n\n" +
-		                         $"Successful: {result.SuccessCount}\n" +
-		                         $"Failed: {result.FailureCount}";
+		private async void ShowBatchResult(string operationName, ModManagementService.BatchOperationResult result)
+		{
+			try
+			{
+				string message = $"{operationName} completed:\n\n" +
+							   $"Successful: {result.SuccessCount}\n" +
+							   $"Failed: {result.FailureCount}";
 
-		        if (result.Errors.Any())
-		        {
-			        message += $"\n\nErrors:\n{string.Join("\n", result.Errors.Take(5))}";
-			        if (result.Errors.Count > 5)
-				        message += $"\n... and {result.Errors.Count - 5} more";
-		        }
+				if ( result.Errors.Count != 0 )
+				{
+					message += $"\n\nErrors:\n{string.Join("\n", result.Errors.Take(5))}";
+					if ( result.Errors.Count > 5 )
+						message += $"\n... and {result.Errors.Count - 5} more";
+				}
 
-		        await _dialogService.ShowInformationDialog(message);
-	        }
-	        catch (Exception ex)
-	        {
+				await _dialogService.ShowInformationDialog(message);
+			}
+			catch ( Exception ex )
+			{
 				await Logger.LogExceptionAsync(ex, "Failed to show batch result");
-	        }
-        }
+			}
+		}
 
 		#endregion
 
@@ -1360,15 +1320,13 @@ namespace KOTORModSync
 		private void ApplyChanges_Click(object sender, RoutedEventArgs e) => Close();
 
 		private void Cancel_Click(object sender, RoutedEventArgs e)
-        {
-            // Restore original component list if modifications were made but not applied
-            if (_modificationsApplied)
-            {
-                _dialogService.UpdateComponents(_originalComponents);
-            }
-            Close();
-        }
+		{
+			// Restore original component list if modifications were made but not applied
+			if ( _modificationsApplied )
+				_dialogService.UpdateComponents(_originalComponents);
+			Close();
+		}
 
-        #endregion
-    }
+		#endregion
+	}
 }

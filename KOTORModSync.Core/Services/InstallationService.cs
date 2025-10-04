@@ -30,7 +30,7 @@ namespace KOTORModSync.Core.Services
 		/// <param name="mainConfig">Main configuration instance</param>
 		/// <param name="confirmationCallback">Callback for user confirmation dialogs</param>
 		/// <returns>Tuple containing success status and information message</returns>
-		public async Task<(bool success, string informationMessage)> ValidateInstallationEnvironmentAsync([NotNull] MainConfig mainConfig, [CanBeNull] Func<string, Task<bool?>> confirmationCallback = null)
+		public static async Task<(bool success, string informationMessage)> ValidateInstallationEnvironmentAsync([NotNull] MainConfig mainConfig, [CanBeNull] Func<string, Task<bool?>> confirmationCallback = null)
 		{
 			if ( mainConfig == null )
 				throw new ArgumentNullException(nameof(mainConfig));
@@ -278,9 +278,7 @@ namespace KOTORModSync.Core.Services
 			var validator = new ComponentValidation(component, allComponents);
 			await Logger.LogVerboseAsync($" == Validating '{component.Name}' == ");
 			if ( !validator.Run() )
-			{
-				return Component.InstallExitCode.InvalidOperation;
-			}
+			    return Component.InstallExitCode.InvalidOperation;
 
 			// Install the component
 			return await component.InstallAsync(allComponents, cancellationToken);
@@ -302,10 +300,8 @@ namespace KOTORModSync.Core.Services
 				throw new ArgumentNullException(nameof(allComponents));
 
 			var coordinator = new InstallCoordinator();
-			DirectoryInfo destination = MainConfig.DestinationPath;
-			if ( destination == null )
-				throw new InvalidOperationException("DestinationPath must be set before installing.");
-
+			DirectoryInfo destination = MainConfig.DestinationPath
+			                            ?? throw new InvalidOperationException("DestinationPath must be set before installing.");
 			ResumeResult resume = await coordinator.InitializeAsync(allComponents, destination, cancellationToken);
 			var orderedComponents = resume.OrderedComponents.Where(component => component.IsSelected).ToList();
 			int total = orderedComponents.Count;
@@ -318,22 +314,21 @@ namespace KOTORModSync.Core.Services
 
 				progressCallback?.Invoke(index, total, component.Name);
 
-				if ( component.InstallState == Component.ComponentInstallState.Completed )
+				switch (component.InstallState)
 				{
-					await Logger.LogAsync($"Skipping '{component.Name}' (already completed).");
-					coordinator.SessionManager.UpdateComponentState(component);
-					component.PersistCheckpoint();
-					await coordinator.SessionManager.SaveAsync();
-					continue;
-				}
-
-				if ( component.InstallState == Component.ComponentInstallState.Skipped || component.InstallState == Component.ComponentInstallState.Blocked )
-				{
-					await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).");
-					coordinator.SessionManager.UpdateComponentState(component);
-					component.PersistCheckpoint();
-					await coordinator.SessionManager.SaveAsync();
-					continue;
+					case Component.ComponentInstallState.Completed:
+						await Logger.LogAsync($"Skipping '{component.Name}' (already completed).");
+						coordinator.SessionManager.UpdateComponentState(component);
+						component.PersistCheckpoint();
+						await coordinator.SessionManager.SaveAsync();
+						continue;
+					case Component.ComponentInstallState.Skipped:
+					case Component.ComponentInstallState.Blocked:
+						await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).");
+						coordinator.SessionManager.UpdateComponentState(component);
+						component.PersistCheckpoint();
+						await coordinator.SessionManager.SaveAsync();
+						continue;
 				}
 
 				await Logger.LogAsync($"Start install of '{component.Name}'...");

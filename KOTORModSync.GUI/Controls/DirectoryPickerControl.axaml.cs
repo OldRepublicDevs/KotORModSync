@@ -50,8 +50,8 @@ namespace KOTORModSync.Controls
 		private TextBlock _currentPathDisplay;
 		private TextBox _pathInput;
 		private ComboBox _pathSuggestions;
-		private bool _suppressEvents = false;
-		private bool _suppressSelection = false;
+		private bool _suppressEvents;
+		private bool _suppressSelection;
 		// Persist current value even if visual children are not yet available
 		private string _pendingPath;
 
@@ -76,11 +76,10 @@ namespace KOTORModSync.Controls
 			UpdateWatermark();
 			InitializePathSuggestions();
 			// Re-apply pending path if set prior to template application
-			if ( !string.IsNullOrEmpty(_pendingPath) )
-			{
-				Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnApplyTemplate: '{_pendingPath}'");
-				SetCurrentPath(_pendingPath);
-			}
+			if ( string.IsNullOrEmpty(_pendingPath) )
+			    return;
+			Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnApplyTemplate: '{_pendingPath}'");
+			SetCurrentPath(_pendingPath);
 		}
 
 		protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -89,11 +88,10 @@ namespace KOTORModSync.Controls
 			Logger.LogVerbose("DirectoryPickerControl.OnAttachedToVisualTree");
 			// Ensure suggestions reflect environment when attached
 			InitializePathSuggestions();
-			if ( !string.IsNullOrEmpty(_pendingPath) )
-			{
-				Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnAttachedToVisualTree: '{_pendingPath}'");
-				SetCurrentPath(_pendingPath);
-			}
+			if ( string.IsNullOrEmpty(_pendingPath) )
+			    return;
+			Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnAttachedToVisualTree: '{_pendingPath}'");
+			SetCurrentPath(_pendingPath);
 		}
 
 		protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -101,33 +99,23 @@ namespace KOTORModSync.Controls
 			base.OnPropertyChanged(change);
 
 			if ( change.Property == TitleProperty )
-			{
-				UpdateTitle();
-			}
+			    UpdateTitle();
 			else if ( change.Property == WatermarkProperty )
-			{
-				UpdateWatermark();
-			}
+			    UpdateWatermark();
 			else if ( change.Property == PickerTypeProperty )
-			{
-				InitializePathSuggestions();
-			}
+			    InitializePathSuggestions();
 		}
 
 		private void UpdateTitle()
 		{
 			if ( _titleTextBlock != null )
-			{
-				_titleTextBlock.Text = Title ?? string.Empty;
-			}
+			    _titleTextBlock.Text = Title ?? string.Empty;
 		}
 
 		private void UpdateWatermark()
 		{
 			if ( _pathInput != null )
-			{
-				_pathInput.Watermark = Watermark ?? string.Empty;
-			}
+			    _pathInput.Watermark = Watermark ?? string.Empty;
 		}
 
 		private void InitializePathSuggestions()
@@ -139,10 +127,12 @@ namespace KOTORModSync.Controls
 				if ( PickerType == DirectoryPickerType.ModDirectory )
 				{
 					InitializeModDirectoryPaths();
+					_pathSuggestions.PlaceholderText = "Select from recent mod directories...";
 				}
 				else if ( PickerType == DirectoryPickerType.KotorDirectory )
 				{
 					InitializeKotorDirectoryPaths();
+					_pathSuggestions.PlaceholderText = "Select from detected KOTOR installations...";
 				}
 			}
 			catch ( Exception ex )
@@ -171,7 +161,7 @@ namespace KOTORModSync.Controls
 			{
 				List<string> defaultPaths = GetDefaultPathsForGame();
 				_pathSuggestions.ItemsSource = defaultPaths.Where(Directory.Exists).ToList();
-				Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) initialized defaults: {defaultPaths?.Count ?? 0} total, {(_pathSuggestions.ItemsSource as System.Collections.ICollection)?.Count ?? 0} exist");
+				Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) initialized defaults: {defaultPaths.Count} total, {(_pathSuggestions.ItemsSource as System.Collections.ICollection)?.Count ?? 0} exist");
 			}
 			catch ( Exception ex )
 			{
@@ -182,7 +172,7 @@ namespace KOTORModSync.Controls
 		private List<string> GetDefaultPathsForGame()
 		{
 			var paths = new List<string>();
-			OSPlatform osType = global::KOTORModSync.Core.Utility.Utility.GetOperatingSystem();
+			OSPlatform osType = Core.Utility.Utility.GetOperatingSystem();
 			Logger.LogVerbose($"DirectoryPickerControl.GetDefaultPathsForGame OS={osType}");
 
 			if ( osType == OSPlatform.Windows )
@@ -340,20 +330,20 @@ namespace KOTORModSync.Controls
 				};
 
 				IReadOnlyList<IStorageFolder> result = await topLevel.StorageProvider.OpenFolderPickerAsync(options);
-				if ( result?.Count > 0 )
+				if ( result.Count > 0 )
 				{
 					string selectedPath = result[0].Path.LocalPath;
-					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Browse selected '{selectedPath}'");
+					await Logger.LogVerboseAsync($"DirectoryPickerControl[{PickerType}] Browse selected '{selectedPath}'");
 					ApplyPath(selectedPath);
 				}
 				else
 				{
-					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Browse cancelled/no result");
+					await Logger.LogVerboseAsync($"DirectoryPickerControl[{PickerType}] Browse cancelled/no result");
 				}
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex);
+				await Logger.LogExceptionAsync(ex);
 			}
 		}
 
@@ -450,9 +440,9 @@ namespace KOTORModSync.Controls
 				}
 				else if ( PickerType == DirectoryPickerType.KotorDirectory )
 				{
-					List<string> defaults = GetDefaultPathsForGame().Where(Directory.Exists).ToList();
+					var defaults = GetDefaultPathsForGame().Where(Directory.Exists).ToList();
 					_pathSuggestions.ItemsSource = defaults;
-					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Refreshed defaults that exist: {defaults?.Count ?? 0}");
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Refreshed defaults that exist: {defaults.Count}");
 				}
 
 				// Do not force SelectedItem to avoid triggering SelectionChanged repeatedly

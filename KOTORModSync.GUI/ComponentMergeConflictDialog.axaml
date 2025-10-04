@@ -49,18 +49,12 @@
 
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
                     <TextBlock Text="🚀 Quick Actions:" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                    <Button Content="Prefer All Incoming"
-                            Command="{Binding SelectAllIncomingMatchesCommand}"
-                            ToolTip.Tip="For conflicts, choose incoming versions"/>
-                    <Button Content="Prefer All Existing"
-                            Command="{Binding SelectAllExistingMatchesCommand}"
-                            ToolTip.Tip="For conflicts, keep existing versions"/>
-                    <Button Content="Keep All New"
+                    <Button Content="Toggle All New"
                             Command="{Binding KeepAllNewCommand}"
-                            ToolTip.Tip="Select all new components from incoming"/>
-                    <Button Content="Keep All Unmatched"
+                            ToolTip.Tip="Toggle selection of all new components from incoming (select all if any unselected, deselect all if all selected)"/>
+                    <Button Content="Toggle All Unmatched"
                             Command="{Binding KeepAllExistingUnmatchedCommand}"
-                            ToolTip.Tip="Keep existing components not in incoming list"/>
+                            ToolTip.Tip="Toggle selection of existing components not in incoming list (select all if any unselected, deselect all if all selected)"/>
                     <Separator Width="2" Background="{DynamicResource ThemeBorderMidBrush}"/>
                     <TextBlock Text="💡 Tip: Click one from each list then:" VerticalAlignment="Center" FontSize="11" Opacity="0.7" Margin="5,0"/>
                     <Button Content="{Binding LinkButtonText}"
@@ -79,9 +73,10 @@
                     <CheckBox Content="⚡ Use incoming list order (Priority)"
                               IsChecked="{Binding UseIncomingOrder, Mode=TwoWay}"
                               FontWeight="SemiBold"
-                              ToolTip.Tip="Check: Incoming order is preserved. Uncheck: Existing order is preserved"/>
+                              ToolTip.Tip="Controls which component order is preserved in the final merge. When checked: incoming list order is used. When unchecked: existing list order is used. This affects the sequence of components in your final mod installation."/>
                     <CheckBox Content="Skip duplicates when both selected"
-                              IsChecked="{Binding SkipDuplicates, Mode=TwoWay}"/>
+                              IsChecked="{Binding SkipDuplicates, Mode=TwoWay}"
+                              ToolTip.Tip="When both existing and incoming versions of a linked component are selected: CHECKED = only one version appears in final merge (prevents conflicts). UNCHECKED = both versions appear separately (can cause file conflicts and crashes). Recommended: Keep checked."/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -103,79 +98,133 @@
                         </StackPanel>
                     </Border>
 
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding FilteredExistingComponents}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderThickness="3"
-                                            BorderBrush="{Binding SelectionBorderBrush}"
-                                            Padding="10"
-                                            Background="{Binding SelectionBackground}"
-                                            PointerPressed="OnItemClicked"
-                                            ContextRequested="OnItemContextRequested"
-                                            Cursor="Hand">
-                                        <Border.Styles>
-                                            <Style Selector="Border:pointerover">
-                                                <Setter Property="Opacity" Value="0.8"/>
-                                            </Style>
-                                        </Border.Styles>
-                                        <Border.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="🔗 Link with selected incoming component"
-                                                          Click="LinkSelectedMenuItem_Click"
-                                                          IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
-                                                <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
-                                                <Separator IsVisible="{Binding HasGuidConflict}"/>
-                                                <MenuItem Header="🆔 Use this component's GUID"
-                                                          IsVisible="{Binding HasGuidConflict}"
-                                                          Click="UseThisGuid_Click"
-                                                          ToolTip.Tip="{Binding GuidConflictTooltip}"/>
-                                            </ContextMenu>
-                                        </Border.ContextMenu>
-                                        <Grid ColumnDefinitions="Auto,Auto,60,*" RowDefinitions="Auto,Auto,Auto">
-                                            <CheckBox Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
-                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                      VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TabControl Grid.Row="1" SelectedIndex="0" FontSize="11" SelectionChanged="ExistingTabControl_SelectionChanged" Name="ExistingTabControl">
+                        <!-- List View Tab -->
+                        <TabItem Header="List View">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Name="ExistingListScrollViewer">
+                                <ItemsControl ItemsSource="{Binding FilteredExistingComponents}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderThickness="3"
+                                                    BorderBrush="{Binding SelectionBorderBrush}"
+                                                    Padding="10"
+                                                    Background="{Binding SelectionBackground}"
+                                                    PointerPressed="OnItemClicked"
+                                                    ContextRequested="OnItemContextRequested"
+                                                    Cursor="Hand">
+                                                <Border.Styles>
+                                                    <Style Selector="Border:pointerover">
+                                                        <Setter Property="Opacity" Value="0.8"/>
+                                                    </Style>
+                                                </Border.Styles>
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="📄 Jump to Raw TOML"
+                                                                  Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
+                                                                  CommandParameter="{Binding}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="🔗 Link with selected incoming component"
+                                                                  Click="LinkSelectedMenuItem_Click"
+                                                                  IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
+                                                        <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
+                                                        <Separator IsVisible="{Binding HasGuidConflict}"/>
+                                                        <MenuItem Header="🆔 Use this component's GUID"
+                                                                  IsVisible="{Binding HasGuidConflict}"
+                                                                  Click="UseThisGuid_Click"
+                                                                  ToolTip.Tip="{Binding GuidConflictTooltip}"/>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
+                                                <Grid ColumnDefinitions="Auto,Auto,60,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                                    <CheckBox Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
+                                                              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
 
-                                            <!-- Status Icon -->
-                                            <TextBlock Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
-                                                       Text="{Binding StatusIcon}"
-                                                       FontSize="24"
-                                                       Foreground="{Binding StatusColor}"
-                                                       VerticalAlignment="Center" Margin="0,0,10,0"
-                                                       ToolTip.Tip="{Binding Status}"/>
+                                                    <!-- Status Icon -->
+                                                    <TextBlock Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
+                                                               Text="{Binding StatusIcon}"
+                                                               FontSize="24"
+                                                               Foreground="{Binding StatusColor}"
+                                                               VerticalAlignment="Center" Margin="0,0,10,0"
+                                                               ToolTip.Tip="{Binding Status}"/>
 
-                                            <Image Grid.Column="2" Grid.Row="0" Grid.RowSpan="3"
-                                                   Width="50" Height="50" Margin="0,0,10,0">
-                                                <Image.Source>
-                                                    <DrawingImage>
-                                                        <DrawingImage.Drawing>
-                                                            <GeometryDrawing Brush="{DynamicResource ThemeForegroundBrush}">
-                                                                <GeometryDrawing.Geometry>
-                                                                    <PathGeometry Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                                                                </GeometryDrawing.Geometry>
-                                                            </GeometryDrawing>
-                                                        </DrawingImage.Drawing>
-                                                    </DrawingImage>
-                                                </Image.Source>
-                                            </Image>
+                                                    <Image Grid.Column="2" Grid.Row="0" Grid.RowSpan="3"
+                                                           Width="50" Height="50" Margin="0,0,10,0">
+                                                        <Image.Source>
+                                                            <DrawingImage>
+                                                                <DrawingImage.Drawing>
+                                                                    <GeometryDrawing Brush="{DynamicResource ThemeForegroundBrush}">
+                                                                        <GeometryDrawing.Geometry>
+                                                                            <PathGeometry Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                                                        </GeometryDrawing.Geometry>
+                                                                    </GeometryDrawing>
+                                                                </DrawingImage.Drawing>
+                                                            </DrawingImage>
+                                                        </Image.Source>
+                                                    </Image>
 
-                                            <TextBlock Grid.Column="3" Grid.Row="0"
-                                                       Text="{Binding Name}"
-                                                       FontWeight="SemiBold"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Grid.Column="3" Grid.Row="1"
-                                                       Text="{Binding Author}"
-                                                       FontSize="11" Opacity="0.7"/>
-                                            <TextBlock Grid.Column="3" Grid.Row="2"
-                                                       Text="{Binding SizeInfo}"
-                                                       FontSize="11" Opacity="0.7"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                                                    <StackPanel Grid.Row="0" Grid.Column="3">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Author}"
+                                                                   FontSize="11" Opacity="0.7"/>
+                                                        <TextBlock Text="{Binding SizeInfo}"
+                                                                   FontSize="11" Opacity="0.7"/>
+                                                    </StackPanel>
+
+                                                    <Button Grid.Column="4" Grid.Row="0" Grid.RowSpan="3"
+                                                            Content="📄"
+                                                            Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip.Tip="Jump to Raw TOML"
+                                                            VerticalAlignment="Center"
+                                                            MinWidth="30" Width="30" Padding="2"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- Raw TOML View Tab -->
+                        <TabItem Header="Raw TOML">
+                            <ListBox Name="ExistingRawTomlListBox"
+                                     ItemsSource="{Binding ExistingComponentsToml}"
+                                     SelectedItem="{Binding SelectedExistingTomlLine, Mode=TwoWay}"
+                                     SelectionMode="Single"
+                                     Background="Transparent"
+                                     BorderThickness="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="2"
+                                                Background="{Binding DiffColor}">
+                                            <TextBlock Text="{Binding Text}"
+                                                       FontFamily="Consolas"
+                                                       FontSize="11"
+                                                       TextWrapping="NoWrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected Border">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+                                        <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                    </Style>
+                                </ListBox.Styles>
+                            </ListBox>
+                        </TabItem>
+                    </TabControl>
                 </Grid>
             </Border>
 
@@ -194,79 +243,133 @@
                         </StackPanel>
                     </Border>
 
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding FilteredIncomingComponents}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderThickness="3"
-                                            BorderBrush="{Binding SelectionBorderBrush}"
-                                            Padding="10"
-                                            Background="{Binding SelectionBackground}"
-                                            PointerPressed="OnItemClicked"
-                                            ContextRequested="OnItemContextRequested"
-                                            Cursor="Hand">
-                                        <Border.Styles>
-                                            <Style Selector="Border:pointerover">
-                                                <Setter Property="Opacity" Value="0.8"/>
-                                            </Style>
-                                        </Border.Styles>
-                                        <Border.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="🔗 Link with selected existing component"
-                                                          Click="LinkSelectedMenuItem_Click"
-                                                          IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
-                                                <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
-                                                <Separator IsVisible="{Binding HasGuidConflict}"/>
-                                                <MenuItem Header="🆔 Use this component's GUID"
-                                                          IsVisible="{Binding HasGuidConflict}"
-                                                          Click="UseThisGuid_Click"
-                                                          ToolTip.Tip="{Binding GuidConflictTooltip}"/>
-                                            </ContextMenu>
-                                        </Border.ContextMenu>
-                                        <Grid ColumnDefinitions="Auto,Auto,60,*" RowDefinitions="Auto,Auto,Auto">
-                                            <CheckBox Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
-                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                      VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TabControl Grid.Row="1" SelectedIndex="0" FontSize="11" SelectionChanged="IncomingTabControl_SelectionChanged" Name="IncomingTabControl">
+                        <!-- List View Tab -->
+                        <TabItem Header="List View">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Name="IncomingListScrollViewer">
+                                <ItemsControl ItemsSource="{Binding FilteredIncomingComponents}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderThickness="3"
+                                                    BorderBrush="{Binding SelectionBorderBrush}"
+                                                    Padding="10"
+                                                    Background="{Binding SelectionBackground}"
+                                                    PointerPressed="OnItemClicked"
+                                                    ContextRequested="OnItemContextRequested"
+                                                    Cursor="Hand">
+                                                <Border.Styles>
+                                                    <Style Selector="Border:pointerover">
+                                                        <Setter Property="Opacity" Value="0.8"/>
+                                                    </Style>
+                                                </Border.Styles>
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="📄 Jump to Raw TOML"
+                                                                  Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
+                                                                  CommandParameter="{Binding}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="🔗 Link with selected existing component"
+                                                                  Click="LinkSelectedMenuItem_Click"
+                                                                  IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
+                                                        <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
+                                                        <Separator IsVisible="{Binding HasGuidConflict}"/>
+                                                        <MenuItem Header="🆔 Use this component's GUID"
+                                                                  IsVisible="{Binding HasGuidConflict}"
+                                                                  Click="UseThisGuid_Click"
+                                                                  ToolTip.Tip="{Binding GuidConflictTooltip}"/>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
+                                                <Grid ColumnDefinitions="Auto,Auto,60,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                                    <CheckBox Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
+                                                              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
 
-                                            <!-- Status Icon -->
-                                            <TextBlock Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
-                                                       Text="{Binding StatusIcon}"
-                                                       FontSize="24"
-                                                       Foreground="{Binding StatusColor}"
-                                                       VerticalAlignment="Center" Margin="0,0,10,0"
-                                                       ToolTip.Tip="{Binding Status}"/>
+                                                    <!-- Status Icon -->
+                                                    <TextBlock Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
+                                                               Text="{Binding StatusIcon}"
+                                                               FontSize="24"
+                                                               Foreground="{Binding StatusColor}"
+                                                               VerticalAlignment="Center" Margin="0,0,10,0"
+                                                               ToolTip.Tip="{Binding Status}"/>
 
-                                            <Image Grid.Column="2" Grid.Row="0" Grid.RowSpan="3"
-                                                   Width="50" Height="50" Margin="0,0,10,0">
-                                                <Image.Source>
-                                                    <DrawingImage>
-                                                        <DrawingImage.Drawing>
-                                                            <GeometryDrawing Brush="{DynamicResource ThemeForegroundBrush}">
-                                                                <GeometryDrawing.Geometry>
-                                                                    <PathGeometry Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                                                                </GeometryDrawing.Geometry>
-                                                            </GeometryDrawing>
-                                                        </DrawingImage.Drawing>
-                                                    </DrawingImage>
-                                                </Image.Source>
-                                            </Image>
+                                                    <Image Grid.Column="2" Grid.Row="0" Grid.RowSpan="3"
+                                                           Width="50" Height="50" Margin="0,0,10,0">
+                                                        <Image.Source>
+                                                            <DrawingImage>
+                                                                <DrawingImage.Drawing>
+                                                                    <GeometryDrawing Brush="{DynamicResource ThemeForegroundBrush}">
+                                                                        <GeometryDrawing.Geometry>
+                                                                            <PathGeometry Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                                                        </GeometryDrawing.Geometry>
+                                                                    </GeometryDrawing>
+                                                                </DrawingImage.Drawing>
+                                                            </DrawingImage>
+                                                        </Image.Source>
+                                                    </Image>
 
-                                            <TextBlock Grid.Column="3" Grid.Row="0"
-                                                       Text="{Binding Name}"
-                                                       FontWeight="SemiBold"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Grid.Column="3" Grid.Row="1"
-                                                       Text="{Binding Author}"
-                                                       FontSize="11" Opacity="0.7"/>
-                                            <TextBlock Grid.Column="3" Grid.Row="2"
-                                                       Text="{Binding SizeInfo}"
-                                                       FontSize="11" Opacity="0.7"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                                                    <StackPanel Grid.Row="0" Grid.Column="3">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Author}"
+                                                                   FontSize="11" Opacity="0.7"/>
+                                                        <TextBlock Text="{Binding SizeInfo}"
+                                                                   FontSize="11" Opacity="0.7"/>
+                                                    </StackPanel>
+
+                                                    <Button Grid.Column="4" Grid.Row="0" Grid.RowSpan="3"
+                                                            Content="📄"
+                                                            Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip.Tip="Jump to Raw TOML"
+                                                            VerticalAlignment="Center"
+                                                            MinWidth="30" Width="30" Padding="2"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- Raw TOML View Tab -->
+                        <TabItem Header="Raw TOML">
+                            <ListBox Name="IncomingRawTomlListBox"
+                                     ItemsSource="{Binding IncomingComponentsToml}"
+                                     SelectedItem="{Binding SelectedIncomingTomlLine, Mode=TwoWay}"
+                                     SelectionMode="Single"
+                                     Background="Transparent"
+                                     BorderThickness="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="2"
+                                                Background="{Binding DiffColor}">
+                                            <TextBlock Text="{Binding Text}"
+                                                       FontFamily="Consolas"
+                                                       FontSize="11"
+                                                       TextWrapping="NoWrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected Border">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+                                        <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                    </Style>
+                                </ListBox.Styles>
+                            </ListBox>
+                        </TabItem>
+                    </TabControl>
                 </Grid>
             </Border>
 
@@ -275,58 +378,108 @@
                 <!-- Preview Panel -->
                 <Border Grid.Row="0" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
                         Margin="5,0,0,0">
-                    <Grid RowDefinitions="Auto,*">
-                        <TextBlock Grid.Row="0" Text="🎯 Final Merge Preview"
-                                   FontWeight="SemiBold" Padding="10"
-                                   Background="{DynamicResource ThemeBackgroundBrush}"/>
+                    <TabControl SelectedIndex="0" FontSize="11" SelectionChanged="MergedTabControl_SelectionChanged">
+                        <!-- List View Tab -->
+                        <TabItem Header="Preview List">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Text="🎯 Final Merge Preview"
+                                           FontWeight="SemiBold" Padding="10"
+                                           Background="{DynamicResource ThemeBackgroundBrush}"/>
 
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding PreviewComponents}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border BorderThickness="0,0,0,1"
-                                                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                                                Padding="8,6"
-                                                Background="Transparent"
-                                                Cursor="Hand">
-                                            <Border.Styles>
-                                                <Style Selector="Border:pointerover">
-                                                    <Setter Property="Background" Value="{DynamicResource ThemeControlHighlightLowBrush}"/>
-                                                </Style>
-                                            </Border.Styles>
-                                            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-                                                <TextBlock Grid.Column="0"
-                                                           Text="{Binding OrderNumber}"
-                                                           FontSize="11" FontWeight="Bold"
-                                                           VerticalAlignment="Center"
-                                                           Margin="0,0,8,0" Opacity="0.5"/>
-                                                <TextBlock Grid.Column="1"
-                                                           Text="{Binding StatusIcon}"
-                                                           FontSize="14"
-                                                           VerticalAlignment="Center"
-                                                           Margin="0,0,6,0"/>
-                                                <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="{Binding Name}"
-                                                               FontSize="12" FontWeight="SemiBold"
-                                                               TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{Binding Source}"
-                                                               FontSize="10" Opacity="0.6"
-                                                               Foreground="{Binding SourceColor}"/>
-                                                </StackPanel>
-                                                <!-- Position change indicator -->
-                                                <TextBlock Grid.Column="3"
-                                                           Text="{Binding PositionChange}"
-                                                           FontSize="10" FontWeight="Bold"
-                                                           Foreground="{Binding PositionChangeColor}"
-                                                           VerticalAlignment="Center"
-                                                           Margin="4,0,0,0"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Grid>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Name="PreviewScrollViewer">
+                                    <ItemsControl ItemsSource="{Binding PreviewComponents}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderThickness="0,0,0,1"
+                                                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                                        Padding="8,6"
+                                                        Background="Transparent"
+                                                        Cursor="Hand">
+                                                    <Border.Styles>
+                                                        <Style Selector="Border:pointerover">
+                                                            <Setter Property="Background" Value="{DynamicResource ThemeControlHighlightLowBrush}"/>
+                                                        </Style>
+                                                    </Border.Styles>
+                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="{Binding OrderNumber}"
+                                                                   FontSize="11" FontWeight="Bold"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,8,0" Opacity="0.5"/>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding StatusIcon}"
+                                                                   FontSize="14"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,6,0"/>
+                                                        <StackPanel Grid.Column="2">
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontSize="12" FontWeight="SemiBold"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Source}"
+                                                                       FontSize="10" Opacity="0.6"
+                                                                       Foreground="{Binding SourceColor}"/>
+                                                        </StackPanel>
+                                                        <!-- Position change indicator -->
+                                                        <TextBlock Grid.Column="3"
+                                                                   Text="{Binding PositionChange}"
+                                                                   FontSize="10" FontWeight="Bold"
+                                                                   Foreground="{Binding PositionChangeColor}"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="4,0,0,0"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </TabItem>
+
+                        <!-- Merged Raw TOML View Tab -->
+                        <TabItem Header="Merged TOML">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Text="🔧 Merged TOML with Diff"
+                                           FontWeight="SemiBold" Padding="10"
+                                           Background="{DynamicResource ThemeBackgroundBrush}"/>
+
+                                <ListBox Grid.Row="1"
+                                         Name="MergedRawTomlListBox"
+                                         ItemsSource="{Binding MergedComponentsToml}"
+                                         SelectedItem="{Binding SelectedMergedTomlLine, Mode=TwoWay}"
+                                         SelectionMode="Single"
+                                         Background="Transparent"
+                                         BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="2"
+                                                    Background="{Binding DiffColor}">
+                                                <TextBlock Text="{Binding Text}"
+                                                           FontFamily="Consolas"
+                                                           FontSize="11"
+                                                           TextWrapping="NoWrap"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                    <ListBox.Styles>
+                                        <Style Selector="ListBoxItem">
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Setter Property="Margin" Value="0"/>
+                                        </Style>
+                                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                        </Style>
+                                        <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                        </Style>
+                                        <Style Selector="ListBoxItem:selected Border">
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+                                            <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                        </Style>
+                                    </ListBox.Styles>
+                                </ListBox>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
                 </Border>
 
             </Grid>

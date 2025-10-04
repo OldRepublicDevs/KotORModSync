@@ -126,6 +126,12 @@
         <Setter Property="Foreground" Value="#2FB393" />
     </Style>
 
+    <!-- ComboBox Placeholder Text Styling -->
+    <Style Selector="ComboBox /template/ TextBlock#PART_PlaceholderText">
+        <Setter Property="Foreground" Value="#2FB393" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
     <Style Selector="CheckBox:pointerover">
         <Setter Property="Foreground" Value="#3FE6C0" />
         <Setter Property="BorderBrush" Value="#3FE6C0" />
@@ -201,6 +207,57 @@
         <Setter Property="MinWidth" Value="150" />
         <Setter Property="Background" Value="#11382E" />
     </Style>
+
+    <!-- ListBoxItem styling for mod list -->
+    <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <!-- Mod List Item styling -->
+    <Style Selector="Border.mod-list-item">
+        <Setter Property="Background" Value="#0A1813" />
+        <Setter Property="BorderBrush" Value="#176B5A" />
+    </Style>
+
+    <!-- Mod List Item Badge styling -->
+    <Style Selector="Border.mod-list-item-badge">
+        <Setter Property="Background" Value="#11382E" />
+    </Style>
+
+    <Style Selector="Border.category-badge">
+        <Setter Property="Background" Value="#11382E" />
+    </Style>
+
+    <Style Selector="Border.category-badge TextBlock">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+
+    <Style Selector="Border.tier-badge">
+        <Setter Property="Background" Value="#2A2A4A" />
+    </Style>
+
+    <Style Selector="Border.tier-badge TextBlock">
+        <Setter Property="Foreground" Value="#BBA6FF" />
+    </Style>
+
+    <Style Selector="TextBlock.mod-list-item-drag-handle">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="#11382E" />
+    </Style>
+
+    <Style Selector="ListBoxItem:selected">
+        <Setter Property="Background" Value="#11382E" />
+    </Style>
+
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#176B5A" />
+    </Style>
     <Style Selector="ScrollViewer">
         <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
         <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
@@ -210,7 +267,7 @@
     </Style>
     <Style Selector="Rectangle">
         <Setter Property="Width" Value="5" />
-        <Setter Property="Fill" Value="Transparent" />
+        <Setter Property="Fill" Value="#00000000" />
     </Style>
     <Style Selector="Window">
         <Setter Property="Background" Value="#0A1813" />
@@ -218,13 +275,13 @@
 
     <!-- Window Control Buttons Styling -->
     <Style Selector="Window /template/ Button#PART_MinimizeButton">
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
     <Style Selector="Window /template/ Button#PART_MaximizeButton">
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
     <Style Selector="Window /template/ Button#PART_CloseButton">
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
     <Style Selector="Window /template/ Button#PART_MinimizeButton:pointerover">
         <Setter Property="Background" Value="#2FB393" />
@@ -316,22 +373,16 @@
     <!-- Progress Section Styling -->
     <Style Selector="Border.progress-section">
         <Setter Property="BorderThickness" Value="2" />
-        <Setter Property="BorderBrush" Value="#2FB393" />
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="15" />
     </Style>
 
     <Style Selector="Border.help-section">
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="#2FB393" />
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="15" />
     </Style>
 
-    <!-- ConfirmationDialog Styling -->
-    <Style Selector="Window.confirmation-dialog">
-        <Setter Property="Background" Value="#0A1813" />
-    </Style>
     <Style Selector="Border#DialogBorder">
         <Setter Property="Background" Value="#11382E" />
         <Setter Property="BorderBrush" Value="#2FB393" />
@@ -339,51 +390,32 @@
     </Style>
     <Style Selector="TextBlock#ConfirmTextBlock">
         <Setter Property="FontSize" Value="16" />
-        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
 
-    <!-- InformationDialog Styling -->
-    <Style Selector="Window.information-dialog">
-        <Setter Property="Background" Value="#0A1813" />
-    </Style>
     <Style Selector="TextBlock#TitleTextBlock">
         <Setter Property="FontSize" Value="18" />
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
     <Style Selector="TextBlock#InfoTextBlock">
         <Setter Property="FontSize" Value="14" />
-        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
 
-    <!-- OptionsDialog Styling -->
-    <Style Selector="Window.options-dialog">
-        <Setter Property="Background" Value="#0A1813" />
-    </Style>
     <Style Selector="TextBlock#OptionTextBox">
         <Setter Property="FontSize" Value="18" />
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
     <Style Selector="Border#OptionItemBorder">
         <Setter Property="Background" Value="#11382E" />
     </Style>
 
-    <!-- RegexImportDialog Styling -->
-    <Style Selector="Window.regex-import-dialog">
-        <Setter Property="Background" Value="#0A1813" />
-    </Style>
     <Style Selector="TextBlock#DescriptionTextBlock">
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
     <Style Selector="TextBlock#RawTitleTextBlock">
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
     <Style Selector="TextBlock#PreviewTitleTextBlock">
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
     <Style Selector="TextBox#RawRegexTextBox">
         <Setter Property="FontFamily" Value="Consolas,Courier New,monospace" />
@@ -392,8 +424,29 @@
     <Style Selector="TextBlock#PreviewTextBlock">
         <Setter Property="FontFamily" Value="Consolas,Courier New,monospace" />
         <Setter Property="FontSize" Value="11" />
-        <Setter Property="Foreground" Value="#2FB393" />
     </Style>
+
+    <!-- Mod List Header Styling -->
+    <Style Selector="Border.mod-list-header">
+        <Setter Property="Background" Value="#11382E" />
+        <Setter Property="BorderBrush" Value="#2FB393" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+
+    <!-- Secondary Text Styling - Default for small gray text -->
+    <Style Selector="TextBlock.secondary-text">
+        <Setter Property="Foreground" Value="#888888" />
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <!-- Option Border Styling -->
+    <Style Selector="Border.option-border">
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="#B0BEC5" />
+        <Setter Property="Margin" Value="10,10,0,0" />
+        <Setter Property="Padding" Value="10" />
+    </Style>
+
 
     <!-- Regex highlight palette -->
     <Styles.Resources>
@@ -425,6 +478,12 @@
 
             <SolidColorBrush x:Key="MergePosition.ChangedBrush" Color="#FFC591"/><!-- Orange for position changes -->
             <SolidColorBrush x:Key="MergePosition.NewBrush" Color="#E6D37A"/><!-- Yellow for new positions -->
+
+            <!-- TOML Diff Brushes - Contrasted and theme-matching for Kotor2Style -->
+            <SolidColorBrush x:Key="MergeDiff.UnchangedBrush" Color="Transparent"/><!-- No background for unchanged -->
+            <SolidColorBrush x:Key="MergeDiff.AddedBrush" Color="#11382E"/><!-- Theme dark teal, readable with #2FB393 text -->
+            <SolidColorBrush x:Key="MergeDiff.RemovedBrush" Color="#3A1A1A"/><!-- Deep muted red, readable with #F2F2F2 text -->
+            <SolidColorBrush x:Key="MergeDiff.ModifiedBrush" Color="#3A2814"/><!-- Better contrast brown/orange for teal/purple text -->
         </ResourceDictionary>
     </Styles.Resources>
 </Styles>

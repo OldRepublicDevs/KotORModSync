@@ -1,12 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-		xmlns:converters="clr-namespace:KOTORModSync.Converters"
-		x:Class="KOTORModSync.RegexImportDialog"
+        x:Class="KOTORModSync.RegexImportDialog"
 		Width="1200" Height="800" Title="Markdown Import - Regex Profile"
 		ExtendClientAreaToDecorationsHint="True"
 		ExtendClientAreaChromeHints="NoChrome"
 		ExtendClientAreaTitleBarHeightHint="-1"
-		SystemDecorations="BorderOnly"
-		Classes="regex-import-dialog">
+		SystemDecorations="BorderOnly">
 	<Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*">
 		<!-- Custom Window Controls -->
 		<StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Spacing="0" Margin="0,8,8,0">

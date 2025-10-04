@@ -22,10 +22,8 @@ namespace KOTORModSync.Core.Services
 
 		private readonly MainConfig _mainConfig;
 
-		public ModManagementService(MainConfig mainConfig)
-		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
-		}
+		public ModManagementService(MainConfig mainConfig) => _mainConfig = mainConfig
+															  				?? throw new ArgumentNullException(nameof(mainConfig));
 
 		#region CRUD Operations
 
@@ -96,8 +94,8 @@ namespace KOTORModSync.Core.Services
 				Restrictions = new List<Guid>(sourceComponent.Restrictions),
 				InstallAfter = new List<Guid>(sourceComponent.InstallAfter),
 				InstallBefore = new List<Guid>(sourceComponent.InstallBefore),
-				Options = new ObservableCollection<Option>(sourceComponent.Options.Select(option => CloneOption(option)).ToList()),
-				Instructions = new ObservableCollection<Instruction>(sourceComponent.Instructions.Select(instruction => CloneInstruction(instruction)).ToList()),
+				Options = new ObservableCollection<Option>(sourceComponent.Options.Select(CloneOption).ToList()),
+				Instructions = new ObservableCollection<Instruction>(sourceComponent.Instructions.Select(CloneInstruction).ToList()),
 				IsSelected = false,
 				IsDownloaded = false
 			};
@@ -129,11 +127,11 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				var originalComponent = CloneComponent(component);
+				Component originalComponent = CloneComponent(component);
 				updates(component);
 
 				// Validate the component after updates
-				var validationResult = ValidateMod(component);
+				ModValidationResult validationResult = ValidateMod(component);
 				if ( !validationResult.IsValid )
 				{
 					Logger.LogWarning($"Component update validation failed: {string.Join(", ", validationResult.Errors)}");
@@ -183,19 +181,18 @@ namespace KOTORModSync.Core.Services
 			// Remove from collection
 			bool removed = _mainConfig.allComponents.Remove(component);
 
-			if ( removed )
+			if ( !removed )
+			    return false;
+			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
-				ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
-				{
-					Operation = ModOperation.Delete,
-					Component = component,
-					Success = true
-				});
+				Operation = ModOperation.Delete,
+				Component = component,
+				Success = true
+			});
 
-				Logger.LogVerbose($"Deleted mod: {component.Name}");
-			}
+			Logger.LogVerbose($"Deleted mod: {component.Name}");
 
-			return removed;
+			return true;
 		}
 
 		#endregion
@@ -275,17 +272,15 @@ namespace KOTORModSync.Core.Services
 				result.Warnings.Add("Component author is not specified");
 
 			// Dependency validation
-			foreach ( Guid dependency in component.Dependencies )
+			foreach ( Guid dependency in component.Dependencies.Where(dependency => _mainConfig.allComponents.All(c => c.Guid != dependency)))
 			{
-				if ( !_mainConfig.allComponents.Any(c => c.Guid == dependency) )
-					result.Errors.Add($"Dependency {dependency} not found in component list");
+				result.Errors.Add($"Dependency {dependency} not found in component list");
 			}
 
 			// Restriction validation
-			foreach ( Guid restriction in component.Restrictions )
+			foreach ( Guid restriction in component.Restrictions.Where(restriction => _mainConfig.allComponents.All(c => c.Guid != restriction)))
 			{
-				if ( !_mainConfig.allComponents.Any(c => c.Guid == restriction) )
-					result.Errors.Add($"Restriction {restriction} not found in component list");
+				result.Errors.Add($"Restriction {restriction} not found in component list");
 			}
 
 			// File validation (if selected and mod directory is set)
@@ -297,11 +292,10 @@ namespace KOTORModSync.Core.Services
 					{
 						string fileName = Path.GetFileName(source);
 						string fullPath = Path.Combine(_mainConfig.sourcePath.FullName, fileName);
-						if ( !File.Exists(fullPath) && !Directory.Exists(fullPath) )
-						{
-							result.Errors.Add($"Required file not found: {fileName}");
-							component.IsDownloaded = false;
-						}
+						if ( File.Exists(fullPath) || Directory.Exists(fullPath) )
+						    continue;
+						result.Errors.Add($"Required file not found: {fileName}");
+						component.IsDownloaded = false;
 					}
 				}
 			}
@@ -580,49 +574,52 @@ namespace KOTORModSync.Core.Services
 				try
 				{
 					bool success;
-					if ( operation == BatchModOperation.Validate )
+					switch ( operation )
 					{
-						success = ValidateMod(component).IsValid;
+						case BatchModOperation.Validate:
+							success = ValidateMod(component).IsValid;
+							break;
+						case BatchModOperation.SetDownloaded:
+							{
+								bool downloaded = true;
+								if ( parameters != null && parameters.TryGetValue("downloaded", out object val) )
+								{
+									if ( val is bool v )
+										downloaded = v;
+								}
+								success = SetModDownloaded(component, downloaded);
+								break;
+							}
+						case BatchModOperation.SetSelected:
+							{
+								bool selected = true;
+								if ( parameters != null && parameters.TryGetValue("selected", out object val) )
+								{
+									if ( val is bool v )
+										selected = v;
+								}
+								success = SetModSelected(component, selected);
+								break;
+							}
+						case BatchModOperation.UpdateMetadata:
+							success = UpdateModMetadata(component, parameters);
+							break;
+						case BatchModOperation.UpdateCategory:
+							{
+								string category = string.Empty;
+								if ( parameters != null && parameters.TryGetValue("category", out object val) )
+								{
+									if ( val is string v )
+										category = v;
+								}
+								component.Category = category;
+								success = true;
+								break;
+							}
+						default:
+							success = false;
+							break;
 					}
-					else if ( operation == BatchModOperation.SetDownloaded )
-					{
-						bool downloaded = true;
-						if ( parameters != null && parameters.TryGetValue("downloaded", out object val) )
-						{
-							if ( val is bool v )
-								downloaded = v;
-						}
-						success = SetModDownloaded(component, downloaded);
-					}
-					else if ( operation == BatchModOperation.SetSelected )
-					{
-						bool selected = true;
-						if ( parameters != null && parameters.TryGetValue("selected", out object val) )
-						{
-							if ( val is bool v )
-								selected = v;
-						}
-						success = SetModSelected(component, selected);
-					}
-				else if ( operation == BatchModOperation.UpdateMetadata )
-				{
-					success = UpdateModMetadata(component, parameters);
-				}
-				else if ( operation == BatchModOperation.UpdateCategory )
-				{
-					string category = string.Empty;
-					if ( parameters != null && parameters.TryGetValue("category", out object val) )
-					{
-						if ( val is string v )
-							category = v;
-					}
-					component.Category = category;
-					success = true;
-				}
-				else
-				{
-					success = false;
-				}
 
 					if ( success )
 						result.SuccessCount++;
@@ -658,14 +655,14 @@ namespace KOTORModSync.Core.Services
 		/// <param name="filePath">Path to export to.</param>
 		/// <param name="format">Export format.</param>
 		/// <returns>True if export was successful.</returns>
-		public async Task<bool> ExportMods(IEnumerable<Component> components, string filePath, ExportFormat format = ExportFormat.TOML)
+		public async Task<bool> ExportMods(IEnumerable<Component> components, string filePath, ExportFormat format = ExportFormat.Toml)
 		{
 			try
 			{
 				IEnumerable<Component> enumerable = components as Component[] ?? components.ToArray();
 				switch ( format )
 				{
-					case ExportFormat.TOML:
+					case ExportFormat.Toml:
 						using ( var writer = new StreamWriter(filePath) )
 						{
 							foreach ( Component component in enumerable )
@@ -676,11 +673,11 @@ namespace KOTORModSync.Core.Services
 						}
 						break;
 
-					case ExportFormat.JSON:
+					case ExportFormat.Json:
 						// JSON export implementation
 						break;
 
-					case ExportFormat.XML:
+					case ExportFormat.Xml:
 						// XML export implementation
 						break;
 				}
@@ -705,7 +702,7 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				var importedComponents = Component.ReadComponentsFromFile(filePath);
+				List<Component> importedComponents = Component.ReadComponentsFromFile(filePath);
 
 				if ( importedComponents.Count == 0 )
 					return importedComponents;
@@ -817,23 +814,118 @@ namespace KOTORModSync.Core.Services
 
 		private void MergeByNameAndAuthor(List<Component> importedComponents)
 		{
-			// Implementation for fuzzy matching by name and author
-			// This would use the FuzzyMatcher class
+			// Build a list of matches using fuzzy matching (similar to ComponentMergeConflictViewModel)
+			var matchedPairs = new List<(Component existing, Component incoming)>();
+			var matchedExisting = new HashSet<Component>();
+			var matchedIncoming = new HashSet<Component>();
+
+			// Find fuzzy matches by name and author
+			foreach ( Component imported in importedComponents )
+			{
+				// Try to find a fuzzy match in existing components
+				Component bestMatch = null;
+				double bestScore = 0.0;
+
+				foreach ( Component existing in _mainConfig.allComponents )
+				{
+					// Skip if already matched
+					if ( matchedExisting.Contains(existing) )
+						continue;
+
+					// Use FuzzyMatcher to check if components match
+					// Note: FuzzyMatcher is in KOTORModSync.GUI namespace, so this would need to be refactored
+					// For now, we'll do a simple name/author comparison
+					// TODO: Extract FuzzyMatcher logic to Core or reference it properly
+
+					// Simple fuzzy matching logic (placeholder until FuzzyMatcher is accessible)
+					string existingNameNorm = existing.Name.ToLowerInvariant().Trim();
+					string importedNameNorm = imported.Name.ToLowerInvariant().Trim();
+					string existingAuthorNorm = existing.Author.ToLowerInvariant().Trim();
+					string importedAuthorNorm = imported.Author.ToLowerInvariant().Trim();
+
+					// Check if names and authors match (case-insensitive)
+					bool namesMatch = existingNameNorm == importedNameNorm;
+					bool authorsMatch = existingAuthorNorm == importedAuthorNorm ||
+									   string.IsNullOrWhiteSpace(existingAuthorNorm) ||
+									   string.IsNullOrWhiteSpace(importedAuthorNorm);
+
+					if ( namesMatch && authorsMatch )
+					{
+						bestMatch = existing;
+						bestScore = 1.0;
+						break;
+					}
+
+					// Simple containment check for partial matches
+					if ( authorsMatch && (existingNameNorm.Contains(importedNameNorm) || importedNameNorm.Contains(existingNameNorm)) )
+					{
+						int minLen = Math.Min(existingNameNorm.Length, importedNameNorm.Length);
+						int maxLen = Math.Max(existingNameNorm.Length, importedNameNorm.Length);
+						double score = (double)minLen / maxLen;
+
+						if ( score > bestScore && score >= 0.7 ) // 70% similarity threshold
+						{
+							bestMatch = existing;
+							bestScore = score;
+						}
+					}
+				}
+
+				// If we found a good match, record it
+				if ( bestMatch != null && bestScore >= 0.7 )
+				{
+					matchedPairs.Add((bestMatch, imported));
+					matchedExisting.Add(bestMatch);
+					matchedIncoming.Add(imported);
+				}
+			}
+
+			// Merge matched pairs (update existing with imported data)
+			foreach ( (Component existing, Component imported) in matchedPairs )
+			{
+				// Update existing component with imported data (similar to MergeByGuid)
+				existing.Name = imported.Name;
+				existing.Author = imported.Author;
+				existing.Category = imported.Category;
+				existing.Tier = imported.Tier;
+				existing.Description = imported.Description;
+				existing.Directions = imported.Directions;
+				existing.InstallationMethod = imported.InstallationMethod;
+				existing.ModLink = imported.ModLink;
+				existing.Dependencies = imported.Dependencies;
+				existing.Restrictions = imported.Restrictions;
+				existing.InstallAfter = imported.InstallAfter;
+				existing.InstallBefore = imported.InstallBefore;
+				existing.Options = imported.Options;
+				existing.Instructions = imported.Instructions;
+
+				Logger.LogVerbose($"Merged component by name/author: {existing.Name} (GUID: {existing.Guid})");
+			}
+
+			// Add unmatched imported components as new components
+			foreach ( Component imported in importedComponents )
+			{
+				if ( !matchedIncoming.Contains(imported) )
+				{
+					_mainConfig.allComponents.Add(imported);
+					Logger.LogVerbose($"Added new component from import: {imported.Name} (GUID: {imported.Guid})");
+				}
+			}
 		}
 
-		private bool SetModDownloaded(Component component, bool downloaded)
+		private static bool SetModDownloaded(Component component, bool downloaded)
 		{
 			component.IsDownloaded = downloaded;
 			return true;
 		}
 
-		private bool SetModSelected(Component component, bool selected)
+		private static bool SetModSelected(Component component, bool selected)
 		{
 			component.IsSelected = selected;
 			return true;
 		}
 
-		private bool UpdateModMetadata(Component component, Dictionary<string, object> parameters)
+		private static bool UpdateModMetadata(Component component, Dictionary<string, object> parameters)
 		{
 			if ( parameters.TryGetValue("Name", out object name) )
 				component.Name = name.ToString();
@@ -888,7 +980,7 @@ namespace KOTORModSync.Core.Services
 			IsSelected = source.IsSelected
 		};
 
-		private Instruction CloneInstruction(Instruction source) => new Instruction
+		private static Instruction CloneInstruction(Instruction source) => new Instruction
 		{
 			Action = source.Action,
 			Source = new List<string>(source.Source),
@@ -938,14 +1030,14 @@ namespace KOTORModSync.Core.Services
 			Batch
 		}
 
-	public enum BatchModOperation
-	{
-		Validate,
-		SetDownloaded,
-		SetSelected,
-		UpdateMetadata,
-		UpdateCategory
-	}
+		public enum BatchModOperation
+		{
+			Validate,
+			SetDownloaded,
+			SetSelected,
+			UpdateMetadata,
+			UpdateCategory
+		}
 
 		public enum ModSortCriteria
 		{
@@ -964,9 +1056,9 @@ namespace KOTORModSync.Core.Services
 
 		public enum ExportFormat
 		{
-			TOML,
-			JSON,
-			XML
+			Toml,
+			Json,
+			Xml
 		}
 
 		// Renamed to avoid conflict with ComponentMergeService.MergeStrategy

@@ -16,8 +16,7 @@
             Margin="2,1"
             BorderThickness="1"
             CornerRadius="4"
-            Background="#010116"
-            BorderBrush="#062766">
+            Classes="mod-list-item">
 
         <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
 
@@ -36,7 +35,7 @@
                        VerticalAlignment="Center"
                        FontWeight="Bold"
                        FontSize="12"
-                       Foreground="#888888"
+                       Classes="secondary-text"
                        Margin="0,0,8,0"
                        IsVisible="False" />
 
@@ -61,23 +60,21 @@
                     <Border x:Name="CategoryBadge"
                             CornerRadius="3"
                             Padding="6,2"
-                            Background="#062766"
+                            Classes="mod-list-item-badge category-badge"
                             IsVisible="{Binding Category, Converter={StaticResource StringNotEmptyConverter}}">
                         <TextBlock Text="{Binding Category}"
                                    FontSize="10"
-                                   FontWeight="Medium"
-                                   Foreground="#3AAAFF" />
+                                   FontWeight="Medium" />
                     </Border>
 
                     <Border x:Name="TierBadge"
                             CornerRadius="3"
                             Padding="6,2"
-                            Background="#4A2766"
+                            Classes="mod-list-item-badge tier-badge"
                             IsVisible="{Binding Tier, Converter={StaticResource StringNotEmptyConverter}}">
                         <TextBlock Text="{Binding Tier}"
                                    FontSize="10"
-                                   FontWeight="Medium"
-                                   Foreground="#9F7AEA" />
+                                   FontWeight="Medium" />
                     </Border>
                 </StackPanel>
             </StackPanel>
@@ -97,7 +94,7 @@
                        VerticalAlignment="Center"
                        FontSize="16"
                        FontWeight="Bold"
-                       Foreground="#3AAAFF"
+                       Classes="mod-list-item-drag-handle"
                        Cursor="Hand"
                        ToolTip.Tip="Drag to reorder"
                        IsVisible="False" />

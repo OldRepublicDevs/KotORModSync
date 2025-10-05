@@ -34,7 +34,6 @@ using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
-using KOTORModSync.Core.Services.FileSystem;
 using KOTORModSync.Core.Utility;
 using ReactiveUI;
 using SharpCompress.Archives;
@@ -74,9 +73,6 @@ namespace KOTORModSync
 		private CrossPlatformFileWatcher _modDirectoryWatcher;
 		private Component _draggedComponent;
 		private string _lastLoadedFileName;
-
-		// InstallationService provides centralized validation and installation logic
-		private readonly InstallationService _installationService;
 
 		// ModManagementService provides comprehensive mod management functionality
 		private readonly ModManagementService _modManagementService;
@@ -142,7 +138,7 @@ namespace KOTORModSync
 				Logger.Initialize();
 
 				// Initialize the installation service
-				_installationService = new InstallationService();
+				new InstallationService();
 
 				// Initialize the mod management service
 				_modManagementService = new ModManagementService(MainConfigInstance);
@@ -926,6 +922,42 @@ namespace KOTORModSync
 		/// <summary>
 		/// Refreshes all mod list items to update their visibility and context menus based on current editor mode.
 		/// </summary>
+		/// <summary>
+		/// Lightweight method to refresh a single component's visual state without rescanning files.
+		/// This just triggers the ModListItem to update its border colors and validation state.
+		/// </summary>
+		private void RefreshSingleComponentVisuals(Component component)
+		{
+			try
+			{
+				if ( ModListBox == null || component == null )
+					return;
+
+				// Ensure UI updates happen on the UI thread
+				Dispatcher.UIThread.Post(() =>
+				{
+					try
+					{
+						// Find the container for this specific component
+						if ( !(ModListBox.ContainerFromItem(component) is ListBoxItem container) )
+						    return;
+						// Find the ModListItem control
+						if ( container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault() is ModListItem modListItem )
+							// Directly call UpdateValidationState to refresh border colors
+							modListItem.UpdateValidationState(component);
+					}
+					catch ( Exception ex )
+					{
+						Logger.LogException(ex, "Error refreshing component visuals on UI thread");
+					}
+				}, DispatcherPriority.Normal);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error posting visual refresh to UI thread");
+			}
+		}
+
 		private void RefreshModListItems()
 		{
 			try
@@ -940,31 +972,28 @@ namespace KOTORModSync
 						continue;
 
 					// Find the container for this item
-					if ( ModListBox.ContainerFromItem(item) is ListBoxItem container )
-					{
-						// Find the ModListItem control
-						ModListItem modListItem = container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault();
-						if ( modListItem != null )
-						{
-							// Trigger context menu rebuild
-							modListItem.ContextMenu = BuildContextMenuForComponent(component);
+					if ( !(ModListBox.ContainerFromItem(item) is ListBoxItem container) )
+					    continue;
+					// Find the ModListItem control
+					ModListItem modListItem = container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault();
+					if ( modListItem == null )
+					    continue;
+					// Trigger context menu rebuild
+					modListItem.ContextMenu = BuildContextMenuForComponent(component);
 
-							// Update editor mode visibility for child elements
-							if ( modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock )
-								indexBlock.IsVisible = EditorMode;
+					// Update editor mode visibility for child elements
+					if ( modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock )
+						indexBlock.IsVisible = EditorMode;
 
-							if ( modListItem.FindControl<TextBlock>("DragHandle") is TextBlock dragHandle )
-								dragHandle.IsVisible = EditorMode;
+					if ( modListItem.FindControl<TextBlock>("DragHandle") is TextBlock dragHandle )
+						dragHandle.IsVisible = EditorMode;
 
-							// Update index if in editor mode
-							if ( EditorMode )
-							{
-								int index = MainConfigInstance?.allComponents.IndexOf(component) ?? -1;
-								if ( index >= 0 && modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexTextBlock )
-									indexTextBlock.Text = $"#{index + 1}";
-							}
-						}
-					}
+					// Update index if in editor mode
+					if ( !EditorMode )
+					    continue;
+					int index = MainConfigInstance?.allComponents.IndexOf(component) ?? -1;
+					if ( index >= 0 && modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexTextBlock )
+						indexTextBlock.Text = $"#{index + 1}";
 				}
 			}
 			catch ( Exception ex )
@@ -1112,14 +1141,10 @@ namespace KOTORModSync
 
 				// Filter the ListBox items based on search text
 				if ( !string.IsNullOrWhiteSpace(SearchText) )
-				{
 					FilterModList(SearchText);
-				}
 				else
-				{
 					// Show all items when search is cleared
 					RefreshModList();
-				}
 			}
 			catch ( Exception exception )
 			{
@@ -1303,9 +1328,7 @@ namespace KOTORModSync
 							noButtonText: "Cancel"
 						);
 						if ( confirm == true )
-						{
-							RemoveComponentButton_Click(null, null);
-						}
+						    RemoveComponentButton_Click(null, null);
 					})
 				});
 
@@ -1389,17 +1412,13 @@ namespace KOTORModSync
 			// Build DropDownButton menu
 			DropDownButton globalActionsButton = this.FindControl<DropDownButton>("GlobalActionsButton");
 			if ( globalActionsButton?.Flyout is MenuFlyout globalActionsFlyout )
-			{
-				BuildMenuFlyoutItems(globalActionsFlyout);
-			}
+			    BuildMenuFlyoutItems(globalActionsFlyout);
 
 			// Build Mod List context menu - find the ScrollViewer that contains the ListBox
 			ListBox modListBox = this.FindControl<ListBox>("ModListBoxElement");
 			var scrollViewer = modListBox?.Parent as ScrollViewer;
 			if ( scrollViewer?.ContextMenu is ContextMenu modListContextMenu )
-			{
-				BuildContextMenuItems(modListContextMenu);
-			}
+			    BuildContextMenuItems(modListContextMenu);
 		}
 
 		// Helper method to build menu items for MenuFlyout (DropDownButton)
@@ -1896,7 +1915,7 @@ namespace KOTORModSync
 			};
 
 			int minTierLevel = _selectedMinTier == "Any" ? int.MaxValue :
-				(tierHierarchy.TryGetValue(_selectedMinTier, out int level) ? level : int.MaxValue);
+				(tierHierarchy.GetValueOrDefault(_selectedMinTier, int.MaxValue));
 
 			return components.Where(c =>
 			{
@@ -1945,9 +1964,7 @@ namespace KOTORModSync
 
 				// Initialize selected categories if empty (all selected by default)
 				if ( _selectedCategories.Count == 0 )
-				{
 					_selectedCategories = new HashSet<string>(categories, StringComparer.OrdinalIgnoreCase);
-				}
 
 				// Create checkbox for each category
 				foreach ( string category in categories )
@@ -1981,10 +1998,7 @@ namespace KOTORModSync
 			}
 		}
 
-		private void ApplyAllFilters()
-		{
-			FilterModList(SearchText ?? string.Empty);
-		}
+		private void ApplyAllFilters() => FilterModList(SearchText ?? string.Empty);
 
 		private void RefreshModList()
 		{
@@ -2209,36 +2223,27 @@ namespace KOTORModSync
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				// Check if we're clicking on any interactive control
-				if ( current is Button ||
-					 current is TextBox ||
-					 current is ComboBox ||
-					 current is ListBox ||
-					 current is MenuItem ||
-					 current is Menu ||
-					 current is Expander ||
-					 current is Slider ||
-					 current is TabControl ||
-					 current is TabItem )
+				switch (current)
 				{
-					return true;
+					// Check if we're clicking on any interactive control
+					case Button _:
+					case TextBox _:
+					case ComboBox _:
+					case ListBox _:
+					case MenuItem _:
+					case Menu _:
+					case Expander _:
+					case Slider _:
+					case TabControl _:
+					case TabItem _:
+					// Check if the element has context menu or flyout open
+					case Control control when control.ContextMenu?.IsOpen == true:
+						return true;
+					default:
+						// Move up the visual tree
+						current = current.GetVisualParent();
+						break;
 				}
-
-				// Check if the element has context menu or flyout open
-				if ( current is Control control )
-				{
-					if ( control.ContextMenu?.IsOpen == true )
-						return true;
-
-					if ( control is Button button && button.Flyout?.IsOpen == true )
-						return true;
-
-					if ( control is DropDownButton dropDownButton && dropDownButton.Flyout?.IsOpen == true )
-						return true;
-				}
-
-				// Move up the visual tree
-				current = current.GetVisualParent();
 			}
 
 			return false;
@@ -2851,7 +2856,7 @@ namespace KOTORModSync
 				);
 
 				// If validation failed, run detailed analysis
-				var modIssues = new List<Dialogs.ValidationIssue>();
+				var modIssues = new List<ValidationIssue>();
 				var systemIssues = new List<string>();
 
 				if ( !validationResult )
@@ -2885,7 +2890,7 @@ namespace KOTORModSync
 			}
 		}
 
-		private async Task AnalyzeValidationFailures(List<Dialogs.ValidationIssue> modIssues, List<string> systemIssues)
+		private async Task AnalyzeValidationFailures(List<ValidationIssue> modIssues, List<string> systemIssues)
 		{
 			try
 			{
@@ -2920,7 +2925,7 @@ namespace KOTORModSync
 					// Check if downloaded
 					if ( !component.IsDownloaded )
 					{
-						var issue = new Dialogs.ValidationIssue
+						var issue = new ValidationIssue
 						{
 							Icon = "📥",
 							ModName = component.Name,
@@ -2937,7 +2942,7 @@ namespace KOTORModSync
 					// Check if it has instructions
 					if ( component.Instructions.Count == 0 && component.Options.Count == 0 )
 					{
-						var issue = new Dialogs.ValidationIssue
+						var issue = new ValidationIssue
 						{
 							Icon = "❌",
 							ModName = component.Name,
@@ -2956,7 +2961,7 @@ namespace KOTORModSync
 						List<string> errors = validator.GetErrors();
 						if ( errors.Count <= 0 )
 							continue;
-						var issue = new Dialogs.ValidationIssue
+						var issue = new ValidationIssue
 						{
 							Icon = "🔧",
 							ModName = component.Name,
@@ -3087,7 +3092,7 @@ namespace KOTORModSync
 							   c.InstallAfter.Contains(CurrentComponent.Guid))
 					.ToList();
 
-				if ( dependentComponents.Any() )
+				if ( dependentComponents.Count != 0 )
 				{
 					// Log the dependent components
 					Logger.Log($"Cannot remove '{CurrentComponent.Name}' - {dependentComponents.Count} components depend on it:");
@@ -3773,6 +3778,7 @@ namespace KOTORModSync
 			IgnoreInternalTabChange = false;
 		}
 
+		//ReSharper disable once AsyncVoidMethod
 		private async void LoadComponentDetails([NotNull] Component selectedComponent)
 		{
 			if ( selectedComponent == null )
@@ -3896,14 +3902,9 @@ namespace KOTORModSync
 						{
 							// Match based on selected strategy
 							if ( mergeStrategy.Value == MergeStrategy.ByGuid )
-							{
 								return existing.Guid == incoming.Guid;
-							}
-							else
-							{
-								// Use fuzzy matching for name/author
-								return FuzzyMatcher.FuzzyMatchComponents(existing, incoming);
-							}
+							// Use fuzzy matching for name/author
+							return FuzzyMatcher.FuzzyMatchComponents(existing, incoming);
 						});
 
 					await conflictDialog.ShowDialog(this);
@@ -4291,6 +4292,9 @@ namespace KOTORModSync
 					c.IsSelected = false;
 					ComponentCheckboxUnchecked(c, visitedComponents);
 				}
+
+				// Trigger lightweight visual refresh to update border colors
+				RefreshSingleComponentVisuals(component);
 			}
 			catch ( Exception e )
 			{
@@ -4331,6 +4335,9 @@ namespace KOTORModSync
 					c.IsSelected = false;
 					ComponentCheckboxUnchecked(c, visitedComponents);
 				}
+
+				// Trigger lightweight visual refresh to update border colors
+				RefreshSingleComponentVisuals(component);
 			}
 			catch ( Exception e )
 			{
@@ -4580,7 +4587,7 @@ namespace KOTORModSync
 		}
 
 		[UsedImplicitly]
-		private void OpenOutputWindow_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		private void OpenOutputWindow_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e)
 		{
 			if ( _outputWindow?.IsVisible == true )
 				_outputWindow.Close();

@@ -60,9 +60,9 @@ namespace KOTORModSync.Controls
 			ToolTip.SetShowDelay(this, 400);
 
 			// Set delay on ALL child elements and wire up pointer events
-			foreach (var child in this.GetVisualDescendants())
+			foreach ( var child in this.GetVisualDescendants() )
 			{
-				if (child is Control control)
+				if ( child is Control control )
 				{
 					ToolTip.SetShowDelay(control, 400);
 
@@ -74,17 +74,17 @@ namespace KOTORModSync.Controls
 
 		private void OnChildPointerEntered(object sender, PointerEventArgs e)
 		{
-			if (!(sender is Control currentElement))
+			if ( !(sender is Control currentElement) )
 				return;
 
 			// If we're moving to a different element with a tooltip, close all tooltips
-			if (s_lastTooltipElement != null && s_lastTooltipElement != currentElement)
+			if ( s_lastTooltipElement != null && s_lastTooltipElement != currentElement )
 			{
 				CloseAllTooltips();
 			}
 
 			// Update the tracked element if this one has a tooltip
-			if (ToolTip.GetTip(currentElement) != null)
+			if ( ToolTip.GetTip(currentElement) != null )
 			{
 				s_lastTooltipElement = currentElement;
 			}
@@ -95,13 +95,13 @@ namespace KOTORModSync.Controls
 			// Get the element directly under the pointer
 			var hitElement = e.Source as Control;
 
-			if (hitElement != null && s_lastTooltipElement != null && hitElement != s_lastTooltipElement)
+			if ( hitElement != null && s_lastTooltipElement != null && hitElement != s_lastTooltipElement )
 			{
 				// We're moving to a different element, close all tooltips to reset timer
 				CloseAllTooltips();
 
 				// Update tracked element if new element has a tooltip
-				if (ToolTip.GetTip(hitElement) != null)
+				if ( ToolTip.GetTip(hitElement) != null )
 				{
 					s_lastTooltipElement = hitElement;
 				}
@@ -114,9 +114,9 @@ namespace KOTORModSync.Controls
 			ToolTip.SetIsOpen(this, false);
 
 			// Close tooltips on all child elements
-			foreach (var child in this.GetVisualDescendants())
+			foreach ( var child in this.GetVisualDescendants() )
 			{
-				if (child is Control control)
+				if ( child is Control control )
 				{
 					ToolTip.SetIsOpen(control, false);
 				}
@@ -124,14 +124,14 @@ namespace KOTORModSync.Controls
 
 			// Also try to close tooltips on all ModListItems in the window
 			var window = this.FindAncestorOfType<Window>();
-			if (window != null)
+			if ( window != null )
 			{
-				foreach (var item in window.GetVisualDescendants().OfType<ModListItem>())
+				foreach ( var item in window.GetVisualDescendants().OfType<ModListItem>() )
 				{
 					ToolTip.SetIsOpen(item, false);
-					foreach (var child in item.GetVisualDescendants())
+					foreach ( var child in item.GetVisualDescendants() )
 					{
-						if (child is Control control)
+						if ( child is Control control )
 						{
 							ToolTip.SetIsOpen(control, false);
 						}
@@ -209,78 +209,87 @@ namespace KOTORModSync.Controls
 				indexBlock.Text = $"#{index + 1}";
 		}
 
-		private void UpdateValidationState(Component component)
+		public void UpdateValidationState(Component component)
 		{
 			if ( !(this.FindControl<Border>("RootBorder") is Border border) )
 				return;
 
-			// Determine validation state
-			bool isMissingDownload = component.IsSelected && !component.IsDownloaded;
+			// If component is not selected, clear all validation styling
+			if ( !component.IsSelected )
+			{
+				// Clear border brush to use default theme color
+				border.ClearValue(Border.BorderBrushProperty);
+				border.ClearValue(Border.BorderThicknessProperty);
+
+				// Hide validation icon
+				if ( this.FindControl<TextBlock>("ValidationIcon") is TextBlock validationIcon )
+					validationIcon.IsVisible = false;
+				return;
+			}
+
+			// Determine validation state for selected components
+			bool isMissingDownload = !component.IsDownloaded;
 			bool hasErrors = false;
-			List<string> errorReasons = new List<string>();
+			var errorReasons = new List<string>();
 
 			// Check for critical errors
-			if (string.IsNullOrWhiteSpace(component.Name))
+			if ( string.IsNullOrWhiteSpace(component.Name) )
 			{
 				hasErrors = true;
 				errorReasons.Add("Missing mod name");
 			}
 
-			// Check if component is selected
-			if (component.IsSelected)
+			// Check for dependency violations
+			if ( component.Dependencies.Count > 0 )
 			{
-				// Check for dependency violations
-				if (component.Dependencies.Count > 0)
+				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				{
-					if (this.FindAncestorOfType<Window>() is MainWindow mainWindow)
+					List<Component> allComponents = mainWindow.MainConfigInstance?.allComponents;
+					if ( allComponents != null )
 					{
-						List<Component> allComponents = mainWindow.MainConfigInstance?.allComponents;
-						if (allComponents != null)
+						List<Component> dependencyComponents = Component.FindComponentsFromGuidList(component.Dependencies, allComponents);
+						foreach ( Component dep in dependencyComponents )
 						{
-							List<Component> dependencyComponents = Component.FindComponentsFromGuidList(component.Dependencies, allComponents);
-							foreach ( Component dep in dependencyComponents)
+							if ( dep != null && !dep.IsSelected )
 							{
-								if (dep != null && !dep.IsSelected)
-								{
-									hasErrors = true;
-									errorReasons.Add($"Requires '{dep.Name}' to be selected");
-								}
+								hasErrors = true;
+								errorReasons.Add($"Requires '{dep.Name}' to be selected");
 							}
 						}
 					}
-				}
-
-				// Check for restriction violations
-				if (component.Restrictions.Count > 0)
-				{
-					if (this.FindAncestorOfType<Window>() is MainWindow mainWindow)
-					{
-						List<Component> allComponents = mainWindow.MainConfigInstance?.allComponents;
-						if (allComponents != null)
-						{
-							List<Component> restrictionComponents = Component.FindComponentsFromGuidList(component.Restrictions, allComponents);
-							foreach ( Component restriction in restrictionComponents)
-							{
-								if (restriction != null && restriction.IsSelected)
-								{
-									hasErrors = true;
-									errorReasons.Add($"Conflicts with '{restriction.Name}' which is selected");
-								}
-							}
-						}
-					}
-				}
-
-				// Check for instruction issues
-				if (component.Instructions.Count == 0)
-				{
-					hasErrors = true;
-					errorReasons.Add("No installation instructions defined");
 				}
 			}
 
+			// Check for restriction violations
+			if ( component.Restrictions.Count > 0 )
+			{
+				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
+				{
+					List<Component> allComponents = mainWindow.MainConfigInstance?.allComponents;
+					if ( allComponents != null )
+					{
+						List<Component> restrictionComponents = Component.FindComponentsFromGuidList(component.Restrictions, allComponents);
+						foreach ( Component restriction in restrictionComponents )
+						{
+							if ( restriction != null && restriction.IsSelected )
+							{
+								hasErrors = true;
+								errorReasons.Add($"Conflicts with '{restriction.Name}' which is selected");
+							}
+						}
+					}
+				}
+			}
+
+			// Check for instruction issues
+			if ( component.Instructions.Count == 0 )
+			{
+				hasErrors = true;
+				errorReasons.Add("No installation instructions defined");
+			}
+
 			// Store error reasons in a static dictionary for tooltip lookup
-			if (errorReasons.Count > 0)
+			if ( errorReasons.Count > 0 )
 			{
 				s_componentErrors[component.Guid] = string.Join("\n", errorReasons);
 			}
@@ -290,13 +299,13 @@ namespace KOTORModSync.Controls
 			}
 
 			// Update border - don't set any border when there are no issues (let default style handle it)
-			if (hasErrors)
+			if ( hasErrors )
 			{
 				// Red border for errors
 				border.BorderBrush = new SolidColorBrush(Color.Parse("#FF6B6B"));
 				border.BorderThickness = new Thickness(2);
 			}
-			else if (isMissingDownload)
+			else if ( isMissingDownload )
 			{
 				// Orange border for missing downloads
 				border.BorderBrush = new SolidColorBrush(Color.Parse("#FFA500"));
@@ -310,25 +319,25 @@ namespace KOTORModSync.Controls
 			}
 
 			// Update validation icon if it exists
-			if ( this.FindControl<TextBlock>("ValidationIcon") is TextBlock validationIcon )
+			if ( this.FindControl<TextBlock>("ValidationIcon") is TextBlock validationIconControl )
 			{
 				if ( hasErrors )
 				{
-					validationIcon.Text = "❌";
-					validationIcon.Foreground = new SolidColorBrush(Color.Parse("#FF6B6B"));
-					validationIcon.IsVisible = true;
-					ToolTip.SetTip(validationIcon, "Component has validation errors");
+					validationIconControl.Text = "❌";
+					validationIconControl.Foreground = new SolidColorBrush(Color.Parse("#FF6B6B"));
+					validationIconControl.IsVisible = true;
+					ToolTip.SetTip(validationIconControl, "Component has validation errors");
 				}
 				else if ( isMissingDownload )
 				{
-					validationIcon.Text = "⚠️";
-					validationIcon.Foreground = new SolidColorBrush(Color.Parse("#FFA500"));
-					validationIcon.IsVisible = true;
-					ToolTip.SetTip(validationIcon, "Mod archive not downloaded");
+					validationIconControl.Text = "⚠️";
+					validationIconControl.Foreground = new SolidColorBrush(Color.Parse("#FFA500"));
+					validationIconControl.IsVisible = true;
+					ToolTip.SetTip(validationIconControl, "Mod archive not downloaded");
 				}
 				else
 				{
-					validationIcon.IsVisible = false;
+					validationIconControl.IsVisible = false;
 				}
 			}
 		}
@@ -357,50 +366,70 @@ namespace KOTORModSync.Controls
 		{
 			var sb = new System.Text.StringBuilder();
 
+			// Only show issues for selected components
+			if ( !component.IsSelected )
+			{
+				// Show basic info for unselected components
+				_ = sb.AppendLine($"📦 {component.Name}");
+				if ( !string.IsNullOrWhiteSpace(component.Author) )
+					_ = sb.AppendLine($"👤 Author: {component.Author}");
+				if ( !string.IsNullOrWhiteSpace(component.Category) )
+					_ = sb.AppendLine($"📁 Category: {component.Category}");
+				if ( !string.IsNullOrWhiteSpace(component.Tier) )
+					_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+				if ( !string.IsNullOrWhiteSpace(component.Description) )
+				{
+					_ = sb.AppendLine();
+					_ = sb.AppendLine("📝 Description:");
+					_ = sb.AppendLine(component.Description);
+				}
+				return sb.ToString();
+			}
+
 			// Check for issues first
-			bool isMissingDownload = component.IsSelected && !component.IsDownloaded;
+			bool isMissingDownload = !component.IsDownloaded;
 			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
 			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
 
 			// Show issue banner if there are problems
-			if (hasErrors || isMissingDownload)
+			if ( hasErrors || isMissingDownload )
 			{
 				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
 				_ = sb.AppendLine(new string('─', 40));
 
-				if (isMissingDownload)
+				if ( isMissingDownload )
 				{
 					_ = sb.AppendLine("❗ Missing Download");
 					_ = sb.AppendLine("This mod is selected but the archive file is not");
 					_ = sb.AppendLine("in your mod directory. Please:");
 					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
 					_ = sb.AppendLine("  2. Or manually download from the mod links");
-					if (component.ModLink.Count > 0)
+					if ( component.ModLink.Count > 0 )
 					{
 						_ = sb.AppendLine($"  3. Download Link: {component.ModLink[0]}");
 					}
 					_ = sb.AppendLine();
 				}
 
-				if (hasErrors)
+				if ( hasErrors )
 				{
 					_ = sb.AppendLine("❌ Configuration Errors:");
 					string[] errors = errorReasons.Split('\n');
-					foreach ( string error in errors)
+					foreach ( string error in errors )
 					{
 						_ = sb.AppendLine($"  • {error}");
 					}
 					_ = sb.AppendLine();
 					_ = sb.AppendLine("How to fix:");
-					if (errorReasons.Contains("Requires"))
+					if ( errorReasons.Contains("Requires") )
 					{
 						_ = sb.AppendLine("  • Enable required dependency mods");
 					}
-					if (errorReasons.Contains("Conflicts"))
+					if ( errorReasons.Contains("Conflicts") )
 					{
 						_ = sb.AppendLine("  • Deselect conflicting mods");
 					}
-					if (errorReasons.Contains("No installation instructions"))
+					if ( errorReasons.Contains("No installation instructions") )
 					{
 						_ = sb.AppendLine("  • This mod needs instructions (contact mod author)");
 					}
@@ -463,13 +492,13 @@ namespace KOTORModSync.Controls
 			border.Tag = currentBrush;
 
 			// Yellow border on hover (unless there's an error/warning, then keep that color but brighten it)
-			if (currentBrush is SolidColorBrush solidBrush)
+			if ( currentBrush is SolidColorBrush solidBrush )
 			{
 				Color color = solidBrush.Color;
 				// If red or orange, brighten it
-				if (color.R > 200 && color.G < 150) // Reddish
+				if ( color.R > 200 && color.G < 150 ) // Reddish
 					border.BorderBrush = new SolidColorBrush(Color.Parse("#FF8888")); // Lighter red
-				else if (color.R > 200 && color.G > 100 && color.G < 200) // Orange
+				else if ( color.R > 200 && color.G > 100 && color.G < 200 ) // Orange
 					border.BorderBrush = new SolidColorBrush(Color.Parse("#FFB84D")); // Lighter orange
 				else
 					border.BorderBrush = new SolidColorBrush(Color.Parse("#A8B348")); // Yellow
@@ -494,15 +523,15 @@ namespace KOTORModSync.Controls
 			CloseAllTooltips();
 
 			// Restore original border
-			if (border.Tag is IBrush originalBrush)
+			if ( border.Tag is IBrush originalBrush )
 			{
 				border.BorderBrush = originalBrush;
 			}
 			else
 			{
 				// Revalidate to restore correct state
-				if (DataContext is Component component)
-				    UpdateValidationState(component);
+				if ( DataContext is Component component )
+					UpdateValidationState(component);
 			}
 
 			border.Background = new SolidColorBrush(Color.Parse("#010116"));

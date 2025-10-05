@@ -1193,31 +1193,30 @@ namespace KOTORModSync
 					if ( !(ModListBox.SelectedItem is Component component) )
 						return;
 
-					// Ctrl+Up - Move selected mod up
-					if ( e.Key == Key.Up && e.KeyModifiers == KeyModifiers.Control )
+					switch (e.Key)
 					{
-						MoveComponentListItem(component, -1);
-						e.Handled = true;
-					}
-					// Ctrl+Down - Move selected mod down
-					else if ( e.Key == Key.Down && e.KeyModifiers == KeyModifiers.Control )
-					{
-						MoveComponentListItem(component, 1);
-						e.Handled = true;
-					}
-					// Delete - Remove selected mod
-					else if ( e.Key == Key.Delete )
-					{
-						CurrentComponent = component;
-						_ = DeleteModWithConfirmation(component);
-						e.Handled = true;
-					}
-					// Space - Toggle selection
-					else if ( e.Key == Key.Space )
-					{
-						component.IsSelected = !component.IsSelected;
-						UpdateModCounts();
-						e.Handled = true;
+						// Ctrl+Up - Move selected mod up
+						case Key.Up when e.KeyModifiers == KeyModifiers.Control:
+							MoveComponentListItem(component, -1);
+							e.Handled = true;
+							break;
+						// Ctrl+Down - Move selected mod down
+						case Key.Down when e.KeyModifiers == KeyModifiers.Control:
+							MoveComponentListItem(component, 1);
+							e.Handled = true;
+							break;
+						// Delete - Remove selected mod
+						case Key.Delete:
+							CurrentComponent = component;
+							_ = DeleteModWithConfirmation(component);
+							e.Handled = true;
+							break;
+						// Space - Toggle selection
+						case Key.Space:
+							component.IsSelected = !component.IsSelected;
+							UpdateModCounts();
+							e.Handled = true;
+							break;
 					}
 				}
 				catch ( Exception ex )
@@ -1915,7 +1914,7 @@ namespace KOTORModSync
 			};
 
 			int minTierLevel = _selectedMinTier == "Any" ? int.MaxValue :
-				(tierHierarchy.GetValueOrDefault(_selectedMinTier, int.MaxValue));
+				tierHierarchy.GetValueOrDefault(_selectedMinTier, int.MaxValue);
 
 			return components.Where(c =>
 			{
@@ -1981,10 +1980,9 @@ namespace KOTORModSync
 
 					checkBox.IsCheckedChanged += (s, e) =>
 					{
-						if ( checkBox.IsChecked == true )
-							_ = _selectedCategories.Add(category);
-						else
-							_ = _selectedCategories.Remove(category);
+						_ = checkBox.IsChecked == true
+						        ? _selectedCategories.Add(category)
+								: _selectedCategories.Remove(category);
 
 						ApplyAllFilters();
 					};
@@ -3544,11 +3542,10 @@ namespace KOTORModSync
 				progressWindow.Closed -= ProgressWindowClosed;
 				progressWindow.Dispose();
 				_progressWindowClosed = true;
-				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
-				{
-					_ = Logger.LogVerboseAsync("Install terminated, re-enabling the close button in the console window");
-					ConsoleConfig.EnableCloseButton();
-				}
+				if ( Utility.GetOperatingSystem() != OSPlatform.Windows )
+				    return;
+				_ = Logger.LogVerboseAsync("Install terminated, re-enabling the close button in the console window");
+				ConsoleConfig.EnableCloseButton();
 			}
 			catch ( Exception exception )
 			{
@@ -3885,56 +3882,61 @@ namespace KOTORModSync
 				// Ask user what to do with existing components
 				bool? result = await ShowConfigLoadConfirmation(fileType);
 
-				if ( result == true ) // User clicked "Merge"
+				switch (result)
 				{
-					// Ask user which merge strategy to use
-					MergeStrategy? mergeStrategy = await ShowMergeStrategyDialog();
-					if ( mergeStrategy == null ) // User cancelled
-						return false;
-
-					// Show conflict resolution dialog
-					var conflictDialog = new ComponentMergeConflictDialog(
-						MainConfig.AllComponents,
-						newComponents,
-						"Currently Loaded Components",
-						fileType,
-						(existing, incoming) =>
+					// User clicked "Merge"
+					case true:
 						{
-							// Match based on selected strategy
-							if ( mergeStrategy.Value == MergeStrategy.ByGuid )
-								return existing.Guid == incoming.Guid;
-							// Use fuzzy matching for name/author
-							return FuzzyMatcher.FuzzyMatchComponents(existing, incoming);
-						});
+							// Ask user which merge strategy to use
+							MergeStrategy? mergeStrategy = await ShowMergeStrategyDialog();
+							if ( mergeStrategy == null ) // User cancelled
+								return false;
 
-					await conflictDialog.ShowDialog(this);
+							// Show conflict resolution dialog
+							var conflictDialog = new ComponentMergeConflictDialog(
+								MainConfig.AllComponents,
+								newComponents,
+								"Currently Loaded Components",
+								fileType,
+								(existing, incoming) =>
+								{
+									// Match based on selected strategy
+									if ( mergeStrategy.Value == MergeStrategy.ByGuid )
+										return existing.Guid == incoming.Guid;
+									// Use fuzzy matching for name/author
+									return FuzzyMatcher.FuzzyMatchComponents(existing, incoming);
+								});
 
-					if ( conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null )
-					{
-						int originalCount = MainConfig.AllComponents.Count;
-						MainConfigInstance.allComponents = conflictDialog.MergedComponents;
-						int newCount = MainConfig.AllComponents.Count;
+							await conflictDialog.ShowDialog(this);
+
+							if ( conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null )
+							{
+								int originalCount = MainConfig.AllComponents.Count;
+								MainConfigInstance.allComponents = conflictDialog.MergedComponents;
+								int newCount = MainConfig.AllComponents.Count;
+								_lastLoadedFileName = Path.GetFileName(filePath);
+
+								string strategyName = mergeStrategy.Value == MergeStrategy.ByGuid ? "GUID matching" : "name/author matching";
+								await Logger.LogAsync($"Merged {newComponents.Count} components from {fileType} with existing {originalCount} components using {strategyName}. Total components now: {newCount}");
+							}
+							else
+							{
+								await Logger.LogAsync("Merge cancelled by user.");
+								return false;
+							}
+
+							break;
+						}
+					// User clicked "Overwrite"
+					case false:
+						// Replace all existing components with new ones
+						MainConfigInstance.allComponents = newComponents;
 						_lastLoadedFileName = Path.GetFileName(filePath);
-
-						string strategyName = mergeStrategy.Value == MergeStrategy.ByGuid ? "GUID matching" : "name/author matching";
-						await Logger.LogAsync($"Merged {newComponents.Count} components from {fileType} with existing {originalCount} components using {strategyName}. Total components now: {newCount}");
-					}
-					else
-					{
-						await Logger.LogAsync("Merge cancelled by user.");
+						await Logger.LogAsync($"Overwrote existing config with {newComponents.Count} components from {fileType}.");
+						break;
+					// User cancelled
+					default:
 						return false;
-					}
-				}
-				else if ( result == false ) // User clicked "Overwrite"
-				{
-					// Replace all existing components with new ones
-					MainConfigInstance.allComponents = newComponents;
-					_lastLoadedFileName = Path.GetFileName(filePath);
-					await Logger.LogAsync($"Overwrote existing config with {newComponents.Count} components from {fileType}.");
-				}
-				else // User cancelled
-				{
-					return false;
 				}
 
 				await ProcessComponentsAsync(MainConfig.AllComponents);
@@ -4975,20 +4977,19 @@ namespace KOTORModSync
 				// Update progress bar (0-4 scale)
 				int completedSteps = (step1Complete ? 1 : 0) + (step2Complete ? 1 : 0) +
 									(step3Complete ? 1 : 0) + (step4Complete ? 1 : 0);
-				if ( canUpdateProgress )
-				{
-					progressBar.Value = completedSteps;
+				if ( !canUpdateProgress )
+				    return;
+				progressBar.Value = completedSteps;
 
-					// Update progress text
-					string[] messages = {
-							"Complete the steps above to get started",
-							"Great start! Continue with the next steps",
-							"Almost there! Just a few more steps",
-							"Excellent progress! You're almost ready",
-							"🎉 All steps completed! You're ready to install mods",
-						};
-					progressText.Text = messages[Math.Min(completedSteps, messages.Length - 1)];
-				}
+				// Update progress text
+				string[] messages = {
+					"Complete the steps above to get started",
+					"Great start! Continue with the next steps",
+					"Almost there! Just a few more steps",
+					"Excellent progress! You're almost ready",
+					"🎉 All steps completed! You're ready to install mods",
+				};
+				progressText.Text = messages[Math.Min(completedSteps, messages.Length - 1)];
 
 				// No need to update displays - using reusable DirectoryPickerControl now
 			}
@@ -5033,23 +5034,24 @@ namespace KOTORModSync
 		{
 			try
 			{
-				if ( e.PickerType == DirectoryPickerType.ModDirectory )
+				switch (e.PickerType)
 				{
-					// Update MainConfig
-					MainConfigInstance.sourcePath = new DirectoryInfo(e.Path);
-					Logger.Log($"Mod directory set to: {e.Path}");
+					case DirectoryPickerType.ModDirectory:
+						// Update MainConfig
+						MainConfigInstance.sourcePath = new DirectoryInfo(e.Path);
+						Logger.Log($"Mod directory set to: {e.Path}");
 
-					// Update all mod directory pickers
-					SyncDirectoryPickers(DirectoryPickerType.ModDirectory, e.Path);
-				}
-				else if ( e.PickerType == DirectoryPickerType.KotorDirectory )
-				{
-					// Update MainConfig
-					MainConfigInstance.destinationPath = new DirectoryInfo(e.Path);
-					Logger.Log($"KOTOR installation directory set to: {e.Path}");
+						// Update all mod directory pickers
+						SyncDirectoryPickers(DirectoryPickerType.ModDirectory, e.Path);
+						break;
+					case DirectoryPickerType.KotorDirectory:
+						// Update MainConfig
+						MainConfigInstance.destinationPath = new DirectoryInfo(e.Path);
+						Logger.Log($"KOTOR installation directory set to: {e.Path}");
 
-					// Update all kotor directory pickers
-					SyncDirectoryPickers(DirectoryPickerType.KotorDirectory, e.Path);
+						// Update all kotor directory pickers
+						SyncDirectoryPickers(DirectoryPickerType.KotorDirectory, e.Path);
+						break;
 				}
 
 				// Update step progress
@@ -5165,9 +5167,7 @@ namespace KOTORModSync
 				// Initial scan - only if components are already loaded
 				// If components aren't loaded yet, scan will be triggered when they are loaded
 				if ( MainConfig.AllComponents.Count > 0 )
-				{
 					ScanModDirectoryForDownloads();
-				}
 			}
 			catch ( Exception ex )
 			{
@@ -5200,11 +5200,10 @@ namespace KOTORModSync
 			{
 				try
 				{
-					if ( MainConfig.SourcePath != null && Directory.Exists(MainConfig.SourcePath.FullName) )
-					{
-						Logger.LogVerbose("Attempting to restart file watcher after error");
-						SetupModDirectoryWatcher(MainConfig.SourcePath.FullName);
-					}
+					if ( MainConfig.SourcePath == null || !Directory.Exists(MainConfig.SourcePath.FullName) )
+					    return;
+					Logger.LogVerbose("Attempting to restart file watcher after error");
+					SetupModDirectoryWatcher(MainConfig.SourcePath.FullName);
 				}
 				catch ( Exception ex )
 				{
@@ -5288,26 +5287,23 @@ namespace KOTORModSync
 			try
 			{
 				if ( component?.Instructions == null || component.Instructions.Count == 0 )
-				{
 					// Components without instructions might still be valid (e.g., meta-mods with only dependencies)
 					return true;
-				}
 
 				// Use ComponentValidation - same logic as PreinstallValidationService
 				var validator = new ComponentValidation(component, MainConfig.AllComponents);
 				bool isValid = validator.Run();
 
 				// Log validation errors if any
-				if ( !isValid )
+				if ( isValid )
+				    return true;
+				List<string> errors = validator.GetErrors();
+				foreach ( string error in errors )
 				{
-					List<string> errors = validator.GetErrors();
-					foreach ( string error in errors )
-					{
-						Logger.LogVerbose($"Component '{component.Name}': {error}");
-					}
+					Logger.LogVerbose($"Component '{component.Name}': {error}");
 				}
 
-				return isValid;
+				return false;
 			}
 			catch ( Exception ex )
 			{
@@ -5479,9 +5475,7 @@ namespace KOTORModSync
 										foreach ( DownloadProgress child in progress.ChildDownloads )
 										{
 											if ( child.Status == DownloadStatus.Pending && !string.IsNullOrEmpty(child.Url) )
-											{
 												groupUrlMap[child.Url] = child;
-											}
 										}
 
 										if ( groupUrlMap.Count > 0 )
@@ -5653,6 +5647,10 @@ namespace KOTORModSync
 							});
 						}
 						break;
+					case DownloadControlAction.Resume:
+						break;
+					default:
+						throw new ArgumentOutOfRangeException(nameof(args.Action));
 				}
 			}
 			catch ( Exception ex )
@@ -5679,13 +5677,9 @@ namespace KOTORModSync
 
 				string statusMessage;
 				if ( totalSelected == 0 )
-				{
 					statusMessage = "No mods are currently selected for installation.";
-				}
 				else if ( downloadedCount == totalSelected )
-				{
 					statusMessage = $"All {totalSelected} selected mod(s) are downloaded and ready for installation!";
-				}
 				else
 				{
 					int missing = totalSelected - downloadedCount;
@@ -5753,17 +5747,14 @@ namespace KOTORModSync
 
 					// Try to generate instructions
 					bool success = component.TryGenerateInstructionsFromArchive();
-					if ( success )
-					{
-						generatedCount++;
-						await Logger.LogAsync($"Auto-generated instructions for '{component.Name}': {component.InstallationMethod}");
-					}
+					if ( !success )
+					    continue;
+					generatedCount++;
+					await Logger.LogAsync($"Auto-generated instructions for '{component.Name}': {component.InstallationMethod}");
 				}
 
 				if ( generatedCount > 0 )
-				{
-					await Logger.LogAsync($"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions.");
-				}
+				    await Logger.LogAsync($"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions.");
 			}
 			catch ( Exception ex )
 			{
@@ -5905,81 +5896,134 @@ namespace KOTORModSync
 			}
 		}
 
+		private void ToggleErroredMods_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				if ( !(sender is CheckBox checkBox) )
+					return;
+
+				bool shouldSelect = checkBox.IsChecked == true;
+				var visitedComponents = new HashSet<Component>();
+
+				// Find all errored components (missing downloads or validation errors)
+				var erroredComponents = MainConfig.AllComponents.Where(c =>
+				{
+					// Check if component is missing download (only if selected)
+					if ( c.IsSelected && !c.IsDownloaded )
+						return true;
+
+					// Check if component has validation errors
+					var validator = new ComponentValidation(c, MainConfig.AllComponents);
+					bool isValid = validator.Run();
+					return !isValid;
+				}).ToList();
+
+				if ( erroredComponents.Count == 0 )
+				{
+					Logger.LogVerbose("No errored mods found to toggle.");
+					checkBox.IsChecked = false;
+					return;
+				}
+
+				// Toggle selection for all errored components
+				foreach ( Component component in erroredComponents )
+				{
+					if ( component.IsSelected != shouldSelect )
+					{
+						component.IsSelected = shouldSelect;
+						if ( shouldSelect )
+							ComponentCheckboxChecked(component, visitedComponents);
+						else
+							ComponentCheckboxUnchecked(component, visitedComponents);
+					}
+				}
+
+				// Update UI
+				UpdateModCounts();
+				UpdateStepProgress();
+
+				Logger.LogVerbose($"{(shouldSelect ? "Selected" : "Deselected")} {erroredComponents.Count} errored mod(s).");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error toggling errored mods");
+			}
+		}
+
 		[UsedImplicitly]
 		private async void JumpToCurrentStep_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
 				// Find the ScrollViewer in the Getting Started tab
-				var gettingStartedTab = this.FindControl<TabItem>("InitialTab");
-				if ( gettingStartedTab?.Content is ScrollViewer scrollViewer )
+				TabItem gettingStartedTab = this.FindControl<TabItem>("InitialTab");
+				if ( !(gettingStartedTab?.Content is ScrollViewer scrollViewer) )
+				    return;
+				// Determine the current step based on completion status
+				Border targetStepBorder;
+
+				// Check Step 1: Directories
+				bool step1Complete = !string.IsNullOrEmpty(MainConfig.SourcePath?.FullName) &&
+				                     !string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName);
+				if ( !step1Complete )
 				{
-					// Determine the current step based on completion status
-					Border targetStepBorder;
-
-					// Check Step 1: Directories
-					bool step1Complete = !string.IsNullOrEmpty(MainConfig.SourcePath?.FullName) &&
-										!string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName);
-					if ( !step1Complete )
+					targetStepBorder = this.FindControl<Border>("Step1Border");
+				}
+				// Check Step 2: Components loaded
+				else
+				{
+					bool step2Complete = MainConfig.AllComponents.Count > 0;
+					if ( !step2Complete )
 					{
-						targetStepBorder = this.FindControl<Border>("Step1Border");
+						targetStepBorder = this.FindControl<Border>("Step2Border");
 					}
-					// Check Step 2: Components loaded
+					// Check Step 3: At least one component selected
 					else
 					{
-						bool step2Complete = MainConfig.AllComponents.Count > 0;
-						if ( !step2Complete )
-						{
-							targetStepBorder = this.FindControl<Border>("Step2Border");
-						}
-						// Check Step 3: At least one component selected
-						else
-						{
-							bool step3Complete = MainConfig.AllComponents.Any(c => c.IsSelected);
-							targetStepBorder = this.FindControl<Border>(!step3Complete ? "Step3Border" :
-								// Check Step 4: Download status
-								// For now, assume Step 4 (Download) is the next step if Step 3 is complete
-								// In a more sophisticated implementation, we could check download status
-								"Step4Border");
-						}
+						bool step3Complete = MainConfig.AllComponents.Any(c => c.IsSelected);
+						targetStepBorder = this.FindControl<Border>(!step3Complete ? "Step3Border" :
+							// Check Step 4: Download status
+							// For now, assume Step 4 (Download) is the next step if Step 3 is complete
+							// In a more sophisticated implementation, we could check download status
+							"Step4Border");
 					}
+				}
 
-					if ( targetStepBorder != null )
-					{
-						// Calculate the position to scroll to
-						// Get the bounds of the target step relative to the ScrollViewer's content
-						Rect targetBounds = targetStepBorder.Bounds;
+				if ( targetStepBorder != null )
+				{
+					// Calculate the position to scroll to
+					// Get the bounds of the target step relative to the ScrollViewer's content
+					Rect targetBounds = targetStepBorder.Bounds;
 
-						// Calculate the offset to center the target step in the viewport
-						double targetOffset = targetBounds.Top - scrollViewer.Viewport.Height / 2 + targetBounds.Height / 2;
+					// Calculate the offset to center the target step in the viewport
+					double targetOffset = targetBounds.Top - scrollViewer.Viewport.Height / 2 + targetBounds.Height / 2;
 
-						// Ensure we don't scroll past the content bounds
-						targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
+					// Ensure we don't scroll past the content bounds
+					targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
 
-						// Scroll to the target position (Avalonia doesn't have SmoothScrollToVerticalOffset)
-						scrollViewer.Offset = new Vector(0, targetOffset);
+					// Scroll to the target position (Avalonia doesn't have SmoothScrollToVerticalOffset)
+					scrollViewer.Offset = new Vector(0, targetOffset);
 
-						// Briefly highlight the target step
-						await HighlightStep(targetStepBorder);
-					}
-					else
-					{
-						// All steps complete - scroll to the progress section
-						// Find the progress section by looking for a Border with "progress-section" class
-						Border progressSection = FindProgressSection(scrollViewer.Content as Panel);
-						if ( progressSection != null )
-						{
-							Rect progressBounds = progressSection.Bounds;
-							double targetOffset = progressBounds.Top - (scrollViewer.Viewport.Height / 2) + (progressBounds.Height / 2);
-							targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
-							scrollViewer.Offset = new Vector(0, targetOffset);
-						}
-					}
+					// Briefly highlight the target step
+					await HighlightStep(targetStepBorder);
+				}
+				else
+				{
+					// All steps complete - scroll to the progress section
+					// Find the progress section by looking for a Border with "progress-section" class
+					Border progressSection = FindProgressSection(scrollViewer.Content as Panel);
+					if ( progressSection == null )
+					    return;
+					Rect progressBounds = progressSection.Bounds;
+					double targetOffset = progressBounds.Top - scrollViewer.Viewport.Height / 2 + progressBounds.Height / 2;
+					targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
+					scrollViewer.Offset = new Vector(0, targetOffset);
 				}
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex);
+				await Logger.LogExceptionAsync(ex);
 			}
 		}
 
@@ -6004,7 +6048,7 @@ namespace KOTORModSync
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex);
+				await Logger.LogExceptionAsync(ex);
 			}
 		}
 
@@ -6012,16 +6056,18 @@ namespace KOTORModSync
 		{
 			if ( panel == null ) return null;
 
-			foreach ( var child in panel.Children )
+			foreach ( Control child in panel.Children )
 			{
-				if ( child is Border border && border.Classes.Contains("progress-section") )
+				switch (child)
 				{
-					return border;
-				}
-				if ( child is Panel childPanel )
-				{
-					var result = FindProgressSection(childPanel);
-					if ( result != null ) return result;
+					case Border border when border.Classes.Contains("progress-section"):
+						return border;
+					case Panel childPanel:
+						{
+							Border result = FindProgressSection(childPanel);
+							if ( result != null ) return result;
+							break;
+						}
 				}
 			}
 			return null;

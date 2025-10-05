@@ -1010,7 +1010,7 @@ namespace KOTORModSync.Tests
 		#region Helper Methods for Hybrid Tests
 
 		private string CreateHybridArchive(string archiveName, bool hasTslPatcher, bool hasNamespacesIni,
-			Dictionary<string, string[]> overrideFolders = null, string patcherInSubfolder = null)
+			Dictionary<string, string[]>? overrideFolders = null, string? patcherInSubfolder = null)
 		{
 			string archivePath = Path.Combine(_testDirectory, archiveName);
 			using ( var archive = ZipArchive.Create() )

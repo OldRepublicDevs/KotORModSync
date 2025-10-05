@@ -4,45 +4,49 @@
 
 using KOTORModSync.Core;
 
-namespace KOTORModSync.Tests.TestHelpers;
-
-internal static class TestComponentFactory
+namespace KOTORModSync.Tests.TestHelpers
 {
-	public static Component CreateComponent(string name, DirectoryInfo workingDirectory)
+	internal static class TestComponentFactory
 	{
-		if ( workingDirectory is null )
-			throw new ArgumentNullException(nameof(workingDirectory));
-
-		string fakeArchivePath = Path.Combine(workingDirectory.FullName, name + ".zip");
-		CreateMinimalZip(fakeArchivePath);
-
-		var extractInstruction = new Instruction
+		public static Component CreateComponent(string name, DirectoryInfo workingDirectory)
 		{
-			Action = Instruction.ActionType.Extract,
-			Source = [fakeArchivePath],
-		};
+			if ( workingDirectory is null )
+				throw new ArgumentNullException(nameof(workingDirectory));
 
-		return new Component
-		{
-			Guid = Guid.NewGuid(),
-			Name = name,
-			IsSelected = true,
-			Instructions = [extractInstruction],
-		};
-	}
+			string fakeArchivePath = Path.Combine(workingDirectory.FullName, name + ".zip");
+			CreateMinimalZip(fakeArchivePath);
 
-	private static void CreateMinimalZip(string path)
-	{
-		_ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-		byte[] emptyZip =
+			string extractDestination = Path.Combine(workingDirectory.FullName, "extracted", name);
+			_ = Directory.CreateDirectory(extractDestination);
+
+			Instruction extractInstruction = new()
+			{
+				Action = Instruction.ActionType.Extract,
+				Source = [fakeArchivePath],
+				Destination = extractDestination,
+			};
+
+			return new Component
+			{
+				Guid = Guid.NewGuid(),
+				Name = name,
+				IsSelected = true,
+				Instructions = [extractInstruction],
+			};
+		}
+
+		private static void CreateMinimalZip(string path)
 		{
-			0x50, 0x4B, 0x05, 0x06,
-			0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00
-		};
-		File.WriteAllBytes(path, emptyZip);
+			_ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+			byte[] emptyZip = [
+				0x50, 0x4B, 0x05, 0x06,
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00
+			];
+			File.WriteAllBytes(path, emptyZip);
+		}
 	}
 }

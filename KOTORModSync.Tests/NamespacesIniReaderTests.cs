@@ -10,17 +10,30 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class NamespacesIniReaderTests
 	{
-		private static Stream CreateNamespacesIniStream(string content)
-		{
-			byte[] byteArray = Encoding.UTF8.GetBytes(content);
-			return new MemoryStream(byteArray);
-		}
+	private static Stream CreateNamespacesIniStream(string content)
+	{
+		byte[] byteArray = Encoding.UTF8.GetBytes(content);
+		return new MemoryStream(byteArray);
+	}
 
-		[Test]
-		public void ReadNamespacesIniFromArchive_WhenValidInput_ReturnsNamespaces()
+	private static Stream CreateNamespacesIniArchive(string content)
+	{
+		var memoryStream = new MemoryStream();
+		using ( SharpCompress.Writers.IWriter archive = SharpCompress.Writers.WriterFactory.Open(memoryStream, SharpCompress.Common.ArchiveType.Zip, new SharpCompress.Writers.WriterOptions(SharpCompress.Common.CompressionType.Deflate) { LeaveStreamOpen = true }) )
 		{
-			// Arrange
-			const string content = @"
+			byte[] contentBytes = Encoding.UTF8.GetBytes(content);
+			using ( var contentStream = new MemoryStream(contentBytes) )
+			    archive.Write("tslpatchdata/namespaces.ini", contentStream, DateTime.Now);
+		}
+		memoryStream.Position = 0;
+		return memoryStream;
+	}
+
+	[Test]
+	public void ReadNamespacesIniFromArchive_WhenValidInput_ReturnsNamespaces()
+	{
+		// Arrange
+		const string content = @"
 [Namespaces]
 Namespace1=standard
 Namespace2=hk50
@@ -39,30 +52,37 @@ Name=standard hk47 with tslrcm
 [hk50TSLRCM]
 Name=hk50 with tslrcm
 ";
-			Stream stream = CreateNamespacesIniStream(content);
+		Stream stream = CreateNamespacesIniArchive(content);
 
-			// Act
-			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(stream);
+		// Act
+		Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(stream);
 
-			// Assert
-			Assert.That(result, Is.Not.Null);
-			Assert.That(result, Has.Count.EqualTo(4));
+		// Assert
+		Assert.That(result, Is.Not.Null);
+		Assert.That(result, Has.Count.EqualTo(5));
 
-			Assert.Multiple(
-				() =>
-				{
-					Assert.That(result["Namespace1"]["standard"], Is.EqualTo("standard hk47 no tslrcm"));
-					Assert.That(result["Namespace2"]["hk50"], Is.EqualTo("hk50 no tslrcm"));
-					Assert.That(result["Namespace3"]["standardTSLRCM"], Is.EqualTo("standard hk47 with tslrcm"));
-					Assert.That(result["Namespace4"]["hk50TSLRCM"], Is.EqualTo("hk50 with tslrcm"));
-				}
-			);
-		}
+		Assert.Multiple(
+			() =>
+			{
+				Assert.That(result["Namespaces"]["Namespace1"], Is.EqualTo("standard"));
+				Assert.That(result["Namespaces"]["Namespace2"], Is.EqualTo("hk50"));
+				Assert.That(result["Namespaces"]["Namespace3"], Is.EqualTo("standardTSLRCM"));
+				Assert.That(result["Namespaces"]["Namespace4"], Is.EqualTo("hk50TSLRCM"));
+				Assert.That(result["standard"]["Name"], Is.EqualTo("standard hk47 no tslrcm"));
+				Assert.That(result["hk50"]["Name"], Is.EqualTo("hk50 no tslrcm"));
+				Assert.That(result["standardTSLRCM"]["Name"], Is.EqualTo("standard hk47 with tslrcm"));
+				Assert.That(result["hk50TSLRCM"]["Name"], Is.EqualTo("hk50 with tslrcm"));
+			}
+		);
+	}
 
-		[Test]
-		public void ReadNamespacesIniFromArchive_WhenTslPatchDataFolderNotFound_ReturnsNull()
+	[Test]
+	public void ReadNamespacesIniFromArchive_WhenTslPatchDataFolderNotFound_ReturnsNull()
+	{
+		// Arrange - Create archive without tslpatchdata folder
+		var memoryStream = new MemoryStream();
+		using ( SharpCompress.Writers.IWriter archive = SharpCompress.Writers.WriterFactory.Open(memoryStream, SharpCompress.Common.ArchiveType.Zip, new SharpCompress.Writers.WriterOptions(SharpCompress.Common.CompressionType.Deflate) { LeaveStreamOpen = true }) )
 		{
-			// Arrange
 			const string content = @"
 [Namespaces]
 Namespace1=standard
@@ -70,14 +90,21 @@ Namespace2=hk50
 Namespace3=standardTSLRCM
 Namespace4=hk50TSLRCM
 ";
-			Stream stream = CreateNamespacesIniStream(content);
-
-			// Act
-			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(stream);
-
-			// Assert
-			Assert.That(result, Is.Null);
+			byte[] contentBytes = Encoding.UTF8.GetBytes(content);
+			using ( var contentStream = new MemoryStream(contentBytes) )
+			{
+				// Write to root without tslpatchdata folder
+				archive.Write("namespaces.ini", contentStream, DateTime.Now);
+			}
 		}
+		memoryStream.Position = 0;
+
+		// Act
+		Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(memoryStream);
+
+		// Assert
+		Assert.That(result, Is.Null);
+	}
 
 		[Test]
 		public void ReadNamespacesIniFromArchive_WhenInvalidContent_ReturnsNull()
@@ -117,24 +144,22 @@ Name=standard hk47 with tslrcm
 Name=hk50 with tslrcm
 ";
 
-			using ( var reader = new StreamReader(CreateNamespacesIniStream(content)) )
-			{
-				// Act
-				Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni(reader);
+			using var reader = new StreamReader(CreateNamespacesIniStream(content));
+			// Act
+			Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni(reader);
 
-				// Assert
-				Assert.That(result, Is.Not.Null);
-				Assert.That(result, Has.Count.EqualTo(5));
-				Assert.Multiple(
-					() =>
-					{
-						Assert.That(result["standard"]["Name"], Is.EqualTo("standard hk47 no tslrcm"));
-						Assert.That(result["hk50"]["Name"], Is.EqualTo("hk50 no tslrcm"));
-						Assert.That(result["standardTSLRCM"]["Name"], Is.EqualTo("standard hk47 with tslrcm"));
-						Assert.That(result["hk50TSLRCM"]["Name"], Is.EqualTo("hk50 with tslrcm"));
-					}
-				);
-			}
+			// Assert
+			Assert.That(result, Is.Not.Null);
+			Assert.That(result, Has.Count.EqualTo(5));
+			Assert.Multiple(
+				() =>
+				{
+					Assert.That(result["standard"]["Name"], Is.EqualTo("standard hk47 no tslrcm"));
+					Assert.That(result["hk50"]["Name"], Is.EqualTo("hk50 no tslrcm"));
+					Assert.That(result["standardTSLRCM"]["Name"], Is.EqualTo("standard hk47 with tslrcm"));
+					Assert.That(result["hk50TSLRCM"]["Name"], Is.EqualTo("hk50 with tslrcm"));
+				}
+			);
 		}
 
 		[Test]

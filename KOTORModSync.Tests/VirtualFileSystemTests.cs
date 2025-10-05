@@ -123,6 +123,8 @@ namespace KOTORModSync.Tests
 				};
 
 				using var process = Process.Start(startInfo);
+				if ( process == null )
+				    return;
 				process.WaitForExit();
 			}
 			finally
@@ -836,7 +838,7 @@ namespace KOTORModSync.Tests
 		#region Validation Tests (Should Fail)
 
 		[Test]
-		public async Task Test_ExtractNonExistentArchive_ShouldFail()
+		public void Test_ExtractNonExistentArchive_ShouldFail()
 		{
 			// Arrange
 			var instructions = new List<Instruction>

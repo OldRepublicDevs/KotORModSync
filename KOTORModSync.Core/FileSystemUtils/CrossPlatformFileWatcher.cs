@@ -38,7 +38,12 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		public bool EnableRaisingEvents { get; set; }
 
-		public CrossPlatformFileWatcher(string path, string filter = "*.*", NotifyFilters notifyFilters = NotifyFilters.FileName | NotifyFilters.LastWrite, bool includeSubdirectories = false)
+		public CrossPlatformFileWatcher(
+			string path,
+			string filter = "*.*",
+			NotifyFilters notifyFilters = NotifyFilters.FileName | NotifyFilters.LastWrite,
+			bool includeSubdirectories = false
+		)
 		{
 			_path = path ?? throw new ArgumentNullException(nameof(path));
 			_filter = filter ?? "*.*";
@@ -61,13 +66,9 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 				// Choose platform-specific implementation
 				if (Utility.Utility.GetOperatingSystem() == OSPlatform.Windows)
-				{
 					StartWindowsWatcher();
-				}
 				else
-				{
 					StartPollingWatcher();
-				}
 			}
 		}
 
@@ -151,7 +152,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error during initial directory scan");
+				await Logger.LogExceptionAsync(ex, "Error during initial directory scan");
 				OnError(new ErrorEventArgs(ex));
 				return;
 			}
@@ -169,37 +170,30 @@ namespace KOTORModSync.Core.FileSystemUtils
 					foreach (string file in previousFiles)
 					{
 						if (!currentFiles.Contains(file))
-						{
-							OnDeleted(new FileSystemEventArgs(WatcherChangeTypes.Deleted, Path.GetDirectoryName(file), Path.GetFileName(file)));
-						}
+						    OnDeleted(new FileSystemEventArgs(WatcherChangeTypes.Deleted, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 					}
 
 					// Check for created files
 					foreach (string file in currentFiles)
 					{
 						if (!previousFiles.Contains(file))
-						{
-							OnCreated(new FileSystemEventArgs(WatcherChangeTypes.Created, Path.GetDirectoryName(file), Path.GetFileName(file)));
-						}
+						    OnCreated(new FileSystemEventArgs(WatcherChangeTypes.Created, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 					}
 
 					// Check for changed files (simplified - just check modification time)
 					foreach (string file in currentFiles)
 					{
-						if (previousFiles.Contains(file))
+						if ( !previousFiles.Contains(file) )
+						    continue;
+						try
 						{
-							try
-							{
-								var fileInfo = new FileInfo(file);
-								if (fileInfo.LastWriteTime > _lastPollTime)
-								{
-									OnChanged(new FileSystemEventArgs(WatcherChangeTypes.Changed, Path.GetDirectoryName(file), Path.GetFileName(file)));
-								}
-							}
-							catch (Exception ex)
-							{
-								Logger.LogVerbose($"Error checking file modification time for {file}: {ex.Message}");
-							}
+							var fileInfo = new FileInfo(file);
+							if (fileInfo.LastWriteTime > _lastPollTime)
+								OnChanged(new FileSystemEventArgs(WatcherChangeTypes.Changed, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
+						}
+						catch (Exception ex)
+						{
+							await Logger.LogVerboseAsync($"Error checking file modification time for {file}: {ex.Message}");
 						}
 					}
 
@@ -207,7 +201,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 					previousFiles.Clear();
 					foreach (string file in currentFiles)
 					{
-						previousFiles.Add(file);
+						_ = previousFiles.Add(file);
 					}
 
 					_lastPollTime = DateTime.Now;
@@ -218,7 +212,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				}
 				catch (Exception ex)
 				{
-					Logger.LogException(ex, "Error in polling loop");
+					await Logger.LogExceptionAsync(ex, "Error in polling loop");
 					OnError(new ErrorEventArgs(ex));
 
 					// Wait a bit before retrying to avoid rapid error loops
@@ -241,20 +235,20 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 			try
 			{
-				var searchOption = _includeSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-				var files = Directory.GetFiles(_path, _filter, searchOption);
+				SearchOption searchOption = _includeSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+				string[] files = Directory.GetFiles(_path, _filter, searchOption);
 
 				foreach (string file in files)
 				{
 					cancellationToken.ThrowIfCancellationRequested();
-					fileSet.Add(file);
+					_ = fileSet.Add(file);
 				}
 
 				await Task.CompletedTask;
 			}
 			catch (Exception ex)
 			{
-				Logger.LogVerbose($"Error scanning directory {_path}: {ex.Message}");
+				await Logger.LogVerboseAsync($"Error scanning directory {_path}: {ex.Message}");
 				throw;
 			}
 		}
@@ -295,10 +289,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				Renamed?.Invoke(this, e);
 		}
 
-		private void OnError(ErrorEventArgs e)
-		{
-			Error?.Invoke(this, e);
-		}
+		private void OnError(ErrorEventArgs e) => Error?.Invoke(this, e);
 
 		#endregion
 
@@ -319,17 +310,14 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 				_disposed = true;
 
-				if (disposing)
-				{
-					StopWatching();
-				}
+				if ( !disposing )
+				    return;
+				EnableRaisingEvents = false;
+				StopWatching();
 			}
 		}
 
-		~CrossPlatformFileWatcher()
-		{
-			Dispose(false);
-		}
+		~CrossPlatformFileWatcher() => Dispose(false);
 
 		#endregion
 	}

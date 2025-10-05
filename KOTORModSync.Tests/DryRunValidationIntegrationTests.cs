@@ -115,7 +115,7 @@ namespace KOTORModSync.Tests
 				foreach (var kvp in files)
 				{
 					string filePath = Path.Combine(tempDir, kvp.Key);
-					string fileDir = Path.GetDirectoryName(filePath);
+					string? fileDir = Path.GetDirectoryName(filePath);
 					if (!string.IsNullOrEmpty(fileDir))
 						Directory.CreateDirectory(fileDir);
 					File.WriteAllText(filePath, kvp.Value);
@@ -131,12 +131,12 @@ namespace KOTORModSync.Tests
 					CreateNoWindow = true
 				};
 
-				using (var process = Process.Start(startInfo))
-				{
-					process.WaitForExit();
-					if (process.ExitCode != 0)
-						throw new InvalidOperationException($"7-Zip failed: {process.StandardError.ReadToEnd()}");
-				}
+				using var process = Process.Start(startInfo);
+				if ( process == null )
+				    return;
+				process.WaitForExit();
+				if (process.ExitCode != 0)
+					throw new InvalidOperationException($"7-Zip failed: {process.StandardError.ReadToEnd()}");
 			}
 			finally
 			{

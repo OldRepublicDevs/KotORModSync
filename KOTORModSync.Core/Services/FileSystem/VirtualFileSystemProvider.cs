@@ -59,9 +59,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 
 					// Pre-scan archives to know their contents synchronously during initialization
 					if ( IsArchiveFile(file.FullName) )
-					{
 						await ScanArchiveContentsAsync(file.FullName);
-					}
 				}
 
 				foreach ( DirectoryInfo dir in new DirectoryInfo(rootPath).GetDirectoriesSafely("*", SearchOption.AllDirectories) )
@@ -102,7 +100,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 					{
 						foreach ( IArchiveEntry entry in archive.Entries.Where(e => !e.IsDirectory) )
 						{
-							contents.Add(entry.Key);
+							_ = contents.Add(entry.Key);
 						}
 					}
 				}
@@ -159,18 +157,16 @@ namespace KOTORModSync.Core.Services.FileSystem
 				//Console.WriteLine($"[VFS] FileExists: Virtual files ({_virtualFiles.Count}):");
 				//foreach ( var f in _virtualFiles.Take(10) )
 				//{
-					//Console.WriteLine($"[VFS]   - {f}");
+				//Console.WriteLine($"[VFS]   - {f}");
 				//}
 				//if ( _virtualFiles.Count > 10 )
-					//Console.WriteLine($"[VFS]   ... and {_virtualFiles.Count - 10} more");
+				//Console.WriteLine($"[VFS]   ... and {_virtualFiles.Count - 10} more");
 			}
 
 			return result;
 		}
 
-		public bool DirectoryExists(string path) => string.IsNullOrWhiteSpace(path)
-		                                                     ? false
-															 : _virtualDirectories.Contains(path) || Directory.Exists(path);
+		public bool DirectoryExists(string path) => !string.IsNullOrWhiteSpace(path) && (_virtualDirectories.Contains(path) || Directory.Exists(path));
 
 		public Task CopyFileAsync(string sourcePath, string destinationPath, bool overwrite)
 		{
@@ -404,35 +400,50 @@ namespace KOTORModSync.Core.Services.FileSystem
 			// Normalize directory path - ensure it ends with separator for proper matching
 			string normalizedDir = directoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-			// Just return files in the directory - let PathHelper.WildcardPathMatch do ALL pattern matching
-			// This mirrors how Directory.GetFiles() works - it returns files, then PathHelper filters them
-			var files = _virtualFiles
-				.Where(f =>
+			// Collect files from virtual file system
+			var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			// Add virtual files
+			foreach ( string f in _virtualFiles )
+			{
+				string fileDir = Path.GetDirectoryName(f);
+				if ( string.IsNullOrEmpty(fileDir) )
+					continue;
+
+				bool matches = searchOption == SearchOption.TopDirectoryOnly
+					? string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase)
+					: string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase) ||
+					  fileDir.StartsWith(normalizedDir + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+
+				if ( matches )
+					_ = files.Add(f);
+			}
+
+			// Also check for real files on disk (excluding removed files)
+			if ( Directory.Exists(directoryPath) )
+			{
+				try
 				{
-					string fileDir = Path.GetDirectoryName(f);
-					if ( string.IsNullOrEmpty(fileDir) )
-						return false;
-
-					if ( searchOption == SearchOption.TopDirectoryOnly )
+					foreach ( string f in Directory.GetFiles(directoryPath, "*", searchOption) )
 					{
-						// File must be directly in this directory (not in subdirectories)
-						return string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase);
+						if ( !_removedFiles.Contains(f) )
+							files.Add(f);
 					}
-
-					// File must be in this directory or any subdirectory
-					// Check if fileDir equals normalizedDir OR starts with normalizedDir + separator
-					if ( string.Equals(fileDir, normalizedDir, StringComparison.OrdinalIgnoreCase) )
-						return true;
-
-					string dirWithSeparator = normalizedDir + Path.DirectorySeparatorChar;
-					return fileDir.StartsWith(dirWithSeparator, StringComparison.OrdinalIgnoreCase);
-				})
-				.ToList();
+				}
+				catch ( UnauthorizedAccessException )
+				{
+					// Ignore access errors when enumerating
+				}
+				catch ( DirectoryNotFoundException )
+				{
+					// Directory was removed, ignore
+				}
+			}
 
 			// NOTE: searchPattern is intentionally ignored here
 			// PathHelper.EnumerateFilesWithWildcards always passes "*" and then uses
 			// PathHelper.WildcardPathMatch for ALL filtering - we just provide the raw file list
-			return files;
+			return files.ToList();
 		}
 
 		public List<string> GetDirectoriesInDirectory(string directoryPath) => !DirectoryExists(directoryPath)

@@ -131,21 +131,13 @@ namespace KOTORModSync.Core
 						case Instruction.ActionType.Choose:
 							continue;
 						case Instruction.ActionType.Execute:
-							break;
 						case Instruction.ActionType.Patcher:
-							break;
 						case Instruction.ActionType.Move:
-							break;
 						case Instruction.ActionType.Copy:
-							break;
 						case Instruction.ActionType.Rename:
-							break;
 						case Instruction.ActionType.Delete:
-							break;
 						case Instruction.ActionType.DelDuplicate:
-							break;
 						case Instruction.ActionType.Run:
-							break;
 						default:
 							break;
 					}
@@ -259,7 +251,7 @@ namespace KOTORModSync.Core
 				List<string> realPaths = PathHelper.EnumerateFilesWithWildcards(
 					instruction.Source.ConvertAll(Utility.Utility.ReplaceCustomVariables),
 					realFileSystem,
-					includeSubFolders: false
+					includeSubFolders: true
 				);
 				if ( realPaths is null )
 				{

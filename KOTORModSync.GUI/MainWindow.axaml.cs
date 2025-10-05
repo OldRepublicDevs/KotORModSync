@@ -258,7 +258,7 @@ namespace KOTORModSync
 		private void InstallPathSuggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
 			if ( _suppressComboEvents )
-			    return;
+				return;
 			if ( sender is ComboBox comboBox && comboBox.SelectedItem is string path )
 			{
 				_suppressPathEvents = true;
@@ -2955,7 +2955,7 @@ namespace KOTORModSync
 					{
 						List<string> errors = validator.GetErrors();
 						if ( errors.Count <= 0 )
-						    continue;
+							continue;
 						var issue = new Dialogs.ValidationIssue
 						{
 							Icon = "🔧",
@@ -4433,6 +4433,11 @@ namespace KOTORModSync
 
 					// Update step progress after components are loaded
 					UpdateStepProgress();
+
+					// Trigger validation scan now that components are loaded
+					// This ensures file detection works regardless of whether paths or TOML was loaded first
+					ScanModDirectoryForDownloads();
+
 					return;
 				}
 
@@ -5137,7 +5142,7 @@ namespace KOTORModSync
 					path: path,
 					filter: "*.*",
 					notifyFilters: NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
-					includeSubdirectories: false
+					includeSubdirectories: true
 				);
 
 				_modDirectoryWatcher.Created += OnModDirectoryChanged;
@@ -5150,8 +5155,12 @@ namespace KOTORModSync
 
 				Logger.LogVerbose($"Cross-platform file system watcher initialized for: {path}");
 
-				// Initial scan
-				ScanModDirectoryForDownloads();
+				// Initial scan - only if components are already loaded
+				// If components aren't loaded yet, scan will be triggered when they are loaded
+				if ( MainConfig.AllComponents.Count > 0 )
+				{
+					ScanModDirectoryForDownloads();
+				}
 			}
 			catch ( Exception ex )
 			{
@@ -5184,13 +5193,13 @@ namespace KOTORModSync
 			{
 				try
 				{
-					if (MainConfig.SourcePath != null && Directory.Exists(MainConfig.SourcePath.FullName))
+					if ( MainConfig.SourcePath != null && Directory.Exists(MainConfig.SourcePath.FullName) )
 					{
 						Logger.LogVerbose("Attempting to restart file watcher after error");
 						SetupModDirectoryWatcher(MainConfig.SourcePath.FullName);
 					}
 				}
-				catch (Exception ex)
+				catch ( Exception ex )
 				{
 					Logger.LogException(ex, "Failed to restart file watcher");
 				}
@@ -5262,9 +5271,8 @@ namespace KOTORModSync
 		}
 
 		/// <summary>
-		/// Validates that all required files for a component exist using instruction-based validation.
-		/// This method properly checks file existence based on the actual instructions,
-		/// rather than just doing simple filename matching.
+		/// Validates that all required files for a component exist using ComponentValidation logic.
+		/// This matches the validation logic used in PreinstallValidationService for consistency.
 		/// </summary>
 		/// <param name="component">The component to validate</param>
 		/// <returns>True if all required files exist, false otherwise</returns>
@@ -5275,69 +5283,24 @@ namespace KOTORModSync
 				if ( component?.Instructions == null || component.Instructions.Count == 0 )
 				{
 					// Components without instructions might still be valid (e.g., meta-mods with only dependencies)
-					// So we return true here - they're considered "downloaded" as they don't require files
 					return true;
 				}
 
-				// Check each instruction's source files
-				foreach ( Instruction instruction in component.Instructions )
+				// Use ComponentValidation - same logic as PreinstallValidationService
+				var validator = new ComponentValidation(component, MainConfig.AllComponents);
+				bool isValid = validator.Run();
+
+				// Log validation errors if any
+				if ( !isValid )
 				{
-					// Only validate instructions that require source files from the mod directory
-					// Skip Choose (uses GUIDs), DelDuplicate (optional), Delete (optional), etc.
-					bool requiresSourceFiles = instruction.Action == Instruction.ActionType.Extract ||
-					                            instruction.Action == Instruction.ActionType.Execute ||
-					                            instruction.Action == Instruction.ActionType.Patcher ||
-					                            instruction.Action == Instruction.ActionType.Move ||
-					                            instruction.Action == Instruction.ActionType.Copy;
-
-					if ( !requiresSourceFiles )
-						continue;
-
-					if ( instruction.Source.Count == 0 )
+					List<string> errors = validator.GetErrors();
+					foreach ( string error in errors )
 					{
-						// This instruction type requires source files but has none - this is a problem
-						Logger.LogVerbose($"Component '{component.Name}': Instruction with action '{instruction.Action}' has no source files");
-						return false;
-					}
-
-					foreach ( string source in instruction.Source )
-					{
-						// Skip kotorDirectory paths - those are destination files, not source files we need to download
-						if ( source.Contains("<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
-							continue;
-
-						// Replace custom variables in the source path
-						string resolvedSource = Utility.ReplaceCustomVariables(source);
-
-						// Use PathHelper to expand wildcards and get actual file paths
-						// Use a real file system provider for actual file existence checks
-						var realFileSystemProvider = new RealFileSystemProvider();
-						List<string> expandedPaths = PathHelper.EnumerateFilesWithWildcards(
-							new List<string> { resolvedSource },
-							realFileSystemProvider,
-							includeSubFolders: false
-						);
-
-						// If no files match the pattern, the component is missing files
-						if ( expandedPaths == null || expandedPaths.Count == 0 )
-						{
-							Logger.LogVerbose($"Component '{component.Name}': No files found matching pattern: {resolvedSource}");
-							return false;
-						}
-
-						// Check if all expanded paths actually exist using real file system
-						foreach ( string expandedPath in expandedPaths )
-						{
-							if ( !File.Exists(expandedPath) )
-							{
-								Logger.LogVerbose($"Component '{component.Name}': File does not exist: {expandedPath}");
-								return false;
-							}
-						}
+						Logger.LogVerbose($"Component '{component.Name}': {error}");
 					}
 				}
 
-				return true;
+				return isValid;
 			}
 			catch ( Exception ex )
 			{
@@ -5416,10 +5379,10 @@ namespace KOTORModSync
 				}
 
 				// Create download manager and handlers that will be shared
-						var httpClient = new System.Net.Http.HttpClient();
-						httpClient.Timeout = TimeSpan.FromMinutes(10);
+				var httpClient = new System.Net.Http.HttpClient();
+				httpClient.Timeout = TimeSpan.FromMinutes(10);
 
-						var handlers = new List<IDownloadHandler>
+				var handlers = new List<IDownloadHandler>
 						{
 										new DeadlyStreamDownloadHandler(httpClient),
 										new MegaDownloadHandler(),
@@ -5428,7 +5391,7 @@ namespace KOTORModSync
 					new DirectDownloadHandler(httpClient),
 						};
 
-						var downloadManager = new DownloadManager(handlers);
+				var downloadManager = new DownloadManager(handlers);
 
 				// Wire up download control events
 				progressWindow.DownloadControlRequested += async (s, args) =>

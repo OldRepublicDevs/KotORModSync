@@ -156,8 +156,7 @@ namespace KOTORModSync.Tests
 
 		private async Task<(VirtualFileSystemProvider virtualProvider, string realDestDir)> RunBothProviders(
 			List<Instruction> instructions,
-			string sourceDir,
-			string destDir)
+			string sourceDir)
 		{
 			string virtualRoot = Path.Combine(_testRootDir, "Virtual");
 			string realRoot = Path.Combine(_testRootDir, "Real");
@@ -211,7 +210,7 @@ namespace KOTORModSync.Tests
 					Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(virtualInstructions)
 				};
 
-				_ = await virtualComponent.ExecuteInstructionsAsync(virtualComponent.Instructions, new List<Component>(), CancellationToken.None, virtualProvider);
+				_ = await virtualComponent.ExecuteInstructionsAsync(virtualComponent.Instructions, [], CancellationToken.None, virtualProvider);
 
 				TestContext.WriteLine($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
 				TestContext.WriteLine($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
@@ -325,7 +324,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -345,7 +344,7 @@ namespace KOTORModSync.Tests
 			new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\chain_final.zip"], Destination = "<<kotorDirectory>>" }
 		};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -367,7 +366,7 @@ namespace KOTORModSync.Tests
 			new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\copy2\\dup_copy2.zip"], Destination = "<<kotorDirectory>>\\extract2" }
 		};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -385,7 +384,7 @@ namespace KOTORModSync.Tests
 			new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\subdir\\final.zip"], Destination = "<<kotorDirectory>>" }
 		};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -401,7 +400,7 @@ namespace KOTORModSync.Tests
 			new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mv_extract\\inner\\x.txt"], Destination = "<<kotorDirectory>>", Overwrite = true }
 		};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -418,7 +417,7 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\wc_set\\pack\\*.txt"], Destination = "<<kotorDirectory>>\\txts", Overwrite = true }
 			};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -435,7 +434,7 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\rn_copy\\p\\qq.txt"], Destination = "<<kotorDirectory>>\\copied", Overwrite = true }
 			};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -451,7 +450,7 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Delete, Source = ["<<modDirectory>>\\del\\rm.txt"], Destination = string.Empty }
 			};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			// After deletion, both should not contain the file
 			Assert.That(v.GetTrackedFiles().Any(p => p.EndsWith("del\\rm.txt", StringComparison.OrdinalIgnoreCase)), Is.False);
@@ -472,7 +471,7 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\a2.zip"], Destination = "<<kotorDirectory>>" }
 			};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -489,7 +488,7 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Move, Source = ["<<kotorDirectory>>\\nested\\deep\\a.txt"], Destination = "<<kotorDirectory>>\\final", Overwrite = true }
 			};
 
-			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -508,7 +507,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// SetRealPaths throws FileNotFoundException for missing files before provider is called
-			Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir, _destinationDir));
+			Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir));
 		}
 
 		[Test]
@@ -540,7 +539,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -592,7 +591,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -627,7 +626,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -681,7 +680,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -721,7 +720,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -756,7 +755,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -791,7 +790,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -826,7 +825,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -852,7 +851,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act & Assert - SetRealPaths throws FileNotFoundException for missing files before provider is called
-			_ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir, _destinationDir));
+			_ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir));
 		}
 
 		[Test]
@@ -887,7 +886,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act & Assert - SetRealPaths throws FileNotFoundException for missing files before provider is called
-			_ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir, _destinationDir));
+			_ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir));
 			return Task.CompletedTask;
 		}
 
@@ -921,7 +920,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -984,7 +983,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -1055,7 +1054,7 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act
-			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
 			// Assert
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
@@ -1077,10 +1076,10 @@ namespace KOTORModSync.Tests
 			// Load TOML file - search in multiple possible locations
 			string[] possiblePaths =
 			{
-			Path.Combine(Environment.CurrentDirectory, "mod-builds", "TOMLs", "KOTOR1_Mobile_Full.toml"),
-			Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "mod-builds", "TOMLs", "KOTOR1_Mobile_Full.toml"),
-			Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "mod-builds", "TOMLs", "KOTOR1_Mobile_Full.toml")
-		};
+				Path.Combine(Environment.CurrentDirectory, "mod-builds", "TOMLs", "KOTOR1_Mobile_Full.toml"),
+				Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "mod-builds", "TOMLs", "KOTOR1_Mobile_Full.toml"),
+				Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "mod-builds", "TOMLs", "KOTOR1_Mobile_Full.toml")
+			};
 
 			string? tomlPath = null;
 			foreach ( string path in possiblePaths )
@@ -1201,8 +1200,7 @@ namespace KOTORModSync.Tests
 			{
 				(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(
 					allInstructions,
-					modDirectory,
-					kotorRoot
+					modDirectory
 				);
 
 				// Assert - Check that installation completed without critical errors
@@ -1239,7 +1237,7 @@ namespace KOTORModSync.Tests
 
 			// Create all required subdirectories
 			string[] directories =
-			{
+			[
 				"data",
 				"lips",
 				"modules\\extras",
@@ -1251,7 +1249,7 @@ namespace KOTORModSync.Tests
 				"streamwaves\\globe",
 				"TexturePacks",
 				"utils\\swupdateskins"
-			};
+			];
 
 			foreach ( string dir in directories )
 			{

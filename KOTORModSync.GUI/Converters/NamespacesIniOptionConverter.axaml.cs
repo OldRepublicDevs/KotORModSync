@@ -26,18 +26,30 @@ namespace KOTORModSync.Converters
 					return null;
 
 				Component parentComponent = dataContextInstruction.GetParentComponent();
-				if ( parentComponent is null )
+				if (parentComponent is null)
 					return null;
 
-				return (from archivePath in NamespacesIniOptionConverter.GetAllArchivesFromInstructions(parentComponent)
-						where !string.IsNullOrEmpty(archivePath)
-						let result = IniHelper.ReadNamespacesIniFromArchive(archivePath)
-						where result != null && result.Any()
-						let optionNames = result
-							.Where(section => section.Value?.TryGetValue(key: "Name", out _) ?? false)
-							.Select(section => section.Value["Name"]).ToList()
-						where optionNames.Any()
-						select optionNames).FirstOrDefault();
+				List<string> allArchives = GetAllArchivesFromInstructions(parentComponent);
+				foreach ( string archivePath in allArchives)
+				{
+					if (string.IsNullOrEmpty(archivePath))
+						continue;
+
+					Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(archivePath);
+					if (result == null || !result.Any())
+						continue;
+
+					var optionNames = new List<string>();
+					foreach ( KeyValuePair<string, Dictionary<string, string>> section in result)
+					{
+						if (section.Value != null && section.Value.TryGetValue("Name", out string name))
+							optionNames.Add(name);
+					}
+
+					if (optionNames.Any())
+						return optionNames;
+				}
+				return null;
 			}
 			catch ( Exception ex )
 			{
@@ -72,13 +84,11 @@ namespace KOTORModSync.Converters
 
 				List<string> realPaths = PathHelper.EnumerateFilesWithWildcards(
 					instruction.Source.ConvertAll(Utility.ReplaceCustomVariables),
-					new KOTORModSync.Core.Services.FileSystem.RealFileSystemProvider(),
-					includeSubFolders: false
+					new Core.Services.FileSystem.RealFileSystemProvider(),
+					includeSubFolders: true
 				);
 				if ( !realPaths?.IsNullOrEmptyCollection() ?? false )
-				{
 					allArchives.AddRange(realPaths.Where(File.Exists));
-				}
 			}
 
 			return allArchives;

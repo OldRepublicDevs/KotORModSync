@@ -18,6 +18,7 @@ using Avalonia.VisualTree;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Utility;
+using KOTORModSync.Dialogs;
 
 namespace KOTORModSync
 {
@@ -26,7 +27,11 @@ namespace KOTORModSync
 		private readonly ObservableCollection<DownloadProgress> _downloadItems;
 		private readonly CancellationTokenSource _cancellationTokenSource;
 		private bool _isCompleted;
-		private int _totalDownloads;
+		private bool _mouseDownForWindowMoving;
+		private PointerPoint _originalPoint;
+
+		// Events for download control
+		public event EventHandler<DownloadControlEventArgs> DownloadControlRequested;
 
 		public DownloadProgressWindow()
 		{
@@ -48,6 +53,11 @@ namespace KOTORModSync
 			if ( cancelButton != null )
 				cancelButton.Click += CancelButton_Click;
 
+			// Attach window move event handlers
+			PointerPressed += InputElement_OnPointerPressed;
+			PointerMoved += InputElement_OnPointerMoved;
+			PointerReleased += InputElement_OnPointerReleased;
+			PointerExited += InputElement_OnPointerReleased;
 		}
 
 		private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
@@ -147,11 +157,22 @@ namespace KOTORModSync
 			Dispatcher.UIThread.Post(() =>
 			{
 				_downloadItems.Add(progress);
-				_totalDownloads++;
 				UpdateSummary();
 
 				// Subscribe to property changes to update clickable links
 				progress.PropertyChanged += DownloadProgress_PropertyChanged;
+
+				// For grouped downloads, also subscribe to child changes to update summary
+				if ( progress.IsGrouped )
+				{
+					foreach ( DownloadProgress child in progress.ChildDownloads )
+					{
+						child.PropertyChanged += (sender, e) =>
+						{
+							Dispatcher.UIThread.Post(UpdateSummary);
+						};
+					}
+				}
 			});
 		}
 
@@ -176,29 +197,56 @@ namespace KOTORModSync
 		private void UpdateSummary()
 		{
 			TextBlock summaryText = this.FindControl<TextBlock>("SummaryText");
+			TextBlock overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
+			ProgressBar overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
+
 			if ( summaryText == null )
 				return;
 
 			int completedCount = _downloadItems.Count(x => x.Status == DownloadStatus.Completed);
 			int skippedCount = _downloadItems.Count(x => x.Status == DownloadStatus.Skipped);
 			int failedCount = _downloadItems.Count(x => x.Status == DownloadStatus.Failed);
+			int inProgress = _downloadItems.Count(x => x.Status == DownloadStatus.InProgress);
+			int pending = _downloadItems.Count(x => x.Status == DownloadStatus.Pending);
+			int totalFinished = completedCount + skippedCount + failedCount;
+
+			// Calculate overall progress
+			double overallProgress = _downloadItems.Count > 0 ? (double)totalFinished / _downloadItems.Count * 100 : 0;
+
+			// Update overall progress display
+			if ( overallProgressText != null )
+			{
+				string progressText = $"Overall Progress: {totalFinished} / {_downloadItems.Count} mods";
+				if ( completedCount > 0 || skippedCount > 0 || failedCount > 0 )
+				{
+					var parts = new System.Collections.Generic.List<string>();
+					if ( completedCount > 0 ) parts.Add($"{completedCount} downloaded");
+					if ( skippedCount > 0 ) parts.Add($"{skippedCount} skipped");
+					if ( failedCount > 0 ) parts.Add($"{failedCount} failed");
+					progressText += $" ({string.Join(", ", parts)})";
+				}
+				overallProgressText.Text = progressText;
+			}
+
+			if ( overallProgressBar != null )
+				overallProgressBar.Value = overallProgress;
 
 			if ( _isCompleted )
 			{
-				string message = $"Download complete! {completedCount} succeeded";
-				if ( skippedCount > 0 )
-					message += $", {skippedCount} skipped";
-				if ( failedCount > 0 )
-					message += $", {failedCount} failed";
+				var messageParts = new System.Collections.Generic.List<string>();
+				if ( completedCount > 0 ) messageParts.Add($"{completedCount} downloaded");
+				if ( skippedCount > 0 ) messageParts.Add($"{skippedCount} skipped");
+				if ( failedCount > 0 ) messageParts.Add($"{failedCount} failed");
+
+				string message = messageParts.Count > 0
+					? $"Download complete! {string.Join(", ", messageParts)}"
+					: "Download complete!";
 				summaryText.Text = message;
 			}
 			else
 			{
-				int inProgress = _downloadItems.Count(x => x.Status == DownloadStatus.InProgress);
-				int pending = _downloadItems.Count(x => x.Status == DownloadStatus.Pending);
-
 				if ( inProgress > 0 )
-					summaryText.Text = $"Downloading {inProgress} mod(s)... {completedCount + skippedCount}/{_totalDownloads} complete";
+					summaryText.Text = $"Downloading {inProgress} mod(s)... {completedCount + skippedCount}/{_downloadItems.Count} complete";
 				else if ( pending > 0 )
 					summaryText.Text = $"Preparing downloads... {pending} mod(s) pending";
 				else
@@ -237,7 +285,7 @@ namespace KOTORModSync
 		private void DownloadProgress_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
 		{
 			if ( e.PropertyName == nameof(DownloadProgress.ErrorMessage) && sender is DownloadProgress progress )
-			    Dispatcher.UIThread.Post(() => UpdateErrorMessageWithLinks(progress));
+				Dispatcher.UIThread.Post(() => UpdateErrorMessageWithLinks(progress));
 		}
 
 		private void UpdateErrorMessageWithLinks(DownloadProgress progress)
@@ -261,7 +309,7 @@ namespace KOTORModSync
 				return;
 
 			// Parse the error message and create inlines with clickable links
-			textBlock.Inlines = DownloadProgressWindow.ParseTextWithUrls(progress.ErrorMessage);
+			textBlock.Inlines = ParseTextWithUrls(progress.ErrorMessage);
 		}
 
 		private static InlineCollection ParseTextWithUrls(string text)
@@ -332,6 +380,131 @@ namespace KOTORModSync
 				inlines.Add(new Run(text));
 
 			return inlines;
+		}
+
+		private void ControlButton_Click(object sender, RoutedEventArgs e)
+		{
+			if ( !(sender is Button button) || !(button.DataContext is DownloadProgress progress) )
+				return;
+
+			try
+			{
+				DownloadControlAction action;
+				switch ( progress.Status )
+				{
+					case DownloadStatus.Pending:
+						action = DownloadControlAction.Start;
+						break;
+					case DownloadStatus.InProgress:
+						action = DownloadControlAction.Pause;
+						break;
+					case DownloadStatus.Completed:
+					case DownloadStatus.Skipped:
+					case DownloadStatus.Failed:
+						action = DownloadControlAction.Retry;
+						break;
+					default:
+						action = DownloadControlAction.Start;
+						break;
+				}
+
+				Logger.LogVerbose($"Download control requested: {action} for {progress.ModName}");
+				DownloadControlRequested?.Invoke(this, new DownloadControlEventArgs(progress, action));
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogError($"Failed to handle control button click: {ex.Message}");
+			}
+		}
+
+		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		{
+			if (!_mouseDownForWindowMoving)
+				return;
+
+			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			Position = new PixelPoint(
+				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
+				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
+			);
+		}
+
+		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
+		{
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+				return;
+
+			// Don't start window drag if clicking on interactive controls
+			if (ShouldIgnorePointerForWindowDrag(e))
+				return;
+
+			_mouseDownForWindowMoving = true;
+			_originalPoint = e.GetCurrentPoint(this);
+		}
+
+		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+			_mouseDownForWindowMoving = false;
+
+		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		{
+			// Get the element under the pointer
+			if (!(e.Source is Visual source))
+				return false;
+
+			// Walk up the visual tree to check if we're clicking on an interactive element
+			Visual current = source;
+			while (current != null && current != this)
+			{
+				// Check if we're clicking on any interactive control
+				if (current is Button ||
+					current is TextBox ||
+					current is ComboBox ||
+					current is ListBox ||
+					current is MenuItem ||
+					current is Menu ||
+					current is Expander ||
+					current is Slider ||
+					current is TabControl ||
+					current is TabItem ||
+					current is ProgressBar ||
+					current is ScrollViewer)
+				{
+					return true;
+				}
+
+				// Check if the element has context menu or flyout open
+				if (current is Control control)
+				{
+					if (control.ContextMenu?.IsOpen == true)
+						return true;
+					if (control.ContextFlyout?.IsOpen == true)
+						return true;
+				}
+
+				current = current.GetVisualParent();
+			}
+
+			return false;
+		}
+	}
+
+	public enum DownloadControlAction
+	{
+		Start,
+		Pause,
+		Resume,
+		Retry
+	}
+
+	public class DownloadControlEventArgs : EventArgs
+	{
+		public DownloadProgress Progress { get; }
+		public DownloadControlAction Action { get; }
+
+		public DownloadControlEventArgs(DownloadProgress progress, DownloadControlAction action)
+		{
+			Progress = progress;
+			Action = action;
 		}
 	}
 }

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using JetBrains.Annotations;
 using KOTORModSync.Core.Utility;
+using KOTORModSync.Dialogs;
 
 namespace KOTORModSync.CallbackDialogs
 {

@@ -60,6 +60,11 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogVerboseAsync($"[DownloadManager] Using handler: {handler.GetType().Name} for URL: {url}");
 				progressItem.AddLog($"Using handler: {handler.GetType().Name}");
 
+				// Update status to indicate download is starting
+				progressItem.Status = DownloadStatus.InProgress;
+				progressItem.StatusMessage = "Starting download...";
+				progressItem.StartTime = DateTime.Now;
+
 				// Create a progress reporter that updates the DownloadProgress object and logs changes
 				var progressReporter = new Progress<DownloadProgress>(update =>
 				{
@@ -104,21 +109,71 @@ namespace KOTORModSync.Core.Services.Download
 						progressItem.EndTime = update.EndTime;
 				});
 
-				DownloadResult result = await handler.DownloadAsync(url, destinationDirectory, progressReporter).ConfigureAwait(false);
+				DownloadResult result;
+				try
+				{
+					result = await handler.DownloadAsync(url, destinationDirectory, progressReporter).ConfigureAwait(false);
+				}
+				catch ( Exception ex )
+				{
+					// Catch any unexpected exceptions from the download handler
+					await Logger.LogErrorAsync($"[DownloadManager] Unexpected exception during download of '{url}': {ex.Message}");
+					progressItem.AddLog($"[UNEXPECTED EXCEPTION] {ex.GetType().Name}: {ex.Message}");
+
+					// Create a failed result instead of letting the exception bubble up
+					result = DownloadResult.Failed($"Unexpected error: {ex.Message}");
+					progressItem.Status = DownloadStatus.Failed;
+					progressItem.StatusMessage = "Download failed due to unexpected error";
+					progressItem.ErrorMessage = ex.Message;
+					progressItem.Exception = ex;
+					progressItem.EndTime = DateTime.Now;
+				}
 
 				if ( result.Success )
 				{
 					successCount++;
 					await Logger.LogVerboseAsync($"[DownloadManager] Successfully downloaded: {result.FilePath}");
 					progressItem.AddLog($"Download completed successfully: {result.FilePath}");
-					if ( result.WasSkipped )
-						progressItem.AddLog("File was skipped (already exists)");
+				if ( result.WasSkipped )
+				{
+					progressItem.AddLog("File was skipped (already exists)");
+					// Update the progress item to reflect that it was skipped - EXPLICITLY set everything
+					progressItem.Status = DownloadStatus.Skipped;
+					progressItem.StatusMessage = "File already exists";
+					progressItem.ProgressPercentage = 100;
+					progressItem.FilePath = result.FilePath; // Ensure file path is set
+					progressItem.EndTime = DateTime.Now;
+					if ( progressItem.StartTime == default )
+						progressItem.StartTime = DateTime.Now;
+
+					// Set file size if we can get it
+					if ( !string.IsNullOrEmpty(result.FilePath) && System.IO.File.Exists(result.FilePath) )
+					{
+						try
+						{
+							long fileSize = new System.IO.FileInfo(result.FilePath).Length;
+							progressItem.BytesDownloaded = fileSize;
+							progressItem.TotalBytes = fileSize;
+							await Logger.LogVerboseAsync($"[DownloadManager] File already exists ({fileSize} bytes): {result.FilePath}");
+						}
+						catch ( Exception ex )
+						{
+							await Logger.LogWarningAsync($"[DownloadManager] Could not get file size for skipped file: {ex.Message}");
+						}
+					}
+				}
 				}
 				else
 				{
 					failCount++;
 					await Logger.LogErrorAsync($"[DownloadManager] Failed to download URL '{url}': {result.Message}");
 					progressItem.AddLog($"Download failed: {result.Message}");
+
+					// CRITICAL: Update status to Failed so UI shows correct state
+					progressItem.Status = DownloadStatus.Failed;
+					progressItem.StatusMessage = "Download failed";
+					progressItem.ErrorMessage = result.Message;
+					progressItem.EndTime = DateTime.Now;
 				}
 
 				results.Add(result);

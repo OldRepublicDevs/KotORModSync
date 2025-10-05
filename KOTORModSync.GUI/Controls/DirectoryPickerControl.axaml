@@ -16,11 +16,11 @@
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
             <!-- TextBox -->
             <TextBox x:Name="PathInput" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch"
-                     KeyDown="OnPathInputKeyDown" LostFocus="PathInput_LostFocus"
+                     KeyDown="OnPathInputKeyDown" LostFocus="PathInput_LostFocus" TextChanged="PathInput_TextChanged"
                      FontSize="10" TextWrapping="NoWrap" />
 
             <!-- Browse Button -->
-            <Button Grid.Row="0" Grid.Column="1" Content="..." Click="BrowseButton_Click" />
+            <Button Grid.Row="0" Grid.Column="1" Content="📁" Click="BrowseButton_Click" />
 
             <!-- ComboBox -->
             <ComboBox x:Name="PathSuggestions" Grid.Row="1" Grid.ColumnSpan="2" Grid.Column="0"

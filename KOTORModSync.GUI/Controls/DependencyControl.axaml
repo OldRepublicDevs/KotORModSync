@@ -11,8 +11,10 @@
         <converters:ComponentToGuidConverter x:Key="ComponentToGuidConverter" />
     </UserControl.Resources>
     <DockPanel>
-        <StackPanel Margin="0">
-            <ListBox MinHeight="100" VerticalAlignment="Top" x:Name="DependenciesListBox" SelectionMode="Multiple">
+        <StackPanel Margin="0,0,8,0">
+            <TextBlock Text="Selected Dependencies" Classes="summary-label" Margin="0,0,0,4" />
+            <ListBox MinHeight="100" MaxHeight="200" VerticalAlignment="Top"
+                     x:Name="DependenciesListBox" SelectionMode="Multiple">
                 <ListBox.ItemsSource>
                     <MultiBinding Converter="{StaticResource GuidListToComponentNames}">
                         <Binding Path="ThisGuidList"
@@ -23,49 +25,77 @@
                 </ListBox.ItemsSource>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding}" />
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap" />
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <Button Content="Remove from List" Click="RemoveFromList_Click"
+            <Button Content="🗑️ Remove Selected" Click="RemoveFromList_Click"
                     Tag="{Binding ElementName=DependenciesListBox}"
-                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Margin="0,4,0,0" />
         </StackPanel>
-        <Grid Margin="0" RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" HorizontalAlignment="Stretch"
-              VerticalAlignment="Top">
-            <ComboBox Grid.Column="0" Grid.Row="0" HorizontalAlignment="Stretch"
-                      x:Name="DependenciesComboBox"
-                      SelectionChanged="DependenciesComboBox_SelectionChanged"
-                      Tag="{Binding ElementName=DependenciesListBox}">
-                <ComboBox.ItemsSource>
+
+        <Grid Margin="0" RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,*"
+              HorizontalAlignment="Stretch" VerticalAlignment="Top">
+
+            <!-- Mod/Component Selector -->
+            <TextBlock Grid.Column="0" Grid.Row="0" Text="Add Mod/Component"
+                       Classes="summary-label" Margin="0,0,0,4" />
+            <AutoCompleteBox Grid.Column="0" Grid.Row="1"
+                             x:Name="DependenciesAutoComplete"
+                             HorizontalAlignment="Stretch"
+                             Watermark="Type to search mods..."
+                             FilterMode="Contains"
+                             ValueMemberBinding="{Binding Converter={StaticResource ComponentToGuidConverter}}"
+                             Tag="{Binding ElementName=DependenciesListBox}">
+                <AutoCompleteBox.ItemsSource>
                     <Binding Path="ThisComponentList"
                              RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type controls:DependencyControl}}" />
-                </ComboBox.ItemsSource>
-                <ComboBox.ItemTemplate>
+                </AutoCompleteBox.ItemsSource>
+                <AutoCompleteBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding Converter={StaticResource ComponentToGuidConverter}}" />
+                        <TextBlock Text="{Binding Converter={StaticResource ComponentToGuidConverter}}"
+                                   TextWrapping="Wrap" />
                     </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button Grid.Column="0" Grid.Row="1"
-                    Content="Add Mod to List" Click="AddToList_Click"
-                    Tag="{Binding ElementName=DependenciesComboBox}"
-                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-            <ComboBox Grid.Column="1" Grid.Row="0"
-                      x:Name="OptionsComboBox"
-                      Tag="{Binding ElementName=DependenciesListBox}"
-                      HorizontalAlignment="Stretch"
-                      ToolTip.Tip="Options chooser for what's selected in the left combobox. Select an item from the left dropdown box first.">
-                <ComboBox.ItemTemplate>
+                </AutoCompleteBox.ItemTemplate>
+            </AutoCompleteBox>
+            <Button Grid.Column="0" Grid.Row="2"
+                    Content="➕ Add Mod to List" Click="AddModToList_Click"
+                    Tag="{Binding ElementName=DependenciesAutoComplete}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Margin="0,4,0,0" />
+
+            <!-- Option Selector -->
+            <TextBlock Grid.Column="1" Grid.Row="0" Text="Add Option"
+                       Classes="summary-label" Margin="8,0,0,4" />
+            <AutoCompleteBox Grid.Column="1" Grid.Row="1"
+                             x:Name="OptionsAutoComplete"
+                             HorizontalAlignment="Stretch"
+                             Watermark="Type to search options..."
+                             FilterMode="Contains"
+                             ValueMemberBinding="{Binding Name}"
+                             Tag="{Binding ElementName=DependenciesListBox}"
+                             Margin="8,0,0,0"
+                             ToolTip.Tip="Options for the mod selected above. Select a mod first.">
+                <AutoCompleteBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding Name}" />
+                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
                     </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button Grid.Column="1" Grid.Row="1"
-                    Content="Add Option to List" Click="AddToList_Click"
-                    Tag="{Binding ElementName=OptionsComboBox}"
-                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalAlignment="Top" />
+                </AutoCompleteBox.ItemTemplate>
+            </AutoCompleteBox>
+            <Button Grid.Column="1" Grid.Row="2"
+                    Content="➕ Add Option to List" Click="AddOptionToList_Click"
+                    Tag="{Binding ElementName=OptionsAutoComplete}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="8,4,0,0" />
+
+            <!-- Helper text -->
+            <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3"
+                       Classes="secondary-text" FontSize="11" TextWrapping="Wrap"
+                       Margin="0,8,0,0">
+                <Run Text="💡 Tip: Start typing to filter the list. Press Enter to select." />
+            </TextBlock>
         </Grid>
     </DockPanel>
 </UserControl>

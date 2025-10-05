@@ -9,13 +9,24 @@
         Width="900" Height="650"
         MinWidth="700" MinHeight="400"
         WindowStartupLocation="CenterOwner"
-        CanResize="True">
+        CanResize="True"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        SystemDecorations="BorderOnly">
 
 	<Window.Resources>
 		<converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter"/>
 	</Window.Resources>
 
 	<Grid RowDefinitions="Auto,*,Auto">
+		<!-- Custom Window Controls -->
+		<StackPanel Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Spacing="0" Margin="0,8,8,0">
+			<Button Content="X" Click="CloseButton_Click"
+					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+		</StackPanel>
+
 		<!-- Header -->
 		<Border Grid.Row="0" Classes="download-header" Padding="16,12">
 			<Grid ColumnDefinitions="*,Auto">
@@ -56,7 +67,7 @@
 
 							<Grid RowDefinitions="Auto,Auto,Auto,Auto">
 								<!-- Mod Name and Status Icon -->
-								<Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+								<Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto">
 									<TextBlock Grid.Column="0"
 									           Text="{Binding StatusIcon}"
 									           FontSize="20"
@@ -71,11 +82,35 @@
 									           VerticalAlignment="Center"/>
 
 									<TextBlock Grid.Column="2"
-									           Text="{Binding ProgressPercentage, StringFormat={}{0:F1}%}"
+									           Text="{Binding GroupProgressPercentage, StringFormat={}{0:F1}%}"
 									           FontSize="13"
 									           FontWeight="SemiBold"
 									           VerticalAlignment="Center"
-									           Margin="8,0,0,0"/>
+									           Margin="8,0,8,0"/>
+
+									<!-- Control Button (Play/Pause/Retry) -->
+									<Button Grid.Column="3"
+									        x:Name="ControlButton"
+									        Content="{Binding ControlButtonIcon}"
+									        ToolTip.Tip="{Binding ControlButtonTooltip}"
+									        Click="ControlButton_Click"
+									        Width="28"
+									        Height="28"
+									        Padding="4"
+									        FontSize="14"
+									        VerticalAlignment="Center"
+									        HorizontalContentAlignment="Center"
+									        VerticalContentAlignment="Center"
+									        Background="Transparent"
+									        BorderThickness="1"
+									        CornerRadius="4"
+									        Cursor="Hand"
+									        IsVisible="{Binding ControlButtonIcon, Converter={StaticResource StringNotEmptyConverter}}">
+										<Button.Styles>
+											<Style Selector="Button:pointerover"/>
+											<Style Selector="Button:pressed"/>
+										</Button.Styles>
+									</Button>
 								</Grid>
 
 								<!-- Progress Bar -->
@@ -84,15 +119,15 @@
 								             Margin="0,8,0,0"
 								             Minimum="0"
 								             Maximum="100"
-								             Value="{Binding ProgressPercentage}"/>
+								             Value="{Binding GroupProgressPercentage}"/>
 
 							<!-- Status Message -->
 							<TextBlock Grid.Row="2"
-							           Text="{Binding StatusMessage}"
+							           Text="{Binding GroupStatusMessage}"
 							           Classes="download-status-text"
 							           TextWrapping="Wrap"
 							           Margin="0,6,0,0"
-							           IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
+							           IsVisible="{Binding GroupStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
 
 						<!-- Error Message -->
 						<TextBlock Grid.Row="3"

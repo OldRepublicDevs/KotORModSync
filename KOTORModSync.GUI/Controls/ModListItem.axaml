@@ -9,6 +9,8 @@
         <converters:DownloadStatusConverter x:Key="DownloadStatusConverter" />
         <converters:DownloadTooltipConverter x:Key="DownloadTooltipConverter" />
         <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+        <converters:CategoryTooltipConverter x:Key="CategoryTooltipConverter" />
+        <converters:TierTooltipConverter x:Key="TierTooltipConverter" />
     </UserControl.Resources>
 
     <Border x:Name="RootBorder"
@@ -18,86 +20,110 @@
             CornerRadius="4"
             Classes="mod-list-item">
 
-        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
+        <!-- Two-row layout: row 0 = main info, row 1 = badges aligned under columns -->
+        <Grid RowDefinitions="Auto,Auto">
+            <!-- Row 0: main info across 6 columns -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
-            <!-- Checkbox -->
-            <CheckBox Grid.Column="0"
-                      x:Name="ComponentCheckBox"
-                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                      VerticalAlignment="Center"
-                      Margin="0,0,8,0"
-                      Tag="{Binding}"
-                      ToolTip.Tip="Select this mod for installation" />
+                <!-- Checkbox -->
+                <CheckBox Grid.Column="0"
+                          x:Name="ComponentCheckBox"
+                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                          VerticalAlignment="Top"
+                          Margin="0,2,8,0"
+                          Tag="{Binding}"
+                          ToolTip.Tip="Select this mod for installation" />
 
-            <!-- Index Number (Editor Mode Only) -->
-            <TextBlock Grid.Column="1"
-                       x:Name="IndexTextBlock"
-                       VerticalAlignment="Center"
-                       FontWeight="Bold"
-                       FontSize="12"
-                       Classes="secondary-text"
-                       Margin="0,0,8,0"
-                       IsVisible="False" />
+                <!-- Index Number (Editor Mode Only) -->
+                <TextBlock Grid.Column="1"
+                           x:Name="IndexTextBlock"
+                           VerticalAlignment="Top"
+                           FontWeight="Bold"
+                           FontSize="12"
+                           Classes="secondary-text"
+                           Margin="0,2,8,0"
+                           IsVisible="False" />
 
-            <!-- Download Status Icon -->
-            <TextBlock Grid.Column="2"
-                       Text="{Binding IsDownloaded, Converter={StaticResource DownloadStatusConverter}}"
-                       VerticalAlignment="Center"
-                       FontSize="16"
-                       Margin="0,0,8,0"
-                       ToolTip.Tip="{Binding IsDownloaded, Converter={StaticResource DownloadTooltipConverter}}" />
+                <!-- Download Status Icon -->
+                <TextBlock Grid.Column="2"
+                           Text="{Binding IsDownloaded, Converter={StaticResource DownloadStatusConverter}}"
+                           VerticalAlignment="Top"
+                           FontSize="16"
+                           Margin="0,0,8,0"
+                           ToolTip.Tip="{Binding IsDownloaded, Converter={StaticResource DownloadTooltipConverter}}" />
 
-            <!-- Mod Name and Category -->
-            <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="4">
-                <TextBlock Text="{Binding Name}"
+                <!-- Name occupies the large cell (can visually use some left space) -->
+                <TextBlock Grid.Column="3"
+                           Text="{Binding Name}"
                            FontSize="14"
                            FontWeight="SemiBold"
                            TextWrapping="NoWrap"
-                           TextTrimming="CharacterEllipsis" />
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,0,0" />
 
-                <!-- Category Badge (if available) -->
-                <StackPanel Orientation="Horizontal" Spacing="6" x:Name="BadgePanel">
-                    <Border x:Name="CategoryBadge"
-                            CornerRadius="3"
+                <!-- Validation Status Icon -->
+                <TextBlock Grid.Column="4"
+                           x:Name="ValidationIcon"
+                           VerticalAlignment="Top"
+                           FontSize="14"
+                           Margin="8,0,8,0"
+                           IsVisible="False" />
+
+                <!-- Drag Handle (Editor Mode Only) -->
+                <TextBlock Grid.Column="5"
+                           x:Name="DragHandle"
+                           Text="⋮⋮"
+                           VerticalAlignment="Center"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Classes="mod-list-item-drag-handle"
+                           Cursor="Hand"
+                           ToolTip.Tip="Drag to reorder"
+                           IsVisible="False" />
+            </Grid>
+
+            <!-- Row 1: badges area exactly under the name column, split 50/50 and touching in the middle -->
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+                <Grid Grid.Column="3" ColumnDefinitions="*,*">
+                    <!-- Category (left half) -->
+                    <Border Grid.Column="0"
+                            x:Name="CategoryBadge"
+                            CornerRadius="6"
                             Padding="6,2"
                             Classes="mod-list-item-badge category-badge"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,0,6,0"
                             IsVisible="{Binding Category, Converter={StaticResource StringNotEmptyConverter}}">
                         <TextBlock Text="{Binding Category}"
                                    FontSize="10"
-                                   FontWeight="Medium" />
+                                   FontWeight="Medium"
+                                   TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   ToolTip.Tip="{Binding Category, Converter={StaticResource CategoryTooltipConverter}}" />
                     </Border>
 
-                    <Border x:Name="TierBadge"
-                            CornerRadius="3"
+                    <!-- Tier (right half) -->
+                    <Border Grid.Column="1"
+                            x:Name="TierBadge"
+                            CornerRadius="6"
                             Padding="6,2"
                             Classes="mod-list-item-badge tier-badge"
+                            HorizontalAlignment="Stretch"
+                            Margin="6,0,0,0"
                             IsVisible="{Binding Tier, Converter={StaticResource StringNotEmptyConverter}}">
                         <TextBlock Text="{Binding Tier}"
                                    FontSize="10"
-                                   FontWeight="Medium" />
+                                   FontWeight="Medium"
+                                   TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   ToolTip.Tip="{Binding Tier, Converter={StaticResource TierTooltipConverter}}" />
                     </Border>
-                </StackPanel>
-            </StackPanel>
-
-            <!-- Validation Status Icon -->
-            <TextBlock Grid.Column="5"
-                       x:Name="ValidationIcon"
-                       VerticalAlignment="Center"
-                       FontSize="14"
-                       Margin="0,0,8,0"
-                       IsVisible="False" />
-
-            <!-- Drag Handle (Editor Mode Only) -->
-            <TextBlock Grid.Column="6"
-                       x:Name="DragHandle"
-                       Text="⋮⋮"
-                       VerticalAlignment="Center"
-                       FontSize="16"
-                       FontWeight="Bold"
-                       Classes="mod-list-item-drag-handle"
-                       Cursor="Hand"
-                       ToolTip.Tip="Drag to reorder"
-                       IsVisible="False" />
+                </Grid>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -11,6 +13,8 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using KOTORModSync.Core;
+using KOTORModSync.Core.FileSystemUtils;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Controls
 {
@@ -54,6 +58,7 @@ namespace KOTORModSync.Controls
 		private bool _suppressSelection;
 		// Persist current value even if visual children are not yet available
 		private string _pendingPath;
+		private CancellationTokenSource _pathSuggestCts;
 
 		public DirectoryPickerControl()
 		{
@@ -172,7 +177,7 @@ namespace KOTORModSync.Controls
 		private List<string> GetDefaultPathsForGame()
 		{
 			var paths = new List<string>();
-			OSPlatform osType = Core.Utility.Utility.GetOperatingSystem();
+				OSPlatform osType = Utility.GetOperatingSystem();
 			Logger.LogVerbose($"DirectoryPickerControl.GetDefaultPathsForGame OS={osType}");
 
 			if ( osType == OSPlatform.Windows )
@@ -274,12 +279,12 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		public void SetCurrentPath(string path)
+		public void SetCurrentPath(string path, bool fireEvent = false)
 		{
 			try
 			{
 				_pendingPath = path;
-				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] SetCurrentPath -> '{path}'");
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] SetCurrentPath -> '{path}' (fireEvent={fireEvent})");
 				_suppressEvents = true;
 
 				if ( _currentPathDisplay != null )
@@ -290,6 +295,12 @@ namespace KOTORModSync.Controls
 				if ( _pathInput != null )
 				{
 					_pathInput.Text = path ?? string.Empty;
+				}
+
+				// Only fire the event if explicitly requested (for manual user actions)
+				if ( fireEvent && !string.IsNullOrEmpty(path) && Directory.Exists(path) )
+				{
+					DirectoryChanged?.Invoke(this, new DirectoryChangedEventArgs(path, PickerType));
 				}
 
 				_suppressEvents = false;
@@ -357,6 +368,14 @@ namespace KOTORModSync.Controls
 			}
 		}
 
+		private void PathInput_TextChanged(object sender, TextChangedEventArgs e)
+		{
+			if ( _suppressEvents || _pathInput == null || _pathSuggestions == null ) return;
+
+			Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] TextChanged: '{_pathInput.Text}'");
+			UpdatePathSuggestions(_pathInput, _pathSuggestions, ref _pathSuggestCts, PickerType);
+		}
+
 		private void PathInput_LostFocus(object sender, RoutedEventArgs e)
 		{
 			if ( _suppressEvents || _pathInput == null ) return;
@@ -400,8 +419,8 @@ namespace KOTORModSync.Controls
 				_suppressEvents = true;
 				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] ApplyPath '{path}'");
 
-				// Update displays
-				SetCurrentPath(path);
+				// Update displays (without firing event yet)
+				SetCurrentPath(path, fireEvent: false);
 
 				// Save to recent if mod directory
 				if ( PickerType == DirectoryPickerType.ModDirectory )
@@ -409,6 +428,11 @@ namespace KOTORModSync.Controls
 					SaveRecentModPath(path);
 					// Refresh suggestions list safely without causing selection recursion
 					RefreshSuggestionsSafely();
+				}
+				else if ( PickerType == DirectoryPickerType.KotorDirectory )
+				{
+					// For KOTOR directory, add the manually typed path to the suggestions list
+					AddPathToSuggestions(path);
 				}
 
 				// Fire event
@@ -451,6 +475,158 @@ namespace KOTORModSync.Controls
 			{
 				_suppressSelection = false;
 				_suppressEvents = false;
+			}
+		}
+
+		private void AddPathToSuggestions(string path)
+		{
+			if ( _pathSuggestions == null || string.IsNullOrEmpty(path) ) return;
+
+			try
+			{
+				var currentItems = (_pathSuggestions.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
+
+				// Add the path if it's not already in the list
+				if ( !currentItems.Contains(path) )
+				{
+					currentItems.Insert(0, path); // Add to the beginning
+					// Keep only the first 20 items to avoid cluttering
+					if ( currentItems.Count > 20 )
+						currentItems = currentItems.Take(20).ToList();
+
+					_pathSuggestions.ItemsSource = currentItems;
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Added path to suggestions: '{path}'");
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private static void UpdatePathSuggestions(TextBox input, ComboBox combo, ref CancellationTokenSource cts, DirectoryPickerType pickerType)
+		{
+			try
+			{
+				cts?.Cancel();
+				cts = new CancellationTokenSource();
+				CancellationToken token = cts.Token;
+				string typed = input.Text ?? string.Empty;
+				_ = Task.Run<IList<string>>(() =>
+				{
+					var results = new List<string>();
+					string expanded = PathUtilities.ExpandPath(typed);
+					if ( string.IsNullOrWhiteSpace(expanded) )
+					{
+						// If empty, return default paths based on the picker type
+						if ( pickerType == DirectoryPickerType.ModDirectory )
+							return PathUtilities.GetDefaultPathsForMods().ToList();
+						if ( pickerType == DirectoryPickerType.KotorDirectory )
+							return PathUtilities.GetDefaultPathsForGame().ToList();
+						return results;
+					}
+
+					string normalized = expanded;
+					bool endsWithSep = normalized.EndsWith(Path.DirectorySeparatorChar.ToString());
+
+					// Handle root directory case (like C:\)
+					bool isRootDir = false;
+					if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
+					{
+						// Check if this is a drive root (e.g., "C:\")
+						if ( normalized.Length >= 2 && normalized[1] == ':' &&
+							 (normalized.Length == 2 || (normalized.Length == 3 && normalized[2] == Path.DirectorySeparatorChar)) )
+						{
+							isRootDir = true;
+							normalized = normalized.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+						}
+					}
+					else
+					{
+						// For Unix systems, check if this is the root directory
+						if ( normalized == "/" || normalized.EndsWith(value: ":/") )
+							isRootDir = true;
+					}
+
+					string baseDir;
+					string fragment;
+
+					if ( isRootDir )
+					{
+						baseDir = normalized;
+						fragment = string.Empty;
+					}
+					else
+					{
+						baseDir = endsWithSep ? normalized : Path.GetDirectoryName(normalized);
+						if ( string.IsNullOrEmpty(baseDir) )
+							baseDir = Path.GetPathRoot(normalized);
+						fragment = endsWithSep ? string.Empty : Path.GetFileName(normalized);
+					}
+
+					if ( !string.IsNullOrEmpty(baseDir) && Directory.Exists(baseDir) )
+					{
+						IEnumerable<string> dirs = Enumerable.Empty<string>();
+						try
+						{
+							dirs = Directory.EnumerateDirectories(baseDir);
+						}
+						catch ( Exception ex )
+						{
+							Logger.LogVerbose($"Failed to enumerate directories in {baseDir}: {ex.Message}");
+						}
+
+						if ( string.IsNullOrEmpty(fragment) )
+						{
+							// If no fragment, add all directories
+							results.AddRange(dirs);
+						}
+						else
+						{
+							// Filter directories by fragment
+							results.AddRange(dirs.Where(d =>
+								Path.GetFileName(d).IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0));
+						}
+					}
+
+					return results;
+				}, token).ContinueWith(t =>
+				{
+					if ( token.IsCancellationRequested || t.IsFaulted ) return;
+					Dispatcher.UIThread.Post(() =>
+					{
+						// For KOTOR directory picker, we want to preserve existing items (like default paths) and add new ones
+						if ( combo.ItemsSource is IEnumerable<string> existingItems )
+						{
+							var newResults = t.Result.ToList();
+
+							// Add any existing items that aren't already in the results
+							foreach ( string item in existingItems )
+							{
+								if ( !newResults.Contains(item) && Directory.Exists(item) )
+									newResults.Add(item);
+							}
+
+							var current = (combo.ItemsSource as IEnumerable<string>)?.ToList();
+							if ( current is null || !current.SequenceEqual(newResults) )
+								combo.ItemsSource = newResults;
+						}
+						else
+						{
+							var current = (combo.ItemsSource as IEnumerable<string>)?.ToList();
+							if ( current is null || !current.SequenceEqual(t.Result) )
+								combo.ItemsSource = t.Result;
+						}
+
+						// Only auto-open when the corresponding TextBox has focus
+						if ( t.Result.Count > 0 && input.IsKeyboardFocusWithin )
+							combo.IsDropDownOpen = true;
+					});
+				}, token);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogVerbose($"Error updating path suggestions: {ex.Message}");
 			}
 		}
 	}

@@ -26,10 +26,6 @@ namespace KOTORModSync
 			s_currentStyleUri = newUri;
 			ApplyToAllOpenWindows();
 			StyleChanged?.Invoke(s_currentStyleUri);
-			// Remove any previous custom styles (but keep FluentTheme)
-			//Styles.Clear();
-			//Styles.Add(new FluentTheme());
-			//Styles.Clear();
 			for ( int i = Application.Current.Styles.Count - 1; i >= 0; i-- )
 			{
 				if ( Application.Current.Styles[i] is StyleInclude styleInclude &&

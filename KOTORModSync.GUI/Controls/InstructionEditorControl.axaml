@@ -8,117 +8,199 @@
         <converters:ActionConverter x:Key="ActionConverter" />
         <converters:ListToStringConverter x:Key="ListToStringConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
+        <converters:NotChooseActionVisibility x:Key="NotChooseActionVisibility" />
         <converters:PatcherActionVisibility x:Key="PatcherActionVisibility" />
         <converters:NotPatcherActionVisibility x:Key="NotPatcherActionVisibility" />
         <converters:GuidListConverter x:Key="GuidListConverter" />
         <converters:NamespacesIniOptionConverter x:Key="NamespacesIniOptionConverter" />
+        <converters:PathStatusConverter x:Key="PathStatusConverter" />
+        <converters:PathResolverConverter x:Key="PathResolverConverter" />
     </UserControl.Resources>
 
-    <StackPanel>
-        <DockPanel>
-            <TextBlock FontWeight="Bold">
-                <TextBlock.Text>
-                    <MultiBinding Converter="{StaticResource IndexConverter}">
-                        <MultiBinding.Bindings>
-                            <!-- ReSharper disable once Xaml.PossibleNullReferenceException Xaml.BindingWithContextNotResolved -->
-                            <Binding Path="$parent[ItemsRepeater].DataContext.Instructions" />
-                            <Binding Path="." />
-                        </MultiBinding.Bindings>
-                    </MultiBinding>
-                </TextBlock.Text>
-            </TextBlock>
-            <Button Content="New Instruction Here"
-                    Click="AddNewInstruction_Click"
-                    Tag="{Binding}" />
-        </DockPanel>
-        <Border BorderThickness="2" Margin="10">
-            <Grid RowDefinitions="*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*"
-                ColumnDefinitions="*,Auto"
-                Margin="10">
+    <Border Classes="summary-instruction-card" Margin="0,8,0,0">
+        <StackPanel Spacing="12">
+            <!-- Header with instruction number and action controls -->
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Border Grid.Column="0" Classes="mod-list-item-badge"
+                        CornerRadius="4" Padding="8,4" Margin="0,0,12,0">
+                    <TextBlock FontWeight="Bold" FontSize="12" VerticalAlignment="Center">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource IndexConverter}">
+                                <MultiBinding.Bindings>
+                                    <Binding Path="$parent[ItemsRepeater].DataContext.Instructions" />
+                                    <Binding Path="." />
+                                </MultiBinding.Bindings>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </Border>
 
-                <DockPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
-                    <TextBlock Text="Action:" VerticalAlignment="Center" Margin="0,0,20,0" />
+                <TextBlock Grid.Column="1" Text="Instruction" Classes="summary-option-title"
+                           VerticalAlignment="Center" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:ActionButtonsControl
                         DeleteItem="DeleteInstruction_Click"
                         MoveItemUp="MoveInstructionUp_Click"
                         MoveItemDown="MoveInstructionDown_Click" />
-                </DockPanel>
+                    <Button Content="➕ Insert"
+                            Click="AddNewInstruction_Click"
+                            Tag="{Binding}"
+                            ToolTip.Tip="Insert new instruction here"
+                            Padding="8,4" />
+                </StackPanel>
+            </Grid>
 
-                <ComboBox Grid.Row="3" Grid.Column="0" HorizontalAlignment="Left"
-                          ItemsSource="{Binding ActionTypes}"
+            <!-- Action Type Selector -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="Action Type" Classes="summary-label" />
+                <TextBlock Classes="secondary-text" FontSize="11">
+                    <Run Text="Choose what operation this instruction performs" />
+                </TextBlock>
+                <ComboBox ItemsSource="{Binding ActionTypes}"
                           SelectedItem="{Binding ActionString, Converter={StaticResource ActionConverter}}"
-                          Focusable="True" />
+                          Focusable="True"
+                          HorizontalAlignment="Stretch" />
+            </StackPanel>
 
-                <StackPanel x:Name="optionChooser" Grid.Row="4" Grid.RowSpan="2" Grid.Column="0"
-                            ToolTip.Tip="Any mod in this list will be installed when this 'Choose' instruction runs. Potential for duplicate installs - be careful defining these!"
-                            IsVisible="{Binding Action, Converter={StaticResource ChooseActionVisibility}}">
-                    <TextBlock Text="Options:"
-                               ToolTip.Tip="Any mod in this list will be installed when this 'Choose' instruction runs. Potential for duplicate installs - be careful defining these!" />
-                    <controls:DependencyControl>
-                        <controls:DependencyControl.ThisGuidList>
-                            <Binding Path="Source" Converter="{StaticResource GuidListConverter}" />
-                        </controls:DependencyControl.ThisGuidList>
-                    </controls:DependencyControl>
-                </StackPanel>
+            <!-- Source Field (for Choose action: show Component selector) -->
+            <StackPanel Spacing="4" IsVisible="{Binding Action, Converter={StaticResource ChooseActionVisibility}}">
+                <TextBlock Text="Components/Options to Choose From" Classes="summary-label" />
+                <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                    <Run Text="Select which components or options the user can choose from at install time" />
+                </TextBlock>
+                <controls:DependencyControl>
+                    <controls:DependencyControl.ThisGuidList>
+                        <Binding Path="Source" Converter="{StaticResource GuidListConverter}" />
+                    </controls:DependencyControl.ThisGuidList>
+                </controls:DependencyControl>
+            </StackPanel>
 
-                <StackPanel Grid.Row="4" Grid.RowSpan="2" Grid.Column="0"
-                            IsVisible="{Binding !IsVisible, ElementName=optionChooser}">
-                    <TextBlock Text="Source:" />
-                    <TextBox AcceptsReturn="True" TextWrapping="Wrap" HorizontalAlignment="Stretch"
-                             Focusable="True" x:Name="SourceTextBox"
-                             Text="{Binding Source, Converter={StaticResource ListToStringConverter}}" />
-                </StackPanel>
+            <!-- Source Field (for all other actions: show file paths) -->
+            <StackPanel Spacing="4" IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}">
+                <TextBlock Text="Source File(s)" Classes="summary-label" />
+                <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                    <Run Text="File paths or wildcards (e.g., &lt;&lt;modDirectory&gt;&gt;\*.zip)" />
+                </TextBlock>
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" AcceptsReturn="True" TextWrapping="Wrap"
+                             Focusable="True" MinHeight="60"
+                             x:Name="SourceTextBox"
+                             Text="{Binding Source, Converter={StaticResource ListToStringConverter}}"
+                             Watermark="Enter file paths (one per line)..." />
+                    <StackPanel Grid.Column="1" Spacing="4" Margin="4,0,0,0">
+                        <controls:BrowseButtonsControl
+                            BrowseSourceFiles="BrowseSourceFiles_Click"
+                            BrowseSourceFromFolders="BrowseSourceFromFolders_Click" />
+                    </StackPanel>
+                </Grid>
+                <!-- Path Status & Resolved Preview -->
+                <Border Classes="summary-card" Padding="8,6" Margin="0,4,0,0">
+                    <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Source, Converter={StaticResource PathStatusConverter}}"
+                                       Classes="secondary-text" FontSize="11" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Source, Converter={StaticResource PathResolverConverter}}"
+                                   Classes="secondary-text" FontSize="10" FontStyle="Italic"
+                                   TextWrapping="Wrap" MaxLines="3" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
-                <StackPanel Grid.Row="5" Grid.Column="1">
-                    <controls:BrowseButtonsControl
-                        BrowseSourceFiles="BrowseSourceFiles_Click"
-                        BrowseSourceFromFolders="BrowseSourceFromFolders_Click" />
-                </StackPanel>
+            <!-- Destination Field (Move, Copy, Rename, Patcher) -->
+            <StackPanel Spacing="4" IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}">
+                <TextBlock Text="Destination" Classes="summary-label" />
+                <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                    <Run Text="Target directory or new filename for Rename" />
+                </TextBlock>
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" Focusable="True" TextWrapping="Wrap"
+                             x:Name="DestinationTextBox" Text="{Binding Destination}"
+                             Watermark="e.g., &lt;&lt;kotorDirectory&gt;&gt;\Override" />
+                    <Button Grid.Column="1" Content="📁 Browse"
+                            Click="BrowseDestination_Click"
+                            Tag="{Binding ElementName=DestinationTextBox}"
+                            Margin="4,0,0,0" />
+                </Grid>
+                <!-- Path Status & Resolved Preview -->
+                <Border Classes="summary-card" Padding="8,6" Margin="0,4,0,0">
+                    <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Destination, Converter={StaticResource PathStatusConverter}}"
+                                       Classes="secondary-text" FontSize="11" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Destination, Converter={StaticResource PathResolverConverter}}"
+                                   Classes="secondary-text" FontSize="10" FontStyle="Italic"
+                                   TextWrapping="Wrap" MaxLines="3" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="Destination:"
-                           IsVisible="{Binding !IsVisible, ElementName=optionChooser}" />
-                <TextBox Grid.Row="7" Grid.Column="0" Focusable="True" TextWrapping="Wrap"
-                         x:Name="DestinationTextBox" Text="{Binding Destination}"
-                         IsVisible="{Binding !IsVisible, ElementName=optionChooser}" />
-                <Button Grid.Row="7" Grid.Column="1" HorizontalAlignment="Stretch"
-                        Content="Browse Destination" Click="BrowseDestination_Click"
-                        Tag="{Binding ElementName=DestinationTextBox}"
-                        IsVisible="{Binding !IsVisible, ElementName=optionChooser}" />
-
-                <TextBlock Grid.Row="8" Grid.Column="0" Text="Dependencies:"
-                           ToolTip.Tip="This instruction will NOT run if ANY of these dependency mods are NOT SELECTED for install." />
-                <controls:DependencyControl Grid.Row="9" Grid.Column="0"
-                    ThisGuidList="{Binding Dependencies}" />
-
-                <TextBlock Grid.Row="10" Grid.Column="0" Text="Restrictions:"
-                           ToolTip.Tip="This instruction will NOT run if ANY of these restricted mods are SELECTED for install." />
-                <controls:DependencyControl Grid.Row="11" Grid.Column="0"
-                    ThisGuidList="{Binding Restrictions}" />
-
-                <TextBlock Grid.Row="12" Grid.Column="0" Text="Overwrite:"
-                           ToolTip.Tip="Should we overwrite if file already exists in the installation directory?"
-                           IsVisible="{Binding !IsVisible, ElementName=optionChooser}" />
-                <CheckBox Grid.Row="13" Grid.Column="0" Focusable="True"
-                         IsChecked="{Binding Overwrite}"
-                         IsVisible="{Binding !IsVisible, ElementName=optionChooser}" />
-
-                <TextBlock Grid.Row="14" Grid.Column="0" Text="Arguments:"
-                           ToolTip.Tip="Namespace option index if action is TSLPatcher. For 'execute' action, any command-line arguments to send. For 'DelDuplicate', the extension to delete when duplicates are found."
-                           IsVisible="{Binding !IsVisible, ElementName=optionChooser}" />
-
-                <!-- For Patcher action, show ComboBox with namespace options -->
-                <ComboBox Grid.Row="15" Grid.Column="0" Focusable="True"
-                          IsVisible="{Binding Action, Converter={StaticResource PatcherActionVisibility}}"
+            <!-- Arguments Field - Show ComboBox for Patcher with namespaces.ini -->
+            <StackPanel Spacing="4" IsVisible="{Binding Action, Converter={StaticResource PatcherActionVisibility}}">
+                <TextBlock Text="Patcher Options" Classes="summary-label" />
+                <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                    <Run Text="Select install option from namespaces.ini (if available)" />
+                </TextBlock>
+                <ComboBox Focusable="True"
+                          HorizontalAlignment="Stretch"
                           ItemsSource="{Binding ., Converter={StaticResource NamespacesIniOptionConverter}}"
                           SelectedIndex="{Binding Arguments}"
-                          ToolTip.Tip="Select the namespace option for TSLPatcher" />
+                          ToolTip.Tip="Select namespace option" />
+            </StackPanel>
 
-                <!-- For non-Patcher actions, show regular TextBox -->
-                <TextBox Grid.Row="15" Grid.Column="0" Focusable="True"
-                         IsVisible="{Binding Action, Converter={StaticResource NotPatcherActionVisibility}}"
-                         Text="{Binding Arguments}" />
+            <!-- Arguments Field - TextBox for Execute, DelDuplicate, Run (not for Patcher or Choose) -->
+            <StackPanel Spacing="4">
+                <StackPanel.IsVisible>
+                    <MultiBinding Converter="{StaticResource NotPatcherActionVisibility}">
+                        <Binding Path="Action" />
+                    </MultiBinding>
+                </StackPanel.IsVisible>
+                <TextBlock Text="Arguments / Options" Classes="summary-label" />
+                <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                    <Run Text="• Execute: Command-line arguments" />
+                    <LineBreak />
+                    <Run Text="• DelDuplicate: File extension (e.g., .mdl)" />
+                    <LineBreak />
+                    <Run Text="• Patcher: Use options above" />
+                </TextBlock>
+                <TextBox Focusable="True" Text="{Binding Arguments}"
+                         Watermark="Enter arguments if needed..." />
+            </StackPanel>
 
-            </Grid>
-        </Border>
-    </StackPanel>
+            <!-- Overwrite Checkbox (Move, Copy, Rename, Extract) -->
+            <StackPanel Spacing="4" IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}">
+                <CheckBox Focusable="True"
+                          IsChecked="{Binding Overwrite}"
+                          Content="Overwrite existing files"
+                          ToolTip.Tip="If checked, existing files will be replaced" />
+            </StackPanel>
+
+            <Separator Classes="summary-separator" />
+
+            <!-- Conditional Execution Settings -->
+            <Expander Header="⚙️ Conditional Execution (Optional)" IsExpanded="False">
+                <StackPanel Spacing="12" Margin="0,8,0,0">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Dependencies" Classes="summary-label"
+                                   ToolTip.Tip="This instruction will NOT run if ANY of these are NOT selected" />
+                        <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                            <Run Text="Instruction only runs if all these mods/options are selected" />
+                        </TextBlock>
+                        <controls:DependencyControl ThisGuidList="{Binding Dependencies}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Restrictions" Classes="summary-label"
+                                   ToolTip.Tip="This instruction will NOT run if ANY of these are selected" />
+                        <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                            <Run Text="Instruction is skipped if any of these mods/options are selected" />
+                        </TextBlock>
+                        <controls:DependencyControl ThisGuidList="{Binding Restrictions}" />
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+    </Border>
 </UserControl>

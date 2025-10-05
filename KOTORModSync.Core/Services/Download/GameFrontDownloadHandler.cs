@@ -107,8 +107,9 @@ namespace KOTORModSync.Core.Services.Download
 					await Logger.LogErrorAsync("[GameFront] Could not find direct download URL in page HTML");
 					progress?.Report(new DownloadProgress
 					{
-						Status = DownloadStatus.Failed,
-						ErrorMessage = "Could not extract direct download link from GameFront page"
+					Status = DownloadStatus.Failed,
+					ErrorMessage = "Could not extract direct download link from GameFront page",
+					ProgressPercentage = 100
 					});
 					return DownloadResult.Failed("Could not extract direct download link from GameFront page");
 				}
@@ -179,7 +180,8 @@ namespace KOTORModSync.Core.Services.Download
 				{
 					Status = DownloadStatus.Failed,
 					ErrorMessage = $"HTTP request failed: {httpEx.Message}",
-					Exception = httpEx
+					Exception = httpEx,
+					ProgressPercentage = 100
 				});
 				return DownloadResult.Failed($"GameFront HTTP request failed: {httpEx.Message}");
 			}
@@ -191,7 +193,8 @@ namespace KOTORModSync.Core.Services.Download
 				{
 					Status = DownloadStatus.Failed,
 					ErrorMessage = $"Request timeout: {tcEx.Message}",
-					Exception = tcEx
+					Exception = tcEx,
+					ProgressPercentage = 100
 				});
 				return DownloadResult.Failed($"GameFront request timeout: {tcEx.Message}");
 			}
@@ -203,7 +206,8 @@ namespace KOTORModSync.Core.Services.Download
 				{
 					Status = DownloadStatus.Failed,
 					ErrorMessage = ex.Message,
-					Exception = ex
+					Exception = ex,
+					ProgressPercentage = 100
 				});
 				return DownloadResult.Failed("GameFront download failed: " + ex.Message);
 			}

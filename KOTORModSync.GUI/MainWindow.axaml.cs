@@ -23,15 +23,18 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Vector = Avalonia.Vector;
 using JetBrains.Annotations;
 using KOTORModSync.CallbackDialogs;
 using KOTORModSync.Controls;
 using KOTORModSync.Converters;
+using KOTORModSync.Dialogs;
 using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Services.FileSystem;
 using KOTORModSync.Core.Utility;
 using ReactiveUI;
 using SharpCompress.Archives;
@@ -68,7 +71,7 @@ namespace KOTORModSync
 		private bool _rootSelectionState;
 		private bool _editorMode;
 		private bool _isClosingProgressWindow;
-		private FileSystemWatcher _modDirectoryWatcher;
+		private CrossPlatformFileWatcher _modDirectoryWatcher;
 		private Component _draggedComponent;
 		private string _lastLoadedFileName;
 
@@ -254,7 +257,8 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void InstallPathSuggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-			if ( _suppressComboEvents ) return;
+			if ( _suppressComboEvents )
+			    return;
 			if ( sender is ComboBox comboBox && comboBox.SelectedItem is string path )
 			{
 				_suppressPathEvents = true;
@@ -287,6 +291,10 @@ namespace KOTORModSync
 				if ( string.IsNullOrWhiteSpace(p) || !Directory.Exists(p) ) return false;
 				MainConfigInstance.sourcePath = new DirectoryInfo(p);
 				AddToRecentMods(text);
+
+				// Update file watcher when source path changes
+				SetupModDirectoryWatcher(p);
+
 				return true;
 			}
 			catch ( Exception ex )
@@ -1039,14 +1047,24 @@ namespace KOTORModSync
 
 		private async void HandleClosingAsync()
 		{
-			// If result is not true, do nothing and the app remains open
-			bool? result = await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really close?");
-			if ( result != true )
-				return;
+			try
+			{
+				// If result is not true, do nothing and the app remains open
+				bool? result = await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really close?");
+				if ( result != true )
+					return;
 
-			// Start a new app closing event.
-			IsClosingMainWindow = true;
-			await Dispatcher.UIThread.InvokeAsync(Close);
+				// Clean up file watcher
+				_modDirectoryWatcher?.Dispose();
+
+				// Start a new app closing event.
+				IsClosingMainWindow = true;
+				await Dispatcher.UIThread.InvokeAsync(Close);
+			}
+			catch ( Exception e )
+			{
+				await Logger.LogExceptionAsync(e);
+			}
 		}
 
 		public new event EventHandler<PropertyChangedEventArgs> PropertyChanged;
@@ -1286,7 +1304,7 @@ namespace KOTORModSync
 						);
 						if ( confirm == true )
 						{
-						RemoveComponentButton_Click(null, null);
+							RemoveComponentButton_Click(null, null);
 						}
 					})
 				});
@@ -1534,84 +1552,84 @@ namespace KOTORModSync
 
 			if ( !EditorMode )
 				return;
-				// Global operations
-				_ = menu.Items.Add(new MenuItem
+			// Global operations
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "➕ Add New Mod",
+				Command = ReactiveCommand.Create(() =>
 				{
-					Header = "➕ Add New Mod",
-					Command = ReactiveCommand.Create(() =>
-					{
-						Component newMod = _modManagementService.CreateMod();
+					Component newMod = _modManagementService.CreateMod();
 					if ( newMod == null )
 						return;
-							SetCurrentComponent(newMod);
-							SetTabInternal(TabControl, GuiEditTabItem);
-					})
-				});
+					SetCurrentComponent(newMod);
+					SetTabInternal(TabControl, GuiEditTabItem);
+				})
+			});
 
-				_ = menu.Items.Add(new Separator());
+			_ = menu.Items.Add(new Separator());
 
-				// Selection operations (useful for ordered lists)
-				_ = menu.Items.Add(new MenuItem
+			// Selection operations (useful for ordered lists)
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Name",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods())
+			});
+
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Category",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Category))
+			});
+
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Tier",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Tier))
+			});
+
+			_ = menu.Items.Add(new Separator());
+
+			// Tools and utilities
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "⚙️ Mod Management Tools",
+				Command = ReactiveCommand.Create(async () => await ShowModManagementDialog())
+			});
+
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "📈 Mod Statistics",
+				Command = ReactiveCommand.Create(async () =>
 				{
-					Header = "🔎 Select by Name",
-					Command = ReactiveCommand.Create(() => _modManagementService.SortMods())
-				});
-
-				_ = menu.Items.Add(new MenuItem
-				{
-					Header = "🔎 Select by Category",
-					Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Category))
-				});
-
-				_ = menu.Items.Add(new MenuItem
-				{
-					Header = "🔎 Select by Tier",
-					Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Tier))
-				});
-
-				_ = menu.Items.Add(new Separator());
-
-				// Tools and utilities
-				_ = menu.Items.Add(new MenuItem
-				{
-					Header = "⚙️ Mod Management Tools",
-					Command = ReactiveCommand.Create(async () => await ShowModManagementDialog())
-				});
-
-				_ = menu.Items.Add(new MenuItem
-				{
-					Header = "📈 Mod Statistics",
-					Command = ReactiveCommand.Create(async () =>
-					{
-						ModStatistics stats = _modManagementService.GetModStatistics();
+					ModStatistics stats = _modManagementService.GetModStatistics();
 					string statsText = "📊 Mod Statistics\n\n" +
-										   $"Total Mods: {stats.TotalMods}\n" +
-										   $"Selected: {stats.SelectedMods}\n" +
-										   $"Downloaded: {stats.DownloadedMods}\n\n" +
-										   $"Categories:\n{string.Join("\n", stats.Categories.Select(c => $"  • {c.Key}: {c.Value}"))}\n\n" +
-										   $"Tiers:\n{string.Join("\n", stats.Tiers.Select(t => $"  • {t.Key}: {t.Value}"))}\n\n" +
-										   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
-										   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
+											   $"Total Mods: {stats.TotalMods}\n" +
+											   $"Selected: {stats.SelectedMods}\n" +
+											   $"Downloaded: {stats.DownloadedMods}\n\n" +
+											   $"Categories:\n{string.Join("\n", stats.Categories.Select(c => $"  • {c.Key}: {c.Value}"))}\n\n" +
+											   $"Tiers:\n{string.Join("\n", stats.Tiers.Select(t => $"  • {t.Key}: {t.Value}"))}\n\n" +
+											   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
+											   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
 
-						await InformationDialog.ShowInformationDialog(this, statsText);
-					})
-				});
+					await InformationDialog.ShowInformationDialog(this, statsText);
+				})
+			});
 
-				_ = menu.Items.Add(new Separator());
+			_ = menu.Items.Add(new Separator());
 
-				// File operations at the bottom
-				_ = menu.Items.Add(new MenuItem
-				{
-					Header = "💾 Save Config",
-					Command = ReactiveCommand.Create(() => SaveModFileAs_Click(null, null)),
-					InputGesture = new KeyGesture(Key.S, KeyModifiers.Control)
-				});
+			// File operations at the bottom
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "💾 Save Config",
+				Command = ReactiveCommand.Create(() => SaveModFileAs_Click(null, null)),
+				InputGesture = new KeyGesture(Key.S, KeyModifiers.Control)
+			});
 
-				_ = menu.Items.Add(new MenuItem
-				{
-					Header = "❌ Close TOML",
-					Command = ReactiveCommand.Create(() => CloseTOMLFile_Click(null, null))
-				});
+			_ = menu.Items.Add(new MenuItem
+			{
+				Header = "❌ Close TOML",
+				Command = ReactiveCommand.Create(() => CloseTOMLFile_Click(null, null))
+			});
 		}
 
 		private void SetupDragAndDrop()
@@ -1784,35 +1802,50 @@ namespace KOTORModSync
 			}
 		}
 
+		private bool _suppressSelectAllCheckBoxEvents;
+
 		private void SelectAllCheckBox_IsCheckedChanged(object sender, RoutedEventArgs e)
 		{
 			try
 			{
-				if ( !(sender is CheckBox checkBox) )
+				if ( !(sender is CheckBox checkBox) || _suppressSelectAllCheckBoxEvents )
 					return;
 
 				var finishedComponents = new HashSet<Component>();
+
+				// Handle different checkbox states
 				switch ( checkBox.IsChecked )
 				{
 					case true:
+						// Checkbox is checked - select all components
 						foreach ( Component component in MainConfig.AllComponents )
 						{
 							component.IsSelected = true;
 							ComponentCheckboxChecked(component, finishedComponents, suppressErrors: true);
 						}
-						UpdateStepProgress();
 						break;
 					case false:
+						// Checkbox is unchecked - deselect all components
 						foreach ( Component component in MainConfig.AllComponents )
 						{
 							component.IsSelected = false;
 							ComponentCheckboxUnchecked(component, finishedComponents, suppressErrors: true);
 						}
-						UpdateStepProgress();
+						break;
+					case null:
+						// Checkbox is in indeterminate state - this typically means some but not all are selected
+						// When clicked in this state, select all (common UI pattern)
+						foreach ( Component component in MainConfig.AllComponents )
+						{
+							component.IsSelected = true;
+							ComponentCheckboxChecked(component, finishedComponents, suppressErrors: true);
+						}
 						break;
 				}
 
+				// Update counts first, then step progress to ensure consistency
 				UpdateModCounts();
+				UpdateStepProgress();
 			}
 			catch ( Exception ex )
 			{
@@ -1926,6 +1959,9 @@ namespace KOTORModSync
 						Margin = new Thickness(0, 2, 0, 2)
 					};
 
+					// Add tooltip with category definition
+					ToolTip.SetTip(checkBox, CategoryTierDefinitions.GetCategoryDescription(category));
+
 					checkBox.IsCheckedChanged += (s, e) =>
 					{
 						if ( checkBox.IsChecked == true )
@@ -1955,6 +1991,24 @@ namespace KOTORModSync
 			try
 			{
 				PopulateModList(MainConfig.AllComponents);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private void RefreshModListVisuals()
+		{
+			try
+			{
+				if ( ModListBox == null || ModListBox.ItemsSource == null )
+					return;
+
+				// Force re-evaluation of all mod list items by refreshing the ItemsSource
+				IEnumerable currentItems = ModListBox.ItemsSource;
+				ModListBox.ItemsSource = null;
+				ModListBox.ItemsSource = currentItems;
 			}
 			catch ( Exception ex )
 			{
@@ -2006,16 +2060,27 @@ namespace KOTORModSync
 				// Update SelectAllCheckBox state
 				if ( !(this.FindControl<CheckBox>("SelectAllCheckBox") is CheckBox selectAllCheckBox) ) return;
 				{
-					int totalCount = MainConfig.AllComponents.Count;
-					int selectedCount = MainConfig.AllComponents.Count(c => c.IsSelected);
+					_suppressSelectAllCheckBoxEvents = true;
+					try
+					{
+						int totalCount = MainConfig.AllComponents.Count;
+						int selectedCount = MainConfig.AllComponents.Count(c => c.IsSelected);
 
-					if ( selectedCount == 0 )
-						selectAllCheckBox.IsChecked = false;
-					else if ( selectedCount == totalCount )
-						selectAllCheckBox.IsChecked = true;
-					else
-						selectAllCheckBox.IsChecked = null;
+						if ( selectedCount == 0 )
+							selectAllCheckBox.IsChecked = false;
+						else if ( selectedCount == totalCount )
+							selectAllCheckBox.IsChecked = true;
+						else
+							selectAllCheckBox.IsChecked = null;
+					}
+					finally
+					{
+						_suppressSelectAllCheckBoxEvents = false;
+					}
 				}
+
+				// Refresh mod list visuals to update border colors
+				RefreshModListVisuals();
 			}
 			catch ( Exception ex )
 			{
@@ -2146,15 +2211,15 @@ namespace KOTORModSync
 			{
 				// Check if we're clicking on any interactive control
 				if ( current is Button ||
-				     current is TextBox ||
-				     current is ComboBox ||
-				     current is ListBox ||
-				     current is MenuItem ||
-				     current is Menu ||
-				     current is Expander ||
-				     current is Slider ||
-				     current is TabControl ||
-				     current is TabItem )
+					 current is TextBox ||
+					 current is ComboBox ||
+					 current is ListBox ||
+					 current is MenuItem ||
+					 current is Menu ||
+					 current is Expander ||
+					 current is Slider ||
+					 current is TabControl ||
+					 current is TabItem )
 				{
 					return true;
 				}
@@ -2173,7 +2238,7 @@ namespace KOTORModSync
 				}
 
 				// Move up the visual tree
-				current = current.GetVisualParent() as Visual;
+				current = current.GetVisualParent();
 			}
 
 			return false;
@@ -2346,6 +2411,9 @@ namespace KOTORModSync
 					{
 						MainConfigInstance.allComponents = new List<Component>(parseResult.Components);
 						await Logger.LogAsync($"Loaded {parseResult.Components.Count} components from markdown.");
+
+						// Auto-generate instructions for components without them
+						await TryAutoGenerateInstructionsForComponents(parseResult.Components.ToList());
 					}
 					else
 					{
@@ -2370,6 +2438,9 @@ namespace KOTORModSync
 								MainConfigInstance.allComponents = conflictDialog.MergedComponents;
 								int newCount = MainConfig.AllComponents.Count;
 								await Logger.LogAsync($"Merged {parseResult.Components.Count} parsed components with existing {originalCount} components. Total components now: {newCount}");
+
+								// Auto-generate instructions for newly added components
+								await TryAutoGenerateInstructionsForComponents(MainConfig.AllComponents);
 							}
 							else
 							{
@@ -2382,11 +2453,12 @@ namespace KOTORModSync
 							// Replace all existing components with new ones
 							MainConfigInstance.allComponents = new List<Component>(parseResult.Components);
 							await Logger.LogAsync($"Overwrote existing config with {parseResult.Components.Count} components from markdown.");
+
+							// Auto-generate instructions for components without them
+							await TryAutoGenerateInstructionsForComponents(parseResult.Components.ToList());
 						}
 						else // User cancelled (null)
-						{
 							return;
-						}
 					}
 					await ProcessComponentsAsync(MainConfig.AllComponents);
 				}
@@ -2773,11 +2845,32 @@ namespace KOTORModSync
 		{
 			try
 			{
-				(bool validationResult, string informationMessage) = await InstallationService.ValidateInstallationEnvironmentAsync(
+				(bool validationResult, _) = await InstallationService.ValidateInstallationEnvironmentAsync(
 					MainConfigInstance,
 					async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
 				);
-				await InformationDialog.ShowInformationDialog(this, informationMessage);
+
+				// If validation failed, run detailed analysis
+				var modIssues = new List<Dialogs.ValidationIssue>();
+				var systemIssues = new List<string>();
+
+				if ( !validationResult )
+				{
+					// Analyze what went wrong
+					await AnalyzeValidationFailures(modIssues, systemIssues);
+				}
+
+				// Show new validation dialog
+				_ = await ValidationDialog.ShowValidationDialog(
+					this,
+					validationResult,
+					validationResult
+						? "No issues found. Your mods are ready to install!"
+						: "Some issues need to be resolved before installation can proceed.",
+					modIssues.Count > 0 ? modIssues : null,
+					systemIssues.Count > 0 ? systemIssues : null,
+					() => OpenOutputWindow_Click(null, null)
+				);
 
 				// Update step progress after validation
 				if ( validationResult )
@@ -2789,6 +2882,113 @@ namespace KOTORModSync
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
+			}
+		}
+
+		private async Task AnalyzeValidationFailures(List<Dialogs.ValidationIssue> modIssues, List<string> systemIssues)
+		{
+			try
+			{
+				// Check system-level issues
+				if ( MainConfig.DestinationPath == null || MainConfig.SourcePath == null )
+				{
+					systemIssues.Add("⚙️ Directories not configured\n" +
+									"Both Mod Directory and KOTOR Install Directory must be set.\n" +
+									"Solution: Click Settings and configure both directories.");
+					return; // Can't continue without directories
+				}
+
+				if ( !MainConfig.AllComponents.Any() )
+				{
+					systemIssues.Add("📋 No mods loaded\n" +
+									"No mod configuration file has been loaded.\n" +
+									"Solution: Click 'File > Load Installation File' to load a mod list.");
+					return;
+				}
+
+				if ( !MainConfig.AllComponents.Any(c => c.IsSelected) )
+				{
+					systemIssues.Add("☑️ No mods selected\n" +
+									"At least one mod must be selected for installation.\n" +
+									"Solution: Check the boxes next to mods you want to install.");
+					return;
+				}
+
+				// Check each selected component
+				foreach ( Component component in MainConfig.AllComponents.Where(c => c.IsSelected) )
+				{
+					// Check if downloaded
+					if ( !component.IsDownloaded )
+					{
+						var issue = new Dialogs.ValidationIssue
+						{
+							Icon = "📥",
+							ModName = component.Name,
+							IssueType = "Missing Download",
+							Description = "The mod archive file is not in your Mod Directory. The installer cannot proceed without this file.",
+							Solution = component.ModLink.Count > 0
+								? $"Solution: Click 'Fetch Downloads' to auto-download, or manually download from: {component.ModLink[0]}"
+								: "Solution: Click 'Fetch Downloads' to auto-download, or manually download the mod file and place it in your Mod Directory."
+						};
+						modIssues.Add(issue);
+						continue; // Other checks won't be meaningful without the download
+					}
+
+					// Check if it has instructions
+					if ( component.Instructions.Count == 0 && component.Options.Count == 0 )
+					{
+						var issue = new Dialogs.ValidationIssue
+						{
+							Icon = "❌",
+							ModName = component.Name,
+							IssueType = "Missing Instructions",
+							Description = "This mod has no installation instructions defined. It cannot be installed.",
+							Solution = "Solution: This is a configuration error with the mod itself. Contact the mod list creator or disable this mod."
+						};
+						modIssues.Add(issue);
+					}
+
+					// Run component validation for detailed file/path issues
+					var validator = new ComponentValidation(component, MainConfig.AllComponents);
+					bool componentValid = validator.Run();
+					if ( !componentValid )
+					{
+						List<string> errors = validator.GetErrors();
+						if ( errors.Count <= 0 )
+						    continue;
+						var issue = new Dialogs.ValidationIssue
+						{
+							Icon = "🔧",
+							ModName = component.Name,
+							IssueType = "Installation Configuration Error",
+							Description = string.Join("\n", errors.Take(3)) + (errors.Count > 3 ? $"\n... and {errors.Count - 3} more errors" : ""),
+							Solution = "Solution: Check the Output Window for detailed logs. This usually means missing files in the mod archive or incorrect file paths."
+						};
+						modIssues.Add(issue);
+					}
+				}
+
+				// Check for system-level issues that weren't caught earlier
+				if ( !Utility.IsDirectoryWritable(MainConfig.DestinationPath) )
+				{
+					systemIssues.Add("🔒 KOTOR Directory Not Writable\n" +
+									"The installer cannot write to your KOTOR installation directory.\n" +
+									"Solution: Run KOTORModSync as Administrator, or install KOTOR to a different location (like Documents folder).");
+				}
+
+				if ( !Utility.IsDirectoryWritable(MainConfig.SourcePath) )
+				{
+					systemIssues.Add("🔒 Mod Directory Not Writable\n" +
+									"The installer cannot write to your Mod Directory.\n" +
+									"Solution: Ensure you have write permissions for this folder, or choose a different Mod Directory.");
+				}
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+				systemIssues.Add("❌ Unexpected Error\n" +
+								"An error occurred during validation analysis.\n" +
+								"Solution: Check the Output Window for details.");
 			}
 		}
 
@@ -3930,9 +4130,9 @@ namespace KOTORModSync
 						Dispatcher.UIThread.Post(async () =>
 						{
 							try
-						{
-							await ProcessComponentsAsync(MainConfig.AllComponents);
-							UpdateModCounts();
+							{
+								await ProcessComponentsAsync(MainConfig.AllComponents);
+								UpdateModCounts();
 							}
 							catch ( Exception ex )
 							{
@@ -4201,7 +4401,7 @@ namespace KOTORModSync
 
 					// Only show dialog if there are actual circular dependencies
 					if ( !cycleInfo.HasCircularDependencies || cycleInfo.Cycles.Count <= 0 )
-					    return;
+						return;
 					(bool retry, List<Component> resolvedComponents) = await CircularDependencyResolutionDialog.ShowResolutionDialog(
 						this,
 						componentsList,
@@ -4740,8 +4940,7 @@ namespace KOTORModSync
 				ProgressBar progressBar = this.FindControl<ProgressBar>("OverallProgressBar");
 				TextBlock progressText = this.FindControl<TextBlock>("ProgressText");
 
-				if ( progressBar == null || progressText == null )
-					return;
+				bool canUpdateProgress = progressBar != null && progressText != null;
 
 				// Check Step 1: Directories are set
 				bool step1Complete = !string.IsNullOrEmpty(MainConfig.SourcePath?.FullName) &&
@@ -4752,8 +4951,8 @@ namespace KOTORModSync
 				bool step2Complete = step1Complete && MainConfig.AllComponents?.Count > 0;
 				UpdateStepCompletion(step2Border, step2Indicator, step2Text, step2Complete);
 
-				// Check Step 3: At least one component is selected (only counts after Step 2)
-				bool step3Complete = step2Complete && MainConfig.AllComponents?.Any(c => c.IsSelected) == true;
+				// Check Step 3: At least one component is selected (always complete if any component is selected)
+				bool step3Complete = MainConfig.AllComponents?.Any(c => c.IsSelected) == true;
 				UpdateStepCompletion(step3Border, step3Indicator, step3Text, step3Complete);
 
 				// Check Step 4: Installation completed (only counts after Step 3)
@@ -4764,17 +4963,20 @@ namespace KOTORModSync
 				// Update progress bar (0-4 scale)
 				int completedSteps = (step1Complete ? 1 : 0) + (step2Complete ? 1 : 0) +
 									(step3Complete ? 1 : 0) + (step4Complete ? 1 : 0);
-				progressBar.Value = completedSteps;
+				if ( canUpdateProgress )
+				{
+					progressBar.Value = completedSteps;
 
-				// Update progress text
-				string[] messages = {
+					// Update progress text
+					string[] messages = {
 							"Complete the steps above to get started",
 							"Great start! Continue with the next steps",
 							"Almost there! Just a few more steps",
 							"Excellent progress! You're almost ready",
 							"🎉 All steps completed! You're ready to install mods",
 						};
-				progressText.Text = messages[Math.Min(completedSteps, messages.Length - 1)];
+					progressText.Text = messages[Math.Min(completedSteps, messages.Length - 1)];
+				}
 
 				// No need to update displays - using reusable DirectoryPickerControl now
 			}
@@ -4930,19 +5132,23 @@ namespace KOTORModSync
 				// Dispose existing watcher if any
 				_modDirectoryWatcher?.Dispose();
 
-				_modDirectoryWatcher = new FileSystemWatcher
-				{
-					Path = path,
-					NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
-					Filter = "*.*",
-					EnableRaisingEvents = true,
-				};
+				// Create cross-platform file watcher
+				_modDirectoryWatcher = new CrossPlatformFileWatcher(
+					path: path,
+					filter: "*.*",
+					notifyFilters: NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
+					includeSubdirectories: false
+				);
 
 				_modDirectoryWatcher.Created += OnModDirectoryChanged;
 				_modDirectoryWatcher.Deleted += OnModDirectoryChanged;
 				_modDirectoryWatcher.Changed += OnModDirectoryChanged;
+				_modDirectoryWatcher.Error += OnModDirectoryWatcherError;
 
-				Logger.LogVerbose($"File system watcher initialized for: {path}");
+				// Start watching
+				_modDirectoryWatcher.StartWatching();
+
+				Logger.LogVerbose($"Cross-platform file system watcher initialized for: {path}");
 
 				// Initial scan
 				ScanModDirectoryForDownloads();
@@ -4969,6 +5175,28 @@ namespace KOTORModSync
 			}, DispatcherPriority.Background);
 		}
 
+		private void OnModDirectoryWatcherError(object sender, ErrorEventArgs e)
+		{
+			Logger.LogException(e.GetException(), "File watcher error occurred");
+
+			// Attempt to restart the watcher
+			Dispatcher.UIThread.Post(() =>
+			{
+				try
+				{
+					if (MainConfig.SourcePath != null && Directory.Exists(MainConfig.SourcePath.FullName))
+					{
+						Logger.LogVerbose("Attempting to restart file watcher after error");
+						SetupModDirectoryWatcher(MainConfig.SourcePath.FullName);
+					}
+				}
+				catch (Exception ex)
+				{
+					Logger.LogException(ex, "Failed to restart file watcher");
+				}
+			}, DispatcherPriority.Background);
+		}
+
 		private void ScanModDirectoryForDownloads()
 		{
 			try
@@ -4979,17 +5207,12 @@ namespace KOTORModSync
 				if ( MainConfig.AllComponents.Count == 0 )
 					return;
 
-				// Get all archive files in mod directory
-				string[] archiveExtensions = { ".zip", ".rar", ".7z", ".tar", ".gz" };
-				var filesInModDir = Directory.GetFiles(MainConfig.SourcePath.FullName, searchPattern: "*.*", SearchOption.TopDirectoryOnly)
-					.Where(f => archiveExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-					.Select(Path.GetFileName)
-					.ToList();
+				Logger.LogVerbose($"[FileValidation] Starting scan. Mod directory: {MainConfig.SourcePath.FullName}");
 
 				int downloadedCount = 0;
 				int totalSelected = 0;
 
-				// Check each component
+				// Check each component using proper instruction-based validation
 				foreach ( Component component in MainConfig.AllComponents )
 				{
 					if ( !component.IsSelected )
@@ -4997,24 +5220,12 @@ namespace KOTORModSync
 
 					totalSelected++;
 
-					// Check if any instruction source files exist in mod directory
-					bool hasAllFiles = true;
-					foreach ( Instruction instruction in component.Instructions )
-					{
-						foreach ( string source in instruction.Source )
-						{
-							// Extract just the filename from the source path
-							string fileName = Path.GetFileName(source);
-							if ( !filesInModDir.Any(f => f.Equals(fileName, StringComparison.OrdinalIgnoreCase)) )
-							{
-								hasAllFiles = false;
-								break;
-							}
-						}
-						if ( !hasAllFiles ) break;
-					}
-
+					// Use VirtualFileSystemProvider to properly validate file existence based on instructions
+					bool hasAllFiles = ValidateComponentFilesExist(component);
 					component.IsDownloaded = hasAllFiles;
+
+					Logger.LogVerbose($"[FileValidation] Component '{component.Name}': {(hasAllFiles ? "DOWNLOADED" : "MISSING")}");
+
 					if ( hasAllFiles ) downloadedCount++;
 				}
 
@@ -5040,10 +5251,98 @@ namespace KOTORModSync
 				}
 
 				Logger.LogVerbose($"Download scan complete: {downloadedCount}/{totalSelected} mods ready");
+
+				// Refresh the mod list items to update tooltips and validation states
+				RefreshModListItems();
 			}
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Error scanning mod directory for downloads");
+			}
+		}
+
+		/// <summary>
+		/// Validates that all required files for a component exist using instruction-based validation.
+		/// This method properly checks file existence based on the actual instructions,
+		/// rather than just doing simple filename matching.
+		/// </summary>
+		/// <param name="component">The component to validate</param>
+		/// <returns>True if all required files exist, false otherwise</returns>
+		private bool ValidateComponentFilesExist(Component component)
+		{
+			try
+			{
+				if ( component?.Instructions == null || component.Instructions.Count == 0 )
+				{
+					// Components without instructions might still be valid (e.g., meta-mods with only dependencies)
+					// So we return true here - they're considered "downloaded" as they don't require files
+					return true;
+				}
+
+				// Check each instruction's source files
+				foreach ( Instruction instruction in component.Instructions )
+				{
+					// Only validate instructions that require source files from the mod directory
+					// Skip Choose (uses GUIDs), DelDuplicate (optional), Delete (optional), etc.
+					bool requiresSourceFiles = instruction.Action == Instruction.ActionType.Extract ||
+					                            instruction.Action == Instruction.ActionType.Execute ||
+					                            instruction.Action == Instruction.ActionType.Patcher ||
+					                            instruction.Action == Instruction.ActionType.Move ||
+					                            instruction.Action == Instruction.ActionType.Copy;
+
+					if ( !requiresSourceFiles )
+						continue;
+
+					if ( instruction.Source.Count == 0 )
+					{
+						// This instruction type requires source files but has none - this is a problem
+						Logger.LogVerbose($"Component '{component.Name}': Instruction with action '{instruction.Action}' has no source files");
+						return false;
+					}
+
+					foreach ( string source in instruction.Source )
+					{
+						// Skip kotorDirectory paths - those are destination files, not source files we need to download
+						if ( source.Contains("<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
+							continue;
+
+						// Replace custom variables in the source path
+						string resolvedSource = Utility.ReplaceCustomVariables(source);
+
+						// Use PathHelper to expand wildcards and get actual file paths
+						// Use a real file system provider for actual file existence checks
+						var realFileSystemProvider = new RealFileSystemProvider();
+						List<string> expandedPaths = PathHelper.EnumerateFilesWithWildcards(
+							new List<string> { resolvedSource },
+							realFileSystemProvider,
+							includeSubFolders: false
+						);
+
+						// If no files match the pattern, the component is missing files
+						if ( expandedPaths == null || expandedPaths.Count == 0 )
+						{
+							Logger.LogVerbose($"Component '{component.Name}': No files found matching pattern: {resolvedSource}");
+							return false;
+						}
+
+						// Check if all expanded paths actually exist using real file system
+						foreach ( string expandedPath in expandedPaths )
+						{
+							if ( !File.Exists(expandedPath) )
+							{
+								Logger.LogVerbose($"Component '{component.Name}': File does not exist: {expandedPath}");
+								return false;
+							}
+						}
+					}
+				}
+
+				return true;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Error validating files for component '{component?.Name}'");
+				return false;
 			}
 		}
 
@@ -5084,24 +5383,58 @@ namespace KOTORModSync
 				// Create a dictionary to track download progress for each URL
 				var urlToProgressMap = new Dictionary<string, DownloadProgress>();
 
-				// Add all downloads to the progress window
+				// Add all downloads to the progress window (grouped by mod)
 				foreach ( Component component in componentsToDownload )
 				{
-					foreach ( string url in component.ModLink )
+					if ( component.ModLink.Count == 1 )
 					{
+						// Single URL - create individual download
 						var progressItem = new DownloadProgress
 						{
 							ModName = component.Name,
-							Url = url,
+							Url = component.ModLink[0],
 							Status = DownloadStatus.Pending,
 							StatusMessage = "Waiting to start...",
 							ProgressPercentage = 0
 						};
 
 						progressWindow.AddDownload(progressItem);
-						urlToProgressMap[url] = progressItem;
+						urlToProgressMap[component.ModLink[0]] = progressItem;
+					}
+					else
+					{
+						// Multiple URLs - create grouped download
+						var groupedProgress = DownloadProgress.CreateGrouped(component.Name, component.ModLink);
+						progressWindow.AddDownload(groupedProgress);
+
+						// Add each child download to the URL map for the download manager
+						foreach ( DownloadProgress childProgress in groupedProgress.ChildDownloads )
+						{
+							urlToProgressMap[childProgress.Url] = childProgress;
+						}
 					}
 				}
+
+				// Create download manager and handlers that will be shared
+						var httpClient = new System.Net.Http.HttpClient();
+						httpClient.Timeout = TimeSpan.FromMinutes(10);
+
+						var handlers = new List<IDownloadHandler>
+						{
+										new DeadlyStreamDownloadHandler(httpClient),
+										new MegaDownloadHandler(),
+					new NexusModsDownloadHandler(httpClient, null),
+							new GameFrontDownloadHandler(httpClient),
+					new DirectDownloadHandler(httpClient),
+						};
+
+						var downloadManager = new DownloadManager(handlers);
+
+				// Wire up download control events
+				progressWindow.DownloadControlRequested += async (s, args) =>
+				{
+					await HandleDownloadControl(args, urlToProgressMap, downloadManager, progressWindow);
+				};
 
 				// Show the window
 				progressWindow.Show();
@@ -5111,28 +5444,16 @@ namespace KOTORModSync
 				{
 					try
 					{
-				// Initialize download handlers
-				var httpClient = new System.Net.Http.HttpClient();
-				httpClient.Timeout = TimeSpan.FromMinutes(10);
-
-				var handlers = new List<IDownloadHandler>
-						{
-				// Specific handlers MUST come before DirectDownloadHandler
-				// because DirectDownloadHandler accepts any HTTP/HTTPS URL
-							new DeadlyStreamDownloadHandler(httpClient),
-							new MegaDownloadHandler(),
-				new NexusModsDownloadHandler(httpClient, null), // TODO: Add API key support
-				new GameFrontDownloadHandler(httpClient),
-				new DirectDownloadHandler(httpClient), // Keep this last as fallback
-						};
-
-				var downloadManager = new DownloadManager(handlers);
+						await Logger.LogVerboseAsync($"[Download] Starting download process for {componentsToDownload.Count} components");
+						await Logger.LogVerboseAsync($"[Download] Starting download manager with {urlToProgressMap.Count} URLs");
 
 						// Use the new progress-aware download method with cancellation support
-						await downloadManager.DownloadAllWithProgressAsync(
+						_ = await downloadManager.DownloadAllWithProgressAsync(
 						urlToProgressMap,
 						MainConfig.SourcePath.FullName,
 						progressWindow.CancellationToken);
+
+						await Logger.LogVerboseAsync("[Download] Download manager completed");
 
 						// Mark downloads as completed
 						progressWindow.MarkCompleted();
@@ -5156,6 +5477,217 @@ namespace KOTORModSync
 				await Logger.LogExceptionAsync(ex, "Error starting download process");
 				await InformationDialog.ShowInformationDialog(this,
 					$"An error occurred while starting downloads:\n\n{ex.Message}");
+			}
+		}
+
+		private async Task HandleDownloadControl(
+			DownloadControlEventArgs args,
+			Dictionary<string, DownloadProgress> urlToProgressMap,
+			DownloadManager downloadManager,
+			DownloadProgressWindow progressWindow)
+		{
+			try
+			{
+				DownloadProgress progress = args.Progress;
+				await Logger.LogVerboseAsync($"[Download Control] {args.Action} requested for {progress.ModName}");
+
+				switch ( args.Action )
+				{
+					case DownloadControlAction.Start:
+						// Start downloads immediately
+						if ( progress.Status == DownloadStatus.Pending )
+						{
+							if ( progress.IsGrouped )
+							{
+								// Start all child downloads
+								progress.AddLog("Starting all downloads immediately (user requested)");
+								_ = Task.Run(async () =>
+								{
+									try
+									{
+										var groupUrlMap = new Dictionary<string, DownloadProgress>();
+										foreach ( DownloadProgress child in progress.ChildDownloads )
+										{
+											if ( child.Status == DownloadStatus.Pending && !string.IsNullOrEmpty(child.Url) )
+											{
+												groupUrlMap[child.Url] = child;
+											}
+										}
+
+										if ( groupUrlMap.Count > 0 )
+										{
+											_ = await downloadManager.DownloadAllWithProgressAsync(
+												groupUrlMap,
+												MainConfig.SourcePath?.FullName ?? string.Empty,
+												CancellationToken.None);
+										}
+
+										await Dispatcher.UIThread.InvokeAsync(ScanModDirectoryForDownloads);
+									}
+									catch ( Exception ex )
+									{
+										await Logger.LogExceptionAsync(ex, "Error during immediate grouped download start");
+									}
+								});
+							}
+							else if ( !string.IsNullOrEmpty(progress.Url) )
+							{
+								// Start single download
+								progress.AddLog("Starting download immediately (user requested)");
+								_ = Task.Run(async () =>
+								{
+									try
+									{
+										var singleUrlMap = new Dictionary<string, DownloadProgress> { { progress.Url, progress } };
+										_ = await downloadManager.DownloadAllWithProgressAsync(
+											singleUrlMap,
+											MainConfig.SourcePath?.FullName ?? string.Empty,
+											CancellationToken.None);
+
+										await Dispatcher.UIThread.InvokeAsync(ScanModDirectoryForDownloads);
+									}
+									catch ( Exception ex )
+									{
+										await Logger.LogExceptionAsync(ex, "Error during immediate download start");
+									}
+								});
+							}
+						}
+						break;
+
+					case DownloadControlAction.Pause:
+						// For now, just update the status to indicate pausing is not fully implemented
+						progress.AddLog("Pause functionality is not yet fully implemented");
+						await Logger.LogWarningAsync("[Download Control] Pause functionality is not yet fully implemented");
+						await InformationDialog.ShowInformationDialog(progressWindow,
+							"Pause functionality is not yet fully implemented. Use the Cancel button to stop all downloads.");
+						break;
+
+					case DownloadControlAction.Retry:
+						// Retry downloads
+						if ( progress.IsGrouped )
+						{
+							// Retry all child downloads
+							progress.AddLog("Retrying all downloads (user requested)");
+
+							_ = Task.Run(async () =>
+							{
+								try
+								{
+									var groupUrlMap = new Dictionary<string, DownloadProgress>();
+
+									foreach ( DownloadProgress child in progress.ChildDownloads )
+									{
+										if ( !string.IsNullOrEmpty(child.Url) )
+										{
+											// Reset child progress state
+											child.Status = DownloadStatus.Pending;
+											child.ProgressPercentage = 0;
+											child.BytesDownloaded = 0;
+											child.StatusMessage = "Retrying...";
+											child.ErrorMessage = string.Empty;
+											child.Exception = null;
+											child.StartTime = default;
+											child.EndTime = null;
+
+											// Delete existing file if it exists
+											try
+											{
+												string fileName = Path.GetFileName(new Uri(child.Url).AbsolutePath);
+												if ( !string.IsNullOrEmpty(fileName) )
+												{
+													string filePath = Path.Combine(MainConfig.SourcePath?.FullName ?? string.Empty, fileName);
+													if ( File.Exists(filePath) )
+													{
+														File.Delete(filePath);
+														child.AddLog($"Deleted existing file: {fileName}");
+													}
+												}
+											}
+											catch ( Exception ex )
+											{
+												await Logger.LogExceptionAsync(ex, $"Error deleting existing file for retry: {child.Url}");
+											}
+
+											groupUrlMap[child.Url] = child;
+										}
+									}
+
+									if ( groupUrlMap.Count > 0 )
+									{
+										_ = await downloadManager.DownloadAllWithProgressAsync(
+											groupUrlMap,
+											MainConfig.SourcePath?.FullName ?? string.Empty,
+											CancellationToken.None);
+									}
+
+									await Dispatcher.UIThread.InvokeAsync(ScanModDirectoryForDownloads);
+								}
+								catch ( Exception ex )
+								{
+									await Logger.LogExceptionAsync(ex, "Error during grouped download retry");
+								}
+							});
+						}
+						else if ( !string.IsNullOrEmpty(progress.Url) )
+						{
+							// Retry single download
+							progress.AddLog("Retrying download (user requested)");
+
+							// Reset progress state
+							progress.Status = DownloadStatus.Pending;
+							progress.ProgressPercentage = 0;
+							progress.BytesDownloaded = 0;
+							progress.StatusMessage = "Retrying...";
+							progress.ErrorMessage = string.Empty;
+							progress.Exception = null;
+							progress.StartTime = default;
+							progress.EndTime = null;
+
+							// Delete existing file if it exists
+							try
+							{
+								string fileName = Path.GetFileName(new Uri(progress.Url).AbsolutePath);
+								if ( !string.IsNullOrEmpty(fileName) )
+								{
+									string filePath = Path.Combine(MainConfig.SourcePath?.FullName ?? string.Empty, fileName);
+									if ( File.Exists(filePath) )
+									{
+										File.Delete(filePath);
+										progress.AddLog($"Deleted existing file: {fileName}");
+									}
+								}
+							}
+							catch ( Exception ex )
+							{
+								await Logger.LogExceptionAsync(ex, "Error deleting existing file for retry");
+							}
+
+							// Start the download
+							_ = Task.Run(async () =>
+							{
+								try
+								{
+									var singleUrlMap = new Dictionary<string, DownloadProgress> { { progress.Url, progress } };
+									_ = await downloadManager.DownloadAllWithProgressAsync(
+										singleUrlMap,
+										MainConfig.SourcePath?.FullName ?? string.Empty,
+										CancellationToken.None);
+
+									await Dispatcher.UIThread.InvokeAsync(ScanModDirectoryForDownloads);
+								}
+								catch ( Exception ex )
+								{
+									await Logger.LogExceptionAsync(ex, "Error during download retry");
+								}
+							});
+						}
+						break;
+				}
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Error handling download control");
 			}
 		}
 
@@ -5227,6 +5759,48 @@ namespace KOTORModSync
 			}
 		}
 
+		/// <summary>
+		/// Attempts to auto-generate instructions for components that don't have any.
+		/// </summary>
+		private static async Task TryAutoGenerateInstructionsForComponents(List<Component> components)
+		{
+			if ( components == null || components.Count == 0 )
+				return;
+
+			try
+			{
+				int generatedCount = 0;
+				int skippedCount = 0;
+
+				foreach ( Component component in components )
+				{
+					// Skip if already has instructions
+					if ( component.Instructions.Count > 0 )
+					{
+						skippedCount++;
+						continue;
+					}
+
+					// Try to generate instructions
+					bool success = component.TryGenerateInstructionsFromArchive();
+					if ( success )
+					{
+						generatedCount++;
+						await Logger.LogAsync($"Auto-generated instructions for '{component.Name}': {component.InstallationMethod}");
+					}
+				}
+
+				if ( generatedCount > 0 )
+				{
+					await Logger.LogAsync($"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions.");
+				}
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+			}
+		}
+
 		#region Filter Event Handlers
 
 		[UsedImplicitly]
@@ -5236,7 +5810,7 @@ namespace KOTORModSync
 			{
 				var comboBox = sender as ComboBox;
 				if ( !(comboBox?.SelectedItem is ComboBoxItem selectedItem) )
-				    return;
+					return;
 				_selectedMinTier = selectedItem.Content?.ToString() ?? "Any";
 				ApplyAllFilters();
 			}
@@ -5359,6 +5933,128 @@ namespace KOTORModSync
 			{
 				Logger.LogException(ex);
 			}
+		}
+
+		[UsedImplicitly]
+		private async void JumpToCurrentStep_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				// Find the ScrollViewer in the Getting Started tab
+				var gettingStartedTab = this.FindControl<TabItem>("InitialTab");
+				if ( gettingStartedTab?.Content is ScrollViewer scrollViewer )
+				{
+					// Determine the current step based on completion status
+					Border targetStepBorder;
+
+					// Check Step 1: Directories
+					bool step1Complete = !string.IsNullOrEmpty(MainConfig.SourcePath?.FullName) &&
+										!string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName);
+					if ( !step1Complete )
+					{
+						targetStepBorder = this.FindControl<Border>("Step1Border");
+					}
+					// Check Step 2: Components loaded
+					else
+					{
+						bool step2Complete = MainConfig.AllComponents.Count > 0;
+						if ( !step2Complete )
+						{
+							targetStepBorder = this.FindControl<Border>("Step2Border");
+						}
+						// Check Step 3: At least one component selected
+						else
+						{
+							bool step3Complete = MainConfig.AllComponents.Any(c => c.IsSelected);
+							targetStepBorder = this.FindControl<Border>(!step3Complete ? "Step3Border" :
+								// Check Step 4: Download status
+								// For now, assume Step 4 (Download) is the next step if Step 3 is complete
+								// In a more sophisticated implementation, we could check download status
+								"Step4Border");
+						}
+					}
+
+					if ( targetStepBorder != null )
+					{
+						// Calculate the position to scroll to
+						// Get the bounds of the target step relative to the ScrollViewer's content
+						Rect targetBounds = targetStepBorder.Bounds;
+
+						// Calculate the offset to center the target step in the viewport
+						double targetOffset = targetBounds.Top - scrollViewer.Viewport.Height / 2 + targetBounds.Height / 2;
+
+						// Ensure we don't scroll past the content bounds
+						targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
+
+						// Scroll to the target position (Avalonia doesn't have SmoothScrollToVerticalOffset)
+						scrollViewer.Offset = new Vector(0, targetOffset);
+
+						// Briefly highlight the target step
+						await HighlightStep(targetStepBorder);
+					}
+					else
+					{
+						// All steps complete - scroll to the progress section
+						// Find the progress section by looking for a Border with "progress-section" class
+						Border progressSection = FindProgressSection(scrollViewer.Content as Panel);
+						if ( progressSection != null )
+						{
+							Rect progressBounds = progressSection.Bounds;
+							double targetOffset = progressBounds.Top - (scrollViewer.Viewport.Height / 2) + (progressBounds.Height / 2);
+							targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
+							scrollViewer.Offset = new Vector(0, targetOffset);
+						}
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private async Task HighlightStep(Border stepBorder)
+		{
+			try
+			{
+				// Store original border properties
+				IBrush originalBorderBrush = stepBorder.BorderBrush;
+				Thickness originalBorderThickness = stepBorder.BorderThickness;
+
+				// Create highlight effect
+				stepBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)); // Gold
+				stepBorder.BorderThickness = new Thickness(3);
+
+				// Wait for the highlight effect
+				await Task.Delay(1000);
+
+				// Restore original appearance
+				stepBorder.BorderBrush = originalBorderBrush;
+				stepBorder.BorderThickness = originalBorderThickness;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private Border FindProgressSection(Panel panel)
+		{
+			if ( panel == null ) return null;
+
+			foreach ( var child in panel.Children )
+			{
+				if ( child is Border border && border.Classes.Contains("progress-section") )
+				{
+					return border;
+				}
+				if ( child is Panel childPanel )
+				{
+					var result = FindProgressSection(childPanel);
+					if ( result != null ) return result;
+				}
+			}
+			return null;
 		}
 
 		#endregion

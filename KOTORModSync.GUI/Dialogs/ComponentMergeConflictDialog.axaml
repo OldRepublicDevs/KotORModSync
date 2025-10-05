@@ -1,0 +1,508 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:KOTORModSync.Controls"
+        x:Class="KOTORModSync.Dialogs.ComponentMergeConflictDialog"
+        Width="1400" Height="800"
+        Title="Component Merge Conflicts - Power User Mode"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        SystemDecorations="BorderOnly"
+        WindowStartupLocation="CenterOwner">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+        <!-- Custom Window Controls -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Orientation="Horizontal" Spacing="0" Margin="0,8,8,0">
+            <Button Content="-" Click="MinimizeButton_Click"
+                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+            <Button Content="□" Click="MaximizeButton_Click"
+                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+            <Button Content="X" Click="CloseButton_Click"
+                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+        </StackPanel>
+
+        <!-- Header with Stats -->
+        <StackPanel Grid.Row="0" Margin="20,20,20,10">
+            <TextBlock Text="Component Merge Resolution"
+                       FontSize="20" FontWeight="Bold" Margin="0,0,0,8"/>
+            <TextBlock Text="{Binding ConflictDescription}"
+                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <TextBlock Text="{Binding MergeImpactSummary}"
+                       FontWeight="SemiBold" Foreground="Orange"
+                       Margin="0,0,0,8"/>
+        </StackPanel>
+
+        <!-- Quick Actions & Options Bar -->
+        <Border Grid.Row="1" Margin="20,0" Padding="10"
+                Background="{DynamicResource ThemeBackgroundBrush}"
+                BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}">
+            <Grid RowDefinitions="Auto,Auto,Auto">
+                <!-- Search Box -->
+                <Grid Grid.Row="0" ColumnDefinitions="*" Margin="0,0,0,10">
+                    <controls:SearchBox SearchText="{Binding SearchText, Mode=TwoWay}"
+                                       Watermark="🔍 Search components by name or author..."/>
+                </Grid>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="🚀 Quick Actions:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    <Button Content="Toggle All New"
+                            Command="{Binding KeepAllNewCommand}"
+                            ToolTip.Tip="Toggle selection of all new components from incoming (select all if any unselected, deselect all if all selected)"/>
+                    <Button Content="Toggle All Unmatched"
+                            Command="{Binding KeepAllExistingUnmatchedCommand}"
+                            ToolTip.Tip="Toggle selection of existing components not in incoming list (select all if any unselected, deselect all if all selected)"/>
+                    <Separator Width="2" Background="{DynamicResource ThemeBorderMidBrush}"/>
+                    <TextBlock Text="💡 Tip: Click one from each list then:" VerticalAlignment="Center" FontSize="11" Opacity="0.7" Margin="5,0"/>
+                    <Button Content="{Binding LinkButtonText}"
+                            Command="{Binding LinkSelectedCommand}"
+                            IsEnabled="{Binding CanLinkItems}"
+                            MinWidth="200"
+                            ToolTip.Tip="Manually link the selected existing and incoming components as the same mod (or right-click)"
+                            Foreground="LightGreen"/>
+                    <Button Content="❌ Unlink Selected"
+                            Command="{Binding UnlinkSelectedCommand}"
+                            ToolTip.Tip="Unlink manually or automatically linked components"
+                            Foreground="Orange"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="15" Margin="0,8,0,0">
+                    <CheckBox Content="⚡ Use incoming list order (Priority)"
+                              IsChecked="{Binding UseIncomingOrder, Mode=TwoWay}"
+                              FontWeight="SemiBold"
+                              ToolTip.Tip="Controls which component order is preserved in the final merge. When checked: incoming list order is used. When unchecked: existing list order is used. This affects the sequence of components in your final mod installation."/>
+                    <CheckBox Content="Skip duplicates when both selected"
+                              IsChecked="{Binding SkipDuplicates, Mode=TwoWay}"
+                              ToolTip.Tip="When both existing and incoming versions of a linked component are selected: CHECKED = only one version appears in final merge (prevents conflicts). UNCHECKED = both versions appear separately (can cause file conflicts and crashes). Recommended: Keep checked."/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*,350" Margin="20,10,20,0">
+            <!-- Existing Components Column -->
+            <Border Grid.Column="0" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                    Margin="0,0,5,0">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" Background="{DynamicResource ThemeBackgroundBrush}"
+                            Padding="10">
+                        <StackPanel>
+                            <CheckBox Content="📂 EXISTING Components"
+                                      IsChecked="{Binding SelectAllExisting, Mode=TwoWay}"
+                                      FontWeight="SemiBold" FontSize="13"/>
+                            <TextBlock Text="{Binding ExistingSourceInfo}"
+                                       FontSize="11" Opacity="0.7" Margin="25,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TabControl Grid.Row="1" SelectedIndex="0" FontSize="11" SelectionChanged="ExistingTabControl_SelectionChanged" Name="ExistingTabControl">
+                        <!-- List View Tab -->
+                        <TabItem Header="List View">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Name="ExistingListScrollViewer">
+                                <ItemsControl ItemsSource="{Binding FilteredExistingComponents}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderThickness="3"
+                                                    BorderBrush="{Binding SelectionBorderBrush}"
+                                                    Padding="10"
+                                                    Background="{Binding SelectionBackground}"
+                                                    PointerPressed="OnItemClicked"
+                                                    ContextRequested="OnItemContextRequested"
+                                                    Cursor="Hand">
+                                                <Border.Styles>
+                                                    <Style Selector="Border:pointerover">
+                                                        <Setter Property="Opacity" Value="0.8"/>
+                                                    </Style>
+                                                </Border.Styles>
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="📄 Jump to Raw TOML"
+                                                                  Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
+                                                                  CommandParameter="{Binding}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="🔗 Link with selected incoming component"
+                                                                  Click="LinkSelectedMenuItem_Click"
+                                                                  IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
+                                                        <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
+                                                        <Separator IsVisible="{Binding HasGuidConflict}"/>
+                                                        <MenuItem Header="🆔 Use this component's GUID"
+                                                                  IsVisible="{Binding HasGuidConflict}"
+                                                                  Click="UseThisGuid_Click"
+                                                                  ToolTip.Tip="{Binding GuidConflictTooltip}"/>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
+                                                <Grid ColumnDefinitions="Auto,Auto,60,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                                    <CheckBox Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
+                                                              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                                                    <!-- Status Icon -->
+                                                    <TextBlock Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
+                                                               Text="{Binding StatusIcon}"
+                                                               FontSize="24"
+                                                               Foreground="{Binding StatusColor}"
+                                                               VerticalAlignment="Center" Margin="0,0,10,0"
+                                                               ToolTip.Tip="{Binding Status}"/>
+
+                                                    <Image Grid.Column="2" Grid.Row="0" Grid.RowSpan="3"
+                                                           Width="50" Height="50" Margin="0,0,10,0">
+                                                        <Image.Source>
+                                                            <DrawingImage>
+                                                                <DrawingImage.Drawing>
+                                                                    <GeometryDrawing Brush="{DynamicResource ThemeForegroundBrush}">
+                                                                        <GeometryDrawing.Geometry>
+                                                                            <PathGeometry Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                                                        </GeometryDrawing.Geometry>
+                                                                    </GeometryDrawing>
+                                                                </DrawingImage.Drawing>
+                                                            </DrawingImage>
+                                                        </Image.Source>
+                                                    </Image>
+
+                                                    <StackPanel Grid.Row="0" Grid.Column="3">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Author}"
+                                                                   FontSize="11" Opacity="0.7"/>
+                                                        <TextBlock Text="{Binding SizeInfo}"
+                                                                   FontSize="11" Opacity="0.7"/>
+                                                    </StackPanel>
+
+                                                    <Button Grid.Column="4" Grid.Row="0" Grid.RowSpan="3"
+                                                            Content="📄"
+                                                            Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip.Tip="Jump to Raw TOML"
+                                                            VerticalAlignment="Center"
+                                                            MinWidth="30" Width="30" Padding="2"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- Raw TOML View Tab -->
+                        <TabItem Header="Raw TOML">
+                            <ListBox Name="ExistingRawTomlListBox"
+                                     ItemsSource="{Binding ExistingComponentsToml}"
+                                     SelectedItem="{Binding SelectedExistingTomlLine, Mode=TwoWay}"
+                                     SelectionMode="Single"
+                                     Background="Transparent"
+                                     BorderThickness="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="2"
+                                                Background="{Binding DiffColor}">
+                                            <TextBlock Text="{Binding Text}"
+                                                       FontFamily="Consolas"
+                                                       FontSize="11"
+                                                       TextWrapping="NoWrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected Border">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+                                        <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                    </Style>
+                                </ListBox.Styles>
+                            </ListBox>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Border>
+
+            <!-- Incoming Components Column -->
+            <Border Grid.Column="1" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                    Margin="5,0,5,0">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" Background="{DynamicResource ThemeBackgroundBrush}"
+                            Padding="10">
+                        <StackPanel>
+                            <CheckBox Content="📥 INCOMING Components"
+                                      IsChecked="{Binding SelectAllIncoming, Mode=TwoWay}"
+                                      FontWeight="SemiBold" FontSize="13"/>
+                            <TextBlock Text="{Binding IncomingSourceInfo}"
+                                       FontSize="11" Opacity="0.7" Margin="25,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TabControl Grid.Row="1" SelectedIndex="0" FontSize="11" SelectionChanged="IncomingTabControl_SelectionChanged" Name="IncomingTabControl">
+                        <!-- List View Tab -->
+                        <TabItem Header="List View">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Name="IncomingListScrollViewer">
+                                <ItemsControl ItemsSource="{Binding FilteredIncomingComponents}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderThickness="3"
+                                                    BorderBrush="{Binding SelectionBorderBrush}"
+                                                    Padding="10"
+                                                    Background="{Binding SelectionBackground}"
+                                                    PointerPressed="OnItemClicked"
+                                                    ContextRequested="OnItemContextRequested"
+                                                    Cursor="Hand">
+                                                <Border.Styles>
+                                                    <Style Selector="Border:pointerover">
+                                                        <Setter Property="Opacity" Value="0.8"/>
+                                                    </Style>
+                                                </Border.Styles>
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="📄 Jump to Raw TOML"
+                                                                  Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
+                                                                  CommandParameter="{Binding}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="🔗 Link with selected existing component"
+                                                                  Click="LinkSelectedMenuItem_Click"
+                                                                  IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
+                                                        <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
+                                                        <Separator IsVisible="{Binding HasGuidConflict}"/>
+                                                        <MenuItem Header="🆔 Use this component's GUID"
+                                                                  IsVisible="{Binding HasGuidConflict}"
+                                                                  Click="UseThisGuid_Click"
+                                                                  ToolTip.Tip="{Binding GuidConflictTooltip}"/>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
+                                                <Grid ColumnDefinitions="Auto,Auto,60,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                                    <CheckBox Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
+                                                              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                                                    <!-- Status Icon -->
+                                                    <TextBlock Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
+                                                               Text="{Binding StatusIcon}"
+                                                               FontSize="24"
+                                                               Foreground="{Binding StatusColor}"
+                                                               VerticalAlignment="Center" Margin="0,0,10,0"
+                                                               ToolTip.Tip="{Binding Status}"/>
+
+                                                    <Image Grid.Column="2" Grid.Row="0" Grid.RowSpan="3"
+                                                           Width="50" Height="50" Margin="0,0,10,0">
+                                                        <Image.Source>
+                                                            <DrawingImage>
+                                                                <DrawingImage.Drawing>
+                                                                    <GeometryDrawing Brush="{DynamicResource ThemeForegroundBrush}">
+                                                                        <GeometryDrawing.Geometry>
+                                                                            <PathGeometry Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                                                        </GeometryDrawing.Geometry>
+                                                                    </GeometryDrawing>
+                                                                </DrawingImage.Drawing>
+                                                            </DrawingImage>
+                                                        </Image.Source>
+                                                    </Image>
+
+                                                    <StackPanel Grid.Row="0" Grid.Column="3">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Author}"
+                                                                   FontSize="11" Opacity="0.7"/>
+                                                        <TextBlock Text="{Binding SizeInfo}"
+                                                                   FontSize="11" Opacity="0.7"/>
+                                                    </StackPanel>
+
+                                                    <Button Grid.Column="4" Grid.Row="0" Grid.RowSpan="3"
+                                                            Content="📄"
+                                                            Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip.Tip="Jump to Raw TOML"
+                                                            VerticalAlignment="Center"
+                                                            MinWidth="30" Width="30" Padding="2"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- Raw TOML View Tab -->
+                        <TabItem Header="Raw TOML">
+                            <ListBox Name="IncomingRawTomlListBox"
+                                     ItemsSource="{Binding IncomingComponentsToml}"
+                                     SelectedItem="{Binding SelectedIncomingTomlLine, Mode=TwoWay}"
+                                     SelectionMode="Single"
+                                     Background="Transparent"
+                                     BorderThickness="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="2"
+                                                Background="{Binding DiffColor}">
+                                            <TextBlock Text="{Binding Text}"
+                                                       FontFamily="Consolas"
+                                                       FontSize="11"
+                                                       TextWrapping="NoWrap"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                    </Style>
+                                    <Style Selector="ListBoxItem:selected Border">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+                                        <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                    </Style>
+                                </ListBox.Styles>
+                            </ListBox>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Border>
+
+            <!-- Preview & Details Panel -->
+            <Grid Grid.Column="2" RowDefinitions="*,Auto">
+                <!-- Preview Panel -->
+                <Border Grid.Row="0" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                        Margin="5,0,0,0">
+                    <TabControl SelectedIndex="0" FontSize="11" SelectionChanged="MergedTabControl_SelectionChanged">
+                        <!-- List View Tab -->
+                        <TabItem Header="Preview List">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Text="🎯 Final Merge Preview"
+                                           FontWeight="SemiBold" Padding="10"
+                                           Background="{DynamicResource ThemeBackgroundBrush}"/>
+
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Name="PreviewScrollViewer">
+                                    <ItemsControl ItemsSource="{Binding PreviewComponents}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderThickness="0,0,0,1"
+                                                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                                                        Padding="8,6"
+                                                        Background="Transparent"
+                                                        Cursor="Hand">
+                                                    <Border.Styles>
+                                                        <Style Selector="Border:pointerover">
+                                                            <Setter Property="Background" Value="{DynamicResource ThemeControlHighlightLowBrush}"/>
+                                                        </Style>
+                                                    </Border.Styles>
+                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="{Binding OrderNumber}"
+                                                                   FontSize="11" FontWeight="Bold"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,8,0" Opacity="0.5"/>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding StatusIcon}"
+                                                                   FontSize="14"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,6,0"/>
+                                                        <StackPanel Grid.Column="2">
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontSize="12" FontWeight="SemiBold"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Source}"
+                                                                       FontSize="10" Opacity="0.6"
+                                                                       Foreground="{Binding SourceColor}"/>
+                                                        </StackPanel>
+                                                        <!-- Position change indicator -->
+                                                        <TextBlock Grid.Column="3"
+                                                                   Text="{Binding PositionChange}"
+                                                                   FontSize="10" FontWeight="Bold"
+                                                                   Foreground="{Binding PositionChangeColor}"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="4,0,0,0"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </TabItem>
+
+                        <!-- Merged Raw TOML View Tab -->
+                        <TabItem Header="Merged TOML">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Text="🔧 Merged TOML with Diff"
+                                           FontWeight="SemiBold" Padding="10"
+                                           Background="{DynamicResource ThemeBackgroundBrush}"/>
+
+                                <ListBox Grid.Row="1"
+                                         Name="MergedRawTomlListBox"
+                                         ItemsSource="{Binding MergedComponentsToml}"
+                                         SelectedItem="{Binding SelectedMergedTomlLine, Mode=TwoWay}"
+                                         SelectionMode="Single"
+                                         Background="Transparent"
+                                         BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="2"
+                                                    Background="{Binding DiffColor}">
+                                                <TextBlock Text="{Binding Text}"
+                                                           FontFamily="Consolas"
+                                                           FontSize="11"
+                                                           TextWrapping="NoWrap"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                    <ListBox.Styles>
+                                        <Style Selector="ListBoxItem">
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Setter Property="Margin" Value="0"/>
+                                        </Style>
+                                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                        </Style>
+                                        <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                        </Style>
+                                        <Style Selector="ListBoxItem:selected Border">
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+                                            <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                        </Style>
+                                    </ListBox.Styles>
+                                </ListBox>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Border>
+
+            </Grid>
+        </Grid>
+
+        <!-- Summary Bar -->
+        <Border Grid.Row="3" Margin="20,10" Padding="10"
+                Background="{DynamicResource ThemeBackgroundBrush}"
+                BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}">
+            <TextBlock Text="{Binding ConflictSummary}"
+                       FontSize="12" FontWeight="SemiBold"/>
+        </Border>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="20,0,20,20">
+            <Button Content="✓ Continue with Merge"
+                    Click="Continue_Click"
+                    Width="150" Margin="0,0,10,0"
+                    IsDefault="True"/>
+            <Button Content="✗ Cancel"
+                    Click="Cancel_Click"
+                    Width="100"/>
+        </StackPanel>
+    </Grid>
+</Window>

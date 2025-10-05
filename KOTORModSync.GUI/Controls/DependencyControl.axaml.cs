@@ -43,7 +43,28 @@ namespace KOTORModSync.Controls
 		public static readonly StyledProperty<DependencyType> DependencyTypeProperty =
 			AvaloniaProperty.Register<DependencyControl, DependencyType>(nameof(DependencyType));
 
-		public DependencyControl() => InitializeComponent();
+		[NotNull]
+		public static readonly StyledProperty<Component> SelectedModComponentProperty =
+			AvaloniaProperty.Register<DependencyControl, Component>(nameof(SelectedModComponent));
+
+		[NotNull]
+		public static readonly StyledProperty<Option> SelectedOptionProperty =
+			AvaloniaProperty.Register<DependencyControl, Option>(nameof(SelectedOption));
+
+		public DependencyControl()
+		{
+			InitializeComponent();
+
+			// Wire up auto-complete selection changed event after initialization
+			Loaded += (sender, args) =>
+			{
+				AutoCompleteBox autoComplete = this.FindControl<AutoCompleteBox>("DependenciesAutoComplete");
+				if ( autoComplete != null )
+				{
+					autoComplete.SelectionChanged += DependenciesAutoComplete_SelectionChanged;
+				}
+			};
+		}
 
 		[NotNull]
 		public List<Guid> ThisGuidList
@@ -73,6 +94,20 @@ namespace KOTORModSync.Controls
 			set => SetValue(DependencyTypeProperty, value);
 		}
 
+		[CanBeNull]
+		public Component SelectedModComponent
+		{
+			get => GetValue(SelectedModComponentProperty);
+			set => SetValue(SelectedModComponentProperty, value);
+		}
+
+		[CanBeNull]
+		public Option SelectedOption
+		{
+			get => GetValue(SelectedOptionProperty);
+			set => SetValue(SelectedOptionProperty, value);
+		}
+
 		[NotNull]
 		[UsedImplicitly]
 #pragma warning disable CA1822
@@ -88,32 +123,68 @@ namespace KOTORModSync.Controls
 				mainWindow.FindComboBoxesInWindow(mainWindow);
 		}
 
-	// ReSharper disable once UnusedParameter.Local
-	private void AddToList_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
-	{
-		try
+		// ReSharper disable once UnusedParameter.Local
+		[UsedImplicitly]
+		private void AddModToList_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
-			if ( !(sender is Button addButton) )
-				throw new ArgumentException("Sender is not a Button.");
-			if ( !(addButton.Tag is ComboBox comboBox) )
-				throw new ArgumentException("Button doesn't have a proper ComboBox tag.");
-			if ( !(comboBox.Tag is ListBox listBox) )
-				throw new ArgumentException("ComboBox does not have a ListBox Tag.");
+			try
+			{
+				if ( !(DependenciesAutoComplete.SelectedItem is Component selectedComponent) )
+					return; // no selection
+				if ( ThisGuidList.Contains(selectedComponent.Guid) )
+					return; // already in list.
 
-			if ( !(comboBox.SelectedItem is Component selectedComponent) )
-				return; // no selection
-			if ( ThisGuidList.Contains(selectedComponent.Guid) )
-				return; // already in list.
+				AddComponentToList(selectedComponent);
 
+				// Clear selection after adding
+				DependenciesAutoComplete.SelectedItem = null;
+				DependenciesAutoComplete.Text = string.Empty;
+			}
+			catch ( Exception exception )
+			{
+				Logger.LogException(exception);
+			}
+		}
+
+		// ReSharper disable once UnusedParameter.Local
+		[UsedImplicitly]
+		private void AddOptionToList_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			try
+			{
+				if ( !(OptionsAutoComplete.SelectedItem is Option selectedOption) )
+					return; // no selection
+				if ( ThisGuidList.Contains(selectedOption.Guid) )
+					return; // already in list.
+
+				AddComponentToList(selectedOption);
+
+				// Clear selection after adding
+				OptionsAutoComplete.SelectedItem = null;
+				OptionsAutoComplete.Text = string.Empty;
+			}
+			catch ( Exception exception )
+			{
+				Logger.LogException(exception);
+			}
+		}
+
+		private void AddComponentToList([NotNull] Component selectedComponent)
+		{
 			// Use service methods if available, otherwise fall back to direct manipulation
 			bool added = false;
 			if ( ModManagementService != null && CurrentComponent != null &&
-			     (DependencyType == DependencyType.Dependency || DependencyType == DependencyType.Restriction) )
+				 (DependencyType == DependencyType.Dependency || DependencyType == DependencyType.Restriction) )
 			{
-				if ( DependencyType == DependencyType.Dependency )
-					added = ModManagementService.AddDependency(CurrentComponent, selectedComponent);
-				else if ( DependencyType == DependencyType.Restriction )
-					added = ModManagementService.AddRestriction(CurrentComponent, selectedComponent);
+				switch (DependencyType)
+				{
+					case DependencyType.Dependency:
+						added = ModManagementService.AddDependency(CurrentComponent, selectedComponent);
+						break;
+					case DependencyType.Restriction:
+						added = ModManagementService.AddRestriction(CurrentComponent, selectedComponent);
+						break;
+				}
 			}
 			else
 			{
@@ -125,112 +196,92 @@ namespace KOTORModSync.Controls
 			if ( !added )
 				return; // Addition failed or already exists
 
+			RefreshDependenciesList();
+		}
+
+		private void RefreshDependenciesList()
+		{
 			var convertedItems = new GuidListToComponentNames().Convert(
 				new object[]
 				{
-					ThisGuidList, MainWindow.ComponentsList,
+				ThisGuidList, MainWindow.ComponentsList,
 				},
 				ThisGuidList.GetType(),
 				parameter: null,
 				CultureInfo.CurrentCulture
 			) as List<string>;
 
-			listBox.ItemsSource = null;
-			listBox.ItemsSource = new AvaloniaList<object>(convertedItems ?? throw new InvalidOperationException());
+			DependenciesListBox.ItemsSource = null;
+			DependenciesListBox.ItemsSource = new AvaloniaList<object>(convertedItems ?? throw new InvalidOperationException());
 
-			comboBox.Tag = listBox;
-			DependenciesListBox = listBox;
-
-			listBox.InvalidateVisual();
-			listBox.InvalidateArrange();
-			listBox.InvalidateMeasure();
+			DependenciesListBox.InvalidateVisual();
+			DependenciesListBox.InvalidateArrange();
+			DependenciesListBox.InvalidateMeasure();
 		}
-		catch ( Exception exception )
-		{
-			Logger.LogException(exception);
-		}
-	}
 
-	// ReSharper disable once UnusedParameter.Local
-	private void RemoveFromList_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
-	{
-		try
-		{
-			if ( !(sender is Button removeButton) )
-				throw new ArgumentException("Sender is not a Button.");
-			if ( !(removeButton.Tag is ListBox listBox) )
-				throw new ArgumentException("Button doesn't have a proper ListBox tag.");
-
-			int index = listBox.SelectedIndex;
-			if ( index < 0 || index >= ThisGuidList.Count )
-				return; // no selection
-
-			Guid guidToRemove = ThisGuidList[index];
-
-			// Use service methods if available, otherwise fall back to direct manipulation
-			bool removed = false;
-			if ( ModManagementService != null && CurrentComponent != null &&
-			     (DependencyType == DependencyType.Dependency || DependencyType == DependencyType.Restriction) )
-			{
-				// Find the component being removed
-				Component componentToRemove = MainWindow.ComponentsList?.FirstOrDefault(c => c.Guid == guidToRemove);
-				if ( componentToRemove != null )
-				{
-					switch (DependencyType)
-					{
-						case DependencyType.Dependency:
-							removed = ModManagementService.RemoveDependency(CurrentComponent, componentToRemove);
-							break;
-						case DependencyType.Restriction:
-							removed = ModManagementService.RemoveRestriction(CurrentComponent, componentToRemove);
-							break;
-					}
-				}
-			}
-			else
-			{
-				// Fallback for InstallBefore/InstallAfter or when service is not available
-				ThisGuidList.RemoveAt(index);
-				removed = true;
-			}
-
-			if ( !removed )
-				return; // Removal failed
-
-			var convertedItems = new GuidListToComponentNames().Convert(
-				new object[]
-				{
-					ThisGuidList, MainWindow.ComponentsList,
-				},
-				ThisGuidList.GetType(),
-				parameter: null,
-				CultureInfo.CurrentCulture
-			) as List<string>;
-
-			listBox.ItemsSource = null;
-			listBox.ItemsSource = new AvaloniaList<object>(convertedItems ?? throw new InvalidOperationException());
-
-			listBox.InvalidateVisual();
-			listBox.InvalidateArrange();
-			listBox.InvalidateMeasure();
-		}
-		catch ( Exception exception )
-		{
-			Logger.LogException(exception);
-		}
-	} // ReSharper disable twice UnusedParameter.Local
-		private void DependenciesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		// ReSharper disable once UnusedParameter.Local
+		private void RemoveFromList_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
 			try
 			{
-				object selectedItem = DependenciesComboBox.SelectedItem;
-				if ( !(selectedItem is Component dropdownComponent) )
+				int index = DependenciesListBox.SelectedIndex;
+				if ( index < 0 || index >= ThisGuidList.Count )
+					return; // no selection
+
+				Guid guidToRemove = ThisGuidList[index];
+
+				// Use service methods if available, otherwise fall back to direct manipulation
+				bool removed = false;
+				if ( ModManagementService != null && CurrentComponent != null &&
+					 (DependencyType == DependencyType.Dependency || DependencyType == DependencyType.Restriction) )
 				{
-					Logger.LogVerbose("selected item of this dependency component is not a Component!");
+					// Find the component being removed
+					Component componentToRemove = MainWindow.ComponentsList?.FirstOrDefault(c => c.Guid == guidToRemove);
+					if ( componentToRemove != null )
+					{
+						switch ( DependencyType )
+						{
+							case DependencyType.Dependency:
+								removed = ModManagementService.RemoveDependency(CurrentComponent, componentToRemove);
+								break;
+							case DependencyType.Restriction:
+								removed = ModManagementService.RemoveRestriction(CurrentComponent, componentToRemove);
+								break;
+						}
+					}
+				}
+				else
+				{
+					// Fallback for InstallBefore/InstallAfter or when service is not available
+					ThisGuidList.RemoveAt(index);
+					removed = true;
+				}
+
+				if ( !removed )
+					return; // Removal failed
+
+				RefreshDependenciesList();
+			}
+			catch ( Exception exception )
+			{
+				Logger.LogException(exception);
+			}
+		}
+
+		// ReSharper disable twice UnusedParameter.Local
+		[UsedImplicitly]
+		private void DependenciesAutoComplete_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			try
+			{
+				if ( !(DependenciesAutoComplete.SelectedItem is Component selectedComponent) )
+				{
+					OptionsAutoComplete.ItemsSource = null;
 					return;
 				}
 
-				OptionsComboBox.ItemsSource = dropdownComponent.Options;
+				// Update the options AutoCompleteBox with the selected mod's options
+				OptionsAutoComplete.ItemsSource = selectedComponent.Options;
 			}
 			catch ( Exception exception )
 			{

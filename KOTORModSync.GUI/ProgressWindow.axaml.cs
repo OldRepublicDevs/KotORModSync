@@ -4,8 +4,11 @@
 
 using System;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using JetBrains.Annotations;
 
 namespace KOTORModSync
@@ -13,8 +16,20 @@ namespace KOTORModSync
 	public partial class ProgressWindow : Window
 	{
 		public event EventHandler CancelRequested;
+		private bool _mouseDownForWindowMoving;
+		private PointerPoint _originalPoint;
 
-		public ProgressWindow() => InitializeComponent();
+		public ProgressWindow()
+		{
+			InitializeComponent();
+			// Attach window move event handlers
+			PointerPressed += InputElement_OnPointerPressed;
+			PointerMoved += InputElement_OnPointerMoved;
+			PointerReleased += InputElement_OnPointerReleased;
+			PointerExited += InputElement_OnPointerReleased;
+		}
+
+		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) => _mouseDownForWindowMoving = false;
 		public void Dispose() => Close();
 
 		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -64,7 +79,7 @@ namespace KOTORModSync
 			CurrentStepProgress.IsIndeterminate = true;
 		}
 
-		private void OnCancelClick([CanBeNull] object sender, [CanBeNull] Avalonia.Interactivity.RoutedEventArgs e) => CancelRequested?.Invoke(this, EventArgs.Empty);
+		private void OnCancelClick([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) => CancelRequested?.Invoke(this, EventArgs.Empty);
 
 		public static async Task ShowProgressWindow(
 			[CanBeNull] Window parentWindow,
@@ -90,6 +105,69 @@ namespace KOTORModSync
 
 			if ( !(parentWindow is null) )
 				_ = await progressWindow.ShowDialog<bool?>(parentWindow);
+		}
+
+		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		{
+			if (!_mouseDownForWindowMoving)
+				return;
+
+			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			Position = new PixelPoint(
+				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
+				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
+			);
+		}
+
+		private void InputElement_OnPointerPressed(object sender, PointerEventArgs e)
+		{
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+				return;
+
+			// Don't start window drag if clicking on interactive controls
+			if (ShouldIgnorePointerForWindowDrag(e))
+				return;
+
+			_mouseDownForWindowMoving = true;
+			_originalPoint = e.GetCurrentPoint(this);
+		}
+
+
+		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		{
+			// Get the element under the pointer
+			if (!(e.Source is Visual source))
+				return false;
+
+			// Walk up the visual tree to check if we're clicking on an interactive element
+			Visual current = source;
+			while (current != null && current != this)
+			{
+				switch (current)
+				{
+					// Check if we're clicking on any interactive control
+					case Button _:
+					case TextBox _:
+					case ComboBox _:
+					case ListBox _:
+					case MenuItem _:
+					case Menu _:
+					case Expander _:
+					case Slider _:
+					case TabControl _:
+					case TabItem _:
+					// Check if the element has context menu or flyout open
+					case Control control when control.ContextMenu?.IsOpen == true:
+						return true;
+					case Control control when control.ContextFlyout?.IsOpen == true:
+						return true;
+					default:
+						current = current.GetVisualParent();
+						break;
+				}
+			}
+
+			return false;
 		}
 	}
 }

@@ -1,0 +1,80 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="KOTORModSync.Dialogs.OptionsDialog"
+        Title="Select Option"
+        Width="480"
+        MinWidth="400"
+        MinHeight="300"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        SystemDecorations="BorderOnly">
+    <Panel>
+        <!-- Custom Window Controls -->
+        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Spacing="0" Margin="0,8,8,0">
+            <Button Content="X" Click="CloseButton_Click"
+                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+        </StackPanel>
+
+        <Border x:Name="DialogBorder"
+                Margin="16"
+                Padding="16"
+                CornerRadius="8">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <!-- Header -->
+                <TextBlock Grid.Row="0"
+                           x:Name="OptionTextBox"
+                           TextWrapping="Wrap"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,0,12" />
+
+                <!-- Options list -->
+                <ScrollViewer Grid.Row="1"
+                             MaxHeight="240"
+                             VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="OptionStackPanel"
+                               Orientation="Vertical"
+                               Spacing="8">
+                        <ItemsControl>
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical" Spacing="6" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="8"
+                                           CornerRadius="4"
+                                           x:Name="OptionItemBorder">
+                                        <RadioButton Content="{Binding}"
+                                                    GroupName="OptionsGroup" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Footer buttons -->
+                <StackPanel Grid.Row="2"
+                           x:Name="ButtonStackPanel"
+                           Orientation="Horizontal"
+                           HorizontalAlignment="Right"
+                           Spacing="8"
+                           Margin="0,12,0,0">
+                    <Button Content="Cancel"
+                            Tag="Cancel"
+                            MinWidth="100" />
+                    <Button x:Name="OkButton"
+                            Content="OK"
+                            Tag="OK"
+                            Click="OKButton_Click"
+                            MinWidth="100" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Panel>
+</Window>

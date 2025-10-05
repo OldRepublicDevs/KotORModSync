@@ -48,7 +48,7 @@ namespace KOTORModSync.Core.TSLPatcher
 			using ( thisStream )
 			{
 				if ( !(archive is null) && !(thisStream is null) )
-				    return TraverseDirectories(archive.Entries, string.Empty);
+				    return TraverseDirectories(archive.Entries);
 			}
 
 			return null; // Folder 'tslpatchdata' or 'namespaces.ini' not found in the archive.
@@ -90,17 +90,14 @@ namespace KOTORModSync.Core.TSLPatcher
 
 			return null; // Folder 'tslpatchdata' or 'namespaces.ini' not found in the archive.
 		}
+		private static readonly char[] separator = new[] { '/', '\\' };
 
 		private static Dictionary<string, Dictionary<string, string>> TraverseDirectories(
-			IEnumerable<IArchiveEntry> entries,
-			[NotNull] string currentDirectory
+			IEnumerable<IArchiveEntry> entries
 		)
 		{
-			if ( currentDirectory is null )
-				throw new ArgumentNullException(nameof(currentDirectory));
-
 			IEnumerable<IArchiveEntry> archiveEntries = entries as IArchiveEntry[]
-				?? entries?.ToArray() ?? throw new NullReferenceException(nameof(entries));
+			                                            ?? entries?.ToArray() ?? throw new NullReferenceException(nameof(entries));
 			foreach ( IArchiveEntry entry in archiveEntries )
 			{
 				if ( entry != null && entry.IsDirectory )
@@ -110,8 +107,7 @@ namespace KOTORModSync.Core.TSLPatcher
 						e => e != null && (e.Key.StartsWith(entry.Key + "/") || e.Key.StartsWith(entry.Key + "\\"))
 					);
 					Dictionary<string, Dictionary<string, string>> result = TraverseDirectories(
-						subDirectoryEntries,
-						entry.Key
+						subDirectoryEntries
 					);
 					if ( result != null )
 						return result;
@@ -121,21 +117,18 @@ namespace KOTORModSync.Core.TSLPatcher
 					string directoryName = Path.GetDirectoryName(entry?.Key.Replace(oldChar: '\\', newChar: '/'));
 					string fileName = Path.GetFileName(entry?.Key);
 
-					if ( string.Equals(directoryName, currentDirectory, StringComparison.OrdinalIgnoreCase)
-						&& string.Equals(fileName, b: "namespaces.ini", StringComparison.OrdinalIgnoreCase)
-						&& currentDirectory.Split(
-							new[]
-							{
-								'/', '\\',
-							},
-							StringSplitOptions.RemoveEmptyEntries
-						).Any(dir => dir.Equals(value: "tslpatchdata", StringComparison.OrdinalIgnoreCase)) )
+					// Check if this is namespaces.ini in a tslpatchdata folder
+					bool isTslPatchDataFolder = directoryName?.Split(separator, StringSplitOptions.RemoveEmptyEntries)
+						.Any(dir => dir.Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase)) ?? false;
+
+					if ( !string.Equals(fileName, "namespaces.ini", StringComparison.OrdinalIgnoreCase) ||
+					     !isTslPatchDataFolder )
 					{
-						using ( var reader = new StreamReader(entry.OpenEntryStream()) )
-						{
-							return ParseNamespacesIni(reader);
-						}
+						continue;
 					}
+
+					using ( var reader = new StreamReader(entry.OpenEntryStream()) )
+					    return ParseNamespacesIni(reader);
 				}
 			}
 

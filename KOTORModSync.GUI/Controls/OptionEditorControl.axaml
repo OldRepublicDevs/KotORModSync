@@ -8,78 +8,118 @@
         <converters:IndexConverter x:Key="IndexConverter" />
         <converters:ListToStringConverter x:Key="ListToStringConverter" />
     </UserControl.Resources>
-    
-    <StackPanel>
-        <DockPanel>
-            <TextBlock FontWeight="Bold">
-                <TextBlock.Text>
-                    <MultiBinding Converter="{StaticResource IndexConverter}">
-                        <MultiBinding.Bindings>
-                            <Binding Path="$parent[ItemsRepeater].DataContext.Options" />
-                            <Binding Path="." />
-                        </MultiBinding.Bindings>
-                    </MultiBinding>
-                </TextBlock.Text>
-            </TextBlock>
-            <Button Content="New Option Here"
-                    Click="AddNewOption_Click"
-                    Tag="{Binding}" />
-        </DockPanel>
-        <Border BorderThickness="2" Margin="10">
-            <Grid RowDefinitions="*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*"
-                  ColumnDefinitions="*,Auto"
-                  Margin="10">
 
-                <DockPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
-                    <TextBlock Text="Name:" VerticalAlignment="Center" Margin="0,0,20,0" />
+    <Border Classes="summary-option-card" Margin="0,8,0,0">
+        <StackPanel Spacing="12">
+            <!-- Header with option number and controls -->
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Border Grid.Column="0" Classes="mod-list-item-badge"
+                        CornerRadius="4" Padding="8,4" Margin="0,0,12,0">
+                    <TextBlock FontWeight="Bold" FontSize="12" VerticalAlignment="Center">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource IndexConverter}">
+                                <MultiBinding.Bindings>
+                                    <Binding Path="$parent[ItemsRepeater].DataContext.Options" />
+                                    <Binding Path="." />
+                                </MultiBinding.Bindings>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </Border>
+
+                <TextBlock Grid.Column="1" Text="Option" Classes="summary-option-title"
+                           VerticalAlignment="Center" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
                     <controls:ActionButtonsControl
                         DeleteItem="DeleteOption_Click"
                         MoveItemUp="MoveOptionUp_Click"
                         MoveItemDown="MoveOptionDown_Click" />
-                </DockPanel>
-                
-                <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding Name}"
-                         VerticalAlignment="Center" Margin="0,0,20,0" />
-
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Description:"
-                           VerticalAlignment="Center" Margin="0,0,20,0" />
-                <TextBox Grid.Row="3" Grid.Column="0" Text="{Binding Description}"
-                         Focusable="True" />
-
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="Dependencies:"
-                           ToolTip.Tip="This option will not be installed if ANY of these dependency mods are NOT SELECTED for install." />
-                <controls:DependencyControl Grid.Row="5" Grid.Column="0"
-                                            ThisGuidList="{Binding Dependencies}" />
-
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="Restrictions:"
-                           ToolTip.Tip="This option will not be installed if ANY of these restricted mods are SELECTED for install." />
-                <controls:DependencyControl Grid.Row="7" Grid.Column="0"
-                                            ThisGuidList="{Binding Restrictions}" />
-                                            
-                <Expander Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2"
-                          Header="Instructions" IsExpanded="False">
-                    <StackPanel>
-                        <ItemsRepeater x:Name="optionInstructionsRepeater"
-                                       ItemsSource="{Binding Instructions}">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate DataType="core:Instruction">
-                                    <controls:InstructionEditorControl
-                                        AddNewInstruction="AddNewInstruction_Click"
-                                        DeleteInstruction="DeleteInstruction_Click"
-                                        MoveInstructionUp="MoveInstructionUp_Click"
-                                        MoveInstructionDown="MoveInstructionDown_Click"
-                                        BrowseSourceFiles="BrowseSourceFiles_Click"
-                                        BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
-                                        BrowseDestination="BrowseDestination_Click" />
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                        <Button Content="Create Instructions"
-                                Click="AddNewInstruction_Click" Tag="{Binding}" />
-                    </StackPanel>
-                </Expander>
-
+                    <Button Content="➕ Insert"
+                            Click="AddNewOption_Click"
+                            Tag="{Binding}"
+                            ToolTip.Tip="Insert new option here"
+                            Padding="8,4" />
+                </StackPanel>
             </Grid>
-        </Border>
-    </StackPanel>
+
+            <!-- Option Name -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="Option Name" Classes="summary-label" />
+                <TextBlock Classes="secondary-text" FontSize="11">
+                    <Run Text="User-facing name for this installation option" />
+                </TextBlock>
+                <TextBox Text="{Binding Name}"
+                         Focusable="True"
+                         Watermark="e.g., High Resolution Textures" />
+            </StackPanel>
+
+            <!-- Description -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="Description" Classes="summary-label" />
+                <TextBlock Classes="secondary-text" FontSize="11">
+                    <Run Text="Explain what this option does and when to use it" />
+                </TextBlock>
+                <TextBox Text="{Binding Description}"
+                         Focusable="True" AcceptsReturn="True"
+                         TextWrapping="Wrap" MinHeight="60"
+                         Watermark="Describe this option..." />
+            </StackPanel>
+
+            <Separator Classes="summary-separator" />
+
+            <!-- Dependencies & Restrictions -->
+            <Expander Header="🔗 Dependencies &amp; Restrictions (Optional)" IsExpanded="False">
+                <StackPanel Spacing="12" Margin="0,8,0,0">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Dependencies" Classes="summary-label"
+                                   ToolTip.Tip="This option will NOT install if ANY of these are NOT selected" />
+                        <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                            <Run Text="Other mods/options that must be selected for this to work" />
+                        </TextBlock>
+                        <controls:DependencyControl ThisGuidList="{Binding Dependencies}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Restrictions" Classes="summary-label"
+                                   ToolTip.Tip="This option will NOT install if ANY of these are selected" />
+                        <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                            <Run Text="Incompatible mods/options that prevent this from installing" />
+                        </TextBlock>
+                        <controls:DependencyControl ThisGuidList="{Binding Restrictions}" />
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+
+            <!-- Instructions -->
+            <Expander Header="🔧 Installation Instructions" IsExpanded="True">
+                <StackPanel Spacing="8" Margin="0,8,0,0">
+                    <TextBlock Classes="secondary-text" FontSize="11" TextWrapping="Wrap">
+                        <Run Text="Define the steps to install this option" />
+                    </TextBlock>
+
+                    <ItemsRepeater x:Name="optionInstructionsRepeater"
+                                   ItemsSource="{Binding Instructions}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate DataType="core:Instruction">
+                                <controls:InstructionEditorControl
+                                    AddNewInstruction="AddNewInstruction_Click"
+                                    DeleteInstruction="DeleteInstruction_Click"
+                                    MoveInstructionUp="MoveInstructionUp_Click"
+                                    MoveInstructionDown="MoveInstructionDown_Click"
+                                    BrowseSourceFiles="BrowseSourceFiles_Click"
+                                    BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
+                                    BrowseDestination="BrowseDestination_Click" />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
+                    <Button Content="➕ Add Instruction"
+                            Click="AddNewInstruction_Click" Tag="{Binding}"
+                            HorizontalAlignment="Left"
+                            Margin="0,8,0,0" />
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+    </Border>
 </UserControl>

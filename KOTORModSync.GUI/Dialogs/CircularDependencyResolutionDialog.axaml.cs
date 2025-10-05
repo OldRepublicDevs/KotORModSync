@@ -1,0 +1,165 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the GNU General Public License v3.0 (GPLv3).
+// See LICENSE.txt file in the project root for full license information.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Markup.Xaml;
+using JetBrains.Annotations;
+using KOTORModSync.Core;
+using Avalonia;
+using Avalonia.Input;
+using Avalonia.VisualTree;
+
+namespace KOTORModSync.Dialogs
+{
+	public partial class CircularDependencyResolutionDialog : Window
+	{
+		public CircularDependencyResolutionViewModel ViewModel { get; }
+		public bool UserRetried { get; private set; }
+		public List<Component> ResolvedComponents => ViewModel?.Components
+			.Where(c => c.IsSelected)
+			.Select(c => c.Component)
+			.ToList();
+		private bool _mouseDownForWindowMoving;
+		private PointerPoint _originalPoint;
+
+		public CircularDependencyResolutionDialog()
+		{
+			InitializeComponent();
+			// Attach window move event handlers
+			PointerPressed += InputElement_OnPointerPressed;
+			PointerMoved += InputElement_OnPointerMoved;
+			PointerReleased += InputElement_OnPointerReleased;
+			PointerExited += InputElement_OnPointerReleased;
+		}
+
+		public CircularDependencyResolutionDialog(List<Component> components, CircularDependencyDetector.CircularDependencyResult cycleInfo)
+		{
+			InitializeComponent();
+			ViewModel = new CircularDependencyResolutionViewModel(components, cycleInfo);
+			DataContext = ViewModel;
+			// Attach window move event handlers
+			PointerPressed += InputElement_OnPointerPressed;
+			PointerMoved += InputElement_OnPointerMoved;
+			PointerReleased += InputElement_OnPointerReleased;
+			PointerExited += InputElement_OnPointerReleased;
+		}
+
+		private void InitializeComponent()
+		{
+			AvaloniaXamlLoader.Load(this);
+		}
+
+		private void Retry_Click(object sender, RoutedEventArgs e)
+		{
+			UserRetried = true;
+			Close();
+		}
+
+		private void Cancel_Click(object sender, RoutedEventArgs e)
+		{
+			UserRetried = false;
+			Close();
+		}
+
+		public static async System.Threading.Tasks.Task<(bool retry, List<Component> components)> ShowResolutionDialog(
+			Window owner,
+			List<Component> components,
+			CircularDependencyDetector.CircularDependencyResult cycleInfo)
+		{
+			// Don't show dialog if there are no circular dependencies
+			if (!cycleInfo.HasCircularDependencies || cycleInfo.Cycles.Count == 0)
+			    return (false, components);
+
+			var dialog = new CircularDependencyResolutionDialog(components, cycleInfo);
+			await dialog.ShowDialog(owner);
+			return (dialog.UserRetried, dialog.ResolvedComponents);
+		}
+
+		[UsedImplicitly]
+		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+		[UsedImplicitly]
+		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
+			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+		[UsedImplicitly]
+		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
+		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		{
+			if (!_mouseDownForWindowMoving)
+				return;
+
+			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			Position = new PixelPoint(
+				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
+				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
+			);
+		}
+
+		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
+		{
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+				return;
+
+			// Don't start window drag if clicking on interactive controls
+			if (ShouldIgnorePointerForWindowDrag(e))
+				return;
+
+			_mouseDownForWindowMoving = true;
+			_originalPoint = e.GetCurrentPoint(this);
+		}
+
+		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+			_mouseDownForWindowMoving = false;
+
+		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		{
+			// Get the element under the pointer
+			if (!(e.Source is Visual source))
+				return false;
+
+			// Walk up the visual tree to check if we're clicking on an interactive element
+			Visual current = source;
+			while (current != null && current != this)
+			{
+				// Check if we're clicking on any interactive control
+				if (current is Button ||
+					current is TextBox ||
+					current is ComboBox ||
+					current is ListBox ||
+					current is MenuItem ||
+					current is Menu ||
+					current is Expander ||
+					current is Slider ||
+					current is TabControl ||
+					current is TabItem ||
+					current is ProgressBar ||
+					current is ScrollViewer ||
+					current is CheckBox)
+				{
+					return true;
+				}
+
+				// Check if the element has context menu or flyout open
+				if (current is Control control)
+				{
+					if (control.ContextMenu?.IsOpen == true)
+						return true;
+					if (control.ContextFlyout?.IsOpen == true)
+						return true;
+				}
+
+				current = current.GetVisualParent();
+			}
+
+			return false;
+		}
+	}
+}
+

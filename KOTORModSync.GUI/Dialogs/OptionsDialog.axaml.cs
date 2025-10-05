@@ -1,0 +1,221 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the GNU General Public License v3.0 (GPLv3).
+// See LICENSE.txt file in the project root for full license information.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Platform;
+using Avalonia.Threading;
+using JetBrains.Annotations;
+using Avalonia.Input;
+using Avalonia.VisualTree;
+
+namespace KOTORModSync.Dialogs
+{
+	public partial class OptionsDialog : Window
+	{
+		public static readonly AvaloniaProperty OptionsListProperty =
+			AvaloniaProperty.Register<OptionsDialog, List<string>>(nameof(OptionsList));
+		private bool _mouseDownForWindowMoving;
+		private PointerPoint _originalPoint;
+
+		public OptionsDialog()
+		{
+			InitializeComponent();
+			OkButton.Click += OKButton_Click;
+			// Attach window move event handlers
+			PointerPressed += InputElement_OnPointerPressed;
+			PointerMoved += InputElement_OnPointerMoved;
+			PointerReleased += InputElement_OnPointerReleased;
+			PointerExited += InputElement_OnPointerReleased;
+		}
+
+		[CanBeNull]
+		public List<string> OptionsList
+		{
+			get => GetValue(OptionsListProperty) as List<string>;
+			set => SetValue(OptionsListProperty, value);
+		}
+
+		private void OKButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e)
+		{
+			RadioButton selectedRadioButton = OptionStackPanel.Children.OfType<RadioButton>()
+				.SingleOrDefault(rb => rb.IsChecked == true);
+
+			if ( selectedRadioButton != null )
+			{
+				string selectedOption = selectedRadioButton.Content?.ToString();
+				OptionSelected?.Invoke(this, selectedOption);
+			}
+
+			Close();
+		}
+
+		private void CloseButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+			Close();
+
+		public event EventHandler<string> OptionSelected;
+
+		private void OnOpened([CanBeNull] object sender, [CanBeNull] EventArgs e)
+		{
+			if ( OptionsList is null )
+				throw new NullReferenceException(nameof(OptionsList));
+
+			foreach ( string option in OptionsList )
+			{
+				var radioButton = new RadioButton
+				{
+					Content = option,
+					GroupName = "OptionsGroup",
+				};
+				OptionStackPanel.Children.Add(radioButton);
+			}
+
+			// Measure and arrange the optionStackPanel to update DesiredSize
+			OptionStackPanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+			OptionStackPanel.Arrange(new Rect(OptionStackPanel.DesiredSize));
+
+			// Get the actual size of the optionStackPanel including children and transformations
+			Size actualSize = OptionStackPanel.Bounds.Size;
+
+			// Define padding values
+			const double horizontalPadding = 100; // Padding on the left and right
+			const double verticalPadding = 150;   // Padding on the top and bottom
+
+			// Calculate the desired width and height for the content with padding
+			double contentWidth = actualSize.Width + 2 * horizontalPadding;
+			double contentHeight = actualSize.Height + 2 * verticalPadding;
+
+			// Set the width and height of the window
+			Width = contentWidth;
+			Height = contentHeight;
+
+			InvalidateArrange();
+			InvalidateMeasure();
+
+			// Center the window on the screen
+			Screen screen = Screens.ScreenFromVisual(this);
+			if ( screen is null )
+				throw new NullReferenceException(nameof(screen));
+
+			double screenWidth = screen.Bounds.Width;
+			double screenHeight = screen.Bounds.Height;
+			double left = (screenWidth - contentWidth) / 2;
+			double top = (screenHeight - contentHeight) / 2;
+			Position = new PixelPoint((int)left, (int)top);
+		}
+
+		[ItemCanBeNull]
+		public static async Task<string> ShowOptionsDialog(
+			[CanBeNull] Window parentWindow,
+			[CanBeNull] List<string> optionsList
+		)
+		{
+			var tcs = new TaskCompletionSource<string>();
+
+			await Dispatcher.UIThread.InvokeAsync(
+				async () =>
+				{
+					var optionsDialog = new OptionsDialog
+					{
+						OptionsList = optionsList,
+						Topmost = true,
+
+					};
+
+					optionsDialog.Closed += ClosedHandler;
+					optionsDialog.Opened += optionsDialog.OnOpened;
+
+					void ClosedHandler(object sender, EventArgs e)
+					{
+						optionsDialog.Closed -= ClosedHandler;
+						_ = tcs.TrySetResult(null);
+					}
+
+					optionsDialog.OptionSelected += (sender, option) => _ = tcs.TrySetResult(option);
+
+					if ( !(parentWindow is null) )
+						await optionsDialog.ShowDialog(parentWindow);
+				}
+			);
+
+			return tcs is null ? throw new NullReferenceException(nameof(tcs)) : await tcs.Task;
+		}
+
+		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		{
+			if (!_mouseDownForWindowMoving)
+				return;
+
+			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			Position = new PixelPoint(
+				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
+				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
+			);
+		}
+
+		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
+		{
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+				return;
+
+			// Don't start window drag if clicking on interactive controls
+			if (ShouldIgnorePointerForWindowDrag(e))
+				return;
+
+			_mouseDownForWindowMoving = true;
+			_originalPoint = e.GetCurrentPoint(this);
+		}
+
+		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+			_mouseDownForWindowMoving = false;
+
+		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		{
+			// Get the element under the pointer
+			if (!(e.Source is Visual source))
+				return false;
+
+			// Walk up the visual tree to check if we're clicking on an interactive element
+			Visual current = source;
+			while (current != null && current != this)
+			{
+				// Check if we're clicking on any interactive control
+				if (current is Button ||
+					current is TextBox ||
+					current is ComboBox ||
+					current is ListBox ||
+					current is MenuItem ||
+					current is Menu ||
+					current is Expander ||
+					current is Slider ||
+					current is TabControl ||
+					current is TabItem ||
+					current is ProgressBar ||
+					current is ScrollViewer ||
+					current is CheckBox)
+				{
+					return true;
+				}
+
+				// Check if the element has context menu or flyout open
+				if (current is Control control)
+				{
+					if (control.ContextMenu?.IsOpen == true)
+						return true;
+					if (control.ContextFlyout?.IsOpen == true)
+						return true;
+				}
+
+				current = current.GetVisualParent();
+			}
+
+			return false;
+		}
+	}
+}

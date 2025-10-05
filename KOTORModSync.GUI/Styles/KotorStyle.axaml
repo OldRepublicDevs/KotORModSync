@@ -538,6 +538,89 @@
         <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
 
+    <!-- Summary Tab Styles -->
+    <Style Selector="Border.summary-card">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#062766" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <Style Selector="Border.summary-header">
+        <Setter Property="Background" Value="#062766" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <Style Selector="TextBlock.summary-section-title">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#A8B348" />
+        <Setter Property="Margin" Value="0,0,0,0" />
+    </Style>
+
+    <Style Selector="TextBlock.summary-label">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#888888" />
+        <Setter Property="Margin" Value="0,8,0,4" />
+    </Style>
+
+    <Style Selector="TextBlock.summary-value">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,0,0,0" />
+    </Style>
+
+    <Style Selector="Border.summary-link-container">
+        <Setter Property="Background" Value="#031332" />
+        <Setter Property="BorderBrush" Value="#062766" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
+
+    <Style Selector="Border.summary-option-card">
+        <Setter Property="Background" Value="#031332" />
+        <Setter Property="BorderBrush" Value="#062766" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <Style Selector="TextBlock.summary-option-title">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
+    </Style>
+
+    <Style Selector="Border.summary-instruction-card">
+        <Setter Property="Background" Value="#031332" />
+        <Setter Property="BorderBrush" Value="#062766" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Margin" Value="0,6,0,0" />
+    </Style>
+
+    <Style Selector="TextBlock.summary-instruction-action">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#A8B348" />
+    </Style>
+
+    <Style Selector="Separator.summary-separator">
+        <Setter Property="Background" Value="#062766" />
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Margin" Value="0,12,0,12" />
+    </Style>
+
     <!-- Regex highlight palette -->
     <Styles.Resources>
         <ResourceDictionary>

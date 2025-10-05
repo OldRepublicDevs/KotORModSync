@@ -24,32 +24,63 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
-		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
+	public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
+	{
+		await Logger.LogVerboseAsync($"[DirectDownload] Starting direct download from URL: {url}");
+		await Logger.LogVerboseAsync($"[DirectDownload] Destination directory: {destinationDirectory}");
+
+		try
 		{
-			await Logger.LogVerboseAsync($"[DirectDownload] Starting direct download from URL: {url}");
-			await Logger.LogVerboseAsync($"[DirectDownload] Destination directory: {destinationDirectory}");
+			// Validate URL first
+			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
+			{
+				string errorMsg = $"Invalid URL format: {url}";
+				await Logger.LogErrorAsync($"[DirectDownload] {errorMsg}");
+				progress?.Report(new DownloadProgress
+				{
+					Status = DownloadStatus.Failed,
+					ErrorMessage = $"Invalid URL: {url}",
+					ProgressPercentage = 0,
+					EndTime = DateTime.Now
+				});
+				return DownloadResult.Failed(errorMsg);
+			}
 
 			// Check if file already exists
-			string expectedFileName = Path.GetFileName(new Uri(url).AbsolutePath);
-			if ( !string.IsNullOrEmpty(expectedFileName) )
+			string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
+			await Logger.LogVerboseAsync($"[DirectDownload] Expected filename from URL: '{expectedFileName}'");
+			await Logger.LogVerboseAsync($"[DirectDownload] Checking in directory: '{destinationDirectory}'");
+
+			if ( !string.IsNullOrEmpty(expectedFileName) && expectedFileName != "/" )
 			{
 				string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
+				await Logger.LogVerboseAsync($"[DirectDownload] Full path to check: '{potentialPath}'");
+
 				if ( File.Exists(potentialPath) )
 				{
-					await Logger.LogVerboseAsync($"[DirectDownload] File already exists, skipping download: {potentialPath}");
+					await Logger.LogVerboseAsync($"[DirectDownload] ✓ FILE EXISTS - Skipping download: {potentialPath}");
 					progress?.Report(new DownloadProgress
 					{
 						Status = DownloadStatus.Skipped,
 						StatusMessage = "File already exists",
 						FilePath = potentialPath,
-						ProgressPercentage = 100
+						ProgressPercentage = 100,
+						StartTime = DateTime.Now,
+						EndTime = DateTime.Now
 					});
 					return DownloadResult.Skipped(potentialPath, "File already exists");
 				}
+				else
+				{
+					await Logger.LogVerboseAsync($"[DirectDownload] ✗ FILE DOES NOT EXIST - Will download: {potentialPath}");
+				}
+			}
+			else
+			{
+				await Logger.LogWarningAsync($"[DirectDownload] Could not extract valid filename from URL: '{url}'");
 			}
 
-			try
-			{
+
 				progress?.Report(new DownloadProgress
 				{
 					Status = DownloadStatus.InProgress,
@@ -65,18 +96,22 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogVerboseAsync($"[DirectDownload] Response content type: {response.Content.Headers.ContentType}");
 				await Logger.LogVerboseAsync($"[DirectDownload] Response content length: {response.Content.Headers.ContentLength}");
 
-				_ = response.EnsureSuccessStatusCode();
+			_ = response.EnsureSuccessStatusCode();
 
-				string fileName = Path.GetFileName(response.RequestMessage != null && response.RequestMessage.RequestUri != null
-					? response.RequestMessage.RequestUri.AbsolutePath
-					: "download");
-				await Logger.LogVerboseAsync($"[DirectDownload] Extracted filename from URL path: '{fileName}'");
+			string fileName = "download";
+			if ( response.RequestMessage != null && response.RequestMessage.RequestUri != null )
+			{
+				string urlPath = Uri.UnescapeDataString(response.RequestMessage.RequestUri.AbsolutePath);
+				fileName = Path.GetFileName(urlPath);
+			}
 
-				if ( string.IsNullOrWhiteSpace(fileName) )
-				{
-					fileName = "download";
-					await Logger.LogWarningAsync($"[DirectDownload] Filename is empty, using default: '{fileName}'");
-				}
+			await Logger.LogVerboseAsync($"[DirectDownload] Extracted filename from URL path: '{fileName}'");
+
+			if ( string.IsNullOrWhiteSpace(fileName) || fileName == "/" )
+			{
+				fileName = "download";
+				await Logger.LogWarningAsync($"[DirectDownload] Filename is empty or invalid, using default: '{fileName}'");
+			}
 
 				_ = Directory.CreateDirectory(destinationDirectory);
 				string filePath = Path.Combine(destinationDirectory, fileName);
@@ -129,6 +164,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = httpEx,
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -150,6 +186,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = tcEx,
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -159,7 +196,7 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogErrorAsync($"[DirectDownload] Download failed for URL '{url}': {ex.Message}");
 				await Logger.LogExceptionAsync(ex);
 
-				string userMessage = $"Direct download failed unexpectedly.\n\n" +
+				string userMessage = "Direct download failed unexpectedly.\n\n" +
 									 $"Please try downloading manually from: {url}\n\n" +
 									 $"Technical details: {ex.Message}";
 
@@ -168,6 +205,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = ex,
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);

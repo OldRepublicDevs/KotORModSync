@@ -124,24 +124,6 @@ namespace KOTORModSync.Core
 			public string CheckpointVersion { get; set; } = "1.0";
 		}
 
-		private InstructionCheckpoint GetOrCreateInstructionCheckpoint(Guid instructionId, int instructionIndex)
-		{
-			InstructionCheckpoint checkpoint = _instructionCheckpoints.FirstOrDefault(c => c.InstructionId == instructionId);
-			if ( checkpoint != null )
-				return checkpoint;
-
-			checkpoint = new InstructionCheckpoint
-			{
-				InstructionId = instructionId,
-				InstructionIndex = instructionIndex,
-				State = InstructionInstallState.Pending,
-				LastUpdatedUtc = DateTimeOffset.UtcNow,
-			};
-			_instructionCheckpoints.Add(checkpoint);
-			PersistCheckpointInternal();
-			return checkpoint;
-		}
-
 		private void PersistCheckpointInternal()
 		{
 			try
@@ -1187,6 +1169,64 @@ namespace KOTORModSync.Core
 			{
 				Logger.LogException(ex, customMessage: "There was a problem serializing the components in the file.");
 				throw;
+			}
+		}
+
+		/// <summary>
+		/// Automatically generates instructions for this component based on the first mod link's archive.
+		/// </summary>
+		/// <returns>True if instructions were generated successfully</returns>
+		public bool TryGenerateInstructionsFromArchive()
+		{
+			try
+			{
+				// Only generate if there are no instructions yet
+				if ( Instructions.Count > 0 )
+					return false;
+
+				// Need at least one ModLink to find the archive
+				if ( ModLink == null || ModLink.Count == 0 )
+					return false;
+
+				// Try to find the archive file in the mod directory
+				if ( MainConfig.SourcePath == null || !MainConfig.SourcePath.Exists )
+					return false;
+
+				// Get all archives that might match the first mod link
+				string[] archiveExtensions = { "*.zip", "*.rar", "*.7z", "*.exe" };
+				var allArchives = archiveExtensions
+					.SelectMany(ext => MainConfig.SourcePath.GetFiles(ext, SearchOption.TopDirectoryOnly))
+					.Where(f => f.Exists)
+					.ToList();
+
+				if ( allArchives.Count == 0 )
+					return false;
+
+				// Try to find an archive that matches the component name
+				FileInfo matchingArchive = allArchives
+					.OrderByDescending(f =>
+					{
+						// Prefer files that contain the component name
+						string nameWithoutExt = Path.GetFileNameWithoutExtension(Name);
+						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
+						return fileWithoutExt.IndexOf(nameWithoutExt, StringComparison.OrdinalIgnoreCase) >= 0 ||
+							   nameWithoutExt.IndexOf(fileWithoutExt, StringComparison.OrdinalIgnoreCase) >= 0
+							? 2
+							: 0;
+					})
+					.ThenByDescending(f => f.LastWriteTime) // Most recent file
+					.FirstOrDefault();
+
+				if ( matchingArchive == null )
+					return false;
+
+				// Generate instructions using the AutoInstructionGenerator
+				return Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Failed to auto-generate instructions for component '{Name}'");
+				return false;
 			}
 		}
 

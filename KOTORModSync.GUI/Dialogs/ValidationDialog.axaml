@@ -1,0 +1,108 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="KOTORModSync.Dialogs.ValidationDialog"
+        Title="Validation Results"
+        Width="700" Height="600"
+        MinWidth="600" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        SystemDecorations="BorderOnly">
+
+    <Window.Styles>
+        <StyleInclude Source="/Styles/KotorStyle.axaml" />
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Title Bar -->
+        <Grid Grid.Row="0" Background="{DynamicResource ThemeBackgroundBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Validation Results" FontSize="18" FontWeight="Bold"
+                       Margin="16,12" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="X" Click="CloseButton_Click"
+                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+        </Grid>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel Spacing="16">
+                <!-- Success/Failure Summary -->
+                <Border x:Name="SummaryBorder" Classes="summary-card" Padding="16" CornerRadius="8">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="SummaryIcon" Text="✅" FontSize="32" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="SummaryText" Text="Validation Successful!"
+                                   FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="SummaryDetails" Text="" TextWrapping="Wrap"
+                                   HorizontalAlignment="Center" Classes="secondary-text" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Issues Section -->
+                <StackPanel x:Name="IssuesPanel" Spacing="12" IsVisible="False">
+                    <TextBlock Text="Issues Found" FontSize="16" FontWeight="Bold" />
+
+                    <!-- System Issues -->
+                    <StackPanel x:Name="SystemIssuesPanel" Spacing="8" IsVisible="False">
+                        <TextBlock Text="⚙️ System Issues" FontSize="14" FontWeight="SemiBold" />
+                        <ItemsControl x:Name="SystemIssuesList" />
+                    </StackPanel>
+
+                    <!-- Mod-Specific Issues -->
+                    <StackPanel x:Name="ModIssuesPanel" Spacing="8" IsVisible="False">
+                        <TextBlock Text="📦 Mod-Specific Issues" FontSize="14" FontWeight="SemiBold" />
+                        <ItemsControl x:Name="ModIssuesList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="summary-card" Padding="12" Margin="0,4" CornerRadius="6">
+                                        <StackPanel Spacing="8">
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <TextBlock Grid.Column="0"
+                                                          Text="{Binding Icon}"
+                                                          FontSize="20"
+                                                          VerticalAlignment="Top"
+                                                          Margin="0,0,8,0" />
+                                                <StackPanel Grid.Column="1" Spacing="4">
+                                                    <TextBlock Text="{Binding ModName}"
+                                                              FontWeight="Bold"
+                                                              FontSize="14" />
+                                                    <TextBlock Text="{Binding IssueType}"
+                                                              Classes="secondary-text"
+                                                              FontSize="12" />
+                                                    <TextBlock Text="{Binding Description}"
+                                                              TextWrapping="Wrap"
+                                                              Margin="0,4,0,0" />
+                                                    <TextBlock Text="{Binding Solution}"
+                                                              TextWrapping="Wrap"
+                                                              FontStyle="Italic"
+                                                              Foreground="#A8B348"
+                                                              IsVisible="{Binding HasSolution}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                Background="{DynamicResource ThemeBackgroundBrush}" Padding="16">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button x:Name="OpenOutputButton" Content="📊 View Detailed Logs"
+                        Click="OpenOutput_Click" IsVisible="False" />
+                <Button x:Name="OkButton" Content="OK" Click="Ok_Click"
+                        IsDefault="True" MinWidth="80" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
+

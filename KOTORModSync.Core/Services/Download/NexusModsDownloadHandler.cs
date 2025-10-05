@@ -55,26 +55,43 @@ namespace KOTORModSync.Core.Services.Download
 			await Logger.LogVerboseAsync($"[NexusMods] Starting Nexus Mods download from URL: {url}");
 			await Logger.LogVerboseAsync($"[NexusMods] Destination directory: {destinationDirectory}");
 
-			try
+		try
+		{
+			// Validate URL first
+			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 			{
-				// Check if file already exists
-				string expectedFileName = Path.GetFileName(new Uri(url).AbsolutePath);
-				if ( !string.IsNullOrEmpty(expectedFileName) )
+				string errorMsg = $"Invalid URL format: {url}";
+				await Logger.LogErrorAsync($"[NexusMods] {errorMsg}");
+				progress?.Report(new DownloadProgress
 				{
-					string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
-					if ( File.Exists(potentialPath) )
+					Status = DownloadStatus.Failed,
+					ErrorMessage = $"Invalid URL: {url}",
+					ProgressPercentage = 0,
+					EndTime = DateTime.Now
+				});
+				return DownloadResult.Failed(errorMsg);
+			}
+
+			// Check if file already exists
+			string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
+			if ( !string.IsNullOrEmpty(expectedFileName) && expectedFileName != "/" )
+			{
+				string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
+				if ( File.Exists(potentialPath) )
+				{
+					await Logger.LogVerboseAsync($"[NexusMods] File already exists, skipping download: {potentialPath}");
+					progress?.Report(new DownloadProgress
 					{
-						await Logger.LogVerboseAsync($"[NexusMods] File already exists, skipping download: {potentialPath}");
-						progress?.Report(new DownloadProgress
-						{
-							Status = DownloadStatus.Skipped,
-							StatusMessage = "File already exists",
-							FilePath = potentialPath,
-							ProgressPercentage = 100
-						});
-						return DownloadResult.Skipped(potentialPath, "File already exists");
-					}
+						Status = DownloadStatus.Skipped,
+						StatusMessage = "File already exists",
+						FilePath = potentialPath,
+						ProgressPercentage = 100,
+						StartTime = DateTime.Now,
+						EndTime = DateTime.Now
+					});
+					return DownloadResult.Skipped(potentialPath, "File already exists");
 				}
+			}
 
 				progress?.Report(new DownloadProgress
 				{
@@ -110,10 +127,11 @@ namespace KOTORModSync.Core.Services.Download
 
 				progress?.Report(new DownloadProgress
 				{
-					Status = DownloadStatus.Failed,
-					ErrorMessage = userMessage,
-					Exception = httpEx,
-					EndTime = DateTime.Now
+				Status = DownloadStatus.Failed,
+				ErrorMessage = userMessage,
+				Exception = httpEx,
+				ProgressPercentage = 100,
+				EndTime = DateTime.Now
 				});
 
 				return DownloadResult.Failed(userMessage);
@@ -132,10 +150,11 @@ namespace KOTORModSync.Core.Services.Download
 
 				progress?.Report(new DownloadProgress
 				{
-					Status = DownloadStatus.Failed,
-					ErrorMessage = userMessage,
-					Exception = tcEx,
-					EndTime = DateTime.Now
+				Status = DownloadStatus.Failed,
+				ErrorMessage = userMessage,
+				Exception = tcEx,
+				ProgressPercentage = 100,
+				EndTime = DateTime.Now
 				});
 
 				return DownloadResult.Failed(userMessage);
@@ -151,10 +170,11 @@ namespace KOTORModSync.Core.Services.Download
 
 				progress?.Report(new DownloadProgress
 				{
-					Status = DownloadStatus.Failed,
-					ErrorMessage = userMessage,
-					Exception = ex,
-					EndTime = DateTime.Now
+				Status = DownloadStatus.Failed,
+				ErrorMessage = userMessage,
+				Exception = ex,
+				ProgressPercentage = 100,
+				EndTime = DateTime.Now
 				});
 
 				return DownloadResult.Failed(userMessage);
@@ -170,9 +190,10 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogErrorAsync("[NexusMods] Failed to resolve download link from Nexus Mods API");
 				progress?.Report(new DownloadProgress
 				{
-					Status = DownloadStatus.Failed,
-					ErrorMessage = "Unable to resolve Nexus Mods download link",
-					EndTime = DateTime.Now
+				Status = DownloadStatus.Failed,
+				ErrorMessage = "Unable to resolve Nexus Mods download link",
+				ProgressPercentage = 100,
+				EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed("Unable to resolve Nexus Mods download link.");
 			}
@@ -272,9 +293,10 @@ namespace KOTORModSync.Core.Services.Download
 
 			progress?.Report(new DownloadProgress
 			{
-				Status = DownloadStatus.Failed,
-				ErrorMessage = "Free downloads from Nexus Mods require manual interaction. Please download manually or provide an API key.",
-				EndTime = DateTime.Now
+			Status = DownloadStatus.Failed,
+			ErrorMessage = "Free downloads from Nexus Mods require manual interaction. Please download manually or provide an API key.",
+			ProgressPercentage = 100,
+			EndTime = DateTime.Now
 			});
 
 			pageResponse.Dispose();

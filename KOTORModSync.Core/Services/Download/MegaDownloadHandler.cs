@@ -136,6 +136,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = argEx,
+					ProgressPercentage = 100, // Mark as complete so UI shows it's done
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -158,6 +159,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = authEx,
+					ProgressPercentage = 100, // Mark as complete so UI shows it's done
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -181,6 +183,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = fileEx,
+					ProgressPercentage = 100, // Mark as complete so UI shows it's done
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -190,7 +193,7 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogErrorAsync($"[MEGA] Download failed for URL '{url}': {ex.Message}");
 				await Logger.LogExceptionAsync(ex);
 
-				string userMessage = $"MEGA.nz download failed unexpectedly.\n\n" +
+				string userMessage = "MEGA.nz download failed unexpectedly.\n\n" +
 									 $"Please try downloading manually from: {url}\n\n" +
 									 $"Technical details: {ex.Message}";
 
@@ -199,6 +202,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = ex,
+					ProgressPercentage = 100, // Mark as complete so UI shows it's done
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);

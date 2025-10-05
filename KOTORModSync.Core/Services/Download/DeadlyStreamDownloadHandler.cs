@@ -62,29 +62,46 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
-		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
-		{
-			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
-			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
+	public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
+	{
+		await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
+		await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
 
-			// Check if file already exists
-			string expectedFileName = Path.GetFileName(url);
-			if ( !string.IsNullOrEmpty(expectedFileName) )
+		// Validate URL first
+		if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
+		{
+			string errorMsg = $"Invalid URL format: {url}";
+			await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}");
+			progress?.Report(new DownloadProgress
 			{
-				string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
-				if ( File.Exists(potentialPath) )
+				Status = DownloadStatus.Failed,
+				ErrorMessage = $"Invalid URL: {url}",
+				ProgressPercentage = 0,
+				EndTime = DateTime.Now
+			});
+			return DownloadResult.Failed(errorMsg);
+		}
+
+		// Check if file already exists (use URL path for filename guess)
+		string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
+		if ( !string.IsNullOrEmpty(expectedFileName) && expectedFileName != "/" )
+		{
+			string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
+			if ( File.Exists(potentialPath) )
+			{
+				await Logger.LogVerboseAsync($"[DeadlyStream] File already exists, skipping download: {potentialPath}");
+				progress?.Report(new DownloadProgress
 				{
-					await Logger.LogVerboseAsync($"[DeadlyStream] File already exists, skipping download: {potentialPath}");
-					progress?.Report(new DownloadProgress
-					{
-						Status = DownloadStatus.Skipped,
-						StatusMessage = "File already exists",
-						FilePath = potentialPath,
-						ProgressPercentage = 100
-					});
-					return DownloadResult.Skipped(potentialPath, "File already exists");
-				}
+					Status = DownloadStatus.Skipped,
+					StatusMessage = "File already exists",
+					FilePath = potentialPath,
+					ProgressPercentage = 100,
+					StartTime = DateTime.Now,
+					EndTime = DateTime.Now
+				});
+				return DownloadResult.Skipped(potentialPath, "File already exists");
 			}
+		}
 
 			progress?.Report(new DownloadProgress
 			{
@@ -145,6 +162,7 @@ namespace KOTORModSync.Core.Services.Download
 					{
 						Status = DownloadStatus.Failed,
 						ErrorMessage = userMessage,
+						ProgressPercentage = 100,
 						EndTime = DateTime.Now
 					});
 
@@ -238,6 +256,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = httpEx,
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -259,6 +278,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = tcEx,
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -268,7 +288,7 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogErrorAsync($"[DeadlyStream] Download failed for URL '{url}': {ex.Message}");
 				await Logger.LogExceptionAsync(ex);
 
-				string userMessage = $"DeadlyStream download failed unexpectedly.\n\n" +
+				string userMessage = "DeadlyStream download failed unexpectedly.\n\n" +
 									 $"Please try downloading manually from: {url}\n\n" +
 									 $"Technical details: {ex.Message}";
 
@@ -277,6 +297,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = ex,
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);

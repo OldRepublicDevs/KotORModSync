@@ -10,6 +10,7 @@ using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
+using KOTORModSync.Dialogs;
 
 namespace KOTORModSync
 {

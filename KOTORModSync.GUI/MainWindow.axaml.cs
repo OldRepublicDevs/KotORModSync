@@ -1930,7 +1930,7 @@ namespace KOTORModSync
 
 				// Update tier/category selection UI (only when not searching - use all components)
 				if ( string.IsNullOrWhiteSpace(SearchText) && MainConfig.AllComponents.Count > 0 )
-					InitializeFilterUI(MainConfig.AllComponents);
+					InitializeFilterUi(MainConfig.AllComponents);
 			}
 			catch ( Exception ex )
 			{
@@ -5695,8 +5695,8 @@ namespace KOTORModSync
 		#region Selection Methods
 
 		// Selection by tier/category
-		private ObservableCollection<TierFilterItem> _tierItems = new ObservableCollection<TierFilterItem>();
-		private ObservableCollection<SelectionFilterItem> _categoryItems = new ObservableCollection<SelectionFilterItem>();
+		private readonly ObservableCollection<TierFilterItem> _tierItems = new ObservableCollection<TierFilterItem>();
+		private readonly ObservableCollection<SelectionFilterItem> _categoryItems = new ObservableCollection<SelectionFilterItem>();
 
 		private void SelectAll_Click(object sender, RoutedEventArgs e)
 		{
@@ -5748,7 +5748,7 @@ namespace KOTORModSync
 			}
 		}
 
-		private void InitializeFilterUI(List<Component> components)
+		private void InitializeFilterUi(List<Component> components)
 		{
 			try
 			{

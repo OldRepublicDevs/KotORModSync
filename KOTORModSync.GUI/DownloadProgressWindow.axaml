@@ -22,6 +22,12 @@
 	<Grid RowDefinitions="Auto,*,Auto">
 		<!-- Custom Window Controls -->
 		<StackPanel Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Spacing="0" Margin="0,8,8,0">
+			<Button Content="-" Click="MinimizeButton_Click"
+					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+			<Button Content="▢" Click="ToggleMaximizeButton_Click"
+					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
+					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
 			<Button Content="X" Click="CloseButton_Click"
 					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
 					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />

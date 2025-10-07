@@ -37,10 +37,11 @@ namespace KOTORModSync.Converters
 		{
 			if ( value is string text && !string.IsNullOrWhiteSpace(text) )
 			{
+				// Only split on comma and semicolon, preserve other characters like & in category names
 				return text.Split(
 					new[] { ",", ";" },
 					StringSplitOptions.RemoveEmptyEntries
-				).Select(c => c.Trim()).ToList();
+				).Select(c => c.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
 			}
 
 			return new List<string>();

@@ -539,7 +539,7 @@ namespace KOTORModSync.Core
 						{
 							"\r\n", "\n",
 						};
-		private static readonly string[] s_categorySeparator = new[] { ",", ";", "/" };
+		private static readonly string[] s_categorySeparator = new[] { ",", ";" };
 
 		// used for the ui.
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -648,10 +648,32 @@ namespace KOTORModSync.Core
 				string categoryStr = GetValueOrDefault<string>(componentDict, key: "Category") ?? string.Empty;
 				if ( !string.IsNullOrEmpty(categoryStr) )
 				{
+					// Only split on comma and semicolon, not on other characters like & or /
+					// This preserves category names like "Bugfix & Graphics Improvement"
 					Category = categoryStr.Split(
 						s_categorySeparator,
 						StringSplitOptions.RemoveEmptyEntries
-					).Select(c => c.Trim()).ToList();
+					).Select(c => c.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
+				}
+			}
+			else if ( Category.Count == 1 )
+			{
+				// If we have exactly one category, check if it needs to be split
+				// This handles cases where TOML gives us a single-element list containing a comma/semicolon-separated string
+				string singleCategory = Category[0];
+				if ( !string.IsNullOrEmpty(singleCategory) &&
+					 (singleCategory.Contains(',') || singleCategory.Contains(';')) )
+				{
+					// Split the single category string into multiple categories
+					Category = singleCategory.Split(
+						s_categorySeparator,
+						StringSplitOptions.RemoveEmptyEntries
+					).Select(c => c.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
+				}
+				else if ( string.IsNullOrWhiteSpace(singleCategory) )
+				{
+					// If the single category is just whitespace, treat it as empty
+					Category = new List<string>();
 				}
 			}
 
@@ -986,7 +1008,12 @@ namespace KOTORModSync.Core
 						}
 
 						if ( targetType == typeof(string) )
+						{
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+							// ReSharper disable once PossibleInvalidCastException
 							return (T)(object)valueStr;
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+						}
 
 						break;
 				}

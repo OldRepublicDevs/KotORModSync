@@ -1405,34 +1405,30 @@ namespace KOTORModSync.Dialogs
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				// Check if we're clicking on any interactive control
-				if ( current is Button ||
-					current is TextBox ||
-					current is ComboBox ||
-					current is ListBox ||
-					current is MenuItem ||
-					current is Menu ||
-					current is Expander ||
-					current is Slider ||
-					current is TabControl ||
-					current is TabItem ||
-					current is ProgressBar ||
-					current is ScrollViewer ||
-					current is CheckBox )
+				switch (current)
 				{
-					return true;
-				}
-
-				// Check if the element has context menu or flyout open
-				if ( current is Control control )
-				{
-					if ( control.ContextMenu?.IsOpen == true )
+					// Check if we're clicking on any interactive control
+					case Button _:
+					case TextBox _:
+					case ComboBox _:
+					case ListBox _:
+					case MenuItem _:
+					case Menu _:
+					case Expander _:
+					case Slider _:
+					case TabControl _:
+					case TabItem _:
+					case ProgressBar _:
+					case ScrollViewer _:
+					// Check if the element has context menu or flyout open
+					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
-					if ( control.ContextFlyout?.IsOpen == true )
+					case Control control when control.ContextFlyout?.IsOpen == true:
 						return true;
+					default:
+						current = current.GetVisualParent();
+						break;
 				}
-
-				current = current.GetVisualParent();
 			}
 
 			return false;

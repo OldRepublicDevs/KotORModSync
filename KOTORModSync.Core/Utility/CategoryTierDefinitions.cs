@@ -103,7 +103,7 @@ namespace KOTORModSync.Core.Utility
 		[NotNull]
 		public static string GetCategoryDescription([CanBeNull] string category)
 		{
-			if (string.IsNullOrEmpty(category))
+			if ( string.IsNullOrEmpty(category) )
 				return "No category specified.";
 
 			return CategoryDefinitions.TryGetValue(category, out string description)
@@ -119,7 +119,7 @@ namespace KOTORModSync.Core.Utility
 		[NotNull]
 		public static string GetTierDescription([CanBeNull] string tier)
 		{
-			if (string.IsNullOrEmpty(tier))
+			if ( string.IsNullOrEmpty(tier) )
 				return "No tier specified.";
 
 			return TierDefinitions.TryGetValue(tier, out string description)

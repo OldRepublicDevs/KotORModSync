@@ -55,7 +55,7 @@ namespace KOTORModSync.Core.Utility
 				() =>
 				{
 					return thisDir is null
-					       ? throw new NullReferenceException(nameof(thisDir))
+						   ? throw new NullReferenceException(nameof(thisDir))
 						   : GetMaxDiskSpeed(Path.GetPathRoot(thisDir.FullName));
 				}
 			);
@@ -397,7 +397,7 @@ namespace KOTORModSync.Core.Utility
 					string tempFile = programFile.Trim('"').Trim('\'');
 					actualArgs = $"\"{tempFile}\" {args}";
 					if ( MainConfig.NoAdmin )
-					    actualArgs = $"-n true {actualArgs}";
+						actualArgs = $"-n true {actualArgs}";
 				}
 			}
 
@@ -532,7 +532,7 @@ namespace KOTORModSync.Core.Utility
 
 									_ = output.AppendLine(e.Data);
 									if ( noLogging is false )
-									    _ = Logger.LogAsync(e.Data);
+										_ = Logger.LogAsync(e.Data);
 								}
 								catch ( Exception exception )
 								{

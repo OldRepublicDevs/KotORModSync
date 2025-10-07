@@ -45,7 +45,7 @@ namespace KOTORModSync
 				foreach ( Guid depGuid in component.Dependencies )
 				{
 					if ( !componentsByGuid.ContainsKey(depGuid) )
-					    continue;
+						continue;
 					if ( !graph.ContainsKey(component.Guid) )
 						graph[component.Guid] = new List<Guid>();
 					graph[component.Guid].Add(depGuid);
@@ -55,7 +55,7 @@ namespace KOTORModSync
 				foreach ( Guid afterGuid in component.InstallAfter )
 				{
 					if ( !componentsByGuid.ContainsKey(afterGuid) )
-					    continue;
+						continue;
 					if ( !graph.ContainsKey(component.Guid) )
 						graph[component.Guid] = new List<Guid>();
 					graph[component.Guid].Add(afterGuid);
@@ -70,7 +70,7 @@ namespace KOTORModSync
 			foreach ( Guid guid in componentsByGuid.Keys.Where(guid => !visited.Contains(guid)) )
 			{
 				if ( DfsDetectCycle(guid, graph, visited, recursionStack, currentPath, result) )
-				    result.HasCircularDependencies = true;
+					result.HasCircularDependencies = true;
 			}
 
 			// Build detailed error message
@@ -90,7 +90,7 @@ namespace KOTORModSync
 					{
 						Guid guid = cycle[j];
 						if ( !componentsByGuid.TryGetValue(guid, out Component comp) )
-						    continue;
+							continue;
 						_ = sb.Append($"  {j + 1}. {comp.Name}");
 						if ( !string.IsNullOrWhiteSpace(comp.Author) )
 							_ = sb.Append($" by {comp.Author}");

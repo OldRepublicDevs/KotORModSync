@@ -44,11 +44,11 @@ namespace KOTORModSync.Controls
 			_searchTextBox = this.FindControl<TextBox>("SearchTextBox");
 			_clearButton = this.FindControl<Button>("ClearButton");
 
-			if (_searchTextBox != null)
+			if ( _searchTextBox != null )
 			{
 				_searchTextBox.PropertyChanged += (s, e) =>
 				{
-					if (e.Property == TextBox.TextProperty)
+					if ( e.Property == TextBox.TextProperty )
 					{
 						UpdateClearButtonVisibility();
 					}
@@ -58,12 +58,12 @@ namespace KOTORModSync.Controls
 			// Bind watermark to the TextBox
 			_ = this.GetObservable(WatermarkProperty).Subscribe(new AnonymousObserver<string>(UpdateWatermark));
 
-			if (_clearButton != null)
+			if ( _clearButton != null )
 			{
 				_clearButton.Click += (s, e) =>
 				{
 					SearchText = string.Empty;
-					if (_searchTextBox != null)
+					if ( _searchTextBox != null )
 					{
 						_searchTextBox.Text = string.Empty;
 						_searchTextBox.Focus();
@@ -76,7 +76,7 @@ namespace KOTORModSync.Controls
 
 		private void UpdateClearButtonVisibility()
 		{
-			if (_clearButton != null && _searchTextBox != null)
+			if ( _clearButton != null && _searchTextBox != null )
 			{
 				_clearButton.IsVisible = !string.IsNullOrEmpty(_searchTextBox.Text);
 			}
@@ -84,7 +84,7 @@ namespace KOTORModSync.Controls
 
 		private void UpdateWatermark(string watermark)
 		{
-			if (_searchTextBox != null)
+			if ( _searchTextBox != null )
 			{
 				_searchTextBox.Watermark = watermark;
 			}

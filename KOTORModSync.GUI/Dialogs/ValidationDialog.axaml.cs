@@ -33,7 +33,7 @@ namespace KOTORModSync.Dialogs
 		}
 
 		public ValidationDialog(bool success, string summaryMessage, List<ValidationIssue> modIssues = null,
-		                       List<string> systemIssues = null, Action openOutputCallback = null)
+							   List<string> systemIssues = null, Action openOutputCallback = null)
 		{
 			AvaloniaXamlLoader.Load(this);
 			_openOutputCallback = openOutputCallback;
@@ -55,10 +55,10 @@ namespace KOTORModSync.Dialogs
 			ItemsControl modIssuesList = this.FindControl<ItemsControl>("ModIssuesList");
 			Button openOutputButton = this.FindControl<Button>("OpenOutputButton");
 
-			if (summaryIcon == null || summaryText == null || summaryDetails == null || summaryBorder == null)
+			if ( summaryIcon == null || summaryText == null || summaryDetails == null || summaryBorder == null )
 				return;
 
-			if (success)
+			if ( success )
 			{
 				summaryIcon.Text = "✅";
 				summaryText.Text = "Validation Successful!";
@@ -71,17 +71,17 @@ namespace KOTORModSync.Dialogs
 				summaryText.Text = "Validation Failed";
 				summaryDetails.Text = summaryMessage;
 				summaryBorder.Background = new SolidColorBrush(Color.Parse("#4D1B1B")); // Dark red
-				if (issuesPanel != null)
+				if ( issuesPanel != null )
 					issuesPanel.IsVisible = true;
-				if (openOutputButton != null)
+				if ( openOutputButton != null )
 					openOutputButton.IsVisible = true;
 
 				// Show system issues
-				if (systemIssues != null && systemIssues.Count > 0 && systemIssuesPanel != null && systemIssuesList != null)
+				if ( systemIssues != null && systemIssues.Count > 0 && systemIssuesPanel != null && systemIssuesList != null )
 				{
 					systemIssuesPanel.IsVisible = true;
 					var systemIssuesChildren = new List<Control>();
-					foreach (string issue in systemIssues)
+					foreach ( string issue in systemIssues )
 					{
 						systemIssuesChildren.Add(new Border
 						{
@@ -100,7 +100,7 @@ namespace KOTORModSync.Dialogs
 				}
 
 				// Show mod issues
-				if (modIssues != null && modIssues.Count > 0 && modIssuesPanel != null && modIssuesList != null)
+				if ( modIssues != null && modIssues.Count > 0 && modIssuesPanel != null && modIssuesList != null )
 				{
 					modIssuesPanel.IsVisible = true;
 					modIssuesList.ItemsSource = new ObservableCollection<ValidationIssue>(modIssues);

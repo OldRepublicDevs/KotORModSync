@@ -17,7 +17,7 @@ namespace KOTORModSync.Converters
 		/// <inheritdoc />
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is string tier)
+			if ( value is string tier )
 			{
 				return CategoryTierDefinitions.GetTierDescription(tier);
 			}

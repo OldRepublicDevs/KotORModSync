@@ -2,8 +2,8 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // See LICENSE.txt file in the project root for full license information.
 
-using KOTORModSync.Core.FileSystemUtils;
 using System.Collections.Concurrent;
+using KOTORModSync.Core.FileSystemUtils;
 using Xunit;
 using Assert = Xunit.Assert;
 
@@ -35,27 +35,27 @@ namespace KOTORModSync.Tests
 
 		public void Dispose()
 		{
-			foreach (var watcher in _watchers)
+			foreach ( var watcher in _watchers )
 			{
 				try { watcher.Dispose(); }
 				catch { /* Ignore cleanup errors */ }
 			}
 
-			foreach (var file in _createdFiles)
+			foreach ( var file in _createdFiles )
 			{
 				try
 				{
-					if (File.Exists(file))
+					if ( File.Exists(file) )
 						File.Delete(file);
 				}
 				catch { /* Ignore cleanup errors */ }
 			}
 
-			foreach (var dir in _createdDirectories.OrderByDescending(d => d.Length))
+			foreach ( var dir in _createdDirectories.OrderByDescending(d => d.Length) )
 			{
 				try
 				{
-					if (Directory.Exists(dir))
+					if ( Directory.Exists(dir) )
 						Directory.Delete(dir, true);
 				}
 				catch { /* Ignore cleanup errors */ }
@@ -63,14 +63,14 @@ namespace KOTORModSync.Tests
 
 			try
 			{
-				if (Directory.Exists(_testDirectory))
+				if ( Directory.Exists(_testDirectory) )
 					Directory.Delete(_testDirectory, true);
 			}
 			catch { /* Ignore cleanup errors */ }
 
 			try
 			{
-				if (Directory.Exists(_externalDirectory))
+				if ( Directory.Exists(_externalDirectory) )
 					Directory.Delete(_externalDirectory, true);
 			}
 			catch { /* Ignore cleanup errors */ }
@@ -226,7 +226,7 @@ namespace KOTORModSync.Tests
 			watcher.Created += (_, e) =>
 			{
 				createdFiles.Add(e.Name!);
-				lock (lockObj) eventCount++;
+				lock ( lockObj ) eventCount++;
 			};
 
 			watcher.StartWatching();
@@ -234,7 +234,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			string[] fileNames = ["file1.txt", "file2.txt", "file3.txt"];
-			foreach ( string fileName in fileNames)
+			foreach ( string fileName in fileNames )
 			{
 				CreateTestFile(_testDirectory, fileName);
 				await Task.Delay(150); // Space out operations
@@ -246,7 +246,7 @@ namespace KOTORModSync.Tests
 			Assert.True(eventCount >= fileNames.Length,
 				$"Expected at least {fileNames.Length} Created events, but received {eventCount}");
 
-			foreach ( string fileName in fileNames)
+			foreach ( string fileName in fileNames )
 			{
 				Assert.True(createdFiles.Contains(fileName),
 					$"Created event must have been raised for {fileName}");
@@ -267,7 +267,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, e) =>
 			{
-				if (e.Name!.EndsWith(".log"))
+				if ( e.Name!.EndsWith(".log") )
 				{
 					capturedEvent = e;
 					eventReceived.Set();
@@ -338,9 +338,9 @@ namespace KOTORModSync.Tests
 			// Arrange
 			string[] fileNames = { "delete1.txt", "delete2.txt", "delete3.txt" };
 			var filePaths = new List<string>();
-			foreach (string fileName in fileNames)
+			foreach ( string fileName in fileNames )
 			{
-				var filePath = 				CreateTestFile(_testDirectory, fileName);
+				var filePath = CreateTestFile(_testDirectory, fileName);
 				filePaths.Add(filePath);
 			}
 			await Task.Delay(100);
@@ -355,14 +355,14 @@ namespace KOTORModSync.Tests
 			watcher.Deleted += (_, e) =>
 			{
 				deletedFiles.Add(e.Name!);
-				lock (lockObj) eventCount++;
+				lock ( lockObj ) eventCount++;
 			};
 
 			watcher.StartWatching();
 			await Task.Delay(100);
 
 			// Act
-			foreach (string filePath in filePaths)
+			foreach ( string filePath in filePaths )
 			{
 				File.Delete(filePath);
 				await Task.Delay(150);
@@ -374,7 +374,7 @@ namespace KOTORModSync.Tests
 			Assert.True(eventCount >= fileNames.Length,
 				$"Expected at least {fileNames.Length} Deleted events, but received {eventCount}");
 
-			foreach (string fileName in fileNames)
+			foreach ( string fileName in fileNames )
 			{
 				Assert.True(deletedFiles.Contains(fileName),
 					$"Deleted event must have been raised for {fileName}");
@@ -403,7 +403,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Changed += (_, e) =>
 			{
-				if (e.Name == fileName)
+				if ( e.Name == fileName )
 				{
 					capturedEvent = e;
 					eventReceived.Set();
@@ -444,9 +444,9 @@ namespace KOTORModSync.Tests
 
 			watcher.Changed += (sender, e) =>
 			{
-				if (e.Name == fileName)
+				if ( e.Name == fileName )
 				{
-					lock (lockObj) changeCount++;
+					lock ( lockObj ) changeCount++;
 				}
 			};
 
@@ -455,7 +455,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			int modifications = 3;
-			for (int i = 0; i < modifications; i++)
+			for ( int i = 0; i < modifications; i++ )
 			{
 				await Task.Delay(200); // Ensure timestamp changes
 				File.WriteAllText(filePath, $"content version {i}");
@@ -492,7 +492,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, e) =>
 			{
-				if (e.Name == fileName)
+				if ( e.Name == fileName )
 				{
 					capturedEvent = e;
 					eventReceived.Set();
@@ -534,7 +534,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Deleted += (_, e) =>
 			{
-				if (e.Name == fileName)
+				if ( e.Name == fileName )
 				{
 					capturedEvent = e;
 					eventReceived.Set();
@@ -579,7 +579,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Renamed += (_, e) =>
 			{
-				if (e.OldName == oldFileName && e.Name == newFileName)
+				if ( e.OldName == oldFileName && e.Name == newFileName )
 				{
 					renamedEventRaised = true;
 					eventReceived.Set();
@@ -588,7 +588,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Deleted += (_, e) =>
 			{
-				if (e.Name == oldFileName)
+				if ( e.Name == oldFileName )
 				{
 					deletedEventRaised = true;
 				}
@@ -596,7 +596,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, e) =>
 			{
-				if (e.Name == newFileName)
+				if ( e.Name == newFileName )
 				{
 					createdEventRaised = true;
 					eventReceived.Set();
@@ -647,7 +647,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (sender, e) =>
 			{
-				if (e.Name!.Contains("copy_dest"))
+				if ( e.Name!.Contains("copy_dest") )
 				{
 					capturedEvent = e;
 					eventReceived.Set();
@@ -696,7 +696,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (sender, e) =>
 			{
-				if (e.Name!.Contains("subdir"))
+				if ( e.Name!.Contains("subdir") )
 				{
 					capturedEvent = e;
 					eventReceived.Set();
@@ -736,7 +736,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, e) =>
 			{
-				if (e.Name!.Contains(subDirName))
+				if ( e.Name!.Contains(subDirName) )
 				{
 					eventRaisedForSubdir = true;
 				}
@@ -848,7 +848,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, _) =>
 			{
-				lock (lockObj) eventCount++;
+				lock ( lockObj ) eventCount++;
 			};
 
 			// Start, create file, stop
@@ -910,7 +910,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, e) =>
 			{
-				if (e.Name == "largefile.dat")
+				if ( e.Name == "largefile.dat" )
 				{
 					capturedEvent = e;
 					eventReceived.Set();
@@ -954,7 +954,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, e) =>
 			{
-				if (e.Name == "empty.txt")
+				if ( e.Name == "empty.txt" )
 				{
 					capturedEvent = e;
 					eventReceived.Set();

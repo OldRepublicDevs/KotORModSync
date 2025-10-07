@@ -1,9 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:KOTORModSync.Controls"
+        xmlns:converters="clr-namespace:KOTORModSync.Converters"
         x:Class="KOTORModSync.Dialogs.ComponentMergeConflictDialog"
         Width="1400" Height="800"
-        Title="Component Merge Conflicts - Power User Mode"
+        Title="Component Merge Conflicts"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -28,55 +29,71 @@
         <!-- Header with Stats -->
         <StackPanel Grid.Row="0" Margin="20,20,20,10">
             <TextBlock Text="Component Merge Resolution"
-                       FontSize="20" FontWeight="Bold" Margin="0,0,0,8"/>
+                       FontSize="20" FontWeight="Bold" Margin="0,0,0,8" />
             <TextBlock Text="{Binding ConflictDescription}"
-                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                       TextWrapping="Wrap" Margin="0,0,0,8" />
             <TextBlock Text="{Binding MergeImpactSummary}"
                        FontWeight="SemiBold" Foreground="Orange"
-                       Margin="0,0,0,8"/>
+                       Margin="0,0,0,8" />
         </StackPanel>
 
         <!-- Quick Actions & Options Bar -->
         <Border Grid.Row="1" Margin="20,0" Padding="10"
                 Background="{DynamicResource ThemeBackgroundBrush}"
                 BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}">
-            <Grid RowDefinitions="Auto,Auto,Auto">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
                 <!-- Search Box -->
                 <Grid Grid.Row="0" ColumnDefinitions="*" Margin="0,0,0,10">
                     <controls:SearchBox SearchText="{Binding SearchText, Mode=TwoWay}"
-                                       Watermark="🔍 Search components by name or author..."/>
+                                        Watermark="🔍 Search components by name or author..." />
                 </Grid>
 
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
-                    <TextBlock Text="🚀 Quick Actions:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock Text="🚀 Quick Actions:" VerticalAlignment="Center" FontWeight="SemiBold" />
                     <Button Content="Toggle All New"
                             Command="{Binding KeepAllNewCommand}"
-                            ToolTip.Tip="Toggle selection of all new components from incoming (select all if any unselected, deselect all if all selected)"/>
+                            ToolTip.Tip="Toggle selection of all new components from incoming (select all if any unselected, deselect all if all selected)" />
                     <Button Content="Toggle All Unmatched"
                             Command="{Binding KeepAllExistingUnmatchedCommand}"
-                            ToolTip.Tip="Toggle selection of existing components not in incoming list (select all if any unselected, deselect all if all selected)"/>
-                    <Separator Width="2" Background="{DynamicResource ThemeBorderMidBrush}"/>
-                    <TextBlock Text="💡 Tip: Click one from each list then:" VerticalAlignment="Center" FontSize="11" Opacity="0.7" Margin="5,0"/>
+                            ToolTip.Tip="Toggle selection of existing components not in incoming list (select all if any unselected, deselect all if all selected)" />
+                    <Separator Width="2" Background="{DynamicResource ThemeBorderMidBrush}" />
+                    <TextBlock Text="💡 Tip: Click one from each list then:" VerticalAlignment="Center" FontSize="11"
+                               Opacity="0.7" Margin="5,0" />
                     <Button Content="{Binding LinkButtonText}"
                             Command="{Binding LinkSelectedCommand}"
                             IsEnabled="{Binding CanLinkItems}"
                             MinWidth="200"
                             ToolTip.Tip="Manually link the selected existing and incoming components as the same mod (or right-click)"
-                            Foreground="LightGreen"/>
+                            Foreground="LightGreen" />
                     <Button Content="❌ Unlink Selected"
                             Command="{Binding UnlinkSelectedCommand}"
                             ToolTip.Tip="Unlink manually or automatically linked components"
-                            Foreground="Orange"/>
+                            Foreground="Orange" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="15" Margin="0,8,0,0">
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+                    <TextBlock Text="🔧 Global Field Preferences:" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <Button Content="📥 Use All Incoming Fields"
+                            Command="{Binding UseAllIncomingFieldsCommand}"
+                            ToolTip.Tip="Set ALL matched components to use incoming fields (names, authors, instructions, etc.)"
+                            Foreground="LightBlue" />
+                    <Button Content="📂 Use All Existing Fields"
+                            Command="{Binding UseAllExistingFieldsCommand}"
+                            ToolTip.Tip="Set ALL matched components to use existing fields (names, authors, instructions, etc.)"
+                            Foreground="LightCoral" />
+                    <TextBlock Text="💡 This affects all matched pairs globally" VerticalAlignment="Center"
+                               FontSize="11"
+                               Opacity="0.7" Margin="10,0,0,0" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="15" Margin="0,8,0,0">
                     <CheckBox Content="⚡ Use incoming list order (Priority)"
                               IsChecked="{Binding UseIncomingOrder, Mode=TwoWay}"
                               FontWeight="SemiBold"
-                              ToolTip.Tip="Controls which component order is preserved in the final merge. When checked: incoming list order is used. When unchecked: existing list order is used. This affects the sequence of components in your final mod installation."/>
+                              ToolTip.Tip="Controls which component order is preserved in the final merge. When checked: incoming list order is used. When unchecked: existing list order is used. This affects the sequence of components in your final mod installation." />
                     <CheckBox Content="Skip duplicates when both selected"
                               IsChecked="{Binding SkipDuplicates, Mode=TwoWay}"
-                              ToolTip.Tip="When both existing and incoming versions of a linked component are selected: CHECKED = only one version appears in final merge (prevents conflicts). UNCHECKED = both versions appear separately (can cause file conflicts and crashes). Recommended: Keep checked."/>
+                              ToolTip.Tip="When both existing and incoming versions of a linked component are selected: CHECKED = only one version appears in final merge (prevents conflicts). UNCHECKED = both versions appear separately (can cause file conflicts and crashes). Recommended: Keep checked." />
                 </StackPanel>
             </Grid>
         </Border>
@@ -92,13 +109,14 @@
                         <StackPanel>
                             <CheckBox Content="📂 EXISTING Components"
                                       IsChecked="{Binding SelectAllExisting, Mode=TwoWay}"
-                                      FontWeight="SemiBold" FontSize="13"/>
+                                      FontWeight="SemiBold" FontSize="13" />
                             <TextBlock Text="{Binding ExistingSourceInfo}"
-                                       FontSize="11" Opacity="0.7" Margin="25,2,0,0"/>
+                                       FontSize="11" Opacity="0.7" Margin="25,2,0,0" />
                         </StackPanel>
                     </Border>
 
-                    <TabControl Grid.Row="1" SelectedIndex="0" FontSize="11" SelectionChanged="ExistingTabControl_SelectionChanged" Name="ExistingTabControl">
+                    <TabControl Grid.Row="1" SelectedIndex="0" FontSize="11"
+                                SelectionChanged="ExistingTabControl_SelectionChanged" Name="ExistingTabControl">
                         <!-- List View Tab -->
                         <TabItem Header="List View">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Name="ExistingListScrollViewer">
@@ -111,33 +129,36 @@
                                                     Background="{Binding SelectionBackground}"
                                                     PointerPressed="OnItemClicked"
                                                     ContextRequested="OnItemContextRequested"
-                                                    Cursor="Hand">
+                                                    Cursor="Hand"
+                                                    ToolTip.Tip="{Binding RichTooltip}">
                                                 <Border.Styles>
                                                     <Style Selector="Border:pointerover">
-                                                        <Setter Property="Opacity" Value="0.8"/>
+                                                        <Setter Property="Opacity" Value="0.8" />
                                                     </Style>
                                                 </Border.Styles>
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem Header="📄 Jump to Raw TOML"
                                                                   Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
-                                                                  CommandParameter="{Binding}"/>
-                                                        <Separator/>
+                                                                  CommandParameter="{Binding}" />
+                                                        <Separator />
                                                         <MenuItem Header="🔗 Link with selected incoming component"
                                                                   Click="LinkSelectedMenuItem_Click"
-                                                                  IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
-                                                        <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
-                                                        <Separator IsVisible="{Binding HasGuidConflict}"/>
+                                                                  IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}" />
+                                                        <MenuItem Header="❌ Unlink this component"
+                                                                  Click="UnlinkMenuItem_Click" />
+                                                        <Separator IsVisible="{Binding HasGuidConflict}" />
                                                         <MenuItem Header="🆔 Use this component's GUID"
                                                                   IsVisible="{Binding HasGuidConflict}"
                                                                   Click="UseThisGuid_Click"
-                                                                  ToolTip.Tip="{Binding GuidConflictTooltip}"/>
+                                                                  ToolTip.Tip="{Binding GuidConflictTooltip}" />
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
-                                                <Grid ColumnDefinitions="Auto,Auto,60,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto"
+                                                      RowDefinitions="Auto,Auto,Auto">
                                                     <CheckBox Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
                                                               IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                              VerticalAlignment="Center" Margin="0,0,10,0" />
 
                                                     <!-- Status Icon -->
                                                     <TextBlock Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
@@ -145,53 +166,56 @@
                                                                FontSize="24"
                                                                Foreground="{Binding StatusColor}"
                                                                VerticalAlignment="Center" Margin="0,0,10,0"
-                                                               ToolTip.Tip="{Binding Status}"/>
+                                                               ToolTip.Tip="{Binding Status}" />
 
+                                                    <!--
                                                     <Image Grid.Column="2" Grid.Row="0" Grid.RowSpan="3"
                                                            Width="50" Height="50" Margin="0,0,10,0">
                                                         <Image.Source>
                                                             <DrawingImage>
                                                                 <DrawingImage.Drawing>
-                                                                    <GeometryDrawing Brush="{DynamicResource ThemeForegroundBrush}">
+                                                                    <GeometryDrawing
+                                                                        Brush="{DynamicResource ThemeForegroundBrush}">
                                                                         <GeometryDrawing.Geometry>
-                                                                            <PathGeometry Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                                                            <PathGeometry
+                                                                                Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                                                                         </GeometryDrawing.Geometry>
                                                                     </GeometryDrawing>
                                                                 </DrawingImage.Drawing>
                                                             </DrawingImage>
                                                         </Image.Source>
                                                     </Image>
+                                                    -->
 
-                                                    <StackPanel Grid.Row="0" Grid.Column="3">
+                                                    <StackPanel Grid.Row="0" Grid.Column="2">
                                                         <TextBlock Text="{Binding Name}"
                                                                    FontWeight="SemiBold"
-                                                                   TextTrimming="CharacterEllipsis"/>
+                                                                   TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Text="{Binding Author}"
-                                                                   FontSize="11" Opacity="0.7"/>
+                                                                   FontSize="11" Opacity="0.7" />
                                                         <TextBlock Text="{Binding SizeInfo}"
-                                                                   FontSize="11" Opacity="0.7"/>
+                                                                   FontSize="11" Opacity="0.7" />
                                                     </StackPanel>
 
-                                                    <Button Grid.Column="4" Grid.Row="0" Grid.RowSpan="3"
+                                                    <Button Grid.Column="3" Grid.Row="0" Grid.RowSpan="3"
                                                             Content="📄"
                                                             Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
                                                             CommandParameter="{Binding}"
                                                             ToolTip.Tip="Jump to Raw TOML"
                                                             VerticalAlignment="Center"
-                                                            MinWidth="30" Width="30" Padding="2"/>
+                                                            MinWidth="30" Width="30" Padding="2" />
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                            </ScrollViewer>
+                            </ScrollViewer>
                         </TabItem>
 
                         <!-- Raw TOML View Tab -->
                         <TabItem Header="Raw TOML">
                             <ListBox Name="ExistingRawTomlListBox"
                                      ItemsSource="{Binding ExistingComponentsToml}"
-                                     SelectedItem="{Binding SelectedExistingTomlLine, Mode=TwoWay}"
                                      SelectionMode="Single"
                                      Background="Transparent"
                                      BorderThickness="0">
@@ -202,24 +226,24 @@
                                             <TextBlock Text="{Binding Text}"
                                                        FontFamily="Consolas"
                                                        FontSize="11"
-                                                       TextWrapping="NoWrap"/>
+                                                       TextWrapping="NoWrap" />
                                         </Border>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                                 <ListBox.Styles>
                                     <Style Selector="ListBoxItem">
-                                        <Setter Property="Padding" Value="0"/>
-                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="Margin" Value="0" />
                                     </Style>
                                     <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}" />
                                     </Style>
                                     <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
-                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}" />
                                     </Style>
                                     <Style Selector="ListBoxItem:selected Border">
-                                        <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
-                                        <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}" />
+                                        <Setter Property="BorderThickness" Value="2,0,2,0" />
                                     </Style>
                                 </ListBox.Styles>
                             </ListBox>
@@ -237,13 +261,14 @@
                         <StackPanel>
                             <CheckBox Content="📥 INCOMING Components"
                                       IsChecked="{Binding SelectAllIncoming, Mode=TwoWay}"
-                                      FontWeight="SemiBold" FontSize="13"/>
+                                      FontWeight="SemiBold" FontSize="13" />
                             <TextBlock Text="{Binding IncomingSourceInfo}"
-                                       FontSize="11" Opacity="0.7" Margin="25,2,0,0"/>
+                                       FontSize="11" Opacity="0.7" Margin="25,2,0,0" />
                         </StackPanel>
                     </Border>
 
-                    <TabControl Grid.Row="1" SelectedIndex="0" FontSize="11" SelectionChanged="IncomingTabControl_SelectionChanged" Name="IncomingTabControl">
+                    <TabControl Grid.Row="1" SelectedIndex="0" FontSize="11"
+                                SelectionChanged="IncomingTabControl_SelectionChanged" Name="IncomingTabControl">
                         <!-- List View Tab -->
                         <TabItem Header="List View">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Name="IncomingListScrollViewer">
@@ -256,33 +281,36 @@
                                                     Background="{Binding SelectionBackground}"
                                                     PointerPressed="OnItemClicked"
                                                     ContextRequested="OnItemContextRequested"
-                                                    Cursor="Hand">
+                                                    Cursor="Hand"
+                                                    ToolTip.Tip="{Binding RichTooltip}">
                                                 <Border.Styles>
                                                     <Style Selector="Border:pointerover">
-                                                        <Setter Property="Opacity" Value="0.8"/>
+                                                        <Setter Property="Opacity" Value="0.8" />
                                                     </Style>
                                                 </Border.Styles>
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem Header="📄 Jump to Raw TOML"
                                                                   Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
-                                                                  CommandParameter="{Binding}"/>
-                                                        <Separator/>
+                                                                  CommandParameter="{Binding}" />
+                                                        <Separator />
                                                         <MenuItem Header="🔗 Link with selected existing component"
                                                                   Click="LinkSelectedMenuItem_Click"
-                                                                  IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}"/>
-                                                        <MenuItem Header="❌ Unlink this component" Click="UnlinkMenuItem_Click"/>
-                                                        <Separator IsVisible="{Binding HasGuidConflict}"/>
+                                                                  IsEnabled="{Binding $parent[Window].DataContext.CanLinkItems}" />
+                                                        <MenuItem Header="❌ Unlink this component"
+                                                                  Click="UnlinkMenuItem_Click" />
+                                                        <Separator IsVisible="{Binding HasGuidConflict}" />
                                                         <MenuItem Header="🆔 Use this component's GUID"
                                                                   IsVisible="{Binding HasGuidConflict}"
                                                                   Click="UseThisGuid_Click"
-                                                                  ToolTip.Tip="{Binding GuidConflictTooltip}"/>
+                                                                  ToolTip.Tip="{Binding GuidConflictTooltip}" />
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
-                                                <Grid ColumnDefinitions="Auto,Auto,60,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto"
+                                                      RowDefinitions="Auto,Auto,Auto">
                                                     <CheckBox Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
                                                               IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                              VerticalAlignment="Center" Margin="0,0,10,0" />
 
                                                     <!-- Status Icon -->
                                                     <TextBlock Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
@@ -290,40 +318,44 @@
                                                                FontSize="24"
                                                                Foreground="{Binding StatusColor}"
                                                                VerticalAlignment="Center" Margin="0,0,10,0"
-                                                               ToolTip.Tip="{Binding Status}"/>
+                                                               ToolTip.Tip="{Binding Status}" />
 
+                                                    <!--
                                                     <Image Grid.Column="2" Grid.Row="0" Grid.RowSpan="3"
                                                            Width="50" Height="50" Margin="0,0,10,0">
                                                         <Image.Source>
                                                             <DrawingImage>
                                                                 <DrawingImage.Drawing>
-                                                                    <GeometryDrawing Brush="{DynamicResource ThemeForegroundBrush}">
+                                                                    <GeometryDrawing
+                                                                        Brush="{DynamicResource ThemeForegroundBrush}">
                                                                         <GeometryDrawing.Geometry>
-                                                                            <PathGeometry Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                                                            <PathGeometry
+                                                                                Figures="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                                                                         </GeometryDrawing.Geometry>
                                                                     </GeometryDrawing>
                                                                 </DrawingImage.Drawing>
                                                             </DrawingImage>
                                                         </Image.Source>
                                                     </Image>
+                                                    -->
 
-                                                    <StackPanel Grid.Row="0" Grid.Column="3">
+                                                    <StackPanel Grid.Row="0" Grid.Column="2">
                                                         <TextBlock Text="{Binding Name}"
                                                                    FontWeight="SemiBold"
-                                                                   TextTrimming="CharacterEllipsis"/>
+                                                                   TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Text="{Binding Author}"
-                                                                   FontSize="11" Opacity="0.7"/>
+                                                                   FontSize="11" Opacity="0.7" />
                                                         <TextBlock Text="{Binding SizeInfo}"
-                                                                   FontSize="11" Opacity="0.7"/>
+                                                                   FontSize="11" Opacity="0.7" />
                                                     </StackPanel>
 
-                                                    <Button Grid.Column="4" Grid.Row="0" Grid.RowSpan="3"
+                                                    <Button Grid.Column="3" Grid.Row="0" Grid.RowSpan="3"
                                                             Content="📄"
                                                             Command="{Binding $parent[Window].DataContext.JumpToRawViewCommand}"
                                                             CommandParameter="{Binding}"
                                                             ToolTip.Tip="Jump to Raw TOML"
                                                             VerticalAlignment="Center"
-                                                            MinWidth="30" Width="30" Padding="2"/>
+                                                            MinWidth="30" Width="30" Padding="2" />
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -336,7 +368,6 @@
                         <TabItem Header="Raw TOML">
                             <ListBox Name="IncomingRawTomlListBox"
                                      ItemsSource="{Binding IncomingComponentsToml}"
-                                     SelectedItem="{Binding SelectedIncomingTomlLine, Mode=TwoWay}"
                                      SelectionMode="Single"
                                      Background="Transparent"
                                      BorderThickness="0">
@@ -347,24 +378,24 @@
                                             <TextBlock Text="{Binding Text}"
                                                        FontFamily="Consolas"
                                                        FontSize="11"
-                                                       TextWrapping="NoWrap"/>
+                                                       TextWrapping="NoWrap" />
                                         </Border>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                                 <ListBox.Styles>
                                     <Style Selector="ListBoxItem">
-                                        <Setter Property="Padding" Value="0"/>
-                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="Margin" Value="0" />
                                     </Style>
                                     <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}" />
                                     </Style>
                                     <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
-                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}" />
                                     </Style>
                                     <Style Selector="ListBoxItem:selected Border">
-                                        <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
-                                        <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}" />
+                                        <Setter Property="BorderThickness" Value="2,0,2,0" />
                                     </Style>
                                 </ListBox.Styles>
                             </ListBox>
@@ -379,14 +410,138 @@
                 <Border Grid.Row="0" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
                         Margin="5,0,0,0">
                     <TabControl SelectedIndex="0" FontSize="11" SelectionChanged="MergedTabControl_SelectionChanged">
+                        <!-- Field Comparison Tab (for matched pairs) -->
+                        <TabItem Header="⚙️ Field Merge"
+                                 IsVisible="{Binding HasMatchedPairSelected}">
+                            <Grid RowDefinitions="Auto,*">
+                                <Border Grid.Row="0" Background="{DynamicResource ThemeBackgroundBrush}"
+                                        BorderThickness="0,0,0,1" BorderBrush="{DynamicResource ThemeBorderMidBrush}"
+                                        Padding="10">
+                                    <TextBlock Text="🔀 Field-by-Field Merge Control"
+                                               FontWeight="SemiBold" />
+                                </Border>
+
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="Transparent">
+                                    <StackPanel Margin="10" Spacing="8">
+                                        <TextBlock Text="Choose which source to use for each field:"
+                                                   FontSize="11" Margin="0,0,0,10"
+                                                   Foreground="{DynamicResource ThemeForegroundBrush}" />
+
+                                        <!-- Name Field -->
+                                        <Border BorderThickness="1" Padding="8" CornerRadius="4"
+                                                Background="Transparent">
+                                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="120,*">
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="📝 Name:"
+                                                           FontWeight="SemiBold" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource ThemeForegroundBrush}" />
+                                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                                                            Spacing="10">
+                                                    <RadioButton Content="Use Existing" GroupName="NameGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Name, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseExisting, FallbackValue=false, TargetNullValue=false}" />
+                                                    <RadioButton Content="Use Incoming" GroupName="NameGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Name, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseIncoming, FallbackValue=false, TargetNullValue=false}" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Row="1" Grid.Column="1"
+                                                           Text="{Binding PreviewName, Mode=OneWay, FallbackValue='', TargetNullValue=''}"
+                                                           FontSize="10" Opacity="0.7" Margin="0,4,0,0"
+                                                           Foreground="{DynamicResource ThemeForegroundBrush}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Author Field -->
+                                        <Border BorderThickness="1" Padding="8" CornerRadius="4"
+                                                Background="Transparent">
+                                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="120,*">
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="👤 Author:"
+                                                           FontWeight="SemiBold" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource ThemeForegroundBrush}" />
+                                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                                                            Spacing="10">
+                                                    <RadioButton Content="Use Existing" GroupName="AuthorGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Author, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseExisting, FallbackValue=false, TargetNullValue=false}" />
+                                                    <RadioButton Content="Use Incoming" GroupName="AuthorGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Author, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseIncoming, FallbackValue=false, TargetNullValue=false}" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Row="1" Grid.Column="1"
+                                                           Text="{Binding PreviewAuthor, Mode=OneWay, FallbackValue='', TargetNullValue=''}"
+                                                           FontSize="10" Opacity="0.7" Margin="0,4,0,0"
+                                                           Foreground="{DynamicResource ThemeForegroundBrush}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Instructions Field -->
+                                        <Border BorderThickness="1" Padding="8" CornerRadius="4"
+                                                Background="Transparent">
+                                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="120,*">
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="📋 Instructions:"
+                                                           FontWeight="SemiBold" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource ThemeForegroundBrush}" />
+                                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                                                            Spacing="10">
+                                                    <RadioButton Content="Use Existing" GroupName="InstructionsGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Instructions, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseExisting, FallbackValue=false, TargetNullValue=false}" />
+                                                    <RadioButton Content="Use Incoming" GroupName="InstructionsGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Instructions, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseIncoming, FallbackValue=false, TargetNullValue=false}" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" FontSize="10" Opacity="0.7"
+                                                           Margin="0,4,0,0"
+                                                           Foreground="{DynamicResource ThemeForegroundBrush}"
+                                                           Text="{Binding PreviewInstructionsCount, Mode=OneWay}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Dependencies Field -->
+                                        <Border BorderThickness="1" Padding="8" CornerRadius="4"
+                                                Background="Transparent">
+                                            <Grid RowDefinitions="Auto" ColumnDefinitions="120,*">
+                                                <TextBlock Grid.Column="0" Text="🔗 Dependencies:"
+                                                           FontWeight="SemiBold" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource ThemeForegroundBrush}" />
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                                                    <RadioButton Content="Use Existing" GroupName="DependenciesGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Dependencies, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseExisting, FallbackValue=false, TargetNullValue=false}" />
+                                                    <RadioButton Content="Use Incoming" GroupName="DependenciesGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Dependencies, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseIncoming, FallbackValue=false, TargetNullValue=false}" />
+                                                    <RadioButton Content="Merge Both" GroupName="DependenciesGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Dependencies, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=Merge, FallbackValue=false, TargetNullValue=false}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Options Field -->
+                                        <Border BorderThickness="1" Padding="8" CornerRadius="4"
+                                                Background="Transparent">
+                                            <Grid RowDefinitions="Auto" ColumnDefinitions="120,*">
+                                                <TextBlock Grid.Column="0" Text="⚙️ Options:" FontWeight="SemiBold"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource ThemeForegroundBrush}" />
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                                                    <RadioButton Content="Use Existing" GroupName="OptionsGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Options, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseExisting, FallbackValue=false, TargetNullValue=false}" />
+                                                    <RadioButton Content="Use Incoming" GroupName="OptionsGroup"
+                                                                 IsChecked="{Binding CurrentFieldPreferences.Options, Converter={x:Static converters:EnumToBooleanConverter.Instance}, ConverterParameter=UseIncoming, FallbackValue=false, TargetNullValue=false}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <TextBlock Text="💡 Tip: Changes update the Final Merge Preview in real-time"
+                                                   FontSize="10" Opacity="0.7" FontStyle="Italic" Margin="0,10,0,0"
+                                                   Foreground="{DynamicResource ThemeForegroundBrush}" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </TabItem>
+
                         <!-- List View Tab -->
                         <TabItem Header="Preview List">
                             <Grid RowDefinitions="Auto,*">
                                 <TextBlock Grid.Row="0" Text="🎯 Final Merge Preview"
                                            FontWeight="SemiBold" Padding="10"
-                                           Background="{DynamicResource ThemeBackgroundBrush}"/>
+                                           Background="{DynamicResource ThemeBackgroundBrush}"
+                                           Foreground="{DynamicResource ThemeForegroundBrush}" />
 
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Name="PreviewScrollViewer">
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                              Name="PreviewScrollViewer">
                                     <ItemsControl ItemsSource="{Binding PreviewComponents}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -397,7 +552,8 @@
                                                         Cursor="Hand">
                                                     <Border.Styles>
                                                         <Style Selector="Border:pointerover">
-                                                            <Setter Property="Background" Value="{DynamicResource ThemeControlHighlightLowBrush}"/>
+                                                            <Setter Property="Background"
+                                                                    Value="{DynamicResource ThemeControlHighlightLowBrush}" />
                                                         </Style>
                                                     </Border.Styles>
                                                     <Grid ColumnDefinitions="Auto,Auto,*,Auto">
@@ -405,19 +561,19 @@
                                                                    Text="{Binding OrderNumber}"
                                                                    FontSize="11" FontWeight="Bold"
                                                                    VerticalAlignment="Center"
-                                                                   Margin="0,0,8,0" Opacity="0.5"/>
+                                                                   Margin="0,0,8,0" Opacity="0.5" />
                                                         <TextBlock Grid.Column="1"
                                                                    Text="{Binding StatusIcon}"
                                                                    FontSize="14"
                                                                    VerticalAlignment="Center"
-                                                                   Margin="0,0,6,0"/>
+                                                                   Margin="0,0,6,0" />
                                                         <StackPanel Grid.Column="2">
                                                             <TextBlock Text="{Binding Name}"
                                                                        FontSize="12" FontWeight="SemiBold"
-                                                                       TextTrimming="CharacterEllipsis"/>
+                                                                       TextTrimming="CharacterEllipsis" />
                                                             <TextBlock Text="{Binding Source}"
                                                                        FontSize="10" Opacity="0.6"
-                                                                       Foreground="{Binding SourceColor}"/>
+                                                                       Foreground="{Binding SourceColor}" />
                                                         </StackPanel>
                                                         <!-- Position change indicator -->
                                                         <TextBlock Grid.Column="3"
@@ -425,7 +581,7 @@
                                                                    FontSize="10" FontWeight="Bold"
                                                                    Foreground="{Binding PositionChangeColor}"
                                                                    VerticalAlignment="Center"
-                                                                   Margin="4,0,0,0"/>
+                                                                   Margin="4,0,0,0" />
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
@@ -440,7 +596,7 @@
                             <Grid RowDefinitions="Auto,*">
                                 <TextBlock Grid.Row="0" Text="🔧 Merged TOML with Diff"
                                            FontWeight="SemiBold" Padding="10"
-                                           Background="{DynamicResource ThemeBackgroundBrush}"/>
+                                           Background="{DynamicResource ThemeBackgroundBrush}" />
 
                                 <ListBox Grid.Row="1"
                                          Name="MergedRawTomlListBox"
@@ -456,24 +612,24 @@
                                                 <TextBlock Text="{Binding Text}"
                                                            FontFamily="Consolas"
                                                            FontSize="11"
-                                                           TextWrapping="NoWrap"/>
+                                                           TextWrapping="NoWrap" />
                                             </Border>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                     <ListBox.Styles>
                                         <Style Selector="ListBoxItem">
-                                            <Setter Property="Padding" Value="0"/>
-                                            <Setter Property="Margin" Value="0"/>
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Margin" Value="0" />
                                         </Style>
                                         <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                                            <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}"/>
+                                            <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush4}" />
                                         </Style>
                                         <Style Selector="ListBoxItem:selected:focus /template/ ContentPresenter">
-                                            <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+                                            <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}" />
                                         </Style>
                                         <Style Selector="ListBoxItem:selected Border">
-                                            <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
-                                            <Setter Property="BorderThickness" Value="2,0,2,0"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}" />
+                                            <Setter Property="BorderThickness" Value="2,0,2,0" />
                                         </Style>
                                     </ListBox.Styles>
                                 </ListBox>
@@ -490,7 +646,7 @@
                 Background="{DynamicResource ThemeBackgroundBrush}"
                 BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}">
             <TextBlock Text="{Binding ConflictSummary}"
-                       FontSize="12" FontWeight="SemiBold"/>
+                       FontSize="12" FontWeight="SemiBold" />
         </Border>
 
         <!-- Action Buttons -->
@@ -499,10 +655,11 @@
             <Button Content="✓ Continue with Merge"
                     Click="Continue_Click"
                     Width="150" Margin="0,0,10,0"
-                    IsDefault="True"/>
+                    IsDefault="True" />
             <Button Content="✗ Cancel"
                     Click="Cancel_Click"
-                    Width="100"/>
+                    Width="100" />
         </StackPanel>
     </Grid>
 </Window>
+

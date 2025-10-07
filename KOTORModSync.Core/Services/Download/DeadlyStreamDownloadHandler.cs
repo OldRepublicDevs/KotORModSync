@@ -62,46 +62,46 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
-	public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
-	{
-		await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
-		await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
-
-		// Validate URL first
-		if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
+		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
 		{
-			string errorMsg = $"Invalid URL format: {url}";
-			await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}");
-			progress?.Report(new DownloadProgress
-			{
-				Status = DownloadStatus.Failed,
-				ErrorMessage = $"Invalid URL: {url}",
-				ProgressPercentage = 0,
-				EndTime = DateTime.Now
-			});
-			return DownloadResult.Failed(errorMsg);
-		}
+			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
+			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
 
-		// Check if file already exists (use URL path for filename guess)
-		string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
-		if ( !string.IsNullOrEmpty(expectedFileName) && expectedFileName != "/" )
-		{
-			string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
-			if ( File.Exists(potentialPath) )
+			// Validate URL first
+			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 			{
-				await Logger.LogVerboseAsync($"[DeadlyStream] File already exists, skipping download: {potentialPath}");
+				string errorMsg = $"Invalid URL format: {url}";
+				await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}");
 				progress?.Report(new DownloadProgress
 				{
-					Status = DownloadStatus.Skipped,
-					StatusMessage = "File already exists",
-					FilePath = potentialPath,
-					ProgressPercentage = 100,
-					StartTime = DateTime.Now,
+					Status = DownloadStatus.Failed,
+					ErrorMessage = $"Invalid URL: {url}",
+					ProgressPercentage = 0,
 					EndTime = DateTime.Now
 				});
-				return DownloadResult.Skipped(potentialPath, "File already exists");
+				return DownloadResult.Failed(errorMsg);
 			}
-		}
+
+			// Check if file already exists (use URL path for filename guess)
+			string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
+			if ( !string.IsNullOrEmpty(expectedFileName) && expectedFileName != "/" )
+			{
+				string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
+				if ( File.Exists(potentialPath) )
+				{
+					await Logger.LogVerboseAsync($"[DeadlyStream] File already exists, skipping download: {potentialPath}");
+					progress?.Report(new DownloadProgress
+					{
+						Status = DownloadStatus.Skipped,
+						StatusMessage = "File already exists",
+						FilePath = potentialPath,
+						ProgressPercentage = 100,
+						StartTime = DateTime.Now,
+						EndTime = DateTime.Now
+					});
+					return DownloadResult.Skipped(potentialPath, "File already exists");
+				}
+			}
 
 			progress?.Report(new DownloadProgress
 			{

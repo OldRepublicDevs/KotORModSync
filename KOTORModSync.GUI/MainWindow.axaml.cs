@@ -23,23 +23,24 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Vector = Avalonia.Vector;
 using JetBrains.Annotations;
 using KOTORModSync.CallbackDialogs;
 using KOTORModSync.Controls;
 using KOTORModSync.Converters;
-using KOTORModSync.Dialogs;
 using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Utility;
+using KOTORModSync.Dialogs;
+using KOTORModSync.Models;
 using ReactiveUI;
 using SharpCompress.Archives;
 using static KOTORModSync.Core.Services.ModManagementService;
 using Component = KOTORModSync.Core.Component;
 using NotNullAttribute = JetBrains.Annotations.NotNullAttribute;
+using Vector = Avalonia.Vector;
 
 
 namespace KOTORModSync
@@ -138,7 +139,7 @@ namespace KOTORModSync
 				Logger.Initialize();
 
 				// Initialize the installation service
-				new InstallationService();
+				_ = new InstallationService();
 
 				// Initialize the mod management service
 				_modManagementService = new ModManagementService(MainConfigInstance);
@@ -564,8 +565,8 @@ namespace KOTORModSync
 			{
 				new MenuItem
 				{
-					Header = "Open TOML",
-					Command = ReactiveCommand.Create( () => LoadInstallFile_Click(new object(), new RoutedEventArgs()) ),
+					Header = "Open File",
+					Command = ReactiveCommand.Create( () => LoadFile_Click(new object(), new RoutedEventArgs()) ),
 				},
 				new MenuItem
 				{
@@ -599,12 +600,6 @@ namespace KOTORModSync
 				},
 				new MenuItem
 				{
-					Header = "Parse text instructions into TOML using Regex",
-					Command = ReactiveCommand.Create( () => LoadMarkdown_Click(new object(), new RoutedEventArgs()) ),
-					IsVisible = EditorMode,
-				},
-				new MenuItem
-				{
 					Header = "Fix iOS case sensitivity.",
 					Command = ReactiveCommand.Create( () => FixIosCaseSensitivityClick(new object(), new RoutedEventArgs()) ),
 				},
@@ -632,15 +627,10 @@ namespace KOTORModSync
 			ToolTip.SetTip(
 				toolItems[1],
 				value:
-				"Attempts to create and load a toml instructions file from various text sources using custom regex."
-			);
-			ToolTip.SetTip(
-				toolItems[2],
-				value:
 				"Lowercase all files/folders recursively at the given path. Necessary for iOS installs."
 			);
 			ToolTip.SetTip(
-				toolItems[3],
+				toolItems[2],
 				value:
 				"Fixes various file/folder permissions. On Unix, this will also find case-insensitive duplicate file/folder names."
 			);
@@ -912,10 +902,6 @@ namespace KOTORModSync
 				// Create modbuild documentation (index 0)
 				if ( toolItems.Count > 0 && toolItems[0] is MenuItem docsItem )
 					docsItem.IsVisible = EditorMode;
-
-				// Parse text instructions (index 1)
-				if ( toolItems.Count > 1 && toolItems[1] is MenuItem parseItem )
-					parseItem.IsVisible = EditorMode;
 			}
 		}
 
@@ -940,7 +926,7 @@ namespace KOTORModSync
 					{
 						// Find the container for this specific component
 						if ( !(ModListBox.ContainerFromItem(component) is ListBoxItem container) )
-						    return;
+							return;
 						// Find the ModListItem control
 						if ( container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault() is ModListItem modListItem )
 							// Directly call UpdateValidationState to refresh border colors
@@ -973,11 +959,11 @@ namespace KOTORModSync
 
 					// Find the container for this item
 					if ( !(ModListBox.ContainerFromItem(item) is ListBoxItem container) )
-					    continue;
+						continue;
 					// Find the ModListItem control
 					ModListItem modListItem = container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault();
 					if ( modListItem == null )
-					    continue;
+						continue;
 					// Trigger context menu rebuild
 					modListItem.ContextMenu = BuildContextMenuForComponent(component);
 
@@ -990,7 +976,7 @@ namespace KOTORModSync
 
 					// Update index if in editor mode
 					if ( !EditorMode )
-					    continue;
+						continue;
 					int index = MainConfigInstance?.allComponents.IndexOf(component) ?? -1;
 					if ( index >= 0 && modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexTextBlock )
 						indexTextBlock.Text = $"#{index + 1}";
@@ -1193,7 +1179,7 @@ namespace KOTORModSync
 					if ( !(ModListBox.SelectedItem is Component component) )
 						return;
 
-					switch (e.Key)
+					switch ( e.Key )
 					{
 						// Ctrl+Up - Move selected mod up
 						case Key.Up when e.KeyModifiers == KeyModifiers.Control:
@@ -1327,7 +1313,7 @@ namespace KOTORModSync
 							noButtonText: "Cancel"
 						);
 						if ( confirm == true )
-						    RemoveComponentButton_Click(null, null);
+							RemoveComponentButton_Click(null, null);
 					})
 				});
 
@@ -1411,13 +1397,13 @@ namespace KOTORModSync
 			// Build DropDownButton menu
 			DropDownButton globalActionsButton = this.FindControl<DropDownButton>("GlobalActionsButton");
 			if ( globalActionsButton?.Flyout is MenuFlyout globalActionsFlyout )
-			    BuildMenuFlyoutItems(globalActionsFlyout);
+				BuildMenuFlyoutItems(globalActionsFlyout);
 
 			// Build Mod List context menu - find the ScrollViewer that contains the ListBox
 			ListBox modListBox = this.FindControl<ListBox>("ModListBoxElement");
 			var scrollViewer = modListBox?.Parent as ScrollViewer;
 			if ( scrollViewer?.ContextMenu is ContextMenu modListContextMenu )
-			    BuildContextMenuItems(modListContextMenu);
+				BuildContextMenuItems(modListContextMenu);
 		}
 
 		// Helper method to build menu items for MenuFlyout (DropDownButton)
@@ -1871,9 +1857,6 @@ namespace KOTORModSync
 			}
 		}
 
-		private HashSet<string> _selectedCategories = new HashSet<string>();
-		private string _selectedMinTier = "Any";
-
 		private void FilterModList(string searchText)
 		{
 			try
@@ -1891,9 +1874,6 @@ namespace KOTORModSync
 
 				List<Component> filteredComponents = _modManagementService.SearchMods(searchText, searchOptions);
 
-				// Apply tier and category filters
-				filteredComponents = ApplyTierAndCategoryFilters(filteredComponents);
-
 				PopulateModList(filteredComponents);
 			}
 			catch ( Exception ex )
@@ -1901,102 +1881,6 @@ namespace KOTORModSync
 				Logger.LogException(ex);
 			}
 		}
-
-		private List<Component> ApplyTierAndCategoryFilters(List<Component> components)
-		{
-			// Define tier hierarchy (lower index = higher priority)
-			var tierHierarchy = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-			{
-				{ "Essential", 0 },
-				{ "Recommended", 1 },
-				{ "Suggested", 2 },
-				{ "Optional", 3 }
-			};
-
-			int minTierLevel = _selectedMinTier == "Any" ? int.MaxValue :
-				tierHierarchy.GetValueOrDefault(_selectedMinTier, int.MaxValue);
-
-			return components.Where(c =>
-			{
-				// Check tier filter
-				if ( minTierLevel != int.MaxValue )
-				{
-					if ( string.IsNullOrEmpty(c.Tier) )
-						return false;
-
-					if ( tierHierarchy.TryGetValue(c.Tier, out int componentTierLevel) )
-					{
-						if ( componentTierLevel < minTierLevel )
-							return false;
-					}
-				}
-
-				// Check category filter
-				if ( _selectedCategories.Count > 0 )
-				{
-					if ( string.IsNullOrEmpty(c.Category) || !_selectedCategories.Contains(c.Category) )
-						return false;
-				}
-
-				return true;
-			}).ToList();
-		}
-
-		private void RefreshCategoryCheckboxes()
-		{
-			try
-			{
-				StackPanel categoryPanel = this.FindControl<StackPanel>("CategoryFilterPanel");
-				if ( categoryPanel == null )
-					return;
-
-				// Get all unique categories from loaded components
-				var categories = MainConfig.AllComponents
-					.Select(c => c.Category)
-					.Where(cat => !string.IsNullOrEmpty(cat))
-					.Distinct()
-					.OrderBy(cat => cat)
-					.ToList();
-
-				// Clear existing checkboxes
-				categoryPanel.Children.Clear();
-
-				// Initialize selected categories if empty (all selected by default)
-				if ( _selectedCategories.Count == 0 )
-					_selectedCategories = new HashSet<string>(categories, StringComparer.OrdinalIgnoreCase);
-
-				// Create checkbox for each category
-				foreach ( string category in categories )
-				{
-					var checkBox = new CheckBox
-					{
-						Content = category,
-						IsChecked = _selectedCategories.Contains(category),
-						Margin = new Thickness(0, 2, 0, 2)
-					};
-
-					// Add tooltip with category definition
-					ToolTip.SetTip(checkBox, CategoryTierDefinitions.GetCategoryDescription(category));
-
-					checkBox.IsCheckedChanged += (s, e) =>
-					{
-						_ = checkBox.IsChecked == true
-						        ? _selectedCategories.Add(category)
-								: _selectedCategories.Remove(category);
-
-						ApplyAllFilters();
-					};
-
-					categoryPanel.Children.Add(checkBox);
-				}
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex);
-			}
-		}
-
-		private void ApplyAllFilters() => FilterModList(SearchText ?? string.Empty);
 
 		private void RefreshModList()
 		{
@@ -2043,6 +1927,10 @@ namespace KOTORModSync
 				}
 
 				UpdateModCounts();
+
+				// Update tier/category selection UI (only when not searching - use all components)
+				if ( string.IsNullOrWhiteSpace(SearchText) && MainConfig.AllComponents.Count > 0 )
+					InitializeFilterUI(MainConfig.AllComponents);
 			}
 			catch ( Exception ex )
 			{
@@ -2221,7 +2109,7 @@ namespace KOTORModSync
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				switch (current)
+				switch ( current )
 				{
 					// Check if we're clicking on any interactive control
 					case Button _:
@@ -2348,13 +2236,13 @@ namespace KOTORModSync
 
 
 		[UsedImplicitly]
-		private async void LoadInstallFile_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		private async void LoadFile_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
 			try
 			{
-				// Open the file dialog to select a TOML file
+				// Open the file dialog to select a file
 				string[] result = await ShowFileDialog(
-					windowName: "Load the TOML instruction file you've downloaded/created",
+					windowName: "Load a TOML or Markdown instruction file",
 					isFolderDialog: false
 				);
 				if ( result is null || result.Length <= 0 )
@@ -2364,8 +2252,36 @@ namespace KOTORModSync
 				if ( !PathValidator.IsValidPath(filePath) )
 					return;
 
-				// Use the unified TOML loading method
-				_ = await LoadTomlFile(filePath, fileType: "instruction file");
+				// Check file extension to determine how to load
+				string fileExtension = Path.GetExtension(filePath)?.ToLowerInvariant();
+				bool isTomlFile = fileExtension == ".toml" || fileExtension == ".tml";
+
+				// Only try to load as TOML if the file has a .toml or .tml extension
+				if ( isTomlFile )
+				{
+					bool loadedAsToml = false;
+					try
+					{
+						await Logger.LogAsync($"Attempting to load file as TOML: {Path.GetFileName(filePath)}");
+						loadedAsToml = await LoadTomlFile(filePath, fileType: "file");
+					}
+					catch ( Exception tomlEx )
+					{
+						// TOML parsing failed, will try markdown
+						await Logger.LogVerboseAsync($"File is not a valid TOML file: {tomlEx.Message}");
+					}
+
+					// If TOML loading succeeded, we're done
+					if ( loadedAsToml )
+					{
+						await Logger.LogAsync("File loaded successfully as TOML.");
+						return;
+					}
+				}
+
+				// Load as markdown (either because it's not a TOML extension, or TOML loading failed)
+				await Logger.LogAsync("Attempting to load file as Markdown...");
+				await LoadMarkdownFile(filePath);
 			}
 			catch ( Exception ex )
 			{
@@ -2373,18 +2289,18 @@ namespace KOTORModSync
 			}
 		}
 
-		public async void LoadMarkdown_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		[UsedImplicitly]
+		private void LoadInstallFile_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => LoadFile_Click(sender, e);
+
+		/// <summary>
+		/// Loads a markdown file and parses it into components
+		/// </summary>
+		private async Task LoadMarkdownFile(string filePath)
 		{
 			try
 			{
-				// Open the file dialog to select a file
-				string[] result = await ShowFileDialog(isFolderDialog: false, windowName: "Load your markdown file.");
-				if ( result is null || result.Length <= 0 )
-					return;
-
-				string filePath = result[0];
 				if ( string.IsNullOrEmpty(filePath) )
-					return; // user cancelled
+					return;
 
 				using ( var reader = new StreamReader(filePath) )
 				{
@@ -2905,7 +2821,7 @@ namespace KOTORModSync
 				{
 					systemIssues.Add("📋 No mods loaded\n" +
 									"No mod configuration file has been loaded.\n" +
-									"Solution: Click 'File > Load Installation File' to load a mod list.");
+									"Solution: Click 'File > Open File' to load a mod list.");
 					return;
 				}
 
@@ -3543,7 +3459,7 @@ namespace KOTORModSync
 				progressWindow.Dispose();
 				_progressWindowClosed = true;
 				if ( Utility.GetOperatingSystem() != OSPlatform.Windows )
-				    return;
+					return;
 				_ = Logger.LogVerboseAsync("Install terminated, re-enabling the close button in the console window");
 				ConsoleConfig.EnableCloseButton();
 			}
@@ -3882,7 +3798,7 @@ namespace KOTORModSync
 				// Ask user what to do with existing components
 				bool? result = await ShowConfigLoadConfirmation(fileType);
 
-				switch (result)
+				switch ( result )
 				{
 					// User clicked "Merge"
 					case true:
@@ -4062,7 +3978,7 @@ namespace KOTORModSync
 				// Copy all properties from newComponent to existingComponent
 				existingComponent.Name = newComponent.Name;
 				existingComponent.Author = newComponent.Author;
-				existingComponent.Category = newComponent.Category;
+				existingComponent.Category = new List<string>(newComponent.Category);
 				existingComponent.Tier = newComponent.Tier;
 				existingComponent.Description = newComponent.Description;
 				existingComponent.Directions = newComponent.Directions;
@@ -4130,17 +4046,29 @@ namespace KOTORModSync
 					case ModOperation.Create:
 					case ModOperation.Delete:
 					case ModOperation.Move:
-						Dispatcher.UIThread.Post(async () =>
+						Dispatcher.UIThread.Post(() =>
 						{
-							try
-							{
-								await ProcessComponentsAsync(MainConfig.AllComponents);
-								UpdateModCounts();
-							}
-							catch ( Exception ex )
-							{
-								await Logger.LogExceptionAsync(ex);
-							}
+							// Fire and forget, exceptions are handled inside the task
+							Task _ = ProcessComponentsAsync(MainConfig.AllComponents)
+								.ContinueWith(t =>
+								{
+									try
+									{
+										if ( t.Exception != null )
+										{
+											// Flatten and log all exceptions
+											Logger.LogException(t.Exception.Flatten());
+										}
+										else
+										{
+											UpdateModCounts();
+										}
+									}
+									catch ( Exception ex )
+									{
+										Logger.LogException(ex);
+									}
+								}, TaskScheduler.FromCurrentSynchronizationContext());
 						});
 						break;
 					case ModOperation.Read:
@@ -4430,9 +4358,6 @@ namespace KOTORModSync
 				// Populate the list box with components
 				PopulateModList(componentsToProcess);
 
-				// Refresh category filter checkboxes with loaded components
-				RefreshCategoryCheckboxes();
-
 				if ( componentsToProcess.Count > 0 || TabControl is null )
 				{
 					// Show the tabs when components are loaded
@@ -4607,12 +4532,11 @@ namespace KOTORModSync
 				settingsDialog.InitializeFromMainWindow(this);
 
 				bool result = await settingsDialog.ShowDialog<bool>(this);
-				if ( result )
-				{
-					// Apply theme changes
-					string selectedTheme = settingsDialog.GetSelectedTheme();
-					ApplyTheme(selectedTheme);
-				}
+				if ( !result )
+					return;
+				// Apply theme changes
+				string selectedTheme = settingsDialog.GetSelectedTheme();
+				ApplyTheme(selectedTheme);
 			}
 			catch ( Exception ex )
 			{
@@ -4903,15 +4827,15 @@ namespace KOTORModSync
 
 		private async Task LoadInstructionFile()
 		{
-			// Navigate to Load Installation File
+			// Navigate to Load File menu item
 			Menu topMenu = this.FindControl<Menu>(name: "TopMenu");
 			if ( topMenu?.Items.Count > 0 && topMenu.Items[1] is MenuItem fileMenu )
 			{
 				if ( fileMenu.Items.Count > 0 && fileMenu.Items[0] is MenuItem loadFileItem )
 				{
-					// Simulate clicking the Load Installation File menu item
+					// Simulate clicking the Load File menu item
 					await Task.Delay(millisecondsDelay: 100); // Brief delay for UI responsiveness
-					LoadInstallFile_Click(loadFileItem, new RoutedEventArgs());
+					LoadFile_Click(loadFileItem, new RoutedEventArgs());
 				}
 			}
 		}
@@ -4978,7 +4902,7 @@ namespace KOTORModSync
 				int completedSteps = (step1Complete ? 1 : 0) + (step2Complete ? 1 : 0) +
 									(step3Complete ? 1 : 0) + (step4Complete ? 1 : 0);
 				if ( !canUpdateProgress )
-				    return;
+					return;
 				progressBar.Value = completedSteps;
 
 				// Update progress text
@@ -5034,7 +4958,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				switch (e.PickerType)
+				switch ( e.PickerType )
 				{
 					case DirectoryPickerType.ModDirectory:
 						// Update MainConfig
@@ -5052,6 +4976,8 @@ namespace KOTORModSync
 						// Update all kotor directory pickers
 						SyncDirectoryPickers(DirectoryPickerType.KotorDirectory, e.Path);
 						break;
+					default:
+						throw new ArgumentOutOfRangeException();
 				}
 
 				// Update step progress
@@ -5201,7 +5127,7 @@ namespace KOTORModSync
 				try
 				{
 					if ( MainConfig.SourcePath == null || !Directory.Exists(MainConfig.SourcePath.FullName) )
-					    return;
+						return;
 					Logger.LogVerbose("Attempting to restart file watcher after error");
 					SetupModDirectoryWatcher(MainConfig.SourcePath.FullName);
 				}
@@ -5296,7 +5222,7 @@ namespace KOTORModSync
 
 				// Log validation errors if any
 				if ( isValid )
-				    return true;
+					return true;
 				List<string> errors = validator.GetErrors();
 				foreach ( string error in errors )
 				{
@@ -5326,7 +5252,7 @@ namespace KOTORModSync
 				if ( MainConfig.AllComponents.Count == 0 )
 				{
 					await InformationDialog.ShowInformationDialog(this,
-						"Please load an instruction file before downloading mods.");
+						"Please load a file (TOML or Markdown) before downloading mods.");
 					return;
 				}
 
@@ -5677,9 +5603,13 @@ namespace KOTORModSync
 
 				string statusMessage;
 				if ( totalSelected == 0 )
+				{
 					statusMessage = "No mods are currently selected for installation.";
+				}
 				else if ( downloadedCount == totalSelected )
+				{
 					statusMessage = $"All {totalSelected} selected mod(s) are downloaded and ready for installation!";
+				}
 				else
 				{
 					int missing = totalSelected - downloadedCount;
@@ -5748,13 +5678,13 @@ namespace KOTORModSync
 					// Try to generate instructions
 					bool success = component.TryGenerateInstructionsFromArchive();
 					if ( !success )
-					    continue;
+						continue;
 					generatedCount++;
 					await Logger.LogAsync($"Auto-generated instructions for '{component.Name}': {component.InstallationMethod}");
 				}
 
 				if ( generatedCount > 0 )
-				    await Logger.LogAsync($"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions.");
+					await Logger.LogAsync($"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions.");
 			}
 			catch ( Exception ex )
 			{
@@ -5762,44 +5692,30 @@ namespace KOTORModSync
 			}
 		}
 
-		#region Filter Event Handlers
+		#region Selection Methods
 
-		[UsedImplicitly]
-		private void TierFilter_Changed(object sender, SelectionChangedEventArgs e)
+		// Selection by tier/category
+		private ObservableCollection<TierFilterItem> _tierItems = new ObservableCollection<TierFilterItem>();
+		private ObservableCollection<SelectionFilterItem> _categoryItems = new ObservableCollection<SelectionFilterItem>();
+
+		private void SelectAll_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
-				var comboBox = sender as ComboBox;
-				if ( !(comboBox?.SelectedItem is ComboBoxItem selectedItem) )
-					return;
-				_selectedMinTier = selectedItem.Content?.ToString() ?? "Any";
-				ApplyAllFilters();
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex);
-			}
-		}
+				var visitedComponents = new HashSet<Component>();
 
-		[UsedImplicitly]
-		private void SelectFilteredMods_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-				if ( ModListBox == null )
-					return;
-
-				// Select all visible (filtered) mods
-				foreach ( object item in ModListBox.Items )
+				// Select all mods
+				foreach ( Component component in MainConfig.AllComponents )
 				{
-					if ( item is Component component )
+					if ( !component.IsSelected )
 					{
 						component.IsSelected = true;
-						ComponentCheckboxChecked(component, new HashSet<Component>());
+						ComponentCheckboxChecked(component, visitedComponents);
 					}
 				}
 
 				UpdateModCounts();
+				RefreshModListVisuals();
 			}
 			catch ( Exception ex )
 			{
@@ -5807,25 +5723,24 @@ namespace KOTORModSync
 			}
 		}
 
-		[UsedImplicitly]
-		private void DeselectFilteredMods_Click(object sender, RoutedEventArgs e)
+		private void DeselectAll_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
-				if ( ModListBox == null )
-					return;
+				var visitedComponents = new HashSet<Component>();
 
-				// Deselect all visible (filtered) mods
-				foreach ( object item in ModListBox.Items )
+				// Deselect all mods
+				foreach ( Component component in MainConfig.AllComponents )
 				{
-					if ( item is Component component )
+					if ( component.IsSelected )
 					{
 						component.IsSelected = false;
-						ComponentCheckboxUnchecked(component, new HashSet<Component>());
+						ComponentCheckboxUnchecked(component, visitedComponents);
 					}
 				}
 
 				UpdateModCounts();
+				RefreshModListVisuals();
 			}
 			catch ( Exception ex )
 			{
@@ -5833,20 +5748,185 @@ namespace KOTORModSync
 			}
 		}
 
-		[UsedImplicitly]
-		private void SelectAllCategories_Click(object sender, RoutedEventArgs e)
+		private void InitializeFilterUI(List<Component> components)
 		{
 			try
 			{
-				StackPanel categoryPanel = this.FindControl<StackPanel>("CategoryFilterPanel");
-				if ( categoryPanel == null )
-					return;
+				// Initialize Tier Selection ComboBox
+				_tierItems.Clear();
+				var tierCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+				var tierPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-				// Check all category checkboxes
-				foreach ( Control child in categoryPanel.Children )
+				// Count mods per tier and assign priorities based on numeric prefix
+				int priority = 1;
+
+				// Sort by numeric prefix if present, otherwise alphabetically
+				IOrderedEnumerable<Component> sortedComponents = components.OrderBy(x =>
 				{
-					if ( child is CheckBox checkBox )
-						checkBox.IsChecked = true;
+					if ( string.IsNullOrEmpty(x.Tier) )
+						return (int.MaxValue, string.Empty);
+
+					// Try to parse numeric prefix (e.g., "1 - Essential" -> 1)
+					string tier = x.Tier.Trim();
+					int dashIndex = tier.IndexOf('-');
+					if ( dashIndex > 0 )
+					{
+						string numPart = tier.Substring(0, dashIndex).Trim();
+						if ( int.TryParse(numPart, out int num) )
+							return (num, tier);
+					}
+
+					// No numeric prefix, use max value for alphabetical sorting
+					return (int.MaxValue, tier);
+				}).ThenBy(x => x.Tier, StringComparer.OrdinalIgnoreCase);
+
+				foreach ( Component c in sortedComponents )
+				{
+					if ( string.IsNullOrEmpty(c.Tier) )
+						continue;
+
+					if ( !tierCounts.ContainsKey(c.Tier) )
+					{
+						tierCounts[c.Tier] = 0;
+						tierPriorities[c.Tier] = priority;
+						Logger.LogVerbose($"Assigning tier '{c.Tier}' priority {priority}");
+						priority++;
+					}
+					tierCounts[c.Tier]++;
+				}
+
+				foreach ( KeyValuePair<string, int> kvp in tierCounts.OrderBy(x => tierPriorities[x.Key]) )
+				{
+					var item = new TierFilterItem
+					{
+						Name = kvp.Key,
+						Count = kvp.Value,
+						Priority = tierPriorities[kvp.Key],
+						IsSelected = false
+					};
+					_tierItems.Add(item);
+				}
+
+				// Initialize Category Selection Checkboxes
+				_categoryItems.Clear();
+				var categoryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+				foreach ( Component c in components )
+				{
+					if ( c.Category.Count == 0 )
+						continue;
+
+					foreach ( string cat in c.Category )
+					{
+						if ( string.IsNullOrEmpty(cat) )
+							continue;
+
+						if ( !categoryCounts.ContainsKey(cat) )
+							categoryCounts[cat] = 0;
+						categoryCounts[cat]++;
+					}
+				}
+
+				foreach ( KeyValuePair<string, int> kvp in categoryCounts.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase) )
+				{
+					var item = new SelectionFilterItem
+					{
+						Name = kvp.Key,
+						Count = kvp.Value,
+						IsSelected = false
+					};
+					item.PropertyChanged += CategoryItem_PropertyChanged;
+					_categoryItems.Add(item);
+				}
+
+				// Bind to UI
+				if ( TierSelectionComboBox != null )
+					TierSelectionComboBox.ItemsSource = _tierItems;
+
+				if ( CategorySelectionItemsControl != null )
+					CategorySelectionItemsControl.ItemsSource = _categoryItems;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private void CategoryItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
+		{
+			// Category checkbox changed - does nothing until "Apply Category Selections" is clicked
+			// No filtering - just tracks what the user selected
+		}
+
+		private void SelectByTier_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				// Get the selected tier from the combobox
+				var selectedTierItem = TierSelectionComboBox?.SelectedItem as TierFilterItem;
+
+				if ( selectedTierItem == null )
+				{
+					Logger.LogWarning("No tier selected. Please choose a tier from the dropdown.");
+					return;
+				}
+
+				var visitedComponents = new HashSet<Component>();
+
+				// Build list of tiers to include (selected tier + all higher priority tiers)
+				var tiersToInclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+				foreach ( TierFilterItem tierItem in _tierItems )
+				{
+					if ( tierItem.Priority <= selectedTierItem.Priority )
+					{
+						tiersToInclude.Add(tierItem.Name);
+						Logger.LogVerbose($"Including tier: '{tierItem.Name}' (Priority: {tierItem.Priority})");
+					}
+				}
+
+				Logger.LogVerbose($"Selected tier: '{selectedTierItem.Name}' (Priority: {selectedTierItem.Priority})");
+				Logger.LogVerbose($"Tiers to include: {string.Join(", ", tiersToInclude)}");
+
+				// Get matching components
+				var matchingMods = MainConfig.AllComponents.Where(c =>
+					!string.IsNullOrEmpty(c.Tier) && tiersToInclude.Contains(c.Tier)
+				).ToList();
+
+				Logger.LogVerbose($"Matched {matchingMods.Count} components by tier");
+
+				// Select all matching mods on the UI thread
+				Dispatcher.UIThread.Post(() =>
+				{
+					foreach ( Component component in matchingMods )
+					{
+						if ( !component.IsSelected )
+						{
+							component.IsSelected = true;
+							ComponentCheckboxChecked(component, visitedComponents);
+						}
+					}
+
+					UpdateModCounts();
+					RefreshModListVisuals();
+
+					Logger.Log($"Selected {matchingMods.Count} mods in tier '{selectedTierItem.Name}' and higher priority tiers");
+				}, DispatcherPriority.Normal);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
+		}
+
+		private void ClearCategorySelection_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				foreach ( SelectionFilterItem item in _categoryItems )
+				{
+					item.PropertyChanged -= CategoryItem_PropertyChanged;
+					item.IsSelected = false;
+					item.PropertyChanged += CategoryItem_PropertyChanged;
 				}
 			}
 			catch ( Exception ex )
@@ -5855,21 +5935,46 @@ namespace KOTORModSync
 			}
 		}
 
-		[UsedImplicitly]
-		private void DeselectAllCategories_Click(object sender, RoutedEventArgs e)
+		private void ApplyCategorySelections_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
-				StackPanel categoryPanel = this.FindControl<StackPanel>("CategoryFilterPanel");
-				if ( categoryPanel == null )
-					return;
+				// Get selected categories
+				var selectedCategories = _categoryItems.Where(c => c.IsSelected).Select(c => c.Name).ToList();
 
-				// Uncheck all category checkboxes
-				foreach ( Control child in categoryPanel.Children )
+				if ( selectedCategories.Count == 0 )
 				{
-					if ( child is CheckBox checkBox )
-						checkBox.IsChecked = false;
+					Logger.LogWarning("No categories selected. Please check one or more categories.");
+					return;
 				}
+
+				var visitedComponents = new HashSet<Component>();
+
+				// Get mods matching the selected categories
+				var matchingMods = MainConfig.AllComponents.Where(c =>
+					c.Category.Count > 0 && c.Category.Any(cat => selectedCategories.Contains(cat))
+				).ToList();
+
+				Logger.LogVerbose($"Categories selected: {string.Join(", ", selectedCategories)}");
+				Logger.LogVerbose($"Matched {matchingMods.Count} components by category");
+
+				// Select all matching mods on the UI thread
+				Dispatcher.UIThread.Post(() =>
+				{
+					foreach ( Component component in matchingMods )
+					{
+						if ( !component.IsSelected )
+						{
+							component.IsSelected = true;
+							ComponentCheckboxChecked(component, visitedComponents);
+						}
+					}
+
+					UpdateModCounts();
+					RefreshModListVisuals();
+
+					Logger.Log($"Selected {matchingMods.Count} mods in categories: {string.Join(", ", selectedCategories)}");
+				}, DispatcherPriority.Normal);
 			}
 			catch ( Exception ex )
 			{
@@ -5877,24 +5982,60 @@ namespace KOTORModSync
 			}
 		}
 
-		[UsedImplicitly]
-		private void ClearAllFilters_Click(object sender, RoutedEventArgs e)
+		private List<Component> GetComponentsMatchingSelections(TierFilterItem selectedTierItem, List<string> selectedCategories)
 		{
-			try
-			{
-				// Reset tier filter
-				ComboBox minTierComboBox = this.FindControl<ComboBox>("MinTierComboBox");
-				if ( minTierComboBox != null )
-					minTierComboBox.SelectedIndex = 0; // "Any"
+			// Build list of tiers to include (selected tier + all lower priority tiers)
+			var tiersToInclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-				// Select all categories
-				SelectAllCategories_Click(sender, e);
-			}
-			catch ( Exception ex )
+			if ( selectedTierItem != null )
 			{
-				Logger.LogException(ex);
+				// Include the selected tier and all tiers with higher priority (lower number)
+				// E.g., if user selects "2 - Recommended", include tier 1 (Essential) and tier 2 (Recommended)
+				foreach ( TierFilterItem tierItem in _tierItems )
+				{
+					if ( tierItem.Priority <= selectedTierItem.Priority )
+					{
+						tiersToInclude.Add(tierItem.Name);
+						Logger.LogVerbose($"Including tier: '{tierItem.Name}' (Priority: {tierItem.Priority})");
+					}
+				}
+
+				Logger.LogVerbose($"Selected tier: '{selectedTierItem.Name}' (Priority: {selectedTierItem.Priority})");
+				Logger.LogVerbose($"Tiers to include: {string.Join(", ", tiersToInclude)}");
 			}
+
+			var matchedComponents = MainConfig.AllComponents.Where(c =>
+			{
+				// If nothing selected, return empty
+				if ( tiersToInclude.Count == 0 && selectedCategories.Count == 0 )
+					return false;
+
+				// Check tier match
+				bool tierMatch = tiersToInclude.Count == 0 || (!string.IsNullOrEmpty(c.Tier) && tiersToInclude.Contains(c.Tier));
+
+				// Check category match
+				bool categoryMatch = selectedCategories.Count == 0 || (c.Category.Count > 0 && c.Category.Any(cat => selectedCategories.Contains(cat)));
+
+				// If both selections are active, both must match
+				if ( tiersToInclude.Count > 0 && selectedCategories.Count > 0 )
+					return tierMatch && categoryMatch;
+
+				// If only one selection is active, it must match
+				return tierMatch || categoryMatch;
+			}).ToList();
+
+			Logger.LogVerbose($"Matched {matchedComponents.Count} components");
+
+			// Log first few for debugging
+			foreach ( Component c in matchedComponents.Take(5) )
+			{
+				Logger.LogVerbose($"  - {c.Name} (Tier: '{c.Tier}')");
+			}
+
+			return matchedComponents;
 		}
+
+		#endregion
 
 		private void ToggleErroredMods_Click(object sender, RoutedEventArgs e)
 		{
@@ -5929,14 +6070,13 @@ namespace KOTORModSync
 				// Toggle selection for all errored components
 				foreach ( Component component in erroredComponents )
 				{
-					if ( component.IsSelected != shouldSelect )
-					{
-						component.IsSelected = shouldSelect;
-						if ( shouldSelect )
-							ComponentCheckboxChecked(component, visitedComponents);
-						else
-							ComponentCheckboxUnchecked(component, visitedComponents);
-					}
+					if ( component.IsSelected == shouldSelect )
+						continue;
+					component.IsSelected = shouldSelect;
+					if ( shouldSelect )
+						ComponentCheckboxChecked(component, visitedComponents);
+					else
+						ComponentCheckboxUnchecked(component, visitedComponents);
 				}
 
 				// Update UI
@@ -5959,13 +6099,13 @@ namespace KOTORModSync
 				// Find the ScrollViewer in the Getting Started tab
 				TabItem gettingStartedTab = this.FindControl<TabItem>("InitialTab");
 				if ( !(gettingStartedTab?.Content is ScrollViewer scrollViewer) )
-				    return;
+					return;
 				// Determine the current step based on completion status
 				Border targetStepBorder;
 
 				// Check Step 1: Directories
 				bool step1Complete = !string.IsNullOrEmpty(MainConfig.SourcePath?.FullName) &&
-				                     !string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName);
+									 !string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName);
 				if ( !step1Complete )
 				{
 					targetStepBorder = this.FindControl<Border>("Step1Border");
@@ -6014,7 +6154,7 @@ namespace KOTORModSync
 					// Find the progress section by looking for a Border with "progress-section" class
 					Border progressSection = FindProgressSection(scrollViewer.Content as Panel);
 					if ( progressSection == null )
-					    return;
+						return;
 					Rect progressBounds = progressSection.Bounds;
 					double targetOffset = progressBounds.Top - scrollViewer.Viewport.Height / 2 + progressBounds.Height / 2;
 					targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
@@ -6058,7 +6198,7 @@ namespace KOTORModSync
 
 			foreach ( Control child in panel.Children )
 			{
-				switch (child)
+				switch ( child )
 				{
 					case Border border when border.Classes.Contains("progress-section"):
 						return border;
@@ -6072,8 +6212,6 @@ namespace KOTORModSync
 			}
 			return null;
 		}
-
-		#endregion
 
 	}
 }

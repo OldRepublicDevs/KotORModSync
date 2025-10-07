@@ -260,7 +260,7 @@ ___";
 		public void RawRegexPattern_HandlesModsWithoutAllFields()
 		{
 			// Arrange
-			string minimalMod = @"### Minimal Mod
+			const string minimalMod = @"### Minimal Mod
 
 **Name:** [Minimal Mod](https://example.com)
 
@@ -296,7 +296,7 @@ ___";
 
 			// Act
 			MarkdownParserResult result = parser.Parse(fullMarkdown);
-			var components = result.Components;
+			IList<Core.Component> components = result.Components;
 
 			// Output detailed summary for verification
 			Console.WriteLine($"Total mods found: {components.Count}");
@@ -323,7 +323,10 @@ ___";
 					Console.WriteLine($"   ModLink {j + 1}: {modLink}");
 				}
 				Console.WriteLine($"   Author: {component.Author}");
-				Console.WriteLine($"   Category: {component.Category} / {component.Tier}");
+				string categoryStr = component.Category.Count > 0
+					? string.Join(", ", component.Category)
+					: "No category";
+				Console.WriteLine($"   Category: {categoryStr} / {component.Tier}");
 				Console.WriteLine($"   Description: {component.Description}");
 				Console.WriteLine($"   Directions: {component.Directions}");
 				Console.WriteLine($"   Installation Method: {component.InstallationMethod}");
@@ -340,7 +343,10 @@ ___";
 					Console.WriteLine($"   ModLink {j + 1}: {modLink}");
 				}
 				Console.WriteLine($"   Author: {component.Author}");
-				Console.WriteLine($"   Category: {component.Category} / {component.Tier}");
+				string categoryStr = component.Category.Count > 0
+					? string.Join(", ", component.Category)
+					: "No category";
+				Console.WriteLine($"   Category: {categoryStr} / {component.Tier}");
 				Console.WriteLine($"   Description: {component.Description}");
 				Console.WriteLine($"   Directions: {component.Directions}");
 				Console.WriteLine($"   Installation Method: {component.InstallationMethod}");

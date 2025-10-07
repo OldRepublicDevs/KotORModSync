@@ -183,7 +183,7 @@ namespace KOTORModSync.Core.Installation
 
 			string sessionFolder = Path.Combine(directoryInfo.FullName, ".kotor_modsync");
 			if ( !Directory.Exists(sessionFolder) )
-			    return;
+				return;
 			try
 			{
 				Directory.Delete(sessionFolder, recursive: true);

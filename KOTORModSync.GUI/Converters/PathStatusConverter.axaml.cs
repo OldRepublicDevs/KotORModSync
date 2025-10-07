@@ -17,25 +17,25 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (!(value is string path))
+			if ( !(value is string path) )
 				return "❓ Unknown";
 
-			if (string.IsNullOrEmpty(path))
+			if ( string.IsNullOrEmpty(path) )
 				return "❓ Empty";
 
 			// Check if path contains unresolved placeholders
-			if (path.Contains("<<modDirectory>>") || path.Contains("<<kotorDirectory>>"))
+			if ( path.Contains("<<modDirectory>>") || path.Contains("<<kotorDirectory>>") )
 			{
 				// Check if the directories are configured
-				if (MainConfig.SourcePath == null && MainConfig.DestinationPath == null)
+				if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
 				{
 					return "⚠️ Paths not configured";
 				}
-				else if (MainConfig.SourcePath == null)
+				else if ( MainConfig.SourcePath == null )
 				{
 					return "⚠️ Mod directory not configured";
 				}
-				else if (MainConfig.DestinationPath == null)
+				else if ( MainConfig.DestinationPath == null )
 				{
 					return "⚠️ KOTOR directory not configured";
 				}

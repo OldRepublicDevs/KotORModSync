@@ -2,9 +2,9 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // See LICENSE.txt file in the project root for full license information.
 
-using KOTORModSync.Core.FileSystemUtils;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using KOTORModSync.Core.FileSystemUtils;
 using Xunit;
 using Assert = Xunit.Assert;
 
@@ -33,27 +33,27 @@ namespace KOTORModSync.Tests
 
 		public void Dispose()
 		{
-			foreach (CrossPlatformFileWatcher watcher in _watchers)
+			foreach ( CrossPlatformFileWatcher watcher in _watchers )
 			{
 				try { watcher.Dispose(); }
 				catch { /* Ignore cleanup errors */ }
 			}
 
-			foreach (string file in _createdFiles)
+			foreach ( string file in _createdFiles )
 			{
 				try
 				{
-					if (File.Exists(file))
+					if ( File.Exists(file) )
 						File.Delete(file);
 				}
 				catch { /* Ignore cleanup errors */ }
 			}
 
-			foreach (string dir in _createdDirectories.OrderByDescending(d => d.Length))
+			foreach ( string dir in _createdDirectories.OrderByDescending(d => d.Length) )
 			{
 				try
 				{
-					if (Directory.Exists(dir))
+					if ( Directory.Exists(dir) )
 						Directory.Delete(dir, true);
 				}
 				catch { /* Ignore cleanup errors */ }
@@ -61,7 +61,7 @@ namespace KOTORModSync.Tests
 
 			try
 			{
-				if (Directory.Exists(_testDirectory))
+				if ( Directory.Exists(_testDirectory) )
 					Directory.Delete(_testDirectory, true);
 			}
 			catch { /* Ignore cleanup errors */ }
@@ -88,8 +88,8 @@ namespace KOTORModSync.Tests
 
 			watcher.Changed += (_, e) =>
 			{
-				if (e.Name == "application.log")
-					lock (lockObj) changeCount++;
+				if ( e.Name == "application.log" )
+					lock ( lockObj ) changeCount++;
 			};
 
 			watcher.StartWatching();
@@ -97,7 +97,7 @@ namespace KOTORModSync.Tests
 
 			// Act - Simulate application writing log entries
 			const int logEntries = 10;
-			for (int i = 0; i < logEntries; i++)
+			for ( int i = 0; i < logEntries; i++ )
 			{
 				await Task.Delay(200);
 				await File.AppendAllTextAsync(logFile, $"[INFO] Log entry {i} at {DateTime.Now:HH:mm:ss.fff}\n");
@@ -139,7 +139,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Changed += (_, e) =>
 			{
-				if (e.Name == "settings.ini")
+				if ( e.Name == "settings.ini" )
 				{
 					changeEvent = e;
 					eventReceived.Set();
@@ -183,7 +183,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, e) =>
 			{
-				if (e.Name!.EndsWith(".bak"))
+				if ( e.Name!.EndsWith(".bak") )
 				{
 					createEvent = e;
 					eventReceived.Set();
@@ -217,7 +217,7 @@ namespace KOTORModSync.Tests
 
 			// Arrange
 			List<string> tempFiles = [];
-			for (int i = 0; i < 5; i++)
+			for ( int i = 0; i < 5; i++ )
 			{
 				string tempFile = Path.Combine(_testDirectory, $"temp_{i}.tmp");
 				await File.WriteAllTextAsync(tempFile, $"temp data {i}");
@@ -240,7 +240,7 @@ namespace KOTORModSync.Tests
 			await Task.Delay(100);
 
 			// Act - Cleanup temp files
-			foreach (string tempFile in tempFiles)
+			foreach ( string tempFile in tempFiles )
 			{
 				File.Delete(tempFile);
 				await Task.Delay(200);
@@ -252,7 +252,7 @@ namespace KOTORModSync.Tests
 			Assert.True(deletedFiles.Count >= tempFiles.Count,
 				$"Expected {tempFiles.Count} deletion events, received {deletedFiles.Count}");
 
-			foreach (string tempFile in tempFiles)
+			foreach ( string tempFile in tempFiles )
 			{
 				Assert.False(File.Exists(tempFile), $"Temp file {tempFile} should be deleted");
 			}
@@ -317,9 +317,9 @@ namespace KOTORModSync.Tests
 			bool errorOccurred = false;
 			object lockObj = new();
 
-			watcher.Created += (_, _) => { lock (lockObj) totalEvents++; };
-			watcher.Changed += (_, _) => { lock (lockObj) totalEvents++; };
-			watcher.Deleted += (_, _) => { lock (lockObj) totalEvents++; };
+			watcher.Created += (_, _) => { lock ( lockObj ) totalEvents++; };
+			watcher.Changed += (_, _) => { lock ( lockObj ) totalEvents++; };
+			watcher.Deleted += (_, _) => { lock ( lockObj ) totalEvents++; };
 			watcher.Error += (_, _) => { errorOccurred = true; };
 
 			watcher.StartWatching();
@@ -330,7 +330,7 @@ namespace KOTORModSync.Tests
 			var activityTask = Task.Run(async () =>
 			{
 				int counter = 0;
-				while (!cts.Token.IsCancellationRequested)
+				while ( !cts.Token.IsCancellationRequested )
 				{
 					try
 					{
@@ -339,24 +339,24 @@ namespace KOTORModSync.Tests
 						await File.WriteAllTextAsync(file, $"stress content {counter}", cts.Token);
 						await Task.Delay(100, cts.Token);
 
-						if (counter % 5 == 0 && File.Exists(file))
+						if ( counter % 5 == 0 && File.Exists(file) )
 						{
 							await File.AppendAllTextAsync(file, " appended", cts.Token);
 							await Task.Delay(100, cts.Token);
 						}
 
-						if (counter % 10 == 0 && File.Exists(file))
+						if ( counter % 10 == 0 && File.Exists(file) )
 						{
 							File.Delete(file);
 						}
 
 						await Task.Delay(100, cts.Token);
 					}
-					catch (OperationCanceledException)
+					catch ( OperationCanceledException )
 					{
 						break;
 					}
-					catch (Exception)
+					catch ( Exception )
 					{
 						// Ignore file operation errors during stress test
 					}
@@ -437,16 +437,16 @@ namespace KOTORModSync.Tests
 			int deletedCount = 0;
 			object lockObj = new();
 
-			watcher.Created += (_, _) => { lock (lockObj) createdCount++; };
-			watcher.Changed += (_, _) => { lock (lockObj) modifiedCount++; };
-			watcher.Deleted += (_, _) => { lock (lockObj) deletedCount++; };
+			watcher.Created += (_, _) => { lock ( lockObj ) createdCount++; };
+			watcher.Changed += (_, _) => { lock ( lockObj ) modifiedCount++; };
+			watcher.Deleted += (_, _) => { lock ( lockObj ) deletedCount++; };
 
 			watcher.StartWatching();
 			await Task.Delay(100);
 
 			// Act - Run create-modify-delete cycles
 			int cycles = 15;
-			for (int i = 0; i < cycles; i++)
+			for ( int i = 0; i < cycles; i++ )
 			{
 				string fileName = $"cycle_{i}.txt";
 				string filePath = Path.Combine(_testDirectory, fileName);
@@ -499,9 +499,9 @@ namespace KOTORModSync.Tests
 			int watcher3Events = 0;
 			object lockObj = new();
 
-			watcher1.Created += (_, _) => { lock (lockObj) watcher1Events++; };
-			watcher2.Created += (_, _) => { lock (lockObj) watcher2Events++; };
-			watcher3.Created += (_, _) => { lock (lockObj) watcher3Events++; };
+			watcher1.Created += (_, _) => { lock ( lockObj ) watcher1Events++; };
+			watcher2.Created += (_, _) => { lock ( lockObj ) watcher2Events++; };
+			watcher3.Created += (_, _) => { lock ( lockObj ) watcher3Events++; };
 
 			watcher1.StartWatching();
 			watcher2.StartWatching();
@@ -510,7 +510,7 @@ namespace KOTORModSync.Tests
 
 			// Act - Create files
 			int fileCount = 5;
-			for (int i = 0; i < fileCount; i++)
+			for ( int i = 0; i < fileCount; i++ )
 			{
 				string filePath = Path.Combine(_testDirectory, $"multi_{i}.txt");
 				_createdFiles.Add(filePath);
@@ -589,11 +589,11 @@ namespace KOTORModSync.Tests
 			int totalEvents = 0;
 			object lockObj = new();
 
-			watcher.Created += (_, _) => { lock (lockObj) totalEvents++; };
+			watcher.Created += (_, _) => { lock ( lockObj ) totalEvents++; };
 
 			// Act - Run multiple start/stop cycles
 			int cycles = 5;
-			for (int cycle = 0; cycle < cycles; cycle++)
+			for ( int cycle = 0; cycle < cycles; cycle++ )
 			{
 				watcher.StartWatching();
 				Assert.True(watcher.EnableRaisingEvents, $"Cycle {cycle}: watcher should be enabled after StartWatching");
@@ -628,7 +628,7 @@ namespace KOTORModSync.Tests
 			bool errorOccurred = false;
 			object lockObj = new();
 
-			watcher.Created += (_, _) => { lock (lockObj) eventCount++; };
+			watcher.Created += (_, _) => { lock ( lockObj ) eventCount++; };
 			watcher.Error += (_, _) => { errorOccurred = true; };
 
 			GC.Collect();
@@ -644,7 +644,7 @@ namespace KOTORModSync.Tests
 			var activityTask = Task.Run(async () =>
 			{
 				int counter = 0;
-				while (!cts.Token.IsCancellationRequested)
+				while ( !cts.Token.IsCancellationRequested )
 				{
 					try
 					{
@@ -653,11 +653,11 @@ namespace KOTORModSync.Tests
 						await File.WriteAllTextAsync(file, $"content {counter}", cts.Token);
 						await Task.Delay(500, cts.Token);
 					}
-					catch (OperationCanceledException)
+					catch ( OperationCanceledException )
 					{
 						break;
 					}
-					catch (Exception)
+					catch ( Exception )
 					{
 						// Ignore file operation errors
 					}
@@ -737,7 +737,7 @@ namespace KOTORModSync.Tests
 
 			watcher.Created += (_, e) =>
 			{
-				if (timestamps.TryRemove(e.Name!, out DateTime createTime))
+				if ( timestamps.TryRemove(e.Name!, out DateTime createTime) )
 				{
 					TimeSpan latency = DateTime.Now - createTime;
 					latencies.Add(latency);
@@ -749,7 +749,7 @@ namespace KOTORModSync.Tests
 
 			// Act - Create files and measure latency
 			int sampleSize = 10;
-			for (int i = 0; i < sampleSize; i++)
+			for ( int i = 0; i < sampleSize; i++ )
 			{
 				string fileName = $"latency_{i}.txt";
 				string filePath = Path.Combine(_testDirectory, fileName);
@@ -763,7 +763,7 @@ namespace KOTORModSync.Tests
 			await Task.Delay(1000);
 
 			// Assert
-			if (latencies.Any())
+			if ( latencies.Any() )
 			{
 				double avgLatencyMs = latencies.Average(l => l.TotalMilliseconds);
 				TimeSpan maxLatency = latencies.Max();

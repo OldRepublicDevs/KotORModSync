@@ -38,43 +38,43 @@ namespace KOTORModSync.Dialogs
 
 		private void LoadDetails()
 		{
-			if (_downloadProgress == null)
+			if ( _downloadProgress == null )
 				return;
 
 			// Header
 			TextBlock statusIconText = this.FindControl<TextBlock>("StatusIconText");
-			if (statusIconText != null)
+			if ( statusIconText != null )
 			{
 				statusIconText.Text = _downloadProgress.StatusIcon;
 			}
 
 			TextBlock modNameText = this.FindControl<TextBlock>("ModNameText");
-			if (modNameText != null)
+			if ( modNameText != null )
 			{
 				modNameText.Text = _downloadProgress.ModName;
 			}
 
 			TextBlock statusText = this.FindControl<TextBlock>("StatusText");
-			if (statusText != null)
+			if ( statusText != null )
 			{
 				statusText.Text = $"Status: {_downloadProgress.Status}";
 			}
 
 			// Download Information
 			TextBlock urlText = this.FindControl<TextBlock>("UrlText");
-			if (urlText != null)
+			if ( urlText != null )
 			{
 				urlText.Text = _downloadProgress.Url;
 			}
 
 			TextBlock filePathText = this.FindControl<TextBlock>("FilePathText");
-			if (filePathText != null)
+			if ( filePathText != null )
 			{
 				filePathText.Text = string.IsNullOrEmpty(_downloadProgress.FilePath) ? "N/A" : _downloadProgress.FilePath;
 			}
 
 			TextBlock fileSizeText = this.FindControl<TextBlock>("FileSizeText");
-			if (fileSizeText != null)
+			if ( fileSizeText != null )
 			{
 				fileSizeText.Text = _downloadProgress.TotalBytes > 0
 					? $"{_downloadProgress.DownloadedSize} / {_downloadProgress.TotalSize} ({_downloadProgress.ProgressPercentage:F1}%)"
@@ -82,13 +82,13 @@ namespace KOTORModSync.Dialogs
 			}
 
 			TextBlock downloadSpeedText = this.FindControl<TextBlock>("DownloadSpeedText");
-			if (downloadSpeedText != null)
+			if ( downloadSpeedText != null )
 			{
 				downloadSpeedText.Text = _downloadProgress.DownloadSpeed;
 			}
 
 			TextBlock durationText = this.FindControl<TextBlock>("DurationText");
-			if (durationText != null)
+			if ( durationText != null )
 			{
 				durationText.Text = FormatDuration(_downloadProgress.Duration);
 			}
@@ -96,9 +96,9 @@ namespace KOTORModSync.Dialogs
 			// Status Message
 			Border statusMessageSection = this.FindControl<Border>("StatusMessageSection");
 			TextBlock statusMessageText = this.FindControl<TextBlock>("StatusMessageText");
-			if (statusMessageSection != null && statusMessageText != null)
+			if ( statusMessageSection != null && statusMessageText != null )
 			{
-				if (!string.IsNullOrWhiteSpace(_downloadProgress.StatusMessage))
+				if ( !string.IsNullOrWhiteSpace(_downloadProgress.StatusMessage) )
 				{
 					statusMessageText.Text = _downloadProgress.StatusMessage;
 					statusMessageSection.IsVisible = true;
@@ -116,26 +116,26 @@ namespace KOTORModSync.Dialogs
 			TextBox exceptionDetailsText = this.FindControl<TextBox>("ExceptionDetailsText");
 			Button copyErrorButton = this.FindControl<Button>("CopyErrorButton");
 
-			if (errorSection != null && errorMessageText != null)
+			if ( errorSection != null && errorMessageText != null )
 			{
-				if (_downloadProgress.IsFailed && !string.IsNullOrWhiteSpace(_downloadProgress.ErrorMessage))
+				if ( _downloadProgress.IsFailed && !string.IsNullOrWhiteSpace(_downloadProgress.ErrorMessage) )
 				{
 					errorMessageText.Text = _downloadProgress.ErrorMessage;
 					errorSection.IsVisible = true;
 
-					if (_downloadProgress.Exception != null)
+					if ( _downloadProgress.Exception != null )
 					{
-						if (exceptionHeader != null)
+						if ( exceptionHeader != null )
 							exceptionHeader.IsVisible = true;
 
-						if (exceptionDetailsText != null)
+						if ( exceptionDetailsText != null )
 						{
 							exceptionDetailsText.Text = _downloadProgress.Exception.ToString();
 							exceptionDetailsText.IsVisible = true;
 						}
 					}
 
-					if (copyErrorButton != null)
+					if ( copyErrorButton != null )
 						copyErrorButton.IsVisible = true;
 				}
 				else
@@ -146,7 +146,7 @@ namespace KOTORModSync.Dialogs
 
 			// Timing Information
 			TextBlock startTimeText = this.FindControl<TextBlock>("StartTimeText");
-			if (startTimeText != null)
+			if ( startTimeText != null )
 			{
 				startTimeText.Text = _downloadProgress.StartTime != default
 					? _downloadProgress.StartTime.ToString("yyyy-MM-dd HH:mm:ss")
@@ -154,7 +154,7 @@ namespace KOTORModSync.Dialogs
 			}
 
 			TextBlock endTimeText = this.FindControl<TextBlock>("EndTimeText");
-			if (endTimeText != null)
+			if ( endTimeText != null )
 			{
 				endTimeText.Text = _downloadProgress.EndTime.HasValue
 					? _downloadProgress.EndTime.Value.ToString("yyyy-MM-dd HH:mm:ss")
@@ -163,39 +163,39 @@ namespace KOTORModSync.Dialogs
 
 			// Logs
 			TextBox logsTextBox = this.FindControl<TextBox>("LogsTextBox");
-			if (logsTextBox != null)
+			if ( logsTextBox != null )
 			{
 				logsTextBox.Text = string.Join(Environment.NewLine, _downloadProgress.GetLogs());
 			}
 
 			// Footer Buttons
 			Button openFolderButton = this.FindControl<Button>("OpenFolderButton");
-			if (openFolderButton != null)
+			if ( openFolderButton != null )
 				openFolderButton.IsEnabled = !string.IsNullOrEmpty(_downloadProgress.FilePath) && File.Exists(_downloadProgress.FilePath);
 
 			Button retryButton = this.FindControl<Button>("RetryButton");
-			if (retryButton != null)
+			if ( retryButton != null )
 				retryButton.IsVisible = _downloadProgress.IsFailed;
 		}
 
 		private void WireUpEvents()
 		{
 			Button openFolderButton = this.FindControl<Button>("OpenFolderButton");
-			if (openFolderButton != null)
+			if ( openFolderButton != null )
 			{
 				openFolderButton.Click += OpenFolderButton_Click;
 			}
 
 			Button copyErrorButton = this.FindControl<Button>("CopyErrorButton");
-			if (copyErrorButton != null)
+			if ( copyErrorButton != null )
 				copyErrorButton.Click += CopyErrorButton_Click;
 
 			Button retryButton = this.FindControl<Button>("RetryButton");
-			if (retryButton != null)
+			if ( retryButton != null )
 				retryButton.Click += RetryButton_Click;
 
 			Button closeButton = this.FindControl<Button>("CloseButton");
-			if (closeButton != null)
+			if ( closeButton != null )
 			{
 				closeButton.Click += CloseButton_Click;
 			}
@@ -203,23 +203,23 @@ namespace KOTORModSync.Dialogs
 
 		private void OpenFolderButton_Click(object sender, RoutedEventArgs e)
 		{
-			if (string.IsNullOrEmpty(_downloadProgress?.FilePath) || !File.Exists(_downloadProgress.FilePath))
+			if ( string.IsNullOrEmpty(_downloadProgress?.FilePath) || !File.Exists(_downloadProgress.FilePath) )
 				return;
 
 			try
 			{
 				string directory = Path.GetDirectoryName(_downloadProgress.FilePath);
-				if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
+				if ( string.IsNullOrEmpty(directory) || !Directory.Exists(directory) )
 					return;
 				// Use the same approach as MainWindow for opening folders
-				if (Utility.GetOperatingSystem() == OSPlatform.Windows)
+				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 					_ = System.Diagnostics.Process.Start("explorer.exe", directory);
-				else if (Utility.GetOperatingSystem() == OSPlatform.OSX)
+				else if ( Utility.GetOperatingSystem() == OSPlatform.OSX )
 					_ = System.Diagnostics.Process.Start("open", directory);
 				else // Linux
 					_ = System.Diagnostics.Process.Start("xdg-open", directory);
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogError($"Failed to open download folder: {ex.Message}");
 			}
@@ -233,14 +233,14 @@ namespace KOTORModSync.Dialogs
 				errorDetails += $"URL: {_downloadProgress.Url}\n";
 				errorDetails += $"Error: {_downloadProgress.ErrorMessage}\n";
 
-				if (_downloadProgress.Exception != null)
+				if ( _downloadProgress.Exception != null )
 					errorDetails += $"\nException:\n{_downloadProgress.Exception}";
 
-			// Add download logs
-			errorDetails += "\n\nDownload Logs:\n";
-			errorDetails += string.Join("\n", _downloadProgress.GetLogs());
+				// Add download logs
+				errorDetails += "\n\nDownload Logs:\n";
+				errorDetails += string.Join("\n", _downloadProgress.GetLogs());
 
-				if (Clipboard is null)
+				if ( Clipboard is null )
 				{
 					await Logger.LogErrorAsync("Clipboard is null");
 					return;
@@ -248,13 +248,13 @@ namespace KOTORModSync.Dialogs
 
 				await Clipboard.SetTextAsync(errorDetails);
 
-				if (!(sender is Button button))
+				if ( !(sender is Button button) )
 					return;
 				button.Content = "Copied!";
 				await System.Threading.Tasks.Task.Delay(2000);
 				button.Content = "Copy Error Details";
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogErrorAsync($"Failed to copy error details: {ex.Message}");
 			}
@@ -279,18 +279,18 @@ namespace KOTORModSync.Dialogs
 
 		private static string FormatDuration(TimeSpan duration)
 		{
-			if (duration.TotalSeconds < 1)
+			if ( duration.TotalSeconds < 1 )
 				return "< 1 second";
-			if (duration.TotalMinutes < 1)
+			if ( duration.TotalMinutes < 1 )
 				return $"{(int)duration.TotalSeconds} seconds";
-			if (duration.TotalHours < 1)
+			if ( duration.TotalHours < 1 )
 				return $"{(int)duration.TotalMinutes} minutes, {duration.Seconds} seconds";
 			return $"{(int)duration.TotalHours} hours, {duration.Minutes} minutes";
 		}
 
 		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
 		{
-			if (!_mouseDownForWindowMoving)
+			if ( !_mouseDownForWindowMoving )
 				return;
 
 			PointerPoint currentPoint = e.GetCurrentPoint(this);
@@ -302,11 +302,11 @@ namespace KOTORModSync.Dialogs
 
 		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
 			// Don't start window drag if clicking on interactive controls
-			if (ShouldIgnorePointerForWindowDrag(e))
+			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
 			_mouseDownForWindowMoving = true;
@@ -319,15 +319,15 @@ namespace KOTORModSync.Dialogs
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
 			// Get the element under the pointer
-			if (!(e.Source is Visual source))
+			if ( !(e.Source is Visual source) )
 				return false;
 
 			// Walk up the visual tree to check if we're clicking on an interactive element
 			Visual current = source;
-			while (current != null && current != this)
+			while ( current != null && current != this )
 			{
 				// Check if we're clicking on any interactive control
-				if (current is Button ||
+				if ( current is Button ||
 					current is TextBox ||
 					current is ComboBox ||
 					current is ListBox ||
@@ -339,17 +339,17 @@ namespace KOTORModSync.Dialogs
 					current is TabItem ||
 					current is ProgressBar ||
 					current is ScrollViewer ||
-					current is CheckBox)
+					current is CheckBox )
 				{
 					return true;
 				}
 
 				// Check if the element has context menu or flyout open
-				if (current is Control control)
+				if ( current is Control control )
 				{
-					if (control.ContextMenu?.IsOpen == true)
+					if ( control.ContextMenu?.IsOpen == true )
 						return true;
-					if (control.ContextFlyout?.IsOpen == true)
+					if ( control.ContextFlyout?.IsOpen == true )
 						return true;
 				}
 

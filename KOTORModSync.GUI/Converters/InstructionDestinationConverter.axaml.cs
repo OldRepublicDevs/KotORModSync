@@ -19,11 +19,11 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (!(value is Instruction instruction))
+			if ( !(value is Instruction instruction) )
 				return string.Empty;
 
 			// For actions that don't have explicit destinations, show implied destinations
-			switch (instruction.Action)
+			switch ( instruction.Action )
 			{
 				case Instruction.ActionType.Extract:
 					// Extract typically extracts to the same directory as the archive
@@ -32,7 +32,7 @@ namespace KOTORModSync.Converters
 				case Instruction.ActionType.Move:
 				case Instruction.ActionType.Copy:
 					// These have explicit destinations
-					if (!string.IsNullOrEmpty(instruction.Destination))
+					if ( !string.IsNullOrEmpty(instruction.Destination) )
 					{
 						string resolvedDestination = ResolvePath(instruction.Destination);
 						return $"→ {resolvedDestination}";
@@ -41,7 +41,7 @@ namespace KOTORModSync.Converters
 
 				case Instruction.ActionType.Rename:
 					// Rename shows the new filename
-					if (!string.IsNullOrEmpty(instruction.Destination))
+					if ( !string.IsNullOrEmpty(instruction.Destination) )
 					{
 						return $"→ rename to: {instruction.Destination}";
 					}
@@ -53,7 +53,7 @@ namespace KOTORModSync.Converters
 
 				case Instruction.ActionType.Patcher:
 					// Patcher always targets the KOTOR directory
-					if (MainConfig.DestinationPath != null)
+					if ( MainConfig.DestinationPath != null )
 					{
 						return $"→ {MainConfig.DestinationPath.FullName}";
 					}
@@ -61,7 +61,7 @@ namespace KOTORModSync.Converters
 
 				case Instruction.ActionType.Execute:
 					// Execute runs a program
-					if (!string.IsNullOrEmpty(instruction.Arguments))
+					if ( !string.IsNullOrEmpty(instruction.Arguments) )
 					{
 						return $"→ execute with args: {instruction.Arguments}";
 					}
@@ -69,7 +69,7 @@ namespace KOTORModSync.Converters
 
 				case Instruction.ActionType.DelDuplicate:
 					// DelDuplicate removes duplicate files
-					if (!string.IsNullOrEmpty(instruction.Arguments))
+					if ( !string.IsNullOrEmpty(instruction.Arguments) )
 					{
 						return $"→ remove duplicate .{instruction.Arguments} files";
 					}
@@ -96,11 +96,11 @@ namespace KOTORModSync.Converters
 		[NotNull]
 		private static string ResolvePath([CanBeNull] string path)
 		{
-			if (string.IsNullOrEmpty(path))
+			if ( string.IsNullOrEmpty(path) )
 				return string.Empty;
 
 			// Check if paths are defined before resolving
-			if (MainConfig.SourcePath == null && MainConfig.DestinationPath == null)
+			if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
 			{
 				return path; // Return original path if directories aren't configured
 			}
@@ -109,7 +109,7 @@ namespace KOTORModSync.Converters
 			{
 				return Utility.ReplaceCustomVariables(path);
 			}
-			catch (Exception)
+			catch ( Exception )
 			{
 				// If resolution fails, return the original path
 				return path;

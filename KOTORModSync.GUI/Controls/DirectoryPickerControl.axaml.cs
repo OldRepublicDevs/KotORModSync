@@ -82,7 +82,7 @@ namespace KOTORModSync.Controls
 			InitializePathSuggestions();
 			// Re-apply pending path if set prior to template application
 			if ( string.IsNullOrEmpty(_pendingPath) )
-			    return;
+				return;
 			Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnApplyTemplate: '{_pendingPath}'");
 			SetCurrentPath(_pendingPath);
 		}
@@ -94,7 +94,7 @@ namespace KOTORModSync.Controls
 			// Ensure suggestions reflect environment when attached
 			InitializePathSuggestions();
 			if ( string.IsNullOrEmpty(_pendingPath) )
-			    return;
+				return;
 			Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnAttachedToVisualTree: '{_pendingPath}'");
 			SetCurrentPath(_pendingPath);
 		}
@@ -104,23 +104,23 @@ namespace KOTORModSync.Controls
 			base.OnPropertyChanged(change);
 
 			if ( change.Property == TitleProperty )
-			    UpdateTitle();
+				UpdateTitle();
 			else if ( change.Property == WatermarkProperty )
-			    UpdateWatermark();
+				UpdateWatermark();
 			else if ( change.Property == PickerTypeProperty )
-			    InitializePathSuggestions();
+				InitializePathSuggestions();
 		}
 
 		private void UpdateTitle()
 		{
 			if ( _titleTextBlock != null )
-			    _titleTextBlock.Text = Title ?? string.Empty;
+				_titleTextBlock.Text = Title ?? string.Empty;
 		}
 
 		private void UpdateWatermark()
 		{
 			if ( _pathInput != null )
-			    _pathInput.Watermark = Watermark ?? string.Empty;
+				_pathInput.Watermark = Watermark ?? string.Empty;
 		}
 
 		private void InitializePathSuggestions()
@@ -177,7 +177,7 @@ namespace KOTORModSync.Controls
 		private List<string> GetDefaultPathsForGame()
 		{
 			var paths = new List<string>();
-				OSPlatform osType = Utility.GetOperatingSystem();
+			OSPlatform osType = Utility.GetOperatingSystem();
 			Logger.LogVerbose($"DirectoryPickerControl.GetDefaultPathsForGame OS={osType}");
 
 			if ( osType == OSPlatform.Windows )
@@ -490,7 +490,7 @@ namespace KOTORModSync.Controls
 				if ( !currentItems.Contains(path) )
 				{
 					currentItems.Insert(0, path); // Add to the beginning
-					// Keep only the first 20 items to avoid cluttering
+												  // Keep only the first 20 items to avoid cluttering
 					if ( currentItems.Count > 20 )
 						currentItems = currentItems.Take(20).ToList();
 

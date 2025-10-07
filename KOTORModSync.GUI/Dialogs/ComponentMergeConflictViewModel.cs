@@ -15,6 +15,54 @@ using Component = KOTORModSync.Core.Component;
 
 namespace KOTORModSync.Dialogs
 {
+	/// <summary>
+	/// Tracks which source (Existing or Incoming) to use for each field when merging matched components
+	/// </summary>
+	public class FieldMergePreference : INotifyPropertyChanged
+	{
+		public enum FieldSource
+		{
+			UseExisting,
+			UseIncoming,
+			Merge // For lists - combine both
+		}
+
+		private FieldSource _name = FieldSource.UseIncoming;
+		private FieldSource _author = FieldSource.UseIncoming;
+		private FieldSource _description = FieldSource.UseIncoming;
+		private FieldSource _directions = FieldSource.UseIncoming;
+		private FieldSource _category = FieldSource.UseIncoming;
+		private FieldSource _tier = FieldSource.UseIncoming;
+		private FieldSource _installationMethod = FieldSource.UseIncoming;
+		private FieldSource _instructions = FieldSource.UseIncoming;
+		private FieldSource _dependencies = FieldSource.Merge;
+		private FieldSource _restrictions = FieldSource.Merge;
+		private FieldSource _installAfter = FieldSource.Merge;
+		private FieldSource _options = FieldSource.UseIncoming;
+		private FieldSource _modLink = FieldSource.Merge;
+		private FieldSource _language = FieldSource.Merge;
+
+		public FieldSource Name { get => _name; set { _name = value; OnPropertyChanged(); } }
+		public FieldSource Author { get => _author; set { _author = value; OnPropertyChanged(); } }
+		public FieldSource Description { get => _description; set { _description = value; OnPropertyChanged(); } }
+		public FieldSource Directions { get => _directions; set { _directions = value; OnPropertyChanged(); } }
+		public FieldSource Category { get => _category; set { _category = value; OnPropertyChanged(); } }
+		public FieldSource Tier { get => _tier; set { _tier = value; OnPropertyChanged(); } }
+		public FieldSource InstallationMethod { get => _installationMethod; set { _installationMethod = value; OnPropertyChanged(); } }
+		public FieldSource Instructions { get => _instructions; set { _instructions = value; OnPropertyChanged(); } }
+		public FieldSource Dependencies { get => _dependencies; set { _dependencies = value; OnPropertyChanged(); } }
+		public FieldSource Restrictions { get => _restrictions; set { _restrictions = value; OnPropertyChanged(); } }
+		public FieldSource InstallAfter { get => _installAfter; set { _installAfter = value; OnPropertyChanged(); } }
+		public FieldSource Options { get => _options; set { _options = value; OnPropertyChanged(); } }
+		public FieldSource ModLink { get => _modLink; set { _modLink = value; OnPropertyChanged(); } }
+		public FieldSource Language { get => _language; set { _language = value; OnPropertyChanged(); } }
+
+		public event PropertyChangedEventHandler PropertyChanged;
+
+		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+	}
+
 	public class ComponentMergeConflictViewModel : INotifyPropertyChanged
 	{
 		private bool _useIncomingOrder = true;
@@ -23,8 +71,6 @@ namespace KOTORModSync.Dialogs
 		private bool _skipDuplicates = true;
 		private ComponentConflictItem _selectedExistingItem;
 		private ComponentConflictItem _selectedIncomingItem;
-		private TomlDiffResult _selectedExistingTomlLine;
-		private TomlDiffResult _selectedIncomingTomlLine;
 		private TomlDiffResult _selectedMergedTomlLine;
 		private string _searchText = string.Empty;
 
@@ -33,6 +79,10 @@ namespace KOTORModSync.Dialogs
 			_guidResolutions =
 				new Dictionary<Tuple<ComponentConflictItem, ComponentConflictItem>,
 					GuidConflictResolver.GuidResolution>();
+
+		// Track field-level merge preferences for each matched pair
+		private readonly Dictionary<Tuple<ComponentConflictItem, ComponentConflictItem>, FieldMergePreference>
+			_fieldPreferences = new Dictionary<Tuple<ComponentConflictItem, ComponentConflictItem>, FieldMergePreference>();
 
 		public ComponentMergeConflictViewModel(
 			[NotNull] List<Component> existingComponents,
@@ -62,6 +112,8 @@ namespace KOTORModSync.Dialogs
 			KeepAllExistingUnmatchedCommand = new RelayCommand(_ => KeepAllExistingUnmatched());
 			LinkSelectedCommand = new RelayCommand(_ => LinkSelectedItems(), _ => CanLinkSelected());
 			UnlinkSelectedCommand = new RelayCommand(_ => UnlinkSelectedItems(), _ => CanUnlinkSelected());
+			UseAllIncomingFieldsCommand = new RelayCommand(_ => UseAllIncomingFields());
+			UseAllExistingFieldsCommand = new RelayCommand(_ => UseAllExistingFields());
 			JumpToRawViewCommand = new RelayCommand(param => JumpToRawView(param as ComponentConflictItem), param => param is ComponentConflictItem);
 
 			// Build conflict items
@@ -96,6 +148,8 @@ namespace KOTORModSync.Dialogs
 		public RelayCommand KeepAllExistingUnmatchedCommand { get; }
 		public RelayCommand LinkSelectedCommand { get; }
 		public RelayCommand UnlinkSelectedCommand { get; }
+		public RelayCommand UseAllIncomingFieldsCommand { get; }
+		public RelayCommand UseAllExistingFieldsCommand { get; }
 
 		private readonly List<(ComponentConflictItem Existing, ComponentConflictItem Incoming)> _matchedPairs =
 			new List<(ComponentConflictItem, ComponentConflictItem)>();
@@ -164,6 +218,242 @@ namespace KOTORModSync.Dialogs
 		public string MergeImpactSummary =>
 			$"📊 Merge Impact: {NewComponentsCount} new, {UpdatedComponentsCount} updated, {KeptComponentsCount} kept, {RemovedComponentsCount} removed";
 
+		public bool HasMatchedPairSelected
+		{
+			get
+			{
+				if ( _selectedExistingItem == null && _selectedIncomingItem == null )
+					return false;
+
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = default;
+
+				if ( _selectedExistingItem != null )
+					matchedPair = _matchedPairs.FirstOrDefault(p => p.Existing == _selectedExistingItem);
+				else if ( _selectedIncomingItem != null )
+					matchedPair = _matchedPairs.FirstOrDefault(p => p.Incoming == _selectedIncomingItem);
+
+				return matchedPair.Existing != null && matchedPair.Incoming != null;
+			}
+		}
+
+		public FieldMergePreference CurrentFieldPreferences
+		{
+			get
+			{
+				// Get preferences for the currently selected matched pair
+				if ( _selectedExistingItem == null && _selectedIncomingItem == null )
+					return new FieldMergePreference(); // Return empty instead of null
+
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = default;
+
+				if ( _selectedExistingItem != null )
+					matchedPair = _matchedPairs.FirstOrDefault(p => p.Existing == _selectedExistingItem);
+				else if ( _selectedIncomingItem != null )
+					matchedPair = _matchedPairs.FirstOrDefault(p => p.Incoming == _selectedIncomingItem);
+
+				if ( matchedPair.Existing == null || matchedPair.Incoming == null )
+					return new FieldMergePreference(); // Return empty instead of null
+
+				var key = Tuple.Create(matchedPair.Existing, matchedPair.Incoming);
+
+				// If preferences don't exist yet, create them with smart defaults and subscribe to changes
+				if ( _fieldPreferences.TryGetValue(key, out FieldMergePreference prefs) )
+					return prefs;
+				prefs = CreateAndSubscribeFieldPreferences(matchedPair.Existing.Component, matchedPair.Incoming.Component);
+				_fieldPreferences[key] = prefs;
+
+				return prefs;
+			}
+		}
+
+		/// <summary>
+		/// Creates field preferences with smart defaults and subscribes to property changes - use whichever source has data when the other is empty
+		/// </summary>
+		private FieldMergePreference CreateAndSubscribeFieldPreferences(Component existing, Component incoming)
+		{
+			FieldMergePreference prefs = CreateSmartFieldPreferences(existing, incoming);
+
+			// Subscribe to property changes to update preview
+			prefs.PropertyChanged += (_, __) =>
+			{
+				UpdatePreview();
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
+			};
+
+			return prefs;
+		}
+
+		/// <summary>
+		/// Creates field preferences with smart defaults - use whichever source has data when the other is empty
+		/// </summary>
+		private FieldMergePreference CreateSmartFieldPreferences(Component existing, Component incoming)
+		{
+			var prefs = new FieldMergePreference();
+
+			// For each field, if one source is empty/null and the other has data, use the one with data
+			// Otherwise default to UseIncoming
+
+			// Name
+			bool existingHasName = !string.IsNullOrWhiteSpace(existing.Name);
+			bool incomingHasName = !string.IsNullOrWhiteSpace(incoming.Name);
+			if ( !existingHasName && incomingHasName )
+				prefs.Name = FieldMergePreference.FieldSource.UseIncoming;
+			else if ( existingHasName && !incomingHasName )
+				prefs.Name = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.Name = FieldMergePreference.FieldSource.UseIncoming; // Default
+
+			// Author
+			bool existingHasAuthor = !string.IsNullOrWhiteSpace(existing.Author);
+			bool incomingHasAuthor = !string.IsNullOrWhiteSpace(incoming.Author);
+			if ( !existingHasAuthor && incomingHasAuthor )
+				prefs.Author = FieldMergePreference.FieldSource.UseIncoming;
+			else if ( existingHasAuthor && !incomingHasAuthor )
+				prefs.Author = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.Author = FieldMergePreference.FieldSource.UseIncoming;
+
+			// Instructions
+			bool existingHasInstructions = existing.Instructions.Count > 0;
+			bool incomingHasInstructions = incoming.Instructions.Count > 0;
+			if ( !existingHasInstructions && incomingHasInstructions )
+				prefs.Instructions = FieldMergePreference.FieldSource.UseIncoming;
+			else if ( existingHasInstructions && !incomingHasInstructions )
+				prefs.Instructions = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.Instructions = FieldMergePreference.FieldSource.UseIncoming;
+
+			// Options
+			bool existingHasOptions = existing.Options.Count > 0;
+			bool incomingHasOptions = incoming.Options.Count > 0;
+			if ( !existingHasOptions && incomingHasOptions )
+				prefs.Options = FieldMergePreference.FieldSource.UseIncoming;
+			else if ( existingHasOptions && !incomingHasOptions )
+				prefs.Options = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.Options = FieldMergePreference.FieldSource.UseIncoming;
+
+			// For lists that support merge, use Merge if both have data, otherwise use whichever has data
+			// Dependencies
+			bool existingHasDeps = existing.Dependencies.Count > 0;
+			bool incomingHasDeps = incoming.Dependencies.Count > 0;
+			if ( existingHasDeps && incomingHasDeps )
+				prefs.Dependencies = FieldMergePreference.FieldSource.Merge;
+			else if ( existingHasDeps )
+				prefs.Dependencies = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.Dependencies = FieldMergePreference.FieldSource.UseIncoming;
+
+			// Restrictions
+			bool existingHasRestrictions = existing.Restrictions.Count > 0;
+			bool incomingHasRestrictions = incoming.Restrictions.Count > 0;
+			if ( existingHasRestrictions && incomingHasRestrictions )
+				prefs.Restrictions = FieldMergePreference.FieldSource.Merge;
+			else if ( existingHasRestrictions )
+				prefs.Restrictions = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.Restrictions = FieldMergePreference.FieldSource.UseIncoming;
+
+			// InstallAfter
+			bool existingHasInstallAfter = existing.InstallAfter.Count > 0;
+			bool incomingHasInstallAfter = incoming.InstallAfter.Count > 0;
+			if ( existingHasInstallAfter && incomingHasInstallAfter )
+				prefs.InstallAfter = FieldMergePreference.FieldSource.Merge;
+			else if ( existingHasInstallAfter )
+				prefs.InstallAfter = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.InstallAfter = FieldMergePreference.FieldSource.UseIncoming;
+
+			// ModLink
+			bool existingHasModLink = existing.ModLink.Count > 0;
+			bool incomingHasModLink = incoming.ModLink.Count > 0;
+			if ( existingHasModLink && incomingHasModLink )
+				prefs.ModLink = FieldMergePreference.FieldSource.Merge;
+			else if ( existingHasModLink )
+				prefs.ModLink = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.ModLink = FieldMergePreference.FieldSource.UseIncoming;
+
+			// Language
+			bool existingHasLanguage = existing.Language.Count > 0;
+			bool incomingHasLanguage = incoming.Language.Count > 0;
+			if ( existingHasLanguage && incomingHasLanguage )
+				prefs.Language = FieldMergePreference.FieldSource.Merge;
+			else if ( existingHasLanguage )
+				prefs.Language = FieldMergePreference.FieldSource.UseExisting;
+			else
+				prefs.Language = FieldMergePreference.FieldSource.UseIncoming;
+
+			// Other string fields default to incoming
+			prefs.Description = FieldMergePreference.FieldSource.UseIncoming;
+			prefs.Directions = FieldMergePreference.FieldSource.UseIncoming;
+			prefs.Category = FieldMergePreference.FieldSource.UseIncoming;
+			prefs.Tier = FieldMergePreference.FieldSource.UseIncoming;
+			prefs.InstallationMethod = FieldMergePreference.FieldSource.UseIncoming;
+
+			return prefs;
+		}
+
+		// Preview properties for field merge display
+		public string PreviewName
+		{
+			get
+			{
+				if ( !HasMatchedPairSelected ) return string.Empty;
+
+				// Get the matched pair to access actual component data
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p =>
+				p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
+
+				return matchedPair.Existing == null || matchedPair.Incoming == null
+				? string.Empty
+				: CurrentFieldPreferences.Name == FieldMergePreference.FieldSource.UseExisting
+				? matchedPair.Existing.Component.Name
+				: matchedPair.Incoming.Component.Name;
+			}
+		}
+
+		public string PreviewAuthor
+		{
+			get
+			{
+				if ( !HasMatchedPairSelected ) return string.Empty;
+
+				// Get the matched pair to access actual component data
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p =>
+					p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
+
+				return matchedPair.Existing == null || matchedPair.Incoming == null
+					? string.Empty
+					: CurrentFieldPreferences.Author == FieldMergePreference.FieldSource.UseExisting
+					? matchedPair.Existing.Component.Author
+					: matchedPair.Incoming.Component.Author;
+			}
+		}
+
+		public string PreviewInstructionsCount
+		{
+			get
+			{
+				if ( !HasMatchedPairSelected ) return "0 instructions";
+
+				// Get the matched pair to access actual component data
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p =>
+					p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
+
+				if ( matchedPair.Existing == null || matchedPair.Incoming == null )
+					return "0 instructions";
+
+				int count = CurrentFieldPreferences.Instructions == FieldMergePreference.FieldSource.UseExisting
+					? matchedPair.Existing.Component.Instructions.Count
+					: matchedPair.Incoming.Component.Instructions.Count;
+
+				return $"{count} instruction{(count != 1 ? "s" : "")}";
+			}
+		}
+
 		public ComponentConflictItem SelectedExistingItem
 		{
 			get => _selectedExistingItem;
@@ -186,14 +476,30 @@ namespace KOTORModSync.Dialogs
 				OnPropertyChanged(nameof(ComparisonText));
 				OnPropertyChanged(nameof(CanLinkItems));
 				OnPropertyChanged(nameof(ExistingComponentsToml));
+				OnPropertyChanged(nameof(HasMatchedPairSelected));
+				OnPropertyChanged(nameof(CurrentFieldPreferences));
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 
 				// Auto-highlight matching item in incoming list
 				if ( value == null )
 					return;
 				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
 					_matchedPairs.FirstOrDefault(p => p.Existing == value);
+
+				// If no match found, clear incoming selection
 				if ( matchedPair.Incoming == null )
+				{
+					if ( _selectedIncomingItem != null )
+					{
+						_selectedIncomingItem.IsVisuallySelected = false;
+						_selectedIncomingItem = null;
+						OnPropertyChanged(nameof(SelectedIncomingItem));
+					}
 					return;
+				}
+
 				// Clear other incoming highlights first
 				foreach ( ComponentConflictItem item in IncomingComponents )
 				{
@@ -205,6 +511,10 @@ namespace KOTORModSync.Dialogs
 				matchedPair.Incoming.IsVisuallySelected = true;
 				OnPropertyChanged(nameof(SelectedIncomingItem));
 				OnPropertyChanged(nameof(IncomingComponentsToml));
+				OnPropertyChanged(nameof(CurrentFieldPreferences));
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 
 				// Fire sync event for UI scrolling
 				SyncSelectionRequested?.Invoke(this, new SyncSelectionEventArgs { SelectedItem = value, MatchedItem = matchedPair.Incoming });
@@ -233,14 +543,30 @@ namespace KOTORModSync.Dialogs
 				OnPropertyChanged(nameof(ComparisonText));
 				OnPropertyChanged(nameof(CanLinkItems));
 				OnPropertyChanged(nameof(IncomingComponentsToml));
+				OnPropertyChanged(nameof(HasMatchedPairSelected));
+				OnPropertyChanged(nameof(CurrentFieldPreferences));
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 
 				// Auto-highlight matching item in existing list
 				if ( value == null )
 					return;
 				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
 					_matchedPairs.FirstOrDefault(p => p.Incoming == value);
+
+				// If no match found, clear existing selection
 				if ( matchedPair.Existing == null )
+				{
+					if ( _selectedExistingItem != null )
+					{
+						_selectedExistingItem.IsVisuallySelected = false;
+						_selectedExistingItem = null;
+						OnPropertyChanged(nameof(SelectedExistingItem));
+					}
 					return;
+				}
+
 				// Clear other existing highlights first
 				foreach ( ComponentConflictItem item in ExistingComponents )
 				{
@@ -252,51 +578,13 @@ namespace KOTORModSync.Dialogs
 				matchedPair.Existing.IsVisuallySelected = true;
 				OnPropertyChanged(nameof(SelectedExistingItem));
 				OnPropertyChanged(nameof(ExistingComponentsToml));
+				OnPropertyChanged(nameof(CurrentFieldPreferences));
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 
 				// Fire sync event for UI scrolling
 				SyncSelectionRequested?.Invoke(this, new SyncSelectionEventArgs { SelectedItem = value, MatchedItem = matchedPair.Existing });
-			}
-		}
-
-		public TomlDiffResult SelectedExistingTomlLine
-		{
-			get => _selectedExistingTomlLine;
-			set
-			{
-				if ( _selectedExistingTomlLine == value ) return;
-				_selectedExistingTomlLine = value;
-				OnPropertyChanged();
-
-				// Sync selection to component list if a line with ComponentGuid is selected
-				if ( value != null && !string.IsNullOrEmpty(value.ComponentGuid) )
-				{
-					ComponentConflictItem matchingItem = ExistingComponents.FirstOrDefault(c => c.Component.Guid.ToString() == value.ComponentGuid);
-					if ( matchingItem != null && matchingItem != _selectedExistingItem )
-					{
-						SelectedExistingItem = matchingItem;
-					}
-				}
-			}
-		}
-
-		public TomlDiffResult SelectedIncomingTomlLine
-		{
-			get => _selectedIncomingTomlLine;
-			set
-			{
-				if ( _selectedIncomingTomlLine == value ) return;
-				_selectedIncomingTomlLine = value;
-				OnPropertyChanged();
-
-				// Sync selection to component list if a line with ComponentGuid is selected
-				if ( value != null && !string.IsNullOrEmpty(value.ComponentGuid) )
-				{
-					ComponentConflictItem matchingItem = IncomingComponents.FirstOrDefault(c => c.Component.Guid.ToString() == value.ComponentGuid);
-					if ( matchingItem != null && matchingItem != _selectedIncomingItem )
-					{
-						SelectedIncomingItem = matchingItem;
-					}
-				}
 			}
 		}
 
@@ -345,7 +633,10 @@ namespace KOTORModSync.Dialogs
 				var sb = new System.Text.StringBuilder();
 				_ = sb.AppendLine($"Component: {component.Name}");
 				_ = sb.AppendLine($"Author: {component.Author}");
-				_ = sb.AppendLine($"Category: {component.Category} / {component.Tier}");
+				string categoryStr = component.Category != null && component.Category.Count > 0
+					? string.Join(", ", component.Category)
+					: "No category";
+				_ = sb.AppendLine($"Category: {categoryStr} / {component.Tier}");
 				_ = sb.AppendLine($"Instructions: {component.Instructions.Count}");
 				_ = sb.AppendLine($"Options: {component.Options.Count}");
 				_ = sb.AppendLine($"Dependencies: {component.Dependencies.Count}");
@@ -466,6 +757,12 @@ namespace KOTORModSync.Dialogs
 			// Sort by score descending to prioritize best matches
 			potentialMatches = potentialMatches.OrderByDescending(m => m.score).Cast<(Component, Component, double)>().ToList();
 
+			// Create a dictionary to track matches
+			var existingToIncomingMatch = new Dictionary<Component, Component>();
+			var incomingToExistingMatch = new Dictionary<Component, Component>();
+			var existingItemLookup = new Dictionary<Component, ComponentConflictItem>();
+			var incomingItemLookup = new Dictionary<Component, ComponentConflictItem>();
+
 			// Create one-to-one matches, picking best matches first
 			foreach ( (Component existing, Component incoming, double _) in potentialMatches )
 			{
@@ -473,17 +770,79 @@ namespace KOTORModSync.Dialogs
 				if ( existingSet.Contains(existing) || incomingSet.Contains(incoming) )
 					continue;
 
-				var existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.Matched);
-				var incomingItem = new ComponentConflictItem(incoming, false, ComponentConflictStatus.Matched);
+				// Record the match
+				existingToIncomingMatch[existing] = incoming;
+				incomingToExistingMatch[incoming] = existing;
 
-				existingItem.PropertyChanged += OnItemSelectionChanged;
-				incomingItem.PropertyChanged += OnItemSelectionChanged;
+				_ = existingSet.Add(existing);
+				_ = incomingSet.Add(incoming);
+			}
 
-				incomingItem.IsSelected = true; // Default: prefer incoming for matches
-				existingItem.IsSelected = false;
+			// Now add existing components in their original order
+			foreach ( Component existing in existingComponents )
+			{
+				ComponentConflictItem existingItem;
+
+				if ( existingToIncomingMatch.ContainsKey(existing) )
+				{
+					// This is a matched component
+					existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.Matched);
+					existingItem.PropertyChanged += OnItemSelectionChanged;
+					existingItem.IsSelected = false; // Default: prefer incoming for matches
+
+					existingItemLookup[existing] = existingItem;
+				}
+				else
+				{
+					// Unmatched existing item
+					existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.ExistingOnly);
+					existingItem.PropertyChanged += OnItemSelectionChanged;
+					existingItem.IsSelected = true; // Keep unmatched existing
+					_existingOnly.Add(existingItem);
+				}
+
+				ExistingComponents.Add(existingItem);
+			}
+
+			// Now add incoming components in their original order
+			foreach ( Component incoming in incomingComponents )
+			{
+				ComponentConflictItem incomingItem;
+
+				if ( incomingToExistingMatch.ContainsKey(incoming) )
+				{
+					// This is a matched component
+					incomingItem = new ComponentConflictItem(incoming, false, ComponentConflictStatus.Matched);
+					incomingItem.PropertyChanged += OnItemSelectionChanged;
+					incomingItem.IsSelected = true; // Default: prefer incoming for matches
+
+					incomingItemLookup[incoming] = incomingItem;
+				}
+				else
+				{
+					// Incoming-only item (new)
+					incomingItem = new ComponentConflictItem(incoming, false, ComponentConflictStatus.New);
+					incomingItem.PropertyChanged += OnItemSelectionChanged;
+					incomingItem.IsSelected = true;
+					_incomingOnly.Add(incomingItem);
+				}
+
+				IncomingComponents.Add(incomingItem);
+			}
+
+			// Build matched pairs list using the original match information
+			foreach ( KeyValuePair<Component, Component> kvp in existingToIncomingMatch )
+			{
+				Component existing = kvp.Key;
+				Component incoming = kvp.Value;
+
+				ComponentConflictItem existingItem = existingItemLookup[existing];
+				ComponentConflictItem incomingItem = incomingItemLookup[incoming];
 
 				var pair = Tuple.Create(existingItem, incomingItem);
 				_matchedPairs.Add((existingItem, incomingItem));
+
+				// Field preferences will be created lazily with smart defaults when accessed
 
 				// Resolve GUID conflict intelligently
 				GuidConflictResolver.GuidResolution guidResolution =
@@ -501,35 +860,6 @@ namespace KOTORModSync.Dialogs
 						incomingItem.GuidConflictTooltip = guidResolution.ConflictReason;
 					}
 				}
-
-				_ = existingSet.Add(existing);
-				_ = incomingSet.Add(incoming);
-
-				ExistingComponents.Add(existingItem);
-				IncomingComponents.Add(incomingItem);
-			}
-
-			// Add unmatched existing items
-			foreach ( Component existing in existingComponents )
-			{
-				if ( existingSet.Contains(existing) )
-					continue;
-
-				var existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.ExistingOnly);
-				existingItem.PropertyChanged += OnItemSelectionChanged;
-				existingItem.IsSelected = true; // Keep unmatched existing
-				_existingOnly.Add(existingItem);
-				_ = existingSet.Add(existing);
-				ExistingComponents.Add(existingItem);
-			}
-
-			// Add incoming-only items
-			foreach ( ComponentConflictItem incomingItem in from incoming in incomingComponents where !incomingSet.Contains(incoming) select new ComponentConflictItem(incoming, false, ComponentConflictStatus.New) )
-			{
-				incomingItem.PropertyChanged += OnItemSelectionChanged;
-				incomingItem.IsSelected = true;
-				_incomingOnly.Add(incomingItem);
-				IncomingComponents.Add(incomingItem);
 			}
 		}
 
@@ -554,23 +884,293 @@ namespace KOTORModSync.Dialogs
 			// Preview is auto-updated via OnItemSelectionChanged
 		}
 
-	public void KeepAllNew()
-	{
-		// Toggle: if any are unselected, select all; if all are selected, deselect all
-		bool anyUnselected = _incomingOnly.Any(item => !item.IsSelected);
-		foreach ( ComponentConflictItem item in _incomingOnly )
-			item.IsSelected = anyUnselected;
-		// Preview is auto-updated via OnItemSelectionChanged
-	}
+		public void KeepAllNew()
+		{
+			// Toggle: if any are unselected, select all; if all are selected, deselect all
+			bool anyUnselected = _incomingOnly.Any(item => !item.IsSelected);
+			foreach ( ComponentConflictItem item in _incomingOnly )
+				item.IsSelected = anyUnselected;
+			// Preview is auto-updated via OnItemSelectionChanged
+		}
 
-	public void KeepAllExistingUnmatched()
-	{
-		// Toggle: if any are unselected, select all; if all are selected, deselect all
-		bool anyUnselected = _existingOnly.Any(item => !item.IsSelected);
-		foreach ( ComponentConflictItem item in _existingOnly )
-			item.IsSelected = anyUnselected;
-		// Preview is auto-updated via OnItemSelectionChanged
-	}
+		public void KeepAllExistingUnmatched()
+		{
+			// Toggle: if any are unselected, select all; if all are selected, deselect all
+			bool anyUnselected = _existingOnly.Any(item => !item.IsSelected);
+			foreach ( ComponentConflictItem item in _existingOnly )
+				item.IsSelected = anyUnselected;
+			// Preview is auto-updated via OnItemSelectionChanged
+		}
+
+		/// <summary>
+		/// Sets all field preferences for all matched pairs to use incoming fields (where incoming has data)
+		/// Respects smart merge logic - only sets to incoming if incoming has data, keeps existing if incoming is empty
+		/// </summary>
+		public void UseAllIncomingFields()
+		{
+			foreach ( (ComponentConflictItem Existing, ComponentConflictItem Incoming) pair in _matchedPairs )
+			{
+				var key = Tuple.Create(pair.Existing, pair.Incoming);
+
+				// Ensure preferences exist by accessing CurrentFieldPreferences
+				// This will lazily create them with smart defaults if they don't exist yet
+				if ( !_fieldPreferences.ContainsKey(key) )
+				{
+					_ = CurrentFieldPreferences; // Access to trigger creation
+				}
+
+				// Get the actual stored preferences
+				if ( _fieldPreferences.TryGetValue(key, out FieldMergePreference fieldPrefs) )
+				{
+					Component existing = pair.Existing.Component;
+					Component incoming = pair.Incoming.Component;
+
+					// For each field, prefer incoming if it has data, otherwise keep existing if that has data
+					// Name
+					if ( !string.IsNullOrWhiteSpace(incoming.Name) )
+						fieldPrefs.Name = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( !string.IsNullOrWhiteSpace(existing.Name) )
+						fieldPrefs.Name = FieldMergePreference.FieldSource.UseExisting;
+
+					// Author
+					if ( !string.IsNullOrWhiteSpace(incoming.Author) )
+						fieldPrefs.Author = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( !string.IsNullOrWhiteSpace(existing.Author) )
+						fieldPrefs.Author = FieldMergePreference.FieldSource.UseExisting;
+
+					// Instructions
+					if ( incoming.Instructions != null && incoming.Instructions.Count > 0 )
+						fieldPrefs.Instructions = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( existing.Instructions != null && existing.Instructions.Count > 0 )
+						fieldPrefs.Instructions = FieldMergePreference.FieldSource.UseExisting;
+
+					// Options
+					if ( incoming.Options != null && incoming.Options.Count > 0 )
+						fieldPrefs.Options = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( existing.Options != null && existing.Options.Count > 0 )
+						fieldPrefs.Options = FieldMergePreference.FieldSource.UseExisting;
+
+					// For mergeable fields, use Merge if both have data, otherwise prefer incoming
+					// Dependencies
+					bool existingHasDeps = existing.Dependencies != null && existing.Dependencies.Count > 0;
+					bool incomingHasDeps = incoming.Dependencies != null && incoming.Dependencies.Count > 0;
+					if ( existingHasDeps && incomingHasDeps )
+						fieldPrefs.Dependencies = FieldMergePreference.FieldSource.Merge;
+					else if ( incomingHasDeps )
+						fieldPrefs.Dependencies = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( existingHasDeps )
+						fieldPrefs.Dependencies = FieldMergePreference.FieldSource.UseExisting;
+
+					// Restrictions
+					bool existingHasRestrictions = existing.Restrictions != null && existing.Restrictions.Count > 0;
+					bool incomingHasRestrictions = incoming.Restrictions != null && incoming.Restrictions.Count > 0;
+					if ( existingHasRestrictions && incomingHasRestrictions )
+						fieldPrefs.Restrictions = FieldMergePreference.FieldSource.Merge;
+					else if ( incomingHasRestrictions )
+						fieldPrefs.Restrictions = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( existingHasRestrictions )
+						fieldPrefs.Restrictions = FieldMergePreference.FieldSource.UseExisting;
+
+					// InstallAfter
+					bool existingHasInstallAfter = existing.InstallAfter != null && existing.InstallAfter.Count > 0;
+					bool incomingHasInstallAfter = incoming.InstallAfter != null && incoming.InstallAfter.Count > 0;
+					if ( existingHasInstallAfter && incomingHasInstallAfter )
+						fieldPrefs.InstallAfter = FieldMergePreference.FieldSource.Merge;
+					else if ( incomingHasInstallAfter )
+						fieldPrefs.InstallAfter = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( existingHasInstallAfter )
+						fieldPrefs.InstallAfter = FieldMergePreference.FieldSource.UseExisting;
+
+					// ModLink
+					bool existingHasModLink = existing.ModLink != null && existing.ModLink.Count > 0;
+					bool incomingHasModLink = incoming.ModLink != null && incoming.ModLink.Count > 0;
+					if ( existingHasModLink && incomingHasModLink )
+						fieldPrefs.ModLink = FieldMergePreference.FieldSource.Merge;
+					else if ( incomingHasModLink )
+						fieldPrefs.ModLink = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( existingHasModLink )
+						fieldPrefs.ModLink = FieldMergePreference.FieldSource.UseExisting;
+
+					// Language
+					bool existingHasLanguage = existing.Language != null && existing.Language.Count > 0;
+					bool incomingHasLanguage = incoming.Language != null && incoming.Language.Count > 0;
+					if ( existingHasLanguage && incomingHasLanguage )
+						fieldPrefs.Language = FieldMergePreference.FieldSource.Merge;
+					else if ( incomingHasLanguage )
+						fieldPrefs.Language = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( existingHasLanguage )
+						fieldPrefs.Language = FieldMergePreference.FieldSource.UseExisting;
+
+					// Other string fields - prefer incoming if it has data
+					if ( !string.IsNullOrWhiteSpace(incoming.Description) )
+						fieldPrefs.Description = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( !string.IsNullOrWhiteSpace(existing.Description) )
+						fieldPrefs.Description = FieldMergePreference.FieldSource.UseExisting;
+
+					if ( !string.IsNullOrWhiteSpace(incoming.Directions) )
+						fieldPrefs.Directions = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( !string.IsNullOrWhiteSpace(existing.Directions) )
+						fieldPrefs.Directions = FieldMergePreference.FieldSource.UseExisting;
+
+					if ( incoming.Category != null && incoming.Category.Count > 0 )
+						fieldPrefs.Category = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( existing.Category != null && existing.Category.Count > 0 )
+						fieldPrefs.Category = FieldMergePreference.FieldSource.UseExisting;
+
+					if ( !string.IsNullOrWhiteSpace(incoming.Tier) )
+						fieldPrefs.Tier = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( !string.IsNullOrWhiteSpace(existing.Tier) )
+						fieldPrefs.Tier = FieldMergePreference.FieldSource.UseExisting;
+
+					if ( !string.IsNullOrWhiteSpace(incoming.InstallationMethod) )
+						fieldPrefs.InstallationMethod = FieldMergePreference.FieldSource.UseIncoming;
+					else if ( !string.IsNullOrWhiteSpace(existing.InstallationMethod) )
+						fieldPrefs.InstallationMethod = FieldMergePreference.FieldSource.UseExisting;
+				}
+			}
+
+			// Update preview for currently selected item
+			OnPropertyChanged(nameof(CurrentFieldPreferences));
+			OnPropertyChanged(nameof(PreviewName));
+			OnPropertyChanged(nameof(PreviewAuthor));
+			OnPropertyChanged(nameof(PreviewInstructionsCount));
+			UpdatePreview();
+		}
+
+		/// <summary>
+		/// Sets all field preferences for all matched pairs to use existing fields (where existing has data)
+		/// Respects smart merge logic - only sets to existing if existing has data, keeps incoming if existing is empty
+		/// </summary>
+		public void UseAllExistingFields()
+		{
+			foreach ( (ComponentConflictItem Existing, ComponentConflictItem Incoming) pair in _matchedPairs )
+			{
+				var key = Tuple.Create(pair.Existing, pair.Incoming);
+
+				// Ensure preferences exist by accessing CurrentFieldPreferences
+				// This will lazily create them with smart defaults if they don't exist yet
+				if ( !_fieldPreferences.ContainsKey(key) )
+				{
+					_ = CurrentFieldPreferences; // Access to trigger creation
+				}
+
+				// Get the actual stored preferences
+				if ( _fieldPreferences.TryGetValue(key, out FieldMergePreference fieldPrefs) )
+				{
+					Component existing = pair.Existing.Component;
+					Component incoming = pair.Incoming.Component;
+
+					// For each field, prefer existing if it has data, otherwise keep incoming if that has data
+					// Name
+					if ( !string.IsNullOrWhiteSpace(existing.Name) )
+						fieldPrefs.Name = FieldMergePreference.FieldSource.UseExisting;
+					else if ( !string.IsNullOrWhiteSpace(incoming.Name) )
+						fieldPrefs.Name = FieldMergePreference.FieldSource.UseIncoming;
+
+					// Author
+					if ( !string.IsNullOrWhiteSpace(existing.Author) )
+						fieldPrefs.Author = FieldMergePreference.FieldSource.UseExisting;
+					else if ( !string.IsNullOrWhiteSpace(incoming.Author) )
+						fieldPrefs.Author = FieldMergePreference.FieldSource.UseIncoming;
+
+					// Instructions
+					if ( existing.Instructions != null && existing.Instructions.Count > 0 )
+						fieldPrefs.Instructions = FieldMergePreference.FieldSource.UseExisting;
+					else if ( incoming.Instructions != null && incoming.Instructions.Count > 0 )
+						fieldPrefs.Instructions = FieldMergePreference.FieldSource.UseIncoming;
+
+					// Options
+					if ( existing.Options != null && existing.Options.Count > 0 )
+						fieldPrefs.Options = FieldMergePreference.FieldSource.UseExisting;
+					else if ( incoming.Options != null && incoming.Options.Count > 0 )
+						fieldPrefs.Options = FieldMergePreference.FieldSource.UseIncoming;
+
+					// For mergeable fields, use Merge if both have data, otherwise prefer existing
+					// Dependencies
+					bool existingHasDeps = existing.Dependencies != null && existing.Dependencies.Count > 0;
+					bool incomingHasDeps = incoming.Dependencies != null && incoming.Dependencies.Count > 0;
+					if ( existingHasDeps && incomingHasDeps )
+						fieldPrefs.Dependencies = FieldMergePreference.FieldSource.Merge;
+					else if ( existingHasDeps )
+						fieldPrefs.Dependencies = FieldMergePreference.FieldSource.UseExisting;
+					else if ( incomingHasDeps )
+						fieldPrefs.Dependencies = FieldMergePreference.FieldSource.UseIncoming;
+
+					// Restrictions
+					bool existingHasRestrictions = existing.Restrictions != null && existing.Restrictions.Count > 0;
+					bool incomingHasRestrictions = incoming.Restrictions != null && incoming.Restrictions.Count > 0;
+					if ( existingHasRestrictions && incomingHasRestrictions )
+						fieldPrefs.Restrictions = FieldMergePreference.FieldSource.Merge;
+					else if ( existingHasRestrictions )
+						fieldPrefs.Restrictions = FieldMergePreference.FieldSource.UseExisting;
+					else if ( incomingHasRestrictions )
+						fieldPrefs.Restrictions = FieldMergePreference.FieldSource.UseIncoming;
+
+					// InstallAfter
+					bool existingHasInstallAfter = existing.InstallAfter != null && existing.InstallAfter.Count > 0;
+					bool incomingHasInstallAfter = incoming.InstallAfter != null && incoming.InstallAfter.Count > 0;
+					if ( existingHasInstallAfter && incomingHasInstallAfter )
+						fieldPrefs.InstallAfter = FieldMergePreference.FieldSource.Merge;
+					else if ( existingHasInstallAfter )
+						fieldPrefs.InstallAfter = FieldMergePreference.FieldSource.UseExisting;
+					else if ( incomingHasInstallAfter )
+						fieldPrefs.InstallAfter = FieldMergePreference.FieldSource.UseIncoming;
+
+					// ModLink
+					bool existingHasModLink = existing.ModLink != null && existing.ModLink.Count > 0;
+					bool incomingHasModLink = incoming.ModLink != null && incoming.ModLink.Count > 0;
+					if ( existingHasModLink && incomingHasModLink )
+						fieldPrefs.ModLink = FieldMergePreference.FieldSource.Merge;
+					else if ( existingHasModLink )
+						fieldPrefs.ModLink = FieldMergePreference.FieldSource.UseExisting;
+					else if ( incomingHasModLink )
+						fieldPrefs.ModLink = FieldMergePreference.FieldSource.UseIncoming;
+
+					// Language
+					bool existingHasLanguage = existing.Language != null && existing.Language.Count > 0;
+					bool incomingHasLanguage = incoming.Language != null && incoming.Language.Count > 0;
+					if ( existingHasLanguage && incomingHasLanguage )
+						fieldPrefs.Language = FieldMergePreference.FieldSource.Merge;
+					else if ( existingHasLanguage )
+						fieldPrefs.Language = FieldMergePreference.FieldSource.UseExisting;
+					else if ( incomingHasLanguage )
+						fieldPrefs.Language = FieldMergePreference.FieldSource.UseIncoming;
+
+					// Other string fields - prefer existing if it has data
+					if ( !string.IsNullOrWhiteSpace(existing.Description) )
+						fieldPrefs.Description = FieldMergePreference.FieldSource.UseExisting;
+					else if ( !string.IsNullOrWhiteSpace(incoming.Description) )
+						fieldPrefs.Description = FieldMergePreference.FieldSource.UseIncoming;
+
+					if ( !string.IsNullOrWhiteSpace(existing.Directions) )
+						fieldPrefs.Directions = FieldMergePreference.FieldSource.UseExisting;
+					else if ( !string.IsNullOrWhiteSpace(incoming.Directions) )
+						fieldPrefs.Directions = FieldMergePreference.FieldSource.UseIncoming;
+
+					if ( existing.Category != null && existing.Category.Count > 0 )
+						fieldPrefs.Category = FieldMergePreference.FieldSource.UseExisting;
+					else if ( incoming.Category != null && incoming.Category.Count > 0 )
+						fieldPrefs.Category = FieldMergePreference.FieldSource.UseIncoming;
+
+					if ( !string.IsNullOrWhiteSpace(existing.Tier) )
+						fieldPrefs.Tier = FieldMergePreference.FieldSource.UseExisting;
+					else if ( !string.IsNullOrWhiteSpace(incoming.Tier) )
+						fieldPrefs.Tier = FieldMergePreference.FieldSource.UseIncoming;
+
+					if ( !string.IsNullOrWhiteSpace(existing.InstallationMethod) )
+						fieldPrefs.InstallationMethod = FieldMergePreference.FieldSource.UseExisting;
+					else if ( !string.IsNullOrWhiteSpace(incoming.InstallationMethod) )
+						fieldPrefs.InstallationMethod = FieldMergePreference.FieldSource.UseIncoming;
+				}
+			}
+
+			// Update preview for currently selected item
+			OnPropertyChanged(nameof(CurrentFieldPreferences));
+			OnPropertyChanged(nameof(PreviewName));
+			OnPropertyChanged(nameof(PreviewAuthor));
+			OnPropertyChanged(nameof(PreviewInstructionsCount));
+			UpdatePreview();
+		}
 
 		private void ApplySearchFilter()
 		{
@@ -670,6 +1270,8 @@ namespace KOTORModSync.Dialogs
 			// Add to matched pairs
 			_matchedPairs.Add((_selectedExistingItem, _selectedIncomingItem));
 
+			// Field preferences will be created lazily with smart defaults when accessed
+
 			// Default: prefer incoming for manual links
 			_selectedExistingItem.IsSelected = false;
 			_selectedIncomingItem.IsSelected = true;
@@ -678,6 +1280,8 @@ namespace KOTORModSync.Dialogs
 			OnPropertyChanged(nameof(ConflictDescription));
 			OnPropertyChanged(nameof(MergeImpactSummary));
 			OnPropertyChanged(nameof(LinkButtonText));
+			OnPropertyChanged(nameof(HasMatchedPairSelected));
+			OnPropertyChanged(nameof(CurrentFieldPreferences));
 			LinkSelectedCommand.RaiseCanExecuteChanged();
 			UnlinkSelectedCommand.RaiseCanExecuteChanged();
 		}
@@ -954,14 +1558,24 @@ namespace KOTORModSync.Dialogs
 					if ( matchedPair.Existing != null && matchedPair.Incoming != null )
 					{
 						// This is a matched pair - merge ALL fields from both components
-						// User's checkbox selection determines which wins for conflicts
+						// Use field-level preferences if available
 						var pair = Tuple.Create(matchedPair.Existing, matchedPair.Incoming);
 
-						// Merge: take non-empty values, user's selection wins conflicts
-						Component mergedComponent = MergeComponentData(
+						// Get field preferences - create with smart defaults if not exists
+						if ( !_fieldPreferences.ContainsKey(pair) )
+						{
+							_fieldPreferences[pair] = CreateAndSubscribeFieldPreferences(
+								matchedPair.Existing.Component,
+								matchedPair.Incoming.Component
+							);
+						}
+						FieldMergePreference fieldPrefs = _fieldPreferences[pair];
+
+						// Merge using field preferences
+						Component mergedComponent = ComponentMergeConflictViewModel.MergeComponentData(
 							matchedPair.Existing.Component,
 							matchedPair.Incoming.Component,
-							matchedPair.Incoming.IsSelected // Use incoming if it's selected
+							fieldPrefs
 						);
 
 						// Apply intelligent GUID resolution
@@ -1044,14 +1658,24 @@ namespace KOTORModSync.Dialogs
 				if ( matchedPair.Existing != null && matchedPair.Incoming != null )
 				{
 					// This is a matched pair - merge ALL fields from both components
-					// User's checkbox selection determines which wins for conflicts
+					// Use field-level preferences if available
 					var pair = Tuple.Create(matchedPair.Existing, matchedPair.Incoming);
 
-					// Merge: take non-empty values, user's selection wins conflicts
-					Component mergedComponent = MergeComponentData(
+					// Get field preferences - create with smart defaults if not exists
+					if ( !_fieldPreferences.TryGetValue(pair, out FieldMergePreference fieldPrefs) )
+					{
+						fieldPrefs = CreateAndSubscribeFieldPreferences(
+							matchedPair.Existing.Component,
+							matchedPair.Incoming.Component
+						);
+						_fieldPreferences[pair] = fieldPrefs;
+					}
+
+					// Merge using field preferences
+					Component mergedComponent = ComponentMergeConflictViewModel.MergeComponentData(
 						matchedPair.Existing.Component,
 						matchedPair.Incoming.Component,
-						matchedPair.Incoming.IsSelected // Use incoming if it's selected
+						fieldPrefs
 					);
 
 					// Apply intelligent GUID resolution
@@ -1108,20 +1732,100 @@ namespace KOTORModSync.Dialogs
 		}
 
 		/// <summary>
-		/// Intelligently merges two components.
+		/// Intelligently merges two components using field-level preferences.
 		/// For each field: uses non-null/non-empty value if only one exists.
-		/// For conflicts (both have values): uses the selected component's value based on user's checkbox choice.
+		/// For conflicts (both have values): uses the field preference to determine which source to use.
 		/// </summary>
-		private Component MergeComponentData(Component existing, Component incoming, bool useIncomingForConflicts)
+		private static Component MergeComponentData(Component existing, Component incoming, FieldMergePreference fieldPrefs)
 		{
-			// Helper to merge string fields
-			string MergeString(string existingVal, string incomingVal)
+			// Use default preferences if none provided (prefer incoming)
+			if ( fieldPrefs == null )
+				fieldPrefs = new FieldMergePreference();
+
+			// Create merged component
+			var merged = new Component
+			{
+				// GUID will be set by caller based on intelligent GUID resolution
+				Guid = existing.Guid,
+
+				// Merge all string fields using preferences
+				Name = MergeStringField(existing.Name, incoming.Name, fieldPrefs.Name),
+				Author = MergeStringField(existing.Author, incoming.Author, fieldPrefs.Author),
+				Description = MergeStringField(existing.Description, incoming.Description, fieldPrefs.Description),
+				Directions = MergeStringField(existing.Directions, incoming.Directions, fieldPrefs.Directions),
+				Category = MergeListField(existing.Category, incoming.Category, fieldPrefs.Category),
+				Tier = MergeStringField(existing.Tier, incoming.Tier, fieldPrefs.Tier),
+				InstallationMethod = MergeStringField(existing.InstallationMethod, incoming.InstallationMethod, fieldPrefs.InstallationMethod),
+
+				// Merge lists using preferences
+				Instructions = MergeListField(existing.Instructions, incoming.Instructions, fieldPrefs.Instructions),
+				Options = MergeListField(existing.Options, incoming.Options, fieldPrefs.Options),
+
+				// For Dependencies, Restrictions, InstallAfter, ModLink, Language - support merging
+				Dependencies = fieldPrefs.Dependencies == FieldMergePreference.FieldSource.Merge
+					? MergeLists(existing.Dependencies, incoming.Dependencies, deduplicate: true)
+					: MergeListField(existing.Dependencies, incoming.Dependencies, fieldPrefs.Dependencies),
+
+				Restrictions = fieldPrefs.Restrictions == FieldMergePreference.FieldSource.Merge
+					? MergeLists(existing.Restrictions, incoming.Restrictions, deduplicate: true)
+					: MergeListField(existing.Restrictions, incoming.Restrictions, fieldPrefs.Restrictions),
+
+				InstallAfter = fieldPrefs.InstallAfter == FieldMergePreference.FieldSource.Merge
+					? MergeLists(existing.InstallAfter, incoming.InstallAfter, deduplicate: true)
+					: MergeListField(existing.InstallAfter, incoming.InstallAfter, fieldPrefs.InstallAfter),
+
+				ModLink = fieldPrefs.ModLink == FieldMergePreference.FieldSource.Merge
+					? MergeLists(existing.ModLink, incoming.ModLink, deduplicate: true)
+					: MergeListField(existing.ModLink, incoming.ModLink, fieldPrefs.ModLink),
+
+				Language = fieldPrefs.Language == FieldMergePreference.FieldSource.Merge
+					? MergeLists(existing.Language, incoming.Language, deduplicate: true)
+					: MergeListField(existing.Language, incoming.Language, fieldPrefs.Language),
+
+				// State fields - always preserve existing state
+				IsSelected = existing.IsSelected,
+				InstallState = existing.InstallState,
+				IsDownloaded = existing.IsDownloaded
+			};
+
+			return merged;
+
+			// Helper to merge list fields based on preference
+			T MergeListField<T>(T existingList, T incomingList, FieldMergePreference.FieldSource preference) where T : System.Collections.ICollection, new()
+			{
+				bool existingHasValues = existingList != null && existingList.Count > 0;
+				bool incomingHasValues = incomingList != null && incomingList.Count > 0;
+
+				switch ( existingHasValues )
+				{
+					// If only one has values, use it
+					case false when !incomingHasValues:
+						return new T();
+					case false:
+						return incomingList;
+				}
+
+				if ( !incomingHasValues )
+					return existingList;
+
+				// Both have values - use preference
+				if ( preference == FieldMergePreference.FieldSource.UseExisting )
+					return existingList;
+				if ( preference == FieldMergePreference.FieldSource.UseIncoming )
+					return incomingList;
+				// Merge option for certain lists
+				return existingList; // Default fallback
+			}
+
+			// Helper to merge string fields based on preference
+			string MergeStringField(string existingVal, string incomingVal, FieldMergePreference.FieldSource preference)
 			{
 				bool existingHasValue = !string.IsNullOrWhiteSpace(existingVal);
 				bool incomingHasValue = !string.IsNullOrWhiteSpace(incomingVal);
 
 				switch ( existingHasValue )
 				{
+					// If only one has a value, use it
 					case false when !incomingHasValue:
 						return null;
 					case false:
@@ -1131,58 +1835,9 @@ namespace KOTORModSync.Dialogs
 				if ( !incomingHasValue )
 					return existingVal;
 
-				// Both have values - CONFLICT - use user's selection
-				return useIncomingForConflicts ? incomingVal : existingVal;
+				// Both have values - use preference
+				return preference == FieldMergePreference.FieldSource.UseExisting ? existingVal : incomingVal;
 			}
-
-			// Create merged component
-			var merged = new Component
-			{
-				// GUID will be set by caller based on intelligent GUID resolution
-				Guid = existing.Guid,
-
-				// Merge all string fields
-				Name = MergeString(existing.Name, incoming.Name),
-				Author = MergeString(existing.Author, incoming.Author),
-				Description = MergeString(existing.Description, incoming.Description),
-				Directions = MergeString(existing.Directions, incoming.Directions),
-				Category = MergeString(existing.Category, incoming.Category),
-				Tier = MergeString(existing.Tier, incoming.Tier),
-				InstallationMethod = MergeString(existing.InstallationMethod, incoming.InstallationMethod),
-
-				// Merge lists - ALWAYS keep existing Instructions/Dependencies/Restrictions/InstallAfter if they exist
-				// These are structural and shouldn't be lost
-				Instructions = existing.Instructions.Count > 0 ? existing.Instructions :
-					incoming.Instructions.Count > 0 ? incoming.Instructions :
-					new ObservableCollection<Instruction>(),
-				Dependencies = existing.Dependencies.Count > 0 ? existing.Dependencies :
-					incoming.Dependencies.Count > 0 ? incoming.Dependencies :
-					new List<Guid>(),
-				Restrictions = existing.Restrictions.Count > 0 ? existing.Restrictions :
-					incoming.Restrictions.Count > 0 ? incoming.Restrictions :
-					new List<Guid>(),
-				InstallAfter = existing.InstallAfter.Count > 0 ? existing.InstallAfter :
-					incoming.InstallAfter.Count > 0 ? incoming.InstallAfter :
-					new List<Guid>(),
-				Options = existing.Options.Count > 0 ? existing.Options :
-					incoming.Options.Count > 0 ? incoming.Options :
-					new ObservableCollection<Option>(),
-
-				// ModLink - combine both if both exist, otherwise use whichever has data
-				ModLink = ComponentMergeConflictViewModel.MergeLists(existing.ModLink, incoming.ModLink, deduplicate: true),
-
-				// Language - prefer whichever has data
-				Language = incoming.Language.Count > 0 ? incoming.Language :
-					existing.Language.Count > 0 ? existing.Language :
-					new List<string>(),
-
-				// State fields - always preserve existing state
-				IsSelected = existing.IsSelected,
-				InstallState = existing.InstallState,
-				IsDownloaded = existing.IsDownloaded
-			};
-
-			return merged;
 		}
 
 		/// <summary>
@@ -1354,7 +2009,7 @@ namespace KOTORModSync.Dialogs
 					if ( conflictItem != null )
 					{
 						// Check if there's a matching existing component
-						(ComponentConflictItem existing, ComponentConflictItem incoming) = _matchedPairs.FirstOrDefault(p => p.Incoming == conflictItem);
+						ComponentConflictItem existing = _matchedPairs.FirstOrDefault(p => p.Incoming == conflictItem).Existing;
 
 						if ( existing != null )
 						{
@@ -1440,13 +2095,13 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-	public int GetComponentLineNumber(ComponentConflictItem item)
-	{
-		if ( item == null ) return 0;
+		public int GetComponentLineNumber(ComponentConflictItem item)
+		{
+			if ( item == null ) return 0;
 
-		Dictionary<Component, int> map = item.IsFromExisting ? _existingComponentLineNumbers : _incomingComponentLineNumbers;
-		return map.ContainsKey(item.Component) ? map[item.Component] : 0;
-	}
+			Dictionary<Component, int> map = item.IsFromExisting ? _existingComponentLineNumbers : _incomingComponentLineNumbers;
+			return map.ContainsKey(item.Component) ? map[item.Component] : 0;
+		}
 
 		// Track which line each component starts at in the TOML views
 		private readonly Dictionary<Component, int> _existingComponentLineNumbers = new Dictionary<Component, int>();
@@ -1830,6 +2485,89 @@ namespace KOTORModSync.Dialogs
 					if ( _guidConflictTooltip == value ) return;
 					_guidConflictTooltip = value;
 					OnPropertyChanged();
+				}
+			}
+
+			/// <summary>
+			/// Rich tooltip providing comprehensive component information
+			/// </summary>
+			public string RichTooltip
+			{
+				get
+				{
+					var sb = new System.Text.StringBuilder();
+					Component component = Component;
+
+					// Header with component name
+					_ = sb.AppendLine($"📦 {component.Name}");
+					_ = sb.AppendLine();
+
+					// Author info
+					if ( !string.IsNullOrEmpty(component.Author) )
+						_ = sb.AppendLine($"👤 Author: {component.Author}");
+
+					// Category and Tier
+					if ( component.Category.Count > 0 )
+						_ = sb.AppendLine($"📁 Category: {string.Join(", ", component.Category)}");
+
+					if ( !string.IsNullOrEmpty(component.Tier) )
+						_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+
+					// Description
+					if ( !string.IsNullOrEmpty(component.Description) )
+					{
+						_ = sb.AppendLine();
+						_ = sb.AppendLine("📝 Description:");
+						string desc = component.Description.Length > 200
+							? component.Description.Substring(0, 200) + "..."
+							: component.Description;
+						_ = sb.AppendLine(desc);
+					}
+
+					// Installation info
+					_ = sb.AppendLine();
+					_ = sb.AppendLine($"🔧 Instructions: {component.Instructions.Count}");
+
+					if ( !string.IsNullOrEmpty(component.InstallationMethod) )
+						_ = sb.AppendLine($"⚙️ Method: {component.InstallationMethod}");
+
+					// Dependencies
+					if ( component.Dependencies.Count > 0 )
+					{
+						_ = sb.AppendLine();
+						_ = sb.AppendLine($"✓ Requires: {component.Dependencies.Count} mod(s)");
+					}
+
+					// Restrictions
+					if ( component.Restrictions.Count > 0 )
+						_ = sb.AppendLine($"✗ Conflicts with: {component.Restrictions.Count} mod(s)");
+
+					// Options
+					if ( component.Options.Count > 0 )
+						_ = sb.AppendLine($"⚙️ Has {component.Options.Count} optional component(s)");
+
+					// Status
+					_ = sb.AppendLine();
+					_ = sb.AppendLine($"📊 Status: {Status}");
+
+					// Download status
+					if ( !component.IsDownloaded )
+					{
+						_ = sb.AppendLine();
+						_ = sb.AppendLine("⚠️ Mod archive not downloaded");
+						if ( component.ModLink.Count > 0 )
+							_ = sb.AppendLine($"🔗 Download: {component.ModLink[0]}");
+					}
+
+					// GUID conflict warning if applicable
+					if ( HasGuidConflict && !string.IsNullOrEmpty(GuidConflictTooltip) )
+					{
+						_ = sb.AppendLine();
+						_ = sb.AppendLine("⚠️ GUID CONFLICT ⚠️");
+						_ = sb.AppendLine(GuidConflictTooltip);
+					}
+
+					return sb.ToString();
 				}
 			}
 

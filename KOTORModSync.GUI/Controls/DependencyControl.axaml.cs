@@ -176,7 +176,7 @@ namespace KOTORModSync.Controls
 			if ( ModManagementService != null && CurrentComponent != null &&
 				 (DependencyType == DependencyType.Dependency || DependencyType == DependencyType.Restriction) )
 			{
-				switch (DependencyType)
+				switch ( DependencyType )
 				{
 					case DependencyType.Dependency:
 						added = ModManagementService.AddDependency(CurrentComponent, selectedComponent);

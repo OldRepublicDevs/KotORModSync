@@ -10,6 +10,8 @@
         <converters:DownloadTooltipConverter x:Key="DownloadTooltipConverter" />
         <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
         <converters:CategoryTooltipConverter x:Key="CategoryTooltipConverter" />
+        <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
+        <converters:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
         <converters:TierTooltipConverter x:Key="TierTooltipConverter" />
     </UserControl.Resources>
 
@@ -93,8 +95,8 @@
                             Classes="mod-list-item-badge category-badge"
                             HorizontalAlignment="Stretch"
                             Margin="0,0,6,0"
-                            IsVisible="{Binding Category, Converter={StaticResource StringNotEmptyConverter}}">
-                        <TextBlock Text="{Binding Category}"
+                            IsVisible="{Binding Category, Converter={StaticResource ListToVisibilityConverter}}">
+                        <TextBlock Text="{Binding Category, Converter={StaticResource CategoryListDisplayConverter}}"
                                    FontSize="10"
                                    FontWeight="Medium"
                                    TextWrapping="NoWrap"

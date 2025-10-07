@@ -661,28 +661,28 @@ namespace KOTORModSync.Core
 								destinationFilePath
 							);
 
-					// Check if the destination file already exists
-					if ( _fileSystemProvider.FileExists(destinationFilePath) )
-					{
-						if ( !Overwrite )
+						// Check if the destination file already exists
+						if ( _fileSystemProvider.FileExists(destinationFilePath) )
 						{
-							await Logger.LogWarningAsync(
-								$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
-								+ " skipping file. Reason: Overwrite set to False )"
-							);
+							if ( !Overwrite )
+							{
+								await Logger.LogWarningAsync(
+									$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
+									+ " skipping file. Reason: Overwrite set to False )"
+								);
 
-							return;
+								return;
+							}
+
+							await Logger.LogAsync(
+								$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
+								+ $" deleting pre-existing file '{destinationRelDirPath}' Reason: Overwrite set to True"
+							);
+							await _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 						}
 
-						await Logger.LogAsync(
-							$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
-							+ $" deleting pre-existing file '{destinationRelDirPath}' Reason: Overwrite set to True"
-						);
-						await _fileSystemProvider.DeleteFileAsync(destinationFilePath);
-					}
-
-					await Logger.LogAsync($"Copy '{sourceRelDirPath}' to '{destinationRelDirPath}'");
-					await _fileSystemProvider.CopyFileAsync(sourcePath, destinationFilePath, Overwrite);
+						await Logger.LogAsync($"Copy '{sourceRelDirPath}' to '{destinationRelDirPath}'");
+						await _fileSystemProvider.CopyFileAsync(sourcePath, destinationFilePath, Overwrite);
 					}
 					catch ( Exception ex )
 					{

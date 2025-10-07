@@ -514,7 +514,8 @@ namespace KOTORModSync.Core.Services.Download
 								{
 									var errorMessages = failedChildren
 										.Where(c => !string.IsNullOrEmpty(c.ErrorMessage))
-										.Select(c => {
+										.Select(c =>
+										{
 											string fileName = "Unknown";
 											if ( !string.IsNullOrEmpty(c.Url) )
 											{

@@ -109,7 +109,7 @@ namespace KOTORModSync
 
 		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
 		{
-			if (!_mouseDownForWindowMoving)
+			if ( !_mouseDownForWindowMoving )
 				return;
 
 			PointerPoint currentPoint = e.GetCurrentPoint(this);
@@ -121,11 +121,11 @@ namespace KOTORModSync
 
 		private void InputElement_OnPointerPressed(object sender, PointerEventArgs e)
 		{
-			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
 			// Don't start window drag if clicking on interactive controls
-			if (ShouldIgnorePointerForWindowDrag(e))
+			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
 			_mouseDownForWindowMoving = true;
@@ -136,14 +136,14 @@ namespace KOTORModSync
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
 			// Get the element under the pointer
-			if (!(e.Source is Visual source))
+			if ( !(e.Source is Visual source) )
 				return false;
 
 			// Walk up the visual tree to check if we're clicking on an interactive element
 			Visual current = source;
-			while (current != null && current != this)
+			while ( current != null && current != this )
 			{
-				switch (current)
+				switch ( current )
 				{
 					// Check if we're clicking on any interactive control
 					case Button _:

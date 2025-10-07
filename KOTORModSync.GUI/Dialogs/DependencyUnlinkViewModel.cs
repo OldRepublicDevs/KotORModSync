@@ -31,7 +31,7 @@ namespace KOTORModSync.Dialogs
 			get => _statusText;
 			set
 			{
-				if (_statusText == value) return;
+				if ( _statusText == value ) return;
 				_statusText = value;
 				OnPropertyChanged();
 			}
@@ -47,13 +47,13 @@ namespace KOTORModSync.Dialogs
 			// Build summary
 			int dependentCount = dependentComponents.Count;
 			SummaryText = $"Cannot delete '{componentToDelete.Name}' because {dependentCount} component{(dependentCount > 1 ? "s" : "")} depend on it. " +
-			              "You must first unlink these dependencies by unchecking the dependent components below.";
+						  "You must first unlink these dependencies by unchecking the dependent components below.";
 
 			// Build detailed dependency info
 			DetailedDependencyInfo = BuildDetailedDependencyInfo(componentToDelete, dependentComponents);
 
 			// Build dependent component items
-			foreach (Component component in dependentComponents)
+			foreach ( Component component in dependentComponents )
 			{
 				var item = new DependentComponentItem(component, componentToDelete);
 				item.PropertyChanged += OnComponentSelectionChanged;
@@ -74,18 +74,18 @@ namespace KOTORModSync.Dialogs
 				"Dependent components:"
 			};
 
-			foreach (Component dependent in dependentComponents)
+			foreach ( Component dependent in dependentComponents )
 			{
 				var dependencyTypes = new List<string>();
 
 				// Check different types of dependencies
-				if (dependent.Dependencies.Contains(componentToDelete.Guid))
+				if ( dependent.Dependencies.Contains(componentToDelete.Guid) )
 					dependencyTypes.Add("Dependency");
-				if (dependent.Restrictions.Contains(componentToDelete.Guid))
+				if ( dependent.Restrictions.Contains(componentToDelete.Guid) )
 					dependencyTypes.Add("Restriction");
-				if (dependent.InstallBefore.Contains(componentToDelete.Guid))
+				if ( dependent.InstallBefore.Contains(componentToDelete.Guid) )
 					dependencyTypes.Add("InstallBefore");
-				if (dependent.InstallAfter.Contains(componentToDelete.Guid))
+				if ( dependent.InstallAfter.Contains(componentToDelete.Guid) )
 					dependencyTypes.Add("InstallAfter");
 
 				info.Add($"  • {dependent.Name} (GUID: {dependent.Guid})");
@@ -112,7 +112,7 @@ namespace KOTORModSync.Dialogs
 			});
 
 			// Add individual component actions
-			foreach (Component component in dependentComponents.Take(5)) // Limit to first 5 for UI space
+			foreach ( Component component in dependentComponents.Take(5) ) // Limit to first 5 for UI space
 			{
 				QuickActions.Add(new QuickActionItem
 				{
@@ -125,7 +125,7 @@ namespace KOTORModSync.Dialogs
 
 		private void OnComponentSelectionChanged(object sender, PropertyChangedEventArgs e)
 		{
-			if (e.PropertyName == nameof(DependentComponentItem.IsSelected))
+			if ( e.PropertyName == nameof(DependentComponentItem.IsSelected) )
 				UpdateStatus();
 		}
 
@@ -136,35 +136,35 @@ namespace KOTORModSync.Dialogs
 			int uncheckedCount = totalCount - selectedCount;
 
 			StatusText = uncheckedCount > 0
-			             ? $"✅ {uncheckedCount}/{totalCount} dependencies will be unlinked. Click 'Unlink & Delete' to proceed."
+						 ? $"✅ {uncheckedCount}/{totalCount} dependencies will be unlinked. Click 'Unlink & Delete' to proceed."
 						 : $"⚠️ {totalCount}/{totalCount} dependencies still linked. Uncheck at least one dependent component to proceed.";
 		}
 
 		private void ApplyQuickAction(object parameter)
 		{
-			if (!(parameter is QuickActionItem action))
+			if ( !(parameter is QuickActionItem action) )
 				return;
 
-			switch (action.ActionType)
+			switch ( action.ActionType )
 			{
 				case QuickActionType.UncheckAll:
-					foreach (DependentComponentItem item in DependentComponents)
-					    item.IsSelected = false;
+					foreach ( DependentComponentItem item in DependentComponents )
+						item.IsSelected = false;
 					break;
 
 				case QuickActionType.UncheckSelectedOnly:
 					// Uncheck only components that are currently selected for installation
-					foreach (DependentComponentItem item in DependentComponents.Where(c => c.Component.IsSelected))
+					foreach ( DependentComponentItem item in DependentComponents.Where(c => c.Component.IsSelected) )
 					{
 						item.IsSelected = false;
 					}
 					break;
 
 				case QuickActionType.UncheckSpecific:
-					if (action.Component != null)
+					if ( action.Component != null )
 					{
 						DependentComponentItem componentItem = DependentComponents.FirstOrDefault(c => c.Component == action.Component);
-						if (componentItem != null)
+						if ( componentItem != null )
 						{
 							componentItem.IsSelected = false;
 						}
@@ -200,7 +200,7 @@ namespace KOTORModSync.Dialogs
 			get => _isSelected;
 			set
 			{
-				if (_isSelected == value) return;
+				if ( _isSelected == value ) return;
 				_isSelected = value;
 				OnPropertyChanged();
 			}
@@ -213,13 +213,13 @@ namespace KOTORModSync.Dialogs
 
 			// Build dependency info
 			var dependencyTypes = new List<string>();
-			if (component.Dependencies.Contains(componentToDelete.Guid))
+			if ( component.Dependencies.Contains(componentToDelete.Guid) )
 				dependencyTypes.Add("Dependency");
-			if (component.Restrictions.Contains(componentToDelete.Guid))
+			if ( component.Restrictions.Contains(componentToDelete.Guid) )
 				dependencyTypes.Add("Restriction");
-			if (component.InstallBefore.Contains(componentToDelete.Guid))
+			if ( component.InstallBefore.Contains(componentToDelete.Guid) )
 				dependencyTypes.Add("InstallBefore");
-			if (component.InstallAfter.Contains(componentToDelete.Guid))
+			if ( component.InstallAfter.Contains(componentToDelete.Guid) )
 				dependencyTypes.Add("InstallAfter");
 
 			DependencyInfo = $"🔗 Depends on: {string.Join(", ", dependencyTypes)}";

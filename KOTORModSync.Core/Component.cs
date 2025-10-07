@@ -218,7 +218,7 @@ namespace KOTORModSync.Core
 
 		[NotNull] private string _author = string.Empty;
 
-		[NotNull] private string _category = string.Empty;
+		[NotNull] private List<string> _category = new List<string>();
 
 		[NotNull] private List<Guid> _dependencies = new List<Guid>();
 
@@ -309,7 +309,7 @@ namespace KOTORModSync.Core
 		}
 
 		[NotNull]
-		public string Category
+		public List<string> Category
 		{
 			get => _category;
 			set
@@ -539,6 +539,7 @@ namespace KOTORModSync.Core
 						{
 							"\r\n", "\n",
 						};
+		private static readonly string[] s_categorySeparator = new[] { ",", ";", "/" };
 
 		// used for the ui.
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -638,7 +639,22 @@ namespace KOTORModSync.Core
 			Name = GetRequiredValue<string>(componentDict, key: "Name");
 			_ = Logger.LogAsync($" == Deserialize next component '{Name}' ==");
 			Author = GetValueOrDefault<string>(componentDict, key: "Author") ?? string.Empty;
-			Category = GetValueOrDefault<string>(componentDict, key: "Category") ?? string.Empty;
+
+			// Backwards compatible: support both string (old) and List<string> (new) for Category
+			Category = GetValueOrDefault<List<string>>(componentDict, key: "Category") ?? new List<string>();
+			if ( Category.Count == 0 )
+			{
+				// Try to load as string (backwards compatibility)
+				string categoryStr = GetValueOrDefault<string>(componentDict, key: "Category") ?? string.Empty;
+				if ( !string.IsNullOrEmpty(categoryStr) )
+				{
+					Category = categoryStr.Split(
+						s_categorySeparator,
+						StringSplitOptions.RemoveEmptyEntries
+					).Select(c => c.Trim()).ToList();
+				}
+			}
+
 			Tier = GetValueOrDefault<string>(componentDict, key: "Tier") ?? string.Empty;
 			Description = GetValueOrDefault<string>(componentDict, key: "Description") ?? string.Empty;
 			Directions = GetValueOrDefault<string>(componentDict, key: "Directions") ?? string.Empty;
@@ -718,8 +734,11 @@ namespace KOTORModSync.Core
 				_ = sb.Append("**Author**: ").AppendLine(component.Author);
 				_ = sb.AppendLine();
 				_ = sb.Append("**Description**: ").AppendLine(component.Description);
+				string categoryStr = component.Category.Count > 0
+					? string.Join(", ", component.Category)
+					: "No category";
 				_ = sb.Append("**Tier & Category**: ").Append(component.Tier).Append(" - ")
-					.AppendLine(component.Category);
+					.AppendLine(categoryStr);
 				_ = string.Equals(component.Language.FirstOrDefault(), b: "All", StringComparison.OrdinalIgnoreCase)
 					? sb.AppendLine("**Supported Languages**: ALL")
 					: sb.AppendLine("**Supported Languages**: [").AppendLine(

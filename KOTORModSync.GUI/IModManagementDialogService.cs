@@ -8,41 +8,41 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync
 {
-    public interface IModManagementDialogService
-    {
-        /// <summary>
-        /// Shows a file dialog for opening files
-        /// </summary>
-        Task<string[]> ShowFileDialog(bool isFolderDialog, string windowName, bool allowMultiple = false);
+	public interface IModManagementDialogService
+	{
+		/// <summary>
+		/// Shows a file dialog for opening files
+		/// </summary>
+		Task<string[]> ShowFileDialog(bool isFolderDialog, string windowName, bool allowMultiple = false);
 
-        /// <summary>
-        /// Shows a file dialog for saving files
-        /// </summary>
-        Task<string> ShowSaveFileDialog(string suggestedFileName);
+		/// <summary>
+		/// Shows a file dialog for saving files
+		/// </summary>
+		Task<string> ShowSaveFileDialog(string suggestedFileName);
 
-        /// <summary>
-        /// Shows an information dialog
-        /// </summary>
-        Task ShowInformationDialog(string message);
+		/// <summary>
+		/// Shows an information dialog
+		/// </summary>
+		Task ShowInformationDialog(string message);
 
-        /// <summary>
-        /// Shows a confirmation dialog
-        /// </summary>
-        Task<bool?> ShowConfirmationDialog(string message, string yesButtonText = "Yes", string noButtonText = "No");
+		/// <summary>
+		/// Shows a confirmation dialog
+		/// </summary>
+		Task<bool?> ShowConfirmationDialog(string message, string yesButtonText = "Yes", string noButtonText = "No");
 
-        /// <summary>
-        /// Gets the current list of components
-        /// </summary>
-        IReadOnlyList<Component> GetComponents();
+		/// <summary>
+		/// Gets the current list of components
+		/// </summary>
+		IReadOnlyList<Component> GetComponents();
 
-        /// <summary>
-        /// Updates the components list
-        /// </summary>
-        void UpdateComponents(List<Component> components);
+		/// <summary>
+		/// Updates the components list
+		/// </summary>
+		void UpdateComponents(List<Component> components);
 
-        /// <summary>
-        /// Refreshes the mod statistics display
-        /// </summary>
-        void RefreshStatistics();
-    }
+		/// <summary>
+		/// Refreshes the mod statistics display
+		/// </summary>
+		void RefreshStatistics();
+	}
 }

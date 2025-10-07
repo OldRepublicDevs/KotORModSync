@@ -11,8 +11,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core;
-using KOTORModSync.Core.Services.Validation;
 using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Services.Validation;
 using NUnit.Framework;
 
 namespace KOTORModSync.Tests
@@ -56,10 +56,10 @@ namespace KOTORModSync.Tests
 		{
 			try
 			{
-				if (Directory.Exists(_testRootDir))
+				if ( Directory.Exists(_testRootDir) )
 					Directory.Delete(_testRootDir, recursive: true);
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				TestContext.WriteLine($"Warning: Could not delete test directory: {ex.Message}");
 			}
@@ -73,9 +73,9 @@ namespace KOTORModSync.Tests
 				@"C:\Program Files (x86)\7-Zip\7z.exe"
 			};
 
-			foreach (var path in paths)
+			foreach ( var path in paths )
 			{
-				if (File.Exists(path))
+				if ( File.Exists(path) )
 					return path;
 			}
 
@@ -90,11 +90,11 @@ namespace KOTORModSync.Tests
 					CreateNoWindow = true
 				});
 
-				if (process != null)
+				if ( process != null )
 				{
 					string output = process.StandardOutput.ReadToEnd();
 					process.WaitForExit();
-					if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
+					if ( process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output) )
 					{
 						return output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
 					}
@@ -112,11 +112,11 @@ namespace KOTORModSync.Tests
 
 			try
 			{
-				foreach (var kvp in files)
+				foreach ( var kvp in files )
 				{
 					string filePath = Path.Combine(tempDir, kvp.Key);
 					string? fileDir = Path.GetDirectoryName(filePath);
-					if (!string.IsNullOrEmpty(fileDir))
+					if ( !string.IsNullOrEmpty(fileDir) )
 						Directory.CreateDirectory(fileDir);
 					File.WriteAllText(filePath, kvp.Value);
 				}
@@ -133,14 +133,14 @@ namespace KOTORModSync.Tests
 
 				using var process = Process.Start(startInfo);
 				if ( process == null )
-				    return;
+					return;
 				process.WaitForExit();
-				if (process.ExitCode != 0)
+				if ( process.ExitCode != 0 )
 					throw new InvalidOperationException($"7-Zip failed: {process.StandardError.ReadToEnd()}");
 			}
 			finally
 			{
-				if (Directory.Exists(tempDir))
+				if ( Directory.Exists(tempDir) )
 					Directory.Delete(tempDir, recursive: true);
 			}
 		}
@@ -181,7 +181,7 @@ namespace KOTORModSync.Tests
 			// Assert
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			TestContext.WriteLine($"Issues: {result.Issues.Count}");
-			foreach (var issue in result.Issues)
+			foreach ( var issue in result.Issues )
 			{
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
@@ -239,7 +239,7 @@ namespace KOTORModSync.Tests
 			// Assert
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			TestContext.WriteLine($"Errors: {result.Issues.Count(i => i.Severity == ValidationSeverity.Error)}");
-			foreach (var issue in result.Issues.Where(i => i.Severity == ValidationSeverity.Error))
+			foreach ( var issue in result.Issues.Where(i => i.Severity == ValidationSeverity.Error) )
 			{
 				TestContext.WriteLine($"  {issue.Category}: {issue.Message}");
 			}
@@ -323,7 +323,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
-			foreach (var issue in result.Issues)
+			foreach ( var issue in result.Issues )
 			{
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
@@ -402,7 +402,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
-			foreach (var issue in result.Issues)
+			foreach ( var issue in result.Issues )
 			{
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
@@ -476,7 +476,7 @@ namespace KOTORModSync.Tests
 			// Assert
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			TestContext.WriteLine($"Warnings: {result.Issues.Count(i => i.Severity == ValidationSeverity.Warning)}");
-			foreach (var issue in result.Issues)
+			foreach ( var issue in result.Issues )
 			{
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
@@ -582,7 +582,7 @@ namespace KOTORModSync.Tests
 			// Assert
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			TestContext.WriteLine($"Total issues: {result.Issues.Count}");
-			foreach (var issue in result.Issues)
+			foreach ( var issue in result.Issues )
 			{
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
@@ -648,7 +648,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
-			foreach (var issue in result.Issues)
+			foreach ( var issue in result.Issues )
 			{
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}

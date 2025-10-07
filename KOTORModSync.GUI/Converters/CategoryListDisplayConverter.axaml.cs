@@ -7,38 +7,44 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Avalonia.Data.Converters;
-using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Converters
 {
 	/// <summary>
-	/// Converts a category name or list of category names to its tooltip description.
+	/// Converts a list of categories to a comma-separated string for display.
 	/// </summary>
-	public partial class CategoryTooltipConverter : IValueConverter
+	public partial class CategoryListDisplayConverter : IValueConverter
 	{
 		/// <inheritdoc />
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			if ( value is string category )
 			{
-				return CategoryTierDefinitions.GetCategoryDescription(category);
+				// Backwards compatibility: if it's a string, just return it
+				return category;
 			}
 
 			if ( value is List<string> categories && categories.Count > 0 )
 			{
-				var descriptions = categories
-					.Select(cat => $"• {cat}: {CategoryTierDefinitions.GetCategoryDescription(cat)}")
-					.ToList();
-				return string.Join("\n", descriptions);
+				return string.Join(", ", categories);
 			}
 
-			return "No category specified.";
+			return string.Empty;
 		}
 
 		/// <inheritdoc />
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			throw new NotImplementedException();
+			if ( value is string text && !string.IsNullOrWhiteSpace(text) )
+			{
+				return text.Split(
+					new[] { ",", ";" },
+					StringSplitOptions.RemoveEmptyEntries
+				).Select(c => c.Trim()).ToList();
+			}
+
+			return new List<string>();
 		}
 	}
 }
+

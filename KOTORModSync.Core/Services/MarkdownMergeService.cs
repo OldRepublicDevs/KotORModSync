@@ -34,6 +34,8 @@ namespace KOTORModSync.Core.Services
 
 		private static bool IsBlank([CanBeNull] string v) => string.IsNullOrWhiteSpace(v);
 
+		private static bool IsBlank([CanBeNull] List<string> v) => v == null || v.Count == 0;
+
 		[NotNull]
 		private static string NormalizeKey([NotNull] Component c)
 		{
@@ -91,7 +93,7 @@ namespace KOTORModSync.Core.Services
 			foreach ( Component existingComponent in existing )
 			{
 				if ( matchedExisting.Contains(existingComponent) )
-				    continue;
+					continue;
 				// Find the best insertion point based on surrounding components
 				int insertIndex = FindInsertionPointByNameAuthor(result, existingComponent, existing);
 				result.Insert(insertIndex, existingComponent);
@@ -188,17 +190,17 @@ namespace KOTORModSync.Core.Services
 			if ( options == null ) options = MergeHeuristicsOptions.CreateDefault();
 			// Keep target.Guid and selection/state; update content properties
 			if ( !(options.SkipBlankUpdates && IsBlank(source.Author)) )
-			    target.Author = string.IsNullOrWhiteSpace(source.Author) ? target.Author : source.Author;
+				target.Author = string.IsNullOrWhiteSpace(source.Author) ? target.Author : source.Author;
 			if ( !(options.SkipBlankUpdates && IsBlank(source.Category)) )
-				target.Category = string.IsNullOrWhiteSpace(source.Category) ? target.Category : source.Category;
+				target.Category = IsBlank(source.Category) ? target.Category : new List<string>(source.Category);
 			if ( !(options.SkipBlankUpdates && IsBlank(source.Tier)) )
-			    target.Tier = string.IsNullOrWhiteSpace(source.Tier) ? target.Tier : source.Tier;
+				target.Tier = string.IsNullOrWhiteSpace(source.Tier) ? target.Tier : source.Tier;
 			if ( !(options.SkipBlankUpdates && IsBlank(source.Description)) )
-			    target.Description = string.IsNullOrWhiteSpace(source.Description) ? target.Description : source.Description;
+				target.Description = string.IsNullOrWhiteSpace(source.Description) ? target.Description : source.Description;
 			if ( !(options.SkipBlankUpdates && IsBlank(source.Directions)) )
-			    target.Directions = string.IsNullOrWhiteSpace(source.Directions) ? target.Directions : source.Directions;
+				target.Directions = string.IsNullOrWhiteSpace(source.Directions) ? target.Directions : source.Directions;
 			if ( !(options.SkipBlankUpdates && IsBlank(source.InstallationMethod)) )
-			    target.InstallationMethod = string.IsNullOrWhiteSpace(source.InstallationMethod) ? target.InstallationMethod : source.InstallationMethod;
+				target.InstallationMethod = string.IsNullOrWhiteSpace(source.InstallationMethod) ? target.InstallationMethod : source.InstallationMethod;
 
 			// Merge language and links (union)
 			if ( source.Language.Count > 0 )

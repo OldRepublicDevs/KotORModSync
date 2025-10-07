@@ -17,11 +17,11 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class VirtualFileSystemTests
 	{
-		private string _testRootDir;
-		private string _sourceDir;
-		private string _destinationDir;
-		private string _sevenZipPath;
-		private MainConfig _originalConfig;
+		private string? _testRootDir;
+		private string? _sourceDir;
+		private string? _destinationDir;
+		private string? _sevenZipPath;
+		private MainConfig? _originalConfig;
 
 		[OneTimeSetUp]
 		public void OneTimeSetUp() => _sevenZipPath = Find7Zip();
@@ -124,7 +124,7 @@ namespace KOTORModSync.Tests
 
 				using var process = Process.Start(startInfo);
 				if ( process == null )
-				    return;
+					return;
 				process.WaitForExit();
 			}
 			finally
@@ -989,16 +989,16 @@ namespace KOTORModSync.Tests
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 
-		// Verify final state
-		List<string> virtualFiles = virtualProvider.GetTrackedFiles();
-		Assert.Multiple(() =>
-		{
-			Assert.That(virtualFiles.Any(f => f.EndsWith("override\\appearance.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
-			Assert.That(virtualFiles.Any(f => f.EndsWith("override\\dialog.dlg", StringComparison.OrdinalIgnoreCase)), Is.True);
-			Assert.That(virtualFiles.Any(f => f.EndsWith("override\\spells.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
-			Assert.That(virtualFiles.Any(f => f.EndsWith("backup\\appearance.2da.mod1\\appearance.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
-		});
-	}
+			// Verify final state
+			List<string> virtualFiles = virtualProvider.GetTrackedFiles();
+			Assert.Multiple(() =>
+			{
+				Assert.That(virtualFiles.Any(f => f.EndsWith("override\\appearance.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
+				Assert.That(virtualFiles.Any(f => f.EndsWith("override\\dialog.dlg", StringComparison.OrdinalIgnoreCase)), Is.True);
+				Assert.That(virtualFiles.Any(f => f.EndsWith("override\\spells.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
+				Assert.That(virtualFiles.Any(f => f.EndsWith("backup\\appearance.2da.mod1\\appearance.2da", StringComparison.OrdinalIgnoreCase)), Is.True);
+			});
+		}
 
 		[Test]
 		public async Task Test_NestedArchiveOperations()

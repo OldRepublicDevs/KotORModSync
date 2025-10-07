@@ -17,8 +17,8 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class AutoInstructionGeneratorTests
 	{
-		private string _testDirectory;
-		private List<string> _createdArchives;
+		private string? _testDirectory;
+		private List<string>? _createdArchives;
 
 		[SetUp]
 		public void SetUp()
@@ -148,42 +148,42 @@ namespace KOTORModSync.Tests
 				exeStream.Position = 0;
 				archive.AddEntry(exePath, exeStream);
 
-			// Add tslpatchdata folder with changes.ini
-			if ( includeChangesIni )
-			{
-				string changesIniPath = "tslpatchdata/changes.ini";
-				var changesStream = new MemoryStream();
-				var changesWriter = new StreamWriter(changesStream);
-				changesWriter.WriteLine("[Settings]");
-				changesWriter.WriteLine("Version=1.0");
-				changesWriter.Flush();
-				changesStream.Position = 0;
-				archive.AddEntry(changesIniPath, changesStream);
-			}
+				// Add tslpatchdata folder with changes.ini
+				if ( includeChangesIni )
+				{
+					string changesIniPath = "tslpatchdata/changes.ini";
+					var changesStream = new MemoryStream();
+					var changesWriter = new StreamWriter(changesStream);
+					changesWriter.WriteLine("[Settings]");
+					changesWriter.WriteLine("Version=1.0");
+					changesWriter.Flush();
+					changesStream.Position = 0;
+					archive.AddEntry(changesIniPath, changesStream);
+				}
 
-			// Add namespaces.ini
-			if ( includeNamespacesIni )
-			{
-				string namespacesIniPath = "tslpatchdata/namespaces.ini";
-				var namespacesStream = new MemoryStream();
-				var namespacesWriter = new StreamWriter(namespacesStream);
-				namespacesWriter.WriteLine("[Namespaces]");
-				namespacesWriter.WriteLine("0=Option1");
-				namespacesWriter.WriteLine("1=Option2");
-				namespacesWriter.WriteLine();
-				namespacesWriter.WriteLine("[Option1]");
-				namespacesWriter.WriteLine("Name=First Option");
-				namespacesWriter.WriteLine("Description=This is the first option");
-				namespacesWriter.WriteLine("IniName=changes_option1.ini");
-				namespacesWriter.WriteLine();
-				namespacesWriter.WriteLine("[Option2]");
-				namespacesWriter.WriteLine("Name=Second Option");
-				namespacesWriter.WriteLine("Description=This is the second option");
-				namespacesWriter.WriteLine("IniName=changes_option2.ini");
-				namespacesWriter.Flush();
-				namespacesStream.Position = 0;
-				archive.AddEntry(namespacesIniPath, namespacesStream);
-			}
+				// Add namespaces.ini
+				if ( includeNamespacesIni )
+				{
+					string namespacesIniPath = "tslpatchdata/namespaces.ini";
+					var namespacesStream = new MemoryStream();
+					var namespacesWriter = new StreamWriter(namespacesStream);
+					namespacesWriter.WriteLine("[Namespaces]");
+					namespacesWriter.WriteLine("0=Option1");
+					namespacesWriter.WriteLine("1=Option2");
+					namespacesWriter.WriteLine();
+					namespacesWriter.WriteLine("[Option1]");
+					namespacesWriter.WriteLine("Name=First Option");
+					namespacesWriter.WriteLine("Description=This is the first option");
+					namespacesWriter.WriteLine("IniName=changes_option1.ini");
+					namespacesWriter.WriteLine();
+					namespacesWriter.WriteLine("[Option2]");
+					namespacesWriter.WriteLine("Name=Second Option");
+					namespacesWriter.WriteLine("Description=This is the second option");
+					namespacesWriter.WriteLine("IniName=changes_option2.ini");
+					namespacesWriter.Flush();
+					namespacesStream.Position = 0;
+					archive.AddEntry(namespacesIniPath, namespacesStream);
+				}
 
 				using ( var fileStream = File.Create(archivePath) )
 				{

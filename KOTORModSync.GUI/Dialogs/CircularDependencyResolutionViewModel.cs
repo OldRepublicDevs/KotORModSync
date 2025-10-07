@@ -30,7 +30,7 @@ namespace KOTORModSync.Dialogs
 			get => _statusText;
 			set
 			{
-				if (_statusText == value) return;
+				if ( _statusText == value ) return;
 				_statusText = value;
 				OnPropertyChanged();
 			}
@@ -47,23 +47,23 @@ namespace KOTORModSync.Dialogs
 			// Build summary
 			int cycleCount = cycleInfo.Cycles.Count;
 			SummaryText = $"Found {cycleCount} circular dependency cycle{(cycleCount > 1 ? "s" : "")} that prevent installation. " +
-			              "These components have conflicting dependencies that cannot be automatically resolved.";
+						  "These components have conflicting dependencies that cannot be automatically resolved.";
 
 			// Build detailed cycle info
 			DetailedCycleInfo = cycleInfo.DetailedErrorMessage;
 
 			// Get components involved in cycles
 			var componentsInCycles = new HashSet<Guid>();
-			foreach ( List<Guid> cycle in cycleInfo.Cycles)
+			foreach ( List<Guid> cycle in cycleInfo.Cycles )
 			{
-				foreach ( Guid guid in cycle)
+				foreach ( Guid guid in cycle )
 				{
 					componentsInCycles.Add(guid);
 				}
 			}
 
 			// Build component items
-			foreach ( Component component in components)
+			foreach ( Component component in components )
 			{
 				bool isInCycle = componentsInCycles.Contains(component.Guid);
 				var item = new ComponentItem(component, isInCycle);
@@ -73,13 +73,13 @@ namespace KOTORModSync.Dialogs
 
 			// Build suggestions
 			List<Component> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
-			foreach ( Component suggestion in suggestedComponents)
+			foreach ( Component suggestion in suggestedComponents )
 			{
 				Suggestions.Add(new SuggestionItem
 				{
 					Component = suggestion,
 					Text = $"❌ Uncheck: {suggestion.Name}" +
-					       (!string.IsNullOrWhiteSpace(suggestion.Author) ? $" by {suggestion.Author}" : "")
+						   (!string.IsNullOrWhiteSpace(suggestion.Author) ? $" by {suggestion.Author}" : "")
 				});
 			}
 
@@ -88,7 +88,7 @@ namespace KOTORModSync.Dialogs
 
 		private void OnComponentSelectionChanged(object sender, PropertyChangedEventArgs e)
 		{
-			if (e.PropertyName == nameof(ComponentItem.IsSelected))
+			if ( e.PropertyName == nameof(ComponentItem.IsSelected) )
 			{
 				UpdateStatus();
 			}
@@ -100,7 +100,7 @@ namespace KOTORModSync.Dialogs
 			int totalCount = Components.Count;
 			int uncheckedInCycle = Components.Count(c => c.IsInCycle && !c.IsSelected);
 
-			if (uncheckedInCycle > 0)
+			if ( uncheckedInCycle > 0 )
 			{
 				StatusText = $"✅ {selectedCount}/{totalCount} components selected. {uncheckedInCycle} cycle component(s) unchecked. Click 'Retry' to continue.";
 			}
@@ -112,11 +112,11 @@ namespace KOTORModSync.Dialogs
 
 		private void ApplySuggestion(object parameter)
 		{
-			if (!(parameter is SuggestionItem suggestion))
+			if ( !(parameter is SuggestionItem suggestion) )
 				return;
 
 			ComponentItem componentItem = Components.FirstOrDefault(c => c.Component == suggestion.Component);
-			if (componentItem != null)
+			if ( componentItem != null )
 			{
 				componentItem.IsSelected = false;
 			}
@@ -151,7 +151,7 @@ namespace KOTORModSync.Dialogs
 			get => _isSelected;
 			set
 			{
-				if (_isSelected == value) return;
+				if ( _isSelected == value ) return;
 				_isSelected = value;
 				OnPropertyChanged();
 			}
@@ -163,7 +163,7 @@ namespace KOTORModSync.Dialogs
 			_isSelected = component.IsSelected;
 			IsInCycle = isInCycle;
 
-			if (isInCycle)
+			if ( isInCycle )
 			{
 				CycleInfo = "⚠️ Involved in circular dependency";
 				CycleInfoColor = new SolidColorBrush(Color.FromRgb(255, 193, 7)); // Warning yellow

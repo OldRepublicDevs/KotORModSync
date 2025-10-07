@@ -8,12 +8,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using JetBrains.Annotations;
-using Avalonia.Input;
 using Avalonia.VisualTree;
+using JetBrains.Annotations;
 
 namespace KOTORModSync.Dialogs
 {
@@ -149,7 +149,7 @@ namespace KOTORModSync.Dialogs
 
 		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
 		{
-			if (!_mouseDownForWindowMoving)
+			if ( !_mouseDownForWindowMoving )
 				return;
 
 			PointerPoint currentPoint = e.GetCurrentPoint(this);
@@ -161,11 +161,11 @@ namespace KOTORModSync.Dialogs
 
 		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
 			// Don't start window drag if clicking on interactive controls
-			if (ShouldIgnorePointerForWindowDrag(e))
+			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
 			_mouseDownForWindowMoving = true;
@@ -178,15 +178,15 @@ namespace KOTORModSync.Dialogs
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
 			// Get the element under the pointer
-			if (!(e.Source is Visual source))
+			if ( !(e.Source is Visual source) )
 				return false;
 
 			// Walk up the visual tree to check if we're clicking on an interactive element
 			Visual current = source;
-			while (current != null && current != this)
+			while ( current != null && current != this )
 			{
 				// Check if we're clicking on any interactive control
-				if (current is Button ||
+				if ( current is Button ||
 					current is TextBox ||
 					current is ComboBox ||
 					current is ListBox ||
@@ -198,17 +198,17 @@ namespace KOTORModSync.Dialogs
 					current is TabItem ||
 					current is ProgressBar ||
 					current is ScrollViewer ||
-					current is CheckBox)
+					current is CheckBox )
 				{
 					return true;
 				}
 
 				// Check if the element has context menu or flyout open
-				if (current is Control control)
+				if ( current is Control control )
 				{
-					if (control.ContextMenu?.IsOpen == true)
+					if ( control.ContextMenu?.IsOpen == true )
 						return true;
-					if (control.ContextFlyout?.IsOpen == true)
+					if ( control.ContextFlyout?.IsOpen == true )
 						return true;
 				}
 

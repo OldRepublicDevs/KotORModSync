@@ -4,15 +4,15 @@
 
 using System;
 using System.IO;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 using JetBrains.Annotations;
 using KOTORModSync.Controls;
 using KOTORModSync.Core;
-using Avalonia;
-using Avalonia.Input;
-using Avalonia.VisualTree;
 
 namespace KOTORModSync.Dialogs
 {
@@ -186,7 +186,7 @@ namespace KOTORModSync.Dialogs
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				switch (current)
+				switch ( current )
 				{
 					case Button _:
 					case TextBox _:

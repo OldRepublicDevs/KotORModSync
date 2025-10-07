@@ -20,10 +20,10 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-	public async Task<List<DownloadResult>> DownloadAllWithProgressAsync(
-			Dictionary<string, DownloadProgress> urlToProgressMap,
-			string destinationDirectory,
-			System.Threading.CancellationToken cancellationToken = default)
+		public async Task<List<DownloadResult>> DownloadAllWithProgressAsync(
+				Dictionary<string, DownloadProgress> urlToProgressMap,
+				string destinationDirectory,
+				System.Threading.CancellationToken cancellationToken = default)
 		{
 			var urlList = urlToProgressMap.Keys.ToList();
 			await Logger.LogVerboseAsync($"[DownloadManager] Starting batch download with progress reporting for {urlList.Count} URLs");
@@ -134,34 +134,34 @@ namespace KOTORModSync.Core.Services.Download
 					successCount++;
 					await Logger.LogVerboseAsync($"[DownloadManager] Successfully downloaded: {result.FilePath}");
 					progressItem.AddLog($"Download completed successfully: {result.FilePath}");
-				if ( result.WasSkipped )
-				{
-					progressItem.AddLog("File was skipped (already exists)");
-					// Update the progress item to reflect that it was skipped - EXPLICITLY set everything
-					progressItem.Status = DownloadStatus.Skipped;
-					progressItem.StatusMessage = "File already exists";
-					progressItem.ProgressPercentage = 100;
-					progressItem.FilePath = result.FilePath; // Ensure file path is set
-					progressItem.EndTime = DateTime.Now;
-					if ( progressItem.StartTime == default )
-						progressItem.StartTime = DateTime.Now;
-
-					// Set file size if we can get it
-					if ( !string.IsNullOrEmpty(result.FilePath) && System.IO.File.Exists(result.FilePath) )
+					if ( result.WasSkipped )
 					{
-						try
+						progressItem.AddLog("File was skipped (already exists)");
+						// Update the progress item to reflect that it was skipped - EXPLICITLY set everything
+						progressItem.Status = DownloadStatus.Skipped;
+						progressItem.StatusMessage = "File already exists";
+						progressItem.ProgressPercentage = 100;
+						progressItem.FilePath = result.FilePath; // Ensure file path is set
+						progressItem.EndTime = DateTime.Now;
+						if ( progressItem.StartTime == default )
+							progressItem.StartTime = DateTime.Now;
+
+						// Set file size if we can get it
+						if ( !string.IsNullOrEmpty(result.FilePath) && System.IO.File.Exists(result.FilePath) )
 						{
-							long fileSize = new System.IO.FileInfo(result.FilePath).Length;
-							progressItem.BytesDownloaded = fileSize;
-							progressItem.TotalBytes = fileSize;
-							await Logger.LogVerboseAsync($"[DownloadManager] File already exists ({fileSize} bytes): {result.FilePath}");
-						}
-						catch ( Exception ex )
-						{
-							await Logger.LogWarningAsync($"[DownloadManager] Could not get file size for skipped file: {ex.Message}");
+							try
+							{
+								long fileSize = new System.IO.FileInfo(result.FilePath).Length;
+								progressItem.BytesDownloaded = fileSize;
+								progressItem.TotalBytes = fileSize;
+								await Logger.LogVerboseAsync($"[DownloadManager] File already exists ({fileSize} bytes): {result.FilePath}");
+							}
+							catch ( Exception ex )
+							{
+								await Logger.LogWarningAsync($"[DownloadManager] Could not get file size for skipped file: {ex.Message}");
+							}
 						}
 					}
-				}
 				}
 				else
 				{

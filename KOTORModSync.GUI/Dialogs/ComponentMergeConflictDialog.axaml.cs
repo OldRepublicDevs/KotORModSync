@@ -7,14 +7,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 using JetBrains.Annotations;
-using Component = KOTORModSync.Core.Component;
 using KOTORModSync.Core;
 using static KOTORModSync.Dialogs.ComponentMergeConflictViewModel;
-using Avalonia.Input;
+using Component = KOTORModSync.Core.Component;
 
 namespace KOTORModSync.Dialogs
 {
@@ -32,6 +32,7 @@ namespace KOTORModSync.Dialogs
 #if DEBUG
 			this.AttachDevTools();
 #endif
+
 			// Attach window move event handlers
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
@@ -118,7 +119,7 @@ namespace KOTORModSync.Dialogs
 			Close();
 		}
 
-		private void OnItemClicked(object sender, Avalonia.Input.PointerPressedEventArgs e)
+		private void OnItemClicked(object sender, PointerPressedEventArgs e)
 		{
 			if ( !(sender is Border border) || !(border.DataContext is ComponentConflictItem item) )
 				return;
@@ -249,14 +250,14 @@ namespace KOTORModSync.Dialogs
 					// Find the existing tab control and switch to Raw TOML tab (index 1)
 					TabControl existingTabControl = this.FindControl<TabControl>("ExistingTabControl");
 					if ( existingTabControl == null )
-					    return;
+						return;
 					existingTabControl.SelectedIndex = 1;
 					// Generate TOML if not already generated
 					ViewModel?.UpdateExistingTomlView();
 
 					// Scroll to the component's line
 					if ( ViewModel == null )
-					    return;
+						return;
 					int lineNumber = ViewModel.GetComponentLineNumber(e.Item);
 					if ( lineNumber > 0 )
 					{
@@ -269,14 +270,14 @@ namespace KOTORModSync.Dialogs
 					// Find the incoming tab control and switch to Raw TOML tab (index 1)
 					TabControl incomingTabControl = this.FindControl<TabControl>("IncomingTabControl");
 					if ( incomingTabControl == null )
-					    return;
+						return;
 					incomingTabControl.SelectedIndex = 1;
 					// Generate TOML if not already generated
 					ViewModel?.UpdateIncomingTomlView();
 
 					// Scroll to the component's line
 					if ( ViewModel == null )
-					    return;
+						return;
 					int lineNumber = ViewModel.GetComponentLineNumber(e.Item);
 					if ( lineNumber > 0 )
 					{
@@ -364,7 +365,7 @@ namespace KOTORModSync.Dialogs
 			foreach ( Visual child in visualChildren )
 			{
 				if ( !(child is Control childControl) )
-				    continue;
+					continue;
 				T descendant = FindDescendant<T>(childControl);
 				if ( descendant != null )
 					return descendant;
@@ -463,7 +464,7 @@ namespace KOTORModSync.Dialogs
 
 				// Get the visual collection
 				if ( !(itemsControl?.Items is System.Collections.IEnumerable source) )
-				    return;
+					return;
 
 				// Find the index of the item
 				int index = 0;
@@ -508,7 +509,7 @@ namespace KOTORModSync.Dialogs
 
 		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
 		{
-			if (!_mouseDownForWindowMoving)
+			if ( !_mouseDownForWindowMoving )
 				return;
 
 			PointerPoint currentPoint = e.GetCurrentPoint(this);
@@ -520,11 +521,11 @@ namespace KOTORModSync.Dialogs
 
 		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
 			// Don't start window drag if clicking on interactive controls
-			if (ShouldIgnorePointerForWindowDrag(e))
+			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
 			_mouseDownForWindowMoving = true;
@@ -537,37 +538,36 @@ namespace KOTORModSync.Dialogs
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
 			// Get the element under the pointer
-			if (!(e.Source is Visual source))
+			if ( !(e.Source is Visual source) )
 				return false;
 
 			// Walk up the visual tree to check if we're clicking on an interactive element
 			Visual current = source;
-			while (current != null && current != this)
+			while ( current != null && current != this )
 			{
 				// Check if we're clicking on any interactive control
-				if (current is Button ||
-					current is TextBox ||
-					current is ComboBox ||
-					current is ListBox ||
-					current is MenuItem ||
-					current is Menu ||
-					current is Expander ||
-					current is Slider ||
-					current is TabControl ||
-					current is TabItem ||
-					current is ProgressBar ||
-					current is ScrollViewer ||
-					current is CheckBox)
+				if ( current is Button ||
+					 current is TextBox ||
+					 current is ComboBox ||
+					 current is ListBox ||
+					 current is MenuItem ||
+					 current is Menu ||
+					 current is Expander ||
+					 current is Slider ||
+					 current is TabControl ||
+					 current is TabItem ||
+					 current is ProgressBar ||
+					 current is ScrollViewer )
 				{
 					return true;
 				}
 
 				// Check if the element has context menu or flyout open
-				if (current is Control control)
+				if ( current is Control control )
 				{
-					if (control.ContextMenu?.IsOpen == true)
+					if ( control.ContextMenu?.IsOpen == true )
 						return true;
-					if (control.ContextFlyout?.IsOpen == true)
+					if ( control.ContextFlyout?.IsOpen == true )
 						return true;
 				}
 

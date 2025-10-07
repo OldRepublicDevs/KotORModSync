@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:control="clr-namespace:KOTORModSync.Controls">
     <Design.PreviewWith>
         <Border Padding="20">
             <!-- Add Controls for Previewer Here -->
@@ -59,6 +60,22 @@
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="FontSize" Value="14" />
     </Style>
+    <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#062766" />
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#000116" />
+        <Setter Property="BorderBrush" Value="#A8B348" />
+    </Style>
+    <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#000116" />
+        <Setter Property="BorderBrush" Value="#3AAAFF" />
+    </Style>
+    <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
 
     <Style Selector="Expander">
         <Setter Property="Background" Value="#062766" />
@@ -76,6 +93,15 @@
         <Setter Property="Background" Value="#010116" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="Expander /template/ ToggleButton">
+        <Setter Property="Background" Value="#062766" />
+    </Style>
+    <Style Selector="Expander /template/ ToggleButton:pointerover">
+        <Setter Property="Background" Value="#083388" />
+    </Style>
+    <Style Selector="Expander /template/ ToggleButton /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
     </Style>
 
     <Style Selector="TextBox:focus /template/ TextBlock#PART_Watermark">
@@ -119,11 +145,40 @@
         <Setter Property="FontSize" Value="14" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+    <Style Selector="TextBox /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#062766" />
+    </Style>
+    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#A8B348" />
+    </Style>
+    <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#A8B348" />
+    </Style>
+    <Style Selector="TextBox:disabled /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
 
     <Style Selector="ComboBox">
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="Background" Value="#031332" />
         <Setter Property="Foreground" Value="#3AAAFF" />
+    </Style>
+    <Style Selector="ComboBox /template/ Border#Background">
+        <Setter Property="Background" Value="#031332" />
+    </Style>
+    <Style Selector="ComboBox:pointerover /template/ Border#Background">
+        <Setter Property="Background" Value="#031332" />
+    </Style>
+    <Style Selector="ComboBox:focus /template/ Border#Background">
+        <Setter Property="Background" Value="#031332" />
+    </Style>
+    <Style Selector="ComboBox:disabled /template/ Border#Background">
+        <Setter Property="Background" Value="#031332" />
+        <Setter Property="Opacity" Value="0.5" />
     </Style>
 
     <!-- ComboBox Placeholder Text Styling -->
@@ -146,6 +201,20 @@
     </Style>
     <Style Selector="CheckBox:unchecked">
         <Setter Property="Foreground" Value="#A8B348" />
+    </Style>
+
+    <!-- Global ToolTip Styling -->
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#062766" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Placement" Value="Right" />
+        <Setter Property="HorizontalOffset" Value="10" />
+        <Setter Property="VerticalOffset" Value="0" />
     </Style>
     <Style Selector="CheckBox:pointerover /template/ Border#PART_BorderElement">
         <Setter Property="Background" Value="#010116" />
@@ -171,8 +240,30 @@
     <Style Selector="CheckBox:unchecked">
         <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
+    <Style Selector="CheckBox /template/ Border#PART_Border">
+        <Setter Property="Background" Value="#010116" />
+    </Style>
     <Style Selector="CheckBox:pointerover /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#3AAAFF" />
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#A8B348" />
+    </Style>
+    <Style Selector="CheckBox:pressed /template/ Border#PART_Border">
+        <Setter Property="Background" Value="#010116" />
+    </Style>
+    <Style Selector="CheckBox:disabled /template/ Border#PART_Border">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+
+    <!-- RadioButton styling -->
+    <Style Selector="RadioButton">
+        <Setter Property="Foreground" Value="#3AAAFF" />
+    </Style>
+    <Style Selector="RadioButton:pointerover">
+        <Setter Property="Foreground" Value="#A8B348" />
+    </Style>
+    <Style Selector="RadioButton:checked">
+        <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
 
     <!-- ToggleSwitch styling to ensure proper visibility/colors -->
@@ -201,6 +292,14 @@
         <Setter Property="MinWidth" Value="150" />
         <Setter Property="Background" Value="#031332" />
     </Style>
+    <Style Selector="TreeView /template/ Border#PART_Border">
+        <Setter Property="Background" Value="#031332" />
+    </Style>
+    <Style Selector="TreeView:disabled /template/ Border#PART_Border">
+        <Setter Property="Background" Value="#031332" />
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+
     <!-- Validation highlight for component headers (applied to Border wrapper) -->
     <Style Selector="Border.validation-failed">
         <Setter Property="Background" Value="#331B0000" />
@@ -211,6 +310,13 @@
         <Setter Property="Margin" Value="2" />
         <Setter Property="MinWidth" Value="150" />
         <Setter Property="Background" Value="#031332" />
+    </Style>
+    <Style Selector="ListBox /template/ Border#PART_Border">
+        <Setter Property="Background" Value="#031332" />
+    </Style>
+    <Style Selector="ListBox:disabled /template/ Border#PART_Border">
+        <Setter Property="Background" Value="#031332" />
+        <Setter Property="Opacity" Value="0.5" />
     </Style>
 
     <!-- ListBoxItem styling for mod list -->
@@ -266,6 +372,9 @@
     <Style Selector="ScrollViewer">
         <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
         <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+    </Style>
+    <Style Selector="ScrollViewer /template/ Border#PART_Border">
+        <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="StackPanel">
         <Setter Property="Margin" Value="2" />
@@ -621,9 +730,31 @@
         <Setter Property="Margin" Value="0,12,0,12" />
     </Style>
 
-    <!-- Regex highlight palette -->
+    <!-- Control-specific template fixes -->
+    <Style Selector="control|InstructionEditorControl /template/ Border">
+        <Setter Property="Background" Value="#010116" />
+    </Style>
+
+    <Style Selector="control|OptionEditorControl /template/ Border">
+        <Setter Property="Background" Value="#010116" />
+    </Style>
+
+    <!-- Menu styling -->
+    <Style Selector="Menu /template/ Border">
+        <Setter Property="Background" Value="#000116" />
+    </Style>
+    <Style Selector="MenuItem /template/ Border">
+        <Setter Property="Background" Value="#000116" />
+    </Style>
+
     <Styles.Resources>
         <ResourceDictionary>
+            <!-- Theme Core Colors -->
+            <SolidColorBrush x:Key="ThemeForegroundBrush" Color="#3AAAFF"/>
+            <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="#000116"/>
+            <SolidColorBrush x:Key="ThemeBorderBrush" Color="#062766"/>
+            <SolidColorBrush x:Key="ThemeBorderMidBrush" Color="#062766"/>
+
             <SolidColorBrush x:Key="RegexHighlight.Background" Color="#000116"/>
             <SolidColorBrush x:Key="RegexHighlight.Default" Color="#3AAAFF"/>
             <SolidColorBrush x:Key="RegexHighlight.Heading" Color="#A8B348"/>

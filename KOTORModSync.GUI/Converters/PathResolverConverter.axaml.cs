@@ -21,15 +21,15 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is null)
+			if ( value is null )
 				return string.Empty;
 
-			if (value is string singlePath)
+			if ( value is string singlePath )
 			{
 				return ResolvePath(singlePath);
 			}
 
-			if (value is IEnumerable<string> pathList)
+			if ( value is IEnumerable<string> pathList )
 			{
 				var resolvedPaths = pathList.Select(ResolvePath).ToList();
 				return string.Join(Environment.NewLine, resolvedPaths);
@@ -46,11 +46,11 @@ namespace KOTORModSync.Converters
 		[NotNull]
 		private static string ResolvePath([CanBeNull] string path)
 		{
-			if (string.IsNullOrEmpty(path))
+			if ( string.IsNullOrEmpty(path) )
 				return string.Empty;
 
 			// Check if paths are defined before resolving
-			if (MainConfig.SourcePath == null && MainConfig.DestinationPath == null)
+			if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
 			{
 				return path; // Return original path if directories aren't configured
 			}
@@ -59,7 +59,7 @@ namespace KOTORModSync.Converters
 			{
 				return Utility.ReplaceCustomVariables(path);
 			}
-			catch (Exception)
+			catch ( Exception )
 			{
 				// If resolution fails, return the original path
 				return path;

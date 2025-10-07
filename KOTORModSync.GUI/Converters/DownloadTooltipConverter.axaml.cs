@@ -12,7 +12,7 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is bool isDownloaded)
+			if ( value is bool isDownloaded )
 			{
 				return isDownloaded
 					? "✅ Mod files are downloaded and ready"

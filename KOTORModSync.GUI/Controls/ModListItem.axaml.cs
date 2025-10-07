@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -20,9 +19,6 @@ namespace KOTORModSync.Controls
 		// Static dictionary to store error messages per component
 		private static readonly Dictionary<Guid, string> s_componentErrors = new Dictionary<Guid, string>();
 
-		// Track the last element that had a tooltip to detect transitions
-		private static Control s_lastTooltipElement;
-
 		public ModListItem()
 		{
 			AvaloniaXamlLoader.Load(this);
@@ -30,7 +26,6 @@ namespace KOTORModSync.Controls
 			// Add pointer enter/leave handlers for hover effect
 			PointerEntered += OnPointerEntered;
 			PointerExited += OnPointerExited;
-			PointerMoved += OnPointerMoved;
 
 			DataContextChanged += OnDataContextChanged;
 
@@ -45,99 +40,10 @@ namespace KOTORModSync.Controls
 			// Wire up double-click
 			DoubleTapped += OnDoubleTapped;
 
-			// Set tooltip delay on ALL elements (main item and all children) to default
-			SetTooltipDelayOnAllElements();
-
 			// Wire up drag handle
 			TextBlock dragHandle = this.FindControl<TextBlock>("DragHandle");
 			if ( dragHandle != null )
 				dragHandle.PointerPressed += OnDragHandlePressed;
-		}
-
-		private void SetTooltipDelayOnAllElements()
-		{
-			// Set delay on the main item to default
-			ToolTip.SetShowDelay(this, 400);
-
-			// Set delay on ALL child elements and wire up pointer events
-			foreach ( var child in this.GetVisualDescendants() )
-			{
-				if ( child is Control control )
-				{
-					ToolTip.SetShowDelay(control, 400);
-
-					// Wire up pointer entered for each child to detect tooltip transitions
-					control.PointerEntered += OnChildPointerEntered;
-				}
-			}
-		}
-
-		private void OnChildPointerEntered(object sender, PointerEventArgs e)
-		{
-			if ( !(sender is Control currentElement) )
-				return;
-
-			// If we're moving to a different element with a tooltip, close all tooltips
-			if ( s_lastTooltipElement != null && s_lastTooltipElement != currentElement )
-			{
-				CloseAllTooltips();
-			}
-
-			// Update the tracked element if this one has a tooltip
-			if ( ToolTip.GetTip(currentElement) != null )
-			{
-				s_lastTooltipElement = currentElement;
-			}
-		}
-
-		private void OnPointerMoved(object sender, PointerEventArgs e)
-		{
-			// Get the element directly under the pointer
-			var hitElement = e.Source as Control;
-
-			if ( hitElement != null && s_lastTooltipElement != null && hitElement != s_lastTooltipElement )
-			{
-				// We're moving to a different element, close all tooltips to reset timer
-				CloseAllTooltips();
-
-				// Update tracked element if new element has a tooltip
-				if ( ToolTip.GetTip(hitElement) != null )
-				{
-					s_lastTooltipElement = hitElement;
-				}
-			}
-		}
-
-		private void CloseAllTooltips()
-		{
-			// Close tooltip on this item
-			ToolTip.SetIsOpen(this, false);
-
-			// Close tooltips on all child elements
-			foreach ( var child in this.GetVisualDescendants() )
-			{
-				if ( child is Control control )
-				{
-					ToolTip.SetIsOpen(control, false);
-				}
-			}
-
-			// Also try to close tooltips on all ModListItems in the window
-			var window = this.FindAncestorOfType<Window>();
-			if ( window != null )
-			{
-				foreach ( var item in window.GetVisualDescendants().OfType<ModListItem>() )
-				{
-					ToolTip.SetIsOpen(item, false);
-					foreach ( var child in item.GetVisualDescendants() )
-					{
-						if ( child is Control control )
-						{
-							ToolTip.SetIsOpen(control, false);
-						}
-					}
-				}
-			}
 		}
 
 		private void OnDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -193,7 +99,7 @@ namespace KOTORModSync.Controls
 			UpdateFromModManagementService();
 
 			// Set up rich tooltip based on current status
-			string tooltipText = CreateRichTooltip(component);
+			string tooltipText = ModListItem.CreateRichTooltip(component);
 			ToolTip.SetTip(this, tooltipText);
 
 			// Update editor mode visibility
@@ -250,11 +156,10 @@ namespace KOTORModSync.Controls
 						List<Component> dependencyComponents = Component.FindComponentsFromGuidList(component.Dependencies, allComponents);
 						foreach ( Component dep in dependencyComponents )
 						{
-							if ( dep != null && !dep.IsSelected )
-							{
-								hasErrors = true;
-								errorReasons.Add($"Requires '{dep.Name}' to be selected");
-							}
+							if ( dep == null || dep.IsSelected )
+								continue;
+							hasErrors = true;
+							errorReasons.Add($"Requires '{dep.Name}' to be selected");
 						}
 					}
 				}
@@ -271,11 +176,10 @@ namespace KOTORModSync.Controls
 						List<Component> restrictionComponents = Component.FindComponentsFromGuidList(component.Restrictions, allComponents);
 						foreach ( Component restriction in restrictionComponents )
 						{
-							if ( restriction != null && restriction.IsSelected )
-							{
-								hasErrors = true;
-								errorReasons.Add($"Conflicts with '{restriction.Name}' which is selected");
-							}
+							if ( restriction == null || !restriction.IsSelected )
+								continue;
+							hasErrors = true;
+							errorReasons.Add($"Conflicts with '{restriction.Name}' which is selected");
 						}
 					}
 				}
@@ -290,13 +194,9 @@ namespace KOTORModSync.Controls
 
 			// Store error reasons in a static dictionary for tooltip lookup
 			if ( errorReasons.Count > 0 )
-			{
 				s_componentErrors[component.Guid] = string.Join("\n", errorReasons);
-			}
 			else
-			{
 				s_componentErrors.Remove(component.Guid);
-			}
 
 			// Update border - don't set any border when there are no issues (let default style handle it)
 			if ( hasErrors )
@@ -319,26 +219,25 @@ namespace KOTORModSync.Controls
 			}
 
 			// Update validation icon if it exists
-			if ( this.FindControl<TextBlock>("ValidationIcon") is TextBlock validationIconControl )
+			if ( !(this.FindControl<TextBlock>("ValidationIcon") is TextBlock validationIconControl) )
+				return;
+			if ( hasErrors )
 			{
-				if ( hasErrors )
-				{
-					validationIconControl.Text = "❌";
-					validationIconControl.Foreground = new SolidColorBrush(Color.Parse("#FF6B6B"));
-					validationIconControl.IsVisible = true;
-					ToolTip.SetTip(validationIconControl, "Component has validation errors");
-				}
-				else if ( isMissingDownload )
-				{
-					validationIconControl.Text = "⚠️";
-					validationIconControl.Foreground = new SolidColorBrush(Color.Parse("#FFA500"));
-					validationIconControl.IsVisible = true;
-					ToolTip.SetTip(validationIconControl, "Mod archive not downloaded");
-				}
-				else
-				{
-					validationIconControl.IsVisible = false;
-				}
+				validationIconControl.Text = "❌";
+				validationIconControl.Foreground = new SolidColorBrush(Color.Parse("#FF6B6B"));
+				validationIconControl.IsVisible = true;
+				ToolTip.SetTip(validationIconControl, "Component has validation errors");
+			}
+			else if ( isMissingDownload )
+			{
+				validationIconControl.Text = "⚠️";
+				validationIconControl.Foreground = new SolidColorBrush(Color.Parse("#FFA500"));
+				validationIconControl.IsVisible = true;
+				ToolTip.SetTip(validationIconControl, "Mod archive not downloaded");
+			}
+			else
+			{
+				validationIconControl.IsVisible = false;
 			}
 		}
 
@@ -362,7 +261,7 @@ namespace KOTORModSync.Controls
 				dragHandle.IsVisible = isEditorMode;
 		}
 
-		private string CreateRichTooltip(Component component)
+		private static string CreateRichTooltip(Component component)
 		{
 			var sb = new System.Text.StringBuilder();
 
@@ -373,8 +272,8 @@ namespace KOTORModSync.Controls
 				_ = sb.AppendLine($"📦 {component.Name}");
 				if ( !string.IsNullOrWhiteSpace(component.Author) )
 					_ = sb.AppendLine($"👤 Author: {component.Author}");
-				if ( !string.IsNullOrWhiteSpace(component.Category) )
-					_ = sb.AppendLine($"📁 Category: {component.Category}");
+				if ( component.Category.Count > 0 )
+					_ = sb.AppendLine($"📁 Category: {string.Join(", ", component.Category)}");
 				if ( !string.IsNullOrWhiteSpace(component.Tier) )
 					_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
 				if ( !string.IsNullOrWhiteSpace(component.Description) )
@@ -405,9 +304,7 @@ namespace KOTORModSync.Controls
 					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
 					_ = sb.AppendLine("  2. Or manually download from the mod links");
 					if ( component.ModLink.Count > 0 )
-					{
 						_ = sb.AppendLine($"  3. Download Link: {component.ModLink[0]}");
-					}
 					_ = sb.AppendLine();
 				}
 
@@ -422,32 +319,24 @@ namespace KOTORModSync.Controls
 					_ = sb.AppendLine();
 					_ = sb.AppendLine("How to fix:");
 					if ( errorReasons.Contains("Requires") )
-					{
 						_ = sb.AppendLine("  • Enable required dependency mods");
-					}
 					if ( errorReasons.Contains("Conflicts") )
-					{
 						_ = sb.AppendLine("  • Deselect conflicting mods");
-					}
 					if ( errorReasons.Contains("No installation instructions") )
-					{
 						_ = sb.AppendLine("  • This mod needs instructions (contact mod author)");
-					}
 					_ = sb.AppendLine();
 				}
-
 				_ = sb.AppendLine(new string('─', 40));
 				_ = sb.AppendLine();
 			}
-
 			_ = sb.AppendLine($"📦 {component.Name}");
 			_ = sb.AppendLine();
 
 			if ( !string.IsNullOrEmpty(component.Author) )
 				_ = sb.AppendLine($"👤 Author: {component.Author}");
 
-			if ( !string.IsNullOrEmpty(component.Category) )
-				_ = sb.AppendLine($"📁 Category: {component.Category}");
+			if ( component.Category.Count > 0 )
+				_ = sb.AppendLine($"📁 Category: {string.Join(", ", component.Category)}");
 
 			if ( !string.IsNullOrEmpty(component.Tier) )
 				_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
@@ -483,10 +372,6 @@ namespace KOTORModSync.Controls
 			if ( !(this.FindControl<Border>("RootBorder") is Border border) )
 				return;
 
-			// Close all tooltips when entering this item
-			CloseAllTooltips();
-			s_lastTooltipElement = null;
-
 			// Store current border for restoration
 			IBrush currentBrush = border.BorderBrush;
 			border.Tag = currentBrush;
@@ -515,12 +400,6 @@ namespace KOTORModSync.Controls
 		{
 			if ( !(this.FindControl<Border>("RootBorder") is Border border) )
 				return;
-
-			// Clear the tracked tooltip element when leaving the item
-			s_lastTooltipElement = null;
-
-			// Close all tooltips when leaving
-			CloseAllTooltips();
 
 			// Restore original border
 			if ( border.Tag is IBrush originalBrush )

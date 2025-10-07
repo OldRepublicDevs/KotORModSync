@@ -41,7 +41,7 @@ namespace KOTORModSync.Core.Services
 				Guid = Guid.NewGuid(),
 				Name = name ?? $"New Mod {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
 				Author = author ?? "Unknown Author",
-				Category = category ?? "Uncategorized",
+				Category = new List<string> { category ?? "Uncategorized" },
 				Tier = "Optional",
 				Description = "A new mod component.",
 				IsSelected = false,
@@ -182,7 +182,7 @@ namespace KOTORModSync.Core.Services
 			bool removed = _mainConfig.allComponents.Remove(component);
 
 			if ( !removed )
-			    return false;
+				return false;
 			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
 				Operation = ModOperation.Delete,
@@ -272,13 +272,13 @@ namespace KOTORModSync.Core.Services
 				result.Warnings.Add("Component author is not specified");
 
 			// Dependency validation
-			foreach ( Guid dependency in component.Dependencies.Where(dependency => _mainConfig.allComponents.All(c => c.Guid != dependency)))
+			foreach ( Guid dependency in component.Dependencies.Where(dependency => _mainConfig.allComponents.All(c => c.Guid != dependency)) )
 			{
 				result.Errors.Add($"Dependency {dependency} not found in component list");
 			}
 
 			// Restriction validation
-			foreach ( Guid restriction in component.Restrictions.Where(restriction => _mainConfig.allComponents.All(c => c.Guid != restriction)))
+			foreach ( Guid restriction in component.Restrictions.Where(restriction => _mainConfig.allComponents.All(c => c.Guid != restriction)) )
 			{
 				result.Errors.Add($"Restriction {restriction} not found in component list");
 			}
@@ -293,7 +293,7 @@ namespace KOTORModSync.Core.Services
 						string fileName = Path.GetFileName(source);
 						string fullPath = Path.Combine(_mainConfig.sourcePath.FullName, fileName);
 						if ( File.Exists(fullPath) || Directory.Exists(fullPath) )
-						    continue;
+							continue;
 						result.Errors.Add($"Required file not found: {fileName}");
 						component.IsDownloaded = false;
 					}
@@ -474,7 +474,8 @@ namespace KOTORModSync.Core.Services
 				if ( searchOptions.SearchInAuthor && component.Author.IndexOf(lowerSearch, StringComparison.OrdinalIgnoreCase) >= 0 )
 					return true;
 
-				if ( searchOptions.SearchInCategory && component.Category.IndexOf(lowerSearch, StringComparison.OrdinalIgnoreCase) >= 0 )
+				if ( searchOptions.SearchInCategory && component.Category != null &&
+					 component.Category.Any(cat => cat.IndexOf(lowerSearch, StringComparison.OrdinalIgnoreCase) >= 0) )
 					return true;
 
 				if ( searchOptions.SearchInDescription && component.Description.IndexOf(lowerSearch, StringComparison.OrdinalIgnoreCase) >= 0 )
@@ -502,7 +503,12 @@ namespace KOTORModSync.Core.Services
 					comparison = (a, b) => string.Compare(a.Author, b.Author, StringComparison.OrdinalIgnoreCase);
 					break;
 				case ModSortCriteria.Category:
-					comparison = (a, b) => string.Compare(a.Category, b.Category, StringComparison.OrdinalIgnoreCase);
+					comparison = (a, b) =>
+					{
+						string aCategory = a.Category.Count > 0 ? string.Join(", ", a.Category) : string.Empty;
+						string bCategory = b.Category.Count > 0 ? string.Join(", ", b.Category) : string.Empty;
+						return string.Compare(aCategory, bCategory, StringComparison.OrdinalIgnoreCase);
+					};
 					break;
 				case ModSortCriteria.Tier:
 					comparison = (a, b) =>
@@ -612,7 +618,10 @@ namespace KOTORModSync.Core.Services
 									if ( val is string v )
 										category = v;
 								}
-								component.Category = category;
+								// Convert string to list for backwards compatibility
+								component.Category = string.IsNullOrEmpty(category)
+									? new List<string>()
+									: new List<string> { category };
 								success = true;
 								break;
 							}
@@ -756,8 +765,9 @@ namespace KOTORModSync.Core.Services
 				SelectedMods = _mainConfig.allComponents.Count(c => c.IsSelected),
 				DownloadedMods = _mainConfig.allComponents.Count(c => c.IsDownloaded),
 				Categories = _mainConfig.allComponents
-					.Where(c => !string.IsNullOrEmpty(c.Category))
-					.GroupBy(c => c.Category)
+					.Where(c => c.Category.Count > 0)
+					.SelectMany(c => c.Category)
+					.GroupBy(cat => cat)
 					.ToDictionary(g => g.Key, g => g.Count()),
 				Tiers = _mainConfig.allComponents
 					.Where(c => !string.IsNullOrEmpty(c.Tier))
@@ -934,7 +944,7 @@ namespace KOTORModSync.Core.Services
 				component.Author = author.ToString();
 
 			if ( parameters.TryGetValue("Category", out object category) )
-				component.Category = category.ToString();
+				component.Category = new List<string> { category.ToString() };
 
 			if ( parameters.TryGetValue("Tier", out object tier) )
 				component.Tier = tier.ToString();

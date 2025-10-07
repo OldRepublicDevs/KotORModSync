@@ -107,7 +107,7 @@ namespace KOTORModSync
 			// This would trigger a refresh of the statistics display in the dialog
 			// For now, we'll just update the DataContext if it's a ModManagementDialog
 			if ( _parentWindow is ModManagementDialog dialog && dialog.DataContext is ModManagementService.ModStatistics )
-			    dialog.DataContext = _modManagementService.GetModStatistics();
+				dialog.DataContext = _modManagementService.GetModStatistics();
 		}
 	}
 }

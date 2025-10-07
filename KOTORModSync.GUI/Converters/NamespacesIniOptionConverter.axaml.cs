@@ -26,27 +26,27 @@ namespace KOTORModSync.Converters
 					return null;
 
 				Component parentComponent = dataContextInstruction.GetParentComponent();
-				if (parentComponent is null)
+				if ( parentComponent is null )
 					return null;
 
 				List<string> allArchives = GetAllArchivesFromInstructions(parentComponent);
-				foreach ( string archivePath in allArchives)
+				foreach ( string archivePath in allArchives )
 				{
-					if (string.IsNullOrEmpty(archivePath))
+					if ( string.IsNullOrEmpty(archivePath) )
 						continue;
 
 					Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(archivePath);
-					if (result == null || !result.Any())
+					if ( result == null || !result.Any() )
 						continue;
 
 					var optionNames = new List<string>();
-					foreach ( KeyValuePair<string, Dictionary<string, string>> section in result)
+					foreach ( KeyValuePair<string, Dictionary<string, string>> section in result )
 					{
-						if (section.Value != null && section.Value.TryGetValue("Name", out string name))
+						if ( section.Value != null && section.Value.TryGetValue("Name", out string name) )
 							optionNames.Add(name);
 					}
 
-					if (optionNames.Any())
+					if ( optionNames.Any() )
 						return optionNames;
 				}
 				return null;

@@ -163,7 +163,7 @@ namespace KOTORModSync.Dialogs
 						{
 							Group group = match.Groups[groupName];
 							if ( !group.Success || group.Length <= 0 )
-							    continue;
+								continue;
 							Logger.LogVerbose($"RAW group '{groupName}': '{group.Value}'");
 							bool overlaps = processedRanges.Any(range => !(group.Index >= range.end || group.Index + group.Length <= range.start));
 							if ( overlaps )

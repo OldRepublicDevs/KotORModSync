@@ -1,129 +1,56 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:control="clr-namespace:KOTORModSync.Controls">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Design.PreviewWith>
         <Border Padding="20">
             <!-- Add Controls for Previewer Here -->
         </Border>
     </Design.PreviewWith>
 
-    <!-- Fix for Button ContentPresenter -->
+    <!-- Fix for Button ContentPresenter - structural only -->
     <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="BorderBrush" Value="#062766" />
-    </Style>
-    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="#000116" />
-        <Setter Property="BorderBrush" Value="#A8B348" />
-    </Style>
-    <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="#000116" />
-        <Setter Property="BorderBrush" Value="#3AAAFF" />
-    </Style>
-    <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="BorderThickness" Value="2" />
     </Style>
 
-    <!-- Fix for TextBox ContentPresenter -->
+    <!-- Fix for TextBox ContentPresenter - structural only -->
     <Style Selector="TextBox /template/ Border#PART_BorderElement">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="BorderBrush" Value="#062766" />
-    </Style>
-    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="BorderBrush" Value="#A8B348" />
-    </Style>
-    <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="BorderBrush" Value="#A8B348" />
-    </Style>
-    <Style Selector="TextBox:disabled /template/ Border#PART_BorderElement">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="BorderThickness" Value="2" />
     </Style>
 
-    <!-- Fix for ComboBox ContentPresenter -->
+    <!-- Fix for ComboBox ContentPresenter - structural only -->
     <Style Selector="ComboBox /template/ Border#Background">
-        <Setter Property="Background" Value="#031332" />
-    </Style>
-    <Style Selector="ComboBox:pointerover /template/ Border#Background">
-        <Setter Property="Background" Value="#031332" />
-    </Style>
-    <Style Selector="ComboBox:focus /template/ Border#Background">
-        <Setter Property="Background" Value="#031332" />
-    </Style>
-    <Style Selector="ComboBox:disabled /template/ Border#Background">
-        <Setter Property="Background" Value="#031332" />
-        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Fix for CheckBox ContentPresenter -->
+    <!-- Fix for CheckBox ContentPresenter - structural only -->
     <Style Selector="CheckBox /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#010116" />
-    </Style>
-    <Style Selector="CheckBox:pointerover /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="BorderBrush" Value="#A8B348" />
-    </Style>
-    <Style Selector="CheckBox:pressed /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#010116" />
-    </Style>
-    <Style Selector="CheckBox:disabled /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="BorderThickness" Value="2" />
     </Style>
 
-    <!-- Fix for TreeView ContentPresenter -->
+    <!-- Fix for TreeView ContentPresenter - structural only -->
     <Style Selector="TreeView /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#031332" />
-    </Style>
-    <Style Selector="TreeView:disabled /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#031332" />
-        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Fix for ListBox ContentPresenter -->
+    <!-- Fix for ListBox ContentPresenter - structural only -->
     <Style Selector="ListBox /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#031332" />
-    </Style>
-    <Style Selector="ListBox:disabled /template/ Border#PART_Border">
-        <Setter Property="Background" Value="#031332" />
-        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Fix for ScrollViewer -->
+    <!-- Fix for ScrollViewer - structural only -->
     <Style Selector="ScrollViewer /template/ Border#PART_Border">
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Fix for InstructionEditorControl -->
-    <Style Selector="control|InstructionEditorControl /template/ Border">
-        <Setter Property="Background" Value="#010116" />
-    </Style>
-
-    <!-- Fix for OptionEditorControl -->
-    <Style Selector="control|OptionEditorControl /template/ Border">
-        <Setter Property="Background" Value="#010116" />
-    </Style>
-
-    <!-- Fix for Expander -->
+    <!-- Fix for Expander - structural only -->
     <Style Selector="Expander /template/ Border#ExpanderContent">
-        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
     </Style>
-    <Style Selector="Expander /template/ ContentPresenter">
-        <Setter Property="Background" Value="#010116" />
+    <Style Selector="Expander:expanded /template/ Border#ExpanderContent">
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
     </Style>
-    <Style Selector="Expander:disabled /template/ Border">
-        <Setter Property="Background" Value="#010116" />
-        <Setter Property="Opacity" Value="0.5" />
-    </Style>
-
-    <!-- Fix for Menu -->
-    <Style Selector="Menu /template/ Border">
-        <Setter Property="Background" Value="#000116" />
-    </Style>
-    <Style Selector="MenuItem /template/ Border">
-        <Setter Property="Background" Value="#000116" />
+    <Style Selector="Expander /template/ ToggleButton /template/ ContentPresenter">
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
 </Styles>

@@ -93,7 +93,7 @@ namespace KOTORModSync.Tests
 					string output = process.StandardOutput.ReadToEnd();
 					process.WaitForExit();
 					if ( process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output) )
-					    return output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+						return output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)[0].Trim();
 				}
 			}
 			catch
@@ -399,42 +399,42 @@ namespace KOTORModSync.Tests
 		}
 
 		[Test]
-	[Ignore("Wildcards in archive names for Extract operations not yet supported")]
-	public async Task Test_WildcardInArchiveName()
-	{
-		// Arrange - Multiple archives matching pattern
-		string archive1 = Path.Combine(_sourceDir, "mod_v1.0.zip");
-		string archive2 = Path.Combine(_sourceDir, "mod_v2.0.zip");
-		string archive3 = Path.Combine(_sourceDir, "other.zip");
+		[Ignore("Wildcards in archive names for Extract operations not yet supported")]
+		public async Task Test_WildcardInArchiveName()
+		{
+			// Arrange - Multiple archives matching pattern
+			string archive1 = Path.Combine(_sourceDir, "mod_v1.0.zip");
+			string archive2 = Path.Combine(_sourceDir, "mod_v2.0.zip");
+			string archive3 = Path.Combine(_sourceDir, "other.zip");
 
-		CreateArchive(archive1, new Dictionary<string, string>
+			CreateArchive(archive1, new Dictionary<string, string>
 		{
 			{ "version.txt", "1.0" }
 		});
 
-		CreateArchive(archive2, new Dictionary<string, string>
+			CreateArchive(archive2, new Dictionary<string, string>
 		{
 			{ "version.txt", "2.0" }
 		});
 
-		CreateArchive(archive3, new Dictionary<string, string>
+			CreateArchive(archive3, new Dictionary<string, string>
 		{
 			{ "data.txt", "other" }
 		});
 
-		var instructions = new List<Instruction>
+			var instructions = new List<Instruction>
 		{
 			new() { Action = Instruction.ActionType.Extract, Source = [@"<<modDirectory>>\mod_*.zip"], Destination = "<<modDirectory>>" }
 		};
 
-		// Act
-		(VirtualFileSystemProvider v, _) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+			// Act
+			(VirtualFileSystemProvider v, _) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-		// Assert
-		Assert.That(v.GetValidationIssues(), Is.Empty);
+			// Assert
+			Assert.That(v.GetValidationIssues(), Is.Empty);
 
-		// For this test, files are extracted to the source directory, so we match against that.
-		AssertFileSystemsMatch(v, Path.Combine(_realTestDir, "source"), "source");
+			// For this test, files are extracted to the source directory, so we match against that.
+			AssertFileSystemsMatch(v, Path.Combine(_realTestDir, "source"), "source");
 
 			string virtualSourcePath = Path.Combine(_virtualTestDir, "source");
 			var extractedFiles = v.GetTrackedFiles()

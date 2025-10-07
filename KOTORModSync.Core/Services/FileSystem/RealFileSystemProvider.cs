@@ -32,7 +32,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 		public Task CopyFileAsync(string sourcePath, string destinationPath, bool overwrite)
 		{
 			string directoryName = Path.GetDirectoryName(destinationPath);
-			if (directoryName != null && !Directory.Exists(directoryName))
+			if ( directoryName != null && !Directory.Exists(directoryName) )
 			{
 				Directory.CreateDirectory(directoryName);
 			}
@@ -44,14 +44,14 @@ namespace KOTORModSync.Core.Services.FileSystem
 		public Task MoveFileAsync(string sourcePath, string destinationPath, bool overwrite)
 		{
 			string directoryName = Path.GetDirectoryName(destinationPath);
-			if (directoryName != null && !Directory.Exists(directoryName))
+			if ( directoryName != null && !Directory.Exists(directoryName) )
 			{
 				Directory.CreateDirectory(directoryName);
 			}
 
-			if (File.Exists(destinationPath))
+			if ( File.Exists(destinationPath) )
 			{
-				if (overwrite)
+				if ( overwrite )
 					File.Delete(destinationPath);
 			}
 
@@ -94,146 +94,146 @@ namespace KOTORModSync.Core.Services.FileSystem
 			return Task.CompletedTask;
 		}
 
-	public async Task<List<string>> ExtractArchiveAsync(string archivePath, string destinationPath)
-	{
-		var extractedFiles = new List<string>();
-		int maxCount = MainConfig.UseMultiThreadedIO ? 16 : 1;
-
-		using ( var semaphore = new SemaphoreSlim(initialCount: 1, maxCount) )
+		public async Task<List<string>> ExtractArchiveAsync(string archivePath, string destinationPath)
 		{
-			using ( var cts = new CancellationTokenSource() )
+			var extractedFiles = new List<string>();
+			int maxCount = MainConfig.UseMultiThreadedIO ? 16 : 1;
+
+			using ( var semaphore = new SemaphoreSlim(initialCount: 1, maxCount) )
 			{
-				try
+				using ( var cts = new CancellationTokenSource() )
 				{
-					await InnerExtractFileAsync(archivePath, destinationPath, extractedFiles, semaphore, cts.Token);
-				}
-				catch ( IndexOutOfRangeException )
-				{
-					await Logger.LogWarningAsync("Falling back to 7-Zip and restarting entire archive extraction due to the above error.");
-					cts.Cancel();
-					throw new OperationCanceledException("Falling back to 7-Zip extraction");
-				}
-				catch ( OperationCanceledException ex )
-				{
-					await Logger.LogWarningAsync(ex.Message);
-					throw;
-				}
-				catch ( IOException ex )
-				{
-					await Logger.LogExceptionAsync(ex);
-					throw;
-				}
-				catch ( Exception ex )
-				{
-					await Logger.LogExceptionAsync(ex);
-					throw;
+					try
+					{
+						await InnerExtractFileAsync(archivePath, destinationPath, extractedFiles, semaphore, cts.Token);
+					}
+					catch ( IndexOutOfRangeException )
+					{
+						await Logger.LogWarningAsync("Falling back to 7-Zip and restarting entire archive extraction due to the above error.");
+						cts.Cancel();
+						throw new OperationCanceledException("Falling back to 7-Zip extraction");
+					}
+					catch ( OperationCanceledException ex )
+					{
+						await Logger.LogWarningAsync(ex.Message);
+						throw;
+					}
+					catch ( IOException ex )
+					{
+						await Logger.LogExceptionAsync(ex);
+						throw;
+					}
+					catch ( Exception ex )
+					{
+						await Logger.LogExceptionAsync(ex);
+						throw;
+					}
 				}
 			}
-		}
 
-		return extractedFiles;
+			return extractedFiles;
 
-		async Task InnerExtractFileAsync(string sourcePath, string destPath, List<string> extracted, SemaphoreSlim sem, CancellationToken token)
-		{
-			if ( token.IsCancellationRequested )
-				return;
-
-			await sem.WaitAsync(token);
-
-			try
+			async Task InnerExtractFileAsync(string sourcePath, string destPath, List<string> extracted, SemaphoreSlim sem, CancellationToken token)
 			{
-				var archive = new FileInfo(sourcePath);
-				string sourceRelDirPath = MainConfig.SourcePath is null ? sourcePath : PathHelper.GetRelativePath(MainConfig.SourcePath.FullName, sourcePath);
-
-				await Logger.LogAsync($"Extracting archive '{sourcePath}'...");
-
-			// Handle self-extracting executable archives (7zip)
-			if ( archive.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase) )
-			{
-				(int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(archive.FullName, $" -o\"{archive.DirectoryName}\" -y");
-
-				if ( exitCode == 0 )
+				if ( token.IsCancellationRequested )
 					return;
 
-				throw new InvalidOperationException($"'{sourceRelDirPath}' is not a self-extracting executable as previously assumed. Cannot extract.");
-			}
+				await sem.WaitAsync(token);
 
-				using ( FileStream stream = File.OpenRead(archive.FullName) )
+				try
 				{
-					IArchive arch = GetArchiveByExtension(archive.Extension, stream);
+					var archive = new FileInfo(sourcePath);
+					string sourceRelDirPath = MainConfig.SourcePath is null ? sourcePath : PathHelper.GetRelativePath(MainConfig.SourcePath.FullName, sourcePath);
 
-					using ( arch )
-					using ( IReader reader = arch.ExtractAllEntries() )
+					await Logger.LogAsync($"Extracting archive '{sourcePath}'...");
+
+					// Handle self-extracting executable archives (7zip)
+					if ( archive.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase) )
 					{
-						while ( reader.MoveToNextEntry() )
+						(int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(archive.FullName, $" -o\"{archive.DirectoryName}\" -y");
+
+						if ( exitCode == 0 )
+							return;
+
+						throw new InvalidOperationException($"'{sourceRelDirPath}' is not a self-extracting executable as previously assumed. Cannot extract.");
+					}
+
+					using ( FileStream stream = File.OpenRead(archive.FullName) )
+					{
+						IArchive arch = GetArchiveByExtension(archive.Extension, stream);
+
+						using ( arch )
+						using ( IReader reader = arch.ExtractAllEntries() )
 						{
-							if ( reader.Entry.IsDirectory )
-								continue;
-
-							string extractFolderName = Path.GetFileNameWithoutExtension(archive.Name);
-							string destinationItemPath = Path.Combine(destPath, extractFolderName, reader.Entry.Key);
-							string destinationDirectory = Path.GetDirectoryName(destinationItemPath) ?? throw new NullReferenceException($"Path.GetDirectoryName({destinationItemPath})");
-
-							if ( MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory) )
+							while ( reader.MoveToNextEntry() )
 							{
-								destinationDirectory = PathHelper.GetCaseSensitivePath(destinationDirectory, isFile: false).Item1;
-							}
+								if ( reader.Entry.IsDirectory )
+									continue;
 
-							string destinationRelDirPath = MainConfig.SourcePath is null ? destinationDirectory : PathHelper.GetRelativePath(MainConfig.SourcePath.FullName, destinationDirectory);
+								string extractFolderName = Path.GetFileNameWithoutExtension(archive.Name);
+								string destinationItemPath = Path.Combine(destPath, extractFolderName, reader.Entry.Key);
+								string destinationDirectory = Path.GetDirectoryName(destinationItemPath) ?? throw new NullReferenceException($"Path.GetDirectoryName({destinationItemPath})");
 
-							if ( !Directory.Exists(destinationDirectory) )
-							{
-								await Logger.LogVerboseAsync($"Create directory '{destinationRelDirPath}'");
-								_ = Directory.CreateDirectory(destinationDirectory);
-							}
-
-							await Logger.LogVerboseAsync($"Extract '{reader.Entry.Key}' to '{destinationRelDirPath}'");
-
-							try
-							{
-								IReader localReader = reader;
-								await Task.Run(() =>
+								if ( MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory) )
 								{
-									if ( localReader.Cancelled )
-										return;
-									localReader.WriteEntryToDirectory(destinationDirectory, ArchiveHelper.DefaultExtractionOptions);
-								}, token);
+									destinationDirectory = PathHelper.GetCaseSensitivePath(destinationDirectory, isFile: false).Item1;
+								}
 
-								extracted.Add(destinationItemPath);
-							}
-							catch ( ObjectDisposedException )
-							{
-								return;
-							}
-							catch ( UnauthorizedAccessException )
-							{
-								await Logger.LogWarningAsync($"Skipping file '{reader.Entry.Key}' due to lack of permissions.");
+								string destinationRelDirPath = MainConfig.SourcePath is null ? destinationDirectory : PathHelper.GetRelativePath(MainConfig.SourcePath.FullName, destinationDirectory);
+
+								if ( !Directory.Exists(destinationDirectory) )
+								{
+									await Logger.LogVerboseAsync($"Create directory '{destinationRelDirPath}'");
+									_ = Directory.CreateDirectory(destinationDirectory);
+								}
+
+								await Logger.LogVerboseAsync($"Extract '{reader.Entry.Key}' to '{destinationRelDirPath}'");
+
+								try
+								{
+									IReader localReader = reader;
+									await Task.Run(() =>
+									{
+										if ( localReader.Cancelled )
+											return;
+										localReader.WriteEntryToDirectory(destinationDirectory, ArchiveHelper.DefaultExtractionOptions);
+									}, token);
+
+									extracted.Add(destinationItemPath);
+								}
+								catch ( ObjectDisposedException )
+								{
+									return;
+								}
+								catch ( UnauthorizedAccessException )
+								{
+									await Logger.LogWarningAsync($"Skipping file '{reader.Entry.Key}' due to lack of permissions.");
+								}
 							}
 						}
 					}
 				}
+				finally
+				{
+					_ = sem.Release();
+				}
 			}
-			finally
-			{
-				_ = sem.Release();
-			}
-		}
 
-		IArchive GetArchiveByExtension(string extension, Stream stream)
-		{
-			switch ( extension.ToLowerInvariant() )
+			IArchive GetArchiveByExtension(string extension, Stream stream)
 			{
-				case ".zip":
-					return ZipArchive.Open(stream);
-				case ".rar":
-					return RarArchive.Open(stream);
-				case ".7z":
-					return SevenZipArchive.Open(stream);
-				default:
-					return ArchiveFactory.Open(stream);
+				switch ( extension.ToLowerInvariant() )
+				{
+					case ".zip":
+						return ZipArchive.Open(stream);
+					case ".rar":
+						return RarArchive.Open(stream);
+					case ".7z":
+						return SevenZipArchive.Open(stream);
+					default:
+						return ArchiveFactory.Open(stream);
+				}
 			}
 		}
-	}
 
 		public List<string> GetFilesInDirectory(string directoryPath, string searchPattern = "*.*", SearchOption searchOption = SearchOption.TopDirectoryOnly) => !Directory.Exists(directoryPath)
 				? new List<string>()

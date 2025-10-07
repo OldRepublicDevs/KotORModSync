@@ -54,18 +54,18 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		public void StartWatching()
 		{
-			lock (_lockObject)
+			lock ( _lockObject )
 			{
-				if (_disposed)
+				if ( _disposed )
 					throw new ObjectDisposedException(nameof(CrossPlatformFileWatcher));
 
-				if (EnableRaisingEvents)
+				if ( EnableRaisingEvents )
 					return;
 
 				EnableRaisingEvents = true;
 
 				// Choose platform-specific implementation
-				if (Utility.Utility.GetOperatingSystem() == OSPlatform.Windows)
+				if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
 					StartWindowsWatcher();
 				else
 					StartPollingWatcher();
@@ -74,14 +74,14 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		public void StopWatching()
 		{
-			lock (_lockObject)
+			lock ( _lockObject )
 			{
-				if (_disposed)
+				if ( _disposed )
 					return;
 
 				EnableRaisingEvents = false;
 
-				if (_windowsWatcher != null)
+				if ( _windowsWatcher != null )
 				{
 					_windowsWatcher.EnableRaisingEvents = false;
 					_windowsWatcher.Dispose();
@@ -117,7 +117,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 				Logger.LogVerbose($"Cross-platform file watcher started for Windows: {_path}");
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Failed to start Windows file watcher, falling back to polling");
 				StartPollingWatcher();
@@ -133,7 +133,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 				Logger.LogVerbose($"Cross-platform file watcher started with polling: {_path}");
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Failed to start polling file watcher");
 				throw;
@@ -150,14 +150,14 @@ namespace KOTORModSync.Core.FileSystemUtils
 			{
 				await ScanDirectory(previousFiles, cancellationToken);
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex, "Error during initial directory scan");
 				OnError(new ErrorEventArgs(ex));
 				return;
 			}
 
-			while (!cancellationToken.IsCancellationRequested && EnableRaisingEvents)
+			while ( !cancellationToken.IsCancellationRequested && EnableRaisingEvents )
 			{
 				try
 				{
@@ -167,31 +167,31 @@ namespace KOTORModSync.Core.FileSystemUtils
 					await ScanDirectory(currentFiles, cancellationToken);
 
 					// Check for deleted files
-					foreach (string file in previousFiles)
+					foreach ( string file in previousFiles )
 					{
-						if (!currentFiles.Contains(file))
-						    OnDeleted(new FileSystemEventArgs(WatcherChangeTypes.Deleted, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
+						if ( !currentFiles.Contains(file) )
+							OnDeleted(new FileSystemEventArgs(WatcherChangeTypes.Deleted, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 					}
 
 					// Check for created files
-					foreach (string file in currentFiles)
+					foreach ( string file in currentFiles )
 					{
-						if (!previousFiles.Contains(file))
-						    OnCreated(new FileSystemEventArgs(WatcherChangeTypes.Created, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
+						if ( !previousFiles.Contains(file) )
+							OnCreated(new FileSystemEventArgs(WatcherChangeTypes.Created, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 					}
 
 					// Check for changed files (simplified - just check modification time)
-					foreach (string file in currentFiles)
+					foreach ( string file in currentFiles )
 					{
 						if ( !previousFiles.Contains(file) )
-						    continue;
+							continue;
 						try
 						{
 							var fileInfo = new FileInfo(file);
-							if (fileInfo.LastWriteTime > _lastPollTime)
+							if ( fileInfo.LastWriteTime > _lastPollTime )
 								OnChanged(new FileSystemEventArgs(WatcherChangeTypes.Changed, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 						}
-						catch (Exception ex)
+						catch ( Exception ex )
 						{
 							await Logger.LogVerboseAsync($"Error checking file modification time for {file}: {ex.Message}");
 						}
@@ -199,18 +199,18 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 					// Update state for next iteration
 					previousFiles.Clear();
-					foreach (string file in currentFiles)
+					foreach ( string file in currentFiles )
 					{
 						_ = previousFiles.Add(file);
 					}
 
 					_lastPollTime = DateTime.Now;
 				}
-				catch (OperationCanceledException)
+				catch ( OperationCanceledException )
 				{
 					break;
 				}
-				catch (Exception ex)
+				catch ( Exception ex )
 				{
 					await Logger.LogExceptionAsync(ex, "Error in polling loop");
 					OnError(new ErrorEventArgs(ex));
@@ -220,7 +220,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 					{
 						await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
 					}
-					catch (OperationCanceledException)
+					catch ( OperationCanceledException )
 					{
 						break;
 					}
@@ -230,7 +230,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		private async Task ScanDirectory(HashSet<string> fileSet, CancellationToken cancellationToken)
 		{
-			if (!Directory.Exists(_path))
+			if ( !Directory.Exists(_path) )
 				return;
 
 			try
@@ -238,7 +238,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				SearchOption searchOption = _includeSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
 				string[] files = Directory.GetFiles(_path, _filter, searchOption);
 
-				foreach (string file in files)
+				foreach ( string file in files )
 				{
 					cancellationToken.ThrowIfCancellationRequested();
 					_ = fileSet.Add(file);
@@ -246,7 +246,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 				await Task.CompletedTask;
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogVerboseAsync($"Error scanning directory {_path}: {ex.Message}");
 				throw;
@@ -267,25 +267,25 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		private void OnCreated(FileSystemEventArgs e)
 		{
-			if (EnableRaisingEvents)
+			if ( EnableRaisingEvents )
 				Created?.Invoke(this, e);
 		}
 
 		private void OnDeleted(FileSystemEventArgs e)
 		{
-			if (EnableRaisingEvents)
+			if ( EnableRaisingEvents )
 				Deleted?.Invoke(this, e);
 		}
 
 		private void OnChanged(FileSystemEventArgs e)
 		{
-			if (EnableRaisingEvents)
+			if ( EnableRaisingEvents )
 				Changed?.Invoke(this, e);
 		}
 
 		private void OnRenamed(RenamedEventArgs e)
 		{
-			if (EnableRaisingEvents)
+			if ( EnableRaisingEvents )
 				Renamed?.Invoke(this, e);
 		}
 
@@ -303,15 +303,15 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		protected virtual void Dispose(bool disposing)
 		{
-			lock (_lockObject)
+			lock ( _lockObject )
 			{
-				if (_disposed)
+				if ( _disposed )
 					return;
 
 				_disposed = true;
 
 				if ( !disposing )
-				    return;
+					return;
 				EnableRaisingEvents = false;
 				StopWatching();
 			}

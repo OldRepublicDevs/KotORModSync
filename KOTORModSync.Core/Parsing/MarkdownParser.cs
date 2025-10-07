@@ -205,9 +205,15 @@ namespace KOTORModSync.Core.Parsing
 				);
 				if ( categoryTierMatch.Success )
 				{
-					component.Category = categoryTierMatch.Groups["category"].Value.Trim();
+					string categoryStr = categoryTierMatch.Groups["category"].Value.Trim();
+					// Split categories by common delimiters (comma, semicolon, ampersand, pipe)
+					component.Category = categoryStr.Split(
+						new[] { ",", ";", "&", "|", " and " },
+						StringSplitOptions.RemoveEmptyEntries
+					).Select(c => c.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
+
 					component.Tier = categoryTierMatch.Groups["tier"].Value.Trim();
-					_logVerbose($"  Extracted Category/Tier: '{component.Category}'/'{component.Tier}'");
+					_logVerbose($"  Extracted Category/Tier: '{string.Join(", ", component.Category)}'/'{component.Tier}'");
 				}
 				else
 				{

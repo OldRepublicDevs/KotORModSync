@@ -19,6 +19,25 @@ namespace KOTORModSync.Controls
 		// Static dictionary to store error messages per component
 		private static readonly Dictionary<Guid, string> s_componentErrors = new Dictionary<Guid, string>();
 
+		// Drag visual state properties
+		public static readonly StyledProperty<bool> IsBeingDraggedProperty =
+			AvaloniaProperty.Register<ModListItem, bool>(nameof(IsBeingDragged));
+
+		public static readonly StyledProperty<bool> IsDropTargetProperty =
+			AvaloniaProperty.Register<ModListItem, bool>(nameof(IsDropTarget));
+
+		public bool IsBeingDragged
+		{
+			get => GetValue(IsBeingDraggedProperty);
+			set => SetValue(IsBeingDraggedProperty, value);
+		}
+
+		public bool IsDropTarget
+		{
+			get => GetValue(IsDropTargetProperty);
+			set => SetValue(IsDropTargetProperty, value);
+		}
+
 		public ModListItem()
 		{
 			AvaloniaXamlLoader.Load(this);
@@ -192,6 +211,29 @@ namespace KOTORModSync.Controls
 				errorReasons.Add("No installation instructions defined");
 			}
 
+			// Check for invalid ModLinks/URLs only when in EditorMode
+			if ( component.ModLink.Count > 0 )
+			{
+				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow && mainWindow.EditorMode )
+				{
+					var invalidUrls = new List<string>();
+					foreach ( string link in component.ModLink )
+					{
+						if ( string.IsNullOrWhiteSpace(link) )
+							continue; // Skip empty links
+
+						if ( !IsValidUrl(link) )
+							invalidUrls.Add(link);
+					}
+
+					if ( invalidUrls.Count > 0 )
+					{
+						hasErrors = true;
+						errorReasons.Add($"Invalid download URLs: {string.Join(", ", invalidUrls)}");
+					}
+				}
+			}
+
 			// Store error reasons in a static dictionary for tooltip lookup
 			if ( errorReasons.Count > 0 )
 				s_componentErrors[component.Guid] = string.Join("\n", errorReasons);
@@ -202,13 +244,13 @@ namespace KOTORModSync.Controls
 			if ( hasErrors )
 			{
 				// Red border for errors
-				border.BorderBrush = new SolidColorBrush(Color.Parse("#FF6B6B"));
+				border.BorderBrush = ThemeResourceHelper.ModListItemErrorBrush;
 				border.BorderThickness = new Thickness(2);
 			}
 			else if ( isMissingDownload )
 			{
 				// Orange border for missing downloads
-				border.BorderBrush = new SolidColorBrush(Color.Parse("#FFA500"));
+				border.BorderBrush = ThemeResourceHelper.ModListItemWarningBrush;
 				border.BorderThickness = new Thickness(1.5);
 			}
 			else
@@ -224,14 +266,14 @@ namespace KOTORModSync.Controls
 			if ( hasErrors )
 			{
 				validationIconControl.Text = "❌";
-				validationIconControl.Foreground = new SolidColorBrush(Color.Parse("#FF6B6B"));
+				validationIconControl.Foreground = ThemeResourceHelper.ModListItemErrorBrush;
 				validationIconControl.IsVisible = true;
 				ToolTip.SetTip(validationIconControl, "Component has validation errors");
 			}
 			else if ( isMissingDownload )
 			{
 				validationIconControl.Text = "⚠️";
-				validationIconControl.Foreground = new SolidColorBrush(Color.Parse("#FFA500"));
+				validationIconControl.Foreground = ThemeResourceHelper.ModListItemWarningBrush;
 				validationIconControl.IsVisible = true;
 				ToolTip.SetTip(validationIconControl, "Mod archive not downloaded");
 			}
@@ -324,6 +366,15 @@ namespace KOTORModSync.Controls
 						_ = sb.AppendLine("  • Deselect conflicting mods");
 					if ( errorReasons.Contains("No installation instructions") )
 						_ = sb.AppendLine("  • This mod needs instructions (contact mod author)");
+					if ( errorReasons.Contains("Invalid download URLs") )
+					{
+						_ = sb.AppendLine("  • Fix invalid download URLs:");
+						_ = sb.AppendLine("    1. Click 'Edit' to open the mod editor");
+						_ = sb.AppendLine("    2. Go to the 'Download Links' section");
+						_ = sb.AppendLine("    3. Replace invalid URLs with working ones");
+						_ = sb.AppendLine("    4. URLs must start with 'http://' or 'https://'");
+						_ = sb.AppendLine("    5. Save your changes");
+					}
 					_ = sb.AppendLine();
 				}
 				_ = sb.AppendLine(new string('─', 40));
@@ -382,18 +433,18 @@ namespace KOTORModSync.Controls
 				Color color = solidBrush.Color;
 				// If red or orange, brighten it
 				if ( color.R > 200 && color.G < 150 ) // Reddish
-					border.BorderBrush = new SolidColorBrush(Color.Parse("#FF8888")); // Lighter red
+					border.BorderBrush = ThemeResourceHelper.ModListItemHoverErrorBrush; // Lighter red
 				else if ( color.R > 200 && color.G > 100 && color.G < 200 ) // Orange
-					border.BorderBrush = new SolidColorBrush(Color.Parse("#FFB84D")); // Lighter orange
+					border.BorderBrush = ThemeResourceHelper.ModListItemHoverWarningBrush; // Lighter orange
 				else
-					border.BorderBrush = new SolidColorBrush(Color.Parse("#A8B348")); // Yellow
+					border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush; // Yellow
 			}
 			else
 			{
-				border.BorderBrush = new SolidColorBrush(Color.Parse("#A8B348")); // Yellow
+				border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush; // Yellow
 			}
 
-			border.Background = new SolidColorBrush(Color.Parse("#020228"));
+			border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
 		}
 
 		private void OnPointerExited(object sender, PointerEventArgs e)
@@ -403,9 +454,7 @@ namespace KOTORModSync.Controls
 
 			// Restore original border
 			if ( border.Tag is IBrush originalBrush )
-			{
 				border.BorderBrush = originalBrush;
-			}
 			else
 			{
 				// Revalidate to restore correct state
@@ -413,7 +462,54 @@ namespace KOTORModSync.Controls
 					UpdateValidationState(component);
 			}
 
-			border.Background = new SolidColorBrush(Color.Parse("#010116"));
+			border.Background = ThemeResourceHelper.ModListItemDefaultBackgroundBrush;
+		}
+
+		/// <summary>
+		/// Sets the visual state for when this item is being dragged
+		/// </summary>
+		public void SetDraggedState(bool isDragged)
+		{
+			IsBeingDragged = isDragged;
+			if (this.FindControl<Border>("RootBorder") is Border border)
+			{
+				border.Opacity = isDragged ? 0.5 : 1.0;
+			}
+		}
+
+		/// <summary>
+		/// Sets the visual state for when this item is a drop target
+		/// </summary>
+		public void SetDropTargetState(bool isDropTarget)
+		{
+			IsDropTarget = isDropTarget;
+			if (this.FindControl<Border>("DropIndicator") is Border indicator)
+			{
+				indicator.IsVisible = isDropTarget;
+			}
+		}
+
+		/// <summary>
+		/// Checks if a string is a valid URL
+		/// </summary>
+		private static bool IsValidUrl(string url)
+		{
+			if ( string.IsNullOrWhiteSpace(url) )
+				return false;
+
+			// Basic URL validation
+			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri uri) )
+				return false;
+
+			// Check if it's HTTP or HTTPS
+			if ( uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps )
+				return false;
+
+			// Check if it has a valid host
+			if ( string.IsNullOrWhiteSpace(uri.Host) )
+				return false;
+
+			return true;
 		}
 	}
 }

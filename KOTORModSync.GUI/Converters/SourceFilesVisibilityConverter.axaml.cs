@@ -5,26 +5,22 @@
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
+using KOTORModSync.Core;
 
 namespace KOTORModSync.Converters
 {
-	public partial class DownloadTooltipConverter : IValueConverter
+	public partial class SourceFilesVisibilityConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if ( value is bool isDownloaded )
-			{
-				return isDownloaded
-					? "✅ Mod files are downloaded and ready"
-					: "⬇️ Mod files need to be downloaded";
-			}
-			return "Download status unknown";
+			if (!(value is Instruction.ActionType action))
+				return true;
+
+			// Hide Source File(s) section for DelDuplicate action
+			return action != Instruction.ActionType.DelDuplicate;
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-		{
+		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
 			throw new NotImplementedException();
-		}
 	}
 }
-

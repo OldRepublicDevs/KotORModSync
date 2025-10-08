@@ -4,12 +4,13 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <Platforms>AnyCPU</Platforms>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
   </PropertyGroup>
 
   <!-- Licensing -->
   <PropertyGroup>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>http://github.com/th3w1zard1/KOTORModSync</PackageProjectUrl>
     <RepositoryUrl>http://github.com/th3w1zard1/KOTORModSync</RepositoryUrl>
@@ -18,23 +19,24 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Iesi.Collections" Version="4.0.5" />
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" />
+    <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
+    <PackageReference Include="Tomlyn" Version="0.17.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="ini-parser-netstandard" Version="2.5.2" />
+    <PackageReference Include="SharpCompress" Version="0.36.0" />
+    <PackageReference Include="SevenZip" Version="19.0.0" />
+    <PackageReference Include="Squid-Box.SevenZipSharp" Version="1.6.1.23" />
+    <PackageReference Include="AngleSharp" Version="1.1.2" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.59" />
+    <PackageReference Include="Iesi.Collections" Version="4.0.5" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     <PackageReference Include="MegaApiClient" Version="1.10.5" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="SevenZip" Version="19.0.0" />
-    <PackageReference Include="SharpCompress" Version="0.36.0" />
-    <PackageReference Include="Squid-Box.SevenZipSharp" Version="1.6.1.23" />
-    <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
-    <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
-    <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
-    <PackageReference Include="Tomlyn" Version="0.17.0" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.59" />
-    <PackageReference Include="AngleSharp" Version="1.1.2" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
 
 

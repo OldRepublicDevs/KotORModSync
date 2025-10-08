@@ -1,0 +1,40 @@
+using System;
+using System.Globalization;
+using Avalonia.Data.Converters;
+using JetBrains.Annotations;
+using KOTORModSync.Core;
+
+namespace KOTORModSync.Converters
+{
+
+	public partial class ChooseActionDisplayConverter : IValueConverter
+	{
+		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		{
+			if (value is Instruction instruction)
+			{
+				if ( instruction.Action == Instruction.ActionType.Choose )
+				{
+					// For Choose actions, show the number of options
+					int sourceCount = instruction.Source.Count;
+					if (sourceCount == 0)
+						return "Choose (no options)";
+					else if (sourceCount == 1)
+						return "Choose (1 option)";
+					else
+						return $"Choose ({sourceCount} options)";
+				}
+
+				return instruction.Action.ToString();
+			}
+
+			return string.Empty;
+		}
+
+		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+}

@@ -12,7 +12,7 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Converters
 {
-	public class GuidListConverter : IValueConverter
+	public partial class GuidListConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
 			value is List<string> stringList

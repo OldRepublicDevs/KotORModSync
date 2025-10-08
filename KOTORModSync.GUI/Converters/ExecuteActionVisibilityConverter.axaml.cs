@@ -5,24 +5,22 @@
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
+using KOTORModSync.Core;
 
 namespace KOTORModSync.Converters
 {
-	public partial class DownloadStatusConverter : IValueConverter
+	public partial class ExecuteActionVisibilityConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if ( value is bool isDownloaded )
-			{
-				return isDownloaded ? "✅" : "⬇️";
-			}
-			return "❓";
+			if (!(value is Instruction.ActionType action))
+				return false;
+
+			// Show TextBox only for Execute actions
+			return action == Instruction.ActionType.Execute;
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-		{
+		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
 			throw new NotImplementedException();
-		}
 	}
 }
-

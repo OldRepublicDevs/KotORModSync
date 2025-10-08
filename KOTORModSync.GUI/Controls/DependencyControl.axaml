@@ -1,26 +1,35 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:converters="clr-namespace:KOTORModSync.Converters"
-             xmlns:controls="clr-namespace:KOTORModSync.Controls"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="KOTORModSync.Controls.DependencyControl">
+<UserControl
+    x:Class="KOTORModSync.Controls.DependencyControl"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:KOTORModSync.Controls"
+    xmlns:converters="clr-namespace:KOTORModSync.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    HorizontalAlignment="Stretch"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
     <UserControl.Resources>
         <converters:GuidListToComponentNames x:Key="GuidListToComponentNames" />
         <converters:ComponentToGuidConverter x:Key="ComponentToGuidConverter" />
     </UserControl.Resources>
-    <DockPanel>
-        <StackPanel Margin="0,0,8,0">
-            <TextBlock Text="Selected Dependencies" Classes="summary-label" Margin="0,0,0,4" />
-            <ListBox MinHeight="100" MaxHeight="200" VerticalAlignment="Top"
-                     x:Name="DependenciesListBox" SelectionMode="Multiple">
+    <StackPanel HorizontalAlignment="Stretch" Spacing="6">
+        <!--  Selected Dependencies List  -->
+        <StackPanel>
+            <TextBlock
+                Margin="0,0,0,2"
+                Classes="summary-label"
+                Text="Selected Dependencies" />
+            <ListBox
+                x:Name="DependenciesListBox"
+                MinHeight="60"
+                MaxHeight="120"
+                SelectionMode="Multiple">
                 <ListBox.ItemsSource>
                     <MultiBinding Converter="{StaticResource GuidListToComponentNames}">
-                        <Binding Path="ThisGuidList"
-                                 RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type controls:DependencyControl}}" />
-                        <Binding Path="ThisComponentList"
-                                 RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type controls:DependencyControl}}" />
+                        <Binding Path="ThisGuidList" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type controls:DependencyControl}}" />
+                        <Binding Path="ThisComponentList" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type controls:DependencyControl}}" />
                     </MultiBinding>
                 </ListBox.ItemsSource>
                 <ListBox.ItemTemplate>
@@ -29,73 +38,87 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <Button Content="🗑️ Remove Selected" Click="RemoveFromList_Click"
-                    Tag="{Binding ElementName=DependenciesListBox}"
-                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                    Margin="0,4,0,0" />
+            <Button
+                Margin="0,2,0,0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="RemoveFromList_Click"
+                Content="🗑️ Remove Selected"
+                Tag="{Binding ElementName=DependenciesListBox}" />
         </StackPanel>
 
-        <Grid Margin="0" RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,*"
-              HorizontalAlignment="Stretch" VerticalAlignment="Top">
+        <!--  Input Controls with Wrapping  -->
+        <WrapPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
+            <!--  Mod/Component Selector  -->
+            <StackPanel Width="250" Margin="0,0,8,4">
+                <TextBlock
+                    Margin="0,0,0,2"
+                    Classes="summary-label"
+                    Text="Add Mod/Component" />
+                <AutoCompleteBox
+                    x:Name="DependenciesAutoComplete"
+                    HorizontalAlignment="Stretch"
+                    FilterMode="Contains"
+                    Tag="{Binding ElementName=DependenciesListBox}"
+                    ValueMemberBinding="{Binding Converter={StaticResource ComponentToGuidConverter}}"
+                    Watermark="Type to search mods...">
+                    <AutoCompleteBox.ItemsSource>
+                        <Binding Path="ThisComponentList" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type controls:DependencyControl}}" />
+                    </AutoCompleteBox.ItemsSource>
+                    <AutoCompleteBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource ComponentToGuidConverter}}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </AutoCompleteBox.ItemTemplate>
+                </AutoCompleteBox>
+                <Button
+                    Margin="0,2,0,0"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="AddModToList_Click"
+                    Content="➕ Add Mod to List"
+                    Tag="{Binding ElementName=DependenciesAutoComplete}" />
+            </StackPanel>
 
-            <!-- Mod/Component Selector -->
-            <TextBlock Grid.Column="0" Grid.Row="0" Text="Add Mod/Component"
-                       Classes="summary-label" Margin="0,0,0,4" />
-            <AutoCompleteBox Grid.Column="0" Grid.Row="1"
-                             x:Name="DependenciesAutoComplete"
-                             HorizontalAlignment="Stretch"
-                             Watermark="Type to search mods..."
-                             FilterMode="Contains"
-                             ValueMemberBinding="{Binding Converter={StaticResource ComponentToGuidConverter}}"
-                             Tag="{Binding ElementName=DependenciesListBox}">
-                <AutoCompleteBox.ItemsSource>
-                    <Binding Path="ThisComponentList"
-                             RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type controls:DependencyControl}}" />
-                </AutoCompleteBox.ItemsSource>
-                <AutoCompleteBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Converter={StaticResource ComponentToGuidConverter}}"
-                                   TextWrapping="Wrap" />
-                    </DataTemplate>
-                </AutoCompleteBox.ItemTemplate>
-            </AutoCompleteBox>
-            <Button Grid.Column="0" Grid.Row="2"
-                    Content="➕ Add Mod to List" Click="AddModToList_Click"
-                    Tag="{Binding ElementName=DependenciesAutoComplete}"
-                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                    Margin="0,4,0,0" />
+            <!--  Option Selector  -->
+            <StackPanel Width="250" Margin="0,0,0,4">
+                <TextBlock
+                    Margin="0,0,0,2"
+                    Classes="summary-label"
+                    Text="Add Option" />
+                <AutoCompleteBox
+                    x:Name="OptionsAutoComplete"
+                    HorizontalAlignment="Stretch"
+                    FilterMode="Contains"
+                    Tag="{Binding ElementName=DependenciesListBox}"
+                    ToolTip.Tip="Options for the mod selected above. Select a mod first."
+                    ValueMemberBinding="{Binding Name}"
+                    Watermark="Type to search options...">
+                    <AutoCompleteBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock
+                                DataContext="{Binding .}"
+                                Text="{Binding Name}"
+                                TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </AutoCompleteBox.ItemTemplate>
+                </AutoCompleteBox>
+                <Button
+                    Margin="0,2,0,0"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="AddOptionToList_Click"
+                    Content="➕ Add Option to List"
+                    Tag="{Binding ElementName=OptionsAutoComplete}" />
+            </StackPanel>
+        </WrapPanel>
 
-            <!-- Option Selector -->
-            <TextBlock Grid.Column="1" Grid.Row="0" Text="Add Option"
-                       Classes="summary-label" Margin="8,0,0,4" />
-            <AutoCompleteBox Grid.Column="1" Grid.Row="1"
-                             x:Name="OptionsAutoComplete"
-                             HorizontalAlignment="Stretch"
-                             Watermark="Type to search options..."
-                             FilterMode="Contains"
-                             ValueMemberBinding="{Binding Name}"
-                             Tag="{Binding ElementName=DependenciesListBox}"
-                             Margin="8,0,0,0"
-                             ToolTip.Tip="Options for the mod selected above. Select a mod first.">
-                <AutoCompleteBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
-                    </DataTemplate>
-                </AutoCompleteBox.ItemTemplate>
-            </AutoCompleteBox>
-            <Button Grid.Column="1" Grid.Row="2"
-                    Content="➕ Add Option to List" Click="AddOptionToList_Click"
-                    Tag="{Binding ElementName=OptionsAutoComplete}"
-                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                    VerticalAlignment="Top"
-                    Margin="8,4,0,0" />
-
-            <!-- Helper text -->
-            <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3"
-                       Classes="secondary-text" FontSize="11" TextWrapping="Wrap"
-                       Margin="0,8,0,0">
-                <Run Text="💡 Tip: Start typing to filter the list. Press Enter to select." />
-            </TextBlock>
-        </Grid>
-    </DockPanel>
+        <!--  Helper text  -->
+        <TextBlock
+            Classes="secondary-text"
+            FontSize="10"
+            TextWrapping="Wrap">
+            <Run Text="💡 Tip: Start typing to filter the list. Press Enter to select." />
+        </TextBlock>
+    </StackPanel>
 </UserControl>

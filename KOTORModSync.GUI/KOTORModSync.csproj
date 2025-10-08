@@ -16,7 +16,7 @@
 
   <!-- Target Platforms/Frameworks -->
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net462</TargetFrameworks>
+    <TargetFrameworks>net8.0;net462</TargetFrameworks>
     <Platforms>x86;x64</Platforms>
     <UseAppHost>true</UseAppHost>
   </PropertyGroup>
@@ -91,273 +91,7 @@
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="MegaApiClient" Version="1.10.5" />
-  </ItemGroup>
-  <ItemGroup>
-    <AvaloniaXaml Update="Controls\ActionButtonsControl.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Controls\BrowseButtonsControl.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Dialogs\\CircularDependencyResolutionDialog.axaml">
-      <Generator>MSBuild:Compile</Generator>
-      <Class>CircularDependencyResolutionDialog</Class>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Dialogs\\ComponentMergeConflictDialog.axaml">
-      <Generator>MSBuild:Compile</Generator>
-      <Class>ComponentMergeConflictDialog</Class>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Controls\InstructionEditorControl.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Controls\ModListItem.axaml">
-      <Generator>MSBuild:Compile</Generator>
-      <Class>ModListItem</Class>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Controls\OptionEditorControl.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Controls\SearchBox.axaml">
-      <Generator>MSBuild:Compile</Generator>
-      <Class>SearchBox</Class>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Dialogs\\RegexImportDialog.axaml">
-      <Generator>MSBuild:Compile</Generator>
-      <Class>RegexImportDialog</Class>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Dialogs\\SettingsDialog.axaml">
-      <Generator>MSBuild:Compile</Generator>
-      <Class>SettingsDialog</Class>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Styles\Kotor2Style.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Styles\KotorStyle.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Styles\LegacyStyle.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <!-- BEGIN: Converters -->
-    <AvaloniaXaml Update="Converters\ActionConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\BooleanToArrowConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\CategoryTooltipConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\ChooseActionVisibility.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\ComboBoxItemConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\ComponentToGuidConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\DownloadStatusConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\DownloadTooltipConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\EnumDescriptionConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\EnumToBooleanConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\GuidListToComponentNames.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\GuidToComponentConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\IndexConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\InstructionDestinationConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\IsUnixConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\ListToStringConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\ListToVisibilityConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\NotChooseActionVisibility.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\NotPatcherActionVisibility.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\OpenLinkConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\PatcherActionVisibility.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\PathResolverConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\PathStatusConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\StringNotEmptyConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\StringToVisibilityConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <AvaloniaXaml Update="Converters\TierTooltipConverter.axaml">
-        <Generator>MSBuild:Compile</Generator>
-    </AvaloniaXaml>
-    <!-- END: Converters -->
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Dialogs\\ConfirmationDialog.axaml.cs">
-      <DependentUpon>ConfirmationDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Dialogs\\DependencyUnlinkDialog.axaml.cs">
-      <DependentUpon>DependencyUnlinkDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Dialogs\\InformationDialog.axaml.cs">
-      <DependentUpon>InformationDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Dialogs\\OptionsDialog.axaml.cs">
-      <DependentUpon>OptionsDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="ProgressWindow.axaml.cs">
-      <DependentUpon>ProgressWindow.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Dialogs\\Dialogs\\RegexImportDialog.axaml.cs">
-      <DependentUpon>Dialogs\\RegexImportDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Dialogs\\RegexImportDialogViewModel.axaml.cs">
-      <DependentUpon>Dialogs\\RegexImportDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Dialogs\\Dialogs\\SettingsDialog.axaml.cs">
-      <DependentUpon>Dialogs\\SettingsDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\ActionButtonsControl.axaml.cs">
-      <DependentUpon>ActionButtonsControl.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\BrowseButtonsControl.axaml.cs">
-      <DependentUpon>BrowseButtonsControl.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Dialogs\\CircularDependencyResolutionDialog.axaml.cs">
-      <DependentUpon>CircularDependencyResolutionDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Dialogs\\ComponentMergeConflictDialog.axaml.cs">
-      <DependentUpon>ComponentMergeConflictDialog.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\DependencyControl.axaml.cs">
-      <DependentUpon>DependencyControl.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\InstructionEditorControl.axaml.cs">
-      <DependentUpon>InstructionEditorControl.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\ModListItem.axaml.cs">
-      <DependentUpon>ModListItem.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\OptionEditorControl.axaml.cs">
-      <DependentUpon>OptionEditorControl.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\SearchBox.axaml.cs">
-      <DependentUpon>SearchBox.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\ActionConverter.axaml.cs">
-      <DependentUpon>ActionConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\BooleanToArrowConverter.axaml.cs">
-      <DependentUpon>BooleanToArrowConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\CategoryTooltipConverter.axaml.cs">
-      <DependentUpon>CategoryTooltipConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\ChooseActionVisibility.axaml.cs">
-      <DependentUpon>ChooseActionVisibility.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\ComboBoxItemConverter.axaml.cs">
-      <DependentUpon>ComboBoxItemConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\ComponentToGuidConverter.axaml.cs">
-      <DependentUpon>ComponentToGuidConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\DownloadStatusConverter.axaml.cs">
-      <DependentUpon>DownloadStatusConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\DownloadTooltipConverter.axaml.cs">
-      <DependentUpon>DownloadTooltipConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\EnumDescriptionConverter.axaml.cs">
-      <DependentUpon>EnumDescriptionConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\EnumToBooleanConverter.axaml.cs">
-      <DependentUpon>EnumToBooleanConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\GuidListConverter.axaml.cs">
-      <DependentUpon>GuidListConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\GuidListToComponentNames.axaml.cs">
-      <DependentUpon>GuidListToComponentNames.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\GuidToComponentConverter.axaml.cs">
-      <DependentUpon>GuidToComponentConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\IndexConverter.axaml.cs">
-      <DependentUpon>IndexConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\InstructionDestinationConverter.axaml.cs">
-      <DependentUpon>InstructionDestinationConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\IsUnixConverter.axaml.cs">
-      <DependentUpon>IsUnixConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\IsWindowsConverter.axaml.cs">
-      <DependentUpon>IsWindowsConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\ListToStringConverter.axaml.cs">
-      <DependentUpon>ListToStringConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\ListToVisibilityConverter.axaml.cs">
-      <DependentUpon>ListToVisibilityConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\NamespacesIniOptionConverter.axaml.cs">
-      <DependentUpon>NamespacesIniOptionConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\NotChooseActionVisibility.axaml.cs">
-      <DependentUpon>NotChooseActionVisibility.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\NotPatcherActionVisibility.axaml.cs">
-      <DependentUpon>NotPatcherActionVisibility.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\OpenLinkConverter.axaml.cs">
-      <DependentUpon>OpenLinkConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\PatcherActionVisibility.axaml.cs">
-      <DependentUpon>PatcherActionVisibility.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\PathResolverConverter.axaml.cs">
-      <DependentUpon>PathResolverConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\PathStatusConverter.axaml.cs">
-      <DependentUpon>PathStatusConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\StringNotEmptyConverter.axaml.cs">
-      <DependentUpon>StringNotEmptyConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\StringToVisibilityConverter.axaml.cs">
-      <DependentUpon>StringToVisibilityConverter.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Converters\TierTooltipConverter.axaml.cs">
-      <DependentUpon>TierTooltipConverter.axaml</DependentUpon>
-    </Compile>
+    <PackageReference Include="Markdig" Version="0.37.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' ">
     <AppFiles Include="$(SolutionDir)vendor\bin\holopatcher.app\**\*.*" />
@@ -376,9 +110,6 @@
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
 
     <!-- For Mac -->
-    <!-- TODO: .app's are having problems with command-line arguments -->
-    <!-- <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="@(AppFiles)" DestinationFolder="$(PublishDir)Resources\holopatcher.app\%(RecursiveDir)" /> -->
-    <!-- <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="@(AppFiles)" DestinationFolder="$(PublishDir)Resources\holopatcher.app\%(RecursiveDir)" /> -->
     <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
     <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
     <Move Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)HoloPatcher" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher" />
@@ -432,7 +163,7 @@
   <PropertyGroup>
     <Copyright>2025 th3w1zard1</Copyright>
     <Title>KOTORModSync</Title>
-    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>http://github.com/th3w1zard1/KOTORModSync</PackageProjectUrl>

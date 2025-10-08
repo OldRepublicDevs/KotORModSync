@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using Avalonia.Data.Converters;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
@@ -15,7 +14,7 @@ using KOTORModSync.Core.Utility;
 namespace KOTORModSync.Converters
 {
 	/// <summary>
-	/// Converts instruction paths by resolving placeholders like <<modDirectory>> and <<kotorDirectory>>
+	/// Converts instruction paths by resolving placeholders like `modDirectory` and `kotorDirectory`
 	/// </summary>
 	public partial class PathResolverConverter : IValueConverter
 	{

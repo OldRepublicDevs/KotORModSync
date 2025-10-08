@@ -4,7 +4,6 @@
 
 using System;
 using System.Globalization;
-using System.IO;
 using Avalonia.Data.Converters;
 using JetBrains.Annotations;
 using KOTORModSync.Core;

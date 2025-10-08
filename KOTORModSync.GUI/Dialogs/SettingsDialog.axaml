@@ -1,85 +1,142 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="KOTORModSync.Dialogs.SettingsDialog"
-        xmlns:controls="clr-namespace:KOTORModSync.Controls"
-        xmlns:converters="clr-namespace:KOTORModSync.Converters"
-        Title="Settings"
-        Width="500" Height="600" MinWidth="400" MinHeight="400"
-        WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="NoChrome"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        SystemDecorations="BorderOnly">
+<Window
+    x:Class="KOTORModSync.Dialogs.SettingsDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:KOTORModSync.Controls"
+    xmlns:converters="clr-namespace:KOTORModSync.Converters"
+    Title="Settings"
+    Width="500"
+    Height="600"
+    MinWidth="400"
+    MinHeight="400"
+    ExtendClientAreaChromeHints="NoChrome"
+    ExtendClientAreaTitleBarHeightHint="-1"
+    ExtendClientAreaToDecorationsHint="True"
+    SystemDecorations="BorderOnly"
+    WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
         <converters:IsUnixConverter x:Key="IsUnixConverter" />
     </Window.Resources>
 
     <Window.Styles>
-        <StyleInclude Source="/Styles/KotorStyle.axaml" />
         <StyleInclude Source="/Styles/ContentPresenterFix.axaml" />
+        <StyleInclude Source="/Styles/KotorStyle.axaml" />
     </Window.Styles>
 
     <Grid Margin="20" RowDefinitions="Auto,*,Auto">
-        <!-- Custom Window Controls -->
-        <StackPanel Grid.Row="0" Grid.RowSpan="3" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Spacing="0" Margin="0,8,8,0">
-            <Button Content="-" Click="MinimizeButton_Click"
-                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-                    HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-            <Button Content="▢" Click="ToggleMaximizeButton_Click"
-                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-                    HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-            <Button Content="X" Click="CloseButton_Click"
-                    HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-                    HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+        <!--  Custom Window Controls  -->
+        <StackPanel
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Margin="0,8,8,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Orientation="Horizontal"
+            Spacing="0">
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="MinimizeButton_Click"
+                Content="-"
+                FontSize="15" />
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="ToggleMaximizeButton_Click"
+                Content="▢"
+                FontSize="15" />
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="CloseButton_Click"
+                Content="X"
+                FontSize="15" />
         </StackPanel>
 
-        <!-- Header -->
-        <TextBlock Grid.Row="0" Text="⚙️ Settings" FontSize="24" FontWeight="Bold"
-                   HorizontalAlignment="Center" Margin="0,0,0,20" />
+        <!--  Header  -->
+        <TextBlock
+            Grid.Row="0"
+            Margin="0,0,0,20"
+            HorizontalAlignment="Center"
+            FontSize="24"
+            FontWeight="Bold"
+            Text="⚙️ Settings" />
 
-        <!-- Settings Content -->
+        <!--  Settings Content  -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="15">
-                <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
+                <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
                 <StackPanel x:Name="SettingsStackPanel" DataContext="{Binding MainConfigInstance}">
 
-                    <!-- Theme Section -->
-                    <Border BorderThickness="2" CornerRadius="8" Padding="15">
+                    <!--  Theme Section  -->
+                    <Border
+                        Padding="15"
+                        BorderThickness="2"
+                        CornerRadius="8">
                         <StackPanel>
-                            <TextBlock Text="🎨 Theme Settings" FontSize="16" FontWeight="Bold"
-                                     Margin="0,0,0,10" />
-                            <TextBlock Text="Theme:" FontWeight="Bold" />
-                            <ComboBox x:Name="StyleComboBox" SelectedIndex="0" HorizontalAlignment="Stretch"
-                                      HorizontalContentAlignment="Center"
-                                      SelectionChanged="StyleComboBox_SelectionChanged"
-                                      Margin="0,5,0,0">
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="🎨 Theme Settings" />
+                            <TextBlock FontWeight="Bold" Text="Theme:" />
+                            <ComboBox
+                                x:Name="StyleComboBox"
+                                Margin="0,5,0,0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                SelectedIndex="0"
+                                SelectionChanged="StyleComboBox_SelectionChanged">
                                 <ComboBoxItem Content="K1 Style" Tag="/Styles/KotorStyle.axaml" />
                                 <ComboBoxItem Content="TSL Style" Tag="/Styles/Kotor2Style.axaml" />
                             </ComboBox>
                         </StackPanel>
                     </Border>
 
-                    <!-- General Settings Section -->
-                    <Border BorderThickness="2" CornerRadius="8" Padding="15">
+                    <!--  General Settings Section  -->
+                    <Border
+                        Padding="15"
+                        BorderThickness="2"
+                        CornerRadius="8">
                         <StackPanel>
-                            <TextBlock Text="⚙️ General Settings" FontSize="16" FontWeight="Bold"
-                                     Margin="0,0,0,10" />
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="⚙️ General Settings" />
 
-                            <CheckBox Content="Verbose Logging" IsChecked="{Binding debugLogging}"
-                                      ToolTip.Tip="Shows extra output in both the logfile and the output window."/>
+                            <CheckBox
+                                Content="Verbose Logging"
+                                IsChecked="{Binding debugLogging}"
+                                ToolTip.Tip="Shows extra output in both the logfile and the output window." />
 
-                            <CheckBox Content="Auto-Fix Config Errors" IsChecked="{Binding attemptFixes}"
-                                      ToolTip.Tip="Sometimes config files have simple mistakes, this attempts to use some common sense to fix common errors in a TOML file. This only executes when an error is detected during a validation."
-                                      Margin="0,5,0,0" />
+                            <CheckBox
+                                Margin="0,5,0,0"
+                                Content="Auto-Fix Config Errors"
+                                IsChecked="{Binding attemptFixes}"
+                                ToolTip.Tip="Sometimes config files have simple mistakes, this attempts to use some common sense to fix common errors in a TOML file. This only executes when an error is detected during a validation." />
 
-                            <CheckBox Content="Don't ask for Admin" IsChecked="{Binding noAdmin}"
-                                      ToolTip.Tip="Activating this toggles __COMPAT_LAYER=RunAsInvoker for 'Patcher' and 'Execute' instructions. It signals Windows to launch executables as if they already have admin rights, preventing unnecessary UAC checks. Handy for older apps without an app.manifest (e.g. TSLPatcher). Note: enabling this setting might cause permission issues. Instead, running ModSync as administrator is recommended. On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant."
-                                      Margin="0,5,0,0" />
+                            <CheckBox
+                                Margin="0,5,0,0"
+                                Content="Don't ask for Admin"
+                                IsChecked="{Binding noAdmin}"
+                                ToolTip.Tip="Activating this toggles __COMPAT_LAYER=RunAsInvoker for 'Patcher' and 'Execute' instructions. It signals Windows to launch executables as if they already have admin rights, preventing unnecessary UAC checks. Handy for older apps without an app.manifest (e.g. TSLPatcher). Note: enabling this setting might cause permission issues. Instead, running ModSync as administrator is recommended. On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant." />
 
-                            <CheckBox Content="Mock case-insensitive filesystem" IsChecked="{Binding caseInsensitivePathing}"
-                                      ToolTip.Tip="Attempt to perform case-insensitive file/folder lookups for all instructions. Somewhat slow, especially on HDDs."
-                                      Margin="0,5,0,0">
+                            <CheckBox
+                                Margin="0,5,0,0"
+                                Content="Mock case-insensitive filesystem"
+                                IsChecked="{Binding caseInsensitivePathing}"
+                                ToolTip.Tip="Attempt to perform case-insensitive file/folder lookups for all instructions. Somewhat slow, especially on HDDs.">
                                 <CheckBox.IsVisible>
                                     <Binding Converter="{StaticResource IsUnixConverter}" />
                                 </CheckBox.IsVisible>
@@ -87,34 +144,53 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Directory Settings Section -->
-                    <Border BorderThickness="2" CornerRadius="8" Padding="15">
+                    <!--  Directory Settings Section  -->
+                    <Border
+                        Padding="15"
+                        BorderThickness="2"
+                        CornerRadius="8">
                         <StackPanel>
-                            <TextBlock Text="📁 Directory Settings" FontSize="16" FontWeight="Bold"
-                                     Margin="0,0,0,10" />
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="📁 Directory Settings" />
 
-                            <controls:DirectoryPickerControl x:Name="ModDirectoryPicker"
-                                                           Title="Mod Location:"
-                                                           Watermark="Enter mod directory path"
-                                                           PickerType="ModDirectory"
-                                                           DirectoryChanged="OnDirectoryChanged"
-                                                           Margin="0,0,0,10" />
+                            <controls:DirectoryPickerControl
+                                x:Name="ModDirectoryPicker"
+                                Title="Mod Location:"
+                                Margin="0,0,0,10"
+                                DirectoryChanged="OnDirectoryChanged"
+                                PickerType="ModDirectory"
+                                Watermark="Enter mod directory path" />
 
-                            <controls:DirectoryPickerControl x:Name="KotorDirectoryPicker"
-                                                           Title="Kotor Directory:"
-                                                           Watermark="Enter KOTOR installation directory"
-                                                           PickerType="KotorDirectory"
-                                                           DirectoryChanged="OnDirectoryChanged" />
+                            <controls:DirectoryPickerControl
+                                x:Name="KotorDirectoryPicker"
+                                Title="Kotor Directory:"
+                                DirectoryChanged="OnDirectoryChanged"
+                                PickerType="KotorDirectory"
+                                Watermark="Enter KOTOR installation directory" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Buttons -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="Cancel" Click="Cancel_Click" Margin="0,0,10,0" MinWidth="80" />
-            <Button Content="OK" Click="OK_Click" MinWidth="80" />
+        <!--  Buttons  -->
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,20,0,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                MinWidth="80"
+                Margin="0,0,10,0"
+                Click="Cancel_Click"
+                Content="Cancel" />
+            <Button
+                MinWidth="80"
+                Click="OK_Click"
+                Content="OK" />
         </StackPanel>
     </Grid>
 </Window>

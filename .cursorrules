@@ -1,0 +1,1 @@
+When creating XAML or other UI controls/elements NEVER specify in the element itself the font/style information. Do not use classes either unless absolutely necessary. Omit font/colors entirely so the implicit defaults from the theme will always be used.

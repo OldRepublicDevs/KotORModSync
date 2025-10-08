@@ -24,10 +24,10 @@ namespace KOTORModSync.Converters
 	public partial class OpenLinkConverter : IValueConverter
 	{
 		public object Convert(
-			[CanBeNull] object value,
-			[NotNull] Type targetType,
-			[CanBeNull] object parameter,
-			[NotNull] CultureInfo culture
+			object value,
+			Type targetType,
+			object parameter,
+			CultureInfo culture
 		)
 		{
 			if ( value is string url )
@@ -39,10 +39,10 @@ namespace KOTORModSync.Converters
 		}
 
 		public object ConvertBack(
-			[CanBeNull] object value,
-			[NotNull] Type targetType,
-			[CanBeNull] object parameter,
-			[NotNull] CultureInfo culture
+			object value,
+			Type targetType,
+			object parameter,
+			CultureInfo culture
 		) => throw new NotImplementedException();
 
 		private static void OpenLink([NotNull] string url)

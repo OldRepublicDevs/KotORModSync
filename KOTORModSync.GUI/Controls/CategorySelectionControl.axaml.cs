@@ -1,0 +1,201 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the GNU General Public License v3.0 (GPLv3).
+// See LICENSE.txt file in the project root for full license information.
+
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using KOTORModSync.Models;
+
+namespace KOTORModSync.Controls
+{
+	public partial class CategorySelectionControl : UserControl
+	{
+		public static readonly StyledProperty<List<string>> SelectedCategoriesProperty =
+			AvaloniaProperty.Register<CategorySelectionControl, List<string>>(nameof(SelectedCategories));
+
+		public static readonly StyledProperty<ObservableCollection<SelectionFilterItem>> AvailableCategoriesProperty =
+			AvaloniaProperty.Register<CategorySelectionControl, ObservableCollection<SelectionFilterItem>>(nameof(AvailableCategories));
+
+		private readonly ObservableCollection<SelectionFilterItem> _categoryItems = new ObservableCollection<SelectionFilterItem>();
+		private bool _isRefreshing = false;
+
+		public List<string> SelectedCategories
+		{
+			get => GetValue(SelectedCategoriesProperty);
+			set => SetValue(SelectedCategoriesProperty, value);
+		}
+
+		public ObservableCollection<SelectionFilterItem> AvailableCategories
+		{
+			get => GetValue(AvailableCategoriesProperty);
+			set => SetValue(AvailableCategoriesProperty, value);
+		}
+
+		public CategorySelectionControl()
+		{
+			InitializeComponent();
+
+			// Initialize the category items
+			AvailableCategories = _categoryItems;
+
+			// Ensure the ItemsControl is initialized
+			if ( CategoryItemsControl != null )
+			{
+				CategoryItemsControl.ItemsSource = _categoryItems;
+			}
+		}
+
+		protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+		{
+			base.OnAttachedToVisualTree(e);
+
+			// Ensure ItemsControl binding is set when attached to visual tree
+			if ( CategoryItemsControl != null && CategoryItemsControl.ItemsSource != _categoryItems )
+			{
+				CategoryItemsControl.ItemsSource = _categoryItems;
+			}
+		}
+
+		protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+		{
+			base.OnPropertyChanged(change);
+
+			if ( change.Property == SelectedCategoriesProperty )
+			{
+				UpdateCategorySelections();
+			}
+		}
+
+		private void UpdateCategorySelections()
+		{
+			if ( SelectedCategories == null )
+				return;
+
+			_isRefreshing = true;
+			try
+			{
+				// Update the checkboxes based on the selected categories
+				foreach ( SelectionFilterItem item in _categoryItems )
+				{
+					item.IsSelected = SelectedCategories.Contains(item.Name, StringComparer.OrdinalIgnoreCase);
+				}
+			}
+			finally
+			{
+				_isRefreshing = false;
+			}
+		}
+
+		private void ClearSelection_Click(object sender, RoutedEventArgs e)
+		{
+			foreach ( SelectionFilterItem item in _categoryItems )
+			{
+				item.IsSelected = false;
+			}
+			UpdateSelectedCategories();
+		}
+
+		private void AddNewCategory_Click(object sender, RoutedEventArgs e)
+		{
+			if ( NewCategoryTextBox == null ) return;
+
+			var newCategoryText = NewCategoryTextBox.Text?.Trim();
+			if ( string.IsNullOrEmpty(newCategoryText) )
+				return;
+
+			// Check if category already exists
+			if ( _categoryItems.Any(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase)) )
+			{
+				// Category already exists, just select it
+				var existingItem = _categoryItems.First(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase));
+				existingItem.IsSelected = true;
+			}
+			else
+			{
+				// Add new category
+				var newItem = new SelectionFilterItem
+				{
+					Name = newCategoryText,
+					Count = 0,
+					IsSelected = true
+				};
+				newItem.PropertyChanged += CategoryItem_PropertyChanged;
+				_categoryItems.Add(newItem);
+			}
+
+			NewCategoryTextBox.Text = string.Empty;
+			UpdateSelectedCategories();
+		}
+
+		private void CategoryItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
+		{
+			if ( e.PropertyName == nameof(SelectionFilterItem.IsSelected) && !_isRefreshing )
+			{
+				UpdateSelectedCategories();
+			}
+		}
+
+		private void UpdateSelectedCategories()
+		{
+			var selected = _categoryItems
+				.Where(item => item.IsSelected)
+				.Select(item => item.Name)
+				.ToList();
+
+			// Check if the selection has actually changed before updating
+			// This prevents creating new list instances unnecessarily
+			if ( SelectedCategories == null || !SelectedCategories.SequenceEqual(selected) )
+			    SelectedCategories = selected;
+		}
+
+		public void RefreshCategories(IEnumerable<Core.Component> components)
+		{
+			_isRefreshing = true;
+			try
+			{
+				_categoryItems.Clear();
+
+				var categoryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+				foreach ( Core.Component component in components )
+				{
+					if ( component.Category.Count > 0 )
+					{
+						foreach ( string category in component.Category )
+						{
+							if ( !string.IsNullOrEmpty(category) )
+							{
+								if ( categoryCounts.TryGetValue(category, out int value) )
+									categoryCounts[category] = ++value;
+								else
+									categoryCounts[category] = 1;
+							}
+						}
+					}
+				}
+
+				foreach ( KeyValuePair<string, int> kvp in categoryCounts.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase) )
+				{
+					var item = new SelectionFilterItem
+					{
+						Name = kvp.Key,
+						Count = kvp.Value,
+						IsSelected = SelectedCategories?.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase) ?? false
+					};
+					item.PropertyChanged += CategoryItem_PropertyChanged;
+					_categoryItems.Add(item);
+				}
+			}
+			finally
+			{
+				_isRefreshing = false;
+			}
+		}
+	}
+}

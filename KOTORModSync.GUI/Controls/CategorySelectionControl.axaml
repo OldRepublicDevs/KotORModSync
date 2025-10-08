@@ -1,0 +1,68 @@
+<UserControl
+    x:Class="KOTORModSync.Controls.CategorySelectionControl"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="clr-namespace:KOTORModSync.Models">
+
+    <Border Padding="8" Classes="summary-card">
+        <StackPanel Spacing="8">
+            <!--  Header with Clear button  -->
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontSize="11"
+                    FontWeight="Bold"
+                    Text="Categories" />
+                <Button
+                    Grid.Column="1"
+                    MinHeight="0"
+                    Padding="4,2"
+                    Click="ClearSelection_Click"
+                    Content="Clear"
+                    FontSize="9"
+                    ToolTip.Tip="Clear all category selections" />
+            </Grid>
+
+            <!--  Category Selection List  -->
+            <ScrollViewer MaxHeight="150" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl x:Name="CategoryItemsControl">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="models:SelectionFilterItem">
+                            <CheckBox
+                                Margin="0,2"
+                                Content="{Binding DisplayText}"
+                                FontSize="10"
+                                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                ToolTip.Tip="{Binding Name}">
+                                <CheckBox.Styles>
+                                    <Style Selector="CheckBox[IsChecked=False]">
+                                        <Setter Property="Opacity" Value="0.7" />
+                                    </Style>
+                                </CheckBox.Styles>
+                            </CheckBox>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!--  Add New Category  -->
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox
+                    x:Name="NewCategoryTextBox"
+                    Grid.Column="0"
+                    Margin="0,0,4,0"
+                    FontSize="10"
+                    Watermark="Add new category..." />
+                <Button
+                    Grid.Column="1"
+                    MinWidth="50"
+                    Padding="6,4"
+                    Click="AddNewCategory_Click"
+                    Content="Add"
+                    FontSize="9"
+                    ToolTip.Tip="Add new category" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

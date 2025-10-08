@@ -41,16 +41,7 @@ namespace KOTORModSync.Core
 
 			[Description("An invalid operation was attempted.")]
 			InvalidOperation,
-
-			[Description("An unexpected exception was thrown")]
-			UnexpectedException,
 			UnknownError,
-
-			[Description("A tslpatcher error was thrown")]
-			TSLPatcherError,
-
-			[Description("The files in the install directory do not match the expected contents provided by the instructions file")]
-			ValidationPostInstallMismatch,
 		}
 
 		public enum ComponentInstallState
@@ -66,10 +57,8 @@ namespace KOTORModSync.Core
 		public enum InstructionInstallState
 		{
 			Pending,
-			Running,
 			Completed,
 			Failed,
-			Skipped,
 		}
 
 		[JsonObject(MemberSerialization.OptIn)]
@@ -269,12 +258,6 @@ namespace KOTORModSync.Core
 		[NotNull] private string _tier = string.Empty;
 
 		private bool _isDownloaded;
-
-		/*
-		public DateTime SourceLastModified { get; set; }
-		public event EventHandler<PropertyChangedEventArgs> PropertyChanged;
-		protected virtual void OnPropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-		*/
 
 		public Guid Guid
 		{
@@ -515,9 +498,9 @@ namespace KOTORModSync.Core
 				if ( _options == value )
 					return;
 
-				_options.CollectionChanged -= CollectionChanged;
+				_options.CollectionChanged -= OptionsCollectionChanged;
 				_options = value;
-				_options.CollectionChanged += CollectionChanged;
+				_options.CollectionChanged += OptionsCollectionChanged;
 
 				OnPropertyChanged();
 			}
@@ -535,15 +518,19 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		private static readonly string[] s_separator = new[]
-						{
-							"\r\n", "\n",
-						};
-		private static readonly string[] s_categorySeparator = new[] { ",", ";" };
+		private static readonly string[] s_separator = {
+		"\r\n", "\n",
+	};
+		private static readonly string[] s_categorySeparator = { ",", ";" };
 
 		// used for the ui.
 		public event PropertyChangedEventHandler PropertyChanged;
-		private void CollectionChanged(object sender, NotifyCollectionChangedEventArgs e) => OnPropertyChanged();
+		private void OptionsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		{
+			// Explicitly specify the property name to prevent Avalonia from re-evaluating ALL bindings
+			// which would cause an infinite loop when rendering ItemsRepeater controls
+			OnPropertyChanged(nameof(Options));
+		}
 
 		private void OnPropertyChanged([CallerMemberName][CanBeNull] string propertyName = null) =>
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -794,9 +781,7 @@ namespace KOTORModSync.Core
 						$"Source: [{Environment.NewLine}{string.Join($",{Environment.NewLine}", instruction.Source.Select(item => $"{indentation}{item}"))}{Environment.NewLine}]";
 
 					if ( instruction.Action != Instruction.ActionType.Move )
-					{
 						thisLine = thisLine.Replace(oldValue: "Source: ", newValue: "");
-					}
 
 					_ = sb.AppendLine(thisLine);
 
@@ -1039,7 +1024,7 @@ namespace KOTORModSync.Core
 							if ( listElementType == typeof(Guid)
 								&& Guid.TryParse(item?.ToString(), out Guid guidItem) )
 							{
-								addMethod?.Invoke(
+								_ = addMethod?.Invoke(
 									list,
 									new[]
 									{
@@ -1049,7 +1034,7 @@ namespace KOTORModSync.Core
 							}
 							else
 							{
-								addMethod?.Invoke(
+								_ = addMethod?.Invoke(
 									list,
 									new[]
 									{
@@ -1231,7 +1216,7 @@ namespace KOTORModSync.Core
 					return false;
 
 				// Need at least one ModLink to find the archive
-				if ( ModLink == null || ModLink.Count == 0 )
+				if ( ModLink.Count == 0 )
 					return false;
 
 				// Try to find the archive file in the mod directory
@@ -1263,11 +1248,9 @@ namespace KOTORModSync.Core
 					.ThenByDescending(f => f.LastWriteTime) // Most recent file
 					.FirstOrDefault();
 
-				if ( matchingArchive == null )
-					return false;
-
-				// Generate instructions using the AutoInstructionGenerator
-				return Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
+				return matchingArchive != null &&
+					   // Generate instructions using the AutoInstructionGenerator
+					   Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
 			}
 			catch ( Exception ex )
 			{
@@ -1379,9 +1362,7 @@ namespace KOTORModSync.Core
 
 			bool shouldInstall = ShouldInstallComponent(componentsList);
 			if ( !shouldInstall )
-			{
 				return InstallExitCode.DependencyViolation;
-			}
 
 			InstallExitCode installExitCode = InstallExitCode.Success;
 
@@ -1509,6 +1490,7 @@ namespace KOTORModSync.Core
 							this.Confirmations.Add(true);
 						}
 						break;*/
+					case Instruction.ActionType.Unset:
 					default:
 						// Handle unknown instruction type here
 						await Logger.LogWarningAsync($"Unknown instruction '{instruction.ActionString}'");

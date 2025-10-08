@@ -1,0 +1,4 @@
+<!-- Copyright 2021-2025 KOTORModSync -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:converters="clr-namespace:KOTORModSync.Converters">
+    <converters:SourceFilesVisibilityConverter x:Key="SourceFilesVisibilityConverter" />
+</ResourceDictionary>

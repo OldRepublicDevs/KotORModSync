@@ -86,13 +86,9 @@ namespace KOTORModSync.Core.Services
 			if ( analysis.HasTslPatchData )
 			{
 				if ( analysis.HasNamespacesIni )
-				{
 					AddNamespacesChooseInstructions(component, archivePath, analysis, extractedPath);
-				}
 				else if ( analysis.HasChangesIni )
-				{
 					AddSimplePatcherInstruction(component, analysis, extractedPath);
-				}
 			}
 
 			// Handle loose Override files
@@ -104,35 +100,23 @@ namespace KOTORModSync.Core.Services
 					.ToList();
 
 				if ( overrideFolders.Count > 1 )
-				{
 					// Multiple folders - create Choose instruction
 					AddMultiFolderChooseInstructions(component, extractedPath, overrideFolders);
-				}
 				else if ( overrideFolders.Count == 1 )
-				{
 					// Single folder - simple Move
 					AddSimpleMoveInstruction(component, extractedPath, overrideFolders[0]);
-				}
 				else if ( analysis.HasFlatFiles )
-				{
 					// Flat files in root
 					AddSimpleMoveInstruction(component, extractedPath, null);
-				}
 			}
 
 			// Set installation method based on what we found
 			if ( analysis.HasTslPatchData && analysis.HasSimpleOverrideFiles )
-			{
 				component.InstallationMethod = "Hybrid (TSLPatcher + Loose Files)";
-			}
 			else if ( analysis.HasTslPatchData )
-			{
 				component.InstallationMethod = "TSLPatcher";
-			}
 			else if ( analysis.HasSimpleOverrideFiles )
-			{
 				component.InstallationMethod = "Loose-File Mod";
-			}
 
 			return component.Instructions.Count > 0;
 		}
@@ -149,12 +133,11 @@ namespace KOTORModSync.Core.Services
 			if ( folderName.Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase) )
 				return true;
 
-			if ( !string.IsNullOrEmpty(analysis.TslPatcherPath) )
-			{
-				string[] pathParts = analysis.TslPatcherPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-				if ( pathParts.Length > 0 && pathParts[0].Equals(folderName, StringComparison.OrdinalIgnoreCase) )
-					return true;
-			}
+			if ( string.IsNullOrEmpty(analysis.TslPatcherPath) )
+			    return false;
+			string[] pathParts = analysis.TslPatcherPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+			if ( pathParts.Length > 0 && pathParts[0].Equals(folderName, StringComparison.OrdinalIgnoreCase) )
+				return true;
 
 			return false;
 		}
@@ -167,62 +150,64 @@ namespace KOTORModSync.Core.Services
 			Dictionary<string, Dictionary<string, string>> namespaces =
 				IniHelper.ReadNamespacesIniFromArchive(archivePath);
 
-			if ( namespaces != null && namespaces.TryGetValue("Namespaces", out Dictionary<string, string> value) )
+			if ( namespaces == null ||
+			     !namespaces.TryGetValue("Namespaces", out Dictionary<string, string> value) )
 			{
-				var optionGuids = new List<string>();
+				return;
+			}
 
-				// Create an option for each namespace
-				foreach ( string ns in value.Values )
+			var optionGuids = new List<string>();
+
+			// Create an option for each namespace
+			foreach ( string ns in value.Values )
+			{
+				if ( !namespaces.TryGetValue(ns, out Dictionary<string, string> namespaceData) )
+					continue;
+				var optionGuid = Guid.NewGuid();
+				optionGuids.Add(optionGuid.ToString());
+
+				var option = new Option
 				{
-					if ( namespaces.TryGetValue(ns, out Dictionary<string, string> namespaceData) )
-					{
-						var optionGuid = Guid.NewGuid();
-						optionGuids.Add(optionGuid.ToString());
+					Guid = optionGuid,
+					Name = namespaceData.TryGetValue("Name", out string value2) ? value2 : ns,
+					Description = namespaceData.TryGetValue("Description", out string value3) ? value3 : string.Empty,
+					IsSelected = false
+				};
 
-						var option = new Option
-						{
-							Guid = optionGuid,
-							Name = namespaceData.TryGetValue("Name", out string value2) ? value2 : ns,
-							Description = namespaceData.TryGetValue("Description", out string value3) ? value3 : string.Empty,
-							IsSelected = false
-						};
+				// Add patcher instruction for this namespace
+				string iniName = namespaceData.TryGetValue("IniName", out string value4) ? value4 : "changes.ini";
+				string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
+					? extractedPath
+					: analysis.TslPatcherPath;
 
-						// Add patcher instruction for this namespace
-						string iniName = namespaceData.TryGetValue("IniName", out string value4) ? value4 : "changes.ini";
-						string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
-							? extractedPath
-							: analysis.TslPatcherPath;
+				string executableName = string.IsNullOrEmpty(analysis.PatcherExecutable)
+					? "TSLPatcher.exe"
+					: Path.GetFileName(analysis.PatcherExecutable);
 
-						string executableName = string.IsNullOrEmpty(analysis.PatcherExecutable)
-							? "TSLPatcher.exe"
-							: Path.GetFileName(analysis.PatcherExecutable);
-
-						var patcherInstruction = new Instruction
-						{
-							Guid = Guid.NewGuid(),
-							Action = Instruction.ActionType.Patcher,
-							Source = new List<string> { $@"<<modDirectory>>\{patcherPath}\{executableName}" },
-							Destination = "<<kotorDirectory>>",
-							Arguments = iniName,
-							Overwrite = true
-						};
-						patcherInstruction.SetParentComponent(option);
-						option.Instructions.Add(patcherInstruction);
-						component.Options.Add(option);
-					}
-				}
-
-				// Add Choose instruction
-				var chooseInstruction = new Instruction
+				var patcherInstruction = new Instruction
 				{
 					Guid = Guid.NewGuid(),
-					Action = Instruction.ActionType.Choose,
-					Source = optionGuids,
+					Action = Instruction.ActionType.Patcher,
+					Source = new List<string> { $@"<<modDirectory>>\{patcherPath}\{executableName}" },
+					Destination = "<<kotorDirectory>>",
+					Arguments = iniName,
 					Overwrite = true
 				};
-				chooseInstruction.SetParentComponent(component);
-				component.Instructions.Add(chooseInstruction);
+				patcherInstruction.SetParentComponent(option);
+				option.Instructions.Add(patcherInstruction);
+				component.Options.Add(option);
 			}
+
+			// Add Choose instruction
+			var chooseInstruction = new Instruction
+			{
+				Guid = Guid.NewGuid(),
+				Action = Instruction.ActionType.Choose,
+				Source = optionGuids,
+				Overwrite = true
+			};
+			chooseInstruction.SetParentComponent(component);
+			component.Instructions.Add(chooseInstruction);
 		}
 
 		/// <summary>
@@ -374,16 +359,12 @@ namespace KOTORModSync.Core.Services
 						// File is in a subfolder - track the folder
 						string topLevelFolder = pathParts[0];
 						if ( !analysis.FoldersWithFiles.Contains(topLevelFolder) )
-						{
 							analysis.FoldersWithFiles.Add(topLevelFolder);
-						}
 					}
 				}
 			}
-
 			return analysis;
 		}
-
 		private static string GetTslPatcherPath(string iniPath)
 		{
 			// Extract the directory containing tslpatchdata
@@ -415,205 +396,6 @@ namespace KOTORModSync.Core.Services
 			};
 
 			return gameExtensions.Contains(extension);
-		}
-
-		private static bool GenerateTslPatcherInstructions(Component component, string archivePath, ArchiveAnalysis analysis)
-		{
-			string archiveFileName = Path.GetFileName(archivePath);
-			component.Instructions.Clear();
-
-			// Step 1: Extract instruction
-			var extractInstruction = new Instruction
-			{
-				Guid = Guid.NewGuid(),
-				Action = Instruction.ActionType.Extract,
-				Source = new List<string> { $@"<<modDirectory>>\{archiveFileName}" },
-				Overwrite = true
-			};
-			extractInstruction.SetParentComponent(component);
-			component.Instructions.Add(extractInstruction);
-
-			// Step 2: Check for namespaces.ini
-			if ( analysis.HasNamespacesIni )
-			{
-				// Generate Choose instruction with namespace options
-				Dictionary<string, Dictionary<string, string>> namespaces =
-					IniHelper.ReadNamespacesIniFromArchive(archivePath);
-
-				if ( namespaces != null && namespaces.TryGetValue("Namespaces", out Dictionary<string, string> value) )
-				{
-					var optionGuids = new List<string>();
-
-					// Create an option for each namespace
-					foreach ( string ns in value.Values )
-					{
-						if ( namespaces.TryGetValue(ns, out Dictionary<string, string> namespaceData) )
-						{
-							var optionGuid = Guid.NewGuid();
-							optionGuids.Add(optionGuid.ToString());
-
-							var option = new Option
-							{
-								Guid = optionGuid,
-								Name = namespaceData.TryGetValue("Name", out string value2) ? value2 : ns,
-								Description = namespaceData.TryGetValue("Description", out string value3) ? value3 : string.Empty,
-								IsSelected = false
-							};
-
-							// Add patcher instruction for this namespace
-							string iniName = namespaceData.TryGetValue("IniName", out string value4) ? value4 : "changes.ini";
-							string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
-								? archiveFileName.Replace(Path.GetExtension(archiveFileName), "")
-								: analysis.TslPatcherPath;
-
-							string executableName = string.IsNullOrEmpty(analysis.PatcherExecutable)
-								? "TSLPatcher.exe"
-								: Path.GetFileName(analysis.PatcherExecutable);
-
-							var patcherInstruction = new Instruction
-							{
-								Guid = Guid.NewGuid(),
-								Action = Instruction.ActionType.Patcher,
-								Source = new List<string> { $@"<<modDirectory>>\{patcherPath}\{executableName}" },
-								Destination = "<<kotorDirectory>>",
-								Arguments = iniName,
-								Overwrite = true
-							};
-							patcherInstruction.SetParentComponent(option);
-							option.Instructions.Add(patcherInstruction);
-							component.Options.Add(option);
-						}
-					}
-
-					// Add Choose instruction
-					var chooseInstruction = new Instruction
-					{
-						Guid = Guid.NewGuid(),
-						Action = Instruction.ActionType.Choose,
-						Source = optionGuids,
-						Overwrite = true
-					};
-					chooseInstruction.SetParentComponent(component);
-					component.Instructions.Add(chooseInstruction);
-				}
-			}
-			else if ( analysis.HasChangesIni )
-			{
-				// Simple TSLPatcher with only changes.ini
-				string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
-					? archiveFileName.Replace(Path.GetExtension(archiveFileName), "")
-					: analysis.TslPatcherPath;
-
-				string executableName = string.IsNullOrEmpty(analysis.PatcherExecutable)
-					? "TSLPatcher.exe"
-					: Path.GetFileName(analysis.PatcherExecutable);
-
-				var patcherInstruction = new Instruction
-				{
-					Guid = Guid.NewGuid(),
-					Action = Instruction.ActionType.Patcher,
-					Source = new List<string> { $@"<<modDirectory>>\{patcherPath}\{executableName}" },
-					Destination = "<<kotorDirectory>>",
-					Overwrite = true
-				};
-				patcherInstruction.SetParentComponent(component);
-				component.Instructions.Add(patcherInstruction);
-			}
-
-			component.InstallationMethod = "TSLPatcher";
-			return true;
-		}
-
-		private static bool GenerateSimpleOverrideInstructions(Component component, string archivePath, ArchiveAnalysis analysis)
-		{
-			string archiveFileName = Path.GetFileName(archivePath);
-			string extractedPath = archiveFileName.Replace(Path.GetExtension(archiveFileName), "");
-			component.Instructions.Clear();
-
-			// Step 1: Extract instruction
-			var extractInstruction = new Instruction
-			{
-				Guid = Guid.NewGuid(),
-				Action = Instruction.ActionType.Extract,
-				Source = new List<string> { $@"<<modDirectory>>\{archiveFileName}" },
-				Overwrite = true
-			};
-			extractInstruction.SetParentComponent(component);
-			component.Instructions.Add(extractInstruction);
-
-			// Check if we have multiple folders with files - needs Choose instruction
-			if ( analysis.FoldersWithFiles.Count > 1 )
-			{
-				// Multiple folders - create Choose instruction with options
-				var optionGuids = new List<string>();
-
-				foreach ( string folder in analysis.FoldersWithFiles )
-				{
-					var optionGuid = Guid.NewGuid();
-					optionGuids.Add(optionGuid.ToString());
-
-					var option = new Option
-					{
-						Guid = optionGuid,
-						Name = folder,
-						Description = $"Install files from {folder} folder",
-						IsSelected = false
-					};
-
-					// Add move instruction for this folder
-					var moveInstruction = new Instruction
-					{
-						Guid = Guid.NewGuid(),
-						Action = Instruction.ActionType.Move,
-						Source = new List<string> { $@"<<modDirectory>>\{extractedPath}\{folder}\*" },
-						Destination = @"<<kotorDirectory>>\Override",
-						Overwrite = true
-					};
-					moveInstruction.SetParentComponent(option);
-					option.Instructions.Add(moveInstruction);
-					component.Options.Add(option);
-				}
-
-				// Add Choose instruction
-				var chooseInstruction = new Instruction
-				{
-					Guid = Guid.NewGuid(),
-					Action = Instruction.ActionType.Choose,
-					Source = optionGuids,
-					Overwrite = true
-				};
-				chooseInstruction.SetParentComponent(component);
-				component.Instructions.Add(chooseInstruction);
-			}
-			else
-			{
-				// Single folder or flat files - simple Move instruction
-				string sourcePath;
-				if ( analysis.FoldersWithFiles.Count == 1 )
-				{
-					// Files are in a single folder
-					sourcePath = $@"<<modDirectory>>\{extractedPath}\{analysis.FoldersWithFiles[0]}\*";
-				}
-				else
-				{
-					// Files are flat in the archive root
-					sourcePath = $@"<<modDirectory>>\{extractedPath}\*";
-				}
-
-				var moveInstruction = new Instruction
-				{
-					Guid = Guid.NewGuid(),
-					Action = Instruction.ActionType.Move,
-					Source = new List<string> { sourcePath },
-					Destination = @"<<kotorDirectory>>\Override",
-					Overwrite = true
-				};
-				moveInstruction.SetParentComponent(component);
-				component.Instructions.Add(moveInstruction);
-			}
-
-			component.InstallationMethod = "Loose-File Mod";
-			return true;
 		}
 
 		private class ArchiveAnalysis

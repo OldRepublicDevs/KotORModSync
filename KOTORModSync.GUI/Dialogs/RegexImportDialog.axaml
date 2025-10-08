@@ -1,121 +1,310 @@
-<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="KOTORModSync.Dialogs.RegexImportDialog"
-		Width="1200" Height="800" Title="Markdown Import - Regex Profile"
-		ExtendClientAreaToDecorationsHint="True"
-		ExtendClientAreaChromeHints="NoChrome"
-		ExtendClientAreaTitleBarHeightHint="-1"
-		SystemDecorations="BorderOnly">
-	<Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*">
-		<!-- Custom Window Controls -->
-		<StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Spacing="0" Margin="0,8,8,0">
-			<Button Content="-" Click="MinimizeButton_Click"
-					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-			<Button Content="▢" Click="ToggleMaximizeButton_Click"
-					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-			<Button Content="X" Click="CloseButton_Click"
-					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-		</StackPanel>
+<Window
+    x:Class="KOTORModSync.Dialogs.RegexImportDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Markdown Import - Regex Profile"
+    Width="1200"
+    Height="800"
+    ExtendClientAreaChromeHints="NoChrome"
+    ExtendClientAreaTitleBarHeightHint="-1"
+    ExtendClientAreaToDecorationsHint="True"
+    SystemDecorations="BorderOnly">
+    <Grid ColumnDefinitions="*,*" RowDefinitions="*,Auto">
+        <!--  Custom Window Controls  -->
+        <StackPanel
+            Grid.Row="0"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            Margin="0,8,8,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Orientation="Horizontal"
+            Spacing="0">
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="MinimizeButton_Click"
+                Content="-"
+                FontSize="15" />
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="ToggleMaximizeButton_Click"
+                Content="▢"
+                FontSize="15" />
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="CloseButton_Click"
+                Content="X"
+                FontSize="15" />
+        </StackPanel>
 
-		<!-- Left Panel: Tabs and Controls -->
-		<StackPanel Grid.Row="0" Grid.Column="0" Orientation="Vertical" Margin="16">
-			<TextBlock Text="Configure regex patterns and preview match counts."
-					  Margin="0,0,0,8"
-					  x:Name="DescriptionTextBlock"/>
+        <!--  Left Panel: Tabs and Controls  -->
+        <StackPanel
+            Grid.Row="0"
+            Grid.Column="0"
+            Margin="16"
+            Orientation="Vertical">
+            <TextBlock
+                x:Name="DescriptionTextBlock"
+                Margin="0,0,0,8"
+                Text="Configure regex patterns and preview match counts." />
 
-			<!-- Tab Control for Raw and Simple -->
-			<TabControl Height="400" Margin="0,0,0,16" Name="MainTabControl" SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
-				<TabItem Header="Simple" Name="SimpleTab">
-					<ScrollViewer VerticalScrollBarVisibility="Auto">
-						<Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8">
-							<TextBlock Grid.Row="0" Grid.Column="0" Text="Component Section (Outer)" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Profile.ComponentSectionPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+            <!--  Tab Control for Raw and Simple  -->
+            <TabControl
+                Name="MainTabControl"
+                Height="400"
+                Margin="0,0,0,16"
+                SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
+                <TabItem Name="SimpleTab" Header="Simple">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid
+                            Margin="8"
+                            ColumnDefinitions="Auto,*"
+                            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Component Section (Outer)" />
+                            <TextBox
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.ComponentSectionPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="1" Grid.Column="0" Text="Heading Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Profile.HeadingPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Heading Pattern" />
+                            <TextBox
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.HeadingPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="2" Grid.Column="0" Text="Name Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Profile.NamePattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Name Pattern" />
+                            <TextBox
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.NamePattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="3" Grid.Column="0" Text="Author Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Profile.AuthorPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Author Pattern" />
+                            <TextBox
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.AuthorPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="4" Grid.Column="0" Text="Description Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Profile.DescriptionPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Description Pattern" />
+                            <TextBox
+                                Grid.Row="4"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.DescriptionPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="5" Grid.Column="0" Text="Masters Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Profile.DependenciesPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="5"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Masters Pattern" />
+                            <TextBox
+                                Grid.Row="5"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.DependenciesPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="6" Grid.Column="0" Text="Category &amp; Tier Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Profile.CategoryTierPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="6"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Category &amp; Tier Pattern" />
+                            <TextBox
+                                Grid.Row="6"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.CategoryTierPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="7" Grid.Column="0" Text="Non-English Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Profile.NonEnglishPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="7"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Non-English Pattern" />
+                            <TextBox
+                                Grid.Row="7"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.NonEnglishPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="8" Grid.Column="0" Text="Install Method Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="8" Grid.Column="1" Text="{Binding Profile.InstallationMethodPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="8"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Install Method Pattern" />
+                            <TextBox
+                                Grid.Row="8"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.InstallationMethodPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="9" Grid.Column="0" Text="Install Instructions Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="9" Grid.Column="1" Text="{Binding Profile.InstallationInstructionsPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="9"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Install Instructions Pattern" />
+                            <TextBox
+                                Grid.Row="9"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.InstallationInstructionsPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="10" Grid.Column="0" Text="ModLink Pattern" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBox Grid.Row="10" Grid.Column="1" Text="{Binding Profile.ModLinkPattern, Mode=TwoWay}" Margin="0,0,0,4"/>
+                            <TextBlock
+                                Grid.Row="10"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="ModLink Pattern" />
+                            <TextBox
+                                Grid.Row="10"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                Text="{Binding Profile.ModLinkPattern, Mode=TwoWay}" />
 
-							<TextBlock Grid.Row="11" Grid.Column="0" Text="Preview: Components / Links" VerticalAlignment="Center" Margin="0,0,8,4"/>
-							<TextBlock Grid.Row="11" Grid.Column="1" Text="{Binding PreviewSummary}" FontWeight="Bold" Margin="0,0,0,4"/>
-						</Grid>
-					</ScrollViewer>
-				</TabItem>
+                            <TextBlock
+                                Grid.Row="11"
+                                Grid.Column="0"
+                                Margin="0,0,8,4"
+                                VerticalAlignment="Center"
+                                Text="Preview: Components / Links" />
+                            <TextBlock
+                                Grid.Row="11"
+                                Grid.Column="1"
+                                Margin="0,0,0,4"
+                                FontWeight="Bold"
+                                Text="{Binding PreviewSummary}" />
+                        </Grid>
+                    </ScrollViewer>
+                </TabItem>
 
-				<TabItem Header="Raw" Name="RawTab">
-					<Grid RowDefinitions="Auto,Auto,*" Margin="8">
-						<TextBlock Grid.Row="0" Text="Complete Regex Pattern (Advanced)" Margin="0,0,0,8" x:Name="RawTitleTextBlock"/>
+                <TabItem Name="RawTab" Header="Raw">
+                    <Grid Margin="8" RowDefinitions="Auto,Auto,*">
+                        <TextBlock
+                            x:Name="RawTitleTextBlock"
+                            Grid.Row="0"
+                            Margin="0,0,0,8"
+                            Text="Complete Regex Pattern (Advanced)" />
 
-						<!-- Regex Flags -->
-						<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-							<TextBlock Text="Flags:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-							<CheckBox Content="Global (g)" IsChecked="{Binding Profile.GlobalFlag, Mode=TwoWay}" Margin="0,0,12,0"/>
-							<CheckBox Content="Multiline (m)" IsChecked="{Binding Profile.MultilineFlag, Mode=TwoWay}" Margin="0,0,12,0"/>
-							<CheckBox Content="Ignore Case (i)" IsChecked="{Binding Profile.IgnoreCaseFlag, Mode=TwoWay}" Margin="0,0,12,0"/>
-							<CheckBox Content="Singleline (s)" IsChecked="{Binding Profile.SinglelineFlag, Mode=TwoWay}"/>
-						</StackPanel>
+                        <!--  Regex Flags  -->
+                        <StackPanel
+                            Grid.Row="1"
+                            Margin="0,0,0,8"
+                            Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Center"
+                                Text="Flags:" />
+                            <CheckBox
+                                Margin="0,0,12,0"
+                                Content="Global (g)"
+                                IsChecked="{Binding Profile.GlobalFlag, Mode=TwoWay}" />
+                            <CheckBox
+                                Margin="0,0,12,0"
+                                Content="Multiline (m)"
+                                IsChecked="{Binding Profile.MultilineFlag, Mode=TwoWay}" />
+                            <CheckBox
+                                Margin="0,0,12,0"
+                                Content="Ignore Case (i)"
+                                IsChecked="{Binding Profile.IgnoreCaseFlag, Mode=TwoWay}" />
+                            <CheckBox Content="Singleline (s)" IsChecked="{Binding Profile.SinglelineFlag, Mode=TwoWay}" />
+                        </StackPanel>
 
-						<ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-							<TextBox Text="{Binding Profile.RawRegexPattern, Mode=TwoWay}"
-									 AcceptsReturn="True"
-									 TextWrapping="Wrap"
-									 x:Name="RawRegexTextBox"/>
-						</ScrollViewer>
-					</Grid>
-				</TabItem>
-			</TabControl>
+                        <ScrollViewer
+                            Grid.Row="2"
+                            HorizontalScrollBarVisibility="Auto"
+                            VerticalScrollBarVisibility="Auto">
+                            <TextBox
+                                x:Name="RawRegexTextBox"
+                                AcceptsReturn="True"
+                                Text="{Binding Profile.RawRegexPattern, Mode=TwoWay}"
+                                TextWrapping="Wrap" />
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+            </TabControl>
 
-			<!-- Action Buttons -->
-			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-				<Button Content="Reset Defaults" Margin="0,0,8,0" Click="OnResetDefaults"/>
-				<Button Content="Cancel" Margin="0,0,8,0" Click="OnCancel"/>
-				<Button Content="Load" Click="OnLoad"/>
-			</StackPanel>
-		</StackPanel>
+            <!--  Action Buttons  -->
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button
+                    Margin="0,0,8,0"
+                    Click="OnResetDefaults"
+                    Content="Reset Defaults" />
+                <Button
+                    Margin="0,0,8,0"
+                    Click="OnCancel"
+                    Content="Cancel" />
+                <Button Click="OnLoad" Content="Load" />
+            </StackPanel>
+        </StackPanel>
 
-		<!-- Right Panel: Preview Area -->
-		<Border Grid.Row="0" Grid.Column="1" BorderThickness="1" Margin="8">
-			<Grid RowDefinitions="Auto,*">
-				<TextBlock Grid.Row="0" Text="Live Preview" Margin="8,8,8,4" x:Name="PreviewTitleTextBlock"/>
-				<ScrollViewer Grid.Row="1"
-							  Name="PreviewScrollViewer"
-							  VerticalScrollBarVisibility="Auto"
-							  HorizontalScrollBarVisibility="Disabled"
-							  Margin="8">
-					<TextBlock Name="PreviewTextBlock"
-							   TextWrapping="Wrap"
-							   Padding="8">
-					</TextBlock>
-				</ScrollViewer>
-			</Grid>
-		</Border>
+        <!--  Right Panel: Preview Area  -->
+        <Border
+            Grid.Row="0"
+            Grid.Column="1"
+            Margin="8"
+            BorderThickness="1">
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock
+                    x:Name="PreviewTitleTextBlock"
+                    Grid.Row="0"
+                    Margin="8,8,8,4"
+                    Text="Live Preview" />
+                <ScrollViewer
+                    Name="PreviewScrollViewer"
+                    Grid.Row="1"
+                    Margin="8"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
+                    <TextBlock
+                        Name="PreviewTextBlock"
+                        Padding="8"
+                        TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Grid>
+        </Border>
 
-	</Grid>
+    </Grid>
 </Window>

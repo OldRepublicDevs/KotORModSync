@@ -154,7 +154,7 @@ namespace KOTORModSync.Core
 		{
 			ex = ex ?? new ApplicationException();
 
-			await LogErrorAsync(customMessage);
+			await LogErrorAsync(customMessage ?? $"Unhandled exception: {ex.GetType()?.Name}");
 			await LogInternalAsync($"Exception: {ex.GetType()?.Name} - {ex.Message}", color: ConsoleColor.Red);
 			await LogInternalAsync($"Stack trace:{Environment.NewLine}{ex.StackTrace}", color: ConsoleColor.Magenta);
 

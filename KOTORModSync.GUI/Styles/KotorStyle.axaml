@@ -1,11 +1,13 @@
-<Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:control="clr-namespace:KOTORModSync.Controls">
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:control="clr-namespace:KOTORModSync.Controls">
     <Design.PreviewWith>
         <Border Padding="20">
-            <!-- Add Controls for Previewer Here -->
+            <!--  Add Controls for Previewer Here  -->
         </Border>
     </Design.PreviewWith>
+
 
     <Style Selector="Menu">
         <Setter Property="FontSize" Value="14" />
@@ -80,6 +82,10 @@
     <Style Selector="Expander">
         <Setter Property="Background" Value="#062766" />
         <Setter Property="Foreground" Value="#3AAAFF" />
+    </Style>
+    <Style Selector="Expander:pointerover">
+        <Setter Property="Background" Value="#083388" />
+        <Setter Property="Foreground" Value="#A8B348" />
     </Style>
     <Style Selector="Expander /template/ ContentPresenter">
         <Setter Property="Background" Value="#010116" />
@@ -181,10 +187,53 @@
         <Setter Property="Opacity" Value="0.5" />
     </Style>
 
-    <!-- ComboBox Placeholder Text Styling -->
+    <!--  ComboBox Placeholder Text Styling  -->
     <Style Selector="ComboBox /template/ TextBlock#PART_PlaceholderText">
         <Setter Property="Foreground" Value="#3AAAFF" />
         <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <!--  AutoCompleteBox Styling  -->
+    <Style Selector="AutoCompleteBox">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="FontFamily" Value="Verdana" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
+        <Setter Property="BorderBrush" Value="#062766" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+    <Style Selector="AutoCompleteBox /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#062766" />
+    </Style>
+    <Style Selector="AutoCompleteBox:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#A8B348" />
+    </Style>
+    <Style Selector="AutoCompleteBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#A8B348" />
+    </Style>
+    <Style Selector="AutoCompleteBox:disabled /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+    <Style Selector="AutoCompleteBox:focus">
+        <Setter Property="Foreground" Value="#A8B348" />
+        <Setter Property="Background" Value="#010116" />
+    </Style>
+    <Style Selector="AutoCompleteBox:focus /template/ TextBlock#PART_Watermark">
+        <Setter Property="Foreground" Value="#A8B348" />
+        <Setter Property="Background" Value="#010116" />
+    </Style>
+    <Style Selector="AutoCompleteBox:pointerover">
+        <Setter Property="Foreground" Value="#A8B348" />
+    </Style>
+    <Style Selector="AutoCompleteBox:focus /template/ ContentPresenter">
+        <Setter Property="Background" Value="#010116" />
+    </Style>
+    <Style Selector="AutoCompleteBox:focus /template/Border[IsFocused=True]">
+        <Setter Property="Background" Value="#010116" />
     </Style>
 
     <Style Selector="CheckBox:pointerover">
@@ -203,7 +252,7 @@
         <Setter Property="Foreground" Value="#A8B348" />
     </Style>
 
-    <!-- Global ToolTip Styling -->
+    <!--  Global ToolTip Styling  -->
     <Style Selector="ToolTip">
         <Setter Property="Background" Value="#010116" />
         <Setter Property="BorderBrush" Value="#062766" />
@@ -255,7 +304,7 @@
         <Setter Property="Opacity" Value="0.5" />
     </Style>
 
-    <!-- RadioButton styling -->
+    <!--  RadioButton styling  -->
     <Style Selector="RadioButton">
         <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
@@ -266,21 +315,24 @@
         <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
 
-    <!-- ToggleSwitch styling to ensure proper visibility/colors -->
+    <!--  ToggleSwitch styling to ensure proper visibility/colors  -->
     <Style Selector="ToggleSwitch">
         <Setter Property="Foreground" Value="#3AAAFF" />
-        <Setter Property="Background" Value="#010116" /> <!-- DO NOT CHANGE THIS COLOR -->
+        <Setter Property="Background" Value="#010116" />
+        <!--  DO NOT CHANGE THIS COLOR  -->
     </Style>
     <Style Selector="ToggleSwitch:unchecked">
         <Setter Property="Foreground" Value="#3AAAFF" />
-        <Setter Property="Background" Value="#010116" /> <!-- DO NOT CHANGE THIS COLOR -->
+        <Setter Property="Background" Value="#010116" />
+        <!--  DO NOT CHANGE THIS COLOR  -->
     </Style>
     <Style Selector="ToggleSwitch:pointerover">
         <Setter Property="Foreground" Value="#A8B348" />
     </Style>
     <Style Selector="ToggleSwitch:checked">
         <Setter Property="Foreground" Value="#3AAAFF" />
-        <Setter Property="Background" Value="#010116" /> <!-- DO NOT CHANGE THIS COLOR -->
+        <Setter Property="Background" Value="#010116" />
+        <!--  DO NOT CHANGE THIS COLOR  -->
     </Style>
 
     <Style Selector="ToggleSwitch /template/ Ellipse">
@@ -300,7 +352,7 @@
         <Setter Property="Opacity" Value="0.5" />
     </Style>
 
-    <!-- Validation highlight for component headers (applied to Border wrapper) -->
+    <!--  Validation highlight for component headers (applied to Border wrapper)  -->
     <Style Selector="Border.validation-failed">
         <Setter Property="Background" Value="#331B0000" />
         <Setter Property="BorderBrush" Value="#FFCC4444" />
@@ -319,7 +371,7 @@
         <Setter Property="Opacity" Value="0.5" />
     </Style>
 
-    <!-- ListBoxItem styling for mod list -->
+    <!--  ListBoxItem styling for mod list  -->
     <Style Selector="ListBoxItem">
         <Setter Property="Padding" Value="0" />
         <Setter Property="Margin" Value="0" />
@@ -327,13 +379,13 @@
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Mod List Item styling -->
+    <!--  Mod List Item styling  -->
     <Style Selector="Border.mod-list-item">
         <Setter Property="Background" Value="#010116" />
         <Setter Property="BorderBrush" Value="#062766" />
     </Style>
 
-    <!-- Mod List Item Badge styling -->
+    <!--  Mod List Item Badge styling  -->
     <Style Selector="Border.mod-list-item-badge">
         <Setter Property="Background" Value="#062766" />
     </Style>
@@ -387,7 +439,7 @@
         <Setter Property="Background" Value="#000116" />
     </Style>
 
-    <!-- Window Control Buttons Styling -->
+    <!--  Window Control Buttons Styling  -->
     <Style Selector="Window /template/ Button#PART_MinimizeButton">
         <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
@@ -407,12 +459,12 @@
         <Setter Property="Background" Value="#FF4444" />
     </Style>
 
-    <!-- ProgressBar background color for OverallProgressBar -->
+    <!--  ProgressBar background color for OverallProgressBar  -->
     <Style Selector="ProgressBar#OverallProgressBar">
         <Setter Property="Background" Value="#062766" />
     </Style>
 
-    <!-- TabItem Header styling to ensure proper text color -->
+    <!--  TabItem Header styling to ensure proper text color  -->
     <Style Selector="TabItem">
         <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
@@ -435,7 +487,7 @@
         <Setter Property="TextBlock.Foreground" Value="#3AAAFF" />
     </Style>
 
-    <!-- Getting Started Step Styling - More specific to override general Border style -->
+    <!--  Getting Started Step Styling - More specific to override general Border style  -->
     <Style Selector="Border.step-border">
         <Setter Property="BorderThickness" Value="2" />
         <Setter Property="CornerRadius" Value="8" />
@@ -483,7 +535,7 @@
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <!-- Progress Section Styling -->
+    <!--  Progress Section Styling  -->
     <Style Selector="Border.progress-section">
         <Setter Property="BorderThickness" Value="2" />
         <Setter Property="CornerRadius" Value="8" />
@@ -539,20 +591,20 @@
         <Setter Property="FontSize" Value="11" />
     </Style>
 
-    <!-- Mod List Header Styling -->
+    <!--  Mod List Header Styling  -->
     <Style Selector="Border.mod-list-header">
         <Setter Property="Background" Value="#031332" />
         <Setter Property="BorderBrush" Value="#062766" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
     </Style>
 
-    <!-- Secondary Text Styling - Default for small gray text -->
+    <!--  Secondary Text Styling - Default for small gray text  -->
     <Style Selector="TextBlock.secondary-text">
         <Setter Property="Foreground" Value="#888888" />
         <Setter Property="FontSize" Value="11" />
     </Style>
 
-    <!-- Option Border Styling -->
+    <!--  Option Border Styling  -->
     <Style Selector="Border.option-border">
         <Setter Property="BorderThickness" Value="2" />
         <Setter Property="BorderBrush" Value="#B0BEC5" />
@@ -561,7 +613,7 @@
     </Style>
 
 
-    <!-- Download Window Styles -->
+    <!--  Download Window Styles  -->
     <Style Selector="Border.download-item">
         <Setter Property="Background" Value="#010116" />
         <Setter Property="BorderBrush" Value="#062766" />
@@ -576,7 +628,7 @@
         <Setter Property="BorderBrush" Value="#3AAAFF" />
     </Style>
 
-    <!-- Clickable link button style -->
+    <!--  Clickable link button style  -->
     <Style Selector="Button.link-button">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="#3AAAFF" />
@@ -647,21 +699,21 @@
         <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
 
-    <!-- Summary Tab Styles -->
+    <!--  Summary Tab Styles  -->
     <Style Selector="Border.summary-card">
         <Setter Property="Background" Value="#010116" />
         <Setter Property="BorderBrush" Value="#062766" />
         <Setter Property="BorderThickness" Value="2" />
         <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="Padding" Value="16" />
-        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
 
     <Style Selector="Border.summary-header">
         <Setter Property="Background" Value="#062766" />
         <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="Margin" Value="0,0,0,12" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
 
     <Style Selector="TextBlock.summary-section-title">
@@ -675,7 +727,7 @@
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="#888888" />
-        <Setter Property="Margin" Value="0,8,0,4" />
+        <Setter Property="Margin" Value="0,4,0,2" />
     </Style>
 
     <Style Selector="TextBlock.summary-value">
@@ -690,17 +742,18 @@
         <Setter Property="BorderBrush" Value="#062766" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="10" />
-        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="Margin" Value="0,2,0,0" />
     </Style>
+
 
     <Style Selector="Border.summary-option-card">
         <Setter Property="Background" Value="#031332" />
         <Setter Property="BorderBrush" Value="#062766" />
         <Setter Property="BorderThickness" Value="2" />
         <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="12" />
-        <Setter Property="Margin" Value="0,8,0,0" />
+        <Setter Property="Padding" Value="8" />
+        <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
 
     <Style Selector="TextBlock.summary-option-title">
@@ -714,8 +767,8 @@
         <Setter Property="BorderBrush" Value="#062766" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="10" />
-        <Setter Property="Margin" Value="0,6,0,0" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="Margin" Value="0,1,0,0" />
     </Style>
 
     <Style Selector="TextBlock.summary-instruction-action">
@@ -730,7 +783,7 @@
         <Setter Property="Margin" Value="0,12,0,12" />
     </Style>
 
-    <!-- Control-specific template fixes -->
+    <!--  Control-specific template fixes  -->
     <Style Selector="control|InstructionEditorControl /template/ Border">
         <Setter Property="Background" Value="#010116" />
     </Style>
@@ -739,7 +792,7 @@
         <Setter Property="Background" Value="#010116" />
     </Style>
 
-    <!-- Menu styling -->
+    <!--  Menu styling  -->
     <Style Selector="Menu /template/ Border">
         <Setter Property="Background" Value="#000116" />
     </Style>
@@ -749,50 +802,106 @@
 
     <Styles.Resources>
         <ResourceDictionary>
-            <!-- Theme Core Colors -->
-            <SolidColorBrush x:Key="ThemeForegroundBrush" Color="#3AAAFF"/>
-            <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="#000116"/>
-            <SolidColorBrush x:Key="ThemeBorderBrush" Color="#062766"/>
-            <SolidColorBrush x:Key="ThemeBorderMidBrush" Color="#062766"/>
+            <!--  Theme Core Colors  -->
+            <SolidColorBrush x:Key="ThemeForegroundBrush" Color="#3AAAFF" />
+            <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="#000116" />
+            <SolidColorBrush x:Key="ThemeBorderBrush" Color="#062766" />
+            <SolidColorBrush x:Key="ThemeBorderMidBrush" Color="#062766" />
 
-            <SolidColorBrush x:Key="RegexHighlight.Background" Color="#000116"/>
-            <SolidColorBrush x:Key="RegexHighlight.Default" Color="#3AAAFF"/>
-            <SolidColorBrush x:Key="RegexHighlight.Heading" Color="#A8B348"/>
-            <SolidColorBrush x:Key="RegexHighlight.Name" Color="#3AAAFF"/>
-            <SolidColorBrush x:Key="RegexHighlight.Author" Color="#62C6FF"/>
-            <SolidColorBrush x:Key="RegexHighlight.Description" Color="#FFC857"/>
-            <SolidColorBrush x:Key="RegexHighlight.Masters" Color="#FF8C42"/>
-            <SolidColorBrush x:Key="RegexHighlight.CategoryTier" Color="#9F7AEA"/>
-            <SolidColorBrush x:Key="RegexHighlight.NonEnglish" Color="#B0BEC5"/>
-            <SolidColorBrush x:Key="RegexHighlight.InstallationMethod" Color="#50FA7B"/>
-            <SolidColorBrush x:Key="RegexHighlight.InstallationInstructions" Color="#F78C6C"/>
+            <SolidColorBrush x:Key="RegexHighlight.Background" Color="#000116" />
+            <SolidColorBrush x:Key="RegexHighlight.Default" Color="#3AAAFF" />
+            <SolidColorBrush x:Key="RegexHighlight.Heading" Color="#A8B348" />
+            <SolidColorBrush x:Key="RegexHighlight.Name" Color="#3AAAFF" />
+            <SolidColorBrush x:Key="RegexHighlight.Author" Color="#62C6FF" />
+            <SolidColorBrush x:Key="RegexHighlight.Description" Color="#FFC857" />
+            <SolidColorBrush x:Key="RegexHighlight.Masters" Color="#FF8C42" />
+            <SolidColorBrush x:Key="RegexHighlight.CategoryTier" Color="#9F7AEA" />
+            <SolidColorBrush x:Key="RegexHighlight.NonEnglish" Color="#B0BEC5" />
+            <SolidColorBrush x:Key="RegexHighlight.InstallationMethod" Color="#50FA7B" />
+            <SolidColorBrush x:Key="RegexHighlight.InstallationInstructions" Color="#F78C6C" />
 
-            <!-- Component Merge Conflict Resources -->
-            <SolidColorBrush x:Key="MergeStatus.NewBrush" Color="#90EE90"/><!-- LightGreen -->
-            <SolidColorBrush x:Key="MergeStatus.ExistingOnlyBrush" Color="#D3D3D3"/><!-- LightGray -->
-            <SolidColorBrush x:Key="MergeStatus.MatchedBrush" Color="#FFD700"/><!-- Gold/Yellow -->
-            <SolidColorBrush x:Key="MergeStatus.UpdatedBrush" Color="#FFA500"/><!-- Orange -->
-            <SolidColorBrush x:Key="MergeStatus.DefaultBrush" Color="#FFFFFF"/><!-- White -->
+            <!--  Component Merge Conflict Resources  -->
+            <SolidColorBrush x:Key="MergeStatus.NewBrush" Color="#90EE90" />
+            <!--  LightGreen  -->
+            <SolidColorBrush x:Key="MergeStatus.ExistingOnlyBrush" Color="#D3D3D3" />
+            <!--  LightGray  -->
+            <SolidColorBrush x:Key="MergeStatus.MatchedBrush" Color="#FFD700" />
+            <!--  Gold/Yellow  -->
+            <SolidColorBrush x:Key="MergeStatus.UpdatedBrush" Color="#FFA500" />
+            <!--  Orange  -->
+            <SolidColorBrush x:Key="MergeStatus.DefaultBrush" Color="#FFFFFF" />
+            <!--  White  -->
 
-            <SolidColorBrush x:Key="MergeSelection.BorderBrush" Color="#00FFFF"/><!-- Cyan -->
-            <SolidColorBrush x:Key="MergeSelection.BackgroundBrush" Color="#2800FFFF"/><!-- Semi-transparent Cyan (40 alpha) -->
+            <SolidColorBrush x:Key="MergeSelection.BorderBrush" Color="#00FFFF" />
+            <!--  Cyan  -->
+            <SolidColorBrush x:Key="MergeSelection.BackgroundBrush" Color="#2800FFFF" />
+            <!--  Semi-transparent Cyan (40 alpha)  -->
 
-            <SolidColorBrush x:Key="MergeSource.IncomingBrush" Color="#A8B348"/><!-- Theme accent green -->
-            <SolidColorBrush x:Key="MergeSource.ExistingBrush" Color="#3AAAFF"/><!-- Theme primary blue -->
+            <SolidColorBrush x:Key="MergeSource.IncomingBrush" Color="#A8B348" />
+            <!--  Theme accent green  -->
+            <SolidColorBrush x:Key="MergeSource.ExistingBrush" Color="#3AAAFF" />
+            <!--  Theme primary blue  -->
 
-            <SolidColorBrush x:Key="MergePosition.ChangedBrush" Color="#FFA500"/><!-- Orange for position changes -->
-            <SolidColorBrush x:Key="MergePosition.NewBrush" Color="#FFD700"/><!-- Yellow for new positions -->
+            <SolidColorBrush x:Key="MergePosition.ChangedBrush" Color="#FFA500" />
+            <!--  Orange for position changes  -->
+            <SolidColorBrush x:Key="MergePosition.NewBrush" Color="#FFD700" />
+            <!--  Yellow for new positions  -->
 
-            <!-- TOML Diff Brushes - Similar to VSCode diff colors -->
-            <SolidColorBrush x:Key="MergeDiff.UnchangedBrush" Color="Transparent"/><!-- No background for unchanged -->
-            <SolidColorBrush x:Key="MergeDiff.AddedBrush" Color="#143A1A"/><!-- More visible green, matches theme, readable text -->
-            <SolidColorBrush x:Key="MergeDiff.RemovedBrush" Color="#3A1620"/><!-- More visible red, matches theme, readable text -->
-            <SolidColorBrush x:Key="MergeDiff.ModifiedBrush" Color="#3A2A14"/><!-- Better contrast brown/orange for light blue text -->
+            <!--  TOML Diff Brushes - Similar to VSCode diff colors  -->
+            <SolidColorBrush x:Key="MergeDiff.UnchangedBrush" Color="Transparent" />
+            <!--  No background for unchanged  -->
+            <SolidColorBrush x:Key="MergeDiff.AddedBrush" Color="#143A1A" />
+            <!--  More visible green, matches theme, readable text  -->
+            <SolidColorBrush x:Key="MergeDiff.RemovedBrush" Color="#3A1620" />
+            <!--  More visible red, matches theme, readable text  -->
+            <SolidColorBrush x:Key="MergeDiff.ModifiedBrush" Color="#3A2A14" />
+            <!--  Better contrast brown/orange for light blue text  -->
 
-            <!-- Dependency Unlink Dialog Resources -->
-            <SolidColorBrush x:Key="Dependency.WarningForeground" Color="#FFB800"/><!-- Warning yellow/gold -->
-            <SolidColorBrush x:Key="Dependency.WarningBackground" Color="#1EFFB800"/><!-- Semi-transparent yellow (30 alpha) -->
-            <SolidColorBrush x:Key="Dependency.WarningBorder" Color="#FFB800"/><!-- Warning border -->
+            <!--  Dependency Unlink Dialog Resources  -->
+            <SolidColorBrush x:Key="Dependency.WarningForeground" Color="#FFB800" />
+            <!--  Warning yellow/gold  -->
+            <SolidColorBrush x:Key="Dependency.WarningBackground" Color="#1EFFB800" />
+            <!--  Semi-transparent yellow (30 alpha)  -->
+            <SolidColorBrush x:Key="Dependency.WarningBorder" Color="#FFB800" />
+            <!--  Warning border  -->
+
+            <!--  URL Validation Colors  -->
+            <SolidColorBrush x:Key="UrlValidation.ValidBrush" Color="#4CAF50" />
+            <SolidColorBrush x:Key="UrlValidation.InvalidBrush" Color="#F44336" />
+            <SolidColorBrush x:Key="UrlValidation.ErrorIconBrush" Color="#F44336" />
+
+            <!--  ModListItem Validation Colors  -->
+            <SolidColorBrush x:Key="ModListItem.ErrorBrush" Color="#FF6B6B" />
+            <SolidColorBrush x:Key="ModListItem.WarningBrush" Color="#FFA500" />
+            <SolidColorBrush x:Key="ModListItem.HoverErrorBrush" Color="#FF8888" />
+            <SolidColorBrush x:Key="ModListItem.HoverWarningBrush" Color="#FFB84D" />
+            <SolidColorBrush x:Key="ModListItem.HoverDefaultBrush" Color="#A8B348" />
+            <SolidColorBrush x:Key="ModListItem.HoverBackgroundBrush" Color="#020228" />
+            <SolidColorBrush x:Key="ModListItem.DefaultBackgroundBrush" Color="#010116" />
+
+            <!--  Component Dependency/Restriction Colors  -->
+            <SolidColorBrush x:Key="Component.DependencyBrush" Color="#4CAF50" />
+            <SolidColorBrush x:Key="Component.RestrictionBrush" Color="#F44336" />
+
+            <!--  Validation Dialog Colors  -->
+            <SolidColorBrush x:Key="Validation.SolutionBrush" Color="#A8B348" />
+
+            <!--  Log Viewer Colors  -->
+            <SolidColorBrush x:Key="Log.HighlightBorderBrush" Color="#A8B348" />
+            <SolidColorBrush x:Key="Log.ErrorBackgroundBrush" Color="#1AFF4444" />
+            <SolidColorBrush x:Key="Log.ErrorBorderBrush" Color="#FF4444" />
+            <SolidColorBrush x:Key="Log.ErrorBadgeBrush" Color="#FF4444" />
+            <SolidColorBrush x:Key="Log.WarningBackgroundBrush" Color="#1AFFAA00" />
+            <SolidColorBrush x:Key="Log.WarningBorderBrush" Color="#FFAA00" />
+            <SolidColorBrush x:Key="Log.WarningBadgeBrush" Color="#FFAA00" />
+            <SolidColorBrush x:Key="Log.InfoBackgroundBrush" Color="#1A00AA00" />
+            <SolidColorBrush x:Key="Log.InfoBadgeBrush" Color="#00AA00" />
+
+            <!-- Expander Colors -->
+            <SolidColorBrush x:Key="Expander.DefaultBackgroundBrush" Color="#062766" />
+            <SolidColorBrush x:Key="Expander.DefaultForegroundBrush" Color="#3AAAFF" />
+            <SolidColorBrush x:Key="Expander.HoverBackgroundBrush" Color="#083388" />
+            <SolidColorBrush x:Key="Expander.HoverForegroundBrush" Color="#A8B348" />
         </ResourceDictionary>
     </Styles.Resources>
 </Styles>

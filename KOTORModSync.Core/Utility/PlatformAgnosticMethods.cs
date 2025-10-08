@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -22,7 +21,7 @@ namespace KOTORModSync.Core.Utility
 	public static class PlatformAgnosticMethods
 	{
 		[StructLayout(LayoutKind.Sequential)]
-		private struct MEMORYSTATUSEX
+		private struct MemoryStatusEx
 		{
 			public uint dwLength;
 			public uint dwMemoryLoad;
@@ -37,48 +36,7 @@ namespace KOTORModSync.Core.Utility
 
 		[DllImport("kernel32.dll", SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
-
-		// Overload for a string representation of the folder path.
-		public static async Task<int> CalculateMaxDegreeOfParallelismAsync([CanBeNull] DirectoryInfo thisDir)
-		{
-			int maxParallelism = Environment.ProcessorCount; // Start with the number of available processors
-
-			long availableMemory = GetAvailableMemory();
-			const long memoryThreshold = 2L * 1024 * 1024 * 1024; // 2GB threshold
-			if ( availableMemory < memoryThreshold )
-			{
-				Parallel.Invoke(() => maxParallelism = Math.Max(val1: 1, maxParallelism / 2));
-			}
-
-			Task<double> maxDiskSpeedTask = Task.Run(
-				() =>
-				{
-					return thisDir is null
-						   ? throw new NullReferenceException(nameof(thisDir))
-						   : GetMaxDiskSpeed(Path.GetPathRoot(thisDir.FullName));
-				}
-			);
-			double maxDiskSpeed = await maxDiskSpeedTask;
-
-			const double diskSpeedThreshold = 100.0; // MB/sec threshold
-			if ( maxDiskSpeed < diskSpeedThreshold )
-			{
-				maxParallelism = Math.Max(
-					val1: 1,
-					maxParallelism / 2
-				); // Reduce parallelism by half if disk speed is below the threshold
-			}
-
-			// Platform-agnostic fallback logic
-			if ( maxParallelism <= 1 )
-			{
-				// Fallback logic when unable to determine or adjust parallelism
-				maxParallelism = Environment.ProcessorCount; // Reset to the default number of available processors
-			}
-
-			return maxParallelism;
-		}
+		private static extern bool GlobalMemoryStatusEx(ref MemoryStatusEx lpBuffer);
 
 		public static long GetAvailableMemory()
 		{
@@ -87,9 +45,9 @@ namespace KOTORModSync.Core.Utility
 			{
 				try
 				{
-					var memStatus = new MEMORYSTATUSEX
+					var memStatus = new MemoryStatusEx
 					{
-						dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX))
+						dwLength = (uint)Marshal.SizeOf(typeof(MemoryStatusEx))
 					};
 					if ( GlobalMemoryStatusEx(ref memStatus) ) return (long)memStatus.ullAvailPhys;
 				}
@@ -176,16 +134,6 @@ namespace KOTORModSync.Core.Utility
 			}
 		}
 
-		private static bool IsShellExecutionSupported()
-		{
-			string shellExecutable = GetShellExecutable();
-
-			// Check if a valid shell executable was found
-			bool isSupported = !string.IsNullOrEmpty(shellExecutable);
-
-			return isSupported;
-		}
-
 		[NotNull]
 		public static string GetShellExecutable()
 		{
@@ -206,75 +154,6 @@ namespace KOTORModSync.Core.Utility
 			}
 
 			return string.Empty;
-		}
-
-		public static double GetMaxDiskSpeed([CanBeNull] string drivePath)
-		{
-			try
-			{
-				string command;
-				string arguments;
-
-				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
-				{
-					command = "cmd.exe";
-					arguments = $"/C winsat disk -drive \"{drivePath}\" -seq -read -ramsize 4096";
-				}
-				else if ( Utility.GetOperatingSystem() == OSPlatform.Linux
-					|| Utility.GetOperatingSystem() == OSPlatform.OSX )
-				{
-					command = "dd";
-					arguments = $"if={drivePath} bs=1M count=256 iflag=direct";
-				}
-				else
-				{
-					throw new PlatformNotSupportedException(
-						"Disk performance checking is not supported on this platform."
-					);
-				}
-
-				Task<(int, string, string)> result = ExecuteProcessAsync(
-					command,
-					arguments,
-					timeout: 60000,
-					useShellExecute: false
-				);
-				result.Wait();
-				string output = result.Result.Item2;
-
-				// Extract the relevant information from the output and calculate the max disk speed
-				double maxSpeed = ExtractMaxDiskSpeed(output);
-				return maxSpeed;
-			}
-			catch ( Exception e )
-			{
-				Logger.LogException(e);
-				return 0;
-			}
-		}
-
-		private static double ExtractMaxDiskSpeed([CanBeNull] string output)
-		{
-			const double maxSpeed = 0.0;
-
-			var regex = new Regex(@"([0-9,.]+)\s*(bytes/sec|MB/sec)");
-			Match match = regex.Match(output ?? string.Empty);
-			if ( !match.Success || match.Groups.Count < 3 )
-				return maxSpeed;
-
-			string speedString = match.Groups[1].Value;
-			string unit = match.Groups[2].Value.ToLower();
-
-			if ( !double.TryParse(speedString.Replace(oldValue: ",", newValue: ""), out double speed) )
-				return maxSpeed;
-
-			switch ( unit )
-			{
-				// Convert bytes/sec to MB/sec
-				case "bytes/sec": return speed / 1024 / 1024;
-				case "mb/sec": return speed;
-				default: return maxSpeed;
-			}
 		}
 
 		public static bool? IsExecutorAdmin()
@@ -390,7 +269,9 @@ namespace KOTORModSync.Core.Utility
 			if ( askAdmin && !MainConfig.NoAdmin )
 			{
 				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
+				{
 					verb = "runas";
+				}
 				else
 				{
 					actualProgramFile = "sudo";

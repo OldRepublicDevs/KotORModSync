@@ -1,210 +1,280 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:converters="using:KOTORModSync.Converters"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-        x:Class="KOTORModSync.DownloadProgressWindow"
-        Title="Download Progress"
-        Width="900" Height="650"
-        MinWidth="700" MinHeight="400"
-        WindowStartupLocation="CenterOwner"
-        CanResize="True"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="NoChrome"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        SystemDecorations="BorderOnly">
+<Window
+    x:Class="KOTORModSync.DownloadProgressWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:KOTORModSync.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Download Progress"
+    Width="900"
+    Height="650"
+    MinWidth="700"
+    MinHeight="400"
+    d:DesignHeight="600"
+    d:DesignWidth="800"
+    CanResize="True"
+    ExtendClientAreaChromeHints="NoChrome"
+    ExtendClientAreaTitleBarHeightHint="-1"
+    ExtendClientAreaToDecorationsHint="True"
+    SystemDecorations="BorderOnly"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
 
-	<Window.Resources>
-		<converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter"/>
-	</Window.Resources>
+    <Window.Resources>
+        <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+    </Window.Resources>
 
-	<Grid RowDefinitions="Auto,*,Auto">
-		<!-- Custom Window Controls -->
-		<StackPanel Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal" Spacing="0" Margin="0,8,8,0">
-			<Button Content="-" Click="MinimizeButton_Click"
-					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-			<Button Content="▢" Click="ToggleMaximizeButton_Click"
-					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-			<Button Content="X" Click="CloseButton_Click"
-					HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-					HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-		</StackPanel>
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!--  Custom Window Controls  -->
+        <StackPanel
+            Grid.Row="0"
+            Margin="0,8,8,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Orientation="Horizontal"
+            Spacing="0">
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="MinimizeButton_Click"
+                Content="-"
+                FontSize="15" />
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="ToggleMaximizeButton_Click"
+                Content="▢"
+                FontSize="15" />
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="CloseButton_Click"
+                Content="X"
+                FontSize="15" />
+        </StackPanel>
 
-		<!-- Header -->
-		<Border Grid.Row="0" Classes="download-header" Padding="16,12">
-			<Grid ColumnDefinitions="*,Auto">
-				<StackPanel Grid.Column="0">
-					<TextBlock Text="Downloading Mod Files" Classes="step-title"/>
-					<TextBlock x:Name="SummaryText"
-					           Text="Preparing downloads..."
-					           Classes="secondary-text"
-					           Margin="0,4,0,0"/>
-				</StackPanel>
+        <!--  Header  -->
+        <Border
+            Grid.Row="0"
+            Padding="16,12"
+            Classes="download-header">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0">
+                    <TextBlock Classes="step-title" Text="Downloading Mod Files" />
+                    <TextBlock
+                        x:Name="SummaryText"
+                        Margin="0,4,0,0"
+                        Classes="secondary-text"
+                        Text="Preparing downloads..." />
+                </StackPanel>
 
-				<StackPanel Grid.Column="1" Spacing="8" Orientation="Horizontal">
-					<Button x:Name="PauseButton"
-					        Content="Pause"
-					        IsVisible="False"
-					        Width="80"/>
-					<Button x:Name="CancelButton"
-					        Content="Cancel"
-					        Width="80"/>
-				</StackPanel>
-			</Grid>
-		</Border>
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        x:Name="PauseButton"
+                        Width="80"
+                        Content="Pause"
+                        IsVisible="False" />
+                    <Button
+                        x:Name="CancelButton"
+                        Width="80"
+                        Content="Cancel" />
+                </StackPanel>
+            </Grid>
+        </Border>
 
-		<!-- Download List -->
-		<ScrollViewer Grid.Row="1" Padding="16">
-			<ItemsControl x:Name="DownloadItemsControl">
-				<ItemsControl.ItemTemplate>
-					<DataTemplate>
-					<Border Classes="download-item" Cursor="Hand" PointerPressed="DownloadItem_PointerPressed">
-						<Border.ContextMenu>
-							<ContextMenu>
-								<MenuItem Header="Open Download Folder" Click="OpenFolderMenuItem_Click"/>
-								<MenuItem Header="Copy Download URL" Click="CopyUrlMenuItem_Click"/>
-								<Separator/>
-								<MenuItem Header="View Details" Click="ViewDetailsMenuItem_Click"/>
-							</ContextMenu>
-						</Border.ContextMenu>
+        <!--  Download List  -->
+        <ScrollViewer Grid.Row="1" Padding="16">
+            <ItemsControl x:Name="DownloadItemsControl">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Classes="download-item"
+                            Cursor="Hand"
+                            PointerPressed="DownloadItem_PointerPressed">
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Click="OpenFolderMenuItem_Click" Header="Open Download Folder" />
+                                    <MenuItem Click="CopyUrlMenuItem_Click" Header="Copy Download URL" />
+                                    <Separator />
+                                    <MenuItem Click="ViewDetailsMenuItem_Click" Header="View Details" />
+                                </ContextMenu>
+                            </Border.ContextMenu>
 
-							<Grid RowDefinitions="Auto,Auto,Auto,Auto">
-								<!-- Mod Name and Status Icon -->
-								<Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto">
-									<TextBlock Grid.Column="0"
-									           Text="{Binding StatusIcon}"
-									           FontSize="20"
-									           VerticalAlignment="Center"
-									           Margin="0,0,8,0"/>
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                                <!--  Mod Name and Status Icon  -->
+                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto">
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        Margin="0,0,8,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="20"
+                                        DataContext="{Binding .}"
+                                        Text="{Binding StatusIcon}" />
 
-									<TextBlock Grid.Column="1"
-									           Text="{Binding ModName}"
-									           FontSize="14"
-									           FontWeight="SemiBold"
-									           TextWrapping="Wrap"
-									           VerticalAlignment="Center"/>
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        FontSize="14"
+                                        FontWeight="SemiBold"
+                                        DataContext="{Binding .}"
+                                        Text="{Binding ModName}"
+                                        TextWrapping="Wrap" />
 
-									<TextBlock Grid.Column="2"
-									           Text="{Binding GroupProgressPercentage, StringFormat={}{0:F1}%}"
-									           FontSize="13"
-									           FontWeight="SemiBold"
-									           VerticalAlignment="Center"
-									           Margin="8,0,8,0"/>
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Margin="8,0,8,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        DataContext="{Binding .}"
+                                        Text="{Binding GroupProgressPercentage, StringFormat={}{0:F1}%}" />
 
-									<!-- Control Button (Play/Pause/Retry) -->
-									<Button Grid.Column="3"
-									        x:Name="ControlButton"
-									        Content="{Binding ControlButtonIcon}"
-									        ToolTip.Tip="{Binding ControlButtonTooltip}"
-									        Click="ControlButton_Click"
-									        Width="28"
-									        Height="28"
-									        Padding="4"
-									        FontSize="14"
-									        VerticalAlignment="Center"
-									        HorizontalContentAlignment="Center"
-									        VerticalContentAlignment="Center"
-									        Background="Transparent"
-									        BorderThickness="1"
-									        CornerRadius="4"
-									        Cursor="Hand"
-									        IsVisible="{Binding ControlButtonIcon, Converter={StaticResource StringNotEmptyConverter}}">
-										<Button.Styles>
-											<Style Selector="Button:pointerover"/>
-											<Style Selector="Button:pressed"/>
-										</Button.Styles>
-									</Button>
-								</Grid>
+                                    <!--  Control Button (Play/Pause/Retry)  -->
+                                    <Button
+                                        x:Name="ControlButton"
+                                        Grid.Column="3"
+                                        Width="28"
+                                        Height="28"
+                                        Padding="4"
+                                        VerticalAlignment="Center"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="1"
+                                        Click="ControlButton_Click"
+                                        DataContext="{Binding .}"
+                                        Content="{Binding ControlButtonIcon}"
+                                        CornerRadius="4"
+                                        Cursor="Hand"
+                                        FontSize="14"
+                                        IsVisible="{Binding ControlButtonIcon, Converter={StaticResource StringNotEmptyConverter}}"
+                                        ToolTip.Tip="{Binding ControlButtonTooltip}">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover" />
+                                            <Style Selector="Button:pressed" />
+                                        </Button.Styles>
+                                    </Button>
+                                </Grid>
 
-								<!-- Progress Bar -->
-								<ProgressBar Grid.Row="1"
-								             Classes="download-progress"
-								             Margin="0,8,0,0"
-								             Minimum="0"
-								             Maximum="100"
-								             Value="{Binding GroupProgressPercentage}"/>
+                                <!--  Progress Bar  -->
+                                <ProgressBar
+                                    Grid.Row="1"
+                                    Margin="0,8,0,0"
+                                    Classes="download-progress"
+                                    Maximum="100"
+                                    Minimum="0"
+                                    DataContext="{Binding .}"
+                                    Value="{Binding GroupProgressPercentage}" />
 
-							<!-- Status Message -->
-							<TextBlock Grid.Row="2"
-							           Text="{Binding GroupStatusMessage}"
-							           Classes="download-status-text"
-							           TextWrapping="Wrap"
-							           Margin="0,6,0,0"
-							           IsVisible="{Binding GroupStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"/>
+                                <!--  Status Message  -->
+                                <TextBlock
+                                    Grid.Row="2"
+                                    Margin="0,6,0,0"
+                                    Classes="download-status-text"
+                                    DataContext="{Binding .}"
+                                    IsVisible="{Binding GroupStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                    Text="{Binding GroupStatusMessage}"
+                                    TextWrapping="Wrap" />
 
-						<!-- Error Message -->
-						<TextBlock Grid.Row="3"
-						           x:Name="ErrorMessageBlock"
-						           Classes="download-error-text"
-						           TextWrapping="Wrap"
-						           Margin="0,6,0,0"
-						           IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}">
-							<TextBlock.Text>
-								<Binding Path="ErrorMessage" />
-							</TextBlock.Text>
-						</TextBlock>
+                                <!--  Error Message  -->
+                                <TextBlock
+                                    x:Name="ErrorMessageBlock"
+                                    Grid.Row="3"
+                                    Margin="0,6,0,0"
+                                    Classes="download-error-text"
+                                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                    TextWrapping="Wrap">
+                                    <TextBlock.Text >
+                                        <Binding Path="ErrorMessage" />
+                                    </TextBlock.Text>
+                                </TextBlock>
 
-								<!-- Download Stats -->
-								<Grid Grid.Row="3"
-								      ColumnDefinitions="Auto,Auto,Auto,Auto,*"
-								      Margin="0,6,0,0">
-									<TextBlock Grid.Column="0"
-									           Text="{Binding DownloadedSize}"
-									           Classes="download-status-text"
-									           IsVisible="{Binding IsInProgress}"/>
-									<TextBlock Grid.Column="1"
-									           Text=" / "
-									           Classes="download-status-text"
-									           IsVisible="{Binding IsInProgress}"/>
-									<TextBlock Grid.Column="2"
-									           Text="{Binding TotalSize}"
-									           Classes="download-status-text"
-									           IsVisible="{Binding IsInProgress}"/>
-									<TextBlock Grid.Column="3"
-									           Text=" • "
-									           Classes="download-status-text"
-									           Margin="6,0"
-									           IsVisible="{Binding IsInProgress}"/>
-									<TextBlock Grid.Column="4"
-									           Text="{Binding DownloadSpeed}"
-									           Classes="download-status-text"
-									           IsVisible="{Binding IsInProgress}"/>
-								</Grid>
-							</Grid>
-						</Border>
-					</DataTemplate>
-				</ItemsControl.ItemTemplate>
-			</ItemsControl>
-		</ScrollViewer>
+                                <!--  Download Stats  -->
+                                <Grid
+                                    Grid.Row="3"
+                                    Margin="0,6,0,0"
+                                    ColumnDefinitions="Auto,Auto,Auto,Auto,*">
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        Classes="download-status-text"
+                                        DataContext="{Binding .}"
+                                        IsVisible="{Binding IsInProgress}"
+                                        Text="{Binding DownloadedSize}" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Classes="download-status-text"
+                                        DataContext="{Binding .}"
+                                        IsVisible="{Binding IsInProgress}"
+                                        Text=" / " />
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Classes="download-status-text"
+                                        DataContext="{Binding .}"
+                                        IsVisible="{Binding IsInProgress}"
+                                        Text="{Binding TotalSize}" />
+                                    <TextBlock
+                                        Grid.Column="3"
+                                        Margin="6,0"
+                                        Classes="download-status-text"
+                                        DataContext="{Binding .}"
+                                        IsVisible="{Binding IsInProgress}"
+                                        Text=" • " />
+                                    <TextBlock
+                                        Grid.Column="4"
+                                        Classes="download-status-text"
+                                        DataContext="{Binding .}"
+                                        IsVisible="{Binding IsInProgress}"
+                                        Text="{Binding DownloadSpeed}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
 
-		<!-- Footer -->
-		<Border Grid.Row="2" Classes="download-footer" Padding="16,12">
-			<Grid ColumnDefinitions="*,Auto">
-				<StackPanel Grid.Column="0" Spacing="4">
-					<TextBlock x:Name="OverallProgressText"
-					           Text="Overall Progress: 0 / 0"
-					           FontSize="13"
-					           FontWeight="SemiBold"/>
-					<ProgressBar x:Name="OverallProgressBar"
-					             Classes="download-progress"
-					             Minimum="0"
-					             Maximum="100"
-					             Value="0"
-					             Height="8"/>
-				</StackPanel>
+        <!--  Footer  -->
+        <Border
+            Grid.Row="2"
+            Padding="16,12"
+            Classes="download-footer">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <TextBlock
+                        x:Name="OverallProgressText"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Text="Overall Progress: 0 / 0" />
+                    <ProgressBar
+                        x:Name="OverallProgressBar"
+                        Height="8"
+                        Classes="download-progress"
+                        Maximum="100"
+                        Minimum="0"
+                        Value="0" />
+                </StackPanel>
 
-				<Button Grid.Column="1"
-				        x:Name="CloseButton"
-				        Content="Close"
-				        IsEnabled="False"
-				        Width="100"
-				        Margin="12,0,0,0"
-				        VerticalAlignment="Center"/>
-			</Grid>
-		</Border>
-	</Grid>
+                <Button
+                    x:Name="CloseButton"
+                    Grid.Column="1"
+                    Width="100"
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    Content="Close"
+                    IsEnabled="False" />
+            </Grid>
+        </Border>
+    </Grid>
 </Window>
-

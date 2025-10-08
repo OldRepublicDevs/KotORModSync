@@ -16,7 +16,7 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Converters
 {
-	public class NamespacesIniOptionConverter : IValueConverter
+	public partial class NamespacesIniOptionConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
@@ -46,7 +46,7 @@ namespace KOTORModSync.Converters
 							optionNames.Add(name);
 					}
 
-					if ( optionNames.Any() )
+					if ( optionNames.Count != 0 )
 						return optionNames;
 				}
 				return null;

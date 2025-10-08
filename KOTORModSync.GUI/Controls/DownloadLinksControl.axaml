@@ -1,0 +1,135 @@
+<UserControl
+    x:Class="KOTORModSync.Controls.DownloadLinksControl"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:KOTORModSync.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+
+        <Style x:Key="UrlItemStyle" Selector="Border.url-item">
+            <Setter Property="Background" Value="{DynamicResource mod-list-item-background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource mod-list-item-border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="UrlTextBoxStyle" Selector="TextBox.url-textbox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Watermark" Value="https://example.com/mod-download" />
+        </Style>
+
+        <Style x:Key="ActionButtonStyle" Selector="Button.action-button">
+            <Setter Property="Background" Value="{DynamicResource mod-list-item-badge}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="MinWidth" Value="60" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Spacing="8">
+        <!--  Header with Add Button  -->
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                Classes="summary-label"
+                Text="Download Links" />
+            <Button
+                Grid.Column="1"
+                Classes="action-button"
+                Click="AddLink_Click"
+                Content="➕ Add Link"
+                ToolTip.Tip="Add a new download link" />
+        </Grid>
+
+        <!--  Help Text  -->
+        <TextBlock
+            Classes="secondary-text"
+            FontSize="11"
+            Text="Add one or more download URLs for this mod. Each link will be on its own line."
+            TextWrapping="Wrap" />
+
+        <!--  Links List  -->
+        <ScrollViewer
+            MaxHeight="200"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="LinksItemsControl">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="url-item">
+                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                <!--  URL TextBox  -->
+                                <TextBox
+                                    Grid.Column="0"
+                                    Classes="url-textbox"
+                                    KeyDown="UrlTextBox_KeyDown"
+                                    Text="{Binding ., Mode=TwoWay}"
+                                    TextChanged="UrlTextBox_TextChanged" />
+
+                                <!--  Open Link Button  -->
+                                <Button
+                                    Grid.Column="1"
+                                    Classes="action-button"
+                                    Click="OpenLink_Click"
+                                    Content="🔗"
+                                    IsEnabled="{Binding ., Converter={StaticResource StringToVisibilityConverter}}"
+                                    Tag="{Binding .}"
+                                    ToolTip.Tip="Open this link in your browser" />
+
+                                <!--  Remove Link Button  -->
+                                <Button
+                                    Grid.Column="2"
+                                    Classes="action-button"
+                                    Click="RemoveLink_Click"
+                                    Content="❌"
+                                    ToolTip.Tip="Remove this link" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!--  Empty State  -->
+        <Border
+            x:Name="EmptyStateBorder"
+            Padding="16"
+            Background="{DynamicResource mod-list-item-background}"
+            BorderBrush="{DynamicResource mod-list-item-border}"
+            BorderThickness="1"
+            CornerRadius="4"
+            IsVisible="False">
+            <StackPanel HorizontalAlignment="Center" Spacing="8">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="24"
+                    Text="🔗" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Classes="secondary-text"
+                    Text="No download links added yet" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Classes="secondary-text"
+                    FontSize="11"
+                    Text="Click 'Add Link' to get started" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

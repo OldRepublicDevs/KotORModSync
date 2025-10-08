@@ -7,17 +7,16 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using Avalonia.Data.Converters;
-using JetBrains.Annotations;
 
 namespace KOTORModSync.Converters
 {
 	public partial class IndexConverter : IMultiValueConverter
 	{
 		public object Convert(
-			[NotNull] IList<object> values,
-			[NotNull] Type targetType,
-			[CanBeNull] object parameter,
-			[NotNull] CultureInfo culture
+			IList<object> values,
+			Type targetType,
+			object parameter,
+			CultureInfo culture
 		) =>
 			values[0] is IList list
 				? $"{list.IndexOf(values[1]) + 1}:"

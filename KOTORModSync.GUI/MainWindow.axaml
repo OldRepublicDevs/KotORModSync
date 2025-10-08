@@ -1,27 +1,32 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
-        xmlns:controls="clr-namespace:KOTORModSync.Controls"
-        xmlns:converters="clr-namespace:KOTORModSync.Converters"
-        x:Class="KOTORModSync.MainWindow"
-        Title="KOTORModSync"
-        Width="1280" Height="720" MinWidth="600" MinHeight="400"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="NoChrome"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        SystemDecorations="BorderOnly"
-        DragDrop.AllowDrop="True">
+<Window
+    x:Class="KOTORModSync.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:KOTORModSync.Controls"
+    xmlns:converters="clr-namespace:KOTORModSync.Converters"
+    xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+    x:Name="RootWindow"
+    Title="KOTORModSync"
+    Width="1280"
+    Height="720"
+    MinWidth="600"
+    MinHeight="400"
+    DragDrop.AllowDrop="True"
+    ExtendClientAreaChromeHints="NoChrome"
+    ExtendClientAreaTitleBarHeightHint="-1"
+    ExtendClientAreaToDecorationsHint="True"
+    SystemDecorations="BorderOnly">
     <Design.PreviewWith>
         <Border Padding="20">
-            <!-- Add Controls for Previewer Here -->
+            <!--  Add Controls for Previewer Here  -->
         </Border>
     </Design.PreviewWith>
 
     <Window.Resources>
-        <converters:ListToStringConverter x:Key="ListToStringConverter" />
         <converters:IndexConverter x:Key="IndexConverter" />
         <converters:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <converters:InvalidUrlVisibilityConverter x:Key="InvalidUrlVisibilityConverter" />
         <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
         <converters:NotChooseActionVisibility x:Key="NotChooseActionVisibility" />
@@ -30,201 +35,276 @@
         <converters:CategoryTooltipConverter x:Key="CategoryTooltipConverter" />
         <converters:TierTooltipConverter x:Key="TierTooltipConverter" />
         <converters:PathResolverConverter x:Key="PathResolverConverter" />
-        <converters:PathStatusConverter x:Key="PathStatusConverter" />
         <converters:InstructionDestinationConverter x:Key="InstructionDestinationConverter" />
+        <converters:BooleanAndConverter x:Key="BooleanAndConverter" />
+        <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
+        <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
     </Window.Resources>
 
     <Window.Styles>
-        <StyleInclude Source="/Styles/KotorStyle.axaml" />
         <StyleInclude Source="/Styles/ContentPresenterFix.axaml" />
+        <StyleInclude Source="/Styles/KotorStyle.axaml" />
     </Window.Styles>
-    <!--<Window.Styles>
-        <Style DataType="control:LogViewerControlViewModel">
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <controls:LogViewerControl />
-                </ControlTemplate>
-            </Setter>
-        </Style>
-    </Window.Styles>-->
 
     <Panel>
 
-        <Grid x:Name="MainGrid" MinWidth="200" RowDefinitions="Auto,Auto,*">
+        <Grid
+            x:Name="MainGrid"
+            MinWidth="200"
+            RowDefinitions="Auto,Auto,*">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MinWidth="250" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Header row: menu (left), centered title (middle), window controls (right) -->
-            <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+            <!--  Header row: menu (left), centered title (middle), window controls (right)  -->
+            <Grid
+                Grid.Row="0"
+                Grid.Column="0"
+                Grid.ColumnSpan="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Menu x:Name="TopMenu" Grid.Column="0" />
-                <TextBlock x:Name="TitleTextBlock" Grid.Column="1" Text="KOTORModSync" FontSize="24"
-                           FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right"
-                            VerticalAlignment="Center" Spacing="0">
-                    <Button Content="-" Click="MinimizeButton_Click" HorizontalContentAlignment="Center"
-                            VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Width="40" Height="40"
-                            FontSize="15" />
-                    <Button Content="▢" Click="ToggleMaximizeButton_Click"
-                            HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-                            HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
-                    <Button Content="X" Click="CloseButton_Click"
-                            HorizontalContentAlignment="Center" VerticalAlignment="Stretch"
-                            HorizontalAlignment="Stretch" Width="40" Height="40" FontSize="15" />
+                <TextBlock
+                    x:Name="TitleTextBlock"
+                    Grid.Column="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="24"
+                    FontWeight="Bold"
+                    Text="KOTORModSync" />
+                <StackPanel
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="0">
+                    <Button
+                        Width="40"
+                        Height="40"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Click="MinimizeButton_Click"
+                        Content="-"
+                        FontSize="15" />
+                    <Button
+                        Width="40"
+                        Height="40"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Click="ToggleMaximizeButton_Click"
+                        Content="▢"
+                        FontSize="15" />
+                    <Button
+                        Width="40"
+                        Height="40"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Click="CloseButton_Click"
+                        Content="X"
+                        FontSize="15" />
                 </StackPanel>
             </Grid>
-            <!-- Getting Started button row -->
-            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
-                            Margin="0,4,10,4">
-                    <ToggleSwitch x:Name="EditorModeToggle" Content="Editor Mode"
-                                  IsChecked="{Binding EditorMode, Mode=TwoWay}"
-                                  VerticalAlignment="Center" Margin="0,0,20,0"
-                                  ToolTip.Tip="Toggle to enable Editor Mode: exposes Raw/GUI edit tabs, editing buttons, and creation tools. When off, the UI is simplified for end users installing mods." />
-                    <Button x:Name="HomeButton" Content="🏠 Getting Started"
-                            Click="HomeButton_Click"
-                            ToolTip.Tip="Return to the getting started guide" />
-                    <Button x:Name="OutputWindowButton" Content="📊 Output Window"
-                            Click="OpenOutputWindow_Click"
-                            ToolTip.Tip="Open the output window to view detailed logs"
-                            Margin="10,0,0,0" />
-                    <Button x:Name="HeaderSettingsButton" Content="⚙️ Settings"
-                            Click="OpenSettings_Click"
-                            ToolTip.Tip="Open settings dialog to configure preferences"
-                            Margin="10,0,0,0" />
+            <!--  Getting Started button row  -->
+            <Grid
+                Grid.Row="1"
+                Grid.Column="0"
+                Grid.ColumnSpan="2">
+                <StackPanel
+                    Margin="0,4,10,4"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <ToggleSwitch
+                        x:Name="EditorModeToggle"
+                        Margin="0,0,20,0"
+                        VerticalAlignment="Center"
+                        Content="Editor Mode"
+                        IsChecked="{Binding EditorMode, Mode=TwoWay}"
+                        ToolTip.Tip="Toggle to enable Editor Mode: exposes Raw/GUI edit tabs, editing buttons, and creation tools. When off, the UI is simplified for end users installing mods." />
+                    <Button
+                        x:Name="HomeButton"
+                        Click="HomeButton_Click"
+                        Content="🏠 Getting Started"
+                        ToolTip.Tip="Return to the getting started guide" />
+                    <Button
+                        x:Name="OutputWindowButton"
+                        Margin="10,0,0,0"
+                        Click="OpenOutputWindow_Click"
+                        Content="📊 Output Window"
+                        ToolTip.Tip="Open the output window to view detailed logs" />
+                    <Button
+                        x:Name="HeaderSettingsButton"
+                        Margin="10,0,0,0"
+                        Click="OpenSettings_Click"
+                        Content="⚙️ Settings"
+                        ToolTip.Tip="Open settings dialog to configure preferences" />
                 </StackPanel>
             </Grid>
 
-            <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,Auto,Auto,*,Auto" ColumnDefinitions="*,Auto"
-                  Margin="0,0,10,0">
-                <!-- Search Box and Error Toggle -->
-                <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
-                <controls:SearchBox Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch"
-                                    Name="SearchBox"
-                                    SearchText="{Binding SearchText, Mode=TwoWay}"
-                                    Watermark="Search mods by name or author..."
-                                    Margin="0,0,0,2" />
+            <Grid
+                Grid.Row="2"
+                Grid.Column="0"
+                Margin="0,0,10,0"
+                ColumnDefinitions="*,Auto"
+                RowDefinitions="Auto,Auto,Auto,*,Auto">
+                <!--  Search Box and Error Toggle  -->
+                <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
+                <controls:SearchBox
+                    Name="SearchBox"
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="0,0,0,2"
+                    HorizontalAlignment="Stretch"
+                    SearchText="{Binding SearchText, Mode=TwoWay}"
+                    Watermark="Search mods by name or author..." />
 
-                <!-- Toggle Errored Mods Button -->
-                <CheckBox Grid.Row="0" Grid.Column="1"
-                          x:Name="ToggleErroredModsCheckBox"
-                          Content="❌"
-                          IsChecked="False"
-                          Click="ToggleErroredMods_Click"
-                          VerticalAlignment="Center"
-                          Margin="4,0,0,2"
-                          MinWidth="35"
-                          MinHeight="35"
-                          HorizontalContentAlignment="Center"
-                          VerticalContentAlignment="Center"
-                          ToolTip.Tip="Toggle selection of all errored/invalid mods (mods with missing downloads or configuration errors)" />
+                <!--  Toggle Errored Mods Button  -->
+                <CheckBox
+                    x:Name="ToggleErroredModsCheckBox"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="4,0,0,2"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    Click="ToggleErroredMods_Click"
+                    Content="❌"
+                    IsChecked="False"
+                    ToolTip.Tip="Toggle selection of all errored/invalid mods (mods with missing downloads or configuration errors)" />
 
-                <!-- Selection Panel -->
-                <Expander Grid.Row="1" Grid.Column="0"
-                          Grid.ColumnSpan="2"
-                          Header="☑️ Selection"
-                          IsExpanded="False"
-                          HorizontalAlignment="Stretch"
-                          VerticalAlignment="Center"
-                          Margin="0,0,0,2">
-                    <Border Classes="mod-list-header" Padding="8" Margin="0,2,0,0">
+                <!--  Selection Panel  -->
+                <Expander
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Margin="0,0,0,2"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    Header="☑️ Selection"
+                    IsExpanded="False">
+                    <Border
+                        Margin="0,2,0,0"
+                        Padding="8"
+                        Classes="mod-list-header">
                         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
-                            <!-- Quick Actions -->
-                            <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
-                                <TextBlock Text="Quick Actions"
-                                           FontWeight="Bold"
-                                           FontSize="11"
-                                           Margin="0,0,0,4" />
+                            <!--  Quick Actions  -->
+                            <StackPanel
+                                Grid.Row="0"
+                                Margin="0,0,0,12"
+                                Spacing="4">
+                                <TextBlock
+                                    Margin="0,0,0,4"
+                                    FontSize="11"
+                                    FontWeight="Bold"
+                                    Text="Quick Actions" />
                                 <Grid ColumnDefinitions="*,*">
-                                    <Button Grid.Column="0"
-                                            Content="✅ Select All"
-                                            Click="SelectAll_Click"
-                                            FontSize="10"
-                                            Padding="6,4"
-                                            Margin="0,0,3,0"
-                                            HorizontalAlignment="Stretch"
-                                            ToolTip.Tip="Select all mods" />
-                                    <Button Grid.Column="1"
-                                            Content="⬜ Deselect All"
-                                            Click="DeselectAll_Click"
-                                            FontSize="10"
-                                            Padding="6,4"
-                                            Margin="3,0,0,0"
-                                            HorizontalAlignment="Stretch"
-                                            ToolTip.Tip="Deselect all mods" />
+                                    <Button
+                                        Grid.Column="0"
+                                        Margin="0,0,3,0"
+                                        Padding="6,4"
+                                        HorizontalAlignment="Stretch"
+                                        Click="SelectAll_Click"
+                                        Content="✅ Select All"
+                                        FontSize="10"
+                                        ToolTip.Tip="Select all mods" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Margin="3,0,0,0"
+                                        Padding="6,4"
+                                        HorizontalAlignment="Stretch"
+                                        Click="DeselectAll_Click"
+                                        Content="⬜ Deselect All"
+                                        FontSize="10"
+                                        ToolTip.Tip="Deselect all mods" />
                                 </Grid>
                             </StackPanel>
 
-                            <!-- Tier Selection -->
-                            <StackPanel Grid.Row="1" Spacing="4" Margin="0,0,0,12">
-                                <TextBlock Text="Select by Tier"
-                                           FontWeight="Bold"
-                                           FontSize="11"
-                                           Margin="0,0,0,4" />
-                                <TextBlock Text="Selecting a tier includes all lower priority tiers"
-                                           FontSize="9"
-                                           Opacity="0.7"
-                                           TextWrapping="Wrap"
-                                           Margin="0,0,0,4" />
+                            <!--  Tier Selection  -->
+                            <StackPanel
+                                Grid.Row="1"
+                                Margin="0,0,0,12"
+                                Spacing="4">
+                                <TextBlock
+                                    Margin="0,0,0,4"
+                                    FontSize="11"
+                                    FontWeight="Bold"
+                                    Text="Select by Tier" />
+                                <TextBlock
+                                    Margin="0,0,0,4"
+                                    FontSize="9"
+                                    Opacity="0.7"
+                                    Text="Selecting a tier includes all lower priority tiers"
+                                    TextWrapping="Wrap" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <ComboBox Grid.Column="0"
-                                              x:Name="TierSelectionComboBox"
-                                              PlaceholderText="Choose a tier..."
-                                              HorizontalAlignment="Stretch"
-                                              FontSize="10"
-                                              Margin="0,0,4,0">
+                                    <ComboBox
+                                        x:Name="TierSelectionComboBox"
+                                        Grid.Column="0"
+                                        Margin="0,0,4,0"
+                                        HorizontalAlignment="Stretch"
+                                        FontSize="10"
+                                        PlaceholderText="Choose a tier...">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding DisplayText}" />
+                                                <TextBlock DataContext="{Binding .}" Text="{Binding DisplayText}" />
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <Button Grid.Column="1"
-                                            Content="Select"
-                                            Click="SelectByTier_Click"
-                                            FontSize="10"
-                                            Padding="8,4"
-                                            MinWidth="60"
-                                            ToolTip.Tip="Select mods in the chosen tier and all lower priority tiers" />
+                                    <Button
+                                        Grid.Column="1"
+                                        MinWidth="60"
+                                        Padding="8,4"
+                                        Click="SelectByTier_Click"
+                                        Content="Select"
+                                        FontSize="10"
+                                        ToolTip.Tip="Select mods in the chosen tier and all lower priority tiers" />
                                 </Grid>
                             </StackPanel>
 
-                            <!-- Category Selection -->
-                            <StackPanel Grid.Row="2" Spacing="4" Margin="0,0,0,12">
+                            <!--  Category Selection  -->
+                            <StackPanel
+                                Grid.Row="2"
+                                Margin="0,0,0,12"
+                                Spacing="4">
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <TextBlock Grid.Column="0"
-                                               Text="Select by Category"
-                                               FontWeight="Bold"
-                                               FontSize="11"
-                                               VerticalAlignment="Center" />
-                                    <Button Grid.Column="1"
-                                            Content="Clear"
-                                            Click="ClearCategorySelection_Click"
-                                            FontSize="9"
-                                            Padding="4,2"
-                                            MinHeight="0"
-                                            ToolTip.Tip="Clear category selections" />
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        FontSize="11"
+                                        FontWeight="Bold"
+                                        Text="Select by Category" />
+                                    <Button
+                                        Grid.Column="1"
+                                        MinHeight="0"
+                                        Padding="4,2"
+                                        Click="ClearCategorySelection_Click"
+                                        Content="Clear"
+                                        FontSize="9"
+                                        ToolTip.Tip="Clear category selections" />
                                 </Grid>
-                                <TextBlock Text="Select one or more categories"
-                                           FontSize="9"
-                                           Opacity="0.7"
-                                           TextWrapping="Wrap"
-                                           Margin="0,0,0,4" />
+                                <TextBlock
+                                    Margin="0,0,0,4"
+                                    FontSize="9"
+                                    Opacity="0.7"
+                                    Text="Select one or more categories"
+                                    TextWrapping="Wrap" />
                                 <ScrollViewer MaxHeight="150" HorizontalScrollBarVisibility="Disabled">
                                     <ItemsControl x:Name="CategorySelectionItemsControl">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox Content="{Binding DisplayText}"
-                                                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                          Margin="0,2"
-                                                          FontSize="10"
-                                                          ToolTip.Tip="{Binding Name}">
+                                                <CheckBox
+                                                    Margin="0,2"
+                                                    DataContext="{Binding .}"
+                                                    Content="{Binding DisplayText}"
+                                                    FontSize="10"
+                                                    IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                    ToolTip.Tip="{Binding Name}">
                                                     <CheckBox.Styles>
                                                         <Style Selector="CheckBox[IsChecked=False]">
                                                             <Setter Property="Opacity" Value="0.7" />
@@ -237,65 +317,79 @@
                                 </ScrollViewer>
                             </StackPanel>
 
-                            <!-- Apply Category Selections Button -->
-                            <Button Grid.Row="3"
-                                    Content="✅ Apply Category Selections"
-                                    Click="ApplyCategorySelections_Click"
-                                    HorizontalAlignment="Stretch"
-                                    FontSize="11"
-                                    Padding="8,6"
-                                    FontWeight="Bold"
-                                    ToolTip.Tip="Select all mods matching the chosen categories" />
+                            <!--  Apply Category Selections Button  -->
+                            <Button
+                                Grid.Row="3"
+                                Padding="8,6"
+                                HorizontalAlignment="Stretch"
+                                Click="ApplyCategorySelections_Click"
+                                Content="✅ Apply Category Selections"
+                                FontSize="11"
+                                FontWeight="Bold"
+                                ToolTip.Tip="Select all mods matching the chosen categories" />
                         </Grid>
                     </Border>
                 </Expander>
 
-                <!-- Select All/Deselect All Header -->
-                <Border Grid.Row="2" Grid.Column="0"
-                        Grid.ColumnSpan="2"
-                        Classes="mod-list-header"
-                        Padding="8,4"
-                        Margin="0,0,0,2">
+                <!--  Select All/Deselect All Header  -->
+                <Border
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Margin="0,0,0,2"
+                    Padding="8,4"
+                    Classes="mod-list-header">
                     <Grid ColumnDefinitions="Auto,*,Auto">
-                        <CheckBox Grid.Column="0"
-                                  x:Name="SelectAllCheckBox"
-                                  IsChecked="{Binding RootSelectionState, Mode=TwoWay}"
-                                  IsThreeState="True"
-                                  VerticalAlignment="Center"
-                                  Margin="0,0,8,0" />
-                        <TextBlock Grid.Column="1"
-                                   Text="Available Mods"
-                                   FontWeight="Bold"
-                                   FontSize="13"
-                                   VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                            <TextBlock x:Name="ModCountText"
-                                       Text="0 mods"
-                                       Classes="secondary-text"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Text="•"
-                                       Classes="secondary-text"
-                                       VerticalAlignment="Center" />
-                            <TextBlock x:Name="SelectedCountText"
-                                       Text="0 selected"
-                                       Classes="secondary-text"
-                                       VerticalAlignment="Center" />
+                        <CheckBox
+                            x:Name="SelectAllCheckBox"
+                            Grid.Column="0"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            IsChecked="{Binding RootSelectionState, Mode=TwoWay}"
+                            IsThreeState="True" />
+                        <TextBlock
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            FontSize="13"
+                            FontWeight="Bold"
+                            Text="Available Mods" />
+                        <StackPanel
+                            Grid.Column="2"
+                            Orientation="Horizontal"
+                            Spacing="4">
+                            <TextBlock
+                                x:Name="ModCountText"
+                                VerticalAlignment="Center"
+                                Classes="secondary-text"
+                                Text="0 mods" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Classes="secondary-text"
+                                Text="•" />
+                            <TextBlock
+                                x:Name="SelectedCountText"
+                                VerticalAlignment="Center"
+                                Classes="secondary-text"
+                                Text="0 selected" />
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <!-- Mod List -->
-                <ScrollViewer Grid.Row="3" Grid.Column="0"
-                              Grid.ColumnSpan="2"
-                              HorizontalScrollBarVisibility="Disabled">
+                <!--  Mod List  -->
+                <ScrollViewer
+                    Grid.Row="3"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    HorizontalScrollBarVisibility="Disabled">
                     <ScrollViewer.ContextMenu>
                         <ContextMenu x:Name="ModListContextMenu" />
                     </ScrollViewer.ContextMenu>
-                    <ListBox x:Name="ModListBoxElement"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             SelectionMode="Single"
-                             Padding="0">
+                    <ListBox
+                        x:Name="ModListBoxElement"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        SelectionMode="Single">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="core:Component">
                                 <controls:ModListItem DataContext="{Binding}" />
@@ -304,291 +398,585 @@
                     </ListBox>
                 </ScrollViewer>
 
-                <!-- Mod Tools Button -->
-                <DropDownButton Grid.Row="4" Grid.Column="0"
-                                Grid.ColumnSpan="2"
-                                x:Name="GlobalActionsButton"
-                                Content="⚙️ Mod Tools"
-                                HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Left">
+                <!--  Mod Tools Button  -->
+                <DropDownButton
+                    x:Name="GlobalActionsButton"
+                    Grid.Row="4"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Content="⚙️ Mod Tools">
                     <DropDownButton.Flyout>
                         <MenuFlyout Placement="Top" />
                     </DropDownButton.Flyout>
                 </DropDownButton>
             </Grid>
-            <GridSplitter Grid.Column="0" Grid.Row="2" Width="5" HorizontalAlignment="Right" />
-            <TabControl Grid.Row="2" Grid.Column="1" x:Name="TabControl"
-                        SelectionChanged="TabControl_SelectionChanged"
-                        HorizontalAlignment="Stretch">
-                <TabItem x:Name="InitialTab" Header="Getting Started" IsVisible="False">
+            <GridSplitter
+                Grid.Row="2"
+                Grid.Column="0"
+                Width="5"
+                HorizontalAlignment="Right" />
+            <TabControl
+                x:Name="TabControl"
+                Grid.Row="2"
+                Grid.Column="1"
+                HorizontalAlignment="Stretch"
+                SelectionChanged="TabControl_SelectionChanged">
+                <TabItem
+                    x:Name="InitialTab"
+                    Header="Getting Started"
+                    IsVisible="False">
                     <TabItem.Content>
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="20" Spacing="20">
-                                <TextBlock Text="Welcome to KOTORModSync!" Classes="welcome-title" />
+                                <TextBlock Classes="welcome-title" Text="Welcome to KOTORModSync!" />
 
-                                <TextBlock Text="Follow these steps to install your KOTOR mods:" FontSize="16"
-                                           HorizontalAlignment="Center" Margin="0,0,0,10" />
+                                <TextBlock
+                                    Margin="0,0,0,10"
+                                    HorizontalAlignment="Center"
+                                    FontSize="16"
+                                    Text="Follow these steps to install your KOTOR mods:" />
 
-                                <!-- Step 1: Directories -->
+                                <!--  Step 1: Directories  -->
                                 <Border x:Name="Step1Border" Classes="step-border">
                                     <StackPanel>
                                         <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <TextBlock Grid.Column="0" Text="1️⃣" Classes="step-number" />
-                                            <TextBlock Grid.Column="1" Text="Set Directories" Classes="step-title" />
-                                            <Border Grid.Column="2" x:Name="Step1CompleteIndicator"
-                                                    Classes="step-pending">
-                                                <TextBlock x:Name="Step1CompleteText" Text="Pending"
-                                                           Classes="step-pending-text" />
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Classes="step-number"
+                                                Text="1️⃣" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Classes="step-title"
+                                                Text="Set Directories" />
+                                            <Border
+                                                x:Name="Step1CompleteIndicator"
+                                                Grid.Column="2"
+                                                Classes="step-pending">
+                                                <TextBlock
+                                                    x:Name="Step1CompleteText"
+                                                    Classes="step-pending-text"
+                                                    Text="Pending" />
                                             </Border>
                                         </Grid>
-                                        <TextBlock Text="Configure your mod directory and KOTOR installation directory"
-                                                   Margin="30,10,0,10" TextWrapping="Wrap" />
+                                        <TextBlock
+                                            Margin="30,10,0,10"
+                                            Text="Configure your mod directory and KOTOR installation directory"
+                                            TextWrapping="Wrap" />
 
-                                        <!-- Directory Controls -->
+                                        <!--  Directory Controls  -->
                                         <StackPanel Margin="30,10,0,10">
-                                            <controls:DirectoryPickerControl x:Name="Step1ModDirectoryPicker"
-                                                                             Title="Mod Location:"
-                                                                             Watermark="Enter mod directory path"
-                                                                             PickerType="ModDirectory"
-                                                                             DirectoryChanged="OnDirectoryChanged"
-                                                                             Margin="0,0,0,10" />
+                                            <controls:DirectoryPickerControl
+                                                x:Name="Step1ModDirectoryPicker"
+                                                Title="Mod Location:"
+                                                Margin="0,0,0,10"
+                                                DirectoryChanged="OnDirectoryChanged"
+                                                PickerType="ModDirectory"
+                                                Watermark="Enter mod directory path" />
 
-                                            <controls:DirectoryPickerControl x:Name="Step1KotorDirectoryPicker"
-                                                                             Title="Kotor Directory:"
-                                                                             Watermark="Enter KOTOR installation directory"
-                                                                             PickerType="KotorDirectory"
-                                                                             DirectoryChanged="OnDirectoryChanged" />
+                                            <controls:DirectoryPickerControl
+                                                x:Name="Step1KotorDirectoryPicker"
+                                                Title="Kotor Directory:"
+                                                DirectoryChanged="OnDirectoryChanged"
+                                                PickerType="KotorDirectory"
+                                                Watermark="Enter KOTOR installation directory" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Step 2: Load Instructions -->
+                                <!--  Step 2: Load Instructions  -->
                                 <Border x:Name="Step2Border" Classes="step-border">
                                     <StackPanel>
                                         <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <TextBlock Grid.Column="0" Text="2️⃣" Classes="step-number" />
-                                            <TextBlock Grid.Column="1" Text="Load Instruction File"
-                                                       Classes="step-title" />
-                                            <Border Grid.Column="2" x:Name="Step2CompleteIndicator"
-                                                    Classes="step-pending">
-                                                <TextBlock x:Name="Step2CompleteText" Text="Pending"
-                                                           Classes="step-pending-text" />
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Classes="step-number"
+                                                Text="2️⃣" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Classes="step-title"
+                                                Text="Load Instruction File" />
+                                            <Border
+                                                x:Name="Step2CompleteIndicator"
+                                                Grid.Column="2"
+                                                Classes="step-pending">
+                                                <TextBlock
+                                                    x:Name="Step2CompleteText"
+                                                    Classes="step-pending-text"
+                                                    Text="Pending" />
                                             </Border>
                                         </Grid>
-                                        <TextBlock Text="Load a mod configuration file or create a new one"
-                                                   Margin="30,10,0,10" TextWrapping="Wrap" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                            <Button x:Name="Step2Button" Content="📄 Load Instruction File"
-                                                    Click="Step2Button_Click" HorizontalAlignment="Left"
-                                                    ToolTip.Tip="Click 'Load Installation File' in the top menu"
-                                                    Margin="0,0,10,0" />
-                                            <Button x:Name="GettingStartedSettingsButton" Content="⚙️ Settings"
-                                                    Click="OpenSettings_Click" HorizontalAlignment="Left"
-                                                    ToolTip.Tip="Open settings dialog to configure preferences" />
+                                        <TextBlock
+                                            Margin="30,10,0,10"
+                                            Text="Load a mod configuration file or create a new one"
+                                            TextWrapping="Wrap" />
+                                        <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
+                                            <Button
+                                                x:Name="Step2Button"
+                                                Margin="0,0,10,0"
+                                                HorizontalAlignment="Left"
+                                                Click="Step2Button_Click"
+                                                Content="📄 Load Instruction File"
+                                                ToolTip.Tip="Click 'Load Installation File' in the top menu" />
+                                            <Button
+                                                x:Name="GettingStartedSettingsButton"
+                                                HorizontalAlignment="Left"
+                                                Click="OpenSettings_Click"
+                                                Content="⚙️ Settings"
+                                                ToolTip.Tip="Open settings dialog to configure preferences" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Step 3: Select Mods -->
+                                <!--  Step 3: Select Mods  -->
                                 <Border x:Name="Step3Border" Classes="step-border">
                                     <StackPanel>
                                         <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <TextBlock Grid.Column="0" Text="3️⃣" Classes="step-number" />
-                                            <TextBlock Grid.Column="1" Text="Select Mods &amp; Options"
-                                                       Classes="step-title" />
-                                            <Border Grid.Column="2" x:Name="Step3CompleteIndicator"
-                                                    Classes="step-pending">
-                                                <TextBlock x:Name="Step3CompleteText" Text="Pending"
-                                                           Classes="step-pending-text" />
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Classes="step-number"
+                                                Text="3️⃣" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Classes="step-title"
+                                                Text="Select Mods &amp; Options" />
+                                            <Border
+                                                x:Name="Step3CompleteIndicator"
+                                                Grid.Column="2"
+                                                Classes="step-pending">
+                                                <TextBlock
+                                                    x:Name="Step3CompleteText"
+                                                    Classes="step-pending-text"
+                                                    Text="Pending" />
                                             </Border>
                                         </Grid>
                                         <TextBlock
+                                            Margin="30,10,0,10"
                                             Text="Choose which mods to install from the list on the left, and configure any options"
-                                            Margin="30,10,0,10" TextWrapping="Wrap" />
+                                            TextWrapping="Wrap" />
                                         <TextBlock
-                                            Text="👈 Use the left panel to select mods and customize their options"
-                                            Margin="30,5,0,10" FontStyle="Italic" />
+                                            Margin="30,5,0,10"
+                                            FontStyle="Italic"
+                                            Text="👈 Use the left panel to select mods and customize their options" />
                                     </StackPanel>
                                 </Border>
 
                                 <Border x:Name="Step4Border" Classes="step-border">
                                     <StackPanel>
                                         <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <TextBlock Grid.Column="0" Text="4️⃣" Classes="step-number" />
-                                            <TextBlock Grid.Column="1" Text="Download Mods" Classes="step-title" />
-                                            <Border Grid.Column="2" x:Name="Step4CompleteIndicator"
-                                                    Classes="step-pending">
-                                                <TextBlock x:Name="Step4CompleteText" Text="Pending"
-                                                           Classes="step-pending-text" />
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Classes="step-number"
+                                                Text="4️⃣" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Classes="step-title"
+                                                Text="Download Mods" />
+                                            <Border
+                                                x:Name="Step4CompleteIndicator"
+                                                Grid.Column="2"
+                                                Classes="step-pending">
+                                                <TextBlock
+                                                    x:Name="Step4CompleteText"
+                                                    Classes="step-pending-text"
+                                                    Text="Pending" />
                                             </Border>
                                         </Grid>
                                         <TextBlock
+                                            Margin="30,10,0,10"
                                             Text="Make sure each selected mod is downloaded into your Mod Directory before installing."
-                                            Margin="30,10,0,10" TextWrapping="Wrap" />
+                                            TextWrapping="Wrap" />
                                         <TextBlock
+                                            Margin="30,0,0,10"
                                             Text="The downloader will attempt to fetch files automatically, but you may need to grab some manually."
-                                            Margin="30,0,0,10" TextWrapping="Wrap" />
-                                        <StackPanel Orientation="Horizontal" Margin="30,5,0,0" Spacing="10">
-                                            <Button x:Name="ScrapeDownloadsButton" Content="Fetch Downloads"
-                                                    Click="ScrapeDownloadsButton_Click"
-                                                    ToolTip.Tip="Try to download all missing mod archives automatically" />
-                                            <Button x:Name="OpenModDirectoryButton" Content="Open Mod Directory"
-                                                    Click="OpenModDirectoryButton_Click"
-                                                    ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
+                                            TextWrapping="Wrap" />
+                                        <StackPanel
+                                            Margin="30,5,0,0"
+                                            Orientation="Horizontal"
+                                            Spacing="10">
+                                            <Button
+                                                x:Name="ScrapeDownloadsButton"
+                                                Click="ScrapeDownloadsButton_Click"
+                                                Content="Fetch Downloads"
+                                                ToolTip.Tip="Try to download all missing mod archives automatically" />
+                                            <Button
+                                                x:Name="OpenModDirectoryButton"
+                                                Click="OpenModDirectoryButton_Click"
+                                                Content="Open Mod Directory"
+                                                ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
                                         </StackPanel>
-                                        <Button x:Name="DownloadStatusButton"
-                                                Margin="30,10,0,0"
-                                                HorizontalAlignment="Left"
-                                                Click="DownloadStatusButton_Click"
-                                                ToolTip.Tip="Click to view download progress and status"
-                                                Cursor="Hand">
-                                            <TextBlock x:Name="DownloadStatusText"
-                                                       TextWrapping="Wrap"
-                                                       Foreground="Gray"
-                                                       Text="Status: Waiting for download scan..." />
+                                        <Button
+                                            x:Name="DownloadStatusButton"
+                                            Margin="30,10,0,0"
+                                            HorizontalAlignment="Left"
+                                            Click="DownloadStatusButton_Click"
+                                            Cursor="Hand"
+                                            ToolTip.Tip="Click to view download progress and status">
+                                            <TextBlock
+                                                x:Name="DownloadStatusText"
+                                                Foreground="Gray"
+                                                Text="Status: Waiting for download scan..."
+                                                TextWrapping="Wrap" />
                                         </Button>
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Step 4: Install -->
+                                <!--  Step 5: Validate  -->
                                 <Border x:Name="Step5Border" Classes="step-border">
                                     <StackPanel>
                                         <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <TextBlock Grid.Column="0" Text="5️⃣" Classes="step-number" />
-                                            <TextBlock Grid.Column="1" Text="Validate &amp; Install"
-                                                       Classes="step-title" />
-                                            <Border Grid.Column="2" x:Name="Step5CompleteIndicator"
-                                                    Classes="step-pending">
-                                                <TextBlock x:Name="Step5CompleteText" Text="Pending"
-                                                           Classes="step-pending-text" />
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Classes="step-number"
+                                                Text="5️⃣" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Classes="step-title"
+                                                Text="Validate Configuration" />
+                                            <Border
+                                                x:Name="Step5CompleteIndicator"
+                                                Grid.Column="2"
+                                                Classes="step-pending">
+                                                <TextBlock
+                                                    x:Name="Step5CompleteText"
+                                                    Classes="step-pending-text"
+                                                    Text="Pending" />
                                             </Border>
                                         </Grid>
                                         <TextBlock
-                                            Text="Validate your configuration and start the installation process"
-                                            Margin="30,10,0,10" TextWrapping="Wrap" />
-                                        <StackPanel Orientation="Horizontal" Margin="30,5,0,0">
-                                            <Button x:Name="ValidateButton" Content="🔍 Validate"
-                                                    Click="GettingStartedValidateButton_Click" Margin="0,0,10,0"
-                                                    ToolTip.Tip="Check for any issues before installation" />
-                                            <Button x:Name="InstallButton" Content="⚡ Start Install"
-                                                    Click="InstallButton_Click"
-                                                    ToolTip.Tip="Begin the mod installation process" />
+                                            Margin="30,10,0,10"
+                                            Text="Check for any issues before installation"
+                                            TextWrapping="Wrap" />
+                                        <StackPanel Margin="30,5,0,0" Orientation="Horizontal">
+                                            <Button
+                                                x:Name="ValidateButton"
+                                                Margin="0,0,10,0"
+                                                Click="GettingStartedValidateButton_Click"
+                                                Content="🔍 Validate"
+                                                ToolTip.Tip="Check for any issues before installation" />
+                                            <CheckBox x:Name="Step5Checkbox" IsVisible="False" />
                                         </StackPanel>
+
+                                        <!--  Validation Results Area  -->
+                                        <Border
+                                            x:Name="ValidationResultsArea"
+                                            Margin="30,10,0,0"
+                                            Padding="12"
+                                            Background="{DynamicResource ThemeBackgroundBrush}"
+                                            BorderBrush="{DynamicResource ThemeBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            IsVisible="False">
+                                            <StackPanel>
+                                                <!--  Validation Summary  -->
+                                                <TextBlock
+                                                    x:Name="ValidationSummaryText"
+                                                    Margin="0,0,0,8"
+                                                    FontSize="14"
+                                                    FontWeight="Bold"
+                                                    Text="Validation Results" />
+
+                                                <!--  Error Navigation (only shown if there are errors)  -->
+                                                <Border
+                                                    x:Name="ErrorNavigationArea"
+                                                    Margin="0,0,0,8"
+                                                    Padding="8"
+                                                    Background="{DynamicResource ThemeBorderBrush}"
+                                                    CornerRadius="3"
+                                                    IsVisible="False">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                                        <Button
+                                                            x:Name="PrevErrorButton"
+                                                            Grid.Column="0"
+                                                            Width="30"
+                                                            Height="30"
+                                                            Margin="0,0,8,0"
+                                                            Click="PrevErrorButton_Click"
+                                                            Content="◀"
+                                                            ToolTip.Tip="Previous error" />
+
+                                                        <StackPanel Grid.Column="1" Margin="8,0">
+                                                            <TextBlock
+                                                                x:Name="ErrorCounterText"
+                                                                HorizontalAlignment="Center"
+                                                                FontWeight="Bold"
+                                                                Text="Error 1 of 3" />
+                                                            <TextBlock
+                                                                x:Name="ErrorModNameText"
+                                                                HorizontalAlignment="Center"
+                                                                FontSize="12"
+                                                                Foreground="{DynamicResource ThemeForegroundBrush}"
+                                                                Text="Mod Name"
+                                                                TextWrapping="Wrap" />
+                                                        </StackPanel>
+
+                                                        <Button
+                                                            x:Name="NextErrorButton"
+                                                            Grid.Column="2"
+                                                            Width="30"
+                                                            Height="30"
+                                                            Margin="8,0,0,0"
+                                                            Click="NextErrorButton_Click"
+                                                            Content="▶"
+                                                            ToolTip.Tip="Next error" />
+                                                    </Grid>
+                                                </Border>
+
+                                                <!--  Current Error Details  -->
+                                                <Border
+                                                    x:Name="ErrorDetailsArea"
+                                                    Margin="0,0,0,8"
+                                                    Padding="10"
+                                                    Background="{DynamicResource ThemeBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource UrlValidation.InvalidBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="3"
+                                                    IsVisible="False">
+                                                    <StackPanel>
+                                                        <TextBlock
+                                                            x:Name="ErrorTypeText"
+                                                            Margin="0,0,0,6"
+                                                            FontSize="13"
+                                                            FontWeight="Bold"
+                                                            Foreground="{DynamicResource UrlValidation.InvalidBrush}"
+                                                            Text="Error Type" />
+                                                        <TextBlock
+                                                            x:Name="ErrorDescriptionText"
+                                                            Margin="0,0,0,8"
+                                                            Text="Error description"
+                                                            TextWrapping="Wrap" />
+
+                                                        <!--  Action Buttons  -->
+                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                            <Button
+                                                                x:Name="AutoFixButton"
+                                                                Click="AutoFixButton_Click"
+                                                                Content="🔧 Auto-Fix"
+                                                                IsVisible="False"
+                                                                ToolTip.Tip="Automatically fix this error" />
+                                                            <Button
+                                                                x:Name="JumpToModButton"
+                                                                Click="JumpToModButton_Click"
+                                                                Content="📍 Jump to Mod"
+                                                                ToolTip.Tip="Go to this mod in the Summary tab" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <!--  Success Message (shown when no errors)  -->
+                                                <Border
+                                                    x:Name="ValidationSuccessArea"
+                                                    Padding="10"
+                                                    Background="{DynamicResource UrlValidation.ValidBrush}"
+                                                    CornerRadius="3"
+                                                    IsVisible="False">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock
+                                                            Margin="0,0,8,0"
+                                                            FontSize="16"
+                                                            Text="✅" />
+                                                        <TextBlock
+                                                            VerticalAlignment="Center"
+                                                            FontWeight="Bold"
+                                                            Text="All mods validated successfully! Ready for installation." />
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Progress Section -->
+
+                                <!--  Progress Section  -->
                                 <Border Classes="progress-section">
                                     <StackPanel>
-                                        <TextBlock Text="📊 Progress Overview" FontSize="16" FontWeight="Bold"
-                                                   HorizontalAlignment="Center" Margin="0,0,0,10" />
-                                        <ProgressBar x:Name="OverallProgressBar" Height="20" Minimum="0" Maximum="5"
-                                                     Value="0" />
-                                        <TextBlock x:Name="ProgressText" Text="Complete the steps above to get started"
-                                                   HorizontalAlignment="Center" Margin="0,5,0,0" FontStyle="Italic" />
+                                        <TextBlock
+                                            Margin="0,0,0,10"
+                                            HorizontalAlignment="Center"
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Text="📊 Progress Overview" />
+                                        <ProgressBar
+                                            x:Name="OverallProgressBar"
+                                            Height="20"
+                                            Maximum="5"
+                                            Minimum="0"
+                                            Value="0" />
+                                        <TextBlock
+                                            x:Name="ProgressText"
+                                            Margin="0,5,0,0"
+                                            HorizontalAlignment="Center"
+                                            FontStyle="Italic"
+                                            Text="Complete the steps above to get started" />
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Additional Help -->
+                                <!--  Installation Section  -->
+                                <Border Classes="progress-section">
+                                    <StackPanel>
+                                        <TextBlock
+                                            Margin="0,0,0,10"
+                                            HorizontalAlignment="Center"
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Text="🚀 Ready to Install" />
+                                        <TextBlock
+                                            Margin="0,0,0,15"
+                                            HorizontalAlignment="Center"
+                                            Text="All preparation steps are complete. You can now install your mods."
+                                            TextWrapping="Wrap" />
+                                        <Button
+                                            x:Name="InstallButton"
+                                            HorizontalAlignment="Center"
+                                            Click="InstallButton_Click"
+                                            Content="⚡ Start Install"
+                                            ToolTip.Tip="Begin the mod installation process" />
+                                        <CheckBox x:Name="Step6Checkbox" IsVisible="False" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!--  Additional Help  -->
                                 <Border Classes="help-section">
                                     <StackPanel>
-                                        <TextBlock Text="💡 Need Help?" FontSize="16" FontWeight="Bold"
-                                                   HorizontalAlignment="Center" Margin="0,0,0,10" />
-                                        <TextBlock TextWrapping="Wrap" HorizontalAlignment="Center">
+                                        <TextBlock
+                                            Margin="0,0,0,10"
+                                            HorizontalAlignment="Center"
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Text="💡 Need Help?" />
+                                        <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap">
                                             <Run Text="• Check the " />
-                                            <Run Text="Output Window" FontWeight="Bold" />
+                                            <Run FontWeight="Bold" Text="Output Window" />
                                             <Run Text=" for detailed logs and error messages" />
                                             <LineBreak />
                                             <Run Text="• Use the " />
-                                            <Run Text="Validate" FontWeight="Bold" />
+                                            <Run FontWeight="Bold" Text="Validate" />
                                             <Run Text=" button to check for issues before installing" />
                                             <LineBreak />
                                             <Run Text="• Enable " />
-                                            <Run Text="Verbose Logging" FontWeight="Bold" />
+                                            <Run FontWeight="Bold" Text="Verbose Logging" />
                                             <Run Text=" in Settings for more details" />
                                         </TextBlock>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                                    Margin="0,10,0,0">
-                                            <Button x:Name="GettingStartedOpenOutputButton"
-                                                    Content="📊 Open Output Window"
-                                                    Click="OpenOutputWindow_Click" Margin="0,0,10,0"
-                                                    ToolTip.Tip="Open the output window to view detailed logs" />
-                                            <Button x:Name="GettingStartedHelpSettingsButton" Content="⚙️ Settings"
-                                                    Click="OpenSettings_Click"
-                                                    ToolTip.Tip="Open settings dialog to configure preferences" />
+                                        <StackPanel
+                                            Margin="0,10,0,0"
+                                            HorizontalAlignment="Center"
+                                            Orientation="Horizontal">
+                                            <Button
+                                                x:Name="GettingStartedOpenOutputButton"
+                                                Margin="0,0,10,0"
+                                                Click="OpenOutputWindow_Click"
+                                                Content="📊 Open Output Window"
+                                                ToolTip.Tip="Open the output window to view detailed logs" />
+                                            <Button
+                                                x:Name="GettingStartedHelpSettingsButton"
+                                                Click="OpenSettings_Click"
+                                                Content="⚙️ Settings"
+                                                ToolTip.Tip="Open settings dialog to configure preferences" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Jump to Current Step Button -->
+                                <!--  Jump to Current Step Button  -->
                                 <Border Classes="help-section">
                                     <StackPanel>
-                                        <Button x:Name="JumpToCurrentStepButton"
-                                                Content="📍 Jump to Current Step"
-                                                Click="JumpToCurrentStep_Click"
-                                                HorizontalAlignment="Center"
-                                                ToolTip.Tip="Scroll to the step you should work on next"
-                                                Margin="0,0,0,10" />
+                                        <Button
+                                            x:Name="JumpToCurrentStepButton"
+                                            Margin="0,0,0,10"
+                                            HorizontalAlignment="Center"
+                                            Click="JumpToCurrentStep_Click"
+                                            Content="📍 Jump to Current Step"
+                                            ToolTip.Tip="Scroll to the step you should work on next" />
                                         <TextBlock
-                                            Text="Click to automatically scroll to the next step you need to complete"
                                             HorizontalAlignment="Center"
                                             Classes="secondary-text"
-                                            FontSize="12" />
+                                            FontSize="12"
+                                            Text="Click to automatically scroll to the next step you need to complete" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem.Content>
                 </TabItem>
-                <TabItem x:Name="SummaryTabItem" Header="Summary" IsVisible="False">
+                <TabItem
+                    x:Name="SummaryTabItem"
+                    Header="Summary"
+                    IsVisible="{Binding EditorMode}">
                     <TabItem.Content>
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Auto">
-                            <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
-                            <StackPanel DataContext="{Binding CurrentComponent}" Margin="16">
+                        <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel
+                                Margin="8"
+                                HorizontalAlignment="Stretch"
+                                DataContext="{Binding CurrentComponent}">
 
-                                <!-- Mod Information Card -->
+                                <!--  Mod Information Card  -->
                                 <Border Classes="summary-card">
                                     <StackPanel>
                                         <Border Classes="summary-header">
-                                            <TextBlock Text="📦 Mod Information" Classes="summary-section-title" />
+                                            <TextBlock Classes="summary-section-title" Text="📦 Mod Information" />
                                         </Border>
 
                                         <Grid ColumnDefinitions="80,*" RowDefinitions="Auto,Auto,Auto,Auto">
-                                            <!-- Name -->
-                                            <TextBlock Grid.Row="0" Grid.Column="0"
-                                                       Text="Name:" Classes="summary-label"
-                                                       IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}" />
-                                            <TextBlock Grid.Row="0" Grid.Column="1"
-                                                       Text="{Binding Name}" Classes="summary-value"
-                                                       IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}" />
+                                            <!--  Name  -->
+                                            <TextBlock
+                                                Grid.Row="0"
+                                                Grid.Column="0"
+                                                Classes="summary-label"
+                                                IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}"
+                                                Text="Name:" />
+                                            <TextBlock
+                                                Grid.Row="0"
+                                                Grid.Column="1"
+                                                Classes="summary-value"
+                                                IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}"
+                                                Text="{Binding Name}" />
 
-                                            <!-- Author -->
-                                            <TextBlock Grid.Row="1" Grid.Column="0"
-                                                       Text="Author:" Classes="summary-label"
-                                                       IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}" />
-                                            <TextBlock Grid.Row="1" Grid.Column="1"
-                                                       Text="{Binding Author}" Classes="summary-value"
-                                                       IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}" />
+                                            <!--  Author  -->
+                                            <TextBlock
+                                                Grid.Row="1"
+                                                Grid.Column="0"
+                                                Classes="summary-label"
+                                                IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}"
+                                                Text="Author:" />
+                                            <TextBlock
+                                                Grid.Row="1"
+                                                Grid.Column="1"
+                                                Classes="summary-value"
+                                                IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}"
+                                                Text="{Binding Author}" />
 
-                                            <!-- Category & Tier -->
-                                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                                                        Orientation="Horizontal" Spacing="20" Margin="0,8,0,0">
-                                                <StackPanel
-                                                    IsVisible="{Binding Category, Converter={StaticResource ListToVisibilityConverter}}">
-                                                    <TextBlock Text="Categories" Classes="summary-label"
-                                                               Margin="0,0,0,4" />
-                                                    <Border Classes="category-badge" CornerRadius="4" Padding="8,4"
-                                                            ToolTip.Tip="{Binding Category, Converter={StaticResource CategoryTooltipConverter}}">
-                                                        <TextBlock
-                                                            Text="{Binding Category, Converter={StaticResource CategoryListDisplayConverter}}" />
+                                            <!--  Category & Tier  -->
+                                            <StackPanel
+                                                Grid.Row="2"
+                                                Grid.Column="0"
+                                                Grid.ColumnSpan="2"
+                                                Margin="0,4,0,0"
+                                                Orientation="Horizontal"
+                                                Spacing="12">
+                                                <StackPanel IsVisible="{Binding Category, Converter={StaticResource ListToVisibilityConverter}}">
+                                                    <TextBlock
+                                                        Margin="0,0,0,2"
+                                                        Classes="summary-label"
+                                                        Text="Categories" />
+                                                    <Border
+                                                        Padding="6,3"
+                                                        Classes="category-badge"
+                                                        CornerRadius="4"
+                                                        ToolTip.Tip="{Binding Category, Converter={StaticResource CategoryTooltipConverter}}">
+                                                        <TextBlock Text="{Binding Category, Converter={StaticResource CategoryListDisplayConverter}}" />
                                                     </Border>
                                                 </StackPanel>
-                                                <StackPanel
-                                                    IsVisible="{Binding Tier, Converter={StaticResource StringToVisibilityConverter}}">
-                                                    <TextBlock Text="Tier" Classes="summary-label" Margin="0,0,0,4" />
-                                                    <Border Classes="tier-badge" CornerRadius="4" Padding="8,4"
-                                                            ToolTip.Tip="{Binding Tier, Converter={StaticResource TierTooltipConverter}}">
+                                                <StackPanel IsVisible="{Binding Tier, Converter={StaticResource StringToVisibilityConverter}}">
+                                                    <TextBlock
+                                                        Margin="0,0,0,2"
+                                                        Classes="summary-label"
+                                                        Text="Tier" />
+                                                    <Border
+                                                        Padding="6,3"
+                                                        Classes="tier-badge"
+                                                        CornerRadius="4"
+                                                        ToolTip.Tip="{Binding Tier, Converter={StaticResource TierTooltipConverter}}">
                                                         <TextBlock Text="{Binding Tier}" />
                                                     </Border>
                                                 </StackPanel>
@@ -597,191 +985,44 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Download Links Card -->
-                                <Border Classes="summary-card"
-                                        IsVisible="{Binding ModLink, Converter={StaticResource ListToVisibilityConverter}}">
+                                <!--  Download Links Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding ModLink, Converter={StaticResource ListToVisibilityConverter}}">
                                     <StackPanel>
                                         <Border Classes="summary-header">
-                                            <TextBlock Text="🔗 Download Links" Classes="summary-section-title" />
+                                            <TextBlock Classes="summary-section-title" Text="🔗 Download Links" />
                                         </Border>
-                                        <TextBlock Text="Click any link to open in your browser"
-                                                   Classes="secondary-text" Margin="0,0,0,8" />
+                                        <TextBlock
+                                            Margin="0,0,0,4"
+                                            Classes="secondary-text"
+                                            Text="Click any link to open in your browser" />
                                         <ItemsRepeater ItemsSource="{Binding ModLink}">
                                             <ItemsRepeater.ItemTemplate>
                                                 <DataTemplate>
                                                     <Border Classes="summary-link-container">
-                                                        <SelectableTextBlock Text="{Binding }"
-                                                                             TextDecorations="Underline"
-                                                                             Tapped="OpenLink_Click"
-                                                                             TextWrapping="Wrap"
-                                                                             FontSize="14"
-                                                                             Cursor="Hand">
-                                                            <TextBlock.ContextMenu>
-                                                                <ContextMenu>
-                                                                    <MenuItem Header="Copy"
-                                                                              Click="CopyTextToClipboard_Click" />
-                                                                </ContextMenu>
-                                                            </TextBlock.ContextMenu>
-                                                        </SelectableTextBlock>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsRepeater.ItemTemplate>
-                                        </ItemsRepeater>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Description Card -->
-                                <Border Classes="summary-card"
-                                        IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}">
-                                    <StackPanel>
-                                        <Border Classes="summary-header">
-                                            <TextBlock Text="📄 Description" Classes="summary-section-title" />
-                                        </Border>
-                                        <TextBlock Text="{Binding Description}"
-                                                   Classes="summary-value"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Installation Directions Card -->
-                                <Border Classes="summary-card"
-                                        IsVisible="{Binding Directions, Converter={StaticResource StringToVisibilityConverter}}">
-                                    <StackPanel>
-                                        <Border Classes="summary-header">
-                                            <TextBlock Text="📋 Installation Notes" Classes="summary-section-title" />
-                                        </Border>
-                                        <TextBlock Text="{Binding Directions}"
-                                                   Classes="summary-value"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Options/Customizations Card -->
-                                <Border Classes="summary-card"
-                                        IsVisible="{Binding ElementName=OptionsSummaryRepeater, Path=ItemsSource, Converter={StaticResource ListToVisibilityConverter}}">
-                                    <StackPanel>
-                                        <Border Classes="summary-header">
-                                            <TextBlock Text="⚙️ Options &amp; Customizations"
-                                                       Classes="summary-section-title" />
-                                        </Border>
-                                        <TextBlock Text="Select the options you want to install"
-                                                   Classes="secondary-text" Margin="0,0,0,8" />
-
-                                        <ItemsRepeater x:Name="OptionsSummaryRepeater" ItemsSource="{Binding Options}">
-                                            <ItemsRepeater.ItemTemplate>
-                                                <DataTemplate DataType="core:Option">
-                                                    <Border Classes="summary-option-card">
-                                                        <StackPanel Spacing="8">
-                                                            <CheckBox Name="OptionIsSelectedCheckBox"
-                                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                                      IsCheckedChanged="OnCheckBoxChanged"
-                                                                      Tag="{Binding}"
-                                                                      ToolTip.Tip="Check to install this option">
-                                                                <TextBlock Text="{Binding Name}"
-                                                                           Classes="summary-option-title" />
-                                                            </CheckBox>
-
-                                                            <TextBlock Text="{Binding Description}"
-                                                                       Classes="summary-value"
-                                                                       TextWrapping="Wrap"
-                                                                       Margin="28,0,0,0"
-                                                                       IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}" />
-                                                        </StackPanel>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsRepeater.ItemTemplate>
-                                        </ItemsRepeater>
-                                    </StackPanel>
-                                </Border>
-                                <!-- Instructions Overview Card -->
-                                <Border Classes="summary-card"
-                                        IsVisible="{Binding ElementName=InstructionsSummaryRepeater, Path=ItemsSource, Converter={StaticResource ListToVisibilityConverter}}">
-                                    <StackPanel>
-                                        <Border Classes="summary-header">
-                                            <TextBlock Text="🔧 Installation Instructions"
-                                                       Classes="summary-section-title" />
-                                        </Border>
-                                        <TextBlock Text="These operations will be performed automatically"
-                                                   Classes="secondary-text" Margin="0,0,0,8" />
-
-
-                                        <ItemsRepeater x:Name="InstructionsSummaryRepeater"
-                                                       ItemsSource="{Binding Instructions}">
-                                            <ItemsRepeater.ItemTemplate>
-                                                <DataTemplate DataType="core:Instruction">
-                                                    <Border Classes="summary-instruction-card">
-                                                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
-                                                            <!-- Instruction Number -->
-                                                            <Border Grid.Column="0" Grid.Row="0" Grid.RowSpan="2"
-                                                                    CornerRadius="4" Padding="8,4"
-                                                                    Margin="0,0,12,0" VerticalAlignment="Top"
-                                                                    Background="{DynamicResource mod-list-item-badge}">
-                                                                <TextBlock FontWeight="Bold" FontSize="12"
-                                                                           VerticalAlignment="Center">
-                                                                    <TextBlock.Text>
-                                                                        <MultiBinding
-                                                                            Converter="{StaticResource IndexConverter}">
-                                                                            <MultiBinding.Bindings>
-                                                                                <Binding
-                                                                                    Path="$parent[ItemsRepeater].ItemsSource" />
-                                                                                <Binding Path="." />
-                                                                            </MultiBinding.Bindings>
-                                                                        </MultiBinding>
-                                                                    </TextBlock.Text>
-                                                                </TextBlock>
-                                                            </Border>
-
-                                                            <!-- Action -->
-                                                            <TextBlock Grid.Column="1" Grid.Row="0"
-                                                                       Text="{Binding Action}"
-                                                                       Classes="summary-instruction-action"
-                                                                       TextWrapping="Wrap" />
-
-                                                            <!-- Details for non-Choose actions -->
-                                                            <StackPanel Grid.Column="1" Grid.Row="1"
-                                                                        Orientation="Vertical"
-                                                                        Margin="0,4,0,0"
-                                                                        IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}">
-                                                                <!-- Source paths with resolved placeholders -->
-                                                                <TextBlock
-                                                                    Text="{Binding Source, Converter={StaticResource PathResolverConverter}}"
-                                                                    Classes="summary-value"
-                                                                    TextWrapping="Wrap" />
-                                                                <!-- Destination information -->
-                                                                <TextBlock
-                                                                    Text="{Binding ., Converter={StaticResource InstructionDestinationConverter}}"
-                                                                    Classes="summary-value"
-                                                                    TextWrapping="Wrap"
-                                                                    Margin="0,2,0,0"
-                                                                    FontStyle="Italic" />
-                                                                <!-- Arguments if present -->
-                                                                <TextBlock Text="{Binding Arguments}"
-                                                                           Classes="summary-value"
-                                                                           TextWrapping="Wrap"
-                                                                           Margin="0,2,0,0"
-                                                                           IsVisible="{Binding Arguments, Converter={StaticResource StringToVisibilityConverter}}"
-                                                                           FontSize="11" />
-                                                            </StackPanel>
-
-                                                            <!-- Details for Choose actions -->
-                                                            <ItemsControl Grid.Column="1" Grid.Row="1"
-                                                                          Margin="0,4,0,0"
-                                                                          IsVisible="{Binding Action, Converter={StaticResource ChooseActionVisibility}}">
-                                                                <ItemsControl.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <TextBlock
-                                                                            Text="{Binding ., Converter={StaticResource GuidToComponentConverter}}"
-                                                                            ToolTip.Tip="{Binding .}"
-                                                                            Classes="summary-value"
-                                                                            TextWrapping="Wrap"
-                                                                            Margin="0,2,0,0" />
-                                                                    </DataTemplate>
-                                                                </ItemsControl.ItemTemplate>
-                                                                <ItemsControl.ItemsSource>
-                                                                    <Binding Path="Source"
-                                                                             Converter="{StaticResource GuidListConverter}" />
-                                                                </ItemsControl.ItemsSource>
-                                                            </ItemsControl>
+                                                        <Grid ColumnDefinitions="*,Auto">
+                                                            <SelectableTextBlock
+                                                                Grid.Column="0"
+                                                                Cursor="Hand"
+                                                                FontSize="14"
+                                                                Tapped="OpenLink_Click"
+                                                                Text="{Binding}"
+                                                                TextDecorations="Underline"
+                                                                TextWrapping="Wrap">
+                                                                <TextBlock.ContextMenu>
+                                                                    <ContextMenu>
+                                                                        <MenuItem Click="CopyTextToClipboard_Click" Header="Copy" />
+                                                                    </ContextMenu>
+                                                                </TextBlock.ContextMenu>
+                                                            </SelectableTextBlock>
+                                                            <TextBlock
+                                                                Grid.Column="1"
+                                                                Margin="8,0,0,0"
+                                                                VerticalAlignment="Center"
+                                                                FontSize="12"
+                                                                Foreground="{DynamicResource UrlValidation.ErrorIconBrush}"
+                                                                IsVisible="{Binding ., Converter={StaticResource InvalidUrlVisibilityConverter}}"
+                                                                Text="❌"
+                                                                ToolTip.Tip="Invalid URL" />
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
@@ -789,244 +1030,598 @@
                                         </ItemsRepeater>
                                     </StackPanel>
                                 </Border>
-                            </StackPanel>
-                        </ScrollViewer>
-                    </TabItem.Content>
-                </TabItem>
 
-                <TabItem x:Name="GuiEditTabItem" Header="GUI Edit" IsVisible="{Binding EditorMode}">
-                    <TabItem.Content>
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Auto">
-                            <!-- ReSharper disable once Xaml.BindingWithoutContextNotResolved -->
-                            <StackPanel x:Name="GuiEditGrid"
-                                        DataContext="{Binding CurrentComponent}" Margin="12">
+                                <!--  Description Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <StackPanel>
+                                        <Border Classes="summary-header">
+                                            <TextBlock Classes="summary-section-title" Text="📄 Description" />
+                                        </Border>
+                                        <TextBlock
+                                            Name="DescriptionTextBlock"
+                                            Classes="summary-value"
+                                            TextWrapping="WrapWithOverflow" />
+                                    </StackPanel>
+                                </Border>
 
-                                <!-- Basic Information Section -->
-                                <Expander Header="📦 Basic Information" IsExpanded="True" Margin="0,0,0,8">
-                                    <Border Classes="summary-card" Margin="0,8,0,0">
-                                        <StackPanel Spacing="12">
-                                            <StackPanel>
-                                                <TextBlock Text="Mod Name" Classes="summary-label" />
-                                                <TextBox Text="{Binding Name}"
-                                                         Focusable="True" HorizontalAlignment="Stretch"
-                                                         TextWrapping="Wrap"
-                                                         Watermark="Enter mod name..." />
-                                            </StackPanel>
+                                <!--  Installation Directions Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding Directions, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <StackPanel>
+                                        <Border Classes="summary-header">
+                                            <TextBlock Classes="summary-section-title" Text="📋 Installation Notes" />
+                                        </Border>
+                                        <TextBlock
+                                            Name="DirectionsTextBlock"
+                                            Classes="summary-value"
+                                            TextWrapping="WrapWithOverflow" />
+                                    </StackPanel>
+                                </Border>
 
-                                            <StackPanel>
-                                                <TextBlock Text="Author(s)" Classes="summary-label" />
-                                                <TextBox Text="{Binding Author}"
-                                                         Focusable="True" HorizontalAlignment="Stretch"
-                                                         AcceptsReturn="True"
-                                                         Watermark="Enter author name(s)..." />
-                                            </StackPanel>
+                                <!--  Options/Customizations Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding ElementName=OptionsSummaryRepeater, Path=ItemsSource, Converter={StaticResource ListToVisibilityConverter}}">
+                                    <StackPanel>
+                                        <Border Classes="summary-header">
+                                            <TextBlock Classes="summary-section-title" Text="⚙️ Options &amp; Customizations" />
+                                        </Border>
+                                        <TextBlock
+                                            Margin="0,0,0,4"
+                                            Classes="secondary-text"
+                                            Text="Select the options you want to install" />
 
-                                            <Grid ColumnDefinitions="*,12,*">
-                                                <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="Category" Classes="summary-label" />
-                                                    <TextBox Text="{Binding Category}"
-                                                             Focusable="True"
-                                                             Watermark="e.g., Graphics, Gameplay..." />
-                                                </StackPanel>
+                                        <ItemsRepeater x:Name="OptionsSummaryRepeater" ItemsSource="{Binding Options}">
+                                            <ItemsRepeater.ItemTemplate>
+                                                <DataTemplate DataType="core:Option">
+                                                    <Border Classes="summary-option-card">
+                                                        <StackPanel Spacing="4">
+                                                            <CheckBox
+                                                                Name="OptionIsSelectedCheckBox"
+                                                                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                                IsCheckedChanged="OnCheckBoxChanged"
+                                                                Tag="{Binding}"
+                                                                ToolTip.Tip="Check to install this option">
+                                                                <TextBlock Classes="summary-option-title" Text="{Binding Name}" />
+                                                            </CheckBox>
 
-                                                <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="Tier" Classes="summary-label" />
-                                                    <TextBox Text="{Binding Tier}"
-                                                             Focusable="True"
-                                                             Watermark="e.g., Essential, Optional..." />
-                                                </StackPanel>
-                                            </Grid>
+                                                            <TextBlock
+                                                                Margin="24,0,0,0"
+                                                                Classes="summary-value"
+                                                                IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}"
+                                                                Text="{Binding Description}"
+                                                                TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
+                                    </StackPanel>
+                                </Border>
+                                <!--  Instructions Overview Card  -->
+                                <Border Classes="summary-card">
+                                    <Border.IsVisible>
+                                        <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                            <Binding Path="$parent[Window].EditorMode" />
+                                            <Binding
+                                                Converter="{StaticResource ListToVisibilityConverter}"
+                                                ElementName="InstructionsSummaryRepeater"
+                                                Path="ItemsSource" />
+                                        </MultiBinding>
+                                    </Border.IsVisible>
+                                    <StackPanel>
+                                        <Border Classes="summary-header">
+                                            <TextBlock Classes="summary-section-title" Text="🔧 Installation Instructions" />
+                                        </Border>
+                                        <TextBlock
+                                            Margin="0,0,0,4"
+                                            Classes="secondary-text"
+                                            Text="These operations will be performed automatically" />
 
-                                            <StackPanel>
-                                                <TextBlock Text="Download Link(s)" Classes="summary-label"
-                                                           ToolTip.Tip="Enter one or more download URLs (comma-separated)" />
-                                                <TextBox
-                                                    Text="{Binding ModLink, Converter={StaticResource ListToStringConverter}}"
-                                                    Focusable="True" HorizontalAlignment="Stretch"
-                                                    AcceptsReturn="True"
-                                                    TextWrapping="Wrap"
-                                                    Watermark="https://..." />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </Expander>
-
-                                <!-- Description & Directions Section -->
-                                <Expander Header="📄 Description &amp; Directions" IsExpanded="False" Margin="0,0,0,8">
-                                    <Border Classes="summary-card" Margin="0,8,0,0">
-                                        <StackPanel Spacing="12">
-                                            <StackPanel>
-                                                <TextBlock Text="Description" Classes="summary-label" />
-                                                <TextBlock Text="What this mod does and why users might want it"
-                                                           Classes="secondary-text" FontSize="11" Margin="0,0,0,4" />
-                                                <TextBox Text="{Binding Description}"
-                                                         Focusable="True" HorizontalAlignment="Stretch"
-                                                         TextWrapping="Wrap" MinHeight="80"
-                                                         AcceptsTab="True" AcceptsReturn="True"
-                                                         Watermark="Enter mod description..." />
-                                            </StackPanel>
-
-                                            <StackPanel>
-                                                <TextBlock Text="Installation Notes" Classes="summary-label" />
-                                                <TextBlock
-                                                    Text="Special instructions or warnings for users (handled automatically)"
-                                                    Classes="secondary-text" FontSize="11" Margin="0,0,0,4" />
-                                                <TextBox Text="{Binding Directions}"
-                                                         Focusable="True" HorizontalAlignment="Stretch"
-                                                         TextWrapping="Wrap" MinHeight="80"
-                                                         AcceptsTab="True" AcceptsReturn="True"
-                                                         Watermark="Enter any special directions..." />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </Expander>
-
-                                <!-- Dependencies Section -->
-                                <Expander Header="🔗 Dependencies &amp; Restrictions" IsExpanded="False"
-                                          Margin="0,0,0,8">
-                                    <Border Classes="summary-card" Margin="0,8,0,0">
-                                        <StackPanel Spacing="16">
-
-                                            <StackPanel>
-                                                <TextBlock Text="Dependencies" Classes="summary-label"
-                                                           ToolTip.Tip="This mod will not be installed if any of these dependencies are NOT SELECTED" />
-                                                <TextBlock
-                                                    Text="Mods that must be selected before this one can install"
-                                                    Classes="secondary-text" FontSize="11" Margin="0,0,0,4" />
-                                                <controls:DependencyControl
-                                                    ThisGuidList="{Binding Dependencies}"
-                                                    CurrentComponent="{Binding $parent[Window].CurrentComponent}"
-                                                    ModManagementService="{Binding $parent[Window].ModManagementService}"
-                                                    DependencyType="Dependency" />
-                                            </StackPanel>
-
-                                            <StackPanel>
-                                                <TextBlock Text="Restrictions" Classes="summary-label"
-                                                           ToolTip.Tip="This mod will not be installed if any of these restrictions are SELECTED" />
-                                                <TextBlock
-                                                    Text="Incompatible mods that prevent this one from installing"
-                                                    Classes="secondary-text" FontSize="11" Margin="0,0,0,4" />
-                                                <controls:DependencyControl
-                                                    ThisGuidList="{Binding Restrictions}"
-                                                    CurrentComponent="{Binding $parent[Window].CurrentComponent}"
-                                                    ModManagementService="{Binding $parent[Window].ModManagementService}"
-                                                    DependencyType="Restriction" />
-                                            </StackPanel>
-
-                                            <StackPanel>
-                                                <TextBlock Text="Install Before" Classes="summary-label" />
-                                                <TextBlock Text="Mods that should be installed after this one"
-                                                           Classes="secondary-text" FontSize="11" Margin="0,0,0,4" />
-                                                <controls:DependencyControl
-                                                    ThisGuidList="{Binding InstallBefore}"
-                                                    CurrentComponent="{Binding $parent[Window].CurrentComponent}"
-                                                    ModManagementService="{Binding $parent[Window].ModManagementService}"
-                                                    DependencyType="InstallBefore" />
-                                            </StackPanel>
-
-                                            <StackPanel>
-                                                <TextBlock Text="Install After" Classes="summary-label" />
-                                                <TextBlock Text="Mods that should be installed before this one"
-                                                           Classes="secondary-text" FontSize="11" Margin="0,0,0,4" />
-                                                <controls:DependencyControl
-                                                    ThisGuidList="{Binding InstallAfter}"
-                                                    CurrentComponent="{Binding $parent[Window].CurrentComponent}"
-                                                    ModManagementService="{Binding $parent[Window].ModManagementService}"
-                                                    DependencyType="InstallAfter" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </Expander>
-
-                                <!-- Instructions Section -->
-                                <Expander Header="🔧 Installation Instructions" IsExpanded="False" Margin="0,0,0,8">
-                                    <Border Classes="summary-card" Margin="0,8,0,0">
-                                        <StackPanel Spacing="8">
-                                            <TextBlock Text="Define the steps to install this mod"
-                                                       Classes="secondary-text" FontSize="11" Margin="0,0,0,8" />
-
-                                            <ItemsRepeater x:Name="InstructionsRepeater"
-                                                           ItemsSource="{Binding Instructions}">
+                                        <Grid>
+                                            <ItemsRepeater
+                                                x:Name="InstructionsSummaryRepeater"
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{Binding Instructions}">
                                                 <ItemsRepeater.ItemTemplate>
                                                     <DataTemplate DataType="core:Instruction">
-                                                        <controls:InstructionEditorControl
-                                                            AddNewInstruction="AddNewInstruction_Click"
-                                                            DeleteInstruction="DeleteInstruction_Click"
-                                                            MoveInstructionUp="MoveInstructionUp_Click"
-                                                            MoveInstructionDown="MoveInstructionDown_Click"
-                                                            BrowseSourceFiles="BrowseSourceFiles_Click"
-                                                            BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
-                                                            BrowseDestination="BrowseDestination_Click" />
+                                                        <Expander
+                                                            HorizontalAlignment="Stretch"
+                                                            Classes="summary-instruction-card"
+                                                            IsExpanded="False">
+                                                            <Expander.Header>
+                                                                <DockPanel LastChildFill="True">
+                                                                    <!--  Jump to Instruction Button - Dock Right First  -->
+                                                                    <Button
+                                                                        Margin="8,0,0,0"
+                                                                        Padding="8,4"
+                                                                        VerticalAlignment="Center"
+                                                                        Click="JumpToInstruction_Click"
+                                                                        Content="🔗 Jump to Instruction"
+                                                                        DockPanel.Dock="Right"
+                                                                        FontSize="11"
+                                                                        Tag="{Binding .}"
+                                                                        ToolTip.Tip="Jump to this instruction in GUI Edit tab" />
+
+                                                                    <!--  Instruction Number  -->
+                                                                    <Border
+                                                                        Margin="0,0,8,0"
+                                                                        Padding="6,2"
+                                                                        VerticalAlignment="Center"
+                                                                        Background="{DynamicResource mod-list-item-badge}"
+                                                                        CornerRadius="4"
+                                                                        DockPanel.Dock="Left">
+                                                                        <TextBlock
+                                                                            VerticalAlignment="Center"
+                                                                            FontSize="11"
+                                                                            FontWeight="Bold">
+                                                                            <TextBlock.Text>
+                                                                                <MultiBinding Converter="{StaticResource IndexConverter}">
+                                                                                    <MultiBinding.Bindings>
+                                                                                        <Binding Path="$parent[ItemsRepeater].ItemsSource" />
+                                                                                        <Binding Path="." />
+                                                                                    </MultiBinding.Bindings>
+                                                                                </MultiBinding>
+                                                                            </TextBlock.Text>
+                                                                        </TextBlock>
+                                                                    </Border>
+
+                                                                    <!--  Action (with Choose options count)  -->
+                                                                    <TextBlock
+                                                                        Margin="0,0,8,0"
+                                                                        VerticalAlignment="Center"
+                                                                        Classes="summary-instruction-action"
+                                                                        DockPanel.Dock="Left"
+                                                                        Text="{Binding ., Converter={StaticResource ChooseActionDisplayConverter}}"
+                                                                        TextTrimming="CharacterEllipsis"
+                                                                        TextWrapping="NoWrap" />
+
+                                                                    <!--  First Source Path - Fills Remaining Space  -->
+                                                                    <TextBlock
+                                                                        Margin="0,0,8,0"
+                                                                        VerticalAlignment="Center"
+                                                                        Classes="summary-value"
+                                                                        IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}"
+                                                                        Text="{Binding Source, Converter={StaticResource FirstSourcePathConverter}}"
+                                                                        TextTrimming="CharacterEllipsis"
+                                                                        TextWrapping="NoWrap" />
+                                                                </DockPanel>
+                                                            </Expander.Header>
+
+                                                            <StackPanel Margin="0,4,0,0">
+                                                                <!--  Details for non-Choose actions  -->
+                                                                <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}" Orientation="Vertical">
+                                                                    <!--  Source paths with resolved placeholders  -->
+                                                                    <TextBlock
+                                                                        Classes="summary-value"
+                                                                        Text="{Binding Source, Converter={StaticResource PathResolverConverter}}"
+                                                                        TextWrapping="Wrap" />
+                                                                    <!--  Destination information  -->
+                                                                    <TextBlock
+                                                                        Margin="0,2,0,0"
+                                                                        Classes="summary-value"
+                                                                        FontStyle="Italic"
+                                                                        Text="{Binding ., Converter={StaticResource InstructionDestinationConverter}}"
+                                                                        TextWrapping="Wrap" />
+                                                                    <!--  Arguments if present  -->
+                                                                    <TextBlock
+                                                                        Margin="0,2,0,0"
+                                                                        Classes="summary-value"
+                                                                        FontSize="11"
+                                                                        IsVisible="{Binding Arguments, Converter={StaticResource StringToVisibilityConverter}}"
+                                                                        Text="{Binding Arguments}"
+                                                                        TextWrapping="Wrap" />
+                                                                </StackPanel>
+
+                                                                <!--  Details for Choose actions  -->
+                                                                <ItemsControl IsVisible="{Binding Action, Converter={StaticResource ChooseActionVisibility}}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <TextBlock
+                                                                                Margin="0,2,0,0"
+                                                                                Classes="summary-value"
+                                                                                Text="{Binding ., Converter={StaticResource GuidToComponentConverter}}"
+                                                                                TextWrapping="Wrap"
+                                                                                ToolTip.Tip="{Binding .}" />
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                    <ItemsControl.ItemsSource>
+                                                                        <Binding Converter="{StaticResource GuidListConverter}" Path="Source" />
+                                                                    </ItemsControl.ItemsSource>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </Expander>
                                                     </DataTemplate>
                                                 </ItemsRepeater.ItemTemplate>
                                             </ItemsRepeater>
-
-                                            <Button Content="➕ Add Instruction"
-                                                    Click="AddNewInstruction_Click" Tag="{Binding}"
-                                                    HorizontalAlignment="Left"
-                                                    Margin="0,8,0,0" />
-                                        </StackPanel>
-                                    </Border>
-                                </Expander>
-
-                                <!-- Options Section -->
-                                <Expander Header="⚙️ Optional Components" IsExpanded="False" Margin="0,0,0,8"
-                                          x:Name="OptionsExpander">
-                                    <Border Classes="summary-card" Margin="0,8,0,0">
-                                        <StackPanel Spacing="8">
-                                            <TextBlock
-                                                Text="Define optional variants or customizations users can choose"
-                                                Classes="secondary-text" FontSize="11" Margin="0,0,0,8" />
-
-                                            <ItemsRepeater x:Name="OptionsRepeater"
-                                                           ItemsSource="{Binding Options}">
-                                                <ItemsRepeater.ItemTemplate>
-                                                    <DataTemplate DataType="core:Option">
-                                                        <controls:OptionEditorControl
-                                                            AddNewOption="AddNewOption_Click"
-                                                            DeleteOption="DeleteOption_Click"
-                                                            MoveOptionUp="MoveOptionUp_Click"
-                                                            MoveOptionDown="MoveOptionDown_Click"
-                                                            AddNewInstruction="AddNewInstruction_Click"
-                                                            DeleteInstruction="DeleteInstruction_Click"
-                                                            MoveInstructionUp="MoveInstructionUp_Click"
-                                                            MoveInstructionDown="MoveInstructionDown_Click"
-                                                            BrowseSourceFiles="BrowseSourceFiles_Click"
-                                                            BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
-                                                            BrowseDestination="BrowseDestination_Click" />
-                                                    </DataTemplate>
-                                                </ItemsRepeater.ItemTemplate>
-                                            </ItemsRepeater>
-
-                                            <Button Content="➕ Add Option" Click="AddNewOption_Click"
-                                                    Tag="{Binding}"
-                                                    HorizontalAlignment="Left"
-                                                    Margin="0,8,0,0"
-                                                    ToolTip.Tip="Add optional components users can choose during installation" />
-                                        </StackPanel>
-                                    </Border>
-                                </Expander>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem.Content>
                 </TabItem>
-                <TabItem x:Name="RawEditTabItem" Header="Raw Edit" IsVisible="{Binding EditorMode}"
-                         ToolTip.Tip="Click 'Apply Editor Changes' to save raw changes">
+
+                <TabItem
+                    x:Name="GuiEditTabItem"
+                    Header="GUI Edit"
+                    IsVisible="{Binding EditorMode}">
+                    <TabItem.Content>
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
+                            <StackPanel
+                                x:Name="GuiEditGrid"
+                                Margin="4"
+                                DataContext="{Binding CurrentComponent}"
+                                Spacing="3">
+
+                                <!--  Quick Actions Bar  -->
+                                <Border
+                                    Padding="3"
+                                    HorizontalAlignment="Stretch"
+                                    Classes="summary-card">
+                                    <StackPanel
+                                        HorizontalAlignment="Right"
+                                        Orientation="Horizontal"
+                                        Spacing="6">
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="10"
+                                            Opacity="0.7"
+                                            Text="Quick Actions:" />
+                                        <Button
+                                            x:Name="ExpandAllSectionsButton"
+                                            Padding="4,2"
+                                            Click="ExpandAllSections_Click"
+                                            Content="▼ Expand All"
+                                            FontSize="9" />
+                                        <Button
+                                            x:Name="CollapseAllSectionsButton"
+                                            Padding="4,2"
+                                            Click="CollapseAllSections_Click"
+                                            Content="▲ Collapse All"
+                                            FontSize="9" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!--  Group 1: Basic Information & Description  -->
+                                <Border Padding="4" Classes="summary-card">
+                                    <StackPanel Spacing="3">
+                                        <!--  Basic Information Section  -->
+                                        <Expander
+                                            x:Name="BasicInfoExpander"
+                                            Margin="0,0,0,2"
+                                            HorizontalAlignment="Stretch"
+                                            Header="📦 Basic Information"
+                                            IsExpanded="False">
+                                            <Border
+                                                Margin="0,2,0,0"
+                                                Padding="3"
+                                                Classes="summary-card">
+                                                <StackPanel Spacing="3">
+                                                    <StackPanel>
+                                                        <TextBlock Classes="summary-label" Text="Mod Name" />
+                                                        <TextBox
+                                                            HorizontalAlignment="Stretch"
+                                                            Focusable="True"
+                                                            Text="{Binding Name}"
+                                                            TextWrapping="Wrap"
+                                                            Watermark="Enter mod name..." />
+                                                    </StackPanel>
+
+                                                    <StackPanel>
+                                                        <TextBlock Classes="summary-label" Text="Author(s)" />
+                                                        <TextBox
+                                                            HorizontalAlignment="Stretch"
+                                                            AcceptsReturn="True"
+                                                            Focusable="True"
+                                                            Text="{Binding Author}"
+                                                            Watermark="Enter author name(s)..." />
+                                                    </StackPanel>
+
+                                                    <Grid ColumnDefinitions="*,8,*">
+                                                        <StackPanel Grid.Column="0">
+                                                            <TextBlock Classes="summary-label" Text="Category" />
+                                                            <!--  RE-ENABLED: Testing if CategorySelectionControl causes hang  -->
+                                                            <controls:CategorySelectionControl x:Name="CategorySelectionControl" SelectedCategories="{Binding Category, Mode=TwoWay}" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="2">
+                                                            <TextBlock Classes="summary-label" Text="Tier" />
+                                                            <ComboBox
+                                                                HorizontalAlignment="Left"
+                                                                Focusable="True"
+                                                                ItemsSource="{Binding $parent[Window].TierOptions}"
+                                                                PlaceholderText="Select tier..."
+                                                                SelectedItem="{Binding Tier}" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <StackPanel>
+                                                        <controls:DownloadLinksControl HorizontalAlignment="Stretch" DownloadLinks="{Binding ModLink, Mode=TwoWay}" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </Expander>
+
+                                        <!--  Description & Directions Section  -->
+                                        <Expander
+                                            x:Name="DescriptionExpander"
+                                            Margin="0,0,0,2"
+                                            HorizontalAlignment="Stretch"
+                                            Header="📄 Description &amp; Directions"
+                                            IsExpanded="False">
+                                            <Border Margin="0,2,0,0" Padding="2">
+                                                <Grid ColumnDefinitions="*,*">
+                                                    <StackPanel Grid.Column="0" Margin="0,0,3,2">
+                                                        <TextBlock Classes="summary-label" Text="Description" />
+                                                        <TextBlock
+                                                            Margin="0,0,0,1"
+                                                            Classes="secondary-text"
+                                                            FontSize="9"
+                                                            Text="What this mod does and why users might want it" />
+                                                        <controls:ExpandableTextBox Text="{Binding Description}" Watermark="Enter mod description..." />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="1" Margin="3,0,0,2">
+                                                        <TextBlock Classes="summary-label" Text="Installation Notes" />
+                                                        <TextBlock
+                                                            Margin="0,0,0,1"
+                                                            Classes="secondary-text"
+                                                            FontSize="9"
+                                                            Text="Special instructions or warnings for users (handled automatically)" />
+                                                        <controls:ExpandableTextBox Text="{Binding Directions}" Watermark="Enter any special directions..." />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </Expander>
+                                    </StackPanel>
+                                </Border>
+
+                                <!--  Group 2: Dependencies & Restrictions  -->
+                                <Border Padding="4" Classes="summary-card">
+                                    <StackPanel Spacing="2">
+                                        <Expander
+                                            x:Name="DependenciesExpander"
+                                            Margin="0,0,0,2"
+                                            HorizontalAlignment="Stretch"
+                                            Header="🔗 Dependencies &amp; Restrictions"
+                                            IsExpanded="False">
+                                            <Border Margin="0,2,0,0" Padding="2">
+                                                <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto">
+                                                    <Border
+                                                        Grid.Row="0"
+                                                        Grid.Column="0"
+                                                        Margin="0,0,2,2"
+                                                        Padding="3"
+                                                        BorderThickness="0">
+                                                        <StackPanel>
+                                                            <TextBlock
+                                                                Classes="summary-label"
+                                                                Text="Dependencies"
+                                                                ToolTip.Tip="This mod will not be installed if any of these dependencies are NOT SELECTED" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="10"
+                                                                Text="Mods that must be selected before this one can install" />
+                                                            <controls:DependencyControl
+                                                                HorizontalAlignment="Stretch"
+                                                                CurrentComponent="{Binding $parent[Window].CurrentComponent}"
+                                                                DependencyType="Dependency"
+                                                                ModManagementService="{Binding $parent[Window].ModManagementService}"
+                                                                ThisGuidList="{Binding Dependencies}" />
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <Border
+                                                        Grid.Row="0"
+                                                        Grid.Column="1"
+                                                        Margin="2,0,2,2"
+                                                        Padding="3"
+                                                        BorderThickness="0">
+                                                        <StackPanel>
+                                                            <TextBlock
+                                                                Classes="summary-label"
+                                                                Text="Restrictions"
+                                                                ToolTip.Tip="This mod will not be installed if any of these restrictions are SELECTED" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="10"
+                                                                Text="Incompatible mods that prevent this one from installing" />
+                                                            <controls:DependencyControl
+                                                                HorizontalAlignment="Stretch"
+                                                                CurrentComponent="{Binding $parent[Window].CurrentComponent}"
+                                                                DependencyType="Restriction"
+                                                                ModManagementService="{Binding $parent[Window].ModManagementService}"
+                                                                ThisGuidList="{Binding Restrictions}" />
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <Border
+                                                        Grid.Row="0"
+                                                        Grid.Column="2"
+                                                        Margin="2,0,2,2"
+                                                        Padding="3"
+                                                        BorderThickness="0">
+                                                        <StackPanel>
+                                                            <TextBlock Classes="summary-label" Text="Install Before" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="10"
+                                                                Text="Mods that should be installed after this one" />
+                                                            <controls:DependencyControl
+                                                                HorizontalAlignment="Stretch"
+                                                                CurrentComponent="{Binding $parent[Window].CurrentComponent}"
+                                                                DependencyType="InstallBefore"
+                                                                ModManagementService="{Binding $parent[Window].ModManagementService}"
+                                                                ThisGuidList="{Binding InstallBefore}" />
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <Border
+                                                        Grid.Row="0"
+                                                        Grid.Column="3"
+                                                        Margin="2,0,0,2"
+                                                        Padding="3"
+                                                        BorderThickness="0">
+                                                        <StackPanel>
+                                                            <TextBlock Classes="summary-label" Text="Install After" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="10"
+                                                                Text="Mods that should be installed before this one" />
+                                                            <controls:DependencyControl
+                                                                HorizontalAlignment="Stretch"
+                                                                CurrentComponent="{Binding $parent[Window].CurrentComponent}"
+                                                                DependencyType="InstallAfter"
+                                                                ModManagementService="{Binding $parent[Window].ModManagementService}"
+                                                                ThisGuidList="{Binding InstallAfter}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Expander>
+                                    </StackPanel>
+                                </Border>
+
+                                <!--  Group 3: Installation Instructions & Optional Components  -->
+                                <Border Padding="4" Classes="summary-card">
+                                    <StackPanel Spacing="3">
+                                        <!--  Instructions Section  -->
+                                        <Expander
+                                            x:Name="InstructionsExpander"
+                                            Margin="0,0,0,2"
+                                            HorizontalAlignment="Stretch"
+                                            IsExpanded="False">
+                                            <Expander.Header>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        Text="🔧 Installation Instructions" />
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        Margin="8,0,0,0"
+                                                        Click="AutoGenerateInstructions_Click"
+                                                        Content="🤖 Auto-Generate"
+                                                        Tag="{Binding}"
+                                                        ToolTip.Tip="Automatically generate instructions from mod archive" />
+                                                </Grid>
+                                            </Expander.Header>
+                                            <Border Margin="0,2,0,0" Padding="2">
+                                                <StackPanel Spacing="3">
+                                                    <TextBlock
+                                                        Margin="0,0,0,2"
+                                                        Classes="secondary-text"
+                                                        FontSize="9"
+                                                        Text="Define the steps to install this mod" />
+
+                                                    <ItemsRepeater x:Name="InstructionsRepeater" ItemsSource="{Binding Instructions}">
+                                                        <ItemsRepeater.ItemTemplate>
+                                                            <DataTemplate DataType="core:Instruction">
+                                                                <controls:InstructionEditorControl
+                                                                    AddNewInstruction="AddNewInstruction_Click"
+                                                                    BrowseDestination="BrowseDestination_Click"
+                                                                    BrowseSourceFiles="BrowseSourceFiles_Click"
+                                                                    BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
+                                                                    DeleteInstruction="DeleteInstruction_Click"
+                                                                    MoveInstructionDown="MoveInstructionDown_Click"
+                                                                    MoveInstructionUp="MoveInstructionUp_Click" />
+                                                            </DataTemplate>
+                                                        </ItemsRepeater.ItemTemplate>
+                                                    </ItemsRepeater>
+
+                                                    <Button
+                                                        Margin="0,2,0,0"
+                                                        HorizontalAlignment="Left"
+                                                        Click="AddNewInstruction_Click"
+                                                        Content="➕ Add Instruction"
+                                                        Tag="{Binding}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Expander>
+
+                                        <!--  Options Section  -->
+                                        <Expander
+                                            x:Name="OptionsExpander"
+                                            Margin="0,0,0,2"
+                                            HorizontalAlignment="Stretch"
+                                            Header="⚙️ Optional Components"
+                                            IsExpanded="False">
+                                            <Border Margin="0,2,0,0" Padding="2">
+                                                <StackPanel Spacing="3">
+                                                    <TextBlock
+                                                        Margin="0,0,0,2"
+                                                        Classes="secondary-text"
+                                                        FontSize="9"
+                                                        Text="Define optional variants or customizations users can choose" />
+
+                                                    <ItemsRepeater x:Name="OptionsRepeater" ItemsSource="{Binding Options}">
+                                                        <ItemsRepeater.ItemTemplate>
+                                                            <DataTemplate DataType="core:Option">
+                                                                <controls:OptionEditorControl
+                                                                    AddNewInstruction="AddNewInstruction_Click"
+                                                                    AddNewOption="AddNewOption_Click"
+                                                                    BrowseDestination="BrowseDestination_Click"
+                                                                    BrowseSourceFiles="BrowseSourceFiles_Click"
+                                                                    BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
+                                                                    DeleteInstruction="DeleteInstruction_Click"
+                                                                    DeleteOption="DeleteOption_Click"
+                                                                    MoveInstructionDown="MoveInstructionDown_Click"
+                                                                    MoveInstructionUp="MoveInstructionUp_Click"
+                                                                    MoveOptionDown="MoveOptionDown_Click"
+                                                                    MoveOptionUp="MoveOptionUp_Click" />
+                                                            </DataTemplate>
+                                                        </ItemsRepeater.ItemTemplate>
+                                                    </ItemsRepeater>
+
+                                                    <Button
+                                                        Margin="0,2,0,0"
+                                                        HorizontalAlignment="Left"
+                                                        Click="AddNewOption_Click"
+                                                        Content="➕ Add Option"
+                                                        Tag="{Binding}"
+                                                        ToolTip.Tip="Add optional components users can choose during installation" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Expander>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem.Content>
+                </TabItem>
+                <TabItem
+                    x:Name="RawEditTabItem"
+                    Header="Raw Edit"
+                    IsVisible="{Binding EditorMode}"
+                    ToolTip.Tip="Click 'Apply Editor Changes' to save raw changes">
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                         <StackPanel HorizontalAlignment="Stretch">
                             <DockPanel>
-                                <Button HorizontalContentAlignment="Center" HorizontalAlignment="Stretch"
-                                        x:Name="ApplyEditorButton" Content="Apply Editor Changes"
-                                        Click="SaveButton_Click" />
-                                <Button Content="Generate GUID" Click="GenerateGuidButton_Click"
-                                        ToolTip.Tip="A GUID is used to ensure uniqueness of items.
-							            Do not replace existing guids unless you know what you're doing,
-								        else anything that relies on the pre-existing GUIDs will have their references broken." />
-                                <TextBox x:Name="GuidGeneratedTextBox" Focusable="True"
-                                         HorizontalContentAlignment="Left" />
+                                <Button
+                                    x:Name="ApplyEditorButton"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Click="SaveButton_Click"
+                                    Content="Apply Editor Changes" />
+                                <Button
+                                    Click="GenerateGuidButton_Click"
+                                    Content="Generate GUID"
+                                    ToolTip.Tip="A GUID is used to ensure uniqueness of items.                    Do not replace existing guids unless you know what you're doing,                 else anything that relies on the pre-existing GUIDs will have their references broken." />
+                                <TextBox
+                                    x:Name="GuidGeneratedTextBox"
+                                    HorizontalContentAlignment="Left"
+                                    Focusable="True" />
                             </DockPanel>
-                            <TextBox x:Name="RawEditTextBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="400" />
+                            <TextBox
+                                x:Name="RawEditTextBox"
+                                MinHeight="400"
+                                AcceptsReturn="True"
+                                TextWrapping="Wrap" />
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

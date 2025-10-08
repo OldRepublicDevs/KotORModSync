@@ -154,7 +154,7 @@ namespace KOTORModSync.Controls
 			    SelectedCategories = selected;
 		}
 
-		public void RefreshCategories(IEnumerable<Core.Component> components)
+		public void RefreshCategories(IEnumerable<Core.ModComponent> components)
 		{
 			_isRefreshing = true;
 			try
@@ -163,7 +163,7 @@ namespace KOTORModSync.Controls
 
 				var categoryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-				foreach ( Core.Component component in components )
+				foreach ( Core.ModComponent component in components )
 				{
 					if ( component.Category.Count > 0 )
 					{

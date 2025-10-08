@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 using Avalonia.Media;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
-using Component = KOTORModSync.Core.Component;
+using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Dialogs
 {
@@ -85,18 +85,18 @@ namespace KOTORModSync.Dialogs
 			_fieldPreferences = new Dictionary<Tuple<ComponentConflictItem, ComponentConflictItem>, FieldMergePreference>();
 
 		public ComponentMergeConflictViewModel(
-			[NotNull] List<Component> existingComponents,
-			[NotNull] List<Component> incomingComponents,
+			[NotNull] List<ModComponent> existingComponents,
+			[NotNull] List<ModComponent> incomingComponents,
 			[NotNull] string existingSource,
 			[NotNull] string incomingSource,
-			[NotNull] Func<Component, Component, bool> matchFunc)
+			[NotNull] Func<ModComponent, ModComponent, bool> matchFunc)
 		{
 			ExistingComponents = new ObservableCollection<ComponentConflictItem>();
 			IncomingComponents = new ObservableCollection<ComponentConflictItem>();
 			PreviewComponents = new ObservableCollection<PreviewItem>();
 			FilteredExistingComponents = new ObservableCollection<ComponentConflictItem>();
 			FilteredIncomingComponents = new ObservableCollection<ComponentConflictItem>();
-			RealtimeMergedComponents = new ObservableCollection<Component>();
+			RealtimeMergedComponents = new ObservableCollection<ModComponent>();
 			CurrentTomlDiff = new ObservableCollection<TomlDiffResult>();
 			ExistingComponentsToml = new ObservableCollection<TomlDiffResult>();
 			IncomingComponentsToml = new ObservableCollection<TomlDiffResult>();
@@ -162,7 +162,7 @@ namespace KOTORModSync.Dialogs
 		public ObservableCollection<PreviewItem> PreviewComponents { get; }
 		public ObservableCollection<ComponentConflictItem> FilteredExistingComponents { get; }
 		public ObservableCollection<ComponentConflictItem> FilteredIncomingComponents { get; }
-		public ObservableCollection<Component> RealtimeMergedComponents { get; }
+		public ObservableCollection<ModComponent> RealtimeMergedComponents { get; }
 		public ObservableCollection<TomlDiffResult> CurrentTomlDiff { get; }
 		public ObservableCollection<TomlDiffResult> ExistingComponentsToml { get; set; }
 		public ObservableCollection<TomlDiffResult> IncomingComponentsToml { get; set; }
@@ -259,7 +259,7 @@ namespace KOTORModSync.Dialogs
 				// If preferences don't exist yet, create them with smart defaults and subscribe to changes
 				if ( _fieldPreferences.TryGetValue(key, out FieldMergePreference prefs) )
 					return prefs;
-				prefs = CreateAndSubscribeFieldPreferences(matchedPair.Existing.Component, matchedPair.Incoming.Component);
+				prefs = CreateAndSubscribeFieldPreferences(matchedPair.Existing.ModComponent, matchedPair.Incoming.ModComponent);
 				_fieldPreferences[key] = prefs;
 
 				return prefs;
@@ -269,9 +269,9 @@ namespace KOTORModSync.Dialogs
 		/// <summary>
 		/// Creates field preferences with smart defaults and subscribes to property changes - use whichever source has data when the other is empty
 		/// </summary>
-		private FieldMergePreference CreateAndSubscribeFieldPreferences(Component existing, Component incoming)
+		private FieldMergePreference CreateAndSubscribeFieldPreferences(ModComponent existing, ModComponent incoming)
 		{
-			FieldMergePreference prefs = CreateSmartFieldPreferences(existing, incoming);
+			FieldMergePreference prefs = ComponentMergeConflictViewModel.CreateSmartFieldPreferences(existing, incoming);
 
 			// Subscribe to property changes to update preview
 			prefs.PropertyChanged += (_, __) =>
@@ -288,7 +288,7 @@ namespace KOTORModSync.Dialogs
 		/// <summary>
 		/// Creates field preferences with smart defaults - use whichever source has data when the other is empty
 		/// </summary>
-		private FieldMergePreference CreateSmartFieldPreferences(Component existing, Component incoming)
+		private static FieldMergePreference CreateSmartFieldPreferences(ModComponent existing, ModComponent incoming)
 		{
 			var prefs = new FieldMergePreference();
 
@@ -410,8 +410,8 @@ namespace KOTORModSync.Dialogs
 				return matchedPair.Existing == null || matchedPair.Incoming == null
 				? string.Empty
 				: CurrentFieldPreferences.Name == FieldMergePreference.FieldSource.UseExisting
-				? matchedPair.Existing.Component.Name
-				: matchedPair.Incoming.Component.Name;
+				? matchedPair.Existing.ModComponent.Name
+				: matchedPair.Incoming.ModComponent.Name;
 			}
 		}
 
@@ -428,8 +428,8 @@ namespace KOTORModSync.Dialogs
 				return matchedPair.Existing == null || matchedPair.Incoming == null
 					? string.Empty
 					: CurrentFieldPreferences.Author == FieldMergePreference.FieldSource.UseExisting
-					? matchedPair.Existing.Component.Author
-					: matchedPair.Incoming.Component.Author;
+					? matchedPair.Existing.ModComponent.Author
+					: matchedPair.Incoming.ModComponent.Author;
 			}
 		}
 
@@ -447,8 +447,8 @@ namespace KOTORModSync.Dialogs
 					return "0 instructions";
 
 				int count = CurrentFieldPreferences.Instructions == FieldMergePreference.FieldSource.UseExisting
-					? matchedPair.Existing.Component.Instructions.Count
-					: matchedPair.Incoming.Component.Instructions.Count;
+					? matchedPair.Existing.ModComponent.Instructions.Count
+					: matchedPair.Incoming.ModComponent.Instructions.Count;
 
 				return $"{count} instruction{(count != 1 ? "s" : "")}";
 			}
@@ -628,10 +628,10 @@ namespace KOTORModSync.Dialogs
 					return "Select a component to see details";
 
 				ComponentConflictItem item = _selectedExistingItem ?? _selectedIncomingItem;
-				Component component = item.Component;
+				ModComponent component = item.ModComponent;
 
 				var sb = new System.Text.StringBuilder();
-				_ = sb.AppendLine($"Component: {component.Name}");
+				_ = sb.AppendLine($"ModComponent: {component.Name}");
 				_ = sb.AppendLine($"Author: {component.Author}");
 				string categoryStr = component.Category != null && component.Category.Count > 0
 					? string.Join(", ", component.Category)
@@ -650,7 +650,7 @@ namespace KOTORModSync.Dialogs
 					if ( matchedPair.Incoming == null )
 						return sb.ToString();
 					_ = sb.AppendLine("\n🔄 DIFFERENCES FROM INCOMING:");
-					CompareComponents(component, matchedPair.Incoming.Component, sb);
+					CompareComponents(component, matchedPair.Incoming.ModComponent, sb);
 				}
 				else if ( _selectedIncomingItem != null )
 				{
@@ -659,7 +659,7 @@ namespace KOTORModSync.Dialogs
 					if ( matchedPair.Existing != null )
 					{
 						_ = sb.AppendLine("\n🔄 DIFFERENCES FROM EXISTING:");
-						CompareComponents(component, matchedPair.Existing.Component, sb);
+						CompareComponents(component, matchedPair.Existing.ModComponent, sb);
 					}
 				}
 
@@ -667,7 +667,7 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private static void CompareComponents(Component a, Component b, System.Text.StringBuilder sb)
+		private static void CompareComponents(ModComponent a, ModComponent b, System.Text.StringBuilder sb)
 		{
 			if ( a.Name != b.Name ) _ = sb.AppendLine($"  Name: '{a.Name}' vs '{b.Name}'");
 			if ( a.Author != b.Author ) _ = sb.AppendLine($"  Author: '{a.Author}' vs '{b.Author}'");
@@ -744,27 +744,27 @@ namespace KOTORModSync.Dialogs
 		}
 
 		private void BuildConflictItems(
-			List<Component> existingComponents,
-			List<Component> incomingComponents,
-			Func<Component, Component, bool> matchFunc)
+			List<ModComponent> existingComponents,
+			List<ModComponent> incomingComponents,
+			Func<ModComponent, ModComponent, bool> matchFunc)
 		{
-			var existingSet = new HashSet<Component>();
-			var incomingSet = new HashSet<Component>();
+			var existingSet = new HashSet<ModComponent>();
+			var incomingSet = new HashSet<ModComponent>();
 
 			// Build a list of all potential matches with scores
 			var potentialMatches = (from existing in existingComponents from incoming in incomingComponents where matchFunc(existing, incoming) let score = FuzzyMatcher.GetComponentMatchScore(existing, incoming) select (existing, incoming, score)).ToList();
 
 			// Sort by score descending to prioritize best matches
-			potentialMatches = potentialMatches.OrderByDescending(m => m.score).Cast<(Component, Component, double)>().ToList();
+			potentialMatches = potentialMatches.OrderByDescending(m => m.score).Cast<(ModComponent, ModComponent, double)>().ToList();
 
 			// Create a dictionary to track matches
-			var existingToIncomingMatch = new Dictionary<Component, Component>();
-			var incomingToExistingMatch = new Dictionary<Component, Component>();
-			var existingItemLookup = new Dictionary<Component, ComponentConflictItem>();
-			var incomingItemLookup = new Dictionary<Component, ComponentConflictItem>();
+			var existingToIncomingMatch = new Dictionary<ModComponent, ModComponent>();
+			var incomingToExistingMatch = new Dictionary<ModComponent, ModComponent>();
+			var existingItemLookup = new Dictionary<ModComponent, ComponentConflictItem>();
+			var incomingItemLookup = new Dictionary<ModComponent, ComponentConflictItem>();
 
 			// Create one-to-one matches, picking best matches first
-			foreach ( (Component existing, Component incoming, double _) in potentialMatches )
+			foreach ( (ModComponent existing, ModComponent incoming, double _) in potentialMatches )
 			{
 				// Skip if either component is already matched
 				if ( existingSet.Contains(existing) || incomingSet.Contains(incoming) )
@@ -779,7 +779,7 @@ namespace KOTORModSync.Dialogs
 			}
 
 			// Now add existing components in their original order
-			foreach ( Component existing in existingComponents )
+			foreach ( ModComponent existing in existingComponents )
 			{
 				ComponentConflictItem existingItem;
 
@@ -805,7 +805,7 @@ namespace KOTORModSync.Dialogs
 			}
 
 			// Now add incoming components in their original order
-			foreach ( Component incoming in incomingComponents )
+			foreach ( ModComponent incoming in incomingComponents )
 			{
 				ComponentConflictItem incomingItem;
 
@@ -831,10 +831,10 @@ namespace KOTORModSync.Dialogs
 			}
 
 			// Build matched pairs list using the original match information
-			foreach ( KeyValuePair<Component, Component> kvp in existingToIncomingMatch )
+			foreach ( KeyValuePair<ModComponent, ModComponent> kvp in existingToIncomingMatch )
 			{
-				Component existing = kvp.Key;
-				Component incoming = kvp.Value;
+				ModComponent existing = kvp.Key;
+				ModComponent incoming = kvp.Value;
 
 				ComponentConflictItem existingItem = existingItemLookup[existing];
 				ComponentConflictItem incomingItem = incomingItemLookup[incoming];
@@ -922,8 +922,8 @@ namespace KOTORModSync.Dialogs
 				// Get the actual stored preferences
 				if ( _fieldPreferences.TryGetValue(key, out FieldMergePreference fieldPrefs) )
 				{
-					Component existing = pair.Existing.Component;
-					Component incoming = pair.Incoming.Component;
+					ModComponent existing = pair.Existing.ModComponent;
+					ModComponent incoming = pair.Incoming.ModComponent;
 
 					// For each field, prefer incoming if it has data, otherwise keep existing if that has data
 					// Name
@@ -1057,8 +1057,8 @@ namespace KOTORModSync.Dialogs
 				// Get the actual stored preferences
 				if ( _fieldPreferences.TryGetValue(key, out FieldMergePreference fieldPrefs) )
 				{
-					Component existing = pair.Existing.Component;
-					Component incoming = pair.Incoming.Component;
+					ModComponent existing = pair.Existing.ModComponent;
+					ModComponent incoming = pair.Incoming.ModComponent;
 
 					// For each field, prefer existing if it has data, otherwise keep incoming if that has data
 					// Name
@@ -1227,13 +1227,13 @@ namespace KOTORModSync.Dialogs
 			// User clicked on this item, so use this item's GUID
 			if ( item == existing )
 			{
-				resolution.ChosenGuid = existing.Component.Guid;
-				resolution.RejectedGuid = incoming.Component.Guid;
+				resolution.ChosenGuid = existing.ModComponent.Guid;
+				resolution.RejectedGuid = incoming.ModComponent.Guid;
 			}
 			else
 			{
-				resolution.ChosenGuid = incoming.Component.Guid;
-				resolution.RejectedGuid = existing.Component.Guid;
+				resolution.ChosenGuid = incoming.ModComponent.Guid;
+				resolution.RejectedGuid = existing.ModComponent.Guid;
 			}
 
 			resolution.RequiresManualResolution = false; // User has resolved it
@@ -1260,8 +1260,8 @@ namespace KOTORModSync.Dialogs
 			if ( !CanLinkSelected() ) return;
 
 			// Remove from "only" lists if present
-			_existingOnly.Remove(_selectedExistingItem);
-			_incomingOnly.Remove(_selectedIncomingItem);
+			_ = _existingOnly.Remove(_selectedExistingItem);
+			_ = _incomingOnly.Remove(_selectedIncomingItem);
 
 			// Update statuses
 			_selectedExistingItem.UpdateStatus(ComponentConflictStatus.Matched);
@@ -1302,7 +1302,7 @@ namespace KOTORModSync.Dialogs
 			ComponentConflictItem incomingToUnlink = pairToRemove.Incoming;
 
 			// Remove from matched pairs
-			_matchedPairs.Remove(pairToRemove);
+			_ = _matchedPairs.Remove(pairToRemove);
 
 			// Update statuses
 			existingToUnlink.UpdateStatus(ComponentConflictStatus.ExistingOnly);
@@ -1369,7 +1369,7 @@ namespace KOTORModSync.Dialogs
 								Name = incomingItem.Name,
 								Source = "From: Incoming (Updated)",
 								SourceColor = ThemeResourceHelper.MergeSourceIncomingBrush,
-								Component = incomingItem.Component,
+								ModComponent = incomingItem.ModComponent,
 								StatusIcon = "⬆️",
 								PositionChange = "UPDATED",
 								PositionChangeColor = ThemeResourceHelper.MergePositionChangedBrush
@@ -1383,7 +1383,7 @@ namespace KOTORModSync.Dialogs
 								Name = incomingItem.Name,
 								Source = "From: Incoming",
 								SourceColor = ThemeResourceHelper.MergeSourceIncomingBrush,
-								Component = incomingItem.Component,
+								ModComponent = incomingItem.ModComponent,
 								StatusIcon = "🔄",
 								PositionChange = "MATCH",
 								PositionChangeColor = ThemeResourceHelper.MergePositionNewBrush
@@ -1398,7 +1398,7 @@ namespace KOTORModSync.Dialogs
 							Name = incomingItem.Name,
 							Source = "From: Incoming",
 							SourceColor = ThemeResourceHelper.MergeSourceIncomingBrush,
-							Component = incomingItem.Component,
+							ModComponent = incomingItem.ModComponent,
 							StatusIcon = incomingItem.Status == ComponentConflictStatus.New ? "✨" : "🔄",
 							PositionChange = incomingItem.Status == ComponentConflictStatus.New ? "NEW" : "MATCH",
 							PositionChangeColor = incomingItem.Status == ComponentConflictStatus.New
@@ -1420,7 +1420,7 @@ namespace KOTORModSync.Dialogs
 							Name = existingItem.Name,
 							Source = "From: Existing (Kept)",
 							SourceColor = ThemeResourceHelper.MergeSourceExistingBrush,
-							Component = existingItem.Component,
+							ModComponent = existingItem.ModComponent,
 							StatusIcon = "📦",
 							PositionChange = "KEPT",
 							PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush
@@ -1456,7 +1456,7 @@ namespace KOTORModSync.Dialogs
 								Name = existingItem.Name,
 								Source = "From: Existing (Kept)",
 								SourceColor = ThemeResourceHelper.MergeSourceExistingBrush,
-								Component = existingItem.Component,
+								ModComponent = existingItem.ModComponent,
 								StatusIcon = "🔄",
 								PositionChange = "MATCH",
 								PositionChangeColor = ThemeResourceHelper.MergePositionNewBrush
@@ -1470,7 +1470,7 @@ namespace KOTORModSync.Dialogs
 								Name = existingItem.Name,
 								Source = "From: Existing",
 								SourceColor = ThemeResourceHelper.MergeSourceExistingBrush,
-								Component = existingItem.Component,
+								ModComponent = existingItem.ModComponent,
 								StatusIcon = "📦",
 								PositionChange = "KEPT",
 								PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush
@@ -1485,7 +1485,7 @@ namespace KOTORModSync.Dialogs
 							Name = existingItem.Name,
 							Source = "From: Existing",
 							SourceColor = ThemeResourceHelper.MergeSourceExistingBrush,
-							Component = existingItem.Component,
+							ModComponent = existingItem.ModComponent,
 							StatusIcon = "📦",
 							PositionChange = "KEPT",
 							PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush
@@ -1501,7 +1501,7 @@ namespace KOTORModSync.Dialogs
 					Name = incomingItem.Name,
 					Source = "From: Incoming (New)",
 					SourceColor = ThemeResourceHelper.MergeSourceIncomingBrush,
-					Component = incomingItem.Component,
+					ModComponent = incomingItem.ModComponent,
 					StatusIcon = "✨",
 					PositionChange = "NEW",
 					PositionChangeColor = ThemeResourceHelper.MergeStatusNewBrush
@@ -1529,7 +1529,7 @@ namespace KOTORModSync.Dialogs
 			for ( int i = originalIndex + 1; i < ExistingComponents.Count; i++ )
 			{
 				ComponentConflictItem afterComponent = ExistingComponents[i];
-				int afterIndexInResult = result.FindIndex(p => p.Component == afterComponent.Component);
+				int afterIndexInResult = result.FindIndex(p => p.ModComponent == afterComponent.ModComponent);
 				if ( afterIndexInResult >= 0 )
 					return afterIndexInResult;
 			}
@@ -1543,17 +1543,17 @@ namespace KOTORModSync.Dialogs
 			{
 				RealtimeMergedComponents.Clear();
 
-				var mergedComponents = new List<Component>();
+				var mergedComponents = new List<ModComponent>();
 				var guidMap = new Dictionary<Guid, Guid>(); // Maps old GUIDs to new GUIDs
 
 				foreach ( PreviewItem previewItem in PreviewComponents )
 				{
-					Component component = previewItem.Component;
+					ModComponent component = previewItem.ModComponent;
 
 					// If this component came from a match, actually merge the data
 					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
 						_matchedPairs.FirstOrDefault(p =>
-							p.Existing.Component == component || p.Incoming.Component == component);
+							p.Existing.ModComponent == component || p.Incoming.ModComponent == component);
 
 					if ( matchedPair.Existing != null && matchedPair.Incoming != null )
 					{
@@ -1565,16 +1565,16 @@ namespace KOTORModSync.Dialogs
 						if ( !_fieldPreferences.ContainsKey(pair) )
 						{
 							_fieldPreferences[pair] = CreateAndSubscribeFieldPreferences(
-								matchedPair.Existing.Component,
-								matchedPair.Incoming.Component
+								matchedPair.Existing.ModComponent,
+								matchedPair.Incoming.ModComponent
 							);
 						}
 						FieldMergePreference fieldPrefs = _fieldPreferences[pair];
 
 						// Merge using field preferences
-						Component mergedComponent = ComponentMergeConflictViewModel.MergeComponentData(
-							matchedPair.Existing.Component,
-							matchedPair.Incoming.Component,
+						ModComponent mergedComponent = ComponentMergeConflictViewModel.MergeComponentData(
+							matchedPair.Existing.ModComponent,
+							matchedPair.Incoming.ModComponent,
 							fieldPrefs
 						);
 
@@ -1602,7 +1602,7 @@ namespace KOTORModSync.Dialogs
 				}
 
 				// Update all GUID references in dependencies, restrictions, and install-after
-				foreach ( Component component in mergedComponents )
+				foreach ( ModComponent component in mergedComponents )
 				{
 					// Update Dependencies
 					for ( int i = 0; i < component.Dependencies.Count; i++ )
@@ -1627,7 +1627,7 @@ namespace KOTORModSync.Dialogs
 				}
 
 				// Add to the observable collection
-				foreach ( Component component in mergedComponents )
+				foreach ( ModComponent component in mergedComponents )
 				{
 					RealtimeMergedComponents.Add(component);
 				}
@@ -1641,19 +1641,19 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		public List<Component> GetMergedComponents()
+		public List<ModComponent> GetMergedComponents()
 		{
-			var mergedComponents = new List<Component>();
+			var mergedComponents = new List<ModComponent>();
 			var guidMap = new Dictionary<Guid, Guid>(); // Maps old GUIDs to new GUIDs
 
 			foreach ( PreviewItem previewItem in PreviewComponents )
 			{
-				Component component = previewItem.Component;
+				ModComponent component = previewItem.ModComponent;
 
 				// If this component came from a match, actually merge the data
 				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
 					_matchedPairs.FirstOrDefault(p =>
-						p.Existing.Component == component || p.Incoming.Component == component);
+						p.Existing.ModComponent == component || p.Incoming.ModComponent == component);
 
 				if ( matchedPair.Existing != null && matchedPair.Incoming != null )
 				{
@@ -1665,16 +1665,16 @@ namespace KOTORModSync.Dialogs
 					if ( !_fieldPreferences.TryGetValue(pair, out FieldMergePreference fieldPrefs) )
 					{
 						fieldPrefs = CreateAndSubscribeFieldPreferences(
-							matchedPair.Existing.Component,
-							matchedPair.Incoming.Component
+							matchedPair.Existing.ModComponent,
+							matchedPair.Incoming.ModComponent
 						);
 						_fieldPreferences[pair] = fieldPrefs;
 					}
 
 					// Merge using field preferences
-					Component mergedComponent = ComponentMergeConflictViewModel.MergeComponentData(
-						matchedPair.Existing.Component,
-						matchedPair.Incoming.Component,
+					ModComponent mergedComponent = ComponentMergeConflictViewModel.MergeComponentData(
+						matchedPair.Existing.ModComponent,
+						matchedPair.Incoming.ModComponent,
 						fieldPrefs
 					);
 
@@ -1702,7 +1702,7 @@ namespace KOTORModSync.Dialogs
 			}
 
 			// Update all GUID references in dependencies, restrictions, and install-after
-			foreach ( Component component in mergedComponents )
+			foreach ( ModComponent component in mergedComponents )
 			{
 				// Update Dependencies
 				for ( int i = 0; i < component.Dependencies.Count; i++ )
@@ -1726,7 +1726,7 @@ namespace KOTORModSync.Dialogs
 				}
 			}
 
-			// Don't do cycle detection here - that only happens when Component.ConfirmComponentsInstallOrder fails
+			// Don't do cycle detection here - that only happens when ModComponent.ConfirmComponentsInstallOrder fails
 			// This merge is just combining two lists, not processing install order
 			return mergedComponents;
 		}
@@ -1736,17 +1736,17 @@ namespace KOTORModSync.Dialogs
 		/// For each field: uses non-null/non-empty value if only one exists.
 		/// For conflicts (both have values): uses the field preference to determine which source to use.
 		/// </summary>
-		private static Component MergeComponentData(Component existing, Component incoming, FieldMergePreference fieldPrefs)
+		private static ModComponent MergeComponentData(ModComponent existing, ModComponent incoming, FieldMergePreference fieldPrefs)
 		{
 			// Use default preferences if none provided (prefer incoming)
 			if ( fieldPrefs == null )
 				fieldPrefs = new FieldMergePreference();
 
-			// Create merged component
-			var merged = new Component
-			{
-				// GUID will be set by caller based on intelligent GUID resolution
-				Guid = existing.Guid,
+		// Create merged component
+		var merged = new ModComponent
+		{
+			// GUID will be set by caller based on intelligent GUID resolution
+			Guid = existing.Guid,
 
 				// Merge all string fields using preferences
 				Name = MergeStringField(existing.Name, incoming.Name, fieldPrefs.Name),
@@ -1894,7 +1894,7 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				var selectedComponents = ExistingComponents.Where(c => c.IsSelected).Select(c => c.Component).ToList();
+				var selectedComponents = ExistingComponents.Where(c => c.IsSelected).Select(c => c.ModComponent).ToList();
 
 				// Build line number map as we generate TOML
 				_existingComponentLineNumbers.Clear();
@@ -1905,14 +1905,14 @@ namespace KOTORModSync.Dialogs
 					// Header
 					new TomlDiffResult
 					{
-						DiffType = DiffType.Unchanged, Text = "# Component List", LineNumber = currentLine++
+						DiffType = DiffType.Unchanged, Text = "# ModComponent List", LineNumber = currentLine++
 					},
 					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++ }
 				};
 
 				for ( int i = 0; i < selectedComponents.Count; i++ )
 				{
-					Component component = selectedComponents[i];
+					ModComponent component = selectedComponents[i];
 					string componentGuid = component.Guid.ToString();
 
 					if ( i > 0 )
@@ -1921,7 +1921,7 @@ namespace KOTORModSync.Dialogs
 					// Store starting line for this component
 					_existingComponentLineNumbers[component] = currentLine;
 					// Determine diff type for this component based on selection state
-					ComponentConflictItem conflictItem = ExistingComponents.FirstOrDefault(ci => ci.Component == component);
+					ComponentConflictItem conflictItem = ExistingComponents.FirstOrDefault(ci => ci.ModComponent == component);
 					DiffType componentDiffType = DiffType.Removed; // Default: not selected = will be removed
 
 					if ( conflictItem != null )
@@ -1945,16 +1945,16 @@ namespace KOTORModSync.Dialogs
 						// else: not selected = Removed (red)
 					}
 
-					// Component header
+					// ModComponent header
 					newCollection.Add(new TomlDiffResult
 					{
 						DiffType = componentDiffType,
-						Text = $"# Component {i + 1}: {component.Name}",
+						Text = $"# ModComponent {i + 1}: {component.Name}",
 						LineNumber = currentLine++,
 						ComponentGuid = componentGuid
 					});
 
-					// Component TOML lines
+					// ModComponent TOML lines
 					string componentToml = component.SerializeComponent();
 					string[] lines = componentToml.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
@@ -1978,7 +1978,7 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				var selectedComponents = IncomingComponents.Where(c => c.IsSelected).Select(c => c.Component).ToList();
+				var selectedComponents = IncomingComponents.Where(c => c.IsSelected).Select(c => c.ModComponent).ToList();
 
 				// Build line number map as we generate TOML
 				_incomingComponentLineNumbers.Clear();
@@ -1987,13 +1987,13 @@ namespace KOTORModSync.Dialogs
 				var newCollection = new ObservableCollection<TomlDiffResult>
 				{
 					// Header
-					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "# Component List", LineNumber = currentLine++ },
+					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "# ModComponent List", LineNumber = currentLine++ },
 					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++ }
 				};
 
 				for ( int i = 0; i < selectedComponents.Count; i++ )
 				{
-					Component component = selectedComponents[i];
+					ModComponent component = selectedComponents[i];
 					string componentGuid = component.Guid.ToString();
 
 					if ( i > 0 )
@@ -2003,7 +2003,7 @@ namespace KOTORModSync.Dialogs
 					_incomingComponentLineNumbers[component] = currentLine;
 
 					// Determine diff type for this component based on what it will do
-					ComponentConflictItem conflictItem = IncomingComponents.FirstOrDefault(ci => ci.Component == component);
+					ComponentConflictItem conflictItem = IncomingComponents.FirstOrDefault(ci => ci.ModComponent == component);
 					DiffType componentDiffType = DiffType.Added; // Default: new component
 
 					if ( conflictItem != null )
@@ -2037,16 +2037,16 @@ namespace KOTORModSync.Dialogs
 						}
 					}
 
-					// Component header
+					// ModComponent header
 					newCollection.Add(new TomlDiffResult
 					{
 						DiffType = componentDiffType,
-						Text = $"# Component {i + 1}: {component.Name}",
+						Text = $"# ModComponent {i + 1}: {component.Name}",
 						LineNumber = currentLine++,
 						ComponentGuid = componentGuid
 					});
 
-					// Component TOML lines
+					// ModComponent TOML lines
 					string componentToml = component.SerializeComponent();
 					string[] lines = componentToml.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
@@ -2079,7 +2079,7 @@ namespace KOTORModSync.Dialogs
 				MergedComponentsToml.Clear();
 
 				// Get the existing and merged TOML
-				string existingToml = GenerateFullToml(ExistingComponents.Where(c => c.IsSelected).Select(c => c.Component).ToList());
+				string existingToml = GenerateFullToml(ExistingComponents.Where(c => c.IsSelected).Select(c => c.ModComponent).ToList());
 				string mergedToml = GenerateFullToml(RealtimeMergedComponents.ToList());
 
 				// Generate diff between existing and merged
@@ -2099,24 +2099,24 @@ namespace KOTORModSync.Dialogs
 		{
 			if ( item == null ) return 0;
 
-			Dictionary<Component, int> map = item.IsFromExisting ? _existingComponentLineNumbers : _incomingComponentLineNumbers;
-			return map.ContainsKey(item.Component) ? map[item.Component] : 0;
+			Dictionary<ModComponent, int> map = item.IsFromExisting ? _existingComponentLineNumbers : _incomingComponentLineNumbers;
+			return map.ContainsKey(item.ModComponent) ? map[item.ModComponent] : 0;
 		}
 
 		// Track which line each component starts at in the TOML views
-		private readonly Dictionary<Component, int> _existingComponentLineNumbers = new Dictionary<Component, int>();
-		private readonly Dictionary<Component, int> _incomingComponentLineNumbers = new Dictionary<Component, int>();
+		private readonly Dictionary<ModComponent, int> _existingComponentLineNumbers = new Dictionary<ModComponent, int>();
+		private readonly Dictionary<ModComponent, int> _incomingComponentLineNumbers = new Dictionary<ModComponent, int>();
 
 		/// <summary>
 		/// Generates TOML string from components (for diff generation)
 		/// </summary>
-		private static string GenerateFullToml(List<Component> components)
+		private static string GenerateFullToml(List<ModComponent> components)
 		{
 			if ( components == null || components.Count == 0 )
 				return "# No components selected";
 
 			var sb = new System.Text.StringBuilder();
-			_ = sb.AppendLine("# Component List");
+			_ = sb.AppendLine("# ModComponent List");
 			_ = sb.AppendLine();
 
 			for ( int i = 0; i < components.Count; i++ )
@@ -2124,7 +2124,7 @@ namespace KOTORModSync.Dialogs
 				if ( i > 0 )
 					_ = sb.AppendLine();
 
-				_ = sb.AppendLine($"# Component {i + 1}: {components[i].Name}");
+				_ = sb.AppendLine($"# ModComponent {i + 1}: {components[i].Name}");
 				_ = sb.Append(components[i].SerializeComponent());
 			}
 
@@ -2145,10 +2145,10 @@ namespace KOTORModSync.Dialogs
 				if ( selectedItem == null )
 					return;
 
-				Component component = selectedItem.Component;
+				ModComponent component = selectedItem.ModComponent;
 
 				// Find the corresponding merged component
-				Component mergedComponent = RealtimeMergedComponents.FirstOrDefault(c => c.Name == component.Name);
+				ModComponent mergedComponent = RealtimeMergedComponents.FirstOrDefault(c => c.Name == component.Name);
 				if ( mergedComponent == null )
 					return;
 
@@ -2391,10 +2391,10 @@ namespace KOTORModSync.Dialogs
 			private bool _hasGuidConflict;
 			private string _guidConflictTooltip;
 
-			public ComponentConflictItem([NotNull] Component component, bool isFromExisting,
+			public ComponentConflictItem([NotNull] ModComponent component, bool isFromExisting,
 				ComponentConflictStatus status)
 			{
-				Component = component;
+				ModComponent = component;
 				Name = component.Name;
 				Author = string.IsNullOrWhiteSpace(component.Author) ? "Unknown Author" : component.Author;
 				DateInfo = "Modified: N/A"; // Could add last modified tracking
@@ -2405,7 +2405,7 @@ namespace KOTORModSync.Dialogs
 				_statusColor = GetStatusColor(status);
 			}
 
-			public Component Component { get; }
+			public ModComponent ModComponent { get; }
 			public string Name { get; }
 			public string Author { get; }
 			public string DateInfo { get; }
@@ -2496,7 +2496,7 @@ namespace KOTORModSync.Dialogs
 				get
 				{
 					var sb = new System.Text.StringBuilder();
-					Component component = Component;
+					ModComponent component = ModComponent;
 
 					// Header with component name
 					_ = sb.AppendLine($"📦 {component.Name}");
@@ -2629,7 +2629,7 @@ namespace KOTORModSync.Dialogs
 			public string Name { get; set; }
 			public string Source { get; set; }
 			public IBrush SourceColor { get; set; }
-			public Component Component { get; set; }
+			public ModComponent ModComponent { get; set; }
 			public string StatusIcon { get; set; }
 			public string PositionChange { get; set; } // e.g., "↑3" or "↓2" or "NEW"
 			public IBrush PositionChangeColor { get; set; }

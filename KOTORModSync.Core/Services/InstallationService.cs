@@ -148,18 +148,18 @@ namespace KOTORModSync.Core.Services
 
 				await Logger.LogAsync("Validating individual components, this might take a while...");
 				bool individuallyValidated = true;
-				foreach ( Component component in MainConfig.AllComponents )
+				foreach ( ModComponent component in MainConfig.AllComponents )
 				{
 					if ( !component.IsSelected )
 						continue;
 
 					if ( component.Restrictions.Count > 0 && component.IsSelected )
 					{
-						List<Component> restrictedComponentsList = Component.FindComponentsFromGuidList(
+						List<ModComponent> restrictedComponentsList = ModComponent.FindComponentsFromGuidList(
 							component.Restrictions,
 							MainConfig.AllComponents
 						);
-						foreach ( Component restrictedComponent in restrictedComponentsList )
+						foreach ( ModComponent restrictedComponent in restrictedComponentsList )
 						{
 							// ReSharper disable once InvertIf
 							if ( restrictedComponent?.IsSelected == true )
@@ -172,8 +172,8 @@ namespace KOTORModSync.Core.Services
 
 					if ( component.Dependencies.Count > 0 && component.IsSelected )
 					{
-						List<Component> dependencyComponentsList = Component.FindComponentsFromGuidList(component.Dependencies, MainConfig.AllComponents);
-						foreach ( Component dependencyComponent in dependencyComponentsList )
+						List<ModComponent> dependencyComponentsList = ModComponent.FindComponentsFromGuidList(component.Dependencies, MainConfig.AllComponents);
+						foreach ( ModComponent dependencyComponent in dependencyComponentsList )
 						{
 							// ReSharper disable once InvertIf
 							if ( dependencyComponent?.IsSelected != true )
@@ -260,13 +260,13 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Installs a single component
 		/// </summary>
-		/// <param name="component">Component to install</param>
+		/// <param name="component">ModComponent to install</param>
 		/// <param name="allComponents">All components for dependency resolution</param>
 		/// <param name="cancellationToken"></param>
 		/// <returns>Installation exit code</returns>
-		public static async Task<Component.InstallExitCode> InstallSingleComponentAsync(
-			[NotNull] Component component,
-			[NotNull][ItemNotNull] List<Component> allComponents,
+		public static async Task<ModComponent.InstallExitCode> InstallSingleComponentAsync(
+			[NotNull] ModComponent component,
+			[NotNull][ItemNotNull] List<ModComponent> allComponents,
 			CancellationToken cancellationToken = default)
 		{
 			if ( component == null )
@@ -278,7 +278,7 @@ namespace KOTORModSync.Core.Services
 			var validator = new ComponentValidation(component, allComponents);
 			await Logger.LogVerboseAsync($" == Validating '{component.Name}' == ");
 			if ( !validator.Run() )
-				return Component.InstallExitCode.InvalidOperation;
+				return ModComponent.InstallExitCode.InvalidOperation;
 
 			// Install the component
 			return await component.InstallAsync(allComponents, cancellationToken);
@@ -291,8 +291,8 @@ namespace KOTORModSync.Core.Services
 		/// <param name="progressCallback">Callback for progress updates</param>
 		/// <param name="cancellationToken">Cancellation token</param>
 		/// <returns>Final installation exit code</returns>
-		public static async Task<Component.InstallExitCode> InstallAllSelectedComponentsAsync(
-			[NotNull][ItemNotNull] List<Component> allComponents,
+		public static async Task<ModComponent.InstallExitCode> InstallAllSelectedComponentsAsync(
+			[NotNull][ItemNotNull] List<ModComponent> allComponents,
 			[CanBeNull] Action<int, int, string> progressCallback = null,
 			CancellationToken cancellationToken = default)
 		{
@@ -305,25 +305,25 @@ namespace KOTORModSync.Core.Services
 			ResumeResult resume = await coordinator.InitializeAsync(allComponents, destination, cancellationToken);
 			var orderedComponents = resume.OrderedComponents.Where(component => component.IsSelected).ToList();
 			int total = orderedComponents.Count;
-			Component.InstallExitCode exitCode = Component.InstallExitCode.Success;
+			ModComponent.InstallExitCode exitCode = ModComponent.InstallExitCode.Success;
 
 			for ( int index = 0; index < orderedComponents.Count; index++ )
 			{
 				cancellationToken.ThrowIfCancellationRequested();
-				Component component = orderedComponents[index];
+				ModComponent component = orderedComponents[index];
 
 				progressCallback?.Invoke(index, total, component.Name);
 
 				switch ( component.InstallState )
 				{
-					case Component.ComponentInstallState.Completed:
+					case ModComponent.ComponentInstallState.Completed:
 						await Logger.LogAsync($"Skipping '{component.Name}' (already completed).");
 						coordinator.SessionManager.UpdateComponentState(component);
 						component.PersistCheckpoint();
 						await coordinator.SessionManager.SaveAsync();
 						continue;
-					case Component.ComponentInstallState.Skipped:
-					case Component.ComponentInstallState.Blocked:
+					case ModComponent.ComponentInstallState.Skipped:
+					case ModComponent.ComponentInstallState.Blocked:
 						await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).");
 						coordinator.SessionManager.UpdateComponentState(component);
 						component.PersistCheckpoint();
@@ -337,7 +337,7 @@ namespace KOTORModSync.Core.Services
 				component.PersistCheckpoint();
 				await coordinator.SessionManager.SaveAsync();
 
-				if ( exitCode == Component.InstallExitCode.Success )
+				if ( exitCode == ModComponent.InstallExitCode.Success )
 				{
 					await Logger.LogAsync($"Install of '{component.Name}' succeeded.");
 					await coordinator.BackupManager.PromoteSnapshotAsync(destination, cancellationToken);
@@ -346,7 +346,7 @@ namespace KOTORModSync.Core.Services
 				{
 					await Logger.LogErrorAsync($"Install of '{component.Name}' failed with exit code {exitCode}");
 					InstallCoordinator.MarkBlockedDescendants(orderedComponents, component.Guid);
-					foreach ( Component blocked in orderedComponents.Where(c => c.InstallState == Component.ComponentInstallState.Blocked) )
+					foreach ( ModComponent blocked in orderedComponents.Where(c => c.InstallState == ModComponent.ComponentInstallState.Blocked) )
 					{
 						coordinator.SessionManager.UpdateComponentState(blocked);
 						blocked.PersistCheckpoint();

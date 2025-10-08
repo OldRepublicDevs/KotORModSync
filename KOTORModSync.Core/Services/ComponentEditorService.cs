@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 
@@ -18,21 +17,21 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Checks if a component has changes compared to its serialized form
 		/// </summary>
-		/// <param name="component">Component to check</param>
+		/// <param name="component">ModComponent to check</param>
 		/// <param name="rawText">Raw text to compare against</param>
 		/// <returns>True if component has changes</returns>
-		public static bool ComponentHasChanges([CanBeNull] Component component, [CanBeNull] string rawText) => component != null
+		public static bool ComponentHasChanges([CanBeNull] ModComponent component, [CanBeNull] string rawText) => component != null
 				&& !string.IsNullOrWhiteSpace(rawText)
 				&& rawText != component.SerializeComponent();
 
 		/// <summary>
 		/// Saves changes to a component from raw text
 		/// </summary>
-		/// <param name="component">Component to update</param>
+		/// <param name="component">ModComponent to update</param>
 		/// <param name="rawText">Raw text containing component data</param>
 		/// <param name="allComponents">All components list for updating</param>
 		/// <returns>True if save was successful</returns>
-		public static async Task<bool> SaveComponentChangesAsync([NotNull] Component component, [NotNull] string rawText, [NotNull][ItemNotNull] List<Component> allComponents)
+		public static async Task<bool> SaveComponentChangesAsync([NotNull] ModComponent component, [NotNull] string rawText, [NotNull][ItemNotNull] List<ModComponent> allComponents)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -43,10 +42,10 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				var newComponent = Component.DeserializeTomlComponent(rawText);
+				var newComponent = ModComponent.DeserializeTomlComponent(rawText);
 				if ( newComponent is null )
 				{
-					await Logger.LogErrorAsync("Could not deserialize your raw config text into a Component instance in memory. There may be syntax errors, check the output window for details.");
+					await Logger.LogErrorAsync("Could not deserialize your raw config text into a ModComponent instance in memory. There may be syntax errors, check the output window for details.");
 					return false;
 				}
 
@@ -81,10 +80,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Creates a new instruction for a component
 		/// </summary>
-		/// <param name="component">Component to add instruction to</param>
+		/// <param name="component">ModComponent to add instruction to</param>
 		/// <param name="index">Index where to insert the instruction</param>
 		/// <returns>Created instruction</returns>
-		public static Instruction CreateNewInstruction([NotNull] Component component, int index = 0)
+		public static Instruction CreateNewInstruction([NotNull] ModComponent component, int index = 0)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -96,9 +95,9 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Deletes an instruction from a component
 		/// </summary>
-		/// <param name="component">Component to remove instruction from</param>
+		/// <param name="component">ModComponent to remove instruction from</param>
 		/// <param name="instruction">Instruction to remove</param>
-		public static void DeleteInstruction([NotNull] Component component, [NotNull] Instruction instruction)
+		public static void DeleteInstruction([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -115,9 +114,9 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Moves an instruction up in the list
 		/// </summary>
-		/// <param name="component">Component containing the instruction</param>
+		/// <param name="component">ModComponent containing the instruction</param>
 		/// <param name="instruction">Instruction to move</param>
-		public static void MoveInstructionUp([NotNull] Component component, [NotNull] Instruction instruction)
+		public static void MoveInstructionUp([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -134,9 +133,9 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Moves an instruction down in the list
 		/// </summary>
-		/// <param name="component">Component containing the instruction</param>
+		/// <param name="component">ModComponent containing the instruction</param>
 		/// <param name="instruction">Instruction to move</param>
-		public static void MoveInstructionDown([NotNull] Component component, [NotNull] Instruction instruction)
+		public static void MoveInstructionDown([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -153,10 +152,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Creates a new option for a component
 		/// </summary>
-		/// <param name="component">Component to add option to</param>
+		/// <param name="component">ModComponent to add option to</param>
 		/// <param name="index">Index where to insert the option</param>
 		/// <returns>Created option</returns>
-		public static Option CreateNewOption([NotNull] Component component, int index = 0)
+		public static Option CreateNewOption([NotNull] ModComponent component, int index = 0)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -168,9 +167,9 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Deletes an option from a component
 		/// </summary>
-		/// <param name="component">Component to remove option from</param>
+		/// <param name="component">ModComponent to remove option from</param>
 		/// <param name="option">Option to remove</param>
-		public static void DeleteOption([NotNull] Component component, [NotNull] Option option)
+		public static void DeleteOption([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -187,9 +186,9 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Moves an option up in the list
 		/// </summary>
-		/// <param name="component">Component containing the option</param>
+		/// <param name="component">ModComponent containing the option</param>
 		/// <param name="option">Option to move</param>
-		public static void MoveOptionUp([NotNull] Component component, [NotNull] Option option)
+		public static void MoveOptionUp([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -206,9 +205,9 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Moves an option down in the list
 		/// </summary>
-		/// <param name="component">Component containing the option</param>
+		/// <param name="component">ModComponent containing the option</param>
 		/// <param name="option">Option to move</param>
-		public static void MoveOptionDown([NotNull] Component component, [NotNull] Option option)
+		public static void MoveOptionDown([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -225,23 +224,23 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Handles component checkbox state changes with dependency resolution
 		/// </summary>
-		/// <param name="component">Component that was checked/unchecked</param>
+		/// <param name="component">ModComponent that was checked/unchecked</param>
 		/// <param name="isChecked">New checked state</param>
 		/// <param name="allComponents">All components for dependency resolution</param>
 		/// <param name="visitedComponents">Set of already processed components to prevent circular dependencies</param>
-		public void HandleComponentCheckboxChange([NotNull] Component component, bool isChecked, [NotNull][ItemNotNull] List<Component> allComponents, [CanBeNull] HashSet<Component> visitedComponents = null)
+		public void HandleComponentCheckboxChange([NotNull] ModComponent component, bool isChecked, [NotNull][ItemNotNull] List<ModComponent> allComponents, [CanBeNull] HashSet<ModComponent> visitedComponents = null)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
 			if ( allComponents == null )
 				throw new ArgumentNullException(nameof(allComponents));
 
-			visitedComponents = visitedComponents ?? new HashSet<Component>();
+			visitedComponents = visitedComponents ?? new HashSet<ModComponent>();
 
 			// Check if the component has already been visited
 			if ( visitedComponents.Contains(component) )
 			{
-				Logger.LogError($"Component '{component.Name}' has dependencies/restrictions that cannot be resolved automatically!");
+				Logger.LogError($"ModComponent '{component.Name}' has dependencies/restrictions that cannot be resolved automatically!");
 				return;
 			}
 
@@ -258,18 +257,18 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		private void HandleComponentChecked([NotNull] Component component, [NotNull][ItemNotNull] List<Component> allComponents, [NotNull] HashSet<Component> visitedComponents)
+		private void HandleComponentChecked([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> allComponents, [NotNull] HashSet<ModComponent> visitedComponents)
 		{
-			Dictionary<string, List<Component>> conflicts = Component.GetConflictingComponents(
+			Dictionary<string, List<ModComponent>> conflicts = ModComponent.GetConflictingComponents(
 				component.Dependencies,
 				component.Restrictions,
 				allComponents
 			);
 
 			// Handling conflicts based on what's defined for THIS component
-			if ( conflicts.TryGetValue("Dependency", out List<Component> dependencyConflicts) )
+			if ( conflicts.TryGetValue("Dependency", out List<ModComponent> dependencyConflicts) )
 			{
-				foreach ( Component conflictComponent in dependencyConflicts )
+				foreach ( ModComponent conflictComponent in dependencyConflicts )
 				{
 					if ( conflictComponent?.IsSelected == false )
 					{
@@ -279,9 +278,9 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			if ( conflicts.TryGetValue("Restriction", out List<Component> restrictionConflicts) )
+			if ( conflicts.TryGetValue("Restriction", out List<ModComponent> restrictionConflicts) )
 			{
-				foreach ( Component conflictComponent in restrictionConflicts )
+				foreach ( ModComponent conflictComponent in restrictionConflicts )
 				{
 					if ( conflictComponent?.IsSelected == true )
 					{
@@ -292,7 +291,7 @@ namespace KOTORModSync.Core.Services
 			}
 
 			// Handling OTHER component's defined restrictions based on the change to THIS component.
-			foreach ( Component c in allComponents )
+			foreach ( ModComponent c in allComponents )
 			{
 				if ( !c.IsSelected || !c.Restrictions.Contains(component.Guid) )
 					continue;
@@ -302,10 +301,10 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		private void HandleComponentUnchecked([NotNull] Component component, [NotNull][ItemNotNull] List<Component> allComponents, [NotNull] HashSet<Component> visitedComponents)
+		private void HandleComponentUnchecked([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> allComponents, [NotNull] HashSet<ModComponent> visitedComponents)
 		{
 			// Handling OTHER component's defined dependencies based on the change to THIS component.
-			foreach ( Component c in allComponents )
+			foreach ( ModComponent c in allComponents )
 			{
 				if ( c.IsSelected && c.Dependencies.Contains(component.Guid) )
 				{

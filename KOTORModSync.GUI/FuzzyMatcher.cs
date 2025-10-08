@@ -307,14 +307,14 @@ namespace KOTORModSync
 		}
 
 		/// <summary>
-		/// Wrapper for Component objects - returns true if components match.
+		/// Wrapper for ModComponent objects - returns true if components match.
 		/// </summary>
-		public static bool FuzzyMatchComponents(Core.Component existing, Core.Component incoming) => FuzzyMatch(existing.Name, existing.Author, incoming.Name, incoming.Author);
+		public static bool FuzzyMatchComponents(Core.ModComponent existing, Core.ModComponent incoming) => FuzzyMatch(existing.Name, existing.Author, incoming.Name, incoming.Author);
 
 		/// <summary>
-		/// Wrapper for Component objects - returns similarity score.
+		/// Wrapper for ModComponent objects - returns similarity score.
 		/// </summary>
-		public static double GetComponentMatchScore(Core.Component existing, Core.Component incoming) => GetMatchScore(existing.Name, existing.Author, incoming.Name, incoming.Author);
+		public static double GetComponentMatchScore(Core.ModComponent existing, Core.ModComponent incoming) => GetMatchScore(existing.Name, existing.Author, incoming.Name, incoming.Author);
 	}
 }
 

@@ -181,7 +181,7 @@ namespace KOTORModSync.Tests
 				};
 
 				var virtualProvider = new VirtualFileSystemProvider();
-				var virtualComponent = new Component { Name = "TestComponent" };
+				var virtualComponent = new ModComponent { Name = "TestComponent" };
 
 				var virtualInstructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(instructions);
 				_ = await virtualComponent.ExecuteInstructionsAsync(
@@ -202,7 +202,7 @@ namespace KOTORModSync.Tests
 				};
 
 				var realProvider = new RealFileSystemProvider();
-				var realComponent = new Component { Name = "TestComponent" };
+				var realComponent = new ModComponent { Name = "TestComponent" };
 
 				// Re-create instructions (they were mutated by the first run)
 				var realInstructions = new List<Instruction>(instructions);

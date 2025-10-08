@@ -25,7 +25,7 @@ namespace KOTORModSync
 {
 	public partial class DownloadProgressWindow : Window
 	{
-		private readonly ObservableCollection<DownloadProgress> _downloadItems;
+		private ObservableCollection<DownloadProgress> _downloadItems { get; }
 		private readonly CancellationTokenSource _cancellationTokenSource;
 		private bool _isCompleted;
 		private bool _mouseDownForWindowMoving;
@@ -173,6 +173,36 @@ namespace KOTORModSync
 							Dispatcher.UIThread.Post(UpdateSummary);
 						};
 					}
+				}
+			});
+		}
+
+		public void UpdateDownloadProgress(DownloadProgress progress)
+		{
+			Dispatcher.UIThread.Post(() =>
+			{
+				Logger.LogVerbose($"[DownloadProgressWindow] UpdateDownloadProgress called for URL: {progress.Url}, Status: {progress.Status}, Message: {progress.StatusMessage}");
+
+				var existing = _downloadItems.FirstOrDefault(p => p.Url == progress.Url);
+				if (existing != null)
+				{
+					Logger.LogVerbose($"[DownloadProgressWindow] Found existing item, updating status from {existing.Status} to {progress.Status}");
+					existing.Status = progress.Status;
+					existing.StatusMessage = progress.StatusMessage;
+					existing.ProgressPercentage = progress.ProgressPercentage;
+					existing.BytesDownloaded = progress.BytesDownloaded;
+					existing.TotalBytes = progress.TotalBytes;
+					existing.FilePath = progress.FilePath;
+					existing.StartTime = progress.StartTime;
+					existing.EndTime = progress.EndTime;
+					existing.ErrorMessage = progress.ErrorMessage;
+					existing.Exception = progress.Exception;
+					UpdateSummary();
+				}
+				else
+				{
+					Logger.LogVerbose($"[DownloadProgressWindow] No existing item found, adding new download");
+					AddDownload(progress);
 				}
 			});
 		}

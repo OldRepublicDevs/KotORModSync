@@ -32,8 +32,8 @@ namespace KOTORModSync.Controls
 			AvaloniaProperty.Register<DependencyControl, List<Guid>>(nameof(ThisGuidList));
 
 		[NotNull]
-		public static readonly StyledProperty<Component> CurrentComponentProperty =
-			AvaloniaProperty.Register<DependencyControl, Component>(nameof(CurrentComponent));
+		public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
+			AvaloniaProperty.Register<DependencyControl, ModComponent>(nameof(CurrentComponent));
 
 		[NotNull]
 		public static readonly StyledProperty<ModManagementService> ModManagementServiceProperty =
@@ -44,8 +44,8 @@ namespace KOTORModSync.Controls
 			AvaloniaProperty.Register<DependencyControl, DependencyType>(nameof(DependencyType));
 
 		[NotNull]
-		public static readonly StyledProperty<Component> SelectedModComponentProperty =
-			AvaloniaProperty.Register<DependencyControl, Component>(nameof(SelectedModComponent));
+		public static readonly StyledProperty<ModComponent> SelectedModComponentProperty =
+			AvaloniaProperty.Register<DependencyControl, ModComponent>(nameof(SelectedModComponent));
 
 		[NotNull]
 		public static readonly StyledProperty<Option> SelectedOptionProperty =
@@ -75,7 +75,7 @@ namespace KOTORModSync.Controls
 		}
 
 		[CanBeNull]
-		public Component CurrentComponent
+		public ModComponent CurrentComponent
 		{
 			get => GetValue(CurrentComponentProperty);
 			set => SetValue(CurrentComponentProperty, value);
@@ -95,7 +95,7 @@ namespace KOTORModSync.Controls
 		}
 
 		[CanBeNull]
-		public Component SelectedModComponent
+		public ModComponent SelectedModComponent
 		{
 			get => GetValue(SelectedModComponentProperty);
 			set => SetValue(SelectedModComponentProperty, value);
@@ -111,7 +111,7 @@ namespace KOTORModSync.Controls
 		[NotNull]
 		[UsedImplicitly]
 #pragma warning disable CA1822
-		public List<Component> ThisComponentList => MainWindow.ComponentsList;
+		public List<ModComponent> ThisComponentList => MainWindow.ComponentsList;
 #pragma warning restore CA1822
 
 		// used to fix the move window code with combo boxes.
@@ -129,7 +129,7 @@ namespace KOTORModSync.Controls
 		{
 			try
 			{
-				if ( !(DependenciesAutoComplete.SelectedItem is Component selectedComponent) )
+				if ( !(DependenciesAutoComplete.SelectedItem is ModComponent selectedComponent) )
 					return; // no selection
 				if ( ThisGuidList.Contains(selectedComponent.Guid) )
 					return; // already in list.
@@ -169,7 +169,7 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		private void AddComponentToList([NotNull] Component selectedComponent)
+		private void AddComponentToList([NotNull] ModComponent selectedComponent)
 		{
 			// Use service methods if available, otherwise fall back to direct manipulation
 			bool added = false;
@@ -236,7 +236,7 @@ namespace KOTORModSync.Controls
 					 (DependencyType == DependencyType.Dependency || DependencyType == DependencyType.Restriction) )
 				{
 					// Find the component being removed
-					Component componentToRemove = MainWindow.ComponentsList?.FirstOrDefault(c => c.Guid == guidToRemove);
+					ModComponent componentToRemove = MainWindow.ComponentsList?.FirstOrDefault(c => c.Guid == guidToRemove);
 					if ( componentToRemove != null )
 					{
 						switch ( DependencyType )
@@ -274,7 +274,7 @@ namespace KOTORModSync.Controls
 		{
 			try
 			{
-				if ( !(DependenciesAutoComplete.SelectedItem is Component selectedComponent) )
+				if ( !(DependenciesAutoComplete.SelectedItem is ModComponent selectedComponent) )
 				{
 					OptionsAutoComplete.ItemsSource = null;
 					return;

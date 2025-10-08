@@ -21,13 +21,13 @@ namespace KOTORModSync.Core
 			if ( string.IsNullOrWhiteSpace(message) )
 				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(message));
 
-			Component = validator.ComponentToValidate;
+			ModComponent = validator.ComponentToValidate;
 			Instruction = instruction ?? throw new ArgumentNullException(nameof(instruction));
-			InstructionIndex = Component.Instructions.IndexOf(instruction);
+			InstructionIndex = ModComponent.Instructions.IndexOf(instruction);
 			Message = message;
 			IsError = isError;
 
-			string where = $"{Environment.NewLine}Name: {Component.Name}{Environment.NewLine}Instruction #{InstructionIndex + 1}: '{instruction.Action}'";
+			string where = $"{Environment.NewLine}Name: {ModComponent.Name}{Environment.NewLine}Instruction #{InstructionIndex + 1}: '{instruction.Action}'";
 			if ( IsError )
 			{
 				Logger.LogError(where + Environment.NewLine + "Issue: " + message);
@@ -41,7 +41,7 @@ namespace KOTORModSync.Core
 
 		public int InstructionIndex { get; }
 		public Instruction Instruction { get; }
-		public Component Component { get; }
+		public ModComponent ModComponent { get; }
 		public string Message { get; }
 		public bool IsError { get; }
 	}

@@ -9,7 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
-using Component = KOTORModSync.Core.Component;
+using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Models
 {
@@ -22,7 +22,7 @@ namespace KOTORModSync.Models
 		private double _opacity;
 
 		public Instruction Instruction { get; }
-		public Component ParentComponent { get; }
+		public ModComponent ParentComponent { get; }
 
 		/// <summary>
 		/// Whether this instruction will actually execute based on current selections
@@ -73,7 +73,7 @@ namespace KOTORModSync.Models
 		/// </summary>
 		public bool ShowDependencyInfo { get; set; }
 
-		public InstructionViewModel([NotNull] Instruction instruction, [NotNull] Component parentComponent, bool willExecute, bool showDependencyInfo = false)
+		public InstructionViewModel([NotNull] Instruction instruction, [NotNull] ModComponent parentComponent, bool willExecute, bool showDependencyInfo = false)
 		{
 			Instruction = instruction ?? throw new ArgumentNullException(nameof(instruction));
 			ParentComponent = parentComponent ?? throw new ArgumentNullException(nameof(parentComponent));
@@ -81,8 +81,8 @@ namespace KOTORModSync.Models
 			ShowDependencyInfo = showDependencyInfo;
 
 			// Resolve dependency and restriction names
-			DependencyNames = ResolveGuidNames(instruction.Dependencies);
-			RestrictionNames = ResolveGuidNames(instruction.Restrictions);
+			DependencyNames = InstructionViewModel.ResolveGuidNames(instruction.Dependencies);
+			RestrictionNames = InstructionViewModel.ResolveGuidNames(instruction.Restrictions);
 
 			UpdateVisualState();
 		}
@@ -94,7 +94,7 @@ namespace KOTORModSync.Models
 			OnPropertyChanged(nameof(FontWeight));
 		}
 
-		private List<string> ResolveGuidNames(List<Guid> guids)
+		private static List<string> ResolveGuidNames(List<Guid> guids)
 		{
 			var names = new List<string>();
 			if ( guids == null || guids.Count == 0 )
@@ -103,15 +103,15 @@ namespace KOTORModSync.Models
 			foreach ( Guid guid in guids )
 			{
 				// Try to find component
-				Component component = MainConfig.AllComponents.FirstOrDefault(c => c.Guid == guid);
+				ModComponent component = MainConfig.AllComponents.FirstOrDefault(c => c.Guid == guid);
 				if ( component != null )
 				{
-					names.Add($"[Component] {component.Name}");
+					names.Add($"[ModComponent] {component.Name}");
 					continue;
 				}
 
 				// Try to find option within any component
-				foreach ( Component comp in MainConfig.AllComponents )
+				foreach ( ModComponent comp in MainConfig.AllComponents )
 				{
 					Option option = comp.Options.FirstOrDefault(o => o.Guid == guid);
 					if ( option == null )

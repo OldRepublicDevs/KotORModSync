@@ -2,7 +2,6 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // See LICENSE.txt file in the project root for full license information.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
@@ -13,6 +12,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
 
 namespace KOTORModSync.Dialogs
 {
@@ -20,9 +20,9 @@ namespace KOTORModSync.Dialogs
 	{
 		public CircularDependencyResolutionViewModel ViewModel { get; }
 		public bool UserRetried { get; private set; }
-		public List<Component> ResolvedComponents => ViewModel?.Components
+		public List<ModComponent> ResolvedComponents => ViewModel?.Components
 			.Where(c => c.IsSelected)
-			.Select(c => c.Component)
+			.Select(c => c.ModComponent)
 			.ToList();
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
@@ -37,7 +37,7 @@ namespace KOTORModSync.Dialogs
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		public CircularDependencyResolutionDialog(List<Component> components, CircularDependencyDetector.CircularDependencyResult cycleInfo)
+		public CircularDependencyResolutionDialog(List<ModComponent> components, CircularDependencyDetector.CircularDependencyResult cycleInfo)
 		{
 			InitializeComponent();
 			ViewModel = new CircularDependencyResolutionViewModel(components, cycleInfo);
@@ -66,9 +66,9 @@ namespace KOTORModSync.Dialogs
 			Close();
 		}
 
-		public static async System.Threading.Tasks.Task<(bool retry, List<Component> components)> ShowResolutionDialog(
+		public static async System.Threading.Tasks.Task<(bool retry, List<ModComponent> components)> ShowResolutionDialog(
 			Window owner,
-			List<Component> components,
+			List<ModComponent> components,
 			CircularDependencyDetector.CircularDependencyResult cycleInfo)
 		{
 			// Don't show dialog if there are no circular dependencies

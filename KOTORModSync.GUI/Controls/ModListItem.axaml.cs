@@ -4,6 +4,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -11,6 +15,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using KOTORModSync.Core;
+using KOTORModSync.Services;
 
 namespace KOTORModSync.Controls
 {
@@ -48,7 +53,7 @@ namespace KOTORModSync.Controls
 
 			DataContextChanged += OnDataContextChanged;
 
-			// Wire up checkbox event
+			// Wire up checkbox events
 			CheckBox checkbox = this.FindControl<CheckBox>("ComponentCheckBox");
 			if ( checkbox != null )
 				checkbox.IsCheckedChanged += OnCheckBoxChanged;
@@ -63,30 +68,71 @@ namespace KOTORModSync.Controls
 			TextBlock dragHandle = this.FindControl<TextBlock>("DragHandle");
 			if ( dragHandle != null )
 				dragHandle.PointerPressed += OnDragHandlePressed;
+
+			// Wire up main mod info events for selection logic
+			Grid mainModInfo = this.FindControl<Grid>("MainModInfo");
+			if ( mainModInfo != null )
+			{
+				mainModInfo.PointerPressed += OnMainModInfoPointerPressed;
+				mainModInfo.DoubleTapped += OnMainModInfoDoubleTapped;
+			}
 		}
 
-		private void OnDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+		private void OnMainModInfoPointerPressed(object sender, PointerPressedEventArgs e)
 		{
+			// Don't interfere with checkbox clicks within the main mod info
+			if ( e.Source is CheckBox )
+				return;
+
+			// Set this component as current in MainWindow
+			if ( DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow )
+				mainWindow.SetCurrentComponent(component);
+		}
+
+		private void OnMainModInfoDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+		{
+			// Don't interfere with checkbox clicks
+			if ( e.Source is CheckBox )
+				return;
+
 			// Double-click toggles selection
-			if ( !(DataContext is Component component) )
+			if ( !(DataContext is ModComponent component) )
 				return;
 			component.IsSelected = !component.IsSelected;
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
 				return;
 			mainWindow.UpdateModCounts();
 			if ( component.IsSelected )
-				mainWindow.ComponentCheckboxChecked(component, new HashSet<Component>());
+				mainWindow.ComponentCheckboxChecked(component, new HashSet<ModComponent>());
 			else
-				mainWindow.ComponentCheckboxUnchecked(component, new HashSet<Component>());
+				mainWindow.ComponentCheckboxUnchecked(component, new HashSet<ModComponent>());
+
+			e.Handled = true; // Prevent the event from bubbling up
+		}
+
+		private void OnDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+		{
+			// Double-click toggles selection
+			if ( !(DataContext is ModComponent component) )
+				return;
+			component.IsSelected = !component.IsSelected;
+			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
+				return;
+			mainWindow.UpdateModCounts();
+			if ( component.IsSelected )
+				mainWindow.ComponentCheckboxChecked(component, new HashSet<ModComponent>());
+			else
+				mainWindow.ComponentCheckboxUnchecked(component, new HashSet<ModComponent>());
 		}
 
 		private void OnDragHandlePressed(object sender, PointerPressedEventArgs e)
 		{
-			if ( !(DataContext is Component component) || !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
+			if ( !(DataContext is ModComponent component) || !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
 				return;
 			mainWindow.StartDragComponent(component, e);
 			e.Handled = true;
 		}
+
 
 		private void OnPointerPressed(object sender, PointerPressedEventArgs e)
 		{
@@ -97,13 +143,13 @@ namespace KOTORModSync.Controls
 				return;
 
 			// Set this component as current in MainWindow
-			if ( DataContext is Component component && this.FindAncestorOfType<Window>() is MainWindow mainWindow )
+			if ( DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				mainWindow.SetCurrentComponent(component);
 		}
 
 		private void OnCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
-			// The two-way binding will handle updating the Component.IsSelected
+			// The two-way binding will handle updating the ModComponent.IsSelected
 			// We just need to notify the main window to update counts
 			if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				mainWindow.OnComponentCheckBoxChanged(sender, e);
@@ -111,13 +157,21 @@ namespace KOTORModSync.Controls
 
 		private void OnDataContextChanged(object sender, EventArgs e)
 		{
-			if ( !(DataContext is Component component) )
+			if ( !(DataContext is ModComponent component) )
 				return;
 
 			// Update from mod management service first to determine status
 			UpdateFromModManagementService();
 
 			// Set up rich tooltip based on current status
+			UpdateTooltip(component);
+		}
+
+		/// <summary>
+		/// Updates the tooltip for this ModListItem
+		/// </summary>
+		public void UpdateTooltip(ModComponent component)
+		{
 			string tooltipText = ModListItem.CreateRichTooltip(component);
 			ToolTip.SetTip(this, tooltipText);
 
@@ -134,7 +188,7 @@ namespace KOTORModSync.Controls
 				indexBlock.Text = $"#{index + 1}";
 		}
 
-		public void UpdateValidationState(Component component)
+		public void UpdateValidationState(ModComponent component)
 		{
 			if ( !(this.FindControl<Border>("RootBorder") is Border border) )
 				return;
@@ -169,11 +223,11 @@ namespace KOTORModSync.Controls
 			{
 				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				{
-					List<Component> allComponents = mainWindow.MainConfigInstance?.allComponents;
+					List<ModComponent> allComponents = mainWindow.MainConfigInstance?.allComponents;
 					if ( allComponents != null )
 					{
-						List<Component> dependencyComponents = Component.FindComponentsFromGuidList(component.Dependencies, allComponents);
-						foreach ( Component dep in dependencyComponents )
+						List<ModComponent> dependencyComponents = ModComponent.FindComponentsFromGuidList(component.Dependencies, allComponents);
+						foreach ( ModComponent dep in dependencyComponents )
 						{
 							if ( dep == null || dep.IsSelected )
 								continue;
@@ -189,11 +243,11 @@ namespace KOTORModSync.Controls
 			{
 				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				{
-					List<Component> allComponents = mainWindow.MainConfigInstance?.allComponents;
+					List<ModComponent> allComponents = mainWindow.MainConfigInstance?.allComponents;
 					if ( allComponents != null )
 					{
-						List<Component> restrictionComponents = Component.FindComponentsFromGuidList(component.Restrictions, allComponents);
-						foreach ( Component restriction in restrictionComponents )
+						List<ModComponent> restrictionComponents = ModComponent.FindComponentsFromGuidList(component.Restrictions, allComponents);
+						foreach ( ModComponent restriction in restrictionComponents )
 						{
 							if ( restriction == null || !restriction.IsSelected )
 								continue;
@@ -238,7 +292,7 @@ namespace KOTORModSync.Controls
 			if ( errorReasons.Count > 0 )
 				s_componentErrors[component.Guid] = string.Join("\n", errorReasons);
 			else
-				s_componentErrors.Remove(component.Guid);
+				_ = s_componentErrors.Remove(component.Guid);
 
 			// Update border - don't set any border when there are no issues (let default style handle it)
 			if ( hasErrors )
@@ -260,15 +314,21 @@ namespace KOTORModSync.Controls
 				border.ClearValue(Border.BorderThicknessProperty);
 			}
 
-			// Update validation icon if it exists
-			if ( !(this.FindControl<TextBlock>("ValidationIcon") is TextBlock validationIconControl) )
+			// Update validation icon
+			UpdateValidationIcon(this.FindControl<TextBlock>("ValidationIcon"), hasErrors, isMissingDownload);
+		}
+
+		private void UpdateValidationIcon(TextBlock validationIconControl, bool hasErrors, bool isMissingDownload)
+		{
+			if ( validationIconControl == null )
 				return;
+
 			if ( hasErrors )
 			{
 				validationIconControl.Text = "❌";
 				validationIconControl.Foreground = ThemeResourceHelper.ModListItemErrorBrush;
 				validationIconControl.IsVisible = true;
-				ToolTip.SetTip(validationIconControl, "Component has validation errors");
+				ToolTip.SetTip(validationIconControl, "ModComponent has validation errors");
 			}
 			else if ( isMissingDownload )
 			{
@@ -285,7 +345,7 @@ namespace KOTORModSync.Controls
 
 		private void UpdateFromModManagementService()
 		{
-			if ( !(DataContext is Component component) || !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
+			if ( !(DataContext is ModComponent component) || !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
 				return;
 			// Update validation state
 			UpdateValidationState(component);
@@ -296,6 +356,7 @@ namespace KOTORModSync.Controls
 
 		private void UpdateEditorModeVisibility(bool isEditorMode)
 		{
+			// Update controls
 			if ( this.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock )
 				indexBlock.IsVisible = isEditorMode;
 
@@ -303,7 +364,7 @@ namespace KOTORModSync.Controls
 				dragHandle.IsVisible = isEditorMode;
 		}
 
-		private static string CreateRichTooltip(Component component)
+		private static string CreateRichTooltip(ModComponent component)
 		{
 			var sb = new System.Text.StringBuilder();
 
@@ -341,6 +402,19 @@ namespace KOTORModSync.Controls
 				if ( isMissingDownload )
 				{
 					_ = sb.AppendLine("❗ Missing Download");
+
+					// Get specific missing files using ValidationService
+					var missingFiles = ValidationService.GetMissingFilesForComponentStatic(component);
+					if ( missingFiles.Count > 0 )
+					{
+						_ = sb.AppendLine("Missing file(s):");
+						foreach ( string fileName in missingFiles )
+						{
+							_ = sb.AppendLine($"  • {fileName}");
+						}
+						_ = sb.AppendLine();
+					}
+
 					_ = sb.AppendLine("This mod is selected but the archive file is not");
 					_ = sb.AppendLine("in your mod directory. Please:");
 					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
@@ -458,7 +532,7 @@ namespace KOTORModSync.Controls
 			else
 			{
 				// Revalidate to restore correct state
-				if ( DataContext is Component component )
+				if ( DataContext is ModComponent component )
 					UpdateValidationState(component);
 			}
 
@@ -510,6 +584,25 @@ namespace KOTORModSync.Controls
 				return false;
 
 			return true;
+		}
+
+
+		/// <summary>
+		/// Resolves a path by replacing placeholders like <<modDirectory>>
+		/// </summary>
+		private static string ResolvePath(string path)
+		{
+			if ( string.IsNullOrWhiteSpace(path) )
+				return path;
+
+			// Replace <<modDirectory>> with actual mod directory path
+			if ( path.Contains("<<modDirectory>>") )
+			{
+				string modDir = MainConfig.SourcePath?.FullName ?? "";
+				path = path.Replace("<<modDirectory>>", modDir);
+			}
+
+			return path;
 		}
 	}
 }

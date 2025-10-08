@@ -127,7 +127,7 @@
                 </Grid>
             </Border>
 
-            <!--  Component to Delete Info  -->
+            <!--  ModComponent to Delete Info  -->
             <Border
                 Grid.Column="1"
                 Background="{DynamicResource ThemeBackgroundBrush}"
@@ -140,7 +140,7 @@
                         Background="{DynamicResource ThemeControlHighlightLowBrush}"
                         FontSize="14"
                         FontWeight="SemiBold"
-                        Text="🗑️ Component to Delete" />
+                        Text="🗑️ ModComponent to Delete" />
 
                     <ScrollViewer
                         Grid.Row="1"

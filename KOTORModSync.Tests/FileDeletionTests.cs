@@ -5,12 +5,9 @@
 // ReSharper disable RedundantUsingDirective
 
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
 using KOTORModSync.Core.Utility;
-using NUnit.Framework;
 
 #pragma warning disable U2U1000, CS8618, RCS1118 // Mark local variable as const.
 
@@ -106,8 +103,8 @@ namespace KOTORModSync.Tests
 			VirtualFileSystemTests.CopyDirectory(sourceDir, virtualSource);
 
 			var virtualProvider = new VirtualFileSystemProvider();
-			await virtualProvider.InitializeFromRealFileSystem(virtualSource);
-			var virtualComponent = new Component { Name = "TestComponent", Instructions = new(virtualInstructions) };
+			await virtualProvider.InitializeFromRealFileSystemAsync(virtualSource);
+			var virtualComponent = new ModComponent { Name = "TestComponent", Instructions = new(virtualInstructions) };
 
 			_ = new MainConfig
 			{
@@ -127,7 +124,7 @@ namespace KOTORModSync.Tests
 			VirtualFileSystemTests.CopyDirectory(sourceDir, realSource);
 
 			var realProvider = new RealFileSystemProvider();
-			var realComponent = new Component { Name = "TestComponent", Instructions = new(realInstructions) };
+			var realComponent = new ModComponent { Name = "TestComponent", Instructions = new(realInstructions) };
 
 			_ = new MainConfig
 			{

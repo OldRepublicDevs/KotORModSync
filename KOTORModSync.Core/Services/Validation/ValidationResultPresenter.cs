@@ -78,7 +78,7 @@ namespace KOTORModSync.Core.Services.Validation
 
 			foreach ( var group in componentIssues )
 			{
-				Component component = group.Key;
+				ModComponent component = group.Key;
 				List<ValidationIssue> issues = group.ToList();
 
 				// Determine if issues are fixable
@@ -91,7 +91,7 @@ namespace KOTORModSync.Core.Services.Validation
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.DownloadMod,
-						Component = component,
+						ModComponent = component,
 						Title = $"Download missing mod: {component.Name}",
 						Description = "This mod's archive file is missing, corrupted, or incompatible.",
 						Instructions = new List<string>
@@ -110,7 +110,7 @@ namespace KOTORModSync.Core.Services.Validation
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.ReorderInstructions,
-						Component = component,
+						ModComponent = component,
 						Title = $"Fix instruction order: {component.Name}",
 						Description = "Instructions are attempting to access files that don't exist yet.",
 						Instructions = new List<string>
@@ -134,7 +134,7 @@ namespace KOTORModSync.Core.Services.Validation
 						steps.Add(new ActionableStep
 						{
 							ActionType = ActionType.DisableComponent,
-							Component = component,
+							ModComponent = component,
 							Title = $"Disable problematic mod: {component.Name}",
 							Description = "This mod has configuration issues. Disabling it will allow other mods to install.",
 							Instructions = new List<string>
@@ -150,7 +150,7 @@ namespace KOTORModSync.Core.Services.Validation
 						steps.Add(new ActionableStep
 						{
 							ActionType = ActionType.ContactSupport,
-							Component = component,
+							ModComponent = component,
 							Title = $"Report issue with: {component.Name}",
 							Description = "This mod has issues and is required by other selected mods.",
 							Instructions = new List<string>
@@ -169,7 +169,7 @@ namespace KOTORModSync.Core.Services.Validation
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.EditInstructions,
-						Component = component,
+						ModComponent = component,
 						Title = $"Edit instructions: {component.Name}",
 						Description = "Review and fix the instructions for this component.",
 						Instructions = new List<string>
@@ -195,7 +195,7 @@ namespace KOTORModSync.Core.Services.Validation
 			if ( result == null )
 				throw new ArgumentNullException(nameof(result));
 
-			List<Component> componentsToDisable = result.GetSuggestedComponentsToDisable();
+			List<ModComponent> componentsToDisable = result.GetSuggestedComponentsToDisable();
 			return componentsToDisable.Count > 0;
 		}
 
@@ -208,9 +208,9 @@ namespace KOTORModSync.Core.Services.Validation
 			if ( result == null )
 				throw new ArgumentNullException(nameof(result));
 
-			List<Component> componentsToDisable = result.GetSuggestedComponentsToDisable();
+			List<ModComponent> componentsToDisable = result.GetSuggestedComponentsToDisable();
 
-			foreach ( Component component in componentsToDisable )
+			foreach ( ModComponent component in componentsToDisable )
 			{
 				component.IsSelected = false;
 			}
@@ -223,7 +223,7 @@ namespace KOTORModSync.Core.Services.Validation
 		/// </summary>
 		[NotNull]
 		[ItemNotNull]
-		public static List<Component> GetComponentsToHighlight([NotNull] DryRunValidationResult result)
+		public static List<ModComponent> GetComponentsToHighlight([NotNull] DryRunValidationResult result)
 		{
 			if ( result == null )
 				throw new ArgumentNullException(nameof(result));
@@ -238,7 +238,7 @@ namespace KOTORModSync.Core.Services.Validation
 	public class ActionableStep
 	{
 		public ActionType ActionType { get; set; }
-		public Component Component { get; set; }
+		public ModComponent ModComponent { get; set; }
 
 		[NotNull]
 		public string Title { get; set; } = string.Empty;

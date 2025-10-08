@@ -35,7 +35,7 @@ namespace KOTORModSync.Services
 
             try
             {
-				double targetPosition = CalculateControlScrollPosition(scrollViewer, targetControl, offsetFromTop);
+                double targetPosition = CalculateControlScrollPosition(scrollViewer, targetControl, offsetFromTop);
                 await ScrollToPositionSmoothAsync(scrollViewer, targetPosition);
             }
             catch (Exception ex)
@@ -71,7 +71,6 @@ namespace KOTORModSync.Services
                 scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset);
                 await Task.Delay(stepDelayMs);
             }
-
             // Ensure final position is exact
             scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedOffset);
         }
@@ -86,22 +85,20 @@ namespace KOTORModSync.Services
         public static T FindControlRecursive<T>([CanBeNull] Control parent, [NotNull] Func<T, bool> predicate) where T : Control
         {
             if (parent == null)
-			    return null;
+                return null;
 
             // Check if this is the target control
             if (parent is T targetControl && predicate(targetControl))
             {
                 return targetControl;
             }
-
-			// Search children
-			IEnumerable<Control> children = parent.GetVisualChildren().OfType<Control>();
-            foreach ( Control child in children)
+            // Search children
+            IEnumerable<Control> children = parent.GetVisualChildren().OfType<Control>();
+            foreach (Control child in children)
             {
                 T result = FindControlRecursive(child, predicate);
                 if (result != null) return result;
             }
-
             return null;
         }
 
@@ -172,13 +169,11 @@ namespace KOTORModSync.Services
                 {
                     await NavigateToTabAsync(tabItem, navigationWaitMs);
                 }
-
                 // 2. Expand section if specified
                 if (expander != null)
                 {
                     await ExpandAndWaitAsync(expander, expandWaitMs);
                 }
-
                 // 3. Scroll to target
                 if (scrollViewer != null)
                 {
@@ -218,7 +213,6 @@ namespace KOTORModSync.Services
         #endregion
 
         #region Private Methods
-
         /// <summary>
         /// Calculates the scroll position needed to bring a control into view.
         /// </summary>
@@ -230,15 +224,13 @@ namespace KOTORModSync.Services
         {
             try
             {
-				// Get the position of the target control relative to the scroll viewer
-				Matrix? transform = targetControl.TransformToVisual(scrollViewer);
+                // Get the position of the target control relative to the scroll viewer
+                Matrix? transform = targetControl.TransformToVisual(scrollViewer);
                 if (transform == null) return 0;
-
-				// Calculate the target position using the transform matrix
-				Point targetPoint = transform.Value.Transform(new Point(0, 0));
-				Size targetSize = targetControl.Bounds.Size;
+                // Calculate the target position using the transform matrix
+                Point targetPoint = transform.Value.Transform(new Point(0, 0));
+                Size targetSize = targetControl.Bounds.Size;
                 var targetBounds = new Rect(targetPoint, targetSize);
-
                 // Calculate the desired scroll position
                 double targetY = targetBounds.Y;
                 //double viewportHeight = scrollViewer.Viewport.Height;
@@ -280,20 +272,18 @@ namespace KOTORModSync.Services
                 // 1. Measure actual UI elements before the target section
                 if (parentGrid != null && targetSectionExpander != null)
                 {
-					Avalonia.Controls.Controls children = parentGrid.Children;
-
-                    foreach ( Control child in children)
+                    Avalonia.Controls.Controls children = parentGrid.Children;
+                    foreach (Control child in children)
                     {
                         // Stop when we reach the target section
                         if (child == targetSectionExpander)
                         {
                             break;
                         }
-
                         // Add the actual measured height of each element before the target section
                         if (child is Control control && control.IsVisible)
                         {
-							Rect bounds = control.Bounds;
+                            Rect bounds = control.Bounds;
                             if (bounds.Height > 0)
                             {
                                 baseOffset += bounds.Height + control.Margin.Top + control.Margin.Bottom;
@@ -304,8 +294,8 @@ namespace KOTORModSync.Services
                     // 2. Dynamically measure the expander header height
                     if (targetSectionExpander.IsVisible)
                     {
-						// Try to find the header presenter to get actual header height
-						Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
+                        // Try to find the header presenter to get actual header height
+                        Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
                             c => c.Name == "PART_Header" || c.GetType().Name.Contains("Header"));
 
                         if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
@@ -402,7 +392,7 @@ namespace KOTORModSync.Services
                 {
                     bool foundTarget = false;
 
-                    foreach ( Control child in parentGrid.Children )
+                    foreach (Control child in parentGrid.Children)
                     {
                         // Check if this is the target section
                         if (child == targetSectionExpander)
@@ -412,7 +402,7 @@ namespace KOTORModSync.Services
                             // Dynamically measure the target section's header
                             if (targetSectionExpander.IsVisible)
                             {
-								Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
+                                Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
                                     c => c.Name == "PART_Header" || c.GetType().Name.Contains("Header"));
 
                                 if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
@@ -433,7 +423,7 @@ namespace KOTORModSync.Services
                             if (expander.IsVisible)
                             {
                                 // Measure header height
-								Control headerPresenter = FindControlRecursive<Control>(expander,
+                                Control headerPresenter = FindControlRecursive<Control>(expander,
                                     c => c.Name == "PART_Header" || c.GetType().Name.Contains("Header"));
 
                                 if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
@@ -448,7 +438,7 @@ namespace KOTORModSync.Services
                                 // If expanded, add content height
                                 if (expander.IsExpanded)
                                 {
-									Control contentPresenter = FindControlRecursive<Control>(expander,
+                                    Control contentPresenter = FindControlRecursive<Control>(expander,
                                         c => c.Name == "PART_Content" || c.GetType().Name.Contains("Content"));
 
                                     if (contentPresenter != null && contentPresenter.Bounds.Height > 0)
@@ -483,7 +473,7 @@ namespace KOTORModSync.Services
                 if (itemsRepeater != null)
                 {
                     var existingItems = itemsRepeater.GetVisualChildren().OfType<Control>().ToList();
-                    if (existingItems.Count != 0 )
+                    if (existingItems.Count != 0)
                     {
                         var measuredHeights = existingItems
                             .Where(item => item.Bounds.Height > 0)

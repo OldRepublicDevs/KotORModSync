@@ -93,21 +93,21 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
 			// Arrange
-			List<Component> originalComponents = Component.ReadComponentsFromFile(modifiedFilePath);
+			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
 
 			// Act
-			Component.OutputConfigFile(originalComponents, modifiedFilePath);
+			ModComponent.OutputConfigFile(originalComponents, modifiedFilePath);
 
 			// Reload the modified TOMLIN file
-			List<Component> loadedComponents = Component.ReadComponentsFromFile(modifiedFilePath);
+			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
 
 			// Assert
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
 			{
-				Component originalComponent = originalComponents[i];
-				Component loadedComponent = loadedComponents[i];
+				ModComponent originalComponent = originalComponents[i];
+				ModComponent loadedComponent = loadedComponents[i];
 
 				AssertComponentEquality(loadedComponent, originalComponent);
 			}
@@ -117,7 +117,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoad_DefaultComponent()
 		{
 			// Deserialize default component
-			Component newComponent = Component.DeserializeTomlComponent(_exampleToml)
+			ModComponent newComponent = ModComponent.DeserializeTomlComponent(_exampleToml)
 				?? throw new InvalidOperationException();
 			newComponent.Guid = Guid.NewGuid();
 			newComponent.Name = "test_mod_" + Path.GetRandomFileName();
@@ -126,7 +126,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 			string tomlString = newComponent.SerializeComponent();
 
 			// Deserialize into new instance
-			Component duplicateComponent = Component.DeserializeTomlComponent(tomlString)
+			ModComponent duplicateComponent = ModComponent.DeserializeTomlComponent(tomlString)
 				?? throw new InvalidOperationException();
 
 			// Compare
@@ -138,7 +138,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoadTOMLFile_CaseInsensitive()
 		{
 			// Arrange
-			List<Component> originalComponents = Component.ReadComponentsFromFile(_filePath);
+			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
 			// Modify the TOML file contents
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
@@ -151,15 +151,15 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 			string modifiedFilePath = Path.GetTempFileName();
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
-			List<Component> loadedComponents = Component.ReadComponentsFromFile(modifiedFilePath);
+			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
 
 			// Assert
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
 			{
-				Component originalComponent = originalComponents[i];
-				Component loadedComponent = loadedComponents[i];
+				ModComponent originalComponent = originalComponents[i];
+				ModComponent loadedComponent = loadedComponents[i];
 
 				AssertComponentEquality(originalComponent, loadedComponent);
 			}
@@ -169,7 +169,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoadTOMLFile_WhitespaceTests()
 		{
 			// Arrange
-			List<Component> originalComponents = Component.ReadComponentsFromFile(_filePath);
+			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
 			// Modify the TOMLIN file contents
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
@@ -183,15 +183,15 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
 			// Act
-			List<Component> loadedComponents = Component.ReadComponentsFromFile(modifiedFilePath);
+			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
 
 			// Assert
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
 			{
-				Component originalComponent = originalComponents[i];
-				Component loadedComponent = loadedComponents[i];
+				ModComponent originalComponent = originalComponents[i];
+				ModComponent loadedComponent = loadedComponents[i];
 
 				AssertComponentEquality(originalComponent, loadedComponent);
 			}
@@ -248,13 +248,13 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		{
 			// Arrange
 			// ReSharper disable once CollectionNeverUpdated.Local
-			List<Component> originalComponents = [];
+			List<ModComponent> originalComponents = [];
 			// Act
-			Component.OutputConfigFile(originalComponents, _filePath);
+			ModComponent.OutputConfigFile(originalComponents, _filePath);
 
 			try
 			{
-				List<Component> loadedComponents = Component.ReadComponentsFromFile(_filePath);
+				List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
 				// Assert
 				Assert.That(loadedComponents, Is.Null.Or.Empty);
@@ -266,33 +266,33 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoadTOMLFile_DuplicateGuids()
 		{
 			// Arrange
-			List<Component> originalComponents =
+			List<ModComponent> originalComponents =
 			[
-				new Component
+				new ModComponent
 				{
-					Name = "Component 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
+					Name = "ModComponent 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
 				},
-				new Component
+				new ModComponent
 				{
-					Name = "Component 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
+					Name = "ModComponent 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
 				},
-				new Component
+				new ModComponent
 				{
-					Name = "Component 3", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
+					Name = "ModComponent 3", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
 				},
 			];
 
 			// Act
-			Component.OutputConfigFile(originalComponents, _filePath);
-			List<Component> loadedComponents = Component.ReadComponentsFromFile(_filePath);
+			ModComponent.OutputConfigFile(originalComponents, _filePath);
+			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
 			// Assert
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
 			{
-				Component originalComponent = originalComponents[i];
-				Component loadedComponent = loadedComponents[i];
+				ModComponent originalComponent = originalComponents[i];
+				ModComponent loadedComponent = loadedComponents[i];
 
 				AssertComponentEquality(originalComponent, loadedComponent);
 			}
@@ -302,22 +302,22 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoadTOMLFile_ModifyComponents()
 		{
 			// Arrange
-			List<Component> originalComponents = Component.ReadComponentsFromFile(_filePath);
+			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
 			// Modify some component properties
 			originalComponents[0].Name = "Modified Name";
 
 			// Act
-			Component.OutputConfigFile(originalComponents, _filePath);
-			List<Component> loadedComponents = Component.ReadComponentsFromFile(_filePath);
+			ModComponent.OutputConfigFile(originalComponents, _filePath);
+			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
 			// Assert
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
 			{
-				Component originalComponent = originalComponents[i];
-				Component loadedComponent = loadedComponents[i];
+				ModComponent originalComponent = originalComponents[i];
+				ModComponent loadedComponent = loadedComponents[i];
 
 				AssertComponentEquality(loadedComponent, originalComponent);
 			}
@@ -327,63 +327,63 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoadTOMLFile_MultipleRounds()
 		{
 			// Arrange
-			List<List<Component>> rounds =
+			List<List<ModComponent>> rounds =
 			[
 				[
-					new Component
+					new ModComponent
 					{
-						Name = "Component 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
+						Name = "ModComponent 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
 					},
-					new Component
+					new ModComponent
 					{
-						Name = "Component 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
-					},
-				],
-				[
-					new Component
-					{
-						Name = "Component 3", Guid = Guid.Parse("{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}"),
-					},
-					new Component
-					{
-						Name = "Component 4", Guid = Guid.Parse("{E7B27A19-9A81-4A20-B062-7D00F2603D5C}"),
-					},
-					new Component
-					{
-						Name = "Component 5", Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
+						Name = "ModComponent 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
 					},
 				],
 				[
-					new Component
+					new ModComponent
 					{
-						Name = "Component 6", Guid = Guid.Parse("{EF04A28E-5031-4A95-A85A-9A1B29A31710}"),
+						Name = "ModComponent 3", Guid = Guid.Parse("{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}"),
 					},
-					new Component
+					new ModComponent
 					{
-						Name = "Component 7", Guid = Guid.Parse("{B0373F49-ED5A-43A1-91E0-5CEB85659282}"),
+						Name = "ModComponent 4", Guid = Guid.Parse("{E7B27A19-9A81-4A20-B062-7D00F2603D5C}"),
 					},
-					new Component
+					new ModComponent
 					{
-						Name = "Component 8", Guid = Guid.Parse("{BBDB9C8D-DA44-4859-A641-0364D6F34D12}"),
+						Name = "ModComponent 5", Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
 					},
-					new Component
+				],
+				[
+					new ModComponent
 					{
-						Name = "Component 9", Guid = Guid.Parse("{D6B5C60F-26A7-4595-A0E2-2DE567A376DE}"),
+						Name = "ModComponent 6", Guid = Guid.Parse("{EF04A28E-5031-4A95-A85A-9A1B29A31710}"),
+					},
+					new ModComponent
+					{
+						Name = "ModComponent 7", Guid = Guid.Parse("{B0373F49-ED5A-43A1-91E0-5CEB85659282}"),
+					},
+					new ModComponent
+					{
+						Name = "ModComponent 8", Guid = Guid.Parse("{BBDB9C8D-DA44-4859-A641-0364D6F34D12}"),
+					},
+					new ModComponent
+					{
+						Name = "ModComponent 9", Guid = Guid.Parse("{D6B5C60F-26A7-4595-A0E2-2DE567A376DE}"),
 					},
 				],
 			];
 			// Act and Assert
-			foreach ( List<Component> components in rounds )
+			foreach ( List<ModComponent> components in rounds )
 			{
-				Component.OutputConfigFile(components, _filePath);
-				List<Component> loadedComponents = Component.ReadComponentsFromFile(_filePath);
+				ModComponent.OutputConfigFile(components, _filePath);
+				List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
 				Assert.That(loadedComponents, Has.Count.EqualTo(components.Count));
 
 				for ( int i = 0; i < components.Count; i++ )
 				{
-					Component originalComponent = components[i];
-					Component loadedComponent = loadedComponents[i];
+					ModComponent originalComponent = components[i];
+					ModComponent loadedComponent = loadedComponents[i];
 
 					AssertComponentEquality(originalComponent, loadedComponent);
 				}
@@ -441,14 +441,14 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				return;
 
 			// If comparing Components, normalize instruction GUIDs before comparing
-			if ( obj is Component comp1 && another is Component comp2 )
+			if ( obj is ModComponent comp1 && another is ModComponent comp2 )
 			{
 				// Create deep copies to avoid modifying the originals
 				string json1 = JsonConvert.SerializeObject(comp1);
 				string json2 = JsonConvert.SerializeObject(comp2);
 
-				Component copy1 = JsonConvert.DeserializeObject<Component>(json1)!;
-				Component copy2 = JsonConvert.DeserializeObject<Component>(json2)!;
+				ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
+				ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
 
 				// Normalize instruction GUIDs - set ALL instruction GUIDs to a fixed value
 				// We can't use Guid.Empty because the Instruction.Guid property auto-generates a new GUID when accessed if empty

@@ -75,9 +75,9 @@ namespace KOTORModSync
 		public static IBrush ModListItemHoverBackgroundBrush => GetBrush("ModListItem.HoverBackgroundBrush", new SolidColorBrush(Color.FromRgb(2, 2, 40)));
 		public static IBrush ModListItemDefaultBackgroundBrush => GetBrush("ModListItem.DefaultBackgroundBrush", new SolidColorBrush(Color.FromRgb(1, 1, 22)));
 
-		// Component Dependency/Restriction Brushes
-		public static IBrush ComponentDependencyBrush => GetBrush("Component.DependencyBrush", new SolidColorBrush(Color.FromRgb(76, 175, 80)));
-		public static IBrush ComponentRestrictionBrush => GetBrush("Component.RestrictionBrush", new SolidColorBrush(Color.FromRgb(244, 67, 54)));
+		// ModComponent Dependency/Restriction Brushes
+		public static IBrush ComponentDependencyBrush => GetBrush("ModComponent.DependencyBrush", new SolidColorBrush(Color.FromRgb(76, 175, 80)));
+		public static IBrush ComponentRestrictionBrush => GetBrush("ModComponent.RestrictionBrush", new SolidColorBrush(Color.FromRgb(244, 67, 54)));
 
 		// Validation Dialog Brushes
 		public static IBrush ValidationSolutionBrush => GetBrush("Validation.SolutionBrush", new SolidColorBrush(Color.FromRgb(168, 179, 72)));

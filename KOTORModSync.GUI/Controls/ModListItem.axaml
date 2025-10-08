@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:KOTORModSync.Converters"
     xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
-    x:DataType="core:Component">
+    x:DataType="core:ModComponent">
 
     <UserControl.Resources>
         <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
@@ -33,113 +33,152 @@
             Classes="mod-list-item"
             CornerRadius="4">
 
-            <!--  Two-row layout: row 0 = main info, row 1 = badges aligned under columns  -->
-            <Grid RowDefinitions="Auto,Auto">
-                <!--  Row 0: main info across 5 columns  -->
-                <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+            <Grid>
+                <!--  Main mod info (always visible)  -->
+                <Grid x:Name="MainModInfo" RowDefinitions="Auto,Auto">
+                    <!--  Row 0: main info across 5 columns  -->
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
 
-                    <!--  Checkbox  -->
-                    <CheckBox
-                        x:Name="ComponentCheckBox"
-                        Grid.Column="0"
-                        Margin="0,2,8,0"
-                        VerticalAlignment="Top"
-                        IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                        Tag="{Binding}"
-                        ToolTip.Tip="Select this mod for installation" />
-
-                    <!--  Index Number (Editor Mode Only)  -->
-                    <TextBlock
-                        x:Name="IndexTextBlock"
-                        Grid.Column="1"
-                        Margin="0,2,8,0"
-                        VerticalAlignment="Top"
-                        Classes="secondary-text"
-                        FontSize="12"
-                        FontWeight="Bold"
-                        IsVisible="False" />
-
-                    <!--  Download Status Icon - Removed  -->
-
-                    <!--  Name occupies the large cell (can visually use some left space)  -->
-                    <TextBlock
-                        Grid.Column="2"
-                        Margin="0,0,0,0"
-                        FontSize="14"
-                        FontWeight="SemiBold"
-                        Text="{Binding Name}"
-                        TextTrimming="CharacterEllipsis"
-                        TextWrapping="NoWrap" />
-
-                    <!--  Validation Status Icon  -->
-                    <TextBlock
-                        x:Name="ValidationIcon"
-                        Grid.Column="3"
-                        Margin="8,0,8,0"
-                        VerticalAlignment="Top"
-                        FontSize="14"
-                        IsVisible="False" />
-
-                    <!--  Drag Handle (Editor Mode Only)  -->
-                    <TextBlock
-                        x:Name="DragHandle"
-                        Grid.Column="4"
-                        VerticalAlignment="Center"
-                        Classes="mod-list-item-drag-handle"
-                        Cursor="Hand"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        IsVisible="False"
-                        Text="⋮⋮"
-                        ToolTip.Tip="Drag to reorder" />
-                </Grid>
-
-                <!--  Row 1: badges area exactly under the name column, split 50/50 and touching in the middle  -->
-                <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-                    <Grid Grid.Column="2" ColumnDefinitions="*,*">
-                        <!--  Category (left half)  -->
-                        <Border
-                            x:Name="CategoryBadge"
+                        <!--  Checkbox  -->
+                        <CheckBox
+                            x:Name="ComponentCheckBox"
                             Grid.Column="0"
-                            Margin="0,0,6,0"
-                            Padding="6,2"
-                            HorizontalAlignment="Stretch"
-                            Classes="mod-list-item-badge category-badge"
-                            CornerRadius="6"
-                            IsVisible="{Binding Category, Converter={StaticResource ListToVisibilityConverter}}">
-                            <TextBlock
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="10"
-                                FontWeight="Medium"
-                                Text="{Binding Category, Converter={StaticResource CategoryListDisplayConverter}}"
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap"
-                                ToolTip.Tip="{Binding Category, Converter={StaticResource CategoryTooltipConverter}}" />
-                        </Border>
+                            Margin="0,2,8,0"
+                            VerticalAlignment="Top"
+                            IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                            Tag="{Binding}"
+                            ToolTip.Tip="Select this mod for installation" />
 
-                        <!--  Tier (right half)  -->
-                        <Border
-                            x:Name="TierBadge"
+                        <!--  Index Number (Editor Mode Only)  -->
+                        <TextBlock
+                            x:Name="IndexTextBlock"
                             Grid.Column="1"
-                            Margin="6,0,0,0"
-                            Padding="6,2"
-                            HorizontalAlignment="Stretch"
-                            Classes="mod-list-item-badge tier-badge"
-                            CornerRadius="6"
-                            IsVisible="{Binding Tier, Converter={StaticResource StringNotEmptyConverter}}">
-                            <TextBlock
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="10"
-                                FontWeight="Medium"
-                                Text="{Binding Tier}"
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap"
-                                ToolTip.Tip="{Binding Tier, Converter={StaticResource TierTooltipConverter}}" />
-                        </Border>
+                            Margin="0,2,8,0"
+                            VerticalAlignment="Top"
+                            Classes="secondary-text"
+                            FontSize="12"
+                            FontWeight="Bold"
+                            IsVisible="False" />
+
+                        <!--  Name occupies the large cell (can visually use some left space)  -->
+                        <TextBlock
+                            Grid.Column="2"
+                            Margin="0,0,0,0"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Text="{Binding Name}"
+                            TextTrimming="CharacterEllipsis"
+                            TextWrapping="NoWrap" />
+
+                        <!--  Validation Status Icon  -->
+                        <TextBlock
+                            x:Name="ValidationIcon"
+                            Grid.Column="3"
+                            Margin="8,0,8,0"
+                            VerticalAlignment="Top"
+                            FontSize="14"
+                            IsVisible="False" />
+
+                        <!--  Drag Handle (Editor Mode Only)  -->
+                        <TextBlock
+                            x:Name="DragHandle"
+                            Grid.Column="4"
+                            VerticalAlignment="Center"
+                            Classes="mod-list-item-drag-handle"
+                            Cursor="Hand"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            IsVisible="False"
+                            Text="⋮⋮"
+                            ToolTip.Tip="Drag to reorder" />
+                    </Grid>
+
+                    <!--  Row 1: badges area exactly under the name column, split 50/50 and touching in the middle  -->
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                        <Grid Grid.Column="2" ColumnDefinitions="*,*">
+                            <!--  Category (left half)  -->
+                            <Border
+                                x:Name="CategoryBadge"
+                                Grid.Column="0"
+                                Margin="0,0,6,0"
+                                Padding="6,2"
+                                HorizontalAlignment="Stretch"
+                                Classes="mod-list-item-badge category-badge"
+                                CornerRadius="6"
+                                IsVisible="{Binding Category, Converter={StaticResource ListToVisibilityConverter}}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontSize="10"
+                                    FontWeight="Medium"
+                                    Text="{Binding Category, Converter={StaticResource CategoryListDisplayConverter}}"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap"
+                                    ToolTip.Tip="{Binding Category, Converter={StaticResource CategoryTooltipConverter}}" />
+                            </Border>
+
+                            <!--  Tier (right half)  -->
+                            <Border
+                                x:Name="TierBadge"
+                                Grid.Column="1"
+                                Margin="6,0,0,0"
+                                Padding="6,2"
+                                HorizontalAlignment="Stretch"
+                                Classes="mod-list-item-badge tier-badge"
+                                CornerRadius="6"
+                                IsVisible="{Binding Tier, Converter={StaticResource StringNotEmptyConverter}}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontSize="10"
+                                    FontWeight="Medium"
+                                    Text="{Binding Tier}"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap"
+                                    ToolTip.Tip="{Binding Tier, Converter={StaticResource TierTooltipConverter}}" />
+                            </Border>
+                        </Grid>
                     </Grid>
                 </Grid>
+
+                <!--  Options Content (only visible when options exist)  -->
+                <ItemsControl
+                    x:Name="OptionsContainer"
+                    Margin="0,4,0,0"
+                    ItemsSource="{Binding Options}"
+                    IsVisible="{Binding Options, Converter={StaticResource ListToVisibilityConverter}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Margin="0,2"
+                                Padding="8,4"
+                                BorderThickness="1"
+                                CornerRadius="3">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <CheckBox
+                                        Grid.Column="0"
+                                        Margin="0,0,8,0"
+                                        VerticalAlignment="Center"
+                                        IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                        ToolTip.Tip="Select this option" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="12"
+                                            FontWeight="Medium"
+                                            Text="{Binding Name}"
+                                            TextWrapping="Wrap" />
+                                        <TextBlock
+                                            FontSize="11"
+                                            IsVisible="{Binding Description, Converter={StaticResource StringNotEmptyConverter}}"
+                                            Opacity="0.8"
+                                            Text="{Binding Description}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </Grid>
         </Border>
     </Grid>

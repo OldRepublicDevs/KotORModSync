@@ -256,7 +256,7 @@ namespace KOTORModSync.Controls
                 return false;
 
 			// Basic extension validation - should start with a dot and contain only valid characters
-			if ( !extension.StartsWith('.') )
+			if ( extension.ToCharArray()[0] != '.' )
                 return false;
 
             // Check for valid extension characters (letters, numbers, some special chars)

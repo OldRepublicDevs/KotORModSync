@@ -17,11 +17,11 @@ namespace KOTORModSync.Converters
 		{
 			try
 			{
-				if ( !(values[0] is List<Guid> guids) || !(values[1] is List<Component> componentsList) )
+				if ( !(values[0] is List<Guid> guids) || !(values[1] is List<ModComponent> componentsList) )
 					return null;
 
 				var selectedComponentNames = (from cGuid in guids
-											  let foundComponent = Component.FindComponentFromGuid(cGuid, componentsList)
+											  let foundComponent = ModComponent.FindComponentFromGuid(cGuid, componentsList)
 											  select !(foundComponent is null)
 												  ? foundComponent.Name
 												  : cGuid.ToString()).ToList();

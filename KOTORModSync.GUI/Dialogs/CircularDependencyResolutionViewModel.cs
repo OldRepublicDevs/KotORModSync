@@ -11,7 +11,8 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using Avalonia.Media;
 using JetBrains.Annotations;
-using Component = KOTORModSync.Core.Component;
+using KOTORModSync.Core.Services;
+using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Dialogs
 {
@@ -37,7 +38,7 @@ namespace KOTORModSync.Dialogs
 		}
 
 		public CircularDependencyResolutionViewModel(
-			List<Component> components,
+			List<ModComponent> components,
 			CircularDependencyDetector.CircularDependencyResult cycleInfo)
 		{
 			Components = new ObservableCollection<ComponentItem>();
@@ -58,12 +59,12 @@ namespace KOTORModSync.Dialogs
 			{
 				foreach ( Guid guid in cycle )
 				{
-					componentsInCycles.Add(guid);
+					_ = componentsInCycles.Add(guid);
 				}
 			}
 
 			// Build component items
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				bool isInCycle = componentsInCycles.Contains(component.Guid);
 				var item = new ComponentItem(component, isInCycle);
@@ -72,12 +73,12 @@ namespace KOTORModSync.Dialogs
 			}
 
 			// Build suggestions
-			List<Component> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
-			foreach ( Component suggestion in suggestedComponents )
+			List<ModComponent> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
+			foreach ( ModComponent suggestion in suggestedComponents )
 			{
 				Suggestions.Add(new SuggestionItem
 				{
-					Component = suggestion,
+					ModComponent = suggestion,
 					Text = $"❌ Uncheck: {suggestion.Name}" +
 						   (!string.IsNullOrWhiteSpace(suggestion.Author) ? $" by {suggestion.Author}" : "")
 				});
@@ -115,7 +116,7 @@ namespace KOTORModSync.Dialogs
 			if ( !(parameter is SuggestionItem suggestion) )
 				return;
 
-			ComponentItem componentItem = Components.FirstOrDefault(c => c.Component == suggestion.Component);
+			ComponentItem componentItem = Components.FirstOrDefault(c => c.ModComponent == suggestion.ModComponent);
 			if ( componentItem != null )
 			{
 				componentItem.IsSelected = false;
@@ -135,9 +136,9 @@ namespace KOTORModSync.Dialogs
 	{
 		private bool _isSelected;
 
-		public Component Component { get; }
-		public string Name => Component.Name;
-		public string Author => Component.Author;
+		public ModComponent ModComponent { get; }
+		public string Name => ModComponent.Name;
+		public string Author => ModComponent.Author;
 		public bool IsInCycle { get; }
 		public string CycleInfo { get; }
 		public IBrush CycleInfoColor { get; }
@@ -157,9 +158,9 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		public ComponentItem(Component component, bool isInCycle)
+		public ComponentItem(ModComponent component, bool isInCycle)
 		{
-			Component = component;
+			ModComponent = component;
 			_isSelected = component.IsSelected;
 			IsInCycle = isInCycle;
 
@@ -192,7 +193,7 @@ namespace KOTORModSync.Dialogs
 
 	public class SuggestionItem
 	{
-		public Component Component { get; set; }
+		public ModComponent ModComponent { get; set; }
 		public string Text { get; set; }
 	}
 }

@@ -18,14 +18,14 @@ namespace KOTORModSync
 	{
 		private readonly Window _parentWindow;
 		private readonly ModManagementService _modManagementService;
-		private readonly Func<List<Component>> _getComponents;
-		private readonly Action<List<Component>> _updateComponents;
+		private readonly Func<List<ModComponent>> _getComponents;
+		private readonly Action<List<ModComponent>> _updateComponents;
 
 		public ModManagementDialogService(
 			Window parentWindow,
 			ModManagementService modManagementService,
-			Func<List<Component>> getComponents,
-			Action<List<Component>> updateComponents)
+			Func<List<ModComponent>> getComponents,
+			Action<List<ModComponent>> updateComponents)
 		{
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 			_modManagementService = modManagementService ?? throw new ArgumentNullException(nameof(modManagementService));
@@ -96,10 +96,10 @@ namespace KOTORModSync
 		public async Task<bool?> ShowConfirmationDialog(string message, string yesButtonText = "Yes", string noButtonText = "No")
 			=> await ConfirmationDialog.ShowConfirmationDialog(_parentWindow, message);
 
-		public IReadOnlyList<Component> GetComponents()
-			=> _getComponents()?.AsReadOnly() ?? new List<Component>().AsReadOnly();
+		public IReadOnlyList<ModComponent> GetComponents()
+			=> _getComponents()?.AsReadOnly() ?? new List<ModComponent>().AsReadOnly();
 
-		public void UpdateComponents(List<Component> components)
+		public void UpdateComponents(List<ModComponent> components)
 			=> _updateComponents(components);
 
 		public void RefreshStatistics()

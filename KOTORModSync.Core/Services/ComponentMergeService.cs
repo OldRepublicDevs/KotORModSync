@@ -31,8 +31,8 @@ namespace KOTORModSync.Core.Services
 		/// <param name="strategy">Merge strategy to use</param>
 		/// <param name="options">Heuristics options for name-based merging (ignored for GUID-based)</param>
 		public static void MergeInto(
-			[NotNull] List<Component> existing,
-			[NotNull] List<Component> incoming,
+			[NotNull] List<ModComponent> existing,
+			[NotNull] List<ModComponent> incoming,
 			MergeStrategy strategy,
 			[CanBeNull] MergeHeuristicsOptions options = null)
 		{
@@ -58,17 +58,17 @@ namespace KOTORModSync.Core.Services
 		/// GUID-based merging: matches components by their GUID and updates existing ones,
 		/// preserving the order of the incoming list
 		/// </summary>
-		private static void MergeByGuid([NotNull] List<Component> existing, [NotNull] List<Component> incoming)
+		private static void MergeByGuid([NotNull] List<ModComponent> existing, [NotNull] List<ModComponent> incoming)
 		{
 			// Create a dictionary for fast GUID lookup
 			var existingByGuid = existing.ToDictionary(c => c.Guid, c => c);
 			var matchedExisting = new HashSet<Guid>();
-			var result = new List<Component>();
+			var result = new List<ModComponent>();
 
 			// Process incoming list in order, preserving its sequence
-			foreach ( Component incomingComponent in incoming )
+			foreach ( ModComponent incomingComponent in incoming )
 			{
-				if ( existingByGuid.TryGetValue(incomingComponent.Guid, out Component existingComponent) )
+				if ( existingByGuid.TryGetValue(incomingComponent.Guid, out ModComponent existingComponent) )
 				{
 					// Update existing component with new data and add to result
 					UpdateComponentByGuid(existingComponent, incomingComponent);
@@ -85,7 +85,7 @@ namespace KOTORModSync.Core.Services
 
 			// Add any existing components that weren't in the incoming list
 			// These maintain their relative order from the original existing list
-			foreach ( Component existingComponent in existing )
+			foreach ( ModComponent existingComponent in existing )
 			{
 				if ( !matchedExisting.Contains(existingComponent.Guid) )
 				{
@@ -105,9 +105,9 @@ namespace KOTORModSync.Core.Services
 		/// based on its position relative to matched components
 		/// </summary>
 		private static int FindInsertionPoint(
-			[NotNull] List<Component> result,
-			[NotNull] Component componentToInsert,
-			[NotNull] List<Component> originalExisting)
+			[NotNull] List<ModComponent> result,
+			[NotNull] ModComponent componentToInsert,
+			[NotNull] List<ModComponent> originalExisting)
 		{
 			// Find components before and after this one in the original existing list
 			int originalIndex = originalExisting.IndexOf(componentToInsert);
@@ -116,7 +116,7 @@ namespace KOTORModSync.Core.Services
 			// Look for the nearest matched component after this one in the original list
 			for ( int i = originalIndex + 1; i < originalExisting.Count; i++ )
 			{
-				Component afterComponent = originalExisting[i];
+				ModComponent afterComponent = originalExisting[i];
 				int afterIndexInResult = result.FindIndex(c => c.Guid == afterComponent.Guid);
 				if ( afterIndexInResult >= 0 )
 				{
@@ -132,7 +132,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Updates an existing component with data from an incoming component (GUID-based merge)
 		/// </summary>
-		private static void UpdateComponentByGuid([NotNull] Component target, [NotNull] Component source)
+		private static void UpdateComponentByGuid([NotNull] ModComponent target, [NotNull] ModComponent source)
 		{
 			// Update all properties from source, but preserve the target's GUID
 			Guid originalGuid = target.Guid;

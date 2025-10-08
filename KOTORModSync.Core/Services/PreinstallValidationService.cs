@@ -148,19 +148,19 @@ namespace KOTORModSync.Core.Services
 
 				await Logger.LogAsync("Validating individual components, this might take a while...");
 				bool individuallyValidated = true;
-				var failedComponents = new List<Component>();
-				foreach ( Component component in MainConfig.AllComponents )
+				var failedComponents = new List<ModComponent>();
+				foreach ( ModComponent component in MainConfig.AllComponents )
 				{
 					if ( !component.IsSelected )
 						continue;
 
 					if ( component.Restrictions.Count > 0 && component.IsSelected )
 					{
-						List<Component> restrictedComponentsList = Component.FindComponentsFromGuidList(
+						List<ModComponent> restrictedComponentsList = ModComponent.FindComponentsFromGuidList(
 							component.Restrictions,
 							MainConfig.AllComponents
 						);
-						foreach ( Component restrictedComponent in restrictedComponentsList )
+						foreach ( ModComponent restrictedComponent in restrictedComponentsList )
 						{
 							// ReSharper disable once InvertIf
 							if ( restrictedComponent?.IsSelected == true )
@@ -173,8 +173,8 @@ namespace KOTORModSync.Core.Services
 
 					if ( component.Dependencies.Count > 0 && component.IsSelected )
 					{
-						List<Component> dependencyComponentsList = Component.FindComponentsFromGuidList(component.Dependencies, MainConfig.AllComponents);
-						foreach ( Component dependencyComponent in dependencyComponentsList )
+						List<ModComponent> dependencyComponentsList = ModComponent.FindComponentsFromGuidList(component.Dependencies, MainConfig.AllComponents);
+						foreach ( ModComponent dependencyComponent in dependencyComponentsList )
 						{
 							// ReSharper disable once InvertIf
 							if ( dependencyComponent?.IsSelected != true )
@@ -271,7 +271,7 @@ namespace KOTORModSync.Core.Services
 						await Logger.LogErrorAsync($"[{issue.Category}] {issue.Message}");
 						if ( issue.AffectedComponent != null )
 						{
-							await Logger.LogErrorAsync($"  Component: {issue.AffectedComponent.Name}");
+							await Logger.LogErrorAsync($"  ModComponent: {issue.AffectedComponent.Name}");
 						}
 						if ( issue.InstructionIndex > 0 )
 						{
@@ -340,7 +340,7 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="components">The list of components to check.</param>
 		/// <returns>True if no duplicates found, false otherwise.</returns>
-		private static async Task<bool> FindDuplicateComponents([NotNull][ItemNotNull] List<Component> components)
+		private static async Task<bool> FindDuplicateComponents([NotNull][ItemNotNull] List<ModComponent> components)
 		{
 			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
@@ -349,14 +349,14 @@ namespace KOTORModSync.Core.Services
 			{
 				// Check for duplicate GUIDs
 				var guidGroups = components.GroupBy(c => c.Guid).Where(g => g.Count() > 1).ToList();
-				foreach ( IGrouping<Guid, Component> group in guidGroups )
+				foreach ( IGrouping<Guid, ModComponent> group in guidGroups )
 				{
 					await Logger.LogErrorAsync($"Duplicate GUID found: {group.Key} in components: {string.Join(", ", group.Select(c => c.Name))}");
 				}
 
 				// Check for duplicate names (case-insensitive)
 				var nameGroups = components.GroupBy(c => c.Name.ToLowerInvariant()).Where(g => g.Count() > 1).ToList();
-				foreach ( IGrouping<string, Component> group in nameGroups )
+				foreach ( IGrouping<string, ModComponent> group in nameGroups )
 				{
 					await Logger.LogErrorAsync($"Duplicate component name found: '{group.Key}' in components: {string.Join(", ", group.Select(c => c.Name))}");
 				}

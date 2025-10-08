@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.FileSystemUtils
 {

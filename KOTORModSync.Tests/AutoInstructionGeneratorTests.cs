@@ -2,6 +2,7 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // See LICENSE.txt file in the project root for full license information.
 
+using System.Diagnostics;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using SharpCompress.Archives.Zip;
@@ -24,7 +25,7 @@ namespace KOTORModSync.Tests
 		public void SetUp()
 		{
 			_testDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_AutoInstructionTests_" + Guid.NewGuid());
-			_ = Directory.CreateDirectory(_testDirectory);
+			Directory.CreateDirectory(_testDirectory);
 			_createdArchives = new List<string>();
 
 			// Initialize MainConfig for the tests
@@ -53,6 +54,7 @@ namespace KOTORModSync.Tests
 
 		private string CreateFlatArchive(string archiveName, params string[] fileNames)
 		{
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, archiveName);
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -72,12 +74,13 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			_createdArchives.Add(archivePath);
+			_createdArchives?.Add(archivePath);
 			return archivePath;
 		}
 
 		private string CreateSingleFolderArchive(string archiveName, string folderName, params string[] fileNames)
 		{
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, archiveName);
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -98,12 +101,13 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			_createdArchives.Add(archivePath);
+			_createdArchives?.Add(archivePath);
 			return archivePath;
 		}
 
 		private string CreateMultiFolderArchive(string archiveName, Dictionary<string, string[]> foldersWithFiles)
 		{
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, archiveName);
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -130,12 +134,13 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			_createdArchives.Add(archivePath);
+			_createdArchives?.Add(archivePath);
 			return archivePath;
 		}
 
 		private string CreateTslPatcherArchive(string archiveName, bool includeNamespacesIni, bool includeChangesIni)
 		{
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, archiveName);
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -191,7 +196,7 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			_createdArchives.Add(archivePath);
+			_createdArchives?.Add(archivePath);
 			return archivePath;
 		}
 
@@ -204,7 +209,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateFlatArchive("FlatMod.zip", "file1.2da", "file2.tga", "file3.tpc");
-			var component = new Component { Name = "FlatMod", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "FlatMod", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -234,7 +239,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateFlatArchive("NoGameFiles.zip", "readme.txt", "install.bat");
-			var component = new Component { Name = "NoGameFiles", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "NoGameFiles", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -253,7 +258,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateSingleFolderArchive("SingleFolder.zip", "Override", "file1.2da", "file2.tga");
-			var component = new Component { Name = "SingleFolder", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "SingleFolder", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -282,7 +287,7 @@ namespace KOTORModSync.Tests
 				{ "Option_B", new[] { "file1.2da", "file2.tga" } }
 			};
 			string archivePath = CreateMultiFolderArchive("MultiOption.zip", folders);
-			var component = new Component { Name = "MultiOption", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "MultiOption", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -326,7 +331,7 @@ namespace KOTORModSync.Tests
 				{ "Version3", new[] { "appearance.2da" } }
 			};
 			string archivePath = CreateMultiFolderArchive("ThreeVersions.zip", folders);
-			var component = new Component { Name = "ThreeVersions", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "ThreeVersions", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -351,7 +356,7 @@ namespace KOTORModSync.Tests
 				{ "AlsoGameFiles", new[] { "file2.tga" } }
 			};
 			string archivePath = CreateMultiFolderArchive("MixedFolders.zip", folders);
-			var component = new Component { Name = "MixedFolders", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "MixedFolders", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -373,7 +378,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateTslPatcherArchive("SimplePatcher.zip", includeNamespacesIni: false, includeChangesIni: true);
-			var component = new Component { Name = "SimplePatcher", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "SimplePatcher", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -398,7 +403,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateTslPatcherArchive("NamespacesPatcher.zip", includeNamespacesIni: true, includeChangesIni: true);
-			var component = new Component { Name = "NamespacesPatcher", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "NamespacesPatcher", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -444,8 +449,9 @@ namespace KOTORModSync.Tests
 		public void GenerateInstructions_NonExistentArchive_ReturnsFalse()
 		{
 			// Arrange
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, "NonExistent.zip");
-			var component = new Component { Name = "NonExistent", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "NonExistent", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -470,7 +476,7 @@ namespace KOTORModSync.Tests
 		public void GenerateInstructions_NullArchivePath_ThrowsArgumentException()
 		{
 			// Arrange
-			var component = new Component { Name = "Test", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "Test", Guid = Guid.NewGuid() };
 
 			// Act & Assert
 			Assert.Throws<ArgumentException>(() =>
@@ -482,7 +488,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateFlatArchive("ReplaceTest.zip", "file.2da");
-			var component = new Component { Name = "ReplaceTest", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "ReplaceTest", Guid = Guid.NewGuid() };
 
 			// Add existing instruction
 			var existingInstruction = new Instruction { Action = Instruction.ActionType.Move };
@@ -515,7 +521,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateFlatArchive($"Test_{Path.GetExtension(fileName)}.zip", fileName);
-			var component = new Component { Name = "Test", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "Test", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -539,7 +545,7 @@ namespace KOTORModSync.Tests
 				{ "OptionB", new[] { "file2.2da" } }
 			};
 			string archivePath = CreateMultiFolderArchive("GuidTest.zip", folders);
-			var component = new Component { Name = "GuidTest", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "GuidTest", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -569,7 +575,7 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			string archivePath = CreateFlatArchive("PathTest.zip", "file.2da");
-			var component = new Component { Name = "PathTest", Guid = Guid.NewGuid() };
+			var component = new ModComponent { Name = "PathTest", Guid = Guid.NewGuid() };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -604,7 +610,7 @@ namespace KOTORModSync.Tests
 					{ "Textures", new[] { "test.tga", "test2.tpc" } }
 				});
 
-			var component = new Component { Name = "HybridMod" };
+			var component = new ModComponent { Name = "HybridMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -645,7 +651,7 @@ namespace KOTORModSync.Tests
 					{ "Textures_SD", new[] { "test.tga" } }
 				});
 
-			var component = new Component { Name = "HybridMod" };
+			var component = new ModComponent { Name = "HybridMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -686,7 +692,7 @@ namespace KOTORModSync.Tests
 					{ "Bonus", new[] { "bonus.2da" } }
 				});
 
-			var component = new Component { Name = "ComplexHybridMod" };
+			var component = new ModComponent { Name = "ComplexHybridMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -716,7 +722,7 @@ namespace KOTORModSync.Tests
 				hasTslPatcher: true,
 				flatFiles: new[] { "appearance.2da", "dialog.tlk" });
 
-			var component = new Component { Name = "HybridFlatMod" };
+			var component = new ModComponent { Name = "HybridFlatMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -745,7 +751,7 @@ namespace KOTORModSync.Tests
 					{ "Override", new[] { "test.2da" } }
 				});
 
-			var component = new Component { Name = "NestedPatcherMod" };
+			var component = new ModComponent { Name = "NestedPatcherMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -766,7 +772,7 @@ namespace KOTORModSync.Tests
 			// Arrange: Archive with tslpatchdata folder (with game files) and Override folder (with game files)
 			string archivePath = CreateComplexHybridArchive("hybrid_complex.zip");
 
-			var component = new Component { Name = "ComplexMod" };
+			var component = new ModComponent { Name = "ComplexMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -795,6 +801,7 @@ namespace KOTORModSync.Tests
 		public void GenerateInstructions_EmptyArchive_ReturnsFalse()
 		{
 			// Arrange: Archive with no files
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, "empty.zip");
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -804,7 +811,7 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			var component = new Component { Name = "EmptyMod" };
+			var component = new ModComponent { Name = "EmptyMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -821,7 +828,7 @@ namespace KOTORModSync.Tests
 			string archivePath = CreateFlatArchive("non_game_files.zip",
 				"readme.txt", "license.pdf", "info.doc");
 
-			var component = new Component { Name = "NonGameMod" };
+			var component = new ModComponent { Name = "NonGameMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -838,7 +845,7 @@ namespace KOTORModSync.Tests
 			string archivePath = CreateFlatArchive("mixed_files.zip",
 				"appearance.2da", "readme.txt", "dialog.tlk", "license.pdf");
 
-			var component = new Component { Name = "MixedMod" };
+			var component = new ModComponent { Name = "MixedMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -853,6 +860,7 @@ namespace KOTORModSync.Tests
 		public void GenerateInstructions_DeeplyNestedFiles_UsesTopLevelFolder()
 		{
 			// Arrange: Archive with deeply nested structure
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, "nested.zip");
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -869,7 +877,7 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			var component = new Component { Name = "NestedMod" };
+			var component = new ModComponent { Name = "NestedMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -895,7 +903,7 @@ namespace KOTORModSync.Tests
 			};
 			string archivePath = CreateMultiFolderArchive("four_folders.zip", folders);
 
-			var component = new Component { Name = "FourVersionMod" };
+			var component = new ModComponent { Name = "FourVersionMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -918,6 +926,7 @@ namespace KOTORModSync.Tests
 		public void GenerateInstructions_CaseInsensitiveTslPatchData_DetectsTslPatcher()
 		{
 			// Arrange: Archive with case variations (TSLPatchData, tslpatchdata, TsLpAtChDaTa)
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, "case_test.zip");
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -942,7 +951,7 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			var component = new Component { Name = "CaseTestMod" };
+			var component = new ModComponent { Name = "CaseTestMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -968,7 +977,7 @@ namespace KOTORModSync.Tests
 			var fileNames = extensions.Select(ext => $"testfile{ext}").ToArray();
 			string archivePath = CreateFlatArchive("all_extensions.zip", fileNames);
 
-			var component = new Component { Name = "AllExtensionsMod" };
+			var component = new ModComponent { Name = "AllExtensionsMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -990,7 +999,7 @@ namespace KOTORModSync.Tests
 			};
 			string archivePath = CreateMultiFolderArchive("mixed_folder_types.zip", folders);
 
-			var component = new Component { Name = "MixedFolderMod" };
+			var component = new ModComponent { Name = "MixedFolderMod" };
 
 			// Act
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
@@ -1012,6 +1021,7 @@ namespace KOTORModSync.Tests
 		private string CreateHybridArchive(string archiveName, bool hasTslPatcher, bool hasNamespacesIni,
 			Dictionary<string, string[]>? overrideFolders = null, string? patcherInSubfolder = null)
 		{
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, archiveName);
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -1075,13 +1085,14 @@ namespace KOTORModSync.Tests
 					archive.SaveTo(fileStream, new WriterOptions(CompressionType.Deflate));
 				}
 			}
-
-			_createdArchives.Add(archivePath);
+			Debug.Assert(_testDirectory != null);
+			_createdArchives?.Add(archivePath);
 			return archivePath;
 		}
 
 		private string CreateHybridArchiveWithFlatFiles(string archiveName, bool hasTslPatcher, string[] flatFiles)
 		{
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, archiveName);
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -1120,12 +1131,13 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			_createdArchives.Add(archivePath);
+			_createdArchives?.Add(archivePath);
 			return archivePath;
 		}
 
 		private string CreateComplexHybridArchive(string archiveName)
 		{
+			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, archiveName);
 			using ( var archive = ZipArchive.Create() )
 			{
@@ -1166,7 +1178,7 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			_createdArchives.Add(archivePath);
+			_createdArchives?.Add(archivePath);
 			return archivePath;
 		}
 

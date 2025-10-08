@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="clr-namespace:KOTORModSync.Controls"
     xmlns:converters="clr-namespace:KOTORModSync.Converters"
-    Title="Component Merge Conflicts"
+    Title="ModComponent Merge Conflicts"
     Width="1400"
     Height="800"
     ExtendClientAreaChromeHints="NoChrome"
@@ -57,7 +57,7 @@
                 Margin="0,0,0,8"
                 FontSize="20"
                 FontWeight="Bold"
-                Text="Component Merge Resolution" />
+                Text="ModComponent Merge Resolution" />
             <TextBlock
                 Margin="0,0,0,8"
                 Text="{Binding ConflictDescription}"

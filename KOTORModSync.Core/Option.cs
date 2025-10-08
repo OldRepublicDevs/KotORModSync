@@ -4,5 +4,5 @@
 
 namespace KOTORModSync.Core
 {
-	public sealed class Option : Component { }
+	public sealed class Option : ModComponent { }
 }

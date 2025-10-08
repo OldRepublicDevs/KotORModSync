@@ -26,7 +26,7 @@ using Tomlyn.Syntax;
 
 namespace KOTORModSync.Core
 {
-	public class Component : INotifyPropertyChanged
+	public class ModComponent : INotifyPropertyChanged
 	{
 		public enum InstallExitCode
 		{
@@ -702,7 +702,7 @@ namespace KOTORModSync.Core
 		}
 
 		public static void OutputConfigFile(
-			[ItemNotNull][NotNull] IEnumerable<Component> components,
+			[ItemNotNull][NotNull] IEnumerable<ModComponent> components,
 			[NotNull] string filePath
 		)
 		{
@@ -713,7 +713,7 @@ namespace KOTORModSync.Core
 
 			var stringBuilder = new StringBuilder();
 
-			foreach ( Component thisComponent in components )
+			foreach ( ModComponent thisComponent in components )
 			{
 				_ = stringBuilder.AppendLine(thisComponent.SerializeComponent());
 			}
@@ -725,7 +725,7 @@ namespace KOTORModSync.Core
 		}
 
 		[NotNull]
-		public static string GenerateModDocumentation([NotNull][ItemNotNull] List<Component> componentsList)
+		public static string GenerateModDocumentation([NotNull][ItemNotNull] List<ModComponent> componentsList)
 		{
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
@@ -734,11 +734,11 @@ namespace KOTORModSync.Core
 			const string indentation = "    ";
 
 			// Loop through each 'thisMod' entry
-			foreach ( Component component in componentsList )
+			foreach ( ModComponent component in componentsList )
 			{
 				_ = sb.AppendLine();
 
-				// Component Information
+				// ModComponent Information
 				_ = sb.Append("####**").Append(component.Name).AppendLine("**");
 				_ = sb.Append("**Author**: ").AppendLine(component.Author);
 				_ = sb.AppendLine();
@@ -800,7 +800,7 @@ namespace KOTORModSync.Core
 		[NotNull]
 		private ObservableCollection<Instruction> DeserializeInstructions(
 			[CanBeNull][ItemCanBeNull] IList<object> instructionsSerializedList,
-			Component thisComponent
+			ModComponent thisComponent
 		)
 		{
 			if ( instructionsSerializedList.IsNullOrEmptyCollection() )
@@ -1084,7 +1084,7 @@ namespace KOTORModSync.Core
 		}
 
 		[CanBeNull]
-		public static Component DeserializeTomlComponent([NotNull] string tomlString)
+		public static ModComponent DeserializeTomlComponent([NotNull] string tomlString)
 		{
 			if ( tomlString is null )
 				throw new ArgumentNullException(nameof(tomlString));
@@ -1108,7 +1108,7 @@ namespace KOTORModSync.Core
 				return null;
 			}
 
-			// Get the array of Component tables
+			// Get the array of ModComponent tables
 			TomlTable tomlTable = tomlDocument.ToModel();
 
 			IList<TomlTable> componentTableThing = new List<TomlTable>();
@@ -1122,8 +1122,8 @@ namespace KOTORModSync.Core
 					break;
 			}
 
-			// Deserialize each IDictionary<string, object> into a Component object
-			var component = new Component();
+			// Deserialize each IDictionary<string, object> into a ModComponent object
+			var component = new ModComponent();
 			foreach ( TomlTable tomlComponent in componentTableThing )
 			{
 				if ( tomlComponent is IDictionary<string, object> componentDict )
@@ -1135,7 +1135,7 @@ namespace KOTORModSync.Core
 
 		[NotNull]
 		[ItemNotNull]
-		public static List<Component> ReadComponentsFromFile([NotNull] string filePath)
+		public static List<ModComponent> ReadComponentsFromFile([NotNull] string filePath)
 		{
 			if ( filePath is null )
 				throw new ArgumentNullException(nameof(filePath));
@@ -1177,18 +1177,18 @@ namespace KOTORModSync.Core
 
 				TomlTable tomlTable = tomlDocument.ToModel();
 
-				// Get the array of Component tables
+				// Get the array of ModComponent tables
 				var componentTables = (IList<TomlTable>)tomlTable[key: "thisMod"];
 
-				// Deserialize each IDictionary<string, object> into a Component object
-				var components = new List<Component>();
+				// Deserialize each IDictionary<string, object> into a ModComponent object
+				var components = new List<ModComponent>();
 
 				foreach ( TomlTable tomlComponent in componentTables )
 				{
 					if ( tomlComponent is null )
 						continue;
 
-					var thisComponent = new Component();
+					var thisComponent = new ModComponent();
 					thisComponent.DeserializeComponent(tomlComponent);
 
 					components.Add(thisComponent);
@@ -1223,7 +1223,54 @@ namespace KOTORModSync.Core
 				if ( MainConfig.SourcePath == null || !MainConfig.SourcePath.Exists )
 					return false;
 
-				// Get all archives that might match the first mod link
+				// Get the first mod link (which should be the filename or URL)
+				string firstModLink = ModLink[0];
+				if ( string.IsNullOrWhiteSpace(firstModLink) )
+					return false;
+
+				// Extract search terms from the ModLink
+				// For URLs, use the last path segment; for local paths, use the filename
+				string searchTerm;
+				if ( firstModLink.Contains("://") )
+				{
+					// It's a URL - extract the last meaningful part
+					Uri uri = new Uri(firstModLink);
+					string lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/') ?? string.Empty;
+
+					// Remove common numeric prefixes like "2473-" from deadlystream URLs
+					if ( !string.IsNullOrEmpty(lastSegment) && lastSegment.Contains('-') )
+					{
+						// Try to strip leading numbers and hyphen (e.g., "2473-mod-name" -> "mod-name")
+						var match = System.Text.RegularExpressions.Regex.Match(lastSegment, @"^\d+-(.+)$");
+						searchTerm = match.Success ? match.Groups[1].Value : lastSegment;
+					}
+					else
+					{
+						searchTerm = lastSegment;
+					}
+
+					// Remove file extension if present
+					if ( Path.HasExtension(searchTerm) )
+					{
+						searchTerm = Path.GetFileNameWithoutExtension(searchTerm);
+					}
+				}
+				else
+				{
+					// It's a local path - strip extension if present
+					string fileName = Path.GetFileName(firstModLink);
+					searchTerm = Path.HasExtension(fileName) ? Path.GetFileNameWithoutExtension(fileName) : fileName;
+				}
+
+				if ( string.IsNullOrWhiteSpace(searchTerm) )
+				{
+					// Fallback to component name if we can't extract anything useful
+					searchTerm = Name;
+				}
+
+				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Searching for archive matching '{searchTerm}'");
+
+				// Get all archives in the mod directory
 				string[] archiveExtensions = { "*.zip", "*.rar", "*.7z", "*.exe" };
 				var allArchives = archiveExtensions
 					.SelectMany(ext => MainConfig.SourcePath.GetFiles(ext, SearchOption.TopDirectoryOnly))
@@ -1231,26 +1278,54 @@ namespace KOTORModSync.Core
 					.ToList();
 
 				if ( allArchives.Count == 0 )
+				{
+					Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': No archives found in directory");
 					return false;
+				}
 
-				// Try to find an archive that matches the component name
+				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Found {allArchives.Count} archives to check");
+
+				// Try to find an archive that matches the search term
+				string searchTermLower = searchTerm.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
 				FileInfo matchingArchive = allArchives
 					.OrderByDescending(f =>
 					{
-						// Prefer files that contain the component name
-						string nameWithoutExt = Path.GetFileNameWithoutExtension(Name);
 						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
-						return fileWithoutExt.IndexOf(nameWithoutExt, StringComparison.OrdinalIgnoreCase) >= 0 ||
-							   nameWithoutExt.IndexOf(fileWithoutExt, StringComparison.OrdinalIgnoreCase) >= 0
-							? 2
-							: 0;
-					})
-					.ThenByDescending(f => f.LastWriteTime) // Most recent file
-					.FirstOrDefault();
+						string fileNameNormalized = fileWithoutExt.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
 
-				return matchingArchive != null &&
-					   // Generate instructions using the AutoInstructionGenerator
-					   Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
+						// Exact match (after normalization)
+						if ( fileNameNormalized.Equals(searchTermLower) )
+							return 100;
+
+						// File contains search term
+						if ( fileNameNormalized.Contains(searchTermLower) )
+							return 50;
+
+						// Search term contains file name
+						if ( searchTermLower.Contains(fileNameNormalized) )
+							return 25;
+
+						return 0;
+					})
+					.ThenByDescending(f => f.LastWriteTime)
+					.FirstOrDefault(f =>
+					{
+						// Only return matches with score > 0
+						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
+						string fileNameNormalized = fileWithoutExt.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
+						return fileNameNormalized.Contains(searchTermLower) || searchTermLower.Contains(fileNameNormalized);
+					});
+
+				if ( matchingArchive == null )
+				{
+					Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': No matching archive found for '{searchTerm}'");
+					return false;
+				}
+
+				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Selected archive '{matchingArchive.Name}'");
+
+				// Generate instructions using the AutoInstructionGenerator
+				return Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
 			}
 			catch ( Exception ex )
 			{
@@ -1263,7 +1338,7 @@ namespace KOTORModSync.Core
 		/// Installs this component using real file system operations.
 		/// This wraps ExecuteInstructionsAsync and adds checkpoint/state management.
 		/// </summary>
-		public async Task<InstallExitCode> InstallAsync([NotNull] List<Component> componentsList, CancellationToken cancellationToken)
+		public async Task<InstallExitCode> InstallAsync([NotNull] List<ModComponent> componentsList, CancellationToken cancellationToken)
 		{
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
@@ -1346,9 +1421,9 @@ namespace KOTORModSync.Core
 		/// This method is COMPLETELY agnostic to whether it's dry-run or real - it just uses the provider.
 		/// NO dry-run checks allowed in this method.
 		/// </summary>
-		internal async Task<InstallExitCode> ExecuteInstructionsAsync(
+		public async Task<InstallExitCode> ExecuteInstructionsAsync(
 			[NotNull][ItemNotNull] ObservableCollection<Instruction> theseInstructions,
-			[NotNull][ItemNotNull] List<Component> componentsList,
+			[NotNull][ItemNotNull] List<ModComponent> componentsList,
 			CancellationToken cancellationToken,
 			[NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider
 		)
@@ -1522,15 +1597,15 @@ namespace KOTORModSync.Core
 				    bool checksumsMatch = await validator.ValidateChecksumsAsync();
 				    if (!checksumsMatch)
 				    {
-				        _ = Logger.LogWarningAsync($"Component '{this.Name}' instruction #{instructionIndex} '{instruction.Action}' succeeded but modified files have unexpected checksums.");
+				        _ = Logger.LogWarningAsync($"ModComponent '{this.Name}' instruction #{instructionIndex} '{instruction.Action}' succeeded but modified files have unexpected checksums.");
 				        return (InstallExitCode.ValidationPostInstallMismatch, preinstallChecksums);
 				    }
 
-				    _ = Logger.LogVerboseAsync($"Component '{this.Name}' instruction #{instructionIndex} '{instruction.Action}': The modified files have expected checksums.");
+				    _ = Logger.LogVerboseAsync($"ModComponent '{this.Name}' instruction #{instructionIndex} '{instruction.Action}': The modified files have expected checksums.");
 				}
 				else
 				{
-				    _ = Logger.LogAsync($"Component '{this.Name}' instruction #{instructionIndex} '{instruction.Action}' ran, saving the new checksums as expected.");
+				    _ = Logger.LogAsync($"ModComponent '{this.Name}' instruction #{instructionIndex} '{instruction.Action}' ran, saving the new checksums as expected.");
 				    var newChecksums = new Dictionary<FileInfo, System.Security.Cryptography.SHA1>();
 				    foreach (FileInfo file in MainConfig.DestinationPath.GetFilesSafely("*.*", SearchOption.AllDirectories))
 				    {
@@ -1546,10 +1621,10 @@ namespace KOTORModSync.Core
 		}
 
 		[NotNull]
-		public static Dictionary<string, List<Component>> GetConflictingComponents(
+		public static Dictionary<string, List<ModComponent>> GetConflictingComponents(
 			[NotNull] List<Guid> dependencyGuids,
 			[NotNull] List<Guid> restrictionGuids,
-			[NotNull][ItemNotNull] List<Component> componentsList
+			[NotNull][ItemNotNull] List<ModComponent> componentsList
 		)
 		{
 			if ( dependencyGuids is null )
@@ -1559,22 +1634,22 @@ namespace KOTORModSync.Core
 			if ( componentsList == null )
 				throw new ArgumentNullException(nameof(componentsList));
 
-			var conflicts = new Dictionary<string, List<Component>>();
+			var conflicts = new Dictionary<string, List<ModComponent>>();
 			if ( dependencyGuids.Count > 0 )
 			{
-				var dependencyConflicts = new List<Component>();
+				var dependencyConflicts = new List<ModComponent>();
 
 				foreach ( Guid requiredGuid in dependencyGuids )
 				{
-					Component checkComponent = FindComponentFromGuid(requiredGuid, componentsList);
+					ModComponent checkComponent = FindComponentFromGuid(requiredGuid, componentsList);
 					if ( checkComponent == null )
 					{
 						// sometimes a component will be defined later by a user and all they have defined is a guid.
 						// this hacky solution will support that syntax.
 						// Only needed for 'dependencies' not 'restrictions'.
-						var componentGuidNotFound = new Component
+						var componentGuidNotFound = new ModComponent
 						{
-							Name = "Component Undefined with GUID.",
+							Name = "ModComponent Undefined with GUID.",
 							Guid = requiredGuid,
 						};
 						dependencyConflicts.Add(componentGuidNotFound);
@@ -1609,12 +1684,12 @@ namespace KOTORModSync.Core
 		//The component has no dependencies or restrictions.
 		//The component has dependencies, and all of the required components are being installed.
 		//The component has restrictions, but none of the restricted components are being installed.
-		public bool ShouldInstallComponent([NotNull][ItemNotNull] List<Component> componentsList)
+		public bool ShouldInstallComponent([NotNull][ItemNotNull] List<ModComponent> componentsList)
 		{
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
 
-			Dictionary<string, List<Component>> conflicts = GetConflictingComponents(
+			Dictionary<string, List<ModComponent>> conflicts = GetConflictingComponents(
 				Dependencies,
 				Restrictions,
 				componentsList
@@ -1628,7 +1703,7 @@ namespace KOTORModSync.Core
 		//The instruction has restrictions, but none of the restricted components are being installed.
 		public static bool ShouldRunInstruction(
 			[NotNull] Instruction instruction,
-			[NotNull] List<Component> componentsList
+			[NotNull] List<ModComponent> componentsList
 		)
 		{
 			if ( instruction is null )
@@ -1636,7 +1711,7 @@ namespace KOTORModSync.Core
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
 
-			Dictionary<string, List<Component>> conflicts = GetConflictingComponents(
+			Dictionary<string, List<ModComponent>> conflicts = GetConflictingComponents(
 				instruction.Dependencies,
 				instruction.Restrictions,
 				componentsList
@@ -1645,16 +1720,16 @@ namespace KOTORModSync.Core
 		}
 
 		[CanBeNull]
-		public static Component FindComponentFromGuid(
+		public static ModComponent FindComponentFromGuid(
 			Guid guidToFind,
-			[NotNull][ItemNotNull] List<Component> componentsList
+			[NotNull][ItemNotNull] List<ModComponent> componentsList
 		)
 		{
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
 
-			Component foundComponent = null;
-			foreach ( Component component in componentsList )
+			ModComponent foundComponent = null;
+			foreach ( ModComponent component in componentsList )
 			{
 				if ( component.Guid == guidToFind )
 				{
@@ -1679,9 +1754,9 @@ namespace KOTORModSync.Core
 		}
 
 		[NotNull]
-		public static List<Component> FindComponentsFromGuidList(
+		public static List<ModComponent> FindComponentsFromGuidList(
 			[NotNull] List<Guid> guidsToFind,
-			[NotNull] List<Component> componentsList
+			[NotNull] List<ModComponent> componentsList
 		)
 		{
 			if ( guidsToFind is null )
@@ -1689,10 +1764,10 @@ namespace KOTORModSync.Core
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
 
-			var foundComponents = new List<Component>();
+			var foundComponents = new List<ModComponent>();
 			foreach ( Guid guidToFind in guidsToFind )
 			{
-				Component foundComponent = FindComponentFromGuid(guidToFind, componentsList);
+				ModComponent foundComponent = FindComponentFromGuid(guidToFind, componentsList);
 				if ( foundComponent is null )
 					continue;
 
@@ -1702,8 +1777,8 @@ namespace KOTORModSync.Core
 			return foundComponents;
 		}
 
-		public static (bool isCorrectOrder, List<Component> reorderedComponents) ConfirmComponentsInstallOrder(
-			[NotNull][ItemNotNull] List<Component> components
+		public static (bool isCorrectOrder, List<ModComponent> reorderedComponents) ConfirmComponentsInstallOrder(
+			[NotNull][ItemNotNull] List<ModComponent> components
 		)
 		{
 			if ( components is null )
@@ -1729,7 +1804,7 @@ namespace KOTORModSync.Core
 
 			// No cycles found, proceed with topological sort
 			var visitedNodes = new HashSet<GraphNode>();
-			var orderedComponents = new List<Component>();
+			var orderedComponents = new List<ModComponent>();
 
 			foreach ( GraphNode node in nodeMap.Values )
 			{
@@ -1774,7 +1849,7 @@ namespace KOTORModSync.Core
 		private static void DepthFirstSearch(
 			[NotNull] GraphNode node,
 			[NotNull] ISet<GraphNode> visitedNodes,
-			[NotNull] ICollection<Component> orderedComponents
+			[NotNull] ICollection<ModComponent> orderedComponents
 		)
 		{
 			if ( node is null )
@@ -1794,11 +1869,11 @@ namespace KOTORModSync.Core
 				DepthFirstSearch(dependency, visitedNodes, orderedComponents);
 			}
 
-			orderedComponents.Add(node.Component);
+			orderedComponents.Add(node.ModComponent);
 		}
 
 		private static Dictionary<Guid, GraphNode> CreateDependencyGraph(
-			[NotNull][ItemNotNull] List<Component> components
+			[NotNull][ItemNotNull] List<ModComponent> components
 		)
 		{
 			if ( components is null )
@@ -1806,13 +1881,13 @@ namespace KOTORModSync.Core
 
 			var nodeMap = new Dictionary<Guid, GraphNode>();
 
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				var node = new GraphNode(component);
 				nodeMap[component.Guid] = node;
 			}
 
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				GraphNode node = nodeMap[component.Guid];
 
@@ -1821,7 +1896,7 @@ namespace KOTORModSync.Core
 					if ( !nodeMap.TryGetValue(dependencyGuid, out GraphNode dependencyNode) )
 					{
 						// Skip missing dependencies - they're not in the current component list
-						Logger.LogWarning($"Component '{component.Name}' references InstallAfter GUID {dependencyGuid} which is not in the current component list");
+						Logger.LogWarning($"ModComponent '{component.Name}' references InstallAfter GUID {dependencyGuid} which is not in the current component list");
 						continue;
 					}
 					_ = node?.Dependencies?.Add(dependencyNode);
@@ -1832,7 +1907,7 @@ namespace KOTORModSync.Core
 					if ( !nodeMap.TryGetValue(dependentGuid, out GraphNode dependentNode) )
 					{
 						// Skip missing dependencies - they're not in the current component list
-						Logger.LogWarning($"Component '{component.Name}' references InstallBefore GUID {dependentGuid} which is not in the current component list");
+						Logger.LogWarning($"ModComponent '{component.Name}' references InstallBefore GUID {dependentGuid} which is not in the current component list");
 						continue;
 					}
 					_ = dependentNode?.Dependencies?.Add(node);
@@ -1936,13 +2011,13 @@ namespace KOTORModSync.Core
 
 		public class GraphNode
 		{
-			public GraphNode([CanBeNull] Component component)
+			public GraphNode([CanBeNull] ModComponent component)
 			{
-				Component = component;
+				ModComponent = component;
 				Dependencies = new HashSet<GraphNode>();
 			}
 
-			public Component Component { get; }
+			public ModComponent ModComponent { get; }
 			public HashSet<GraphNode> Dependencies { get; }
 		}
 	}

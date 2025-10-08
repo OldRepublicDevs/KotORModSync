@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
@@ -91,11 +90,11 @@ namespace KOTORModSync.Core
 		public static bool ArchiveDeepCheck { get; private set; }
 		public bool archiveDeepCheck { get => ArchiveDeepCheck; set => ArchiveDeepCheck = value; }
 
-		[NotNull][ItemNotNull] public static List<Component> AllComponents { get; set; } = new List<Component>();
+		[NotNull][ItemNotNull] public static List<ModComponent> AllComponents { get; set; } = new List<ModComponent>();
 
 		[NotNull]
 		[ItemNotNull]
-		public List<Component> allComponents
+		public List<ModComponent> allComponents
 		{
 			get => AllComponents;
 			set => AllComponents = value ?? throw new ArgumentNullException(nameof(value));

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace KOTORModSync.Core.Services.Download
@@ -9,6 +10,13 @@ namespace KOTORModSync.Core.Services.Download
 	{
 		private readonly List<IDownloadHandler> _handlers;
 		private const double Tolerance = 0.01;
+		private static readonly SemaphoreSlim _deadlyStreamConcurrencyLimiter = new SemaphoreSlim(5, 5); // Max 5 concurrent downloads
+
+		// Per-download log throttling: track last log time and last status for each URL
+		private readonly Dictionary<string, DateTime> _lastProgressLogTime = new Dictionary<string, DateTime>();
+		private readonly Dictionary<string, DownloadStatus> _lastLoggedStatus = new Dictionary<string, DownloadStatus>();
+		private readonly object _logThrottleLock = new object();
+		private const int LogThrottleSeconds = 30;
 
 		public DownloadManager(IEnumerable<IDownloadHandler> handlers)
 		{
@@ -23,42 +31,93 @@ namespace KOTORModSync.Core.Services.Download
 		public async Task<List<DownloadResult>> DownloadAllWithProgressAsync(
 				Dictionary<string, DownloadProgress> urlToProgressMap,
 				string destinationDirectory,
-				System.Threading.CancellationToken cancellationToken = default)
+				IProgress<DownloadProgress> progressReporter = null,
+				CancellationToken cancellationToken = default)
 		{
 			var urlList = urlToProgressMap.Keys.ToList();
-			await Logger.LogVerboseAsync($"[DownloadManager] Starting batch download with progress reporting for {urlList.Count} URLs");
+			await Logger.LogVerboseAsync($"[DownloadManager] Starting concurrent batch download with progress reporting for {urlList.Count} URLs");
 			await Logger.LogVerboseAsync($"[DownloadManager] Destination directory: {destinationDirectory}");
+			await Logger.LogVerboseAsync($"[DownloadManager] Concurrency limit: 5 concurrent DeadlyStream downloads (other handlers unlimited)");
+
+			// Log every single URL being processed
+			await Logger.LogVerboseAsync($"[DownloadManager] URLs to download:");
+			foreach (var kvp in urlToProgressMap)
+			{
+				await Logger.LogVerboseAsync($"[DownloadManager]   URL: {kvp.Key}");
+				await Logger.LogVerboseAsync($"[DownloadManager]     Mod: {kvp.Value.ModName}");
+				await Logger.LogVerboseAsync($"[DownloadManager]     Status: {kvp.Value.Status}");
+				await Logger.LogVerboseAsync($"[DownloadManager]     Progress: {kvp.Value.ProgressPercentage}%");
+			}
 
 			var results = new List<DownloadResult>();
-			int successCount = 0;
-			int failCount = 0;
+			var tasks = new List<Task<DownloadResult>>();
 
-			for ( int i = 0; i < urlList.Count; i++ )
+			// Create tasks for all downloads with concurrency limiting
+			foreach ( string url in urlList )
 			{
-				// Check for cancellation
-				if ( cancellationToken.IsCancellationRequested )
-				{
-					await Logger.LogVerboseAsync("[DownloadManager] Download cancelled by user");
-					break;
-				}
-
-				string url = urlList[i];
 				DownloadProgress progressItem = urlToProgressMap[url];
-				await Logger.LogVerboseAsync($"[DownloadManager] Processing URL {i + 1}/{urlList.Count}: {url}");
+				await Logger.LogVerboseAsync($"[DownloadManager] Creating download task for URL: {url}, Mod: {progressItem.ModName}");
+				tasks.Add(DownloadSingleWithConcurrencyLimit(url, progressItem, destinationDirectory, progressReporter, cancellationToken));
+			}
 
-				IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
-				if ( handler == null )
-				{
-					await Logger.LogErrorAsync($"[DownloadManager] No handler configured for URL: {url}");
-					progressItem.Status = DownloadStatus.Failed;
-					progressItem.ErrorMessage = "No handler configured for this URL";
-					results.Add(DownloadResult.Failed("No handler configured for URL: " + url));
-					failCount++;
-					continue;
-				}
+			// Wait for all downloads to complete
+			DownloadResult[] downloadResults = await Task.WhenAll(tasks).ConfigureAwait(false);
+			results.AddRange(downloadResults);
 
-				await Logger.LogVerboseAsync($"[DownloadManager] Using handler: {handler.GetType().Name} for URL: {url}");
-				progressItem.AddLog($"Using handler: {handler.GetType().Name}");
+			int successCount = results.Count(r => r.Success);
+			int failCount = results.Count(r => !r.Success);
+
+			await Logger.LogVerboseAsync($"[DownloadManager] Concurrent batch download completed. Success: {successCount}, Failed: {failCount}");
+			return results;
+		}
+
+		private async Task<DownloadResult> DownloadSingleWithConcurrencyLimit(
+			string url,
+			DownloadProgress progressItem,
+			string destinationDirectory,
+			IProgress<DownloadProgress> progressReporter,
+			CancellationToken cancellationToken)
+		{
+			// Check for cancellation
+			if ( cancellationToken.IsCancellationRequested )
+			{
+				await Logger.LogVerboseAsync("[DownloadManager] Download cancelled by user");
+				progressItem.Status = DownloadStatus.Failed;
+				progressItem.ErrorMessage = "Download cancelled by user";
+				return DownloadResult.Failed("Download cancelled by user");
+			}
+
+			IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
+			if ( handler == null )
+			{
+				await Logger.LogErrorAsync($"[DownloadManager] No handler configured for URL: {url}");
+				progressItem.Status = DownloadStatus.Failed;
+				progressItem.ErrorMessage = "No handler configured for this URL";
+				return DownloadResult.Failed("No handler configured for URL: " + url);
+			}
+
+			await Logger.LogVerboseAsync($"[DownloadManager] Using handler: {handler.GetType().Name} for URL: {url}");
+			progressItem.AddLog($"Using handler: {handler.GetType().Name}");
+
+			// Check if this is a DeadlyStream download that needs concurrency limiting
+			bool isDeadlyStream = handler.GetType().Name.Contains("DeadlyStream");
+			bool concurrencyAcquired = false;
+
+			if ( isDeadlyStream )
+			{
+				// Acquire concurrency limiter for DeadlyStream downloads only (max 5 concurrent)
+				await _deadlyStreamConcurrencyLimiter.WaitAsync(cancellationToken);
+				concurrencyAcquired = true;
+				await Logger.LogVerboseAsync($"[DownloadManager] DeadlyStream download - Concurrency: {5 - _deadlyStreamConcurrencyLimiter.CurrentCount}/{5} slots in use");
+			}
+			else
+			{
+				await Logger.LogVerboseAsync($"[DownloadManager] Non-DeadlyStream download - no concurrency limit applied");
+			}
+
+			try
+			{
+				await Logger.LogVerboseAsync($"[DownloadManager] Starting download: {url}");
 
 				// Update status to indicate download is starting
 				progressItem.Status = DownloadStatus.InProgress;
@@ -66,8 +125,46 @@ namespace KOTORModSync.Core.Services.Download
 				progressItem.StartTime = DateTime.Now;
 
 				// Create a progress reporter that updates the DownloadProgress object and logs changes
-				var progressReporter = new Progress<DownloadProgress>(update =>
+				var internalProgressReporter = new Progress<DownloadProgress>(update =>
 				{
+					// Determine if we should log this progress update based on throttling rules
+					bool shouldLog = false;
+					lock ( _logThrottleLock )
+					{
+						DateTime now = DateTime.Now;
+						bool isFirstLog = !_lastProgressLogTime.ContainsKey(url);
+						bool statusChanged = !_lastLoggedStatus.ContainsKey(url) || _lastLoggedStatus[url] != update.Status;
+						bool isTerminalStatus = update.Status == DownloadStatus.Completed ||
+						                        update.Status == DownloadStatus.Failed ||
+						                        update.Status == DownloadStatus.Skipped;
+						bool hasError = !string.IsNullOrEmpty(update.ErrorMessage);
+						bool throttleExpired = !isFirstLog &&
+						                       (now - _lastProgressLogTime[url]).TotalSeconds >= LogThrottleSeconds;
+
+						// Log if: first update, status changed, terminal status, has error, or throttle expired
+						shouldLog = isFirstLog || statusChanged || isTerminalStatus || hasError || throttleExpired;
+
+						if ( shouldLog )
+						{
+							_lastProgressLogTime[url] = now;
+							_lastLoggedStatus[url] = update.Status;
+						}
+					}
+
+					// Only log progress updates when throttle allows it
+					if ( shouldLog )
+					{
+						Logger.LogVerbose($"[DownloadManager] Progress update for URL: {url}");
+						Logger.LogVerbose($"[DownloadManager]   Status: {update.Status}");
+						Logger.LogVerbose($"[DownloadManager]   Progress: {update.ProgressPercentage:F1}%");
+						Logger.LogVerbose($"[DownloadManager]   Bytes: {update.BytesDownloaded}/{update.TotalBytes}");
+						Logger.LogVerbose($"[DownloadManager]   StatusMessage: {update.StatusMessage}");
+						if (!string.IsNullOrEmpty(update.ErrorMessage))
+							Logger.LogVerbose($"[DownloadManager]   Error: {update.ErrorMessage}");
+						if (!string.IsNullOrEmpty(update.FilePath))
+							Logger.LogVerbose($"[DownloadManager]   FilePath: {update.FilePath}");
+					}
+
 					// Log status changes
 					if ( update.Status != DownloadStatus.Pending && !string.IsNullOrEmpty(update.StatusMessage) )
 						progressItem.AddLog($"[{update.Status}] {update.StatusMessage}");
@@ -107,12 +204,15 @@ namespace KOTORModSync.Core.Services.Download
 						progressItem.StartTime = update.StartTime;
 					if ( update.EndTime != null )
 						progressItem.EndTime = update.EndTime;
+
+					// Forward the update to the external progress reporter
+					progressReporter?.Report(progressItem);
 				});
 
 				DownloadResult result;
 				try
 				{
-					result = await handler.DownloadAsync(url, destinationDirectory, progressReporter).ConfigureAwait(false);
+					result = await handler.DownloadAsync(url, destinationDirectory, internalProgressReporter).ConfigureAwait(false);
 				}
 				catch ( Exception ex )
 				{
@@ -131,7 +231,6 @@ namespace KOTORModSync.Core.Services.Download
 
 				if ( result.Success )
 				{
-					successCount++;
 					await Logger.LogVerboseAsync($"[DownloadManager] Successfully downloaded: {result.FilePath}");
 					progressItem.AddLog($"Download completed successfully: {result.FilePath}");
 					if ( result.WasSkipped )
@@ -165,7 +264,6 @@ namespace KOTORModSync.Core.Services.Download
 				}
 				else
 				{
-					failCount++;
 					await Logger.LogErrorAsync($"[DownloadManager] Failed to download URL '{url}': {result.Message}");
 					progressItem.AddLog($"Download failed: {result.Message}");
 
@@ -176,11 +274,24 @@ namespace KOTORModSync.Core.Services.Download
 					progressItem.EndTime = DateTime.Now;
 				}
 
-				results.Add(result);
+				return result;
 			}
+			finally
+			{
+				// Clean up throttling state for this download to prevent memory buildup
+				lock ( _logThrottleLock )
+				{
+					_lastProgressLogTime.Remove(url);
+					_lastLoggedStatus.Remove(url);
+				}
 
-			await Logger.LogVerboseAsync($"[DownloadManager] Batch download completed. Success: {successCount}, Failed: {failCount}");
-			return results;
+				// Only release the concurrency limiter if we acquired it (DeadlyStream downloads only)
+				if ( concurrencyAcquired )
+				{
+					_deadlyStreamConcurrencyLimiter.Release();
+					await Logger.LogVerboseAsync($"[DownloadManager] Released DeadlyStream concurrency slot. Available: {_deadlyStreamConcurrencyLimiter.CurrentCount}/{5}");
+				}
+			}
 		}
 	}
 }

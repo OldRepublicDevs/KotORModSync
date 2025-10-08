@@ -2,11 +2,8 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // See LICENSE.txt file in the project root for full license information.
 
-using System;
-using System.IO;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
-using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {

@@ -2,16 +2,20 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
-using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services.Download
 {
 	public sealed class DeadlyStreamDownloadHandler : IDownloadHandler
 	{
 		private readonly HttpClient _httpClient;
+		private static readonly long _maxBytesPerSecond = 700 * 1024; // 700 KB/s in bytes
+		private static readonly object _rateLimitLock = new object();
+		private static long _lastRateLimitTime = 0;
+		private static long _bytesDownloadedThisSecond = 0;
 
 		public DeadlyStreamDownloadHandler(HttpClient httpClient)
 		{
@@ -52,7 +56,18 @@ namespace KOTORModSync.Core.Services.Download
 				Logger.LogVerbose($"[DeadlyStream] Accept-Language header already present: {string.Join(", ", _httpClient.DefaultRequestHeaders.AcceptLanguage)}");
 			}
 
-			Logger.LogVerbose("[DeadlyStream] Handler initialized with proper browser headers");
+			// Add custom identification headers (non-standard, ignored by servers)
+			_httpClient.DefaultRequestHeaders.Add("X-KOTORModSync-App", "Installer/1.0");
+			_httpClient.DefaultRequestHeaders.Add("X-KOTORModSync-Repo", "https://github.com/KOTORModSync/KOTORModSync");
+			_httpClient.DefaultRequestHeaders.Add("X-Accept-KOTORModSync", "true");
+			Logger.LogVerbose("[DeadlyStream] Added custom identification headers: X-KOTORModSync-App, X-KOTORModSync-Repo, X-Accept-KOTORModSync");
+
+			// Add static bearer token (public, non-secret)
+			_httpClient.DefaultRequestHeaders.Authorization =
+				new AuthenticationHeaderValue("Bearer", "KOTOR_MODSYNC_PUBLIC");
+			Logger.LogVerbose("[DeadlyStream] Added identification bearer token: KOTOR_MODSYNC_PUBLIC");
+
+			Logger.LogVerbose("[DeadlyStream] Handler initialized with proper browser headers and identification markers");
 		}
 
 		public bool CanHandle(string url)
@@ -60,6 +75,48 @@ namespace KOTORModSync.Core.Services.Download
 			bool canHandle = url != null && url.IndexOf("deadlystream.com", StringComparison.OrdinalIgnoreCase) >= 0;
 			Logger.LogVerbose($"[DeadlyStream] CanHandle check for URL '{url}': {canHandle}");
 			return canHandle;
+		}
+
+		/// <summary>
+		/// Implements rate limiting to cap downloads at 700 KB/s.
+		/// </summary>
+		private static async Task EnforceRateLimitAsync(int bytesToRead)
+		{
+			long waitTimeMs = 0;
+
+			lock (_rateLimitLock)
+			{
+				long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+				// Reset counter if we're in a new second
+				if (currentTime - _lastRateLimitTime >= 1000)
+				{
+					_bytesDownloadedThisSecond = 0;
+					_lastRateLimitTime = currentTime;
+				}
+
+				// Check if we would exceed the rate limit
+				if (_bytesDownloadedThisSecond + bytesToRead > _maxBytesPerSecond)
+				{
+					// Calculate how long to wait
+					long excessBytes = (_bytesDownloadedThisSecond + bytesToRead) - _maxBytesPerSecond;
+					waitTimeMs = (excessBytes * 1000) / _maxBytesPerSecond;
+
+					Logger.LogVerbose($"[DeadlyStream] Rate limiting: waiting {waitTimeMs}ms to stay under 700KB/s limit");
+
+					// Reset after waiting
+					_bytesDownloadedThisSecond = 0;
+					_lastRateLimitTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+				}
+
+				_bytesDownloadedThisSecond += bytesToRead;
+			}
+
+			// Wait outside the lock to avoid blocking other threads
+			if (waitTimeMs > 0)
+			{
+				await Task.Delay((int)waitTimeMs).ConfigureAwait(false);
+			}
 		}
 
 		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
@@ -216,8 +273,36 @@ namespace KOTORModSync.Core.Services.Download
 				});
 
 				using ( FileStream fileStream = File.Create(filePath) )
+				using ( Stream contentStream = await fileResponse.Content.ReadAsStreamAsync().ConfigureAwait(false) )
 				{
-					await fileResponse.Content.CopyToAsync(fileStream).ConfigureAwait(false);
+					// Rate-limited file copy
+					byte[] buffer = new byte[8192]; // 8KB buffer
+					int bytesRead;
+					long totalBytesRead = 0;
+
+					while ( (bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0 )
+					{
+						// Enforce rate limiting
+						await EnforceRateLimitAsync(bytesRead);
+
+						await fileStream.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+						totalBytesRead += bytesRead;
+
+						// Update progress
+						if ( totalBytes > 0 )
+						{
+							double progressPercent = 75 + (totalBytesRead * 25.0 / totalBytes);
+							progress?.Report(new DownloadProgress
+							{
+								Status = DownloadStatus.InProgress,
+								StatusMessage = $"Writing file... ({totalBytesRead:N0} / {totalBytes:N0} bytes)",
+								ProgressPercentage = Math.Min(progressPercent, 100),
+								BytesDownloaded = totalBytesRead,
+								TotalBytes = totalBytes,
+								StartTime = DateTime.Now
+							});
+						}
+					}
 				}
 
 				long fileSize = new FileInfo(filePath).Length;

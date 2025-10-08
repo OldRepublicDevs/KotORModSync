@@ -75,9 +75,9 @@ namespace KOTORModSync.Core.Services.Validation
 				_ = sb.AppendLine("Issues by component:");
 				_ = sb.AppendLine();
 
-				foreach ( IGrouping<Component, ValidationIssue> group in componentIssues )
+				foreach ( IGrouping<ModComponent, ValidationIssue> group in componentIssues )
 				{
-					Component component = group.Key;
+					ModComponent component = group.Key;
 					_ = sb.AppendLine($"━━━ {component.Name} ━━━");
 
 					foreach ( ValidationIssue issue in group )
@@ -152,10 +152,10 @@ namespace KOTORModSync.Core.Services.Validation
 
 			if ( componentIssues.Any() )
 			{
-				foreach ( IGrouping<Component, ValidationIssue> group in componentIssues )
+				foreach ( IGrouping<ModComponent, ValidationIssue> group in componentIssues )
 				{
-					Component component = group.Key;
-					_ = sb.AppendLine($"━━━ Component: {component.Name} (GUID: {component.Guid}) ━━━");
+					ModComponent component = group.Key;
+					_ = sb.AppendLine($"━━━ ModComponent: {component.Name} (GUID: {component.Guid}) ━━━");
 					_ = sb.AppendLine();
 
 					IOrderedEnumerable<IGrouping<int, ValidationIssue>> instructionGroups = group.GroupBy(i => i.InstructionIndex).OrderBy(g => g.Key);
@@ -263,7 +263,7 @@ namespace KOTORModSync.Core.Services.Validation
 		/// </summary>
 		[NotNull]
 		[ItemNotNull]
-		public List<Component> GetAffectedComponents()
+		public List<ModComponent> GetAffectedComponents()
 		{
 			return Issues
 				.Where(i => i.AffectedComponent != null &&
@@ -278,10 +278,10 @@ namespace KOTORModSync.Core.Services.Validation
 		/// </summary>
 		[NotNull]
 		[ItemNotNull]
-		public List<Component> GetSuggestedComponentsToDisable()
+		public List<ModComponent> GetSuggestedComponentsToDisable()
 		{
 			// Components with errors that are not dependencies of other selected components
-			List<Component> affectedComponents = GetAffectedComponents();
+			List<ModComponent> affectedComponents = GetAffectedComponents();
 			var allSelectedComponents = MainConfig.AllComponents.Where(c => c.IsSelected).ToList();
 
 			return affectedComponents.Where(component =>

@@ -191,13 +191,13 @@ namespace KOTORModSync.Core
 		[NotNull][ItemNotNull] private List<string> RealSourcePaths { get; set; } = new List<string>();
 		[CanBeNull] private DirectoryInfo RealDestinationPath { get; set; }
 
-		private Component _parentComponent { get; set; }
+		private ModComponent _parentComponent { get; set; }
 
 		public Dictionary<FileInfo, SHA1> ExpectedChecksums { get; set; }
 		public Dictionary<FileInfo, SHA1> OriginalChecksums { get; internal set; }
 
-		public Component GetParentComponent() => _parentComponent;
-		public void SetParentComponent(Component thisComponent) => _parentComponent = thisComponent;
+		public ModComponent GetParentComponent() => _parentComponent;
+		public void SetParentComponent(ModComponent thisComponent) => _parentComponent = thisComponent;
 
 		// This method will replace custom variables such as <<modDirectory>> and <<kotorDirectory>> with their actual paths.
 		// This method should not be ran before an instruction is executed.

@@ -10,7 +10,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using KOTORModSync.Core.Utility;
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Installation
@@ -30,7 +29,7 @@ namespace KOTORModSync.Core.Installation
 
 		public InstallSessionState State => _state;
 
-		public async Task InitializeAsync([NotNull] IList<Component> components, [NotNull] DirectoryInfo destinationPath)
+		public async Task InitializeAsync([NotNull] IList<ModComponent> components, [NotNull] DirectoryInfo destinationPath)
 		{
 			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
@@ -99,21 +98,21 @@ namespace KOTORModSync.Core.Installation
 			if ( _state.Components.TryGetValue(componentId, out ComponentSessionEntry entry) )
 				return entry;
 
-			throw new KeyNotFoundException($"Component {componentId} not found in session state");
+			throw new KeyNotFoundException($"ModComponent {componentId} not found in session state");
 		}
 
-		internal Component.InstructionCheckpoint GetInstructionEntry(Component component, Guid instructionId, int instructionIndex)
+		internal ModComponent.InstructionCheckpoint GetInstructionEntry(ModComponent component, Guid instructionId, int instructionIndex)
 		{
 			ComponentSessionEntry componentEntry = GetComponentEntry(component.Guid);
-			Component.InstructionCheckpoint checkpoint = componentEntry.Instructions.FirstOrDefault(c => c.InstructionId == instructionId);
+			ModComponent.InstructionCheckpoint checkpoint = componentEntry.Instructions.FirstOrDefault(c => c.InstructionId == instructionId);
 			if ( checkpoint != null )
 				return checkpoint;
 
-			checkpoint = new Component.InstructionCheckpoint
+			checkpoint = new ModComponent.InstructionCheckpoint
 			{
 				InstructionId = instructionId,
 				InstructionIndex = instructionIndex,
-				State = Component.InstructionInstallState.Pending,
+				State = ModComponent.InstructionInstallState.Pending,
 				LastUpdatedUtc = DateTimeOffset.UtcNow,
 			};
 
@@ -121,7 +120,7 @@ namespace KOTORModSync.Core.Installation
 			return checkpoint;
 		}
 
-		public void UpdateComponentState(Component component)
+		public void UpdateComponentState(ModComponent component)
 		{
 			ComponentSessionEntry entry = GetComponentEntry(component.Guid);
 			entry.State = component.InstallState;
@@ -130,10 +129,10 @@ namespace KOTORModSync.Core.Installation
 			entry.Instructions = component.InstructionCheckpoints.Select(c => c.Clone()).ToList();
 		}
 
-		internal void UpdateInstructionState(Component component, Component.InstructionCheckpoint checkpoint)
+		internal void UpdateInstructionState(ModComponent component, ModComponent.InstructionCheckpoint checkpoint)
 		{
 			ComponentSessionEntry entry = GetComponentEntry(component.Guid);
-			Component.InstructionCheckpoint existing = entry.Instructions.FirstOrDefault(c => c.InstructionId == checkpoint.InstructionId);
+			ModComponent.InstructionCheckpoint existing = entry.Instructions.FirstOrDefault(c => c.InstructionId == checkpoint.InstructionId);
 			if ( existing == null )
 			{
 				entry.Instructions.Add(checkpoint.Clone());
@@ -147,9 +146,9 @@ namespace KOTORModSync.Core.Installation
 
 		public void UpdateBackupPath(string backupPath) => _state.BackupPath = backupPath;
 
-		private void SyncComponentsWithState(IList<Component> components)
+		private void SyncComponentsWithState(IList<ModComponent> components)
 		{
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				if ( !_state.Components.TryGetValue(component.Guid, out ComponentSessionEntry entry) )
 				{
@@ -167,9 +166,9 @@ namespace KOTORModSync.Core.Installation
 			}
 		}
 
-		private void SyncInitialComponentState(IList<Component> components)
+		private void SyncInitialComponentState(IList<ModComponent> components)
 		{
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				ComponentSessionEntry entry = new ComponentSessionEntry
 				{
@@ -183,7 +182,7 @@ namespace KOTORModSync.Core.Installation
 			}
 		}
 
-		private static InstallSessionState CreateNewState(IList<Component> components, string destinationPath)
+		private static InstallSessionState CreateNewState(IList<ModComponent> components, string destinationPath)
 		{
 			return new InstallSessionState
 			{

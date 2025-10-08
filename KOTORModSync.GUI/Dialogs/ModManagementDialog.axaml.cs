@@ -21,7 +21,7 @@ namespace KOTORModSync.Dialogs
 	public partial class ModManagementDialog : Window
 	{
 		private readonly ModManagementService _modManagementService;
-		private readonly List<Component> _originalComponents;
+		private readonly List<ModComponent> _originalComponents;
 		private readonly IModManagementDialogService _dialogService;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
@@ -124,7 +124,7 @@ namespace KOTORModSync.Dialogs
 			{
 				await PerformBatchOperationAsync(async () =>
 				{
-					Dictionary<Component, ModManagementService.ModValidationResult> results = _modManagementService.ValidateAllMods();
+					Dictionary<ModComponent, ModManagementService.ModValidationResult> results = _modManagementService.ValidateAllMods();
 					int errorCount = results.Count(r => !r.Value.IsValid);
 					int warningCount = results.Sum(r => r.Value.Warnings.Count);
 
@@ -150,7 +150,7 @@ namespace KOTORModSync.Dialogs
 					int availableCount = 0;
 					int unavailableCount = 0;
 
-					foreach ( Component component in _originalComponents.Where(c => c.IsSelected) )
+					foreach ( ModComponent component in _originalComponents.Where(c => c.IsSelected) )
 					{
 						if ( component.IsDownloaded )
 							availableCount++;
@@ -307,7 +307,7 @@ namespace KOTORModSync.Dialogs
 					string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from TOML file");
 					if ( files != null && files.Length > 0 )
 					{
-						List<Component> imported = await _modManagementService.ImportMods(files[0]);
+						List<ModComponent> imported = await _modManagementService.ImportMods(files[0]);
 						await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
 						ModificationsApplied = true;
 						_dialogService.RefreshStatistics();
@@ -329,7 +329,7 @@ namespace KOTORModSync.Dialogs
 					string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from JSON file");
 					if ( files != null && files.Length > 0 )
 					{
-						List<Component> imported = await _modManagementService.ImportMods(files[0]);
+						List<ModComponent> imported = await _modManagementService.ImportMods(files[0]);
 						await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
 						ModificationsApplied = true;
 						_dialogService.RefreshStatistics();
@@ -351,7 +351,7 @@ namespace KOTORModSync.Dialogs
 					string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from XML file");
 					if ( files != null && files.Length > 0 )
 					{
-						List<Component> imported = await _modManagementService.ImportMods(files[0]);
+						List<ModComponent> imported = await _modManagementService.ImportMods(files[0]);
 						await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
 						ModificationsApplied = true;
 						_dialogService.RefreshStatistics();
@@ -444,7 +444,7 @@ namespace KOTORModSync.Dialogs
 					int totalDependencies = 0;
 					int componentsWithDependencies = 0;
 
-					foreach ( Component component in selectedComponents.Where(component => component.Dependencies.Count != 0 || component.InstallAfter.Count != 0 ||
+					foreach ( ModComponent component in selectedComponents.Where(component => component.Dependencies.Count != 0 || component.InstallAfter.Count != 0 ||
 								 component.InstallBefore.Count != 0) )
 					{
 						componentsWithDependencies++;
@@ -452,7 +452,7 @@ namespace KOTORModSync.Dialogs
 					}
 
 					// Check for circular dependencies
-					Dictionary<Component, List<Component>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
+					Dictionary<ModComponent, List<ModComponent>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
 					int circularDependencies = ModManagementDialog.DetectCircularDependencies(dependencyGraph);
 
 					await _dialogService.ShowInformationDialog(
@@ -470,23 +470,23 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private static Dictionary<Component, List<Component>> BuildDependencyGraph(List<Component> components)
+		private static Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModComponent> components)
 		{
-			var graph = new Dictionary<Component, List<Component>>();
+			var graph = new Dictionary<ModComponent, List<ModComponent>>();
 
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				if ( !graph.ContainsKey(component) )
-					graph[component] = new List<Component>();
+					graph[component] = new List<ModComponent>();
 
 				// Add direct dependencies
-				foreach ( Component depComponent in component.Dependencies.Select(depGuid => components.FirstOrDefault(c => c.Guid == depGuid)).Where(depComponent => depComponent != null && !graph[component].Contains(depComponent)) )
+				foreach ( ModComponent depComponent in component.Dependencies.Select(depGuid => components.FirstOrDefault(c => c.Guid == depGuid)).Where(depComponent => depComponent != null && !graph[component].Contains(depComponent)) )
 				{
 					graph[component].Add(depComponent);
 				}
 
 				// Add install-after relationships
-				foreach ( Component afterComponent in component.InstallAfter.Select(afterGuid => components.FirstOrDefault(c => c.Guid == afterGuid)).Where(afterComponent => afterComponent != null && !graph[component].Contains(afterComponent)) )
+				foreach ( ModComponent afterComponent in component.InstallAfter.Select(afterGuid => components.FirstOrDefault(c => c.Guid == afterGuid)).Where(afterComponent => afterComponent != null && !graph[component].Contains(afterComponent)) )
 				{
 					graph[component].Add(afterComponent);
 				}
@@ -495,16 +495,16 @@ namespace KOTORModSync.Dialogs
 			return graph;
 		}
 
-		private static int DetectCircularDependencies(Dictionary<Component, List<Component>> graph)
+		private static int DetectCircularDependencies(Dictionary<ModComponent, List<ModComponent>> graph)
 		{
-			var visited = new HashSet<Component>();
-			var recursionStack = new HashSet<Component>();
+			var visited = new HashSet<ModComponent>();
+			var recursionStack = new HashSet<ModComponent>();
 
 			return graph.Keys.Count(component => HasCircularDependency(component, graph, visited, recursionStack));
 		}
 
-		private static bool HasCircularDependency(Component component, Dictionary<Component, List<Component>> graph,
-										 HashSet<Component> visited, HashSet<Component> recursionStack)
+		private static bool HasCircularDependency(ModComponent component, Dictionary<ModComponent, List<ModComponent>> graph,
+										 HashSet<ModComponent> visited, HashSet<ModComponent> recursionStack)
 		{
 			if ( recursionStack.Contains(component) )
 				return true;
@@ -512,7 +512,7 @@ namespace KOTORModSync.Dialogs
 			_ = visited.Add(component);
 			_ = recursionStack.Add(component);
 
-			if ( graph.TryGetValue(component, out List<Component> value) )
+			if ( graph.TryGetValue(component, out List<ModComponent> value) )
 			{
 				if ( value.Any(dependency => HasCircularDependency(dependency, graph, visited, recursionStack)) )
 				{
@@ -531,7 +531,7 @@ namespace KOTORModSync.Dialogs
 				await PerformOperationAsync(async () =>
 				{
 					var components = _originalComponents.ToList();
-					Dictionary<string, List<Component>> conflicts = Component.GetConflictingComponents(new List<Guid>(), new List<Guid>(), components);
+					Dictionary<string, List<ModComponent>> conflicts = ModComponent.GetConflictingComponents(new List<Guid>(), new List<Guid>(), components);
 
 					int totalConflicts = conflicts.Sum(kvp => kvp.Value.Count);
 
@@ -570,7 +570,7 @@ namespace KOTORModSync.Dialogs
 						return;
 					}
 
-					Dictionary<Component, List<Component>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
+					Dictionary<ModComponent, List<ModComponent>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
 					string graphText = ModManagementDialog.GenerateGraphText(dependencyGraph);
 
 					// For now, just show the graph in a dialog. In a real implementation,
@@ -587,19 +587,19 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private static string GenerateGraphText(Dictionary<Component, List<Component>> graph)
+		private static string GenerateGraphText(Dictionary<ModComponent, List<ModComponent>> graph)
 		{
 			var sb = new System.Text.StringBuilder();
 
 			foreach ( var kvp in graph )
 			{
-				Component component = kvp.Key;
-				List<Component> dependencies = kvp.Value;
+				ModComponent component = kvp.Key;
+				List<ModComponent> dependencies = kvp.Value;
 				_ = sb.AppendLine($"{component.Name} (GUID: {component.Guid.ToString().Substring(0, 8)}...)");
 				if ( dependencies.Any() )
 				{
 					_ = sb.AppendLine("  Depends on:");
-					foreach ( Component dep in dependencies )
+					foreach ( ModComponent dep in dependencies )
 					{
 						_ = sb.AppendLine($"    - {dep.Name}");
 					}
@@ -627,7 +627,7 @@ namespace KOTORModSync.Dialogs
 						return;
 					}
 
-					(bool isCorrectOrder, List<Component> reorderedComponents) = Component.ConfirmComponentsInstallOrder(selectedComponents);
+					(bool isCorrectOrder, List<ModComponent> reorderedComponents) = ModComponent.ConfirmComponentsInstallOrder(selectedComponents);
 
 					if ( isCorrectOrder && reorderedComponents == null )
 					{
@@ -671,7 +671,7 @@ namespace KOTORModSync.Dialogs
 					int modsWithSize = 0;
 					var sizeBreakdown = new Dictionary<string, (long Size, int Count)>();
 
-					foreach ( Component component in selectedComponents )
+					foreach ( ModComponent component in selectedComponents )
 					{
 						// Estimate size based on instructions and mod links
 						long estimatedSize = EstimateComponentSize(component);
@@ -712,7 +712,7 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private static long EstimateComponentSize(Component component)
+		private static long EstimateComponentSize(ModComponent component)
 		{
 			long size = 0;
 
@@ -771,10 +771,10 @@ namespace KOTORModSync.Dialogs
 						return;
 					}
 
-					var redundantFiles = new Dictionary<string, List<Component>>();
+					var redundantFiles = new Dictionary<string, List<ModComponent>>();
 
 					// Collect all files referenced by instructions
-					foreach ( Component component in selectedComponents )
+					foreach ( ModComponent component in selectedComponents )
 					{
 						foreach ( Instruction instruction in component.Instructions )
 						{
@@ -793,7 +793,7 @@ namespace KOTORModSync.Dialogs
 								if ( redundantFiles.ContainsKey(fileName) )
 									redundantFiles[fileName].Add(component);
 								else
-									redundantFiles[fileName] = new List<Component> { component };
+									redundantFiles[fileName] = new List<ModComponent> { component };
 							}
 						}
 					}
@@ -812,9 +812,9 @@ namespace KOTORModSync.Dialogs
 						foreach ( var kvp in actualRedundantFiles.Take(10) ) // Show first 10
 						{
 							string fileName = kvp.Key;
-							List<Component> components = kvp.Value;
+							List<ModComponent> components = kvp.Value;
 							report += $"{fileName} (used by {components.Count} mods):\n";
-							foreach ( Component component in components )
+							foreach ( ModComponent component in components )
 							{
 								report += $"  - {component.Name}\n";
 							}
@@ -853,9 +853,9 @@ namespace KOTORModSync.Dialogs
 					string[] suspiciousPatterns = { ".exe", ".bat", ".cmd", ".scr", ".pif", ".com", ".jar", ".vbs", ".js", ".wsf", ".hta" };
 
 					var suspiciousFiles = new List<string>();
-					var suspiciousComponents = new List<Component>();
+					var suspiciousComponents = new List<ModComponent>();
 
-					foreach ( Component component in selectedComponents )
+					foreach ( ModComponent component in selectedComponents )
 					{
 						foreach ( Instruction instruction in component.Instructions )
 						{
@@ -929,9 +929,9 @@ namespace KOTORModSync.Dialogs
 					int totalInstructions = 0;
 					int instructionsWithChecksums = 0;
 					int componentsWithChecksums = 0;
-					var componentsWithoutChecksums = new List<Component>();
+					var componentsWithoutChecksums = new List<ModComponent>();
 
-					foreach ( Component component in selectedComponents )
+					foreach ( ModComponent component in selectedComponents )
 					{
 						bool hasChecksums = false;
 
@@ -961,7 +961,7 @@ namespace KOTORModSync.Dialogs
 					if ( componentsWithoutChecksums.Any() )
 					{
 						report += "Components without checksum validation:\n";
-						foreach ( Component component in componentsWithoutChecksums.Take(10) )
+						foreach ( ModComponent component in componentsWithoutChecksums.Take(10) )
 						{
 							report += $"  - {component.Name}\n";
 						}
@@ -1001,9 +1001,9 @@ namespace KOTORModSync.Dialogs
 					int totalInstructions = 0;
 					int instructionsWithSignatures = 0;
 					int componentsWithSignatures = 0;
-					var componentsWithoutSignatures = new List<Component>();
+					var componentsWithoutSignatures = new List<ModComponent>();
 
-					foreach ( Component component in selectedComponents )
+					foreach ( ModComponent component in selectedComponents )
 					{
 						bool hasSignatures = false;
 
@@ -1035,7 +1035,7 @@ namespace KOTORModSync.Dialogs
 					if ( componentsWithoutSignatures.Count != 0 )
 					{
 						report += "Components without signature validation:\n";
-						foreach ( Component component in componentsWithoutSignatures.Take(10) )
+						foreach ( ModComponent component in componentsWithoutSignatures.Take(10) )
 						{
 							report += $"  - {component.Name}\n";
 						}
@@ -1081,7 +1081,7 @@ namespace KOTORModSync.Dialogs
 
 					// Build a set of all files that are referenced by instructions
 					var referencedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-					foreach ( Component component in _originalComponents )
+					foreach ( ModComponent component in _originalComponents )
 					{
 						foreach ( Instruction instruction in component.Instructions )
 						{
@@ -1133,9 +1133,9 @@ namespace KOTORModSync.Dialogs
 					int totalLinks = 0;
 					int validLinks = 0;
 					int brokenLinks = 0;
-					var componentsWithBrokenLinks = new List<Component>();
+					var componentsWithBrokenLinks = new List<ModComponent>();
 
-					foreach ( Component component in selectedComponents )
+					foreach ( ModComponent component in selectedComponents )
 					{
 						foreach ( string link in component.ModLink )
 						{
@@ -1164,7 +1164,7 @@ namespace KOTORModSync.Dialogs
 					if ( componentsWithBrokenLinks.Any() )
 					{
 						report += "Components with potentially broken links:\n";
-						foreach ( Component component in componentsWithBrokenLinks.Take(10) )
+						foreach ( ModComponent component in componentsWithBrokenLinks.Take(10) )
 						{
 							report += $"  - {component.Name}\n";
 						}
@@ -1205,8 +1205,8 @@ namespace KOTORModSync.Dialogs
 						return;
 
 					// Group mods by name similarity to find potential duplicates
-					var modsByName = new Dictionary<string, List<Component>>();
-					foreach ( Component component in _originalComponents )
+					var modsByName = new Dictionary<string, List<ModComponent>>();
+					foreach ( ModComponent component in _originalComponents )
 					{
 						// Extract base name without version numbers
 						string baseName = System.Text.RegularExpressions.Regex.Replace(
@@ -1215,7 +1215,7 @@ namespace KOTORModSync.Dialogs
 						"").Trim();
 
 						if ( !modsByName.ContainsKey(baseName) )
-							modsByName[baseName] = new List<Component>();
+							modsByName[baseName] = new List<ModComponent>();
 
 						modsByName[baseName].Add(component);
 					}
@@ -1238,10 +1238,10 @@ namespace KOTORModSync.Dialogs
 						_ = report.AppendLine("Version Analysis:\n");
 						_ = report.AppendLine($"Found {potentialDuplicates.Count} mod(s) with potential duplicates:\n");
 
-						foreach ( KeyValuePair<string, List<Component>> group in potentialDuplicates.Take(10) )
+						foreach ( KeyValuePair<string, List<ModComponent>> group in potentialDuplicates.Take(10) )
 						{
 							_ = report.AppendLine($"'{group.Key}' has {group.Value.Count} version(s):");
-							foreach ( Component comp in group.Value )
+							foreach ( ModComponent comp in group.Value )
 								_ = report.AppendLine($"  • {comp.Name}");
 							_ = report.AppendLine();
 						}

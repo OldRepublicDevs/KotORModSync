@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using KOTORModSync.Core;
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Installation
@@ -44,7 +43,7 @@ namespace KOTORModSync.Core.Installation
 		public Guid ComponentId { get; set; }
 
 		[JsonProperty]
-		public Component.ComponentInstallState State { get; set; } = Component.ComponentInstallState.Pending;
+		public ModComponent.ComponentInstallState State { get; set; } = ModComponent.ComponentInstallState.Pending;
 
 		[JsonProperty]
 		public DateTimeOffset? LastStartedUtc { get; set; }
@@ -53,7 +52,7 @@ namespace KOTORModSync.Core.Installation
 		public DateTimeOffset? LastCompletedUtc { get; set; }
 
 		[JsonProperty]
-		public List<Component.InstructionCheckpoint> Instructions { get; set; } = new List<Component.InstructionCheckpoint>();
+		public List<ModComponent.InstructionCheckpoint> Instructions { get; set; } = new List<ModComponent.InstructionCheckpoint>();
 	}
 }
 

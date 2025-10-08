@@ -3,7 +3,6 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using KOTORModSync.Core.Utility;
-using NUnit.Framework.Legacy;
 
 namespace KOTORModSync.Tests
 {

@@ -55,7 +55,7 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="filePath">Path to the TOML file</param>
 		/// <returns>List of loaded components</returns>
-		public List<Component> LoadComponentsFromFile([NotNull] string filePath)
+		public List<ModComponent> LoadComponentsFromFile([NotNull] string filePath)
 		{
 			if ( string.IsNullOrEmpty(filePath) )
 				throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
@@ -63,7 +63,7 @@ namespace KOTORModSync.Core.Services
 			if ( !ValidateInstructionFile(filePath) )
 				throw new InvalidOperationException($"Invalid instruction file: {filePath}");
 
-			return Component.ReadComponentsFromFile(filePath);
+			return ModComponent.ReadComponentsFromFile(filePath);
 		}
 
 		/// <summary>
@@ -87,7 +87,7 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="components">Components to save</param>
 		/// <param name="filePath">Path where to save the file</param>
-		public static async Task SaveComponentsToFileAsync([NotNull][ItemNotNull] List<Component> components, [NotNull] string filePath)
+		public static async Task SaveComponentsToFileAsync([NotNull][ItemNotNull] List<ModComponent> components, [NotNull] string filePath)
 		{
 			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
@@ -98,7 +98,7 @@ namespace KOTORModSync.Core.Services
 
 			using ( var writer = new StreamWriter(filePath) )
 			{
-				foreach ( Component component in components )
+				foreach ( ModComponent component in components )
 				{
 					string tomlContents = component.SerializeComponent();
 					await writer.WriteLineAsync(tomlContents);
@@ -111,12 +111,12 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="components">Components to document</param>
 		/// <returns>Generated documentation string</returns>
-		public static string GenerateComponentDocumentation([NotNull][ItemNotNull] List<Component> components)
+		public static string GenerateComponentDocumentation([NotNull][ItemNotNull] List<ModComponent> components)
 		{
 			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
 
-			return Component.GenerateModDocumentation(components);
+			return ModComponent.GenerateModDocumentation(components);
 		}
 
 		/// <summary>

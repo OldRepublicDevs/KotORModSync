@@ -10,7 +10,7 @@ using KOTORModSync.Core;
 namespace KOTORModSync.Converters
 {
 	/// <summary>
-	/// Converts a Guid (component or option) to a human-readable label: "[Component] Name" or "[Option] Parent > Name".
+	/// Converts a Guid (component or option) to a human-readable label: "[ModComponent] Name" or "[Option] Parent > Name".
 	/// </summary>
 	public sealed partial class GuidToComponentConverter : IValueConverter
 	{
@@ -19,14 +19,14 @@ namespace KOTORModSync.Converters
 			if ( !(value is Guid guid) )
 				return string.Empty;
 
-			var found = Component.FindComponentFromGuid(guid, MainConfig.AllComponents);
+			var found = ModComponent.FindComponentFromGuid(guid, MainConfig.AllComponents);
 			if ( found == null )
 				return guid.ToString();
 
 			if ( found is Option opt )
 			{
 				// find parent component for context
-				foreach ( Component c in MainConfig.AllComponents )
+				foreach ( ModComponent c in MainConfig.AllComponents )
 				{
 					if ( c.Options.Contains(opt) )
 						return $"[Option] {c.Name} > {opt.Name}";
@@ -34,7 +34,7 @@ namespace KOTORModSync.Converters
 				return $"[Option] {opt.Name}";
 			}
 
-			return $"[Component] {found.Name}";
+			return $"[ModComponent] {found.Name}";
 		}
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>

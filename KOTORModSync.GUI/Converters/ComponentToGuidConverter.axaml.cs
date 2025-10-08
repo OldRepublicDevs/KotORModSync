@@ -13,12 +13,12 @@ namespace KOTORModSync.Converters
 	public partial class ComponentToGuidConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-			!(value is Component selectedComponent)
+			!(value is ModComponent selectedComponent)
 				? null
 				: (object)selectedComponent.Name;
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
-			!(value is List<Component>)
+			!(value is List<ModComponent>)
 				? null
 				: new object();
 	}

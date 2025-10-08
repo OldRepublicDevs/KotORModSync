@@ -73,6 +73,13 @@ namespace KOTORModSync.Dialogs
 			set => SetValue(s_noButtonTextProperty, value);
 		}
 
+		public enum ConfirmationResult
+		{
+			Save,    // Yes button clicked
+			Discard, // No button clicked
+			Cancel   // X button clicked
+		}
+
 		public static async Task<bool?> ShowConfirmationDialog(
 			[CanBeNull] Window parentWindow,
 			[CanBeNull] string confirmText,
@@ -128,6 +135,73 @@ namespace KOTORModSync.Dialogs
 						{
 							CleanupHandlers();
 							tcs.SetResult(null);
+						}
+					}
+					catch ( Exception e )
+					{
+						Logger.LogException(e);
+					}
+				}
+			);
+
+			return await tcs.Task;
+		}
+
+		public static async Task<ConfirmationResult> ShowConfirmationDialogWithDiscard(
+			[CanBeNull] Window parentWindow,
+			[CanBeNull] string confirmText,
+			[CanBeNull] string yesButtonText = null,
+			[CanBeNull] string noButtonText = null
+		)
+		{
+			var tcs = new TaskCompletionSource<ConfirmationResult>();
+
+			await Dispatcher.UIThread.InvokeAsync(
+				() =>
+				{
+					try
+					{
+						var confirmationDialog = new ConfirmationDialog
+						{
+							ConfirmText = confirmText,
+							YesButtonText = yesButtonText ?? "Yes",
+							NoButtonText = noButtonText ?? "No",
+							Topmost = true,
+						};
+
+						confirmationDialog.YesButtonClicked += YesClickedHandler;
+						confirmationDialog.NoButtonClicked += NoClickedHandler;
+						confirmationDialog.Closed += ClosedHandler;
+						confirmationDialog.Opened += confirmationDialog.OnOpened;
+
+						_ = confirmationDialog.ShowDialog(parentWindow);
+						return;
+
+						void CleanupHandlers()
+						{
+							confirmationDialog.YesButtonClicked -= YesClickedHandler;
+							confirmationDialog.NoButtonClicked -= NoClickedHandler;
+							confirmationDialog.Closed -= ClosedHandler;
+						}
+
+						void YesClickedHandler(object sender, RoutedEventArgs e)
+						{
+							CleanupHandlers();
+							confirmationDialog.Close();
+							tcs.SetResult(ConfirmationResult.Save);
+						}
+
+						void NoClickedHandler(object sender, RoutedEventArgs e)
+						{
+							CleanupHandlers();
+							confirmationDialog.Close();
+							tcs.SetResult(ConfirmationResult.Discard);
+						}
+
+						void ClosedHandler(object sender, EventArgs e)
+						{
+							CleanupHandlers();
+							tcs.SetResult(ConfirmationResult.Cancel);
 						}
 					}
 					catch ( Exception e )

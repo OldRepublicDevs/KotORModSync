@@ -82,7 +82,6 @@ namespace KOTORModSync.Core.Utility
 			// Recommended Tiers
 			["Recommended"] = "High-quality mods that significantly improve the game experience. Strongly recommended for most players.",
 			["2 - Recommended"] = "High-quality mods that significantly improve the game experience. Strongly recommended for most players.",
-			["2 - Suggested"] = "High-quality mods that significantly improve the game experience. Strongly recommended for most players.",
 
 			// Suggested Tiers
 			["Suggested"] = "Good quality mods that enhance specific aspects of the game. Recommended for players who want more content.",
@@ -92,7 +91,6 @@ namespace KOTORModSync.Core.Utility
 			["Optional"] = "Mods that are nice to have but not necessary. Install based on personal preference.",
 			["4 - Optional"] = "Mods that are nice to have but not necessary. Install based on personal preference.",
 			["4 - Option"] = "Mods that are nice to have but not necessary. Install based on personal preference.",
-			["3 - Optional"] = "Mods that are nice to have but not necessary. Install based on personal preference.",
 		};
 
 		/// <summary>

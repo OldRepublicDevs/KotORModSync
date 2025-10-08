@@ -49,12 +49,12 @@
 
         <!--  Input Controls with Wrapping  -->
         <WrapPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
-            <!--  Mod/Component Selector  -->
+            <!--  Mod/ModComponent Selector  -->
             <StackPanel Width="250" Margin="0,0,8,4">
                 <TextBlock
                     Margin="0,0,0,2"
                     Classes="summary-label"
-                    Text="Add Mod/Component" />
+                    Text="Add Mod/ModComponent" />
                 <AutoCompleteBox
                     x:Name="DependenciesAutoComplete"
                     HorizontalAlignment="Stretch"

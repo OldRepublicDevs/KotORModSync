@@ -66,7 +66,7 @@ namespace KOTORModSync.Controls
 					if ( _searchTextBox != null )
 					{
 						_searchTextBox.Text = string.Empty;
-						_searchTextBox.Focus();
+						_ = _searchTextBox.Focus();
 					}
 				};
 			}

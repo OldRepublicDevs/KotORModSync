@@ -40,7 +40,7 @@ namespace KOTORModSync.Controls
         {
             SingleLineTextBox.IsVisible = false;
             FullEditorTextBox.IsVisible = true;
-            FullEditorTextBox.Focus();
+			_ = FullEditorTextBox.Focus();
             FullEditorTextBox.SelectAll();
         }
 

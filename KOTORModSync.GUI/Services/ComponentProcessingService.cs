@@ -1,0 +1,122 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the GNU General Public License v3.0 (GPLv3).
+// See LICENSE.txt file in the project root for full license information.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
+
+namespace KOTORModSync.Services
+{
+
+	/// <summary>
+	/// Service responsible for processing components including dependency resolution and ordering
+	/// </summary>
+	public class ComponentProcessingService
+	{
+		/// <summary>
+		/// Processes components with dependency checking and reordering
+		/// </summary>
+		public static async Task<ComponentProcessingResult> ProcessComponentsAsync(List<ModComponent> components)
+		{
+			var result = new ComponentProcessingResult
+			{
+				Components = components,
+				IsEmpty = components == null || components.Count == 0,
+				Success = false,
+				HasCircularDependencies = false
+			};
+
+			try
+			{
+				if ( result.IsEmpty )
+				{
+					result.Success = true;
+					return result;
+				}
+
+				// Validate components
+				await Logger.LogVerboseAsync($"Processing {components.Count} components");
+
+			// Check for circular dependencies and reorder if needed
+			try
+			{
+				(bool isCorrectOrder, List<ModComponent> reorderedList) =
+					ModComponent.ConfirmComponentsInstallOrder(components);
+				if ( !isCorrectOrder )
+				{
+					await Logger.LogAsync("Reordered list to match dependency structure.");
+					result.ReorderedComponents = reorderedList;
+					result.NeedsReordering = true;
+				}
+			}
+			catch ( KeyNotFoundException )
+			{
+				await Logger.LogErrorAsync(
+					"Cannot process order of components. " +
+					"There are circular dependency conflicts that cannot be automatically resolved. " +
+					"Please resolve these before attempting an installation."
+				);
+				result.HasCircularDependencies = true;
+				result.Success = false;
+				return result;
+			}
+
+			result.Success = true;
+			return result;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Error processing components");
+				return result;
+			}
+		}
+
+		/// <summary>
+		/// Attempts to auto-generate instructions for components without any
+		/// </summary>
+		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
+		{
+			if ( components == null || components.Count == 0 )
+				return 0;
+
+			try
+			{
+				int generatedCount = 0;
+				int skippedCount = 0;
+
+				foreach ( ModComponent component in components )
+				{
+					// Skip if already has instructions
+					if ( component.Instructions.Count > 0 )
+					{
+						skippedCount++;
+						continue;
+					}
+
+					// Try to generate instructions
+					bool success = component.TryGenerateInstructionsFromArchive();
+					if ( !success )
+						continue;
+
+					generatedCount++;
+					await Logger.LogAsync($"Auto-generated instructions for '{component.Name}': {component.InstallationMethod}");
+				}
+
+				if ( generatedCount > 0 )
+					await Logger.LogAsync($"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions.");
+
+				return generatedCount;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+				return 0;
+			}
+		}
+	}
+}
+

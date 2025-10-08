@@ -727,13 +727,6 @@
         <Setter Property="Margin" Value="0,8,0,4" />
     </Style>
 
-    <Style Selector="TextBlock.summary-value">
-        <Setter Property="FontSize" Value="14" />
-        <Setter Property="Foreground" Value="#2FB393" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="Margin" Value="0,0,0,0" />
-    </Style>
-
     <Style Selector="Border.summary-link-container">
         <Setter Property="Background" Value="#11382E" />
         <Setter Property="BorderBrush" Value="#176B5A" />
@@ -817,7 +810,7 @@
             <SolidColorBrush x:Key="RegexHighlight.InstallationMethod" Color="#66FFA6" />
             <SolidColorBrush x:Key="RegexHighlight.InstallationInstructions" Color="#FFA07A" />
 
-            <!--  Component Merge Conflict Resources  -->
+            <!--  ModComponent Merge Conflict Resources  -->
             <SolidColorBrush x:Key="MergeStatus.NewBrush" Color="#66FFA6" />
             <!--  Light green matching theme  -->
             <SolidColorBrush x:Key="MergeStatus.ExistingOnlyBrush" Color="#B0BEC5" />
@@ -876,9 +869,9 @@
             <SolidColorBrush x:Key="ModListItem.HoverBackgroundBrush" Color="#020228" />
             <SolidColorBrush x:Key="ModListItem.DefaultBackgroundBrush" Color="#010116" />
 
-            <!--  Component Dependency/Restriction Colors  -->
-            <SolidColorBrush x:Key="Component.DependencyBrush" Color="#4CAF50" />
-            <SolidColorBrush x:Key="Component.RestrictionBrush" Color="#F44336" />
+            <!--  ModComponent Dependency/Restriction Colors  -->
+            <SolidColorBrush x:Key="ModComponent.DependencyBrush" Color="#4CAF50" />
+            <SolidColorBrush x:Key="ModComponent.RestrictionBrush" Color="#F44336" />
 
             <!--  Validation Dialog Colors  -->
             <SolidColorBrush x:Key="Validation.SolutionBrush" Color="#A0E7D6" />

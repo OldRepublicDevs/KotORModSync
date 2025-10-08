@@ -1,0 +1,483 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the GNU General Public License v3.0 (GPLv3).
+// See LICENSE.txt file in the project root for full license information.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Input;
+using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
+using KOTORModSync.Dialogs;
+using ReactiveUI;
+using static KOTORModSync.Core.Services.ModManagementService;
+
+namespace KOTORModSync.Services
+{
+	/// <summary>
+	/// Service responsible for building context menus and global action menus
+	/// </summary>
+	public class MenuBuilderService
+	{
+		private readonly ModManagementService _modManagementService;
+		private readonly Window _parentWindow;
+
+		public MenuBuilderService(ModManagementService modManagementService, Window parentWindow)
+		{
+			_modManagementService = modManagementService ?? throw new ArgumentNullException(nameof(modManagementService));
+			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
+		}
+
+		/// <summary>
+		/// Builds context menu for a component
+		/// </summary>
+		public ContextMenu BuildContextMenuForComponent(
+			ModComponent component,
+			bool editorMode,
+			Action<ModComponent> setCurrentComponent,
+			Action<TabControl, TabItem> setTab,
+			TabControl tabControl,
+			TabItem guiEditTab,
+			TabItem rawEditTab,
+			Action<ModComponent> onComponentSelectionChanged,
+			Action<object, object> onRemoveComponent,
+			Action<object, object> onInstallSingle)
+		{
+			var contextMenu = new ContextMenu();
+
+			if ( component == null )
+				return contextMenu;
+
+			// Basic operations - available for all modes
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = component.IsSelected ? "☑️ Deselect Mod" : "☐ Select Mod",
+				Command = ReactiveCommand.Create(() =>
+				{
+					component.IsSelected = !component.IsSelected;
+					onComponentSelectionChanged?.Invoke(component);
+				})
+			});
+
+			// Editor mode items
+			if ( editorMode )
+			{
+				AddEditorModeMenuItems(contextMenu, component, setCurrentComponent, setTab, tabControl, guiEditTab, rawEditTab, onRemoveComponent, onInstallSingle);
+			}
+
+			return contextMenu;
+		}
+
+		/// <summary>
+		/// Builds global actions menu for MenuFlyout (DropDownButton)
+		/// </summary>
+		public void BuildGlobalActionsFlyout(
+			MenuFlyout menu,
+			bool editorMode,
+			Action onRefresh,
+			Func<Task> onValidateAll,
+			Func<ModComponent> onCreate,
+			Action<ModComponent> setCurrentComponent,
+			Action<TabControl, TabItem> setTab,
+			TabControl tabControl,
+			TabItem guiEditTab,
+			Func<Task> onShowModManagement,
+			Func<Task> onShowStats,
+			Action<object, object> onSave,
+			Action<object, object> onClose)
+		{
+			menu.Items.Clear();
+
+			// Common operations (available in all modes)
+			AddCommonMenuItems(menu.Items, onRefresh, onValidateAll);
+
+			menu.Items.Add(new Separator());
+
+			if ( editorMode )
+			{
+				AddEditorModeFlyoutItems(menu, onCreate, setCurrentComponent, setTab, tabControl, guiEditTab, onShowModManagement, onShowStats, onSave, onClose);
+			}
+		}
+
+		/// <summary>
+		/// Builds global actions menu for ContextMenu (right-click on mod list)
+		/// </summary>
+		public void BuildGlobalActionsContextMenu(
+			ContextMenu menu,
+			bool editorMode,
+			Action onRefresh,
+			Func<Task> onValidateAll,
+			Func<ModComponent> onCreate,
+			Action<ModComponent> setCurrentComponent,
+			Action<TabControl, TabItem> setTab,
+			TabControl tabControl,
+			TabItem guiEditTab,
+			Func<Task> onShowModManagement,
+			Func<Task> onShowStats,
+			Action<object, object> onSave,
+			Action<object, object> onClose)
+		{
+			menu.Items.Clear();
+
+			// Common operations
+			AddCommonMenuItems(menu.Items, onRefresh, onValidateAll);
+
+			menu.Items.Add(new Separator());
+
+			if ( editorMode )
+			{
+				AddEditorModeContextMenuItems(menu.Items, onCreate, setCurrentComponent, setTab, tabControl, guiEditTab, onShowModManagement, onShowStats, onSave, onClose);
+			}
+		}
+
+		#region Private Helper Methods
+
+		private void AddEditorModeMenuItems(
+			ContextMenu contextMenu,
+			ModComponent component,
+			Action<ModComponent> setCurrentComponent,
+			Action<TabControl, TabItem> setTab,
+			TabControl tabControl,
+			TabItem guiEditTab,
+			TabItem rawEditTab,
+			Action<object, object> onRemoveComponent,
+			Action<object, object> onInstallSingle)
+		{
+			contextMenu.Items.Add(new Separator());
+
+			// Movement operations
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "⬆️ Move Up",
+				Command = ReactiveCommand.Create(() => _modManagementService.MoveModRelative(component, -1)),
+				InputGesture = new KeyGesture(Key.Up, KeyModifiers.Control)
+			});
+
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "⬇️ Move Down",
+				Command = ReactiveCommand.Create(() => _modManagementService.MoveModRelative(component, 1)),
+				InputGesture = new KeyGesture(Key.Down, KeyModifiers.Control)
+			});
+
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "📊 Move to Top",
+				Command = ReactiveCommand.Create(() => _modManagementService.MoveModToPosition(component, 0))
+			});
+
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "📊 Move to Bottom",
+				Command = ReactiveCommand.Create(() => _modManagementService.MoveModToPosition(component, MainConfig.AllComponents.Count - 1))
+			});
+
+			contextMenu.Items.Add(new Separator());
+
+			// CRUD operations
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "🗑️ Delete Mod",
+				Command = ReactiveCommand.CreateFromTask(async () =>
+				{
+					setCurrentComponent(component);
+					bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
+						_parentWindow,
+						$"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
+						yesButtonText: "Delete",
+						noButtonText: "Cancel"
+					);
+					if ( confirm == true )
+						onRemoveComponent(null, null);
+				})
+			});
+
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "🔄 Duplicate Mod",
+				Command = ReactiveCommand.Create(() =>
+				{
+					ModComponent duplicated = _modManagementService.DuplicateMod(component);
+					if ( duplicated != null )
+					{
+						setCurrentComponent(duplicated);
+						setTab(tabControl, guiEditTab);
+					}
+				})
+			});
+
+			contextMenu.Items.Add(new Separator());
+
+			// Editing operations
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "📝 Edit Instructions",
+				Command = ReactiveCommand.Create(() =>
+				{
+					setCurrentComponent(component);
+					setTab(tabControl, guiEditTab);
+				})
+			});
+
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "📄 Edit Raw TOML",
+				Command = ReactiveCommand.Create(() =>
+				{
+					setCurrentComponent(component);
+					setTab(tabControl, rawEditTab);
+				})
+			});
+
+			contextMenu.Items.Add(new Separator());
+
+			// Testing and validation
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "🧪 Test Install This Mod",
+				Command = ReactiveCommand.Create(() =>
+				{
+					setCurrentComponent(component);
+					onInstallSingle(null, null);
+				})
+			});
+
+			contextMenu.Items.Add(new MenuItem
+			{
+				Header = "🔍 Validate Mod Files",
+				Command = ReactiveCommand.Create(async () =>
+				{
+					ModValidationResult validation = _modManagementService.ValidateMod(component);
+					if ( !validation.IsValid )
+					{
+						await InformationDialog.ShowInformationDialog(_parentWindow,
+							$"Validation failed for '{component.Name}':\n\n" +
+							string.Join("\n", validation.Errors.Take(5)));
+					}
+					else
+					{
+						await InformationDialog.ShowInformationDialog(_parentWindow,
+							$"✅ '{component.Name}' validation passed!");
+					}
+				})
+			});
+		}
+
+		private void AddCommonMenuItems(ItemCollection items, Action onRefresh, Func<Task> onValidateAll)
+		{
+			_ = items.Add(new MenuItem
+			{
+				Header = "🔄 Refresh List",
+				Command = ReactiveCommand.Create(onRefresh),
+				InputGesture = new KeyGesture(Key.F5)
+			});
+
+			_ = items.Add(new MenuItem
+			{
+				Header = "🔄 Validate All Mods",
+				Command = ReactiveCommand.CreateFromTask(async () =>
+				{
+					Dictionary<ModComponent, ModValidationResult> results = _modManagementService.ValidateAllMods();
+					int errorCount = results.Count(r => !r.Value.IsValid);
+					int warningCount = results.Sum(r => r.Value.Warnings.Count);
+
+					await InformationDialog.ShowInformationDialog(_parentWindow,
+						"Validation complete!\n\n" +
+						$"Errors: {errorCount}\n" +
+						$"Warnings: {warningCount}\n\n" +
+						$"Valid mods: {results.Count(r => r.Value.IsValid)}/{results.Count}");
+				})
+			});
+		}
+
+		private void AddEditorModeFlyoutItems(
+			MenuFlyout menu,
+			Func<ModComponent> onCreate,
+			Action<ModComponent> setCurrentComponent,
+			Action<TabControl, TabItem> setTab,
+			TabControl tabControl,
+			TabItem guiEditTab,
+			Func<Task> onShowModManagement,
+			Func<Task> onShowStats,
+			Action<object, object> onSave,
+			Action<object, object> onClose)
+		{
+			// Global operations
+			menu.Items.Add(new MenuItem
+			{
+				Header = "➕ Add New Mod",
+				Command = ReactiveCommand.Create(() =>
+				{
+					ModComponent newMod = onCreate();
+					if ( newMod != null )
+					{
+						setCurrentComponent(newMod);
+						setTab(tabControl, guiEditTab);
+					}
+				})
+			});
+
+			menu.Items.Add(new Separator());
+
+			// Selection operations
+			menu.Items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Name",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods())
+			});
+
+			menu.Items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Category",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Category))
+			});
+
+			menu.Items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Tier",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Tier))
+			});
+
+			menu.Items.Add(new Separator());
+
+			// Tools and utilities
+			menu.Items.Add(new MenuItem
+			{
+				Header = "⚙️ Mod Management Tools",
+				Command = ReactiveCommand.CreateFromTask(onShowModManagement)
+			});
+
+			menu.Items.Add(new MenuItem
+			{
+				Header = "📈 Mod Statistics",
+				Command = ReactiveCommand.CreateFromTask(async () =>
+				{
+					ModStatistics stats = _modManagementService.GetModStatistics();
+					string statsText = "📊 Mod Statistics\n\n" +
+									   $"Total Mods: {stats.TotalMods}\n" +
+									   $"Selected: {stats.SelectedMods}\n" +
+									   $"Downloaded: {stats.DownloadedMods}\n\n" +
+									   $"Categories:\n{string.Join("\n", stats.Categories.Select(c => $"  • {c.Key}: {c.Value}"))}\n\n" +
+									   $"Tiers:\n{string.Join("\n", stats.Tiers.Select(t => $"  • {t.Key}: {t.Value}"))}\n\n" +
+									   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
+									   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
+
+					await InformationDialog.ShowInformationDialog(_parentWindow, statsText);
+				})
+			});
+
+			menu.Items.Add(new Separator());
+
+			// File operations
+			menu.Items.Add(new MenuItem
+			{
+				Header = "💾 Save Config",
+				Command = ReactiveCommand.Create(() => onSave(null, null)),
+				InputGesture = new KeyGesture(Key.S, KeyModifiers.Control)
+			});
+
+			menu.Items.Add(new MenuItem
+			{
+				Header = "❌ Close TOML",
+				Command = ReactiveCommand.Create(() => onClose(null, null))
+			});
+		}
+
+		private void AddEditorModeContextMenuItems(
+			ItemCollection items,
+			Func<ModComponent> onCreate,
+			Action<ModComponent> setCurrentComponent,
+			Action<TabControl, TabItem> setTab,
+			TabControl tabControl,
+			TabItem guiEditTab,
+			Func<Task> onShowModManagement,
+			Func<Task> onShowStats,
+			Action<object, object> onSave,
+			Action<object, object> onClose)
+		{
+			// Global operations
+			_ = items.Add(new MenuItem
+			{
+				Header = "➕ Add New Mod",
+				Command = ReactiveCommand.Create(() =>
+				{
+					ModComponent newMod = onCreate();
+					if ( newMod == null )
+						return;
+					setCurrentComponent(newMod);
+					setTab(tabControl, guiEditTab);
+				})
+			});
+
+			items.Add(new Separator());
+
+			// Selection operations
+			items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Name",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods())
+			});
+
+			items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Category",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Category))
+			});
+
+			items.Add(new MenuItem
+			{
+				Header = "🔎 Select by Tier",
+				Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Tier))
+			});
+
+			items.Add(new Separator());
+
+			// Tools and utilities
+			items.Add(new MenuItem
+			{
+				Header = "⚙️ Mod Management Tools",
+				Command = ReactiveCommand.CreateFromTask(onShowModManagement)
+			});
+
+			items.Add(new MenuItem
+			{
+				Header = "📈 Mod Statistics",
+				Command = ReactiveCommand.CreateFromTask(async () =>
+				{
+					ModStatistics stats = _modManagementService.GetModStatistics();
+					string statsText = "📊 Mod Statistics\n\n" +
+									   $"Total Mods: {stats.TotalMods}\n" +
+									   $"Selected: {stats.SelectedMods}\n" +
+									   $"Downloaded: {stats.DownloadedMods}\n\n" +
+									   $"Categories:\n{string.Join("\n", stats.Categories.Select(c => $"  • {c.Key}: {c.Value}"))}\n\n" +
+									   $"Tiers:\n{string.Join("\n", stats.Tiers.Select(t => $"  • {t.Key}: {t.Value}"))}\n\n" +
+									   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
+									   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
+
+					await InformationDialog.ShowInformationDialog(_parentWindow, statsText);
+				})
+			});
+
+			items.Add(new Separator());
+
+			// File operations
+			items.Add(new MenuItem
+			{
+				Header = "💾 Save Config",
+				Command = ReactiveCommand.Create(() => onSave(null, null)),
+				InputGesture = new KeyGesture(Key.S, KeyModifiers.Control)
+			});
+
+			items.Add(new MenuItem
+			{
+				Header = "❌ Close TOML",
+				Command = ReactiveCommand.Create(() => onClose(null, null))
+			});
+		}
+
+		#endregion
+	}
+}
+

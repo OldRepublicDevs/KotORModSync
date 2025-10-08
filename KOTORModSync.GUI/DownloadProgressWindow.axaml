@@ -24,10 +24,9 @@
         <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
     </Window.Resources>
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Panel>
         <!--  Custom Window Controls  -->
         <StackPanel
-            Grid.Row="0"
             Margin="0,8,8,0"
             HorizontalAlignment="Right"
             VerticalAlignment="Top"
@@ -62,11 +61,12 @@
                 FontSize="15" />
         </StackPanel>
 
-        <!--  Header  -->
-        <Border
-            Grid.Row="0"
-            Padding="16,12"
-            Classes="download-header">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!--  Header  -->
+            <Border
+                Grid.Row="0"
+                Padding="16,12"
+                Classes="download-header">
             <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0">
                     <TextBlock Classes="step-title" Text="Downloading Mod Files" />
@@ -276,5 +276,6 @@
                     IsEnabled="False" />
             </Grid>
         </Border>
-    </Grid>
+        </Grid>
+    </Panel>
 </Window>

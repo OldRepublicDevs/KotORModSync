@@ -3,7 +3,6 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
-using System.Linq;
 using KOTORModSync.Core;
 
 namespace KOTORModSync
@@ -20,15 +19,15 @@ namespace KOTORModSync
 			public Guid RejectedGuid { get; set; }
 			public bool RequiresManualResolution { get; set; }
 			public string ConflictReason { get; set; }
-			public Component ExistingComponent { get; set; }
-			public Component IncomingComponent { get; set; }
+			public ModComponent ExistingComponent { get; set; }
+			public ModComponent IncomingComponent { get; set; }
 		}
 
 		/// <summary>
 		/// Determines which GUID to use when merging two matched components.
 		/// Returns null if GUIDs are the same (no conflict).
 		/// </summary>
-		public static GuidResolution ResolveGuidConflict(Component existing, Component incoming)
+		public static GuidResolution ResolveGuidConflict(ModComponent existing, ModComponent incoming)
 		{
 			// No conflict if GUIDs match
 			if ( existing.Guid == incoming.Guid )
@@ -103,7 +102,7 @@ namespace KOTORModSync
 		/// <summary>
 		/// Checks if a component has intricate GUID usage (dependencies, restrictions, options, etc.)
 		/// </summary>
-		private static bool HasIntricateGuidUsage(Component component)
+		private static bool HasIntricateGuidUsage(ModComponent component)
 		{
 			// Check if component has any dependencies, restrictions, or install order requirements
 			if ( component.Dependencies.Count > 0 )
@@ -123,9 +122,9 @@ namespace KOTORModSync
 		/// <summary>
 		/// Checks if any other component in the list references this GUID
 		/// </summary>
-		public static bool IsGuidReferencedByOthers(Guid guid, System.Collections.Generic.List<Component> allComponents)
+		public static bool IsGuidReferencedByOthers(Guid guid, System.Collections.Generic.List<ModComponent> allComponents)
 		{
-			foreach ( Component comp in allComponents )
+			foreach ( ModComponent comp in allComponents )
 			{
 				if ( comp.Dependencies.Contains(guid) )
 					return true;

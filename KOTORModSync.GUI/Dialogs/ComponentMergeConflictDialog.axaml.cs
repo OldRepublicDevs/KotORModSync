@@ -14,7 +14,7 @@ using Avalonia.VisualTree;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
 using static KOTORModSync.Dialogs.ComponentMergeConflictViewModel;
-using Component = KOTORModSync.Core.Component;
+using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Dialogs
 {
@@ -22,7 +22,7 @@ namespace KOTORModSync.Dialogs
 	{
 		public ComponentMergeConflictViewModel ViewModel { get; private set; }
 		public bool UserConfirmed { get; private set; }
-		public List<Component> MergedComponents { get; private set; }
+		public List<ModComponent> MergedComponents { get; private set; }
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
 
@@ -41,11 +41,11 @@ namespace KOTORModSync.Dialogs
 		}
 
 		public ComponentMergeConflictDialog(
-			[NotNull] List<Component> existingComponents,
-			[NotNull] List<Component> incomingComponents,
+			[NotNull] List<ModComponent> existingComponents,
+			[NotNull] List<ModComponent> incomingComponents,
 			[NotNull] string existingSource,
 			[NotNull] string incomingSource,
-			[NotNull] Func<Component, Component, bool> matchFunc)
+			[NotNull] Func<ModComponent, ModComponent, bool> matchFunc)
 		{
 			InitializeComponent();
 #if DEBUG
@@ -299,7 +299,7 @@ namespace KOTORModSync.Dialogs
 				// Find the ScrollViewer in the Raw TOML tab (index 1)
 				if ( tabControl.SelectedIndex != 1 ) return;
 
-				ScrollViewer scrollViewer = FindScrollViewerInTab(tabControl);
+				ScrollViewer scrollViewer = ComponentMergeConflictDialog.FindScrollViewerInTab(tabControl);
 				if ( scrollViewer == null ) return;
 
 				// Find the ListBox containing the TOML lines
@@ -340,7 +340,7 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private ScrollViewer FindScrollViewerInTab(TabControl tabControl)
+		private static ScrollViewer FindScrollViewerInTab(TabControl tabControl)
 		{
 			try
 			{
@@ -406,7 +406,7 @@ namespace KOTORModSync.Dialogs
 
 				// Find the preview item that corresponds to this component
 				PreviewItem previewItem = ViewModel.PreviewComponents.FirstOrDefault(p =>
-					p.Component == selectedItem.Component ||
+					p.ModComponent == selectedItem.ModComponent ||
 					p.Name == selectedItem.Name);
 
 				if ( previewItem == null ) return;

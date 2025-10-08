@@ -85,7 +85,7 @@
             Grid.Column="0"
             Margin="20"
             ColumnDefinitions="2*,*">
-            <!--  Component List  -->
+            <!--  ModComponent List  -->
             <Border
                 Grid.Column="0"
                 Margin="0,0,10,0"
@@ -99,7 +99,7 @@
                         Background="{DynamicResource ThemeControlHighlightLowBrush}"
                         FontSize="14"
                         FontWeight="SemiBold"
-                        Text="📋 Component List" />
+                        Text="📋 ModComponent List" />
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <ItemsControl Padding="10" ItemsSource="{Binding Components}">

@@ -34,9 +34,9 @@ namespace KOTORModSync.Core.Services
 		/// <param name="author">Author of the new mod.</param>
 		/// <param name="category">Category of the new mod.</param>
 		/// <returns>The newly created component.</returns>
-		public Component CreateMod(string name = null, string author = null, string category = null)
+		public ModComponent CreateMod(string name = null, string author = null, string category = null)
 		{
-			var newComponent = new Component
+			var newComponent = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = name ?? $"New Mod {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
@@ -61,7 +61,7 @@ namespace KOTORModSync.Core.Services
 			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
 				Operation = ModOperation.Create,
-				Component = newComponent,
+				ModComponent = newComponent,
 				Success = true
 			});
 
@@ -72,14 +72,14 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Duplicates an existing mod component.
 		/// </summary>
-		/// <param name="sourceComponent">Component to duplicate.</param>
+		/// <param name="sourceComponent">ModComponent to duplicate.</param>
 		/// <param name="newName">Optional new name for the duplicated component.</param>
 		/// <returns>The duplicated component.</returns>
-		public Component DuplicateMod(Component sourceComponent, string newName = null)
+		public ModComponent DuplicateMod(ModComponent sourceComponent, string newName = null)
 		{
 			if ( sourceComponent == null ) throw new ArgumentNullException(nameof(sourceComponent));
 
-			var duplicatedComponent = new Component
+			var duplicatedComponent = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = newName ?? $"{sourceComponent.Name} (Copy)",
@@ -105,7 +105,7 @@ namespace KOTORModSync.Core.Services
 			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
 				Operation = ModOperation.Duplicate,
-				Component = duplicatedComponent,
+				ModComponent = duplicatedComponent,
 				SourceComponent = sourceComponent,
 				Success = true
 			});
@@ -117,24 +117,24 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Updates an existing mod component.
 		/// </summary>
-		/// <param name="component">Component to update.</param>
+		/// <param name="component">ModComponent to update.</param>
 		/// <param name="updates">Action to perform updates on the component.</param>
 		/// <returns>True if update was successful.</returns>
-		public bool UpdateMod(Component component, Action<Component> updates)
+		public bool UpdateMod(ModComponent component, Action<ModComponent> updates)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
 			if ( updates == null ) throw new ArgumentNullException(nameof(updates));
 
 			try
 			{
-				Component originalComponent = CloneComponent(component);
+				ModComponent originalComponent = CloneComponent(component);
 				updates(component);
 
 				// Validate the component after updates
 				ModValidationResult validationResult = ValidateMod(component);
 				if ( !validationResult.IsValid )
 				{
-					Logger.LogWarning($"Component update validation failed: {string.Join(", ", validationResult.Errors)}");
+					Logger.LogWarning($"ModComponent update validation failed: {string.Join(", ", validationResult.Errors)}");
 					// Optionally revert changes here
 					return false;
 				}
@@ -142,7 +142,7 @@ namespace KOTORModSync.Core.Services
 				ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 				{
 					Operation = ModOperation.Update,
-					Component = component,
+					ModComponent = component,
 					OriginalComponent = originalComponent,
 					Success = true
 				});
@@ -160,10 +160,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Deletes a mod component.
 		/// </summary>
-		/// <param name="component">Component to delete.</param>
+		/// <param name="component">ModComponent to delete.</param>
 		/// <param name="force">Force deletion even if component has dependencies.</param>
 		/// <returns>True if deletion was successful.</returns>
-		public bool DeleteMod(Component component, bool force = false)
+		public bool DeleteMod(ModComponent component, bool force = false)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
 
@@ -186,7 +186,7 @@ namespace KOTORModSync.Core.Services
 			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
 				Operation = ModOperation.Delete,
-				Component = component,
+				ModComponent = component,
 				Success = true
 			});
 
@@ -202,10 +202,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Moves a component to a specific position in the list.
 		/// </summary>
-		/// <param name="component">Component to move.</param>
+		/// <param name="component">ModComponent to move.</param>
 		/// <param name="targetIndex">Target index position.</param>
 		/// <returns>True if move was successful.</returns>
-		public bool MoveModToPosition(Component component, int targetIndex)
+		public bool MoveModToPosition(ModComponent component, int targetIndex)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
 
@@ -222,7 +222,7 @@ namespace KOTORModSync.Core.Services
 			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
 				Operation = ModOperation.Move,
-				Component = component,
+				ModComponent = component,
 				FromIndex = currentIndex,
 				ToIndex = targetIndex,
 				Success = true
@@ -235,10 +235,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Moves a component up or down in the list.
 		/// </summary>
-		/// <param name="component">Component to move.</param>
+		/// <param name="component">ModComponent to move.</param>
 		/// <param name="relativeIndex">Relative position change (positive = down, negative = up).</param>
 		/// <returns>True if move was successful.</returns>
-		public bool MoveModRelative(Component component, int relativeIndex)
+		public bool MoveModRelative(ModComponent component, int relativeIndex)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
 
@@ -256,9 +256,9 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Validates a single mod component.
 		/// </summary>
-		/// <param name="component">Component to validate.</param>
+		/// <param name="component">ModComponent to validate.</param>
 		/// <returns>Validation result with errors and warnings.</returns>
-		public ModValidationResult ValidateMod(Component component)
+		public ModValidationResult ValidateMod(ModComponent component)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
 
@@ -266,10 +266,10 @@ namespace KOTORModSync.Core.Services
 
 			// Basic validation
 			if ( string.IsNullOrWhiteSpace(component.Name) )
-				result.Errors.Add("Component name is required");
+				result.Errors.Add("ModComponent name is required");
 
 			if ( string.IsNullOrWhiteSpace(component.Author) )
-				result.Warnings.Add("Component author is not specified");
+				result.Warnings.Add("ModComponent author is not specified");
 
 			// Dependency validation
 			foreach ( Guid dependency in component.Dependencies.Where(dependency => _mainConfig.allComponents.All(c => c.Guid != dependency)) )
@@ -316,7 +316,7 @@ namespace KOTORModSync.Core.Services
 
 			ModValidationCompleted?.Invoke(this, new ModValidationEventArgs
 			{
-				Component = component,
+				ModComponent = component,
 				ValidationResult = result
 			});
 
@@ -327,11 +327,11 @@ namespace KOTORModSync.Core.Services
 		/// Validates all components in the configuration.
 		/// </summary>
 		/// <returns>Collection of validation results for all components.</returns>
-		public Dictionary<Component, ModValidationResult> ValidateAllMods()
+		public Dictionary<ModComponent, ModValidationResult> ValidateAllMods()
 		{
-			var results = new Dictionary<Component, ModValidationResult>();
+			var results = new Dictionary<ModComponent, ModValidationResult>();
 
-			foreach ( Component component in _mainConfig.allComponents )
+			foreach ( ModComponent component in _mainConfig.allComponents )
 			{
 				results[component] = ValidateMod(component);
 			}
@@ -346,10 +346,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Adds a dependency to a component.
 		/// </summary>
-		/// <param name="component">Component to add dependency to.</param>
-		/// <param name="dependencyComponent">Component to depend on.</param>
+		/// <param name="component">ModComponent to add dependency to.</param>
+		/// <param name="dependencyComponent">ModComponent to depend on.</param>
 		/// <returns>True if dependency was added successfully.</returns>
-		public bool AddDependency(Component component, Component dependencyComponent)
+		public bool AddDependency(ModComponent component, ModComponent dependencyComponent)
 		{
 			if ( component == null || dependencyComponent == null ) return false;
 
@@ -361,7 +361,7 @@ namespace KOTORModSync.Core.Services
 			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
 				Operation = ModOperation.AddDependency,
-				Component = component,
+				ModComponent = component,
 				RelatedComponent = dependencyComponent,
 				Success = true
 			});
@@ -369,7 +369,7 @@ namespace KOTORModSync.Core.Services
 			Logger.LogVerbose($"Added dependency: {component.Name} -> {dependencyComponent.Name}");
 			return true;
 		}
-		public bool RemoveDependency(Component component, Component dependencyComponent)
+		public bool RemoveDependency(ModComponent component, ModComponent dependencyComponent)
 		{
 			if ( component == null || dependencyComponent == null ) return false;
 
@@ -380,7 +380,7 @@ namespace KOTORModSync.Core.Services
 				ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 				{
 					Operation = ModOperation.RemoveDependency,
-					Component = component,
+					ModComponent = component,
 					RelatedComponent = dependencyComponent,
 					Success = true
 				});
@@ -394,10 +394,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Adds a restriction to a component.
 		/// </summary>
-		/// <param name="component">Component to add restriction to.</param>
-		/// <param name="restrictionComponent">Component to restrict against.</param>
+		/// <param name="component">ModComponent to add restriction to.</param>
+		/// <param name="restrictionComponent">ModComponent to restrict against.</param>
 		/// <returns>True if restriction was added successfully.</returns>
-		public bool AddRestriction(Component component, Component restrictionComponent)
+		public bool AddRestriction(ModComponent component, ModComponent restrictionComponent)
 		{
 			if ( component == null || restrictionComponent == null ) return false;
 
@@ -409,7 +409,7 @@ namespace KOTORModSync.Core.Services
 			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
 				Operation = ModOperation.AddRestriction,
-				Component = component,
+				ModComponent = component,
 				RelatedComponent = restrictionComponent,
 				Success = true
 			});
@@ -421,10 +421,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Removes a restriction from a component.
 		/// </summary>
-		/// <param name="component">Component to remove restriction from.</param>
-		/// <param name="restrictionComponent">Component to remove restriction against.</param>
+		/// <param name="component">ModComponent to remove restriction from.</param>
+		/// <param name="restrictionComponent">ModComponent to remove restriction against.</param>
 		/// <returns>True if restriction was removed successfully.</returns>
-		public bool RemoveRestriction(Component component, Component restrictionComponent)
+		public bool RemoveRestriction(ModComponent component, ModComponent restrictionComponent)
 		{
 			if ( component == null || restrictionComponent == null ) return false;
 
@@ -435,7 +435,7 @@ namespace KOTORModSync.Core.Services
 				ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 				{
 					Operation = ModOperation.RemoveRestriction,
-					Component = component,
+					ModComponent = component,
 					RelatedComponent = restrictionComponent,
 					Success = true
 				});
@@ -456,7 +456,7 @@ namespace KOTORModSync.Core.Services
 		/// <param name="searchText">Text to search for.</param>
 		/// <param name="searchOptions">Search options.</param>
 		/// <returns>Filtered list of components.</returns>
-		public List<Component> SearchMods(string searchText, ModSearchOptions searchOptions = null)
+		public List<ModComponent> SearchMods(string searchText, ModSearchOptions searchOptions = null)
 		{
 			if ( string.IsNullOrWhiteSpace(searchText) )
 				return _mainConfig.allComponents.ToList();
@@ -492,7 +492,7 @@ namespace KOTORModSync.Core.Services
 		/// <param name="sortOrder">Sort order.</param>
 		public void SortMods(ModSortCriteria sortBy = ModSortCriteria.Name, SortOrder sortOrder = SortOrder.Ascending)
 		{
-			Comparison<Component> comparison;
+			Comparison<ModComponent> comparison;
 
 			switch ( sortBy )
 			{
@@ -539,7 +539,7 @@ namespace KOTORModSync.Core.Services
 
 			if ( sortOrder == SortOrder.Descending )
 			{
-				Comparison<Component> originalComparison = comparison;
+				Comparison<ModComponent> originalComparison = comparison;
 				comparison = (a, b) => -originalComparison(a, b);
 			}
 
@@ -563,9 +563,9 @@ namespace KOTORModSync.Core.Services
 		/// <param name="operation">Operation to perform.</param>
 		/// <param name="parameters">Operation parameters.</param>
 		/// <returns>Results of the batch operation.</returns>
-		public async Task<BatchOperationResult> PerformBatchOperation(IEnumerable<Component> components, BatchModOperation operation, Dictionary<string, object> parameters = null)
+		public async Task<BatchOperationResult> PerformBatchOperation(IEnumerable<ModComponent> components, BatchModOperation operation, Dictionary<string, object> parameters = null)
 		{
-			IEnumerable<Component> enumerable = components as Component[] ?? components.ToArray();
+			IEnumerable<ModComponent> enumerable = components as ModComponent[] ?? components.ToArray();
 			var result = new BatchOperationResult
 			{
 				Operation = operation,
@@ -575,7 +575,7 @@ namespace KOTORModSync.Core.Services
 				Errors = new List<string>()
 			};
 
-			foreach ( Component component in enumerable )
+			foreach ( ModComponent component in enumerable )
 			{
 				try
 				{
@@ -664,17 +664,17 @@ namespace KOTORModSync.Core.Services
 		/// <param name="filePath">Path to export to.</param>
 		/// <param name="format">Export format.</param>
 		/// <returns>True if export was successful.</returns>
-		public async Task<bool> ExportMods(IEnumerable<Component> components, string filePath, ExportFormat format = ExportFormat.Toml)
+		public async Task<bool> ExportMods(IEnumerable<ModComponent> components, string filePath, ExportFormat format = ExportFormat.Toml)
 		{
 			try
 			{
-				IEnumerable<Component> enumerable = components as Component[] ?? components.ToArray();
+				IEnumerable<ModComponent> enumerable = components as ModComponent[] ?? components.ToArray();
 				switch ( format )
 				{
 					case ExportFormat.Toml:
 						using ( var writer = new StreamWriter(filePath) )
 						{
-							foreach ( Component component in enumerable )
+							foreach ( ModComponent component in enumerable )
 							{
 								string tomlContent = component.SerializeComponent();
 								await writer.WriteLineAsync(tomlContent);
@@ -707,11 +707,11 @@ namespace KOTORModSync.Core.Services
 		/// <param name="filePath">Path to import from.</param>
 		/// <param name="mergeStrategy">Strategy for merging with existing components.</param>
 		/// <returns>Imported components.</returns>
-		public async Task<List<Component>> ImportMods(string filePath, ImportMergeStrategy mergeStrategy = ImportMergeStrategy.ByGuid)
+		public async Task<List<ModComponent>> ImportMods(string filePath, ImportMergeStrategy mergeStrategy = ImportMergeStrategy.ByGuid)
 		{
 			try
 			{
-				List<Component> importedComponents = Component.ReadComponentsFromFile(filePath);
+				List<ModComponent> importedComponents = ModComponent.ReadComponentsFromFile(filePath);
 
 				if ( importedComponents.Count == 0 )
 					return importedComponents;
@@ -745,7 +745,7 @@ namespace KOTORModSync.Core.Services
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
-				return new List<Component>();
+				return new List<ModComponent>();
 			}
 		}
 
@@ -792,11 +792,11 @@ namespace KOTORModSync.Core.Services
 
 		#region Helper Methods
 
-		private void MergeByGuid(List<Component> importedComponents)
+		private void MergeByGuid(List<ModComponent> importedComponents)
 		{
-			foreach ( Component imported in importedComponents )
+			foreach ( ModComponent imported in importedComponents )
 			{
-				Component existing = _mainConfig.allComponents.FirstOrDefault(c => c.Guid == imported.Guid);
+				ModComponent existing = _mainConfig.allComponents.FirstOrDefault(c => c.Guid == imported.Guid);
 				if ( existing != null )
 				{
 					// Update existing component with imported data
@@ -822,21 +822,21 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		private void MergeByNameAndAuthor(List<Component> importedComponents)
+		private void MergeByNameAndAuthor(List<ModComponent> importedComponents)
 		{
 			// Build a list of matches using fuzzy matching (similar to ComponentMergeConflictViewModel)
-			var matchedPairs = new List<(Component existing, Component incoming)>();
-			var matchedExisting = new HashSet<Component>();
-			var matchedIncoming = new HashSet<Component>();
+			var matchedPairs = new List<(ModComponent existing, ModComponent incoming)>();
+			var matchedExisting = new HashSet<ModComponent>();
+			var matchedIncoming = new HashSet<ModComponent>();
 
 			// Find fuzzy matches by name and author
-			foreach ( Component imported in importedComponents )
+			foreach ( ModComponent imported in importedComponents )
 			{
 				// Try to find a fuzzy match in existing components
-				Component bestMatch = null;
+				ModComponent bestMatch = null;
 				double bestScore = 0.0;
 
-				foreach ( Component existing in _mainConfig.allComponents )
+				foreach ( ModComponent existing in _mainConfig.allComponents )
 				{
 					// Skip if already matched
 					if ( matchedExisting.Contains(existing) )
@@ -891,7 +891,7 @@ namespace KOTORModSync.Core.Services
 			}
 
 			// Merge matched pairs (update existing with imported data)
-			foreach ( (Component existing, Component imported) in matchedPairs )
+			foreach ( (ModComponent existing, ModComponent imported) in matchedPairs )
 			{
 				// Update existing component with imported data (similar to MergeByGuid)
 				existing.Name = imported.Name;
@@ -913,7 +913,7 @@ namespace KOTORModSync.Core.Services
 			}
 
 			// Add unmatched imported components as new components
-			foreach ( Component imported in importedComponents )
+			foreach ( ModComponent imported in importedComponents )
 			{
 				if ( !matchedIncoming.Contains(imported) )
 				{
@@ -923,19 +923,19 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		private static bool SetModDownloaded(Component component, bool downloaded)
+		private static bool SetModDownloaded(ModComponent component, bool downloaded)
 		{
 			component.IsDownloaded = downloaded;
 			return true;
 		}
 
-		private static bool SetModSelected(Component component, bool selected)
+		private static bool SetModSelected(ModComponent component, bool selected)
 		{
 			component.IsSelected = selected;
 			return true;
 		}
 
-		private static bool UpdateModMetadata(Component component, Dictionary<string, object> parameters)
+		private static bool UpdateModMetadata(ModComponent component, Dictionary<string, object> parameters)
 		{
 			if ( parameters.TryGetValue("Name", out object name) )
 				component.Name = name.ToString();
@@ -955,7 +955,7 @@ namespace KOTORModSync.Core.Services
 			return true;
 		}
 
-		private Component CloneComponent(Component source) => new Component
+		private ModComponent CloneComponent(ModComponent source) => new ModComponent
 		{
 			Guid = source.Guid,
 			Name = source.Name,
@@ -1009,10 +1009,10 @@ namespace KOTORModSync.Core.Services
 		public class ModOperationEventArgs : EventArgs
 		{
 			public ModOperation Operation { get; set; }
-			public Component Component { get; set; }
-			public Component SourceComponent { get; set; }
-			public Component RelatedComponent { get; set; }
-			public Component OriginalComponent { get; set; }
+			public ModComponent ModComponent { get; set; }
+			public ModComponent SourceComponent { get; set; }
+			public ModComponent RelatedComponent { get; set; }
+			public ModComponent OriginalComponent { get; set; }
 			public int? FromIndex { get; set; }
 			public int? ToIndex { get; set; }
 			public BatchOperationResult BatchResult { get; set; }
@@ -1021,7 +1021,7 @@ namespace KOTORModSync.Core.Services
 
 		public class ModValidationEventArgs : EventArgs
 		{
-			public Component Component { get; set; }
+			public ModComponent ModComponent { get; set; }
 			public ModValidationResult ValidationResult { get; set; }
 		}
 

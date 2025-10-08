@@ -23,17 +23,17 @@ namespace KOTORModSync.Core.Installation
 		public InstallSessionManager SessionManager { get; }
 		public BackupManager BackupManager { get; }
 
-		public async Task<ResumeResult> InitializeAsync([NotNull] IList<Component> components, [NotNull] DirectoryInfo destinationPath, CancellationToken cancellationToken)
+		public async Task<ResumeResult> InitializeAsync([NotNull] IList<ModComponent> components, [NotNull] DirectoryInfo destinationPath, CancellationToken cancellationToken)
 		{
 			await SessionManager.InitializeAsync(components, destinationPath);
 			await BackupManager.EnsureSnapshotAsync(destinationPath, cancellationToken);
 			SessionManager.UpdateBackupPath(BackupManager.BackupPath);
 			await SessionManager.SaveAsync();
-			List<Component> ordered = GetOrderedInstallList(components);
+			List<ModComponent> ordered = GetOrderedInstallList(components);
 			return new ResumeResult(SessionManager.State.SessionId, ordered);
 		}
 
-		public static List<Component> GetOrderedInstallList([NotNull][ItemNotNull] IList<Component> components)
+		public static List<ModComponent> GetOrderedInstallList([NotNull][ItemNotNull] IList<ModComponent> components)
 		{
 			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
@@ -43,13 +43,13 @@ namespace KOTORModSync.Core.Installation
 			var adjacency = new Dictionary<Guid, List<Guid>>();
 			var indegree = new Dictionary<Guid, int>();
 
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				adjacency[component.Guid] = new List<Guid>();
 				indegree[component.Guid] = 0;
 			}
 
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				foreach ( Guid dependency in component.Dependencies )
 				{
@@ -79,7 +79,7 @@ namespace KOTORModSync.Core.Installation
 			}
 
 			var queue = new Queue<Guid>(indegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
-			var ordered = new List<Component>();
+			var ordered = new List<ModComponent>();
 
 			while ( queue.Count > 0 )
 			{
@@ -97,7 +97,7 @@ namespace KOTORModSync.Core.Installation
 			// If there was a cycle, append remaining components in original order
 			if ( ordered.Count != components.Count )
 			{
-				foreach ( Component component in components )
+				foreach ( ModComponent component in components )
 				{
 					if ( !ordered.Contains(component) )
 						ordered.Add(component);
@@ -113,7 +113,7 @@ namespace KOTORModSync.Core.Installation
 			}
 		}
 
-		public static void MarkBlockedDescendants([NotNull] IList<Component> orderedComponents, Guid failedComponentId)
+		public static void MarkBlockedDescendants([NotNull] IList<ModComponent> orderedComponents, Guid failedComponentId)
 		{
 			var visited = new HashSet<Guid>();
 			var stack = new Stack<Guid>();
@@ -131,10 +131,10 @@ namespace KOTORModSync.Core.Installation
 				{
 					if ( visited.Add(dependentId) )
 					{
-						Component dependent = orderedComponents.FirstOrDefault(c => c.Guid == dependentId);
-						if ( dependent != null && dependent.InstallState == Component.ComponentInstallState.Pending )
+						ModComponent dependent = orderedComponents.FirstOrDefault(c => c.Guid == dependentId);
+						if ( dependent != null && dependent.InstallState == ModComponent.ComponentInstallState.Pending )
 						{
-							dependent.InstallState = Component.ComponentInstallState.Blocked;
+							dependent.InstallState = ModComponent.ComponentInstallState.Blocked;
 						}
 
 						stack.Push(dependentId);
@@ -143,12 +143,12 @@ namespace KOTORModSync.Core.Installation
 			}
 		}
 
-		private static Dictionary<Guid, List<Guid>> BuildDependentsMap(IList<Component> components)
+		private static Dictionary<Guid, List<Guid>> BuildDependentsMap(IList<ModComponent> components)
 		{
 			var map = new Dictionary<Guid, List<Guid>>();
 			var componentMap = components.ToDictionary(c => c.Guid);
 
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				void addEdge(Guid from, Guid to)
 				{

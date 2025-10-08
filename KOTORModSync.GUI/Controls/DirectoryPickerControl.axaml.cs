@@ -13,7 +13,6 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using KOTORModSync.Core;
-using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Controls
@@ -150,7 +149,7 @@ namespace KOTORModSync.Controls
 		{
 			try
 			{
-				List<string> recentPaths = LoadRecentModPaths();
+				List<string> recentPaths = DirectoryPickerControl.LoadRecentModPaths();
 				_pathSuggestions.ItemsSource = recentPaths;
 				Logger.LogVerbose($"DirectoryPickerControl(ModDirectory) initialized suggestions: {recentPaths?.Count ?? 0} entries");
 			}
@@ -164,9 +163,32 @@ namespace KOTORModSync.Controls
 		{
 			try
 			{
-				List<string> defaultPaths = GetDefaultPathsForGame();
-				_pathSuggestions.ItemsSource = defaultPaths.Where(Directory.Exists).ToList();
-				Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) initialized defaults: {defaultPaths.Count} total, {(_pathSuggestions.ItemsSource as System.Collections.ICollection)?.Count ?? 0} exist");
+				List<string> defaultPaths = DirectoryPickerControl.GetDefaultPathsForGame();
+				var newPaths = defaultPaths.Where(Directory.Exists).ToList();
+
+				// Get current items and selection
+				List<string> currentItems = (_pathSuggestions?.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
+				string currentSelection = _pathSuggestions?.SelectedItem?.ToString();
+
+				// Add new paths that don't already exist (case insensitive)
+				foreach (string path in newPaths)
+				{
+					if (!currentItems.Any(item => string.Equals(item, path, StringComparison.OrdinalIgnoreCase)))
+					{
+						currentItems.Add(path);
+					}
+				}
+
+				// Update items source
+				_pathSuggestions.ItemsSource = currentItems;
+
+				// Restore selection if it was set
+				if (!string.IsNullOrEmpty(currentSelection))
+				{
+					_pathSuggestions.SelectedItem = currentSelection;
+				}
+
+				Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) added {newPaths.Count} default paths, total items: {currentItems.Count}");
 			}
 			catch ( Exception ex )
 			{
@@ -174,7 +196,7 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		private List<string> GetDefaultPathsForGame()
+		private static List<string> GetDefaultPathsForGame()
 		{
 			var paths = new List<string>();
 			OSPlatform osType = Utility.GetOperatingSystem();
@@ -236,7 +258,7 @@ namespace KOTORModSync.Controls
 			return paths;
 		}
 
-		private List<string> LoadRecentModPaths()
+		private static List<string> LoadRecentModPaths()
 		{
 			try
 			{
@@ -266,7 +288,7 @@ namespace KOTORModSync.Controls
 				_ = Directory.CreateDirectory(appDataPath);
 				string recentFile = Path.Combine(appDataPath, "recent_mod_paths.txt");
 
-				List<string> recentPaths = LoadRecentModPaths();
+				List<string> recentPaths = DirectoryPickerControl.LoadRecentModPaths();
 				_ = recentPaths.Remove(path);
 				recentPaths.Insert(0, path);
 				recentPaths = recentPaths.Take(10).ToList();
@@ -458,13 +480,13 @@ namespace KOTORModSync.Controls
 
 				if ( PickerType == DirectoryPickerType.ModDirectory )
 				{
-					List<string> recent = LoadRecentModPaths();
+					List<string> recent = DirectoryPickerControl.LoadRecentModPaths();
 					_pathSuggestions.ItemsSource = recent;
 					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Refreshed suggestions: {recent?.Count ?? 0}");
 				}
 				else if ( PickerType == DirectoryPickerType.KotorDirectory )
 				{
-					var defaults = GetDefaultPathsForGame().Where(Directory.Exists).ToList();
+					var defaults = DirectoryPickerControl.GetDefaultPathsForGame().Where(Directory.Exists).ToList();
 					_pathSuggestions.ItemsSource = defaults;
 					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Refreshed defaults that exist: {defaults.Count}");
 				}

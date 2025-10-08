@@ -99,7 +99,7 @@
                         SelectedItem="{Binding ActionString, Converter={StaticResource ActionConverter}}" />
                 </StackPanel>
 
-                <!--  Source Field (for Choose action: show Component selector)  -->
+                <!--  Source Field (for Choose action: show ModComponent selector)  -->
                 <StackPanel IsVisible="{Binding Action, Converter={StaticResource ChooseActionVisibility}}" Spacing="1">
                     <TextBlock Classes="summary-label" Text="Components/Options to Choose From" />
                     <TextBlock

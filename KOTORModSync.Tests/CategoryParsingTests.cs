@@ -21,7 +21,7 @@ Category = ""Bugfix & Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -41,7 +41,7 @@ Category = ""Graphics Improvement & Bugfix""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -61,7 +61,7 @@ Category = ""Bugfix & Graphics Improvement, Immersion""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -82,7 +82,7 @@ Category = ""Graphics; Immersion""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -103,7 +103,7 @@ Category = ""Essential, Mechanics Change; Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -125,7 +125,7 @@ Category = ""Essential""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -145,7 +145,7 @@ Category = """"
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -164,7 +164,7 @@ Category = ""   ""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -183,7 +183,7 @@ Category = ""  Essential  ,  Mechanics Change  ;  Graphics Improvement  ""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -205,7 +205,7 @@ Category = ""Essential,,Mechanics Change; ;Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -227,7 +227,7 @@ Category = ""Graphics/Visual Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -260,7 +260,7 @@ Category = ""{input}""
 ";
 
 				// Act
-				var component = Component.DeserializeTomlComponent(tomlContent);
+				var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 				// Assert
 				Assert.That(component, Is.Not.Null, $"Failed for input: '{input}'");
@@ -281,7 +281,7 @@ Category = [""Bugfix & Graphics Improvement"", ""Immersion""]
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -301,7 +301,7 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -321,7 +321,7 @@ Category = ""Bugfix & Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -342,7 +342,7 @@ Category = ""Bugfix, Graphics Improvement & Immersion""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -364,7 +364,7 @@ Category = ""Appearance Change & Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -385,7 +385,7 @@ Category = ""Graphics Improvement & Appearance Change""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -406,7 +406,7 @@ Category = ""Added Content & Immersion""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -427,7 +427,7 @@ Category = ""Bugfix & Immersion""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -448,7 +448,7 @@ Category = ""Appearance Change, Bugfix & Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -470,7 +470,7 @@ Category = ""Appearance Change, Immersion & Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -492,7 +492,7 @@ Category = ""Added & Restored Content""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -513,7 +513,7 @@ Category = ""Mechanics Change & Immersion""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -534,7 +534,7 @@ Category = ""Immersion & Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -555,7 +555,7 @@ Category = ""Appearance Change & Immersion""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);
@@ -576,7 +576,7 @@ Category = ""Appearance Change, Immersion & Graphics Improvement""
 ";
 
 			// Act
-			var component = Component.DeserializeTomlComponent(tomlContent);
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
 			// Assert
 			Assert.That(component, Is.Not.Null);

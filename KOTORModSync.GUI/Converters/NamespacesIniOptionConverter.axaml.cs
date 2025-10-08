@@ -25,7 +25,7 @@ namespace KOTORModSync.Converters
 				if ( !(value is Instruction dataContextInstruction) )
 					return null;
 
-				Component parentComponent = dataContextInstruction.GetParentComponent();
+				ModComponent parentComponent = dataContextInstruction.GetParentComponent();
 				if ( parentComponent is null )
 					return null;
 
@@ -61,7 +61,7 @@ namespace KOTORModSync.Converters
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
 		[NotNull]
-		public static List<string> GetAllArchivesFromInstructions([NotNull] Component parentComponent)
+		public static List<string> GetAllArchivesFromInstructions([NotNull] ModComponent parentComponent)
 		{
 			if ( parentComponent is null )
 				throw new ArgumentNullException(nameof(parentComponent));

@@ -391,7 +391,7 @@
                         BorderThickness="0"
                         SelectionMode="Single">
                         <ListBox.ItemTemplate>
-                            <DataTemplate DataType="core:Component">
+                            <DataTemplate DataType="core:ModComponent">
                                 <controls:ModListItem DataContext="{Binding}" />
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -870,9 +870,15 @@
                                                 ToolTip.Tip="Open the output window to view detailed logs" />
                                             <Button
                                                 x:Name="GettingStartedHelpSettingsButton"
+                                                Margin="0,0,10,0"
                                                 Click="OpenSettings_Click"
                                                 Content="⚙️ Settings"
                                                 ToolTip.Tip="Open settings dialog to configure preferences" />
+                                            <Button
+                                                x:Name="CreateGithubIssueButton"
+                                                Click="CreateGithubIssue_Click"
+                                                Content="🐛 Create Github Issue"
+                                                ToolTip.Tip="Open GitHub to create a new issue for bug reports or feature requests" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -928,7 +934,6 @@
                                             <TextBlock
                                                 Grid.Row="0"
                                                 Grid.Column="1"
-                                                Classes="summary-value"
                                                 IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}"
                                                 Text="{Binding Name}" />
 
@@ -942,7 +947,6 @@
                                             <TextBlock
                                                 Grid.Row="1"
                                                 Grid.Column="1"
-                                                Classes="summary-value"
                                                 IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}"
                                                 Text="{Binding Author}" />
 
@@ -1039,7 +1043,6 @@
                                         </Border>
                                         <TextBlock
                                             Name="DescriptionTextBlock"
-                                            Classes="summary-value"
                                             TextWrapping="WrapWithOverflow" />
                                     </StackPanel>
                                 </Border>
@@ -1052,7 +1055,6 @@
                                         </Border>
                                         <TextBlock
                                             Name="DirectionsTextBlock"
-                                            Classes="summary-value"
                                             TextWrapping="WrapWithOverflow" />
                                     </StackPanel>
                                 </Border>
@@ -1084,7 +1086,6 @@
 
                                                             <TextBlock
                                                                 Margin="24,0,0,0"
-                                                                Classes="summary-value"
                                                                 IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}"
                                                                 Text="{Binding Description}"
                                                                 TextWrapping="Wrap" />
@@ -1177,7 +1178,6 @@
                                                                     <TextBlock
                                                                         Margin="0,0,8,0"
                                                                         VerticalAlignment="Center"
-                                                                        Classes="summary-value"
                                                                         IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}"
                                                                         Text="{Binding Source, Converter={StaticResource FirstSourcePathConverter}}"
                                                                         TextTrimming="CharacterEllipsis"
@@ -1190,20 +1190,17 @@
                                                                 <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}" Orientation="Vertical">
                                                                     <!--  Source paths with resolved placeholders  -->
                                                                     <TextBlock
-                                                                        Classes="summary-value"
                                                                         Text="{Binding Source, Converter={StaticResource PathResolverConverter}}"
                                                                         TextWrapping="Wrap" />
                                                                     <!--  Destination information  -->
                                                                     <TextBlock
                                                                         Margin="0,2,0,0"
-                                                                        Classes="summary-value"
                                                                         FontStyle="Italic"
                                                                         Text="{Binding ., Converter={StaticResource InstructionDestinationConverter}}"
                                                                         TextWrapping="Wrap" />
                                                                     <!--  Arguments if present  -->
                                                                     <TextBlock
                                                                         Margin="0,2,0,0"
-                                                                        Classes="summary-value"
                                                                         FontSize="11"
                                                                         IsVisible="{Binding Arguments, Converter={StaticResource StringToVisibilityConverter}}"
                                                                         Text="{Binding Arguments}"
@@ -1216,7 +1213,6 @@
                                                                         <DataTemplate>
                                                                             <TextBlock
                                                                                 Margin="0,2,0,0"
-                                                                                Classes="summary-value"
                                                                                 Text="{Binding ., Converter={StaticResource GuidToComponentConverter}}"
                                                                                 TextWrapping="Wrap"
                                                                                 ToolTip.Tip="{Binding .}" />

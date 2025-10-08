@@ -28,7 +28,7 @@ namespace KOTORModSync.Core.Parsing
 			_logInfo("Starting markdown parsing...");
 			_logVerbose($"Markdown content length: {markdown.Length} characters");
 
-			var components = new List<Component>();
+			var components = new List<ModComponent>();
 			var warnings = new List<string>();
 
 			// Find "## Mod List" and only parse content after it
@@ -64,10 +64,10 @@ namespace KOTORModSync.Core.Parsing
 
 				// Get the text of this section
 				string sectionText = outerMatch.Value;
-				_logVerbose($"Component {componentIndex} section length: {sectionText.Length} characters");
+				_logVerbose($"ModComponent {componentIndex} section length: {sectionText.Length} characters");
 
 				// Parse this section using individual patterns
-				Component component = ParseComponentFromText(sectionText, out string warning, componentIndex);
+				ModComponent component = ParseComponentFromText(sectionText, out string warning, componentIndex);
 
 				if ( component != null )
 				{
@@ -76,17 +76,17 @@ namespace KOTORModSync.Core.Parsing
 				}
 				else if ( !string.IsNullOrEmpty(warning) )
 				{
-					warnings.Add($"Component {componentIndex}: {warning}");
+					warnings.Add($"ModComponent {componentIndex}: {warning}");
 					_logVerbose($"Warning for component {componentIndex}: {warning}");
 				}
 				else
 				{
-					_logVerbose($"Component {componentIndex} resulted in null component with no warning");
+					_logVerbose($"ModComponent {componentIndex} resulted in null component with no warning");
 				}
 			}
 
 			_logInfo($"Parsing completed. Successfully parsed {components.Count} components with {warnings.Count} warnings");
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				int linkCount = component.ModLink?.Count ?? 0;
 				_logVerbose($"  - '{component.Name}' by {component.Author} ({component.Category}/{component.Tier}) with {linkCount} links");
@@ -101,18 +101,18 @@ namespace KOTORModSync.Core.Parsing
 		}
 
 		[CanBeNull]
-		private Component ParseComponentFromText([NotNull] string componentText, out string warning, int componentIndex)
+		private ModComponent ParseComponentFromText([NotNull] string componentText, out string warning, int componentIndex)
 		{
 			warning = string.Empty;
 			if ( string.IsNullOrWhiteSpace(componentText) )
 			{
-				warning = "Component text is null or whitespace";
+				warning = "ModComponent text is null or whitespace";
 				return null;
 			}
 
 			_logVerbose($"  Parsing component {componentIndex} text content...");
 
-			var component = new Component
+			var component = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 			};
@@ -239,8 +239,8 @@ namespace KOTORModSync.Core.Parsing
 			// Validation
 			if ( string.IsNullOrWhiteSpace(component.Name) )
 			{
-				warning = "Component has no name";
-				_logVerbose($"  Component {componentIndex} rejected: no name found");
+				warning = "ModComponent has no name";
+				_logVerbose($"  ModComponent {componentIndex} rejected: no name found");
 				return null;
 			}
 

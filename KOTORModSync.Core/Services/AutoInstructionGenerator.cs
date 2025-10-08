@@ -24,7 +24,7 @@ namespace KOTORModSync.Core.Services
 		/// <param name="component">The component to generate instructions for</param>
 		/// <param name="archivePath">Path to the mod archive</param>
 		/// <returns>True if instructions were generated successfully</returns>
-		public static bool GenerateInstructions([NotNull] Component component, [NotNull] string archivePath)
+		public static bool GenerateInstructions([NotNull] ModComponent component, [NotNull] string archivePath)
 		{
 			if ( component is null )
 				throw new ArgumentNullException(nameof(component));
@@ -57,7 +57,7 @@ namespace KOTORModSync.Core.Services
 		/// Generates all appropriate instructions based on what's detected in the archive.
 		/// Handles hybrid scenarios (e.g., TSLPatcher + loose files).
 		/// </summary>
-		private static bool GenerateAllInstructions(Component component, string archivePath, ArchiveAnalysis analysis)
+		private static bool GenerateAllInstructions(ModComponent component, string archivePath, ArchiveAnalysis analysis)
 		{
 			string archiveFileName = Path.GetFileName(archivePath);
 			string extractedPath = archiveFileName.Replace(Path.GetExtension(archiveFileName), "");
@@ -145,7 +145,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Adds Choose instruction with options from namespaces.ini.
 		/// </summary>
-		private static void AddNamespacesChooseInstructions(Component component, string archivePath, ArchiveAnalysis analysis, string extractedPath)
+		private static void AddNamespacesChooseInstructions(ModComponent component, string archivePath, ArchiveAnalysis analysis, string extractedPath)
 		{
 			Dictionary<string, Dictionary<string, string>> namespaces =
 				IniHelper.ReadNamespacesIniFromArchive(archivePath);
@@ -213,7 +213,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Adds a simple Patcher instruction for changes.ini.
 		/// </summary>
-		private static void AddSimplePatcherInstruction(Component component, ArchiveAnalysis analysis, string extractedPath)
+		private static void AddSimplePatcherInstruction(ModComponent component, ArchiveAnalysis analysis, string extractedPath)
 		{
 			string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
 				? extractedPath
@@ -238,7 +238,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Adds Choose instruction for multiple folders.
 		/// </summary>
-		private static void AddMultiFolderChooseInstructions(Component component, string extractedPath, List<string> folders)
+		private static void AddMultiFolderChooseInstructions(ModComponent component, string extractedPath, List<string> folders)
 		{
 			var optionGuids = new List<string>();
 
@@ -287,7 +287,7 @@ namespace KOTORModSync.Core.Services
 		/// <param name="component">The component to add the instruction to</param>
 		/// <param name="extractedPath">The base extracted path of the archive</param>
 		/// <param name="folderName">Folder to move from, or null for flat files</param>
-		private static void AddSimpleMoveInstruction(Component component, string extractedPath, string folderName)
+		private static void AddSimpleMoveInstruction(ModComponent component, string extractedPath, string folderName)
 		{
 			string sourcePath = string.IsNullOrEmpty(folderName)
 				? $@"<<modDirectory>>\{extractedPath}\*"

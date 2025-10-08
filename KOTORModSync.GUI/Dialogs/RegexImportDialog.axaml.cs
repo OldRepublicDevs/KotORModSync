@@ -16,8 +16,6 @@ using Avalonia.VisualTree;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Parsing;
-using KOTORModSync.Core.Services;
-using Component = KOTORModSync.Core.Component;
 
 namespace KOTORModSync.Dialogs
 {

@@ -2,7 +2,6 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // See LICENSE.txt file in the project root for full license information.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
@@ -19,9 +18,9 @@ namespace KOTORModSync.Dialogs
 	{
 		public DependencyUnlinkViewModel ViewModel { get; }
 		public bool UserConfirmed { get; private set; }
-		public List<Component> ComponentsToUnlink => ViewModel?.DependentComponents
+		public List<ModComponent> ComponentsToUnlink => ViewModel?.DependentComponents
 			.Where(c => c.IsSelected)
-			.Select(c => c.Component)
+			.Select(c => c.ModComponent)
 			.ToList();
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
@@ -36,7 +35,7 @@ namespace KOTORModSync.Dialogs
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		public DependencyUnlinkDialog(Component componentToDelete, List<Component> dependentComponents)
+		public DependencyUnlinkDialog(ModComponent componentToDelete, List<ModComponent> dependentComponents)
 		{
 			InitializeComponent();
 			ViewModel = new DependencyUnlinkViewModel(componentToDelete, dependentComponents);
@@ -65,14 +64,14 @@ namespace KOTORModSync.Dialogs
 			Close();
 		}
 
-		public static async System.Threading.Tasks.Task<(bool confirmed, List<Component> componentsToUnlink)> ShowUnlinkDialog(
+		public static async System.Threading.Tasks.Task<(bool confirmed, List<ModComponent> componentsToUnlink)> ShowUnlinkDialog(
 			Window owner,
-			Component componentToDelete,
-			List<Component> dependentComponents)
+			ModComponent componentToDelete,
+			List<ModComponent> dependentComponents)
 		{
 			// Don't show dialog if there are no dependent components
 			if ( dependentComponents == null || !dependentComponents.Any() )
-				return (true, new List<Component>());
+				return (true, new List<ModComponent>());
 
 			var dialog = new DependencyUnlinkDialog(componentToDelete, dependentComponents);
 			await dialog.ShowDialog(owner);

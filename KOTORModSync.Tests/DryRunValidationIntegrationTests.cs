@@ -2,18 +2,11 @@
 // Licensed under the GNU General Public License v3.0 (GPLv3).
 // See LICENSE.txt file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
 using KOTORModSync.Core.Services.Validation;
-using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -156,7 +149,7 @@ namespace KOTORModSync.Tests
 				{ "override/dialog.dlg", "Dialog data" }
 			});
 
-			var component = new Component
+			var component = new ModComponent
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
@@ -174,7 +167,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			var result = await DryRunValidator.ValidateInstallationAsync(
-				new List<Component> { component },
+				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
@@ -200,7 +193,7 @@ namespace KOTORModSync.Tests
 				{ "file.txt", "Content" }
 			});
 
-			var component = new Component
+			var component = new ModComponent
 			{
 				Name = "Invalid Mod",
 				Guid = Guid.NewGuid(),
@@ -232,7 +225,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			var result = await DryRunValidator.ValidateInstallationAsync(
-				new List<Component> { component },
+				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
@@ -254,7 +247,7 @@ namespace KOTORModSync.Tests
 		public async Task Test_DryRunValidator_MissingArchiveFile_Fails()
 		{
 			// Arrange - Reference non-existent archive
-			var component = new Component
+			var component = new ModComponent
 			{
 				Name = "Missing Archive Mod",
 				Guid = Guid.NewGuid(),
@@ -272,7 +265,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			var result = await DryRunValidator.ValidateInstallationAsync(
-				new List<Component> { component },
+				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
@@ -291,7 +284,7 @@ namespace KOTORModSync.Tests
 				{ "exists.txt", "This file exists" }
 			});
 
-			var component = new Component
+			var component = new ModComponent
 			{
 				Name = "Archive Content Mismatch",
 				Guid = Guid.NewGuid(),
@@ -317,7 +310,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			var result = await DryRunValidator.ValidateInstallationAsync(
-				new List<Component> { component },
+				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
@@ -349,7 +342,7 @@ namespace KOTORModSync.Tests
 				{ "patch.2da", "Patch data" }
 			});
 
-			var baseMod = new Component
+			var baseMod = new ModComponent
 			{
 				Name = "Base Mod",
 				Guid = Guid.NewGuid(),
@@ -369,7 +362,7 @@ namespace KOTORModSync.Tests
 				Overwrite = true
 			});
 
-			var patchMod = new Component
+			var patchMod = new ModComponent
 			{
 				Name = "Patch Mod",
 				Guid = Guid.NewGuid(),
@@ -396,7 +389,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			var result = await DryRunValidator.ValidateInstallationAsync(
-				new List<Component> { baseMod, patchMod },
+				new List<ModComponent> { baseMod, patchMod },
 				CancellationToken.None
 			);
 
@@ -428,7 +421,7 @@ namespace KOTORModSync.Tests
 				{ "shared.txt", "Mod 2 version" }
 			});
 
-			var component = new Component
+			var component = new ModComponent
 			{
 				Name = "Conflicting Mods",
 				Guid = Guid.NewGuid(),
@@ -469,7 +462,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			var result = await DryRunValidator.ValidateInstallationAsync(
-				new List<Component> { component },
+				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
@@ -507,7 +500,7 @@ namespace KOTORModSync.Tests
 				{ "new_config.ini", "New config" }
 			});
 
-			var component = new Component
+			var component = new ModComponent
 			{
 				Name = "Complex Workflow",
 				Guid = Guid.NewGuid(),
@@ -575,7 +568,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			var result = await DryRunValidator.ValidateInstallationAsync(
-				new List<Component> { component },
+				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
@@ -606,7 +599,7 @@ namespace KOTORModSync.Tests
 				{ "readme.txt", "Readme" }
 			});
 
-			var component = new Component
+			var component = new ModComponent
 			{
 				Name = "Wildcard Test",
 				Guid = Guid.NewGuid(),
@@ -642,7 +635,7 @@ namespace KOTORModSync.Tests
 
 			// Act
 			var result = await DryRunValidator.ValidateInstallationAsync(
-				new List<Component> { component },
+				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core.Utility;
+using KOTORModSync.Core;
 
 namespace KOTORModSync.Core.Services
 {
@@ -15,13 +16,56 @@ namespace KOTORModSync.Core.Services
 	/// </summary>
 	public static class ComponentProcessingService
 	{
+
+		/// <summary>
+		/// Attempts to auto-generate instructions for components without any
+		/// </summary>
+		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
+		{
+			if ( components == null || components.Count == 0 )
+				return 0;
+
+			try
+			{
+				int generatedCount = 0;
+				int skippedCount = 0;
+
+				foreach ( ModComponent component in components )
+				{
+					// Skip if already has instructions
+					if ( component.Instructions.Count > 0 )
+					{
+						skippedCount++;
+						continue;
+					}
+
+					// Try to generate instructions
+					bool success = component.TryGenerateInstructionsFromArchive();
+					if ( !success )
+						continue;
+
+					generatedCount++;
+					await Logger.LogAsync($"Auto-generated instructions for '{component.Name}': {component.InstallationMethod}");
+				}
+
+				if ( generatedCount > 0 )
+					await Logger.LogAsync($"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions.");
+
+				return generatedCount;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+				return 0;
+			}
+		}
 		/// <summary>
 		/// Processes a list of components and determines their processing state.
 		/// </summary>
 		/// <param name="componentsList">The list of components to process.</param>
 		/// <returns>A result containing the processing state and any reordered components.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when componentsList is null.</exception>
-		public static async Task<ComponentProcessingResult> ProcessComponentsAsync([NotNull][ItemNotNull] List<Component> componentsList)
+		public static async Task<ComponentProcessingResult> ProcessComponentsAsync([NotNull][ItemNotNull] List<ModComponent> componentsList)
 		{
 			if ( componentsList == null )
 				throw new ArgumentNullException(nameof(componentsList));
@@ -40,8 +84,8 @@ namespace KOTORModSync.Core.Services
 				// Check for circular dependencies and reorder if needed
 				try
 				{
-					(bool isCorrectOrder, List<Component> reorderedList) =
-						Component.ConfirmComponentsInstallOrder(componentsList);
+					(bool isCorrectOrder, List<ModComponent> reorderedList) =
+						ModComponent.ConfirmComponentsInstallOrder(componentsList);
 					if ( !isCorrectOrder )
 					{
 						await Logger.LogAsync("Reordered list to match dependency structure.");
@@ -96,7 +140,7 @@ namespace KOTORModSync.Core.Services
 		/// <param name="relativeIndex">The relative index to move to.</param>
 		/// <returns>True if the move is valid, false otherwise.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when component or components is null.</exception>
-		public static bool CanMoveComponent([NotNull] Component component, [NotNull][ItemNotNull] List<Component> components, int relativeIndex)
+		public static bool CanMoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -118,7 +162,7 @@ namespace KOTORModSync.Core.Services
 		/// <param name="relativeIndex">The relative index to move to.</param>
 		/// <returns>True if the move was successful, false otherwise.</returns>
 		/// <exception cref="ArgumentNullException">Thrown when component or components is null.</exception>
-		public static bool MoveComponent([NotNull] Component component, [NotNull][ItemNotNull] List<Component> components, int relativeIndex)
+		public static bool MoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
@@ -138,6 +182,9 @@ namespace KOTORModSync.Core.Services
 	/// <summary>
 	/// Result of component processing operations.
 	/// </summary>
+	/// <summary>
+	/// Result of component processing operation
+	/// </summary>
 	public class ComponentProcessingResult
 	{
 		/// <summary>
@@ -153,12 +200,12 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Gets or sets the processed components.
 		/// </summary>
-		public List<Component> Components { get; set; }
+		public List<ModComponent> Components { get; set; }
 
 		/// <summary>
 		/// Gets or sets the reordered components (if reordering was needed).
 		/// </summary>
-		public List<Component> ReorderedComponents { get; set; }
+		public List<ModComponent> ReorderedComponents { get; set; }
 
 		/// <summary>
 		/// Gets or sets whether the components needed reordering.

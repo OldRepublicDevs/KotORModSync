@@ -6,9 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using KOTORModSync.Core;
 
-namespace KOTORModSync
+namespace KOTORModSync.Core.Services
 {
 	/// <summary>
 	/// Detects and resolves circular dependency issues in component lists.
@@ -20,7 +19,7 @@ namespace KOTORModSync
 		{
 			public bool HasCircularDependencies { get; set; }
 			public List<List<Guid>> Cycles { get; set; } = new List<List<Guid>>();
-			public Dictionary<Guid, Component> ComponentsByGuid { get; set; } = new Dictionary<Guid, Component>();
+			public Dictionary<Guid, KOTORModSync.Core.ModComponent> ComponentsByGuid { get; set; } = new Dictionary<Guid, KOTORModSync.Core.ModComponent>();
 			public string DetailedErrorMessage { get; set; }
 		}
 
@@ -28,7 +27,7 @@ namespace KOTORModSync
 		/// Detects circular dependencies using DFS-based cycle detection.
 		/// This is the industry-standard approach used by npm, cargo, apt, etc.
 		/// </summary>
-		public static CircularDependencyResult DetectCircularDependencies(List<Component> components)
+		public static CircularDependencyResult DetectCircularDependencies(List<ModComponent> components)
 		{
 			var result = new CircularDependencyResult();
 			var componentsByGuid = components.ToDictionary(c => c.Guid, c => c);
@@ -36,7 +35,7 @@ namespace KOTORModSync
 
 			// Build adjacency list for dependency graph
 			var graph = new Dictionary<Guid, List<Guid>>();
-			foreach ( Component component in components )
+			foreach ( ModComponent component in components )
 			{
 				if ( !graph.ContainsKey(component.Guid) )
 					graph[component.Guid] = new List<Guid>();
@@ -89,7 +88,7 @@ namespace KOTORModSync
 					for ( int j = 0; j < cycle.Count; j++ )
 					{
 						Guid guid = cycle[j];
-						if ( !componentsByGuid.TryGetValue(guid, out Component comp) )
+						if ( !componentsByGuid.TryGetValue(guid, out ModComponent comp) )
 							continue;
 						_ = sb.Append($"  {j + 1}. {comp.Name}");
 						if ( !string.IsNullOrWhiteSpace(comp.Author) )
@@ -99,14 +98,14 @@ namespace KOTORModSync
 						if ( j < cycle.Count - 1 )
 						{
 							Guid nextGuid = cycle[j + 1];
-							if ( componentsByGuid.TryGetValue(nextGuid, out Component nextComp) )
+							if ( componentsByGuid.TryGetValue(nextGuid, out ModComponent nextComp) )
 								_ = sb.Append($" → depends on → {nextComp.Name}");
 						}
 						else
 						{
 							// Last item cycles back to first
 							Guid firstGuid = cycle[0];
-							if ( componentsByGuid.TryGetValue(firstGuid, out Component firstComp) )
+							if ( componentsByGuid.TryGetValue(firstGuid, out ModComponent firstComp) )
 								_ = sb.Append($" → depends on → {firstComp.Name} (CYCLE!)");
 						}
 						_ = sb.AppendLine();
@@ -179,10 +178,10 @@ namespace KOTORModSync
 		/// Suggests which components could be unchecked to break circular dependencies.
 		/// Uses minimum vertex cover algorithm to find the smallest set of components to remove.
 		/// </summary>
-		public static List<Component> SuggestComponentsToRemove(CircularDependencyResult result)
+		public static List<ModComponent> SuggestComponentsToRemove(CircularDependencyResult result)
 		{
 			if ( !result.HasCircularDependencies )
-				return new List<Component>();
+				return new List<ModComponent>();
 
 			// Count how many cycles each component appears in
 			var componentCycleCount = new Dictionary<Guid, int>();
@@ -208,4 +207,3 @@ namespace KOTORModSync
 		}
 	}
 }
-

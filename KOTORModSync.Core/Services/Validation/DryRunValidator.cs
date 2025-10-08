@@ -22,7 +22,7 @@ namespace KOTORModSync.Core.Services.Validation
 		/// </summary>
 		[NotNull]
 		public static async Task<DryRunValidationResult> ValidateInstallationAsync(
-			[NotNull][ItemNotNull] List<Component> components,
+			[NotNull][ItemNotNull] List<ModComponent> components,
 			CancellationToken cancellationToken = default
 		)
 		{
@@ -36,7 +36,7 @@ namespace KOTORModSync.Core.Services.Validation
 			await Logger.LogAsync($"Validating {components.Count(c => c.IsSelected)} selected component(s)...");
 
 			// Get only selected components
-			List<Component> selectedComponents = components.Where(c => c.IsSelected).ToList();
+			List<ModComponent> selectedComponents = components.Where(c => c.IsSelected).ToList();
 
 			if ( selectedComponents.Count == 0 )
 			{
@@ -46,7 +46,7 @@ namespace KOTORModSync.Core.Services.Validation
 
 			// Validate each component in installation order
 			int componentIndex = 0;
-			foreach ( Component component in selectedComponents )
+			foreach ( ModComponent component in selectedComponents )
 			{
 				componentIndex++;
 				cancellationToken.ThrowIfCancellationRequested();
@@ -59,14 +59,14 @@ namespace KOTORModSync.Core.Services.Validation
 					if ( !component.ShouldInstallComponent(components) )
 					{
 						await Logger.LogWarningAsync(
-							$"Component '{component.Name}' has unmet dependencies or restriction conflicts. It will be skipped."
+							$"ModComponent '{component.Name}' has unmet dependencies or restriction conflicts. It will be skipped."
 						);
 
 						result.Issues.Add(new ValidationIssue
 						{
 							Severity = ValidationSeverity.Warning,
 							Category = "DependencyValidation",
-							Message = "Component has unmet dependencies or restriction conflicts and will be skipped during installation.",
+							Message = "ModComponent has unmet dependencies or restriction conflicts and will be skipped during installation.",
 							AffectedComponent = component,
 							Timestamp = DateTimeOffset.UtcNow
 						});
@@ -118,8 +118,8 @@ namespace KOTORModSync.Core.Services.Validation
 		/// and real installation - the ONLY difference is VirtualFileSystemProvider vs RealFileSystemProvider.
 		/// </summary>
 		private static async Task ValidateComponentInstructionsAsync(
-			[NotNull] Component component,
-			[NotNull][ItemNotNull] List<Component> allComponents,
+			[NotNull] ModComponent component,
+			[NotNull][ItemNotNull] List<ModComponent> allComponents,
 			[NotNull] VirtualFileSystemProvider fileSystem,
 			[NotNull] DryRunValidationResult result,
 			CancellationToken cancellationToken
@@ -138,7 +138,7 @@ namespace KOTORModSync.Core.Services.Validation
 			{
 				// THIS IS THE KEY: We call the ACTUAL installation method with a virtual file system!
 				// No duplicate logic, no separate validation path. Just swap the file system provider.
-				Component.InstallExitCode exitCode = await component.ExecuteInstructionsAsync(
+				ModComponent.InstallExitCode exitCode = await component.ExecuteInstructionsAsync(
 					component.Instructions,
 					allComponents,
 					cancellationToken,
@@ -146,13 +146,13 @@ namespace KOTORModSync.Core.Services.Validation
 				);
 
 				// Check for errors
-				if ( exitCode != Component.InstallExitCode.Success )
+				if ( exitCode != ModComponent.InstallExitCode.Success )
 				{
 					result.Issues.Add(new ValidationIssue
 					{
 						Severity = ValidationSeverity.Error,
 						Category = "ExecutionError",
-						Message = $"Component failed validation with exit code: {exitCode}",
+						Message = $"ModComponent failed validation with exit code: {exitCode}",
 						AffectedComponent = component,
 						Timestamp = DateTimeOffset.UtcNow
 					});

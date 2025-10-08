@@ -29,18 +29,18 @@ namespace KOTORModSync.Core
 			NoArchivesFound,
 		}
 
-		[CanBeNull] private readonly List<Component> _componentsList;
+		[CanBeNull] private readonly List<ModComponent> _componentsList;
 
 		[NotNull] private readonly List<ValidationResult> _validationResults = new List<ValidationResult>();
-		[NotNull] public readonly Component ComponentToValidate;
+		[NotNull] public readonly ModComponent ComponentToValidate;
 
-		public ComponentValidation([NotNull] Component component, [CanBeNull] List<Component> componentsList = null)
+		public ComponentValidation([NotNull] ModComponent component, [CanBeNull] List<ModComponent> componentsList = null)
 		{
 			ComponentToValidate = component ?? throw new ArgumentNullException(nameof(component));
 			if ( componentsList is null )
 				return;
 
-			_componentsList = new List<Component>(componentsList);
+			_componentsList = new List<ModComponent>(componentsList);
 		}
 
 		public bool Run() =>
@@ -241,7 +241,7 @@ namespace KOTORModSync.Core
 
 			foreach ( Instruction instruction in instructions )
 			{
-				if ( !(_componentsList is null) && !Component.ShouldRunInstruction(instruction, _componentsList) )
+				if ( !(_componentsList is null) && !ModComponent.ShouldRunInstruction(instruction, _componentsList) )
 					continue;
 				if ( instruction.Action != Instruction.ActionType.Extract )
 					continue;
@@ -503,7 +503,7 @@ namespace KOTORModSync.Core
 				return (false, archiveNameFound);
 			}
 
-			if ( foundInAnyArchive || !Component.ShouldRunInstruction(instruction, _componentsList) )
+			if ( foundInAnyArchive || !ModComponent.ShouldRunInstruction(instruction, _componentsList) )
 			{
 				return (true, true);
 			}
@@ -515,7 +515,7 @@ namespace KOTORModSync.Core
 			}
 
 			// archive not required if instruction isn't running.
-			if ( !Component.ShouldRunInstruction(instruction, _componentsList) )
+			if ( !ModComponent.ShouldRunInstruction(instruction, _componentsList) )
 			{
 				return (true, true);
 			}

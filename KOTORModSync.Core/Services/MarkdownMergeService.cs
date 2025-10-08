@@ -37,14 +37,14 @@ namespace KOTORModSync.Core.Services
 		private static bool IsBlank([CanBeNull] List<string> v) => v == null || v.Count == 0;
 
 		[NotNull]
-		private static string NormalizeKey([NotNull] Component c)
+		private static string NormalizeKey([NotNull] ModComponent c)
 		{
 			string name = c.Name;
 			string author = c.Author;
 			return (name + "|" + author).Trim().ToLowerInvariant();
 		}
 
-		public static void MergeInto([NotNull] List<Component> existing, [NotNull] List<Component> parsed, [CanBeNull] MergeHeuristicsOptions options = null)
+		public static void MergeInto([NotNull] List<ModComponent> existing, [NotNull] List<ModComponent> parsed, [CanBeNull] MergeHeuristicsOptions options = null)
 		{
 			if ( existing == null )
 				throw new ArgumentNullException(nameof(existing));
@@ -55,15 +55,15 @@ namespace KOTORModSync.Core.Services
 
 			// Fast path exact matches first
 			var map = existing.ToDictionary(NormalizeKey, c => c);
-			var matchedExisting = new HashSet<Component>();
-			var result = new List<Component>();
+			var matchedExisting = new HashSet<ModComponent>();
+			var result = new List<ModComponent>();
 
 			// Process parsed list in order, preserving its sequence
-			foreach ( Component incoming in parsed )
+			foreach ( ModComponent incoming in parsed )
 			{
 				string key = NormalizeKey(incoming);
 
-				if ( options.UseNameExact && options.UseAuthorExact && map.TryGetValue(key, out Component match) )
+				if ( options.UseNameExact && options.UseAuthorExact && map.TryGetValue(key, out ModComponent match) )
 				{
 					UpdateComponent(match, incoming);
 					result.Add(match);
@@ -72,7 +72,7 @@ namespace KOTORModSync.Core.Services
 				else
 				{
 					// Fallback to heuristics across the list
-					Component heuristicMatch = FindHeuristicMatch(existing, incoming, options);
+					ModComponent heuristicMatch = FindHeuristicMatch(existing, incoming, options);
 					if ( heuristicMatch != null )
 					{
 						UpdateComponent(heuristicMatch, incoming, options);
@@ -90,7 +90,7 @@ namespace KOTORModSync.Core.Services
 
 			// Add any existing components that weren't in the parsed list
 			// These maintain their relative order from the original existing list
-			foreach ( Component existingComponent in existing )
+			foreach ( ModComponent existingComponent in existing )
 			{
 				if ( matchedExisting.Contains(existingComponent) )
 					continue;
@@ -110,9 +110,9 @@ namespace KOTORModSync.Core.Services
 		/// based on its position relative to matched components
 		/// </summary>
 		private static int FindInsertionPointByNameAuthor(
-			[NotNull] List<Component> result,
-			[NotNull] Component componentToInsert,
-			[NotNull] List<Component> originalExisting)
+			[NotNull] List<ModComponent> result,
+			[NotNull] ModComponent componentToInsert,
+			[NotNull] List<ModComponent> originalExisting)
 		{
 			// Find the position of this component in the original existing list
 			int originalIndex = originalExisting.IndexOf(componentToInsert);
@@ -121,7 +121,7 @@ namespace KOTORModSync.Core.Services
 			// Look for the nearest matched component after this one in the original list
 			for ( int i = originalIndex + 1; i < originalExisting.Count; i++ )
 			{
-				Component afterComponent = originalExisting[i];
+				ModComponent afterComponent = originalExisting[i];
 				int afterIndexInResult = result.IndexOf(afterComponent);
 				if ( afterIndexInResult >= 0 )
 				{
@@ -134,14 +134,14 @@ namespace KOTORModSync.Core.Services
 			return result.Count;
 		}
 
-		private static Component FindHeuristicMatch([NotNull] List<Component> existing, [NotNull] Component incoming, [NotNull] MergeHeuristicsOptions opt)
+		private static ModComponent FindHeuristicMatch([NotNull] List<ModComponent> existing, [NotNull] ModComponent incoming, [NotNull] MergeHeuristicsOptions opt)
 		{
 			string inName = Normalize(incoming.Name, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
 			string inAuthor = Normalize(incoming.Author, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
 
 			double bestScore = 0.0;
-			Component best = null;
-			foreach ( Component e in existing )
+			ModComponent best = null;
+			foreach ( ModComponent e in existing )
 			{
 				string exName = Normalize(e.Name, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
 				string exAuthor = Normalize(e.Author, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
@@ -170,7 +170,7 @@ namespace KOTORModSync.Core.Services
 			return best;
 		}
 
-		private static string GetPrimaryDomain([NotNull] Component c)
+		private static string GetPrimaryDomain([NotNull] ModComponent c)
 		{
 			string url = c.ModLink.FirstOrDefault();
 			if ( string.IsNullOrWhiteSpace(url) ) return null;
@@ -185,7 +185,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		private static void UpdateComponent([NotNull] Component target, [NotNull] Component source, [CanBeNull] MergeHeuristicsOptions options = null)
+		private static void UpdateComponent([NotNull] ModComponent target, [NotNull] ModComponent source, [CanBeNull] MergeHeuristicsOptions options = null)
 		{
 			if ( options == null ) options = MergeHeuristicsOptions.CreateDefault();
 			// Keep target.Guid and selection/state; update content properties

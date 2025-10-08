@@ -1,13 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Avalonia;
 using Avalonia.ReactiveUI;
-using KOTORModSync.Core;
-using KOTORModSync.Core.FileSystemUtils;
-using KOTORModSync.Core.Parsing;
-using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync
 {

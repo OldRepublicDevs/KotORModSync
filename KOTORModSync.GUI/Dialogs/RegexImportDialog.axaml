@@ -77,7 +77,7 @@
                                 Grid.Column="0"
                                 Margin="0,0,8,4"
                                 VerticalAlignment="Center"
-                                Text="Component Section (Outer)" />
+                                Text="ModComponent Section (Outer)" />
                             <TextBox
                                 Grid.Row="0"
                                 Grid.Column="1"

@@ -86,7 +86,7 @@ namespace KOTORModSync.Controls
                 {
                     var textBoxes = this.GetVisualDescendants().OfType<TextBox>().ToList();
                     TextBox lastTextBox = textBoxes.LastOrDefault();
-                    lastTextBox?.Focus();
+					_ = (lastTextBox?.Focus());
                 }
                 catch (Exception ex)
                 {
@@ -248,7 +248,7 @@ namespace KOTORModSync.Controls
             }
 
             string url = textBox.Text?.Trim() ?? string.Empty;
-            bool isValid = string.IsNullOrWhiteSpace(url) || IsValidUrl(url);
+            bool isValid = string.IsNullOrWhiteSpace(url) || DownloadLinksControl.IsValidUrl(url);
 
             // Update visual styling based on validation
             if (string.IsNullOrWhiteSpace(url))
@@ -277,7 +277,7 @@ namespace KOTORModSync.Controls
         /// <summary>
         /// Checks if a string is a valid URL
         /// </summary>
-        private bool IsValidUrl(string url)
+        private static bool IsValidUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return false;

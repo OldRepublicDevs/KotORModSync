@@ -1,7 +1,5 @@
 using Avalonia;
 using Avalonia.Headless;
-using Avalonia.Headless.NUnit;
-using Avalonia.Markup.Xaml;
 using Avalonia.Themes.Fluent;
 
 [assembly: AvaloniaTestApplication(typeof(KOTORModSync.Tests.TestAppBuilder))]

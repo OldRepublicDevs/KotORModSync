@@ -296,7 +296,7 @@ ___";
 
 			// Act
 			MarkdownParserResult result = parser.Parse(fullMarkdown);
-			IList<Core.Component> components = result.Components;
+			IList<Core.ModComponent> components = result.Components;
 
 			// Output detailed summary for verification
 			Console.WriteLine($"Total mods found: {components.Count}");
@@ -315,7 +315,7 @@ ___";
 			Console.WriteLine("\nFirst 15 mods:");
 			for ( int i = 0; i < Math.Min(15, components.Count); i++ )
 			{
-				Core.Component component = components[i];
+				Core.ModComponent component = components[i];
 				Console.WriteLine($"{i + 1}. {component.Name}");
 				for ( int j = 0; j < component.ModLink.Count; j++ )
 				{
@@ -335,7 +335,7 @@ ___";
 			Console.WriteLine("\nLast 5 mods:");
 			for ( int i = Math.Max(0, components.Count - 5); i < components.Count; i++ )
 			{
-				Core.Component component = components[i];
+				Core.ModComponent component = components[i];
 				Console.WriteLine($"{i + 1}. {component.Name}");
 				for ( int j = 0; j < component.ModLink.Count; j++ )
 				{

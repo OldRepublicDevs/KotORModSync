@@ -12,7 +12,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.FileSystemUtils
 {

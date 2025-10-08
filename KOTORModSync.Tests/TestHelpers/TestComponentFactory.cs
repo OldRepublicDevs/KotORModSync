@@ -8,7 +8,7 @@ namespace KOTORModSync.Tests.TestHelpers
 {
 	internal static class TestComponentFactory
 	{
-		public static Component CreateComponent(string name, DirectoryInfo workingDirectory)
+		public static ModComponent CreateComponent(string name, DirectoryInfo workingDirectory)
 		{
 			if ( workingDirectory is null )
 				throw new ArgumentNullException(nameof(workingDirectory));
@@ -26,7 +26,7 @@ namespace KOTORModSync.Tests.TestHelpers
 				Destination = extractDestination,
 			};
 
-			return new Component
+			return new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = name,

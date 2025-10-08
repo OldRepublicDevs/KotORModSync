@@ -42,11 +42,81 @@ namespace KOTORModSync.Core.Services.FileSystem
 			_issues = new List<ValidationIssue>();
 			_archiveContents = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 		}
+		/// <summary>
+		/// Initializes the virtual file system with the current state of the real file system (synchronous version).
+		/// </summary>
+		public void InitializeFromRealFileSystem(string rootPath)
+		{
+			if (!Directory.Exists(rootPath))
+				return;
+
+			try
+			{
+				foreach (FileInfo file in new DirectoryInfo(rootPath).GetFilesSafely("*.*", SearchOption.AllDirectories))
+				{
+					_virtualFiles.Add(file.FullName);
+
+					// Pre-scan archives to know their contents synchronously during initialization
+					if (IsArchiveFile(file.FullName))
+						ScanArchiveContents(file.FullName);
+				}
+
+				foreach (DirectoryInfo dir in new DirectoryInfo(rootPath).GetDirectoriesSafely("*", SearchOption.AllDirectories))
+				{
+					_ = _virtualDirectories.Add(dir.FullName);
+				}
+			}
+			catch (Exception ex)
+			{
+				AddIssue(ValidationSeverity.Warning, "FileSystemInitialization",
+					$"Could not fully initialize virtual file system from real file system: {ex.Message}", null);
+			}
+		}
+
+		/// <summary>
+		/// Scans an archive file to determine its contents (synchronous version).
+		/// </summary>
+		private void ScanArchiveContents([NotNull] string archivePath)
+		{
+			if (_archiveContents.ContainsKey(archivePath))
+				return;
+
+			var contents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			try
+			{
+				using (FileStream stream = File.OpenRead(archivePath))
+				{
+					IArchive archive = GetArchiveFromPath(archivePath, stream);
+					if (archive == null)
+					{
+						AddIssue(ValidationSeverity.Error, "ArchiveValidation",
+							$"Could not open archive: {archivePath}", archivePath);
+						return;
+					}
+
+					using (archive)
+					{
+						foreach (IArchiveEntry entry in archive.Entries.Where(e => !e.IsDirectory))
+						{
+							_ = contents.Add(entry.Key);
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				AddIssue(ValidationSeverity.Error, "ArchiveValidation",
+					$"Failed to scan archive '{Path.GetFileName(archivePath)}': {ex.Message}", archivePath);
+			}
+
+			_archiveContents[archivePath] = contents;
+		}
 
 		/// <summary>
 		/// Initializes the virtual file system with the current state of the real file system.
 		/// </summary>
-		internal async Task InitializeFromRealFileSystem(string rootPath)
+		public async Task InitializeFromRealFileSystemAsync(string rootPath)
 		{
 			if ( !Directory.Exists(rootPath) )
 				return;
@@ -503,14 +573,21 @@ namespace KOTORModSync.Core.Services.FileSystem
 	/// </summary>
 	public class ValidationIssue
 	{
+		// Core/Services fields
 		public ValidationSeverity Severity { get; set; }
 		public string Category { get; set; }
 		public string Message { get; set; }
 		public string AffectedPath { get; set; }
 		public DateTimeOffset Timestamp { get; set; }
-		public Component AffectedComponent { get; set; }
+		public ModComponent AffectedComponent { get; set; }
 		public Instruction AffectedInstruction { get; set; }
 		public int InstructionIndex { get; set; }
+
+		// GUI/Dialogs fields
+		public string Icon { get; set; }
+		public string IssueType { get; set; }
+		public string Solution { get; set; }
+		public bool HasSolution => !string.IsNullOrEmpty(Solution);
 	}
 
 	/// <summary>

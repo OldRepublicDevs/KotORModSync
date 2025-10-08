@@ -33,12 +33,12 @@ namespace KOTORModSync
 		/// <summary>
 		/// Gets the current list of components
 		/// </summary>
-		IReadOnlyList<Component> GetComponents();
+		IReadOnlyList<ModComponent> GetComponents();
 
 		/// <summary>
 		/// Updates the components list
 		/// </summary>
-		void UpdateComponents(List<Component> components);
+		void UpdateComponents(List<ModComponent> components);
 
 		/// <summary>
 		/// Refreshes the mod statistics display

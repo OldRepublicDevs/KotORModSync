@@ -725,76 +725,125 @@ namespace KOTORModSync.Core
 		}
 
 		[NotNull]
-		public static string GenerateModDocumentation([NotNull][ItemNotNull] List<ModComponent> componentsList)
+	public static string GenerateModDocumentation([NotNull][ItemNotNull] List<ModComponent> componentsList)
+	{
+		if ( componentsList is null )
+			throw new ArgumentNullException(nameof(componentsList));
+
+		var sb = new StringBuilder();
+
+		// Loop through each component
+		for ( int i = 0; i < componentsList.Count; i++ )
 		{
-			if ( componentsList is null )
-				throw new ArgumentNullException(nameof(componentsList));
+			ModComponent component = componentsList[i];
 
-			var sb = new StringBuilder();
-			const string indentation = "    ";
+			// Add separator before each mod entry
+			_ = sb.AppendLine();
+			_ = sb.AppendLine("___");
+			_ = sb.AppendLine();
 
-			// Loop through each 'thisMod' entry
-			foreach ( ModComponent component in componentsList )
+			// Name with optional link
+			_ = sb.Append("### ").AppendLine(component.Name);
+			_ = sb.AppendLine();
+
+			// Name field with link (if available)
+			if ( component.ModLink?.Count > 0 && !string.IsNullOrWhiteSpace(component.ModLink[0]) )
 			{
-				_ = sb.AppendLine();
-
-				// ModComponent Information
-				_ = sb.Append("####**").Append(component.Name).AppendLine("**");
-				_ = sb.Append("**Author**: ").AppendLine(component.Author);
-				_ = sb.AppendLine();
-				_ = sb.Append("**Description**: ").AppendLine(component.Description);
-				string categoryStr = component.Category.Count > 0
-					? string.Join(", ", component.Category)
-					: "No category";
-				_ = sb.Append("**Tier & Category**: ").Append(component.Tier).Append(" - ")
-					.AppendLine(categoryStr);
-				_ = string.Equals(component.Language.FirstOrDefault(), b: "All", StringComparison.OrdinalIgnoreCase)
-					? sb.AppendLine("**Supported Languages**: ALL")
-					: sb.AppendLine("**Supported Languages**: [").AppendLine(
-						string.Join(
-							$",{Environment.NewLine}",
-							component.Language.Select(item => $"{indentation}{item}")
-						)
-					).Append(']').AppendLine();
-
-				_ = sb.Append("**Directions**: ").AppendLine(component.Directions);
-
-				// Instructions
-				_ = sb.AppendLine();
-				_ = sb.AppendLine("**Installation Instructions:**");
-				foreach ( Instruction instruction in component.Instructions )
-				{
-					if ( instruction.Action == Instruction.ActionType.Extract )
-						continue;
-
-					_ = sb.Append("**Action**: ").AppendLine(instruction.ActionString);
-					if ( instruction.Action == Instruction.ActionType.Move )
-					{
-						_ = sb.Append("**Overwrite existing files?**: ").AppendLine(
-							instruction.Overwrite
-								? "NO"
-								: "YES"
-						);
-					}
-
-					string thisLine =
-						$"Source: [{Environment.NewLine}{string.Join($",{Environment.NewLine}", instruction.Source.Select(item => $"{indentation}{item}"))}{Environment.NewLine}]";
-
-					if ( instruction.Action != Instruction.ActionType.Move )
-						thisLine = thisLine.Replace(oldValue: "Source: ", newValue: "");
-
-					_ = sb.AppendLine(thisLine);
-
-					if ( !string.IsNullOrEmpty(instruction.Destination)
-						&& instruction.Action == Instruction.ActionType.Move )
-					{
-						_ = sb.Append("Destination: ").AppendLine(instruction.Destination);
-					}
-				}
+				_ = sb.Append("**Name:** [").Append(component.Name).Append("](")
+					.Append(component.ModLink[0]).AppendLine(")");
+			}
+			else
+			{
+				_ = sb.Append("**Name:** ").AppendLine(component.Name);
 			}
 
-			return sb.ToString();
+			_ = sb.AppendLine();
+
+			// Author
+			if ( !string.IsNullOrWhiteSpace(component.Author) )
+			{
+				_ = sb.Append("**Author:** ").AppendLine(component.Author);
+				_ = sb.AppendLine();
+			}
+
+			// Description
+			if ( !string.IsNullOrWhiteSpace(component.Description) )
+			{
+				_ = sb.Append("**Description:** ").AppendLine(component.Description);
+				_ = sb.AppendLine();
+			}
+
+			// Category & Tier
+			string categoryStr = component.Category?.Count > 0
+				? string.Join(" & ", component.Category)
+				: "Uncategorized";
+			string tierStr = !string.IsNullOrWhiteSpace(component.Tier) ? component.Tier : "Unspecified";
+			_ = sb.Append("**Category & Tier:** ").Append(categoryStr).Append(" / ").AppendLine(tierStr);
+			_ = sb.AppendLine();
+
+			// Non-English Functionality (derived from Language)
+			string languageSupport = GetNonEnglishFunctionalityText(component.Language);
+			_ = sb.Append("**Non-English Functionality:** ").AppendLine(languageSupport);
+			_ = sb.AppendLine();
+
+			// Installation Method
+			if ( !string.IsNullOrWhiteSpace(component.InstallationMethod) )
+			{
+				_ = sb.Append("**Installation Method:** ").AppendLine(component.InstallationMethod);
+				_ = sb.AppendLine();
+			}
+
+			// Installation Instructions (from Directions)
+			if ( !string.IsNullOrWhiteSpace(component.Directions) )
+			{
+				_ = sb.Append("**Installation Instructions:** ").AppendLine(component.Directions);
+				_ = sb.AppendLine();
+			}
 		}
+
+		return sb.ToString();
+	}
+
+	[NotNull]
+	private static string GetNonEnglishFunctionalityText([CanBeNull][ItemCanBeNull] List<string> languages)
+	{
+		if ( languages == null || languages.Count == 0 )
+			return "UNKNOWN";
+
+		// Check for "All" or similar indicators
+		if ( languages.Any(lang => string.Equals(lang, b: "All", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(lang, b: "YES", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(lang, b: "Universal", StringComparison.OrdinalIgnoreCase)) )
+		{
+			return "YES";
+		}
+
+		// Check for English-only indicators
+		if ( languages.Count == 1 && languages.Any(lang =>
+			string.Equals(lang, b: "English", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(lang, b: "EN", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(lang, b: "NO", StringComparison.OrdinalIgnoreCase)) )
+		{
+			return "NO";
+		}
+
+		// Check for partial support indicators
+		if ( languages.Any(lang => string.Equals(lang, b: "Partial", StringComparison.OrdinalIgnoreCase)
+			|| (!string.IsNullOrEmpty(lang) && lang.IndexOf("Partial", StringComparison.OrdinalIgnoreCase) >= 0)) )
+		{
+			return "PARTIAL - Some text will be blank or in English";
+		}
+
+		// Multiple languages but not all
+		if ( languages.Count > 1 && languages.Any(lang =>
+			string.Equals(lang, b: "English", StringComparison.OrdinalIgnoreCase)) )
+		{
+			return "PARTIAL - Supported languages: " + string.Join(", ", languages);
+		}
+
+		// Default case - list the languages
+		return "Supported languages: " + string.Join(", ", languages);
+	}
 
 		[ItemNotNull]
 		[NotNull]

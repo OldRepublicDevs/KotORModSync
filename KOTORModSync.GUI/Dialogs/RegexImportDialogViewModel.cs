@@ -30,6 +30,11 @@ namespace KOTORModSync.Dialogs
 
 		public MergeHeuristicsOptions Heuristics { get; private set; }
 
+		/// <summary>
+		/// The configured profile after user edits. This is what should be used for parsing.
+		/// </summary>
+		public MarkdownImportProfile ConfiguredProfile => Profile;
+
 		public RegexImportDialogViewModel([NotNull] string markdown, [NotNull] MarkdownImportProfile profile)
 		{
 			_markdown = markdown ?? throw new ArgumentNullException(nameof(markdown));

@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Dialogs;
@@ -130,7 +131,12 @@ namespace KOTORModSync.Services
 		/// <summary>
 		/// Loads a markdown file and parses it into components
 		/// </summary>
-		public async Task<bool> LoadMarkdownFileAsync(string filePath, bool editorMode, Func<Task> onComponentsLoaded, Func<List<ModComponent>, Task> tryAutoGenerate)
+		public async Task<bool> LoadMarkdownFileAsync(
+			[NotNull] string filePath,
+			[NotNull] bool editorMode,
+			[NotNull] Func<Task> onComponentsLoaded,
+			[NotNull] Func<List<ModComponent>,Task> tryAutoGenerate,
+			[CanBeNull] MarkdownImportProfile profile = null)
 		{
 			try
 			{
@@ -141,17 +147,24 @@ namespace KOTORModSync.Services
 				{
 					string fileContents = await reader.ReadToEndAsync();
 
-					// Open Regex Import Dialog
-					var dialog = new RegexImportDialog(fileContents, MarkdownImportProfile.CreateDefault());
+					// Open Regex Import Dialog - user configures the profile through UI
+					var dialog = new RegexImportDialog(fileContents, profile ?? MarkdownImportProfile.CreateDefault());
 					MarkdownParserResult parseResult = null;
+					MarkdownImportProfile configuredProfile = null;
 
 					dialog.Closed += async (_, __) =>
 					{
 						if ( !dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm) )
 							return;
 
+						// Get the user-configured profile from the dialog
+						configuredProfile = vm.ConfiguredProfile;
+
+						// Parse using the configured profile (ConfirmLoad uses vm.Profile internally)
 						parseResult = vm.ConfirmLoad();
-						await Logger.LogAsync($"Markdown parsing completed. Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLink.Count) ?? 0} total links.");
+
+						await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
+						await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLink.Count) ?? 0} total links.");
 
 						if ( parseResult.Warnings?.Count > 0 )
 						{

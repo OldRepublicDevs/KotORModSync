@@ -238,6 +238,12 @@ dotnet_analyzer_diagnostic.category-Style.severity = none
 # IDE0022: Use expression body for method
 dotnet_diagnostic.IDE0022.severity = none
 
+# SYSLIB1045: Convert to 'GeneratedRegexAttribute'.
+dotnet_diagnostic.SYSLIB1045.severity = none
+
+# SYSLIB1045: Convert to 'GeneratedRegexAttribute'.
+dotnet_diagnostic.SYSLIB1045.severity = none
+
 [*.{cpp,h,in}]
 curly_bracket_next_line = true
 indent_brace_style = Allman

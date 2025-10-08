@@ -31,12 +31,12 @@ namespace KOTORModSync.Core.Parsing
 			var components = new List<ModComponent>();
 			var warnings = new List<string>();
 
-			// Find "## Mod List" and only parse content after it
-			int modListIndex = markdown.IndexOf("## Mod List", StringComparison.Ordinal);
-			if ( modListIndex >= 0 )
+			// Extract the mod list section using utility method
+			int originalLength = markdown.Length;
+			markdown = MarkdownUtilities.ExtractModListSection(markdown);
+			if ( markdown.Length < originalLength )
 			{
-				markdown = markdown.Substring(modListIndex);
-				_logVerbose($"Found '## Mod List' marker at index {modListIndex}, parsing content after it ({markdown.Length} characters)");
+				_logVerbose($"Found '## Mod List' marker, parsing content after it ({markdown.Length} characters)");
 			}
 			else
 			{
@@ -206,14 +206,16 @@ namespace KOTORModSync.Core.Parsing
 				if ( categoryTierMatch.Success )
 				{
 					string categoryStr = categoryTierMatch.Groups["category"].Value.Trim();
-					// Split categories by common delimiters (comma, semicolon, ampersand, pipe)
-					component.Category = categoryStr.Split(
-						new[] { ",", ";", "&", "|", " and " },
+					// Normalize category format first (replaces commas with ampersands, normalizes whitespace)
+					string normalizedCategory = MarkdownUtilities.NormalizeCategoryFormat(categoryStr);
+					// Split categories by ampersand (now that commas are replaced)
+					component.Category = normalizedCategory.Split(
+						new[] { "&" },
 						StringSplitOptions.RemoveEmptyEntries
 					).Select(c => c.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
 
 					component.Tier = categoryTierMatch.Groups["tier"].Value.Trim();
-					_logVerbose($"  Extracted Category/Tier: '{string.Join(", ", component.Category)}'/'{component.Tier}'");
+					_logVerbose($"  Extracted Category/Tier: '{string.Join(" & ", component.Category)}'/'{component.Tier}'");
 				}
 				else
 				{

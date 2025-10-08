@@ -33,9 +33,9 @@
             Classes="mod-list-item"
             CornerRadius="4">
 
-            <Grid>
+            <Grid RowDefinitions="Auto,Auto">
                 <!--  Main mod info (always visible)  -->
-                <Grid x:Name="MainModInfo" RowDefinitions="Auto,Auto">
+                <Grid x:Name="MainModInfo" Grid.Row="0" RowDefinitions="Auto,Auto">
                     <!--  Row 0: main info across 5 columns  -->
                     <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
 
@@ -144,6 +144,7 @@
                 <!--  Options Content (only visible when options exist)  -->
                 <ItemsControl
                     x:Name="OptionsContainer"
+                    Grid.Row="1"
                     Margin="0,4,0,0"
                     ItemsSource="{Binding Options}"
                     IsVisible="{Binding Options, Converter={StaticResource ListToVisibilityConverter}}">

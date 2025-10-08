@@ -1881,7 +1881,13 @@ namespace KOTORModSync
 				}
 				// Load as markdown (either because it's not a TOML extension, or TOML loading failed)
 				await Logger.LogAsync("Attempting to load file as Markdown...");
-				await LoadMarkdownFile(filePath);
+				await _fileLoadingService.LoadMarkdownFileAsync(
+					filePath,
+					EditorMode,
+					() => ProcessComponentsAsync(MainConfig.AllComponents),
+					TryAutoGenerateInstructionsForComponents,
+					profile: null
+				);
 			}
 			catch ( Exception ex )
 			{
@@ -1890,18 +1896,6 @@ namespace KOTORModSync
 		}
 		[UsedImplicitly]
 		private void LoadInstallFile_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => LoadFile_Click(sender, e);
-		/// <summary>
-		/// Loads a markdown file and parses it into components
-		/// </summary>
-		private async Task LoadMarkdownFile(string filePath)
-		{
-			_ = await _fileLoadingService.LoadMarkdownFileAsync(
-				filePath,
-				EditorMode,
-				() => ProcessComponentsAsync(MainConfig.AllComponents),
-				TryAutoGenerateInstructionsForComponents
-			);
-		}
 		[UsedImplicitly]
 		private void OpenLink_Click([NotNull] object sender, [NotNull] TappedEventArgs e)
 		{
@@ -2639,30 +2633,78 @@ namespace KOTORModSync
 		}
 
 		[UsedImplicitly]
-		private async void DocsButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+	private async void DocsButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+	{
+		try
 		{
-			try
+			// Check if there are any components to document
+			if ( MainConfig.AllComponents == null || MainConfig.AllComponents.Count == 0 )
 			{
-				string file = await SaveFile(
-					saveFileName: "mod_documentation.txt"
-				);
-				if ( file is null )
-					return; // user cancelled
-				string docs = ModComponent.GenerateModDocumentation(MainConfig.AllComponents);
-				await FileUtilities.SaveDocsToFileAsync(file, docs);
-				string message = $"Saved documentation of {MainConfig.AllComponents.Count} mods to '{file}'";
-				await Logger.LogAsync(message);
-				await InformationDialog.ShowInformationDialog(this, message);
-			}
-			catch ( Exception ex )
-			{
-				await Logger.LogExceptionAsync(ex, customMessage: "Error generating and saving documentation");
 				await InformationDialog.ShowInformationDialog(
 					this,
-					message: "An unexpected error occurred while generating and saving documentation."
+					message: "No mod components available to generate documentation."
 				);
+				return;
 			}
+
+			// Prompt user for save location
+			string file = await SaveFile(
+				saveFileName: "ModList_Documentation.md"
+			);
+
+			if ( file is null )
+			{
+				await Logger.LogVerboseAsync("Documentation export cancelled by user.");
+				return; // user cancelled
+			}
+
+			// Generate the documentation
+			await Logger.LogAsync($"Generating documentation for {MainConfig.AllComponents.Count} mod component(s)...");
+			string docs = ModComponent.GenerateModDocumentation(MainConfig.AllComponents);
+
+			if ( string.IsNullOrWhiteSpace(docs) )
+			{
+				await Logger.LogWarningAsync("Generated documentation is empty.");
+				await InformationDialog.ShowInformationDialog(
+					this,
+					message: "The generated documentation is empty. Please check your mod components."
+				);
+				return;
+			}
+
+			// Save to file
+			await FileUtilities.SaveDocsToFileAsync(file, docs);
+
+			// Confirm success
+			string successMessage = $"Successfully generated and saved documentation for {MainConfig.AllComponents.Count} mod component(s) to:\n\n{file}";
+			await Logger.LogAsync($"Documentation saved to '{file}'");
+			await InformationDialog.ShowInformationDialog(this, successMessage);
 		}
+		catch ( IOException ioEx )
+		{
+			await Logger.LogExceptionAsync(ioEx, customMessage: "IO error while saving documentation file");
+			await InformationDialog.ShowInformationDialog(
+				this,
+				message: $"Failed to save documentation file. The file may be in use or the path may be invalid.\n\nError: {ioEx.Message}"
+			);
+		}
+		catch ( UnauthorizedAccessException uaEx )
+		{
+			await Logger.LogExceptionAsync(uaEx, customMessage: "Access denied while saving documentation");
+			await InformationDialog.ShowInformationDialog(
+				this,
+				message: $"Access denied while saving the documentation file. Please check file permissions.\n\nError: {uaEx.Message}"
+			);
+		}
+		catch ( Exception ex )
+		{
+			await Logger.LogExceptionAsync(ex, customMessage: "Unexpected error generating and saving documentation");
+			await InformationDialog.ShowInformationDialog(
+				this,
+				message: $"An unexpected error occurred while generating and saving documentation.\n\nError: {ex.Message}"
+			);
+		}
+	}
 
 		/// <summary>
 		///     Event handler for the TabControl's SelectionChanged event.

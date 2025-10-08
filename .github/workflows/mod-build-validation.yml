@@ -1,0 +1,255 @@
+name: Mod Build Validation & Conversion
+
+on:
+  workflow_dispatch:  # Allow manual triggering
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+
+permissions:
+  contents: write  # Required for pushing back to the repo
+
+jobs:
+  validate-and-convert:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # Don't cancel other jobs if one fails
+      matrix:
+        build:
+          - name: 'K1 Full'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/full.md'
+            output_path: 'mod-builds/validated/k1'
+            filename: 'full'
+          - name: 'K1 Full Mobile'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/full_mobile.md'
+            output_path: 'mod-builds/validated/k1'
+            filename: 'full_mobile'
+          - name: 'K1 Spoiler-Free'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/spoiler-free.md'
+            output_path: 'mod-builds/validated/k1'
+            filename: 'spoiler-free'
+          - name: 'K1 Spoiler-Free Mobile'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/spoiler-free_mobile.md'
+            output_path: 'mod-builds/validated/k1'
+            filename: 'spoiler-free_mobile'
+          - name: 'K1 Widescreen'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/widescreen.md'
+            output_path: 'mod-builds/validated/k1'
+            filename: 'widescreen'
+          - name: 'K2 Full'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/full.md'
+            output_path: 'mod-builds/validated/k2'
+            filename: 'full'
+          - name: 'K2 Full Mobile'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/full_mobile.md'
+            output_path: 'mod-builds/validated/k2'
+            filename: 'full_mobile'
+          - name: 'K2 Spoiler-Free'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/spoiler-free.md'
+            output_path: 'mod-builds/validated/k2'
+            filename: 'spoiler-free'
+          - name: 'K2 Spoiler-Free Mobile'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/spoiler-free_mobile.md'
+            output_path: 'mod-builds/validated/k2'
+            filename: 'spoiler-free_mobile'
+          - name: 'K2 Widescreen'
+            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/widescreen.md'
+            output_path: 'mod-builds/validated/k2'
+            filename: 'widescreen'
+
+    name: ${{ matrix.build.name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for proper change detection
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Download markdown file
+        id: download
+        run: |
+          mkdir -p temp_markdown
+          curl -f -o "temp_markdown/${{ matrix.build.filename }}.md" "${{ matrix.build.url }}"
+          echo "md_path=temp_markdown/${{ matrix.build.filename }}.md" >> $GITHUB_OUTPUT
+
+      - name: Calculate hash
+        id: hash
+        run: |
+          CURRENT_HASH=$(sha256sum "${{ steps.download.outputs.md_path }}" | awk '{print $1}')
+          echo "current_hash=$CURRENT_HASH" >> $GITHUB_OUTPUT
+          echo "Current hash: $CURRENT_HASH"
+
+          # Check if hash file exists
+          HASH_FILE="${{ matrix.build.output_path }}/.checksums/${{ matrix.build.filename }}.sha256"
+          if [ -f "$HASH_FILE" ]; then
+            STORED_HASH=$(cat "$HASH_FILE")
+            echo "stored_hash=$STORED_HASH" >> $GITHUB_OUTPUT
+            echo "Stored hash: $STORED_HASH"
+
+            if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "No changes detected - skipping processing"
+            else
+              echo "changed=true" >> $GITHUB_OUTPUT
+              echo "Changes detected - proceeding with processing"
+            fi
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "stored_hash=" >> $GITHUB_OUTPUT
+            echo "No stored hash found - proceeding with processing"
+          fi
+
+      - name: Restore dependencies
+        if: steps.hash.outputs.changed == 'true'
+        run: dotnet restore
+
+      - name: Build
+        if: steps.hash.outputs.changed == 'true'
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Copy test file
+        if: steps.hash.outputs.changed == 'true'
+        run: |
+          cp "${{ steps.download.outputs.md_path }}" "KOTORModSync.Tests/test_modbuild_current.md"
+
+      - name: Run validation tests
+        if: steps.hash.outputs.changed == 'true'
+        id: test
+        continue-on-error: true
+        run: |
+          dotnet test KOTORModSync.Tests/KOTORModSync.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --filter "FullyQualifiedName~DocumentationRoundTripTests" \
+            --logger "console;verbosity=detailed" \
+            -- NUnit.TestOutputXml=TestResults
+        env:
+          TEST_FILE_PATH: "test_modbuild_current.md"
+
+      - name: Parse and convert to TOML
+        if: steps.hash.outputs.changed == 'true'
+        id: convert
+        run: |
+          dotnet run --project KOTORModSync.Tests/KOTORModSync.Tests.csproj \
+            -- convert-to-toml \
+            --input "${{ steps.download.outputs.md_path }}" \
+            --output "temp_output/${{ matrix.build.filename }}.toml"
+        continue-on-error: true
+
+      - name: Generate documentation
+        if: steps.hash.outputs.changed == 'true'
+        run: |
+          dotnet run --project KOTORModSync.Tests/KOTORModSync.Tests.csproj \
+            -- generate-docs \
+            --input "${{ steps.download.outputs.md_path }}" \
+            --output "temp_output/${{ matrix.build.filename }}_regenerated.md"
+        continue-on-error: true
+
+      - name: Create output directories
+        if: steps.hash.outputs.changed == 'true'
+        run: |
+          mkdir -p "${{ matrix.build.output_path }}"
+          mkdir -p "${{ matrix.build.output_path }}/.checksums"
+          mkdir -p "${{ matrix.build.output_path }}/markdown"
+          mkdir -p "${{ matrix.build.output_path }}/toml"
+
+      - name: Copy files to output directories
+        if: steps.hash.outputs.changed == 'true'
+        run: |
+          # Copy original markdown
+          cp "${{ steps.download.outputs.md_path }}" \
+             "${{ matrix.build.output_path }}/markdown/${{ matrix.build.filename }}.md"
+
+          # Copy regenerated markdown if it exists
+          if [ -f "temp_output/${{ matrix.build.filename }}_regenerated.md" ]; then
+            cp "temp_output/${{ matrix.build.filename }}_regenerated.md" \
+               "${{ matrix.build.output_path }}/markdown/${{ matrix.build.filename }}_regenerated.md"
+          fi
+
+          # Copy TOML if it exists
+          if [ -f "temp_output/${{ matrix.build.filename }}.toml" ]; then
+            cp "temp_output/${{ matrix.build.filename }}.toml" \
+               "${{ matrix.build.output_path }}/toml/${{ matrix.build.filename }}.toml"
+          fi
+
+          # Store new hash
+          echo "${{ steps.hash.outputs.current_hash }}" > \
+            "${{ matrix.build.output_path }}/.checksums/${{ matrix.build.filename }}.sha256"
+
+      - name: Create validation report
+        if: steps.hash.outputs.changed == 'true'
+        run: |
+          REPORT_FILE="${{ matrix.build.output_path }}/${{ matrix.build.filename }}_validation_report.txt"
+
+          echo "Validation Report for ${{ matrix.build.name }}" > "$REPORT_FILE"
+          echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> "$REPORT_FILE"
+          echo "Source URL: ${{ matrix.build.url }}" >> "$REPORT_FILE"
+          echo "SHA256: ${{ steps.hash.outputs.current_hash }}" >> "$REPORT_FILE"
+          echo "" >> "$REPORT_FILE"
+
+          if [ "${{ steps.test.outcome }}" = "success" ]; then
+            echo "✓ Validation tests: PASSED" >> "$REPORT_FILE"
+          else
+            echo "✗ Validation tests: FAILED" >> "$REPORT_FILE"
+          fi
+
+          if [ -f "temp_output/${{ matrix.build.filename }}.toml" ]; then
+            echo "✓ TOML conversion: SUCCESS" >> "$REPORT_FILE"
+          else
+            echo "✗ TOML conversion: FAILED" >> "$REPORT_FILE"
+          fi
+
+          if [ -f "temp_output/${{ matrix.build.filename }}_regenerated.md" ]; then
+            echo "✓ Documentation generation: SUCCESS" >> "$REPORT_FILE"
+          else
+            echo "✗ Documentation generation: FAILED" >> "$REPORT_FILE"
+          fi
+
+      - name: Commit and push changes
+        if: steps.hash.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add "${{ matrix.build.output_path }}/**"
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update validated mod build: ${{ matrix.build.name }} ($(date -u +"%Y-%m-%d"))"
+            git pull --rebase origin main || git pull --rebase origin master
+            git push
+          fi
+
+      - name: Upload artifacts
+        if: steps.hash.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.build.filename }}-artifacts
+          path: |
+            ${{ matrix.build.output_path }}/**
+            temp_output/**
+          retention-days: 30
+
+      - name: Report skipped
+        if: steps.hash.outputs.changed == 'false'
+        run: |
+          echo "::notice::Skipped ${{ matrix.build.name }} - no changes detected"
+
+  summary:
+    needs: validate-and-convert
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Mod Build Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check individual job results above for details." >> $GITHUB_STEP_SUMMARY
+

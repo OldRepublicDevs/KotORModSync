@@ -80,16 +80,25 @@ namespace KOTORModSync.Services
 				httpClient.Timeout = TimeSpan.FromMinutes(10);
 
 				var handlers = new List<IDownloadHandler>
-				{
-					new DeadlyStreamDownloadHandler(httpClient),
-					new MegaDownloadHandler(),
-					new NexusModsDownloadHandler(httpClient, null),
-					new GameFrontDownloadHandler(httpClient),
-					new DirectDownloadHandler(httpClient),
-				};
+			{
+				new DeadlyStreamDownloadHandler(httpClient),
+				new MegaDownloadHandler(),
+				new NexusModsDownloadHandler(httpClient, null),
+				new GameFrontDownloadHandler(httpClient),
+				new DirectDownloadHandler(httpClient),
+			};
 
 				var downloadManager = new DownloadManager(handlers);
 				_cacheService.SetDownloadManager(downloadManager);
+
+				// Subscribe to download control events (retry, pause, etc.)
+				progressWindow.DownloadControlRequested += async (sender, args) =>
+				{
+					if ( args.Action == DownloadControlAction.Retry )
+					{
+						await HandleRetryDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
+					}
+				};
 
 				// Show the window
 				progressWindow.Show();
@@ -104,9 +113,9 @@ namespace KOTORModSync.Services
 						// First, create progress items for all components so the window shows them immediately
 						Dispatcher.UIThread.Post(() =>
 						{
-							foreach (ModComponent component in selectedComponents)
+							foreach ( ModComponent component in selectedComponents )
 							{
-								foreach (string url in component.ModLink)
+								foreach ( string url in component.ModLink )
 								{
 									var initialProgress = new DownloadProgress
 									{
@@ -219,6 +228,100 @@ namespace KOTORModSync.Services
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex, "Error showing download status");
+			}
+		}
+
+		/// <summary>
+		/// Handles retry for a failed download
+		/// </summary>
+		private async Task HandleRetryDownloadAsync(
+			DownloadProgress progress,
+			IReadOnlyList<ModComponent> components,
+			DownloadManager downloadManager,
+			DownloadProgressWindow progressWindow)
+		{
+			try
+			{
+				await Logger.LogAsync($"[HandleRetryDownload] Starting retry for: {progress.ModName} ({progress.Url})");
+
+				// Find the component that matches this download
+				ModComponent matchingComponent = components.FirstOrDefault(c =>
+					c.Name == progress.ModName && c.ModLink.Any(link => link == progress.Url));
+
+				if ( matchingComponent == null )
+				{
+					await Logger.LogErrorAsync($"[HandleRetryDownload] Could not find matching component for {progress.ModName}");
+					progress.Status = DownloadStatus.Failed;
+					progress.ErrorMessage = "Could not find matching component for retry";
+					return;
+				}
+
+				// Create a new progress reporter for this retry
+				var progressReporter = new Progress<DownloadProgress>(update =>
+				{
+					// Update the existing progress object
+					progress.Status = update.Status;
+					progress.StatusMessage = update.StatusMessage;
+					progress.ProgressPercentage = update.ProgressPercentage;
+					progress.BytesDownloaded = update.BytesDownloaded;
+					progress.TotalBytes = update.TotalBytes;
+					progress.FilePath = update.FilePath;
+					progress.StartTime = update.StartTime;
+					progress.EndTime = update.EndTime;
+					progress.ErrorMessage = update.ErrorMessage;
+					progress.Exception = update.Exception;
+				});
+
+				// Download just this one URL
+				var urlToProgressMap = new Dictionary<string, DownloadProgress> { { progress.Url, progress } };
+				List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(
+					urlToProgressMap,
+					_mainConfig.sourcePath.FullName,
+					progressReporter,
+					progressWindow.CancellationToken);
+
+				// Process the result
+				if ( results.Count > 0 && results[0].Success )
+				{
+					await Logger.LogAsync($"[HandleRetryDownload] Retry successful for {progress.ModName}");
+
+					// Update the cache with the new download
+					string filePath = results[0].FilePath;
+					string fileName = Path.GetFileName(filePath);
+					bool isArchive = DownloadCacheService.IsArchive(filePath);
+
+					var cacheEntry = new DownloadCacheEntry
+					{
+						Url = progress.Url,
+						ArchiveName = fileName,
+						FilePath = filePath,
+						IsArchive = isArchive
+					};
+
+					_cacheService.AddOrUpdate(matchingComponent.Guid, progress.Url, cacheEntry);
+
+					// Auto-generate instructions if it's an archive
+					if ( isArchive && matchingComponent.Instructions.Count == 0 )
+					{
+						bool generated = AutoInstructionGenerator.GenerateInstructions(matchingComponent, filePath);
+						if ( generated )
+						{
+							await Logger.LogVerboseAsync($"[HandleRetryDownload] Auto-generated instructions for '{matchingComponent.Name}'");
+						}
+					}
+				}
+				else
+				{
+					string errorMessage = results.Count > 0 ? results[0].Message : "Unknown error during retry";
+					await Logger.LogErrorAsync($"[HandleRetryDownload] Retry failed: {errorMessage}");
+				}
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, $"[HandleRetryDownload] Exception during retry for {progress.ModName}");
+				progress.Status = DownloadStatus.Failed;
+				progress.ErrorMessage = $"Retry failed: {ex.Message}";
+				progress.Exception = ex;
 			}
 		}
 

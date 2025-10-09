@@ -944,7 +944,14 @@ namespace KOTORModSync.Core.Services
 				component.Author = author.ToString();
 
 			if ( parameters.TryGetValue("Category", out object category) )
-				component.Category = new List<string> { category.ToString() };
+			{
+				if ( category is List<string> categoryList )
+					component.Category = new List<string>(categoryList);
+				else if ( category is IEnumerable<string> categoryEnum )
+					component.Category = categoryEnum.ToList();
+				else if ( category != null )
+					component.Category = new List<string> { category.ToString() };
+			}
 
 			if ( parameters.TryGetValue("Tier", out object tier) )
 				component.Tier = tier.ToString();

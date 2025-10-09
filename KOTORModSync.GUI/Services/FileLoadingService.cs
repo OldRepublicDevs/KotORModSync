@@ -55,6 +55,9 @@ namespace KOTORModSync.Services
 				// Load components from the TOML file
 				List<ModComponent> newComponents = ModComponent.ReadComponentsFromFile(filePath);
 
+				// Process modlinks for relative paths
+				ProcessModLinks(newComponents);
+
 				// If no existing components, just load the new ones
 				if ( _mainConfig.allComponents.Count == 0 )
 				{
@@ -135,7 +138,7 @@ namespace KOTORModSync.Services
 			[NotNull] string filePath,
 			[NotNull] bool editorMode,
 			[NotNull] Func<Task> onComponentsLoaded,
-			[NotNull] Func<List<ModComponent>,Task> tryAutoGenerate,
+			[NotNull] Func<List<ModComponent>, Task> tryAutoGenerate,
 			[CanBeNull] MarkdownImportProfile profile = null)
 		{
 			try
@@ -147,23 +150,58 @@ namespace KOTORModSync.Services
 				{
 					string fileContents = await reader.ReadToEndAsync();
 
-					// Open Regex Import Dialog - user configures the profile through UI
-					var dialog = new RegexImportDialog(fileContents, profile ?? MarkdownImportProfile.CreateDefault());
 					MarkdownParserResult parseResult = null;
 					MarkdownImportProfile configuredProfile = null;
 
-					dialog.Closed += async (_, __) =>
+					// Only show RegexImportDialog in EditorMode, otherwise use default profile
+					if ( editorMode )
 					{
-						if ( !dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm) )
-							return;
+						// Open Regex Import Dialog - user configures the profile through UI
+						var dialog = new RegexImportDialog(fileContents, profile ?? MarkdownImportProfile.CreateDefault());
 
-						// Get the user-configured profile from the dialog
-						configuredProfile = vm.ConfiguredProfile;
+						dialog.Closed += async (_, __) =>
+						{
+							if ( !dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm) )
+								return;
 
-						// Parse using the configured profile (ConfirmLoad uses vm.Profile internally)
-						parseResult = vm.ConfirmLoad();
+							// Get the user-configured profile from the dialog
+							configuredProfile = vm.ConfiguredProfile;
 
-						await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
+							// Parse using the configured profile (ConfirmLoad uses vm.Profile internally)
+							parseResult = vm.ConfirmLoad();
+
+							// Process modlinks for relative paths
+							ProcessModLinks(parseResult.Components);
+
+							await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
+							await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLink.Count) ?? 0} total links.");
+
+							if ( parseResult.Warnings?.Count > 0 )
+							{
+								await Logger.LogWarningAsync($"Markdown parsing completed with {parseResult.Warnings.Count} warnings.");
+								foreach ( string warning in parseResult.Warnings )
+									await Logger.LogWarningAsync($"  - {warning}");
+							}
+						};
+
+						await dialog.ShowDialog(_parentWindow);
+
+						if ( parseResult is null )
+							return false;
+					}
+					else
+					{
+						// Use default profile when not in editor mode
+						configuredProfile = profile ?? MarkdownImportProfile.CreateDefault();
+						var parser = new MarkdownParser(configuredProfile,
+							logInfo => Logger.Log(logInfo),
+							Logger.LogVerbose);
+						parseResult = parser.Parse(fileContents);
+
+						// Process modlinks for relative paths
+						ProcessModLinks(parseResult.Components);
+
+						await Logger.LogAsync($"Markdown parsing completed using default profile.");
 						await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLink.Count) ?? 0} total links.");
 
 						if ( parseResult.Warnings?.Count > 0 )
@@ -172,12 +210,7 @@ namespace KOTORModSync.Services
 							foreach ( string warning in parseResult.Warnings )
 								await Logger.LogWarningAsync($"  - {warning}");
 						}
-					};
-
-					await dialog.ShowDialog(_parentWindow);
-
-					if ( parseResult is null )
-						return false;
+					}
 
 					// Handle merging/overwriting
 					if ( _mainConfig.allComponents.Count == 0 )
@@ -270,6 +303,33 @@ namespace KOTORModSync.Services
 		}
 
 		#region Private Helper Methods
+
+		/// <summary>
+		/// Processes modlinks to prepend base URL if they start with /
+		/// </summary>
+		private void ProcessModLinks(IList<ModComponent> components)
+		{
+			if ( components == null )
+				return;
+
+			const string baseUrl = "https://kotor.neocities.org";
+
+			foreach ( ModComponent component in components )
+			{
+				if ( component.ModLink != null )
+				{
+					for ( int i = 0; i < component.ModLink.Count; i++ )
+					{
+						string modLink = component.ModLink[i];
+						if ( !string.IsNullOrEmpty(modLink) && modLink.StartsWith("/") )
+						{
+							//HACK: Prepend base URL for relative paths starting with /
+							component.ModLink[i] = baseUrl + modLink;
+						}
+					}
+				}
+			}
+		}
 
 		private async Task<bool?> ShowConfigLoadConfirmationAsync(string fileType, bool editorMode)
 		{

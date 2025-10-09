@@ -8,11 +8,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using KOTORModSync.Core;
 using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Services.FileSystem;
 
-namespace KOTORModSync.Services
+namespace KOTORModSync.Core.Services
 {
 	/// <summary>
 	/// Service that manages the cache of downloaded files and their associated Extract instructions.
@@ -47,7 +46,7 @@ namespace KOTORModSync.Services
 		/// </summary>
 		public async Task InitializeVirtualFileSystemAsync(string rootPath)
 		{
-			if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath))
+			if ( string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath) )
 				return;
 
 			await _virtualFileSystem.InitializeFromRealFileSystemAsync(rootPath);
@@ -419,44 +418,47 @@ namespace KOTORModSync.Services
 		}
 
 		/// <summary>
-		/// Ensures that instructions exist at the appropriate indices for each cached entry.
-		/// For multiple URLs, creates instructions at index 0, 1, 2, etc.
-		/// Uses VirtualFileSystemProvider to validate instruction sources.
+		/// Ensures that instructions exist for each cached entry.
+		/// Checks ALL existing instructions to avoid creating duplicates.
+		/// Appends new instructions to the end if not found.
 		/// </summary>
 		private async Task EnsureInstructionsExist(ModComponent component, List<DownloadCacheEntry> entries)
 		{
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Ensuring instructions exist for {entries.Count} cached entries");
 
-			for ( int i = 0; i < entries.Count; i++ )
+			foreach ( var entry in entries )
 			{
-				var entry = entries[i];
-				int targetIndex = i;
-
-				// Check if instruction already exists at this index with the correct source file
-				bool instructionExists = false;
-				if ( component.Instructions.Count > targetIndex )
+				// Check if an instruction for this archive already exists ANYWHERE in the component
+				Instruction existingInstruction = null;
+				foreach ( var instruction in component.Instructions )
 				{
-					var existingInstruction = component.Instructions[targetIndex];
-
-					// Use VirtualFileSystemProvider to check if the instruction source matches the archive
-					if ( existingInstruction.Source != null && existingInstruction.Source.Any(src =>
-						_virtualFileSystem.FileExists(ResolveInstructionSource(src, entry.ArchiveName))) )
-					{
-						instructionExists = true;
-
-						// Ensure the cache entry has the instruction GUID
-						if ( entry.ExtractInstructionGuid == Guid.Empty || entry.ExtractInstructionGuid != existingInstruction.Guid )
+					// Check if this instruction's source references our archive
+					if ( instruction.Source != null && instruction.Source.Any(src =>
 						{
-							entry.ExtractInstructionGuid = existingInstruction.Guid;
-							AddOrUpdate(component.Guid, entry.Url, entry);
-							await Logger.LogVerboseAsync($"[DownloadCacheService] Updated cache entry with existing instruction GUID: {existingInstruction.Guid}");
-						}
+							// Check both direct filename match and resolved path match
+							if ( src.IndexOf(entry.ArchiveName, StringComparison.OrdinalIgnoreCase) >= 0 )
+								return true;
+							return _virtualFileSystem.FileExists(ResolveInstructionSource(src, entry.ArchiveName));
+						}) )
+					{
+						existingInstruction = instruction;
+						break;
 					}
 				}
 
-				if ( !instructionExists )
+				if ( existingInstruction != null )
 				{
-					// Create new instruction
+					// Instruction already exists - just update cache entry if needed
+					if ( entry.ExtractInstructionGuid == Guid.Empty || entry.ExtractInstructionGuid != existingInstruction.Guid )
+					{
+						entry.ExtractInstructionGuid = existingInstruction.Guid;
+						AddOrUpdate(component.Guid, entry.Url, entry);
+						await Logger.LogVerboseAsync($"[DownloadCacheService] Found existing instruction for {entry.ArchiveName} (GUID: {existingInstruction.Guid})");
+					}
+				}
+				else
+				{
+					// No instruction exists for this archive - create a new one and APPEND to the end
 					var newInstruction = new Instruction
 					{
 						Guid = Guid.NewGuid(),
@@ -469,14 +471,14 @@ namespace KOTORModSync.Services
 					};
 					newInstruction.SetParentComponent(component);
 
-					// Insert at the appropriate index
-					component.Instructions.Insert(targetIndex, newInstruction);
+					// Append to the end instead of inserting at a specific index
+					component.Instructions.Add(newInstruction);
 
 					// Update cache entry with instruction GUID
 					entry.ExtractInstructionGuid = newInstruction.Guid;
 					AddOrUpdate(component.Guid, entry.Url, entry);
 
-					await Logger.LogVerboseAsync($"[DownloadCacheService] Created new instruction at index {targetIndex}: {entry.ArchiveName} (GUID: {newInstruction.Guid})");
+					await Logger.LogVerboseAsync($"[DownloadCacheService] Created new instruction for {entry.ArchiveName} (GUID: {newInstruction.Guid})");
 				}
 			}
 		}
@@ -500,14 +502,14 @@ namespace KOTORModSync.Services
 		/// </summary>
 		private string ResolveInstructionSource(string sourcePath, string archiveName)
 		{
-			if (string.IsNullOrWhiteSpace(sourcePath))
+			if ( string.IsNullOrWhiteSpace(sourcePath) )
 				return sourcePath;
 
 			// Replace <<modDirectory>> placeholder with actual path
 			string resolved = sourcePath.Replace("<<modDirectory>>", "");
 
 			// Ensure the resolved path contains the archive name
-			if (resolved.Contains(archiveName))
+			if ( resolved.Contains(archiveName) )
 				return resolved;
 
 			// If it doesn't contain the archive name, construct the expected path

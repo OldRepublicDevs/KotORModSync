@@ -130,15 +130,31 @@ namespace KOTORModSync.Services
 					try
 					{
 						// Find the container for this specific component
-#pragma warning disable IDE0078 // Use pattern matching
 						if ( !(modListBox.ContainerFromItem(component) is ListBoxItem container) )
 							return;
-#pragma warning restore IDE0078 // Use pattern matching
 
 						// Find the ModListItem control
 						if ( container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault() is ModListItem modListItem )
+						{
 							// Directly call UpdateValidationState to refresh border colors
 							modListItem.UpdateValidationState(component);
+
+							// Force the ItemsControl for options to re-evaluate its bindings
+							// This ensures the options section appears/disappears immediately
+							var optionsContainer = modListItem.FindControl<ItemsControl>("OptionsContainer");
+							if ( optionsContainer != null )
+							{
+								// Trigger a re-evaluation of the ItemsSource and IsVisible bindings
+								var currentItems = optionsContainer.ItemsSource;
+								optionsContainer.ItemsSource = null;
+								optionsContainer.ItemsSource = currentItems;
+
+								// Also force the IsVisible binding to re-evaluate
+								var currentVisibility = optionsContainer.IsVisible;
+								optionsContainer.IsVisible = !currentVisibility;
+								optionsContainer.IsVisible = currentVisibility;
+							}
+						}
 					}
 					catch ( Exception ex )
 					{

@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -165,6 +166,48 @@ namespace KOTORModSync.Controls
 
 			// Set up rich tooltip based on current status
 			UpdateTooltip(component);
+
+			// Set up option selection change handlers
+			SetupOptionSelectionHandlers(component);
+		}
+
+		/// <summary>
+		/// Sets up property change handlers for option selections to update background colors
+		/// </summary>
+		private void SetupOptionSelectionHandlers(ModComponent component)
+		{
+			foreach ( Option option in component.Options )
+			{
+				// Remove existing handler if any
+				option.PropertyChanged -= OnOptionSelectionChanged;
+				// Add new handler
+				option.PropertyChanged += OnOptionSelectionChanged;
+			}
+		}
+
+		/// <summary>
+		/// Handles property changes on options, specifically IsSelected changes
+		/// </summary>
+		private void OnOptionSelectionChanged(object sender, PropertyChangedEventArgs e)
+		{
+			if ( e.PropertyName == nameof(Option.IsSelected) && sender is Option option )
+			{
+				// Find the border for this option and update its background
+				var optionsContainer = this.FindControl<ItemsControl>("OptionsContainer");
+				if ( optionsContainer != null )
+				{
+					// Find the container for this specific option
+					var container = optionsContainer.ContainerFromItem(option);
+					if ( container != null )
+					{
+						var border = container.GetVisualDescendants().OfType<Border>().FirstOrDefault();
+						if ( border != null )
+						{
+							UpdateOptionBackground(border, option.IsSelected);
+						}
+					}
+				}
+			}
 		}
 
 		/// <summary>
@@ -172,8 +215,14 @@ namespace KOTORModSync.Controls
 		/// </summary>
 		public void UpdateTooltip(ModComponent component)
 		{
-			string tooltipText = ModListItem.CreateRichTooltip(component);
-			ToolTip.SetTip(this, tooltipText);
+			// Find the name TextBlock
+			TextBlock nameTextBlock = this.FindControl<TextBlock>("NameTextBlock");
+			if ( nameTextBlock == null )
+				return;
+
+			// Set a basic tooltip immediately to avoid UI lag
+			string basicTooltip = CreateBasicTooltip(component);
+			ToolTip.SetTip(nameTextBlock, basicTooltip);
 
 			// Update editor mode visibility
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
@@ -186,6 +235,18 @@ namespace KOTORModSync.Controls
 			int index = mainWindow.MainConfigInstance?.allComponents.IndexOf(component) ?? -1;
 			if ( index >= 0 && this.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock )
 				indexBlock.Text = $"#{index + 1}";
+
+			// Generate detailed tooltip and update when ready
+			try
+			{
+				string detailedTooltip = CreateRichTooltipAsync(component);
+				ToolTip.SetTip(nameTextBlock, detailedTooltip);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Error generating detailed tooltip for {component?.Name}");
+				// Keep the basic tooltip if detailed generation fails
+			}
 		}
 
 		public void UpdateValidationState(ModComponent component)
@@ -364,7 +425,10 @@ namespace KOTORModSync.Controls
 				dragHandle.IsVisible = isEditorMode;
 		}
 
-		private static string CreateRichTooltip(ModComponent component)
+		/// <summary>
+		/// Creates a basic tooltip without heavy validation operations
+		/// </summary>
+		private static string CreateBasicTooltip(ModComponent component)
 		{
 			var sb = new System.Text.StringBuilder();
 
@@ -376,17 +440,239 @@ namespace KOTORModSync.Controls
 				if ( !string.IsNullOrWhiteSpace(component.Author) )
 					_ = sb.AppendLine($"👤 Author: {component.Author}");
 				if ( component.Category.Count > 0 )
-					_ = sb.AppendLine($"📁 Category: {string.Join(", ", component.Category)}");
+					_ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
 				if ( !string.IsNullOrWhiteSpace(component.Tier) )
 					_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
 				if ( !string.IsNullOrWhiteSpace(component.Description) )
 				{
-					_ = sb.AppendLine();
-					_ = sb.AppendLine("📝 Description:");
-					_ = sb.AppendLine(component.Description);
+					string desc = component.Description.Length > 200 ? component.Description.Substring(0, 200) + "..." : component.Description;
+					_ = sb.AppendLine($"📝 {desc}");
 				}
 				return sb.ToString();
 			}
+
+			// Show basic info for selected components
+			_ = sb.AppendLine($"📦 {component.Name}");
+			if ( !string.IsNullOrWhiteSpace(component.Author) )
+				_ = sb.AppendLine($"👤 Author: {component.Author}");
+			if ( component.Category.Count > 0 )
+				_ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
+			if ( !string.IsNullOrWhiteSpace(component.Tier) )
+				_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+
+			// Check for basic issues without heavy validation
+			bool isMissingDownload = !component.IsDownloaded;
+			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
+			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
+
+			// Show issue banner if there are problems
+			if ( hasErrors || isMissingDownload )
+			{
+				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
+				_ = sb.AppendLine(new string('─', 40));
+
+				if ( isMissingDownload )
+				{
+					_ = sb.AppendLine("❗ Missing Download");
+					_ = sb.AppendLine("This mod is selected but the archive file is not");
+					_ = sb.AppendLine("in your mod directory. Please:");
+					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
+					_ = sb.AppendLine("  2. Or manually download from the mod links");
+					if ( component.ModLink.Count > 0 )
+						_ = sb.AppendLine($"  3. Download Link: {component.ModLink[0]}");
+					_ = sb.AppendLine();
+				}
+
+				if ( hasErrors )
+				{
+					_ = sb.AppendLine("❌ Configuration Errors:");
+					string[] errors = errorReasons.Split('\n');
+					foreach ( string error in errors )
+					{
+						_ = sb.AppendLine($"  • {error}");
+					}
+					_ = sb.AppendLine();
+					_ = sb.AppendLine("How to fix:");
+					if ( errorReasons.Contains("Requires") )
+						_ = sb.AppendLine("  • Enable required dependency mods");
+					if ( errorReasons.Contains("Conflicts") )
+						_ = sb.AppendLine("  • Disable conflicting mods");
+					_ = sb.AppendLine();
+				}
+			}
+
+			return sb.ToString();
+		}
+
+		/// <summary>
+		/// Creates a rich tooltip with detailed validation information
+		/// </summary>
+		private static string CreateRichTooltipAsync(ModComponent component)
+		{
+			var sb = new System.Text.StringBuilder();
+
+			// Only show issues for selected components
+			if ( !component.IsSelected )
+			{
+				// Show basic info for unselected components
+				_ = sb.AppendLine($"📦 {component.Name}");
+				if ( !string.IsNullOrWhiteSpace(component.Author) )
+					_ = sb.AppendLine($"👤 Author: {component.Author}");
+				if ( component.Category.Count > 0 )
+					_ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
+				if ( !string.IsNullOrWhiteSpace(component.Tier) )
+					_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+				if ( !string.IsNullOrWhiteSpace(component.Description) )
+				{
+					string desc = component.Description.Length > 200 ? component.Description.Substring(0, 200) + "..." : component.Description;
+					_ = sb.AppendLine($"📝 {desc}");
+				}
+				return sb.ToString();
+			}
+
+			// Show basic info for selected components
+			_ = sb.AppendLine($"📦 {component.Name}");
+			if ( !string.IsNullOrWhiteSpace(component.Author) )
+				_ = sb.AppendLine($"👤 Author: {component.Author}");
+			if ( component.Category.Count > 0 )
+				_ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
+			if ( !string.IsNullOrWhiteSpace(component.Tier) )
+				_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+
+			// Check for issues first
+			bool isMissingDownload = !component.IsDownloaded;
+			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
+			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
+
+			// Show issue banner if there are problems
+			if ( hasErrors || isMissingDownload )
+			{
+				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
+				_ = sb.AppendLine(new string('─', 40));
+
+				if ( isMissingDownload )
+				{
+					_ = sb.AppendLine("❗ Missing Download");
+
+					// Check DownloadCacheService for cached downloads
+					var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+						? desktop.MainWindow as MainWindow
+						: null;
+					var downloadCacheService = mainWindow?.DownloadCacheService;
+					if ( downloadCacheService != null && component.ModLink.Count > 0 )
+					{
+						var missingUrls = new List<string>();
+						foreach ( string url in component.ModLink )
+						{
+							if ( !downloadCacheService.IsCached(component.Guid, url) )
+							{
+								missingUrls.Add(url);
+							}
+						}
+
+						if ( missingUrls.Count > 0 )
+						{
+							_ = sb.AppendLine("Missing cached downloads:");
+							foreach ( string url in missingUrls )
+							{
+								_ = sb.AppendLine($"  • {url}");
+							}
+							_ = sb.AppendLine();
+						}
+					}
+
+					_ = sb.AppendLine("This mod is selected but the download is not cached.");
+					_ = sb.AppendLine("Please:");
+					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
+					_ = sb.AppendLine("  2. Or manually download from the mod links");
+					if ( component.ModLink.Count > 0 )
+						_ = sb.AppendLine($"  3. Download Link: {component.ModLink[0]}");
+					_ = sb.AppendLine();
+				}
+
+				if ( hasErrors )
+				{
+					_ = sb.AppendLine("❌ Configuration Errors:");
+					string[] errors = errorReasons.Split('\n');
+					foreach ( string error in errors )
+					{
+						_ = sb.AppendLine($"  • {error}");
+					}
+					_ = sb.AppendLine();
+					_ = sb.AppendLine("How to fix:");
+					if ( errorReasons.Contains("Requires") )
+						_ = sb.AppendLine("  • Enable required dependency mods");
+					if ( errorReasons.Contains("Conflicts") )
+						_ = sb.AppendLine("  • Disable conflicting mods");
+					_ = sb.AppendLine();
+				}
+			}
+
+			// Show additional details
+			if ( !string.IsNullOrWhiteSpace(component.Description) )
+			{
+				_ = sb.AppendLine($"📝 Description:");
+				string desc = component.Description.Length > 300 ? component.Description.Substring(0, 300) + "..." : component.Description;
+				_ = sb.AppendLine(desc);
+				_ = sb.AppendLine();
+			}
+
+			if ( component.ModLink.Count > 0 )
+			{
+				_ = sb.AppendLine($"🔗 Download Links ({component.ModLink.Count}):");
+				for ( int i = 0; i < Math.Min(component.ModLink.Count, 3); i++ )
+				{
+					_ = sb.AppendLine($"  {i + 1}. {component.ModLink[i]}");
+				}
+				if ( component.ModLink.Count > 3 )
+					_ = sb.AppendLine($"  ... and {component.ModLink.Count - 3} more");
+				_ = sb.AppendLine();
+			}
+
+			if ( component.Dependencies.Count > 0 )
+			{
+				_ = sb.AppendLine($"🔗 Dependencies ({component.Dependencies.Count}):");
+				foreach ( Guid depGuid in component.Dependencies )
+				{
+					ModComponent depComponent = MainConfig.AllComponents.FirstOrDefault(c => c.Guid == depGuid);
+					if ( depComponent != null )
+					{
+						string status = depComponent.IsSelected ? "✅" : "❌";
+						_ = sb.AppendLine($"  {status} {depComponent.Name}");
+					}
+					else
+					{
+						_ = sb.AppendLine($"  ❓ Unknown dependency ({depGuid})");
+					}
+				}
+				_ = sb.AppendLine();
+			}
+
+			if ( component.Restrictions.Count > 0 )
+			{
+				_ = sb.AppendLine($"⚠️ Conflicts ({component.Restrictions.Count}):");
+				foreach ( Guid restrictGuid in component.Restrictions )
+				{
+					ModComponent restrictComponent = MainConfig.AllComponents.FirstOrDefault(c => c.Guid == restrictGuid);
+					if ( restrictComponent != null )
+					{
+						string status = restrictComponent.IsSelected ? "❌" : "✅";
+						_ = sb.AppendLine($"  {status} {restrictComponent.Name}");
+					}
+					else
+					{
+						_ = sb.AppendLine($"  ❓ Unknown conflict ({restrictGuid})");
+					}
+				}
+				_ = sb.AppendLine();
+			}
+
+			return sb.ToString();
+		}
+
+		private static string CreateRichTooltip(ModComponent component)
+		{
+			var sb = new System.Text.StringBuilder();
 
 			// Check for issues first
 			bool isMissingDownload = !component.IsDownloaded;
@@ -545,7 +831,7 @@ namespace KOTORModSync.Controls
 		public void SetDraggedState(bool isDragged)
 		{
 			IsBeingDragged = isDragged;
-			if (this.FindControl<Border>("RootBorder") is Border border)
+			if ( this.FindControl<Border>("RootBorder") is Border border )
 			{
 				border.Opacity = isDragged ? 0.5 : 1.0;
 			}
@@ -557,7 +843,7 @@ namespace KOTORModSync.Controls
 		public void SetDropTargetState(bool isDropTarget)
 		{
 			IsDropTarget = isDropTarget;
-			if (this.FindControl<Border>("DropIndicator") is Border indicator)
+			if ( this.FindControl<Border>("DropIndicator") is Border indicator )
 			{
 				indicator.IsVisible = isDropTarget;
 			}
@@ -603,6 +889,44 @@ namespace KOTORModSync.Controls
 			}
 
 			return path;
+		}
+
+		/// <summary>
+		/// Handles clicks on option borders to toggle the option selection
+		/// </summary>
+		private void OptionBorder_PointerPressed(object sender, PointerPressedEventArgs e)
+		{
+			// Prevent the event from bubbling up to the main ModListItem
+			e.Handled = true;
+
+			if ( sender is Border border && border.Tag is Option option )
+			{
+				// Toggle the option selection
+				option.IsSelected = !option.IsSelected;
+
+				// Update the background color based on selection state
+				UpdateOptionBackground(border, option.IsSelected);
+			}
+		}
+
+		/// <summary>
+		/// Updates the background color of an option border based on its selection state
+		/// </summary>
+		private void UpdateOptionBackground(Border border, bool isSelected)
+		{
+			if ( border == null )
+				return;
+
+			if ( isSelected )
+			{
+				// Use the hover background color for selected options
+				border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
+			}
+			else
+			{
+				// Use transparent background for unselected options
+				border.Background = Brushes.Transparent;
+			}
 		}
 	}
 }

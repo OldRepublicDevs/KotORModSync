@@ -137,7 +137,7 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			Assert.That(generatedNameFields.Count, Is.EqualTo(originalNameFields.Count),
+			Assert.That(generatedNameFields, Has.Count.EqualTo(originalNameFields.Count),
 				$"Mod count must match exactly. Original: {originalNameFields.Count}, Generated: {generatedNameFields.Count}");
 
 			// Verify all mod names are preserved

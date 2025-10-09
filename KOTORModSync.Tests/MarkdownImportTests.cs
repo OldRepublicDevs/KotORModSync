@@ -3,6 +3,7 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System.Text.RegularExpressions;
+using KOTORModSync.Core;
 using KOTORModSync.Core.Parsing;
 
 namespace KOTORModSync.Tests
@@ -75,7 +76,7 @@ ___";
 			MatchCollection matches = regex.Matches(SampleMarkdown);
 
 			// Assert
-			Assert.That(matches.Count, Is.EqualTo(3));
+			Assert.That(matches, Has.Count.EqualTo(3));
 		}
 
 		[Test]
@@ -90,9 +91,12 @@ ___";
 			var names = result.Components.Select(c => c.Name).ToList();
 
 			// Assert
-			Assert.That(names, Does.Contain("KOTOR Dialogue Fixes"));
-			Assert.That(names, Does.Contain("Character Startup Changes"));
-			Assert.That(names, Does.Contain("Ultimate Korriban High Resolution"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(names, Does.Contain("KOTOR Dialogue Fixes"));
+				Assert.That(names, Does.Contain("Character Startup Changes"));
+				Assert.That(names, Does.Contain("Ultimate Korriban High Resolution"));
+			});
 		}
 
 		[Test]
@@ -160,9 +164,12 @@ ___";
 				.ToList();
 
 			// Assert
-			Assert.That(categoryTiers, Does.Contain("Immersion / 1 - Essential"));
-			Assert.That(categoryTiers, Does.Contain("Mechanics Change / 2 - Recommended"));
-			Assert.That(categoryTiers, Does.Contain("Graphics Improvement / 1 - Essential"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(categoryTiers, Does.Contain("Immersion / 1 - Essential"));
+				Assert.That(categoryTiers, Does.Contain("Mechanics Change / 2 - Recommended"));
+				Assert.That(categoryTiers, Does.Contain("Graphics Improvement / 1 - Essential"));
+			});
 		}
 
 		[Test]
@@ -213,8 +220,11 @@ ___";
 				.ToList();
 
 			// Assert
-			Assert.That(nonEnglishValues, Does.Contain("NO"));
-			Assert.That(nonEnglishValues, Does.Contain("YES"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(nonEnglishValues, Does.Contain("NO"));
+				Assert.That(nonEnglishValues, Does.Contain("YES"));
+			});
 		}
 
 		[Test]
@@ -276,9 +286,9 @@ ___";
 			MatchCollection matches = regex.Matches(minimalMod);
 
 			// Assert
-			Assert.That(matches.Count, Is.EqualTo(expected: 1));
 			Assert.Multiple(() =>
 			{
+				Assert.That(matches, Has.Count.EqualTo(expected: 1));
 				Assert.That(matches[0].Groups["name"].Value.Trim(), Is.EqualTo("Minimal Mod"));
 				Assert.That(matches[0].Groups["author"].Value.Trim(), Is.EqualTo("Test Author"));
 			});
@@ -353,7 +363,7 @@ ___";
 			}
 
 			// Assert - The file should have a substantial number of mod entries (adjusted expectation)
-			Assert.That(components.Count, Is.GreaterThan(70), $"Expected to find more than 70 mod entries in full.md, found {components.Count}");
+			Assert.That(components, Has.Count.GreaterThan(70), $"Expected to find more than 70 mod entries in full.md, found {components.Count}");
 
 			Assert.Multiple(() =>
 			{
@@ -376,6 +386,270 @@ ___";
 				Assert.That(modAuthors.Count(a => !string.IsNullOrWhiteSpace(a)), Is.GreaterThan(65), "Most mods should have authors");
 				Assert.That(modCategories.Count(c => !string.IsNullOrWhiteSpace(c)), Is.GreaterThan(65), "Most mods should have categories");
 			});
+		}
+
+		[Test]
+		public void ModSyncMetadata_ParsesInstructionsAndOptions()
+		{
+			// Arrange
+			const string markdownWithModSync = @"### KOTOR Dialogue Fixes
+
+**Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
+
+**Author:** Salk & Kainzorus Prime
+
+**Description:** In addition to fixing several typos, this mod takes the PC's dialogue—which is written in such a way as to make the PC sound constantly shocked, stupid, or needlessly and overtly evil—and replaces it with more moderate and reasonable responses, even for DS choices.
+
+**Category & Tier:** Immersion / 1 - Essential
+
+**Non-English Functionality:** NO
+
+**Installation Method:** Loose-File Mod
+
+**Installation Instructions:** The choice of which version to use is up to you; I recommend PC Response Moderation, as it makes your character sound less like a giddy little schoolchild following every little dialogue, but if you prefer only bugfixes it is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable is)—in this very specific case, NOT the override.
+
+<!--<<ModSync>>
+- **GUID:** a9aa5bf5-b4ac-4aa3-acbb-402337235e54
+
+#### Instructions
+1. **GUID:** cea7e306-94fe-4a6b-957b-dbb3c189c2f5
+   **Action:** Extract
+   **Overwrite:** true
+   **Source:** <<modDirectory>>\KotOR_Dialogue_Fixes*.7z
+2. **GUID:** fed09c7a-ac47-441c-a6e5-7a5d8ea56667
+   **Action:** Choose
+   **Overwrite:** true
+   **Source:** cf2a12ec-3932-42f8-996d-b1b1bdfdbb48, 6d593186-e356-4994-b6a8-f71445869937
+
+#### Options
+##### Option 1
+- **GUID:** cf2a12ec-3932-42f8-996d-b1b1bdfdbb48
+- **Name:** Standard
+- **Description:** Straight fixes to spelling errors/punctuation/grammar
+- **Is Selected:** false
+- **Install State:** 0
+- **Is Downloaded:** false
+- **Restrictions:** 6d593186-e356-4994-b6a8-f71445869937
+  - **Instruction:**
+    - **GUID:** 35b84009-a65b-42d0-8653-215471cf2451
+    - **Action:** Move
+    - **Destination:** <<kotorDirectory>>
+    - **Overwrite:** true
+    - **Source:** <<modDirectory>>\KotOR_Dialogue_Fixes*\Corrections only\dialog.tlk
+
+##### Option 2
+- **GUID:** 6d593186-e356-4994-b6a8-f71445869937
+- **Name:** Revised
+- **Description:** Everything in Straight Fixes, but also has changes from the PC Moderation changes.
+- **Restrictions:** cf2a12ec-3932-42f8-996d-b1b1bdfdbb48
+  - **Instruction:**
+    - **GUID:** ff818e5c-480b-437a-9ee1-8c862b952fa2
+    - **Action:** Move
+    - **Destination:** <<kotorDirectory>>
+    - **Overwrite:** true
+    - **Source:** <<modDirectory>>\KotOR_Dialogue_Fixes*\PC Response Moderation version\dialog.tlk
+-->
+
+___";
+
+			var profile = MarkdownImportProfile.CreateDefault();
+			var parser = new MarkdownParser(profile);
+
+			// Act
+			MarkdownParserResult result = parser.Parse(markdownWithModSync);
+
+			// Assert
+			Assert.That(result.Components, Has.Count.EqualTo(1), "Should parse one component");
+
+			var component = result.Components[0];
+			Assert.Multiple(() =>
+			{
+				Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"), "Component name should be parsed");
+				Assert.That(component.Guid.ToString(), Is.EqualTo("a9aa5bf5-b4ac-4aa3-acbb-402337235e54"), "Component GUID should be parsed from ModSync metadata");
+
+				// Check Instructions
+				Assert.That(component.Instructions, Has.Count.EqualTo(2), "Should parse 2 instructions");
+			});
+
+			var firstInstruction = component.Instructions[0];
+			Assert.Multiple(() =>
+			{
+				Assert.That(firstInstruction.Guid.ToString(), Is.EqualTo("cea7e306-94fe-4a6b-957b-dbb3c189c2f5"), "First instruction GUID");
+				Assert.That(firstInstruction.Action.ToString(), Is.EqualTo("Extract"), "First instruction action");
+				Assert.That(firstInstruction.Overwrite, Is.True, "First instruction overwrite flag");
+				Assert.That(firstInstruction.Source, Has.Count.EqualTo(1), "First instruction should have one source");
+				Assert.That(firstInstruction.Source[0], Does.Contain("KotOR_Dialogue_Fixes"), "First instruction source path");
+			});
+
+			var secondInstruction = component.Instructions[1];
+			Assert.Multiple(() =>
+			{
+				Assert.That(secondInstruction.Guid.ToString(), Is.EqualTo("fed09c7a-ac47-441c-a6e5-7a5d8ea56667"), "Second instruction GUID");
+				Assert.That(secondInstruction.Action.ToString(), Is.EqualTo("Choose"), "Second instruction action");
+				Assert.That(secondInstruction.Source, Has.Count.EqualTo(2), "Second instruction should have two source GUIDs");
+
+				// Check Options
+				Assert.That(component.Options, Has.Count.EqualTo(2), "Should parse 2 options");
+			});
+
+			var option1 = component.Options[0];
+			Assert.Multiple(() =>
+			{
+				Assert.That(option1.Guid.ToString(), Is.EqualTo("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48"), "Option 1 GUID");
+				Assert.That(option1.Name, Is.EqualTo("Standard"), "Option 1 name");
+				Assert.That(option1.Description, Does.Contain("Straight fixes"), "Option 1 description");
+				Assert.That(option1.IsSelected, Is.False, "Option 1 should not be selected");
+				Assert.That(option1.Instructions, Has.Count.EqualTo(1), "Option 1 should have 1 instruction");
+			});
+
+			var option1Instruction = option1.Instructions[0];
+			Assert.Multiple(() =>
+			{
+				Assert.That(option1Instruction.Guid.ToString(), Is.EqualTo("35b84009-a65b-42d0-8653-215471cf2451"), "Option 1 instruction GUID");
+				Assert.That(option1Instruction.Action.ToString(), Is.EqualTo("Move"), "Option 1 instruction action");
+				Assert.That(option1Instruction.Destination, Does.Contain("kotorDirectory"), "Option 1 instruction destination");
+			});
+
+			var option2 = component.Options[1];
+			Assert.Multiple(() =>
+			{
+				Assert.That(option2.Guid.ToString(), Is.EqualTo("6d593186-e356-4994-b6a8-f71445869937"), "Option 2 GUID");
+				Assert.That(option2.Name, Is.EqualTo("Revised"), "Option 2 name");
+				Assert.That(option2.Instructions, Has.Count.EqualTo(1), "Option 2 should have 1 instruction");
+			});
+		}
+
+		[Test]
+		public void ModSyncMetadata_RoundTrip_PreservesInstructionsAndOptions()
+		{
+			// Arrange - Parse markdown with ModSync metadata
+			const string markdownWithModSync = @"### KOTOR Dialogue Fixes
+
+**Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
+
+**Author:** Salk & Kainzorus Prime
+
+**Description:** In addition to fixing several typos, this mod takes the PC's dialogue.
+
+**Category & Tier:** Immersion / 1 - Essential
+
+**Non-English Functionality:** NO
+
+**Installation Method:** Loose-File Mod
+
+**Installation Instructions:** The choice of which version to use is up to you.
+
+<!--<<ModSync>>
+- **GUID:** a9aa5bf5-b4ac-4aa3-acbb-402337235e54
+
+#### Instructions
+1. **GUID:** cea7e306-94fe-4a6b-957b-dbb3c189c2f5
+   **Action:** Extract
+   **Overwrite:** true
+   **Source:** <<modDirectory>>\KotOR_Dialogue_Fixes*.7z
+2. **GUID:** fed09c7a-ac47-441c-a6e5-7a5d8ea56667
+   **Action:** Choose
+   **Overwrite:** true
+   **Source:** cf2a12ec-3932-42f8-996d-b1b1bdfdbb48, 6d593186-e356-4994-b6a8-f71445869937
+
+#### Options
+##### Option 1
+- **GUID:** cf2a12ec-3932-42f8-996d-b1b1bdfdbb48
+- **Name:** Standard
+- **Description:** Straight fixes to spelling errors/punctuation/grammar
+- **Is Selected:** false
+- **Install State:** 0
+- **Is Downloaded:** false
+- **Restrictions:** 6d593186-e356-4994-b6a8-f71445869937
+  - **Instruction:**
+    - **GUID:** 35b84009-a65b-42d0-8653-215471cf2451
+    - **Action:** Move
+    - **Destination:** <<kotorDirectory>>
+    - **Overwrite:** true
+    - **Source:** <<modDirectory>>\KotOR_Dialogue_Fixes*\Corrections only\dialog.tlk
+
+##### Option 2
+- **GUID:** 6d593186-e356-4994-b6a8-f71445869937
+- **Name:** Revised
+- **Description:** Everything in Straight Fixes, but also has changes from the PC Moderation changes.
+- **Restrictions:** cf2a12ec-3932-42f8-996d-b1b1bdfdbb48
+  - **Instruction:**
+    - **GUID:** ff818e5c-480b-437a-9ee1-8c862b952fa2
+    - **Action:** Move
+    - **Destination:** <<kotorDirectory>>
+    - **Overwrite:** true
+    - **Source:** <<modDirectory>>\KotOR_Dialogue_Fixes*\PC Response Moderation version\dialog.tlk
+-->
+
+___";
+
+			var profile = MarkdownImportProfile.CreateDefault();
+			var parser = new MarkdownParser(profile);
+
+			// Act - Parse, generate, and parse again
+			MarkdownParserResult firstParse = parser.Parse(markdownWithModSync);
+			string generatedDocs = ModComponent.GenerateModDocumentation(firstParse.Components.ToList());
+			MarkdownParserResult secondParse = parser.Parse(generatedDocs);
+
+			// Assert - Verify round-trip preserved everything
+			Assert.That(secondParse.Components, Has.Count.EqualTo(1), "Should have one component after round-trip");
+
+			var firstComponent = firstParse.Components[0];
+			var secondComponent = secondParse.Components[0];
+
+			Assert.Multiple(() =>
+			{
+				// Verify GUID preserved
+				Assert.That(secondComponent.Guid, Is.EqualTo(firstComponent.Guid), "Component GUID should be preserved");
+
+				// Verify instructions preserved
+				Assert.That(secondComponent.Instructions, Has.Count.EqualTo(firstComponent.Instructions.Count), "Instruction count should match");
+			});
+
+			for ( int i = 0; i < firstComponent.Instructions.Count; i++ )
+			{
+				var firstInst = firstComponent.Instructions[i];
+				var secondInst = secondComponent.Instructions[i];
+
+				Assert.Multiple(() =>
+				{
+					Assert.That(secondInst.Guid, Is.EqualTo(firstInst.Guid), $"Instruction {i} GUID should match");
+					Assert.That(secondInst.Action, Is.EqualTo(firstInst.Action), $"Instruction {i} Action should match");
+					Assert.That(secondInst.Overwrite, Is.EqualTo(firstInst.Overwrite), $"Instruction {i} Overwrite should match");
+					Assert.That(secondInst.Source, Has.Count.EqualTo(firstInst.Source.Count), $"Instruction {i} Source count should match");
+				});
+			}
+
+			// Verify options preserved
+			Assert.That(secondComponent.Options, Has.Count.EqualTo(firstComponent.Options.Count), "Option count should match");
+
+			for ( int i = 0; i < firstComponent.Options.Count; i++ )
+			{
+				var firstOpt = firstComponent.Options[i];
+				var secondOpt = secondComponent.Options[i];
+
+				Assert.Multiple(() =>
+				{
+					Assert.That(secondOpt.Guid, Is.EqualTo(firstOpt.Guid), $"Option {i} GUID should match");
+					Assert.That(secondOpt.Name, Is.EqualTo(firstOpt.Name), $"Option {i} Name should match");
+					Assert.That(secondOpt.Description, Is.EqualTo(firstOpt.Description), $"Option {i} Description should match");
+					Assert.That(secondOpt.IsSelected, Is.EqualTo(firstOpt.IsSelected), $"Option {i} IsSelected should match");
+					Assert.That(secondOpt.Instructions, Has.Count.EqualTo(firstOpt.Instructions.Count), $"Option {i} instruction count should match");
+				});
+
+				// Verify nested instructions
+				for ( int j = 0; j < firstOpt.Instructions.Count; j++ )
+				{
+					var firstInstruction = firstOpt.Instructions[j];
+					var secondInstruction = secondOpt.Instructions[j];
+
+					Assert.Multiple(() =>
+					{
+						Assert.That(secondInstruction.Guid, Is.EqualTo(firstInstruction.Guid), $"Option {i} Instruction {j} GUID should match");
+						Assert.That(secondInstruction.Action, Is.EqualTo(firstInstruction.Action), $"Option {i} Instruction {j} Action should match");
+					});
+				}
+			}
 		}
 	}
 }

@@ -73,7 +73,7 @@ namespace KOTORModSync
 				return;
 			try
 			{
-				var detailsDialog = new ModDownloadDetailsDialog(progress);
+				var detailsDialog = new ModDownloadDetailsDialog(progress, RetryDownload);
 				_ = detailsDialog.ShowDialog(this);
 			}
 			catch ( Exception ex )
@@ -144,7 +144,7 @@ namespace KOTORModSync
 				return;
 			try
 			{
-				var detailsDialog = new ModDownloadDetailsDialog(progress);
+				var detailsDialog = new ModDownloadDetailsDialog(progress, RetryDownload);
 				_ = detailsDialog.ShowDialog(this);
 			}
 			catch ( Exception ex )
@@ -184,7 +184,7 @@ namespace KOTORModSync
 				Logger.LogVerbose($"[DownloadProgressWindow] UpdateDownloadProgress called for URL: {progress.Url}, Status: {progress.Status}, Message: {progress.StatusMessage}");
 
 				var existing = _downloadItems.FirstOrDefault(p => p.Url == progress.Url);
-				if (existing != null)
+				if ( existing != null )
 				{
 					Logger.LogVerbose($"[DownloadProgressWindow] Found existing item, updating status from {existing.Status} to {progress.Status}");
 					existing.Status = progress.Status;
@@ -469,6 +469,19 @@ namespace KOTORModSync
 			}
 		}
 
+		private void RetryDownload(DownloadProgress progress)
+		{
+			try
+			{
+				Logger.LogVerbose($"Retry requested for: {progress.ModName} ({progress.Url})");
+				DownloadControlRequested?.Invoke(this, new DownloadControlEventArgs(progress, DownloadControlAction.Retry));
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogError($"Failed to trigger retry: {ex.Message}");
+			}
+		}
+
 		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
 		{
 			if ( !_mouseDownForWindowMoving )
@@ -507,7 +520,7 @@ namespace KOTORModSync
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				switch (current)
+				switch ( current )
 				{
 					// Check if we're clicking on any interactive control
 					case Button _:

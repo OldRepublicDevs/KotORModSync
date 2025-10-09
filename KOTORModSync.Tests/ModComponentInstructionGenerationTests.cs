@@ -298,7 +298,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			Assert.That(result, Is.False, "Should not regenerate when instructions already exist");
-			Assert.That(component.Instructions.Count, Is.EqualTo(1), "Should keep existing instruction");
+			Assert.That(component.Instructions, Has.Count.EqualTo(1), "Should keep existing instruction");
 			Assert.That(component.Instructions[0], Is.SameAs(existingInstruction));
 		}
 

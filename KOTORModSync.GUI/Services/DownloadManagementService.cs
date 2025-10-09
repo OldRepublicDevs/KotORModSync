@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
 
 namespace KOTORModSync.Services

@@ -685,6 +685,15 @@ namespace KOTORModSync.Core
 				}
 			}
 
+			//HACK: Prepend base URL for relative paths starting with /
+			for ( int i = 0; i < ModLink.Count; i++ )
+			{
+				if ( !string.IsNullOrEmpty(ModLink[i]) && ModLink[i].StartsWith("/") )
+				{
+					ModLink[i] = "https://kotor.neocities.org" + ModLink[i];
+				}
+			}
+
 			Dependencies = GetValueOrDefault<List<Guid>>(componentDict, key: "Dependencies") ?? new List<Guid>();
 			Restrictions = GetValueOrDefault<List<Guid>>(componentDict, key: "Restrictions") ?? new List<Guid>();
 			InstallBefore = GetValueOrDefault<List<Guid>>(componentDict, key: "InstallBefore") ?? new List<Guid>();
@@ -725,125 +734,215 @@ namespace KOTORModSync.Core
 		}
 
 		[NotNull]
-	public static string GenerateModDocumentation([NotNull][ItemNotNull] List<ModComponent> componentsList)
-	{
-		if ( componentsList is null )
-			throw new ArgumentNullException(nameof(componentsList));
-
-		var sb = new StringBuilder();
-
-		// Loop through each component
-		for ( int i = 0; i < componentsList.Count; i++ )
+		public static string GenerateModDocumentation([NotNull][ItemNotNull] List<ModComponent> componentsList)
 		{
-			ModComponent component = componentsList[i];
+			if ( componentsList is null )
+				throw new ArgumentNullException(nameof(componentsList));
 
-			// Add separator before each mod entry
-			_ = sb.AppendLine();
-			_ = sb.AppendLine("___");
-			_ = sb.AppendLine();
+			var sb = new StringBuilder();
 
-			// Name with optional link
-			_ = sb.Append("### ").AppendLine(component.Name);
-			_ = sb.AppendLine();
-
-			// Name field with link (if available)
-			if ( component.ModLink?.Count > 0 && !string.IsNullOrWhiteSpace(component.ModLink[0]) )
+			// Loop through each component
+			for ( int i = 0; i < componentsList.Count; i++ )
 			{
-				_ = sb.Append("**Name:** [").Append(component.Name).Append("](")
-					.Append(component.ModLink[0]).AppendLine(")");
-			}
-			else
-			{
-				_ = sb.Append("**Name:** ").AppendLine(component.Name);
-			}
+				ModComponent component = componentsList[i];
 
-			_ = sb.AppendLine();
-
-			// Author
-			if ( !string.IsNullOrWhiteSpace(component.Author) )
-			{
-				_ = sb.Append("**Author:** ").AppendLine(component.Author);
+				// Add separator before each mod entry
 				_ = sb.AppendLine();
-			}
-
-			// Description
-			if ( !string.IsNullOrWhiteSpace(component.Description) )
-			{
-				_ = sb.Append("**Description:** ").AppendLine(component.Description);
+				_ = sb.AppendLine("___");
 				_ = sb.AppendLine();
+
+				// Name with optional link
+				_ = sb.Append("### ").AppendLine(component.Name);
+				_ = sb.AppendLine();
+
+				// Name field with link (if available)
+				if ( component.ModLink?.Count > 0 && !string.IsNullOrWhiteSpace(component.ModLink[0]) )
+				{
+					_ = sb.Append("**Name:** [").Append(component.Name).Append("](")
+						.Append(component.ModLink[0]).AppendLine(")");
+				}
+				else
+				{
+					_ = sb.Append("**Name:** ").AppendLine(component.Name);
+				}
+
+				_ = sb.AppendLine();
+
+				// Author
+				if ( !string.IsNullOrWhiteSpace(component.Author) )
+				{
+					_ = sb.Append("**Author:** ").AppendLine(component.Author);
+					_ = sb.AppendLine();
+				}
+
+				// Description
+				if ( !string.IsNullOrWhiteSpace(component.Description) )
+				{
+					_ = sb.Append("**Description:** ").AppendLine(component.Description);
+					_ = sb.AppendLine();
+				}
+
+				// Category & Tier
+				string categoryStr = component.Category?.Count > 0
+					? string.Join(" & ", component.Category)
+					: "Uncategorized";
+				string tierStr = !string.IsNullOrWhiteSpace(component.Tier) ? component.Tier : "Unspecified";
+				_ = sb.Append("**Category & Tier:** ").Append(categoryStr).Append(" / ").AppendLine(tierStr);
+				_ = sb.AppendLine();
+
+				// Non-English Functionality (derived from Language)
+				string languageSupport = GetNonEnglishFunctionalityText(component.Language);
+				_ = sb.Append("**Non-English Functionality:** ").AppendLine(languageSupport);
+				_ = sb.AppendLine();
+
+				// Installation Method
+				if ( !string.IsNullOrWhiteSpace(component.InstallationMethod) )
+				{
+					_ = sb.Append("**Installation Method:** ").AppendLine(component.InstallationMethod);
+					_ = sb.AppendLine();
+				}
+
+				// Installation Instructions (from Directions)
+				if ( !string.IsNullOrWhiteSpace(component.Directions) )
+				{
+					_ = sb.Append("**Installation Instructions:** ").AppendLine(component.Directions);
+					_ = sb.AppendLine();
+				}
+
+				// Generate ModSync metadata block if component has instructions or options
+				if ( component.Instructions.Count > 0 || component.Options.Count > 0 )
+				{
+					GenerateModSyncMetadata(sb, component);
+				}
 			}
 
-			// Category & Tier
-			string categoryStr = component.Category?.Count > 0
-				? string.Join(" & ", component.Category)
-				: "Uncategorized";
-			string tierStr = !string.IsNullOrWhiteSpace(component.Tier) ? component.Tier : "Unspecified";
-			_ = sb.Append("**Category & Tier:** ").Append(categoryStr).Append(" / ").AppendLine(tierStr);
+			return sb.ToString();
+		}
+
+		/// <summary>
+		/// Generates the ModSync metadata block for a component
+		/// </summary>
+		private static void GenerateModSyncMetadata([NotNull] StringBuilder sb, [NotNull] ModComponent component)
+		{
+			_ = sb.AppendLine("<!--<<ModSync>>");
+			_ = sb.AppendLine($"- **GUID:** {component.Guid}");
+
+			// Generate Instructions section
+			if ( component.Instructions.Count > 0 )
+			{
+				_ = sb.AppendLine();
+				_ = sb.AppendLine("#### Instructions");
+
+				for ( int i = 0; i < component.Instructions.Count; i++ )
+				{
+					Instruction instruction = component.Instructions[i];
+					_ = sb.AppendLine($"{i + 1}. **GUID:** {instruction.Guid}");
+					_ = sb.AppendLine($"   **Action:** {instruction.Action}");
+					_ = sb.AppendLine($"   **Overwrite:** {instruction.Overwrite.ToString().ToLower()}");
+
+					if ( instruction.Source?.Count > 0 )
+					{
+						_ = sb.AppendLine($"   **Source:** {string.Join(", ", instruction.Source)}");
+					}
+
+					if ( !string.IsNullOrWhiteSpace(instruction.Destination) )
+					{
+						_ = sb.AppendLine($"   **Destination:** {instruction.Destination}");
+					}
+				}
+			}
+
+			// Generate Options section
+			if ( component.Options.Count > 0 )
+			{
+				_ = sb.AppendLine();
+				_ = sb.AppendLine("#### Options");
+
+				for ( int i = 0; i < component.Options.Count; i++ )
+				{
+					Option option = component.Options[i];
+					_ = sb.AppendLine($"##### Option {i + 1}");
+					_ = sb.AppendLine($"- **GUID:** {option.Guid}");
+					_ = sb.AppendLine($"- **Name:** {option.Name}");
+					_ = sb.AppendLine($"- **Description:** {option.Description}");
+					_ = sb.AppendLine($"- **Is Selected:** {option.IsSelected.ToString().ToLower()}");
+					_ = sb.AppendLine($"- **Install State:** {(int)option.InstallState}");
+					_ = sb.AppendLine($"- **Is Downloaded:** {option.IsDownloaded.ToString().ToLower()}");
+
+					if ( option.Restrictions?.Count > 0 )
+					{
+						_ = sb.AppendLine($"- **Restrictions:** {string.Join(", ", option.Restrictions)}");
+					}
+
+					// Generate nested instructions for this option
+					if ( option.Instructions.Count > 0 )
+					{
+						foreach ( Instruction instruction in option.Instructions )
+						{
+							_ = sb.AppendLine("  - **Instruction:**");
+							_ = sb.AppendLine($"    - **GUID:** {instruction.Guid}");
+							_ = sb.AppendLine($"    - **Action:** {instruction.Action}");
+
+							if ( !string.IsNullOrWhiteSpace(instruction.Destination) )
+							{
+								_ = sb.AppendLine($"    - **Destination:** {instruction.Destination}");
+							}
+
+							_ = sb.AppendLine($"    - **Overwrite:** {instruction.Overwrite.ToString().ToLower()}");
+
+							if ( instruction.Source?.Count > 0 )
+							{
+								_ = sb.AppendLine($"    - **Source:** {string.Join(", ", instruction.Source)}");
+							}
+						}
+					}
+				}
+			}
+
+			_ = sb.AppendLine("-->");
 			_ = sb.AppendLine();
+		}
 
-			// Non-English Functionality (derived from Language)
-			string languageSupport = GetNonEnglishFunctionalityText(component.Language);
-			_ = sb.Append("**Non-English Functionality:** ").AppendLine(languageSupport);
-			_ = sb.AppendLine();
+		[NotNull]
+		private static string GetNonEnglishFunctionalityText([CanBeNull][ItemCanBeNull] List<string> languages)
+		{
+			if ( languages == null || languages.Count == 0 )
+				return "UNKNOWN";
 
-			// Installation Method
-			if ( !string.IsNullOrWhiteSpace(component.InstallationMethod) )
+			// Check for "All" or similar indicators
+			if ( languages.Any(lang => string.Equals(lang, b: "All", StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(lang, b: "YES", StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(lang, b: "Universal", StringComparison.OrdinalIgnoreCase)) )
 			{
-				_ = sb.Append("**Installation Method:** ").AppendLine(component.InstallationMethod);
-				_ = sb.AppendLine();
+				return "YES";
 			}
 
-			// Installation Instructions (from Directions)
-			if ( !string.IsNullOrWhiteSpace(component.Directions) )
+			// Check for English-only indicators
+			if ( languages.Count == 1 && languages.Any(lang =>
+				string.Equals(lang, b: "English", StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(lang, b: "EN", StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(lang, b: "NO", StringComparison.OrdinalIgnoreCase)) )
 			{
-				_ = sb.Append("**Installation Instructions:** ").AppendLine(component.Directions);
-				_ = sb.AppendLine();
+				return "NO";
 			}
+
+			// Check for partial support indicators
+			if ( languages.Any(lang => string.Equals(lang, b: "Partial", StringComparison.OrdinalIgnoreCase)
+				|| (!string.IsNullOrEmpty(lang) && lang.IndexOf("Partial", StringComparison.OrdinalIgnoreCase) >= 0)) )
+			{
+				return "PARTIAL - Some text will be blank or in English";
+			}
+
+			// Multiple languages but not all
+			if ( languages.Count > 1 && languages.Any(lang =>
+				string.Equals(lang, b: "English", StringComparison.OrdinalIgnoreCase)) )
+			{
+				return "PARTIAL - Supported languages: " + string.Join(", ", languages);
+			}
+
+			// Default case - list the languages
+			return "Supported languages: " + string.Join(", ", languages);
 		}
-
-		return sb.ToString();
-	}
-
-	[NotNull]
-	private static string GetNonEnglishFunctionalityText([CanBeNull][ItemCanBeNull] List<string> languages)
-	{
-		if ( languages == null || languages.Count == 0 )
-			return "UNKNOWN";
-
-		// Check for "All" or similar indicators
-		if ( languages.Any(lang => string.Equals(lang, b: "All", StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(lang, b: "YES", StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(lang, b: "Universal", StringComparison.OrdinalIgnoreCase)) )
-		{
-			return "YES";
-		}
-
-		// Check for English-only indicators
-		if ( languages.Count == 1 && languages.Any(lang =>
-			string.Equals(lang, b: "English", StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(lang, b: "EN", StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(lang, b: "NO", StringComparison.OrdinalIgnoreCase)) )
-		{
-			return "NO";
-		}
-
-		// Check for partial support indicators
-		if ( languages.Any(lang => string.Equals(lang, b: "Partial", StringComparison.OrdinalIgnoreCase)
-			|| (!string.IsNullOrEmpty(lang) && lang.IndexOf("Partial", StringComparison.OrdinalIgnoreCase) >= 0)) )
-		{
-			return "PARTIAL - Some text will be blank or in English";
-		}
-
-		// Multiple languages but not all
-		if ( languages.Count > 1 && languages.Any(lang =>
-			string.Equals(lang, b: "English", StringComparison.OrdinalIgnoreCase)) )
-		{
-			return "PARTIAL - Supported languages: " + string.Join(", ", languages);
-		}
-
-		// Default case - list the languages
-		return "Supported languages: " + string.Join(", ", languages);
-	}
 
 		[ItemNotNull]
 		[NotNull]
@@ -1080,6 +1179,58 @@ namespace KOTORModSync.Core
 										(object)guidItem,
 									}
 								);
+							}
+							else if ( listElementType == typeof(string) )
+							{
+								// For string lists, handle nested collections that need to be flattened
+								// Check for nested collections first (but exclude strings which are also IEnumerable)
+								if ( item is IEnumerable<object> nestedCollection && !(item is string) )
+								{
+									// Flatten nested collections into strings
+									foreach ( object nestedItem in nestedCollection )
+									{
+										string stringValue = nestedItem?.ToString() ?? string.Empty;
+										if ( !string.IsNullOrWhiteSpace(stringValue) )
+										{
+											_ = addMethod?.Invoke(
+												list,
+												new[]
+												{
+													(object)stringValue,
+												}
+											);
+										}
+									}
+								}
+								else if ( item is string strItem )
+								{
+									// Already a string, just add it
+									if ( !string.IsNullOrWhiteSpace(strItem) )
+									{
+										_ = addMethod?.Invoke(
+											list,
+											new[]
+											{
+												(object)strItem,
+											}
+										);
+									}
+								}
+								else
+								{
+									// Convert to string
+									string stringValue = item?.ToString() ?? string.Empty;
+									if ( !string.IsNullOrWhiteSpace(stringValue) )
+									{
+										_ = addMethod?.Invoke(
+											list,
+											new[]
+											{
+												(object)stringValue,
+											}
+										);
+									}
+								}
 							}
 							else
 							{
@@ -1374,7 +1525,13 @@ namespace KOTORModSync.Core
 				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Selected archive '{matchingArchive.Name}'");
 
 				// Generate instructions using the AutoInstructionGenerator
-				return Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
+				bool generated = Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
+				if ( generated )
+				{
+					// Mark as downloaded since a matching local archive was found and analyzed
+					IsDownloaded = true;
+				}
+				return generated;
 			}
 			catch ( Exception ex )
 			{

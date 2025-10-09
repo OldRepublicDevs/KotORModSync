@@ -19,12 +19,14 @@ namespace KOTORModSync.Dialogs
 		private DownloadProgress _downloadProgress;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
+		private Action<DownloadProgress> _retryAction;
 
 		public ModDownloadDetailsDialog() => InitializeComponent();
 
-		public ModDownloadDetailsDialog(DownloadProgress progress) : this()
+		public ModDownloadDetailsDialog(DownloadProgress progress, Action<DownloadProgress> retryAction = null) : this()
 		{
 			_downloadProgress = progress;
+			_retryAction = retryAction;
 			LoadDetails();
 			WireUpEvents();
 			// Attach window move event handlers
@@ -260,19 +262,66 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private void RetryButton_Click(object sender, RoutedEventArgs e)
+		private async void RetryButton_Click(object sender, RoutedEventArgs e)
 		{
-			// TODO: Implement retry functionality
-			// This would need to be coordinated with the download manager
-			Close();
+			try
+			{
+				if ( _retryAction == null )
+				{
+					await Logger.LogErrorAsync("Retry action not provided to dialog");
+					await InformationDialog.ShowInformationDialog(this, "Retry functionality is not available.");
+					return;
+				}
+
+				if ( _downloadProgress == null )
+				{
+					await Logger.LogErrorAsync("Download progress is null");
+					return;
+				}
+
+				await Logger.LogAsync($"Retrying download for: {_downloadProgress.ModName} ({_downloadProgress.Url})");
+
+				// Reset the download progress state
+				_downloadProgress.Status = DownloadStatus.Pending;
+				_downloadProgress.StatusMessage = "Retrying download...";
+				_downloadProgress.ErrorMessage = string.Empty;
+				_downloadProgress.Exception = null;
+				_downloadProgress.ProgressPercentage = 0;
+				_downloadProgress.BytesDownloaded = 0;
+				_downloadProgress.AddLog("Retry requested by user");
+
+				// Invoke the retry action
+				_retryAction(_downloadProgress);
+
+				// Close the dialog
+				Close();
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogErrorAsync($"Failed to retry download: {ex.Message}");
+				await InformationDialog.ShowInformationDialog(this, $"Failed to retry download: {ex.Message}");
+			}
 		}
 
 		[UsedImplicitly]
 		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
 		[UsedImplicitly]
-		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
-			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+		private void ToggleMaximizeButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			if ( !(sender is Button maximizeButton) )
+				return;
+			if ( WindowState == WindowState.Maximized )
+			{
+				WindowState = WindowState.Normal;
+				maximizeButton.Content = "▢";
+			}
+			else
+			{
+				WindowState = WindowState.Maximized;
+				maximizeButton.Content = "▣";
+			}
+		}
 
 		[UsedImplicitly]
 		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
@@ -326,7 +375,7 @@ namespace KOTORModSync.Dialogs
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				switch (current)
+				switch ( current )
 				{
 					// Check if we're clicking on any interactive control
 					case Button _:

@@ -106,8 +106,8 @@ namespace KOTORModSync.Services
 					}
 				}
 
-				// Generate instructions from valid archives
-				int totalInstructionsGenerated = 0;
+                // Generate instructions from valid archives
+                int totalInstructionsGenerated = 0;
 				foreach ( string archivePath in validArchives )
 				{
 					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Generating instructions for: {archivePath}");
@@ -115,7 +115,9 @@ namespace KOTORModSync.Services
 					if ( success )
 					{
 						totalInstructionsGenerated += component.Instructions.Count;
-						await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Successfully generated instructions for: {archivePath}");
+                        await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Successfully generated instructions for: {archivePath}");
+                        // We have a valid local archive; mark as downloaded to fix UI state
+                        component.IsDownloaded = true;
 					}
 				}
 
@@ -140,9 +142,11 @@ namespace KOTORModSync.Services
 					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Added Move instruction for file: {fileName}");
 				}
 
-				// Show results
-				if ( totalInstructionsGenerated > 0 )
+                // Show results
+                if ( totalInstructionsGenerated > 0 )
 				{
+                    // If any instructions were created, consider the component downloaded
+                    component.IsDownloaded = true;
 					string message = $"Successfully generated {totalInstructionsGenerated} instructions";
 					if ( invalidLinks.Count > 0 )
 					{

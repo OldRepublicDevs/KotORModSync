@@ -43,4 +43,14 @@
     <Folder Include="Data\test data and notes\" />
   </ItemGroup>
 
+  <!-- Include JavaScript files for DeadlyStream scraper -->
+  <ItemGroup>
+    <None Include="Services\Download\deadlystream-scraper.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Services\Download\README_DeadlyStream.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

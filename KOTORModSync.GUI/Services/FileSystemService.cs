@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using Avalonia.Threading;
 using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
@@ -18,6 +19,9 @@ namespace KOTORModSync.Services
 		private CrossPlatformFileWatcher _modDirectoryWatcher;
 		private Action _onDirectoryChanged;
 		private bool _disposed;
+		private Timer _debounceTimer;
+		private readonly object _timerLock = new object();
+		private const int DebounceDelayMs = 2000; // 2 second delay to batch file system events
 
 		/// <summary>
 		/// Initializes file system watcher for a directory
@@ -68,6 +72,13 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
+				// Cancel any pending debounced callbacks
+				lock ( _timerLock )
+				{
+					_debounceTimer?.Dispose();
+					_debounceTimer = null;
+				}
+
 				_modDirectoryWatcher?.Dispose();
 				_modDirectoryWatcher = null;
 				Logger.LogVerbose("File system watcher stopped");
@@ -80,18 +91,31 @@ namespace KOTORModSync.Services
 
 		private void OnModDirectoryChanged(object sender, FileSystemEventArgs e)
 		{
-			// Debounce file system events by dispatching to UI thread
-			Dispatcher.UIThread.Post(() =>
+			// Debounce file system events - restart timer on each event
+			// This batches rapid file changes into a single validation call
+			lock ( _timerLock )
 			{
-				try
+				// Dispose existing timer if any
+				_debounceTimer?.Dispose();
+
+				// Create new timer that will fire after the debounce delay
+				_debounceTimer = new Timer(_ =>
 				{
-					_onDirectoryChanged?.Invoke();
-				}
-				catch ( Exception ex )
-				{
-					Logger.LogException(ex, "Error processing mod directory change");
-				}
-			}, DispatcherPriority.Background);
+					// Dispatch to UI thread with background priority
+					Dispatcher.UIThread.Post(() =>
+					{
+						try
+						{
+							Logger.LogVerbose("[FileSystemService] Debounced file system change detected, triggering validation");
+							_onDirectoryChanged?.Invoke();
+						}
+						catch ( Exception ex )
+						{
+							Logger.LogException(ex, "Error processing mod directory change");
+						}
+					}, DispatcherPriority.Background);
+				}, null, DebounceDelayMs, Timeout.Infinite);
+			}
 		}
 
 		private void OnModDirectoryWatcherError(object sender, ErrorEventArgs e)
@@ -126,6 +150,13 @@ namespace KOTORModSync.Services
 
 			if ( disposing )
 			{
+				// Dispose the debounce timer
+				lock ( _timerLock )
+				{
+					_debounceTimer?.Dispose();
+					_debounceTimer = null;
+				}
+
 				_modDirectoryWatcher?.Dispose();
 				_modDirectoryWatcher = null;
 			}

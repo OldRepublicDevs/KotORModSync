@@ -99,7 +99,7 @@
                 <Separator Classes="summary-separator" />
 
                 <!--  Dependencies & Restrictions  -->
-                <Expander Header="🔗 Dependencies &amp; Restrictions (Optional)" IsExpanded="False">
+                <Expander Header="🔗 Dependencies &amp; Restrictions" IsExpanded="False" HorizontalAlignment="Stretch">
                     <StackPanel Margin="0,4,0,0" Spacing="6">
                         <StackPanel Spacing="2">
                             <TextBlock
@@ -132,7 +132,7 @@
                 </Expander>
 
                 <!--  Instructions  -->
-                <Expander Header="🔧 Installation Instructions" IsExpanded="True">
+                <Expander Header="🔧 Installation Instructions" IsExpanded="True" HorizontalAlignment="Stretch">
                     <StackPanel Margin="0,4,0,0" Spacing="6">
                         <TextBlock
                             Classes="secondary-text"

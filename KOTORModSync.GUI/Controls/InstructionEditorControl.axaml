@@ -8,6 +8,8 @@
         <converters:IndexConverter x:Key="IndexConverter" />
         <converters:ActionConverter x:Key="ActionConverter" />
         <converters:ListToStringConverter x:Key="ListToStringConverter" />
+        <converters:ChooseInstructionDisplayConverter x:Key="ChooseInstructionDisplayConverter" />
+        <converters:ComponentsListConverter x:Key="ComponentsListConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
         <converters:NotChooseActionVisibility x:Key="NotChooseActionVisibility" />
         <converters:PatcherActionVisibility x:Key="PatcherActionVisibility" />
@@ -64,8 +66,14 @@
                             MaxWidth="300"
                             Opacity="0.7"
                             DataContext="{Binding .}"
-                            Text="{Binding Source, Converter={StaticResource ListToStringConverter}}"
-                            TextTrimming="CharacterEllipsis" />
+                            TextTrimming="CharacterEllipsis">
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource ChooseInstructionDisplayConverter}">
+                                    <Binding Path="." />
+                                    <Binding Path="$parent[UserControl].DataContext" Converter="{StaticResource ComponentsListConverter}" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
                     </StackPanel>
 
                     <StackPanel
@@ -254,7 +262,7 @@
                 <Separator Classes="summary-separator" />
 
                 <!--  Conditional Execution Settings  -->
-                <Expander Header="⚙️ Conditional Execution (Optional)" IsExpanded="False">
+                <Expander Header="⚙️ Conditional Execution ⚙️" IsExpanded="False">
                     <Border Margin="0,2,0,0" Padding="2">
                         <Grid ColumnDefinitions="*,*">
                             <StackPanel Grid.Column="0" Margin="0,0,2,2" Spacing="1">

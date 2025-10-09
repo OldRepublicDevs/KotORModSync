@@ -1361,8 +1361,21 @@ namespace KOTORModSync.Dialogs
 		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
 		[UsedImplicitly]
-		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
-			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+		private void ToggleMaximizeButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			if ( !(sender is Button maximizeButton) )
+				return;
+			if ( WindowState == WindowState.Maximized )
+			{
+				WindowState = WindowState.Normal;
+				maximizeButton.Content = "▢";
+			}
+			else
+			{
+				WindowState = WindowState.Maximized;
+				maximizeButton.Content = "▣";
+			}
+		}
 
 		[UsedImplicitly]
 		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();

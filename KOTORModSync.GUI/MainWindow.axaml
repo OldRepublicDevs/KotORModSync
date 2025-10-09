@@ -187,7 +187,7 @@
                     Margin="0,0,0,2"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Center"
-                    Header="☑️ Selection"
+                    Header="🔍 Selections"
                     IsExpanded="False">
                     <Border
                         Margin="0,2,0,0"
@@ -1376,8 +1376,8 @@
                                         <Expander
                                             x:Name="DependenciesExpander"
                                             Margin="0,0,0,2"
-                                            HorizontalAlignment="Stretch"
                                             Header="🔗 Dependencies &amp; Restrictions"
+                                            HorizontalAlignment="Stretch"
                                             IsExpanded="False">
                                             <Border Margin="0,2,0,0" Padding="2">
                                                 <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto">
@@ -1544,8 +1544,8 @@
                                         <Expander
                                             x:Name="OptionsExpander"
                                             Margin="0,0,0,2"
-                                            HorizontalAlignment="Stretch"
                                             Header="⚙️ Optional Components"
+                                            HorizontalAlignment="Stretch"
                                             IsExpanded="False">
                                             <Border Margin="0,2,0,0" Padding="2">
                                                 <StackPanel Spacing="3">

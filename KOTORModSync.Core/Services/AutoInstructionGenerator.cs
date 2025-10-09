@@ -56,12 +56,23 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Generates all appropriate instructions based on what's detected in the archive.
 		/// Handles hybrid scenarios (e.g., TSLPatcher + loose files).
+		/// Only removes instructions related to this specific archive to support multiple archives.
 		/// </summary>
 		private static bool GenerateAllInstructions(ModComponent component, string archivePath, ArchiveAnalysis analysis)
 		{
 			string archiveFileName = Path.GetFileName(archivePath);
 			string extractedPath = archiveFileName.Replace(Path.GetExtension(archiveFileName), "");
-			component.Instructions.Clear();
+
+			// Remove only instructions that reference THIS archive (to support multiple archives per component)
+			var instructionsToRemove = component.Instructions
+				.Where(i => i.Source != null && i.Source.Any(s =>
+					s.IndexOf(archiveFileName, StringComparison.OrdinalIgnoreCase) >= 0))
+				.ToList();
+
+			foreach ( var instr in instructionsToRemove )
+			{
+				component.Instructions.Remove(instr);
+			}
 
 			// Always start with Extract if we have any content
 			if ( analysis.HasTslPatchData || analysis.HasSimpleOverrideFiles )
@@ -134,7 +145,7 @@ namespace KOTORModSync.Core.Services
 				return true;
 
 			if ( string.IsNullOrEmpty(analysis.TslPatcherPath) )
-			    return false;
+				return false;
 			string[] pathParts = analysis.TslPatcherPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
 			if ( pathParts.Length > 0 && pathParts[0].Equals(folderName, StringComparison.OrdinalIgnoreCase) )
 				return true;
@@ -151,7 +162,7 @@ namespace KOTORModSync.Core.Services
 				IniHelper.ReadNamespacesIniFromArchive(archivePath);
 
 			if ( namespaces == null ||
-			     !namespaces.TryGetValue("Namespaces", out Dictionary<string, string> value) )
+				 !namespaces.TryGetValue("Namespaces", out Dictionary<string, string> value) )
 			{
 				return;
 			}

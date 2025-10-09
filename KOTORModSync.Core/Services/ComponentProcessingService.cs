@@ -16,9 +16,9 @@ namespace KOTORModSync.Core.Services
 	/// </summary>
 	public static class ComponentProcessingService
 	{
-
 		/// <summary>
-		/// Attempts to auto-generate instructions for components without any
+		/// Attempts to auto-generate instructions for components without any.
+		/// Uses the unified ModLinkProcessingService pipeline to download archives and generate instructions.
 		/// </summary>
 		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 		{
@@ -27,37 +27,64 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				int generatedCount = 0;
-				int skippedCount = 0;
+				// Use unified pipeline for processing ModLinks
+				var modLinkProcessor = new ModLinkProcessingService();
 
-				foreach ( ModComponent component in components )
+				// Get download directory from MainConfig
+				string downloadDirectory = MainConfig.SourcePath?.FullName;
+				if ( string.IsNullOrWhiteSpace(downloadDirectory) )
 				{
-					// Skip if already has instructions
-					if ( component.Instructions.Count > 0 )
-					{
-						skippedCount++;
-						continue;
-					}
-
-					// Try to generate instructions
-					bool success = component.TryGenerateInstructionsFromArchive();
-					if ( !success )
-						continue;
-
-					generatedCount++;
-					await Logger.LogAsync($"Auto-generated instructions for '{component.Name}': {component.InstallationMethod}");
+					// Fall back to trying local archives if no download directory configured
+					return await TryGenerateFromLocalArchivesAsync(components);
 				}
 
-				if ( generatedCount > 0 )
-					await Logger.LogAsync($"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions.");
-
-				return generatedCount;
+				// Process all ModLinks - downloads archives and auto-generates instructions
+				return await modLinkProcessor.ProcessComponentModLinksAsync(
+					components,
+					downloadDirectory,
+					progress: null,
+					cancellationToken: default);
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
 				return 0;
 			}
+		}
+
+		/// <summary>
+		/// Fallback method that tries to generate instructions from archives already in the local mod directory.
+		/// This is used when no download directory is configured.
+		/// Processes ALL ModLinks even if instructions exist (avoiding duplicates).
+		/// </summary>
+		private static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
+		{
+			int generatedCount = 0;
+
+			foreach ( ModComponent component in components )
+			{
+				// Process ALL components, even if they already have instructions
+				// TryGenerateInstructionsFromArchive will handle avoiding duplicates internally
+				int initialInstructionCount = component.Instructions.Count;
+
+				// Try to generate instructions from local archives
+				bool success = component.TryGenerateInstructionsFromArchive();
+				if ( !success )
+					continue;
+
+				// Check if new instructions were added
+				if ( component.Instructions.Count > initialInstructionCount )
+				{
+					generatedCount++;
+					int newInstructions = component.Instructions.Count - initialInstructionCount;
+					await Logger.LogAsync($"Added {newInstructions} instruction(s) from local archive for '{component.Name}': {component.InstallationMethod}");
+				}
+			}
+
+			if ( generatedCount > 0 )
+				await Logger.LogAsync($"Processed local archives and generated/updated instructions for {generatedCount} component(s).");
+
+			return generatedCount;
 		}
 		/// <summary>
 		/// Processes a list of components and determines their processing state.

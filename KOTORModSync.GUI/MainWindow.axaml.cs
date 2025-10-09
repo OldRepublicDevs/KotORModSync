@@ -62,7 +62,7 @@ namespace KOTORModSync
 		private CancellationTokenSource _installSuggestCts;
 		private bool _suppressPathEvents;
 		private bool _suppressComboEvents;
-		private bool _rootSelectionState;
+		private bool? _rootSelectionState;
 		private bool _editorMode;
 		private bool _isClosingProgressWindow;
 		private string _lastLoadedFileName;
@@ -99,13 +99,33 @@ namespace KOTORModSync
 		// UI control properties
 		private ListBox ModListBox => this.FindControl<ListBox>("ModListBoxElement");
 		public bool IsClosingMainWindow;
-		public bool RootSelectionState
+		public bool? RootSelectionState
 		{
 			get => _rootSelectionState;
 			set
 			{
 				if ( _rootSelectionState == value ) return;
-				_ = SetAndRaise(RootSelectionStateProperty, ref _rootSelectionState, value);
+
+				// Suppress the event handler to prevent infinite recursion
+				_suppressSelectAllCheckBoxEvents = true;
+
+				try
+				{
+					// Update the property value
+					_ = SetAndRaise(RootSelectionStateProperty, ref _rootSelectionState, value);
+
+					// Perform the actual selection logic
+					_componentSelectionService.HandleSelectAllCheckbox(value, ComponentCheckboxChecked, ComponentCheckboxUnchecked);
+
+					// Update counts and progress
+					UpdateModCounts();
+					UpdateStepProgress();
+					ResetDownloadStatusDisplay();
+				}
+				finally
+				{
+					_suppressSelectAllCheckBoxEvents = false;
+				}
 			}
 		}
 		public bool EditorMode
@@ -129,8 +149,8 @@ namespace KOTORModSync
 				o => o._editorMode,
 				(o, v) => o.EditorMode = v
 			);
-		public static readonly DirectProperty<MainWindow, bool> RootSelectionStateProperty =
-			AvaloniaProperty.RegisterDirect<MainWindow, bool>(
+		public static readonly DirectProperty<MainWindow, bool?> RootSelectionStateProperty =
+			AvaloniaProperty.RegisterDirect<MainWindow, bool?>(
 				nameof(RootSelectionState),
 				o => o._rootSelectionState,
 				(o, v) => o.RootSelectionState = v
@@ -918,15 +938,24 @@ namespace KOTORModSync
 			try
 			{
 				if ( !e.Data.Contains(DataFormats.Files) )
+				{
+					Logger.LogVerbose("No files dropped");
 					return;
+				}
 				// Attempt to get the data as a string array (file paths)
 				if ( !(e.Data.Get(DataFormats.Files) is IEnumerable<IStorageItem> items) )
+				{
+					Logger.LogVerbose("Dropped items were not IStorageItem enumerable");
 					return;
+				}
 				// Processing the first file
 				IStorageItem storageItem = items.FirstOrDefault();
 				string filePath = storageItem?.TryGetLocalPath();
 				if ( string.IsNullOrEmpty(filePath) )
+				{
+					Logger.LogVerbose("Dropped item had no path");
 					return;
+				}
 				string fileExt = Path.GetExtension(filePath);
 				switch ( storageItem )
 				{
@@ -941,14 +970,19 @@ namespace KOTORModSync
 					case IStorageFile _:
 						(IArchive archive, FileStream archiveStream) = ArchiveHelper.OpenArchive(filePath);
 						if ( archive is null || archiveStream is null )
+						{
+							Logger.LogVerbose("Dropped item was not an archive");
 							return;
+						}
 						string exePath = ArchiveHelper.AnalyzeArchiveForExe(archiveStream, archive);
 						await Logger.LogVerboseAsync(exePath);
 						break;
 					case IStorageFolder _:
 						// Handle folder logic
+						Logger.LogVerbose("Dropped item was a folder, not supported");
 						break;
 					default:
+						Logger.LogVerbose("Dropped item was not a valid file or folder");
 						throw new NullReferenceException(filePath);
 				}
 			}
@@ -974,7 +1008,14 @@ namespace KOTORModSync
 			try
 			{
 				// If result is not true, do nothing and the app remains open
-				bool? result = await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really close?");
+				bool? result = (
+					EditorMode is true
+					? await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really close KOTORModSync Please save your changes before pressing Quit?",
+					noButtonText: "Cancel",
+					yesButtonText: "Quit"
+				)
+					: true
+				);
 				if ( result != true )
 					return;
 				// Save settings before closing
@@ -1105,7 +1146,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				if ( component == null )
+				if ( component is null )
 				{
 					Logger.Log(message: "No component provided for deletion.");
 					return;
@@ -2126,46 +2167,55 @@ namespace KOTORModSync
 		}
 
 		[UsedImplicitly]
-		private async void ValidateButton_Click([CanBeNull] object sender, [NotNull] RoutedEventArgs e)
+		private void ValidateButton_Click([CanBeNull] object sender, [NotNull] RoutedEventArgs e)
 		{
-			try
+			// Run heavy validation in background thread to avoid blocking UI
+			Task.Run(async () =>
 			{
-				(bool validationResult, _) = await InstallationService.ValidateInstallationEnvironmentAsync(
-					MainConfigInstance,
-					async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
-				);
-				// If validation failed, run detailed analysis
-				var modIssues = new List<ValidationIssue>();
-				var systemIssues = new List<string>();
-				if ( !validationResult )
+				try
 				{
-					// Analyze what went wrong
-					await AnalyzeValidationFailures(modIssues, systemIssues);
+					(bool validationResult, _) = await InstallationService.ValidateInstallationEnvironmentAsync(
+						MainConfigInstance,
+						async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
+					);
+					// If validation failed, run detailed analysis
+					var modIssues = new List<ValidationIssue>();
+					var systemIssues = new List<string>();
+					if ( !validationResult )
+					{
+						// Analyze what went wrong
+						await AnalyzeValidationFailures(modIssues, systemIssues);
+					}
+
+					// Show validation dialog and update UI on the UI thread
+					await Dispatcher.UIThread.InvokeAsync(async () =>
+					{
+						// Show new validation dialog
+						_ = await ValidationDialog.ShowValidationDialog(
+							this,
+							validationResult,
+							validationResult
+								? "No issues found. Your mods are ready to install!"
+								: "Some issues need to be resolved before installation can proceed.",
+							modIssues.Count > 0 ? modIssues : null,
+							systemIssues.Count > 0 ? systemIssues : null,
+							() => OpenOutputWindow_Click(null, null)
+						);
+						// Update step progress after validation
+						if ( validationResult )
+						{
+							// Validation succeeded - mark Step 5 as complete
+							CheckBox step5Check = this.FindControl<CheckBox>(name: "Step5Checkbox");
+							if ( step5Check != null ) step5Check.IsChecked = true;
+							UpdateStepProgress();
+						}
+					});
 				}
-				// Show new validation dialog
-				_ = await ValidationDialog.ShowValidationDialog(
-					this,
-					validationResult,
-					validationResult
-						? "No issues found. Your mods are ready to install!"
-						: "Some issues need to be resolved before installation can proceed.",
-					modIssues.Count > 0 ? modIssues : null,
-					systemIssues.Count > 0 ? systemIssues : null,
-					() => OpenOutputWindow_Click(null, null)
-				);
-				// Update step progress after validation
-				if ( validationResult )
+				catch ( Exception ex )
 				{
-					// Validation succeeded - mark Step 5 as complete
-					CheckBox step5Check = this.FindControl<CheckBox>(name: "Step5Checkbox");
-					if ( step5Check != null ) step5Check.IsChecked = true;
-					UpdateStepProgress();
+					await Logger.LogExceptionAsync(ex);
 				}
-			}
-			catch ( Exception ex )
-			{
-				await Logger.LogExceptionAsync(ex);
-			}
+			});
 		}
 
 		private async Task AnalyzeValidationFailures(List<ValidationIssue> modIssues, List<string> systemIssues)
@@ -2403,27 +2453,56 @@ namespace KOTORModSync
 		}
 
 		[UsedImplicitly]
-		private async void StartInstall_Click([CanBeNull] object sender, [NotNull] RoutedEventArgs e)
+		private void StartInstall_Click([CanBeNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			// Run validation in background thread to avoid blocking UI
+			Task.Run(async () =>
+			{
+				try
+				{
+					if ( _installRunning )
+					{
+						await Dispatcher.UIThread.InvokeAsync(async () =>
+						{
+							await InformationDialog.ShowInformationDialog(
+								this,
+								message: "There's already an installation running, please check the output window."
+							);
+						});
+						return;
+					}
+
+					(bool success, string informationMessage) = await InstallationService.ValidateInstallationEnvironmentAsync(
+						MainConfigInstance,
+						async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
+					);
+
+					if ( !success )
+					{
+						await Dispatcher.UIThread.InvokeAsync(async () =>
+						{
+							await InformationDialog.ShowInformationDialog(this, informationMessage);
+						});
+						return;
+					}
+
+					// Continue with installation on UI thread
+					await Dispatcher.UIThread.InvokeAsync(async () =>
+					{
+						await StartInstallationProcess();
+					});
+				}
+				catch ( Exception ex )
+				{
+					await Logger.LogExceptionAsync(ex);
+				}
+			});
+		}
+
+		private async Task StartInstallationProcess()
 		{
 			try
 			{
-				if ( _installRunning )
-				{
-					await InformationDialog.ShowInformationDialog(
-						this,
-						message: "There's already an installation running, please check the output window."
-					);
-					return;
-				}
-				(bool success, string informationMessage) = await InstallationService.ValidateInstallationEnvironmentAsync(
-					MainConfigInstance,
-					async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
-				);
-				if ( !success )
-				{
-					await InformationDialog.ShowInformationDialog(this, informationMessage);
-					return;
-				}
 				// Update step progress after successful validation during installation
 				UpdateStepProgress();
 				if ( await ConfirmationDialog.ShowConfirmationDialog(
@@ -2633,78 +2712,78 @@ namespace KOTORModSync
 		}
 
 		[UsedImplicitly]
-	private async void DocsButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
-	{
-		try
+		private async void DocsButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
-			// Check if there are any components to document
-			if ( MainConfig.AllComponents == null || MainConfig.AllComponents.Count == 0 )
+			try
 			{
+				// Check if there are any components to document
+				if ( MainConfig.AllComponents == null || MainConfig.AllComponents.Count == 0 )
+				{
+					await InformationDialog.ShowInformationDialog(
+						this,
+						message: "No mod components available to generate documentation."
+					);
+					return;
+				}
+
+				// Prompt user for save location
+				string file = await SaveFile(
+					saveFileName: "ModList_Documentation.md"
+				);
+
+				if ( file is null )
+				{
+					await Logger.LogVerboseAsync("Documentation export cancelled by user.");
+					return; // user cancelled
+				}
+
+				// Generate the documentation
+				await Logger.LogAsync($"Generating documentation for {MainConfig.AllComponents.Count} mod component(s)...");
+				string docs = ModComponent.GenerateModDocumentation(MainConfig.AllComponents);
+
+				if ( string.IsNullOrWhiteSpace(docs) )
+				{
+					await Logger.LogWarningAsync("Generated documentation is empty.");
+					await InformationDialog.ShowInformationDialog(
+						this,
+						message: "The generated documentation is empty. Please check your mod components."
+					);
+					return;
+				}
+
+				// Save to file
+				await FileUtilities.SaveDocsToFileAsync(file, docs);
+
+				// Confirm success
+				string successMessage = $"Successfully generated and saved documentation for {MainConfig.AllComponents.Count} mod component(s) to:\n\n{file}";
+				await Logger.LogAsync($"Documentation saved to '{file}'");
+				await InformationDialog.ShowInformationDialog(this, successMessage);
+			}
+			catch ( IOException ioEx )
+			{
+				await Logger.LogExceptionAsync(ioEx, customMessage: "IO error while saving documentation file");
 				await InformationDialog.ShowInformationDialog(
 					this,
-					message: "No mod components available to generate documentation."
+					message: $"Failed to save documentation file. The file may be in use or the path may be invalid.\n\nError: {ioEx.Message}"
 				);
-				return;
 			}
-
-			// Prompt user for save location
-			string file = await SaveFile(
-				saveFileName: "ModList_Documentation.md"
-			);
-
-			if ( file is null )
+			catch ( UnauthorizedAccessException uaEx )
 			{
-				await Logger.LogVerboseAsync("Documentation export cancelled by user.");
-				return; // user cancelled
-			}
-
-			// Generate the documentation
-			await Logger.LogAsync($"Generating documentation for {MainConfig.AllComponents.Count} mod component(s)...");
-			string docs = ModComponent.GenerateModDocumentation(MainConfig.AllComponents);
-
-			if ( string.IsNullOrWhiteSpace(docs) )
-			{
-				await Logger.LogWarningAsync("Generated documentation is empty.");
+				await Logger.LogExceptionAsync(uaEx, customMessage: "Access denied while saving documentation");
 				await InformationDialog.ShowInformationDialog(
 					this,
-					message: "The generated documentation is empty. Please check your mod components."
+					message: $"Access denied while saving the documentation file. Please check file permissions.\n\nError: {uaEx.Message}"
 				);
-				return;
 			}
-
-			// Save to file
-			await FileUtilities.SaveDocsToFileAsync(file, docs);
-
-			// Confirm success
-			string successMessage = $"Successfully generated and saved documentation for {MainConfig.AllComponents.Count} mod component(s) to:\n\n{file}";
-			await Logger.LogAsync($"Documentation saved to '{file}'");
-			await InformationDialog.ShowInformationDialog(this, successMessage);
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, customMessage: "Unexpected error generating and saving documentation");
+				await InformationDialog.ShowInformationDialog(
+					this,
+					message: $"An unexpected error occurred while generating and saving documentation.\n\nError: {ex.Message}"
+				);
+			}
 		}
-		catch ( IOException ioEx )
-		{
-			await Logger.LogExceptionAsync(ioEx, customMessage: "IO error while saving documentation file");
-			await InformationDialog.ShowInformationDialog(
-				this,
-				message: $"Failed to save documentation file. The file may be in use or the path may be invalid.\n\nError: {ioEx.Message}"
-			);
-		}
-		catch ( UnauthorizedAccessException uaEx )
-		{
-			await Logger.LogExceptionAsync(uaEx, customMessage: "Access denied while saving documentation");
-			await InformationDialog.ShowInformationDialog(
-				this,
-				message: $"Access denied while saving the documentation file. Please check file permissions.\n\nError: {uaEx.Message}"
-			);
-		}
-		catch ( Exception ex )
-		{
-			await Logger.LogExceptionAsync(ex, customMessage: "Unexpected error generating and saving documentation");
-			await InformationDialog.ShowInformationDialog(
-				this,
-				message: $"An unexpected error occurred while generating and saving documentation.\n\nError: {ex.Message}"
-			);
-		}
-	}
 
 		/// <summary>
 		///     Event handler for the TabControl's SelectionChanged event.
@@ -3271,7 +3350,8 @@ namespace KOTORModSync
 				}
 				else
 				{
-					Logger.LogVerbose("[OnCheckBoxChanged] CheckBox.Tag is neither a ModComponent nor an Option, returning");
+					Logger.LogVerbose("[OnCheckBoxChanged] CheckBox.Tag is neither a ModComponent nor an Option, returning early");
+					return; // Early return to avoid expensive operations for non-mod/option checkboxes
 				}
 			}
 			catch ( Exception exception )
@@ -3692,6 +3772,8 @@ namespace KOTORModSync
 				await Logger.LogVerboseAsync($"[AddNewOption_Click] Option '{thisOption.Name}' created at index #{index} for component '{CurrentComponent.Name}'");
 				await Logger.LogVerboseAsync("[AddNewOption_Click] Calling LoadComponentDetails");
 				LoadComponentDetails(CurrentComponent);
+				// Refresh the mod list item visual to immediately show the options section
+				RefreshSingleComponentVisuals(CurrentComponent);
 				await Logger.LogVerboseAsync("[AddNewOption_Click] COMPLETED");
 			}
 			catch ( Exception exception )
@@ -3713,6 +3795,8 @@ namespace KOTORModSync
 				int index = CurrentComponent.Options.IndexOf(thisOption);
 				InstructionManagementService.DeleteOption(CurrentComponent, index);
 				LoadComponentDetails(CurrentComponent);
+				// Refresh the mod list item visual to immediately hide the options section if empty
+				RefreshSingleComponentVisuals(CurrentComponent);
 			}
 			catch ( Exception exception )
 			{
@@ -4026,84 +4110,98 @@ namespace KOTORModSync
 		}
 		private void ScanModDirectoryForDownloads()
 		{
-			try
+			// Run in background thread to avoid blocking UI
+			Task.Run(() =>
 			{
-				if ( MainConfig.SourcePath == null || !Directory.Exists(MainConfig.SourcePath.FullName) )
-					return;
-				if ( MainConfig.AllComponents.Count == 0 )
-					return;
-				Logger.LogVerbose($"[FileValidation] Starting scan. Mod directory: {MainConfig.SourcePath.FullName}");
-				int downloadedCount = 0;
-				int totalSelected = 0;
-				Logger.LogVerbose($"[FileValidation] Scanning {MainConfig.AllComponents.Count} components for download status");
-				// Check each component using proper instruction-based validation
-				foreach ( ModComponent component in MainConfig.AllComponents )
+				try
 				{
-					if ( !component.IsSelected )
-						continue;
-					totalSelected++;
-					Logger.LogVerbose($"[FileValidation] Checking component: {component.Name} (GUID: {component.Guid})");
-					// Log all URLs for this component
-					if ( component.ModLink != null && component.ModLink.Count > 0 )
+					if ( MainConfig.SourcePath == null || !Directory.Exists(MainConfig.SourcePath.FullName) )
+						return;
+					if ( MainConfig.AllComponents.Count == 0 )
+						return;
+					Logger.LogVerbose($"[FileValidation] Starting scan. Mod directory: {MainConfig.SourcePath.FullName}");
+					int downloadedCount = 0;
+					int totalSelected = 0;
+					Logger.LogVerbose($"[FileValidation] Scanning {MainConfig.AllComponents.Count} components for download status");
+
+					// Check each component using DownloadCacheService only
+					foreach ( ModComponent component in MainConfig.AllComponents )
 					{
-						Logger.LogVerbose($"[FileValidation] ModComponent has {component.ModLink.Count} URLs:");
-						foreach ( string url in component.ModLink )
+						if ( !component.IsSelected )
+							continue;
+						totalSelected++;
+						Logger.LogVerbose($"[FileValidation] Checking component: {component.Name} (GUID: {component.Guid})");
+
+						// Check if all URLs are cached in DownloadCacheService
+						bool allUrlsCached = true;
+						if ( component.ModLink != null && component.ModLink.Count > 0 )
 						{
-							// Check cache status for each URL
-							bool isCached = _downloadCacheService.IsCached(component.Guid, url);
-							string cachedArchive = _downloadCacheService.GetArchiveName(component.Guid, url);
-							string cachedFilePath = _downloadCacheService.GetFilePath(component.Guid, url);
-							Guid extractGuid = _downloadCacheService.GetExtractInstructionGuid(component.Guid, url);
-							Logger.LogVerbose($"[FileValidation]   URL: {url}");
-							Logger.LogVerbose($"[FileValidation]     Cached: {isCached}");
-							if ( isCached )
+							Logger.LogVerbose($"[FileValidation] ModComponent has {component.ModLink.Count} URLs:");
+							foreach ( string url in component.ModLink )
 							{
-								Logger.LogVerbose($"[FileValidation]     Archive: {cachedArchive}");
-								Logger.LogVerbose($"[FileValidation]     FilePath: {cachedFilePath}");
-								Logger.LogVerbose($"[FileValidation]     ExtractGUID: {extractGuid}");
+								// Check cache status for each URL
+								bool isCached = _downloadCacheService.IsCached(component.Guid, url);
+								if ( isCached )
+								{
+									string cachedArchive = _downloadCacheService.GetArchiveName(component.Guid, url);
+									Logger.LogVerbose($"[FileValidation]   URL: {url} - CACHED (Archive: {cachedArchive})");
+								}
+								else
+								{
+									Logger.LogVerbose($"[FileValidation]   URL: {url} - NOT CACHED");
+									allUrlsCached = false;
+								}
 							}
 						}
+						else
+						{
+							Logger.LogVerbose($"[FileValidation] ModComponent has no URLs");
+							allUrlsCached = false; // No URLs means not downloaded
+						}
+
+						// Set download status based on cache only
+						component.IsDownloaded = allUrlsCached;
+						Logger.LogVerbose($"[FileValidation] ModComponent '{component.Name}': {(allUrlsCached ? "DOWNLOADED" : "MISSING")}");
+						if ( allUrlsCached ) downloadedCount++;
 					}
-					else
+
+					Logger.LogVerbose($"Download scan complete: {downloadedCount}/{totalSelected} mods ready");
+
+					// Update UI on the UI thread
+					Dispatcher.UIThread.Post(() =>
 					{
-						Logger.LogVerbose($"[FileValidation] ModComponent has no URLs");
-					}
-					// Use VirtualFileSystemProvider to properly validate file existence based on instructions
-					bool hasAllFiles = ValidateComponentFilesExist(component);
-					component.IsDownloaded = hasAllFiles;
-					Logger.LogVerbose($"[FileValidation] ModComponent '{component.Name}': {(hasAllFiles ? "DOWNLOADED" : "MISSING")}");
-					if ( hasAllFiles ) downloadedCount++;
+						// Update download status text
+						TextBlock statusText = this.FindControl<TextBlock>("DownloadStatusText");
+						if ( statusText != null )
+						{
+							if ( totalSelected == 0 )
+							{
+								statusText.Text = "No mods selected for installation.";
+								statusText.Foreground = Brushes.Gray;
+							}
+							else if ( downloadedCount == totalSelected )
+							{
+								statusText.Text = $"✅ All {totalSelected} selected mod(s) are downloaded!";
+								statusText.Foreground = Brushes.Green;
+							}
+							else
+							{
+								statusText.Text = $"⚠️ {downloadedCount}/{totalSelected} selected mod(s) downloaded. {totalSelected - downloadedCount} missing.";
+								statusText.Foreground = Brushes.Orange;
+							}
+						}
+
+						// Refresh the mod list items to update tooltips and validation states
+						RefreshModListItems();
+						// Update step progress to reflect any changes in download status
+						UpdateStepProgress();
+					});
 				}
-				// Update download status text
-				TextBlock statusText = this.FindControl<TextBlock>("DownloadStatusText");
-				if ( statusText != null )
+				catch ( Exception ex )
 				{
-					if ( totalSelected == 0 )
-					{
-						statusText.Text = "No mods selected for installation.";
-						statusText.Foreground = Brushes.Gray;
-					}
-					else if ( downloadedCount == totalSelected )
-					{
-						statusText.Text = $"✅ All {totalSelected} selected mod(s) are downloaded!";
-						statusText.Foreground = Brushes.Green;
-					}
-					else
-					{
-						statusText.Text = $"⚠️ {downloadedCount}/{totalSelected} selected mod(s) downloaded. {totalSelected - downloadedCount} missing.";
-						statusText.Foreground = Brushes.Orange;
-					}
+					Logger.LogException(ex, "Error scanning mod directory for downloads");
 				}
-				Logger.LogVerbose($"Download scan complete: {downloadedCount}/{totalSelected} mods ready");
-				// Refresh the mod list items to update tooltips and validation states
-				RefreshModListItems();
-				// Update step progress to reflect any changes in download status
-				UpdateStepProgress();
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, "Error scanning mod directory for downloads");
-			}
+			});
 		}
 		/// <summary>
 		/// Resets the download status display to its default state when selections change.

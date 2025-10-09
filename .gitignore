@@ -371,3 +371,4 @@ logs_and_data_saved_from_dotnet_clean/*
 bin/*
 .history/
 mod-builds/
+chrome/

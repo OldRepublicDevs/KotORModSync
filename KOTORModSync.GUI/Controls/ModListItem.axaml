@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:KOTORModSync.Converters"
     xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+    xmlns:ThemeResourceHelper="clr-namespace:KOTORModSync"
     x:DataType="core:ModComponent">
 
     <UserControl.Resources>
@@ -62,6 +63,7 @@
 
                         <!--  Name occupies the large cell (can visually use some left space)  -->
                         <TextBlock
+                            x:Name="NameTextBlock"
                             Grid.Column="2"
                             Margin="0,0,0,0"
                             FontSize="14"
@@ -154,14 +156,26 @@
                                 Margin="0,2"
                                 Padding="8,4"
                                 BorderThickness="1"
-                                CornerRadius="3">
+                                CornerRadius="3"
+                                Cursor="Hand"
+                                Tag="{Binding}"
+                                PointerPressed="OptionBorder_PointerPressed">
+                                <Border.Styles>
+                                    <Style Selector="Border">
+                                        <Setter Property="Background" Value="Transparent" />
+                                    </Style>
+                                    <Style Selector="Border:pointerover">
+                                        <Setter Property="Background" Value="{DynamicResource ModListItem.HoverBackgroundBrush}" />
+                                    </Style>
+                                </Border.Styles>
                                 <Grid ColumnDefinitions="Auto,*">
                                     <CheckBox
                                         Grid.Column="0"
                                         Margin="0,0,8,0"
                                         VerticalAlignment="Center"
                                         IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                        ToolTip.Tip="Select this option" />
+                                        ToolTip.Tip="Select this option"
+                                        Tag="{Binding}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock
                                             FontSize="12"

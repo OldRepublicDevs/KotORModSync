@@ -161,11 +161,19 @@ namespace KOTORModSync.Core.Services.Download
 				ProgressPercentage = 10
 			});
 
-			try
+            try
 			{
 				// Fetch the page and extract cookies
 				await Logger.LogVerboseAsync($"[DeadlyStream] Fetching page to establish session: {url}");
-				var request = new HttpRequestMessage(HttpMethod.Get, url);
+                // Normalize to HTTPS – DeadlyStream rejects plain HTTP with 403
+                if (validatedUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    validatedUri = new UriBuilder(validatedUri) { Scheme = "https", Port = -1 }.Uri;
+                    url = validatedUri.ToString();
+                    await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL to HTTPS: {url}");
+                }
+
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
 
 				// Apply any existing cookies from previous requests
 				ApplyCookiesToRequest(request, validatedUri);
@@ -179,7 +187,111 @@ namespace KOTORModSync.Core.Services.Download
 				string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
 				await Logger.LogVerboseAsync($"[DeadlyStream] Downloaded HTML content, length: {html.Length} characters");
 
-				// Extract ALL download links (supports multi-file downloads)
+				// Extract csrfKey from the initial page
+				string csrfKey = ExtractCsrfKey(html);
+				if ( string.IsNullOrEmpty(csrfKey) )
+				{
+					await Logger.LogWarningAsync("[DeadlyStream] Could not extract csrfKey from page, downloads may fail");
+				}
+				else
+				{
+					await Logger.LogVerboseAsync($"[DeadlyStream] Extracted csrfKey: {csrfKey.Substring(0, Math.Min(8, csrfKey.Length))}...");
+				}
+
+				// Check if this is a multi-file download page by trying the download URL with csrfKey
+				string downloadPageUrl = !string.IsNullOrEmpty(csrfKey)
+					? $"{url}?do=download&csrfKey={csrfKey}"
+					: $"{url}?do=download";
+
+				await Logger.LogVerboseAsync($"[DeadlyStream] Checking for multi-file download at: {downloadPageUrl}");
+				var downloadPageRequest = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
+				ApplyCookiesToRequest(downloadPageRequest, validatedUri);
+
+				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, cancellationToken).ConfigureAwait(false);
+
+				if ( downloadPageResponse.IsSuccessStatusCode )
+				{
+					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+					ExtractAndStoreCookies(downloadPageResponse, validatedUri);
+
+					// Check if this is a multi-file selection page
+					if ( downloadPageHtml.Contains("Download your files") || downloadPageHtml.Contains("data-action=\"download\"") )
+					{
+						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page");
+						List<string> confirmedLinks = ExtractConfirmedDownloadLinks(downloadPageHtml, url);
+
+						if ( confirmedLinks != null && confirmedLinks.Count > 0 )
+						{
+							await Logger.LogVerboseAsync($"[DeadlyStream] Found {confirmedLinks.Count} files to download");
+							downloadPageResponse.Dispose();
+							pageResponse.Dispose();
+
+							// Download all files
+							var multiFileDownloads = new List<string>();
+							int multiFileIndex = 0;
+
+							foreach ( string downloadLink in confirmedLinks )
+							{
+								multiFileIndex++;
+								double multiFileBaseProgress = 30 + (multiFileIndex - 1) * (60.0 / confirmedLinks.Count);
+								double multiFileProgressRange = 60.0 / confirmedLinks.Count;
+
+								progress?.Report(new DownloadProgress
+								{
+									Status = DownloadStatus.InProgress,
+									StatusMessage = $"Downloading file {multiFileIndex} of {confirmedLinks.Count}...",
+									ProgressPercentage = multiFileBaseProgress
+								});
+
+								string filePath = await DownloadSingleFile(downloadLink, destinationDirectory, progress, multiFileBaseProgress, multiFileProgressRange, cancellationToken);
+								if ( !string.IsNullOrEmpty(filePath) )
+								{
+									multiFileDownloads.Add(filePath);
+								}
+							}
+
+							if ( multiFileDownloads.Count == 0 )
+							{
+								string errorMsg = "Failed to download any files from multi-file selection page";
+								progress?.Report(new DownloadProgress
+								{
+									Status = DownloadStatus.Failed,
+									ErrorMessage = errorMsg,
+									ProgressPercentage = 100,
+									EndTime = DateTime.Now
+								});
+								return DownloadResult.Failed(errorMsg);
+							}
+
+							// Report completion
+							string multiFileResultMessage = multiFileDownloads.Count == 1
+								? "Downloaded from DeadlyStream"
+								: $"Downloaded {multiFileDownloads.Count} files from DeadlyStream";
+
+							progress?.Report(new DownloadProgress
+							{
+								Status = DownloadStatus.Completed,
+								StatusMessage = multiFileResultMessage,
+								ProgressPercentage = 100,
+								FilePath = multiFileDownloads[0],
+								EndTime = DateTime.Now
+							});
+
+							return DownloadResult.Succeeded(multiFileDownloads[0], multiFileResultMessage);
+						}
+					}
+
+					downloadPageResponse.Dispose();
+				}
+				else
+				{
+					await Logger.LogVerboseAsync($"[DeadlyStream] Download page request returned {downloadPageResponse.StatusCode}, trying direct download");
+					downloadPageResponse.Dispose();
+				}
+
+				pageResponse.Dispose();
+
+				// Fallback to extracting links from the main page
 				List<string> downloadLinks = ExtractAllDownloadLinks(html, url);
 
 				if ( downloadLinks == null || downloadLinks.Count == 0 )
@@ -434,6 +546,7 @@ namespace KOTORModSync.Core.Services.Download
 					// If we couldn't extract links or it's not a selection page, this is an error
 					string errorMsg = "Received HTML instead of file - download link may be invalid or require authentication";
 					await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}");
+					fileResponse.Dispose();
 					return null;
 				}
 
@@ -531,6 +644,34 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogExceptionAsync(ex);
 				return null;
 			}
+		}
+
+		/// <summary>
+		/// Extracts the csrfKey from the page HTML (either from JavaScript or from links)
+		/// </summary>
+		private static string ExtractCsrfKey(string html)
+		{
+			if ( string.IsNullOrEmpty(html) )
+				return null;
+
+			// Try to extract from JavaScript: ipsSettings.csrfKey
+			var jsMatch = Regex.Match(html, @"csrfKey:\s*[""']([^""']+)[""']", RegexOptions.IgnoreCase);
+			if ( jsMatch.Success )
+			{
+				Logger.LogVerbose($"[DeadlyStream] Extracted csrfKey from JavaScript: {jsMatch.Groups[1].Value}");
+				return jsMatch.Groups[1].Value;
+			}
+
+			// Fallback: extract from any link with csrfKey parameter
+			var linkMatch = Regex.Match(html, @"csrfKey=([^&""'<>\s]+)", RegexOptions.IgnoreCase);
+			if ( linkMatch.Success )
+			{
+				Logger.LogVerbose($"[DeadlyStream] Extracted csrfKey from link: {linkMatch.Groups[1].Value}");
+				return linkMatch.Groups[1].Value;
+			}
+
+			Logger.LogWarning("[DeadlyStream] Could not extract csrfKey from page");
+			return null;
 		}
 
 		/// <summary>

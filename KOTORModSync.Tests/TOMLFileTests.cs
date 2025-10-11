@@ -431,6 +431,136 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 			Logger.Log(Toml.FromModel(rootTable));
 		}
 
+		[Test]
+		public void Instruction_ConditionalSerialization_OnlyRelevantFieldsAreIncluded()
+		{
+			// Test Extract action - should NOT have Overwrite, Destination, or Arguments
+			var extractComponent = new ModComponent
+			{
+				Name = "Extract Test",
+				Guid = Guid.NewGuid(),
+				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+			{
+				new Instruction
+				{
+					Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "test.rar" },
+					Overwrite = true, // Should NOT be serialized
+					Destination = "some/path", // Should NOT be serialized
+					Arguments = "some args" // Should NOT be serialized
+				}
+			}
+			};
+			string extractToml = extractComponent.SerializeComponent();
+			Assert.Multiple(() =>
+			{
+				Assert.That(extractToml.Contains("Overwrite"), Is.False, "Extract should not serialize Overwrite");
+				Assert.That(extractToml.Contains("Destination"), Is.False, "Extract should not serialize Destination");
+				Assert.That(extractToml.Contains("Arguments"), Is.False, "Extract should not serialize Arguments");
+			});
+
+			// Test Move action - SHOULD have Overwrite and Destination, but NOT Arguments
+			var moveComponent = new ModComponent
+			{
+				Name = "Move Test",
+				Guid = Guid.NewGuid(),
+				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+			{
+				new Instruction
+				{
+					Action = Instruction.ActionType.Move,
+					Source = new List<string> { "test.txt" },
+					Destination = "<<kotorDirectory>>\\Override",
+					Overwrite = true,
+					Arguments = "should not appear"
+				}
+			}
+			};
+			string moveToml = moveComponent.SerializeComponent();
+			Assert.Multiple(() =>
+			{
+				Assert.That(moveToml, Does.Contain("Overwrite"), "Move should serialize Overwrite");
+				Assert.That(moveToml, Does.Contain("Destination"), "Move should serialize Destination");
+				Assert.That(moveToml, Does.Not.Contain("Arguments"), "Move should not serialize Arguments");
+			});
+
+			// Test Patcher action - SHOULD have Destination and Arguments, but NOT Overwrite
+			var patcherComponent = new ModComponent
+			{
+				Name = "Patcher Test",
+				Guid = Guid.NewGuid(),
+				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+			{
+				new Instruction
+				{
+					Action = Instruction.ActionType.Patcher,
+					Source = new List<string> { "tslpatchdata" },
+					Destination = "<<kotorDirectory>>",
+					Arguments = "0",
+					Overwrite = true // Should NOT be serialized
+				}
+			}
+			};
+			string patcherToml = patcherComponent.SerializeComponent();
+			Assert.Multiple(() =>
+			{
+				Assert.That(patcherToml, Does.Not.Contain("Overwrite"), "Patcher should not serialize Overwrite");
+				Assert.That(patcherToml, Does.Contain("Destination"), "Patcher should serialize Destination");
+				Assert.That(patcherToml, Does.Contain("Arguments"), "Patcher should serialize Arguments");
+			});
+
+			// Test Execute action - SHOULD have Arguments, but NOT Overwrite or Destination
+			var executeComponent = new ModComponent
+			{
+				Name = "Execute Test",
+				Guid = Guid.NewGuid(),
+				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+			{
+				new Instruction
+				{
+					Action = Instruction.ActionType.Execute,
+					Source = new List<string> { "setup.exe" },
+					Arguments = "/silent",
+					Overwrite = true, // Should NOT be serialized
+					Destination = "some/path" // Should NOT be serialized
+				}
+			}
+			};
+			string executeToml = executeComponent.SerializeComponent();
+			Assert.Multiple(() =>
+			{
+				Assert.That(executeToml, Does.Not.Contain("Overwrite"), "Execute should not serialize Overwrite");
+				Assert.That(executeToml, Does.Not.Contain("Destination"), "Execute should not serialize Destination");
+				Assert.That(executeToml, Does.Contain("Arguments"), "Execute should serialize Arguments");
+			});
+		}
+
+		[Test]
+		public void ModComponent_RuntimeFields_AreNotSerialized()
+		{
+			// Create a component with runtime state
+			var component = new ModComponent
+			{
+				Name = "Test Mod",
+				Guid = Guid.NewGuid(),
+				IsDownloaded = true, // Runtime state - should NOT be serialized
+				InstallState = ModComponent.ComponentInstallState.Completed, // Runtime state - should NOT be serialized
+				IsSelected = true
+			};
+
+			// Verify it serializes correctly
+			string tomlString = component.SerializeComponent();
+			Assert.Multiple(() =>
+			{
+				Assert.That(tomlString, Does.Not.Contain("IsDownloaded"), "TOML should not contain IsDownloaded");
+				Assert.That(tomlString, Does.Not.Contain("InstallState"), "TOML should not contain InstallState");
+				Assert.That(tomlString, Does.Not.Contain("LastStartedUtc"), "TOML should not contain LastStartedUtc");
+				Assert.That(tomlString, Does.Not.Contain("LastCompletedUtc"), "TOML should not contain LastCompletedUtc");
+				// IsSelected should be included (it's part of the TOML definition)
+				Assert.That(tomlString, Does.Contain("IsSelected"), "TOML should contain IsSelected");
+			});
+		}
+
 		private static void AssertComponentEquality(object? obj, object? another)
 		{
 			if ( ReferenceEquals(obj, another) )

@@ -57,7 +57,7 @@ namespace KOTORModSync.Tests
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
-			string contentRoot = Path.Combine(solutionRoot, "KOTORModSync.Tests", "mod-builds", "content");
+			string contentRoot = Path.Combine(solutionRoot, /*"KOTORModSync.Tests", */"mod-builds", "content");
 
 			// Get all .md files from k1 directory (exclude validated subdirectory)
 			string k1Path = Path.Combine(contentRoot, "k1");
@@ -108,7 +108,7 @@ namespace KOTORModSync.Tests
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
-			string contentRoot = Path.Combine(solutionRoot, "KOTORModSync.Tests", "mod-builds", "content");
+			string contentRoot = Path.Combine(solutionRoot, /*"KOTORModSync.Tests", */"mod-builds", "content");
 
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
@@ -164,7 +164,7 @@ namespace KOTORModSync.Tests
 					foreach ( var component in deadlyStreamComponents )
 					{
 						string fileName = Path.GetFileNameWithoutExtension(mdFile);
-						string testName = $"K1_{fileName}_{SanitizeTestName(component.Name)}";
+						string testName = $"K1_{fileName}_{component.Name}";
 						yield return new TestCaseData(component, mdFile)
 							.SetName(testName)
 							.SetCategory("K1")
@@ -205,7 +205,7 @@ namespace KOTORModSync.Tests
 					foreach ( var component in deadlyStreamComponents )
 					{
 						string fileName = Path.GetFileNameWithoutExtension(mdFile);
-						string testName = $"K2_{fileName}_{SanitizeTestName(component.Name)}";
+						string testName = $"K2_{fileName}_{component.Name}";
 						yield return new TestCaseData(component, mdFile)
 							.SetName(testName)
 							.SetCategory("K2")
@@ -214,29 +214,6 @@ namespace KOTORModSync.Tests
 					}
 				}
 			}
-		}
-
-		private static string SanitizeTestName(string name)
-		{
-			// Remove or replace characters that aren't valid in test names
-			return name
-				.Replace(" ", "_")
-				.Replace(":", "")
-				.Replace("/", "_")
-				.Replace("\\", "_")
-				.Replace("'", "")
-				.Replace("\"", "")
-				.Replace("(", "")
-				.Replace(")", "")
-				.Replace("[", "")
-				.Replace("]", "")
-				.Replace("{", "")
-				.Replace("}", "")
-				.Replace(",", "")
-				.Replace(".", "")
-				.Replace("?", "")
-				.Replace("!", "")
-				.Replace("&", "and");
 		}
 
 		[TestCaseSource(nameof(GetAllDeadlystreamComponents))]
@@ -264,7 +241,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Options count: {component.Options.Count}");
 
 			// Assert
-			Assert.That(component.Instructions.Count, Is.GreaterThan(0),
+			Assert.That(component.Instructions, Is.Not.Empty,
 				$"Component '{component.Name}' has Deadlystream link(s) but no ModSync metadata/instructions. " +
 				$"All mods with Deadlystream links MUST have instructions (ModSync metadata block in markdown).");
 		}

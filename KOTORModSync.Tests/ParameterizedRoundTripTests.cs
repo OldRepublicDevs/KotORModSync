@@ -53,7 +53,7 @@ namespace KOTORModSync.Tests
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
-			string contentRoot = Path.Combine(solutionRoot, "KOTORModSync.Tests", "mod-builds", "content");
+			string contentRoot = Path.Combine(solutionRoot, /*"KOTORModSync.Tests", */"mod-builds", "content");
 
 			// K1 files
 			string k1Path = Path.Combine(contentRoot, "k1");
@@ -171,12 +171,12 @@ namespace KOTORModSync.Tests
 			// Assert - All component names should be preserved
 			var names1 = components1.Select(c => c.Name).OrderBy(n => n).ToList();
 			var names2 = components2.Select(c => c.Name).OrderBy(n => n).ToList();
-			CollectionAssert.AreEqual(names1, names2, "All component names should be preserved");
+			Assert.That(names2, Is.EqualTo(names1).AsCollection, "All component names should be preserved");
 
 			// Assert - Compare to original markdown (extract mod names)
 			MarkdownParserResult originalParse = parser.Parse(originalMarkdown);
 			var originalNames = originalParse.Components.Select(c => c.Name).OrderBy(n => n).ToList();
-			CollectionAssert.AreEqual(originalNames, names1,
+			Assert.That(names1, Is.EqualTo(originalNames).AsCollection,
 				"Generated markdown should preserve all original component names");
 
 			Console.WriteLine("✓ Markdown round-trip successful - all generations match");
@@ -208,7 +208,7 @@ namespace KOTORModSync.Tests
 			// Assert - All names preserved
 			var originalNames = originalComponents.Select(c => c.Name).ToList();
 			var generatedNames = generatedComponents.Select(c => c.Name).ToList();
-			CollectionAssert.AreEqual(originalNames, generatedNames,
+			Assert.That(generatedNames, Is.EqualTo(originalNames).AsCollection,
 				"All component names should be preserved in order");
 
 			// Assert - Key fields preserved for each component
@@ -283,12 +283,12 @@ namespace KOTORModSync.Tests
 			// Assert - All GUIDs should be preserved
 			var guids1 = components1.Select(c => c.Guid).OrderBy(g => g).ToList();
 			var guids2 = components2.Select(c => c.Guid).OrderBy(g => g).ToList();
-			CollectionAssert.AreEqual(guids1, guids2, "All component GUIDs should be preserved");
+			Assert.That(guids2, Is.EqualTo(guids1).AsCollection, "All component GUIDs should be preserved");
 
 			// Assert - All names should be preserved
 			var names1 = components1.Select(c => c.Name).ToList();
 			var names2 = components2.Select(c => c.Name).ToList();
-			CollectionAssert.AreEqual(names1, names2, "All component names should be preserved in order");
+			Assert.That(names2, Is.EqualTo(names1).AsCollection, "All component names should be preserved in order");
 
 			Console.WriteLine("✓ TOML round-trip successful - all generations match");
 		}
@@ -332,11 +332,11 @@ namespace KOTORModSync.Tests
 				});
 
 				// Compare collections
-				CollectionAssert.AreEqual(orig.Category, regen.Category, $"Component {i}: Category mismatch");
-				CollectionAssert.AreEqual(orig.Language, regen.Language, $"Component {i}: Language mismatch");
-				CollectionAssert.AreEqual(orig.ModLink, regen.ModLink, $"Component {i}: ModLink mismatch");
-				CollectionAssert.AreEqual(orig.Dependencies, regen.Dependencies, $"Component {i}: Dependencies mismatch");
-				CollectionAssert.AreEqual(orig.Restrictions, regen.Restrictions, $"Component {i}: Restrictions mismatch");
+				Assert.That(regen.Category, Is.EqualTo(orig.Category).AsCollection, $"Component {i}: Category mismatch");
+				Assert.That(regen.Language, Is.EqualTo(orig.Language).AsCollection, $"Component {i}: Language mismatch");
+				Assert.That(regen.ModLink, Is.EqualTo(orig.ModLink).AsCollection, $"Component {i}: ModLink mismatch");
+				Assert.That(regen.Dependencies, Is.EqualTo(orig.Dependencies).AsCollection, $"Component {i}: Dependencies mismatch");
+				Assert.That(regen.Restrictions, Is.EqualTo(orig.Restrictions).AsCollection, $"Component {i}: Restrictions mismatch");
 			}
 
 			Console.WriteLine($"✓ All {originalComponents.Count} components preserved with complete data integrity");
@@ -386,7 +386,7 @@ namespace KOTORModSync.Tests
 			// Compare component names (TOML has GUIDs, markdown doesn't - names are the key)
 			var names1 = componentsFromToml.Select(c => c.Name).ToList();
 			var names2 = components2.Select(c => c.Name).ToList();
-			CollectionAssert.AreEqual(names1, names2, "Component names should be preserved across formats");
+			Assert.That(names2, Is.EqualTo(names1).AsCollection, "Component names should be preserved across formats");
 
 			Console.WriteLine("✓ Cross-format round-trip successful");
 		}

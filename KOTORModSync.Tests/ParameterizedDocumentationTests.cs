@@ -25,7 +25,7 @@ namespace KOTORModSync.Tests
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
-			string contentRoot = Path.Combine(solutionRoot, "KOTORModSync.Tests", "mod-builds", "content");
+			string contentRoot = Path.Combine(solutionRoot, /*"KOTORModSync.Tests", */"mod-builds", "content");
 
 			// Get all .md files from k1 directory (exclude validated subdirectory)
 			string k1Path = Path.Combine(contentRoot, "k1");
@@ -111,7 +111,7 @@ namespace KOTORModSync.Tests
 			Assert.Multiple(() =>
 			{
 				// Assert - Basic structural validation
-				Assert.That(components.Count, Is.GreaterThan(0), "Should have parsed at least one component");
+				Assert.That(components, Is.Not.Empty, "Should have parsed at least one component");
 				Assert.That(generatedDocs, Is.Not.Null.And.Not.Empty, "Generated documentation should not be empty");
 			});
 
@@ -297,7 +297,7 @@ namespace KOTORModSync.Tests
 			}
 
 			// Assert - The file should have at least some mod entries
-			Assert.That(components.Count, Is.GreaterThan(0),
+			Assert.That(components, Is.Not.Empty,
 				$"Expected to find at least one mod entry in {Path.GetFileName(mdFilePath)}, found {components.Count}");
 
 			Assert.Multiple(() =>

@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
@@ -14,10 +15,7 @@ namespace KOTORModSync.Core.Services.Download
 	public sealed class DeadlyStreamDownloadHandler : IDownloadHandler
 	{
 		private readonly HttpClient _httpClient;
-		private static readonly long _maxBytesPerSecond = 700 * 1024; // 700 KB/s in bytes
-		private static readonly object _rateLimitLock = new object();
-		private static long _lastRateLimitTime = 0;
-		private static long _bytesDownloadedThisSecond = 0;
+		private const long MaxBytesPerSecond = 700 * 1024; // 700 KB/s in bytes
 
 		// Cookie container to maintain session across requests
 		private readonly System.Net.CookieContainer _cookieContainer;
@@ -74,6 +72,7 @@ namespace KOTORModSync.Core.Services.Download
 			Logger.LogVerbose("[DeadlyStream] Added identification bearer token: KOTOR_MODSYNC_PUBLIC");
 
 			Logger.LogVerbose("[DeadlyStream] Handler initialized with proper browser headers and identification markers");
+			Logger.LogVerbose($"[DeadlyStream] Bandwidth throttling enabled: {MaxBytesPerSecond / 1024} KB/s using ThrottledStream");
 		}
 
 		public bool CanHandle(string url)
@@ -81,48 +80,6 @@ namespace KOTORModSync.Core.Services.Download
 			bool canHandle = url != null && url.IndexOf("deadlystream.com", StringComparison.OrdinalIgnoreCase) >= 0;
 			Logger.LogVerbose($"[DeadlyStream] CanHandle check for URL '{url}': {canHandle}");
 			return canHandle;
-		}
-
-		/// <summary>
-		/// Implements rate limiting to cap downloads at 700 KB/s.
-		/// </summary>
-		private static async Task EnforceRateLimitAsync(int bytesToRead)
-		{
-			long waitTimeMs = 0;
-
-			lock ( _rateLimitLock )
-			{
-				long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-				// Reset counter if we're in a new second
-				if ( currentTime - _lastRateLimitTime >= 1000 )
-				{
-					_bytesDownloadedThisSecond = 0;
-					_lastRateLimitTime = currentTime;
-				}
-
-				// Check if we would exceed the rate limit
-				if ( _bytesDownloadedThisSecond + bytesToRead > _maxBytesPerSecond )
-				{
-					// Calculate how long to wait
-					long excessBytes = (_bytesDownloadedThisSecond + bytesToRead) - _maxBytesPerSecond;
-					waitTimeMs = (excessBytes * 1000) / _maxBytesPerSecond;
-
-					Logger.LogVerbose($"[DeadlyStream] Rate limiting: waiting {waitTimeMs}ms to stay under 700KB/s limit");
-
-					// Reset after waiting
-					_bytesDownloadedThisSecond = 0;
-					_lastRateLimitTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-				}
-
-				_bytesDownloadedThisSecond += bytesToRead;
-			}
-
-			// Wait outside the lock to avoid blocking other threads
-			if ( waitTimeMs > 0 )
-			{
-				await Task.Delay((int)waitTimeMs).ConfigureAwait(false);
-			}
 		}
 
 		/// <summary>
@@ -167,7 +124,7 @@ namespace KOTORModSync.Core.Services.Download
 				if ( !string.IsNullOrEmpty(cookieHeader) )
 				{
 					request.Headers.Add("Cookie", cookieHeader);
-					Logger.LogVerbose($"[DeadlyStream] Applied cookies to request: {cookieHeader.Substring(0, Math.Min(100, cookieHeader.Length))}...");
+					// Cookie applied (verbose logging disabled to reduce log clutter)
 				}
 			}
 			catch ( Exception ex )
@@ -176,7 +133,7 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
+		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
 		{
 			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
 			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
@@ -213,7 +170,7 @@ namespace KOTORModSync.Core.Services.Download
 				// Apply any existing cookies from previous requests
 				ApplyCookiesToRequest(request, validatedUri);
 
-				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request).ConfigureAwait(false);
+				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
 				_ = pageResponse.EnsureSuccessStatusCode();
 
 				// Extract and store cookies from the response
@@ -278,7 +235,7 @@ namespace KOTORModSync.Core.Services.Download
 						ProgressPercentage = baseProgress
 					});
 
-					string filePath = await DownloadSingleFile(downloadLink, destinationDirectory, progress, baseProgress, fileProgressRange);
+					string filePath = await DownloadSingleFile(downloadLink, destinationDirectory, progress, baseProgress, fileProgressRange, cancellationToken);
 					if ( !string.IsNullOrEmpty(filePath) )
 					{
 						downloadedFiles.Add(filePath);
@@ -387,10 +344,14 @@ namespace KOTORModSync.Core.Services.Download
 			string destinationDirectory,
 			IProgress<DownloadProgress> progress,
 			double baseProgress,
-			double progressRange)
+			double progressRange,
+			CancellationToken cancellationToken = default)
 		{
 			try
 			{
+				// Check for cancellation before starting download
+				cancellationToken.ThrowIfCancellationRequested();
+
 				await Logger.LogVerboseAsync($"[DeadlyStream] Downloading from: {downloadLink}");
 
 				// Check if file already exists by trying to determine filename from URL
@@ -415,10 +376,66 @@ namespace KOTORModSync.Core.Services.Download
 				// Make download request with session cookies
 				var fileRequest = new HttpRequestMessage(HttpMethod.Get, downloadLink);
 				ApplyCookiesToRequest(fileRequest, downloadUri);
-				HttpResponseMessage fileResponse = await _httpClient.SendAsync(fileRequest, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+				HttpResponseMessage fileResponse = await _httpClient.SendAsync(fileRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
-				await Logger.LogVerboseAsync($"[DeadlyStream] File response status: {fileResponse.StatusCode}");
+				// Only log non-success status codes
+				if ( !fileResponse.IsSuccessStatusCode )
+					await Logger.LogErrorAsync($"[DeadlyStream] File response status: {fileResponse.StatusCode}");
+
 				_ = fileResponse.EnsureSuccessStatusCode();
+
+				// Check if we got an HTML file selection page instead of the actual file
+				string contentType = fileResponse.Content.Headers.ContentType?.MediaType ?? string.Empty;
+				if ( contentType.Contains("text/html") )
+				{
+					await Logger.LogVerboseAsync("[DeadlyStream] Received HTML response - this appears to be a file selection page");
+					string html = await fileResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+					fileResponse.Dispose();
+
+					// Check if this is the multi-file selection page
+					if ( html.Contains("Download your files") || html.Contains("data-action=\"download\"") )
+					{
+						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page, extracting actual download links");
+						List<string> actualDownloadLinks = ExtractConfirmedDownloadLinks(html, downloadLink);
+
+						if ( actualDownloadLinks.Count > 0 )
+						{
+							await Logger.LogVerboseAsync($"[DeadlyStream] Found {actualDownloadLinks.Count} confirmed download link(s) on selection page");
+
+							// Download all files from the selection page
+							string lastDownloadedFile = null;
+							for ( int i = 0; i < actualDownloadLinks.Count; i++ )
+							{
+								double fileBaseProgress = baseProgress + (i * progressRange / actualDownloadLinks.Count);
+								double fileProgressRange = progressRange / actualDownloadLinks.Count;
+
+								progress?.Report(new DownloadProgress
+								{
+									Status = DownloadStatus.InProgress,
+									StatusMessage = $"Downloading file {i + 1} of {actualDownloadLinks.Count} from selection page...",
+									ProgressPercentage = fileBaseProgress
+								});
+
+								string downloadedFile = await DownloadSingleFile(actualDownloadLinks[i], destinationDirectory, progress, fileBaseProgress, fileProgressRange, cancellationToken);
+								if ( !string.IsNullOrEmpty(downloadedFile) )
+								{
+									lastDownloadedFile = downloadedFile;
+								}
+							}
+
+							return lastDownloadedFile;
+						}
+						else
+						{
+							await Logger.LogWarningAsync("[DeadlyStream] Multi-file selection page detected but no download links found");
+						}
+					}
+
+					// If we couldn't extract links or it's not a selection page, this is an error
+					string errorMsg = "Received HTML instead of file - download link may be invalid or require authentication";
+					await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}");
+					return null;
+				}
 
 				// Get filename from Content-Disposition header
 				string fileName = GetFileNameFromContentDisposition(fileResponse);
@@ -462,25 +479,29 @@ namespace KOTORModSync.Core.Services.Download
 					TotalBytes = totalBytes
 				});
 
-				// Download with rate limiting
+				// Download with bandwidth throttling using ThrottledStream (700 KB/s cap)
 				using ( FileStream fileStream = File.Create(filePath) )
 				using ( Stream contentStream = await fileResponse.Content.ReadAsStreamAsync().ConfigureAwait(false) )
+				using ( ThrottledStream throttledStream = new ThrottledStream(contentStream, MaxBytesPerSecond) )
 				{
-					byte[] buffer = new byte[8192];
+					byte[] buffer = new byte[8192]; // Standard buffer size
 					int bytesRead;
 					long totalBytesRead = 0;
+					var lastProgressUpdate = DateTimeOffset.UtcNow;
 
-					while ( (bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0 )
+					while ( (bytesRead = await throttledStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0 )
 					{
-						// Enforce rate limiting
-						await EnforceRateLimitAsync(bytesRead);
+						// Check for cancellation IMMEDIATELY before writing
+						cancellationToken.ThrowIfCancellationRequested();
 
-						await fileStream.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+						await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
 						totalBytesRead += bytesRead;
 
-						// Update progress
-						if ( totalBytes > 0 )
+						// Update progress (but not too frequently to avoid UI spam)
+						var now = DateTimeOffset.UtcNow;
+						if ( totalBytes > 0 && (now - lastProgressUpdate).TotalMilliseconds >= 250 )
 						{
+							lastProgressUpdate = now;
 							double fileProgress = (double)totalBytesRead / totalBytes;
 							double currentProgress = baseProgress + (progressRange * 0.1) + (progressRange * 0.9 * fileProgress);
 							progress?.Report(new DownloadProgress
@@ -493,6 +514,9 @@ namespace KOTORModSync.Core.Services.Download
 							});
 						}
 					}
+
+					// Ensure all data is written to disk
+					await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
 				}
 
 				long fileSize = new FileInfo(filePath).Length;
@@ -507,6 +531,88 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogExceptionAsync(ex);
 				return null;
 			}
+		}
+
+		/// <summary>
+		/// Extracts confirmed download links from a file selection page
+		/// (handles the intermediate "Download your files" page with multiple file options)
+		/// </summary>
+		private static List<string> ExtractConfirmedDownloadLinks(string html, string baseUrl)
+		{
+			Logger.LogVerbose($"[DeadlyStream] ExtractConfirmedDownloadLinks called with HTML length: {html?.Length ?? 0}, baseUrl: {baseUrl}");
+
+			if ( string.IsNullOrEmpty(html) )
+			{
+				Logger.LogWarning("[DeadlyStream] HTML content is null or empty");
+				return new List<string>();
+			}
+
+			var document = new HtmlDocument();
+			document.LoadHtml(html);
+			Logger.LogVerbose("[DeadlyStream] HTML document loaded successfully");
+
+			// Find all links with data-action="download" (these are the actual file download buttons)
+			// Also look for links with &confirm=1 parameter as a fallback
+			string[] selectors = new[]
+			{
+				"//a[@data-action='download' and contains(@href,'?do=download')]",
+				"//a[contains(@href,'?do=download') and contains(@href,'&confirm=1')]",
+				"//a[contains(@class,'ipsButton') and contains(@href,'?do=download') and contains(@href,'&r=')]"
+			};
+
+			var downloadLinks = new List<string>();
+
+			foreach ( string selector in selectors )
+			{
+				Logger.LogVerbose($"[DeadlyStream] Trying selector: {selector}");
+				HtmlNodeCollection nodes = document.DocumentNode.SelectNodes(selector);
+
+				if ( nodes != null && nodes.Count > 0 )
+				{
+					Logger.LogVerbose($"[DeadlyStream] Found {nodes.Count} matching nodes");
+
+					foreach ( HtmlNode node in nodes )
+					{
+						string href = node.GetAttributeValue("href", string.Empty);
+						if ( string.IsNullOrWhiteSpace(href) )
+							continue;
+
+						// Handle relative URLs
+						if ( !href.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+							!href.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
+						{
+							var baseUri = new Uri(baseUrl);
+							var absoluteUri = new Uri(baseUri, href);
+							href = absoluteUri.ToString();
+						}
+
+						// Decode HTML entities
+						href = WebUtility.HtmlDecode(href);
+
+						// Add unique links only
+						if ( !downloadLinks.Contains(href) )
+						{
+							downloadLinks.Add(href);
+							Logger.LogVerbose($"[DeadlyStream] Added confirmed download link #{downloadLinks.Count}: {href}");
+						}
+					}
+				}
+
+				// If we found links with this selector, stop searching
+				if ( downloadLinks.Count > 0 )
+					break;
+			}
+
+			if ( downloadLinks.Count > 0 )
+			{
+				Logger.LogVerbose($"[DeadlyStream] Successfully extracted {downloadLinks.Count} confirmed download link(s) from selection page");
+			}
+			else
+			{
+				Logger.LogWarning("[DeadlyStream] No confirmed download links found in selection page HTML");
+			}
+
+			return downloadLinks;
 		}
 
 		/// <summary>

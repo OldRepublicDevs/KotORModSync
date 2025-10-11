@@ -21,7 +21,7 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
-		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
+		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
 		{
 			await Logger.LogVerboseAsync($"[MEGA] Starting MEGA download from URL: {url}");
 			await Logger.LogVerboseAsync($"[MEGA] Destination directory: {destinationDirectory}");

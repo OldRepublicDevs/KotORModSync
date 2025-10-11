@@ -38,7 +38,6 @@ namespace KOTORModSync.Tests
 #### Instructions
 1. **GUID:** 11111111-1111-1111-1111-111111111111
    **Action:** Extract
-   **Overwrite:** true
    **Source:** test.zip
    **Destination:** testdest
 
@@ -165,7 +164,6 @@ ___";
 #### Instructions
 1. **GUID:** 11111111-1111-1111-1111-111111111111
    **Action:** Extract
-   **Overwrite:** true
    **Source:** file1.zip
 2. **GUID:** 22222222-2222-2222-2222-222222222222
    **Action:** Move
@@ -399,7 +397,6 @@ and special characters: & < > "" ' / \
 #### Instructions
 1. **GUID:** 11111111-1111-1111-1111-111111111111
    **Action:** Extract
-   **Overwrite:** true
    **Source:** file1.zip, file2.zip, file3.zip
 2. **GUID:** 22222222-2222-2222-2222-222222222222
    **Action:** Delete
@@ -516,7 +513,6 @@ ___";
 #### Instructions
 1. **GUID:** aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
    **Action:** Extract
-   **Overwrite:** true
    **Source:** mod1.zip
 -->
 
@@ -664,7 +660,6 @@ ___";
 #### Instructions
 1. **GUID:** 11111111-1111-1111-1111-111111111111
    **Action:** Choose
-   **Overwrite:** true
    **Source:** option1-guid, option2-guid, option3-guid, option4-guid
 -->
 

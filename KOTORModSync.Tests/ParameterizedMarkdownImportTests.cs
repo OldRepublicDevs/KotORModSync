@@ -22,7 +22,7 @@ namespace KOTORModSync.Tests
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
-			string contentRoot = Path.Combine(solutionRoot, "KOTORModSync.Tests", "mod-builds", "content");
+			string contentRoot = Path.Combine(solutionRoot, /*"KOTORModSync.Tests", */"mod-builds", "content");
 
 			// Get all .md files from k1 directory (exclude validated subdirectory)
 			string k1Path = Path.Combine(contentRoot, "k1");
@@ -80,7 +80,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Sections matched: {matches.Count}");
 
 			// Assert
-			Assert.That(matches.Count, Is.GreaterThan(0),
+			Assert.That(matches, Is.Not.Empty,
 				$"Should match at least one section in {Path.GetFileName(mdFilePath)}");
 		}
 
@@ -111,7 +111,7 @@ namespace KOTORModSync.Tests
 			}
 
 			// Assert
-			Assert.That(names.Count, Is.GreaterThan(0),
+			Assert.That(names, Is.Not.Empty,
 				$"Should extract at least one name from {Path.GetFileName(mdFilePath)}");
 
 			// Verify all names are non-empty
@@ -151,7 +151,7 @@ namespace KOTORModSync.Tests
 			}
 
 			// Assert - At least some mods should have authors
-			Assert.That(authors.Count, Is.GreaterThan(0),
+			Assert.That(authors, Is.Not.Empty,
 				$"Should extract at least one author from {Path.GetFileName(mdFilePath)}");
 		}
 
@@ -181,7 +181,7 @@ namespace KOTORModSync.Tests
 			}
 
 			// Assert - At least some mods should have descriptions
-			Assert.That(descriptions.Count, Is.GreaterThan(0),
+			Assert.That(descriptions, Is.Not.Empty,
 				$"Should extract at least one description from {Path.GetFileName(mdFilePath)}");
 		}
 
@@ -228,7 +228,7 @@ namespace KOTORModSync.Tests
 			}
 
 			// Assert - At least some mods should have category/tier
-			Assert.That(categoryTiers.Count, Is.GreaterThan(0),
+			Assert.That(categoryTiers, Is.Not.Empty,
 				$"Should extract at least one category/tier from {Path.GetFileName(mdFilePath)}");
 		}
 
@@ -263,7 +263,7 @@ namespace KOTORModSync.Tests
 			}
 
 			// Assert - At least some mods should have installation methods
-			Assert.That(methods.Count, Is.GreaterThan(0),
+			Assert.That(methods, Is.Not.Empty,
 				$"Should extract at least one installation method from {Path.GetFileName(mdFilePath)}");
 		}
 
@@ -368,7 +368,7 @@ namespace KOTORModSync.Tests
 			}
 
 			// Assert - The file should have at least some mod entries
-			Assert.That(components.Count, Is.GreaterThan(0),
+			Assert.That(components, Is.Not.Empty,
 				$"Expected to find at least one mod entry in {Path.GetFileName(mdFilePath)}, found {components.Count}");
 
 			Assert.Multiple(() =>
@@ -457,7 +457,7 @@ namespace KOTORModSync.Tests
 			}
 
 			// Assert
-			Assert.That(matches.Count, Is.GreaterThan(0),
+			Assert.That(matches, Is.Not.Empty,
 				$"Should extract at least one link from {Path.GetFileName(mdFilePath)}");
 		}
 
@@ -489,7 +489,7 @@ namespace KOTORModSync.Tests
 
 			// Check for duplicate names
 			var nameGroups = components.GroupBy(c => c.Name).Where(g => g.Count() > 1).ToList();
-			if ( nameGroups.Any() )
+			if ( nameGroups.Count != 0 )
 			{
 				Console.WriteLine($"\nWarning: Found {nameGroups.Count} duplicate name(s):");
 				foreach ( var group in nameGroups )

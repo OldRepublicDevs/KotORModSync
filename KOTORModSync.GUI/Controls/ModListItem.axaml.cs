@@ -25,6 +25,9 @@ namespace KOTORModSync.Controls
 		// Static dictionary to store error messages per component
 		private static readonly Dictionary<Guid, string> s_componentErrors = new Dictionary<Guid, string>();
 
+		// Track previous component for proper event unsubscription
+		private ModComponent _previousComponent;
+
 		// Drag visual state properties
 		public static readonly StyledProperty<bool> IsBeingDraggedProperty =
 			AvaloniaProperty.Register<ModListItem, bool>(nameof(IsBeingDragged));
@@ -151,7 +154,13 @@ namespace KOTORModSync.Controls
 		private void OnCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
 			// The two-way binding will handle updating the ModComponent.IsSelected
-			// We just need to notify the main window to update counts
+			if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
+				mainWindow.OnComponentCheckBoxChanged(sender, e);
+		}
+
+		private void OnOptionCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+		{
+			// Forward option checkbox changes to MainWindow's OnComponentCheckBoxChanged method
 			if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				mainWindow.OnComponentCheckBoxChanged(sender, e);
 		}
@@ -161,6 +170,15 @@ namespace KOTORModSync.Controls
 			if ( !(DataContext is ModComponent component) )
 				return;
 
+			// Unsubscribe from previous component if any
+			if ( _previousComponent != null )
+				_previousComponent.PropertyChanged -= OnComponentPropertyChanged;
+
+			_previousComponent = component;
+
+			// Subscribe to component property changes
+			component.PropertyChanged += OnComponentPropertyChanged;
+
 			// Update from mod management service first to determine status
 			UpdateFromModManagementService();
 
@@ -169,6 +187,17 @@ namespace KOTORModSync.Controls
 
 			// Set up option selection change handlers
 			SetupOptionSelectionHandlers(component);
+		}
+
+		/// <summary>
+		/// Handles property changes on the component, specifically IsValidating changes
+		/// </summary>
+		private void OnComponentPropertyChanged(object sender, PropertyChangedEventArgs e)
+		{
+			if ( e.PropertyName == nameof(ModComponent.IsValidating) && sender is ModComponent component )
+			{
+				UpdateValidationState(component);
+			}
 		}
 
 		/// <summary>
@@ -253,6 +282,19 @@ namespace KOTORModSync.Controls
 		{
 			if ( !(this.FindControl<Border>("RootBorder") is Border border) )
 				return;
+
+			// Handle validating state first - dull the entire item during validation
+			if ( component.IsValidating )
+			{
+				border.Opacity = 0.5;
+				// Don't process other validation states while validating
+				return;
+			}
+			else
+			{
+				// Restore normal opacity when not validating
+				border.Opacity = 1.0;
+			}
 
 			// If component is not selected, clear all validation styling
 			if ( !component.IsSelected )

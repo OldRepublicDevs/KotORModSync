@@ -34,6 +34,22 @@ namespace KOTORModSync
 		// Events for download control
 		public event EventHandler<DownloadControlEventArgs> DownloadControlRequested;
 
+		/// <summary>
+		/// Gets the download timeout in minutes from the UI control
+		/// </summary>
+		public int DownloadTimeoutMinutes
+		{
+			get
+			{
+				NumericUpDown timeoutControl = this.FindControl<NumericUpDown>("TimeoutNumericUpDown");
+				if (timeoutControl != null && timeoutControl.Value.HasValue)
+				{
+					return (int)timeoutControl.Value.Value;
+				}
+				return 10; // Default to 10 minutes
+			}
+		}
+
 		public DownloadProgressWindow()
 		{
 			InitializeComponent();
@@ -310,13 +326,47 @@ namespace KOTORModSync
 
 		private void CancelButton_Click(object sender, RoutedEventArgs e)
 		{
-			_cancellationTokenSource?.Cancel();
+			CancelDownloads();
+		}
 
-			Button cancelButton = this.FindControl<Button>("CancelButton");
-			if ( cancelButton == null )
-				return;
-			cancelButton.IsEnabled = false;
-			cancelButton.Content = "Cancelling...";
+		/// <summary>
+		/// Cancels all ongoing downloads
+		/// </summary>
+		public void CancelDownloads()
+		{
+			try
+			{
+				Logger.LogVerbose("[DownloadProgressWindow] CancelDownloads() called");
+
+				_cancellationTokenSource?.Cancel();
+
+				// Update UI safely using normal priority (not Send which can cause crashes)
+				Dispatcher.UIThread.Post(() =>
+				{
+					Button cancelButton = this.FindControl<Button>("CancelButton");
+					if ( cancelButton != null )
+					{
+						cancelButton.IsEnabled = false;
+						cancelButton.Content = "Cancelling...";
+					}
+
+					// Mark all in-progress downloads as cancelled
+					foreach ( var download in _downloadItems.Where(d => d.Status == DownloadStatus.InProgress) )
+					{
+						download.Status = DownloadStatus.Failed;
+						download.StatusMessage = "Download cancelled by user";
+						download.ErrorMessage = "Download was cancelled by user";
+					}
+
+					UpdateSummary();
+				}); // Use default priority - safe and won't cause crashes
+
+				Logger.LogVerbose("[DownloadProgressWindow] Cooperative cancellation initiated - downloads will stop gracefully");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogError($"[DownloadProgressWindow] Failed to cancel downloads: {ex.Message}");
+			}
 		}
 
 		public CancellationToken CancellationToken => _cancellationTokenSource.Token;

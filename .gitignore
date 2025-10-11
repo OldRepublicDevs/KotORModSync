@@ -372,3 +372,4 @@ bin/*
 .history/
 mod-builds/
 chrome/
+*.nettrace

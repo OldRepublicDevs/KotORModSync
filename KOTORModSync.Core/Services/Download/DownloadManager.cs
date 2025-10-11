@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,13 +19,37 @@ namespace KOTORModSync.Core.Services.Download
 		private readonly object _logThrottleLock = new object();
 		private const int LogThrottleSeconds = 30;
 
+		private CancellationTokenSource _globalCancellationTokenSource;
+
 		public DownloadManager(IEnumerable<IDownloadHandler> handlers)
 		{
 			_handlers = new List<IDownloadHandler>(handlers);
+			_globalCancellationTokenSource = new CancellationTokenSource();
 			Logger.LogVerbose($"[DownloadManager] Initialized with {_handlers.Count} download handlers");
 			for ( int i = 0; i < _handlers.Count; i++ )
 			{
 				Logger.LogVerbose($"[DownloadManager] Handler {i + 1}: {_handlers[i].GetType().Name}");
+			}
+		}
+
+		/// <summary>
+		/// Cancels all ongoing downloads using cooperative cancellation
+		/// </summary>
+		public void CancelAll()
+		{
+			try
+			{
+				Logger.LogVerbose("[DownloadManager] CancelAll() called - using cooperative cancellation");
+
+				// Use cooperative cancellation - this is safe and doesn't kill threads
+				// The downloads will check the cancellation token and stop gracefully
+				_globalCancellationTokenSource?.Cancel();
+
+				Logger.LogVerbose("[DownloadManager] Cooperative cancellation signal sent - downloads will stop gracefully");
+			}
+			catch (Exception ex)
+			{
+				Logger.LogError($"[DownloadManager] Failed to cancel downloads: {ex.Message}");
 			}
 		}
 
@@ -34,6 +59,11 @@ namespace KOTORModSync.Core.Services.Download
 				IProgress<DownloadProgress> progressReporter = null,
 				CancellationToken cancellationToken = default)
 		{
+			// Combine global cancellation token with passed cancellation token
+			var combinedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
+				_globalCancellationTokenSource.Token,
+				cancellationToken).Token;
+
 			var urlList = urlToProgressMap.Keys.ToList();
 			await Logger.LogVerboseAsync($"[DownloadManager] Starting concurrent batch download with progress reporting for {urlList.Count} URLs");
 			await Logger.LogVerboseAsync($"[DownloadManager] Destination directory: {destinationDirectory}");
@@ -57,7 +87,7 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				DownloadProgress progressItem = urlToProgressMap[url];
 				await Logger.LogVerboseAsync($"[DownloadManager] Creating download task for URL: {url}, Mod: {progressItem.ModName}");
-				tasks.Add(DownloadSingleWithConcurrencyLimit(url, progressItem, destinationDirectory, progressReporter, cancellationToken));
+				tasks.Add(DownloadSingleWithConcurrencyLimit(url, progressItem, destinationDirectory, progressReporter, combinedCancellationToken));
 			}
 
 			// Wait for all downloads to complete
@@ -76,10 +106,10 @@ namespace KOTORModSync.Core.Services.Download
 			DownloadProgress progressItem,
 			string destinationDirectory,
 			IProgress<DownloadProgress> progressReporter,
-			CancellationToken cancellationToken)
+			CancellationToken combinedCancellationToken)
 		{
 			// Check for cancellation
-			if ( cancellationToken.IsCancellationRequested )
+			if ( combinedCancellationToken.IsCancellationRequested )
 			{
 				await Logger.LogVerboseAsync("[DownloadManager] Download cancelled by user");
 				progressItem.Status = DownloadStatus.Failed;
@@ -106,7 +136,7 @@ namespace KOTORModSync.Core.Services.Download
 			if ( isDeadlyStream )
 			{
 				// Acquire concurrency limiter for DeadlyStream downloads only (max 5 concurrent)
-				await _deadlyStreamConcurrencyLimiter.WaitAsync(cancellationToken);
+				await _deadlyStreamConcurrencyLimiter.WaitAsync(combinedCancellationToken);
 				concurrencyAcquired = true;
 				await Logger.LogVerboseAsync($"[DownloadManager] DeadlyStream download - Concurrency: {5 - _deadlyStreamConcurrencyLimiter.CurrentCount}/{5} slots in use");
 			}
@@ -151,18 +181,19 @@ namespace KOTORModSync.Core.Services.Download
 						}
 					}
 
-					// Only log progress updates when throttle allows it
+					// Only log start, completion, and failures (not intermediate progress)
 					if ( shouldLog )
 					{
-						Logger.LogVerbose($"[DownloadManager] Progress update for URL: {url}");
-						Logger.LogVerbose($"[DownloadManager]   Status: {update.Status}");
-						Logger.LogVerbose($"[DownloadManager]   Progress: {update.ProgressPercentage:F1}%");
-						Logger.LogVerbose($"[DownloadManager]   Bytes: {update.BytesDownloaded}/{update.TotalBytes}");
-						Logger.LogVerbose($"[DownloadManager]   StatusMessage: {update.StatusMessage}");
-						if (!string.IsNullOrEmpty(update.ErrorMessage))
-							Logger.LogVerbose($"[DownloadManager]   Error: {update.ErrorMessage}");
-						if (!string.IsNullOrEmpty(update.FilePath))
-							Logger.LogVerbose($"[DownloadManager]   FilePath: {update.FilePath}");
+						// Only log significant status changes: Pending (start), Completed/Skipped (end), Failed (error)
+						if ( update.Status == DownloadStatus.Pending ||
+						     update.Status == DownloadStatus.Completed ||
+						     update.Status == DownloadStatus.Skipped ||
+						     update.Status == DownloadStatus.Failed )
+						{
+							Logger.Log($"[Download] {update.Status}: {System.IO.Path.GetFileName(update.FilePath ?? url)}");
+							if (!string.IsNullOrEmpty(update.StatusMessage) && update.Status != DownloadStatus.InProgress)
+								Logger.LogVerbose($"  {update.StatusMessage}");
+						}
 					}
 
 					// Log status changes
@@ -212,7 +243,19 @@ namespace KOTORModSync.Core.Services.Download
 				DownloadResult result;
 				try
 				{
-					result = await handler.DownloadAsync(url, destinationDirectory, internalProgressReporter).ConfigureAwait(false);
+					result = await handler.DownloadAsync(url, destinationDirectory, internalProgressReporter, combinedCancellationToken).ConfigureAwait(false);
+				}
+				catch ( OperationCanceledException )
+				{
+					// Download was cancelled by user
+					await Logger.LogAsync($"[DownloadManager] Download cancelled by user: {url}");
+					progressItem.AddLog("[CANCELLED] Download cancelled by user");
+
+					result = DownloadResult.Failed("Download cancelled by user");
+					progressItem.Status = DownloadStatus.Failed;
+					progressItem.StatusMessage = "Cancelled";
+					progressItem.ErrorMessage = "Download cancelled by user";
+					progressItem.EndTime = DateTime.Now;
 				}
 				catch ( Exception ex )
 				{

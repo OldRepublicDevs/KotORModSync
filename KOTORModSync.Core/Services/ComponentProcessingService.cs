@@ -16,48 +16,35 @@ namespace KOTORModSync.Core.Services
 	/// </summary>
 	public static class ComponentProcessingService
 	{
-		/// <summary>
-		/// Attempts to auto-generate instructions for components without any.
-		/// Uses the unified ModLinkProcessingService pipeline to download archives and generate instructions.
-		/// </summary>
-		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
+	/// <summary>
+	/// Attempts to auto-generate instructions for components without any.
+	/// ONLY processes LOCAL archives already in the download directory.
+	/// Does NOT trigger downloads - downloads must be explicitly requested via button clicks.
+	/// </summary>
+	public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
+	{
+		if ( components == null || components.Count == 0 )
+			return 0;
+
+		try
 		{
-			if ( components == null || components.Count == 0 )
-				return 0;
-
-			try
-			{
-				// Use unified pipeline for processing ModLinks
-				var modLinkProcessor = new ModLinkProcessingService();
-
-				// Get download directory from MainConfig
-				string downloadDirectory = MainConfig.SourcePath?.FullName;
-				if ( string.IsNullOrWhiteSpace(downloadDirectory) )
-				{
-					// Fall back to trying local archives if no download directory configured
-					return await TryGenerateFromLocalArchivesAsync(components);
-				}
-
-				// Process all ModLinks - downloads archives and auto-generates instructions
-				return await modLinkProcessor.ProcessComponentModLinksAsync(
-					components,
-					downloadDirectory,
-					progress: null,
-					cancellationToken: default);
-			}
-			catch ( Exception ex )
-			{
-				await Logger.LogExceptionAsync(ex);
-				return 0;
-			}
+			// ONLY process local archives - no downloads
+			// Downloads are triggered ONLY by user clicking "Fetch Downloads" button
+			return await TryGenerateFromLocalArchivesAsync(components);
 		}
+		catch ( Exception ex )
+		{
+			await Logger.LogExceptionAsync(ex);
+			return 0;
+		}
+	}
 
-		/// <summary>
-		/// Fallback method that tries to generate instructions from archives already in the local mod directory.
-		/// This is used when no download directory is configured.
-		/// Processes ALL ModLinks even if instructions exist (avoiding duplicates).
-		/// </summary>
-		private static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
+	/// <summary>
+	/// Tries to generate instructions from archives already in the local mod directory.
+	/// This is the ONLY method called during file loading - it does NOT download files.
+	/// Processes ALL ModLinks even if instructions exist (avoiding duplicates).
+	/// </summary>
+	public static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
 		{
 			int generatedCount = 0;
 

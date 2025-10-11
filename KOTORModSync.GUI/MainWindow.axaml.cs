@@ -62,10 +62,14 @@ namespace KOTORModSync
 		private CancellationTokenSource _installSuggestCts;
 		private bool _suppressPathEvents;
 		private bool _suppressComboEvents;
+		private bool _suppressComponentCheckboxEvents;
 		private bool? _rootSelectionState;
 		private bool _editorMode;
 		private bool _isClosingProgressWindow;
 		private string _lastLoadedFileName;
+		// Download status animation
+		private DispatcherTimer _downloadAnimationTimer;
+		private int _downloadAnimationDots;
 		// ModManagementService provides comprehensive mod management functionality
 		private readonly ModManagementService _modManagementService;
 		// Public property for binding
@@ -193,8 +197,11 @@ namespace KOTORModSync
 				_componentEditorService = new Services.ComponentEditorService(MainConfigInstance, this);
 				_componentSelectionService = new ComponentSelectionService(MainConfigInstance);
 				_downloadOrchestrationService = new DownloadOrchestrationService(_downloadCacheService, MainConfigInstance, this);
+				_downloadOrchestrationService.DownloadStateChanged += OnDownloadStateChanged;
 				_filterUIService = new FilterUIService(MainConfigInstance);
 				_markdownRenderingService = new MarkdownRenderingService();
+				// Initialize download animation timer
+				InitializeDownloadAnimationTimer();
 				_instructionBrowsingService = new InstructionBrowsingService(MainConfigInstance, _dialogService);
 				_instructionGenerationService = new InstructionGenerationService(MainConfigInstance, this, _downloadOrchestrationService);
 				_validationDisplayService = new ValidationDisplayService(_validationService, () => MainConfig.AllComponents);
@@ -438,7 +445,9 @@ namespace KOTORModSync
 
 		private bool TryApplySourcePath(string text)
 		{
-			bool result = _guiPathService.TryApplySourcePath(text, _ => ScanModDirectoryForDownloads());
+			// Don't trigger automatic validation when path is set
+			// User must manually trigger via "Verify" or "Fetch Downloads" buttons
+			bool result = _guiPathService.TryApplySourcePath(text, null);
 			if ( result )
 			{
 				_ = GuiPathService.AddToRecentModsAsync(text);
@@ -2809,19 +2818,19 @@ namespace KOTORModSync
 		///     on the same tab.
 		///     If so, it logs a message and returns without performing any further actions.
 		///     **Warning**: The logic in this method may trigger swapping of tabs based on certain conditions, such as selecting
-		///     the "raw edit" tab or changing from the "raw edit" tab to another.
+		///     the "raw" tab or changing from the "raw" tab to another.
 		///     It is important to be aware of these tab-swapping behaviors to avoid unexpected changes in the user interface.
 		///     The method determines whether the tab should be swapped based on the selected tab's name.
-		///     If the new tab is "raw edit", it calls the LoadIntoRawEditTextBox method to check if the current component should
+		///     If the new tab is "raw", it calls the LoadIntoRawEditTextBox method to check if the current component should
 		///     be loaded into the raw editor.
 		///     The specific criteria for loading a component into the raw editor are not detailed within this method.
-		///     If the last tab was "raw edit", the method checks if changes should be saved before swapping to the new tab.
+		///     If the last tab was "raw", the method checks if changes should be saved before swapping to the new tab.
 		///     The method finally decides whether to prevent the tab change and returns accordingly.
 		///     Depending on the conditions mentioned earlier, tab swapping may be cancelled, which might not be immediately
 		///     apparent to the user.
 		///     Furthermore, this method modifies the visibility of certain UI elements (RawEditTextBox and ApplyEditorButton)
 		///     based on the selected tab.
-		///     Specifically, it shows or hides these elements when the "raw edit" tab is selected, which could impact user
+		///     Specifically, it shows or hides these elements when the "raw" tab is selected, which could impact user
 		///     interactions if not understood properly.
 		/// </summary>
 		/// <param name="sender">The object that raised the event (expected to be a TabControl).</param>
@@ -2887,15 +2896,15 @@ namespace KOTORModSync
 					}
 					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Preparing to swap tabs from '{lastTabName}' to '{tabName}'");
 					bool shouldSwapTabs = true;
-					if ( tabName == "raw edit" )
+					if ( tabName == "raw" )
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'raw edit', loading into RawEditTextBox");
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'raw', loading into RawEditTextBox");
 						shouldSwapTabs = await LoadIntoRawEditTextBox(CurrentComponent);
 						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] LoadIntoRawEditTextBox returned: {shouldSwapTabs}");
 					}
-					else if ( lastTabName == "raw edit" )
+					else if ( lastTabName == "raw" )
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Source was 'raw edit', checking if changes should be saved");
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Source was 'raw', checking if changes should be saved");
 						shouldSwapTabs = await ShouldSaveChanges();
 						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] ShouldSaveChanges returned: {shouldSwapTabs}");
 						if ( shouldSwapTabs )
@@ -2904,9 +2913,9 @@ namespace KOTORModSync
 							RawEditTextBox.Text = string.Empty;
 						}
 					}
-					else if ( tabName == "gui edit" )
+					else if ( tabName == "editor" )
 					{
-						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Target is 'gui edit', CurrentComponent='{CurrentComponent?.Name}', InstructionCount={CurrentComponent?.Instructions.Count}, OptionCount={CurrentComponent?.Options.Count}");
+						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Target is 'editor', CurrentComponent='{CurrentComponent?.Name}', InstructionCount={CurrentComponent?.Instructions.Count}, OptionCount={CurrentComponent?.Options.Count}");
 						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] GuiEditGrid.DataContext is {(GuiEditGrid.DataContext == null ? "null" : (GuiEditGrid.DataContext == CurrentComponent ? "CurrentComponent" : "something else"))}");
 					}
 					// Prevent the attempted tab change
@@ -2918,8 +2927,8 @@ namespace KOTORModSync
 					}
 					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Setting visibility for controls based on selected tab");
 					// Show/hide the appropriate content based on the selected tab
-					RawEditTextBox.IsVisible = tabName == "raw edit";
-					ApplyEditorButton.IsVisible = tabName == "raw edit";
+					RawEditTextBox.IsVisible = tabName == "raw";
+					ApplyEditorButton.IsVisible = tabName == "raw";
 					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] RawEditTextBox.IsVisible={RawEditTextBox.IsVisible}, ApplyEditorButton.IsVisible={ApplyEditorButton.IsVisible}");
 					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] COMPLETED SUCCESSFULLY");
 				}
@@ -2991,9 +3000,9 @@ namespace KOTORModSync
 			bool confirmLoadOverwrite = true;
 			string currentTabName = GetControlNameFromHeader(GetCurrentTabItem(TabControl))?.ToLowerInvariant();
 			await Logger.LogVerboseAsync($"[LoadComponentDetails] Current tab: '{currentTabName}'");
-			if ( currentTabName == "raw edit" )
+			if ( currentTabName == "raw" )
 			{
-				await Logger.LogVerboseAsync("[LoadComponentDetails] Current tab is 'raw edit', loading into RawEditTextBox");
+				await Logger.LogVerboseAsync("[LoadComponentDetails] Current tab is 'raw', loading into RawEditTextBox");
 				confirmLoadOverwrite = await LoadIntoRawEditTextBox(selectedComponent);
 				await Logger.LogVerboseAsync($"[LoadComponentDetails] LoadIntoRawEditTextBox returned: {confirmLoadOverwrite}");
 			}
@@ -3017,7 +3026,7 @@ namespace KOTORModSync
 			SetCurrentComponent(selectedComponent);
 			await Logger.LogVerboseAsync("[LoadComponentDetails] SetCurrentComponent completed");
 			// default to SummaryTabItem only when coming from InitialTab or invalid state
-			// Don't switch tabs if user is already on a valid tab (Summary, GUI Edit, or Raw Edit)
+			// Don't switch tabs if user is already on a valid tab (Summary, Editor, or Raw)
 			await Logger.LogVerboseAsync($"[LoadComponentDetails] InitialTab.IsSelected={InitialTab.IsSelected}, TabControl.SelectedIndex={TabControl.SelectedIndex}");
 			if ( InitialTab.IsSelected || TabControl.SelectedIndex == int.MaxValue )
 			{
@@ -3311,12 +3320,29 @@ namespace KOTORModSync
 			try
 			{
 				Logger.LogVerbose($"[OnCheckBoxChanged] START - sender type: {sender?.GetType().Name ?? "null"}");
+
+				// If we're suppressing component checkbox events (e.g., during bulk operations), return early
+				if ( _suppressComponentCheckboxEvents )
+				{
+					Logger.LogVerbose("[OnCheckBoxChanged] Suppressing component checkbox events, returning");
+					return;
+				}
+
 				if ( !(sender is CheckBox checkBox) )
 				{
 					Logger.LogVerbose("[OnCheckBoxChanged] Sender is not a CheckBox, returning");
 					return;
 				}
-				Logger.LogVerbose($"[OnCheckBoxChanged] CheckBox.IsChecked={checkBox.IsChecked}, Tag type: {checkBox.Tag?.GetType().Name ?? "null"}");
+				// Try to find the visual tree path to identify where this checkbox is located
+				var visualPath = new List<string>();
+				var current = checkBox.Parent;
+				while (current != null && visualPath.Count < 5)
+				{
+					visualPath.Add($"{current.GetType().Name}(Name='{current.Name}')");
+					current = current.Parent;
+				}
+				Logger.LogVerbose($"[OnCheckBoxChanged] Visual tree path: {string.Join(" -> ", visualPath)}");
+
 				if ( checkBox.Tag is ModComponent thisComponent )
 				{
 					Logger.LogVerbose($"[OnCheckBoxChanged] ModComponent: '{thisComponent.Name}' (GUID={thisComponent.Guid}), IsChecked={checkBox.IsChecked}");
@@ -3350,7 +3376,7 @@ namespace KOTORModSync
 				}
 				else
 				{
-					Logger.LogVerbose("[OnCheckBoxChanged] CheckBox.Tag is neither a ModComponent nor an Option, returning early");
+					Logger.LogVerbose($"CheckBox.Tag is neither a ModComponent nor an Option!");
 					return; // Early return to avoid expensive operations for non-mod/option checkboxes
 				}
 			}
@@ -3417,9 +3443,8 @@ namespace KOTORModSync
 					}
 					// Update step progress after components are loaded
 					UpdateStepProgress();
-					// Trigger validation scan now that components are loaded
-					// This ensures file detection works regardless of whether paths or TOML was loaded first
-					ScanModDirectoryForDownloads();
+					// Note: Validation is now manual - user must click "Verify" or "Fetch Downloads"
+					// File watcher will handle real-time validation after that
 					return;
 				}
 				// Hide the tabs when no components are loaded
@@ -4103,12 +4128,11 @@ namespace KOTORModSync
 		}
 		private void SetupModDirectoryWatcher(string path)
 		{
-			_fileSystemService.SetupModDirectoryWatcher(path, ScanModDirectoryForDownloads);
-			// Initial scan - only if components are already loaded
-			if ( MainConfig.AllComponents.Count > 0 )
-				ScanModDirectoryForDownloads();
+			_fileSystemService.SetupModDirectoryWatcher(path, UpdateDownloadStatus);
+			// Note: No initial scan - validation is manual via "Verify" or "Fetch Downloads" buttons
+			// File watcher will trigger real-time validation after user's first manual validation
 		}
-		private void ScanModDirectoryForDownloads()
+		private void UpdateDownloadStatus()
 		{
 			// Run in background thread to avoid blocking UI
 			Task.Run(() =>
@@ -4230,18 +4254,139 @@ namespace KOTORModSync
 		/// </summary>
 		/// <param name="component">The component to validate</param>
 		/// <returns>True if all required files exist, false otherwise</returns>
-		private bool ValidateComponentFilesExist(ModComponent component)
+		private static bool ValidateComponentFilesExist(ModComponent component)
 		{
 			return ValidationService.ValidateComponentFilesExist(component);
 		}
 		private async void ScrapeDownloadsButton_Click(object sender, RoutedEventArgs e)
 		{
-			await _downloadOrchestrationService.StartDownloadSessionAsync(ScanModDirectoryForDownloads);
+			await _downloadOrchestrationService.StartDownloadSessionAsync(UpdateDownloadStatus);
 		}
 
 		private async void DownloadStatusButton_Click(object sender, RoutedEventArgs e)
 		{
 			await _downloadOrchestrationService.ShowDownloadStatusAsync();
+		}
+
+		private void StopDownloadsButton_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				_downloadOrchestrationService.CancelAllDownloads();
+				Logger.Log("User requested to stop all downloads");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error stopping downloads");
+			}
+		}
+
+		/// <summary>
+		/// Initializes the download animation timer for the "Running..." text
+		/// </summary>
+		private void InitializeDownloadAnimationTimer()
+		{
+			_downloadAnimationTimer = new DispatcherTimer
+			{
+				Interval = TimeSpan.FromMilliseconds(500) // Animate every 500ms
+			};
+			_downloadAnimationTimer.Tick += (sender, e) =>
+			{
+				TextBlock runningText = this.FindControl<TextBlock>("DownloadRunningText");
+				if ( runningText != null && runningText.IsVisible )
+				{
+					_downloadAnimationDots = (_downloadAnimationDots + 1) % 4;
+					string dots = new string('.', _downloadAnimationDots);
+					runningText.Text = $"Running{dots}";
+				}
+			};
+		}
+
+		/// <summary>
+		/// Handles download state changes from the orchestration service
+		/// </summary>
+		private void OnDownloadStateChanged(object sender, EventArgs e)
+		{
+			Dispatcher.UIThread.Post(() =>
+			{
+				try
+				{
+					UpdateDownloadIndicators();
+				}
+				catch ( Exception ex )
+				{
+					Logger.LogException(ex, "Error updating download indicators");
+				}
+			});
+		}
+
+		/// <summary>
+		/// Updates the download status indicators (LED, running text, stop button, progress)
+		/// </summary>
+		private void UpdateDownloadIndicators()
+		{
+			try
+			{
+				Avalonia.Controls.Shapes.Ellipse ledIndicator = this.FindControl<Avalonia.Controls.Shapes.Ellipse>("DownloadLedIndicator");
+				TextBlock runningText = this.FindControl<TextBlock>("DownloadRunningText");
+				Button stopButton = this.FindControl<Button>("StopDownloadsButton");
+				TextBlock progressText = this.FindControl<TextBlock>("DownloadProgressText");
+
+				bool isDownloadInProgress = _downloadOrchestrationService.IsDownloadInProgress;
+
+				// Update LED indicator color
+				if ( ledIndicator != null )
+				{
+					ledIndicator.Fill = isDownloadInProgress
+						? new SolidColorBrush(Color.FromRgb(0, 255, 0)) // Green when running
+						: new SolidColorBrush(Color.FromRgb(128, 128, 128)); // Gray when not running
+				}
+
+				// Update running text visibility and animation
+				if ( runningText != null )
+				{
+					runningText.IsVisible = isDownloadInProgress;
+				}
+
+				// Update stop button visibility
+				if ( stopButton != null )
+				{
+					stopButton.IsVisible = isDownloadInProgress;
+				}
+
+				// Update progress text
+				if ( progressText != null )
+				{
+					progressText.IsVisible = isDownloadInProgress;
+					if ( isDownloadInProgress )
+					{
+						int completed = _downloadOrchestrationService.CompletedComponents;
+						int total = _downloadOrchestrationService.TotalComponentsToDownload;
+						progressText.Text = $"Downloaded: {completed} / {total} mods";
+					}
+				}
+
+				// Start/stop animation timer
+				if ( isDownloadInProgress )
+				{
+					if ( !_downloadAnimationTimer.IsEnabled )
+					{
+						_downloadAnimationDots = 0;
+						_downloadAnimationTimer.Start();
+					}
+				}
+				else
+				{
+					if ( _downloadAnimationTimer.IsEnabled )
+					{
+						_downloadAnimationTimer.Stop();
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error in UpdateDownloadIndicators");
+			}
 		}
 		private void OpenModDirectoryButton_Click(object sender, RoutedEventArgs e)
 		{
@@ -4327,10 +4472,25 @@ namespace KOTORModSync
 
 		private void DeselectAll_Click(object sender, RoutedEventArgs e)
 		{
-			_selectionService.DeselectAll((component, visited) => ComponentCheckboxUnchecked(component, visited));
-			UpdateModCounts();
-			RefreshModListVisuals();
-			UpdateStepProgress();
+			try
+			{
+				// Suspend checkbox change events to prevent circular updates during bulk deselection
+				_suppressComponentCheckboxEvents = true;
+
+				// Use the SelectionService to deselect all mods
+				_selectionService.DeselectAll((component, visited) => ComponentCheckboxUnchecked(component, visited));
+
+				// Update UI
+				UpdateModCounts();
+				RefreshModListVisuals();
+				UpdateStepProgress();
+				ResetDownloadStatusDisplay();
+			}
+			finally
+			{
+				// Re-enable checkbox change events
+				_suppressComponentCheckboxEvents = false;
+			}
 		}
 		private void InitializeFilterUi(List<ModComponent> components)
 		{
@@ -4339,7 +4499,6 @@ namespace KOTORModSync
 		private void CategoryItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			// Category checkbox changed - does nothing until "Apply Category Selections" is clicked
-			// No filtering - just tracks what the user selected
 		}
 		private void SelectByTier_Click(object sender, RoutedEventArgs e)
 		{
@@ -4363,23 +4522,6 @@ namespace KOTORModSync
 				RefreshModListVisuals();
 				UpdateStepProgress();
 			});
-		}
-		#endregion
-		private void ToggleErroredMods_Click(object sender, RoutedEventArgs e)
-		{
-			if ( !(sender is CheckBox checkBox) )
-				return;
-
-			bool shouldSelect = checkBox.IsChecked == true;
-			_selectionService.ToggleErroredMods(
-				shouldSelect,
-				IsComponentValidForInstallation,
-				(c, visited) => ComponentCheckboxChecked(c, visited),
-				(c, visited) => ComponentCheckboxUnchecked(c, visited)
-			);
-
-			UpdateModCounts();
-			UpdateStepProgress();
 		}
 		private void ExpandAllSections_Click(object sender, RoutedEventArgs e)
 		{
@@ -4499,7 +4641,7 @@ namespace KOTORModSync
 				TabControl tabControl = this.FindControl<TabControl>("InitialTab");
 				if ( tabControl != null )
 				{
-					// For URL validation errors, switch to GUI Edit tab to show download links
+					// For URL validation errors, switch to Editor tab to show download links
 					if ( ErrorType.Contains("Invalid download URLs") )
 					{
 						TabItem guiEditTab = this.FindControl<TabItem>("GuiEditTabItem");
@@ -4533,9 +4675,9 @@ namespace KOTORModSync
 			{
 				try
 				{
-					// Switch to GUI Edit mode
+					// Switch to Editor mode
 					EditorMode = true;
-					// Get the ScrollViewer in the GUI Edit tab
+					// Get the ScrollViewer in the Editor tab
 					ScrollViewer scrollViewer = ScrollNavigationService.FindScrollViewer(GuiEditTabItem);
 					// Use the modular navigation service
 					await ScrollNavigationService.NavigateToControlAsync(
@@ -4575,3 +4717,4 @@ namespace KOTORModSync
 		}
 	}
 }
+#endregion

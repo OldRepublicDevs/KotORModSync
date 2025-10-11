@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Threading;
 using Avalonia.Threading;
+using KOTORModSync.Converters;
 using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
 
@@ -89,34 +90,38 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		private void OnModDirectoryChanged(object sender, FileSystemEventArgs e)
+	private void OnModDirectoryChanged(object sender, FileSystemEventArgs e)
+	{
+		// Debounce file system events - restart timer on each event
+		// This batches rapid file changes into a single validation call
+		lock ( _timerLock )
 		{
-			// Debounce file system events - restart timer on each event
-			// This batches rapid file changes into a single validation call
-			lock ( _timerLock )
-			{
-				// Dispose existing timer if any
-				_debounceTimer?.Dispose();
+			// Dispose existing timer if any
+			_debounceTimer?.Dispose();
 
-				// Create new timer that will fire after the debounce delay
-				_debounceTimer = new Timer(_ =>
+			// Create new timer that will fire after the debounce delay
+			_debounceTimer = new Timer(_ =>
+			{
+				// Dispatch to UI thread with background priority
+				Dispatcher.UIThread.Post(() =>
 				{
-					// Dispatch to UI thread with background priority
-					Dispatcher.UIThread.Post(() =>
+					try
 					{
-						try
-						{
-							Logger.LogVerbose("[FileSystemService] Debounced file system change detected, triggering validation");
-							_onDirectoryChanged?.Invoke();
-						}
-						catch ( Exception ex )
-						{
-							Logger.LogException(ex, "Error processing mod directory change");
-						}
-					}, DispatcherPriority.Background);
-				}, null, DebounceDelayMs, Timeout.Infinite);
-			}
+						Logger.Log($"[File Watcher] Detected changes in mod directory ({e.ChangeType}: {Path.GetFileName(e.FullPath)}), running validation...");
+
+						// Invalidate converter caches that depend on file system state
+						NamespacesIniOptionConverter.InvalidateCache();
+
+						_onDirectoryChanged?.Invoke();
+					}
+					catch ( Exception ex )
+					{
+						Logger.LogException(ex, "Error processing mod directory change");
+					}
+				}, DispatcherPriority.Background);
+			}, null, DebounceDelayMs, Timeout.Infinite);
 		}
+	}
 
 		private void OnModDirectoryWatcherError(object sender, ErrorEventArgs e)
 		{

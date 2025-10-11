@@ -53,14 +53,11 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				var visitedComponents = new HashSet<ModComponent>();
-
+				// Deselect all components without triggering dependency resolution
+				// (Deselect all should be an absolute operation - no dependencies matter)
 				foreach ( ModComponent component in _mainConfig.allComponents )
 				{
-					if ( !component.IsSelected )
-						continue;
 					component.IsSelected = false;
-					componentCheckboxUnchecked?.Invoke(component, visitedComponents);
 				}
 
 				Logger.LogVerbose($"Deselected all {_mainConfig.allComponents.Count} mods");
@@ -152,58 +149,6 @@ namespace KOTORModSync.Services
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Error selecting by categories");
-			}
-		}
-
-		/// <summary>
-		/// Toggles selection for errored mods
-		/// </summary>
-		public void ToggleErroredMods(
-			bool shouldSelect,
-			Func<ModComponent, bool> isComponentValid,
-			Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked,
-			Action<ModComponent, HashSet<ModComponent>> componentCheckboxUnchecked)
-		{
-			try
-			{
-				var visitedComponents = new HashSet<ModComponent>();
-
-				// Find all errored components (missing downloads or validation errors)
-				var erroredComponents = _mainConfig.allComponents.Where(c =>
-				{
-					// Check if component is missing download (only if selected)
-					if ( c.IsSelected && !c.IsDownloaded )
-						return true;
-
-					// Check if component has validation errors
-					bool isValid = isComponentValid(c);
-					return !isValid;
-				}).ToList();
-
-				if ( erroredComponents.Count == 0 )
-				{
-					Logger.LogVerbose("No errored mods found to toggle");
-					return;
-				}
-
-				// Toggle selection for all errored components
-				foreach ( ModComponent component in erroredComponents )
-				{
-					if ( component.IsSelected == shouldSelect )
-						continue;
-
-					component.IsSelected = shouldSelect;
-					if ( shouldSelect )
-						componentCheckboxChecked?.Invoke(component, visitedComponents);
-					else
-						componentCheckboxUnchecked?.Invoke(component, visitedComponents);
-				}
-
-				Logger.LogVerbose($"{(shouldSelect ? "Selected" : "Deselected")} {erroredComponents.Count} errored mod(s)");
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, "Error toggling errored mods");
 			}
 		}
 	}

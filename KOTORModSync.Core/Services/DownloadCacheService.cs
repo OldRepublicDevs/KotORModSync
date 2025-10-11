@@ -373,8 +373,13 @@ namespace KOTORModSync.Core.Services
 					progressTracker.ErrorMessage = p.ErrorMessage;
 					progressTracker.Exception = p.Exception;
 
-					// Report the updated progress to the UI
-					Logger.LogVerbose($"[DownloadCacheService] Reporting progress to UI: Status={progressTracker.Status}, Message={progressTracker.StatusMessage}");
+					// Report the updated progress to the UI (log only significant events)
+					if ( progressTracker.Status == DownloadStatus.Pending ||
+					     progressTracker.Status == DownloadStatus.Completed ||
+					     progressTracker.Status == DownloadStatus.Failed )
+					{
+						Logger.LogVerbose($"[DownloadCache] {progressTracker.Status}: {progressTracker.StatusMessage}");
+					}
 					progress?.Report(progressTracker);
 				});
 

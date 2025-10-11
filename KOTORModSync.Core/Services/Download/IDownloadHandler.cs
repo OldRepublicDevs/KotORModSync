@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace KOTORModSync.Core.Services.Download
@@ -6,6 +7,6 @@ namespace KOTORModSync.Core.Services.Download
 	public interface IDownloadHandler
 	{
 		bool CanHandle(string url);
-		Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null);
+		Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default);
 	}
 }

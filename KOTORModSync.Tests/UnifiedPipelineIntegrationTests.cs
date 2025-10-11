@@ -93,7 +93,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			Assert.That(result, Is.GreaterThan(0), "Should process at least one component");
-			Assert.That(component.Instructions.Count, Is.GreaterThan(0), "Should have instructions");
+			Assert.That(component.Instructions, Is.Not.Empty, "Should have instructions");
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract), "First instruction should be Extract");
 		}
 

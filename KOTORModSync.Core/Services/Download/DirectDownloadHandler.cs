@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace KOTORModSync.Core.Services.Download
@@ -24,7 +25,7 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
-		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null)
+		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
 		{
 			await Logger.LogVerboseAsync($"[DirectDownload] Starting direct download from URL: {url}");
 			await Logger.LogVerboseAsync($"[DirectDownload] Destination directory: {destinationDirectory}");

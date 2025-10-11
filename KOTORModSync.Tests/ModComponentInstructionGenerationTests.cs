@@ -137,7 +137,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			Assert.That(result, Is.True, "Should successfully generate instructions");
-			Assert.That(component.Instructions.Count, Is.GreaterThan(0), "Should have generated at least one instruction");
+			Assert.That(component.Instructions, Is.Not.Empty, "Should have generated at least one instruction");
 			Assert.That(component.InstallationMethod, Is.Not.Null.And.Not.Empty, "Should have set InstallationMethod");
 
 			// Log results for debugging
@@ -169,7 +169,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			Assert.That(result, Is.True, "Should find the correct archive");
-			Assert.That(component.Instructions.Count, Is.GreaterThan(0));
+			Assert.That(component.Instructions, Is.Not.Empty);
 
 			// Verify it used the correct archive
 			var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
@@ -218,7 +218,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			Assert.That(result, Is.True, "Should find archive with fuzzy matching");
-			Assert.That(component.Instructions.Count, Is.GreaterThan(0));
+			Assert.That(component.Instructions, Is.Not.Empty);
 		}
 
 		[Test]
@@ -341,7 +341,7 @@ namespace KOTORModSync.Tests
 
 			// Assert
 			Assert.That(result, Is.True, "Should extract filename from URL");
-			Assert.That(component.Instructions.Count, Is.GreaterThan(0));
+			Assert.That(component.Instructions, Is.Not.Empty);
 		}
 	}
 }

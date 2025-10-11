@@ -258,6 +258,7 @@ namespace KOTORModSync.Core
 		[NotNull] private string _tier = string.Empty;
 
 		private bool _isDownloaded;
+		private bool _isValidating;
 
 		public Guid Guid
 		{
@@ -438,46 +439,49 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		public ComponentInstallState InstallState
+	[JsonIgnore]
+	public ComponentInstallState InstallState
+	{
+		get => _installState;
+		set
 		{
-			get => _installState;
-			set
-			{
-				if ( _installState == value )
-					return;
+			if ( _installState == value )
+				return;
 
-				_installState = value;
-				OnPropertyChanged();
-			}
+			_installState = value;
+			OnPropertyChanged();
 		}
+	}
 
-		[CanBeNull]
-		public DateTimeOffset? LastStartedUtc
+	[JsonIgnore]
+	[CanBeNull]
+	public DateTimeOffset? LastStartedUtc
+	{
+		get => _lastStartedUtc;
+		set
 		{
-			get => _lastStartedUtc;
-			set
-			{
-				if ( _lastStartedUtc == value )
-					return;
+			if ( _lastStartedUtc == value )
+				return;
 
-				_lastStartedUtc = value;
-				OnPropertyChanged();
-			}
+			_lastStartedUtc = value;
+			OnPropertyChanged();
 		}
+	}
 
-		[CanBeNull]
-		public DateTimeOffset? LastCompletedUtc
+	[JsonIgnore]
+	[CanBeNull]
+	public DateTimeOffset? LastCompletedUtc
+	{
+		get => _lastCompletedUtc;
+		set
 		{
-			get => _lastCompletedUtc;
-			set
-			{
-				if ( _lastCompletedUtc == value )
-					return;
+			if ( _lastCompletedUtc == value )
+				return;
 
-				_lastCompletedUtc = value;
-				OnPropertyChanged();
-			}
+			_lastCompletedUtc = value;
+			OnPropertyChanged();
 		}
+	}
 
 		[NotNull]
 		internal IReadOnlyList<InstructionCheckpoint> InstructionCheckpoints => _instructionCheckpoints;
@@ -506,14 +510,28 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		public bool IsDownloaded
+	[JsonIgnore]
+	public bool IsDownloaded
+	{
+		get => _isDownloaded;
+		set
 		{
-			get => _isDownloaded;
+			if ( _isDownloaded == value )
+				return;
+			_isDownloaded = value;
+			OnPropertyChanged();
+		}
+	}
+
+		[JsonIgnore]
+		public bool IsValidating
+		{
+			get => _isValidating;
 			set
 			{
-				if ( _isDownloaded == value )
+				if ( _isValidating == value )
 					return;
-				_isDownloaded = value;
+				_isValidating = value;
 				OnPropertyChanged();
 			}
 		}

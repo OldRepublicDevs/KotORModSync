@@ -188,6 +188,34 @@ namespace KOTORModSync.Core
 			}
 		}
 
+		// Conditional serialization methods for JSON.NET
+		// These control which fields are saved to TOML based on the Action type
+
+		/// <summary>
+		/// Overwrite should only be serialized for Move, Copy, and Rename actions.
+		/// </summary>
+		public bool ShouldSerializeOverwrite()
+		{
+			return Action == ActionType.Move || Action == ActionType.Copy || Action == ActionType.Rename;
+		}
+
+		/// <summary>
+		/// Destination should only be serialized for Move, Copy, Rename, Patcher, and Delete actions.
+		/// </summary>
+		public bool ShouldSerializeDestination()
+		{
+			return Action == ActionType.Move || Action == ActionType.Copy || Action == ActionType.Rename
+				|| Action == ActionType.Patcher || Action == ActionType.Delete;
+		}
+
+		/// <summary>
+		/// Arguments should only be serialized for DelDuplicate, Execute, and Patcher actions.
+		/// </summary>
+		public bool ShouldSerializeArguments()
+		{
+			return Action == ActionType.DelDuplicate || Action == ActionType.Execute || Action == ActionType.Patcher;
+		}
+
 		[NotNull][ItemNotNull] private List<string> RealSourcePaths { get; set; } = new List<string>();
 		[CanBeNull] private DirectoryInfo RealDestinationPath { get; set; }
 

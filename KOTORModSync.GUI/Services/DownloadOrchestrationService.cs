@@ -27,6 +27,16 @@ namespace KOTORModSync.Services
 		private readonly MainConfig _mainConfig;
 		private DownloadProgressWindow _currentDownloadWindow;
 
+		// Download state tracking
+		private int _totalComponentsToDownload;
+		private int _completedComponents;
+
+		public bool IsDownloadInProgress { get; private set; }
+		public int TotalComponentsToDownload => _totalComponentsToDownload;
+		public int CompletedComponents => _completedComponents;
+
+		public event EventHandler DownloadStateChanged;
+
 		public DownloadOrchestrationService(
 			DownloadCacheService cacheService,
 			MainConfig mainConfig,
@@ -44,6 +54,15 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
+				// If download window is already open and visible, just activate it
+				if ( _currentDownloadWindow != null && _currentDownloadWindow.IsVisible )
+				{
+					_currentDownloadWindow.Activate();
+					_ = _currentDownloadWindow.Focus();
+					await Logger.LogVerboseAsync("[DownloadOrchestration] Download window already open, activating existing window");
+					return;
+				}
+
 				// Validate preconditions
 				if ( _mainConfig.sourcePath == null || !Directory.Exists(_mainConfig.sourcePath.FullName) )
 				{
@@ -71,13 +90,30 @@ namespace KOTORModSync.Services
 					return;
 				}
 
+				// Initialize download state tracking
+				_totalComponentsToDownload = selectedComponents.Count;
+				_completedComponents = 0;
+				IsDownloadInProgress = true;
+				DownloadStateChanged?.Invoke(this, EventArgs.Empty);
+
 				// Create and show the download progress window
 				var progressWindow = new DownloadProgressWindow();
 				_currentDownloadWindow = progressWindow;
 
+				// Clear the reference when the window closes
+				progressWindow.Closed += (sender, e) =>
+				{
+					_currentDownloadWindow = null;
+					Logger.LogVerbose("[DownloadOrchestration] Download window closed");
+				};
+
 				// Setup download manager with all handlers
+				// Get timeout from the window's UI control
+				int timeoutMinutes = progressWindow.DownloadTimeoutMinutes;
+				await Logger.LogVerboseAsync($"[DownloadOrchestration] Using download timeout: {timeoutMinutes} minutes");
+
 				var httpClient = new System.Net.Http.HttpClient();
-				httpClient.Timeout = TimeSpan.FromMinutes(10);
+				httpClient.Timeout = TimeSpan.FromMinutes(timeoutMinutes);
 
 				var handlers = new List<IDownloadHandler>
 			{
@@ -94,9 +130,29 @@ namespace KOTORModSync.Services
 				// Subscribe to download control events (retry, pause, etc.)
 				progressWindow.DownloadControlRequested += async (sender, args) =>
 				{
-					if ( args.Action == DownloadControlAction.Retry )
+					try
 					{
-						await HandleRetryDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
+						switch ( args.Action )
+						{
+							case DownloadControlAction.Retry:
+								await HandleRetryDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
+								break;
+							case DownloadControlAction.Pause:
+								await HandlePauseDownloadAsync(args.Progress, downloadManager);
+								break;
+							case DownloadControlAction.Resume:
+								await HandleResumeDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
+								break;
+							case DownloadControlAction.Start:
+								await HandleStartDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
+								break;
+						}
+					}
+					catch ( Exception ex )
+					{
+						await Logger.LogErrorAsync($"[DownloadControl] Failed to handle {args.Action}: {ex.Message}");
+						args.Progress.Status = DownloadStatus.Failed;
+						args.Progress.ErrorMessage = $"Control action failed: {ex.Message}";
 					}
 				};
 
@@ -130,40 +186,56 @@ namespace KOTORModSync.Services
 							}
 						});
 
-						foreach ( ModComponent component in selectedComponents )
+						// Process all components CONCURRENTLY (not sequentially!)
+						await Task.WhenAll(selectedComponents.Select(async component =>
 						{
-							// Create progress reporter for this component
-							var progressReporter = new Progress<DownloadProgress>(progress =>
+							try
 							{
-								progressWindow.UpdateDownloadProgress(progress);
-							});
-
-							// THE ONLY DOWNLOAD ENTRY POINT - everything goes through cache service
-							var cacheEntries = await _cacheService.ResolveOrDownloadAsync(
-								component,
-								_mainConfig.sourcePath.FullName,
-								progressReporter,
-								progressWindow.CancellationToken);
-
-							await Logger.LogVerboseAsync($"[DownloadOrchestration] Processed component '{component.Name}': {cacheEntries.Count} cache entries");
-
-							// Auto-generate instructions for archives
-							if ( cacheEntries.Count > 0 && cacheEntries.Any(e => e.IsArchive) )
-							{
-								var firstArchive = cacheEntries.First(e => e.IsArchive);
-								if ( !string.IsNullOrEmpty(firstArchive.FilePath) && File.Exists(firstArchive.FilePath) )
+								// Create progress reporter for this component
+								var progressReporter = new Progress<DownloadProgress>(progress =>
 								{
-									bool generated = AutoInstructionGenerator.GenerateInstructions(component, firstArchive.FilePath);
-									if ( generated )
+									progressWindow.UpdateDownloadProgress(progress);
+								});
+
+								// THE ONLY DOWNLOAD ENTRY POINT - everything goes through cache service
+								var cacheEntries = await _cacheService.ResolveOrDownloadAsync(
+									component,
+									_mainConfig.sourcePath.FullName,
+									progressReporter,
+									progressWindow.CancellationToken);
+
+								await Logger.LogVerboseAsync($"[DownloadOrchestration] Processed component '{component.Name}': {cacheEntries.Count} cache entries");
+
+								// Auto-generate instructions for archives
+								if ( cacheEntries.Count > 0 && cacheEntries.Any(e => e.IsArchive) )
+								{
+									var firstArchive = cacheEntries.First(e => e.IsArchive);
+									if ( !string.IsNullOrEmpty(firstArchive.FilePath) && File.Exists(firstArchive.FilePath) )
 									{
-										await Logger.LogVerboseAsync($"[DownloadOrchestration] Auto-generated instructions for '{component.Name}'");
+										bool generated = AutoInstructionGenerator.GenerateInstructions(component, firstArchive.FilePath);
+										if ( generated )
+										{
+											await Logger.LogVerboseAsync($"[DownloadOrchestration] Auto-generated instructions for '{component.Name}'");
+										}
 									}
 								}
+
+								// Update progress counter
+								Interlocked.Increment(ref _completedComponents);
+								await Dispatcher.UIThread.InvokeAsync(() => DownloadStateChanged?.Invoke(this, EventArgs.Empty));
 							}
-						}
+							catch ( Exception ex )
+							{
+								await Logger.LogExceptionAsync(ex, $"Error downloading component '{component.Name}'");
+							}
+						}));
 
 						// Mark downloads as completed
 						progressWindow.MarkCompleted();
+
+						// Reset download state
+						IsDownloadInProgress = false;
+						await Dispatcher.UIThread.InvokeAsync(() => DownloadStateChanged?.Invoke(this, EventArgs.Empty));
 
 						// Run validation
 						await Logger.LogVerboseAsync("[DownloadOrchestration] Running post-download validation");
@@ -173,16 +245,44 @@ namespace KOTORModSync.Services
 					{
 						await Logger.LogExceptionAsync(ex, "Error during mod download");
 						await Dispatcher.UIThread.InvokeAsync(async () =>
+						{
+							IsDownloadInProgress = false;
+							DownloadStateChanged?.Invoke(this, EventArgs.Empty);
 							await InformationDialog.ShowInformationDialog(_parentWindow,
-								$"An error occurred while downloading mods:\n\n{ex.Message}"));
+								$"An error occurred while downloading mods:\n\n{ex.Message}");
+						});
 					}
 				});
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex, "Error starting download session");
+				IsDownloadInProgress = false;
+				DownloadStateChanged?.Invoke(this, EventArgs.Empty);
 				await InformationDialog.ShowInformationDialog(_parentWindow,
 					$"An error occurred while starting downloads:\n\n{ex.Message}");
+			}
+		}
+
+		/// <summary>
+		/// Cancels all ongoing downloads
+		/// </summary>
+		public void CancelAllDownloads()
+		{
+			try
+			{
+				if (_currentDownloadWindow != null && _currentDownloadWindow.IsVisible)
+				{
+					_currentDownloadWindow.CancelDownloads();
+					Logger.Log("Download cancellation requested by user");
+				}
+
+				IsDownloadInProgress = false;
+				DownloadStateChanged?.Invoke(this, EventArgs.Empty);
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Error cancelling downloads");
 			}
 		}
 
@@ -409,6 +509,97 @@ namespace KOTORModSync.Services
 			{
 				await Logger.LogExceptionAsync(ex, $"[DownloadOrchestration] Exception during download from {url}");
 				return null;
+			}
+		}
+
+		/// <summary>
+		/// Handles pausing a download using cooperative cancellation
+		/// </summary>
+		private async Task HandlePauseDownloadAsync(DownloadProgress progress, DownloadManager downloadManager)
+		{
+			try
+			{
+				await Logger.LogAsync($"[HandlePauseDownload] Pausing download: {progress.ModName} ({progress.Url})");
+
+				// Mark as paused using cooperative cancellation - this is safe
+				progress.Status = DownloadStatus.Failed;
+				progress.StatusMessage = "Download paused by user";
+				progress.ErrorMessage = "Download was paused by user";
+
+				// Use cooperative cancellation - this will signal cancellation but won't kill threads
+				downloadManager.CancelAll();
+
+				await Logger.LogAsync($"[HandlePauseDownload] Download paused using cooperative cancellation: {progress.ModName}");
+			}
+			catch (Exception ex)
+			{
+				await Logger.LogErrorAsync($"[HandlePauseDownload] Failed to pause download: {ex.Message}");
+				progress.Status = DownloadStatus.Failed;
+				progress.ErrorMessage = $"Failed to pause: {ex.Message}";
+			}
+		}
+
+		/// <summary>
+		/// Handles resuming a paused download
+		/// </summary>
+		private async Task HandleResumeDownloadAsync(
+			DownloadProgress progress,
+			IReadOnlyList<ModComponent> components,
+			DownloadManager downloadManager,
+			DownloadProgressWindow progressWindow)
+		{
+			try
+			{
+				await Logger.LogAsync($"[HandleResumeDownload] Resuming download: {progress.ModName} ({progress.Url})");
+
+				// Reset the progress to pending and retry
+				progress.Status = DownloadStatus.Pending;
+				progress.StatusMessage = "Retrying download...";
+				progress.ErrorMessage = null;
+				progress.Exception = null;
+
+				// Use the same retry logic
+				await HandleRetryDownloadAsync(progress, components, downloadManager, progressWindow);
+
+				await Logger.LogAsync($"[HandleResumeDownload] Download resumed: {progress.ModName}");
+			}
+			catch (Exception ex)
+			{
+				await Logger.LogErrorAsync($"[HandleResumeDownload] Failed to resume download: {ex.Message}");
+				progress.Status = DownloadStatus.Failed;
+				progress.ErrorMessage = $"Failed to resume: {ex.Message}";
+			}
+		}
+
+		/// <summary>
+		/// Handles starting a pending download
+		/// </summary>
+		private async Task HandleStartDownloadAsync(
+			DownloadProgress progress,
+			IReadOnlyList<ModComponent> components,
+			DownloadManager downloadManager,
+			DownloadProgressWindow progressWindow)
+		{
+			try
+			{
+				await Logger.LogAsync($"[HandleStartDownload] Starting download: {progress.ModName} ({progress.Url})");
+
+				// Reset the progress to pending and start
+				progress.Status = DownloadStatus.Pending;
+				progress.StatusMessage = "Starting download...";
+				progress.ErrorMessage = null;
+				progress.Exception = null;
+
+				// Use the same retry logic to start the download
+				await HandleRetryDownloadAsync(progress, components, downloadManager, progressWindow);
+
+				await Logger.LogAsync($"[HandleStartDownload] Download started: {progress.ModName}");
+			}
+			catch (Exception ex)
+			{
+				await Logger.LogErrorAsync($"[HandleStartDownload] Failed to start download: {ex.Message}");
+				progress.Status = DownloadStatus.Failed;
+				progress.ErrorMessage = $"Failed to start: {ex.Message}";
 			}
 		}
 	}

@@ -174,6 +174,7 @@
                                         Margin="0,0,8,0"
                                         VerticalAlignment="Center"
                                         IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                        IsCheckedChanged="OnOptionCheckBoxChanged"
                                         ToolTip.Tip="Select this option"
                                         Tag="{Binding}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">

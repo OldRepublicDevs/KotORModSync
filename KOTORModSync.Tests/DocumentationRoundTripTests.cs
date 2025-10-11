@@ -82,7 +82,7 @@ namespace KOTORModSync.Tests
 			Assert.Multiple(() =>
 			{
 				// Assert - Basic structural validation
-				Assert.That(components.Count, Is.GreaterThan(0), "Should have parsed at least one component");
+				Assert.That(components, Is.Not.Empty, "Should have parsed at least one component");
 				Assert.That(generatedDocs, Is.Not.Null.And.Not.Empty, "Generated documentation should not be empty");
 			});
 

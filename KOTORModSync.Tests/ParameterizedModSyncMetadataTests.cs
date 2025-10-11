@@ -24,7 +24,7 @@ namespace KOTORModSync.Tests
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
-			string contentRoot = Path.Combine(solutionRoot, "KOTORModSync.Tests", "mod-builds", "content");
+			string contentRoot = Path.Combine(solutionRoot, /*"KOTORModSync.Tests", */"mod-builds", "content");
 
 			// Get all .md files from k1 directory (exclude validated subdirectory)
 			string k1Path = Path.Combine(contentRoot, "k1");

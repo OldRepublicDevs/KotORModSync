@@ -127,7 +127,7 @@
                         VerticalAlignment="Center"
                         Content="Editor Mode"
                         IsChecked="{Binding EditorMode, Mode=TwoWay}"
-                        ToolTip.Tip="Toggle to enable Editor Mode: exposes Raw/GUI edit tabs, editing buttons, and creation tools. When off, the UI is simplified for end users installing mods." />
+                        ToolTip.Tip="Toggle to enable Editor Mode: exposes Raw/Editor tabs, editing buttons, and creation tools. When off, the UI is simplified for end users installing mods." />
                     <Button
                         x:Name="HomeButton"
                         Click="HomeButton_Click"
@@ -160,24 +160,11 @@
                     Name="SearchBox"
                     Grid.Row="0"
                     Grid.Column="0"
+                    Grid.ColumnSpan="2"
                     Margin="0,0,0,2"
                     HorizontalAlignment="Stretch"
                     SearchText="{Binding SearchText, Mode=TwoWay}"
                     Watermark="Search mods by name or author..." />
-
-                <!--  Toggle Errored Mods Button  -->
-                <CheckBox
-                    x:Name="ToggleErroredModsCheckBox"
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Margin="4,0,0,2"
-                    VerticalAlignment="Center"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    Click="ToggleErroredMods_Click"
-                    Content="❌"
-                    IsChecked="False"
-                    ToolTip.Tip="Toggle selection of all errored/invalid mods (mods with missing downloads or configuration errors)" />
 
                 <!--  Selection Panel  -->
                 <Expander
@@ -340,15 +327,9 @@
                     Padding="8,4"
                     Classes="mod-list-header">
                     <Grid ColumnDefinitions="Auto,*,Auto">
-                        <CheckBox
-                            x:Name="SelectAllCheckBox"
-                            Grid.Column="0"
-                            Margin="0,0,8,0"
-                            VerticalAlignment="Center"
-                            IsChecked="{Binding RootSelectionState, Mode=TwoWay}"
-                            IsThreeState="True" />
                         <TextBlock
-                            Grid.Column="1"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
                             VerticalAlignment="Center"
                             FontSize="13"
                             FontWeight="Bold"
@@ -606,19 +587,70 @@
                                                 Content="Open Mod Directory"
                                                 ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
                                         </StackPanel>
-                                        <Button
-                                            x:Name="DownloadStatusButton"
-                                            Margin="30,10,0,0"
-                                            HorizontalAlignment="Left"
-                                            Click="DownloadStatusButton_Click"
-                                            Cursor="Hand"
-                                            ToolTip.Tip="Click to view download progress and status">
+                                        <!--  Download Status and Progress Indicator  -->
+                                        <StackPanel Margin="30,10,0,0" Spacing="8">
+                                            <!--  Download Progress Bar  -->
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <!--  LED Status Indicator  -->
+                                                <Ellipse
+                                                    x:Name="DownloadLedIndicator"
+                                                    Grid.Column="0"
+                                                    Width="12"
+                                                    Height="12"
+                                                    Margin="0,0,8,0"
+                                                    VerticalAlignment="Center"
+                                                    Fill="Gray"
+                                                    ToolTip.Tip="Download status indicator" />
+
+                                                <!--  Status Text (Clickable)  -->
+                                                <Button
+                                                    x:Name="DownloadStatusButton"
+                                                    Grid.Column="1"
+                                                    Padding="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Left"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Click="DownloadStatusButton_Click"
+                                                    Cursor="Hand"
+                                                    ToolTip.Tip="Click to view download progress and status">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock
+                                                            x:Name="DownloadStatusText"
+                                                            Foreground="Gray"
+                                                            Text="Status: Waiting for download scan..."
+                                                            TextWrapping="Wrap" />
+                                                        <TextBlock
+                                                            x:Name="DownloadRunningText"
+                                                            Margin="8,0,0,0"
+                                                            FontWeight="Bold"
+                                                            Foreground="Orange"
+                                                            IsVisible="False"
+                                                            Text="Running..." />
+                                                    </StackPanel>
+                                                </Button>
+
+                                                <!--  Stop Downloads Button  -->
+                                                <Button
+                                                    x:Name="StopDownloadsButton"
+                                                    Grid.Column="2"
+                                                    Margin="8,0,0,0"
+                                                    Padding="6,4"
+                                                    Click="StopDownloadsButton_Click"
+                                                    Content="⏹️ Stop"
+                                                    IsVisible="False"
+                                                    ToolTip.Tip="Stop all active downloads" />
+                                            </Grid>
+
+                                            <!--  Download Progress Counter  -->
                                             <TextBlock
-                                                x:Name="DownloadStatusText"
-                                                Foreground="Gray"
-                                                Text="Status: Waiting for download scan..."
-                                                TextWrapping="Wrap" />
-                                        </Button>
+                                                x:Name="DownloadProgressText"
+                                                FontSize="11"
+                                                Foreground="{DynamicResource ThemeForegroundBrush}"
+                                                IsVisible="False"
+                                                Opacity="0.8"
+                                                Text="Downloaded: 0 / 0 mods" />
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
@@ -1139,7 +1171,7 @@
                                                                         DockPanel.Dock="Right"
                                                                         FontSize="11"
                                                                         Tag="{Binding .}"
-                                                                        ToolTip.Tip="Jump to this instruction in GUI Edit tab" />
+                                                                        ToolTip.Tip="Jump to this instruction in Editor tab" />
 
                                                                     <!--  Instruction Number  -->
                                                                     <Border
@@ -1237,7 +1269,7 @@
 
                 <TabItem
                     x:Name="GuiEditTabItem"
-                    Header="GUI Edit"
+                    Header="Editor"
                     IsVisible="{Binding EditorMode}">
                     <TabItem.Content>
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
@@ -1592,7 +1624,7 @@
                 </TabItem>
                 <TabItem
                     x:Name="RawEditTabItem"
-                    Header="Raw Edit"
+                    Header="Raw"
                     IsVisible="{Binding EditorMode}"
                     ToolTip.Tip="Click 'Apply Editor Changes' to save raw changes">
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">

@@ -81,6 +81,27 @@
                     Grid.Column="1"
                     Orientation="Horizontal"
                     Spacing="8">
+                    <!--  Timeout Setting  -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Text="Timeout:" />
+                        <NumericUpDown
+                            x:Name="TimeoutNumericUpDown"
+                            Width="70"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Minimum="1"
+                            Maximum="60"
+                            Value="10"
+                            FormatString="0"
+                            ToolTip.Tip="Download timeout in minutes (1-60)" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Text="min" />
+                    </StackPanel>
                     <Button
                         x:Name="PauseButton"
                         Width="80"

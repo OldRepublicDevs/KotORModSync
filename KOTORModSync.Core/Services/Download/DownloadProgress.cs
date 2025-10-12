@@ -278,20 +278,23 @@ namespace KOTORModSync.Core.Services.Download
 		public string TotalSize => FormatBytes(TotalBytes);
 
 		/// <summary>
-		/// Gets the display name in the format: ModName - URL - Filename
+		/// Gets the display name in the format: ModName - URL - Filename (or ModName - URL if filename not available)
 		/// </summary>
 		public string DisplayName
 		{
 			get
 			{
-				string fileName = string.IsNullOrEmpty(FilePath) ? "Pending" : System.IO.Path.GetFileName(FilePath);
+				string fileName = string.IsNullOrEmpty(FilePath) ? "" : System.IO.Path.GetFileName(FilePath);
 				string url = string.IsNullOrEmpty(Url) ? "" : Url;
 
 				// For grouped downloads, just show the mod name since they have multiple URLs
 				if ( IsGrouped )
 					return ModName;
 
-				// Format: ModName - URL - Filename
+				// Format: ModName - URL - Filename (or ModName - URL if filename not available)
+				if ( string.IsNullOrEmpty(fileName) )
+					return $"{ModName} - {url}";
+
 				return $"{ModName} - {url} - {fileName}";
 			}
 		}
@@ -365,7 +368,7 @@ namespace KOTORModSync.Core.Services.Download
 					case DownloadStatus.Pending:
 						return "▶"; // Play icon (simple arrow)
 					case DownloadStatus.InProgress:
-						return "⏸"; // Pause icon
+						return "⏹"; // Stop icon
 					case DownloadStatus.Completed:
 					case DownloadStatus.Skipped:
 					case DownloadStatus.Failed:
@@ -386,7 +389,7 @@ namespace KOTORModSync.Core.Services.Download
 					case DownloadStatus.Pending:
 						return IsGrouped ? "Start all downloads now" : "Start download now";
 					case DownloadStatus.InProgress:
-						return IsGrouped ? "Pause all downloads" : "Pause download";
+						return IsGrouped ? "Stop all downloads" : "Stop download";
 					case DownloadStatus.Completed:
 					case DownloadStatus.Skipped:
 						return IsGrouped ? "Retry all downloads" : "Retry download";

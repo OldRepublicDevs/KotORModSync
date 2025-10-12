@@ -71,22 +71,6 @@ namespace KOTORModSync.Core.Services.Download
 
 				_ = Directory.CreateDirectory(destinationDirectory);
 				string filePath = Path.Combine(destinationDirectory, node.Name);
-
-				// Check if file already exists
-				if ( File.Exists(filePath) )
-				{
-					await Logger.LogVerboseAsync($"[MEGA] File already exists, skipping download: {filePath}");
-					await _client.LogoutAsync().ConfigureAwait(false);
-					progress?.Report(new DownloadProgress
-					{
-						Status = DownloadStatus.Skipped,
-						StatusMessage = "File already exists",
-						FilePath = filePath,
-						ProgressPercentage = 100
-					});
-					return DownloadResult.Skipped(filePath, "File already exists");
-				}
-
 				await Logger.LogVerboseAsync($"[MEGA] Downloading file to: {filePath}");
 
 				progress?.Report(new DownloadProgress

@@ -73,26 +73,9 @@ namespace KOTORModSync.Core.Services.Download
 					return DownloadResult.Failed(errorMsg);
 				}
 
-				// Check if file already exists
+				// Determine expected filename from URL
 				string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
-				if ( !string.IsNullOrEmpty(expectedFileName) && expectedFileName != "/" )
-				{
-					string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
-					if ( File.Exists(potentialPath) )
-					{
-						await Logger.LogVerboseAsync($"[NexusMods] File already exists, skipping download: {potentialPath}");
-						progress?.Report(new DownloadProgress
-						{
-							Status = DownloadStatus.Skipped,
-							StatusMessage = "File already exists",
-							FilePath = potentialPath,
-							ProgressPercentage = 100,
-							StartTime = DateTime.Now,
-							EndTime = DateTime.Now
-						});
-						return DownloadResult.Skipped(potentialPath, "File already exists");
-					}
-				}
+				await Logger.LogVerboseAsync($"[NexusMods] Expected filename: {expectedFileName}");
 
 				progress?.Report(new DownloadProgress
 				{

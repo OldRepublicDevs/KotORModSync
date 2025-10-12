@@ -319,21 +319,80 @@ namespace KOTORModSync.Core.Services
 					// Verify file still exists
 					if ( !string.IsNullOrEmpty(existingEntry.FilePath) && File.Exists(existingEntry.FilePath) )
 					{
-						// Report as skipped
-						progress?.Report(new DownloadProgress
-						{
-							ModName = component.Name,
-							Url = url,
-							Status = DownloadStatus.Skipped,
-							StatusMessage = "File already exists, skipping download",
-							ProgressPercentage = 100,
-							FilePath = existingEntry.FilePath,
-							TotalBytes = new FileInfo(existingEntry.FilePath).Length,
-							BytesDownloaded = new FileInfo(existingEntry.FilePath).Length
-						});
+						// Check if validation is enabled
+						bool shouldValidate = MainConfig.ValidateAndReplaceInvalidArchives;
 
-						results.Add(existingEntry);
-						continue;
+						// Validate archive integrity for archive files (only if validation is enabled)
+						if ( shouldValidate && Utility.ArchiveHelper.IsArchive(existingEntry.FilePath) )
+						{
+							await Logger.LogVerboseAsync($"[DownloadCacheService] Validating archive integrity: {existingEntry.FilePath}");
+							bool isValid = Utility.ArchiveHelper.IsValidArchive(existingEntry.FilePath);
+
+							if ( !isValid )
+							{
+								await Logger.LogWarningAsync($"[DownloadCacheService] Archive validation failed (corrupt/incomplete): {existingEntry.FilePath}");
+								await Logger.LogWarningAsync($"[DownloadCacheService] Deleting invalid archive and re-downloading...");
+
+								try
+								{
+									File.Delete(existingEntry.FilePath);
+									await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid archive: {existingEntry.FilePath}");
+
+									// Remove from cache so it will be re-downloaded
+									Remove(component.Guid, url);
+								}
+								catch ( Exception ex )
+								{
+									await Logger.LogErrorAsync($"[DownloadCacheService] Failed to delete invalid archive: {ex.Message}");
+									// Continue anyway to attempt re-download
+								}
+
+								// Don't skip - fall through to download logic below
+							}
+							else
+							{
+								await Logger.LogVerboseAsync($"[DownloadCacheService] Archive validation successful: {existingEntry.FilePath}");
+
+								// Report as skipped - file is valid
+								progress?.Report(new DownloadProgress
+								{
+									ModName = component.Name,
+									Url = url,
+									Status = DownloadStatus.Skipped,
+									StatusMessage = "File already exists, skipping download",
+									ProgressPercentage = 100,
+									FilePath = existingEntry.FilePath,
+									TotalBytes = new FileInfo(existingEntry.FilePath).Length,
+									BytesDownloaded = new FileInfo(existingEntry.FilePath).Length
+								});
+
+								results.Add(existingEntry);
+								continue;
+							}
+						}
+						else
+						{
+							// Validation disabled or non-archive file - skip without validation
+							string fileType = Utility.ArchiveHelper.IsArchive(existingEntry.FilePath) ? "archive" : "non-archive";
+							string reason = shouldValidate ? $"{fileType} file exists" : "file exists (validation disabled)";
+							await Logger.LogVerboseAsync($"[DownloadCacheService] {char.ToUpper(reason[0])}{reason.Substring(1)}, skipping download: {existingEntry.FilePath}");
+
+							// Report as skipped
+							progress?.Report(new DownloadProgress
+							{
+								ModName = component.Name,
+								Url = url,
+								Status = DownloadStatus.Skipped,
+								StatusMessage = "File already exists, skipping download",
+								ProgressPercentage = 100,
+								FilePath = existingEntry.FilePath,
+								TotalBytes = new FileInfo(existingEntry.FilePath).Length,
+								BytesDownloaded = new FileInfo(existingEntry.FilePath).Length
+							});
+
+							results.Add(existingEntry);
+							continue;
+						}
 					}
 					else
 					{

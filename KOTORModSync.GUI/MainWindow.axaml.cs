@@ -574,6 +574,7 @@ namespace KOTORModSync
 			{
 				// Refresh validation state for this component in the mod list
 				RefreshComponentValidationState(component);
+                RenderMarkdownContent(component);
 			}
 		}
 
@@ -2913,7 +2914,13 @@ namespace KOTORModSync
 					}
 					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Preparing to swap tabs from '{lastTabName}' to '{tabName}'");
 					bool shouldSwapTabs = true;
-					if ( tabName == "raw" )
+					if ( tabName == "summary" )
+					{
+						// Refresh markdown content when switching to Summary tab to ensure latest changes are shown
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'summary', refreshing markdown content");
+						RenderMarkdownContent(CurrentComponent);
+					}
+					else if ( tabName == "raw" )
 					{
 						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'raw', loading into RawEditTextBox");
 						shouldSwapTabs = await LoadIntoRawEditTextBox(CurrentComponent);

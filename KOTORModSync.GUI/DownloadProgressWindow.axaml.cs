@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -25,14 +26,27 @@ namespace KOTORModSync
 {
 	public partial class DownloadProgressWindow : Window
 	{
-		private ObservableCollection<DownloadProgress> _downloadItems { get; }
-		private readonly CancellationTokenSource _cancellationTokenSource;
+		private readonly List<DownloadProgress> _allDownloadItems = new List<DownloadProgress>();
+		private readonly ObservableCollection<DownloadProgress> _activeDownloads = new ObservableCollection<DownloadProgress>();
+		private readonly ObservableCollection<DownloadProgress> _pendingDownloads = new ObservableCollection<DownloadProgress>();
+		private readonly ObservableCollection<DownloadProgress> _completedDownloads = new ObservableCollection<DownloadProgress>();
+
+		private CancellationTokenSource _cancellationTokenSource;
 		private bool _isCompleted;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
 
 		// Events for download control
 		public event EventHandler<DownloadControlEventArgs> DownloadControlRequested;
+
+		/// <summary>
+		/// Creates a new cancellation token source (used for retries after cancellation)
+		/// </summary>
+		public void ResetCancellationToken()
+		{
+			_cancellationTokenSource?.Dispose();
+			_cancellationTokenSource = new CancellationTokenSource();
+		}
 
 		/// <summary>
 		/// Gets the download timeout in minutes from the UI control
@@ -42,7 +56,7 @@ namespace KOTORModSync
 			get
 			{
 				NumericUpDown timeoutControl = this.FindControl<NumericUpDown>("TimeoutNumericUpDown");
-				if (timeoutControl != null && timeoutControl.Value.HasValue)
+				if ( timeoutControl != null && timeoutControl.Value.HasValue )
 				{
 					return (int)timeoutControl.Value.Value;
 				}
@@ -53,13 +67,20 @@ namespace KOTORModSync
 		public DownloadProgressWindow()
 		{
 			InitializeComponent();
-			_downloadItems = new ObservableCollection<DownloadProgress>();
 			_cancellationTokenSource = new CancellationTokenSource();
 
-			// Set up the items control
-			ItemsControl itemsControl = this.FindControl<ItemsControl>("DownloadItemsControl");
-			if ( itemsControl != null )
-				itemsControl.ItemsSource = _downloadItems;
+			// Set up the three items controls
+			ItemsControl activeControl = this.FindControl<ItemsControl>("ActiveDownloadsControl");
+			if ( activeControl != null )
+				activeControl.ItemsSource = _activeDownloads;
+
+			ItemsControl pendingControl = this.FindControl<ItemsControl>("PendingDownloadsControl");
+			if ( pendingControl != null )
+				pendingControl.ItemsSource = _pendingDownloads;
+
+			ItemsControl completedControl = this.FindControl<ItemsControl>("CompletedDownloadsControl");
+			if ( completedControl != null )
+				completedControl.ItemsSource = _completedDownloads;
 
 			// Wire up button events
 			Button closeButton = this.FindControl<Button>("CloseButton");
@@ -173,10 +194,13 @@ namespace KOTORModSync
 		{
 			Dispatcher.UIThread.Post(() =>
 			{
-				_downloadItems.Add(progress);
+				_allDownloadItems.Add(progress);
+
+				// Add to appropriate category
+				CategorizeDownload(progress);
 				UpdateSummary();
 
-				// Subscribe to property changes to update clickable links
+				// Subscribe to property changes to update clickable links and reorganize
 				progress.PropertyChanged += DownloadProgress_PropertyChanged;
 
 				// For grouped downloads, also subscribe to child changes to update summary
@@ -193,13 +217,37 @@ namespace KOTORModSync
 			});
 		}
 
+		private void CategorizeDownload(DownloadProgress progress)
+		{
+			// Remove from all categories first
+			_activeDownloads.Remove(progress);
+			_pendingDownloads.Remove(progress);
+			_completedDownloads.Remove(progress);
+
+			// Add to appropriate category based on status
+			switch ( progress.Status )
+			{
+				case DownloadStatus.InProgress:
+					_activeDownloads.Add(progress);
+					break;
+				case DownloadStatus.Pending:
+					_pendingDownloads.Add(progress);
+					break;
+				case DownloadStatus.Completed:
+				case DownloadStatus.Failed:
+				case DownloadStatus.Skipped:
+					_completedDownloads.Add(progress);
+					break;
+			}
+		}
+
 		public void UpdateDownloadProgress(DownloadProgress progress)
 		{
 			Dispatcher.UIThread.Post(() =>
 			{
 				Logger.LogVerbose($"[DownloadProgressWindow] UpdateDownloadProgress called for URL: {progress.Url}, Status: {progress.Status}, Message: {progress.StatusMessage}");
 
-				var existing = _downloadItems.FirstOrDefault(p => p.Url == progress.Url);
+				var existing = _allDownloadItems.FirstOrDefault(p => p.Url == progress.Url);
 				if ( existing != null )
 				{
 					Logger.LogVerbose($"[DownloadProgressWindow] Found existing item, updating status from {existing.Status} to {progress.Status}");
@@ -247,23 +295,35 @@ namespace KOTORModSync
 			TextBlock overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
 			ProgressBar overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
 
+			// Update section headers
+			TextBlock activeHeader = this.FindControl<TextBlock>("ActiveSectionHeader");
+			TextBlock pendingHeader = this.FindControl<TextBlock>("PendingSectionHeader");
+			TextBlock completedHeader = this.FindControl<TextBlock>("CompletedSectionHeader");
+
+			if ( activeHeader != null )
+				activeHeader.Text = $"🔄 Active Downloads ({_activeDownloads.Count})";
+			if ( pendingHeader != null )
+				pendingHeader.Text = $"⏳ Pending Downloads ({_pendingDownloads.Count})";
+			if ( completedHeader != null )
+				completedHeader.Text = $"✅ Completed Downloads ({_completedDownloads.Count})";
+
 			if ( summaryText == null )
 				return;
 
-			int completedCount = _downloadItems.Count(x => x.Status == DownloadStatus.Completed);
-			int skippedCount = _downloadItems.Count(x => x.Status == DownloadStatus.Skipped);
-			int failedCount = _downloadItems.Count(x => x.Status == DownloadStatus.Failed);
-			int inProgress = _downloadItems.Count(x => x.Status == DownloadStatus.InProgress);
-			int pending = _downloadItems.Count(x => x.Status == DownloadStatus.Pending);
+			int completedCount = _allDownloadItems.Count(x => x.Status == DownloadStatus.Completed);
+			int skippedCount = _allDownloadItems.Count(x => x.Status == DownloadStatus.Skipped);
+			int failedCount = _allDownloadItems.Count(x => x.Status == DownloadStatus.Failed);
+			int inProgress = _allDownloadItems.Count(x => x.Status == DownloadStatus.InProgress);
+			int pending = _allDownloadItems.Count(x => x.Status == DownloadStatus.Pending);
 			int totalFinished = completedCount + skippedCount + failedCount;
 
 			// Calculate overall progress
-			double overallProgress = _downloadItems.Count > 0 ? (double)totalFinished / _downloadItems.Count * 100 : 0;
+			double overallProgress = _allDownloadItems.Count > 0 ? (double)totalFinished / _allDownloadItems.Count * 100 : 0;
 
 			// Update overall progress display
 			if ( overallProgressText != null )
 			{
-				string progressText = $"Overall Progress: {totalFinished} / {_downloadItems.Count} URLs";
+				string progressText = $"Overall Progress: {totalFinished} / {_allDownloadItems.Count} URLs";
 				if ( completedCount > 0 || skippedCount > 0 || failedCount > 0 )
 				{
 					var parts = new System.Collections.Generic.List<string>();
@@ -293,7 +353,7 @@ namespace KOTORModSync
 			else
 			{
 				if ( inProgress > 0 )
-					summaryText.Text = $"Downloading {inProgress} URL(s)... {completedCount + skippedCount}/{_downloadItems.Count} complete";
+					summaryText.Text = $"Downloading {inProgress} URL(s)... {completedCount + skippedCount}/{_allDownloadItems.Count} complete";
 				else if ( pending > 0 )
 					summaryText.Text = $"Preparing downloads... {pending} URL(s) pending";
 				else
@@ -351,7 +411,7 @@ namespace KOTORModSync
 					}
 
 					// Mark all in-progress downloads as cancelled
-					foreach ( var download in _downloadItems.Where(d => d.Status == DownloadStatus.InProgress) )
+					foreach ( var download in _allDownloadItems.Where(d => d.Status == DownloadStatus.InProgress) )
 					{
 						download.Status = DownloadStatus.Failed;
 						download.StatusMessage = "Download cancelled by user";
@@ -374,7 +434,7 @@ namespace KOTORModSync
 		protected override void OnClosing(WindowClosingEventArgs e)
 		{
 			// If downloads are still in progress, ask for confirmation
-			if ( !_isCompleted && _downloadItems.Any(x => x.Status == DownloadStatus.InProgress || x.Status == DownloadStatus.Pending) )
+			if ( !_isCompleted && _allDownloadItems.Any(x => x.Status == DownloadStatus.InProgress || x.Status == DownloadStatus.Pending) )
 			{
 				// In a real implementation, you'd show a confirmation dialog here
 				// For now, we'll just cancel the downloads
@@ -388,6 +448,10 @@ namespace KOTORModSync
 		{
 			if ( e.PropertyName == nameof(DownloadProgress.ErrorMessage) && sender is DownloadProgress progress )
 				Dispatcher.UIThread.Post(() => UpdateErrorMessageWithLinks(progress));
+
+			// Reorganize downloads when status changes
+			if ( e.PropertyName == nameof(DownloadProgress.Status) && sender is DownloadProgress progressItem )
+				Dispatcher.UIThread.Post(() => CategorizeDownload(progressItem));
 		}
 
 		private void UpdateErrorMessageWithLinks(DownloadProgress progress)
@@ -395,8 +459,14 @@ namespace KOTORModSync
 			if ( string.IsNullOrEmpty(progress.ErrorMessage) )
 				return;
 
-			// Find the ItemsControl
-			ItemsControl itemsControl = this.FindControl<ItemsControl>("DownloadItemsControl");
+			// Find the appropriate ItemsControl based on download status
+			ItemsControl itemsControl = null;
+			if ( progress.Status == DownloadStatus.InProgress )
+				itemsControl = this.FindControl<ItemsControl>("ActiveDownloadsControl");
+			else if ( progress.Status == DownloadStatus.Pending )
+				itemsControl = this.FindControl<ItemsControl>("PendingDownloadsControl");
+			else
+				itemsControl = this.FindControl<ItemsControl>("CompletedDownloadsControl");
 
 			// Find the container for this specific progress item
 			Control container = itemsControl?.ContainerFromItem(progress);
@@ -494,17 +564,15 @@ namespace KOTORModSync
 				DownloadControlAction action;
 				switch ( progress.Status )
 				{
-					case DownloadStatus.Pending:
-						action = DownloadControlAction.Start;
-						break;
 					case DownloadStatus.InProgress:
-						action = DownloadControlAction.Pause;
+						action = DownloadControlAction.Stop;
 						break;
 					case DownloadStatus.Completed:
 					case DownloadStatus.Skipped:
 					case DownloadStatus.Failed:
 						action = DownloadControlAction.Retry;
 						break;
+					case DownloadStatus.Pending:
 					default:
 						action = DownloadControlAction.Start;
 						break;
@@ -603,7 +671,7 @@ namespace KOTORModSync
 	public enum DownloadControlAction
 	{
 		Start,
-		Pause,
+		Stop,
 		Resume,
 		Retry
 	}

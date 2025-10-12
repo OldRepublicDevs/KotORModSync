@@ -132,17 +132,36 @@
                                 IsChecked="{Binding noAdmin}"
                                 ToolTip.Tip="Activating this toggles __COMPAT_LAYER=RunAsInvoker for 'Patcher' and 'Execute' instructions. It signals Windows to launch executables as if they already have admin rights, preventing unnecessary UAC checks. Handy for older apps without an app.manifest (e.g. TSLPatcher). Note: enabling this setting might cause permission issues. Instead, running ModSync as administrator is recommended. On Linux/Mac this simply calls `sudo -n true` instead of `sudo` when relevant." />
 
-                            <CheckBox
-                                Margin="0,5,0,0"
-                                Content="Mock case-insensitive filesystem"
-                                IsChecked="{Binding caseInsensitivePathing}"
-                                ToolTip.Tip="Attempt to perform case-insensitive file/folder lookups for all instructions. Somewhat slow, especially on HDDs.">
-                                <CheckBox.IsVisible>
-                                    <Binding Converter="{StaticResource IsUnixConverter}" />
-                                </CheckBox.IsVisible>
-                            </CheckBox>
-                        </StackPanel>
-                    </Border>
+                        <CheckBox
+                            Margin="0,5,0,0"
+                            Content="Mock case-insensitive filesystem"
+                            IsChecked="{Binding caseInsensitivePathing}"
+                            ToolTip.Tip="Attempt to perform case-insensitive file/folder lookups for all instructions. Somewhat slow, especially on HDDs.">
+                            <CheckBox.IsVisible>
+                                <Binding Converter="{StaticResource IsUnixConverter}" />
+                            </CheckBox.IsVisible>
+                        </CheckBox>
+                    </StackPanel>
+                </Border>
+
+                <!--  Download Settings Section  -->
+                <Border
+                    Padding="15"
+                    BorderThickness="2"
+                    CornerRadius="8">
+                    <StackPanel>
+                        <TextBlock
+                            Margin="0,0,0,10"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="📥 Download Settings" />
+
+                        <CheckBox
+                            Content="Validate and replace invalid archives"
+                            IsChecked="{Binding validateAndReplaceInvalidArchives}"
+                            ToolTip.Tip="When enabled, automatically validates downloaded archive files (zip, rar, 7z) using 7-Zip. If an archive is corrupt or incomplete, it will be automatically deleted and re-downloaded. When disabled, existing files are never replaced, which may result in using corrupt archives." />
+                    </StackPanel>
+                </Border>
 
                     <!--  Directory Settings Section  -->
                     <Border

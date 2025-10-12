@@ -39,10 +39,11 @@ namespace KOTORModSync.Core
 			attemptFixes = true;
 			noAdmin = false;
 			caseInsensitivePathing = true;
+			validateAndReplaceInvalidArchives = true;
 		}
 
-	[NotNull]
-	public static string CurrentVersion => "2.0.0b1";
+		[NotNull]
+		public static string CurrentVersion => "2.0.0b1";
 
 
 		public static bool NoAdmin { get; private set; }
@@ -89,6 +90,9 @@ namespace KOTORModSync.Core
 
 		public static bool ArchiveDeepCheck { get; private set; }
 		public bool archiveDeepCheck { get => ArchiveDeepCheck; set => ArchiveDeepCheck = value; }
+
+		public static bool ValidateAndReplaceInvalidArchives { get; private set; }
+		public bool validateAndReplaceInvalidArchives { get => ValidateAndReplaceInvalidArchives; set => ValidateAndReplaceInvalidArchives = value; }
 
 		[NotNull][ItemNotNull] public static List<ModComponent> AllComponents { get; set; } = new List<ModComponent>();
 

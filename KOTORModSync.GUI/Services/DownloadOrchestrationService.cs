@@ -116,18 +116,18 @@ namespace KOTORModSync.Services
 				httpClient.Timeout = TimeSpan.FromMinutes(timeoutMinutes);
 
 				var handlers = new List<IDownloadHandler>
-			{
-				new DeadlyStreamDownloadHandler(httpClient),
-				new MegaDownloadHandler(),
-				new NexusModsDownloadHandler(httpClient, null),
-				new GameFrontDownloadHandler(httpClient),
-				new DirectDownloadHandler(httpClient),
-			};
+				{
+					new DeadlyStreamDownloadHandler(httpClient),
+					new MegaDownloadHandler(),
+					new NexusModsDownloadHandler(httpClient, null),
+					new GameFrontDownloadHandler(httpClient),
+					new DirectDownloadHandler(httpClient),
+				};
 
 				var downloadManager = new DownloadManager(handlers);
 				_cacheService.SetDownloadManager(downloadManager);
 
-				// Subscribe to download control events (retry, pause, etc.)
+				// Subscribe to download control events (retry, stop, etc.)
 				progressWindow.DownloadControlRequested += async (sender, args) =>
 				{
 					try
@@ -137,8 +137,8 @@ namespace KOTORModSync.Services
 							case DownloadControlAction.Retry:
 								await HandleRetryDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
 								break;
-							case DownloadControlAction.Pause:
-								await DownloadOrchestrationService.HandlePauseDownloadAsync(args.Progress, downloadManager);
+							case DownloadControlAction.Stop:
+								await DownloadOrchestrationService.HandleStopDownloadAsync(args.Progress, downloadManager);
 								break;
 							case DownloadControlAction.Resume:
 								await HandleResumeDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
@@ -271,7 +271,7 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				if (_currentDownloadWindow != null && _currentDownloadWindow.IsVisible)
+				if ( _currentDownloadWindow != null && _currentDownloadWindow.IsVisible )
 				{
 					_currentDownloadWindow.CancelDownloads();
 					Logger.Log("Download cancellation requested by user");
@@ -280,7 +280,7 @@ namespace KOTORModSync.Services
 				IsDownloadInProgress = false;
 				DownloadStateChanged?.Invoke(this, EventArgs.Empty);
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Error cancelling downloads");
 			}
@@ -356,6 +356,9 @@ namespace KOTORModSync.Services
 					return;
 				}
 
+				// Reset the cancellation token so we can cancel this retry if needed
+				progressWindow.ResetCancellationToken();
+
 				// Create a new progress reporter for this retry
 				var progressReporter = new Progress<DownloadProgress>(update =>
 				{
@@ -372,7 +375,7 @@ namespace KOTORModSync.Services
 					progress.Exception = update.Exception;
 				});
 
-				// Download just this one URL
+				// Download just this one URL with fresh cancellation token
 				var urlToProgressMap = new Dictionary<string, DownloadProgress> { { progress.Url, progress } };
 				List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(
 					urlToProgressMap,
@@ -513,29 +516,26 @@ namespace KOTORModSync.Services
 		}
 
 		/// <summary>
-		/// Handles pausing a download using cooperative cancellation
+		/// Handles stopping a download - marks it as failed so user can retry later
 		/// </summary>
-		private static async Task HandlePauseDownloadAsync(DownloadProgress progress, DownloadManager downloadManager)
+		private static async Task HandleStopDownloadAsync(DownloadProgress progress, DownloadManager downloadManager)
 		{
 			try
 			{
-				await Logger.LogAsync($"[HandlePauseDownload] Pausing download: {progress.ModName} ({progress.Url})");
+				await Logger.LogAsync($"[HandleStopDownload] Stop requested for: {progress.ModName} ({progress.Url})");
 
-				// Mark as paused using cooperative cancellation - this is safe
+				// Mark as failed so user can use retry button to restart
 				progress.Status = DownloadStatus.Failed;
-				progress.StatusMessage = "Download paused by user";
-				progress.ErrorMessage = "Download was paused by user";
+				progress.StatusMessage = "Stopped by user";
+				progress.ErrorMessage = "Download stopped - click retry to restart";
 
-				// Use cooperative cancellation - this will signal cancellation but won't kill threads
-				downloadManager.CancelAll();
-
-				await Logger.LogAsync($"[HandlePauseDownload] Download paused using cooperative cancellation: {progress.ModName}");
+				await Logger.LogAsync($"[HandleStopDownload] Download marked as stopped: {progress.ModName}");
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
-				await Logger.LogErrorAsync($"[HandlePauseDownload] Failed to pause download: {ex.Message}");
+				await Logger.LogErrorAsync($"[HandleStopDownload] Failed to stop download: {ex.Message}");
 				progress.Status = DownloadStatus.Failed;
-				progress.ErrorMessage = $"Failed to pause: {ex.Message}";
+				progress.ErrorMessage = $"Failed to stop: {ex.Message}";
 			}
 		}
 
@@ -563,7 +563,7 @@ namespace KOTORModSync.Services
 
 				await Logger.LogAsync($"[HandleResumeDownload] Download resumed: {progress.ModName}");
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogErrorAsync($"[HandleResumeDownload] Failed to resume download: {ex.Message}");
 				progress.Status = DownloadStatus.Failed;
@@ -595,7 +595,7 @@ namespace KOTORModSync.Services
 
 				await Logger.LogAsync($"[HandleStartDownload] Download started: {progress.ModName}");
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogErrorAsync($"[HandleStartDownload] Failed to start download: {ex.Message}");
 				progress.Status = DownloadStatus.Failed;

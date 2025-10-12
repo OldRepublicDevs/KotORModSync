@@ -466,26 +466,8 @@ namespace KOTORModSync.Core.Services.Download
 
 				await Logger.LogVerboseAsync($"[DeadlyStream] Downloading from: {downloadLink}");
 
-				// Check if file already exists by trying to determine filename from URL
-				Uri downloadUri = new Uri(downloadLink);
-				string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(downloadUri.AbsolutePath));
-				if ( !string.IsNullOrEmpty(expectedFileName) && expectedFileName != "/" && !expectedFileName.Contains("?") )
-				{
-					string potentialPath = Path.Combine(destinationDirectory, expectedFileName);
-					if ( File.Exists(potentialPath) )
-					{
-						await Logger.LogVerboseAsync($"[DeadlyStream] File already exists, skipping: {potentialPath}");
-						progress?.Report(new DownloadProgress
-						{
-							Status = DownloadStatus.InProgress,
-							StatusMessage = $"File already exists: {expectedFileName}",
-							ProgressPercentage = baseProgress + progressRange
-						});
-						return potentialPath;
-					}
-				}
-
 				// Make download request with session cookies
+				Uri downloadUri = new Uri(downloadLink);
 				var fileRequest = new HttpRequestMessage(HttpMethod.Get, downloadLink);
 				ApplyCookiesToRequest(fileRequest, downloadUri);
 				HttpResponseMessage fileResponse = await _httpClient.SendAsync(fileRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -567,21 +549,9 @@ namespace KOTORModSync.Core.Services.Download
 					await Logger.LogVerboseAsync($"[DeadlyStream] Filename: {fileName}");
 				}
 
-				// Check if this file already exists
+				// Prepare to download the file
 				_ = Directory.CreateDirectory(destinationDirectory);
 				string filePath = Path.Combine(destinationDirectory, fileName);
-				if ( File.Exists(filePath) )
-				{
-					await Logger.LogVerboseAsync($"[DeadlyStream] File already exists, skipping: {filePath}");
-					fileResponse.Dispose();
-					progress?.Report(new DownloadProgress
-					{
-						Status = DownloadStatus.InProgress,
-						StatusMessage = $"File already exists: {fileName}",
-						ProgressPercentage = baseProgress + progressRange
-					});
-					return filePath;
-				}
 
 				long totalBytes = fileResponse.Content.Headers.ContentLength ?? 0;
 				progress?.Report(new DownloadProgress

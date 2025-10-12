@@ -45,9 +45,7 @@ namespace KOTORModSync.Services
 						descriptionTextBlock.Inlines.Clear();
 						descriptionTextBlock.Inlines.AddRange(renderedDescription.Inlines);
 
-						descriptionTextBlock.TextWrapping = TextWrapping.WrapWithOverflow;
-						descriptionTextBlock.TextTrimming = TextTrimming.None;
-
+						// Don't override TextWrapping/TextTrimming - let XAML handle it
 						descriptionTextBlock.PointerPressed -= OnTextBlockPointerPressed;
 						descriptionTextBlock.PointerPressed += OnTextBlockPointerPressed;
 					}
@@ -66,9 +64,7 @@ namespace KOTORModSync.Services
 						directionsTextBlock.Inlines.Clear();
 						directionsTextBlock.Inlines.AddRange(renderedDirections.Inlines);
 
-						directionsTextBlock.TextWrapping = TextWrapping.WrapWithOverflow;
-						directionsTextBlock.TextTrimming = TextTrimming.None;
-
+						// Don't override TextWrapping/TextTrimming - let XAML handle it
 						directionsTextBlock.PointerPressed -= OnTextBlockPointerPressed;
 						directionsTextBlock.PointerPressed += OnTextBlockPointerPressed;
 					}

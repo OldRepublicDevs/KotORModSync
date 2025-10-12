@@ -90,7 +90,7 @@ namespace KOTORModSync.Controls
 
 			// Set this component as current in MainWindow
 			if ( DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow )
-				mainWindow.SetCurrentComponent(component);
+				mainWindow.SetCurrentModComponent(component);
 		}
 
 		private void OnMainModInfoDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -148,7 +148,7 @@ namespace KOTORModSync.Controls
 
 			// Set this component as current in MainWindow
 			if ( DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow )
-				mainWindow.SetCurrentComponent(component);
+				mainWindow.SetCurrentModComponent(component);
 		}
 
 		private void OnCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)

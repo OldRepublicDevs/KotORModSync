@@ -17,9 +17,7 @@ namespace KOTORModSync.Core.Services
 	public static class ComponentProcessingService
 	{
 	/// <summary>
-	/// Attempts to auto-generate instructions for components without any.
-	/// ONLY processes LOCAL archives already in the download directory.
-	/// Does NOT trigger downloads - downloads must be explicitly requested via button clicks.
+	/// Attempts to auto-generate instructions for modcomponents without any.
 	/// </summary>
 	public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 	{
@@ -29,7 +27,6 @@ namespace KOTORModSync.Core.Services
 		try
 		{
 			// ONLY process local archives - no downloads
-			// Downloads are triggered ONLY by user clicking "Fetch Downloads" button
 			return await TryGenerateFromLocalArchivesAsync(components);
 		}
 		catch ( Exception ex )
@@ -41,8 +38,6 @@ namespace KOTORModSync.Core.Services
 
 	/// <summary>
 	/// Tries to generate instructions from archives already in the local mod directory.
-	/// This is the ONLY method called during file loading - it does NOT download files.
-	/// Processes ALL ModLinks even if instructions exist (avoiding duplicates).
 	/// </summary>
 	public static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
 		{

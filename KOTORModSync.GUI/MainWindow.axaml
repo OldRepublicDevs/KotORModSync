@@ -5,6 +5,11 @@
     xmlns:controls="clr-namespace:KOTORModSync.Controls"
     xmlns:converters="clr-namespace:KOTORModSync.Converters"
     xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DesignWidth="1280"
+    d:DesignHeight="720"
     x:Name="RootWindow"
     Title="KOTORModSync"
     Width="1280"
@@ -16,11 +21,6 @@
     ExtendClientAreaTitleBarHeightHint="-1"
     ExtendClientAreaToDecorationsHint="True"
     SystemDecorations="BorderOnly">
-    <Design.PreviewWith>
-        <Border Padding="20">
-            <!--  Add Controls for Previewer Here  -->
-        </Border>
-    </Design.PreviewWith>
 
     <Window.Resources>
         <converters:IndexConverter x:Key="IndexConverter" />
@@ -942,9 +942,8 @@
                     IsVisible="{Binding EditorMode}">
                     <TabItem.Content>
                         <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="8">
                             <StackPanel
-                                Margin="8"
                                 HorizontalAlignment="Stretch"
                                 DataContext="{Binding CurrentComponent}">
 
@@ -1069,26 +1068,28 @@
 
                                 <!--  Description Card  -->
                                 <Border Classes="summary-card" IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}">
-                                    <StackPanel>
-                                        <Border Classes="summary-header">
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Top" Classes="summary-header">
                                             <TextBlock Classes="summary-section-title" Text="📄 Description" />
                                         </Border>
                                         <TextBlock
                                             Name="DescriptionTextBlock"
-                                            TextWrapping="WrapWithOverflow" />
-                                    </StackPanel>
+                                            DockPanel.Dock="Top"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
                                 </Border>
 
                                 <!--  Installation Directions Card  -->
                                 <Border Classes="summary-card" IsVisible="{Binding Directions, Converter={StaticResource StringToVisibilityConverter}}">
-                                    <StackPanel>
-                                        <Border Classes="summary-header">
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Top" Classes="summary-header">
                                             <TextBlock Classes="summary-section-title" Text="📋 Installation Notes" />
                                         </Border>
                                         <TextBlock
                                             Name="DirectionsTextBlock"
-                                            TextWrapping="WrapWithOverflow" />
-                                    </StackPanel>
+                                            DockPanel.Dock="Top"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
                                 </Border>
 
                                 <!--  Options/Customizations Card  -->

@@ -38,8 +38,7 @@ namespace KOTORModSync
 
 		// Selection Brushes
 		public static IBrush MergeSelectionBorderBrush => GetBrush("MergeSelection.BorderBrush", Brushes.Cyan);
-		public static IBrush MergeSelectionBackgroundBrush => GetBrush("MergeSelection.BackgroundBrush",
-			new SolidColorBrush(Color.FromArgb(40, 0, 255, 255)));
+		public static IBrush MergeSelectionBackgroundBrush => GetBrush("MergeSelection.BackgroundBrush");
 
 		// Source Brushes
 		public static IBrush MergeSourceIncomingBrush => GetBrush("MergeSource.IncomingBrush", Brushes.Green);
@@ -57,8 +56,7 @@ namespace KOTORModSync
 
 		// Dependency Unlink Brushes
 		public static IBrush DependencyWarningForeground => GetBrush("Dependency.WarningForeground", Brushes.Gold);
-		public static IBrush DependencyWarningBackground => GetBrush("Dependency.WarningBackground",
-			new SolidColorBrush(Color.FromArgb(30, 255, 193, 7)));
+		public static IBrush DependencyWarningBackground => GetBrush("Dependency.WarningBackground");
 		public static IBrush DependencyWarningBorder => GetBrush("Dependency.WarningBorder", Brushes.Gold);
 
 		// URL Validation Brushes
@@ -72,8 +70,8 @@ namespace KOTORModSync
 		public static IBrush ModListItemHoverErrorBrush => GetBrush("ModListItem.HoverErrorBrush", new SolidColorBrush(Color.FromRgb(255, 136, 136)));
 		public static IBrush ModListItemHoverWarningBrush => GetBrush("ModListItem.HoverWarningBrush", new SolidColorBrush(Color.FromRgb(255, 184, 77)));
 		public static IBrush ModListItemHoverDefaultBrush => GetBrush("ModListItem.HoverDefaultBrush", new SolidColorBrush(Color.FromRgb(168, 179, 72)));
-		public static IBrush ModListItemHoverBackgroundBrush => GetBrush("ModListItem.HoverBackgroundBrush", new SolidColorBrush(Color.FromRgb(2, 2, 40)));
-		public static IBrush ModListItemDefaultBackgroundBrush => GetBrush("ModListItem.DefaultBackgroundBrush", new SolidColorBrush(Color.FromRgb(1, 1, 22)));
+		public static IBrush ModListItemHoverBackgroundBrush => GetBrush("ModListItem.HoverBackgroundBrush");
+		public static IBrush ModListItemDefaultBackgroundBrush => GetBrush("ModListItem.DefaultBackgroundBrush");
 
 		// ModComponent Dependency/Restriction Brushes
 		public static IBrush ComponentDependencyBrush => GetBrush("ModComponent.DependencyBrush", new SolidColorBrush(Color.FromRgb(76, 175, 80)));
@@ -87,17 +85,17 @@ namespace KOTORModSync
 		public static IBrush LogErrorBackgroundBrush => GetBrush("Log.ErrorBackgroundBrush", new SolidColorBrush(Color.FromArgb(26, 255, 68, 68)));
 		public static IBrush LogErrorBorderBrush => GetBrush("Log.ErrorBorderBrush", new SolidColorBrush(Color.FromRgb(255, 68, 68)));
 		public static IBrush LogErrorBadgeBrush => GetBrush("Log.ErrorBadgeBrush", new SolidColorBrush(Color.FromRgb(255, 68, 68)));
-		public static IBrush LogWarningBackgroundBrush => GetBrush("Log.WarningBackgroundBrush", new SolidColorBrush(Color.FromArgb(26, 255, 170, 0)));
+		public static IBrush LogWarningBackgroundBrush => GetBrush("Log.WarningBackgroundBrush");
 		public static IBrush LogWarningBorderBrush => GetBrush("Log.WarningBorderBrush", new SolidColorBrush(Color.FromRgb(255, 170, 0)));
 		public static IBrush LogWarningBadgeBrush => GetBrush("Log.WarningBadgeBrush", new SolidColorBrush(Color.FromRgb(255, 170, 0)));
 		public static IBrush LogInfoBackgroundBrush => GetBrush("Log.InfoBackgroundBrush", new SolidColorBrush(Color.FromArgb(26, 0, 170, 0)));
 		public static IBrush LogInfoBadgeBrush => GetBrush("Log.InfoBadgeBrush", new SolidColorBrush(Color.FromRgb(0, 170, 0)));
 
 		// Expander Brushes
-		public static IBrush ExpanderDefaultBackgroundBrush => GetBrush("Expander.DefaultBackgroundBrush", new SolidColorBrush(Color.FromRgb(6, 39, 102)));
-		public static IBrush ExpanderDefaultForegroundBrush => GetBrush("Expander.DefaultForegroundBrush", new SolidColorBrush(Color.FromRgb(58, 170, 255)));
-		public static IBrush ExpanderHoverBackgroundBrush => GetBrush("Expander.HoverBackgroundBrush", new SolidColorBrush(Color.FromRgb(8, 51, 136)));
-		public static IBrush ExpanderHoverForegroundBrush => GetBrush("Expander.HoverForegroundBrush", new SolidColorBrush(Color.FromRgb(168, 179, 72)));
+		public static IBrush ExpanderDefaultBackgroundBrush => GetBrush("Expander.DefaultBackgroundBrush");
+		public static IBrush ExpanderDefaultForegroundBrush => GetBrush("Expander.DefaultForegroundBrush");
+		public static IBrush ExpanderHoverBackgroundBrush => GetBrush("Expander.HoverBackgroundBrush");
+		public static IBrush ExpanderHoverForegroundBrush => GetBrush("Expander.HoverForegroundBrush");
 	}
 }
 

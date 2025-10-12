@@ -446,7 +446,6 @@ namespace KOTORModSync
 		private bool TryApplySourcePath(string text)
 		{
 			// Don't trigger automatic validation when path is set
-			// User must manually trigger via "Verify" or "Fetch Downloads" buttons
 			bool result = _guiPathService.TryApplySourcePath(text, null);
 			if ( result )
 			{
@@ -1132,7 +1131,7 @@ namespace KOTORModSync
 							break;
 						// Delete - Remove selected mod
 						case Key.Delete:
-							CurrentComponent = component;
+							SetCurrentModComponent(component);
 							_ = DeleteModWithConfirmation(component);
 							e.Handled = true;
 							break;
@@ -1168,7 +1167,7 @@ namespace KOTORModSync
 				);
 				if ( confirm == true )
 				{
-					CurrentComponent = component;
+					SetCurrentModComponent(component);
 					RemoveComponentButton_Click(null, null);
 				}
 			}
@@ -1231,7 +1230,7 @@ namespace KOTORModSync
 					Header = "🗑️ Delete Mod",
 					Command = ReactiveCommand.CreateFromTask(async () =>
 					{
-						CurrentComponent = component;
+						SetCurrentModComponent(component);
 						bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
 							this,
 							$"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
@@ -1250,7 +1249,7 @@ namespace KOTORModSync
 						ModComponent duplicated = ModManagementService.DuplicateMod(component);
 						if ( duplicated != null )
 						{
-							SetCurrentComponent(duplicated);
+							SetCurrentModComponent(duplicated);
 							SetTabInternal(TabControl, GuiEditTabItem);
 						}
 					})
@@ -1262,7 +1261,7 @@ namespace KOTORModSync
 					Header = "📝 Edit Instructions",
 					Command = ReactiveCommand.Create(() =>
 					{
-						SetCurrentComponent(component);
+						SetCurrentModComponent(component);
 						SetTabInternal(TabControl, GuiEditTabItem);
 					})
 				});
@@ -1271,7 +1270,7 @@ namespace KOTORModSync
 					Header = "📄 Edit Raw TOML",
 					Command = ReactiveCommand.Create(() =>
 					{
-						SetCurrentComponent(component);
+						SetCurrentModComponent(component);
 						SetTabInternal(TabControl, RawEditTabItem);
 					})
 				});
@@ -1282,7 +1281,7 @@ namespace KOTORModSync
 					Header = "🧪 Test Install This Mod",
 					Command = ReactiveCommand.Create(() =>
 					{
-						CurrentComponent = component;
+						SetCurrentModComponent(component);
 						InstallModSingle_Click(null, null);
 					})
 				});
@@ -1359,7 +1358,7 @@ namespace KOTORModSync
 						ModComponent newMod = ModManagementService.CreateMod();
 						if ( newMod != null )
 						{
-							SetCurrentComponent(newMod);
+							SetCurrentModComponent(newMod);
 							SetTabInternal(TabControl, GuiEditTabItem);
 						}
 					})
@@ -1458,7 +1457,7 @@ namespace KOTORModSync
 						ModComponent newMod = ModManagementService.CreateMod();
 						if ( newMod == null )
 							return;
-						SetCurrentComponent(newMod);
+						SetCurrentModComponent(newMod);
 						SetTabInternal(TabControl, GuiEditTabItem);
 					})
 				});
@@ -1574,7 +1573,7 @@ namespace KOTORModSync
 					Logger.LogVerbose($"[ModListBox_SelectionChanged] ModComponent selected: '{component.Name}' (GUID={component.Guid})");
 					Logger.LogVerbose($"[ModListBox_SelectionChanged] ModComponent has {component.Instructions.Count} instructions, {component.Options.Count} options");
 					Logger.LogVerbose("[ModListBox_SelectionChanged] Calling SetCurrentComponent");
-					SetCurrentComponent(component);
+					SetCurrentModComponent(component);
 					Logger.LogVerbose("[ModListBox_SelectionChanged] SetCurrentComponent completed");
 				}
 				else
@@ -2274,7 +2273,7 @@ namespace KOTORModSync
 				// Clear the components list
 				MainConfigInstance.allComponents = new List<ModComponent>();
 				// Clear current component
-				SetCurrentComponent(c: null);
+				SetCurrentModComponent(c: null);
 				// Hide the tabs that should only be visible when components are loaded
 				SummaryTabItem.IsVisible = false;
 				GuiEditTabItem.IsVisible = false;
@@ -2310,7 +2309,7 @@ namespace KOTORModSync
 
 				if ( removed )
 				{
-					SetCurrentComponent(c: null);
+					SetCurrentModComponent(c: null);
 					// Refresh the TreeView to reflect the changes
 					await ProcessComponentsAsync(MainConfig.AllComponents);
 				}
@@ -3023,7 +3022,7 @@ namespace KOTORModSync
 			}
 			// set the currently tracked component to what's being loaded.
 			await Logger.LogVerboseAsync($"[LoadComponentDetails] Setting CurrentComponent to '{selectedComponent.Name}'");
-			SetCurrentComponent(selectedComponent);
+			SetCurrentModComponent(selectedComponent);
 			await Logger.LogVerboseAsync("[LoadComponentDetails] SetCurrentComponent completed");
 			// default to SummaryTabItem only when coming from InitialTab or invalid state
 			// Don't switch tabs if user is already on a valid tab (Summary, Editor, or Raw)
@@ -3040,7 +3039,7 @@ namespace KOTORModSync
 			await Logger.LogVerboseAsync("[LoadComponentDetails] COMPLETED");
 		}
 
-		public void SetCurrentComponent([CanBeNull] ModComponent c)
+		public void SetCurrentModComponent([CanBeNull] ModComponent c)
 		{
 			Logger.LogVerbose($"[SetCurrentComponent] START with component={(c == null ? "null" : $"'{c.Name}' (GUID={c.Guid})")}");
 			// Track if this is a new component being loaded vs. refreshing the current one
@@ -3443,7 +3442,6 @@ namespace KOTORModSync
 					}
 					// Update step progress after components are loaded
 					UpdateStepProgress();
-					// Note: Validation is now manual - user must click "Verify" or "Fetch Downloads"
 					// File watcher will handle real-time validation after that
 					return;
 				}
@@ -3890,6 +3888,9 @@ namespace KOTORModSync
 		{
 			try
 			{
+				// Unset the current component when returning to Getting Started
+				SetCurrentModComponent(null);
+
 				TabControl tabControl = this.FindControl<TabControl>("TabControl");
 				TabItem initialTab = this.FindControl<TabItem>("InitialTab");
 				if ( tabControl != null && initialTab != null )
@@ -4129,7 +4130,6 @@ namespace KOTORModSync
 		private void SetupModDirectoryWatcher(string path)
 		{
 			_fileSystemService.SetupModDirectoryWatcher(path, UpdateDownloadStatus);
-			// Note: No initial scan - validation is manual via "Verify" or "Fetch Downloads" buttons
 			// File watcher will trigger real-time validation after user's first manual validation
 		}
 		private void UpdateDownloadStatus()

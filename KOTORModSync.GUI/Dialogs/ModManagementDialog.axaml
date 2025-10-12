@@ -77,7 +77,7 @@
                             FontWeight="Bold"
                             Text="Batch Operations" />
 
-                        <Expander Header="Selection Operations" IsExpanded="True">
+                        <Expander Header="Selection Operations" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="SelectAllMods_Click" Content="Select All Mods" />
                                 <Button Click="DeselectAllMods_Click" Content="Deselect All Mods" />
@@ -85,14 +85,14 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Validation Operations" IsExpanded="True">
+                        <Expander Header="Validation Operations" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="ValidateAllMods_Click" Content="Validate All Mods" />
                                 <Button Click="CheckFileAvailability_Click" Content="Check File Availability" />
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Sorting Operations" IsExpanded="True">
+                        <Expander Header="Sorting Operations" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="SortByName_Click" Content="Sort by Name (A-Z)" />
                                 <Button Click="SortByNameDesc_Click" Content="Sort by Name (Z-A)" />
@@ -102,7 +102,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Metadata Operations" IsExpanded="True">
+                        <Expander Header="Metadata Operations" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="SetAllDownloaded_Click" Content="Set All to Downloaded" />
                                 <Button Click="SetAllNotDownloaded_Click" Content="Set All to Not Downloaded" />
@@ -122,7 +122,7 @@
                             FontWeight="Bold"
                             Text="Import and Export Operations" />
 
-                        <Expander Header="Import Operations" IsExpanded="True">
+                        <Expander Header="Import Operations" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="ImportFromToml_Click" Content="Import from TOML File" />
                                 <Button Click="ImportFromJson_Click" Content="Import from JSON" />
@@ -130,7 +130,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Export Operations" IsExpanded="True">
+                        <Expander Header="Export Operations" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="ExportToToml_Click" Content="Export to TOML File" />
                                 <Button Click="ExportToJson_Click" Content="Export to JSON" />
@@ -138,7 +138,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Merge Strategies" IsExpanded="True">
+                        <Expander Header="Merge Strategies" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <RadioButton
                                     Content="Replace existing components"
@@ -282,7 +282,7 @@
                             FontWeight="Bold"
                             Text="Advanced Mod Management Tools" />
 
-                        <Expander Header="Dependency Management" IsExpanded="True">
+                        <Expander Header="Dependency Management" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="CheckDependencyChains_Click" Content="Check Dependency Chains" />
                                 <Button Click="ResolveConflicts_Click" Content="Resolve Conflicts" />
@@ -290,7 +290,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Performance Tools" IsExpanded="True">
+                        <Expander Header="Performance Tools" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="OptimizeInstallationOrder_Click" Content="Optimize Installation Order" />
                                 <Button Click="AnalyzeModSizes_Click" Content="Analyze Mod Sizes" />
@@ -298,7 +298,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Security Tools" IsExpanded="True">
+                        <Expander Header="Security Tools" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="ScanForMalware_Click" Content="Scan for Malware" />
                                 <Button Click="CheckFileIntegrity_Click" Content="Check File Integrity" />
@@ -306,7 +306,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Maintenance Tools" IsExpanded="True">
+                        <Expander Header="Maintenance Tools" IsExpanded="True" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10">
                                 <Button Click="CleanOrphanedFiles_Click" Content="Clean Orphaned Files" />
                                 <Button Click="UpdateModLinks_Click" Content="Update Mod Links" />

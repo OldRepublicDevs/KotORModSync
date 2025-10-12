@@ -352,12 +352,6 @@
         <Setter Property="Opacity" Value="0.5" />
     </Style>
 
-    <!--  Validation highlight for component headers (applied to Border wrapper)  -->
-    <Style Selector="Border.validation-failed">
-        <Setter Property="Background" Value="#331B0000" />
-        <Setter Property="BorderBrush" Value="#FFCC4444" />
-        <Setter Property="BorderThickness" Value="2" />
-    </Style>
     <Style Selector="ListBox">
         <Setter Property="Margin" Value="2" />
         <Setter Property="MinWidth" Value="150" />
@@ -485,6 +479,15 @@
     </Style>
     <Style Selector="TabStripItem /template/ ContentPresenter#PART_HeaderPresenter">
         <Setter Property="TextBlock.Foreground" Value="#3AAAFF" />
+    </Style>
+    <Style Selector="TabStripItem">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabStripItem:selected">
+        <Setter Property="Foreground" Value="#2FB393" />
+    </Style>
+    <Style Selector="TabStripItem /template/ ContentPresenter">
+        <Setter Property="TextBlock.Foreground" Value="#2FB393" />
     </Style>
 
     <!--  Getting Started Step Styling - More specific to override general Border style  -->
@@ -730,6 +733,14 @@
         <Setter Property="Margin" Value="0,4,0,2" />
     </Style>
 
+    <Style Selector="Border.summary-link-container">
+        <Setter Property="Background" Value="#031332" />
+        <Setter Property="BorderBrush" Value="#062766" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
 
     <Style Selector="Border.summary-option-card">
         <Setter Property="Background" Value="#031332" />

@@ -23,11 +23,29 @@ namespace KOTORModSync.Converters
 		/// </summary>
         private static IBrush GetThemeForegroundBrush()
         {
-            // Retained for compatibility; no longer used to force colors on runs.
-            // Text elements should inherit theme colors from styles.
+            // Get theme foreground from Application resources
+            // This is required because programmatically created Run objects do NOT inherit theme styles
             if ( Application.Current?.Resources.TryGetResource("ThemeForegroundBrush", null, out object resource) == true && resource is IBrush brush )
                 return brush;
-            return Brushes.Transparent;
+
+            // Fallback: try merged resources from all styles
+            if ( Application.Current?.Styles != null )
+            {
+                foreach ( var style in Application.Current.Styles )
+                {
+                    if ( style is Avalonia.Markup.Xaml.Styling.StyleInclude styleInclude )
+                    {
+                        if ( styleInclude.Loaded is Avalonia.Styling.Styles styles )
+                        {
+                            if ( styles.Resources.TryGetResource("ThemeForegroundBrush", null, out object res) && res is IBrush b )
+                                return b;
+                        }
+                    }
+                }
+            }
+
+            // Last resort: return null to let it inherit (don't force white)
+            return null;
         }
 
 		/// <summary>
@@ -94,6 +112,7 @@ namespace KOTORModSync.Converters
 				{
                     Text = linkText,
                     TextDecorations = TextDecorations.Underline,
+                    Foreground = GetThemeForegroundBrush(),
 				};
 
 				// For net462 compatibility, we'll store the URL in the Text property
@@ -143,6 +162,7 @@ namespace KOTORModSync.Converters
                 {
                     Text = boldText,
                     FontWeight = FontWeight.Bold,
+                    Foreground = GetThemeForegroundBrush(),
                 };
 				inlines.Add(boldRun);
 
@@ -176,7 +196,7 @@ namespace KOTORModSync.Converters
                 if ( match.Index > currentIndex )
                 {
                     string beforeText = text.Substring(currentIndex, match.Index - currentIndex);
-                    inlines.Add(new Run { Text = beforeText });
+                    inlines.Add(new Run { Text = beforeText, Foreground = GetThemeForegroundBrush() });
                 }
 
 				// Add italic text
@@ -185,6 +205,7 @@ namespace KOTORModSync.Converters
                 {
                     Text = italicText,
                     FontStyle = FontStyle.Italic,
+                    Foreground = GetThemeForegroundBrush(),
                 };
 				inlines.Add(italicRun);
 
@@ -195,7 +216,7 @@ namespace KOTORModSync.Converters
 			if ( currentIndex < text.Length )
 			{
                 string remainingText = text.Substring(currentIndex);
-                inlines.Add(new Run { Text = remainingText });
+                inlines.Add(new Run { Text = remainingText, Foreground = GetThemeForegroundBrush() });
 			}
 		}
 	}

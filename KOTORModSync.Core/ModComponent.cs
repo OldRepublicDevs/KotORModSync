@@ -23,6 +23,7 @@ using Newtonsoft.Json.Converters;
 using Tomlyn;
 using Tomlyn.Model;
 using Tomlyn.Syntax;
+using YamlSerialization = YamlDotNet.Serialization;
 
 namespace KOTORModSync.Core
 {
@@ -198,7 +199,7 @@ namespace KOTORModSync.Core
 			return Path.Combine(hiddenDirectory, CheckpointFileName);
 		}
 
-		private void SaveCheckpointToDisk(ComponentCheckpoint checkpoint)
+		private static void SaveCheckpointToDisk(ComponentCheckpoint checkpoint)
 		{
 			string path = GetComponentCheckpointFilePath();
 			string json = JsonConvert.SerializeObject(checkpoint, s_checkpointSerializerSettings);
@@ -309,7 +310,8 @@ namespace KOTORModSync.Core
 			get => _tier;
 			set
 			{
-				_tier = value;
+				// Normalize tier to standard format
+				_tier = CategoryTierDefinitions.NormalizeTier(value);
 				OnPropertyChanged();
 			}
 		}
@@ -439,49 +441,49 @@ namespace KOTORModSync.Core
 			}
 		}
 
-	[JsonIgnore]
-	public ComponentInstallState InstallState
-	{
-		get => _installState;
-		set
+		[JsonIgnore]
+		public ComponentInstallState InstallState
 		{
-			if ( _installState == value )
-				return;
+			get => _installState;
+			set
+			{
+				if ( _installState == value )
+					return;
 
-			_installState = value;
-			OnPropertyChanged();
+				_installState = value;
+				OnPropertyChanged();
+			}
 		}
-	}
 
-	[JsonIgnore]
-	[CanBeNull]
-	public DateTimeOffset? LastStartedUtc
-	{
-		get => _lastStartedUtc;
-		set
+		[JsonIgnore]
+		[CanBeNull]
+		public DateTimeOffset? LastStartedUtc
 		{
-			if ( _lastStartedUtc == value )
-				return;
+			get => _lastStartedUtc;
+			set
+			{
+				if ( _lastStartedUtc == value )
+					return;
 
-			_lastStartedUtc = value;
-			OnPropertyChanged();
+				_lastStartedUtc = value;
+				OnPropertyChanged();
+			}
 		}
-	}
 
-	[JsonIgnore]
-	[CanBeNull]
-	public DateTimeOffset? LastCompletedUtc
-	{
-		get => _lastCompletedUtc;
-		set
+		[JsonIgnore]
+		[CanBeNull]
+		public DateTimeOffset? LastCompletedUtc
 		{
-			if ( _lastCompletedUtc == value )
-				return;
+			get => _lastCompletedUtc;
+			set
+			{
+				if ( _lastCompletedUtc == value )
+					return;
 
-			_lastCompletedUtc = value;
-			OnPropertyChanged();
+				_lastCompletedUtc = value;
+				OnPropertyChanged();
+			}
 		}
-	}
 
 		[NotNull]
 		internal IReadOnlyList<InstructionCheckpoint> InstructionCheckpoints => _instructionCheckpoints;
@@ -510,18 +512,18 @@ namespace KOTORModSync.Core
 			}
 		}
 
-	[JsonIgnore]
-	public bool IsDownloaded
-	{
-		get => _isDownloaded;
-		set
+		[JsonIgnore]
+		public bool IsDownloaded
 		{
-			if ( _isDownloaded == value )
-				return;
-			_isDownloaded = value;
-			OnPropertyChanged();
+			get => _isDownloaded;
+			set
+			{
+				if ( _isDownloaded == value )
+					return;
+				_isDownloaded = value;
+				OnPropertyChanged();
+			}
 		}
-	}
 
 		[JsonIgnore]
 		public bool IsValidating
@@ -556,90 +558,95 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string SerializeComponent()
 		{
-			var serializedComponentDict = (Dictionary<string, object>)Serializer.SerializeObject(this);
-			if ( serializedComponentDict is null )
-				throw new NullReferenceException(nameof(serializedComponentDict));
-
-			CollectionUtils.RemoveEmptyCollections(serializedComponentDict);
-			StringBuilder tomlString = FixSerializedTomlDict(serializedComponentDict);
-
-			var rootTable = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+			try
 			{
-				{
-					"thisMod", serializedComponentDict
-				},
-			};
+				// Create a serializer with PascalCase naming to match our property names
+				var serializer = new YamlSerialization.SerializerBuilder()
+					.WithNamingConvention(YamlSerialization.NamingConventions.PascalCaseNamingConvention.Instance)
+					.ConfigureDefaultValuesHandling(YamlSerialization.DefaultValuesHandling.OmitDefaults)
+					.Build();
 
-			_ = tomlString.Insert(
-				index: 0,
-				Toml.FromModel(rootTable).Replace(oldValue: "[thisMod]", newValue: "[[thisMod]]")
-			).ToString();
-			return string.IsNullOrWhiteSpace(tomlString.ToString())
-				? throw new InvalidOperationException(message: "Could not serialize into a valid tomlin string")
-				: Serializer.FixWhitespaceIssues(tomlString.ToString());
+				// Create a lightweight DTO with only the fields we want to serialize
+				var serializableData = new SerializableComponentData
+				{
+					Guid = Guid,
+					Instructions = Instructions.Count > 0
+						? Instructions.Select(i => new SerializableInstruction
+						{
+							Guid = i.Guid,
+							Action = i.Action != Instruction.ActionType.Unset ? i.Action.ToString() : null,
+							Source = i.Source?.Count > 0 ? i.Source : null,
+							Destination = !string.IsNullOrWhiteSpace(i.Destination) ? i.Destination : null,
+							Overwrite = i.Overwrite ? (bool?)true : null,
+						}).ToList()
+						: null,
+					Options = Options.Count > 0
+						? Options.Select(o => new SerializableOption
+						{
+							Guid = o.Guid,
+							Name = !string.IsNullOrWhiteSpace(o.Name) ? o.Name : null,
+							Description = !string.IsNullOrWhiteSpace(o.Description) ? o.Description : null,
+							IsSelected = o.IsSelected ? (bool?)true : null,
+							Restrictions = o.Restrictions?.Count > 0 ? o.Restrictions : null,
+							Instructions = o.Instructions.Count > 0
+								? o.Instructions.Select(i => new SerializableInstruction
+								{
+									Guid = i.Guid,
+									Action = i.Action != Instruction.ActionType.Unset ? i.Action.ToString() : null,
+									Source = i.Source?.Count > 0 ? i.Source : null,
+									Destination = !string.IsNullOrWhiteSpace(i.Destination) ? i.Destination : null,
+									Overwrite = i.Overwrite ? (bool?)true : null,
+								}).ToList()
+								: null,
+						}).ToList()
+						: null,
+				};
+
+				// Serialize to YAML
+				string yamlString = serializer.Serialize(serializableData);
+
+				if ( string.IsNullOrWhiteSpace(yamlString) )
+					throw new InvalidOperationException("Could not serialize component to YAML");
+
+				return yamlString;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to serialize component to YAML");
+				throw;
+			}
 		}
 
-		private static StringBuilder FixSerializedTomlDict(
-			[NotNull] Dictionary<string, object> serializedComponentDict,
-			[CanBeNull] StringBuilder tomlString = null
-		)
+		// Serializable DTOs for YAML output
+		private class SerializableComponentData
 		{
-			if ( serializedComponentDict is null )
-				throw new ArgumentNullException(nameof(serializedComponentDict));
+			public Guid Guid { get; set; }
+			public List<SerializableInstruction> Instructions { get; set; }
+			public List<SerializableOption> Options { get; set; }
+		}
 
-			if ( tomlString is null )
-				tomlString = new StringBuilder();
+		private class SerializableInstruction
+		{
+			public Guid Guid { get; set; }
+			public string Action { get; set; }
+			public List<string> Source { get; set; }
+			public string Destination { get; set; }
+			public bool? Overwrite { get; set; }
+		}
 
-			// not the cleanest solution, but it works.
-			var keysCopy = serializedComponentDict.Keys.ToList();
-			foreach ( string key in keysCopy )
-			{
-				object value = serializedComponentDict[key];
-				if ( !(value is List<dynamic> propertyList) )
-					continue;
-
-				Type listEntriesType = propertyList.GetType().GetGenericArguments()[0];
-				if ( !listEntriesType.IsClass || listEntriesType == typeof(string) )
-					continue;
-
-				bool found = false;
-				foreach ( object classInstanceObj in propertyList )
-				{
-					if ( classInstanceObj == null )
-						continue;
-
-					if ( classInstanceObj is string )
-						break;
-
-					found = true;
-
-					var model = new Dictionary<string, object>
-					{
-						{
-							"thisMod", new Dictionary<string, object>
-							{
-								{
-									key, classInstanceObj
-								},
-							}
-						},
-					};
-					_ = tomlString.AppendLine(Toml.FromModel(model).Replace($"thisMod.{key}", $"[thisMod.{key}]"));
-				}
-
-				if ( found )
-					_ = serializedComponentDict.Remove(key);
-			}
-
-			return tomlString;
+		private class SerializableOption
+		{
+			public Guid Guid { get; set; }
+			public string Name { get; set; }
+			public string Description { get; set; }
+			public bool? IsSelected { get; set; }
+			public List<Guid> Restrictions { get; set; }
+			public List<SerializableInstruction> Instructions { get; set; }
 		}
 
 
 		private void DeserializeComponent([NotNull] IDictionary<string, object> componentDict)
 		{
-			if ( !(componentDict is TomlTable) )
-				throw new ArgumentException("[TomlError] Expected a TOML table for component data.");
-
 			Guid = GetRequiredValue<Guid>(componentDict, key: "Guid");
 			Name = GetRequiredValue<string>(componentDict, key: "Name");
 			_ = Logger.LogAsync($" == Deserialize next component '{Name}' ==");
@@ -742,13 +749,14 @@ namespace KOTORModSync.Core
 
 			foreach ( ModComponent thisComponent in components )
 			{
+				_ = stringBuilder.AppendLine("---"); // YAML document separator
 				_ = stringBuilder.AppendLine(thisComponent.SerializeComponent());
 			}
 
-			string tomlinString = stringBuilder.ToString();
+			string yamlString = stringBuilder.ToString();
 			if ( MainConfig.CaseInsensitivePathing )
 				filePath = PathHelper.GetCaseSensitivePath(filePath, isFile: true).Item1;
-			File.WriteAllText(filePath, tomlinString);
+			File.WriteAllText(filePath, yamlString);
 		}
 
 		[NotNull]
@@ -838,83 +846,29 @@ namespace KOTORModSync.Core
 		}
 
 		/// <summary>
-		/// Generates the ModSync metadata block for a component
+		/// Generates the ModSync metadata block for a component in YAML format
 		/// </summary>
 		private static void GenerateModSyncMetadata([NotNull] StringBuilder sb, [NotNull] ModComponent component)
 		{
+			// Only generate metadata if there are instructions or options
+			if ( component.Instructions.Count == 0 && component.Options.Count == 0 )
+				return;
+
 			_ = sb.AppendLine("<!--<<ModSync>>");
-			_ = sb.AppendLine($"- **GUID:** {component.Guid}");
 
-			// Generate Instructions section
-			if ( component.Instructions.Count > 0 )
+			try
 			{
-				_ = sb.AppendLine();
-				_ = sb.AppendLine("#### Instructions");
+				// Use SerializeComponent to generate the YAML
+				string yaml = component.SerializeComponent();
 
-				for ( int i = 0; i < component.Instructions.Count; i++ )
-				{
-					Instruction instruction = component.Instructions[i];
-					_ = sb.AppendLine($"{i + 1}. **GUID:** {instruction.Guid}");
-					_ = sb.AppendLine($"   **Action:** {instruction.Action}");
-					_ = sb.AppendLine($"   **Overwrite:** {instruction.Overwrite.ToString().ToLower()}");
-
-					if ( instruction.Source?.Count > 0 )
-					{
-						_ = sb.AppendLine($"   **Source:** {string.Join(", ", instruction.Source)}");
-					}
-
-					if ( !string.IsNullOrWhiteSpace(instruction.Destination) )
-					{
-						_ = sb.AppendLine($"   **Destination:** {instruction.Destination}");
-					}
-				}
+				// Add the YAML content (already properly formatted by YamlDotNet)
+				_ = sb.Append(yaml);
 			}
-
-			// Generate Options section
-			if ( component.Options.Count > 0 )
+			catch ( Exception ex )
 			{
-				_ = sb.AppendLine();
-				_ = sb.AppendLine("#### Options");
-
-				for ( int i = 0; i < component.Options.Count; i++ )
-				{
-					Option option = component.Options[i];
-					_ = sb.AppendLine($"##### Option {i + 1}");
-					_ = sb.AppendLine($"- **GUID:** {option.Guid}");
-					_ = sb.AppendLine($"- **Name:** {option.Name}");
-					_ = sb.AppendLine($"- **Description:** {option.Description}");
-					_ = sb.AppendLine($"- **Is Selected:** {option.IsSelected.ToString().ToLower()}");
-					_ = sb.AppendLine($"- **Install State:** {(int)option.InstallState}");
-					_ = sb.AppendLine($"- **Is Downloaded:** {option.IsDownloaded.ToString().ToLower()}");
-
-					if ( option.Restrictions?.Count > 0 )
-					{
-						_ = sb.AppendLine($"- **Restrictions:** {string.Join(", ", option.Restrictions)}");
-					}
-
-					// Generate nested instructions for this option
-					if ( option.Instructions.Count > 0 )
-					{
-						foreach ( Instruction instruction in option.Instructions )
-						{
-							_ = sb.AppendLine("  - **Instruction:**");
-							_ = sb.AppendLine($"    - **GUID:** {instruction.Guid}");
-							_ = sb.AppendLine($"    - **Action:** {instruction.Action}");
-
-							if ( !string.IsNullOrWhiteSpace(instruction.Destination) )
-							{
-								_ = sb.AppendLine($"    - **Destination:** {instruction.Destination}");
-							}
-
-							_ = sb.AppendLine($"    - **Overwrite:** {instruction.Overwrite.ToString().ToLower()}");
-
-							if ( instruction.Source?.Count > 0 )
-							{
-								_ = sb.AppendLine($"    - **Source:** {string.Join(", ", instruction.Source)}");
-							}
-						}
-					}
-				}
+				// Fallback to basic GUID if serialization fails
+				Logger.LogException(ex, "Failed to serialize component for ModSync metadata");
+				_ = sb.AppendLine($"Guid: {component.Guid}");
 			}
 
 			_ = sb.AppendLine("-->");
@@ -1349,6 +1303,42 @@ namespace KOTORModSync.Core
 			}
 
 			return component;
+		}
+
+		[CanBeNull]
+		public static ModComponent DeserializeYAMLComponent([NotNull] string yamlString)
+		{
+			if ( yamlString is null )
+				throw new ArgumentNullException(nameof(yamlString));
+
+			try
+			{
+				// Create YAML deserializer with PascalCase naming convention to match our property names
+				var deserializer = new YamlSerialization.DeserializerBuilder()
+					.WithNamingConvention(YamlSerialization.NamingConventions.PascalCaseNamingConvention.Instance)
+					.IgnoreUnmatchedProperties()
+					.Build();
+
+				// Parse YAML into a dictionary
+				var yamlDict = deserializer.Deserialize<Dictionary<string, object>>(yamlString);
+
+				if ( yamlDict == null )
+				{
+					Logger.LogError("Failed to deserialize YAML: result was null");
+					return null;
+				}
+
+				// Create a new ModComponent and deserialize the data
+				var component = new ModComponent();
+				component.DeserializeComponent(yamlDict);
+
+				return component;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to deserialize YAML component");
+				return null;
+			}
 		}
 
 		[NotNull]

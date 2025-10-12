@@ -862,6 +862,7 @@
 
             <!--  URL Validation Colors  -->
             <SolidColorBrush x:Key="UrlValidation.ValidBrush" Color="#4CAF50" />
+            <SolidColorBrush x:Key="UrlValidation.WarningBrush" Color="#FFA500" />
             <SolidColorBrush x:Key="UrlValidation.InvalidBrush" Color="#F44336" />
             <SolidColorBrush x:Key="UrlValidation.ErrorIconBrush" Color="#F44336" />
 

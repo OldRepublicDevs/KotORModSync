@@ -44,6 +44,7 @@ namespace KOTORModSync.Core.Services.Download
 					return;
 				_modName = value;
 				OnPropertyChanged();
+				OnPropertyChanged(nameof(DisplayName));
 			}
 		}
 
@@ -56,6 +57,7 @@ namespace KOTORModSync.Core.Services.Download
 					return;
 				_url = value;
 				OnPropertyChanged();
+				OnPropertyChanged(nameof(DisplayName));
 			}
 		}
 
@@ -162,6 +164,7 @@ namespace KOTORModSync.Core.Services.Download
 					return;
 				_filePath = value;
 				OnPropertyChanged();
+				OnPropertyChanged(nameof(DisplayName));
 			}
 		}
 
@@ -273,6 +276,25 @@ namespace KOTORModSync.Core.Services.Download
 
 		public string DownloadedSize => FormatBytes(BytesDownloaded);
 		public string TotalSize => FormatBytes(TotalBytes);
+
+		/// <summary>
+		/// Gets the display name in the format: ModName - URL - Filename
+		/// </summary>
+		public string DisplayName
+		{
+			get
+			{
+				string fileName = string.IsNullOrEmpty(FilePath) ? "Pending" : System.IO.Path.GetFileName(FilePath);
+				string url = string.IsNullOrEmpty(Url) ? "" : Url;
+
+				// For grouped downloads, just show the mod name since they have multiple URLs
+				if ( IsGrouped )
+					return ModName;
+
+				// Format: ModName - URL - Filename
+				return $"{ModName} - {url} - {fileName}";
+			}
+		}
 
 		public TimeSpan Duration => StartTime == default ? TimeSpan.Zero : (EndTime ?? DateTime.Now) - StartTime;
 

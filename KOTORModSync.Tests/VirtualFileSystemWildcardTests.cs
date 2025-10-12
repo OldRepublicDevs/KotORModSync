@@ -260,7 +260,7 @@ namespace KOTORModSync.Tests
 			}
 		}
 
-		private void AssertFileSystemsMatch(VirtualFileSystemProvider virtualProvider, string realDir, string subfolder = "dest")
+		private static void AssertFileSystemsMatch(VirtualFileSystemProvider virtualProvider, string realDir, string subfolder = "dest")
 		{
 			// Find the virtual dest directory path by looking for files that contain "Virtual\dest" or "Real\dest"
 			// Get the dest directory from the virtual provider's tracked files

@@ -71,26 +71,15 @@ namespace KOTORModSync.Core.Utility
 
 		/// <summary>
 		/// Dictionary of tier names to their descriptions.
+		/// Uses numbered format (e.g., "1 - Essential") as the standard.
 		/// </summary>
 		[NotNull]
 		public static readonly Dictionary<string, string> TierDefinitions = new Dictionary<string, string>
 		{
-			// Essential Tiers
-			["Essential"] = "Critical mods that fix major bugs or provide essential improvements.",
 			["1 - Essential"] = "Critical mods that fix major bugs or provide essential improvements.",
-
-			// Recommended Tiers
-			["Recommended"] = "High-quality mods that significantly improve the game experience. Strongly recommended for most players.",
 			["2 - Recommended"] = "High-quality mods that significantly improve the game experience. Strongly recommended for most players.",
-
-			// Suggested Tiers
-			["Suggested"] = "Good quality mods that enhance specific aspects of the game. Recommended for players who want more content.",
 			["3 - Suggested"] = "Good quality mods that enhance specific aspects of the game. Recommended for players who want more content.",
-
-			// Optional Tiers
-			["Optional"] = "Mods that are nice to have but not necessary. Install based on personal preference.",
 			["4 - Optional"] = "Mods that are nice to have but not necessary. Install based on personal preference.",
-			["4 - Option"] = "Mods that are nice to have but not necessary. Install based on personal preference.",
 		};
 
 		/// <summary>
@@ -120,9 +109,67 @@ namespace KOTORModSync.Core.Utility
 			if ( string.IsNullOrEmpty(tier) )
 				return "No tier specified.";
 
-			return TierDefinitions.TryGetValue(tier, out string description)
+			// Normalize tier format first
+			string normalizedTier = NormalizeTier(tier);
+
+			return TierDefinitions.TryGetValue(normalizedTier, out string description)
 				? description
 				: $"Custom tier: {tier}";
+		}
+
+		/// <summary>
+		/// Normalizes tier names to the standard numbered format.
+		/// Converts old formats like "Essential" or "4 - Option" to "1 - Essential", "4 - Optional", etc.
+		/// </summary>
+		/// <param name="tier">The tier name to normalize.</param>
+		/// <returns>The normalized tier name in standard format.</returns>
+		[NotNull]
+		public static string NormalizeTier([CanBeNull] string tier)
+		{
+			if ( string.IsNullOrWhiteSpace(tier) )
+				return string.Empty;
+
+			string trimmedTier = tier.Trim();
+
+			// If it's already in the correct format, return it
+			if ( TierDefinitions.ContainsKey(trimmedTier) )
+				return trimmedTier;
+
+			// Normalize old formats to new standard format
+			switch ( trimmedTier.ToLowerInvariant() )
+			{
+				case "essential":
+				case "1 essential":
+				case "1- essential":
+				case "1-essential":
+					return "1 - Essential";
+
+				case "recommended":
+				case "2 recommended":
+				case "2- recommended":
+				case "2-recommended":
+					return "2 - Recommended";
+
+				case "suggested":
+				case "3 suggested":
+				case "3- suggested":
+				case "3-suggested":
+					return "3 - Suggested";
+
+				case "optional":
+				case "option":
+				case "4 optional":
+				case "4- optional":
+				case "4-optional":
+				case "4 - option":
+				case "4- option":
+				case "4-option":
+					return "4 - Optional";
+
+				default:
+					// If it doesn't match any known format, return as-is
+					return trimmedTier;
+			}
 		}
 	}
 }

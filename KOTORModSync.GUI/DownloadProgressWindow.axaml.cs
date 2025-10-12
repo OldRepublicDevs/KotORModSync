@@ -263,7 +263,7 @@ namespace KOTORModSync
 			// Update overall progress display
 			if ( overallProgressText != null )
 			{
-				string progressText = $"Overall Progress: {totalFinished} / {_downloadItems.Count} mods";
+				string progressText = $"Overall Progress: {totalFinished} / {_downloadItems.Count} URLs";
 				if ( completedCount > 0 || skippedCount > 0 || failedCount > 0 )
 				{
 					var parts = new System.Collections.Generic.List<string>();
@@ -293,9 +293,9 @@ namespace KOTORModSync
 			else
 			{
 				if ( inProgress > 0 )
-					summaryText.Text = $"Downloading {inProgress} mod(s)... {completedCount + skippedCount}/{_downloadItems.Count} complete";
+					summaryText.Text = $"Downloading {inProgress} URL(s)... {completedCount + skippedCount}/{_downloadItems.Count} complete";
 				else if ( pending > 0 )
-					summaryText.Text = $"Preparing downloads... {pending} mod(s) pending";
+					summaryText.Text = $"Preparing downloads... {pending} URL(s) pending";
 				else
 					summaryText.Text = "Initializing downloads...";
 			}

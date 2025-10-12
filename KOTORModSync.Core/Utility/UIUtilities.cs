@@ -27,7 +27,7 @@ namespace KOTORModSync.Core.Utility
 				throw new ArgumentNullException(nameof(gameDirectory));
 
 			var fileOperationService = new FileOperationService();
-			return await fileOperationService.FixIOSCaseSensitivityAsync(gameDirectory.FullName);
+			return await FileOperationService.FixIOSCaseSensitivityAsync(gameDirectory.FullName);
 		}
 	}
 }

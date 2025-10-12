@@ -262,7 +262,7 @@ namespace KOTORModSync.Dialogs
 					if ( lineNumber > 0 )
 					{
 						// Use dispatcher to ensure the view is rendered before scrolling
-						Avalonia.Threading.Dispatcher.UIThread.Post(() => ScrollToLineInTomlView(existingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
+						Avalonia.Threading.Dispatcher.UIThread.Post(() => ComponentMergeConflictDialog.ScrollToLineInTomlView(existingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
 					}
 				}
 				else
@@ -282,7 +282,7 @@ namespace KOTORModSync.Dialogs
 					if ( lineNumber > 0 )
 					{
 						// Use dispatcher to ensure the view is rendered before scrolling
-						Avalonia.Threading.Dispatcher.UIThread.Post(() => ScrollToLineInTomlView(incomingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
+						Avalonia.Threading.Dispatcher.UIThread.Post(() => ComponentMergeConflictDialog.ScrollToLineInTomlView(incomingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
 					}
 				}
 			}
@@ -292,7 +292,7 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private void ScrollToLineInTomlView(TabControl tabControl, int lineNumber)
+		private static void ScrollToLineInTomlView(TabControl tabControl, int lineNumber)
 		{
 			try
 			{

@@ -67,7 +67,7 @@ namespace KOTORModSync.Services
 		/// <summary>
 		/// Updates directory picker controls with persisted settings
 		/// </summary>
-		public void UpdateDirectoryPickersFromSettings(
+		public static void UpdateDirectoryPickersFromSettings(
 			AppSettings settings,
 			Func<string, DirectoryPickerControl> findControl)
 		{

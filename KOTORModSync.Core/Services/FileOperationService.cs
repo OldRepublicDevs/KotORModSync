@@ -25,7 +25,7 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		/// <param name="folderPath">Path to fix case sensitivity for</param>
 		/// <returns>Number of files/folders renamed</returns>
-		public async Task<int> FixIOSCaseSensitivityAsync([NotNull] string folderPath)
+		public static async Task<int> FixIOSCaseSensitivityAsync([NotNull] string folderPath)
 		{
 			if ( string.IsNullOrEmpty(folderPath) )
 				throw new ArgumentException("Folder path cannot be null or empty", nameof(folderPath));

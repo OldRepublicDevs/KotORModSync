@@ -41,8 +41,8 @@ namespace KOTORModSync.Core
 			caseInsensitivePathing = true;
 		}
 
-		[NotNull]
-		public static string CurrentVersion => "1.2.0";
+	[NotNull]
+	public static string CurrentVersion => "2.0.0b1";
 
 
 		public static bool NoAdmin { get; private set; }

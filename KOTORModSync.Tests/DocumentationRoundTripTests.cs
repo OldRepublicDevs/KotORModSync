@@ -207,7 +207,7 @@ namespace KOTORModSync.Tests
 		}
 
 
-		private void CompareModSections(string original, string generated, int sectionNumber)
+		private static void CompareModSections(string original, string generated, int sectionNumber)
 		{
 			// Extract key fields from both sections using converter methods
 			List<string> originalHeadings = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"###\s+(.+?)$");

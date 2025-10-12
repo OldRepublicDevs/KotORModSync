@@ -67,6 +67,8 @@ namespace KOTORModSync
 		private bool _editorMode;
 		private bool _isClosingProgressWindow;
 		private string _lastLoadedFileName;
+		// Track whether Fetch Downloads has been pressed at least once
+		public static bool HasFetchedDownloads { get; private set; } = false;
 		// Download status animation
 		private DispatcherTimer _downloadAnimationTimer;
 		private int _downloadAnimationDots;
@@ -579,41 +581,57 @@ namespace KOTORModSync
 		{
 			var menu = new Menu();
 			var fileMenu = new MenuItem { Header = "File" };
-			var fileItems = new List<MenuItem>
+
+			// Create Save submenu with format options
+			var saveMenuItem = new MenuItem
+			{
+				Header = "Save",
+				IsVisible = EditorMode,
+				ItemsSource = new List<MenuItem>
 			{
 				new MenuItem
 				{
-					Header = "Open File",
-					Command = ReactiveCommand.Create( () => LoadFile_Click(new object(), new RoutedEventArgs()) ),
+					Header = "TOML",
+					Command = ReactiveCommand.Create( () => SaveModFileAs_Click(new object(), new RoutedEventArgs(), "toml") ),
 				},
 				new MenuItem
 				{
-					Header = "Close TOML",
-					Command = ReactiveCommand.Create( () => CloseTOMLFile_Click(new object(), new RoutedEventArgs()) ),
+					Header = "YAML",
+					Command = ReactiveCommand.Create( () => SaveModFileAs_Click(new object(), new RoutedEventArgs(), "yaml") ),
 				},
 				new MenuItem
 				{
-					Header = "Save TOML",
-					Command = ReactiveCommand.Create( () => SaveModFileAs_Click(new object(), new RoutedEventArgs()) ),
-					IsVisible = EditorMode,
+					Header = "Markdown",
+					Command = ReactiveCommand.Create( () => SaveModFileAs_Click(new object(), new RoutedEventArgs(), "md") ),
 				},
-				new MenuItem
-				{
-					Header = "Exit",
-					Command = ReactiveCommand.Create( () => CloseButton_Click(new object(), new RoutedEventArgs()) ),
-				},
+			}
 			};
+
+			var fileItems = new List<MenuItem>
+		{
+			new MenuItem
+			{
+				Header = "Open File",
+				Command = ReactiveCommand.Create( () => LoadFile_Click(new object(), new RoutedEventArgs()) ),
+			},
+			new MenuItem
+			{
+				Header = "Close",
+				Command = ReactiveCommand.Create( () => CloseTOMLFile_Click(new object(), new RoutedEventArgs()) ),
+				IsVisible = EditorMode,
+			},
+			saveMenuItem,
+			new MenuItem
+			{
+				Header = "Exit",
+				Command = ReactiveCommand.Create( () => CloseButton_Click(new object(), new RoutedEventArgs()) ),
+			},
+		};
 			fileMenu.ItemsSource = fileItems;
 			// Tools menu
 			var toolsMenu = new MenuItem { Header = "Tools" };
 			var toolItems = new List<MenuItem>
 			{
-				new MenuItem
-				{
-					Header = "Create modbuild documentation.",
-					Command = ReactiveCommand.Create( () => DocsButton_Click(new object(), new RoutedEventArgs()) ),
-					IsVisible = EditorMode,
-				},
 				new MenuItem
 				{
 					Header = "Fix iOS case sensitivity.",
@@ -893,12 +911,12 @@ namespace KOTORModSync
 			// Update File menu items
 			if ( topMenu.Items[0] is MenuItem fileMenu && fileMenu.Items is IList fileItems )
 			{
-				// Close TOML (index 1)
-				if ( fileItems.Count > 1 && fileItems[1] is MenuItem closeTomlItem )
-					closeTomlItem.IsVisible = EditorMode;
-				// Save TOML (index 2)
-				if ( fileItems.Count > 2 && fileItems[2] is MenuItem saveTomlItem )
-					saveTomlItem.IsVisible = EditorMode;
+				// Close (index 1)
+				if ( fileItems.Count > 1 && fileItems[1] is MenuItem closeItem )
+					closeItem.IsVisible = EditorMode;
+				// Save (index 2)
+				if ( fileItems.Count > 2 && fileItems[2] is MenuItem saveItem )
+					saveItem.IsVisible = EditorMode;
 			}
 			// Update Tools menu items
 			if ( topMenu.Items[1] is MenuItem toolsMenu && toolsMenu.Items is IList toolItems )
@@ -1409,7 +1427,7 @@ namespace KOTORModSync
 				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "💾 Save Config",
-					Command = ReactiveCommand.Create(() => SaveModFileAs_Click(null, null)),
+					Command = ReactiveCommand.Create(() => SaveModFileAs_Click(null, null, "toml")),
 					InputGesture = new KeyGesture(Key.S, KeyModifiers.Control)
 				});
 				_ = menu.Items.Add(new MenuItem
@@ -1507,7 +1525,7 @@ namespace KOTORModSync
 				_ = menu.Items.Add(new MenuItem
 				{
 					Header = "💾 Save Config",
-					Command = ReactiveCommand.Create(() => SaveModFileAs_Click(null, null)),
+					Command = ReactiveCommand.Create(() => SaveModFileAs_Click(null, null, "toml")),
 					InputGesture = new KeyGesture(Key.S, KeyModifiers.Control)
 				});
 				_ = menu.Items.Add(new MenuItem
@@ -3273,23 +3291,90 @@ namespace KOTORModSync
 		}
 
 		[UsedImplicitly]
-		private async void SaveModFileAs_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e)
+		private async void SaveModFileAs_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e, string format = "toml")
 		{
 			try
 			{
-				string defaultFileName = !string.IsNullOrEmpty(_lastLoadedFileName) ? _lastLoadedFileName : "my_toml_instructions.toml";
+				// Determine the default file name and extension based on format
+				string extension;
+				if ( format == "yaml" )
+					extension = ".yaml";
+				else if ( format == "md" )
+					extension = ".md";
+				else
+					extension = ".toml";
+
+				string defaultFileName = !string.IsNullOrEmpty(_lastLoadedFileName)
+					? Path.ChangeExtension(_lastLoadedFileName, extension.TrimStart('.'))
+					: $"my_mod_instructions{extension}";
+
 				string filePath = await SaveFile(saveFileName: defaultFileName);
 				if ( filePath == null )
 					return;
-				bool success = await _fileLoadingService.SaveTomlFileAsync(filePath, MainConfig.AllComponents);
+
+				bool success = false;
+				switch ( format )
+				{
+					case "yaml":
+						success = await MainWindow.SaveYamlFileAsync(filePath);
+						break;
+					case "md":
+						success = await MainWindow.SaveMarkdownFileAsync(filePath);
+						break;
+					default: // toml
+						success = await _fileLoadingService.SaveTomlFileAsync(filePath, MainConfig.AllComponents);
+						break;
+				}
+
 				if ( success )
 				{
-					_lastLoadedFileName = _fileLoadingService.LastLoadedFileName;
+					_lastLoadedFileName = Path.GetFileName(filePath);
+					await Logger.LogAsync($"Successfully saved file as {format.ToUpper()}: {filePath}");
 				}
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
+			}
+		}
+
+		private static async Task<bool> SaveYamlFileAsync(string filePath)
+		{
+			try
+			{
+				// Save as YAML - each component as a separate YAML document
+				var sb = new System.Text.StringBuilder();
+				foreach ( var component in MainConfig.AllComponents )
+				{
+					sb.AppendLine("---"); // YAML document separator
+					sb.AppendLine(component.SerializeComponent());
+				}
+
+				File.WriteAllText(filePath, sb.ToString());
+				await Logger.LogAsync($"Saved {MainConfig.AllComponents.Count} components to YAML file: {filePath}");
+				return true;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Failed to save YAML file");
+				return false;
+			}
+		}
+
+		private static async Task<bool> SaveMarkdownFileAsync(string filePath)
+		{
+			try
+			{
+				// Generate markdown documentation
+				string markdown = ModComponent.GenerateModDocumentation(MainConfig.AllComponents);
+				File.WriteAllText(filePath, markdown);
+				await Logger.LogAsync($"Saved {MainConfig.AllComponents.Count} components to Markdown file: {filePath}");
+				return true;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Failed to save Markdown file");
+				return false;
 			}
 		}
 
@@ -3335,7 +3420,7 @@ namespace KOTORModSync
 				// Try to find the visual tree path to identify where this checkbox is located
 				var visualPath = new List<string>();
 				var current = checkBox.Parent;
-				while (current != null && visualPath.Count < 5)
+				while ( current != null && visualPath.Count < 5 )
 				{
 					visualPath.Add($"{current.GetType().Name}(Name='{current.Name}')");
 					current = current.Parent;
@@ -3997,7 +4082,7 @@ namespace KOTORModSync
 		/// <summary>
 		/// Checks if Step 1 (directory setup) is properly completed
 		/// </summary>
-		private bool IsStep1Complete() => ValidationService.IsStep1Complete();
+		private static bool IsStep1Complete() => ValidationService.IsStep1Complete();
 		private void UpdateStepProgress()
 		{
 			try
@@ -4026,11 +4111,11 @@ namespace KOTORModSync
 		/// <summary>
 		/// Validates that all ModLinks are valid URLs
 		/// </summary>
-		private bool AreModLinksValid(List<string> modLinks) => ValidationService.AreModLinksValid(modLinks);
+		private static bool AreModLinksValid(List<string> modLinks) => ValidationService.AreModLinksValid(modLinks);
 		/// <summary>
 		/// Checks if a string is a valid URL
 		/// </summary>
-		private bool IsValidUrl(string url) => ValidationService.IsValidUrl(url);
+		private static bool IsValidUrl(string url) => ValidationService.IsValidUrl(url);
 		// Directory Picker Event Handler - handles both sidebar and Step 1 directory changes
 		private void OnDirectoryChanged(object sender, DirectoryChangedEventArgs e)
 		{
@@ -4260,6 +4345,7 @@ namespace KOTORModSync
 		}
 		private async void ScrapeDownloadsButton_Click(object sender, RoutedEventArgs e)
 		{
+			HasFetchedDownloads = true;
 			await _downloadOrchestrationService.StartDownloadSessionAsync(UpdateDownloadStatus);
 		}
 
@@ -4664,7 +4750,7 @@ namespace KOTORModSync
 		}
 		#endregion
 		#region URL Validation Helper Methods
-		private string GetUrlValidationReason([CanBeNull] string url)
+		private static string GetUrlValidationReason([CanBeNull] string url)
 		{
 			return ValidationService.GetUrlValidationReason(url);
 		}

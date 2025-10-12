@@ -232,7 +232,7 @@ namespace KOTORModSync.Controls
 						var border = container.GetVisualDescendants().OfType<Border>().FirstOrDefault();
 						if ( border != null )
 						{
-							UpdateOptionBackground(border, option.IsSelected);
+							ModListItem.UpdateOptionBackground(border, option.IsSelected);
 						}
 					}
 				}
@@ -397,6 +397,9 @@ namespace KOTORModSync.Controls
 			else
 				_ = s_componentErrors.Remove(component.Guid);
 
+			// Only show download warnings if Fetch Downloads has been pressed AND other errors exist
+			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
+
 			// Update border - don't set any border when there are no issues (let default style handle it)
 			if ( hasErrors )
 			{
@@ -404,9 +407,9 @@ namespace KOTORModSync.Controls
 				border.BorderBrush = ThemeResourceHelper.ModListItemErrorBrush;
 				border.BorderThickness = new Thickness(2);
 			}
-			else if ( isMissingDownload )
+			else if ( shouldShowDownloadWarning )
 			{
-				// Orange border for missing downloads
+				// Orange border for missing downloads (only when other errors exist and fetch has been pressed)
 				border.BorderBrush = ThemeResourceHelper.ModListItemWarningBrush;
 				border.BorderThickness = new Thickness(1.5);
 			}
@@ -418,10 +421,10 @@ namespace KOTORModSync.Controls
 			}
 
 			// Update validation icon
-			UpdateValidationIcon(this.FindControl<TextBlock>("ValidationIcon"), hasErrors, isMissingDownload);
+			ModListItem.UpdateValidationIcon(this.FindControl<TextBlock>("ValidationIcon"), hasErrors, shouldShowDownloadWarning);
 		}
 
-		private void UpdateValidationIcon(TextBlock validationIconControl, bool hasErrors, bool isMissingDownload)
+		private static void UpdateValidationIcon(TextBlock validationIconControl, bool hasErrors, bool shouldShowDownloadWarning)
 		{
 			if ( validationIconControl == null )
 				return;
@@ -433,7 +436,7 @@ namespace KOTORModSync.Controls
 				validationIconControl.IsVisible = true;
 				ToolTip.SetTip(validationIconControl, "ModComponent has validation errors");
 			}
-			else if ( isMissingDownload )
+			else if ( shouldShowDownloadWarning )
 			{
 				validationIconControl.Text = "⚠️";
 				validationIconControl.Foreground = ThemeResourceHelper.ModListItemWarningBrush;
@@ -507,13 +510,16 @@ namespace KOTORModSync.Controls
 			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
 			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
 
+			// Only show download warnings if Fetch Downloads has been pressed AND other errors exist
+			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
+
 			// Show issue banner if there are problems
-			if ( hasErrors || isMissingDownload )
+			if ( hasErrors || shouldShowDownloadWarning )
 			{
 				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
 				_ = sb.AppendLine(new string('─', 40));
 
-				if ( isMissingDownload )
+				if ( shouldShowDownloadWarning )
 				{
 					_ = sb.AppendLine("❗ Missing Download");
 					_ = sb.AppendLine("This mod is selected but the archive file is not");
@@ -586,13 +592,16 @@ namespace KOTORModSync.Controls
 			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
 			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
 
+			// Only show download warnings if Fetch Downloads has been pressed AND other errors exist
+			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
+
 			// Show issue banner if there are problems
-			if ( hasErrors || isMissingDownload )
+			if ( hasErrors || shouldShowDownloadWarning )
 			{
 				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
 				_ = sb.AppendLine(new string('─', 40));
 
-				if ( isMissingDownload )
+				if ( shouldShowDownloadWarning )
 				{
 					_ = sb.AppendLine("❗ Missing Download");
 
@@ -947,14 +956,14 @@ namespace KOTORModSync.Controls
 				option.IsSelected = !option.IsSelected;
 
 				// Update the background color based on selection state
-				UpdateOptionBackground(border, option.IsSelected);
+				ModListItem.UpdateOptionBackground(border, option.IsSelected);
 			}
 		}
 
 		/// <summary>
 		/// Updates the background color of an option border based on its selection state
 		/// </summary>
-		private void UpdateOptionBackground(Border border, bool isSelected)
+		private static void UpdateOptionBackground(Border border, bool isSelected)
 		{
 			if ( border == null )
 				return;

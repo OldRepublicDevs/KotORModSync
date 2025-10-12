@@ -664,7 +664,7 @@ namespace KOTORModSync.Core.Services
 		/// <param name="filePath">Path to export to.</param>
 		/// <param name="format">Export format.</param>
 		/// <returns>True if export was successful.</returns>
-		public async Task<bool> ExportMods(IEnumerable<ModComponent> components, string filePath, ExportFormat format = ExportFormat.Toml)
+		public static async Task<bool> ExportMods(IEnumerable<ModComponent> components, string filePath, ExportFormat format = ExportFormat.Toml)
 		{
 			try
 			{

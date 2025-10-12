@@ -58,7 +58,7 @@ namespace KOTORModSync.Tests
 			}
 		}
 
-		private string Find7Zip()
+		private static string Find7Zip()
 		{
 			var paths = new[]
 			{

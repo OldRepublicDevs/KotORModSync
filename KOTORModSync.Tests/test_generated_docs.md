@@ -17,7 +17,6 @@ ___
 
 **Installation Instructions:** The choice of which version to use is up to you; I recommend PC Response Moderation, as it makes your character sound less like a giddy little schoolchild following every little dialogue, but if you prefer only bugfixes it is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable is)—in this very specific case, NOT the override.
 
-
 ___
 
 ### Character Startup Changes
@@ -33,7 +32,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher, Loose-File Patch
-
 
 ___
 
@@ -53,7 +51,6 @@ As part of the Thematic series of mods by JC and myself, Thematic KOTOR Companio
 
 **Installation Method:** TSLPatcher
 
-
 ___
 
 ### JC's Minor Fixes
@@ -71,7 +68,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** Move everything from the Straight Fixes, Resolution Fixes, and Aesthetic Improvements folders to your Override. Move everything from the "Things what bother me" folder as well, EXCEPT the files for the Sith uniform changes: N_AdmrlSaulKar.mdl, N_AdmrlSaulKar.mdx, N_SithComF.mdl, N_SithComF.mdx, N_SithComM.mdl, and N_SithComM.mdx (in other words, move all "MAN26" files and the two "plc_kiosk" files at the bottom). The fix in the Bugfix folder will be applied by a later mod, so you can also skip it.
-
 
 ___
 
@@ -91,7 +87,6 @@ ___
 
 **Installation Instructions:** For this specific mod *only*, the patch is actually run first! Run the patch and apply its changes, then open the main mod file. ONLY look at the Transparent/Non-Transparent folders within the main file; move your preferred textures from one of those folders to your override, and optionally **also** move the contents of the sub-folders for Sith eyes if desired. You will be prompted to overwrite, and this is normal. Do NOT move any of the files in the main mod folder! Your install is done once you've moved your desired textures from the main mod download.
 
-
 ___
 
 ### KOTOR Community Patch
@@ -110,7 +105,6 @@ ___
 
 **Installation Instructions:** Be aware that this mod is one of the very few in the builds that is installed via the HoloPatcher, a new install method. For your purposes as the enduser, it functions almost identically to the TSLPatcher. Run the installer, then move the files from the patch to your override.
 
-
 ___
 
 ### Droid Claw Fix
@@ -126,7 +120,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -146,7 +139,6 @@ ___
 
 **Installation Instructions:** Install the main mod, then re-run the patcher and select the K1CP compatibility install option and install it as well, if using K1CP.
 
-
 ___
 
 ### Ultimate Korriban High Resolution
@@ -164,7 +156,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** Download the .tpc variant of the mod. Don't worry about it saying it requires Kexikus's skyboxes, that mod will be installed later.
-
 
 ___
 
@@ -184,7 +175,6 @@ ___
 
 **Installation Instructions:** Download the .tpc variant of the mod.
 
-
 ___
 
 ### Ultimate Tatooine High Resolution
@@ -202,7 +192,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** Download the .tpc variant of the mod.
-
 
 ___
 
@@ -222,7 +211,6 @@ ___
 
 **Installation Instructions:** Download the .tpc variant of the mod.
 
-
 ___
 
 ### Ultimate Endar Spire/Star Forge/Yavin Station
@@ -240,7 +228,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** Download the .tpc variant of the mod.
-
 
 ___
 
@@ -260,7 +247,6 @@ ___
 
 **Installation Instructions:** Download the .tpc variant of the mod.
 
-
 ___
 
 ### Ultimate Taris High Resolution
@@ -278,7 +264,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** Download the .tpc variant of the mod. Please note, there are confirmed visual bugs when utilizing this mod unless ALSO using Quanon's Taris retexture (installed further down this list). Make sure to delete LSI_win01.tpc and LSI_box01.tpc **before** moving to override.
-
 
 ___
 
@@ -300,7 +285,6 @@ ___
 
 Before moving the files to the override folder, be sure to delete the following: PFBI01 through PFBI04, and PMBI01 through PMBI04.
 
-
 ___
 
 ### Ultimate Unknown World High Resolution
@@ -319,7 +303,6 @@ ___
 
 **Installation Instructions:** Download the .tpc variant of the mod. Delete LUN_blst01.tpc and LUN_blst02.tpc before moving to your override.
 
-
 ___
 
 ### Korriban Sith Art
@@ -335,7 +318,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -353,7 +335,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Consistent Conditioning Icons
@@ -369,7 +350,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -389,7 +369,6 @@ ___
 
 **Installation Instructions:** Move all the loose files to the Override. If you'd like KOTOR 2-style specialty cards (green-colored), move the files from the "green" folder to the override folder as well.
 
-
 ___
 
 ### Republic Soldier Fix
@@ -407,7 +386,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** Move the files from both the Override and Optional folders to your game's override folder.
-
 
 ___
 
@@ -427,7 +405,6 @@ ___
 
 **Installation Instructions:** If using both components of JC's Republic Soldier Fix mod, install Options 3 and 5; if using only the main component of JC's mod, install only Option 5; if not using JC's mod, install the Main file and Option 2.
 
-
 ___
 
 ### HD PC Portraits
@@ -443,7 +420,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -463,7 +439,6 @@ This specific texture reskins the fifth Asian male head preset, including new fa
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### PMHA02 HD
@@ -479,7 +454,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -497,7 +471,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### PFHC05 HD
@@ -513,7 +486,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -533,7 +505,6 @@ ___
 
 **Installation Instructions:** I recommend using the upscale option.
 
-
 ___
 
 ### High-Poly Grenades
@@ -549,7 +520,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -569,7 +539,6 @@ ___
 
 **Installation Instructions:** The file has the wrong readme; move all the files in the Creatures folder, except for the readme and Gizka.jpg (any .jpg/.png files are always previews and can be deleted), to the override.
 
-
 ___
 
 ### Gammorean Reskin Pack
@@ -585,7 +554,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -603,7 +571,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### AstromechHD
@@ -619,7 +586,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -637,7 +603,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### HD Realistic Sand People
@@ -653,7 +618,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -673,7 +637,6 @@ ___
 
 **Installation Instructions:** Choose whether to use the slim or original necks; your preference.
 
-
 ___
 
 ### HD Twi'lek Females
@@ -689,7 +652,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -709,7 +671,6 @@ ___
 
 **Installation Instructions:** Unzip the mod, enter the NPC Replacement folder, and move the six files within (NOT including the optional folder or its contents) to the override.
 
-
 ___
 
 ### Shaleena/Lashowe Mouth Adjustment
@@ -726,7 +687,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Calo Nord Recolor
@@ -742,7 +702,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -762,7 +721,6 @@ ___
 
 **Installation Instructions:** If intending to use CineMalak below (recommended!), select your preferred head texture from the Malak (Red Eyes) or Malak (Blue Eyes) folders and move the files within to your override. You can ignore N_DarthMalak01.tga, unless you do not want to use CineMalak, in which case you should also move it to your override.
 
-
 ___
 
 ### CineMalak - HD Darth Malak
@@ -780,7 +738,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** The downloaded file is a loose .tga, not inside an archive. For this mod, just move the downloaded file (N_DarthMalak01.tga) to your override directly.
-
 
 ___
 
@@ -800,7 +757,6 @@ ___
 
 **Installation Instructions:** Make a copy of the file and rename it PMBJ01, then move all files to override.
 
-
 ___
 
 ### Darth Bandon HD
@@ -816,7 +772,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -834,7 +789,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Random HD UI Elements
@@ -850,7 +804,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -870,7 +823,6 @@ ___
 
 **Installation Instructions:** Ignore the 'V1 Looks' option.
 
-
 ___
 
 ### NPC Clothing M
@@ -889,7 +841,6 @@ ___
 
 **Installation Instructions:** Delete n_commm07.tga and N_CommMD01.tga. Delete N_CommM08.tga, then make a copy of N_CommM0801 and paste it in the same directory. This should create a duplicate file; rename that duplicate file to "N_CommM08.tga" and then move all files to override.
 
-
 ___
 
 ### Juhani Appearance Overhaul
@@ -906,7 +857,6 @@ ___
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Juhani Real Cathar Head
@@ -922,7 +872,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -942,7 +891,6 @@ ___
 
 **Installation Instructions:** If running the Community Patch (you should be), install the Community Patch-Compatible install option; otherwise, select Basic. If you would like Master Uthar or Yuthura Ban (the two top Sith at the academy) to wear alternate outfits instead of robes, re-run the patcher to select your preferred options AFTER running the initial install.
 
-
 ___
 
 ### Cloaked Jedi Robes
@@ -960,7 +908,6 @@ ___
 **Installation Method:** TSLPatcher Mod
 
 **Installation Instructions:** When installing, use the screenshots provided to determine which robe style you would like to use. Aesthetically, I strongly recommend the Brown-Red-Blue Alternative.
-
 
 ___
 
@@ -980,7 +927,6 @@ ___
 
 **Installation Instructions:** If you use Cloaked Jedi Robes's 100% Brown option, make sure to install the 100% Brown compatibility patch after the main mod installation (re-run the executable).
 
-
 ___
 
 ### Robes with Shadows for K1 (JC's Port)
@@ -999,7 +945,6 @@ ___
 
 **Installation Instructions:** Only move the files from "Jedi Robes Override".
 
-
 ___
 
 ### Qel-Droma Robes Reskin
@@ -1015,7 +960,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1035,7 +979,6 @@ ___
 
 **Installation Instructions:** Delete PO_phk47.tga before moving the two other files to the override.
 
-
 ___
 
 ### PLC_Sign
@@ -1051,7 +994,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1069,7 +1011,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### PLC_Desk
@@ -1085,7 +1026,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1103,7 +1043,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### HD Non-Game Weapons
@@ -1119,7 +1058,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1137,7 +1075,6 @@ ___
 
 **Installation Method:** HoloPatcher Mod
 
-
 ___
 
 ### Stunbaton HD
@@ -1154,7 +1091,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Unique Sith Governor
@@ -1170,7 +1106,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** HoloPatcher Mod
-
 
 ___
 
@@ -1190,7 +1125,6 @@ This one is one of my favorites from her, the Ithorians look absolutely excellen
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Duros HD
@@ -1206,7 +1140,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1224,7 +1157,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Davik HD
@@ -1241,7 +1173,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Doctors HD
@@ -1257,7 +1188,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1277,7 +1207,6 @@ ___
 
 **Installation Instructions:** Delete N_CommF02.tga & .txi before moving to override.
 
-
 ___
 
 ### Deadeye Duncan HD
@@ -1294,7 +1223,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### N_oldAMH01 HD
@@ -1310,7 +1238,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1330,7 +1257,6 @@ ___
 
 **Installation Instructions:** Delete po_pt3m33.tga before moving the files to your override.
 
-
 ___
 
 ### Protocol Droids HD
@@ -1347,7 +1273,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Davik's Trophies
@@ -1363,7 +1288,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1383,7 +1307,6 @@ ___
 
 **Installation Instructions:** Delete PO_pcarth3.tga before moving the other files to the override.
 
-
 ___
 
 ### HD Canderous Ordo
@@ -1399,7 +1322,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod & Patch
-
 
 ___
 
@@ -1419,7 +1341,6 @@ ___
 
 **Installation Instructions:** Move only P_CandH01.tga to your override.
 
-
 ___
 
 ### Jolee Bindo HD
@@ -1435,7 +1356,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1455,7 +1375,6 @@ ___
 
 **Installation Instructions:** Move ONLY P_joleeh01.tga and P_joleeh01.txi to your override.
 
-
 ___
 
 ### Zaalbar HD
@@ -1473,7 +1392,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** Delete po_pzaalbar3.tga before moving the files to your override.
-
 
 ___
 
@@ -1493,7 +1411,6 @@ ___
 
 **Installation Instructions:** When installing, select the Community Patch-compatible installation, if using the K1CP (you should be). Ignore the other install options.
 
-
 ___
 
 ### Stylized Portraits by Tinman888
@@ -1512,7 +1429,6 @@ ___
 
 **Installation Instructions:** Strongly recommend the Lite version—the quality difference is not noticeable, but the filesize footprint of the large versions is huge and could contribute to load errors in multiple modules.
 
-
 ___
 
 ### Star Map Revamp
@@ -1528,7 +1444,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1546,7 +1461,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Kebla Yurt Renovation
@@ -1562,7 +1476,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** HoloPatcher Mod
-
 
 ___
 
@@ -1582,7 +1495,6 @@ ___
 
 **Installation Instructions:** Once the mod is extracted, copy the file 'LDA_EHawk01' and make a duplicate of it. Rename this duplicate to 'M36_EHawk01.tga' and then move all files to the override.
 
-
 ___
 
 ### Ultimate Ebon Hawk Repairs
@@ -1601,7 +1513,6 @@ ___
 
 **Installation Instructions:** Move the files from "to override" to your override folder, then also move the files from the Animation Fix folder and overwrite when prompted.
 
-
 ___
 
 ### HQ Cockpit Skyboxes
@@ -1617,7 +1528,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1637,7 +1547,6 @@ ___
 
 **Installation Instructions:** If you would like the forcefield for the hangar to be visible, re-run the installer after installing the main option and also install the visible forcefield option. If using HQ Cockpit Skyboxes, move the files from the resolution folder corresponding to the HQ Cockpit Skyboxes size you utilized to your override, then delete ebo_yab.tga, ebo_yaf.tga, ebo_yal.tga, ebo_yar.tga and ebo_yat.tga from your override. Finally, if you utilize Vurt's "K1 Hi-Res Ebon Hawk Retexture," download [this patch](https://mega.nz/file/QAhhFTzD#rxS91pehFgNP7xFh3DNnNFC1d_YelF43K4-q6mh8xfI) and move its contents to your override.
 
-
 ___
 
 ### Ebon Hawk Cockpit Upgrade (LEH_Scre01)
@@ -1653,7 +1562,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1673,7 +1581,6 @@ ___
 
 **Installation Instructions:** Recommend the version without overlays, but it's personal preference.
 
-
 ___
 
 ### Taris Reskin
@@ -1692,7 +1599,6 @@ ___
 
 **Installation Instructions:** Don't install the included modifications to the Dantooine Estates or Sith Base, you'll only be installing the contents of Part 1 and Part 2. You will additionally need to delete the following files from the Part 1 folder before moving the mod content to the override folder: LTS_Bsky01.tga, LTS_Bsky02.tga, and (sorted by name) LTS_sky0001.tga **through** LTS_SKY0005.tga
 
-
 ___
 
 ### High Quality Starfields and Nebulas
@@ -1708,7 +1614,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1728,7 +1633,6 @@ ___
 
 **Installation Instructions:** Delete m36aa_01_lm0 through m36aa_01_lm2.tga before moving to the override, then apply the patch.
 
-
 ___
 
 ### Ebon Hawk Transparent Cockpit Windows for K1
@@ -1747,7 +1651,6 @@ ___
 
 **Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply the contents of the "Leviathan - K1CP Forcefield" folder (if using K1CP) and HQ Skyboxes compatch (if using HQ Skyboxes).
 
-
 ___
 
 ### Hi-Res Beam Effects
@@ -1763,7 +1666,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1781,7 +1683,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Animated Energy Shields
@@ -1798,7 +1699,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Animated Cantina Sign
@@ -1814,7 +1714,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1836,7 +1735,6 @@ I'm also looking for opinions about this and whether users prefer it to Fire and
 
 **Installation Instructions:** I recommend against any of the included optional files.
 
-
 ___
 
 ### Terminal Texture
@@ -1852,7 +1750,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1870,7 +1767,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Animated Swoop Monitors
@@ -1887,7 +1783,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Loadscreens in Color
@@ -1903,7 +1798,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1923,7 +1817,6 @@ ___
 
 **Installation Instructions:** The mod builds are only tested with the standard install option; other options are untested for compatibility and function. Use at your own risk!
 
-
 ___
 
 ### Darth Malak's Lightsaber
@@ -1939,7 +1832,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** HoloPatcher Mod
-
 
 ___
 
@@ -1959,7 +1851,6 @@ ___
 
 **Installation Instructions:** Move everything from the override folder to your game's override directory, unless you would like yellow/green disruptors, in which case those files should be moved from the optional folder after moving all loose files to the override first.
 
-
 ___
 
 ### Wookiee Warblade Fix
@@ -1975,7 +1866,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -1993,7 +1883,6 @@ ___
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Korriban Academy Workbench
@@ -2010,7 +1899,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Senni Vek Mod
@@ -2026,7 +1914,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** HoloPatcher Mod
-
 
 ___
 
@@ -2046,7 +1933,6 @@ ___
 
 **Installation Instructions:** Run the installer first. Once completed, move the upscaled textures to override (if desired). If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder. If using the Senni Vek Mod, ensure to also re-run the installer and select the compatibility patch for whichever version of that mod you've chosen to use (Senni Vek's Ambush or Senni Vek Restoration).
 
-
 ___
 
 ### Ixgil the Bith
@@ -2065,7 +1951,6 @@ There's a wrong soundset. This mod fixes it. The character dies about 5 seconds 
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Hidden Bek Control Room Restoration
@@ -2082,7 +1967,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Swoop Bike Upgrades
@@ -2098,7 +1982,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2120,7 +2003,6 @@ Anyway, this mod makes the whole Jedi sequence more meaningful by getting rid of
 
 **Installation Instructions:** Move "dan13_dorak.dlg" only.
 
-
 ___
 
 ### Juhani Dialogue Restoration
@@ -2136,7 +2018,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -2154,7 +2035,6 @@ ___
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Leviathan Differentiated Dialogue
@@ -2170,7 +2050,6 @@ ___
 **Non-English Functionality:** NO
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -2188,7 +2067,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Ebon Hawk Camera Replacement
@@ -2205,7 +2083,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Rebalanced Grenades
@@ -2221,7 +2098,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** HoloPatcher Mod
-
 
 ___
 
@@ -2241,7 +2117,6 @@ ___
 
 **Installation Instructions:** Delete "ii_trapkit_001.tga" through "ii_trapkit_004.tga" before installing.
 
-
 ___
 
 ### Random Turret Minigame Remover
@@ -2258,7 +2133,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Trask Without Tutorials
@@ -2274,7 +2148,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2294,7 +2167,6 @@ ___
 
 **Installation Instructions:** The optional file included in the install is compatible with the builds, and it's your choice to use it or not.
 
-
 ___
 
 ### Ain't No Air in Space
@@ -2310,7 +2182,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2330,7 +2201,6 @@ ___
 
 **Installation Instructions:** Use the K1CP compatible install option, if using the K1CP (you should be).
 
-
 ___
 
 ### JC's Romance Enhancement: Dark Sacrifice
@@ -2346,7 +2216,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2364,7 +2233,6 @@ ___
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Sunry Murder Recording Enhancement
@@ -2380,7 +2248,6 @@ ___
 **Non-English Functionality:** NO
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2400,7 +2267,6 @@ ___
 
 **Installation Instructions:** I personally recommend option 2.
 
-
 ___
 
 ### Taris Rapid Transit
@@ -2416,7 +2282,6 @@ ___
 **Non-English Functionality:** NO
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2434,7 +2299,6 @@ ___
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Recruit T3-M4 Early
@@ -2451,7 +2315,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Security Spikes for K1
@@ -2467,7 +2330,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2487,7 +2349,6 @@ ___
 
 **Installation Instructions:** Extract the mod, navigate to the 'TSLPatchdata' folder, and delete the file 'keblastore.utm'. Run the installer—it will give you a single error, this is intended. After the install has completed, rename the files 'w_ionrfl_04.mdl' and 'w_ionrfl_04.mdx' to 'w_ionrfl_004.mdl' and 'w_ionrfl_004.mdx'. Delete the following files from your override directory: w_rptnblstr_004.mdl, w_rptnblstr_004.mdx, w_blstrpstl_006.mdl, w_blstrpstl_006.mdx and g1_w_rptnblstr01.uti
 
-
 ___
 
 ### A Crashed Republic Cruiser on a Nameless World
@@ -2506,7 +2367,6 @@ ___
 
 **Installation Instructions:** Run the installer to install the mod, then re-run it twice more, once for each of the optional installs, if using Loadscreens in Color/HQ Blasters.
 
-
 ___
 
 ### Trandoshans Rescaled
@@ -2522,7 +2382,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2540,7 +2399,6 @@ ___
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Bastila has TSL Battle Meditation
@@ -2556,7 +2414,6 @@ ___
 **Non-English Functionality:** NO
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2574,7 +2431,6 @@ ___
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Sentinel Sneak Attack with Multiclassing
@@ -2590,7 +2446,6 @@ ___
 **Non-English Functionality:** Supported languages: UNKNOWN
 
 **Installation Method:** HoloPatcher Mod
-
 
 ___
 
@@ -2610,7 +2465,6 @@ Even if this mod doesn't make him strong enough to stand against you, it at leas
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Sherruk Attacks with Lightsabers
@@ -2629,7 +2483,6 @@ ___
 
 **Installation Instructions:** Install the base mod first, then move the file from the patch directly to your override.
 
-
 ___
 
 ### Improved Cantina Sitters
@@ -2646,7 +2499,6 @@ ___
 
 **Installation Method:** TSLPatcher Mod
 
-
 ___
 
 ### Helena Shan Improvement
@@ -2662,7 +2514,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2682,7 +2533,6 @@ ___
 
 **Installation Instructions:** Use the regular install—other install variants have been linked to sequence breaks, but the normal install variant is fully functional.
 
-
 ___
 
 ### Taris Dueling Arena Adjustment
@@ -2698,7 +2548,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2718,7 +2567,6 @@ ___
 
 **Installation Instructions:** This mod is not a file archive unlike all the other mods you've downloaded, just a single pre-extracted file. When you get the file, just put it directly in your Override folder.
 
-
 ___
 
 ### Kashyyyk Shadowlands Forcefield Rework
@@ -2734,7 +2582,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2754,7 +2601,6 @@ ___
 
 **Installation Instructions:** Which of the three versions is used is up to your preference. Full is the entire package, lite is without the player swoop displayed on the race platform, and ultra lite is without the doors fix.
 
-
 ___
 
 ### Engine Lab Bench for Swoop Accelerator
@@ -2770,7 +2616,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher Mod
-
 
 ___
 
@@ -2790,7 +2635,6 @@ ___
 
 **Installation Instructions:** If you have installed the K1CP, install just the pillar facing fix. The lighting fix is already included in the K1CP.
 
-
 ___
 
 ### JC's Czerka: Business Attire
@@ -2809,7 +2653,6 @@ ___
 
 **Installation Instructions:** If using Dark Hope's HD Ithorian texture, also download and apply [this patch](https://mega.nz/file/wUYRUTAD#tE7J08QTc0NSSbG-Xu3cSFsynLVtg7J59BruxOlDnKY), which Sith Holocron was kind enough to make at my request, after installing this mod.
 
-
 ___
 
 ### Sith Soldier Texture Restoration
@@ -2825,7 +2668,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -2843,7 +2685,6 @@ ___
 
 **Installation Method:** TSLPatcher
 
-
 ___
 
 ### Diversified Jedi Captives
@@ -2860,7 +2701,6 @@ ___
 
 **Installation Method:** TSLPatcher
 
-
 ___
 
 ### Juhani Romance Enhancement
@@ -2876,7 +2716,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -2896,7 +2735,6 @@ ___
 
 **Installation Instructions:** Recommend the Revisited option.
 
-
 ___
 
 ### Movie-Style Endgame Holograms
@@ -2912,7 +2750,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -2930,7 +2767,6 @@ ___
 
 **Installation Method:** TSLPatcher
 
-
 ___
 
 ### Movie-Style Rakatan Holograms
@@ -2946,7 +2782,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -2964,7 +2799,6 @@ ___
 
 **Installation Method:** TSLPatcher
 
-
 ___
 
 ### Elder Droid Unique VO
@@ -2980,7 +2814,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -3000,7 +2833,6 @@ ___
 
 **Installation Instructions:** Use the version not for the Weapon Model Overhaul, unless you choose to install it separately (NOT tested and NOT recommended).
 
-
 ___
 
 ### Ajunta Pall's Blade
@@ -3019,7 +2851,6 @@ ___
 
 **Installation Instructions:** Install the Sith Specter/Rece compatibility option if using Ajunta Pall's Swords.
 
-
 ___
 
 ### JC's Mandalorian Armor
@@ -3037,7 +2868,6 @@ ___
 **Installation Method:** Multi-Run TSLPatcher
 
 **Installation Instructions:** Install Option A. I recommend NOT re-running the patcher to install the extra textures, as upscaled textures installed in UCO are much higher-quality than these.
-
 
 ___
 
@@ -3059,7 +2889,6 @@ If you would prefer a pure damage increase to resolve the discrepancy in repeati
 
 **Installation Instructions:** Run the patcher and select your desired install. I personally would recommend using at least one of the first three, as the mod is not worth it for just the feat changes in my opinion. My personal recommendation would be option 2 or 3 (especially if intending to use JC's Blaster Adjustment below), but I tested it with option 1 and did not find it terribly overpowered. Indeed, it made the game way harder at points as enemies were beaming me with multiple rifle attacks, so if you want an extra challenge option 1 is a valid choice.
 
-
 ___
 
 ### JC's Blaster Adjustment
@@ -3078,7 +2907,6 @@ ___
 
 **Installation Instructions:** If you installed the main option of Multifire and Autofire, I recommend using the *Blaster Pistol + Critical* option of this mod, as applying its changes to repeaters and rifles would make them insanely overpowered with their auto-attacks. If using Options 2 or 3 of Multifire and Autofire, I would recommend the *Blaster Pistol & Blaster Rifle + Critical* version of this mod--don't worry, it won't make rifles way stronger; JC's changes to the damage will overwrite bdaman's, in effect just adding JC's alterations to the critical strike ranges. Finally, if not using bdaman's mod, I recommend the full install.
 
-
 ___
 
 ### Gaffi Stick Improvement
@@ -3094,7 +2922,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -3112,7 +2939,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Dantooine Training Lightsabers
@@ -3128,7 +2954,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -3146,7 +2971,6 @@ ___
 
 **Installation Method:** TSLPatcher
 
-
 ___
 
 ### Realistic Visual Effects
@@ -3162,7 +2986,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -3180,7 +3003,6 @@ ___
 
 **Installation Method:** TSLPatcher
 
-
 ___
 
 ### NPC Alignment Fix
@@ -3197,7 +3019,6 @@ ___
 
 **Installation Method:** TSLPatcher
 
-
 ___
 
 ### Repair Affects Stun Droid
@@ -3213,7 +3034,6 @@ ___
 **Non-English Functionality:** Supported languages: YES, though some text may be blank or in English
 
 **Installation Method:** TSLPatcher
-
 
 ___
 
@@ -3233,7 +3053,6 @@ ___
 
 **Installation Instructions:** Ignore the Patch folder unless using K2 Force Powers for K1 (untested, but should function). I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
 
-
 ___
 
 ### Galaxy Map Fix Pack
@@ -3251,7 +3070,6 @@ ___
 **Installation Method:** TSLPatcher
 
 **Installation Instructions:** If intending to play [in widescreen](#Optional_Widescreen) and with the widescreen menus mod (part of several additional widescreen support mods [here](/modding/mod_builds/k1/widescreen.html)), install this mod *after* the widescreen menus installation, and move the file from the optional download "HR Menu Patch.zip" file which corresponds to your resolution to your override folder *after* the initial installation completes; otherwise, install the base mod now.
-
 
 ___
 
@@ -3273,7 +3091,6 @@ ___
 
 **MAKE SURE THIS SCRIPT RUNS PROPERLY!** On some operating systems, overzealous antivirus setups, or filepaths with particular characters in them it may fail. If the file outputs "Finished, Press any key to continue" but does not list any files it deleted, it *is not working*, and if it does not work it *will* crash your game. You can try to resolve this by moving your Override folder to a different location (I recommend a subfolder in your Documents or Downloads directories), putting the .bat file there and running it through that directory, but if that doesn't work you will need to manually go through and delete the duplicates from the link above.
 
-
 ___
 
 ### Ultimate Character Overhaul Patches
@@ -3291,7 +3108,6 @@ ___
 **Installation Method:** Loose-File Mod
 
 **Installation Instructions:** Scroll down to the "optional files" section of the mod page. In order, install the compatch for JC's Minor Fixes, the K1CP (delete "PLC_SSldCrps.tpc". Additionally delete N_CommM01 - 06, plus N_CommM08, if using Dark Hope's male clothing upscale. Only then move the files to your override), and then all remaining content that matches content you chose to use from the builds (again, skipping Better Twi'lek Male Heads, if using Leilukin's mod). I also recommend against using the patch for JC's Mandalorian Armor, as there are better options (in my opinion) in Character Textures & Model Fixes below. If using Thigh-High Boots for Twi'lek, only move the patch content from the NPC Replacement folder. If using Republic Soldier's New Shade, use the New Shade option.
-
 
 ___
 
@@ -3313,7 +3129,6 @@ ___
 
 If you cannot run .bat files or feel uncomfortable running this file, you will need to manually delete the files yourself, following the instructions [here](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/content/k1/redrob_deletions.md).
 
-
 ___
 
 ### 4GB Patcher
@@ -3334,7 +3149,6 @@ ___
 
 Additionally, **DO NOT** apply this step with the Steam version of the game, unless you have applied the below widescreen patch! Without the modified widescreen .exe, Steam's executable copy is encrypted in such a way that executing this patcher will break it and prevent the game from launching. Although it's unfortunate to not have access to the patch, it doesn't introduce any fatal errors or shortcomings if you are on Steam and choose not to apply widescreen so it can be used; I recommend just being sure to exit your game and restart the application from the top once every four hours or so!
 
-
 ___
 
 ### Turret Cockpit Widescreen
@@ -3350,7 +3164,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -3370,7 +3183,6 @@ ___
 
 **Installation Instructions:** Make a copy of your swkotor.exe (only AFTER having applied the UniWS widescreen patch) and paste it into the extracted mod folder with the .bat file within. Run the .bat file (NOT the .exe!) and input the necessary data. The .bat will generate a new file called swkotor.exe, as well as swkotor.exe.bak—*swkotor.exe is the correct file*, and the file with .bak appended at the end is a backup which you can safely delete. Take the new swkotor.exe file and replace the one in your main game directory with it, then move the HR Menus files for your selected resolution into your override folder.
 
-
 ___
 
 ### HD UI Menu Pack
@@ -3387,7 +3199,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Workbench Upgrade Screen Camera Tweak
@@ -3403,7 +3214,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -3423,7 +3233,6 @@ ___
 
 **Installation Instructions:** I recommend using the .tpc file option. For **THIS MOD ONLY**, do not overwrite when prompted!
 
-
 ___
 
 ### HD Robe Icons for JC's Cloaked Jedi Robes
@@ -3442,7 +3251,6 @@ ___
 
 **Installation Instructions:** In the "JC's Cloaked Jedis" folder, select the files from the version of JC's Cloaked Jedi Robes you utilized. Ignore the Effix folder unless playing with that specific mod.
 
-
 ___
 
 ### Upscaled Computer
@@ -3458,7 +3266,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -3476,7 +3283,6 @@ ___
 
 **Installation Method:** Loose-File Mod
 
-
 ___
 
 ### Main Menu Widescreen Fix
@@ -3492,7 +3298,6 @@ ___
 **Non-English Functionality:** YES
 
 **Installation Method:** Loose-File Mod
-
 
 ___
 
@@ -3515,7 +3320,6 @@ Unfortunately, there's a price for the quality of Pops's work: the files are ext
 **Installation Instructions:** Choose the resolution option which most closely fits your monitor's screen size during the download process. I *STRONGLY* recommend choosing the 30fps option for that resolution—there have been crashes directly linked to the 60fps versions. When installing, there will be several optional files based on how dialogue in cutscenes are displayed (floating text or not, etc). Which of these you choose is your preference; use the mod screenshots to determine. Bear in mind that the files from this mod go in your *movies* folder, not override.
 
 If you experience issues with the game minimizing during cutscenes, it might be necessary to go to [this video](https://www.youtube.com/watch?v=bA5l6HVs4Y4) and following the instructions to use RAD tools to "upscale" the cutscenes to match your exact resolution, though I have not personally attempted this so I don't know how much time it would take to complete. I would estimate around 8 hours, which is the typical time it takes for the native movies to be scaled to 1920x1080 using the same system, but remember that this would be a fully-automated process.
-
 
 ___
 

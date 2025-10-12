@@ -161,15 +161,22 @@ namespace KOTORModSync.Core.Parsing
 		}
 
 
-		private string _instructionPattern = string.Empty;
-		public string InstructionPattern
-		{
-			get => _instructionPattern;
-			set { _instructionPattern = value; OnPropertyChanged(); }
-		}
+	private string _instructionPattern = string.Empty;
+	public string InstructionPattern
+	{
+		get => _instructionPattern;
+		set { _instructionPattern = value; OnPropertyChanged(); }
+	}
+
+	private string _instructionsBlockPattern = string.Empty;
+	public string InstructionsBlockPattern
+	{
+		get => _instructionsBlockPattern;
+		set { _instructionsBlockPattern = value; OnPropertyChanged(); }
+	}
 
 
-		public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>();
+	public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>();
 
 		public RegexOptions GetRegexOptions()
 		{
@@ -206,6 +213,8 @@ namespace KOTORModSync.Core.Parsing
 			const string defaultRawPattern = @"(?ms)^###\s*(?<heading>.+?)\s*\r?\n(?:[\s\S]*?\*\*Name:\*\*\s*(?:\[(?<name>(?<name_link>[^\]]+))\]\([^)]+\)|(?<name_plain>.*?))(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Author:\*\*\s*(?<author>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Description:\*\*\s*(?<description>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Masters:\*\*\s*(?<masters>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Category\s*&\s*Tier:\*\*\s*(?<category_tier>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Non-English Functionality:\*\*\s*(?<non_english>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Installation Method:\*\*\s*(?<installation_method>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Installation Instructions:\*\*\s*(?<installation_instructions>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?[\s\S]*?(?=\r?\n\s*(?:-{3,}|_{3,})|\Z)";
 			// Outer pattern: Match ### heading until ___, ##, or end of string
 			const string defaultOuterPattern = @"(?m)^###\s*.+?$[\s\S]*?(?=^___\s*$|^##\s|\Z)";
+			// Pattern to extract instructions/metadata from markdown comments: <!--<<ModSync>>...-->
+			const string defaultInstructionsBlockPattern = @"<!--<<ModSync>>\s*(?<instructions>[\s\S]*?)-->";
 
 			return new MarkdownImportProfile
 			{
@@ -226,6 +235,7 @@ namespace KOTORModSync.Core.Parsing
 				RestrictionsPattern = string.Empty,
 				OptionPattern = string.Empty,
 				InstructionPattern = string.Empty,
+				InstructionsBlockPattern = defaultInstructionsBlockPattern,
 				// Regex flags (defaulting to /gms)
 				GlobalFlag = true,
 				MultilineFlag = true,

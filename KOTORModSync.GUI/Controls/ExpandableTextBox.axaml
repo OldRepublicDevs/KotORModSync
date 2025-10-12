@@ -14,11 +14,9 @@
             Padding="8,6"
             Background="Transparent"
             BorderThickness="0"
-            Cursor="Hand"
-            IsReadOnly="True"
             PointerPressed="SingleLineTextBox_PointerPressed"
-            Text="{Binding $parent[UserControl].Text}"
-            ToolTip.Tip="Click to edit full text"
+            Text="{Binding $parent[UserControl].Text, Mode=TwoWay}"
+            ToolTip.Tip="Click to expand for multi-line editing"
             Watermark="{Binding $parent[UserControl].Watermark}" />
 
         <!--  Full editor TextBox (expanded state)  -->
@@ -30,7 +28,7 @@
             IsVisible="False"
             KeyDown="FullEditorTextBox_KeyDown"
             LostFocus="FullEditorTextBox_LostFocus"
-            Text="{Binding $parent[UserControl].Text}"
+            Text="{Binding $parent[UserControl].Text, Mode=TwoWay}"
             TextWrapping="Wrap"
             Watermark="{Binding $parent[UserControl].Watermark}" />
     </Grid>

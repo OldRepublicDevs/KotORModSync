@@ -317,29 +317,150 @@ namespace KOTORModSync.Core.Parsing
 		/// Format: &lt;!--&lt;&lt;ModSync&gt;&gt; ... --&gt;
 		/// </summary>
 		[CanBeNull]
-		private static string ExtractModSyncMetadata([NotNull] string componentText)
+		private string ExtractModSyncMetadata([NotNull] string componentText)
 		{
 			if ( string.IsNullOrWhiteSpace(componentText) )
 				return null;
 
-			// Match HTML comment with ModSync marker
+			// Use the profile's instruction block pattern if available
+			string pattern = !string.IsNullOrWhiteSpace(_profile.InstructionsBlockPattern)
+				? _profile.InstructionsBlockPattern
+				: @"<!--<<ModSync>>\s*(?<instructions>[\s\S]*?)-->";
+
 			Match match = Regex.Match(
 				componentText,
-				@"<!--\s*<<ModSync>>\s*\n(.*?)\n\s*-->",
+				pattern,
 				RegexOptions.Singleline | RegexOptions.IgnoreCase
 			);
 
-			return match.Success ? match.Groups[1].Value : null;
+			return match.Success ? match.Groups["instructions"].Value.Trim() : null;
 		}
 
 		/// <summary>
 		/// Parses the ModSync metadata block and populates the component's instructions and options.
+		/// Supports both YAML and legacy markdown formats.
 		/// </summary>
 		private void ParseModSyncMetadata([NotNull] ModComponent component, [NotNull] string metadataText)
 		{
 			if ( string.IsNullOrWhiteSpace(metadataText) )
 				return;
 
+			// Detect if this is YAML or TOML format by looking for characteristic patterns
+			bool isYaml = DetectYamlFormat(metadataText);
+			bool isToml = DetectTomlFormat(metadataText);
+
+			if ( isYaml )
+			{
+				_logVerbose($"    Detected YAML format, attempting to deserialize...");
+				try
+				{
+					ModComponent yamlComponent = ModComponent.DeserializeYAMLComponent(metadataText);
+					if ( yamlComponent != null )
+					{
+						// Merge the YAML data into the existing component
+						MergeComponentMetadata(component, yamlComponent);
+						_logVerbose($"    Successfully parsed YAML: {component.Instructions.Count} instructions, {component.Options.Count} options");
+						return;
+					}
+				}
+				catch ( Exception ex )
+				{
+					_logVerbose($"    Warning: YAML parsing failed, falling back to legacy parser: {ex.Message}");
+				}
+			}
+			else if ( isToml )
+			{
+				_logVerbose($"    Detected TOML format, attempting to deserialize...");
+				try
+				{
+					// Wrap in [[thisMod]] if not already wrapped
+					string tomlString = metadataText;
+					if ( !tomlString.Contains("[[thisMod]]") && !tomlString.Contains("[thisMod]") )
+					{
+						tomlString = "[[thisMod]]\n" + metadataText;
+					}
+
+					ModComponent tomlComponent = ModComponent.DeserializeTomlComponent(tomlString);
+					if ( tomlComponent != null )
+					{
+						// Merge the TOML data into the existing component
+						MergeComponentMetadata(component, tomlComponent);
+						_logVerbose($"    Successfully parsed TOML: {component.Instructions.Count} instructions, {component.Options.Count} options");
+						return;
+					}
+				}
+				catch ( Exception ex )
+				{
+					_logVerbose($"    Warning: TOML parsing failed, falling back to legacy parser: {ex.Message}");
+				}
+			}
+
+			// Fallback to legacy markdown format parser
+			_logVerbose($"    Using legacy markdown format parser");
+			ParseLegacyMarkdownMetadata(component, metadataText);
+		}
+
+		/// <summary>
+		/// Detects if the metadata text is in YAML format.
+		/// </summary>
+		private static bool DetectYamlFormat([NotNull] string text)
+		{
+			// YAML typically has "Key: value" format without asterisks
+			// and uses "- " for list items with consistent indentation
+			return Regex.IsMatch(text, @"^\s*Guid:\s*[a-f0-9\-]+", RegexOptions.Multiline | RegexOptions.IgnoreCase)
+				   && Regex.IsMatch(text, @"^\s*Instructions:\s*$", RegexOptions.Multiline)
+				   && !text.Contains("**");
+		}
+
+		/// <summary>
+		/// Detects if the metadata text is in TOML format.
+		/// </summary>
+		private static bool DetectTomlFormat([NotNull] string text)
+		{
+			// TOML typically has [[thisMod]] headers or = assignments
+			return text.Contains("[[thisMod]]") || Regex.IsMatch(text, @"^\s*\w+\s*=", RegexOptions.Multiline);
+		}
+
+		/// <summary>
+		/// Merges metadata from a deserialized component into the target component.
+		/// </summary>
+		private static void MergeComponentMetadata([NotNull] ModComponent target, [NotNull] ModComponent source)
+		{
+			// Merge GUID if present
+			if ( source.Guid != Guid.Empty )
+			{
+				target.Guid = source.Guid;
+			}
+
+			// Merge instructions
+			if ( source.Instructions.Count > 0 )
+			{
+				target.Instructions = source.Instructions;
+			}
+
+			// Merge options
+			if ( source.Options.Count > 0 )
+			{
+				target.Options = source.Options;
+			}
+
+			// Merge dependencies and restrictions if present
+			if ( source.Dependencies.Count > 0 )
+			{
+				target.Dependencies = source.Dependencies;
+			}
+
+			if ( source.Restrictions.Count > 0 )
+			{
+				target.Restrictions = source.Restrictions;
+			}
+		}
+
+		/// <summary>
+		/// Parses the legacy markdown format ModSync metadata.
+		/// </summary>
+		private void ParseLegacyMarkdownMetadata([NotNull] ModComponent component, [NotNull] string metadataText)
+		{
 			string[] lines = metadataText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
 			// Find section boundaries first
@@ -573,7 +694,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Parses instructions nested within an option.
 		/// </summary>
 		[NotNull]
-		private List<Instruction> ParseOptionsInstructions([NotNull] string[] lines, ref int currentIdx, int endIdx, [NotNull] Option parentOption)
+		private static List<Instruction> ParseOptionsInstructions([NotNull] string[] lines, ref int currentIdx, int endIdx, [NotNull] Option parentOption)
 		{
 			var instructions = new List<Instruction>();
 			var currentInstruction = new Instruction();

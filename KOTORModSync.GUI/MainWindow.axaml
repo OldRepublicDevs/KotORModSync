@@ -1363,7 +1363,11 @@
                                                         </StackPanel>
                                                     </Grid>
                                                     <StackPanel>
-                                                        <controls:DownloadLinksControl HorizontalAlignment="Stretch" DownloadLinks="{Binding ModLink, Mode=TwoWay}" />
+                                                        <controls:DownloadLinksControl
+                                                            HorizontalAlignment="Stretch"
+                                                            ComponentGuid="{Binding Guid}"
+                                                            DownloadCacheService="{Binding $parent[Window].DownloadCacheService}"
+                                                            DownloadLinks="{Binding ModLink, Mode=TwoWay}" />
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Border>
@@ -1385,7 +1389,7 @@
                                                             Classes="secondary-text"
                                                             FontSize="9"
                                                             Text="What this mod does and why users might want it" />
-                                                        <controls:ExpandableTextBox Text="{Binding Description}" Watermark="Enter mod description..." />
+                                                        <controls:ExpandableTextBox Text="{Binding Description, Mode=TwoWay}" Watermark="Enter mod description..." />
                                                     </StackPanel>
 
                                                     <StackPanel Grid.Column="1" Margin="3,0,0,2">
@@ -1395,7 +1399,7 @@
                                                             Classes="secondary-text"
                                                             FontSize="9"
                                                             Text="Special instructions or warnings for users (handled automatically)" />
-                                                        <controls:ExpandableTextBox Text="{Binding Directions}" Watermark="Enter any special directions..." />
+                                                        <controls:ExpandableTextBox Text="{Binding Directions, Mode=TwoWay}" Watermark="Enter any special directions..." />
                                                     </StackPanel>
                                                 </Grid>
                                             </Border>

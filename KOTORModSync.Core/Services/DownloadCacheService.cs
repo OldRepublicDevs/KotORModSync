@@ -505,7 +505,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Resolves instruction source path by replacing placeholders and ensuring it matches the archive name.
 		/// </summary>
-		private string ResolveInstructionSource(string sourcePath, string archiveName)
+		private static string ResolveInstructionSource(string sourcePath, string archiveName)
 		{
 			if ( string.IsNullOrWhiteSpace(sourcePath) )
 				return sourcePath;

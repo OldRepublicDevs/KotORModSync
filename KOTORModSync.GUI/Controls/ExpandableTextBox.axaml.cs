@@ -9,7 +9,9 @@ namespace KOTORModSync.Controls
     public partial class ExpandableTextBox : UserControl
     {
         public static readonly StyledProperty<string> TextProperty =
-            AvaloniaProperty.Register<ExpandableTextBox, string>(nameof(Text));
+            AvaloniaProperty.Register<ExpandableTextBox, string>(
+                nameof(Text),
+                defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
 
         public static readonly StyledProperty<string> WatermarkProperty =
             AvaloniaProperty.Register<ExpandableTextBox, string>(nameof(Watermark));

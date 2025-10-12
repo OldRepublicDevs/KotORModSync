@@ -56,7 +56,7 @@ namespace KOTORModSync.Services
 				List<ModComponent> newComponents = ModComponent.ReadComponentsFromFile(filePath);
 
 				// Process modlinks for relative paths
-				ProcessModLinks(newComponents);
+				FileLoadingService.ProcessModLinks(newComponents);
 
 				// If no existing components, just load the new ones
 				if ( _mainConfig.allComponents.Count == 0 )
@@ -171,7 +171,7 @@ namespace KOTORModSync.Services
 							parseResult = vm.ConfirmLoad();
 
 							// Process modlinks for relative paths
-							ProcessModLinks(parseResult.Components);
+							FileLoadingService.ProcessModLinks(parseResult.Components);
 
 							await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
 							await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLink.Count) ?? 0} total links.");
@@ -199,7 +199,7 @@ namespace KOTORModSync.Services
 						parseResult = parser.Parse(fileContents);
 
 						// Process modlinks for relative paths
-						ProcessModLinks(parseResult.Components);
+						FileLoadingService.ProcessModLinks(parseResult.Components);
 
 						await Logger.LogAsync($"Markdown parsing completed using default profile.");
 						await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLink.Count) ?? 0} total links.");
@@ -307,7 +307,7 @@ namespace KOTORModSync.Services
 		/// <summary>
 		/// Processes modlinks to prepend base URL if they start with /
 		/// </summary>
-		private void ProcessModLinks(IList<ModComponent> components)
+		private static void ProcessModLinks(IList<ModComponent> components)
 		{
 			if ( components == null )
 				return;

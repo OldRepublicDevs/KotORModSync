@@ -86,7 +86,35 @@ namespace KOTORModSync.Services
 				if ( string.IsNullOrEmpty(rawEditText) )
 					return true;
 
-				var newComponent = ModComponent.DeserializeTomlComponent(rawEditText);
+				// Try to deserialize - try YAML first, then fall back to TOML
+				ModComponent newComponent = null;
+
+				// Try YAML first
+				try
+				{
+					await Logger.LogVerboseAsync("Attempting YAML deserialization...");
+					newComponent = ModComponent.DeserializeYAMLComponent(rawEditText);
+				}
+				catch ( Exception ex )
+				{
+					await Logger.LogVerboseAsync($"YAML deserialization failed: {ex.Message}");
+				}
+
+				// If YAML failed, try TOML
+				if ( newComponent == null )
+				{
+					try
+					{
+						await Logger.LogVerboseAsync("Attempting TOML deserialization...");
+						newComponent = ModComponent.DeserializeTomlComponent(rawEditText);
+					}
+					catch ( Exception ex )
+					{
+						await Logger.LogVerboseAsync($"TOML deserialization failed: {ex.Message}");
+					}
+				}
+
+				// If both failed, show error
 				if ( newComponent is null )
 				{
 					bool? confirmResult = await ConfirmationDialog.ShowConfirmationDialog(
@@ -192,12 +220,12 @@ namespace KOTORModSync.Services
 
 				// Check for dependent components
 				var dependentComponents = new System.Collections.Generic.List<ModComponent>();
-				foreach (var c in _mainConfig.allComponents)
+				foreach ( var c in _mainConfig.allComponents )
 				{
-					if (c.Dependencies.Contains(component.Guid) ||
+					if ( c.Dependencies.Contains(component.Guid) ||
 						c.Restrictions.Contains(component.Guid) ||
 						c.InstallBefore.Contains(component.Guid) ||
-						c.InstallAfter.Contains(component.Guid))
+						c.InstallAfter.Contains(component.Guid) )
 					{
 						dependentComponents.Add(c);
 					}

@@ -61,6 +61,7 @@ namespace KOTORModSync
 
 		// URL Validation Brushes
 		public static IBrush UrlValidationValidBrush => GetBrush("UrlValidation.ValidBrush", new SolidColorBrush(Color.FromRgb(76, 175, 80)));
+		public static IBrush UrlValidationWarningBrush => GetBrush("UrlValidation.WarningBrush", new SolidColorBrush(Color.FromRgb(255, 165, 0)));
 		public static IBrush UrlValidationInvalidBrush => GetBrush("UrlValidation.InvalidBrush", new SolidColorBrush(Color.FromRgb(244, 67, 54)));
 		public static IBrush UrlValidationErrorIconBrush => GetBrush("UrlValidation.ErrorIconBrush", new SolidColorBrush(Color.FromRgb(244, 67, 54)));
 

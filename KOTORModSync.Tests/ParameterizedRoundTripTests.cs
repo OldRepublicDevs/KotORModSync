@@ -444,7 +444,7 @@ namespace KOTORModSync.Tests
 		/// <summary>
 		/// Normalizes markdown for comparison by removing whitespace variations.
 		/// </summary>
-		private string NormalizeMarkdown(string markdown)
+		private static string NormalizeMarkdown(string markdown)
 		{
 			return markdown
 				.Replace("\r\n", "\n")
@@ -455,7 +455,7 @@ namespace KOTORModSync.Tests
 		/// <summary>
 		/// Normalizes TOML for comparison by removing comments and empty lines.
 		/// </summary>
-		private string NormalizeToml(string toml)
+		private static string NormalizeToml(string toml)
 		{
 			var lines = toml.Split('\n')
 				.Where(line => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith("#"))

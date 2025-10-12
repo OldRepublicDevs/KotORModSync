@@ -83,8 +83,8 @@
                     <TextBlock
                         x:Name="StatusText"
                         Margin="0,4,0,0"
+                        Classes="secondary-text"
                         FontSize="14"
-                        Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                         Text="Status" />
                 </StackPanel>
             </Grid>
@@ -233,11 +233,9 @@
                             <TextBox
                                 x:Name="LogsTextBox"
                                 AcceptsReturn="True"
-                                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
                                 BorderThickness="1"
                                 FontFamily="Consolas"
                                 FontSize="10"
-                                Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
                                 IsReadOnly="True"
                                 TextWrapping="Wrap" />
                         </ScrollViewer>

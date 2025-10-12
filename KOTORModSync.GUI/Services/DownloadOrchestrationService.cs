@@ -138,7 +138,7 @@ namespace KOTORModSync.Services
 								await HandleRetryDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
 								break;
 							case DownloadControlAction.Pause:
-								await HandlePauseDownloadAsync(args.Progress, downloadManager);
+								await DownloadOrchestrationService.HandlePauseDownloadAsync(args.Progress, downloadManager);
 								break;
 							case DownloadControlAction.Resume:
 								await HandleResumeDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow);
@@ -515,7 +515,7 @@ namespace KOTORModSync.Services
 		/// <summary>
 		/// Handles pausing a download using cooperative cancellation
 		/// </summary>
-		private async Task HandlePauseDownloadAsync(DownloadProgress progress, DownloadManager downloadManager)
+		private static async Task HandlePauseDownloadAsync(DownloadProgress progress, DownloadManager downloadManager)
 		{
 			try
 			{

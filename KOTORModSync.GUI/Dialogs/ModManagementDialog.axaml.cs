@@ -373,7 +373,7 @@ namespace KOTORModSync.Dialogs
 					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.toml");
 					if ( filePath != null )
 					{
-						bool success = await _modManagementService.ExportMods(_originalComponents, filePath);
+						bool success = await ModManagementService.ExportMods(_originalComponents, filePath);
 						await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
 					}
 				});
@@ -393,7 +393,7 @@ namespace KOTORModSync.Dialogs
 					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.json");
 					if ( filePath != null )
 					{
-						bool success = await _modManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Json);
+						bool success = await ModManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Json);
 						await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
 					}
 				});
@@ -413,7 +413,7 @@ namespace KOTORModSync.Dialogs
 					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.xml");
 					if ( filePath != null )
 					{
-						bool success = await _modManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Xml);
+						bool success = await ModManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Xml);
 						await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
 					}
 				});

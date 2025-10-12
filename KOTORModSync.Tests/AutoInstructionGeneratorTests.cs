@@ -289,7 +289,7 @@ namespace KOTORModSync.Tests
 			return archivePath;
 		}
 
-		private void AddTextFileToArchive(ZipArchive archive, string path, string content)
+		private static void AddTextFileToArchive(ZipArchive archive, string path, string content)
 		{
 			var memoryStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content));
 			archive.AddEntry(path, memoryStream, closeStream: true);

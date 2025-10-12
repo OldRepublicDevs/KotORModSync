@@ -243,7 +243,7 @@ namespace KOTORModSync.Services
 		/// Gets the list of specific missing files for a component
 		/// Uses VirtualFileSystemProvider dry run to detect missing files properly
 		/// </summary>
-		public async Task<List<string>> GetMissingFilesForComponentAsync(ModComponent component)
+		public static async Task<List<string>> GetMissingFilesForComponentAsync(ModComponent component)
 		{
 			var missingFiles = new List<string>();
 
@@ -314,11 +314,11 @@ namespace KOTORModSync.Services
 		/// <summary>
 		/// Synchronous version of GetMissingFilesForComponentAsync
 		/// </summary>
-		public List<string> GetMissingFilesForComponent(ModComponent component)
+		public static List<string> GetMissingFilesForComponent(ModComponent component)
 		{
 			try
 			{
-				return GetMissingFilesForComponentAsync(component).GetAwaiter().GetResult();
+				return ValidationService.GetMissingFilesForComponentAsync(component).GetAwaiter().GetResult();
 			}
 			catch ( Exception ex )
 			{
@@ -614,7 +614,7 @@ namespace KOTORModSync.Services
 					if ( !componentValid )
 					{
 						// Get specific missing files list
-						List<string> missingFiles = await GetMissingFilesForComponentAsync(component);
+						List<string> missingFiles = await ValidationService.GetMissingFilesForComponentAsync(component);
 						string missingFilesDescription = missingFiles.Count > 0
 							? $"Missing file(s): {string.Join(", ", missingFiles)}"
 							: "One or more required files for this mod are missing from your Mod Directory.";

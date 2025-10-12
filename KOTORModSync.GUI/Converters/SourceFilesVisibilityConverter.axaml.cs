@@ -16,8 +16,10 @@ namespace KOTORModSync.Converters
 			if (!(value is Instruction.ActionType action))
 				return true;
 
-			// Hide Source File(s) section for DelDuplicate action
-			return action != Instruction.ActionType.DelDuplicate;
+			// Hide Source File(s) section for DelDuplicate and Choose actions
+			// Choose actions use Source for GUIDs (displayed in Components/Options section)
+			// DelDuplicate uses Arguments for file extensions
+			return action != Instruction.ActionType.DelDuplicate && action != Instruction.ActionType.Choose;
 		}
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>

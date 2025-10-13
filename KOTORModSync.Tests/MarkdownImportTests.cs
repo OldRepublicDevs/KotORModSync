@@ -295,6 +295,7 @@ ___";
 		}
 
 		[Test]
+		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void FullMarkdownFile_ParsesAllMods()
 		{
 			// Arrange

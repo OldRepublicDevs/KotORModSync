@@ -705,15 +705,6 @@ namespace KOTORModSync.Core
 				}
 			}
 
-			//HACK: Prepend base URL for relative paths starting with /
-			for ( int i = 0; i < ModLink.Count; i++ )
-			{
-				if ( !string.IsNullOrEmpty(ModLink[i]) && ModLink[i].StartsWith("/") )
-				{
-					ModLink[i] = "https://kotor.neocities.org" + ModLink[i];
-				}
-			}
-
 			Dependencies = GetValueOrDefault<List<Guid>>(componentDict, key: "Dependencies") ?? new List<Guid>();
 			Restrictions = GetValueOrDefault<List<Guid>>(componentDict, key: "Restrictions") ?? new List<Guid>();
 			InstallBefore = GetValueOrDefault<List<Guid>>(componentDict, key: "InstallBefore") ?? new List<Guid>();

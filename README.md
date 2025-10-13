@@ -2,8 +2,8 @@
 
 KOTORModSync is a multi-mod installer for KOTOR games that makes it easier to install and manage mods.
 
-I usually install the Reddit mod build every year or so. The process takes about an hour and it's repetitive moving files, running TSLPatcher, deleting specific files, and occasionally renaming some files. The last time I installed the modbuild I made a mistake on a single different step, 3 times in a row. Most mistakes require a full restart from the beginning.
-This is tedious, so I decided to create an installer creator in C# to simplify the process.
+Installing multiple KOTOR mods can be tedious and error-prone. The process involves repetitive tasks like moving files, running TSLPatcher, deleting specific files, and occasionally renaming files. Making a single mistake often requires starting over from scratch.
+This is why I created KOTORModSync - an installer creator in C# to automate and simplify the entire process.
 
 ## Goals
 
@@ -16,7 +16,7 @@ Other mod managers I've tried were either too difficult to configure, require si
 
 ## Features
 
-- Can install the <https://kotor.neocities.org/> mod builds in about 20 minutes from a vanilla install.
+- Automated installation of multiple mods with proper dependency resolution and compatibility handling.
 - Supports TSLPatching on Mac/Linux without wine!
 - Select the individual mods you want for an install - the dependencies and incompatibilities will automatically be chosen and sorted. This means end users don't have to worry about specific instructions regarding other mods in the list.
 - All the compatibility steps are handled internally by KOTORModSync and the default instructions files provided here. An end user simply can select the mods they want to install in the left list, and any customizations if they like, and simply press 'Install All' to have everything installed automatically.
@@ -109,7 +109,7 @@ Created HoloPatcher and the PyKotor library that KOTORModSync uses to patch mods
 
 ### Testers
 
-#### Lewok from r/KOTOR
+#### Lewok
 
 Thank you for helping test that obnoxious UAC elevation problem legacy Windows apps like TSLPatcher have.
 

@@ -312,7 +312,7 @@ namespace KOTORModSync.Services
 			if ( components == null )
 				return;
 
-			const string baseUrl = "https://kotor.neocities.org";
+			const string baseUrl = "";
 
 			foreach ( ModComponent component in components )
 			{

@@ -217,6 +217,7 @@ namespace KOTORModSync.Tests
 		}
 
 		[TestCaseSource(nameof(GetAllDeadlystreamComponents))]
+		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void IndividualComponent_HasModSyncInstructions(ModComponent component, string mdFilePath)
 		{
 			// Arrange
@@ -247,6 +248,7 @@ namespace KOTORModSync.Tests
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
+		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void AutoGenerate_DeadlyStreamModsHaveInstructions(string mdFilePath)
 		{
 			// Arrange
@@ -358,6 +360,7 @@ namespace KOTORModSync.Tests
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
+		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_DeadlyStreamLinksAreValidUrls(string mdFilePath)
 		{
 			// Arrange
@@ -411,6 +414,7 @@ namespace KOTORModSync.Tests
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
+		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_WithModSyncMetadata_HaveValidInstructions(string mdFilePath)
 		{
 			// Arrange
@@ -489,6 +493,7 @@ namespace KOTORModSync.Tests
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
+		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_StatisticsOnInstallationMethods(string mdFilePath)
 		{
 			// Arrange

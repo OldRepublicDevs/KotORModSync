@@ -1090,6 +1090,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		[Category("Integration")]
 		[Explicit("Long-running integration test that downloads mods from the internet")]
+		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public async Task Test_FullModBuildInstallation_KOTOR1_Mobile_Full()
 		{
 			// Arrange - Create fake KOTOR directory structure

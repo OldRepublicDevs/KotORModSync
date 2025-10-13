@@ -196,13 +196,6 @@ namespace KOTORModSync.Core.Parsing
 				component.ModLink = modLinkMatches.Cast<Match>()
 					.Select(m => m.Groups["link"].Value.Trim())
 					.Where(l => !string.IsNullOrEmpty(l))
-					.Select(link =>
-					{
-						//HACK: Prepend base URL for relative paths starting with /
-						if ( link.StartsWith("/") )
-							return "https://kotor.neocities.org" + link;
-						return link;
-					})
 					.Distinct()
 					.ToList();
 				_logVerbose($"  Extracted {component.ModLink.Count} mod links");

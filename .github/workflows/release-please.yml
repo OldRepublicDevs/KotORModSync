@@ -1,0 +1,45 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      major: ${{ steps.release.outputs.major }}
+      minor: ${{ steps.release.outputs.minor }}
+      patch: ${{ steps.release.outputs.patch }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Run Release Please
+        id: release
+        uses: google-github-actions/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Output Release Info
+        if: steps.release.outputs.releases_created == 'true'
+        run: |
+          echo "🎉 Release created!"
+          echo "Releases: ${{ steps.release.outputs.releases_created }}"
+          if [ -n "${{ steps.release.outputs.tag_name }}" ]; then
+            echo "Tag: ${{ steps.release.outputs.tag_name }}"
+          fi
+          if [ -n "${{ steps.release.outputs['release--tag_name'] }}" ]; then
+            echo "Tag: ${{ steps.release.outputs['release--tag_name'] }}"
+          fi
+

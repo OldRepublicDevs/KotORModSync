@@ -1,26 +1,92 @@
 name: Build and Release KOTORModSync
 
 on:
-  push:
-    branches: [main, master]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
   pull_request:
     branches: [main, master]
   release:
-    types: [published]
+    types: [published, prereleased, released, created]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (leave empty to use MainConfig.cs version)'
+        required: false
+        default: ''
+  workflow_run:
+    workflows: ["Release Please"]
+    types:
+      - completed
 
 env:
   DOTNET_VERSION: '8.0.x'
   PROJECT_FILE: 'KOTORModSync.GUI/KOTORModSync.csproj'
-  KMS_VERSION: 'v1.0.0'
 
 jobs:
+  determine-version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_build: ${{ steps.check.outputs.should_build }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Extract Version from MainConfig.cs
+        id: extract
+        shell: pwsh
+        run: |
+          $mainConfigPath = "KOTORModSync.Core/MainConfig.cs"
+          $content = Get-Content $mainConfigPath -Raw
+          
+          if ($content -match 'CurrentVersion\s*=>\s*"([^"]+)"') {
+            $codeVersion = $matches[1]
+            Write-Host "Found version in MainConfig.cs: $codeVersion"
+            echo "code_version=$codeVersion" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "Could not find version in MainConfig.cs"
+            echo "code_version=1.0.0" >> $env:GITHUB_OUTPUT
+          }
+      
+      - name: Determine Version
+        id: version
+        shell: bash
+        run: |
+          CODE_VERSION="${{ steps.extract.outputs.code_version }}"
+          
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+            echo "Using GitHub release tag: $VERSION"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.version }}" ]; then
+              VERSION="${{ github.event.inputs.version }}"
+              echo "Using workflow dispatch version: $VERSION"
+            else
+              VERSION="v${CODE_VERSION}"
+              echo "Using MainConfig.cs version: $VERSION"
+            fi
+          else
+            VERSION="v${CODE_VERSION}"
+            echo "Using MainConfig.cs version: $VERSION"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Building version: $VERSION"
+      
+      - name: Check if Should Build
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "release" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+
   build-and-test:
     name: Build and Test
+    needs: determine-version
     runs-on: windows-latest
     
     steps:
@@ -114,8 +180,8 @@ jobs:
 
   publish-multi-platform:
     name: Publish ${{ matrix.rid }}
-    needs: build-and-test
-    if: github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: [determine-version, build-and-test]
+    if: needs.determine-version.outputs.should_build == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -214,9 +280,10 @@ jobs:
         shell: pwsh
         run: |
           $publishDir = "./publish/${{ matrix.rid }}"
-          $packageDir = "./package/KOTORModSync ${{ env.KMS_VERSION }}"
+          $version = "${{ needs.determine-version.outputs.version }}"
+          $packageDir = "./package/KOTORModSync $version"
           
-          Write-Host "📦 Preparing release package for ${{ matrix.rid }}..."
+          Write-Host "📦 Preparing release package for ${{ matrix.rid }} version $version..."
           
           # Create package directory structure
           New-Item -ItemType Directory -Path "$packageDir" -Force | Out-Null
@@ -235,6 +302,9 @@ jobs:
           if (Test-Path "TELEMETRY_SETUP_GUIDE.md") {
             Copy-Item "TELEMETRY_SETUP_GUIDE.md" "$packageDir/docs/"
           }
+          if (Test-Path "README.md") {
+            Copy-Item "README.md" "$packageDir/docs/"
+          }
           
           Write-Host "✅ Package prepared: $packageDir"
 
@@ -243,7 +313,8 @@ jobs:
         shell: pwsh
         run: |
           $packageDir = "./package"
-          $archiveName = "${{ matrix.rid }}.zip"
+          $version = "${{ needs.determine-version.outputs.version }}"
+          $archiveName = "KOTORModSync-$version-${{ matrix.rid }}.zip"
           
           Write-Host "🗜️ Creating archive: $archiveName"
           
@@ -256,12 +327,13 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          archive_name="${{ matrix.rid }}.zip"
+          version="${{ needs.determine-version.outputs.version }}"
+          archive_name="KOTORModSync-$version-${{ matrix.rid }}.zip"
           
           echo "🗜️ Creating archive: $archive_name"
           
           cd package
-          zip -r "../$archive_name" "KOTORModSync ${{ env.KMS_VERSION }}"
+          zip -r "../$archive_name" "KOTORModSync $version"
           cd ..
           
           echo "✅ Archive created: $archive_name"
@@ -270,34 +342,18 @@ jobs:
       - name: Upload Release Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: kotormodsync-${{ matrix.rid }}
-          path: ${{ matrix.rid }}.zip
+          name: KOTORModSync-${{ needs.determine-version.outputs.version }}-${{ matrix.rid }}
+          path: KOTORModSync-${{ needs.determine-version.outputs.version }}-${{ matrix.rid }}.zip
           retention-days: 90
           compression-level: 0
 
-  create-release:
-    name: Create GitHub Release
-    needs: publish-multi-platform
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
-    steps:
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+      - name: Upload to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
         with:
-          path: ./artifacts
-
-      - name: Display Structure
-        run: ls -R ./artifacts
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            ./artifacts/**/*.zip
-          fail_on_unmatched_files: true
+          files: KOTORModSync-${{ needs.determine-version.outputs.version }}-${{ matrix.rid }}.zip
+          tag_name: ${{ needs.determine-version.outputs.version }}
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

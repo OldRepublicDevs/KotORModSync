@@ -40,6 +40,7 @@ namespace KOTORModSync.Core
 			noAdmin = false;
 			caseInsensitivePathing = true;
 			validateAndReplaceInvalidArchives = true;
+			filterDownloadsByResolution = true;
 		}
 
 		[NotNull]
@@ -93,6 +94,9 @@ namespace KOTORModSync.Core
 
 		public static bool ValidateAndReplaceInvalidArchives { get; private set; }
 		public bool validateAndReplaceInvalidArchives { get => ValidateAndReplaceInvalidArchives; set => ValidateAndReplaceInvalidArchives = value; }
+
+		public static bool FilterDownloadsByResolution { get; private set; }
+		public bool filterDownloadsByResolution { get => FilterDownloadsByResolution; set => FilterDownloadsByResolution = value; }
 
 		public static string NexusModsApiKey { get; private set; }
 		public string nexusModsApiKey { get => NexusModsApiKey; set => NexusModsApiKey = value; }

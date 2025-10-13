@@ -24,11 +24,13 @@ namespace KOTORModSync.Core.Services
 		private readonly object _cacheLock = new object();
 		private DownloadManager _downloadManager;
 		private VirtualFileSystemProvider _virtualFileSystem;
+		private ResolutionFilterService _resolutionFilter;
 
 		public DownloadCacheService()
 		{
 			_cache = new Dictionary<Guid, Dictionary<string, DownloadCacheEntry>>();
 			_virtualFileSystem = new VirtualFileSystemProvider();
+			_resolutionFilter = new ResolutionFilterService(MainConfig.FilterDownloadsByResolution);
 			Logger.LogVerbose("[DownloadCacheService] Initialized");
 		}
 
@@ -62,10 +64,26 @@ namespace KOTORModSync.Core.Services
 				return new Dictionary<string, List<string>>();
 			}
 
-			var results = await downloadManager.ResolveUrlsToFilenamesAsync(urls, cancellationToken).ConfigureAwait(false);
+			// Apply resolution filtering to URLs before resolving
+			List<string> filteredUrls = _resolutionFilter.FilterByResolution(urls);
+			if ( filteredUrls.Count < urls.Count )
+			{
+				await Logger.LogVerboseAsync($"[DownloadCacheService] Resolution filter reduced URLs from {urls.Count} to {filteredUrls.Count}");
+			}
 
-			await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {results.Count} URLs");
-			return results;
+			if ( filteredUrls.Count == 0 )
+			{
+				await Logger.LogVerboseAsync("[DownloadCacheService] All URLs filtered out by resolution filter");
+				return new Dictionary<string, List<string>>();
+			}
+
+			var results = await downloadManager.ResolveUrlsToFilenamesAsync(filteredUrls, cancellationToken).ConfigureAwait(false);
+
+			// Apply resolution filtering to resolved filenames
+			var filteredResults = _resolutionFilter.FilterResolvedUrls(results);
+
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {filteredResults.Count} URLs (after resolution filtering)");
+			return filteredResults;
 		}
 
 		/// <summary>
@@ -337,6 +355,13 @@ namespace KOTORModSync.Core.Services
 				if ( string.IsNullOrWhiteSpace(url) )
 					continue;
 
+				// Apply resolution filter - skip URLs that don't match system resolution
+				if ( !_resolutionFilter.ShouldDownload(url) )
+				{
+					await Logger.LogVerboseAsync($"[DownloadCacheService] Skipping URL due to resolution filter: {url}");
+					continue;
+				}
+
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Processing URL {i + 1}/{component.ModLink.Count}: {url}");
 
 				// STEP 1: Check if already cached in memory
@@ -439,7 +464,15 @@ namespace KOTORModSync.Core.Services
 
 					if ( resolved.TryGetValue(url, out List<string> value) && value.Count > 0 )
 					{
-						string expectedFileName = value[0]; // Use first filename if multiple
+						// Apply resolution filter to resolved filenames
+						List<string> filteredFilenames = _resolutionFilter.FilterByResolution(value);
+						if ( filteredFilenames.Count == 0 )
+						{
+							await Logger.LogVerboseAsync($"[DownloadCacheService] All resolved filenames filtered out by resolution filter");
+							continue; // Skip to next URL
+						}
+
+						string expectedFileName = filteredFilenames[0]; // Use first filename if multiple
 						string expectedFilePath = Path.Combine(destinationDirectory, expectedFileName);
 
 						await Logger.LogVerboseAsync($"[DownloadCacheService] Resolved filename: {expectedFileName}");

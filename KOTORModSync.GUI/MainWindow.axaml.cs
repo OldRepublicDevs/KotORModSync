@@ -102,6 +102,8 @@ namespace KOTORModSync
 		private readonly ValidationDisplayService _validationDisplayService;
 		private readonly SettingsService _settingsService;
 		private readonly StepNavigationService _stepNavigationService;
+		// Telemetry service for analytics and performance monitoring
+		private readonly KOTORModSync.Core.Services.TelemetryService _telemetryService;
 		// UI control properties
 		private ListBox ModListBox => this.FindControl<ListBox>("ModListBoxElement");
 		public bool IsClosingMainWindow;
@@ -209,6 +211,8 @@ namespace KOTORModSync
 				_validationDisplayService = new ValidationDisplayService(_validationService, () => MainConfig.AllComponents);
 				_settingsService = new SettingsService(MainConfigInstance, this);
 				_stepNavigationService = new StepNavigationService(MainConfigInstance, _validationService);
+				// Initialize telemetry service
+				_telemetryService = Core.Services.TelemetryService.Instance;
 				// Create callback objects for use with KOTORModSync.Core
 				CallbackObjects.SetCallbackObjects(
 					new ConfirmationDialogCallback(this),
@@ -230,12 +234,38 @@ namespace KOTORModSync
 				// Initialize global actions menu
 				BuildGlobalActionsMenu();
 				// Virtual file system will be initialized per-component as needed
+				
+				// Initialize telemetry if enabled
+				Opened += async (s, e) => await InitializeTelemetryIfEnabled();
 			}
 			catch ( Exception e )
 			{
 				Logger.LogException(e, customMessage: "A fatal error has occurred loading the main window");
+				_telemetryService?.RecordError("MainWindow.Constructor", e.Message, e.StackTrace);
 				throw;
 			}
+		}
+		
+		/// <summary>
+		/// Initializes telemetry if enabled in configuration.
+		/// </summary>
+		private async Task InitializeTelemetryIfEnabled()
+		{
+			try
+			{
+				var config = Core.Services.TelemetryConfiguration.Load();
+				
+				if (config.IsEnabled)
+				{
+					_telemetryService.Initialize();
+					Logger.LogVerbose("[Telemetry] Telemetry initialized from configuration");
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "[Telemetry] Error initializing telemetry");
+			}
+			await Task.CompletedTask;
 		}
 		private static void UpdatePathDisplays(TextBlock modPathDisplay, TextBlock kotorPathDisplay)
 		{
@@ -1047,6 +1077,9 @@ namespace KOTORModSync
 					return;
 				// Save settings before closing
 				SaveSettings();
+				// Flush telemetry before closing
+				_telemetryService?.Flush();
+				_telemetryService?.Dispose();
 				// Clean up file watcher
 				_fileSystemService?.Dispose();
 				// Start a new app closing event.
@@ -1911,8 +1944,12 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private async void LoadFile_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
+			_telemetryService?.RecordUIInteraction("click", "LoadFileButton");
+			
 			try
 			{
+				var startTime = DateTime.UtcNow;
+				
 				// Open the file dialog to select a file
 				string[] result = await ShowFileDialog(
 					windowName: "Load a TOML or Markdown instruction file",
@@ -1940,28 +1977,42 @@ namespace KOTORModSync
 						// TOML parsing failed, will try markdown
 						await Logger.LogVerboseAsync($"File is not a valid TOML file: {tomlEx.Message}");
 					}
-					// If TOML loading succeeded, we're done
-					if ( loadedAsToml )
+				// If TOML loading succeeded, we're done
+				if ( loadedAsToml )
+				{
+					await Logger.LogAsync("File loaded successfully as TOML.");
+					_telemetryService?.RecordEvent("file.loaded", new Dictionary<string, object>
 					{
-						await Logger.LogAsync("File loaded successfully as TOML.");
-						return;
-					}
+						["file_type"] = "toml",
+						["duration_ms"] = (DateTime.UtcNow - startTime).TotalMilliseconds,
+						["component_count"] = MainConfig.AllComponents.Count,
+					});
+					return;
 				}
-				// Load as markdown (either because it's not a TOML extension, or TOML loading failed)
-				await Logger.LogAsync("Attempting to load file as Markdown...");
-				await _fileLoadingService.LoadMarkdownFileAsync(
-					filePath,
-					EditorMode,
-					() => ProcessComponentsAsync(MainConfig.AllComponents),
-					TryAutoGenerateInstructionsForComponents,
-					profile: null
-				);
 			}
-			catch ( Exception ex )
+			// Load as markdown (either because it's not a TOML extension, or TOML loading failed)
+			await Logger.LogAsync("Attempting to load file as Markdown...");
+			await _fileLoadingService.LoadMarkdownFileAsync(
+				filePath,
+				EditorMode,
+				() => ProcessComponentsAsync(MainConfig.AllComponents),
+				TryAutoGenerateInstructionsForComponents,
+				profile: null
+			);
+			
+			_telemetryService?.RecordEvent("file.loaded", new Dictionary<string, object>
 			{
-				await Logger.LogExceptionAsync(ex);
-			}
+				["file_type"] = "markdown",
+				["duration_ms"] = (DateTime.UtcNow - startTime).TotalMilliseconds,
+				["component_count"] = MainConfig.AllComponents.Count,
+			});
 		}
+		catch ( Exception ex )
+		{
+			await Logger.LogExceptionAsync(ex);
+			_telemetryService?.RecordError("file.load", ex.Message, ex.StackTrace);
+		}
+	}
 		[UsedImplicitly]
 		private void LoadInstallFile_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => LoadFile_Click(sender, e);
 		[UsedImplicitly]
@@ -2196,11 +2247,16 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void ValidateButton_Click([CanBeNull] object sender, [NotNull] RoutedEventArgs e)
 		{
+			_telemetryService?.RecordUIInteraction("click", "ValidateButton");
+			
 			// Run heavy validation in background thread to avoid blocking UI
 			Task.Run(async () =>
 			{
 				try
 				{
+					var startTime = DateTime.UtcNow;
+					using var activity = _telemetryService?.StartActivity("validation.environment");
+					
 					(bool validationResult, _) = await InstallationService.ValidateInstallationEnvironmentAsync(
 						MainConfigInstance,
 						async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
@@ -2441,11 +2497,29 @@ namespace KOTORModSync
 				try
 				{
 					_installRunning = true;
+					var startTime = DateTime.UtcNow;
+					
+					using var activity = _telemetryService?.StartActivity($"mod.install.{name}");
+					activity?.SetTag("mod.name", name);
+					activity?.SetTag("mod.guid", CurrentComponent.Guid);
+					
 					ModComponent.InstallExitCode exitCode = await InstallationService.InstallSingleComponentAsync(
 						CurrentComponent,
 						MainConfig.AllComponents
 					);
 					_installRunning = false;
+					
+					var duration = DateTime.UtcNow - startTime;
+					bool success = exitCode == 0;
+					
+					_telemetryService?.RecordModInstallation(
+						name, 
+						CurrentComponent.Guid, 
+						duration, 
+						success, 
+						success ? null : Utility.GetEnumDescription(exitCode)
+					);
+					
 					if ( exitCode != 0 )
 					{
 						await InformationDialog.ShowInformationDialog(
@@ -2480,6 +2554,13 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void StartInstall_Click([CanBeNull] object sender, [NotNull] RoutedEventArgs e)
 		{
+			_telemetryService?.RecordUIInteraction("click", "StartInstallButton");
+			_telemetryService?.RecordEvent("installation.started", new Dictionary<string, object>
+			{
+				["selected_mod_count"] = MainConfig.AllComponents.Count(c => c.IsSelected),
+				["total_mod_count"] = MainConfig.AllComponents.Count,
+			});
+			
 			// Run validation in background thread to avoid blocking UI
 			Task.Run(async () =>
 			{

@@ -373,7 +373,4 @@ bin/*
 mod-builds/
 chrome/
 *.nettrace
-add_headers.ps1
-add_axaml_headers.ps1
-find_missing_headers.ps1
-find_missing_axaml_headers.ps1
+*.ps1

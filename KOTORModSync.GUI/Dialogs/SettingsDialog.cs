@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -13,6 +14,7 @@ using Avalonia.VisualTree;
 using JetBrains.Annotations;
 using KOTORModSync.Controls;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
 
 namespace KOTORModSync.Dialogs
 {
@@ -92,7 +94,82 @@ namespace KOTORModSync.Dialogs
 				kotorDirectoryPicker.SetCurrentPath(MainConfigInstance.destinationPathFullName ?? string.Empty);
 			}
 
+			// Initialize telemetry checkboxes with current configuration
+			LoadTelemetrySettings();
+			
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow end");
+		}
+		
+		private void LoadTelemetrySettings()
+		{
+			try
+			{
+				var telemetryConfig = TelemetryConfiguration.Load();
+				
+				CheckBox enableTelemetryCheckBox = this.FindControl<CheckBox>("EnableTelemetryCheckBox");
+				CheckBox collectUsageDataCheckBox = this.FindControl<CheckBox>("CollectUsageDataCheckBox");
+				CheckBox collectPerformanceMetricsCheckBox = this.FindControl<CheckBox>("CollectPerformanceMetricsCheckBox");
+				CheckBox collectCrashReportsCheckBox = this.FindControl<CheckBox>("CollectCrashReportsCheckBox");
+				
+				if (enableTelemetryCheckBox != null)
+					enableTelemetryCheckBox.IsChecked = telemetryConfig.IsEnabled;
+				
+				if (collectUsageDataCheckBox != null)
+					collectUsageDataCheckBox.IsChecked = telemetryConfig.CollectUsageData;
+				
+				if (collectPerformanceMetricsCheckBox != null)
+					collectPerformanceMetricsCheckBox.IsChecked = telemetryConfig.CollectPerformanceMetrics;
+				
+				if (collectCrashReportsCheckBox != null)
+					collectCrashReportsCheckBox.IsChecked = telemetryConfig.CollectCrashReports;
+				
+				Logger.LogVerbose($"[Telemetry] Loaded telemetry settings: Enabled={telemetryConfig.IsEnabled}");
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to load telemetry settings");
+			}
+		}
+		
+		private void SaveTelemetrySettings()
+		{
+			try
+			{
+				var telemetryConfig = TelemetryConfiguration.Load();
+				
+				CheckBox enableTelemetryCheckBox = this.FindControl<CheckBox>("EnableTelemetryCheckBox");
+				CheckBox collectUsageDataCheckBox = this.FindControl<CheckBox>("CollectUsageDataCheckBox");
+				CheckBox collectPerformanceMetricsCheckBox = this.FindControl<CheckBox>("CollectPerformanceMetricsCheckBox");
+				CheckBox collectCrashReportsCheckBox = this.FindControl<CheckBox>("CollectCrashReportsCheckBox");
+				
+				bool wasEnabled = telemetryConfig.IsEnabled;
+				bool isNowEnabled = enableTelemetryCheckBox?.IsChecked ?? true;
+				
+				// Update telemetry configuration
+				telemetryConfig.SetUserConsent(isNowEnabled);
+				telemetryConfig.CollectUsageData = collectUsageDataCheckBox?.IsChecked ?? true;
+				telemetryConfig.CollectPerformanceMetrics = collectPerformanceMetricsCheckBox?.IsChecked ?? true;
+				telemetryConfig.CollectCrashReports = collectCrashReportsCheckBox?.IsChecked ?? true;
+				
+				// Update the telemetry service
+				TelemetryService.Instance.UpdateConfiguration(telemetryConfig);
+				
+				Logger.Log($"[Telemetry] Telemetry settings saved: Enabled={isNowEnabled}");
+				
+				// Log telemetry state change
+				if (!wasEnabled && isNowEnabled)
+				{
+					Logger.Log("[Telemetry] Telemetry has been enabled");
+				}
+				else if (wasEnabled && !isNowEnabled)
+				{
+					Logger.Log("[Telemetry] Telemetry has been disabled");
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to save telemetry settings");
+			}
 		}
 
 		[UsedImplicitly]
@@ -142,9 +219,31 @@ namespace KOTORModSync.Dialogs
 		}
 
 		[UsedImplicitly]
-		private void OK_Click(object sender, RoutedEventArgs e) => Close(dialogResult: true);
+		private void OK_Click(object sender, RoutedEventArgs e)
+		{
+			// Save telemetry settings when OK is clicked
+			SaveTelemetrySettings();
+			Close(dialogResult: true);
+		}
+		
 		[UsedImplicitly]
 		private void Cancel_Click(object sender, RoutedEventArgs e) => Close(dialogResult: false);
+		
+		[UsedImplicitly]
+		private async void ViewPrivacyDetails_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				var telemetryConfig = TelemetryConfiguration.Load();
+				string privacySummary = telemetryConfig.GetPrivacySummary();
+				
+				await InformationDialog.ShowInformationDialog(this, privacySummary);
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to show privacy details");
+			}
+		}
 
 		[UsedImplicitly]
 		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

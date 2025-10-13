@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -22,7 +23,7 @@ namespace KOTORModSync.Controls
         public static readonly StyledProperty<List<string>> FileExtensionsProperty =
             AvaloniaProperty.Register<FileExtensionsControl, List<string>>(nameof(FileExtensions), new List<string>());
 
-        private bool _isUpdatingFromTextBox; 
+        private bool _isUpdatingFromTextBox;
 
         public List<string> FileExtensions
         {
@@ -32,8 +33,7 @@ namespace KOTORModSync.Controls
 
         public FileExtensionsControl()
         {
-            
-            
+
             AvaloniaXamlLoader.Load(this);
             UpdateEmptyStateVisibility();
         }
@@ -45,11 +45,9 @@ namespace KOTORModSync.Controls
             if ( change.Property != FileExtensionsProperty )
 		        return;
 
-            
             if (_isUpdatingFromTextBox)
                 return;
 
-            
             var extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
             var emptyStateBorder = this.FindControl<Border>("EmptyStateBorder");
             if (extensionsItemsControl == null || emptyStateBorder == null)
@@ -81,14 +79,11 @@ namespace KOTORModSync.Controls
             if (FileExtensions == null)
                 FileExtensions = new List<string>();
 
-            
             _isUpdatingFromTextBox = false;
 
-            
             var newList = new List<string>(FileExtensions) { string.Empty };
             FileExtensions = newList;
 
-            
             Dispatcher.UIThread.Post(() =>
             {
                 try
@@ -109,7 +104,6 @@ namespace KOTORModSync.Controls
 	        if ( !(sender is Button button) || FileExtensions == null )
 			    return;
 
-	        
 	        if ( !(button.Parent is Grid parentGrid) )
 		        return;
 
@@ -121,10 +115,8 @@ namespace KOTORModSync.Controls
 	        if ( index < 0 || index >= FileExtensions.Count )
 		        return;
 
-	        
 	        _isUpdatingFromTextBox = false;
 
-	        
 	        var newList = new List<string>(FileExtensions);
 	        newList.RemoveAt(index);
 	        FileExtensions = newList;
@@ -134,25 +126,23 @@ namespace KOTORModSync.Controls
         {
 	        if ( !(sender is TextBox textBox) || FileExtensions == null )
 			    return;
-	        
+
 	        int index = GetTextBoxIndex(textBox);
 	        if ( index < 0 || index >= FileExtensions.Count )
 			    return;
 
 	        string newText = textBox.Text ?? string.Empty;
 
-	        
 	        if ( FileExtensions[index] == newText )
 	        {
 				UpdateExtensionValidation(textBox);
 		        return;
 	        }
 
-	        
 	        _isUpdatingFromTextBox = true;
 	        try
 	        {
-		        
+
 		        var newList = new List<string>(FileExtensions)
 				{
 					[index] = newText
@@ -190,21 +180,20 @@ namespace KOTORModSync.Controls
             switch (e.Key)
             {
                 case Key.Enter:
-                    
+
                     AddExtension_Click(sender, e);
                     e.Handled = true;
                     break;
                 case Key.Delete when sender is TextBox deleteTextBox &&
                                      FileExtensions != null && string.IsNullOrWhiteSpace(deleteTextBox.Text):
                     {
-                        
+
                         int index = GetTextBoxIndex(deleteTextBox);
                         if (index >= 0 && index < FileExtensions.Count)
                         {
-                            
+
                             _isUpdatingFromTextBox = false;
 
-                            
                             var newList = new List<string>(FileExtensions);
                             newList.RemoveAt(index);
                             FileExtensions = newList;
@@ -223,43 +212,37 @@ namespace KOTORModSync.Controls
             string extension = textBox.Text?.Trim() ?? string.Empty;
             bool isValid = string.IsNullOrWhiteSpace(extension) || IsValidExtension(extension);
 
-            
             if (string.IsNullOrWhiteSpace(extension))
             {
-                
+
                 textBox.ClearValue(BorderBrushProperty);
                 textBox.ClearValue(BorderThicknessProperty);
                 ToolTip.SetTip(textBox, null);
             }
             else if (isValid)
             {
-                
+
                 textBox.BorderBrush = ThemeResourceHelper.UrlValidationValidBrush;
                 textBox.BorderThickness = new Thickness(1);
                 ToolTip.SetTip(textBox, "Valid file extension");
             }
             else
             {
-                
+
                 textBox.BorderBrush = ThemeResourceHelper.UrlValidationInvalidBrush;
                 textBox.BorderThickness = new Thickness(2);
                 ToolTip.SetTip(textBox, $"Invalid file extension: {extension}");
             }
         }
 
-        
-        
-        
         private static bool IsValidExtension(string extension)
         {
             if (string.IsNullOrWhiteSpace(extension))
                 return false;
 
-			
 			if ( extension.ToCharArray()[0] != '.' )
                 return false;
 
-            
             string extensionWithoutDot = extension.Substring(1);
             if (extensionWithoutDot.Length == 0)
                 return false;
@@ -273,19 +256,17 @@ namespace KOTORModSync.Controls
             return true;
         }
 
-        
         public void SetExtensions([NotNull] IEnumerable<string> extensions)
         {
             var extensionsList = extensions?.ToList() ?? new List<string>();
             Logger.LogVerbose($"FileExtensionsControl.SetExtensions called with {extensionsList.Count} extensions: [{string.Join(", ", extensionsList)}]");
 
-            
             var extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
             var emptyStateBorder = this.FindControl<Border>("EmptyStateBorder");
             if (extensionsItemsControl == null || emptyStateBorder == null)
             {
                 Logger.LogVerbose("FileExtensionsControl not fully loaded yet, deferring SetExtensions");
-                
+
                 this.Loaded += (sender, e) =>
                 {
                     Logger.LogVerbose($"FileExtensionsControl loaded, now setting {extensionsList.Count} extensions");

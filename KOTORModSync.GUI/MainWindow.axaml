@@ -810,7 +810,6 @@
                                     </StackPanel>
                                 </Border>
 
-
                                 <!--  Progress Section  -->
                                 <Border Classes="progress-section">
                                     <StackPanel>

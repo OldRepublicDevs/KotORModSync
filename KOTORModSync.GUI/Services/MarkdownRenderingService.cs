@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -14,14 +15,10 @@ using KOTORModSync.Converters;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class MarkdownRenderingService
 	{
-		
-		
-		
+
 		public void RenderComponentMarkdown(
 			ModComponent component,
 			TextBlock descriptionTextBlock,
@@ -32,7 +29,6 @@ namespace KOTORModSync.Services
 				if ( component == null )
 					return;
 
-				
 				if ( descriptionTextBlock != null )
 				{
 					TextBlock renderedDescription = MarkdownRenderer.RenderToTextBlock(
@@ -45,13 +41,11 @@ namespace KOTORModSync.Services
 						descriptionTextBlock.Inlines.Clear();
 						descriptionTextBlock.Inlines.AddRange(renderedDescription.Inlines);
 
-						
 						descriptionTextBlock.PointerPressed -= OnTextBlockPointerPressed;
 						descriptionTextBlock.PointerPressed += OnTextBlockPointerPressed;
 					}
 				}
 
-				
 				if ( directionsTextBlock != null )
 				{
 					TextBlock renderedDirections = MarkdownRenderer.RenderToTextBlock(
@@ -64,7 +58,6 @@ namespace KOTORModSync.Services
 						directionsTextBlock.Inlines.Clear();
 						directionsTextBlock.Inlines.AddRange(renderedDirections.Inlines);
 
-						
 						directionsTextBlock.PointerPressed -= OnTextBlockPointerPressed;
 						directionsTextBlock.PointerPressed += OnTextBlockPointerPressed;
 					}
@@ -76,9 +69,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		private static void OpenUrl(string url)
 		{
 			try
@@ -91,9 +81,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		private void OnTextBlockPointerPressed(object sender, PointerPressedEventArgs e)
 		{
 			try
@@ -103,7 +90,7 @@ namespace KOTORModSync.Services
 					string fullText = GetTextBlockText(textBlock);
 					if ( !string.IsNullOrEmpty(fullText) )
 					{
-						
+
 						string linkPattern = @"🔗([^🔗]+)🔗";
 						Match match = Regex.Match(fullText, linkPattern);
 						if ( match.Success )
@@ -121,9 +108,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		private static string GetTextBlockText(TextBlock textBlock)
 		{
 			if ( textBlock.Inlines == null || textBlock.Inlines.Count == 0 )

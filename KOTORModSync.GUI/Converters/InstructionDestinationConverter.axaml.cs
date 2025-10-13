@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -11,9 +12,7 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Converters
 {
-	
-	
-	
+
 	public partial class InstructionDestinationConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -21,16 +20,15 @@ namespace KOTORModSync.Converters
 			if ( !(value is Instruction instruction) )
 				return string.Empty;
 
-			
 			switch ( instruction.Action )
 			{
 				case Instruction.ActionType.Extract:
-					
+
 					return "→ (extracted to same directory)";
 
 				case Instruction.ActionType.Move:
 				case Instruction.ActionType.Copy:
-					
+
 					if ( !string.IsNullOrEmpty(instruction.Destination) )
 					{
 						string resolvedDestination = ResolvePath(instruction.Destination);
@@ -39,7 +37,7 @@ namespace KOTORModSync.Converters
 					return "→ (no destination specified)";
 
 				case Instruction.ActionType.Rename:
-					
+
 					if ( !string.IsNullOrEmpty(instruction.Destination) )
 					{
 						return $"→ rename to: {instruction.Destination}";
@@ -47,11 +45,11 @@ namespace KOTORModSync.Converters
 					return "→ (no new name specified)";
 
 				case Instruction.ActionType.Delete:
-					
+
 					return "→ (delete operation)";
 
 				case Instruction.ActionType.Patcher:
-					
+
 					if ( MainConfig.DestinationPath != null )
 					{
 						return $"→ {MainConfig.DestinationPath.FullName}";
@@ -59,7 +57,7 @@ namespace KOTORModSync.Converters
 					return "→ <<kotorDirectory>>";
 
 				case Instruction.ActionType.Execute:
-					
+
 					if ( !string.IsNullOrEmpty(instruction.Arguments) )
 					{
 						return $"→ execute with args: {instruction.Arguments}";
@@ -67,7 +65,7 @@ namespace KOTORModSync.Converters
 					return "→ (execute program)";
 
 				case Instruction.ActionType.DelDuplicate:
-					
+
 					if ( !string.IsNullOrEmpty(instruction.Arguments) )
 					{
 						return $"→ remove duplicate .{instruction.Arguments} files";
@@ -75,11 +73,11 @@ namespace KOTORModSync.Converters
 					return "→ (remove duplicates)";
 
 				case Instruction.ActionType.Choose:
-					
+
 					return "→ (choose from options)";
 
 				case Instruction.ActionType.Run:
-					
+
 					return "→ (run program)";
 
 				default:
@@ -98,10 +96,9 @@ namespace KOTORModSync.Converters
 			if ( string.IsNullOrEmpty(path) )
 				return string.Empty;
 
-			
 			if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
 			{
-				return path; 
+				return path;
 			}
 
 			try
@@ -110,7 +107,7 @@ namespace KOTORModSync.Converters
 			}
 			catch ( Exception )
 			{
-				
+
 				return path;
 			}
 		}

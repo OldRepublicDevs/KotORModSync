@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -55,7 +56,6 @@ namespace KOTORModSync.Controls
 		{
 			InitializeComponent();
 
-			
 			Loaded += (sender, args) =>
 			{
 				AutoCompleteBox autoComplete = this.FindControl<AutoCompleteBox>("DependenciesAutoComplete");
@@ -114,7 +114,6 @@ namespace KOTORModSync.Controls
 		public List<ModComponent> ThisComponentList => MainWindow.ComponentsList;
 #pragma warning restore CA1822
 
-		
 		protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
 		{
 			base.OnAttachedToVisualTree(e);
@@ -123,20 +122,18 @@ namespace KOTORModSync.Controls
 				mainWindow.FindComboBoxesInWindow(mainWindow);
 		}
 
-		
 		[UsedImplicitly]
 		private void AddModToList_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
 			try
 			{
 				if ( !(DependenciesAutoComplete.SelectedItem is ModComponent selectedComponent) )
-					return; 
+					return;
 				if ( ThisGuidList.Contains(selectedComponent.Guid) )
-					return; 
+					return;
 
 				AddComponentToList(selectedComponent);
 
-				
 				DependenciesAutoComplete.SelectedItem = null;
 				DependenciesAutoComplete.Text = string.Empty;
 			}
@@ -146,20 +143,18 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		
 		[UsedImplicitly]
 		private void AddOptionToList_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
 			try
 			{
 				if ( !(OptionsAutoComplete.SelectedItem is Option selectedOption) )
-					return; 
+					return;
 				if ( ThisGuidList.Contains(selectedOption.Guid) )
-					return; 
+					return;
 
 				AddComponentToList(selectedOption);
 
-				
 				OptionsAutoComplete.SelectedItem = null;
 				OptionsAutoComplete.Text = string.Empty;
 			}
@@ -171,7 +166,7 @@ namespace KOTORModSync.Controls
 
 		private void AddComponentToList([NotNull] ModComponent selectedComponent)
 		{
-			
+
 			bool added = false;
 			if ( ModManagementService != null && CurrentComponent != null &&
 				 (DependencyType == DependencyType.Dependency || DependencyType == DependencyType.Restriction) )
@@ -188,13 +183,13 @@ namespace KOTORModSync.Controls
 			}
 			else
 			{
-				
+
 				ThisGuidList.Add(selectedComponent.Guid);
 				added = true;
 			}
 
 			if ( !added )
-				return; 
+				return;
 
 			RefreshDependenciesList();
 		}
@@ -219,23 +214,21 @@ namespace KOTORModSync.Controls
 			DependenciesListBox.InvalidateMeasure();
 		}
 
-		
 		private void RemoveFromList_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
 			try
 			{
 				int index = DependenciesListBox.SelectedIndex;
 				if ( index < 0 || index >= ThisGuidList.Count )
-					return; 
+					return;
 
 				Guid guidToRemove = ThisGuidList[index];
 
-				
 				bool removed = false;
 				if ( ModManagementService != null && CurrentComponent != null &&
 					 (DependencyType == DependencyType.Dependency || DependencyType == DependencyType.Restriction) )
 				{
-					
+
 					ModComponent componentToRemove = MainWindow.ComponentsList?.FirstOrDefault(c => c.Guid == guidToRemove);
 					if ( componentToRemove != null )
 					{
@@ -252,13 +245,13 @@ namespace KOTORModSync.Controls
 				}
 				else
 				{
-					
+
 					ThisGuidList.RemoveAt(index);
 					removed = true;
 				}
 
 				if ( !removed )
-					return; 
+					return;
 
 				RefreshDependenciesList();
 			}
@@ -268,7 +261,6 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		
 		[UsedImplicitly]
 		private void DependenciesAutoComplete_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
@@ -280,7 +272,6 @@ namespace KOTORModSync.Controls
 					return;
 				}
 
-				
 				OptionsAutoComplete.ItemsSource = selectedComponent.Options;
 			}
 			catch ( Exception exception )

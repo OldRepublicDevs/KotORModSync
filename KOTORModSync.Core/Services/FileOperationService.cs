@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -14,17 +15,12 @@ using SharpCompress.Archives;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
+
 	public class FileOperationService
 	{
 
-		
-		
-		
-		
-		
+
+
 		public static async Task<int> FixIOSCaseSensitivityAsync([NotNull] string folderPath)
 		{
 			if ( string.IsNullOrEmpty(folderPath) )
@@ -45,7 +41,7 @@ namespace KOTORModSync.Core.Services
 			try
 			{
 				int numObjectsRenamed = 0;
-				
+
 				foreach ( FileInfo file in gameDirectory.GetFilesSafely() )
 				{
 					string lowercaseName = file.Name.ToLowerInvariant();
@@ -62,7 +58,6 @@ namespace KOTORModSync.Core.Services
 					}
 				}
 
-				
 				foreach ( DirectoryInfo directory in gameDirectory.GetDirectoriesSafely() )
 				{
 					string lowercaseName = directory.Name.ToLowerInvariant();
@@ -76,12 +71,12 @@ namespace KOTORModSync.Core.Services
 						await Logger.LogAsync($"Rename folder '{directory.FullName}' -> '{lowercasePath}'");
 						Directory.Move(directory.FullName, lowercasePath);
 						numObjectsRenamed++;
-						
+
 						numObjectsRenamed += await FixIOSCaseSensitivityCoreAsync(new DirectoryInfo(lowercasePath));
 					}
 					else
 					{
-						
+
 						await Logger.LogAsync($"Recursing into folder '{directory.FullName}'...");
 						numObjectsRenamed += await FixIOSCaseSensitivityCoreAsync(directory);
 					}

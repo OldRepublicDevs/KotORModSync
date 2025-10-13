@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -8,9 +9,7 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
 {
-	
-	
-	
+
 	public class RelayCommand : ICommand
 	{
 		[CanBeNull] private readonly Func<object, bool> _canExecute;

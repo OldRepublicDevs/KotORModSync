@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -41,10 +42,8 @@ namespace KOTORModSync.Controls
 		{
 			InitializeComponent();
 
-			
 			AvailableCategories = _categoryItems;
 
-			
 			if ( CategoryItemsControl != null )
 			{
 				CategoryItemsControl.ItemsSource = _categoryItems;
@@ -55,7 +54,6 @@ namespace KOTORModSync.Controls
 		{
 			base.OnAttachedToVisualTree(e);
 
-			
 			if ( CategoryItemsControl != null && CategoryItemsControl.ItemsSource != _categoryItems )
 			{
 				CategoryItemsControl.ItemsSource = _categoryItems;
@@ -80,7 +78,7 @@ namespace KOTORModSync.Controls
 			_isRefreshing = true;
 			try
 			{
-				
+
 				foreach ( SelectionFilterItem item in _categoryItems )
 				{
 					item.IsSelected = SelectedCategories.Contains(item.Name, StringComparer.OrdinalIgnoreCase);
@@ -109,16 +107,15 @@ namespace KOTORModSync.Controls
 			if ( string.IsNullOrEmpty(newCategoryText) )
 				return;
 
-			
 			if ( _categoryItems.Any(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase)) )
 			{
-				
+
 				var existingItem = _categoryItems.First(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase));
 				existingItem.IsSelected = true;
 			}
 			else
 			{
-				
+
 				var newItem = new SelectionFilterItem
 				{
 					Name = newCategoryText,
@@ -148,8 +145,6 @@ namespace KOTORModSync.Controls
 				.Select(item => item.Name)
 				.ToList();
 
-			
-			
 			if ( SelectedCategories == null || !SelectedCategories.SequenceEqual(selected) )
 			    SelectedCategories = selected;
 		}

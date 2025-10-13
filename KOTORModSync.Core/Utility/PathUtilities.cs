@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -11,15 +12,10 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
 {
-	
-	
-	
+
 	public static class PathUtilities
 	{
-		
-		
-		
-		
+
 		[NotNull]
 		public static IEnumerable<string> GetDefaultPathsForMods()
 		{
@@ -43,10 +39,7 @@ namespace KOTORModSync.Core.Utility
 			return list.Where(Directory.Exists).Distinct().ToList();
 		}
 
-		
-		
-		
-		
+
 		[NotNull]
 		public static IEnumerable<string> GetDefaultPathsForGame()
 		{
@@ -91,11 +84,8 @@ namespace KOTORModSync.Core.Utility
 			return results.Select(ExpandPath).Where(Directory.Exists).Distinct().ToList();
 		}
 
-		
-		
-		
-		
-		
+
+
 		[NotNull]
 		public static string ExpandPath([CanBeNull] string path)
 		{

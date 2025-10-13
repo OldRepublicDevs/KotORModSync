@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -50,7 +51,7 @@ namespace KOTORModSync.Dialogs
 
 		public void InitializeFromMainWindow(Window mainWindow)
 		{
-			
+
 			if ( mainWindow is MainWindow mw )
 			{
 				MainConfigInstance = mw.MainConfigInstance;
@@ -60,25 +61,21 @@ namespace KOTORModSync.Dialogs
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow start");
 			Logger.LogVerbose($"SettingsDialog: Source='{MainConfigInstance?.sourcePathFullName}', Dest='{MainConfigInstance?.destinationPathFullName}'");
 
-			
 			ComboBox styleComboBox = this.FindControl<ComboBox>("StyleComboBox");
 
-			
 			string currentTheme = ThemeManager.GetCurrentStylePath();
 			Logger.LogVerbose($"SettingsDialog: Current theme path='{currentTheme}'");
 
-			
 			int selectedIndex = 0;
 			if ( string.Equals(currentTheme, "/Styles/KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) )
-				selectedIndex = 0; 
+				selectedIndex = 0;
 			else if ( string.Equals(currentTheme, "/Styles/Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) )
-				selectedIndex = 1; 
+				selectedIndex = 1;
 
 			Logger.LogVerbose($"SettingsDialog: Setting ComboBox SelectedIndex to {selectedIndex}");
 			if ( styleComboBox != null )
 				styleComboBox.SelectedIndex = selectedIndex;
 
-			
 			DirectoryPickerControl modDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "ModDirectoryPicker");
 			DirectoryPickerControl kotorDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "KotorDirectoryPicker");
 
@@ -94,79 +91,57 @@ namespace KOTORModSync.Dialogs
 				kotorDirectoryPicker.SetCurrentPath(MainConfigInstance.destinationPathFullName ?? string.Empty);
 			}
 
-			
 			LoadTelemetrySettings();
-			
+
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow end");
 		}
-		
+
 		private void LoadTelemetrySettings()
 		{
 			try
 			{
 				var telemetryConfig = TelemetryConfiguration.Load();
-				
+
 				CheckBox enableTelemetryCheckBox = this.FindControl<CheckBox>("EnableTelemetryCheckBox");
-				CheckBox collectUsageDataCheckBox = this.FindControl<CheckBox>("CollectUsageDataCheckBox");
-				CheckBox collectPerformanceMetricsCheckBox = this.FindControl<CheckBox>("CollectPerformanceMetricsCheckBox");
-				CheckBox collectCrashReportsCheckBox = this.FindControl<CheckBox>("CollectCrashReportsCheckBox");
-				
-				if (enableTelemetryCheckBox != null)
+
+				if ( enableTelemetryCheckBox != null )
 					enableTelemetryCheckBox.IsChecked = telemetryConfig.IsEnabled;
-				
-				if (collectUsageDataCheckBox != null)
-					collectUsageDataCheckBox.IsChecked = telemetryConfig.CollectUsageData;
-				
-				if (collectPerformanceMetricsCheckBox != null)
-					collectPerformanceMetricsCheckBox.IsChecked = telemetryConfig.CollectPerformanceMetrics;
-				
-				if (collectCrashReportsCheckBox != null)
-					collectCrashReportsCheckBox.IsChecked = telemetryConfig.CollectCrashReports;
-				
+
 				Logger.LogVerbose($"[Telemetry] Loaded telemetry settings: Enabled={telemetryConfig.IsEnabled}");
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "[Telemetry] Failed to load telemetry settings");
 			}
 		}
-		
+
 		private void SaveTelemetrySettings()
 		{
 			try
 			{
 				var telemetryConfig = TelemetryConfiguration.Load();
-				
+
 				CheckBox enableTelemetryCheckBox = this.FindControl<CheckBox>("EnableTelemetryCheckBox");
-				CheckBox collectUsageDataCheckBox = this.FindControl<CheckBox>("CollectUsageDataCheckBox");
-				CheckBox collectPerformanceMetricsCheckBox = this.FindControl<CheckBox>("CollectPerformanceMetricsCheckBox");
-				CheckBox collectCrashReportsCheckBox = this.FindControl<CheckBox>("CollectCrashReportsCheckBox");
-				
+
 				bool wasEnabled = telemetryConfig.IsEnabled;
 				bool isNowEnabled = enableTelemetryCheckBox?.IsChecked ?? true;
-				
-				
+
 				telemetryConfig.SetUserConsent(isNowEnabled);
-				telemetryConfig.CollectUsageData = collectUsageDataCheckBox?.IsChecked ?? true;
-				telemetryConfig.CollectPerformanceMetrics = collectPerformanceMetricsCheckBox?.IsChecked ?? true;
-				telemetryConfig.CollectCrashReports = collectCrashReportsCheckBox?.IsChecked ?? true;
-				
-				
+
 				TelemetryService.Instance.UpdateConfiguration(telemetryConfig);
-				
+
 				Logger.Log($"[Telemetry] Telemetry settings saved: Enabled={isNowEnabled}");
-				
-				
-				if (!wasEnabled && isNowEnabled)
+
+				if ( !wasEnabled && isNowEnabled )
 				{
 					Logger.Log("[Telemetry] Telemetry has been enabled");
 				}
-				else if (wasEnabled && !isNowEnabled)
+				else if ( wasEnabled && !isNowEnabled )
 				{
 					Logger.Log("[Telemetry] Telemetry has been disabled");
 				}
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "[Telemetry] Failed to save telemetry settings");
 			}
@@ -175,7 +150,7 @@ namespace KOTORModSync.Dialogs
 		[UsedImplicitly]
 		private void OnDirectoryChanged(object sender, DirectoryChangedEventArgs e)
 		{
-			
+
 			if ( MainConfigInstance == null ) return;
 
 			try
@@ -183,20 +158,19 @@ namespace KOTORModSync.Dialogs
 				Logger.LogVerbose($"SettingsDialog.OnDirectoryChanged type={e.PickerType} path='{e.Path}'");
 				if ( e.PickerType == DirectoryPickerType.ModDirectory )
 				{
-					
+
 					var modDirectory = new DirectoryInfo(e.Path);
 					MainConfigInstance.sourcePath = modDirectory;
 					Logger.LogVerbose($"SettingsDialog: MainConfig.sourcePath set -> '{MainConfigInstance.sourcePathFullName}'");
 				}
 				else if ( e.PickerType == DirectoryPickerType.KotorDirectory )
 				{
-					
+
 					var kotorDirectory = new DirectoryInfo(e.Path);
 					MainConfigInstance.destinationPath = kotorDirectory;
 					Logger.LogVerbose($"SettingsDialog: MainConfig.destinationPath set -> '{MainConfigInstance.destinationPathFullName}'");
 				}
 
-				
 				if ( ParentWindow == null )
 					return;
 				Logger.LogVerbose("SettingsDialog: Triggering parent window directory synchronization");
@@ -211,24 +185,24 @@ namespace KOTORModSync.Dialogs
 		[UsedImplicitly]
 		private void StyleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-			
+
 			if ( sender is ComboBox comboBox && comboBox.SelectedItem is ComboBoxItem )
 			{
-				
+
 			}
 		}
 
 		[UsedImplicitly]
 		private void OK_Click(object sender, RoutedEventArgs e)
 		{
-			
+
 			SaveTelemetrySettings();
 			Close(dialogResult: true);
 		}
-		
+
 		[UsedImplicitly]
 		private void Cancel_Click(object sender, RoutedEventArgs e) => Close(dialogResult: false);
-		
+
 		[UsedImplicitly]
 		private async void ViewPrivacyDetails_Click(object sender, RoutedEventArgs e)
 		{
@@ -236,10 +210,10 @@ namespace KOTORModSync.Dialogs
 			{
 				var telemetryConfig = TelemetryConfiguration.Load();
 				string privacySummary = telemetryConfig.GetPrivacySummary();
-				
+
 				await InformationDialog.ShowInformationDialog(this, privacySummary);
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "[Telemetry] Failed to show privacy details");
 			}

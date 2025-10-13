@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Collections.Concurrent;
@@ -9,15 +10,12 @@ using Assert = Xunit.Assert;
 
 namespace KOTORModSync.Tests
 {
-	
-	
-	
-	
-	
+
+
 	public class CrossPlatformFileWatcherTests : IDisposable
 	{
 		private readonly string _testDirectory;
-		private readonly string _externalDirectory; 
+		private readonly string _externalDirectory;
 		private readonly List<CrossPlatformFileWatcher> _watchers;
 		private readonly List<string> _createdFiles;
 		private readonly List<string> _createdDirectories;
@@ -89,13 +87,10 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public void Constructor_WithValidPath_InitializesCorrectly()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 
-			
 			Assert.NotNull(watcher);
 			Assert.False(watcher.EnableRaisingEvents, "Watcher should not be enabled immediately after construction");
 		}
@@ -103,9 +98,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public void Constructor_WithNullPath_ThrowsArgumentNullException()
 		{
-			
 
-			
 			var exception = Assert.Throws<ArgumentNullException>(() => new CrossPlatformFileWatcher(null!));
 			Assert.Equal("path", exception.ParamName);
 		}
@@ -113,60 +106,46 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public void StartWatching_EnablesEventRaising()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 			Assert.False(watcher.EnableRaisingEvents, "Precondition: watcher should start disabled");
 
-			
 			watcher.StartWatching();
 
-			
 			Assert.True(watcher.EnableRaisingEvents, "StartWatching() must set EnableRaisingEvents to true");
 		}
 
 		[Fact]
 		public void StopWatching_DisablesEventRaising()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 			watcher.StartWatching();
 			Assert.True(watcher.EnableRaisingEvents, "Precondition: watcher should be enabled");
 
-			
 			watcher.StopWatching();
 
-			
 			Assert.False(watcher.EnableRaisingEvents, "StopWatching() must set EnableRaisingEvents to false");
 		}
 
 		[Fact]
 		public void StartWatching_AfterDispose_ThrowsObjectDisposedException()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			watcher.Dispose();
 
-			
 			Assert.Throws<ObjectDisposedException>(() => watcher.StartWatching());
 		}
 
 		[Fact]
 		public void Dispose_MultipleCalls_DoesNotThrow()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 
-			
 			watcher.Dispose();
 			watcher.Dispose();
 			watcher.Dispose();
@@ -179,9 +158,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileCreated_InWatchedDirectory_RaisesCreatedEventWithCorrectData()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 
@@ -195,13 +172,11 @@ namespace KOTORModSync.Tests
 			};
 
 			watcher.StartWatching();
-			await Task.Delay(100); 
+			await Task.Delay(100);
 
-			
 			string fileName = "created_test.txt";
 			string filePath = CreateTestFile(_testDirectory, fileName);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Created event must be raised within 5 seconds of file creation");
 			Assert.NotNull(capturedEvent);
@@ -213,9 +188,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task MultipleFilesCreated_SequentiallyInWatchedDirectory_RaisesCreatedEventForEach()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 
@@ -232,17 +205,15 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string[] fileNames = ["file1.txt", "file2.txt", "file3.txt"];
 			foreach ( string fileName in fileNames )
 			{
 				CreateTestFile(_testDirectory, fileName);
-				await Task.Delay(150); 
+				await Task.Delay(150);
 			}
 
-			await Task.Delay(800); 
+			await Task.Delay(800);
 
-			
 			Assert.True(eventCount >= fileNames.Length,
 				$"Expected at least {fileNames.Length} Created events, but received {eventCount}");
 
@@ -256,9 +227,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileCreated_WithSpecificExtension_RaisesCreatedEventWithCorrectName()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory, "*.log");
 			_watchers.Add(watcher);
 
@@ -277,11 +246,9 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string fileName = "application.log";
 			CreateTestFile(_testDirectory, fileName);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Created event must be raised for .log file");
 			Assert.NotNull(capturedEvent);
@@ -296,12 +263,10 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileDeleted_FromWatchedDirectory_RaisesDeletedEventWithCorrectData()
 		{
-			
 
-			
 			string fileName = "delete_test.txt";
 			string filePath = CreateTestFile(_testDirectory, fileName);
-			await Task.Delay(100); 
+			await Task.Delay(100);
 
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
@@ -318,10 +283,8 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			File.Delete(filePath);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Deleted event must be raised within 5 seconds of file deletion");
 			Assert.NotNull(capturedEvent);
@@ -333,9 +296,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task MultipleFilesDeleted_SequentiallyFromWatchedDirectory_RaisesDeletedEventForEach()
 		{
-			
 
-			
 			string[] fileNames = { "delete1.txt", "delete2.txt", "delete3.txt" };
 			var filePaths = new List<string>();
 			foreach ( string fileName in fileNames )
@@ -361,7 +322,6 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			foreach ( string filePath in filePaths )
 			{
 				File.Delete(filePath);
@@ -370,7 +330,6 @@ namespace KOTORModSync.Tests
 
 			await Task.Delay(800);
 
-			
 			Assert.True(eventCount >= fileNames.Length,
 				$"Expected at least {fileNames.Length} Deleted events, but received {eventCount}");
 
@@ -388,9 +347,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileModified_InWatchedDirectory_RaisesChangedEventWithCorrectData()
 		{
-			
 
-			
 			string fileName = "modify_test.txt";
 			string filePath = CreateTestFile(_testDirectory, fileName, "initial content");
 			await Task.Delay(100);
@@ -413,11 +370,9 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string modifiedContent = "modified content";
 			await File.WriteAllTextAsync(filePath, modifiedContent);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Changed event must be raised within 5 seconds of file modification");
 			Assert.NotNull(capturedEvent);
@@ -429,9 +384,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileModified_MultipleTimesInWatchedDirectory_RaisesChangedEventForEachModification()
 		{
-			
 
-			
 			string fileName = "multi_modify.txt";
 			string filePath = CreateTestFile(_testDirectory, fileName, "original");
 			await Task.Delay(100);
@@ -453,17 +406,15 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			int modifications = 3;
 			for ( int i = 0; i < modifications; i++ )
 			{
-				await Task.Delay(200); 
+				await Task.Delay(200);
 				File.WriteAllText(filePath, $"content version {i}");
 			}
 
 			await Task.Delay(800);
 
-			
 			Assert.True(changeCount >= 1,
 				$"Expected at least 1 Changed event for {modifications} modifications, but received {changeCount}");
 		}
@@ -475,9 +426,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileMovedIntoWatchedDirectory_FromExternalLocation_RaisesCreatedEvent()
 		{
-			
 
-			
 			string fileName = "moved_in.txt";
 			string sourceFilePath = Path.Combine(_externalDirectory, fileName);
 			await File.WriteAllTextAsync(sourceFilePath, "content to move");
@@ -502,12 +451,10 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string destinationFilePath = Path.Combine(_testDirectory, fileName);
 			_createdFiles.Add(destinationFilePath);
 			File.Move(sourceFilePath, destinationFilePath);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Created event must be raised when file is moved into watched directory");
 			Assert.NotNull(capturedEvent);
@@ -519,9 +466,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileMovedOutOfWatchedDirectory_ToExternalLocation_RaisesDeletedEvent()
 		{
-			
 
-			
 			string fileName = "moved_out.txt";
 			string sourceFilePath = CreateTestFile(_testDirectory, fileName);
 			await Task.Delay(500);
@@ -544,12 +489,10 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string destinationFilePath = Path.Combine(_externalDirectory, fileName);
 			_createdFiles.Add(destinationFilePath);
 			File.Move(sourceFilePath, destinationFilePath);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Deleted event must be raised when file is moved out of watched directory");
 			Assert.NotNull(capturedEvent);
@@ -561,9 +504,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileMovedWithinWatchedDirectory_RaisesRenamedOrDeletedAndCreatedEvents()
 		{
-			
 
-			
 			string oldFileName = "old_name.txt";
 			string newFileName = "new_name.txt";
 			string sourceFilePath = CreateTestFile(_testDirectory, oldFileName);
@@ -606,18 +547,15 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string destinationFilePath = Path.Combine(_testDirectory, newFileName);
 			_createdFiles.Add(destinationFilePath);
 			File.Move(sourceFilePath, destinationFilePath);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Either Renamed event or (Deleted + Created) events must be raised");
 			Assert.False(File.Exists(sourceFilePath), "Old file name must not exist after rename");
 			Assert.True(File.Exists(destinationFilePath), "New file name must exist after rename");
 
-			
 			bool eventSequenceValid = renamedEventRaised || (deletedEventRaised && createdEventRaised);
 			Assert.True(eventSequenceValid,
 				"Either Renamed event or both Deleted and Created events must be raised for file move within directory");
@@ -630,9 +568,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileCopiedIntoWatchedDirectory_RaisesCreatedEvent()
 		{
-			
 
-			
 			string fileName = "copy_source.txt";
 			string sourceFilePath = Path.Combine(_externalDirectory, fileName);
 			File.WriteAllText(sourceFilePath, "content to copy");
@@ -657,13 +593,11 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string destinationFileName = "copy_dest.txt";
 			string destinationFilePath = Path.Combine(_testDirectory, destinationFileName);
 			_createdFiles.Add(destinationFilePath);
 			File.Copy(sourceFilePath, destinationFilePath);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Created event must be raised when file is copied into watched directory");
 			Assert.NotNull(capturedEvent);
@@ -680,9 +614,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileCreatedInSubdirectory_WithIncludeSubdirectoriesTrue_RaisesCreatedEvent()
 		{
-			
 
-			
 			string subDirName = "subdir";
 			string subDirPath = Path.Combine(_testDirectory, subDirName);
 			Directory.CreateDirectory(subDirPath);
@@ -706,11 +638,9 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string fileName = "subfile.txt";
 			string filePath = CreateTestFile(subDirPath, fileName);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Created event must be raised for file in subdirectory when includeSubdirectories is true");
 			Assert.NotNull(capturedEvent);
@@ -721,9 +651,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileCreatedInSubdirectory_WithIncludeSubdirectoriesFalse_DoesNotRaiseEvent()
 		{
-			
 
-			
 			string subDirName = "subdir_excluded";
 			string subDirPath = Path.Combine(_testDirectory, subDirName);
 			Directory.CreateDirectory(subDirPath);
@@ -745,12 +673,10 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string fileName = "subfile_excluded.txt";
 			string filePath = CreateTestFile(subDirPath, fileName);
-			await Task.Delay(500); 
+			await Task.Delay(500);
 
-			
 			Assert.False(eventRaisedForSubdir, "Created event must NOT be raised for file in subdirectory when includeSubdirectories is false");
 			Assert.True(File.Exists(filePath), "File must exist in subdirectory even though event wasn't raised");
 		}
@@ -762,9 +688,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task FileCreated_MatchingFilter_RaisesCreatedEvent()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory, "*.txt");
 			_watchers.Add(watcher);
 
@@ -778,7 +702,6 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string txtFile = "matching.txt";
 			string logFile = "nonmatching.log";
 			CreateTestFile(_testDirectory, txtFile);
@@ -786,10 +709,8 @@ namespace KOTORModSync.Tests
 			CreateTestFile(_testDirectory, logFile);
 			await Task.Delay(500);
 
-			
 			Assert.Contains(txtFile, detectedFiles);
-			
-			
+
 		}
 
 		#endregion
@@ -799,9 +720,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task WatcherStopped_FileCreated_DoesNotRaiseEvent()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 
@@ -815,21 +734,17 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(500);
 
-			
 			CreateTestFile(_testDirectory, "test1.txt");
 			await Task.Delay(1000);
 			bool eventRaisedWhileRunning = eventRaised;
 
-			
 			watcher.StopWatching();
 			eventRaised = false;
 			await Task.Delay(500);
 
-			
 			CreateTestFile(_testDirectory, "test2.txt");
 			await Task.Delay(2000);
 
-			
 			Assert.True(eventRaisedWhileRunning, "Precondition: watcher should raise event while running");
 			Assert.False(eventRaised, "Stopped watcher must NOT raise events");
 		}
@@ -837,9 +752,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task WatcherRestartedAfterStop_FileCreated_RaisesEvent()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 
@@ -851,7 +764,6 @@ namespace KOTORModSync.Tests
 				lock ( lockObj ) eventCount++;
 			};
 
-			
 			watcher.StartWatching();
 			await Task.Delay(100);
 			CreateTestFile(_testDirectory, "file1.txt");
@@ -860,13 +772,11 @@ namespace KOTORModSync.Tests
 			watcher.StopWatching();
 			await Task.Delay(100);
 
-			
 			watcher.StartWatching();
 			await Task.Delay(100);
 			CreateTestFile(_testDirectory, "file2.txt");
 			await Task.Delay(300);
 
-			
 			Assert.True(countAfterFirstRun >= 1, "Watcher should detect file during first run");
 			Assert.True(eventCount >= 2, "Restarted watcher must detect new files");
 		}
@@ -878,17 +788,13 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task WatcherDisposed_WhileRunning_StopsGracefully()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			watcher.Dispose();
 
-			
 			Assert.False(watcher.EnableRaisingEvents, "Disposed watcher must have EnableRaisingEvents set to false");
 		}
 
@@ -899,9 +805,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task LargeFileCreated_InWatchedDirectory_RaisesCreatedEvent()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 
@@ -920,14 +824,12 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string filePath = Path.Combine(_testDirectory, "largefile.dat");
 			_createdFiles.Add(filePath);
-			byte[] data = new byte[5 * 1024 * 1024]; 
+			byte[] data = new byte[5 * 1024 * 1024];
 			new Random().NextBytes(data);
 			await File.WriteAllBytesAsync(filePath, data);
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(5));
 			Assert.True(signaled, "Created event must be raised for large file");
 			Assert.NotNull(capturedEvent);
@@ -943,9 +845,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task EmptyFileCreated_InWatchedDirectory_RaisesCreatedEvent()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 
@@ -964,12 +864,10 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			string filePath = Path.Combine(_testDirectory, "empty.txt");
 			_createdFiles.Add(filePath);
 			await File.Create(filePath).DisposeAsync();
 
-			
 			bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
 			Assert.True(signaled, "Created event must be raised for empty file");
 			Assert.NotNull(capturedEvent);
@@ -985,9 +883,7 @@ namespace KOTORModSync.Tests
 		[Fact]
 		public async Task MultipleFilesCreated_Concurrently_AllEventsRaisedWithoutDataCorruption()
 		{
-			
 
-			
 			var watcher = new CrossPlatformFileWatcher(_testDirectory);
 			_watchers.Add(watcher);
 
@@ -1001,7 +897,6 @@ namespace KOTORModSync.Tests
 			watcher.StartWatching();
 			await Task.Delay(100);
 
-			
 			int fileCount = 20;
 			IEnumerable<Task> tasks = Enumerable.Range(0, fileCount).Select(async i =>
 			{
@@ -1010,13 +905,11 @@ namespace KOTORModSync.Tests
 			});
 
 			await Task.WhenAll(tasks);
-			await Task.Delay(1500); 
+			await Task.Delay(1500);
 
-			
 			Assert.True(detectedFiles.Count >= fileCount / 2,
 				$"Expected at least {fileCount / 2} files detected out of {fileCount} concurrent creations, got {detectedFiles.Count}");
 
-			
 			int distinctFiles = detectedFiles.Distinct().Count();
 			Assert.True(distinctFiles <= fileCount,
 				$"Detected file count ({detectedFiles.Count}) should not exceed created file count ({fileCount}) by too much");

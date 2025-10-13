@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -13,9 +14,7 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core
 {
-	
-	
-	
+
 	[SuppressMessage(
 		category: "Performance",
 		checkId: "CA1822:Mark members as static",
@@ -45,7 +44,6 @@ namespace KOTORModSync.Core
 
 		[NotNull]
 		public static string CurrentVersion => "2.0.0b1";
-
 
 		public static bool NoAdmin { get; private set; }
 
@@ -141,7 +139,6 @@ namespace KOTORModSync.Core
 
 		[CanBeNull] public string destinationPathFullName => DestinationPath?.FullName;
 
-		
 		public event PropertyChangedEventHandler PropertyChanged;
 
 		private void OnPropertyChanged([CallerMemberName][CanBeNull] string propertyName = null) =>

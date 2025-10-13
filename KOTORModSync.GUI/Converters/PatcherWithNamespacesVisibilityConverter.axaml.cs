@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -22,14 +23,11 @@ namespace KOTORModSync.Converters
 			if (!(value is Instruction instruction))
 				return false;
 
-			
 			if (instruction.Action != Instruction.ActionType.Patcher)
 				return false;
 
-			
 			var allArchives = NamespacesIniOptionConverter.GetAllArchivesFromInstructions(instruction.GetParentComponent());
 
-			
 			var relevantArchives = GetArchivesForSpecificInstruction(instruction, allArchives);
 
 			foreach (string archivePath in relevantArchives)
@@ -40,7 +38,7 @@ namespace KOTORModSync.Converters
 				var result = Core.TSLPatcher.IniHelper.ReadNamespacesIniFromArchive(archivePath);
 				if (result != null && result.Any())
 				{
-					
+
 					var optionNames = result.Where(section =>
 						section.Key != "Namespaces" &&
 						section.Value != null &&
@@ -57,11 +55,8 @@ namespace KOTORModSync.Converters
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
 			throw new NotImplementedException();
 
-		
-		
-		
-		
-		
+
+
 		[NotNull]
 		private static List<string> GetArchivesForSpecificInstruction([NotNull] Instruction instruction, [NotNull] List<string> allArchives)
 		{
@@ -72,7 +67,6 @@ namespace KOTORModSync.Converters
 
 			var relevantArchives = new List<string>();
 
-			
 			List<string> instructionSourcePaths = instruction.Source.ConvertAll(Utility.ReplaceCustomVariables);
 
 			foreach ( string archivePath in allArchives )
@@ -80,18 +74,15 @@ namespace KOTORModSync.Converters
 				if ( string.IsNullOrEmpty(archivePath) )
 					continue;
 
-				
-				
 				foreach ( string sourcePath in instructionSourcePaths )
 				{
 					if ( string.IsNullOrEmpty(sourcePath) )
 						continue;
 
-					
 					if ( IsPatcherSourceInArchiveDestination(sourcePath, archivePath) )
 					{
 						relevantArchives.Add(archivePath);
-						break; 
+						break;
 					}
 				}
 			}
@@ -99,12 +90,7 @@ namespace KOTORModSync.Converters
 			return relevantArchives;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		private static bool IsPatcherSourceInArchiveDestination(string patcherSourcePath, string archivePath)
 		{
 			if ( string.IsNullOrEmpty(patcherSourcePath) || string.IsNullOrEmpty(archivePath) )
@@ -112,27 +98,20 @@ namespace KOTORModSync.Converters
 
 			try
 			{
-				
-				
-				
+
 				List<string> matchingFiles = PathHelper.EnumerateFilesWithWildcards(
 					new List<string> { patcherSourcePath },
 					new Core.Services.FileSystem.RealFileSystemProvider(),
 					includeSubFolders: true
 				);
 
-				
-				
 				if ( matchingFiles?.Any() == true )
 				{
-					
-					
 
-					
 					string archiveName = Path.GetFileNameWithoutExtension(archivePath);
 					if ( !string.IsNullOrEmpty(archiveName) )
 					{
-						
+
 						if ( patcherSourcePath.IndexOf(archiveName, StringComparison.OrdinalIgnoreCase) >= 0 )
 							return true;
 					}

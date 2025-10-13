@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -13,9 +14,7 @@ using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Models
 {
-	
-	
-	
+
 	public class InstructionViewModel : INotifyPropertyChanged
 	{
 		private bool _willExecute;
@@ -24,9 +23,6 @@ namespace KOTORModSync.Models
 		public Instruction Instruction { get; }
 		public ModComponent ParentComponent { get; }
 
-		
-		
-		
 		public bool WillExecute
 		{
 			get => _willExecute;
@@ -39,9 +35,6 @@ namespace KOTORModSync.Models
 			}
 		}
 
-		
-		
-		
 		public double Opacity
 		{
 			get => _opacity;
@@ -53,24 +46,12 @@ namespace KOTORModSync.Models
 			}
 		}
 
-		
-		
-		
 		public string FontWeight => WillExecute ? "SemiBold" : "Normal";
 
-		
-		
-		
 		public List<string> DependencyNames { get; }
 
-		
-		
-		
 		public List<string> RestrictionNames { get; }
 
-		
-		
-		
 		public bool ShowDependencyInfo { get; set; }
 
 		public InstructionViewModel([NotNull] Instruction instruction, [NotNull] ModComponent parentComponent, bool willExecute, bool showDependencyInfo = false)
@@ -80,7 +61,6 @@ namespace KOTORModSync.Models
 			_willExecute = willExecute;
 			ShowDependencyInfo = showDependencyInfo;
 
-			
 			DependencyNames = InstructionViewModel.ResolveGuidNames(instruction.Dependencies);
 			RestrictionNames = InstructionViewModel.ResolveGuidNames(instruction.Restrictions);
 
@@ -89,7 +69,7 @@ namespace KOTORModSync.Models
 
 		private void UpdateVisualState()
 		{
-			
+
 			Opacity = WillExecute ? 1.0 : 0.5;
 			OnPropertyChanged(nameof(FontWeight));
 		}
@@ -102,7 +82,7 @@ namespace KOTORModSync.Models
 
 			foreach ( Guid guid in guids )
 			{
-				
+
 				ModComponent component = MainConfig.AllComponents.FirstOrDefault(c => c.Guid == guid);
 				if ( component != null )
 				{
@@ -110,7 +90,6 @@ namespace KOTORModSync.Models
 					continue;
 				}
 
-				
 				foreach ( ModComponent comp in MainConfig.AllComponents )
 				{
 					Option option = comp.Options.FirstOrDefault(o => o.Guid == guid);

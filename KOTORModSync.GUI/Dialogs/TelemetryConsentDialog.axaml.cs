@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -25,23 +26,20 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				
+
 				Configuration.SetUserConsent(true);
 				Configuration.CollectUsageData = CollectUsageCheckBox?.IsChecked ?? true;
 				Configuration.CollectPerformanceMetrics = CollectPerformanceCheckBox?.IsChecked ?? true;
 				Configuration.CollectCrashReports = CollectCrashReportsCheckBox?.IsChecked ?? true;
 				Configuration.CollectMachineInfo = CollectMachineInfoCheckBox?.IsChecked ?? false;
 
-				
 				bool localOnly = LocalOnlyRadio?.IsChecked ?? true;
 				Configuration.EnableFileExporter = localOnly;
 				Configuration.EnableOtlpExporter = !localOnly;
 
-				
-				
-				if (!localOnly)
+				if ( !localOnly )
 				{
-					
+
 					Configuration.OtlpEndpoint = "https://telemetry.kotormodsync.com/v1/traces";
 				}
 
@@ -51,7 +49,7 @@ namespace KOTORModSync.Dialogs
 				Logger.Log("[Telemetry] User consented to telemetry collection");
 				Close(true);
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "[Telemetry] Error saving telemetry consent");
 				Close(false);
@@ -69,18 +67,13 @@ namespace KOTORModSync.Dialogs
 				Logger.Log("[Telemetry] User declined telemetry collection");
 				Close(false);
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "[Telemetry] Error saving telemetry decline");
 				Close(false);
 			}
 		}
 
-		
-		
-		
-		
-		
 		public static bool? ShowConsentDialog(Window parent)
 		{
 			var dialog = new TelemetryConsentDialog();

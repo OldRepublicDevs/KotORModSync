@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -13,21 +14,13 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Services
 {
-    
-    
-    
-    
+
     public class ScrollNavigationService
     {
         #region Public Methods
 
-        
-        
-        
-        
-        
-        
-        
+
+
         public static async Task ScrollToControlAsync([NotNull] ScrollViewer scrollViewer, [NotNull] Control targetControl, double offsetFromTop = 100)
         {
             if (scrollViewer == null) throw new ArgumentNullException(nameof(scrollViewer));
@@ -44,23 +37,15 @@ namespace KOTORModSync.Services
             }
         }
 
-        
-        
-        
-        
-        
-        
-        
-        
+
+
         public static async Task ScrollToPositionSmoothAsync([NotNull] ScrollViewer scrollViewer, double targetOffset, int animationSteps = 20, int stepDelayMs = 16)
         {
             if (scrollViewer == null) throw new ArgumentNullException(nameof(scrollViewer));
 
-            
             double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
             double clampedOffset = Math.Max(0, Math.Min(targetOffset, maxOffset));
 
-            
             double currentOffset = scrollViewer.Offset.Y;
             double distance = clampedOffset - currentOffset;
             double stepSize = distance / animationSteps;
@@ -71,28 +56,22 @@ namespace KOTORModSync.Services
                 scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset);
                 await Task.Delay(stepDelayMs);
             }
-            
+
             scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedOffset);
         }
 
-        
-        
-        
-        
-        
-        
-        
+
+
         public static T FindControlRecursive<T>([CanBeNull] Control parent, [NotNull] Func<T, bool> predicate) where T : Control
         {
             if (parent == null)
                 return null;
 
-            
             if (parent is T targetControl && predicate(targetControl))
             {
                 return targetControl;
             }
-            
+
             IEnumerable<Control> children = parent.GetVisualChildren().OfType<Control>();
             foreach (Control child in children)
             {
@@ -102,22 +81,14 @@ namespace KOTORModSync.Services
             return null;
         }
 
-        
-        
-        
-        
-        
+
+
         public static ScrollViewer FindScrollViewer([CanBeNull] Control parent)
         {
             return FindControlRecursive<ScrollViewer>(parent, _ => true);
         }
 
-        
-        
-        
-        
-        
-        
+
         public static async Task ExpandAndWaitAsync([CanBeNull] Expander expander, int waitTimeMs = 200)
         {
             if (expander != null && !expander.IsExpanded)
@@ -127,12 +98,7 @@ namespace KOTORModSync.Services
             }
         }
 
-        
-        
-        
-        
-        
-        
+
         public static async Task NavigateToTabAsync([CanBeNull] TabItem tabItem, int waitTimeMs = 100)
         {
             if (tabItem != null)
@@ -142,17 +108,9 @@ namespace KOTORModSync.Services
             }
         }
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
         public static async Task NavigateToControlAsync(
             [CanBeNull] TabItem tabItem = null,
             [CanBeNull] Expander expander = null,
@@ -164,17 +122,17 @@ namespace KOTORModSync.Services
         {
             try
             {
-                
+
                 if (tabItem != null)
                 {
                     await NavigateToTabAsync(tabItem, navigationWaitMs);
                 }
-                
+
                 if (expander != null)
                 {
                     await ExpandAndWaitAsync(expander, expandWaitMs);
                 }
-                
+
                 if (scrollViewer != null)
                 {
                     if (targetControl != null)
@@ -197,67 +155,44 @@ namespace KOTORModSync.Services
 
         #region Estimation Methods (Fallback Strategy)
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
 
         #endregion
 
         #region Private Methods
-        
-        
-        
-        
-        
-        
-        
+
+
         private static double CalculateControlScrollPosition([NotNull] ScrollViewer scrollViewer, [NotNull] Control targetControl, double offsetFromTop)
         {
             try
             {
-                
+
                 Matrix? transform = targetControl.TransformToVisual(scrollViewer);
                 if (transform == null) return 0;
-                
+
                 Point targetPoint = transform.Value.Transform(new Point(0, 0));
                 Size targetSize = targetControl.Bounds.Size;
                 var targetBounds = new Rect(targetPoint, targetSize);
-                
+
                 double targetY = targetBounds.Y;
-                
+
                 double desiredOffset = targetY - offsetFromTop;
 
-                
                 double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
                 return Math.Max(0, Math.Min(desiredOffset, maxOffset));
             }
             catch (Exception)
             {
-                
+
                 return 0;
             }
         }
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
         public static double CalculateEstimatedScrollPosition(
             [CanBeNull] Grid parentGrid,
             [CanBeNull] Expander targetSectionExpander,
@@ -269,18 +204,18 @@ namespace KOTORModSync.Services
 
             try
             {
-                
+
                 if (parentGrid != null && targetSectionExpander != null)
                 {
                     Avalonia.Controls.Controls children = parentGrid.Children;
                     foreach (Control child in children)
                     {
-                        
+
                         if (child == targetSectionExpander)
                         {
                             break;
                         }
-                        
+
                         if (child is Control control && control.IsVisible)
                         {
                             Rect bounds = control.Bounds;
@@ -291,10 +226,9 @@ namespace KOTORModSync.Services
                         }
                     }
 
-                    
                     if (targetSectionExpander.IsVisible)
                     {
-                        
+
                         Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
                             c => c.Name == "PART_Header" || c.GetType().Name.Contains("Header"));
 
@@ -304,21 +238,20 @@ namespace KOTORModSync.Services
                         }
                         else
                         {
-                            
+
                             baseOffset += targetSectionExpander.Margin.Top + targetSectionExpander.Padding.Top + 30;
                         }
                     }
                 }
 
-                
                 double itemHeight = 0;
                 if (itemsRepeater != null)
                 {
-                    
+
                     var existingItems = itemsRepeater.GetVisualChildren().OfType<Control>().ToList();
                     if (existingItems.Any())
                     {
-                        
+
                         var measuredHeights = existingItems
                             .Where(item => item.Bounds.Height > 0)
                             .Select(item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom)
@@ -331,49 +264,38 @@ namespace KOTORModSync.Services
                     }
                 }
 
-                
                 if (itemHeight == 0)
                 {
-                    itemHeight = 100; 
+                    itemHeight = 100;
                 }
 
-                
                 baseOffset += itemIndex * itemHeight;
 
-                
                 double centeringOffset;
                 if (scrollViewport != null && scrollViewport.Viewport.Height > 0)
                 {
-                    
-                    centeringOffset = scrollViewport.Viewport.Height * 0.3; 
+
+                    centeringOffset = scrollViewport.Viewport.Height * 0.3;
                 }
                 else
                 {
-                    centeringOffset = 100; 
+                    centeringOffset = 100;
                 }
 
                 baseOffset -= centeringOffset;
             }
             catch (Exception)
             {
-                
+
                 baseOffset = Math.Max(0, itemIndex * 100);
             }
 
             return Math.Max(0, baseOffset);
         }
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
         public static double CalculateEstimatedScrollPositionWithSections(
             [CanBeNull] Grid parentGrid,
             [NotNull] Expander targetSectionExpander,
@@ -387,19 +309,18 @@ namespace KOTORModSync.Services
 
             try
             {
-                
+
                 if (parentGrid != null)
                 {
                     bool foundTarget = false;
 
                     foreach (Control child in parentGrid.Children)
                     {
-                        
+
                         if (child == targetSectionExpander)
                         {
                             foundTarget = true;
 
-                            
                             if (targetSectionExpander.IsVisible)
                             {
                                 Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
@@ -417,12 +338,11 @@ namespace KOTORModSync.Services
                             break;
                         }
 
-                        
                         if (child is Expander expander)
                         {
                             if (expander.IsVisible)
                             {
-                                
+
                                 Control headerPresenter = FindControlRecursive<Control>(expander,
                                     c => c.Name == "PART_Header" || c.GetType().Name.Contains("Header"));
 
@@ -432,10 +352,9 @@ namespace KOTORModSync.Services
                                 }
                                 else
                                 {
-                                    baseOffset += 30; 
+                                    baseOffset += 30;
                                 }
 
-                                
                                 if (expander.IsExpanded)
                                 {
                                     Control contentPresenter = FindControlRecursive<Control>(expander,
@@ -447,13 +366,12 @@ namespace KOTORModSync.Services
                                     }
                                 }
 
-                                
                                 baseOffset += expander.Margin.Top + expander.Margin.Bottom;
                             }
                         }
                         else if (child is Control control && control.IsVisible)
                         {
-                            
+
                             if (control.Bounds.Height > 0)
                             {
                                 baseOffset += control.Bounds.Height + control.Margin.Top + control.Margin.Bottom;
@@ -463,12 +381,11 @@ namespace KOTORModSync.Services
 
                     if (!foundTarget)
                     {
-                        
+
                         return 0;
                     }
                 }
 
-                
                 double itemHeight = 0;
                 if (itemsRepeater != null)
                 {
@@ -487,16 +404,13 @@ namespace KOTORModSync.Services
                     }
                 }
 
-                
                 if (itemHeight == 0)
                 {
                     itemHeight = 100;
                 }
 
-                
                 baseOffset += itemIndex * itemHeight;
 
-                
                 double centeringOffset;
                 if (scrollViewport != null && scrollViewport.Viewport.Height > 0)
                 {
@@ -511,7 +425,7 @@ namespace KOTORModSync.Services
             }
             catch (Exception)
             {
-                
+
                 baseOffset = Math.Max(0, itemIndex * 100);
             }
 
@@ -521,20 +435,11 @@ namespace KOTORModSync.Services
         #endregion
     }
 
-    
-    
-    
     public static class ScrollNavigationExtensions
     {
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
         public static async Task ScrollToControlAsync<T>(
             this ScrollViewer scrollViewer,
             [NotNull] Control parent,
@@ -548,16 +453,8 @@ namespace KOTORModSync.Services
             }
         }
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
         public static async Task ScrollToControlByDataContextAsync<TControl, TDataContext>(
             this ScrollViewer scrollViewer,
             [NotNull] Control parent,

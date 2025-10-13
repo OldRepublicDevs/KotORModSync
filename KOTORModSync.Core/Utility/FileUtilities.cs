@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -9,18 +10,11 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
 {
-	
-	
-	
+
 	public static class FileUtilities
 	{
-		
-		
-		
-		
-		
-		
-		
+
+
 		public static async Task SaveDocsToFileAsync([NotNull] string filePath, [NotNull] string documentation)
 		{
 			if ( filePath is null )
@@ -36,8 +30,7 @@ namespace KOTORModSync.Core.Utility
 					{
 						await writer.WriteAsync(documentation);
 						await writer.FlushAsync();
-						
-						
+
 						writer.Dispose();
 					}
 				}

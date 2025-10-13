@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -19,7 +20,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		public CaseAwarePath(params string[] args) :
 			this((object[])args)
-		{ } 
+		{ }
 
 		public CaseAwarePath(params object[] args)
 		{
@@ -30,7 +31,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 			{
 				_str = GetCaseSensitivePath();
 			}
-
 
 			string[] parts = _str.Split(Path.DirectorySeparatorChar);
 			var result = new CaseAwarePath[parts.Length];
@@ -48,11 +48,8 @@ namespace KOTORModSync.Core.FileSystemUtils
 			Root = Path.GetPathRoot(_str);
 			Stem = Path.GetFileNameWithoutExtension(_str);
 			Suffix = Path.GetExtension(_str);
-			
-			
-			
-		}
 
+		}
 
 		public string Name { get; }
 		public CaseAwarePath Parent { get; set; }
@@ -76,7 +73,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 			}
 		}
 
-
 		private static string CombinePaths(params object[] args) =>
 			Path.Combine(args.Select(ConvertObjectToPath).ToArray());
 
@@ -88,7 +84,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			var paths = args.Select(ConvertObjectToPath).ToList();
 
-			
 			if ( !Path.IsPathRooted(_str) )
 			{
 				return new CaseAwarePath(
@@ -96,28 +91,27 @@ namespace KOTORModSync.Core.FileSystemUtils
 				);
 			}
 
-			string accumulatedPath = _str; 
+			string accumulatedPath = _str;
 
 			foreach ( string currentPath in paths )
 			{
-				
+
 				if ( Path.IsPathRooted(currentPath)
 					&& currentPath.StartsWith(accumulatedPath, StringComparison.OrdinalIgnoreCase) )
 				{
-					accumulatedPath = currentPath; 
+					accumulatedPath = currentPath;
 				}
 				else
 				{
 					accumulatedPath = Path.Combine(
 						accumulatedPath,
 						currentPath
-					); 
+					);
 				}
 			}
 
 			return new CaseAwarePath(accumulatedPath);
 		}
-
 
 		public CaseAwarePath Resolve()
 		{

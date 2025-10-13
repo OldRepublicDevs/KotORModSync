@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -10,10 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
-	
+
 	public sealed class ResolutionFilterService
 	{
 		private static readonly Regex ResolutionPattern = new Regex(@"(\d{3,4})x(\d{3,4})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -24,7 +22,7 @@ namespace KOTORModSync.Core.Services
 		{
 			_filterEnabled = enableFiltering;
 			_systemResolution = DetectSystemResolution();
-			
+
 			if ( _filterEnabled && _systemResolution != null )
 			{
 				Logger.LogVerbose($"[ResolutionFilter] System resolution detected: {_systemResolution.Width}x{_systemResolution.Height}");
@@ -40,12 +38,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public List<string> FilterByResolution(List<string> urlsOrFilenames)
 		{
 			if ( !_filterEnabled || _systemResolution == null || urlsOrFilenames == null || urlsOrFilenames.Count == 0 )
@@ -60,23 +53,22 @@ namespace KOTORModSync.Core.Services
 
 				if ( detectedResolution == null )
 				{
-					
+
 					filtered.Add(item);
 				}
 				else if ( MatchesSystemResolution(detectedResolution) )
 				{
-					
+
 					filtered.Add(item);
 					Logger.LogVerbose($"[ResolutionFilter] ✓ Matched: {GetDisplayName(item)} ({detectedResolution.Width}x{detectedResolution.Height})");
 				}
 				else
 				{
-					
+
 					skipped.Add((item, detectedResolution));
 				}
 			}
 
-			
 			if ( skipped.Count > 0 )
 			{
 				Logger.LogVerbose($"[ResolutionFilter] Skipped {skipped.Count} file(s) with non-matching resolutions:");
@@ -89,9 +81,6 @@ namespace KOTORModSync.Core.Services
 			return filtered;
 		}
 
-		
-		
-		
 		public Dictionary<string, List<string>> FilterResolvedUrls(Dictionary<string, List<string>> urlToFilenames)
 		{
 			if ( !_filterEnabled || _systemResolution == null || urlToFilenames == null )
@@ -104,7 +93,6 @@ namespace KOTORModSync.Core.Services
 				string url = kvp.Key;
 				List<string> filenames = kvp.Value;
 
-				
 				Resolution urlResolution = ExtractResolution(url);
 				if ( urlResolution != null && !MatchesSystemResolution(urlResolution) )
 				{
@@ -112,7 +100,6 @@ namespace KOTORModSync.Core.Services
 					continue;
 				}
 
-				
 				List<string> filteredFilenames = FilterByResolution(filenames);
 				if ( filteredFilenames.Count > 0 )
 				{
@@ -123,27 +110,19 @@ namespace KOTORModSync.Core.Services
 			return filtered;
 		}
 
-		
-		
-		
 		public bool ShouldDownload(string urlOrFilename)
 		{
 			if ( !_filterEnabled || _systemResolution == null )
 				return true;
 
 			Resolution detectedResolution = ExtractResolution(urlOrFilename);
-			
-			
+
 			if ( detectedResolution == null )
 				return true;
 
-			
 			return MatchesSystemResolution(detectedResolution);
 		}
 
-		
-		
-		
 		private static Resolution ExtractResolution(string urlOrFilename)
 		{
 			if ( string.IsNullOrWhiteSpace(urlOrFilename) )
@@ -162,32 +141,22 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		
-		
-		
 		private bool MatchesSystemResolution(Resolution resolution)
 		{
 			if ( _systemResolution == null || resolution == null )
 				return false;
 
-			
 			if ( resolution.Width == _systemResolution.Width && resolution.Height == _systemResolution.Height )
 				return true;
 
-			
-			
-			
 			return false;
 		}
 
-		
-		
-		
 		private Resolution DetectSystemResolution()
 		{
 			try
 			{
-				
+
 				if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
 				{
 					return DetectWindowsResolution();
@@ -213,9 +182,9 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				
-				int screenWidth = GetSystemMetrics(0);  
-				int screenHeight = GetSystemMetrics(1); 
+
+				int screenWidth = GetSystemMetrics(0);
+				int screenHeight = GetSystemMetrics(1);
 
 				if ( screenWidth > 0 && screenHeight > 0 )
 				{
@@ -234,7 +203,7 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				
+
 				var result = Utility.PlatformAgnosticMethods.TryExecuteCommand("xrandr | grep '*' | awk '{print $1}' | head -n1");
 				if ( result.ExitCode == 0 && !string.IsNullOrWhiteSpace(result.Output) )
 				{
@@ -248,7 +217,6 @@ namespace KOTORModSync.Core.Services
 					}
 				}
 
-				
 				result = Utility.PlatformAgnosticMethods.TryExecuteCommand("xdpyinfo | grep dimensions | awk '{print $2}'");
 				if ( result.ExitCode == 0 && !string.IsNullOrWhiteSpace(result.Output) )
 				{
@@ -274,7 +242,7 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				
+
 				var result = Utility.PlatformAgnosticMethods.TryExecuteCommand("system_profiler SPDisplaysDataType | grep Resolution | awk '{print $2 \"x\" $4}'");
 				if ( result.ExitCode == 0 && !string.IsNullOrWhiteSpace(result.Output) )
 				{
@@ -296,9 +264,6 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		
-		
-		
 		private static string GetDisplayName(string urlOrPath)
 		{
 			if ( string.IsNullOrWhiteSpace(urlOrPath) )
@@ -306,7 +271,7 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				
+
 				if ( urlOrPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
 					 urlOrPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
 				{
@@ -315,7 +280,6 @@ namespace KOTORModSync.Core.Services
 					return !string.IsNullOrWhiteSpace(filename) ? filename : urlOrPath;
 				}
 
-				
 				return System.IO.Path.GetFileName(urlOrPath);
 			}
 			catch
@@ -324,13 +288,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
 		[DllImport("user32.dll")]
 		private static extern int GetSystemMetrics(int nIndex);
 
-		
-		
-		
 		private class Resolution
 		{
 			public int Width { get; set; }

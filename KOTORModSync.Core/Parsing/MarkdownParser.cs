@@ -1,4 +1,6 @@
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -35,7 +37,6 @@ namespace KOTORModSync.Core.Parsing
 			var components = new List<ModComponent>();
 			var warnings = new List<string>();
 
-			
 			int originalLength = markdown.Length;
 			markdown = MarkdownUtilities.ExtractModListSection(markdown);
 			if ( markdown.Length < originalLength )
@@ -47,7 +48,6 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose("No '## Mod List' marker found, parsing entire document");
 			}
 
-			
 			_logVerbose($"Using outer pattern to split sections: {_profile.ComponentSectionPattern}");
 
 			var outerRegex = new Regex(
@@ -60,17 +60,14 @@ namespace KOTORModSync.Core.Parsing
 
 			int componentIndex = 0;
 
-			
 			foreach ( Match outerMatch in outerMatches )
 			{
 				componentIndex++;
 				_logVerbose($"Processing component section {componentIndex}/{outerMatches.Count}");
 
-				
 				string sectionText = outerMatch.Value;
 				_logVerbose($"ModComponent {componentIndex} section length: {sectionText.Length} characters");
 
-				
 				ModComponent component = ParseComponentFromText(sectionText, out string warning, componentIndex);
 
 				if ( component != null )
@@ -95,12 +92,6 @@ namespace KOTORModSync.Core.Parsing
 				int linkCount = component.ModLink?.Count ?? 0;
 				_logVerbose($"  - '{component.Name}' by {component.Author} ({component.Category}/{component.Tier}) with {linkCount} links");
 			}
-
-			
-			
-			
-			
-			
 
 			return new MarkdownParserResult
 			{
@@ -127,7 +118,6 @@ namespace KOTORModSync.Core.Parsing
 				Guid = Guid.NewGuid(),
 			};
 
-			
 			string extractedName = ExtractValue(componentText, _profile.NamePattern, "name|name_plain|name_link");
 			if ( extractedName != null )
 			{
@@ -139,7 +129,6 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No name found using pattern: {_profile.NamePattern}");
 			}
 
-			
 			string extractedAuthor = ExtractValue(componentText, _profile.AuthorPattern, "author");
 			if ( extractedAuthor != null )
 			{
@@ -151,7 +140,6 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No author found using pattern: {_profile.AuthorPattern}");
 			}
 
-			
 			string extractedDescription = ExtractValue(componentText, _profile.DescriptionPattern, "description");
 			if ( extractedDescription != null )
 			{
@@ -163,7 +151,6 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No description found using pattern: {_profile.DescriptionPattern}");
 			}
 
-			
 			string extractedMethod = ExtractValue(componentText, _profile.InstallationMethodPattern, "method");
 			if ( extractedMethod != null )
 			{
@@ -175,7 +162,6 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No installation method found using pattern: {_profile.InstallationMethodPattern}");
 			}
 
-			
 			string extractedDirections = ExtractValue(componentText, _profile.InstallationInstructionsPattern, "directions");
 			if ( extractedDirections != null )
 			{
@@ -187,7 +173,6 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No directions found using pattern: {_profile.InstallationInstructionsPattern}");
 			}
 
-			
 			MatchCollection modLinkMatches = string.IsNullOrWhiteSpace(_profile.ModLinkPattern)
 				? null
 				: Regex.Matches(componentText, _profile.ModLinkPattern, RegexOptions.Compiled | RegexOptions.Multiline);
@@ -205,7 +190,6 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No mod links found using pattern: {_profile.ModLinkPattern}");
 			}
 
-			
 			if ( !string.IsNullOrWhiteSpace(_profile.CategoryTierPattern) )
 			{
 				Match categoryTierMatch = Regex.Match(
@@ -218,11 +202,9 @@ namespace KOTORModSync.Core.Parsing
 					string categoryStr = categoryTierMatch.Groups["category"].Value.Trim();
 					_logVerbose($"  [DEBUG] Raw categoryStr: '{categoryStr}' (type: {categoryStr?.GetType().Name})");
 
-					
 					string normalizedCategory = MarkdownUtilities.NormalizeCategoryFormat(categoryStr);
 					_logVerbose($"  [DEBUG] Normalized: '{normalizedCategory}'");
 
-					
 					var splitResult = normalizedCategory.Split(
 						new[] { "&" },
 						StringSplitOptions.RemoveEmptyEntries
@@ -245,7 +227,6 @@ namespace KOTORModSync.Core.Parsing
 				}
 			}
 
-			
 			if ( !string.IsNullOrWhiteSpace(_profile.NonEnglishPattern) )
 			{
 				string nonEnglish = ExtractValue(componentText, _profile.NonEnglishPattern, "value");
@@ -260,7 +241,6 @@ namespace KOTORModSync.Core.Parsing
 				}
 			}
 
-			
 			if ( string.IsNullOrWhiteSpace(component.Name) )
 			{
 				warning = "ModComponent has no name";
@@ -268,7 +248,6 @@ namespace KOTORModSync.Core.Parsing
 				return null;
 			}
 
-			
 			string modSyncMetadata = ExtractModSyncMetadata(componentText);
 			if ( !string.IsNullOrWhiteSpace(modSyncMetadata) )
 			{
@@ -298,7 +277,6 @@ namespace KOTORModSync.Core.Parsing
 			if ( !match.Success )
 				return null;
 
-			
 			foreach ( var groupName in groupNames.Split('|') )
 			{
 				var value = match.Groups[groupName.Trim()]?.Value;
@@ -308,17 +286,12 @@ namespace KOTORModSync.Core.Parsing
 			return null;
 		}
 
-		
-		
-		
-		
 		[CanBeNull]
 		private string ExtractModSyncMetadata([NotNull] string componentText)
 		{
 			if ( string.IsNullOrWhiteSpace(componentText) )
 				return null;
 
-			
 			string pattern = !string.IsNullOrWhiteSpace(_profile.InstructionsBlockPattern)
 				? _profile.InstructionsBlockPattern
 				: @"<!--<<ModSync>>\s*(?<instructions>[\s\S]*?)-->";
@@ -332,16 +305,11 @@ namespace KOTORModSync.Core.Parsing
 			return match.Success ? match.Groups["instructions"].Value.Trim() : null;
 		}
 
-		
-		
-		
-		
 		private void ParseModSyncMetadata([NotNull] ModComponent component, [NotNull] string metadataText)
 		{
 			if ( string.IsNullOrWhiteSpace(metadataText) )
 				return;
 
-			
 			bool isYaml = DetectYamlFormat(metadataText);
 			bool isToml = DetectTomlFormat(metadataText);
 
@@ -353,7 +321,7 @@ namespace KOTORModSync.Core.Parsing
 					ModComponent yamlComponent = ModComponent.DeserializeYAMLComponent(metadataText);
 					if ( yamlComponent != null )
 					{
-						
+
 						MergeComponentMetadata(component, yamlComponent);
 						_logVerbose($"    Successfully parsed YAML: {component.Instructions.Count} instructions, {component.Options.Count} options");
 						return;
@@ -369,7 +337,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"    Detected TOML format, attempting to deserialize...");
 				try
 				{
-					
+
 					string tomlString = metadataText;
 					if ( !tomlString.Contains("[[thisMod]]") && !tomlString.Contains("[thisMod]") )
 					{
@@ -379,7 +347,7 @@ namespace KOTORModSync.Core.Parsing
 					ModComponent tomlComponent = ModComponent.DeserializeTomlComponent(tomlString);
 					if ( tomlComponent != null )
 					{
-						
+
 						MergeComponentMetadata(component, tomlComponent);
 						_logVerbose($"    Successfully parsed TOML: {component.Instructions.Count} instructions, {component.Options.Count} options");
 						return;
@@ -391,56 +359,42 @@ namespace KOTORModSync.Core.Parsing
 				}
 			}
 
-			
 			_logVerbose($"    Using legacy markdown format parser");
 			ParseLegacyMarkdownMetadata(component, metadataText);
 		}
 
-		
-		
-		
 		private static bool DetectYamlFormat([NotNull] string text)
 		{
-			
-			
+
 			return Regex.IsMatch(text, @"^\s*Guid:\s*[a-f0-9\-]+", RegexOptions.Multiline | RegexOptions.IgnoreCase)
 				   && Regex.IsMatch(text, @"^\s*Instructions:\s*$", RegexOptions.Multiline)
 				   && !text.Contains("**");
 		}
 
-		
-		
-		
 		private static bool DetectTomlFormat([NotNull] string text)
 		{
-			
+
 			return text.Contains("[[thisMod]]") || Regex.IsMatch(text, @"^\s*\w+\s*=", RegexOptions.Multiline);
 		}
 
-		
-		
-		
 		private static void MergeComponentMetadata([NotNull] ModComponent target, [NotNull] ModComponent source)
 		{
-			
+
 			if ( source.Guid != Guid.Empty )
 			{
 				target.Guid = source.Guid;
 			}
 
-			
 			if ( source.Instructions.Count > 0 )
 			{
 				target.Instructions = source.Instructions;
 			}
 
-			
 			if ( source.Options.Count > 0 )
 			{
 				target.Options = source.Options;
 			}
 
-			
 			if ( source.Dependencies.Count > 0 )
 			{
 				target.Dependencies = source.Dependencies;
@@ -452,18 +406,13 @@ namespace KOTORModSync.Core.Parsing
 			}
 		}
 
-		
-		
-		
 		private void ParseLegacyMarkdownMetadata([NotNull] ModComponent component, [NotNull] string metadataText)
 		{
 			string[] lines = metadataText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-			
 			int instructionsStart = FindSectionStart(lines, "#### Instructions");
 			int optionsStart = FindSectionStart(lines, "#### Options");
 
-			
 			int headerEnd = instructionsStart >= 0 ? instructionsStart : lines.Length;
 			for ( int i = 0; i < headerEnd; i++ )
 			{
@@ -475,12 +424,11 @@ namespace KOTORModSync.Core.Parsing
 					{
 						component.Guid = guid;
 						_logVerbose($"    Parsed component GUID: {guid}");
-						break; 
+						break;
 					}
 				}
 			}
 
-			
 			if ( instructionsStart >= 0 )
 			{
 				int instructionsEnd = optionsStart >= 0 ? optionsStart : lines.Length;
@@ -488,7 +436,6 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"    Parsed {component.Instructions.Count} instructions");
 			}
 
-			
 			if ( optionsStart >= 0 )
 			{
 				component.Options = ParseOptions(lines, optionsStart + 1, lines.Length);
@@ -496,9 +443,6 @@ namespace KOTORModSync.Core.Parsing
 			}
 		}
 
-		
-		
-		
 		private static int FindSectionStart([NotNull] string[] lines, [NotNull] string sectionHeader)
 		{
 			for ( int i = 0; i < lines.Length; i++ )
@@ -509,9 +453,6 @@ namespace KOTORModSync.Core.Parsing
 			return -1;
 		}
 
-		
-		
-		
 		[NotNull]
 		private ObservableCollection<Instruction> ParseInstructions([NotNull] string[] lines, int startIdx, int endIdx, [NotNull] ModComponent parentComponent)
 		{
@@ -521,24 +462,20 @@ namespace KOTORModSync.Core.Parsing
 			{
 				string line = lines[i].Trim();
 
-				
 				if ( Regex.IsMatch(line, @"^\d+\.\s+\*\*GUID:\*\*") )
 				{
 					var instruction = new Instruction();
 
-					
 					string guidStr = ExtractMetadataValue(line, "GUID");
 					if ( Guid.TryParse(guidStr, out Guid guid) )
 					{
 						instruction.Guid = guid;
 					}
 
-					
 					for ( int j = i + 1; j < endIdx; j++ )
 					{
 						string propLine = lines[j].Trim();
 
-						
 						if ( Regex.IsMatch(propLine, @"^\d+\.\s+\*\*GUID:\*\*") || propLine.StartsWith("#") )
 							break;
 
@@ -570,7 +507,7 @@ namespace KOTORModSync.Core.Parsing
 							instruction.Destination = ExtractMetadataValue(propLine, "Destination");
 						}
 
-						i = j; 
+						i = j;
 					}
 
 					instruction.SetParentComponent(parentComponent);
@@ -582,9 +519,6 @@ namespace KOTORModSync.Core.Parsing
 			return instructions;
 		}
 
-		
-		
-		
 		[NotNull]
 		private ObservableCollection<Option> ParseOptions([NotNull] string[] lines, int startIdx, int endIdx)
 		{
@@ -595,10 +529,9 @@ namespace KOTORModSync.Core.Parsing
 			{
 				string line = lines[i].Trim();
 
-				
 				if ( Regex.IsMatch(line, @"^#+\s+Option\s+\d+", RegexOptions.IgnoreCase) )
 				{
-					
+
 					if ( currentOption != null )
 					{
 						options.Add(currentOption);
@@ -615,7 +548,6 @@ namespace KOTORModSync.Core.Parsing
 				if ( currentOption == null )
 					continue;
 
-				
 				if ( line.StartsWith("- **GUID:**") )
 				{
 					string guidStr = ExtractMetadataValue(line, "GUID");
@@ -667,7 +599,7 @@ namespace KOTORModSync.Core.Parsing
 				}
 				else if ( line.Contains("- **Instruction:**") )
 				{
-					
+
 					var optionInstructions = ParseOptionsInstructions(lines, ref i, endIdx, currentOption);
 					foreach ( var inst in optionInstructions )
 					{
@@ -676,7 +608,6 @@ namespace KOTORModSync.Core.Parsing
 				}
 			}
 
-			
 			if ( currentOption != null )
 			{
 				options.Add(currentOption);
@@ -686,9 +617,6 @@ namespace KOTORModSync.Core.Parsing
 			return options;
 		}
 
-		
-		
-		
 		[NotNull]
 		private static List<Instruction> ParseOptionsInstructions([NotNull] string[] lines, ref int currentIdx, int endIdx, [NotNull] Option parentOption)
 		{
@@ -699,7 +627,6 @@ namespace KOTORModSync.Core.Parsing
 			{
 				string line = lines[i].Trim();
 
-				
 				if ( Regex.IsMatch(line, @"^#+\s+Option\s+\d+", RegexOptions.IgnoreCase) ||
 					 (line.StartsWith("- **") && !line.Contains("**GUID:**") && !line.Contains("**Action:**") &&
 					  !line.Contains("**Destination:**") && !line.Contains("**Overwrite:**") && !line.Contains("**Source:**")) )
@@ -708,7 +635,6 @@ namespace KOTORModSync.Core.Parsing
 					break;
 				}
 
-				
 				if ( line.StartsWith("- **GUID:**") )
 				{
 					string guidStr = ExtractMetadataValue(line, "GUID");
@@ -757,13 +683,10 @@ namespace KOTORModSync.Core.Parsing
 			return instructions;
 		}
 
-		
-		
-		
 		[NotNull]
 		private static string ExtractMetadataValue([NotNull] string line, [NotNull] string key)
 		{
-			
+
 			string pattern = $@"\*\*{Regex.Escape(key)}:\*\*\s*(.+)$";
 			Match match = Regex.Match(line, pattern, RegexOptions.IgnoreCase);
 			return match.Success ? match.Groups[1].Value.Trim() : string.Empty;

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -16,9 +17,7 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class GuiPathService
 	{
 		private readonly MainConfig _mainConfig;
@@ -30,9 +29,6 @@ namespace KOTORModSync.Services
 			_fileSystemService = fileSystemService;
 		}
 
-		
-		
-		
 		public bool TryApplySourcePath(string text, Action<string> onPathSet = null)
 		{
 			try
@@ -43,7 +39,6 @@ namespace KOTORModSync.Services
 
 			_mainConfig.sourcePath = new DirectoryInfo(p);
 
-			
 			Action callback = onPathSet != null ? (Action)(() => onPathSet(p)) : null;
 			_fileSystemService.SetupModDirectoryWatcher(p, callback);
 
@@ -56,9 +51,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public bool TryApplyDestinationPath(string text)
 		{
 			try
@@ -77,9 +69,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void UpdatePathSuggestions(TextBox input, ComboBox combo, ref CancellationTokenSource cts)
 		{
 			try
@@ -96,7 +85,7 @@ namespace KOTORModSync.Services
 
 					if ( string.IsNullOrWhiteSpace(expanded) )
 					{
-						
+
 						if ( input.Name == "ModPathInput" )
 							return PathUtilities.GetDefaultPathsForMods().ToList();
 						if ( input.Name == "InstallPathInput" )
@@ -107,7 +96,6 @@ namespace KOTORModSync.Services
 					string normalized = expanded;
 					bool endsWithSep = normalized.EndsWith(Path.DirectorySeparatorChar.ToString());
 
-					
 					bool isRootDir = IsRootDirectory(normalized);
 					if ( isRootDir )
 					{
@@ -163,9 +151,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static async Task AddToRecentModsAsync(string path)
 		{
 			try
@@ -178,13 +163,10 @@ namespace KOTORModSync.Services
 				string file = Path.Combine(folder, "recent_mod_dirs.txt");
 				_ = Directory.CreateDirectory(folder);
 
-				
 				List<string> existing = await LoadRecentModDirectoriesAsync(file);
 
-				
 				AddToRecentDirectories(path, existing, maxCount: 20);
 
-				
 				await SaveRecentModDirectoriesAsync(existing, file);
 			}
 			catch ( Exception ex )
@@ -193,9 +175,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static async Task<List<string>> LoadRecentModDirectoriesAsync(string filePath)
 		{
 			var result = new List<string>();
@@ -205,7 +184,6 @@ namespace KOTORModSync.Services
 				if ( !File.Exists(filePath) )
 					return result;
 
-				
 				string[] lines = await Task.Run(() => File.ReadAllLines(filePath));
 				result.AddRange(lines.Where(line => !string.IsNullOrWhiteSpace(line) && Directory.Exists(line)));
 			}
@@ -217,14 +195,11 @@ namespace KOTORModSync.Services
 			return result;
 		}
 
-		
-		
-		
 		public static async Task SaveRecentModDirectoriesAsync(List<string> directories, string filePath)
 		{
 			try
 			{
-				
+
 				await Task.Run(() => File.WriteAllLines(filePath, directories));
 			}
 			catch ( Exception ex )
@@ -233,18 +208,13 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void AddToRecentDirectories(string path, List<string> existing, int maxCount = 20)
 		{
-			
+
 			_ = existing.Remove(path);
 
-			
 			existing.Insert(0, path);
 
-			
 			if ( existing.Count > maxCount )
 			{
 				existing.RemoveRange(maxCount, existing.Count - maxCount);
@@ -257,7 +227,7 @@ namespace KOTORModSync.Services
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				
+
 				if ( normalized.Length >= 2 && normalized[1] == ':' &&
 					(normalized.Length == 2 || (normalized.Length == 3 && normalized[2] == Path.DirectorySeparatorChar)) )
 				{
@@ -266,7 +236,7 @@ namespace KOTORModSync.Services
 			}
 			else
 			{
-				
+
 				if ( normalized == "/" || normalized.EndsWith(":/") )
 					return true;
 			}
@@ -300,12 +270,11 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				
+
 				if ( combo.Name == "ModPathSuggestions" && combo.ItemsSource is IEnumerable<string> existingItems )
 				{
 					var resultsToShow = newResults.ToList();
 
-					
 					foreach ( string item in existingItems )
 					{
 						if ( !resultsToShow.Contains(item) && Directory.Exists(item) )
@@ -323,7 +292,6 @@ namespace KOTORModSync.Services
 						combo.ItemsSource = newResults;
 				}
 
-				
 				if ( newResults.Count > 0 && input.IsKeyboardFocusWithin )
 					combo.IsDropDownOpen = true;
 			}

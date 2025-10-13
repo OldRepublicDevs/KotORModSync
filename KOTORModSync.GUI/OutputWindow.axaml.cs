@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -27,7 +28,6 @@ namespace KOTORModSync
 		public string LogText { get; set; } = string.Empty;
 		public ObservableCollection<LogLine> LogLines { get; } = new ObservableCollection<LogLine>();
 
-		
 		public event PropertyChangedEventHandler PropertyChanged;
 
 		public void AppendLog(string message)
@@ -102,7 +102,6 @@ namespace KOTORModSync
 			ThemeManager.ApplyCurrentToWindow(this);
 			ThemeManager.StyleChanged += OnGlobalStyleChanged;
 
-			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -178,7 +177,6 @@ namespace KOTORModSync
 						last.IsHighlighted = last.Level == "Error" || last.Level == "Warning";
 				}
 
-				
 				_ = Dispatcher.UIThread.InvokeAsync(() => LogScrollViewer.ScrollToEnd());
 			}
 			catch ( Exception ex )

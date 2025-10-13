@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -18,13 +19,10 @@ namespace KOTORModSync.Converters
 {
 	public partial class NamespacesIniOptionConverter : IValueConverter
 	{
-		
+
 		private static readonly Dictionary<Guid, List<string>> _archiveCache = new Dictionary<Guid, List<string>>();
 		private static readonly object _cacheLock = new object();
 
-		
-		
-		
 		public static void InvalidateCache()
 		{
 			lock ( _cacheLock )
@@ -41,7 +39,6 @@ namespace KOTORModSync.Converters
 			if ( !(value is Instruction dataContextInstruction) )
 				return null;
 
-			
 			if ( dataContextInstruction.Action != Instruction.ActionType.Patcher )
 				return null;
 
@@ -49,10 +46,8 @@ namespace KOTORModSync.Converters
 			if ( parentComponent is null )
 				return null;
 
-			
 			List<string> allArchives = GetAllArchivesFromInstructions(parentComponent);
 
-			
 			List<string> relevantArchives = GetArchivesForSpecificInstruction(dataContextInstruction, allArchives);
 
 			foreach ( string archivePath in relevantArchives )
@@ -85,11 +80,8 @@ namespace KOTORModSync.Converters
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
-		
-		
-		
-		
-		
+
+
 		[NotNull]
 		private static List<string> GetArchivesForSpecificInstruction([NotNull] Instruction instruction, [NotNull] List<string> allArchives)
 		{
@@ -100,7 +92,6 @@ namespace KOTORModSync.Converters
 
 			var relevantArchives = new List<string>();
 
-			
 			List<string> instructionSourcePaths = instruction.Source.ConvertAll(Utility.ReplaceCustomVariables);
 
 			foreach ( string archivePath in allArchives )
@@ -108,18 +99,15 @@ namespace KOTORModSync.Converters
 				if ( string.IsNullOrEmpty(archivePath) )
 					continue;
 
-				
-				
 				foreach ( string sourcePath in instructionSourcePaths )
 				{
 					if ( string.IsNullOrEmpty(sourcePath) )
 						continue;
 
-					
 					if ( IsPatcherSourceInArchiveDestination(sourcePath, archivePath) )
 					{
 						relevantArchives.Add(archivePath);
-						break; 
+						break;
 					}
 				}
 			}
@@ -127,12 +115,7 @@ namespace KOTORModSync.Converters
 			return relevantArchives;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		private static bool IsPatcherSourceInArchiveDestination(string patcherSourcePath, string archivePath)
 		{
 			if ( string.IsNullOrEmpty(patcherSourcePath) || string.IsNullOrEmpty(archivePath) )
@@ -140,27 +123,20 @@ namespace KOTORModSync.Converters
 
 			try
 			{
-				
-				
-				
+
 				List<string> matchingFiles = PathHelper.EnumerateFilesWithWildcards(
 					new List<string> { patcherSourcePath },
 					new Core.Services.FileSystem.RealFileSystemProvider(),
 					includeSubFolders: true
 				);
 
-				
-				
 				if ( matchingFiles?.Any() == true )
 				{
-					
-					
 
-					
 					string archiveName = Path.GetFileNameWithoutExtension(archivePath);
 					if ( !string.IsNullOrEmpty(archiveName) )
 					{
-						
+
 						if ( patcherSourcePath.IndexOf(archiveName, StringComparison.OrdinalIgnoreCase) >= 0 )
 							return true;
 					}
@@ -175,9 +151,6 @@ namespace KOTORModSync.Converters
 			}
 		}
 
-		
-		
-		
 		[NotNull]
 		public static List<string> GetAllArchivesFromInstructions([NotNull] ModComponent parentComponent)
 		{
@@ -188,14 +161,13 @@ namespace KOTORModSync.Converters
 
 			lock ( _cacheLock )
 			{
-				
+
 				if ( _archiveCache.TryGetValue(componentGuid, out List<string> cachedArchives) )
 				{
 					Logger.LogVerbose($"[NamespacesIniOptionConverter] Using cached archives for component {componentGuid}");
 					return cachedArchives;
 				}
 
-				
 				Logger.LogVerbose($"[NamespacesIniOptionConverter] Cache miss for component {componentGuid}, computing archives...");
 				List<string> allArchives = ComputeAllArchivesFromInstructions(parentComponent);
 				_archiveCache[componentGuid] = allArchives;
@@ -203,9 +175,6 @@ namespace KOTORModSync.Converters
 			}
 		}
 
-		
-		
-		
 		[NotNull]
 		private static List<string> ComputeAllArchivesFromInstructions([NotNull] ModComponent parentComponent)
 		{

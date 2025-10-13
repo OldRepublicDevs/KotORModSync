@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -11,10 +12,7 @@ using System.Threading.Tasks;
 
 namespace KOTORModSync.Core.FileSystemUtils
 {
-	
-	
-	
-	
+
 	public class CrossPlatformFileWatcher : IDisposable
 	{
 		private readonly string _path;
@@ -64,7 +62,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 				EnableRaisingEvents = true;
 
-				
 				if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
 					StartWindowsWatcher();
 				else
@@ -145,7 +142,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 			var previousFiles = new HashSet<string>();
 			var currentFiles = new HashSet<string>();
 
-			
 			try
 			{
 				await ScanDirectory(previousFiles, cancellationToken);
@@ -166,21 +162,18 @@ namespace KOTORModSync.Core.FileSystemUtils
 					currentFiles.Clear();
 					await ScanDirectory(currentFiles, cancellationToken);
 
-					
 					foreach ( string file in previousFiles )
 					{
 						if ( !currentFiles.Contains(file) )
 							OnDeleted(new FileSystemEventArgs(WatcherChangeTypes.Deleted, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 					}
 
-					
 					foreach ( string file in currentFiles )
 					{
 						if ( !previousFiles.Contains(file) )
 							OnCreated(new FileSystemEventArgs(WatcherChangeTypes.Created, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 					}
 
-					
 					foreach ( string file in currentFiles )
 					{
 						if ( !previousFiles.Contains(file) )
@@ -197,7 +190,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 						}
 					}
 
-					
 					previousFiles.Clear();
 					foreach ( string file in currentFiles )
 					{
@@ -215,7 +207,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 					await Logger.LogExceptionAsync(ex, "Error in polling loop");
 					OnError(new ErrorEventArgs(ex));
 
-					
 					try
 					{
 						await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);

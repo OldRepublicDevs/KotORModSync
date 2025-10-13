@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -37,7 +38,7 @@ namespace KOTORModSync
 			}
 			if ( !string.IsNullOrEmpty(stylePath) )
 			{
-				
+
 				var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
 				Application.Current.Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
 			}
@@ -51,7 +52,7 @@ namespace KOTORModSync
 				return "/Styles/KotorStyle.axaml";
 
 			string path = s_currentStyleUri.ToString();
-			
+
 			if ( path.StartsWith("avares://KOTORModSync") )
 			{
 				return path.Substring("avares://KOTORModSync".Length);
@@ -75,7 +76,6 @@ namespace KOTORModSync
 			if ( window is null )
 				return;
 
-			
 			for ( int i = window.Styles.Count - 1; i >= 0; i-- )
 			{
 				if ( window.Styles[i] is StyleInclude si
@@ -96,5 +96,4 @@ namespace KOTORModSync
 		}
 	}
 }
-
 

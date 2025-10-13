@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -7,10 +8,7 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync
 {
-	
-	
-	
-	
+
 	public static class GuidConflictResolver
 	{
 		public class GuidResolution
@@ -23,13 +21,10 @@ namespace KOTORModSync
 			public ModComponent IncomingComponent { get; set; }
 		}
 
-		
-		
-		
-		
+
 		public static GuidResolution ResolveGuidConflict(ModComponent existing, ModComponent incoming)
 		{
-			
+
 			if ( existing.Guid == incoming.Guid )
 				return null;
 
@@ -39,12 +34,10 @@ namespace KOTORModSync
 				IncomingComponent = incoming
 			};
 
-			
 			bool existingHasGuidUsage = HasIntricateGuidUsage(existing);
-			
+
 			bool incomingHasGuidUsage = HasIntricateGuidUsage(incoming);
 
-			
 			if ( existingHasGuidUsage && incomingHasGuidUsage )
 			{
 				resolution.RequiresManualResolution = true;
@@ -65,13 +58,11 @@ namespace KOTORModSync
 					$"💡 Right-click this component to choose which GUID to use.\n" +
 					$"⚠️ Choosing incorrectly may break dependencies!";
 
-				
 				resolution.ChosenGuid = existing.Guid;
 				resolution.RejectedGuid = incoming.Guid;
 				return resolution;
 			}
 
-			
 			if ( existingHasGuidUsage )
 			{
 				resolution.ChosenGuid = existing.Guid;
@@ -81,7 +72,6 @@ namespace KOTORModSync
 				return resolution;
 			}
 
-			
 			if ( incomingHasGuidUsage )
 			{
 				resolution.ChosenGuid = incoming.Guid;
@@ -91,7 +81,6 @@ namespace KOTORModSync
 				return resolution;
 			}
 
-			
 			resolution.ChosenGuid = existing.Guid;
 			resolution.RejectedGuid = incoming.Guid;
 			resolution.RequiresManualResolution = false;
@@ -99,12 +88,9 @@ namespace KOTORModSync
 			return resolution;
 		}
 
-		
-		
-		
 		private static bool HasIntricateGuidUsage(ModComponent component)
 		{
-			
+
 			if ( component.Dependencies.Count > 0 )
 				return true;
 			if ( component.Restrictions.Count > 0 )
@@ -112,16 +98,12 @@ namespace KOTORModSync
 			if ( component.InstallAfter.Count > 0 )
 				return true;
 
-			
 			if ( component.Options.Count > 0 )
 				return true;
 
 			return false;
 		}
 
-		
-		
-		
 		public static bool IsGuidReferencedByOthers(Guid guid, System.Collections.Generic.List<ModComponent> allComponents)
 		{
 			foreach ( ModComponent comp in allComponents )

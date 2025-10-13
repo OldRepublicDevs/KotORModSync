@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -29,7 +30,7 @@ namespace KOTORModSync.Controls
 		public static readonly StyledProperty<Guid> ComponentGuidProperty =
 			AvaloniaProperty.Register<DownloadLinksControl, Guid>(nameof(ComponentGuid));
 
-		private bool _isUpdatingFromTextBox; 
+		private bool _isUpdatingFromTextBox;
 
 		public List<string> DownloadLinks
 		{
@@ -61,7 +62,7 @@ namespace KOTORModSync.Controls
 
 			if ( change.Property == DownloadLinksProperty )
 			{
-				
+
 				if ( _isUpdatingFromTextBox )
 					return;
 
@@ -70,7 +71,7 @@ namespace KOTORModSync.Controls
 			}
 			else if ( change.Property == DownloadCacheServiceProperty || change.Property == ComponentGuidProperty )
 			{
-				
+
 				RefreshAllUrlValidation();
 			}
 		}
@@ -97,8 +98,6 @@ namespace KOTORModSync.Controls
 				return;
 			LinksItemsControl.ItemsSource = DownloadLinks;
 
-			
-			
 		}
 
 		private void UpdateEmptyStateVisibility()
@@ -113,14 +112,11 @@ namespace KOTORModSync.Controls
 			if ( DownloadLinks == null )
 				DownloadLinks = new List<string>();
 
-			
 			_isUpdatingFromTextBox = false;
 
-			
 			var newList = new List<string>(DownloadLinks) { string.Empty };
 			DownloadLinks = newList;
 
-			
 			Dispatcher.UIThread.Post(() =>
 			{
 				try
@@ -141,7 +137,6 @@ namespace KOTORModSync.Controls
 			if ( !(sender is Button button) || DownloadLinks == null )
 				return;
 
-			
 			if ( !(button.Parent is Grid parentGrid) )
 				return;
 
@@ -153,10 +148,8 @@ namespace KOTORModSync.Controls
 			if ( index < 0 || index >= DownloadLinks.Count )
 				return;
 
-			
 			_isUpdatingFromTextBox = false;
 
-			
 			var newList = new List<string>(DownloadLinks);
 			newList.RemoveAt(index);
 			DownloadLinks = newList;
@@ -168,7 +161,7 @@ namespace KOTORModSync.Controls
 				return;
 			try
 			{
-				
+
 				if ( !url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
 					!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
 				{
@@ -184,7 +177,7 @@ namespace KOTORModSync.Controls
 			}
 			catch ( Exception ex )
 			{
-				
+
 				Logger.LogException(ex, $"Failed to open URL: {ex.Message}");
 			}
 		}
@@ -193,25 +186,23 @@ namespace KOTORModSync.Controls
 		{
 			if ( !(sender is TextBox textBox) || DownloadLinks == null )
 				return;
-			
+
 			int index = GetTextBoxIndex(textBox);
 			if ( index < 0 || index >= DownloadLinks.Count )
 				return;
 
 			string newText = textBox.Text ?? string.Empty;
 
-			
 			if ( DownloadLinks[index] == newText )
 			{
 				UpdateUrlValidation(textBox);
 				return;
 			}
 
-			
 			_isUpdatingFromTextBox = true;
 			try
 			{
-				
+
 				var newList = new List<string>(DownloadLinks)
 				{
 					[index] = newText
@@ -248,21 +239,20 @@ namespace KOTORModSync.Controls
 			switch ( e.Key )
 			{
 				case Key.Enter:
-					
+
 					AddLink_Click(sender, e);
 					e.Handled = true;
 					break;
 				case Key.Delete when sender is TextBox deleteTextBox &&
 									 DownloadLinks != null && string.IsNullOrWhiteSpace(deleteTextBox.Text):
 					{
-						
+
 						int index = GetTextBoxIndex(deleteTextBox);
 						if ( index >= 0 && index < DownloadLinks.Count )
 						{
-							
+
 							_isUpdatingFromTextBox = false;
 
-							
 							var newList = new List<string>(DownloadLinks);
 							newList.RemoveAt(index);
 							DownloadLinks = newList;
@@ -278,10 +268,9 @@ namespace KOTORModSync.Controls
 			if ( textBox == null )
 				return;
 
-			
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) || !mainWindow.EditorMode )
 			{
-				
+
 				textBox.ClearValue(TextBox.BorderBrushProperty);
 				textBox.ClearValue(TextBox.BorderThicknessProperty);
 				ToolTip.SetTip(textBox, null);
@@ -290,29 +279,26 @@ namespace KOTORModSync.Controls
 
 			string url = textBox.Text?.Trim() ?? string.Empty;
 
-			
 			if ( string.IsNullOrWhiteSpace(url) )
 			{
-				
+
 				textBox.ClearValue(BorderBrushProperty);
 				textBox.ClearValue(BorderThicknessProperty);
 				ToolTip.SetTip(textBox, null);
 				return;
 			}
 
-			
 			bool isValidFormat = DownloadLinksControl.IsValidUrl(url);
 
 			if ( !isValidFormat )
 			{
-				
+
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationInvalidBrush;
 				textBox.BorderThickness = new Thickness(2);
 				ToolTip.SetTip(textBox, $"Invalid URL format: {url}");
 				return;
 			}
 
-			
 			bool isDownloaded = false;
 			if ( DownloadCacheService != null && ComponentGuid != Guid.Empty )
 			{
@@ -328,7 +314,7 @@ namespace KOTORModSync.Controls
 
 			if ( isDownloaded )
 			{
-				
+
 				string archiveName = DownloadCacheService?.GetArchiveName(ComponentGuid, url) ?? "unknown";
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationValidBrush;
 				textBox.BorderThickness = new Thickness(2);
@@ -336,30 +322,24 @@ namespace KOTORModSync.Controls
 			}
 			else
 			{
-				
+
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationWarningBrush;
 				textBox.BorderThickness = new Thickness(2);
 				ToolTip.SetTip(textBox, $"⚠️ Valid URL but not downloaded yet");
 			}
 		}
 
-		
-		
-		
 		private static bool IsValidUrl(string url)
 		{
 			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
 
-			
 			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri uri) )
 				return false;
 
-			
 			if ( uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps )
 				return false;
 
-			
 			if ( string.IsNullOrWhiteSpace(uri.Host) )
 				return false;
 

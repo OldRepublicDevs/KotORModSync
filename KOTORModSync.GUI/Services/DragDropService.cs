@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -17,9 +18,7 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class DragDropService
 	{
 		private ModComponent _draggedComponent;
@@ -37,9 +36,6 @@ namespace KOTORModSync.Services
 			_onComponentsReordered = onComponentsReordered ?? throw new ArgumentNullException(nameof(onComponentsReordered));
 		}
 
-		
-		
-		
 		public void HandlePointerPressed(PointerPressedEventArgs e, ListBox modListBox, bool editorMode)
 		{
 			try
@@ -47,7 +43,6 @@ namespace KOTORModSync.Services
 				if ( !editorMode || !e.GetCurrentPoint(modListBox).Properties.IsLeftButtonPressed )
 					return;
 
-				
 				if ( !(e.Source is Visual visual) )
 					return;
 
@@ -55,14 +50,12 @@ namespace KOTORModSync.Services
 				if ( textBlock?.Text != "⋮⋮" )
 					return;
 
-				
 				ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
 				if ( !(listBoxItem?.DataContext is ModComponent component) )
 					return;
 
 				_draggedComponent = component;
 
-				
 				_draggedItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
 				if ( _draggedItem != null )
 				{
@@ -82,9 +75,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void HandleDragOver(DragEventArgs e, bool editorMode, Window window)
 		{
 			try
@@ -96,17 +86,14 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				
 				UpdateDragVisualPosition(e.GetPosition(window));
 
-				
 				if ( _currentDropTarget != null )
 				{
 					_currentDropTarget.SetDropTargetState(false);
 					_currentDropTarget = null;
 				}
 
-				
 				if ( e.Source is Visual visual )
 				{
 					ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
@@ -134,9 +121,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void HandleDrop(DragEventArgs e, bool editorMode)
 		{
 			try
@@ -147,7 +131,6 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				
 				if ( e.Source is Visual visual )
 				{
 					ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
@@ -159,11 +142,10 @@ namespace KOTORModSync.Services
 
 						if ( targetIndex != currentIndex && targetIndex >= 0 && currentIndex >= 0 )
 						{
-							
+
 							allComponents.RemoveAt(currentIndex);
 							allComponents.Insert(targetIndex, _draggedComponent);
 
-							
 							_ = Dispatcher.UIThread.InvokeAsync(async () =>
 							{
 								await _onComponentsReordered();
@@ -181,9 +163,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void StartDragComponent(ModComponent component, PointerPressedEventArgs e, bool editorMode)
 		{
 			if ( !editorMode )
@@ -191,7 +170,6 @@ namespace KOTORModSync.Services
 
 			_draggedComponent = component;
 
-			
 			if ( e.Source is Visual visual )
 			{
 				_draggedItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
@@ -229,7 +207,7 @@ namespace KOTORModSync.Services
 
 			try
 			{
-				
+
 				_dragVisualContainer = new Canvas
 				{
 					IsHitTestVisible = false,
@@ -237,7 +215,6 @@ namespace KOTORModSync.Services
 					Background = Brushes.Transparent
 				};
 
-				
 				var dragVisual = new ModListItem
 				{
 					DataContext = _draggedItem.DataContext,
@@ -245,14 +222,12 @@ namespace KOTORModSync.Services
 					IsHitTestVisible = false
 				};
 
-				
 				Size originalSize = _draggedItem.Bounds.Size;
 				dragVisual.Width = originalSize.Width;
 				dragVisual.Height = originalSize.Height;
 
 				_dragVisualContainer.Children.Add(dragVisual);
 
-				
 				if ( _parentWindow.FindControl<Grid>("MainGrid") is Grid mainGrid )
 				{
 					mainGrid.Children.Add(_dragVisualContainer);
@@ -273,7 +248,7 @@ namespace KOTORModSync.Services
 					Control dragVisual = canvas.Children[0];
 					if ( dragVisual != null )
 					{
-						
+
 						Canvas.SetLeft(dragVisual, position.X - 10);
 						Canvas.SetTop(dragVisual, position.Y - 10);
 					}
@@ -289,14 +264,13 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				
+
 				if ( _draggedItem != null )
 				{
 					_draggedItem.SetDraggedState(false);
 					_draggedItem = null;
 				}
 
-				
 				if ( _dragVisualContainer != null )
 				{
 					if ( _dragVisualContainer.Parent is Panel parent )
@@ -304,7 +278,6 @@ namespace KOTORModSync.Services
 					_dragVisualContainer = null;
 				}
 
-				
 				if ( _currentDropTarget != null )
 				{
 					_currentDropTarget.SetDropTargetState(false);

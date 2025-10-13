@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -15,8 +16,6 @@ namespace KOTORModSync.Converters
 	        if ( !(value is string url) )
 			    return false;
 
-	        
-	        
             return !IsValidUrl(url);
         }
 
@@ -25,17 +24,14 @@ namespace KOTORModSync.Converters
 		private static bool IsValidUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url))
-                return true; 
+                return true;
 
-            
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
                 return false;
 
-            
             if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
                 return false;
 
-            
             if (string.IsNullOrWhiteSpace(uri.Host))
                 return false;
 

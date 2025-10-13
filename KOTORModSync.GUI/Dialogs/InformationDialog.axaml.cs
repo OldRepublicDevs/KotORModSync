@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -23,10 +24,9 @@ namespace KOTORModSync.Dialogs
 		public InformationDialog()
 		{
 			InitializeComponent();
-			
+
 			ThemeManager.ApplyCurrentToWindow(this);
 
-			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -59,7 +59,7 @@ namespace KOTORModSync.Dialogs
 		{
 			base.OnOpened(e);
 			UpdateInfoText();
-		}       
+		}
 		private void OKButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => Close();
 		private void UpdateInfoText() => Dispatcher.UIThread.InvokeAsync(() => InfoTextBlock.Text = InfoText);
 

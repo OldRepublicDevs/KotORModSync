@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -40,7 +41,7 @@ namespace KOTORModSync.Core.Utility
 
 		public static long GetAvailableMemory()
 		{
-			
+
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
 				try
@@ -53,11 +54,10 @@ namespace KOTORModSync.Core.Utility
 				}
 				catch ( Exception )
 				{
-					
+
 				}
 			}
 
-			
 			(int ExitCode, string Output, string Error) result = TryExecuteCommand("sysctl -n hw.memsize");
 			string command = "sysctl";
 
@@ -94,13 +94,13 @@ namespace KOTORModSync.Core.Utility
 			switch ( command.ToLowerInvariant() )
 			{
 				case "sysctl":
-					pattern = @"\d+(\.\d+)?"; 
+					pattern = @"\d+(\.\d+)?";
 					break;
 				case "free":
-					pattern = @"Mem:\s+\d+\s+\d+\s+(\d+)"; 
+					pattern = @"Mem:\s+\d+\s+\d+\s+(\d+)";
 					break;
 				case "wmic":
-					pattern = @"\d+"; 
+					pattern = @"\d+";
 					break;
 			}
 
@@ -121,8 +121,8 @@ namespace KOTORModSync.Core.Utility
 				using ( new Process() )
 				{
 					string args = Utility.GetOperatingSystem() == OSPlatform.Windows
-						? $"/c \"{command}\""  
-						: $"-c \"{command}\""; 
+						? $"/c \"{command}\""
+						: $"-c \"{command}\"";
 					Task<(int, string, string)> executeProcessTask = ExecuteProcessAsync(shellPath, args);
 					executeProcessTask.Wait();
 					return executeProcessTask.Result;
@@ -165,16 +165,15 @@ namespace KOTORModSync.Core.Utility
 				return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
 			}
 
-			
 			try
 			{
-				
+
 				int effectiveUserId = (int)Interop.geteuid();
 				return effectiveUserId == 0;
 			}
 			catch ( DllNotFoundException )
 			{
-				
+
 				var process = new Process
 				{
 					StartInfo =
@@ -195,7 +194,7 @@ namespace KOTORModSync.Core.Utility
 				}
 				catch
 				{
-					
+
 					return null;
 				}
 			}
@@ -209,7 +208,6 @@ namespace KOTORModSync.Core.Utility
 				return;
 			}
 
-			
 			if ( fileOrApp is null )
 				throw new ArgumentNullException(nameof(fileOrApp));
 
@@ -265,7 +263,6 @@ namespace KOTORModSync.Core.Utility
 			ProcessWindowStyle windowStyle = ProcessWindowStyle.Hidden;
 			bool createNoWindow = true;
 
-			
 			if ( askAdmin && !MainConfig.NoAdmin )
 			{
 				if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
@@ -282,7 +279,6 @@ namespace KOTORModSync.Core.Utility
 				}
 			}
 
-			
 			if ( hideProcess is false )
 			{
 				windowStyle = ProcessWindowStyle.Normal;
@@ -313,7 +309,6 @@ namespace KOTORModSync.Core.Utility
 				Verb = verb
 			};
 
-			
 			return useShellExecute is true || askAdmin
 				? new List<ProcessStartInfo> { shellExecuteStartInfo }
 				: new List<ProcessStartInfo> { sameShellStartInfo, shellExecuteStartInfo };
@@ -361,7 +356,6 @@ namespace KOTORModSync.Core.Utility
 
 						process.StartInfo = startInfo;
 
-						
 						if ( timeout > 0 )
 						{
 							Process localProcess = process;
@@ -385,7 +379,6 @@ namespace KOTORModSync.Core.Utility
 							_ = cancellationTokenSource.Token.Register(Callback);
 						}
 
-						
 						var output = new StringBuilder();
 						var error = new StringBuilder();
 
@@ -400,7 +393,7 @@ namespace KOTORModSync.Core.Utility
 									{
 										try
 										{
-											
+
 											_ = outputWaitHandle.Set();
 										}
 										catch ( ObjectDisposedException )
@@ -428,7 +421,7 @@ namespace KOTORModSync.Core.Utility
 									{
 										try
 										{
-											
+
 											_ = errorWaitHandle.Set();
 										}
 										catch ( ObjectDisposedException )
@@ -456,7 +449,6 @@ namespace KOTORModSync.Core.Utility
 							if ( process.StartInfo.RedirectStandardError )
 								process.BeginErrorReadLine();
 
-							
 							_ = await Task.Run(
 								() =>
 								{
@@ -468,7 +460,7 @@ namespace KOTORModSync.Core.Utility
 									catch ( Exception exception )
 									{
 										Logger.LogException(exception, customMessage: "Exception while running the process.");
-										return (-3, null, null); 
+										return (-3, null, null);
 									}
 								},
 								cancellationTokenSource.Token

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -15,9 +16,7 @@ using KOTORModSync.Dialogs;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class FileLoadingService
 	{
 		private readonly MainConfig _mainConfig;
@@ -36,29 +35,23 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		
-		
-		
 		public async Task<bool> LoadTomlFileAsync(string filePath, bool editorMode, Func<Task> onComponentsLoaded, string fileType = "instruction file")
 		{
 			try
 			{
-				
+
 				var fileInfo = new FileInfo(filePath);
-				const int maxInstructionSize = 524288000; 
+				const int maxInstructionSize = 524288000;
 				if ( fileInfo.Length > maxInstructionSize )
 				{
 					await Logger.LogAsync($"Invalid {fileType} selected: '{fileInfo.Name}' - file too large");
 					return false;
 				}
 
-				
 				List<ModComponent> newComponents = ModComponent.ReadComponentsFromFile(filePath);
 
-				
 				FileLoadingService.ProcessModLinks(newComponents);
 
-				
 				if ( _mainConfig.allComponents.Count == 0 )
 				{
 					_mainConfig.allComponents = newComponents;
@@ -68,19 +61,17 @@ namespace KOTORModSync.Services
 					return true;
 				}
 
-				
 				bool? result = await ShowConfigLoadConfirmationAsync(fileType, editorMode);
 
 				switch ( result )
 				{
-					case true: 
+					case true:
 						{
-							
+
 							MergeStrategy? mergeStrategy = await ShowMergeStrategyDialogAsync(fileType);
 							if ( mergeStrategy == null )
 								return false;
 
-							
 							var conflictDialog = new ComponentMergeConflictDialog(
 								_mainConfig.allComponents,
 								newComponents,
@@ -112,12 +103,12 @@ namespace KOTORModSync.Services
 							}
 							break;
 						}
-					case false: 
+					case false:
 						_mainConfig.allComponents = newComponents;
 						_lastLoadedFileName = Path.GetFileName(filePath);
 						await Logger.LogAsync($"Overwrote existing config with {newComponents.Count} components from {fileType}.");
 						break;
-					default: 
+					default:
 						return false;
 				}
 
@@ -131,9 +122,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public async Task<bool> LoadMarkdownFileAsync(
 			[NotNull] string filePath,
 			[NotNull] bool editorMode,
@@ -153,10 +141,9 @@ namespace KOTORModSync.Services
 					MarkdownParserResult parseResult = null;
 					MarkdownImportProfile configuredProfile = null;
 
-					
 					if ( editorMode )
 					{
-						
+
 						var dialog = new RegexImportDialog(fileContents, profile ?? MarkdownImportProfile.CreateDefault());
 
 						dialog.Closed += async (_, __) =>
@@ -164,13 +151,10 @@ namespace KOTORModSync.Services
 							if ( !dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm) )
 								return;
 
-							
 							configuredProfile = vm.ConfiguredProfile;
 
-							
 							parseResult = vm.ConfirmLoad();
 
-							
 							FileLoadingService.ProcessModLinks(parseResult.Components);
 
 							await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
@@ -191,14 +175,13 @@ namespace KOTORModSync.Services
 					}
 					else
 					{
-						
+
 						configuredProfile = profile ?? MarkdownImportProfile.CreateDefault();
 						var parser = new MarkdownParser(configuredProfile,
 							logInfo => Logger.Log(logInfo),
 							Logger.LogVerbose);
 						parseResult = parser.Parse(fileContents);
 
-						
 						FileLoadingService.ProcessModLinks(parseResult.Components);
 
 						await Logger.LogAsync($"Markdown parsing completed using default profile.");
@@ -212,7 +195,6 @@ namespace KOTORModSync.Services
 						}
 					}
 
-					
 					if ( _mainConfig.allComponents.Count == 0 )
 					{
 						_mainConfig.allComponents = new List<ModComponent>(parseResult.Components);
@@ -223,7 +205,7 @@ namespace KOTORModSync.Services
 					{
 						bool? confirmResult = await ShowConfigLoadConfirmationAsync("markdown file", editorMode);
 
-						if ( confirmResult == true ) 
+						if ( confirmResult == true )
 						{
 							var conflictDialog = new ComponentMergeConflictDialog(
 								_mainConfig.allComponents,
@@ -248,7 +230,7 @@ namespace KOTORModSync.Services
 								return false;
 							}
 						}
-						else if ( confirmResult == false ) 
+						else if ( confirmResult == false )
 						{
 							_mainConfig.allComponents = new List<ModComponent>(parseResult.Components);
 							await Logger.LogAsync($"Overwrote existing config with {parseResult.Components.Count} components from markdown.");
@@ -271,9 +253,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public async Task<bool> SaveTomlFileAsync(string filePath, List<ModComponent> components)
 		{
 			try
@@ -304,9 +283,6 @@ namespace KOTORModSync.Services
 
 		#region Private Helper Methods
 
-		
-		
-		
 		private static void ProcessModLinks(IList<ModComponent> components)
 		{
 			if ( components == null )
@@ -323,7 +299,7 @@ namespace KOTORModSync.Services
 						string modLink = component.ModLink[i];
 						if ( !string.IsNullOrEmpty(modLink) && modLink.StartsWith("/") )
 						{
-							
+
 							component.ModLink[i] = baseUrl + modLink;
 						}
 					}
@@ -334,9 +310,8 @@ namespace KOTORModSync.Services
 		private async Task<bool?> ShowConfigLoadConfirmationAsync(string fileType, bool editorMode)
 		{
 			if ( _mainConfig.allComponents.Count == 0 )
-				return true; 
+				return true;
 
-			
 			if ( !editorMode )
 				return false;
 
@@ -360,9 +335,6 @@ namespace KOTORModSync.Services
 		#endregion
 	}
 
-	
-	
-	
 	public enum MergeStrategy
 	{
 		ByGuid,

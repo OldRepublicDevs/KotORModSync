@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -13,7 +14,6 @@ using KOTORModSync.Core.FileSystemUtils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-
 namespace KOTORModSync.Core.Utility
 {
 	public static class Serializer
@@ -23,7 +23,6 @@ namespace KOTORModSync.Core.Utility
 			if ( !(numberObj is int number) )
 				throw new ArgumentException(message: "Not a valid number", nameof(numberObj));
 
-			
 			if ( number < 0 )
 				return "-" + ToOrdinal(-number);
 
@@ -32,13 +31,13 @@ namespace KOTORModSync.Core.Utility
 
 			switch ( lastTwoDigits )
 			{
-				
+
 				case 11:
 				case 12:
 				case 13:
 					return number + "th";
 				default:
-					
+
 					switch ( lastDigit )
 					{
 						case 1:
@@ -59,24 +58,19 @@ namespace KOTORModSync.Core.Utility
 			if ( string.IsNullOrWhiteSpace(guidString) )
 				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(guidString));
 
-			
 			guidString = Regex.Replace(guidString, pattern: @"\s", replacement: "");
 
-			
 			guidString = Regex.Replace(guidString, pattern: "[^0-9A-Fa-f]", replacement: "");
 
-			
 			if ( guidString.Length != 32 )
 				return Guid.Empty.ToString();
 
-			
 			guidString = Regex.Replace(
 				guidString,
 				pattern: @"(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})",
 				replacement: "$1-$2-$3-$4-$5"
 			);
 
-			
 			if ( !guidString.StartsWith(value: "{", StringComparison.Ordinal) )
 			{
 				guidString = "{" + guidString;
@@ -87,7 +81,6 @@ namespace KOTORModSync.Core.Utility
 			return guidString;
 		}
 
-		
 		public static void DeserializePathInDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
 		{
 			if ( dict.Count == 0 )
@@ -123,7 +116,6 @@ namespace KOTORModSync.Core.Utility
 			}
 		}
 
-		
 		public static void DeserializeGuidDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
 		{
 			if ( !dict.TryGetValue(key, out object value) )
@@ -133,25 +125,21 @@ namespace KOTORModSync.Core.Utility
 			{
 				case string stringValue:
 					{
-						
+
 						var stringList = new List<string>
 						{
 							stringValue,
 						};
 
-						
 						dict[key] = stringList;
 
-						
 						for ( int i = 0; i < stringList.Count; i++ )
 						{
 							if ( Guid.TryParse(stringList[i], out Guid guid) )
 								continue;
 
-							
 							string fixedGuid = FixGuidString(guid.ToString());
 
-							
 							stringList[i] = fixedGuid;
 						}
 
@@ -159,16 +147,14 @@ namespace KOTORModSync.Core.Utility
 					}
 				case List<string> stringList:
 					{
-						
+
 						for ( int i = 0; i < stringList.Count; i++ )
 						{
 							if ( Guid.TryParse(stringList[i], out Guid guid) )
 								continue;
 
-							
 							string fixedGuid = FixGuidString(guid.ToString());
 
-							
 							stringList[i] = fixedGuid;
 						}
 
@@ -266,7 +252,7 @@ namespace KOTORModSync.Core.Utility
 		[CanBeNull]
 		public static List<object> SerializeIntoList([CanBeNull] object obj)
 		{
-			
+
 			string jsonString = JsonConvert.SerializeObject(obj);
 			return JsonConvert.DeserializeObject<List<object>>(jsonString);
 		}

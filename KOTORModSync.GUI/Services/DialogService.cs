@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -12,9 +13,7 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class DialogService
 	{
 		private readonly Window _parentWindow;
@@ -25,9 +24,6 @@ namespace KOTORModSync.Services
 			                ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		
-		
-		
 		public async Task<string[]> ShowFileDialogAsync(
 			bool isFolderDialog,
 			bool allowMultiple = false,
@@ -77,9 +73,6 @@ namespace KOTORModSync.Services
 			return null;
 		}
 
-		
-		
-		
 		public async Task<string> ShowSaveFileDialogAsync(string suggestedFileName = null, string defaultExtension = "toml")
 		{
 			try
@@ -109,9 +102,6 @@ namespace KOTORModSync.Services
 			return null;
 		}
 
-		
-		
-		
 		public async Task<IStorageFolder> GetStorageFolderFromPathAsync(string path)
 		{
 			try

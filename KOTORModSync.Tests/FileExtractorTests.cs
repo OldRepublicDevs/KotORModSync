@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.IO.Compression;
@@ -14,7 +15,7 @@ namespace KOTORModSync.Tests
 		[SetUp]
 		public void Setup()
 		{
-			
+
 			_destinationPath = new DirectoryInfo("DestinationPath");
 			_sourcePaths =
 			[
@@ -25,7 +26,7 @@ namespace KOTORModSync.Tests
 		[TearDown]
 		public void TearDown()
 		{
-			
+
 			if ( _destinationPath is
 				{
 					Exists: true,
@@ -41,23 +42,21 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task ExtractFileAsync_ValidArchive_Success()
 		{
-			
+
 			string archivePath = CreateTemporaryArchive("validArchive.zip");
 			_sourcePaths =
 			[
 				archivePath,
 			];
 
-			
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
 
-			
 			Assert.Multiple(
 				() =>
 				{
 					Assert.That(extractionResult, Is.Zero);
-					
+
 					Assert.That(Directory.Exists(_destinationPath?.FullName), Is.True);
 				}
 			);
@@ -66,23 +65,21 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task ExtractFileAsync_InvalidArchive_Failure()
 		{
-			
+
 			string archivePath = CreateTemporaryArchive("invalidArchive.zip");
 			_sourcePaths =
 			[
 				archivePath,
 			];
 
-			
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
 
-			
 			Assert.Multiple(
 				() =>
 				{
 					Assert.That(extractionResult, Is.Zero);
-					
+
 					Assert.That(Directory.Exists(_destinationPath?.FullName), Is.False);
 				}
 			);
@@ -92,23 +89,19 @@ namespace KOTORModSync.Tests
 		[Ignore("not finished yet")]
 		public async Task ExtractFileAsync_SelfExtractingExe_Success()
 		{
-			
-			
-			
 
-			
+
 			if ( _sourcePaths is null )
 				throw new NullReferenceException(nameof(_sourcePaths));
 
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
 
-			
 			Assert.Multiple(
 				() =>
 				{
 					Assert.That(extractionResult, Is.Zero);
-					
+
 					Assert.That(Directory.Exists(_destinationPath?.FullName), Is.True);
 				}
 			);
@@ -117,29 +110,26 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task ExtractFileAsync_PermissionDenied_SkipsFile()
 		{
-			
+
 			string archivePath = CreateTemporaryArchive("archiveWithPermissionDenied.zip");
 			_sourcePaths =
 			[
 				archivePath,
 			];
 
-			
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
 
-			
 			Assert.Multiple(
 				() =>
 				{
 					Assert.That(extractionResult, Is.Zero);
-					
+
 					Assert.That(Directory.Exists(_destinationPath?.FullName), Is.True);
 				}
 			);
 		}
 
-		
 		private static string CreateTemporaryArchive(string fileName)
 		{
 			string archivePath = Path.Combine(Path.GetTempPath(), fileName);

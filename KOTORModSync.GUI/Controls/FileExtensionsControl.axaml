@@ -58,7 +58,6 @@
                 ToolTip.Tip="Add a new file extension" />
         </Grid>
 
-
         <!--  Extensions List  -->
         <ScrollViewer
             MaxHeight="200"

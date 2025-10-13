@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -10,8 +11,6 @@ using System.Text.Json.Serialization;
 namespace KOTORModSync.Core.Services
 {
 
-
-
 	public class TelemetryConfiguration
 	{
 		private static readonly string ConfigFilePath = Path.Combine(
@@ -20,130 +19,77 @@ namespace KOTORModSync.Core.Services
 			"telemetry_config.json"
 		);
 
-
-
-
+		private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
+		{
+			WriteIndented = true,
+			DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+		};
 
 		[JsonPropertyName("enabled")]
 		public bool IsEnabled { get; set; } = true;
 
-
-
-
-
 		[JsonPropertyName("user_consented")]
 		public bool UserConsented { get; set; } = true;
-
-
-
 
 		[JsonPropertyName("consent_date")]
 		public DateTime? ConsentDate { get; set; }
 
-
-
-
 		[JsonPropertyName("anonymous_user_id")]
 		public string AnonymousUserId { get; set; }
-
-
-
 
 		[JsonPropertyName("session_id")]
 		public string SessionId { get; set; }
 
-
-
-
 		[JsonPropertyName("environment")]
 		public string Environment { get; set; } = "production";
-
-
-
 
 		[JsonPropertyName("collect_usage_data")]
 		public bool CollectUsageData { get; set; } = true;
 
-
-
-
 		[JsonPropertyName("collect_performance_metrics")]
 		public bool CollectPerformanceMetrics { get; set; } = true;
-
-
-
 
 		[JsonPropertyName("collect_crash_reports")]
 		public bool CollectCrashReports { get; set; } = true;
 
-
-
-
 		[JsonPropertyName("collect_machine_info")]
 		public bool CollectMachineInfo { get; set; } = false;
-
-
-
 
 		[JsonPropertyName("enable_console_exporter")]
 		public bool EnableConsoleExporter { get; set; } = false;
 
-
-
-
 		[JsonPropertyName("enable_file_exporter")]
-		public bool EnableFileExporter { get; set; } = true;
-
-
-
+		public bool EnableFileExporter { get; set; } = false;
 
 		[JsonPropertyName("enable_otlp_exporter")]
-		public bool EnableOtlpExporter { get; set; } = false;
-
-
-
+		public bool EnableOtlpExporter { get; set; } = true;
 
 		[JsonPropertyName("enable_prometheus_exporter")]
 		public bool EnablePrometheusExporter { get; set; } = false;
 
-
-
+		[JsonPropertyName("prometheus_pushgateway_endpoint")]
+		public string PrometheusPushgatewayEndpoint { get; set; } = "https://prometheus.bolabaden.org/metrics";
 
 		[JsonPropertyName("otlp_endpoint")]
-		public string OtlpEndpoint { get; set; } = "http://localhost:4317";
+		public string OtlpEndpoint { get; set; } = "https://otlp.bolabaden.org";
 
-
-
+		[JsonPropertyName("prometheus_port")]
+		public int PrometheusPort { get; set; } = 9464;
 
 		[JsonPropertyName("api_key")]
 		public string ApiKey { get; set; }
 
-
-
-
 		[JsonPropertyName("is_first_run")]
 		public bool IsFirstRun { get; set; } = true;
-
-
-
 
 		[JsonPropertyName("last_send_time")]
 		public DateTime? LastSendTime { get; set; }
 
-
-
-
 		[JsonPropertyName("local_log_path")]
 		public string LocalLogPath { get; set; }
 
-
-
-
 		[JsonPropertyName("max_log_file_size_mb")]
 		public int MaxLogFileSizeMB { get; set; } = 50;
-
-
-
 
 		[JsonPropertyName("retention_days")]
 		public int RetentionDays { get; set; } = 30;
@@ -154,7 +100,6 @@ namespace KOTORModSync.Core.Services
 			AnonymousUserId = Guid.NewGuid().ToString();
 			SessionId = Guid.NewGuid().ToString();
 
-
 			LocalLogPath = Path.Combine(
 				System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
 				"KOTORModSync",
@@ -162,9 +107,6 @@ namespace KOTORModSync.Core.Services
 				"telemetry.log"
 			);
 		}
-
-
-
 
 		public static TelemetryConfiguration Load()
 		{
@@ -174,7 +116,6 @@ namespace KOTORModSync.Core.Services
 				{
 					string json = File.ReadAllText(ConfigFilePath);
 					var config = JsonSerializer.Deserialize<TelemetryConfiguration>(json);
-
 
 					config.SessionId = Guid.NewGuid().ToString();
 					config.IsFirstRun = false;
@@ -187,17 +128,16 @@ namespace KOTORModSync.Core.Services
 				Logger.LogException(ex, "[Telemetry] Failed to load configuration");
 			}
 
-
 			return new TelemetryConfiguration
 			{
 				IsEnabled = true,
 				UserConsented = true,
 				IsFirstRun = true,
+				EnableOtlpExporter = true,
+				EnablePrometheusExporter = false,
+				EnableFileExporter = false,
 			};
 		}
-
-
-
 
 		public void Save()
 		{
@@ -209,13 +149,7 @@ namespace KOTORModSync.Core.Services
 					Directory.CreateDirectory(directory);
 				}
 
-				var options = new JsonSerializerOptions
-				{
-					WriteIndented = true,
-					DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-				};
-
-				string json = JsonSerializer.Serialize(this, options);
+				string json = JsonSerializer.Serialize(this, SerializerOptions);
 				File.WriteAllText(ConfigFilePath, json);
 
 				Logger.LogVerbose("[Telemetry] Configuration saved");
@@ -226,19 +160,12 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-
-
-
-
 		public void SetUserConsent(bool enabled)
 		{
 			UserConsented = enabled;
 			IsEnabled = enabled;
 			Save();
 		}
-
-
-
 
 		public string GetPrivacySummary()
 		{
@@ -280,18 +207,21 @@ namespace KOTORModSync.Core.Services
 
 			if ( EnableOtlpExporter && !string.IsNullOrEmpty(OtlpEndpoint) )
 			{
-				summary += $"\nData is sent to: {OtlpEndpoint}\n";
+				summary += $"\nData is sent via OTLP to: {OtlpEndpoint}\n";
 			}
-			else if ( EnableFileExporter )
+
+			if ( EnablePrometheusExporter )
 			{
-				summary += $"\nData is stored locally at: {LocalLogPath}\n";
+				summary += $"Prometheus metrics exposed on port: {PrometheusPort}\n";
+			}
+
+			if ( EnableFileExporter )
+			{
+				summary += $"Data is stored locally at: {LocalLogPath}\n";
 			}
 
 			return summary;
 		}
-
-
-
 
 		public void CleanupOldData()
 		{

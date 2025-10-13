@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -16,9 +17,7 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class ValidationService
 	{
 		private readonly MainConfig _mainConfig;
@@ -29,31 +28,25 @@ namespace KOTORModSync.Services
 		}
 
 
-		
-		
-		
 		public static async Task<bool> ValidateComponentFilesExistAsync(ModComponent component)
 		{
 			try
 			{
 				if ( component?.Instructions == null || component.Instructions.Count == 0 )
-					
+
 					return true;
 
 				Logger.LogVerbose($"[ValidationService] Validating component '{component.Name}' (GUID: {component.Guid})");
 				Logger.LogVerbose($"[ValidationService] ModComponent has {component.Instructions.Count} instructions");
 
-				
 				var validationProvider = new VirtualFileSystemProvider();
 				await validationProvider.InitializeFromRealFileSystemAsync(MainConfig.SourcePath?.FullName ?? "");
 
-				
 				foreach ( Instruction instruction in component.Instructions )
 				{
 					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						continue;
 
-					
 					List<string> resolvedPaths = instruction.Source
 						.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
 						.Select(sourcePath => ResolvePath(sourcePath))
@@ -64,7 +57,6 @@ namespace KOTORModSync.Services
 
 					Logger.LogVerbose($"[ValidationService] Checking {resolvedPaths.Count} source paths for instruction");
 
-					
 					List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
 						resolvedPaths,
 						validationProvider,
@@ -90,9 +82,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static bool ValidateComponentFilesExist(ModComponent component)
 		{
 			try
@@ -106,31 +95,25 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static async Task<bool> ValidateComponentFilesExistStaticAsync(ModComponent component)
 		{
 			try
 			{
 				if ( component?.Instructions == null || component.Instructions.Count == 0 )
-					
+
 					return true;
 
 				Logger.LogVerbose($"[ValidationService] Validating component '{component.Name}' (GUID: {component.Guid})");
 				Logger.LogVerbose($"[ValidationService] ModComponent has {component.Instructions.Count} instructions");
 
-				
 				var validationProvider = new VirtualFileSystemProvider();
 				await validationProvider.InitializeFromRealFileSystemAsync(MainConfig.SourcePath?.FullName ?? "");
 
-				
 				foreach ( Instruction instruction in component.Instructions )
 				{
 					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						continue;
 
-					
 					List<string> resolvedPaths = instruction.Source
 						.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
 						.Select(sourcePath => ResolvePath(sourcePath))
@@ -141,7 +124,6 @@ namespace KOTORModSync.Services
 
 					Logger.LogVerbose($"[ValidationService] Checking {resolvedPaths.Count} source paths for instruction");
 
-					
 					List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
 						resolvedPaths,
 						validationProvider,
@@ -167,10 +149,7 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
-		
+
 		public static List<string> GetMissingFilesForComponentStatic(ModComponent component)
 		{
 			var missingFiles = new List<string>();
@@ -182,17 +161,14 @@ namespace KOTORModSync.Services
 
 				Logger.LogVerbose($"[ValidationService] Getting missing files for component '{component.Name}' (GUID: {component.Guid})");
 
-				
 				var validationProvider = new VirtualFileSystemProvider();
 				validationProvider.InitializeFromRealFileSystem(MainConfig.SourcePath?.FullName ?? "");
 
-				
 				foreach ( Instruction instruction in component.Instructions )
 				{
 					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						continue;
 
-					
 					List<string> resolvedPaths = instruction.Source
 						.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
 						.Select(sourcePath => ResolvePath(sourcePath))
@@ -203,7 +179,6 @@ namespace KOTORModSync.Services
 
 					Logger.LogVerbose($"[ValidationService] Checking {resolvedPaths.Count} source paths for instruction");
 
-					
 					List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
 						resolvedPaths,
 						validationProvider,
@@ -212,7 +187,7 @@ namespace KOTORModSync.Services
 
 					if ( foundFiles == null || foundFiles.Count == 0 )
 					{
-						
+
 						foreach ( string resolvedPath in resolvedPaths )
 						{
 							string fileName = Path.GetFileName(resolvedPath);
@@ -239,10 +214,7 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
-		
+
 		public static async Task<List<string>> GetMissingFilesForComponentAsync(ModComponent component)
 		{
 			var missingFiles = new List<string>();
@@ -254,17 +226,14 @@ namespace KOTORModSync.Services
 
 				Logger.LogVerbose($"[ValidationService] Getting missing files for component '{component.Name}' (GUID: {component.Guid})");
 
-				
 				var validationProvider = new VirtualFileSystemProvider();
 				await validationProvider.InitializeFromRealFileSystemAsync(MainConfig.SourcePath?.FullName ?? "");
 
-				
 				foreach ( Instruction instruction in component.Instructions )
 				{
 					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						continue;
 
-					
 					List<string> resolvedPaths = instruction.Source
 						.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
 						.Select(sourcePath => ResolvePath(sourcePath))
@@ -275,7 +244,6 @@ namespace KOTORModSync.Services
 
 					Logger.LogVerbose($"[ValidationService] Checking {resolvedPaths.Count} source paths for instruction");
 
-					
 					List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
 						resolvedPaths,
 						validationProvider,
@@ -284,7 +252,7 @@ namespace KOTORModSync.Services
 
 					if ( foundFiles == null || foundFiles.Count == 0 )
 					{
-						
+
 						foreach ( string resolvedPath in resolvedPaths )
 						{
 							string fileName = Path.GetFileName(resolvedPath);
@@ -311,9 +279,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static List<string> GetMissingFilesForComponent(ModComponent component)
 		{
 			try
@@ -327,15 +292,11 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		private static string ResolvePath(string path)
 		{
 			if ( string.IsNullOrWhiteSpace(path) )
 				return path;
 
-			
 			if ( path.Contains("<<modDirectory>>") )
 			{
 				string modDir = MainConfig.SourcePath?.FullName ?? "";
@@ -345,19 +306,14 @@ namespace KOTORModSync.Services
 			return path;
 		}
 
-		
-		
-		
 		public bool IsComponentValidForInstallation(ModComponent component, bool editorMode)
 		{
 			if ( component == null )
 				return false;
 
-			
 			if ( string.IsNullOrWhiteSpace(component.Name) )
 				return false;
 
-			
 			if ( component.Dependencies.Count > 0 )
 			{
 				List<ModComponent> dependencyComponents = ModComponent.FindComponentsFromGuidList(component.Dependencies, _mainConfig.allComponents);
@@ -365,11 +321,10 @@ namespace KOTORModSync.Services
 				{
 					if ( dep == null || dep.IsSelected )
 						continue;
-					return false; 
+					return false;
 				}
 			}
 
-			
 			if ( component.Restrictions.Count > 0 )
 			{
 				List<ModComponent> restrictionComponents = ModComponent.FindComponentsFromGuidList(component.Restrictions, _mainConfig.allComponents);
@@ -377,21 +332,16 @@ namespace KOTORModSync.Services
 				{
 					if ( restriction == null || !restriction.IsSelected )
 						continue;
-					return false; 
+					return false;
 				}
 			}
 
-			
 			if ( component.Instructions.Count == 0 )
 				return false;
 
-			
 			return !editorMode || ValidationService.AreModLinksValid(component.ModLink);
 		}
 
-		
-		
-		
 		public static bool AreModLinksValid(List<string> modLinks)
 		{
 			if ( modLinks == null || modLinks.Count == 0 )
@@ -409,9 +359,6 @@ namespace KOTORModSync.Services
 			return true;
 		}
 
-		
-		
-		
 		public static bool IsValidUrl(string url)
 		{
 			if ( string.IsNullOrWhiteSpace(url) )
@@ -429,18 +376,13 @@ namespace KOTORModSync.Services
 			return true;
 		}
 
-		
-		
-		
 		public (string ErrorType, string Description, bool CanAutoFix) GetComponentErrorDetails(ModComponent component)
 		{
 			var errorReasons = new List<string>();
 
-			
 			if ( string.IsNullOrWhiteSpace(component.Name) )
 				errorReasons.Add("Missing mod name");
 
-			
 			if ( component.Dependencies.Count > 0 )
 			{
 				List<ModComponent> dependencyComponents = ModComponent.FindComponentsFromGuidList(component.Dependencies, _mainConfig.allComponents);
@@ -449,7 +391,6 @@ namespace KOTORModSync.Services
 					errorReasons.Add($"Missing required dependencies ({missingDeps.Count})");
 			}
 
-			
 			if ( component.Restrictions.Count > 0 )
 			{
 				List<ModComponent> restrictionComponents = ModComponent.FindComponentsFromGuidList(component.Restrictions, _mainConfig.allComponents);
@@ -458,11 +399,9 @@ namespace KOTORModSync.Services
 					errorReasons.Add($"Conflicting mods selected ({conflictingMods.Count})");
 			}
 
-			
 			if ( component.Instructions.Count == 0 )
 				errorReasons.Add("No installation instructions");
 
-			
 			if ( !ValidationService.AreModLinksValid(component.ModLink) )
 			{
 				List<string> invalidUrls = component.ModLink.Where(link => !string.IsNullOrWhiteSpace(link) && !ValidationService.IsValidUrl(link)).ToList();
@@ -472,23 +411,18 @@ namespace KOTORModSync.Services
 					errorReasons.Add("Invalid download URLs");
 			}
 
-			
 			if ( errorReasons.Count == 0 )
 				return ("Unknown Error", "No specific error details available", false);
 
 			string primaryError = errorReasons[0];
 			string description = string.Join(", ", errorReasons);
 
-			
 			bool canAutoFix = primaryError.Contains("Missing required dependencies") ||
 							  primaryError.Contains("Conflicting mods selected");
 
 			return (primaryError, description, canAutoFix);
 		}
 
-		
-		
-		
 		public static string GetUrlValidationReason(string url)
 		{
 			if ( string.IsNullOrWhiteSpace(url) )
@@ -503,28 +437,23 @@ namespace KOTORModSync.Services
 			return "Valid URL";
 		}
 
-		
-		
-		
 		public static bool IsStep1Complete()
 		{
 			try
 			{
-				
+
 				if ( string.IsNullOrEmpty(MainConfig.SourcePath?.FullName) ||
 					string.IsNullOrEmpty(MainConfig.DestinationPath?.FullName) )
 				{
 					return false;
 				}
 
-				
 				if ( !Directory.Exists(MainConfig.SourcePath.FullName) ||
 					!Directory.Exists(MainConfig.DestinationPath.FullName) )
 				{
 					return false;
 				}
 
-				
 				string kotorDir = MainConfig.DestinationPath.FullName;
 				bool hasGameFiles = File.Exists(Path.Combine(kotorDir, "swkotor.exe")) ||
 								   File.Exists(Path.Combine(kotorDir, "swkotor2.exe")) ||
@@ -541,14 +470,11 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public async Task AnalyzeValidationFailures(List<Dialogs.ValidationIssue> modIssues, List<string> systemIssues)
 		{
 			try
 			{
-				
+
 				if ( MainConfig.DestinationPath == null || MainConfig.SourcePath == null )
 				{
 					systemIssues.Add("⚙️ Directories not configured\n" +
@@ -573,12 +499,9 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				
-
-				
 				foreach ( ModComponent component in _mainConfig.allComponents.Where(c => c.IsSelected) )
 				{
-					
+
 					if ( !component.IsDownloaded )
 					{
 						var issue = new Dialogs.ValidationIssue
@@ -595,7 +518,6 @@ namespace KOTORModSync.Services
 						continue;
 					}
 
-					
 					if ( component.Instructions.Count == 0 && component.Options.Count == 0 )
 					{
 						var issue = new Dialogs.ValidationIssue
@@ -609,11 +531,10 @@ namespace KOTORModSync.Services
 						modIssues.Add(issue);
 					}
 
-					
 					bool componentValid = await ValidationService.ValidateComponentFilesExistAsync(component);
 					if ( !componentValid )
 					{
-						
+
 						List<string> missingFiles = await ValidationService.GetMissingFilesForComponentAsync(component);
 						string missingFilesDescription = missingFiles.Count > 0
 							? $"Missing file(s): {string.Join(", ", missingFiles)}"
@@ -631,7 +552,6 @@ namespace KOTORModSync.Services
 					}
 				}
 
-				
 				if ( !Utility.IsDirectoryWritable(MainConfig.DestinationPath) )
 				{
 					systemIssues.Add("🔒 KOTOR Directory Not Writable\n" +

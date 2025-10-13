@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -15,9 +16,7 @@ using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class FilterUIService
 	{
 		private readonly MainConfig _mainConfig;
@@ -29,9 +28,6 @@ namespace KOTORModSync.Services
 			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 		}
 
-		
-		
-		
 		public void InitializeFilters(
 			List<ModComponent> components,
 			ComboBox tierComboBox,
@@ -39,14 +35,13 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				
+
 				_tierItems.Clear();
 				var tierCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 				var tierPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
 				int priority = 1;
 
-				
 				IOrderedEnumerable<ModComponent> sortedComponents = components.OrderBy(x =>
 				{
 					if ( string.IsNullOrEmpty(x.Tier) )
@@ -92,7 +87,6 @@ namespace KOTORModSync.Services
 					_tierItems.Add(item);
 				}
 
-				
 				_categoryItems.Clear();
 				var categoryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -123,7 +117,6 @@ namespace KOTORModSync.Services
 					_categoryItems.Add(item);
 				}
 
-				
 				if ( tierComboBox != null )
 					tierComboBox.ItemsSource = _tierItems;
 
@@ -136,9 +129,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void SelectByTier(
 			TierFilterItem selectedTierItem,
 			Action<ModComponent, HashSet<ModComponent>> onComponentChecked,
@@ -155,7 +145,6 @@ namespace KOTORModSync.Services
 				var visitedComponents = new HashSet<ModComponent>();
 				var tiersToInclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-				
 				foreach ( TierFilterItem tierItem in _tierItems )
 				{
 					if ( tierItem.Priority <= selectedTierItem.Priority )
@@ -167,14 +156,12 @@ namespace KOTORModSync.Services
 
 				Logger.LogVerbose($"Selected tier: '{selectedTierItem.Name}' (Priority: {selectedTierItem.Priority})");
 
-				
 				var matchingMods = _mainConfig.allComponents.Where(c =>
 					!string.IsNullOrEmpty(c.Tier) && tiersToInclude.Contains(c.Tier)
 				).ToList();
 
 				Logger.LogVerbose($"Matched {matchingMods.Count} components by tier");
 
-				
 				Dispatcher.UIThread.Post(() =>
 				{
 					foreach ( ModComponent component in matchingMods )
@@ -196,9 +183,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void ApplyCategorySelections(
 			Action<ModComponent, HashSet<ModComponent>> onComponentChecked,
 			Action onUIRefresh)
@@ -215,7 +199,6 @@ namespace KOTORModSync.Services
 
 				var visitedComponents = new HashSet<ModComponent>();
 
-				
 				var matchingMods = _mainConfig.allComponents.Where(c =>
 					c.Category.Count > 0 && c.Category.Any(cat => selectedCategories.Contains(cat))
 				).ToList();
@@ -223,7 +206,6 @@ namespace KOTORModSync.Services
 				Logger.LogVerbose($"Categories selected: {string.Join(", ", selectedCategories)}");
 				Logger.LogVerbose($"Matched {matchingMods.Count} components by category");
 
-				
 				Dispatcher.UIThread.Post(() =>
 				{
 					foreach ( ModComponent component in matchingMods )
@@ -245,9 +227,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void ClearCategorySelections(Action<SelectionFilterItem, PropertyChangedEventHandler> onPropertyChangedHandler)
 		{
 			try
@@ -255,12 +234,12 @@ namespace KOTORModSync.Services
 				foreach ( SelectionFilterItem item in _categoryItems )
 				{
 					if ( onPropertyChangedHandler != null )
-						onPropertyChangedHandler(item, (s, e) => { }); 
+						onPropertyChangedHandler(item, (s, e) => { });
 
 					item.IsSelected = false;
 
 					if ( onPropertyChangedHandler != null )
-						onPropertyChangedHandler(item, (s, e) => { }); 
+						onPropertyChangedHandler(item, (s, e) => { });
 				}
 			}
 			catch ( Exception ex )
@@ -269,14 +248,8 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public ObservableCollection<TierFilterItem> TierItems => _tierItems;
 
-		
-		
-		
 		public ObservableCollection<SelectionFilterItem> CategoryItems => _categoryItems;
 	}
 }

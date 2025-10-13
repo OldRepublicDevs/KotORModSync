@@ -1,7 +1,6 @@
-
-
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Runtime.InteropServices;
@@ -9,7 +8,7 @@ using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
 using KOTORModSync.Core.Utility;
 
-#pragma warning disable U2U1000, CS8618, RCS1118 
+#pragma warning disable U2U1000, CS8618, RCS1118
 
 namespace KOTORModSync.Tests
 {
@@ -62,7 +61,7 @@ namespace KOTORModSync.Tests
 			{
 				TestContext.WriteLine($"Warning: Could not delete test directory: {ex.Message}");
 			}
-			
+
 			_ = new MainConfig
 			{
 				sourcePath = _originalConfig.sourcePath,
@@ -71,7 +70,7 @@ namespace KOTORModSync.Tests
 		}
 		private async Task<(VirtualFileSystemProvider virtualProvider, string realSource, string realDest)> RunBothProviders(List<Instruction> instructions, string sourceDir, string destDir)
 		{
-			
+
 			var virtualInstructions = new List<Instruction>();
 			var realInstructions = new List<Instruction>();
 			foreach ( Instruction instruction in instructions )
@@ -94,7 +93,6 @@ namespace KOTORModSync.Tests
 				});
 			}
 
-			
 			string virtualRoot = Path.Combine(_testRootDir, "Virtual");
 			string virtualSource = Path.Combine(virtualRoot, "source");
 			string virtualDest = Path.Combine(virtualRoot, "dest");
@@ -114,8 +112,6 @@ namespace KOTORModSync.Tests
 
 			_ = await virtualComponent.ExecuteInstructionsAsync(virtualComponent.Instructions, [virtualComponent], CancellationToken.None, virtualProvider);
 
-
-			
 			string realRoot = Path.Combine(_testRootDir, "Real");
 			string realSource = Path.Combine(realRoot, "source");
 			string realDest = Path.Combine(realRoot, "dest");
@@ -149,19 +145,16 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, directory, directory);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			Assert.That(Directory.GetFiles(directory).Count, Is.EqualTo(0));
 		}
 
-
 		[Test]
 		public async Task DeleteDuplicateFile_NoDuplicateFiles_NoFilesDeleted()
 		{
-			
+
 			string file1 = Path.Combine(_sourceDir, "file1.txt");
 			string file2 = Path.Combine(_sourceDir, "file2.png");
 			await File.WriteAllTextAsync(file1, "Content 1");
@@ -177,11 +170,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True);
 			Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True);
@@ -190,7 +180,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task DeleteDuplicateFile_DuplicateFilesWithDifferentExtensions_AllDuplicatesDeleted()
 		{
-			
+
 			string file1 = Path.Combine(_sourceDir, "file.txt");
 			string file2 = Path.Combine(_sourceDir, "file.png");
 			string file3 = Path.Combine(_sourceDir, "file.jpg");
@@ -208,10 +198,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			Assert.That(File.Exists(Path.Combine(realSource, "file.txt")), Is.False);
 			Assert.That(File.Exists(Path.Combine(realSource, "file.png")), Is.True);
@@ -221,7 +209,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task DeleteDuplicateFile_CaseInsensitiveFileNames_DuplicatesDeleted()
 		{
-			
+
 			string file1 = Path.Combine(_sourceDir, "FILE.tga");
 			string file2 = Path.Combine(_sourceDir, "fIle.tpc");
 			await File.WriteAllTextAsync(file1, "Content 1");
@@ -237,10 +225,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			Assert.That(File.Exists(Path.Combine(realSource, "FILE.tga")), Is.False);
 			Assert.That(File.Exists(Path.Combine(realSource, "fIle.tpc")), Is.True);
@@ -249,7 +235,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task DeleteDuplicateFile_InvalidFileExtension_NoFilesDeleted()
 		{
-			
+
 			string file1 = Path.Combine(_sourceDir, "file1.txt");
 			string file2 = Path.Combine(_sourceDir, "file2.png");
 			await File.WriteAllTextAsync(file1, "Content 1");
@@ -265,10 +251,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True);
 			Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True);
@@ -277,7 +261,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task DeleteDuplicateFile_EmptyDirectory_NoFilesDeleted()
 		{
-			
+
 			var instructions = new List<Instruction>
 			{
 				new() {
@@ -288,10 +272,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			Assert.That(Directory.GetFiles(_sourceDir), Is.Empty);
 		}
@@ -299,7 +281,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task DeleteDuplicateFile_DuplicateFilesInSubdirectories_NoFilesDeleted()
 		{
-			
+
 			string subdirectory = Path.Combine(_sourceDir, "Subdirectory");
 			Directory.CreateDirectory(subdirectory);
 			string file1 = Path.Combine(_sourceDir, "file.txt");
@@ -317,16 +299,13 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			Assert.That(File.Exists(file1), Is.True);
 			Assert.That(File.Exists(file2), Is.True);
 		}
 
-		
 		[Test]
 		public async Task DeleteDuplicateFile_CaseSensitiveExtensions_DuplicatesDeleted()
 		{
@@ -336,7 +315,6 @@ namespace KOTORModSync.Tests
 				return;
 			}
 
-			
 			string directory = Path.Combine(_testRootDir, "DuplicatesWithCaseInsensitiveExtensions");
 			_ = Directory.CreateDirectory(directory);
 			string file1 = Path.Combine(directory, "file.tpc");
@@ -356,10 +334,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			await RunDeleteDuplicateFile(directory, ".tpc");
 
-			
 			Assert.Multiple(() =>
 			{
 				Assert.That(!File.Exists(file1));

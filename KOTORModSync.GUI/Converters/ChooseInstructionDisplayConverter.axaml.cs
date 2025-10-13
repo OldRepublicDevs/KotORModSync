@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -20,7 +21,6 @@ namespace KOTORModSync.Converters
 				if (!(values[0] is Instruction instruction) || !(values[1] is List<ModComponent> componentsList))
 					return string.Empty;
 
-				
 				if (instruction.Action == Instruction.ActionType.Choose)
 				{
 					if (instruction.Source == null || instruction.Source.Count == 0)
@@ -34,7 +34,6 @@ namespace KOTORModSync.Converters
 					return string.Join(" ", componentNames);
 				}
 
-				
 				if (instruction.Source == null || instruction.Source.Count == 0)
 					return string.Empty;
 
@@ -49,7 +48,7 @@ namespace KOTORModSync.Converters
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			
+
 			throw new NotImplementedException();
 		}
 	}

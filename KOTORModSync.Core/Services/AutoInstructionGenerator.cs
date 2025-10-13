@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -13,17 +14,12 @@ using SharpCompress.Archives;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
+
 	public static class AutoInstructionGenerator
 	{
-		
-		
-		
-		
-		
-		
+
+
+
 		public static bool GenerateInstructions([NotNull] ModComponent component, [NotNull] string archivePath)
 		{
 			if ( component is null )
@@ -53,17 +49,13 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
+
+
 		private static bool GenerateAllInstructions(ModComponent component, string archivePath, ArchiveAnalysis analysis)
 		{
 			string archiveFileName = Path.GetFileName(archivePath);
 			string extractedPath = archiveFileName.Replace(Path.GetExtension(archiveFileName), "");
 
-			
 			var instructionsToRemove = component.Instructions
 				.Where(i => i.Source != null && i.Source.Any(s =>
 					s.IndexOf(archiveFileName, StringComparison.OrdinalIgnoreCase) >= 0))
@@ -74,7 +66,6 @@ namespace KOTORModSync.Core.Services
 				component.Instructions.Remove(instr);
 			}
 
-			
 			if ( analysis.HasTslPatchData || analysis.HasSimpleOverrideFiles )
 			{
 				var extractInstruction = new Instruction
@@ -89,11 +80,10 @@ namespace KOTORModSync.Core.Services
 			}
 			else
 			{
-				
+
 				return false;
 			}
 
-			
 			if ( analysis.HasTslPatchData )
 			{
 				if ( analysis.HasNamespacesIni )
@@ -102,26 +92,24 @@ namespace KOTORModSync.Core.Services
 					AddSimplePatcherInstruction(component, analysis, extractedPath);
 			}
 
-			
 			if ( analysis.HasSimpleOverrideFiles )
 			{
-				
+
 				var overrideFolders = analysis.FoldersWithFiles
 					.Where(f => !IsTslPatcherFolder(f, analysis))
 					.ToList();
 
 				if ( overrideFolders.Count > 1 )
-					
+
 					AddMultiFolderChooseInstructions(component, extractedPath, overrideFolders);
 				else if ( overrideFolders.Count == 1 )
-					
+
 					AddSimpleMoveInstruction(component, extractedPath, overrideFolders[0]);
 				else if ( analysis.HasFlatFiles )
-					
+
 					AddSimpleMoveInstruction(component, extractedPath, null);
 			}
 
-			
 			if ( analysis.HasTslPatchData && analysis.HasSimpleOverrideFiles )
 				component.InstallationMethod = "Hybrid (TSLPatcher + Loose Files)";
 			else if ( analysis.HasTslPatchData )
@@ -132,15 +120,11 @@ namespace KOTORModSync.Core.Services
 			return component.Instructions.Count > 0;
 		}
 
-		
-		
-		
 		private static bool IsTslPatcherFolder(string folderName, ArchiveAnalysis analysis)
 		{
 			if ( string.IsNullOrEmpty(folderName) )
 				return false;
 
-			
 			if ( folderName.Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase) )
 				return true;
 
@@ -153,9 +137,6 @@ namespace KOTORModSync.Core.Services
 			return false;
 		}
 
-		
-		
-		
 		private static void AddNamespacesChooseInstructions(ModComponent component, string archivePath, ArchiveAnalysis analysis, string extractedPath)
 		{
 			Dictionary<string, Dictionary<string, string>> namespaces =
@@ -169,7 +150,6 @@ namespace KOTORModSync.Core.Services
 
 			var optionGuids = new List<string>();
 
-			
 			foreach ( string ns in value.Values )
 			{
 				if ( !namespaces.TryGetValue(ns, out Dictionary<string, string> namespaceData) )
@@ -185,7 +165,6 @@ namespace KOTORModSync.Core.Services
 					IsSelected = false
 				};
 
-				
 				string iniName = namespaceData.TryGetValue("IniName", out string value4) ? value4 : "changes.ini";
 				string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
 					? extractedPath
@@ -209,7 +188,6 @@ namespace KOTORModSync.Core.Services
 				component.Options.Add(option);
 			}
 
-			
 			var chooseInstruction = new Instruction
 			{
 				Guid = Guid.NewGuid(),
@@ -221,9 +199,6 @@ namespace KOTORModSync.Core.Services
 			component.Instructions.Add(chooseInstruction);
 		}
 
-		
-		
-		
 		private static void AddSimplePatcherInstruction(ModComponent component, ArchiveAnalysis analysis, string extractedPath)
 		{
 			string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
@@ -246,9 +221,6 @@ namespace KOTORModSync.Core.Services
 			component.Instructions.Add(patcherInstruction);
 		}
 
-		
-		
-		
 		private static void AddMultiFolderChooseInstructions(ModComponent component, string extractedPath, List<string> folders)
 		{
 			var optionGuids = new List<string>();
@@ -266,7 +238,6 @@ namespace KOTORModSync.Core.Services
 					IsSelected = false
 				};
 
-				
 				var moveInstruction = new Instruction
 				{
 					Guid = Guid.NewGuid(),
@@ -280,7 +251,6 @@ namespace KOTORModSync.Core.Services
 				component.Options.Add(option);
 			}
 
-			
 			var chooseInstruction = new Instruction
 			{
 				Guid = Guid.NewGuid(),
@@ -292,12 +262,7 @@ namespace KOTORModSync.Core.Services
 			component.Instructions.Add(chooseInstruction);
 		}
 
-		
-		
-		
-		
-		
-		
+
 		private static void AddSimpleMoveInstruction(ModComponent component, string extractedPath, string folderName)
 		{
 			string sourcePath = string.IsNullOrEmpty(folderName)
@@ -328,7 +293,6 @@ namespace KOTORModSync.Core.Services
 				string path = entry.Key.Replace('\\', '/');
 				string[] pathParts = path.Split('/');
 
-				
 				if ( pathParts.Any(p => p.Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase)) )
 				{
 					analysis.HasTslPatchData = true;
@@ -353,21 +317,20 @@ namespace KOTORModSync.Core.Services
 				}
 				else
 				{
-					
+
 					string extension = Path.GetExtension(path).ToLowerInvariant();
 					if ( !IsGameFile(extension) )
 						continue;
 					analysis.HasSimpleOverrideFiles = true;
 
-					
 					if ( pathParts.Length == 1 )
 					{
-						
+
 						analysis.HasFlatFiles = true;
 					}
 					else if ( pathParts.Length >= 2 )
 					{
-						
+
 						string topLevelFolder = pathParts[0];
 						if ( !analysis.FoldersWithFiles.Contains(topLevelFolder) )
 							analysis.FoldersWithFiles.Add(topLevelFolder);
@@ -378,13 +341,13 @@ namespace KOTORModSync.Core.Services
 		}
 		private static string GetTslPatcherPath(string iniPath)
 		{
-			
+
 			string[] parts = iniPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
 			for ( int i = 0; i < parts.Length - 1; i++ )
 			{
 				if ( parts[i].Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase) )
 				{
-					
+
 					return string.Join("/", parts.Take(i));
 				}
 			}
@@ -393,7 +356,7 @@ namespace KOTORModSync.Core.Services
 
 		private static bool IsGameFile(string extension)
 		{
-			
+
 			var gameExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 			{
 				".2da", ".are", ".bik", ".dds",

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Text.RegularExpressions;
@@ -68,29 +69,25 @@ ___";
 		[Test]
 		public void ComponentSectionPattern_MatchesModSections()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.ComponentSectionPattern, profile.ComponentSectionOptions);
 
-			
 			MatchCollection matches = regex.Matches(SampleMarkdown);
 
-			
 			Assert.That(matches, Has.Count.EqualTo(3));
 		}
 
 		[Test]
 		public void RawRegexPattern_ExtractsModName()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult result = parser.Parse(SampleMarkdown);
 			var names = result.Components.Select(c => c.Name).ToList();
 
-			
 			Assert.Multiple(() =>
 			{
 				Assert.That(names, Does.Contain("KOTOR Dialogue Fixes"));
@@ -102,48 +99,43 @@ ___";
 		[Test]
 		public void RawRegexPattern_ExtractsAuthor()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(SampleMarkdown);
 			Match firstMatch = matches[0];
 			string author = firstMatch.Groups["author"].Value.Trim();
 
-			
 			Assert.That(author, Is.EqualTo("Salk & Kainzorus Prime"));
 		}
 
 		[Test]
 		public void RawRegexPattern_ExtractsDescription()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(SampleMarkdown);
 			Match firstMatch = matches[0];
 			string description = firstMatch.Groups["description"].Value.Trim();
 
-			
 			Assert.That(description, Does.StartWith("In addition to fixing several typos"));
 		}
 
 		[Test]
 		public void CategoryTierPattern_ExtractsCategoryAndTier()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var categoryTierRegex = new Regex(profile.CategoryTierPattern);
 
-			
 			Match match = categoryTierRegex.Match("**Category & Tier:** Immersion / 1 - Essential");
 
 			Assert.Multiple(() =>
 			{
-				
+
 				Assert.That(match.Success, Is.True);
 				Assert.That(match.Groups["category"].Value.Trim(), Is.EqualTo("Immersion"));
 				Assert.That(match.Groups["tier"].Value.Trim(), Is.EqualTo("1 - Essential"));
@@ -153,17 +145,15 @@ ___";
 		[Test]
 		public void RawRegexPattern_ExtractsCategoryTier()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult result = parser.Parse(SampleMarkdown);
 			var categoryTiers = result.Components
 				.Select(c => $"{c.Category} / {c.Tier}")
 				.ToList();
 
-			
 			Assert.Multiple(() =>
 			{
 				Assert.That(categoryTiers, Does.Contain("Immersion / 1 - Essential"));
@@ -175,17 +165,15 @@ ___";
 		[Test]
 		public void RawRegexPattern_ExtractsInstallationMethod()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(SampleMarkdown);
 			var methods = matches
 				.Select(m => m.Groups["installation_method"].Value.Trim())
 				.ToList();
 
-			
 			Assert.That(methods, Does.Contain("Loose-File Mod"));
 			Assert.That(methods, Does.Contain("TSLPatcher, Loose-File Patch"));
 		}
@@ -193,33 +181,29 @@ ___";
 		[Test]
 		public void RawRegexPattern_ExtractsInstallationInstructions()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(SampleMarkdown);
 			Match firstMatch = matches[0];
 			string instructions = firstMatch.Groups["installation_instructions"].Value.Trim();
 
-			
 			Assert.That(instructions, Does.StartWith("The choice of which version to use is up to you"));
 		}
 
 		[Test]
 		public void RawRegexPattern_ExtractsNonEnglishFunctionality()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(SampleMarkdown);
 			var nonEnglishValues = matches
 				.Select(m => m.Groups["non_english"].Value.Trim())
 				.ToList();
 
-			
 			Assert.Multiple(() =>
 			{
 				Assert.That(nonEnglishValues, Does.Contain("NO"));
@@ -230,17 +214,16 @@ ___";
 		[Test]
 		public void NamePattern_ExtractsNameFromBrackets()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var nameRegex = new Regex(profile.NamePattern);
 			string testLine = "**Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)";
 
-			
 			Match match = nameRegex.Match(testLine);
 
 			Assert.Multiple(() =>
 			{
-				
+
 				Assert.That(match.Success, Is.True);
 				Assert.That(match.Groups["name"].Value, Is.EqualTo("KOTOR Dialogue Fixes"));
 			});
@@ -249,17 +232,16 @@ ___";
 		[Test]
 		public void ModLinkPattern_ExtractsLinkUrl()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var linkRegex = new Regex(profile.ModLinkPattern);
 			string testLine = "[KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)";
 
-			
 			Match match = linkRegex.Match(testLine);
 
 			Assert.Multiple(() =>
 			{
-				
+
 				Assert.That(match.Success, Is.True);
 				Assert.That(match.Groups["label"].Value, Is.EqualTo("KOTOR Dialogue Fixes"));
 				Assert.That(match.Groups["link"].Value, Is.EqualTo("https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"));
@@ -269,7 +251,7 @@ ___";
 		[Test]
 		public void RawRegexPattern_HandlesModsWithoutAllFields()
 		{
-			
+
 			const string minimalMod = @"### Minimal Mod
 
 **Name:** [Minimal Mod](https://example.com)
@@ -282,10 +264,8 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(minimalMod);
 
-			
 			Assert.Multiple(() =>
 			{
 				Assert.That(matches, Has.Count.EqualTo(expected: 1));
@@ -298,21 +278,18 @@ ___";
 		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void FullMarkdownFile_ParsesAllMods()
 		{
-			
+
 			string fullMarkdownPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "mod-builds", "content", "k1", "full.md");
 			string fullMarkdown = File.ReadAllText(fullMarkdownPath);
 
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult result = parser.Parse(fullMarkdown);
 			IList<Core.ModComponent> components = result.Components;
 
-			
 			Console.WriteLine($"Total mods found: {components.Count}");
 
-			
 			var modNames = components.Select(c => c.Name).ToList();
 			var modAuthors = components.Select(c => c.Author).ToList();
 			var modCategories = components.Select(c => $"{c.Category} / {c.Tier}").ToList();
@@ -322,7 +299,6 @@ ___";
 			Console.WriteLine($"Mods with categories: {modCategories.Count(c => !string.IsNullOrWhiteSpace(c))}");
 			Console.WriteLine($"Mods with descriptions: {modDescriptions.Count(d => !string.IsNullOrWhiteSpace(d))}");
 
-			
 			Console.WriteLine("\nFirst 15 mods:");
 			for ( int i = 0; i < Math.Min(15, components.Count); i++ )
 			{
@@ -363,27 +339,23 @@ ___";
 				Console.WriteLine($"   Installation Method: {component.InstallationMethod}");
 			}
 
-			
 			Assert.That(components, Has.Count.GreaterThan(70), $"Expected to find more than 70 mod entries in full.md, found {components.Count}");
 
 			Assert.Multiple(() =>
 			{
-				
+
 				Assert.That(modNames, Does.Contain("KOTOR Dialogue Fixes"), "First mod should be captured");
 				Assert.That(modNames, Does.Contain("Ultimate Korriban High Resolution"), "Mid-section mod should be captured");
 				Assert.That(modNames, Does.Contain("KOTOR High Resolution Menus"), "Near-end mod should be captured");
 
-				
 				Assert.That(modAuthors, Does.Contain("Salk & Kainzorus Prime"), "Author with & character should be captured");
 				Assert.That(modAuthors, Does.Contain("ShiningRedHD"), "Simple author should be captured");
 				Assert.That(modAuthors, Does.Contain("JCarter426"), "Another common author should be captured");
 
-				
 				Assert.That(modCategories, Does.Contain("Immersion / 1 - Essential"), "Category with Essential tier");
 				Assert.That(modCategories, Does.Contain("Graphics Improvement / 2 - Recommended"), "Graphics Improvement category");
 				Assert.That(modCategories, Does.Contain("Bugfix / 3 - Suggested"), "Bugfix category");
 
-				
 				Assert.That(modAuthors.Count(a => !string.IsNullOrWhiteSpace(a)), Is.GreaterThan(65), "Most mods should have authors");
 				Assert.That(modCategories.Count(c => !string.IsNullOrWhiteSpace(c)), Is.GreaterThan(65), "Most mods should have categories");
 			});
@@ -392,7 +364,7 @@ ___";
 		[Test]
 		public void ModSyncMetadata_ParsesInstructionsAndOptions()
 		{
-			
+
 			const string markdownWithModSync = @"### KOTOR Dialogue Fixes
 
 **Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
@@ -456,10 +428,8 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult result = parser.Parse(markdownWithModSync);
 
-			
 			Assert.That(result.Components, Has.Count.EqualTo(1), "Should parse one component");
 
 			var component = result.Components[0];
@@ -468,7 +438,6 @@ ___";
 				Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"), "Component name should be parsed");
 				Assert.That(component.Guid.ToString(), Is.EqualTo("a9aa5bf5-b4ac-4aa3-acbb-402337235e54"), "Component GUID should be parsed from ModSync metadata");
 
-				
 				Assert.That(component.Instructions, Has.Count.EqualTo(2), "Should parse 2 instructions");
 			});
 
@@ -489,7 +458,6 @@ ___";
 				Assert.That(secondInstruction.Action.ToString(), Is.EqualTo("Choose"), "Second instruction action");
 				Assert.That(secondInstruction.Source, Has.Count.EqualTo(2), "Second instruction should have two source GUIDs");
 
-				
 				Assert.That(component.Options, Has.Count.EqualTo(2), "Should parse 2 options");
 			});
 
@@ -523,7 +491,7 @@ ___";
 		[Test]
 		public void ModSyncMetadata_RoundTrip_PreservesInstructionsAndOptions()
 		{
-			
+
 			const string markdownWithModSync = @"### KOTOR Dialogue Fixes
 
 **Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
@@ -587,12 +555,10 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult firstParse = parser.Parse(markdownWithModSync);
 			string generatedDocs = ModComponent.GenerateModDocumentation(firstParse.Components.ToList());
 			MarkdownParserResult secondParse = parser.Parse(generatedDocs);
 
-			
 			Assert.That(secondParse.Components, Has.Count.EqualTo(1), "Should have one component after round-trip");
 
 			var firstComponent = firstParse.Components[0];
@@ -600,10 +566,9 @@ ___";
 
 			Assert.Multiple(() =>
 			{
-				
+
 				Assert.That(secondComponent.Guid, Is.EqualTo(firstComponent.Guid), "Component GUID should be preserved");
 
-				
 				Assert.That(secondComponent.Instructions, Has.Count.EqualTo(firstComponent.Instructions.Count), "Instruction count should match");
 			});
 
@@ -621,7 +586,6 @@ ___";
 				});
 			}
 
-			
 			Assert.That(secondComponent.Options, Has.Count.EqualTo(firstComponent.Options.Count), "Option count should match");
 
 			for ( int i = 0; i < firstComponent.Options.Count; i++ )
@@ -638,7 +602,6 @@ ___";
 					Assert.That(secondOpt.Instructions, Has.Count.EqualTo(firstOpt.Instructions.Count), $"Option {i} instruction count should match");
 				});
 
-				
 				for ( int j = 0; j < firstOpt.Instructions.Count; j++ )
 				{
 					var firstInstruction = firstOpt.Instructions[j];

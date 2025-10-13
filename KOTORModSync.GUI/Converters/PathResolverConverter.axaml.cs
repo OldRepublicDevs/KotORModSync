@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -13,9 +14,7 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Converters
 {
-	
-	
-	
+
 	public partial class PathResolverConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -48,10 +47,9 @@ namespace KOTORModSync.Converters
 			if ( string.IsNullOrEmpty(path) )
 				return string.Empty;
 
-			
 			if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
 			{
-				return path; 
+				return path;
 			}
 
 			try
@@ -60,7 +58,7 @@ namespace KOTORModSync.Converters
 			}
 			catch ( Exception )
 			{
-				
+
 				return path;
 			}
 		}

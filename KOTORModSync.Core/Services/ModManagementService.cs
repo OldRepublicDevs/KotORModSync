@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -11,10 +12,7 @@ using System.Threading.Tasks;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
-	
+
 	public class ModManagementService
 	{
 		public event EventHandler<ModOperationEventArgs> ModOperationCompleted;
@@ -27,13 +25,8 @@ namespace KOTORModSync.Core.Services
 
 		#region CRUD Operations
 
-		
-		
-		
-		
-		
-		
-		
+
+
 		public ModComponent CreateMod(string name = null, string author = null, string category = null)
 		{
 			var newComponent = new ModComponent
@@ -57,7 +50,6 @@ namespace KOTORModSync.Core.Services
 
 			_mainConfig.allComponents.Add(newComponent);
 
-			
 			ModOperationCompleted?.Invoke(this, new ModOperationEventArgs
 			{
 				Operation = ModOperation.Create,
@@ -69,12 +61,7 @@ namespace KOTORModSync.Core.Services
 			return newComponent;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public ModComponent DuplicateMod(ModComponent sourceComponent, string newName = null)
 		{
 			if ( sourceComponent == null ) throw new ArgumentNullException(nameof(sourceComponent));
@@ -114,12 +101,7 @@ namespace KOTORModSync.Core.Services
 			return duplicatedComponent;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public bool UpdateMod(ModComponent component, Action<ModComponent> updates)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
@@ -130,12 +112,11 @@ namespace KOTORModSync.Core.Services
 				ModComponent originalComponent = CloneComponent(component);
 				updates(component);
 
-				
 				ModValidationResult validationResult = ValidateMod(component);
 				if ( !validationResult.IsValid )
 				{
 					Logger.LogWarning($"ModComponent update validation failed: {string.Join(", ", validationResult.Errors)}");
-					
+
 					return false;
 				}
 
@@ -157,17 +138,11 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public bool DeleteMod(ModComponent component, bool force = false)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
 
-			
 			var dependentComponents = _mainConfig.allComponents
 				.Where(c => c.Dependencies.Contains(component.Guid) || c.Restrictions.Contains(component.Guid))
 				.ToList();
@@ -178,7 +153,6 @@ namespace KOTORModSync.Core.Services
 				return false;
 			}
 
-			
 			bool removed = _mainConfig.allComponents.Remove(component);
 
 			if ( !removed )
@@ -199,12 +173,7 @@ namespace KOTORModSync.Core.Services
 
 		#region Reordering Operations
 
-		
-		
-		
-		
-		
-		
+
 		public bool MoveModToPosition(ModComponent component, int targetIndex)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
@@ -232,12 +201,7 @@ namespace KOTORModSync.Core.Services
 			return true;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public bool MoveModRelative(ModComponent component, int relativeIndex)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
@@ -253,37 +217,30 @@ namespace KOTORModSync.Core.Services
 
 		#region Validation and Error Checking
 
-		
-		
-		
-		
-		
+
+
 		public ModValidationResult ValidateMod(ModComponent component)
 		{
 			if ( component == null ) throw new ArgumentNullException(nameof(component));
 
 			var result = new ModValidationResult();
 
-			
 			if ( string.IsNullOrWhiteSpace(component.Name) )
 				result.Errors.Add("ModComponent name is required");
 
 			if ( string.IsNullOrWhiteSpace(component.Author) )
 				result.Warnings.Add("ModComponent author is not specified");
 
-			
 			foreach ( Guid dependency in component.Dependencies.Where(dependency => _mainConfig.allComponents.All(c => c.Guid != dependency)) )
 			{
 				result.Errors.Add($"Dependency {dependency} not found in component list");
 			}
 
-			
 			foreach ( Guid restriction in component.Restrictions.Where(restriction => _mainConfig.allComponents.All(c => c.Guid != restriction)) )
 			{
 				result.Errors.Add($"Restriction {restriction} not found in component list");
 			}
 
-			
 			if ( component.IsSelected && _mainConfig.sourcePath != null )
 			{
 				foreach ( Instruction instruction in component.Instructions )
@@ -300,14 +257,12 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			
 			foreach ( Option option in component.Options )
 			{
 				if ( string.IsNullOrWhiteSpace(option.Name) )
 					result.Errors.Add($"Option in '{component.Name}' has no name");
 			}
 
-			
 			foreach ( Instruction instruction in component.Instructions )
 			{
 				if ( instruction.Action == Instruction.ActionType.Unset )
@@ -323,10 +278,7 @@ namespace KOTORModSync.Core.Services
 			return result;
 		}
 
-		
-		
-		
-		
+
 		public Dictionary<ModComponent, ModValidationResult> ValidateAllMods()
 		{
 			var results = new Dictionary<ModComponent, ModValidationResult>();
@@ -343,18 +295,13 @@ namespace KOTORModSync.Core.Services
 
 		#region Dependency and Restriction Management
 
-		
-		
-		
-		
-		
-		
+
 		public bool AddDependency(ModComponent component, ModComponent dependencyComponent)
 		{
 			if ( component == null || dependencyComponent == null ) return false;
 
 			if ( component.Dependencies.Contains(dependencyComponent.Guid) )
-				return false; 
+				return false;
 
 			component.Dependencies.Add(dependencyComponent.Guid);
 
@@ -391,18 +338,13 @@ namespace KOTORModSync.Core.Services
 			return removed;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public bool AddRestriction(ModComponent component, ModComponent restrictionComponent)
 		{
 			if ( component == null || restrictionComponent == null ) return false;
 
 			if ( component.Restrictions.Contains(restrictionComponent.Guid) )
-				return false; 
+				return false;
 
 			component.Restrictions.Add(restrictionComponent.Guid);
 
@@ -418,12 +360,7 @@ namespace KOTORModSync.Core.Services
 			return true;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public bool RemoveRestriction(ModComponent component, ModComponent restrictionComponent)
 		{
 			if ( component == null || restrictionComponent == null ) return false;
@@ -450,12 +387,7 @@ namespace KOTORModSync.Core.Services
 
 		#region Search and Filtering
 
-		
-		
-		
-		
-		
-		
+
 		public List<ModComponent> SearchMods(string searchText, ModSearchOptions searchOptions = null)
 		{
 			if ( string.IsNullOrWhiteSpace(searchText) )
@@ -485,11 +417,8 @@ namespace KOTORModSync.Core.Services
 			}).ToList();
 		}
 
-		
-		
-		
-		
-		
+
+
 		public void SortMods(ModSortCriteria sortBy = ModSortCriteria.Name, SortOrder sortOrder = SortOrder.Ascending)
 		{
 			Comparison<ModComponent> comparison;
@@ -543,7 +472,6 @@ namespace KOTORModSync.Core.Services
 				comparison = (a, b) => -originalComparison(a, b);
 			}
 
-			
 			var sortedComponents = _mainConfig.allComponents.ToList();
 			sortedComponents.Sort(comparison);
 			_mainConfig.allComponents.Clear();
@@ -556,13 +484,8 @@ namespace KOTORModSync.Core.Services
 
 		#region Batch Operations
 
-		
-		
-		
-		
-		
-		
-		
+
+
 		public async Task<BatchOperationResult> PerformBatchOperation(IEnumerable<ModComponent> components, BatchModOperation operation, Dictionary<string, object> parameters = null)
 		{
 			IEnumerable<ModComponent> enumerable = components as ModComponent[] ?? components.ToArray();
@@ -618,7 +541,7 @@ namespace KOTORModSync.Core.Services
 									if ( val is string v )
 										category = v;
 								}
-								
+
 								component.Category = string.IsNullOrEmpty(category)
 									? new List<string>()
 									: new List<string> { category };
@@ -657,13 +580,8 @@ namespace KOTORModSync.Core.Services
 
 		#region Import/Export
 
-		
-		
-		
-		
-		
-		
-		
+
+
 		public static async Task<bool> ExportMods(IEnumerable<ModComponent> components, string filePath, ExportFormat format = ExportFormat.Toml)
 		{
 			try
@@ -683,11 +601,11 @@ namespace KOTORModSync.Core.Services
 						break;
 
 					case ExportFormat.Json:
-						
+
 						break;
 
 					case ExportFormat.Xml:
-						
+
 						break;
 				}
 
@@ -701,12 +619,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public async Task<List<ModComponent>> ImportMods(string filePath, ImportMergeStrategy mergeStrategy = ImportMergeStrategy.ByGuid)
 		{
 			try
@@ -716,7 +629,6 @@ namespace KOTORModSync.Core.Services
 				if ( importedComponents.Count == 0 )
 					return importedComponents;
 
-				
 				switch ( mergeStrategy )
 				{
 					case ImportMergeStrategy.Replace:
@@ -725,16 +637,16 @@ namespace KOTORModSync.Core.Services
 						break;
 
 					case ImportMergeStrategy.Merge:
-						
+
 						break;
 
 					case ImportMergeStrategy.ByGuid:
-						
+
 						MergeByGuid(importedComponents);
 						break;
 
 					case ImportMergeStrategy.ByNameAndAuthor:
-						
+
 						MergeByNameAndAuthor(importedComponents);
 						break;
 				}
@@ -753,10 +665,7 @@ namespace KOTORModSync.Core.Services
 
 		#region Statistics and Analytics
 
-		
-		
-		
-		
+
 		public ModStatistics GetModStatistics()
 		{
 			var stats = new ModStatistics
@@ -799,7 +708,7 @@ namespace KOTORModSync.Core.Services
 				ModComponent existing = _mainConfig.allComponents.FirstOrDefault(c => c.Guid == imported.Guid);
 				if ( existing != null )
 				{
-					
+
 					existing.Name = imported.Name;
 					existing.Author = imported.Author;
 					existing.Category = imported.Category;
@@ -824,36 +733,29 @@ namespace KOTORModSync.Core.Services
 
 		private void MergeByNameAndAuthor(List<ModComponent> importedComponents)
 		{
-			
+
 			var matchedPairs = new List<(ModComponent existing, ModComponent incoming)>();
 			var matchedExisting = new HashSet<ModComponent>();
 			var matchedIncoming = new HashSet<ModComponent>();
 
-			
 			foreach ( ModComponent imported in importedComponents )
 			{
-				
+
 				ModComponent bestMatch = null;
 				double bestScore = 0.0;
 
 				foreach ( ModComponent existing in _mainConfig.allComponents )
 				{
-					
+
 					if ( matchedExisting.Contains(existing) )
 						continue;
 
-					
-					
-					
-					
 
-					
 					string existingNameNorm = existing.Name.ToLowerInvariant().Trim();
 					string importedNameNorm = imported.Name.ToLowerInvariant().Trim();
 					string existingAuthorNorm = existing.Author.ToLowerInvariant().Trim();
 					string importedAuthorNorm = imported.Author.ToLowerInvariant().Trim();
 
-					
 					bool namesMatch = existingNameNorm == importedNameNorm;
 					bool authorsMatch = existingAuthorNorm == importedAuthorNorm ||
 									   string.IsNullOrWhiteSpace(existingAuthorNorm) ||
@@ -866,14 +768,13 @@ namespace KOTORModSync.Core.Services
 						break;
 					}
 
-					
 					if ( authorsMatch && (existingNameNorm.Contains(importedNameNorm) || importedNameNorm.Contains(existingNameNorm)) )
 					{
 						int minLen = Math.Min(existingNameNorm.Length, importedNameNorm.Length);
 						int maxLen = Math.Max(existingNameNorm.Length, importedNameNorm.Length);
 						double score = (double)minLen / maxLen;
 
-						if ( score > bestScore && score >= 0.7 ) 
+						if ( score > bestScore && score >= 0.7 )
 						{
 							bestMatch = existing;
 							bestScore = score;
@@ -881,7 +782,6 @@ namespace KOTORModSync.Core.Services
 					}
 				}
 
-				
 				if ( bestMatch != null && bestScore >= 0.7 )
 				{
 					matchedPairs.Add((bestMatch, imported));
@@ -890,10 +790,9 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			
 			foreach ( (ModComponent existing, ModComponent imported) in matchedPairs )
 			{
-				
+
 				existing.Name = imported.Name;
 				existing.Author = imported.Author;
 				existing.Category = imported.Category;
@@ -912,7 +811,6 @@ namespace KOTORModSync.Core.Services
 				Logger.LogVerbose($"Merged component by name/author: {existing.Name} (GUID: {existing.Guid})");
 			}
 
-			
 			foreach ( ModComponent imported in importedComponents )
 			{
 				if ( !matchedIncoming.Contains(imported) )
@@ -1010,7 +908,6 @@ namespace KOTORModSync.Core.Services
 
 		#endregion
 
-		
 		#region Event Args and Enums
 
 		public class ModOperationEventArgs : EventArgs
@@ -1078,7 +975,6 @@ namespace KOTORModSync.Core.Services
 			Xml
 		}
 
-		
 		public enum ImportMergeStrategy
 		{
 			Replace,

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -7,14 +8,10 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class InstructionManagementService
 	{
-		
-		
-		
+
 		public static void CreateInstruction(ModComponent component, int index)
 		{
 			if ( component == null )
@@ -31,9 +28,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void DeleteInstruction(ModComponent component, int index)
 		{
 			if ( component == null )
@@ -50,9 +44,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void MoveInstruction(ModComponent component, Instruction instruction, int newIndex)
 		{
 			if ( component == null )
@@ -71,9 +62,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void CreateOption(ModComponent component, int index)
 		{
 			if ( component == null )
@@ -90,9 +78,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void DeleteOption(ModComponent component, int index)
 		{
 			if ( component == null )
@@ -109,9 +94,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void MoveOption(ModComponent component, Option option, int newIndex)
 		{
 			if ( component == null )

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -11,14 +12,10 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
+
 	public static class ComponentProcessingService
 	{
-	
-	
-	
+
 	public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 	{
 		if ( components == null || components.Count == 0 )
@@ -26,7 +23,7 @@ namespace KOTORModSync.Core.Services
 
 		try
 		{
-			
+
 			return await TryGenerateFromLocalArchivesAsync(components);
 		}
 		catch ( Exception ex )
@@ -36,25 +33,19 @@ namespace KOTORModSync.Core.Services
 		}
 	}
 
-	
-	
-	
 	public static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
 		{
 			int generatedCount = 0;
 
 			foreach ( ModComponent component in components )
 			{
-				
-				
+
 				int initialInstructionCount = component.Instructions.Count;
 
-				
 				bool success = component.TryGenerateInstructionsFromArchive();
 				if ( !success )
 					continue;
 
-				
 				if ( component.Instructions.Count > initialInstructionCount )
 				{
 					generatedCount++;
@@ -68,12 +59,9 @@ namespace KOTORModSync.Core.Services
 
 			return generatedCount;
 		}
-		
-		
-		
-		
-		
-		
+
+
+
 		public static async Task<ComponentProcessingResult> ProcessComponentsAsync([NotNull][ItemNotNull] List<ModComponent> componentsList)
 		{
 			if ( componentsList == null )
@@ -90,7 +78,6 @@ namespace KOTORModSync.Core.Services
 					};
 				}
 
-				
 				try
 				{
 					(bool isCorrectOrder, List<ModComponent> reorderedList) =
@@ -141,14 +128,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
-		
-		
-		
+
+
 		public static bool CanMoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
 			if ( component == null )
@@ -163,14 +144,8 @@ namespace KOTORModSync.Core.Services
 				   index + relativeIndex >= 0;
 		}
 
-		
-		
-		
-		
-		
-		
-		
-		
+
+
 		public static bool MoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
 			if ( component == null )
@@ -188,47 +163,22 @@ namespace KOTORModSync.Core.Services
 		}
 	}
 
-	
-	
-	
-	
-	
-	
+
 	public class ComponentProcessingResult
 	{
-		
-		
-		
+
 		public bool IsEmpty { get; set; }
 
-		
-		
-		
 		public bool Success { get; set; }
 
-		
-		
-		
 		public List<ModComponent> Components { get; set; }
 
-		
-		
-		
 		public List<ModComponent> ReorderedComponents { get; set; }
 
-		
-		
-		
 		public bool NeedsReordering { get; set; }
 
-		
-		
-		
 		public bool HasCircularDependencies { get; set; }
 
-		
-		
-		
 		public Exception Exception { get; set; }
 	}
 }

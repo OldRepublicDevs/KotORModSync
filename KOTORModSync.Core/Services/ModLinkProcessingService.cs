@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -12,10 +13,7 @@ using KOTORModSync.Core.Services.Download;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
-	
+
 	public class ModLinkProcessingService
 	{
 		private readonly DownloadCacheService _downloadCacheService;
@@ -23,11 +21,10 @@ namespace KOTORModSync.Core.Services
 		public ModLinkProcessingService(DownloadCacheService downloadCacheService = null)
 		{
 			_downloadCacheService = downloadCacheService ?? new DownloadCacheService();
-			
-			
+
 			try
 			{
-				
+
 				var httpClient = new HttpClient();
 				var handlers = new List<IDownloadHandler>
 				{
@@ -35,28 +32,20 @@ namespace KOTORModSync.Core.Services
 					new MegaDownloadHandler(),
 					new NexusModsDownloadHandler(httpClient, ""),
 					new GameFrontDownloadHandler(httpClient),
-					new DirectDownloadHandler(httpClient) 
+					new DirectDownloadHandler(httpClient)
 				};
 				_downloadCacheService.SetDownloadManager(new DownloadManager(handlers));
 			}
 			catch ( Exception ex )
 			{
-				
+
 				Logger.LogException(ex, "Failed to configure default DownloadManager for ModLinkProcessingService");
 			}
 		}
 
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+
+
+
 		public async Task<int> ProcessComponentModLinksAsync(
 			List<ModComponent> components,
 			string downloadDirectory,
@@ -75,57 +64,49 @@ namespace KOTORModSync.Core.Services
 			{
 				try
 				{
-					
+
 					if (component.ModLink == null || component.ModLink.Count == 0)
 						continue;
 
-					
 					int initialInstructionCount = component.Instructions.Count;
 
-					
-					
 					foreach (string modLink in component.ModLink)
 					{
 						if (string.IsNullOrWhiteSpace(modLink))
 							continue;
 
-						
 						if (!modLink.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
 							!modLink.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
 							continue;
 
 						try
 						{
-							
-							
+
 							List<DownloadCacheEntry> cacheEntries = await _downloadCacheService.ResolveOrDownloadAsync(
 								component,
 								downloadDirectory,
 								progress,
 								cancellationToken);
 
-							
 							if (cacheEntries != null && cacheEntries.Count > 0)
 							{
 								foreach (var entry in cacheEntries)
 								{
-									
+
 									if (entry.IsArchive && !string.IsNullOrEmpty(entry.FilePath) && System.IO.File.Exists(entry.FilePath))
 									{
-										
-										
+
 										bool generated = AutoInstructionGenerator.GenerateInstructions(component, entry.FilePath);
 										if (generated)
 										{
 											await Logger.LogVerboseAsync($"Auto-generated detailed instructions for '{component.Name}' from {entry.ArchiveName}");
-											
+
 											component.IsDownloaded = true;
 										}
 									}
 								}
 							}
 
-							
 							if (cacheEntries != null && cacheEntries.Count > 0 && component.Instructions.Count > initialInstructionCount)
 							{
 								await Logger.LogVerboseAsync($"Successfully processed ModLink for '{component.Name}': {modLink}");
@@ -133,13 +114,12 @@ namespace KOTORModSync.Core.Services
 						}
 						catch (Exception ex)
 						{
-							
+
 							await Logger.LogVerboseAsync($"Failed to process ModLink for '{component.Name}': {modLink} - {ex.Message}");
 							continue;
 						}
 					}
 
-					
 					if (component.Instructions.Count > initialInstructionCount)
 					{
 						successCount++;
@@ -161,10 +141,7 @@ namespace KOTORModSync.Core.Services
 			return successCount;
 		}
 
-		
-		
-		
-		
+
 		public int ProcessComponentModLinksSync(
 			List<ModComponent> components,
 			string downloadDirectory,

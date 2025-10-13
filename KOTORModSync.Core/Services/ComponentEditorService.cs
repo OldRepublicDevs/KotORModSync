@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -9,28 +10,18 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
+
 	public class ComponentEditorService
 	{
-		
-		
-		
-		
-		
-		
+
+
+
 		public static bool ComponentHasChanges([CanBeNull] ModComponent component, [CanBeNull] string rawText) => component != null
 				&& !string.IsNullOrWhiteSpace(rawText)
 				&& rawText != component.SerializeComponent();
 
-		
-		
-		
-		
-		
-		
-		
+
+
 		public static async Task<bool> SaveComponentChangesAsync([NotNull] ModComponent component, [NotNull] string rawText, [NotNull][ItemNotNull] List<ModComponent> allComponents)
 		{
 			if ( component == null )
@@ -49,7 +40,6 @@ namespace KOTORModSync.Core.Services
 					return false;
 				}
 
-				
 				int index = allComponents.IndexOf(component);
 				if ( index == -1 )
 				{
@@ -63,7 +53,6 @@ namespace KOTORModSync.Core.Services
 					return false;
 				}
 
-				
 				allComponents[index] = newComponent;
 				await Logger.LogAsync($"Saved '{newComponent.Name}' successfully. Refer to the output window for more information.");
 				return true;
@@ -77,12 +66,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public static Instruction CreateNewInstruction([NotNull] ModComponent component, int index = 0)
 		{
 			if ( component == null )
@@ -92,11 +76,8 @@ namespace KOTORModSync.Core.Services
 			return component.Instructions[index];
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static void DeleteInstruction([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
@@ -111,11 +92,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static void MoveInstructionUp([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
@@ -130,11 +108,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static void MoveInstructionDown([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
@@ -149,12 +124,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public static Option CreateNewOption([NotNull] ModComponent component, int index = 0)
 		{
 			if ( component == null )
@@ -164,11 +134,8 @@ namespace KOTORModSync.Core.Services
 			return component.Options[index];
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static void DeleteOption([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
@@ -183,11 +150,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static void MoveOptionUp([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
@@ -202,11 +166,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static void MoveOptionDown([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
@@ -221,13 +182,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
-		
-		
+
+
 		public void HandleComponentCheckboxChange([NotNull] ModComponent component, bool isChecked, [NotNull][ItemNotNull] List<ModComponent> allComponents, [CanBeNull] HashSet<ModComponent> visitedComponents = null)
 		{
 			if ( component == null )
@@ -237,14 +193,12 @@ namespace KOTORModSync.Core.Services
 
 			visitedComponents = visitedComponents ?? new HashSet<ModComponent>();
 
-			
 			if ( visitedComponents.Contains(component) )
 			{
 				Logger.LogError($"ModComponent '{component.Name}' has dependencies/restrictions that cannot be resolved automatically!");
 				return;
 			}
 
-			
 			_ = visitedComponents.Add(component);
 
 			if ( isChecked )
@@ -265,7 +219,6 @@ namespace KOTORModSync.Core.Services
 				allComponents
 			);
 
-			
 			if ( conflicts.TryGetValue("Dependency", out List<ModComponent> dependencyConflicts) )
 			{
 				foreach ( ModComponent conflictComponent in dependencyConflicts )
@@ -290,7 +243,6 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			
 			foreach ( ModComponent c in allComponents )
 			{
 				if ( !c.IsSelected || !c.Restrictions.Contains(component.Guid) )
@@ -303,7 +255,7 @@ namespace KOTORModSync.Core.Services
 
 		private void HandleComponentUnchecked([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> allComponents, [NotNull] HashSet<ModComponent> visitedComponents)
 		{
-			
+
 			foreach ( ModComponent c in allComponents )
 			{
 				if ( c.IsSelected && c.Dependencies.Contains(component.Guid) )

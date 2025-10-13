@@ -1,4 +1,6 @@
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -111,7 +113,6 @@ namespace KOTORModSync.Core.Services.Download
 				string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
 				await Logger.LogVerboseAsync($"[DirectDownload] Expected filename from URL: '{expectedFileName}'");
 				await Logger.LogVerboseAsync($"[DirectDownload] Destination directory: '{destinationDirectory}'");
-
 
 				progress?.Report(new DownloadProgress
 				{

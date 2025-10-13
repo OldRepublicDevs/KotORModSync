@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -12,9 +13,7 @@ using KOTORModSync.Models;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class SettingsService
 	{
 		private readonly MainConfig _mainConfig;
@@ -26,9 +25,6 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		
-		
-		
 		public (AppSettings Settings, string Theme) LoadSettings()
 		{
 			try
@@ -46,9 +42,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void SaveSettings(string currentTheme)
 		{
 			try
@@ -64,16 +57,13 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void UpdateDirectoryPickersFromSettings(
 			AppSettings settings,
 			Func<string, DirectoryPickerControl> findControl)
 		{
 			try
 			{
-				
+
 				if ( !string.IsNullOrEmpty(settings.SourcePath) )
 				{
 					DirectoryPickerControl modPicker = findControl("ModDirectoryPicker");
@@ -83,7 +73,6 @@ namespace KOTORModSync.Services
 					SettingsService.UpdateDirectoryPickerWithPath(step1ModPicker, settings.SourcePath);
 				}
 
-				
 				if ( !string.IsNullOrEmpty(settings.DestinationPath) )
 				{
 					DirectoryPickerControl kotorPicker = findControl("KotorDirectoryPicker");
@@ -99,9 +88,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		private static void UpdateDirectoryPickerWithPath(DirectoryPickerControl picker, string path)
 		{
 			if ( picker == null || string.IsNullOrEmpty(path) )
@@ -111,7 +97,6 @@ namespace KOTORModSync.Services
 			{
 				picker.SetCurrentPath(path);
 
-				
 				ComboBox comboBox = picker.FindControl<ComboBox>("PathSuggestions");
 				if ( comboBox != null )
 				{
@@ -133,9 +118,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void SyncDirectoryPickers(
 			DirectoryPickerType pickerType,
 			string path,
@@ -162,7 +144,6 @@ namespace KOTORModSync.Services
 					if ( step1Picker != null ) allPickers.Add(step1Picker);
 				}
 
-				
 				foreach ( DirectoryPickerControl picker in allPickers )
 					picker.SetCurrentPath(path);
 			}
@@ -172,9 +153,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void InitializeDirectoryPickers(Func<string, DirectoryPickerControl> findControl)
 		{
 			try

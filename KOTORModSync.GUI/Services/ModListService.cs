@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -14,9 +15,7 @@ using static KOTORModSync.Core.Services.ModManagementService;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class ModListService
 	{
 		private readonly MainConfig _mainConfig;
@@ -26,9 +25,6 @@ namespace KOTORModSync.Services
 			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 		}
 
-		
-		
-		
 		public List<ModComponent> FilterModList(string searchText, ModSearchOptions options = null)
 		{
 			try
@@ -65,9 +61,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void PopulateModList(ListBox modListBox, List<ModComponent> components, Action updateModCounts)
 		{
 			try
@@ -90,9 +83,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void RefreshModListVisuals(ListBox modListBox, Action updateStepProgress)
 		{
 			try
@@ -100,12 +90,10 @@ namespace KOTORModSync.Services
 				if ( modListBox?.ItemsSource == null )
 					return;
 
-				
 				var currentItems = modListBox.ItemsSource;
 				modListBox.ItemsSource = null;
 				modListBox.ItemsSource = currentItems;
 
-				
 				updateStepProgress?.Invoke();
 			}
 			catch ( Exception ex )
@@ -114,9 +102,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static void RefreshSingleComponentVisuals(ListBox modListBox, ModComponent component)
 		{
 			try
@@ -124,32 +109,27 @@ namespace KOTORModSync.Services
 				if ( modListBox == null || component == null )
 					return;
 
-				
 				Dispatcher.UIThread.Post(() =>
 				{
 					try
 					{
-						
+
 						if ( !(modListBox.ContainerFromItem(component) is ListBoxItem container) )
 							return;
 
-						
 						if ( container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault() is ModListItem modListItem )
 						{
-							
+
 							modListItem.UpdateValidationState(component);
 
-							
-							
 							var optionsContainer = modListItem.FindControl<ItemsControl>("OptionsContainer");
 							if ( optionsContainer != null )
 							{
-								
+
 								var currentItems = optionsContainer.ItemsSource;
 								optionsContainer.ItemsSource = null;
 								optionsContainer.ItemsSource = currentItems;
 
-								
 								var currentVisibility = optionsContainer.IsVisible;
 								optionsContainer.IsVisible = !currentVisibility;
 								optionsContainer.IsVisible = currentVisibility;
@@ -168,9 +148,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void RefreshModListItems(ListBox modListBox, bool editorMode, Func<ModComponent, ContextMenu> buildContextMenu)
 		{
 			try
@@ -178,36 +155,30 @@ namespace KOTORModSync.Services
 				if ( modListBox == null )
 					return;
 
-				
 				foreach ( object item in modListBox.Items )
 				{
-#pragma warning disable IDE0078 
+#pragma warning disable IDE0078
 					if ( !(item is ModComponent component) )
 						continue;
-#pragma warning restore IDE0078 
+#pragma warning restore IDE0078
 
-					
-#pragma warning disable IDE0078 
+#pragma warning disable IDE0078
 					if ( !(modListBox.ContainerFromItem(item) is ListBoxItem container) )
 						continue;
-#pragma warning restore IDE0078 
+#pragma warning restore IDE0078
 
-					
 					ModListItem modListItem = container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault();
 					if ( modListItem == null )
 						continue;
 
-					
 					modListItem.ContextMenu = buildContextMenu(component);
 
-					
 					if ( modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock )
 						indexBlock.IsVisible = editorMode;
 
 					if ( modListItem.FindControl<TextBlock>("DragHandle") is TextBlock dragHandle )
 						dragHandle.IsVisible = editorMode;
 
-					
 					if ( !editorMode )
 						continue;
 					int index = _mainConfig.allComponents.IndexOf(component);
@@ -221,9 +192,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void UpdateModCounts(
 			TextBlock modCountText,
 			TextBlock selectedCountText,
@@ -244,7 +212,6 @@ namespace KOTORModSync.Services
 					selectedCountText.Text = selectedCount == 1 ? "1 selected" : $"{selectedCount} selected";
 				}
 
-				
 				if ( selectAllCheckBox != null )
 				{
 					setSuppressSelectAllEvents?.Invoke(true);

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -12,22 +13,17 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Tests
 {
-	
-	
-	
+
 	public static class MarkdownToTomlConverter
 	{
-		
-		
-		
-		
-		
-		
+
+
+
 		public static bool ConvertMarkdownToToml(string inputMarkdownPath, string outputTomlPath)
 		{
 			try
 			{
-				
+
 				if ( !File.Exists(inputMarkdownPath) )
 				{
 					Console.Error.WriteLine($"Error: Input file not found: {inputMarkdownPath}");
@@ -37,7 +33,6 @@ namespace KOTORModSync.Tests
 				string markdown = File.ReadAllText(inputMarkdownPath);
 				Console.WriteLine($"Read {markdown.Length} characters from {inputMarkdownPath}");
 
-				
 				var profile = MarkdownImportProfile.CreateDefault();
 				var parser = new MarkdownParser(profile);
 				MarkdownParserResult parseResult = parser.Parse(markdown);
@@ -63,7 +58,6 @@ namespace KOTORModSync.Tests
 					return false;
 				}
 
-				
 				var tomlData = new Dictionary<string, object>();
 				var componentsList = new List<object>();
 
@@ -106,10 +100,8 @@ namespace KOTORModSync.Tests
 
 				tomlData["components"] = componentsList;
 
-				
 				string tomlContent = TomlWriter.WriteString(tomlData);
 
-				
 				string? outputDir = Path.GetDirectoryName(outputTomlPath);
 				if ( !string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir) )
 				{
@@ -129,58 +121,39 @@ namespace KOTORModSync.Tests
 			}
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static List<string> ExtractModSections(string markdown)
 		{
 			return MarkdownUtilities.ExtractModSections(markdown);
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static string ExtractModListSection(string markdown)
 		{
 			return MarkdownUtilities.ExtractModListSection(markdown);
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public static List<string> ExtractAllFieldValues(string text, string pattern)
 		{
 			return MarkdownUtilities.ExtractAllFieldValues(text, pattern);
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static string NormalizeCategoryFormat(string category)
 		{
 			return MarkdownUtilities.NormalizeCategoryFormat(category);
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public static bool RegenerateMarkdownDocumentation(string inputMarkdownPath, string outputMarkdownPath)
 		{
 			try
 			{
-				
+
 				if ( !File.Exists(inputMarkdownPath) )
 				{
 					Console.Error.WriteLine($"Error: Input file not found: {inputMarkdownPath}");
@@ -190,7 +163,6 @@ namespace KOTORModSync.Tests
 				string markdown = File.ReadAllText(inputMarkdownPath);
 				Console.WriteLine($"Read {markdown.Length} characters from {inputMarkdownPath}");
 
-				
 				var profile = MarkdownImportProfile.CreateDefault();
 				var parser = new MarkdownParser(profile);
 				MarkdownParserResult parseResult = parser.Parse(markdown);
@@ -216,10 +188,8 @@ namespace KOTORModSync.Tests
 					return false;
 				}
 
-				
 				string generatedDocs = ModComponent.GenerateModDocumentation(parseResult.Components.ToList());
 
-				
 				string? outputDir = Path.GetDirectoryName(outputMarkdownPath);
 				if ( !string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir) )
 				{
@@ -239,9 +209,6 @@ namespace KOTORModSync.Tests
 			}
 		}
 
-		
-		
-		
 		public static int Run(string[] args)
 		{
 			if ( args.Length == 0 )
@@ -256,7 +223,6 @@ namespace KOTORModSync.Tests
 			string? inputPath = null;
 			string? outputPath = null;
 
-			
 			for ( int i = 1; i < args.Length; i++ )
 			{
 				if ( args[i] == "--input" && i + 1 < args.Length )

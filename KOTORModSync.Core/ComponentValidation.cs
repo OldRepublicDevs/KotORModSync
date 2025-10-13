@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -44,9 +45,9 @@ namespace KOTORModSync.Core
 		}
 
 		public bool Run() =>
-			
+
 			VerifyExtractPaths()
-			
+
 			&& ParseDestinationWithAction();
 
 		private void AddError([NotNull] string message, [NotNull] Instruction instruction) =>
@@ -87,10 +88,8 @@ namespace KOTORModSync.Core
 			{
 				bool success = true;
 
-				
 				List<string> allArchives = GetAllArchivesFromInstructions();
 
-				
 				if ( allArchives.IsNullOrEmptyCollection() )
 				{
 					foreach ( Instruction instruction in ComponentToValidate.Instructions )
@@ -125,9 +124,9 @@ namespace KOTORModSync.Core
 							AddError(message: "Action cannot be null", instruction);
 							success = false;
 							continue;
-						
+
 						case Instruction.ActionType.Extract:
-						
+
 						case Instruction.ActionType.Choose:
 							continue;
 						case Instruction.ActionType.Execute:
@@ -142,9 +141,8 @@ namespace KOTORModSync.Core
 							break;
 					}
 
-					
 					if ( instruction.Source is null )
-					
+
 					{
 						AddWarning(message: "Instruction does not have a 'Source' key defined", instruction);
 						success = false;
@@ -156,11 +154,9 @@ namespace KOTORModSync.Core
 					{
 						string sourcePath = PathHelper.FixPathFormatting(instruction.Source[index]);
 
-						
 						if ( sourcePath.StartsWith(value: "<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
 							continue;
 
-						
 						if ( sourcePath.EndsWith(value: "tslpatcher.exe", StringComparison.OrdinalIgnoreCase)
 							&& instruction.Action != Instruction.ActionType.Patcher )
 						{
@@ -173,16 +169,11 @@ namespace KOTORModSync.Core
 
 						(bool, bool) result = IsSourcePathInArchives(sourcePath, allArchives, instruction);
 
-						
-						
-						
 						if ( !result.Item1 && MainConfig.AttemptFixes )
 						{
-							
+
 							string[] parts = sourcePath.Split(Path.DirectorySeparatorChar);
 
-							
-							
 							string duplicatedPart = parts[1] + Path.DirectorySeparatorChar + parts[1];
 							string[] remainingParts = parts.Skip(2).ToArray();
 
@@ -246,7 +237,6 @@ namespace KOTORModSync.Core
 				if ( instruction.Action != Instruction.ActionType.Extract )
 					continue;
 
-				
 				var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
 				List<string> realPaths = PathHelper.EnumerateFilesWithWildcards(
 					instruction.Source.ConvertAll(Utility.Utility.ReplaceCustomVariables),
@@ -264,7 +254,7 @@ namespace KOTORModSync.Core
 					if ( Path.GetExtension(realSourcePath).Equals(value: ".exe", StringComparison.OrdinalIgnoreCase) )
 					{
 						allArchives.Add(realSourcePath);
-						continue; 
+						continue;
 					}
 
 					if ( File.Exists(realSourcePath) )
@@ -298,7 +288,7 @@ namespace KOTORModSync.Core
 				{
 					case Instruction.ActionType.Unset:
 						continue;
-					
+
 					case Instruction.ActionType.Patcher when string.IsNullOrEmpty(instruction.Destination):
 						AddWarning(
 							message:
@@ -326,7 +316,7 @@ namespace KOTORModSync.Core
 						}
 
 						break;
-					
+
 					case Instruction.ActionType.Choose:
 					case Instruction.ActionType.Extract:
 					case Instruction.ActionType.Delete:
@@ -347,7 +337,7 @@ namespace KOTORModSync.Core
 						}
 
 						break;
-					
+
 					case Instruction.ActionType.Rename:
 						if ( instruction.Destination.Equals(
 								$"<<kotorDirectory>>{Path.DirectorySeparatorChar}Override",
@@ -364,7 +354,7 @@ namespace KOTORModSync.Core
 						}
 
 						break;
-					
+
 					case Instruction.ActionType.Run:
 					case Instruction.ActionType.Execute:
 						break;
@@ -393,7 +383,7 @@ namespace KOTORModSync.Core
 								Logger.Log("Fixing the above error automatically...");
 								try
 								{
-									
+
 									_ = Directory.CreateDirectory(destinationPath);
 									success = true;
 								}
@@ -468,7 +458,6 @@ namespace KOTORModSync.Core
 					continue;
 				}
 
-				
 				string archiveName = Path.GetFileNameWithoutExtension(archivePath);
 
 				string[] pathParts = sourcePath.Split(Path.DirectorySeparatorChar);
@@ -508,13 +497,11 @@ namespace KOTORModSync.Core
 				return (true, true);
 			}
 
-			
 			if ( ComponentToValidate.Name.Equals(value: "Improved AI", StringComparison.OrdinalIgnoreCase) )
 			{
 				return (true, true);
 			}
 
-			
 			if ( !ModComponent.ShouldRunInstruction(instruction, _componentsList) )
 			{
 				return (true, true);
@@ -534,7 +521,6 @@ namespace KOTORModSync.Core
 			if ( !ArchiveHelper.IsArchive(archivePath) )
 				return ArchivePathCode.NotAnArchive;
 
-			
 			if ( Path.GetExtension(archivePath) == ".exe" )
 				return ArchivePathCode.FoundSuccessfully;
 
@@ -558,10 +544,8 @@ namespace KOTORModSync.Core
 				if ( archive is null )
 					return ArchivePathCode.CouldNotOpenArchive;
 
-				
 				string archiveNameAppend = Path.GetFileNameWithoutExtension(archivePath);
 
-				
 				if ( PathHelper.WildcardPathMatch(archiveNameAppend, relativePath) )
 					return ArchivePathCode.FoundSuccessfully;
 
@@ -569,19 +553,17 @@ namespace KOTORModSync.Core
 
 				foreach ( IArchiveEntry entry in archive.Entries )
 				{
-					
+
 					string itemInArchivePath = archiveNameAppend
 						+ Path.DirectorySeparatorChar
 						+ entry.Key.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-					
 					string folderName = Path.GetFileName(itemInArchivePath);
 					if ( entry.IsDirectory )
 					{
 						folderName = Path.GetDirectoryName(itemInArchivePath);
 					}
 
-					
 					if ( !string.IsNullOrEmpty(folderName) )
 					{
 						_ = folderPaths.Add(
@@ -589,12 +571,10 @@ namespace KOTORModSync.Core
 						);
 					}
 
-					
 					if ( PathHelper.WildcardPathMatch(itemInArchivePath, relativePath) )
 						return ArchivePathCode.FoundSuccessfully;
 				}
 
-				
 				foreach ( string folderPath in folderPaths )
 				{
 					if ( !(folderPath is null) && PathHelper.WildcardPathMatch(folderPath, relativePath) )

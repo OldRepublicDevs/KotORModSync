@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -32,7 +33,6 @@ namespace KOTORModSync.Core.TSLPatcher
 
 				fileContents = Regex.Replace(fileContents, pattern, replacement, RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
-				
 				File.WriteAllText(filePath, fileContents);
 			}
 		}
@@ -51,7 +51,7 @@ namespace KOTORModSync.Core.TSLPatcher
 					return TraverseDirectories(archive.Entries);
 			}
 
-			return null; 
+			return null;
 		}
 
 		public static Dictionary<string, Dictionary<string, string>> ReadNamespacesIniFromArchive(
@@ -70,12 +70,12 @@ namespace KOTORModSync.Core.TSLPatcher
 			}
 			catch ( InvalidOperationException )
 			{
-				
+
 				return null;
 			}
 			catch ( Exception )
 			{
-				
+
 				return null;
 			}
 		}
@@ -91,7 +91,7 @@ namespace KOTORModSync.Core.TSLPatcher
 			{
 				if ( entry != null && entry.IsDirectory )
 				{
-					
+
 					IEnumerable<IArchiveEntry> subDirectoryEntries = archiveEntries.Where(
 						e => e != null && (e.Key.StartsWith(entry.Key + "/") || e.Key.StartsWith(entry.Key + "\\"))
 					);
@@ -106,7 +106,6 @@ namespace KOTORModSync.Core.TSLPatcher
 					string directoryName = Path.GetDirectoryName(entry?.Key.Replace(oldChar: '\\', newChar: '/'));
 					string fileName = Path.GetFileName(entry?.Key);
 
-					
 					bool isTslPatchDataFolder = directoryName?.Split(s_separator, StringSplitOptions.RemoveEmptyEntries)
 						.Any(dir => dir.Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase)) ?? false;
 
@@ -121,7 +120,7 @@ namespace KOTORModSync.Core.TSLPatcher
 				}
 			}
 
-			return null; 
+			return null;
 		}
 
 		public static Dictionary<string, Dictionary<string, string>> ParseNamespacesIni(StreamReader reader)
@@ -137,14 +136,13 @@ namespace KOTORModSync.Core.TSLPatcher
 			{
 				line = line.Trim();
 
-				
 				if ( line.StartsWith("[") && line.EndsWith("]") )
 				{
 					string sectionName = line.Substring(startIndex: 1, line.Length - 2);
 					currentSection = new Dictionary<string, string>();
 					sections[sectionName] = currentSection;
 				}
-				
+
 				else if ( currentSection != null && line.Contains("=") )
 				{
 					string[] keyValue = line.Split('=');

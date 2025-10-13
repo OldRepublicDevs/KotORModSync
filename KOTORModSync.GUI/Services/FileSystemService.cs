@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -12,9 +13,7 @@ using KOTORModSync.Core.FileSystemUtils;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class FileSystemService : IDisposable
 	{
 		private CrossPlatformFileWatcher _modDirectoryWatcher;
@@ -22,18 +21,14 @@ namespace KOTORModSync.Services
 		private bool _disposed;
 		private Timer _debounceTimer;
 		private readonly object _timerLock = new object();
-		private const int DebounceDelayMs = 2000; 
+		private const int DebounceDelayMs = 2000;
 
-		
-		
-		
 		public void SetupModDirectoryWatcher(string path, Action onDirectoryChanged)
 		{
 			try
 			{
 				_onDirectoryChanged = onDirectoryChanged;
 
-				
 				_modDirectoryWatcher?.Dispose();
 
 				if ( string.IsNullOrEmpty(path) || !Directory.Exists(path) )
@@ -42,7 +37,6 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				
 				_modDirectoryWatcher = new CrossPlatformFileWatcher(
 					path: path,
 					filter: "*.*",
@@ -55,7 +49,6 @@ namespace KOTORModSync.Services
 				_modDirectoryWatcher.Changed += OnModDirectoryChanged;
 				_modDirectoryWatcher.Error += OnModDirectoryWatcherError;
 
-				
 				_modDirectoryWatcher.StartWatching();
 
 				Logger.LogVerbose($"Cross-platform file system watcher initialized for: {path}");
@@ -66,14 +59,11 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void StopWatcher()
 		{
 			try
 			{
-				
+
 				lock ( _timerLock )
 				{
 					_debounceTimer?.Dispose();
@@ -92,24 +82,21 @@ namespace KOTORModSync.Services
 
 	private void OnModDirectoryChanged(object sender, FileSystemEventArgs e)
 	{
-		
-		
+
 		lock ( _timerLock )
 		{
-			
+
 			_debounceTimer?.Dispose();
 
-			
 			_debounceTimer = new Timer(_ =>
 			{
-				
+
 				Dispatcher.UIThread.Post(() =>
 				{
 					try
 					{
 						Logger.Log($"[File Watcher] Detected changes in mod directory ({e.ChangeType}: {Path.GetFileName(e.FullPath)}), running validation...");
 
-						
 						NamespacesIniOptionConverter.InvalidateCache();
 
 						_onDirectoryChanged?.Invoke();
@@ -127,13 +114,12 @@ namespace KOTORModSync.Services
 		{
 			Logger.LogException(e.GetException(), "File watcher error occurred");
 
-			
 			Dispatcher.UIThread.Post(() =>
 			{
 				try
 				{
 					Logger.LogVerbose("Attempting to restart file watcher after error");
-					
+
 				}
 				catch ( Exception ex )
 				{
@@ -155,7 +141,7 @@ namespace KOTORModSync.Services
 
 			if ( disposing )
 			{
-				
+
 				lock ( _timerLock )
 				{
 					_debounceTimer?.Dispose();

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -11,91 +12,51 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Models
 {
-	
-	
-	
+
 	public sealed class AppSettings
 	{
-		
-		
-		
+
 		[JsonPropertyName("theme")]
 		[CanBeNull]
 		public string Theme { get; set; } = "/Styles/KotorStyle.axaml";
 
-		
-		
-		
 		[JsonPropertyName("sourcePath")]
 		[CanBeNull]
 		public string SourcePath { get; set; }
 
-		
-		
-		
 		[JsonPropertyName("destinationPath")]
 		[CanBeNull]
 		public string DestinationPath { get; set; }
 
-		
-		
-		
 		[JsonPropertyName("debugLogging")]
 		public bool DebugLogging { get; set; }
 
-		
-		
-		
 		[JsonPropertyName("attemptFixes")]
 		public bool AttemptFixes { get; set; } = true;
 
-		
-		
-		
 		[JsonPropertyName("noAdmin")]
 		public bool NoAdmin { get; set; }
 
-		
-		
-		
 		[JsonPropertyName("caseInsensitivePathing")]
 		public bool CaseInsensitivePathing { get; set; } = true;
 
-		
-		
-		
 		[JsonPropertyName("archiveDeepCheck")]
 		public bool ArchiveDeepCheck { get; set; }
 
-		
-		
-		
 		[JsonPropertyName("useMultiThreadedIO")]
 		public bool UseMultiThreadedIO { get; set; }
 
-		
-		
-		
 		[JsonPropertyName("useCopyForMoveActions")]
 		public bool UseCopyForMoveActions { get; set; }
 
-		
-		
-		
 		[JsonPropertyName("lastOutputDirectory")]
 		[CanBeNull]
 		public string LastOutputDirectory { get; set; }
 
-		
-		
-		
 		public AppSettings()
 		{
 		}
 
-		
-		
-		
 		public static AppSettings FromCurrentState([NotNull] MainConfig mainConfig, [CanBeNull] string currentTheme)
 		{
 			if ( mainConfig is null )
@@ -117,22 +78,17 @@ namespace KOTORModSync.Models
 			};
 		}
 
-		
-		
-		
 		public void ApplyToMainConfig([NotNull] MainConfig mainConfig, [NotNull] out string theme)
 		{
 			if ( mainConfig is null )
 				throw new ArgumentNullException(nameof(mainConfig));
 
-			
 			if ( !string.IsNullOrEmpty(SourcePath) && Directory.Exists(SourcePath) )
 				mainConfig.sourcePath = new DirectoryInfo(SourcePath);
 
 			if ( !string.IsNullOrEmpty(DestinationPath) && Directory.Exists(DestinationPath) )
 				mainConfig.destinationPath = new DirectoryInfo(DestinationPath);
 
-			
 			mainConfig.debugLogging = DebugLogging;
 			mainConfig.attemptFixes = AttemptFixes;
 			mainConfig.noAdmin = NoAdmin;
@@ -144,14 +100,10 @@ namespace KOTORModSync.Models
 			if ( !string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory) )
 				mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
 
-			
 			theme = Theme ?? "/Styles/KotorStyle.axaml";
 		}
 	}
 
-	
-	
-	
 	public static class SettingsManager
 	{
 		private static readonly string SettingsDirectory = Path.Combine(
@@ -167,9 +119,6 @@ namespace KOTORModSync.Models
 			PropertyNameCaseInsensitive = true
 		};
 
-		
-		
-		
 		[NotNull]
 		public static AppSettings LoadSettings()
 		{
@@ -200,9 +149,6 @@ namespace KOTORModSync.Models
 			}
 		}
 
-		
-		
-		
 		public static void SaveSettings([NotNull] AppSettings settings)
 		{
 			if ( settings is null )
@@ -210,7 +156,7 @@ namespace KOTORModSync.Models
 
 			try
 			{
-				
+
 				if ( !Directory.Exists(SettingsDirectory) )
 					_ = Directory.CreateDirectory(SettingsDirectory);
 

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -22,13 +23,11 @@ namespace KOTORModSync.Controls
 {
 	public partial class ModListItem : UserControl
 	{
-		
+
 		private static readonly Dictionary<Guid, string> s_componentErrors = new Dictionary<Guid, string>();
 
-		
 		private ModComponent _previousComponent;
 
-		
 		public static readonly StyledProperty<bool> IsBeingDraggedProperty =
 			AvaloniaProperty.Register<ModListItem, bool>(nameof(IsBeingDragged));
 
@@ -51,29 +50,23 @@ namespace KOTORModSync.Controls
 		{
 			AvaloniaXamlLoader.Load(this);
 
-			
 			PointerEntered += OnPointerEntered;
 			PointerExited += OnPointerExited;
 
 			DataContextChanged += OnDataContextChanged;
 
-			
 			CheckBox checkbox = this.FindControl<CheckBox>("ComponentCheckBox");
 			if ( checkbox != null )
 				checkbox.IsCheckedChanged += OnCheckBoxChanged;
 
-			
 			PointerPressed += OnPointerPressed;
 
-			
 			DoubleTapped += OnDoubleTapped;
 
-			
 			TextBlock dragHandle = this.FindControl<TextBlock>("DragHandle");
 			if ( dragHandle != null )
 				dragHandle.PointerPressed += OnDragHandlePressed;
 
-			
 			Grid mainModInfo = this.FindControl<Grid>("MainModInfo");
 			if ( mainModInfo != null )
 			{
@@ -84,22 +77,20 @@ namespace KOTORModSync.Controls
 
 		private void OnMainModInfoPointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			
+
 			if ( e.Source is CheckBox )
 				return;
 
-			
 			if ( DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				mainWindow.SetCurrentModComponent(component);
 		}
 
 		private void OnMainModInfoDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
-			
+
 			if ( e.Source is CheckBox )
 				return;
 
-			
 			if ( !(DataContext is ModComponent component) )
 				return;
 			component.IsSelected = !component.IsSelected;
@@ -111,12 +102,12 @@ namespace KOTORModSync.Controls
 			else
 				mainWindow.ComponentCheckboxUnchecked(component, new HashSet<ModComponent>());
 
-			e.Handled = true; 
+			e.Handled = true;
 		}
 
 		private void OnDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
-			
+
 			if ( !(DataContext is ModComponent component) )
 				return;
 			component.IsSelected = !component.IsSelected;
@@ -137,30 +128,28 @@ namespace KOTORModSync.Controls
 			e.Handled = true;
 		}
 
-
 		private void OnPointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			
+
 			if ( e.Source is TextBlock textBlock && textBlock.Name == "DragHandle" )
 				return;
 			if ( e.Source is CheckBox )
 				return;
 
-			
 			if ( DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				mainWindow.SetCurrentModComponent(component);
 		}
 
 		private void OnCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
-			
+
 			if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				mainWindow.OnComponentCheckBoxChanged(sender, e);
 		}
 
 		private void OnOptionCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
-			
+
 			if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
 				mainWindow.OnComponentCheckBoxChanged(sender, e);
 		}
@@ -170,28 +159,20 @@ namespace KOTORModSync.Controls
 			if ( !(DataContext is ModComponent component) )
 				return;
 
-			
 			if ( _previousComponent != null )
 				_previousComponent.PropertyChanged -= OnComponentPropertyChanged;
 
 			_previousComponent = component;
 
-			
 			component.PropertyChanged += OnComponentPropertyChanged;
 
-			
 			UpdateFromModManagementService();
 
-			
 			UpdateTooltip(component);
 
-			
 			SetupOptionSelectionHandlers(component);
 		}
 
-		
-		
-		
 		private void OnComponentPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			if ( e.PropertyName == nameof(ModComponent.IsValidating) && sender is ModComponent component )
@@ -200,32 +181,26 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		
-		
-		
 		private void SetupOptionSelectionHandlers(ModComponent component)
 		{
 			foreach ( Option option in component.Options )
 			{
-				
+
 				option.PropertyChanged -= OnOptionSelectionChanged;
-				
+
 				option.PropertyChanged += OnOptionSelectionChanged;
 			}
 		}
 
-		
-		
-		
 		private void OnOptionSelectionChanged(object sender, PropertyChangedEventArgs e)
 		{
 			if ( e.PropertyName == nameof(Option.IsSelected) && sender is Option option )
 			{
-				
+
 				var optionsContainer = this.FindControl<ItemsControl>("OptionsContainer");
 				if ( optionsContainer != null )
 				{
-					
+
 					var container = optionsContainer.ContainerFromItem(option);
 					if ( container != null )
 					{
@@ -239,33 +214,26 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		
-		
-		
 		public void UpdateTooltip(ModComponent component)
 		{
-			
+
 			TextBlock nameTextBlock = this.FindControl<TextBlock>("NameTextBlock");
 			if ( nameTextBlock == null )
 				return;
 
-			
 			string basicTooltip = CreateBasicTooltip(component);
 			ToolTip.SetTip(nameTextBlock, basicTooltip);
 
-			
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
 				return;
 			UpdateEditorModeVisibility(mainWindow.EditorMode);
 
-			
 			if ( !mainWindow.EditorMode )
 				return;
 			int index = mainWindow.MainConfigInstance?.allComponents.IndexOf(component) ?? -1;
 			if ( index >= 0 && this.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock )
 				indexBlock.Text = $"#{index + 1}";
 
-			
 			try
 			{
 				string detailedTooltip = CreateRichTooltipAsync(component);
@@ -274,7 +242,7 @@ namespace KOTORModSync.Controls
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, $"Error generating detailed tooltip for {component?.Name}");
-				
+
 			}
 		}
 
@@ -283,45 +251,39 @@ namespace KOTORModSync.Controls
 			if ( !(this.FindControl<Border>("RootBorder") is Border border) )
 				return;
 
-			
 			if ( component.IsValidating )
 			{
 				border.Opacity = 0.5;
-				
+
 				return;
 			}
 			else
 			{
-				
+
 				border.Opacity = 1.0;
 			}
 
-			
 			if ( !component.IsSelected )
 			{
-				
+
 				border.ClearValue(Border.BorderBrushProperty);
 				border.ClearValue(Border.BorderThicknessProperty);
 
-				
 				if ( this.FindControl<TextBlock>("ValidationIcon") is TextBlock validationIcon )
 					validationIcon.IsVisible = false;
 				return;
 			}
 
-			
 			bool isMissingDownload = !component.IsDownloaded;
 			bool hasErrors = false;
 			var errorReasons = new List<string>();
 
-			
 			if ( string.IsNullOrWhiteSpace(component.Name) )
 			{
 				hasErrors = true;
 				errorReasons.Add("Missing mod name");
 			}
 
-			
 			if ( component.Dependencies.Count > 0 )
 			{
 				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
@@ -341,7 +303,6 @@ namespace KOTORModSync.Controls
 				}
 			}
 
-			
 			if ( component.Restrictions.Count > 0 )
 			{
 				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow )
@@ -361,14 +322,12 @@ namespace KOTORModSync.Controls
 				}
 			}
 
-			
 			if ( component.Instructions.Count == 0 )
 			{
 				hasErrors = true;
 				errorReasons.Add("No installation instructions defined");
 			}
 
-			
 			if ( component.ModLink.Count > 0 )
 			{
 				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow && mainWindow.EditorMode )
@@ -377,7 +336,7 @@ namespace KOTORModSync.Controls
 					foreach ( string link in component.ModLink )
 					{
 						if ( string.IsNullOrWhiteSpace(link) )
-							continue; 
+							continue;
 
 						if ( !IsValidUrl(link) )
 							invalidUrls.Add(link);
@@ -391,36 +350,32 @@ namespace KOTORModSync.Controls
 				}
 			}
 
-			
 			if ( errorReasons.Count > 0 )
 				s_componentErrors[component.Guid] = string.Join("\n", errorReasons);
 			else
 				_ = s_componentErrors.Remove(component.Guid);
 
-			
 			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
 
-			
 			if ( hasErrors )
 			{
-				
+
 				border.BorderBrush = ThemeResourceHelper.ModListItemErrorBrush;
 				border.BorderThickness = new Thickness(2);
 			}
 			else if ( shouldShowDownloadWarning )
 			{
-				
+
 				border.BorderBrush = ThemeResourceHelper.ModListItemWarningBrush;
 				border.BorderThickness = new Thickness(1.5);
 			}
 			else
 			{
-				
+
 				border.ClearValue(Border.BorderBrushProperty);
 				border.ClearValue(Border.BorderThicknessProperty);
 			}
 
-			
 			ModListItem.UpdateValidationIcon(this.FindControl<TextBlock>("ValidationIcon"), hasErrors, shouldShowDownloadWarning);
 		}
 
@@ -453,16 +408,15 @@ namespace KOTORModSync.Controls
 		{
 			if ( !(DataContext is ModComponent component) || !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
 				return;
-			
+
 			UpdateValidationState(component);
 
-			
 			ContextMenu = mainWindow.BuildContextMenuForComponent(component);
 		}
 
 		private void UpdateEditorModeVisibility(bool isEditorMode)
 		{
-			
+
 			if ( this.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock )
 				indexBlock.IsVisible = isEditorMode;
 
@@ -470,17 +424,13 @@ namespace KOTORModSync.Controls
 				dragHandle.IsVisible = isEditorMode;
 		}
 
-		
-		
-		
 		private static string CreateBasicTooltip(ModComponent component)
 		{
 			var sb = new System.Text.StringBuilder();
 
-			
 			if ( !component.IsSelected )
 			{
-				
+
 				_ = sb.AppendLine($"📦 {component.Name}");
 				if ( !string.IsNullOrWhiteSpace(component.Author) )
 					_ = sb.AppendLine($"👤 Author: {component.Author}");
@@ -496,7 +446,6 @@ namespace KOTORModSync.Controls
 				return sb.ToString();
 			}
 
-			
 			_ = sb.AppendLine($"📦 {component.Name}");
 			if ( !string.IsNullOrWhiteSpace(component.Author) )
 				_ = sb.AppendLine($"👤 Author: {component.Author}");
@@ -505,15 +454,12 @@ namespace KOTORModSync.Controls
 			if ( !string.IsNullOrWhiteSpace(component.Tier) )
 				_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
 
-			
 			bool isMissingDownload = !component.IsDownloaded;
 			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
 			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
 
-			
 			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
 
-			
 			if ( hasErrors || shouldShowDownloadWarning )
 			{
 				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
@@ -552,17 +498,13 @@ namespace KOTORModSync.Controls
 			return sb.ToString();
 		}
 
-		
-		
-		
 		private static string CreateRichTooltipAsync(ModComponent component)
 		{
 			var sb = new System.Text.StringBuilder();
 
-			
 			if ( !component.IsSelected )
 			{
-				
+
 				_ = sb.AppendLine($"📦 {component.Name}");
 				if ( !string.IsNullOrWhiteSpace(component.Author) )
 					_ = sb.AppendLine($"👤 Author: {component.Author}");
@@ -578,7 +520,6 @@ namespace KOTORModSync.Controls
 				return sb.ToString();
 			}
 
-			
 			_ = sb.AppendLine($"📦 {component.Name}");
 			if ( !string.IsNullOrWhiteSpace(component.Author) )
 				_ = sb.AppendLine($"👤 Author: {component.Author}");
@@ -587,15 +528,12 @@ namespace KOTORModSync.Controls
 			if ( !string.IsNullOrWhiteSpace(component.Tier) )
 				_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
 
-			
 			bool isMissingDownload = !component.IsDownloaded;
 			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
 			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
 
-			
 			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
 
-			
 			if ( hasErrors || shouldShowDownloadWarning )
 			{
 				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
@@ -605,7 +543,6 @@ namespace KOTORModSync.Controls
 				{
 					_ = sb.AppendLine("❗ Missing Download");
 
-					
 					var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
 						? desktop.MainWindow as MainWindow
 						: null;
@@ -659,7 +596,6 @@ namespace KOTORModSync.Controls
 				}
 			}
 
-			
 			if ( !string.IsNullOrWhiteSpace(component.Description) )
 			{
 				_ = sb.AppendLine($"📝 Description:");
@@ -725,12 +661,10 @@ namespace KOTORModSync.Controls
 		{
 			var sb = new System.Text.StringBuilder();
 
-			
 			bool isMissingDownload = !component.IsDownloaded;
 			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
 			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
 
-			
 			if ( hasErrors || isMissingDownload )
 			{
 				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
@@ -740,7 +674,6 @@ namespace KOTORModSync.Controls
 				{
 					_ = sb.AppendLine("❗ Missing Download");
 
-					
 					var missingFiles = ValidationService.GetMissingFilesForComponentStatic(component);
 					if ( missingFiles.Count > 0 )
 					{
@@ -813,7 +746,6 @@ namespace KOTORModSync.Controls
 				_ = sb.AppendLine(desc);
 			}
 
-			
 			if ( component.Dependencies.Count > 0 )
 			{
 				_ = sb.AppendLine();
@@ -834,25 +766,23 @@ namespace KOTORModSync.Controls
 			if ( !(this.FindControl<Border>("RootBorder") is Border border) )
 				return;
 
-			
 			IBrush currentBrush = border.BorderBrush;
 			border.Tag = currentBrush;
 
-			
 			if ( currentBrush is SolidColorBrush solidBrush )
 			{
 				Color color = solidBrush.Color;
-				
-				if ( color.R > 200 && color.G < 150 ) 
-					border.BorderBrush = ThemeResourceHelper.ModListItemHoverErrorBrush; 
-				else if ( color.R > 200 && color.G > 100 && color.G < 200 ) 
-					border.BorderBrush = ThemeResourceHelper.ModListItemHoverWarningBrush; 
+
+				if ( color.R > 200 && color.G < 150 )
+					border.BorderBrush = ThemeResourceHelper.ModListItemHoverErrorBrush;
+				else if ( color.R > 200 && color.G > 100 && color.G < 200 )
+					border.BorderBrush = ThemeResourceHelper.ModListItemHoverWarningBrush;
 				else
-					border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush; 
+					border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush;
 			}
 			else
 			{
-				border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush; 
+				border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush;
 			}
 
 			border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
@@ -863,12 +793,11 @@ namespace KOTORModSync.Controls
 			if ( !(this.FindControl<Border>("RootBorder") is Border border) )
 				return;
 
-			
 			if ( border.Tag is IBrush originalBrush )
 				border.BorderBrush = originalBrush;
 			else
 			{
-				
+
 				if ( DataContext is ModComponent component )
 					UpdateValidationState(component);
 			}
@@ -876,9 +805,6 @@ namespace KOTORModSync.Controls
 			border.Background = ThemeResourceHelper.ModListItemDefaultBackgroundBrush;
 		}
 
-		
-		
-		
 		public void SetDraggedState(bool isDragged)
 		{
 			IsBeingDragged = isDragged;
@@ -888,9 +814,6 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		
-		
-		
 		public void SetDropTargetState(bool isDropTarget)
 		{
 			IsDropTarget = isDropTarget;
@@ -900,23 +823,17 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		
-		
-		
 		private static bool IsValidUrl(string url)
 		{
 			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
 
-			
 			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri uri) )
 				return false;
 
-			
 			if ( uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps )
 				return false;
 
-			
 			if ( string.IsNullOrWhiteSpace(uri.Host) )
 				return false;
 
@@ -924,15 +841,11 @@ namespace KOTORModSync.Controls
 		}
 
 
-		
-		
-		
 		private static string ResolvePath(string path)
 		{
 			if ( string.IsNullOrWhiteSpace(path) )
 				return path;
 
-			
 			if ( path.Contains("<<modDirectory>>") )
 			{
 				string modDir = MainConfig.SourcePath?.FullName ?? "";
@@ -942,27 +855,20 @@ namespace KOTORModSync.Controls
 			return path;
 		}
 
-		
-		
-		
 		private void OptionBorder_PointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			
+
 			e.Handled = true;
 
 			if ( sender is Border border && border.Tag is Option option )
 			{
-				
+
 				option.IsSelected = !option.IsSelected;
 
-				
 				ModListItem.UpdateOptionBackground(border, option.IsSelected);
 			}
 		}
 
-		
-		
-		
 		private static void UpdateOptionBackground(Border border, bool isSelected)
 		{
 			if ( border == null )
@@ -970,12 +876,12 @@ namespace KOTORModSync.Controls
 
 			if ( isSelected )
 			{
-				
+
 				border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
 			}
 			else
 			{
-				
+
 				border.Background = Brushes.Transparent;
 			}
 		}

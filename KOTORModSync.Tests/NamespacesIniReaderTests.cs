@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Text;
@@ -32,7 +33,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ReadNamespacesIniFromArchive_WhenValidInput_ReturnsNamespaces()
 		{
-			
+
 			const string content = @"
 [Namespaces]
 Namespace1=standard
@@ -54,10 +55,8 @@ Name=hk50 with tslrcm
 ";
 			Stream stream = CreateNamespacesIniArchive(content);
 
-			
 			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(stream);
 
-			
 			Assert.That(result, Is.Not.Null);
 			Assert.That(result, Has.Count.EqualTo(5));
 
@@ -79,7 +78,7 @@ Name=hk50 with tslrcm
 		[Test]
 		public void ReadNamespacesIniFromArchive_WhenTslPatchDataFolderNotFound_ReturnsNull()
 		{
-			
+
 			var memoryStream = new MemoryStream();
 			using ( SharpCompress.Writers.IWriter archive = SharpCompress.Writers.WriterFactory.Open(memoryStream, SharpCompress.Common.ArchiveType.Zip, new SharpCompress.Writers.WriterOptions(SharpCompress.Common.CompressionType.Deflate) { LeaveStreamOpen = true }) )
 			{
@@ -93,37 +92,33 @@ Namespace4=hk50TSLRCM
 				byte[] contentBytes = Encoding.UTF8.GetBytes(content);
 				using ( var contentStream = new MemoryStream(contentBytes) )
 				{
-					
+
 					archive.Write("namespaces.ini", contentStream, DateTime.Now);
 				}
 			}
 			memoryStream.Position = 0;
 
-			
 			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(memoryStream);
 
-			
 			Assert.That(result, Is.Null);
 		}
 
 		[Test]
 		public void ReadNamespacesIniFromArchive_WhenInvalidContent_ReturnsNull()
 		{
-			
+
 			const string content = "Invalid Content";
 			Stream stream = CreateNamespacesIniStream(content);
 
-			
 			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(stream);
 
-			
 			Assert.That(result, Is.Null);
 		}
 
 		[Test]
 		public void ParseNamespacesIni_WhenValidInput_ReturnsNamespaces()
 		{
-			
+
 			const string content = @"
 [Namespaces]
 Namespace1=standard
@@ -145,10 +140,9 @@ Name=hk50 with tslrcm
 ";
 
 			using var reader = new StreamReader(CreateNamespacesIniStream(content));
-			
+
 			Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni(reader);
 
-			
 			Assert.That(result, Is.Not.Null);
 			Assert.That(result, Has.Count.EqualTo(5));
 			Assert.Multiple(
@@ -165,24 +159,22 @@ Name=hk50 with tslrcm
 		[Test]
 		public void ParseNamespacesIni_WhenInvalidInput_ThrowsArgumentNullException()
 		{
-			
+
 			StreamReader? reader = null;
 
-			
 			_ = Assert.Throws<ArgumentNullException>(() => IniHelper.ParseNamespacesIni(reader));
 		}
 
 		[Test]
 		public void ParseNamespacesIni_WhenInvalidContent_ReturnsEmptyDictionary()
 		{
-			
+
 			string content = "Invalid Content";
 			using ( var reader = new StreamReader(CreateNamespacesIniStream(content)) )
 			{
-				
+
 				Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni(reader);
 
-				
 				Assert.That(result, Is.Not.Null);
 				Assert.That(result, Is.Empty);
 			}

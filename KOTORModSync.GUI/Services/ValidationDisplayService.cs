@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -10,9 +11,7 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class ValidationDisplayService
 	{
 		private readonly ValidationService _validationService;
@@ -26,9 +25,6 @@ namespace KOTORModSync.Services
 			_getMainComponents = getMainComponents ?? throw new ArgumentNullException(nameof(getMainComponents));
 		}
 
-		
-		
-		
 		public void ShowValidationResults(
 			Border validationResultsArea,
 			TextBlock validationSummaryText,
@@ -43,7 +39,6 @@ namespace KOTORModSync.Services
 				var selectedComponents = mainComponents.Where(c => c.IsSelected).ToList();
 				_validationErrors.Clear();
 
-				
 				foreach ( ModComponent component in selectedComponents )
 				{
 					if ( !isComponentValid(component) )
@@ -57,7 +52,7 @@ namespace KOTORModSync.Services
 
 				if ( _validationErrors.Count == 0 )
 				{
-					
+
 					if ( validationSummaryText != null )
 						validationSummaryText.Text = $"✅ All {selectedComponents.Count} mods validated successfully!";
 					if ( errorNavigationArea != null )
@@ -69,7 +64,7 @@ namespace KOTORModSync.Services
 				}
 				else
 				{
-					
+
 					int validCount = selectedComponents.Count - _validationErrors.Count;
 					if ( validationSummaryText != null )
 						validationSummaryText.Text = $"⚠️ {validCount}/{selectedComponents.Count} mods validated successfully";
@@ -80,7 +75,6 @@ namespace KOTORModSync.Services
 					if ( validationSuccessArea != null )
 						validationSuccessArea.IsVisible = false;
 
-					
 					_currentErrorIndex = 0;
 					UpdateErrorDisplay(null, null, null, null, null, null, null);
 				}
@@ -91,9 +85,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void UpdateErrorDisplay(
 			TextBlock errorCounterText,
 			TextBlock errorModNameText,
@@ -110,7 +101,6 @@ namespace KOTORModSync.Services
 
 				ModComponent currentError = _validationErrors[_currentErrorIndex];
 
-				
 				if ( errorCounterText != null )
 					errorCounterText.Text = $"Error {_currentErrorIndex + 1} of {_validationErrors.Count}";
 
@@ -123,7 +113,6 @@ namespace KOTORModSync.Services
 				if ( nextErrorButton != null )
 					nextErrorButton.IsEnabled = _currentErrorIndex < _validationErrors.Count - 1;
 
-				
 				(string ErrorType, string Description, bool CanAutoFix) errorDetails = _validationService.GetComponentErrorDetails(currentError);
 
 				if ( errorTypeText != null )
@@ -132,7 +121,6 @@ namespace KOTORModSync.Services
 				if ( errorDescriptionText != null )
 					errorDescriptionText.Text = errorDetails.Description;
 
-				
 				if ( autoFixButton != null )
 					autoFixButton.IsVisible = errorDetails.CanAutoFix;
 			}
@@ -142,9 +130,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void NavigateToPreviousError(
 			TextBlock errorCounterText,
 			TextBlock errorModNameText,
@@ -161,9 +146,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void NavigateToNextError(
 			TextBlock errorCounterText,
 			TextBlock errorModNameText,
@@ -180,9 +162,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public bool AutoFixCurrentError(Action<ModComponent> refreshModListVisuals)
 		{
 			try
@@ -196,7 +175,6 @@ namespace KOTORModSync.Services
 				if ( !errorDetails.CanAutoFix )
 					return false;
 
-				
 				if ( errorDetails.ErrorType.Contains("Missing required dependencies") )
 				{
 					AutoFixMissingDependencies(currentError);
@@ -216,9 +194,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public ModComponent GetCurrentError()
 		{
 			if ( _validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count )

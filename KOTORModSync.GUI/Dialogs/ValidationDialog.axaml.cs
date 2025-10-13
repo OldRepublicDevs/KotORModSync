@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -43,7 +44,7 @@ namespace KOTORModSync.Dialogs
 
 		private void InitializeDialog(bool success, string summaryMessage, List<ValidationIssue> modIssues, List<string> systemIssues)
 		{
-			
+
 			Border summaryBorder = this.FindControl<Border>("SummaryBorder");
 			TextBlock summaryIcon = this.FindControl<TextBlock>("SummaryIcon");
 			TextBlock summaryText = this.FindControl<TextBlock>("SummaryText");
@@ -63,20 +64,19 @@ namespace KOTORModSync.Dialogs
 				summaryIcon.Text = "✅";
 				summaryText.Text = "Validation Successful!";
 				summaryDetails.Text = summaryMessage;
-				summaryBorder.Background = new SolidColorBrush(Color.Parse("#1B4D3E")); 
+				summaryBorder.Background = new SolidColorBrush(Color.Parse("#1B4D3E"));
 			}
 			else
 			{
 				summaryIcon.Text = "❌";
 				summaryText.Text = "Validation Failed";
 				summaryDetails.Text = summaryMessage;
-				summaryBorder.Background = new SolidColorBrush(Color.Parse("#4D1B1B")); 
+				summaryBorder.Background = new SolidColorBrush(Color.Parse("#4D1B1B"));
 				if ( issuesPanel != null )
 					issuesPanel.IsVisible = true;
 				if ( openOutputButton != null )
 					openOutputButton.IsVisible = true;
 
-				
 				if ( systemIssues != null && systemIssues.Count > 0 && systemIssuesPanel != null && systemIssuesList != null )
 				{
 					systemIssuesPanel.IsVisible = true;
@@ -99,7 +99,6 @@ namespace KOTORModSync.Dialogs
 					systemIssuesList.ItemsSource = systemIssuesChildren;
 				}
 
-				
 				if ( modIssues != null && modIssues.Count > 0 && modIssuesPanel != null && modIssuesList != null )
 				{
 					modIssuesPanel.IsVisible = true;

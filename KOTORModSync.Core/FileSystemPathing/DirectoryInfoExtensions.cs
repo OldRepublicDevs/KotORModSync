@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -28,14 +29,14 @@ namespace KOTORModSync.Core.FileSystemUtils
 					Logger.LogVerbose(
 						$"Permission denied while enumerating file/folder wildcards: {permEx.Message} Skipping..."
 					);
-					continue; 
+					continue;
 				}
 				catch ( IOException ioEx )
 				{
 					Logger.LogError(
 						$"IO exception enumerating file/folder wildcards: {ioEx.Message} Skipping file/folder..."
 					);
-					continue; 
+					continue;
 				}
 				catch ( Exception ex )
 				{

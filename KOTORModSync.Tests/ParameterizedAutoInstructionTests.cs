@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -26,7 +27,6 @@ namespace KOTORModSync.Tests
 			_testDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_ParamAutoInstruct_" + Guid.NewGuid());
 			Directory.CreateDirectory(_testDirectory);
 
-			
 			var mainConfig = new MainConfig();
 			mainConfig.sourcePath = new DirectoryInfo(_testDirectory);
 			mainConfig.destinationPath = new DirectoryInfo(Path.Combine(_testDirectory, "KOTOR"));
@@ -43,29 +43,24 @@ namespace KOTORModSync.Tests
 			}
 			catch
 			{
-				
+
 			}
 		}
 
-		
-		
-		
 		private static IEnumerable<TestCaseData> GetAllMarkdownFiles()
 		{
-			
-			
+
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
 			string contentRoot = Path.Combine(solutionRoot, "mod-builds", "content");
 
-			
 			string k1Path = Path.Combine(contentRoot, "k1");
 			if ( Directory.Exists(k1Path) )
 			{
 				foreach ( string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories) )
 				{
-					
+
 					if ( mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
 						mdFile.Contains("/validated/") )
 						continue;
@@ -78,13 +73,12 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			string k2Path = Path.Combine(contentRoot, "k2");
 			if ( Directory.Exists(k2Path) )
 			{
 				foreach ( string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories) )
 				{
-					
+
 					if ( mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
 						mdFile.Contains("/validated/") )
 						continue;
@@ -98,13 +92,9 @@ namespace KOTORModSync.Tests
 			}
 		}
 
-		
-		
-		
-		
 		private static IEnumerable<TestCaseData> GetAllDeadlystreamComponents()
 		{
-			
+
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
@@ -113,9 +103,6 @@ namespace KOTORModSync.Tests
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
-			
-			
 			var downloadCacheService = new DownloadCacheService();
 			var httpClient = new System.Net.Http.HttpClient();
 			var handlers = new List<IDownloadHandler>
@@ -124,7 +111,7 @@ namespace KOTORModSync.Tests
 			new MegaDownloadHandler(),
 			new NexusModsDownloadHandler(httpClient, ""),
 			new GameFrontDownloadHandler(httpClient),
-			new DirectDownloadHandler(httpClient)  
+			new DirectDownloadHandler(httpClient)
 		};
 			var downloadManager = new DownloadManager(handlers);
 			downloadCacheService.SetDownloadManager(downloadManager);
@@ -133,7 +120,6 @@ namespace KOTORModSync.Tests
 			string downloadDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_TestDownloads");
 			Directory.CreateDirectory(downloadDirectory);
 
-			
 			string k1Path = Path.Combine(contentRoot, "k1");
 			if ( Directory.Exists(k1Path) )
 			{
@@ -151,7 +137,6 @@ namespace KOTORModSync.Tests
 							link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true)
 						.ToList();
 
-					
 					if ( deadlyStreamComponents.Count > 0 )
 					{
 						modLinkProcessor.ProcessComponentModLinksSync(
@@ -174,7 +159,6 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			string k2Path = Path.Combine(contentRoot, "k2");
 			if ( Directory.Exists(k2Path) )
 			{
@@ -192,7 +176,6 @@ namespace KOTORModSync.Tests
 							link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true)
 						.ToList();
 
-					
 					if ( deadlyStreamComponents.Count > 0 )
 					{
 						modLinkProcessor.ProcessComponentModLinksSync(
@@ -220,12 +203,11 @@ namespace KOTORModSync.Tests
 		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void IndividualComponent_HasModSyncInstructions(ModComponent component, string mdFilePath)
 		{
-			
+
 			Console.WriteLine($"========================================");
 			Console.WriteLine($"Testing component: {component.Name}");
 			Console.WriteLine($"From file: {Path.GetFileName(mdFilePath)}");
 
-			
 			var deadlyStreamLinks = component.ModLink
 				.Where(link => !string.IsNullOrWhiteSpace(link) &&
 					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
@@ -241,7 +223,6 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Instructions count: {component.Instructions.Count}");
 			Console.WriteLine($"Options count: {component.Options.Count}");
 
-			
 			Assert.That(component.Instructions, Is.Not.Empty,
 				$"Component '{component.Name}' has Deadlystream link(s) but no ModSync metadata/instructions. " +
 				$"All mods with Deadlystream links MUST have instructions (ModSync metadata block in markdown).");
@@ -251,21 +232,19 @@ namespace KOTORModSync.Tests
 		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void AutoGenerate_DeadlyStreamModsHaveInstructions(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult parseResult = parser.Parse(markdown);
 
 			Console.WriteLine($"\n========================================");
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Total components: {parseResult.Components.Count}");
 
-			
 			var deadlyStreamComponents = parseResult.Components
 				.Where(c => c.ModLink?.Any(link => !string.IsNullOrWhiteSpace(link) &&
 					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true)
@@ -279,12 +258,10 @@ namespace KOTORModSync.Tests
 				return;
 			}
 
-			
 			var componentsWithoutInstructions = new List<string>();
 			int componentsWithInstructions = 0;
 			int componentsAlreadyHaveInstructions = 0;
 
-			
 			foreach ( var component in deadlyStreamComponents )
 			{
 				bool hadInstructionsBeforeAutoGen = component.Instructions.Count > 0;
@@ -295,7 +272,6 @@ namespace KOTORModSync.Tests
 					continue;
 				}
 
-				
 				var deadlyStreamLinks = component.ModLink
 					.Where(link => !string.IsNullOrWhiteSpace(link) &&
 						link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
@@ -308,16 +284,8 @@ namespace KOTORModSync.Tests
 					Console.WriteLine($"    - {link}");
 				}
 
-				
-				
-				
-
 				Console.WriteLine($"  Instructions before: {component.Instructions.Count}");
 				Console.WriteLine($"  Options before: {component.Options.Count}");
-
-				
-				
-				
 
 				if ( component.Instructions.Count > 0 )
 				{
@@ -331,7 +299,6 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			Console.WriteLine($"\n========================================");
 			Console.WriteLine($"Summary for {Path.GetFileName(mdFilePath)}:");
 			Console.WriteLine($"  Total Deadlystream components: {deadlyStreamComponents.Count}");
@@ -339,7 +306,6 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"  Components needing auto-generation: {deadlyStreamComponents.Count - componentsAlreadyHaveInstructions}");
 			Console.WriteLine($"  Components without instructions: {componentsWithoutInstructions.Count}");
 
-			
 			if ( componentsWithoutInstructions.Count > 0 )
 			{
 				Console.WriteLine($"\nComponents without instructions:");
@@ -353,7 +319,6 @@ namespace KOTORModSync.Tests
 					Console.WriteLine($"  ... and {componentsWithoutInstructions.Count - 10} more");
 				}
 
-				
 				Assert.Fail($"{componentsWithoutInstructions.Count} Deadlystream component(s) in {Path.GetFileName(mdFilePath)} " +
 					$"don't have ModSync metadata/instructions. All mods with Deadlystream links MUST have instructions.");
 			}
@@ -363,19 +328,17 @@ namespace KOTORModSync.Tests
 		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_DeadlyStreamLinksAreValidUrls(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult parseResult = parser.Parse(markdown);
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 
-			
 			int deadlyStreamLinkCount = 0;
 			int invalidLinks = 0;
 
@@ -392,7 +355,7 @@ namespace KOTORModSync.Tests
 
 				foreach ( var link in deadlyStreamLinks )
 				{
-					
+
 					if ( !Uri.TryCreate(link, UriKind.Absolute, out Uri? uri) ||
 						(uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) )
 					{
@@ -417,19 +380,17 @@ namespace KOTORModSync.Tests
 		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_WithModSyncMetadata_HaveValidInstructions(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult parseResult = parser.Parse(markdown);
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 
-			
 			int componentsWithInstructions = 0;
 			int componentsWithMalformedInstructions = 0;
 
@@ -439,12 +400,10 @@ namespace KOTORModSync.Tests
 
 				componentsWithInstructions++;
 
-				
 				foreach ( var instruction in component.Instructions )
 				{
 					bool hasIssue = false;
 
-					
 					switch ( instruction.Action )
 					{
 						case Instruction.ActionType.Extract:
@@ -496,21 +455,19 @@ namespace KOTORModSync.Tests
 		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_StatisticsOnInstallationMethods(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult parseResult = parser.Parse(markdown);
 
 			Console.WriteLine($"\n========================================");
 			Console.WriteLine($"Installation Method Statistics for {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"========================================");
 
-			
 			var methodCounts = new Dictionary<string, int>();
 			var componentsWithDeadlyStream = new Dictionary<string, int>();
 			var componentsWithInstructions = new Dictionary<string, int>();
@@ -523,7 +480,6 @@ namespace KOTORModSync.Tests
 					methodCounts[method] = 0;
 				methodCounts[method]++;
 
-				
 				bool hasDeadlyStream = component.ModLink?.Any(link =>
 					!string.IsNullOrWhiteSpace(link) &&
 					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true;
@@ -558,7 +514,6 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			Assert.Pass($"Statistics gathered for {Path.GetFileName(mdFilePath)}");
 		}
 	}

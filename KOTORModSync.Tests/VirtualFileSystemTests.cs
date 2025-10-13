@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Diagnostics;
@@ -9,11 +10,7 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Tests
 {
-	
-	
-	
-	
-	
+
 	[TestFixture]
 	public class VirtualFileSystemTests
 	{
@@ -35,7 +32,6 @@ namespace KOTORModSync.Tests
 			Directory.CreateDirectory(_sourceDir);
 			Directory.CreateDirectory(_destinationDir);
 
-			
 			_originalConfig = new MainConfig();
 		}
 
@@ -51,7 +47,7 @@ namespace KOTORModSync.Tests
 			{
 				TestContext.WriteLine($"Warning: Could not delete test directory: {ex.Message}");
 			}
-			
+
 			_ = new MainConfig
 			{
 				sourcePath = _originalConfig?.sourcePath,
@@ -93,7 +89,7 @@ namespace KOTORModSync.Tests
 					}
 				}
 			}
-			catch {  }
+			catch { }
 
 			throw new InvalidOperationException("7-Zip not found. Please install 7-Zip to run these tests.");
 		}
@@ -171,7 +167,6 @@ namespace KOTORModSync.Tests
 			DirectoryInfo? originalSourcePath = MainConfig.SourcePath;
 			DirectoryInfo? originalDestPath = MainConfig.DestinationPath;
 
-			
 			var virtualInstructions = new List<Instruction>();
 			var realInstructions = new List<Instruction>();
 			foreach ( Instruction instruction in instructions )
@@ -196,7 +191,7 @@ namespace KOTORModSync.Tests
 
 			try
 			{
-				
+
 				_ = new MainConfig
 				{
 					sourcePath = new DirectoryInfo(virtualRoot),
@@ -216,7 +211,6 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
 				TestContext.WriteLine($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
 
-				
 				_ = new MainConfig
 				{
 					sourcePath = new DirectoryInfo(realRoot),
@@ -238,7 +232,7 @@ namespace KOTORModSync.Tests
 			}
 			finally
 			{
-				
+
 				_ = new MainConfig
 				{
 					sourcePath = originalSourcePath,
@@ -249,8 +243,7 @@ namespace KOTORModSync.Tests
 
 		private static void AssertFileSystemsMatch(VirtualFileSystemProvider virtualProvider, string realDestDir)
 		{
-			
-			
+
 			string virtDestPath = Path.GetDirectoryName(Path.GetDirectoryName(realDestDir))!;
 			string virtualDestPath = Path.Combine(virtDestPath, "Virtual", "dest");
 
@@ -275,7 +268,6 @@ namespace KOTORModSync.Tests
 			foreach ( string file in realFiles.OrderBy(f => f) )
 				TestContext.WriteLine($"  {file}");
 
-			
 			var missingInReal = virtualFiles.Except(realFiles, StringComparer.OrdinalIgnoreCase).ToList();
 			if ( missingInReal.Count > 0 )
 			{
@@ -284,7 +276,6 @@ namespace KOTORModSync.Tests
 					TestContext.WriteLine($"  {file}");
 			}
 
-			
 			var missingInVirtual = realFiles.Except(virtualFiles, StringComparer.OrdinalIgnoreCase).ToList();
 			if ( missingInVirtual.Count > 0 )
 			{
@@ -305,7 +296,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_ExtractArchive_Basic()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "test.zip");
 			CreateArchive(archivePath, new()
@@ -325,10 +316,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -361,7 +350,7 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 		{
-			
+
 			new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\dup.zip"], Destination = "<<modDirectory>>\\copy1", Overwrite = true },
 			new() { Action = Instruction.ActionType.Rename, Source = ["<<modDirectory>>\\copy1\\dup.zip"], Destination = "dup_copy1.zip", Overwrite = true },
 			new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\dup.zip"], Destination = "<<modDirectory>>\\copy2", Overwrite = true },
@@ -462,7 +451,7 @@ namespace KOTORModSync.Tests
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
 			Assert.That(v.GetValidationIssues(), Is.Empty);
-			
+
 			Assert.That(v.GetTrackedFiles().Any(p => p.EndsWith("del\\rm.txt", StringComparison.OrdinalIgnoreCase)), Is.False);
 			AssertFileSystemsMatch(v, r);
 		}
@@ -518,7 +507,6 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			Debug.Assert(_sourceDir != null);
 			Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir));
 		}
@@ -526,7 +514,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_MoveArchiveThenExtract()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string originalArchivePath = Path.Combine(_sourceDir, "original.zip");
 			CreateArchive(originalArchivePath, new()
@@ -552,10 +540,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -563,7 +549,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_CopyArchiveThenExtractBoth()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string originalArchivePath = Path.Combine(_sourceDir, "source.zip");
 			CreateArchive(originalArchivePath, new()
@@ -573,7 +559,7 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				
+
 				new()
 				{
 					Action = Instruction.ActionType.Copy,
@@ -581,7 +567,7 @@ namespace KOTORModSync.Tests
 					Destination = "<<modDirectory>>\\archives",
 					Overwrite = true
 				},
-				
+
 				new()
 				{
 					Action = Instruction.ActionType.Rename,
@@ -589,14 +575,14 @@ namespace KOTORModSync.Tests
 					Destination = "copy.zip",
 					Overwrite = true
 				},
-				
+
 				new()
 				{
 					Action = Instruction.ActionType.Extract,
 					Source = ["<<modDirectory>>\\source.zip"],
 					Destination = "<<kotorDirectory>>\\original_extract"
 				},
-				
+
 				new()
 				{
 					Action = Instruction.ActionType.Extract,
@@ -605,10 +591,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -616,7 +600,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_RenameArchiveThenExtract()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string originalArchivePath = Path.Combine(_sourceDir, "oldname.zip");
 			CreateArchive(originalArchivePath, new()
@@ -641,10 +625,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -652,7 +634,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_ExtractMultipleArchives()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string archive1 = Path.Combine(_sourceDir, "mod1.zip");
 			string archive2 = Path.Combine(_sourceDir, "mod2.zip");
@@ -696,10 +678,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -711,7 +691,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_MoveExtractedFiles()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "files.zip");
 			CreateArchive(archivePath, new()
@@ -737,10 +717,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -748,7 +726,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_CopyExtractedFiles()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "source.zip");
 			CreateArchive(archivePath, new()
@@ -773,10 +751,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -784,7 +760,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_RenameExtractedFile()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "content.zip");
 			CreateArchive(archivePath, new()
@@ -809,10 +785,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -820,7 +794,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_DeleteExtractedFile()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "cleanup.zip");
 			CreateArchive(archivePath, new()
@@ -845,10 +819,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -860,7 +832,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void Test_ExtractNonExistentArchive_ShouldFail()
 		{
-			
+
 			var instructions = new List<Instruction>
 			{
 				new()
@@ -871,7 +843,6 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			Debug.Assert(_sourceDir != null);
 			_ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir));
 		}
@@ -879,7 +850,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public Task Test_MoveNonExistentFile_DetectedInDryRun()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "test.zip");
 			CreateArchive(archivePath, new()
@@ -908,7 +879,6 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			_ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir));
 			return Task.CompletedTask;
 		}
@@ -916,7 +886,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_ExtractMovedArchive_Success()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string originalPath = Path.Combine(_sourceDir, "original.zip");
 			CreateArchive(originalPath, new()
@@ -943,10 +913,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -958,7 +926,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_ComplexModInstallation_MultipleArchivesAndOperations()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string mod1Archive = Path.Combine(_sourceDir, "mod1.zip");
 			string mod2Archive = Path.Combine(_sourceDir, "mod2.zip");
@@ -986,35 +954,29 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				
+
 				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\mod1.zip"], Destination = "<<modDirectory>>" },
 				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mod1\\override\\*"], Destination = "<<kotorDirectory>>\\override", Overwrite = true },
 				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mod1\\modules\\*"], Destination = "<<kotorDirectory>>\\modules", Overwrite = true },
 
-				
 				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\mod2.zip"], Destination = "<<modDirectory>>" },
-				
+
 				new() { Action = Instruction.ActionType.Copy, Source = ["<<kotorDirectory>>\\override\\appearance.2da"], Destination = "<<kotorDirectory>>\\backup\\appearance.2da.mod1", Overwrite = true },
-				
+
 				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mod2\\override\\*"], Destination = "<<kotorDirectory>>\\override", Overwrite = true },
 				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mod2\\lips\\*"], Destination = "<<kotorDirectory>>\\lips", Overwrite = true },
 
-				
 				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\patch.zip"], Destination = "<<modDirectory>>" },
 				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\patch\\appearance.2da"], Destination = "<<kotorDirectory>>\\override", Overwrite = true },
 
-				
 				new() { Action = Instruction.ActionType.Delete, Source = ["<<modDirectory>>\\patch\\compatibility_fix.txt"] }
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 
-			
 			List<string> virtualFiles = virtualProvider.GetTrackedFiles();
 			Assert.Multiple(() =>
 			{
@@ -1028,7 +990,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_NestedArchiveOperations()
 		{
-			
+
 			Debug.Assert(_sourceDir != null);
 			string originalPath = Path.Combine(_sourceDir, "original.zip");
 			CreateArchive(originalPath, new()
@@ -1079,10 +1041,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
 
-			
 			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(virtualProvider, realDestDir);
 		}
@@ -1093,7 +1053,7 @@ namespace KOTORModSync.Tests
 		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public async Task Test_FullModBuildInstallation_KOTOR1_Mobile_Full()
 		{
-			
+
 			Debug.Assert(_testRootDir != null);
 			string kotorRoot = Path.Combine(_testRootDir, "KOTOR_Install");
 			CreateKOTORDirectoryStructure(kotorRoot);
@@ -1101,7 +1061,6 @@ namespace KOTORModSync.Tests
 			string modDirectory = Path.Combine(_testRootDir, "Mods");
 			_ = Directory.CreateDirectory(modDirectory);
 
-			
 			string[] possiblePaths =
 			{
 				Path.Combine(Environment.CurrentDirectory, "mod-builds", "TOMLs", "KOTOR1_Mobile_Full.toml"),
@@ -1123,7 +1082,7 @@ namespace KOTORModSync.Tests
 				}
 				catch
 				{
-					
+
 				}
 			}
 
@@ -1135,7 +1094,6 @@ namespace KOTORModSync.Tests
 
 			TestContext.WriteLine($"Loading TOML from: {tomlPath}");
 
-			
 			List<ModComponent> components;
 			try
 			{
@@ -1149,14 +1107,12 @@ namespace KOTORModSync.Tests
 
 			TestContext.WriteLine($"Loaded {components.Count} mods from TOML");
 
-			
 			_ = new MainConfig
 			{
 				sourcePath = new DirectoryInfo(modDirectory),
 				destinationPath = new DirectoryInfo(kotorRoot)
 			};
 
-			
 			TestContext.WriteLine("Attempting to download mods...");
 			int downloadedCount = 0;
 			int failedCount = 0;
@@ -1173,8 +1129,7 @@ namespace KOTORModSync.Tests
 
 				try
 				{
-					
-					
+
 					bool downloaded = await TryDownloadModAsync(component, modDirectory);
 					if ( downloaded )
 					{
@@ -1204,11 +1159,9 @@ namespace KOTORModSync.Tests
 				return;
 			}
 
-			
 			var selectedComponents = components.Where(c => c.IsSelected).ToList();
 			TestContext.WriteLine($"\nInstalling {selectedComponents.Count} mods...");
 
-			
 			var allInstructions = new List<Instruction>();
 			foreach ( ModComponent component in selectedComponents )
 			{
@@ -1223,7 +1176,6 @@ namespace KOTORModSync.Tests
 
 			TestContext.WriteLine($"Total instructions: {allInstructions.Count}");
 
-			
 			try
 			{
 				(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(
@@ -1231,7 +1183,6 @@ namespace KOTORModSync.Tests
 					modDirectory
 				);
 
-				
 				var criticalIssues = virtualProvider.GetValidationIssues()
 					.Where(i => i.Severity >= ValidationSeverity.Error)
 					.ToList();
@@ -1245,10 +1196,8 @@ namespace KOTORModSync.Tests
 					TestContext.WriteLine($"  {issue.Severity}: [{issue.Category}] {issue.Message}");
 				}
 
-				
 				Assert.That(criticalIssues, Is.Empty, "Installation should complete without critical errors");
 
-				
 				AssertFileSystemsMatch(virtualProvider, realDestDir);
 
 				TestContext.WriteLine("\n✓ Installation test passed!");
@@ -1263,7 +1212,6 @@ namespace KOTORModSync.Tests
 		{
 			_ = Directory.CreateDirectory(rootPath);
 
-			
 			string[] directories =
 			[
 				"data",
@@ -1284,18 +1232,15 @@ namespace KOTORModSync.Tests
 				_ = Directory.CreateDirectory(Path.Combine(rootPath, dir));
 			}
 
-			
 			File.WriteAllText(Path.Combine(rootPath, "swkotor.exe"), "fake exe");
 			File.WriteAllText(Path.Combine(rootPath, "dialog.tlk"), "fake dialog");
 		}
 
 		private static async Task<bool> TryDownloadModAsync(ModComponent component, string modDirectory)
 		{
-			
-			
+
 			await Task.CompletedTask;
 
-			
 			var expectedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
 			if ( component.Instructions.Count > 0 )
@@ -1307,7 +1252,7 @@ namespace KOTORModSync.Tests
 					foreach ( string cleanSource in instruction.Source.Select(source => source.Replace("<<modDirectory>>\\", "")
 								 .Replace("<<modDirectory>>/", "")) )
 					{
-						
+
 						if ( cleanSource.Contains('*') )
 						{
 							try
@@ -1320,11 +1265,11 @@ namespace KOTORModSync.Tests
 									continue;
 								string[] matchingFiles = Directory.GetFiles(fullSearchDir, searchPattern, SearchOption.TopDirectoryOnly);
 								if ( matchingFiles.Length > 0 )
-									return true; 
+									return true;
 							}
 							catch
 							{
-								
+
 							}
 						}
 						else
@@ -1335,7 +1280,6 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			foreach ( string expectedFile in expectedFiles )
 			{
 				string fullPath = Path.Combine(modDirectory, expectedFile);
@@ -1345,7 +1289,6 @@ namespace KOTORModSync.Tests
 				return true;
 			}
 
-			
 			return false;
 		}
 

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -33,7 +34,6 @@ namespace KOTORModSync.Dialogs
 			this.AttachDevTools();
 #endif
 
-			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -61,11 +61,9 @@ namespace KOTORModSync.Dialogs
 
 			DataContext = ViewModel;
 
-			
 			ViewModel.JumpToRawViewRequested += OnJumpToRawViewRequested;
 			ViewModel.SyncSelectionRequested += OnSyncSelectionRequested;
 
-			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -123,7 +121,7 @@ namespace KOTORModSync.Dialogs
 		{
 			if ( !(sender is Border border) || !(border.DataContext is ComponentConflictItem item) )
 				return;
-			
+
 			if ( item.IsFromExisting )
 				ViewModel.SelectedExistingItem = item;
 			else
@@ -134,7 +132,7 @@ namespace KOTORModSync.Dialogs
 
 		private void OnItemContextRequested(object sender, RoutedEventArgs e)
 		{
-			
+
 			if ( !(sender is Border border) || !(border.DataContext is ComponentConflictItem item) )
 				return;
 			if ( item.IsFromExisting )
@@ -194,7 +192,6 @@ namespace KOTORModSync.Dialogs
 				if ( !(sender is TabControl tabControl) )
 					return;
 
-				
 				if ( tabControl.SelectedIndex == 1 )
 					ViewModel?.UpdateExistingTomlView();
 			}
@@ -211,7 +208,6 @@ namespace KOTORModSync.Dialogs
 				if ( !(sender is TabControl tabControl) )
 					return;
 
-				
 				if ( tabControl.SelectedIndex == 1 )
 					ViewModel?.UpdateIncomingTomlView();
 			}
@@ -228,7 +224,6 @@ namespace KOTORModSync.Dialogs
 				if ( !(sender is TabControl tabControl) )
 					return;
 
-				
 				if ( tabControl.SelectedIndex == 1 )
 					ViewModel?.UpdateMergedTomlView();
 			}
@@ -244,44 +239,41 @@ namespace KOTORModSync.Dialogs
 			{
 				if ( e.Item == null ) return;
 
-				
 				if ( e.Item.IsFromExisting )
 				{
-					
+
 					TabControl existingTabControl = this.FindControl<TabControl>("ExistingTabControl");
 					if ( existingTabControl == null )
 						return;
 					existingTabControl.SelectedIndex = 1;
-					
+
 					ViewModel?.UpdateExistingTomlView();
 
-					
 					if ( ViewModel == null )
 						return;
 					int lineNumber = ViewModel.GetComponentLineNumber(e.Item);
 					if ( lineNumber > 0 )
 					{
-						
+
 						Avalonia.Threading.Dispatcher.UIThread.Post(() => ComponentMergeConflictDialog.ScrollToLineInTomlView(existingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
 					}
 				}
 				else
 				{
-					
+
 					TabControl incomingTabControl = this.FindControl<TabControl>("IncomingTabControl");
 					if ( incomingTabControl == null )
 						return;
 					incomingTabControl.SelectedIndex = 1;
-					
+
 					ViewModel?.UpdateIncomingTomlView();
 
-					
 					if ( ViewModel == null )
 						return;
 					int lineNumber = ViewModel.GetComponentLineNumber(e.Item);
 					if ( lineNumber > 0 )
 					{
-						
+
 						Avalonia.Threading.Dispatcher.UIThread.Post(() => ComponentMergeConflictDialog.ScrollToLineInTomlView(incomingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
 					}
 				}
@@ -296,34 +288,31 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				
+
 				if ( tabControl.SelectedIndex != 1 ) return;
 
 				ScrollViewer scrollViewer = ComponentMergeConflictDialog.FindScrollViewerInTab(tabControl);
 				if ( scrollViewer == null ) return;
 
-				
 				ListBox listBox = FindDescendant<ListBox>(scrollViewer);
 				if ( listBox == null || listBox.ItemCount == 0 ) return;
 
-				
 				Avalonia.Threading.Dispatcher.UIThread.Post(() =>
 				{
 					try
 					{
-						
+
 						int targetIndex = Math.Max(0, Math.Min(lineNumber - 1, listBox.ItemCount - 1));
 
-						
 						if ( listBox.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
 						{
 							double itemHeight = firstItem.Bounds.Height;
-							double targetOffset = Math.Max(0, (targetIndex - 2) * itemHeight); 
+							double targetOffset = Math.Max(0, (targetIndex - 2) * itemHeight);
 							scrollViewer.Offset = new Vector(0, targetOffset);
 						}
 						else
 						{
-							
+
 							if ( listBox.ContainerFromIndex(targetIndex) is Control targetItem )
 								targetItem.BringIntoView();
 						}
@@ -380,15 +369,12 @@ namespace KOTORModSync.Dialogs
 			{
 				if ( e.MatchedItem == null ) return;
 
-				
-				
 				Avalonia.Threading.Dispatcher.UIThread.Post(() =>
 				{
-					
+
 					string scrollViewerName = e.MatchedItem.IsFromExisting ? "ExistingListScrollViewer" : "IncomingListScrollViewer";
 					ScrollToItemInList(scrollViewerName, e.MatchedItem);
 
-					
 					ScrollToMatchedItemInPreview(e.SelectedItem);
 				}, Avalonia.Threading.DispatcherPriority.Loaded);
 			}
@@ -404,18 +390,15 @@ namespace KOTORModSync.Dialogs
 			{
 				if ( selectedItem == null || ViewModel == null ) return;
 
-				
 				PreviewItem previewItem = ViewModel.PreviewComponents.FirstOrDefault(p =>
 					p.ModComponent == selectedItem.ModComponent ||
 					p.Name == selectedItem.Name);
 
 				if ( previewItem == null ) return;
 
-				
 				ScrollViewer previewScrollViewer = this.FindControl<ScrollViewer>("PreviewScrollViewer");
 				if ( previewScrollViewer == null ) return;
 
-				
 				int index = ViewModel.PreviewComponents.IndexOf(previewItem);
 				if ( index < 0 ) return;
 
@@ -423,20 +406,19 @@ namespace KOTORModSync.Dialogs
 				{
 					try
 					{
-						
+
 						ItemsControl itemsControl = FindDescendant<ItemsControl>(previewScrollViewer);
 						if ( itemsControl == null || itemsControl.ItemCount == 0 ) return;
 
-						
 						if ( itemsControl.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
 						{
 							double itemHeight = firstItem.Bounds.Height;
-							double targetOffset = Math.Max(0, (index - 1) * itemHeight); 
+							double targetOffset = Math.Max(0, (index - 1) * itemHeight);
 							previewScrollViewer.Offset = new Vector(0, targetOffset);
 						}
 						else if ( itemsControl.ContainerFromIndex(index) is Control targetItem )
 						{
-							
+
 							targetItem.BringIntoView();
 						}
 					}
@@ -459,14 +441,11 @@ namespace KOTORModSync.Dialogs
 				ScrollViewer scrollViewer = this.FindControl<ScrollViewer>(scrollViewerName);
 				if ( scrollViewer == null ) return;
 
-				
 				ItemsControl itemsControl = FindDescendant<ItemsControl>(scrollViewer);
 
-				
 				if ( !(itemsControl?.Items is System.Collections.IEnumerable source) )
 					return;
 
-				
 				int index = 0;
 				foreach ( object listItem in source )
 				{
@@ -476,18 +455,17 @@ namespace KOTORModSync.Dialogs
 						{
 							try
 							{
-								
+
 								if ( itemsControl.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
 								{
 									double itemHeight = firstItem.Bounds.Height;
 
-									
 									double targetOffset = Math.Max(0, index * itemHeight);
 									scrollViewer.Offset = new Vector(0, targetOffset);
 								}
 								else if ( itemsControl.ContainerFromIndex(index) is Control targetItem )
 								{
-									
+
 									targetItem.BringIntoView();
 								}
 							}
@@ -524,7 +502,6 @@ namespace KOTORModSync.Dialogs
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -537,15 +514,14 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			
+
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				
+
 				if ( current is Button ||
 					 current is TextBox ||
 					 current is ComboBox ||
@@ -562,7 +538,6 @@ namespace KOTORModSync.Dialogs
 					return true;
 				}
 
-				
 				if ( current is Control control )
 				{
 					if ( control.ContextMenu?.IsOpen == true )

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -10,16 +11,11 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Parsing
 {
-	
-	
-	
+
 	public static class MarkdownUtilities
 	{
-		
-		
-		
-		
-		
+
+
 		[NotNull]
 		public static string ExtractModListSection([NotNull] string markdown)
 		{
@@ -34,11 +30,8 @@ namespace KOTORModSync.Core.Parsing
 			return markdown;
 		}
 
-		
-		
-		
-		
-		
+
+
 		[NotNull]
 		[ItemNotNull]
 		public static List<string> ExtractModSections([NotNull] string markdown)
@@ -46,7 +39,6 @@ namespace KOTORModSync.Core.Parsing
 			if ( markdown == null )
 				throw new ArgumentNullException(nameof(markdown));
 
-			
 			var sections = new List<string>();
 			string[] lines = markdown.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 			var currentSection = new List<string>();
@@ -58,7 +50,7 @@ namespace KOTORModSync.Core.Parsing
 					if ( currentSection.Count > 0 )
 					{
 						string sectionText = string.Join(Environment.NewLine, currentSection).Trim();
-						
+
 						if ( !string.IsNullOrWhiteSpace(sectionText)
 							&& sectionText.Contains("###")
 							&& Regex.IsMatch(sectionText, @"\*\*Name:\*\*", RegexOptions.Multiline) )
@@ -74,11 +66,10 @@ namespace KOTORModSync.Core.Parsing
 				}
 			}
 
-			
 			if ( currentSection.Count > 0 )
 			{
 				string sectionText = string.Join(Environment.NewLine, currentSection).Trim();
-				
+
 				if ( !string.IsNullOrWhiteSpace(sectionText)
 					&& sectionText.Contains("###")
 					&& Regex.IsMatch(sectionText, @"\*\*Name:\*\*", RegexOptions.Multiline) )
@@ -90,12 +81,7 @@ namespace KOTORModSync.Core.Parsing
 			return sections;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		[NotNull]
 		public static string ExtractFieldValue([NotNull] string text, [NotNull] string pattern)
 		{
@@ -112,12 +98,7 @@ namespace KOTORModSync.Core.Parsing
 			return string.Empty;
 		}
 
-		
-		
-		
-		
-		
-		
+
 		[NotNull]
 		[ItemNotNull]
 		public static List<string> ExtractAllFieldValues([NotNull] string text, [NotNull] string pattern)
@@ -134,7 +115,7 @@ namespace KOTORModSync.Core.Parsing
 			{
 				if ( match.Success && match.Groups.Count > 1 )
 				{
-					
+
 					string value = match.Groups[1].Value.Trim();
 					if ( string.IsNullOrWhiteSpace(value) && match.Groups.Count > 2 )
 					{
@@ -150,45 +131,33 @@ namespace KOTORModSync.Core.Parsing
 			return values;
 		}
 
-		
-		
-		
-		
-		
+
+
 		[NotNull]
 		public static string NormalizeWhitespace([CanBeNull] string text)
 		{
 			if ( string.IsNullOrEmpty(text) )
 				return string.Empty;
 
-			
 			return Regex.Replace(text.Trim(), @"\s+", " ");
 		}
 
-		
-		
-		
-		
-		
+
+
 		[NotNull]
 		public static string NormalizeCategoryFormat([CanBeNull] string category)
 		{
 			if ( string.IsNullOrEmpty(category) )
 				return string.Empty;
 
-			
 			category = NormalizeWhitespace(category);
 
-			
-			
 			category = Regex.Replace(category, @",\s*", " & ");
 
-			
 			category = Regex.Replace(category, @"\s*&\s*", " & ");
 
 			return category.Trim();
 		}
 	}
 }
-
 

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -16,20 +17,13 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
+
 	public class InstallationService
 	{
 		private readonly ComponentManagerService _componentManager = new ComponentManagerService();
 		private readonly FileOperationService _fileOperation = new FileOperationService();
 
-		
-		
-		
-		
-		
-		
+
 		public static async Task<(bool success, string informationMessage)> ValidateInstallationEnvironmentAsync([NotNull] MainConfig mainConfig, [CanBeNull] Func<string, Task<bool?>> confirmationCallback = null)
 		{
 			if ( mainConfig == null )
@@ -51,8 +45,7 @@ namespace KOTORModSync.Core.Services
 				}
 				else
 				{
-					
-					
+
 					string[] possibleOsxPaths =
 					{
 						Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
@@ -106,7 +99,7 @@ namespace KOTORModSync.Core.Services
 					patcherCliPath.FullName,
 					args: "--install"
 				);
-				if ( result.Item1 == 2 ) 
+				if ( result.Item1 == 2 )
 					holopatcherTestExecute = true;
 
 				if ( MainConfig.AllComponents.IsNullOrEmptyCollection() )
@@ -125,7 +118,6 @@ namespace KOTORModSync.Core.Services
 				await Logger.LogAsync("Checking for duplicate components...");
 				bool noDuplicateComponents = await ComponentManagerService.FindDuplicateComponentsAsync(MainConfig.AllComponents);
 
-				
 				await Logger.LogAsync("Ensuring both the mod directory and the install directory are writable...");
 				bool isInstallDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.DestinationPath);
 				bool isModDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.SourcePath);
@@ -161,7 +153,7 @@ namespace KOTORModSync.Core.Services
 						);
 						foreach ( ModComponent restrictedComponent in restrictedComponentsList )
 						{
-							
+
 							if ( restrictedComponent?.IsSelected == true )
 							{
 								await Logger.LogErrorAsync($"Cannot install '{component.Name}' due to '{restrictedComponent.Name}' being selected for install.");
@@ -175,7 +167,7 @@ namespace KOTORModSync.Core.Services
 						List<ModComponent> dependencyComponentsList = ModComponent.FindComponentsFromGuidList(component.Dependencies, MainConfig.AllComponents);
 						foreach ( ModComponent dependencyComponent in dependencyComponentsList )
 						{
-							
+
 							if ( dependencyComponent?.IsSelected != true )
 							{
 								await Logger.LogErrorAsync($"Cannot install '{component.Name}' due to '{dependencyComponent?.Name}' not being selected for install.");
@@ -236,7 +228,6 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogErrorAsync(informationMessage);
 				}
 
-				
 				if ( fileSystemInfos.Count != 0 )
 				{
 					informationMessage =
@@ -257,13 +248,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
-		
-		
+
+
 		public static async Task<ModComponent.InstallExitCode> InstallSingleComponentAsync(
 			[NotNull] ModComponent component,
 			[NotNull][ItemNotNull] List<ModComponent> allComponents,
@@ -274,23 +260,16 @@ namespace KOTORModSync.Core.Services
 			if ( allComponents == null )
 				throw new ArgumentNullException(nameof(allComponents));
 
-			
 			var validator = new ComponentValidation(component, allComponents);
 			await Logger.LogVerboseAsync($" == Validating '{component.Name}' == ");
 			if ( !validator.Run() )
 				return ModComponent.InstallExitCode.InvalidOperation;
 
-			
 			return await component.InstallAsync(allComponents, cancellationToken);
 		}
 
-		
-		
-		
-		
-		
-		
-		
+
+
 		public static async Task<ModComponent.InstallExitCode> InstallAllSelectedComponentsAsync(
 			[NotNull][ItemNotNull] List<ModComponent> allComponents,
 			[CanBeNull] Action<int, int, string> progressCallback = null,

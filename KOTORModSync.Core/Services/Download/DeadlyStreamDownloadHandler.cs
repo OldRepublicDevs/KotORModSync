@@ -1,4 +1,6 @@
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -274,7 +276,6 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
 			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
-
 
 			
 			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -20,7 +21,7 @@ namespace KOTORModSync.Tests
 		[SetUp]
 		public void Setup()
 		{
-			
+
 			string? envTestFile = Environment.GetEnvironmentVariable("TEST_FILE_PATH");
 
 			if ( !string.IsNullOrEmpty(envTestFile) )
@@ -33,7 +34,7 @@ namespace KOTORModSync.Tests
 			}
 			else
 			{
-				
+
 				_testFilePath = Path.Combine(
 					TestContext.CurrentContext.TestDirectory,
 					"..", "..", "..",
@@ -52,11 +53,10 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void RoundTrip_ParseAndGenerateDocumentation_ProducesEquivalentOutput()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult parseResult = parser.Parse(_originalMarkdown);
 			IList<ModComponent> components = parseResult.Components;
 
@@ -67,10 +67,8 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"  - {warning}");
 			}
 
-			
 			string generatedDocs = ModComponent.GenerateModDocumentation(components.ToList());
 
-			
 			string debugOutputPath = Path.Combine(
 				TestContext.CurrentContext.TestDirectory,
 				"..", "..", "..",
@@ -81,22 +79,19 @@ namespace KOTORModSync.Tests
 
 			Assert.Multiple(() =>
 			{
-				
+
 				Assert.That(components, Is.Not.Empty, "Should have parsed at least one component");
 				Assert.That(generatedDocs, Is.Not.Null.And.Not.Empty, "Generated documentation should not be empty");
 			});
 
-			
 			string originalModList = MarkdownToTomlConverter.ExtractModListSection(_originalMarkdown);
 			List<string> originalSections = MarkdownToTomlConverter.ExtractModSections(originalModList);
 
-			
 			List<string> generatedSections = MarkdownToTomlConverter.ExtractModSections(generatedDocs);
 
 			Console.WriteLine($"Original sections: {originalSections.Count}");
 			Console.WriteLine($"Generated sections: {generatedSections.Count}");
 
-			
 			var originalNameFields = originalSections
 				.SelectMany(s => MarkdownToTomlConverter.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
 				.Where(n => !string.IsNullOrWhiteSpace(n))
@@ -110,7 +105,6 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Original mod names (from **Name:** field): {originalNameFields.Count}");
 			Console.WriteLine($"Generated mod names (from **Name:** field): {generatedNameFields.Count}");
 
-			
 			if ( generatedNameFields.Count != originalNameFields.Count )
 			{
 				Console.WriteLine("\n=== NAME FIELD COUNT MISMATCH ===");
@@ -140,7 +134,6 @@ namespace KOTORModSync.Tests
 			Assert.That(generatedNameFields, Has.Count.EqualTo(originalNameFields.Count),
 				$"Mod count must match exactly. Original: {originalNameFields.Count}, Generated: {generatedNameFields.Count}");
 
-			
 			var missingNames = originalNameFields.Except(generatedNameFields).ToList();
 			var extraNames = generatedNameFields.Except(originalNameFields).ToList();
 
@@ -178,15 +171,13 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void RoundTrip_VerifyFieldPreservation()
 		{
-			
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult parseResult = parser.Parse(_originalMarkdown);
 			List<ModComponent> components = parseResult.Components.ToList();
 
-			
 			foreach ( ModComponent component in components )
 			{
 				Console.WriteLine($"\nVerifying component: {component.Name}");
@@ -206,17 +197,15 @@ namespace KOTORModSync.Tests
 			Assert.That(components, Is.Not.Empty, "Should have parsed components");
 		}
 
-
 		private static void CompareModSections(string original, string generated, int sectionNumber)
 		{
-			
+
 			List<string> originalHeadings = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"###\s+(.+?)$");
 			string originalHeading = originalHeadings.FirstOrDefault() ?? string.Empty;
 
 			List<string> generatedHeadings = MarkdownToTomlConverter.ExtractAllFieldValues(generated, @"###\s+(.+?)$");
 			string generatedHeading = generatedHeadings.FirstOrDefault() ?? string.Empty;
 
-			
 			List<string> originalNameFields = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|\s*([^\r\n]+))");
 			string originalNameField = originalNameFields.FirstOrDefault() ?? string.Empty;
 
@@ -247,12 +236,10 @@ namespace KOTORModSync.Tests
 
 			Assert.Multiple(() =>
 			{
-				
+
 				Assert.That(generatedHeading, Is.EqualTo(generatedNameField),
 					$"Section {sectionNumber}: Generated heading should match generated Name field");
 
-				
-				
 				Assert.That(generatedNameField, Is.EqualTo(originalNameField),
 					$"Section {sectionNumber}: Mod name should be preserved");
 			});
@@ -265,7 +252,7 @@ namespace KOTORModSync.Tests
 
 			if ( !string.IsNullOrWhiteSpace(originalCategory) )
 			{
-				
+
 				Assert.That(generatedCategory, Is.EqualTo(originalCategory),
 					$"Section {sectionNumber}: Category & Tier should match");
 			}

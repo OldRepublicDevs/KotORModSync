@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -22,7 +23,7 @@ namespace KOTORModSync
 		public ProgressWindow()
 		{
 			InitializeComponent();
-			
+
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -38,7 +39,6 @@ namespace KOTORModSync
 			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
 		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
-
 
 		public void UpdateMetrics(
 			double percentComplete,
@@ -101,8 +101,6 @@ namespace KOTORModSync
 				Topmost = true,
 			};
 
-
-
 			if ( !(parentWindow is null) )
 				_ = await progressWindow.ShowDialog<bool?>(parentWindow);
 		}
@@ -124,7 +122,6 @@ namespace KOTORModSync
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -132,20 +129,18 @@ namespace KOTORModSync
 			_originalPoint = e.GetCurrentPoint(this);
 		}
 
-
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			
+
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch ( current )
 				{
-					
+
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -156,7 +151,7 @@ namespace KOTORModSync
 					case Slider _:
 					case TabControl _:
 					case TabItem _:
-					
+
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using KOTORModSync.Core.FileSystemUtils;
@@ -15,7 +16,6 @@ namespace KOTORModSync.Tests
 		public void EnumerateFilesWithWildcards_Should_ReturnMatchingFiles()
 		{
 
-			
 			var pathsToTest = new Dictionary<string, string>
 			{
 				{
@@ -38,10 +38,9 @@ namespace KOTORModSync.Tests
 					@"ajunta_pall_unique_appearance_1.1\Transparent Skins\Sith Eyes\N_DeadeyeH01d.tga",
 					@"*\*\Override\*"
 				},
-				
+
 			};
 
-			
 			foreach ( KeyValuePair<string, string> kvp in pathsToTest )
 			{
 				string realPath = Path.Combine(_basePath, kvp.Key);
@@ -54,7 +53,6 @@ namespace KOTORModSync.Tests
 				File.WriteAllText(realPath, contents: "Arbitrary content for testing.");
 			}
 
-			
 			foreach ( KeyValuePair<string, string> kvp in pathsToTest )
 			{
 				string wildcardPath = Path.Combine(_basePath, kvp.Value);
@@ -77,7 +75,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void EnumerateFilesWithWildcards_ShouldNotReturnFiles()
 		{
-			
+
 			_ = Directory.CreateDirectory(
 				Path.Combine(
 					_basePath,

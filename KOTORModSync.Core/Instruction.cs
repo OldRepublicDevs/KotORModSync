@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -26,9 +27,6 @@ namespace KOTORModSync.Core
 		[CanBeNull]
 		private Services.FileSystem.IFileSystemProvider _fileSystemProvider;
 
-		
-		
-		
 		internal void SetFileSystemProvider([NotNull] Services.FileSystem.IFileSystemProvider provider) => _fileSystemProvider = provider ?? throw new ArgumentNullException(nameof(provider));
 
 		public enum ActionExitCode
@@ -66,7 +64,6 @@ namespace KOTORModSync.Core
 			Choose,
 			Run,
 		}
-
 
 		private ActionType _action;
 		private Guid _guid;
@@ -188,29 +185,18 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		
-		
 
-		
-		
-		
 		public bool ShouldSerializeOverwrite()
 		{
 			return Action == ActionType.Move || Action == ActionType.Copy || Action == ActionType.Rename;
 		}
 
-		
-		
-		
 		public bool ShouldSerializeDestination()
 		{
 			return Action == ActionType.Move || Action == ActionType.Copy || Action == ActionType.Rename
 				|| Action == ActionType.Patcher || Action == ActionType.Delete;
 		}
 
-		
-		
-		
 		public bool ShouldSerializeArguments()
 		{
 			return Action == ActionType.DelDuplicate || Action == ActionType.Execute || Action == ActionType.Patcher;
@@ -227,26 +213,19 @@ namespace KOTORModSync.Core
 		public ModComponent GetParentComponent() => _parentComponent;
 		public void SetParentComponent(ModComponent thisComponent) => _parentComponent = thisComponent;
 
-		
-		
-		
-		
-		
-		
+
 		internal void SetRealPaths(bool noParse = false, bool noValidate = false)
 		{
 			if ( _fileSystemProvider == null )
 				throw new InvalidOperationException("File system provider must be set before calling SetRealPaths. Call SetFileSystemProvider() first.");
 
-			
 			if ( Source is null )
 				throw new NullReferenceException(nameof(Source));
-
 
 			List<string> newSourcePaths = Source.ConvertAll(Utility.Utility.ReplaceCustomVariables);
 			if ( !noParse )
 			{
-				
+
 				newSourcePaths = PathHelper.EnumerateFilesWithWildcards(newSourcePaths, _fileSystemProvider);
 
 				if ( !noValidate )
@@ -258,7 +237,6 @@ namespace KOTORModSync.Core
 						);
 					}
 
-					
 					if ( newSourcePaths.Any(f => !_fileSystemProvider.FileExists(f)) )
 					{
 						throw new FileNotFoundException(
@@ -267,7 +245,6 @@ namespace KOTORModSync.Core
 					}
 				}
 
-				
 				RealSourcePaths = (
 					MainConfig.CaseInsensitivePathing
 						? newSourcePaths.Distinct(StringComparer.OrdinalIgnoreCase)
@@ -283,9 +260,6 @@ namespace KOTORModSync.Core
 				return;
 			}
 
-			
-			
-			
 			bool skipDestinationValidation = Action == ActionType.Copy || Action == ActionType.Move || Action == ActionType.Rename || Action == ActionType.Extract;
 
 			if ( skipDestinationValidation && thisDestination == null )
@@ -293,7 +267,6 @@ namespace KOTORModSync.Core
 				thisDestination = new DirectoryInfo(destinationPath);
 			}
 
-			
 			if ( !noValidate && !skipDestinationValidation && thisDestination != null && !_fileSystemProvider.DirectoryExists(thisDestination.FullName) )
 			{
 				if ( MainConfig.CaseInsensitivePathing )
@@ -308,7 +281,6 @@ namespace KOTORModSync.Core
 			RealDestinationPath = thisDestination;
 		}
 
-		
 		public async Task<ActionExitCode> ExtractFileAsync(
 			DirectoryInfo argDestinationPath = null,
 			[NotNull][ItemNotNull] List<string> argSourcePaths = null
@@ -322,7 +294,6 @@ namespace KOTORModSync.Core
 				RealSourcePaths = argSourcePaths
 					?? RealSourcePaths ?? throw new ArgumentNullException(nameof(argSourcePaths));
 
-				
 				foreach ( string sourcePath in RealSourcePaths )
 				{
 					string destinationPath = argDestinationPath?.FullName ?? Path.GetDirectoryName(sourcePath);
@@ -368,7 +339,6 @@ namespace KOTORModSync.Core
 			if ( _fileSystemProvider == null )
 				throw new InvalidOperationException("File system provider must be set before calling DeleteDuplicateFile. Call SetFileSystemProvider() first.");
 
-			
 			if ( directoryPath is null )
 				directoryPath = RealDestinationPath;
 			if ( !(directoryPath is null) && !_fileSystemProvider.DirectoryExists(directoryPath.FullName) && MainConfig.CaseInsensitivePathing )
@@ -469,9 +439,8 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		
 		public ActionExitCode DeleteFile(
-			
+
 			[ItemNotNull][NotNull] List<string> sourcePaths = null
 		)
 		{
@@ -486,7 +455,7 @@ namespace KOTORModSync.Core
 			ActionExitCode exitCode = ActionExitCode.Success;
 			try
 			{
-				
+
 				foreach ( string thisFilePath in sourcePaths )
 				{
 					string realFilePath = thisFilePath;
@@ -505,7 +474,6 @@ namespace KOTORModSync.Core
 						exitCode = ActionExitCode.FileNotFoundPost;
 					}
 
-					
 					try
 					{
 						_ = _fileSystemProvider.DeleteFileAsync(realFilePath);
@@ -539,7 +507,7 @@ namespace KOTORModSync.Core
 		}
 
 		public ActionExitCode RenameFile(
-			
+
 			[ItemNotNull][NotNull] List<string> sourcePaths = null
 		)
 		{
@@ -554,7 +522,7 @@ namespace KOTORModSync.Core
 			ActionExitCode exitCode = ActionExitCode.Success;
 			try
 			{
-				
+
 				foreach ( string sourcePath in sourcePaths )
 				{
 					string fileName = Path.GetFileName(sourcePath);
@@ -564,7 +532,7 @@ namespace KOTORModSync.Core
 							MainConfig.SourcePath.FullName,
 							sourcePath
 						);
-					
+
 					if ( !_fileSystemProvider.FileExists(sourcePath) )
 					{
 						Logger.LogError($"'{sourceRelDirPath}' does not exist!");
@@ -576,7 +544,6 @@ namespace KOTORModSync.Core
 						continue;
 					}
 
-					
 					string destinationFilePath = Path.Combine(
 						Path.GetDirectoryName(sourcePath) ?? string.Empty,
 						Destination
@@ -606,7 +573,6 @@ namespace KOTORModSync.Core
 						_ = _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 					}
 
-					
 					try
 					{
 						_ = Logger.LogAsync($"Rename '{sourceRelDirPath}' to '{destinationRelDirPath}'");
@@ -614,7 +580,7 @@ namespace KOTORModSync.Core
 					}
 					catch ( IOException ex )
 					{
-						
+
 						if ( exitCode == ActionExitCode.Success )
 						{
 							exitCode = ActionExitCode.IOException;
@@ -628,7 +594,7 @@ namespace KOTORModSync.Core
 			}
 			catch ( Exception ex )
 			{
-				
+
 				Logger.LogException(ex);
 				if ( exitCode == ActionExitCode.Success )
 				{
@@ -640,7 +606,7 @@ namespace KOTORModSync.Core
 		}
 
 		public async Task<ActionExitCode> CopyFileAsync(
-			
+
 			[ItemNotNull][NotNull] List<string> sourcePaths = null,
 			[NotNull] DirectoryInfo destinationPath = null
 		)
@@ -666,7 +632,7 @@ namespace KOTORModSync.Core
 				SemaphoreSlim localSemaphore = semaphore;
 				async Task CopyIndividualFileAsync(string sourcePath)
 				{
-					await localSemaphore.WaitAsync(); 
+					await localSemaphore.WaitAsync();
 					try
 					{
 						string sourceRelDirPath = MainConfig.SourcePath is null
@@ -689,7 +655,6 @@ namespace KOTORModSync.Core
 								destinationFilePath
 							);
 
-						
 						if ( _fileSystemProvider.FileExists(destinationFilePath) )
 						{
 							if ( !Overwrite )
@@ -719,7 +684,7 @@ namespace KOTORModSync.Core
 					}
 					finally
 					{
-						_ = localSemaphore.Release(); 
+						_ = localSemaphore.Release();
 					}
 				}
 
@@ -730,7 +695,7 @@ namespace KOTORModSync.Core
 
 				try
 				{
-					await Task.WhenAll(tasks); 
+					await Task.WhenAll(tasks);
 					return ActionExitCode.Success;
 				}
 				catch
@@ -741,7 +706,7 @@ namespace KOTORModSync.Core
 		}
 
 		public async Task<ActionExitCode> MoveFileAsync(
-			
+
 			[ItemNotNull][NotNull] List<string> sourcePaths = null,
 			[NotNull] DirectoryInfo destinationPath = null
 		)
@@ -767,7 +732,7 @@ namespace KOTORModSync.Core
 				SemaphoreSlim localSemaphore = semaphore;
 				async Task MoveIndividualFileAsync(string sourcePath)
 				{
-					await localSemaphore.WaitAsync(); 
+					await localSemaphore.WaitAsync();
 
 					try
 					{
@@ -791,7 +756,6 @@ namespace KOTORModSync.Core
 								destinationFilePath
 							);
 
-						
 						if ( _fileSystemProvider.FileExists(destinationFilePath) )
 						{
 							if ( !Overwrite )
@@ -821,7 +785,7 @@ namespace KOTORModSync.Core
 					}
 					finally
 					{
-						_ = localSemaphore.Release(); 
+						_ = localSemaphore.Release();
 					}
 				}
 
@@ -831,7 +795,7 @@ namespace KOTORModSync.Core
 				var tasks = sourcePaths.Select(MoveIndividualFileAsync).ToList();
 				try
 				{
-					await Task.WhenAll(tasks); 
+					await Task.WhenAll(tasks);
 					return ActionExitCode.Success;
 				}
 				catch
@@ -841,8 +805,6 @@ namespace KOTORModSync.Core
 			}
 		}
 
-
-		
 		public async Task<ActionExitCode> ExecuteTSLPatcherAsync()
 		{
 			if ( _fileSystemProvider == null )
@@ -853,18 +815,16 @@ namespace KOTORModSync.Core
 				foreach ( string t in RealSourcePaths )
 				{
 					DirectoryInfo tslPatcherDirectory = _fileSystemProvider.FileExists(t)
-						? PathHelper.TryGetValidDirectoryInfo(_fileSystemProvider.GetDirectoryName(t)) 
-						: new DirectoryInfo(t);                                         
+						? PathHelper.TryGetValidDirectoryInfo(_fileSystemProvider.GetDirectoryName(t))
+						: new DirectoryInfo(t);
 
 					if ( tslPatcherDirectory is null || !_fileSystemProvider.DirectoryExists(tslPatcherDirectory.FullName) )
 						throw new DirectoryNotFoundException($"The directory '{t}' could not be located on the disk.");
 
-					
 					string fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.rtf");
 					if ( _fileSystemProvider.FileExists(fullInstallLogFile) )
 						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
 
-					
 					fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.txt");
 					if ( _fileSystemProvider.FileExists(fullInstallLogFile) )
 						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
@@ -884,7 +844,6 @@ namespace KOTORModSync.Core
 
 					string args = string.Join(separator: " ", argList);
 
-
 					FileSystemInfo patcherCliPath = null;
 
 					string baseDir = Utility.Utility.GetBaseDirectory();
@@ -895,8 +854,7 @@ namespace KOTORModSync.Core
 					}
 					else
 					{
-						
-						
+
 						string[] possibleOsxPaths = {
 							Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
 							Path.Combine(resourcesDir, "holopatcher"),
@@ -932,7 +890,6 @@ namespace KOTORModSync.Core
 
 					await Logger.LogAsync($"Using CLI to run command: '{patcherCliPath} {args}'");
 
-					
 					(int exitCode, string output, string error) = await _fileSystemProvider.ExecuteProcessAsync(
 						patcherCliPath.FullName,
 						args
@@ -978,7 +935,7 @@ namespace KOTORModSync.Core
 				if ( sourcePaths == null )
 					throw new ArgumentNullException(nameof(sourcePaths));
 
-				ActionExitCode exitCode = ActionExitCode.Success; 
+				ActionExitCode exitCode = ActionExitCode.Success;
 				foreach ( string sourcePath in sourcePaths )
 				{
 					try
@@ -1017,7 +974,6 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		
 		[NotNull]
 		private async Task<List<string>> VerifyInstall([ItemNotNull] List<string> sourcePaths = null)
 		{
@@ -1029,8 +985,6 @@ namespace KOTORModSync.Core
 			if ( sourcePaths == null )
 				throw new ArgumentNullException(nameof(sourcePaths));
 
-			
-			
 			if ( _fileSystemProvider.IsDryRun )
 			{
 				Logger.LogVerbose("Skipping install log verification for dry-run");
@@ -1042,17 +996,15 @@ namespace KOTORModSync.Core
 				string tslPatcherDirPath = _fileSystemProvider.GetDirectoryName(sourcePath)
 					?? throw new DirectoryNotFoundException($"Could not retrieve parent directory of '{sourcePath}'.");
 
-				
 				string fullInstallLogFile = Path.Combine(tslPatcherDirPath, path2: "installlog.rtf");
 				if ( !_fileSystemProvider.FileExists(fullInstallLogFile) )
 				{
-					
+
 					fullInstallLogFile = Path.Combine(tslPatcherDirPath, path2: "installlog.txt");
 					if ( !_fileSystemProvider.FileExists(fullInstallLogFile) )
 						throw new FileNotFoundException(message: "Install log file not found.", fullInstallLogFile);
 				}
 
-				
 				string installLogContent = await _fileSystemProvider.ReadFileAsync(fullInstallLogFile);
 
 				return installLogContent.Split(Environment.NewLine.ToCharArray()).Where(

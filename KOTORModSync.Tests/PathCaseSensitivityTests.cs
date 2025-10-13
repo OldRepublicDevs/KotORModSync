@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Runtime.InteropServices;
@@ -48,12 +49,11 @@ namespace KOTORModSync.Tests
 		public void FindCaseInsensitiveDuplicates_ThrowsArgumentNullException_WhenDirectoryIsNull()
 		{
 			DirectoryInfo? directory = null;
-			
+
 			_ = Assert.Throws<ArgumentNullException>(
 				() => PathHelper.FindCaseInsensitiveDuplicates(directory!).ToList()
 			);
 		}
-
 
 		[Test]
 		public void FindCaseInsensitiveDuplicates_ReturnsEmptyList_WhenDirectoryIsEmpty()
@@ -69,24 +69,22 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void FindCaseInsensitiveDuplicates_ReturnsEmptyList_WhenNoDuplicatesExist()
 		{
-			
+
 			var file1 = new FileInfo(Path.Combine(_tempDirectory.FullName, path2: "file1.txt"));
 			file1.Create().Close();
 			var file2 = new FileInfo(Path.Combine(_tempDirectory.FullName, path2: "file2.txt"));
 			file2.Create().Close();
 
-			
 			List<FileSystemInfo> result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
 			var failureMessage = new StringBuilder();
 			_ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
 
-			
 			Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
 		}
 
 		[Test]
-		
+
 		public void FindCaseInsensitiveDuplicates_FindsFileDuplicates_CaseInsensitive()
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
@@ -95,19 +93,16 @@ namespace KOTORModSync.Tests
 				return;
 			}
 
-			
 			var file1 = new FileInfo(Path.Combine(_tempDirectory.FullName, path2: "file1.txt"));
 			file1.Create().Close();
 			var file2 = new FileInfo(Path.Combine(_tempDirectory.FullName, path2: "FILE1.txt"));
 			file2.Create().Close();
 
-			
 			List<FileSystemInfo> result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
 			var failureMessage = new StringBuilder();
 			_ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
 
-			
 			Assert.That(
 				result.ToList(),
 				Has.Count.EqualTo(2),
@@ -118,38 +113,34 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void FindCaseInsensitiveDuplicates_IgnoresNonDuplicates()
 		{
-			
+
 			var file1 = new FileInfo(Path.Combine(_tempDirectory.FullName, path2: "file1.txt"));
 			file1.Create().Close();
 			var file2 = new FileInfo(Path.Combine(_subDirectory.FullName, path2: "file2.txt"));
 			file2.Create().Close();
 
-			
 			List<FileSystemInfo> result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
 			var failureMessage = new StringBuilder();
 			_ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
 
-			
 			Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
 		}
 
 		[Test]
 		public void FindCaseInsensitiveDuplicates_IgnoresExtensions()
 		{
-			
+
 			var file1 = new FileInfo(Path.Combine(_tempDirectory.FullName, path2: "file1.txt"));
 			file1.Create().Close();
 			var file2 = new FileInfo(Path.Combine(_subDirectory.FullName, path2: "FILE1.png"));
 			file2.Create().Close();
 
-			
 			List<FileSystemInfo> result = PathHelper.FindCaseInsensitiveDuplicates(_tempDirectory).ToList();
 
 			var failureMessage = new StringBuilder();
 			_ = failureMessage.AppendLine(string.Join(Environment.NewLine, result.Select(item => item.FullName)));
 
-			
 			Assert.That(result, Is.Empty, $"Expected 0 items, but found {result.Count}. Output: {failureMessage}");
 		}
 
@@ -320,47 +311,42 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void TestInvalidPath() =>
 			_ = Assert.Throws<ArgumentException>(
-				
+
 				() => PathHelper.FindCaseInsensitiveDuplicates("Invalid>Path")?.ToList()
 			);
 
 		[Test]
 		public void GetCaseSensitivePath_ValidFile_ReturnsSamePath()
 		{
-			
+
 			string testFilePath = Path.Combine(s_testDirectory, path2: "test.txt");
 			File.Create(testFilePath).Close();
 
-			
 			string? result = PathHelper.GetCaseSensitivePath(testFilePath, isFile: true).Item1;
 
-			
 			Assert.That(result, Is.EqualTo(testFilePath));
 		}
 
 		[Test]
 		public void GetCaseSensitivePath_ValidDirectory_ReturnsSamePath()
 		{
-			
+
 			string testDirPath = Path.Combine(s_testDirectory, path2: "testDir");
 			_ = Directory.CreateDirectory(testDirPath);
 
-			
 			DirectoryInfo? result = PathHelper.GetCaseSensitivePath(new DirectoryInfo(testDirPath));
 
-			
 			Assert.That(result.FullName, Is.EqualTo(testDirPath));
 		}
 
 		[Test]
 		public void GetCaseSensitivePath_NullOrWhiteSpacePath_ThrowsArgumentException()
 		{
-			
+
 			string? nullPath = null;
 			string emptyPath = string.Empty;
 			const string whiteSpacePath = "   ";
 
-			
 			_ = Assert.Throws<ArgumentException>(() => PathHelper.GetCaseSensitivePath(nullPath));
 			_ = Assert.Throws<ArgumentException>(() => PathHelper.GetCaseSensitivePath(emptyPath));
 			_ = Assert.Throws<ArgumentException>(() => PathHelper.GetCaseSensitivePath(whiteSpacePath));
@@ -369,12 +355,11 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GetCaseSensitivePath_InvalidCharactersInPath_ReturnsOriginalPath()
 		{
-			
+
 			string fileName = "invalid>path";
 			string invalidPath = Path.Combine(s_testDirectory, fileName);
 			string upperCasePath = invalidPath.ToUpperInvariant();
 
-			
 			(string, bool?) result = PathHelper.GetCaseSensitivePath(upperCasePath);
 			Assert.Multiple(
 				() =>
@@ -388,77 +373,66 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GetCaseSensitivePath_RelativePath_ReturnsAbsolutePath()
 		{
-			
+
 			string testFilePath = Path.Combine(s_testDirectory, path2: "test.txt");
 			File.Create(testFilePath).Close();
 			string relativePath = Path.GetRelativePath(Directory.GetCurrentDirectory(), testFilePath);
 			string upperCasePath = relativePath.ToUpperInvariant();
 
-			
 			string? result = PathHelper.GetCaseSensitivePath(upperCasePath).Item1;
 
-			
 			Assert.That(result, Is.EqualTo(testFilePath));
 		}
-
 
 		[Test]
 		public void GetCaseSensitivePath_EntirePathCaseIncorrect_ReturnsCorrectPath()
 		{
-			
+
 			string testFilePath = Path.Combine(s_testDirectory, path2: "test.txt");
 			File.Create(testFilePath).Close();
 			string upperCasePath = testFilePath.ToUpperInvariant();
 
-			
 			string? result = PathHelper.GetCaseSensitivePath(upperCasePath, isFile: true).Item1;
 
-			
 			Assert.That(result, Is.EqualTo(testFilePath));
 		}
 
 		[Test]
 		public void GetCaseSensitivePath_NonExistentFile_ReturnsCaseSensitivePath()
 		{
-			
+
 			string nonExistentFileName = "non_existent_file.txt";
 			string nonExistentFilePath = Path.Combine(s_testDirectory, nonExistentFileName);
 			string upperCasePath = nonExistentFilePath.ToUpperInvariant();
 
-			
 			string? result = PathHelper.GetCaseSensitivePath(upperCasePath).Item1;
 
-			
 			Assert.That(result, Is.EqualTo(Path.Combine(s_testDirectory, nonExistentFileName.ToUpperInvariant())));
 		}
 
 		[Test]
 		public void GetCaseSensitivePath_NonExistentDirAndChildFile_ReturnsCaseSensitivePath()
 		{
-			
+
 			string nonExistentRelFilePath = Path.Combine(path1: "non_existent_dir", path2: "non_existent_file.txt");
 			string nonExistentFilePath = Path.Combine(s_testDirectory, nonExistentRelFilePath);
 			string upperCasePath = nonExistentFilePath.ToUpperInvariant();
 
-			
 			string? result = PathHelper.GetCaseSensitivePath(upperCasePath, isFile: true).Item1;
 
-			
 			Assert.That(result, Is.EqualTo(Path.Combine(s_testDirectory, nonExistentRelFilePath.ToUpperInvariant())));
 		}
 
 		[Test]
 		public void GetCaseSensitivePath_NonExistentDirectory_ReturnsCaseSensitivePath()
 		{
-			
+
 			string nonExistentRelPath = Path.Combine(path1: "non_existent_dir", path2: "non_existent_child_dir");
 			string nonExistentDirPath = Path.Combine(s_testDirectory, nonExistentRelPath);
 			string upperCasePath = nonExistentDirPath.ToUpperInvariant();
 
-			
 			string? result = PathHelper.GetCaseSensitivePath(upperCasePath).Item1;
 
-			
 			Assert.That(result, Is.EqualTo(Path.Combine(s_testDirectory, nonExistentRelPath.ToUpperInvariant())));
 		}
 	}

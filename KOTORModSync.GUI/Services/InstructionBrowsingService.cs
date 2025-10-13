@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -15,9 +16,7 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class InstructionBrowsingService
 	{
 		private readonly MainConfig _mainConfig;
@@ -29,9 +28,6 @@ namespace KOTORModSync.Services
 			_dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
 		}
 
-		
-		
-		
 		public async Task BrowseSourceFilesAsync(Instruction instruction, TextBox sourceTextBox)
 		{
 			try
@@ -39,12 +35,10 @@ namespace KOTORModSync.Services
 				if ( instruction == null )
 					throw new ArgumentNullException(nameof(instruction));
 
-				
 				var startFolder = _mainConfig.sourcePath != null
 					? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName)
 					: null;
 
-				
 				string[] filePaths = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: false,
 					allowMultiple: true,
@@ -67,7 +61,6 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				
 				for ( int i = 0; i < files.Count; i++ )
 				{
 					string filePath = files[i];
@@ -81,7 +74,6 @@ namespace KOTORModSync.Services
 
 				instruction.Source = files;
 
-				
 				if ( sourceTextBox != null )
 				{
 					string convertedItems = new ListToStringConverter().Convert(
@@ -100,9 +92,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public async Task BrowseSourceFoldersAsync(Instruction instruction, TextBox sourceTextBox)
 		{
 			try
@@ -110,12 +99,10 @@ namespace KOTORModSync.Services
 				if ( instruction == null )
 					throw new ArgumentNullException(nameof(instruction));
 
-				
 				var startFolder = _mainConfig.sourcePath != null
 					? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName)
 					: null;
 
-				
 				string[] folderPaths = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: true,
 					allowMultiple: true,
@@ -129,7 +116,6 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				
 				var modifiedFolders = folderPaths.SelectMany(
 					thisFolder => new DirectoryInfo(thisFolder)
 						.EnumerateDirectories(searchPattern: "*", SearchOption.AllDirectories)
@@ -138,7 +124,6 @@ namespace KOTORModSync.Services
 
 				instruction.Source = modifiedFolders;
 
-				
 				if ( sourceTextBox != null )
 				{
 					string convertedItems = new ListToStringConverter().Convert(
@@ -157,9 +142,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public async Task BrowseDestinationAsync(Instruction instruction, TextBox destinationTextBox)
 		{
 			try
@@ -167,12 +149,10 @@ namespace KOTORModSync.Services
 				if ( instruction == null )
 					throw new ArgumentNullException(nameof(instruction));
 
-				
 				var startFolder = _mainConfig.destinationPath != null
 					? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.destinationPath.FullName)
 					: null;
 
-				
 				string[] result = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: true,
 					allowMultiple: false,
@@ -200,7 +180,6 @@ namespace KOTORModSync.Services
 					instruction.Destination = Utility.RestoreCustomVariables(folderPath);
 				}
 
-				
 				if ( destinationTextBox != null )
 					destinationTextBox.Text = instruction.Destination;
 			}

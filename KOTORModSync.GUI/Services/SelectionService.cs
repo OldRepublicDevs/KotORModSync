@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -9,9 +10,7 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class SelectionService
 	{
 		private readonly MainConfig _mainConfig;
@@ -21,9 +20,6 @@ namespace KOTORModSync.Services
 			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 		}
 
-		
-		
-		
 		public void SelectAll(Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked)
 		{
 			try
@@ -46,15 +42,11 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void DeselectAll(Action<ModComponent, HashSet<ModComponent>> componentCheckboxUnchecked)
 		{
 			try
 			{
-				
-				
+
 				foreach ( ModComponent component in _mainConfig.allComponents )
 				{
 					component.IsSelected = false;
@@ -68,9 +60,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void SelectByTier(string selectedTier, int selectedPriority, List<string> allTierNames, List<int> allTierPriorities, Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked)
 		{
 			try
@@ -78,7 +67,6 @@ namespace KOTORModSync.Services
 				var visitedComponents = new HashSet<ModComponent>();
 				var tiersToInclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-				
 				for ( int i = 0; i < allTierNames.Count; i++ )
 				{
 					if ( allTierPriorities[i] <= selectedPriority )
@@ -90,12 +78,10 @@ namespace KOTORModSync.Services
 				Logger.LogVerbose($"Selecting tier '{selectedTier}' (Priority: {selectedPriority})");
 				Logger.LogVerbose($"Including tiers: {string.Join(", ", tiersToInclude)}");
 
-				
 				var matchingMods = _mainConfig.allComponents.Where(c =>
 					!string.IsNullOrEmpty(c.Tier) && tiersToInclude.Contains(c.Tier)
 				).ToList();
 
-				
 				foreach ( ModComponent component in matchingMods )
 				{
 					if ( component.IsSelected )
@@ -112,9 +98,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void SelectByCategories(List<string> selectedCategories, Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked)
 		{
 			try
@@ -127,7 +110,6 @@ namespace KOTORModSync.Services
 
 				var visitedComponents = new HashSet<ModComponent>();
 
-				
 				var matchingMods = _mainConfig.allComponents.Where(c =>
 					c.Category.Count > 0 && c.Category.Any(cat => selectedCategories.Contains(cat))
 				).ToList();
@@ -135,7 +117,6 @@ namespace KOTORModSync.Services
 				Logger.LogVerbose($"Categories selected: {string.Join(", ", selectedCategories)}");
 				Logger.LogVerbose($"Matched {matchingMods.Count} components by category");
 
-				
 				foreach ( ModComponent component in matchingMods )
 				{
 					if ( component.IsSelected )

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -36,7 +37,6 @@ namespace KOTORModSync.Dialogs
 			LoadSuccessful = false;
 			_confirmationCallback = confirmationCallback;
 
-			
 			_previewTextBlock = this.FindControl<TextBlock>("PreviewTextBlock");
 			if ( _previewTextBlock != null )
 			{
@@ -47,23 +47,22 @@ namespace KOTORModSync.Dialogs
 						UpdatePreviewInlines();
 					}
 				};
-				
+
 				UpdatePreviewInlines();
 			}
-			
+
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		
 		public RegexImportDialog()
 		{
 			InitializeComponent();
 			ViewModel = null;
 			LoadSuccessful = false;
-			
+
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -85,12 +84,12 @@ namespace KOTORModSync.Dialogs
 
 		private async void OnLoad(object sender, RoutedEventArgs e)
 		{
-			
+
 			if ( _confirmationCallback != null )
 			{
 				bool confirmed = await _confirmationCallback();
 				if ( !confirmed )
-					return; 
+					return;
 			}
 
 			LoadSuccessful = true;
@@ -136,7 +135,6 @@ namespace KOTORModSync.Dialogs
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -149,17 +147,16 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			
+
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch (current)
 				{
-					
+
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -172,7 +169,7 @@ namespace KOTORModSync.Dialogs
 					case TabItem _:
 					case ProgressBar _:
 					case ScrollViewer _:
-					
+
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

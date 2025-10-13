@@ -8,7 +8,6 @@ Integrate Options dialog to allow the user to choose customization options
 
 Implement method of validating source and destination keys in Instruction in real time. The problem with this is archives can be so large it can seriously slow down the app. At the very least we could implement 
 
-
   <!-- are we in publish? -->
   <PropertyGroup>
     <PublishDependsOn>InBeforePublish;$(PublishDependsOn);InAfterPublish</PublishDependsOn>
@@ -27,7 +26,6 @@ Implement method of validating source and destination keys in Instruction in rea
     </PropertyGroup>
     <Message Text=" ## InAfterPublish  -------> DetectPublishBuild: $(DetectPublishBuild)" Importance="High" />
   </Target>
-
 
   <!-- Publish settings -->
   <PropertyGroup Condition="'$(DetectPublishBuild)' != 'true' AND '$(Configuration)' == 'Release'">

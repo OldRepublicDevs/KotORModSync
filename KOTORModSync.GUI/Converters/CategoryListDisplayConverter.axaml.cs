@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -10,17 +11,15 @@ using Avalonia.Data.Converters;
 
 namespace KOTORModSync.Converters
 {
-	
-	
-	
+
 	public partial class CategoryListDisplayConverter : IValueConverter
 	{
-		
+
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			if ( value is string category )
 			{
-				
+
 				return category;
 			}
 
@@ -32,12 +31,11 @@ namespace KOTORModSync.Converters
 			return string.Empty;
 		}
 
-		
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			if ( value is string text && !string.IsNullOrWhiteSpace(text) )
 			{
-				
+
 				return text.Split(
 					new[] { ",", ";" },
 					StringSplitOptions.RemoveEmptyEntries

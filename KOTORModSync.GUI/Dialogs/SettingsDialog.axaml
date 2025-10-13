@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <Window
     x:Class="KOTORModSync.Dialogs.SettingsDialog"
     xmlns="https://github.com/avaloniaui"
@@ -159,21 +159,21 @@
                                 FontWeight="Bold"
                                 Text="📥 Download Settings" />
 
-                        <CheckBox
-                            Content="Validate and replace invalid archives"
-                            IsChecked="{Binding validateAndReplaceInvalidArchives}"
-                            ToolTip.Tip="When enabled, automatically validates downloaded archive files (zip, rar, 7z) using 7-Zip. If an archive is corrupt or incomplete, it will be automatically deleted and re-downloaded. When disabled, existing files are never replaced, which may result in using corrupt archives." />
+                            <CheckBox
+                                Content="Validate and replace invalid archives"
+                                IsChecked="{Binding validateAndReplaceInvalidArchives}"
+                                ToolTip.Tip="When enabled, automatically validates downloaded archive files (zip, rar, 7z) using 7-Zip. If an archive is corrupt or incomplete, it will be automatically deleted and re-downloaded. When disabled, existing files are never replaced, which may result in using corrupt archives." />
 
-                        <CheckBox
-                            Margin="0,5,0,0"
-                            Content="Filter downloads by screen resolution"
-                            IsChecked="{Binding filterDownloadsByResolution}"
-                            ToolTip.Tip="When enabled, automatically skips downloading files that don't match your system's screen resolution. For example, if you have a 1920x1080 display, files with '3840x2160' in the name will be skipped. This saves bandwidth and disk space by only downloading resolution-specific files that match your display." />
+                            <CheckBox
+                                Margin="0,5,0,0"
+                                Content="Filter downloads by screen resolution"
+                                IsChecked="{Binding filterDownloadsByResolution}"
+                                ToolTip.Tip="When enabled, automatically skips downloading files that don't match your system's screen resolution. For example, if you have a 1920x1080 display, files with '3840x2160' in the name will be skipped. This saves bandwidth and disk space by only downloading resolution-specific files that match your display." />
 
-                        <TextBlock
-                            Margin="0,15,0,5"
-                            FontWeight="Bold"
-                            Text="Nexus Mods API Key (Optional):" />
+                            <TextBlock
+                                Margin="0,15,0,5"
+                                FontWeight="Bold"
+                                Text="Nexus Mods API Key (Optional):" />
                             <TextBox
                                 Text="{Binding nexusModsApiKey}"
                                 ToolTip.Tip="Optional: Enter your Nexus Mods API key for handling downloads from NexusMods. Get your API key from: https://www.nexusmods.com/users/myaccount?tab=api+access."
@@ -230,54 +230,37 @@
 
                             <TextBlock
                                 Margin="0,0,0,10"
-                                TextWrapping="Wrap"
                                 Opacity="0.8"
-                                Text="Anonymous telemetry is enabled to help improve KOTORModSync. You can opt-out at any time. No personal information is collected." />
+                                Text="Anonymous telemetry helps improve KOTORModSync by collecting usage statistics, performance metrics, and crash reports. All data is fully anonymized and sent securely to bolabaden.org. You can opt-out at any time."
+                                TextWrapping="Wrap" />
 
                             <CheckBox
                                 x:Name="EnableTelemetryCheckBox"
+                                Margin="0,5,0,0"
                                 Content="Enable anonymous telemetry"
                                 IsChecked="True"
-                                Margin="0,5,0,0"
-                                ToolTip.Tip="Master switch for all telemetry collection. When enabled, anonymous usage and performance data helps us improve the application." />
+                                ToolTip.Tip="Enable or disable all telemetry collection. When enabled, anonymous usage data, performance metrics, and crash reports help improve the application. All data is cryptographically hashed and fully anonymized." />
 
-                            <CheckBox
-                                x:Name="CollectUsageDataCheckBox"
-                                Content="Collect usage data (which features you use)"
-                                IsChecked="True"
-                                Margin="20,5,0,0"
-                                IsEnabled="{Binding #EnableTelemetryCheckBox.IsChecked}"
-                                ToolTip.Tip="Track which features and buttons are used to help prioritize development." />
-
-                            <CheckBox
-                                x:Name="CollectPerformanceMetricsCheckBox"
-                                Content="Collect performance metrics (speeds and timings)"
-                                IsChecked="True"
-                                Margin="20,5,0,0"
-                                IsEnabled="{Binding #EnableTelemetryCheckBox.IsChecked}"
-                                ToolTip.Tip="Track operation durations and render times to identify performance bottlenecks." />
-
-                            <CheckBox
-                                x:Name="CollectCrashReportsCheckBox"
-                                Content="Send crash and error reports"
-                                IsChecked="True"
-                                Margin="20,5,0,0"
-                                IsEnabled="{Binding #EnableTelemetryCheckBox.IsChecked}"
-                                ToolTip.Tip="Automatically report crashes and errors to help us fix bugs faster." />
-
-                            <Separator Margin="0,10"/>
+                            <Separator Margin="0,10" />
 
                             <TextBlock
-                                TextWrapping="Wrap"
                                 FontSize="11"
                                 Opacity="0.7"
-                                Text="What we DON'T collect: Personal information, mod names, file paths, passwords, or any sensitive data. All data is anonymous and used solely to improve the application." />
+                                Text="What we collect: Feature usage, performance timings, crash reports (hashed)."
+                                TextWrapping="Wrap" />
+
+                            <TextBlock
+                                Margin="0,5,0,0"
+                                FontSize="11"
+                                Opacity="0.7"
+                                Text="What we DON'T collect: Personal information, mod names, file paths, passwords, or any sensitive data. All data is cryptographically anonymized."
+                                TextWrapping="Wrap" />
 
                             <Button
-                                Content="View Privacy Details"
                                 Margin="0,10,0,0"
                                 HorizontalAlignment="Left"
                                 Click="ViewPrivacyDetails_Click"
+                                Content="View Privacy Details"
                                 ToolTip.Tip="See exactly what data is collected and how it's used" />
                         </StackPanel>
                     </Border>

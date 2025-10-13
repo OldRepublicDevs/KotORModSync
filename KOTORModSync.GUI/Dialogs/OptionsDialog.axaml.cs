@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -28,7 +29,7 @@ namespace KOTORModSync.Dialogs
 		{
 			InitializeComponent();
 			OkButton.Click += OKButton_Click;
-			
+
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -76,29 +77,23 @@ namespace KOTORModSync.Dialogs
 				OptionStackPanel.Children.Add(radioButton);
 			}
 
-			
 			OptionStackPanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
 			OptionStackPanel.Arrange(new Rect(OptionStackPanel.DesiredSize));
 
-			
 			Size actualSize = OptionStackPanel.Bounds.Size;
 
-			
-			const double horizontalPadding = 100; 
-			const double verticalPadding = 150;   
+			const double horizontalPadding = 100;
+			const double verticalPadding = 150;
 
-			
 			double contentWidth = actualSize.Width + 2 * horizontalPadding;
 			double contentHeight = actualSize.Height + 2 * verticalPadding;
 
-			
 			Width = contentWidth;
 			Height = contentHeight;
 
 			InvalidateArrange();
 			InvalidateMeasure();
 
-			
 			Screen screen = Screens.ScreenFromVisual(this);
 			if ( screen is null )
 				throw new NullReferenceException(nameof(screen));
@@ -164,7 +159,6 @@ namespace KOTORModSync.Dialogs
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -177,17 +171,16 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			
+
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch (current)
 				{
-					
+
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -200,7 +193,7 @@ namespace KOTORModSync.Dialogs
 					case TabItem _:
 					case ProgressBar _:
 					case ScrollViewer _:
-					
+
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

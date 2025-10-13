@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using KOTORModSync.Core.Utility;
@@ -63,7 +64,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void TestSerializeObjectRecursionProblems()
 		{
-			
+
 			var instance1 = new MyClass();
 			instance1.NestedInstance = new MyNestedClass(instance1);
 			instance1.GuidNestedClassDict = new Dictionary<Guid, List<MyNestedClass>>
@@ -88,7 +89,6 @@ namespace KOTORModSync.Tests
 				},
 			};
 
-			
 			Assert.Multiple(
 				() =>
 				{
@@ -113,7 +113,7 @@ namespace KOTORModSync.Tests
 			);
 		}
 
-		private const int MaxRecursionDepth = 1000; 
+		private const int MaxRecursionDepth = 1000;
 
 		private static bool HasStackOverflow(Action action)
 		{
@@ -122,8 +122,7 @@ namespace KOTORModSync.Tests
 
 			try
 			{
-				
-				
+
 				AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
 				{
 					if ( args.ExceptionObject is StackOverflowException )
@@ -132,26 +131,23 @@ namespace KOTORModSync.Tests
 					}
 				};
 
-				
 				_ = ThreadPool.QueueUserWorkItem(
 					_ =>
 					{
 						try
 						{
-							
+
 							RecursiveMethod(action, ref recursionDepth);
 						}
 						catch
 						{
-							
+
 						}
 					}
 				);
 
-				
 				Thread.Sleep(TimeSpan.FromSeconds(5));
 
-				
 				if ( recursionDepth > MaxRecursionDepth )
 				{
 					stackOverflow = true;
@@ -159,7 +155,7 @@ namespace KOTORModSync.Tests
 			}
 			catch
 			{
-				
+
 			}
 
 			return stackOverflow;
@@ -216,7 +212,6 @@ namespace KOTORModSync.Tests
 			}
 		}
 
-		
 	}
 
 	public class MyClass

@@ -11,7 +11,6 @@
         </Border>
     </Design.PreviewWith>
 
-
     <Style Selector="Menu">
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="Normal" />
@@ -619,7 +618,6 @@
         <Setter Property="Padding" Value="10" />
     </Style>
 
-
     <!--  Download Window Styles  -->
     <Style Selector="Border.download-item">
         <Setter Property="Background" Value="#02110d" />
@@ -745,7 +743,6 @@
         <Setter Property="Padding" Value="10" />
         <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
-
 
     <Style Selector="Border.summary-option-card">
         <Setter Property="Background" Value="#0a2a22" />

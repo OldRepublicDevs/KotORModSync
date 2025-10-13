@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Text.RegularExpressions;
@@ -11,26 +12,21 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class ParameterizedMarkdownImportTests
 	{
-		
-		
-		
+
 		private static IEnumerable<TestCaseData> GetAllMarkdownFiles()
 		{
-			
-			
-			
+
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
 			string contentRoot = Path.Combine(solutionRoot, "mod-builds", "content");
 
-			
 			string k1Path = Path.Combine(contentRoot, "k1");
 			if ( Directory.Exists(k1Path) )
 			{
 				foreach ( string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories) )
 				{
-					
+
 					if ( mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
 						mdFile.Contains("/validated/") )
 						continue;
@@ -43,13 +39,12 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			string k2Path = Path.Combine(contentRoot, "k2");
 			if ( Directory.Exists(k2Path) )
 			{
 				foreach ( string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories) )
 				{
-					
+
 					if ( mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
 						mdFile.Contains("/validated/") )
 						continue;
@@ -66,20 +61,18 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void ComponentSectionPattern_MatchesModSections(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.ComponentSectionPattern, profile.ComponentSectionOptions);
 
-			
 			MatchCollection matches = regex.Matches(markdown);
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Sections matched: {matches.Count}");
 
-			
 			Assert.That(matches, Is.Not.Empty,
 				$"Should match at least one section in {Path.GetFileName(mdFilePath)}");
 		}
@@ -87,14 +80,13 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RawRegexPattern_ExtractsModNames(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult result = parser.Parse(markdown);
 			var names = result.Components.Select(c => c.Name).ToList();
 
@@ -110,11 +102,9 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			Assert.That(names, Is.Not.Empty,
 				$"Should extract at least one name from {Path.GetFileName(mdFilePath)}");
 
-			
 			foreach ( string name in names )
 			{
 				Assert.That(name, Is.Not.Null.And.Not.Empty, "Each extracted name should be non-empty");
@@ -124,14 +114,13 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RawRegexPattern_ExtractsAuthors(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(markdown);
 			var authors = matches
 				.Select(m => m.Groups["author"].Value.Trim())
@@ -150,7 +139,6 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			Assert.That(authors, Is.Not.Empty,
 				$"Should extract at least one author from {Path.GetFileName(mdFilePath)}");
 		}
@@ -158,14 +146,13 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RawRegexPattern_ExtractsDescriptions(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(markdown);
 			var descriptions = matches
 				.Select(m => m.Groups["description"].Value.Trim())
@@ -180,7 +167,6 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"First description preview: {descriptions[0].Substring(0, Math.Min(100, descriptions[0].Length))}...");
 			}
 
-			
 			Assert.That(descriptions, Is.Not.Empty,
 				$"Should extract at least one description from {Path.GetFileName(mdFilePath)}");
 		}
@@ -188,17 +174,15 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RawRegexPattern_ExtractsCategoryTier(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			
 			foreach ( var c in result.Components.Take(3) )
 			{
 				Console.WriteLine($"Component: {c.Name}");
@@ -227,7 +211,6 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			
 			Assert.That(categoryTiers, Is.Not.Empty,
 				$"Should extract at least one category/tier from {Path.GetFileName(mdFilePath)}");
 		}
@@ -235,14 +218,13 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RawRegexPattern_ExtractsInstallationMethod(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(markdown);
 			var methods = matches
 				.Select(m => m.Groups["installation_method"].Value.Trim())
@@ -252,7 +234,6 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Installation methods found: {methods.Count}");
 
-			
 			var uniqueMethods = methods.Distinct().ToList();
 			Console.WriteLine($"Unique installation methods: {uniqueMethods.Count}");
 
@@ -262,7 +243,6 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"  - {method}: {count} occurrence(s)");
 			}
 
-			
 			Assert.That(methods, Is.Not.Empty,
 				$"Should extract at least one installation method from {Path.GetFileName(mdFilePath)}");
 		}
@@ -270,14 +250,13 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RawRegexPattern_ExtractsInstallationInstructions(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(markdown);
 			var instructions = matches
 				.Select(m => m.Groups["installation_instructions"].Value.Trim())
@@ -292,21 +271,19 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"First instruction preview: {instructions[0].Substring(0, Math.Min(100, instructions[0].Length))}...");
 			}
 
-			
 			Console.WriteLine($"Mods with installation instructions: {instructions.Count}");
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RawRegexPattern_ExtractsNonEnglishFunctionality(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
 
-			
 			MatchCollection matches = regex.Matches(markdown);
 			var nonEnglishValues = matches
 				.Select(m => m.Groups["non_english"].Value.Trim())
@@ -316,7 +293,6 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Non-English functionality values found: {nonEnglishValues.Count}");
 
-			
 			int yesCount = nonEnglishValues.Count(v => v.Equals("YES", StringComparison.OrdinalIgnoreCase));
 			int noCount = nonEnglishValues.Count(v => v.Equals("NO", StringComparison.OrdinalIgnoreCase));
 
@@ -328,22 +304,19 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void FullMarkdownFile_ParsesAllMods(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string fullMarkdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult result = parser.Parse(fullMarkdown);
 			IList<ModComponent> components = result.Components;
 
-			
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Total mods found: {components.Count}");
 
-			
 			var modNames = components.Select(c => c.Name).ToList();
 			var modAuthors = components.Select(c => c.Author).ToList();
 			var modCategories = components.Select(c => $"{string.Join(", ", c.Category)} / {c.Tier}").ToList();
@@ -353,7 +326,6 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Mods with categories: {modCategories.Count(c => !string.IsNullOrWhiteSpace(c))}");
 			Console.WriteLine($"Mods with descriptions: {modDescriptions.Count(d => !string.IsNullOrWhiteSpace(d))}");
 
-			
 			Console.WriteLine("\nFirst 10 mods:");
 			for ( int i = 0; i < Math.Min(10, components.Count); i++ )
 			{
@@ -367,16 +339,15 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"   Installation Method: {component.InstallationMethod}");
 			}
 
-			
 			Assert.That(components, Is.Not.Empty,
 				$"Expected to find at least one mod entry in {Path.GetFileName(mdFilePath)}, found {components.Count}");
 
 			Assert.Multiple(() =>
 			{
-				
-				int expectedMinAuthors = (int)(components.Count * 0.5); 
-				int expectedMinCategories = (int)(components.Count * 0.5); 
-				int expectedMinDescriptions = (int)(components.Count * 0.5); 
+
+				int expectedMinAuthors = (int)(components.Count * 0.5);
+				int expectedMinCategories = (int)(components.Count * 0.5);
+				int expectedMinDescriptions = (int)(components.Count * 0.5);
 
 				Assert.That(modAuthors.Count(a => !string.IsNullOrWhiteSpace(a)), Is.GreaterThanOrEqualTo(expectedMinAuthors),
 					"Most mods should have authors");
@@ -390,14 +361,13 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void NamePattern_ExtractsNameFromBrackets(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var nameRegex = new Regex(profile.NamePattern);
 
-			
 			var lines = markdown.Split('\n');
 			var nameLines = lines.Where(l => l.Contains("**Name:**")).ToList();
 
@@ -418,7 +388,6 @@ namespace KOTORModSync.Tests
 
 			Console.WriteLine($"Successfully matched: {matchedCount}");
 
-			
 			Assert.That(matchedCount, Is.GreaterThan(0),
 				$"Should extract at least one name from {Path.GetFileName(mdFilePath)}");
 		}
@@ -426,20 +395,18 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void ModLinkPattern_ExtractsLinkUrls(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var linkRegex = new Regex(profile.ModLinkPattern);
 
-			
 			MatchCollection matches = linkRegex.Matches(markdown);
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Links found: {matches.Count}");
 
-			
 			int sampleCount = Math.Min(5, matches.Count);
 			Console.WriteLine($"\nSample links:");
 			for ( int i = 0; i < sampleCount; i++ )
@@ -449,14 +416,12 @@ namespace KOTORModSync.Tests
 				string link = match.Groups["link"].Value;
 				Console.WriteLine($"  [{label}]({link})");
 
-				
 				bool isValidLink = link.StartsWith("http://") || link.StartsWith("https://") ||
 								   link.StartsWith("#") || link.StartsWith("/");
 				Assert.That(isValidLink, Is.True,
 					$"Link should be a valid URL, anchor link, or relative path: {link}");
 			}
 
-			
 			Assert.That(matches, Is.Not.Empty,
 				$"Should extract at least one link from {Path.GetFileName(mdFilePath)}");
 		}
@@ -464,21 +429,19 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void Parse_ValidateAllComponentsHaveValidNames(string mdFilePath)
 		{
-			
+
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			
 			MarkdownParserResult result = parser.Parse(markdown);
 			IList<ModComponent> components = result.Components;
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Components: {components.Count}");
 
-			
 			foreach ( ModComponent component in components )
 			{
 				Assert.That(component.Name, Is.Not.Null.And.Not.Empty,
@@ -487,7 +450,6 @@ namespace KOTORModSync.Tests
 					$"Component name should not have leading/trailing whitespace: '{component.Name}'");
 			}
 
-			
 			var nameGroups = components.GroupBy(c => c.Name).Where(g => g.Count() > 1).ToList();
 			if ( nameGroups.Count != 0 )
 			{

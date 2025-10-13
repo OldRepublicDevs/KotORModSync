@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -17,16 +18,11 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
+
 	public static class PreinstallValidationService
 	{
-		
-		
-		
-		
-		
+
+
 		public static async Task<(bool success, string informationMessage)> ValidatePreinstallAsync(
 			[CanBeNull] Func<string, Task<bool>> onConfirmationRequested = null)
 		{
@@ -47,8 +43,7 @@ namespace KOTORModSync.Core.Services
 				}
 				else
 				{
-					
-					
+
 					string[] possibleOSXPaths =
 					{
 						Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
@@ -102,7 +97,7 @@ namespace KOTORModSync.Core.Services
 					patcherCliPath.FullName,
 					args: "--install"
 				);
-				if ( result.Item1 == 2 ) 
+				if ( result.Item1 == 2 )
 					holopatcherTestExecute = true;
 
 				if ( MainConfig.AllComponents.IsNullOrEmptyCollection() )
@@ -121,7 +116,6 @@ namespace KOTORModSync.Core.Services
 				await Logger.LogAsync("Checking for duplicate components...");
 				bool noDuplicateComponents = await FindDuplicateComponents(MainConfig.AllComponents);
 
-				
 				await Logger.LogAsync("Ensuring both the mod directory and the install directory are writable...");
 				bool isInstallDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.DestinationPath);
 				bool isModDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.SourcePath);
@@ -162,7 +156,7 @@ namespace KOTORModSync.Core.Services
 						);
 						foreach ( ModComponent restrictedComponent in restrictedComponentsList )
 						{
-							
+
 							if ( restrictedComponent?.IsSelected == true )
 							{
 								await Logger.LogErrorAsync($"Cannot install '{component.Name}' due to '{restrictedComponent.Name}' being selected for install.");
@@ -176,7 +170,7 @@ namespace KOTORModSync.Core.Services
 						List<ModComponent> dependencyComponentsList = ModComponent.FindComponentsFromGuidList(component.Dependencies, MainConfig.AllComponents);
 						foreach ( ModComponent dependencyComponent in dependencyComponentsList )
 						{
-							
+
 							if ( dependencyComponent?.IsSelected != true )
 							{
 								await Logger.LogErrorAsync($"Cannot install '{component.Name}' due to '{dependencyComponent?.Name}' not being selected for install.");
@@ -197,7 +191,6 @@ namespace KOTORModSync.Core.Services
 
 				await Logger.LogVerboseAsync("Finished validating all components.");
 
-				
 				await Logger.LogAsync("Performing dry-run validation of installation order and instructions...");
 				DryRunValidationResult dryRunResult = await DryRunValidator.ValidateInstallationAsync(
 					MainConfig.AllComponents,
@@ -236,10 +229,9 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogErrorAsync(informationMessage);
 				}
 
-				
 				if ( failedComponents.Count > 0 )
 				{
-					
+
 					string names = string.Join(", ", failedComponents.Select(c => c.Name));
 					informationMessage = $"Some components failed to validate: {names}.\nThey are highlighted in the left list. Check the Output window for exact errors.";
 				}
@@ -259,13 +251,11 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogErrorAsync(informationMessage);
 				}
 
-				
 				if ( !dryRunPassed )
 				{
 					await Logger.LogErrorAsync("Dry-run validation failed! Installation would encounter errors.");
 					await Logger.LogErrorAsync(dryRunResult.GetSummaryMessage());
 
-					
 					foreach ( ValidationIssue issue in dryRunResult.Issues.Where(i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical) )
 					{
 						await Logger.LogErrorAsync($"[{issue.Category}] {issue.Message}");
@@ -293,7 +283,6 @@ namespace KOTORModSync.Core.Services
 					}
 				}
 
-				
 				if ( fileSystemInfos.Count != 0 )
 				{
 					informationMessage =
@@ -302,7 +291,6 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogErrorAsync(informationMessage);
 				}
 
-				
 				bool hasErrors = !string.IsNullOrEmpty(informationMessage) ||
 					!holopatcherIsExecutable ||
 					!holopatcherTestExecute ||
@@ -318,7 +306,6 @@ namespace KOTORModSync.Core.Services
 					return (false, informationMessage);
 				}
 
-				
 				string successMessage = "✓ All validation checks passed successfully!";
 				if ( dryRunResult.HasWarnings )
 				{
@@ -335,11 +322,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
-		
+
+
 		private static async Task<bool> FindDuplicateComponents([NotNull][ItemNotNull] List<ModComponent> components)
 		{
 			if ( components == null )
@@ -347,14 +331,13 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				
+
 				var guidGroups = components.GroupBy(c => c.Guid).Where(g => g.Count() > 1).ToList();
 				foreach ( IGrouping<Guid, ModComponent> group in guidGroups )
 				{
 					await Logger.LogErrorAsync($"Duplicate GUID found: {group.Key} in components: {string.Join(", ", group.Select(c => c.Name))}");
 				}
 
-				
 				var nameGroups = components.GroupBy(c => c.Name.ToLowerInvariant()).Where(g => g.Count() > 1).ToList();
 				foreach ( IGrouping<string, ModComponent> group in nameGroups )
 				{

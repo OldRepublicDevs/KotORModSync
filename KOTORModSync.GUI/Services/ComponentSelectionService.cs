@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -9,9 +10,7 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class ComponentSelectionService
 	{
 		private readonly MainConfig _mainConfig;
@@ -21,9 +20,6 @@ namespace KOTORModSync.Services
 			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 		}
 
-		
-		
-		
 		public void HandleComponentChecked(
 			ModComponent component,
 			HashSet<ModComponent> visitedComponents,
@@ -37,7 +33,7 @@ namespace KOTORModSync.Services
 
 			try
 			{
-				
+
 				if ( visitedComponents.Contains(component) )
 				{
 					if ( !suppressErrors )
@@ -45,7 +41,6 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				
 				_ = visitedComponents.Add(component);
 
 				Dictionary<string, List<ModComponent>> conflicts = ModComponent.GetConflictingComponents(
@@ -54,7 +49,6 @@ namespace KOTORModSync.Services
 					_mainConfig.allComponents
 				);
 
-				
 				if ( conflicts.TryGetValue("Dependency", out List<ModComponent> dependencyConflicts) )
 				{
 					foreach ( ModComponent conflictComponent in dependencyConflicts )
@@ -67,7 +61,6 @@ namespace KOTORModSync.Services
 					}
 				}
 
-				
 				if ( conflicts.TryGetValue("Restriction", out List<ModComponent> restrictionConflicts) )
 				{
 					foreach ( ModComponent conflictComponent in restrictionConflicts )
@@ -80,7 +73,6 @@ namespace KOTORModSync.Services
 					}
 				}
 
-				
 				foreach ( ModComponent c in _mainConfig.allComponents )
 				{
 					if ( !c.IsSelected || !c.Restrictions.Contains(component.Guid) )
@@ -90,7 +82,6 @@ namespace KOTORModSync.Services
 					HandleComponentUnchecked(c, visitedComponents, suppressErrors, onComponentVisualRefresh);
 				}
 
-				
 				if ( component.Options != null && component.Options.Count > 0 )
 				{
 					bool hasSelectedOption = component.Options.Any(opt => opt.IsSelected);
@@ -98,21 +89,17 @@ namespace KOTORModSync.Services
 					{
 						bool optionSelected = ComponentSelectionService.TryAutoSelectFirstOption(component);
 
-						
-						
 						if ( !optionSelected )
 						{
 							Logger.LogVerbose($"[ComponentSelectionService] No valid options available for '{component.Name}', unchecking component");
 							component.IsSelected = false;
-							
-							
+
 							onComponentVisualRefresh?.Invoke(component);
 							return;
 						}
 					}
 				}
 
-				
 				onComponentVisualRefresh?.Invoke(component);
 			}
 			catch ( Exception e )
@@ -121,9 +108,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void HandleComponentUnchecked(
 			ModComponent component,
 			HashSet<ModComponent> visitedComponents,
@@ -137,7 +121,7 @@ namespace KOTORModSync.Services
 
 			try
 			{
-				
+
 				if ( visitedComponents.Contains(component) )
 				{
 					if ( !suppressErrors )
@@ -145,17 +129,14 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				
 				_ = visitedComponents.Add(component);
 
-				
 				foreach ( ModComponent c in _mainConfig.allComponents.Where(c => c.IsSelected && c.Dependencies.Contains(component.Guid)) )
 				{
 					c.IsSelected = false;
 					HandleComponentUnchecked(c, visitedComponents, suppressErrors, onComponentVisualRefresh);
 				}
 
-				
 				onComponentVisualRefresh?.Invoke(component);
 			}
 			catch ( Exception e )
@@ -164,9 +145,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void HandleSelectAllCheckbox(
 			bool? isChecked,
 			Action<ModComponent, HashSet<ModComponent>, bool> onComponentChecked,
@@ -179,7 +157,7 @@ namespace KOTORModSync.Services
 				switch ( isChecked )
 				{
 					case true:
-						
+
 						foreach ( ModComponent component in _mainConfig.allComponents )
 						{
 							component.IsSelected = true;
@@ -187,7 +165,7 @@ namespace KOTORModSync.Services
 						}
 						break;
 					case false:
-						
+
 						foreach ( ModComponent component in _mainConfig.allComponents )
 						{
 							component.IsSelected = false;
@@ -195,7 +173,7 @@ namespace KOTORModSync.Services
 						}
 						break;
 					case null:
-						
+
 						foreach ( ModComponent component in _mainConfig.allComponents )
 						{
 							component.IsSelected = true;
@@ -210,9 +188,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void HandleOptionUnchecked(
 			Option option,
 			ModComponent parentComponent,
@@ -225,17 +200,15 @@ namespace KOTORModSync.Services
 
 			try
 			{
-				
+
 				bool allOptionsUnchecked = parentComponent.Options.All(opt => !opt.IsSelected);
 
 				if ( allOptionsUnchecked && parentComponent.IsSelected )
 				{
-					
-					
+
 					Logger.LogVerbose($"[ComponentSelectionService] All options unchecked for '{parentComponent.Name}', unchecking component");
 					parentComponent.IsSelected = false;
 
-					
 					var visitedComponents = new HashSet<ModComponent>();
 					foreach ( ModComponent c in _mainConfig.allComponents.Where(c => c.IsSelected && c.Dependencies.Contains(parentComponent.Guid)) )
 					{
@@ -243,7 +216,6 @@ namespace KOTORModSync.Services
 						HandleComponentUnchecked(c, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
 					}
 
-					
 					onComponentVisualRefresh?.Invoke(parentComponent);
 				}
 			}
@@ -253,9 +225,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public void HandleOptionChecked(
 			Option option,
 			ModComponent parentComponent,
@@ -268,13 +237,12 @@ namespace KOTORModSync.Services
 
 			try
 			{
-				
+
 				if ( !parentComponent.IsSelected )
 				{
 					Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' checked, auto-checking parent component '{parentComponent.Name}'");
 					parentComponent.IsSelected = true;
 
-					
 					var visitedComponents = new HashSet<ModComponent>();
 					HandleComponentChecked(parentComponent, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
 				}
@@ -285,10 +253,7 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
-		
+
 		private static bool TryAutoSelectFirstOption(ModComponent component)
 		{
 			if ( component?.Options == null || component.Options.Count == 0 )
@@ -296,8 +261,7 @@ namespace KOTORModSync.Services
 
 			try
 			{
-				
-				
+
 				Option firstOption = component.Options[0];
 				firstOption.IsSelected = true;
 				Logger.LogVerbose($"[ComponentSelectionService] Auto-selected option '{firstOption.Name}' for component '{component.Name}'");

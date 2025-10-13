@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -18,11 +19,9 @@ namespace KOTORModSync.Controls
 	{
 		public InstructionEditorControl()
 		{
-			
-			
+
 			AvaloniaXamlLoader.Load(this);
 
-			
 			this.Loaded += (sender, e) => UpdateFileExtensionsControl();
 		}
 
@@ -53,7 +52,7 @@ namespace KOTORModSync.Controls
 		protected override void OnDataContextChanged(EventArgs e)
 		{
 			base.OnDataContextChanged(e);
-			
+
 			Dispatcher.UIThread.Post(() => UpdateFileExtensionsControl(), DispatcherPriority.Loaded);
 		}
 
@@ -61,7 +60,7 @@ namespace KOTORModSync.Controls
 		{
 			if (DataContext is Instruction instruction && instruction.Action == Instruction.ActionType.DelDuplicate)
 			{
-				
+
 				List<string> extensions = ParseExtensionsFromArguments(instruction.Arguments);
 				Logger.LogVerbose($"InstructionEditorControl.UpdateFileExtensionsControl: Arguments='{instruction.Arguments}', Parsed extensions: [{string.Join(", ", extensions)}]");
 				var fileExtensionsControl = this.FindControl<FileExtensionsControl>("FileExtensionsControl");
@@ -80,9 +79,8 @@ namespace KOTORModSync.Controls
 		private static List<string> ParseExtensionsFromArguments([NotNull] string arguments)
 		{
 			if (string.IsNullOrWhiteSpace(arguments))
-				return new List<string>(); 
+				return new List<string>();
 
-			
 			var extensions = arguments.Split(separator, StringSplitOptions.RemoveEmptyEntries)
 				.Where(ext => !string.IsNullOrWhiteSpace(ext))
 				.Select(ext => ext.Trim())
@@ -103,7 +101,7 @@ namespace KOTORModSync.Controls
 
 		private void OnInstructionArgumentsChanged()
 		{
-			
+
 			Dispatcher.UIThread.Post(() => UpdateFileExtensionsControl(), DispatcherPriority.Loaded);
 		}
 	}

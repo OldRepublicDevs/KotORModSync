@@ -1,4 +1,6 @@
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Collections.Generic;
@@ -163,7 +165,6 @@ namespace KOTORModSync.Core.Parsing
 			set { _optionPattern = value; OnPropertyChanged(); }
 		}
 
-
 		private string _instructionPattern = string.Empty;
 		public string InstructionPattern
 		{
@@ -177,7 +178,6 @@ namespace KOTORModSync.Core.Parsing
 			get => _instructionsBlockPattern;
 			set { _instructionsBlockPattern = value; OnPropertyChanged(); }
 		}
-
 
 		public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>();
 

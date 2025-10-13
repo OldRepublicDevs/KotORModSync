@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using KOTORModSync.Core;
@@ -13,10 +14,9 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void Test_VirtualFileSystemProvider_BasicCreation()
 		{
-			
+
 			var provider = new VirtualFileSystemProvider();
 
-			
 			Assert.That(provider, Is.Not.Null);
 			Assert.That(provider.IsDryRun, Is.True);
 		}
@@ -24,10 +24,9 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void Test_RealFileSystemProvider_BasicCreation()
 		{
-			
+
 			var provider = new RealFileSystemProvider();
 
-			
 			Assert.That(provider, Is.Not.Null);
 			Assert.That(provider.IsDryRun, Is.False);
 		}
@@ -35,13 +34,11 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void Test_VirtualFileSystemProvider_FileOperations()
 		{
-			
+
 			var provider = new VirtualFileSystemProvider();
 
-			
 			provider.WriteFileAsync("test.txt", "content").Wait();
 
-			
 			Assert.That(provider.FileExists("test.txt"), Is.True);
 			Assert.That(provider.FileExists("nonexistent.txt"), Is.False);
 		}
@@ -49,12 +46,11 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void Test_MainConfig_Initialization()
 		{
-			
+
 			var config = new MainConfig();
 
-			
 			Assert.That(config.caseInsensitivePathing, Is.TypeOf<bool>());
-			Assert.That(config.useMultiThreadedIO, Is.False); 
+			Assert.That(config.useMultiThreadedIO, Is.False);
 		}
 	}
 }

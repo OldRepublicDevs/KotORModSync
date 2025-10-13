@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -12,9 +13,7 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
 	public class StepNavigationService
 	{
 		private readonly MainConfig _mainConfig;
@@ -26,29 +25,23 @@ namespace KOTORModSync.Services
 			_validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
 		}
 
-		
-		
-		
 		public int GetCurrentIncompleteStep()
 		{
 			try
 			{
-				
+
 				bool step1Complete = ValidationService.IsStep1Complete();
 				if ( !step1Complete )
 					return 1;
 
-				
 				bool step2Complete = _mainConfig.allComponents?.Count > 0;
 				if ( !step2Complete )
 					return 2;
 
-				
 				bool step3Complete = _mainConfig.allComponents?.Any(c => c.IsSelected) == true;
 				if ( !step3Complete )
 					return 3;
 
-				
 				bool step4Complete = false;
 				if ( step3Complete && _mainConfig.allComponents != null )
 				{
@@ -59,7 +52,6 @@ namespace KOTORModSync.Services
 				if ( !step4Complete )
 					return 4;
 
-				
 				return 5;
 			}
 			catch ( Exception ex )
@@ -69,9 +61,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public async Task JumpToCurrentStepAsync(
 			ScrollViewer scrollViewer,
 			Func<string, Border> findBorder)
@@ -86,22 +75,19 @@ namespace KOTORModSync.Services
 
 				if ( targetStepBorder != null )
 				{
-					
+
 					Rect targetBounds = targetStepBorder.Bounds;
 					double targetOffset = targetBounds.Top - scrollViewer.Viewport.Height / 2 + targetBounds.Height / 2;
 
-					
 					targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
 
-					
 					scrollViewer.Offset = new Vector(0, targetOffset);
 
-					
 					await HighlightStepAsync(targetStepBorder);
 				}
 				else
 				{
-					
+
 					Border progressSection = FindProgressSection(scrollViewer.Content as Panel);
 					if ( progressSection == null )
 						return;
@@ -118,25 +104,19 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		private static async Task HighlightStepAsync(Border stepBorder)
 		{
 			try
 			{
-				
+
 				IBrush originalBorderBrush = stepBorder.BorderBrush;
 				Thickness originalBorderThickness = stepBorder.BorderThickness;
 
-				
-				stepBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)); 
+				stepBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00));
 				stepBorder.BorderThickness = new Thickness(3);
 
-				
 				await Task.Delay(1000);
 
-				
 				stepBorder.BorderBrush = originalBorderBrush;
 				stepBorder.BorderThickness = originalBorderThickness;
 			}
@@ -146,9 +126,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		private static Border FindProgressSection(Panel panel)
 		{
 			if ( panel == null ) return null;

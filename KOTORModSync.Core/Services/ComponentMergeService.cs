@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -11,25 +12,16 @@ namespace KOTORModSync.Core.Services
 {
 	public enum MergeStrategy
 	{
-		
-		
-		
+
 		ByGuid,
-		
-		
-		
+
 		ByNameAndAuthor
 	}
 
 	public static class ComponentMergeService
 	{
-		
-		
-		
-		
-		
-		
-		
+
+
 		public static void MergeInto(
 			[NotNull] List<ModComponent> existing,
 			[NotNull] List<ModComponent> incoming,
@@ -54,90 +46,74 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
-		
+
 		private static void MergeByGuid([NotNull] List<ModComponent> existing, [NotNull] List<ModComponent> incoming)
 		{
-			
+
 			var existingByGuid = existing.ToDictionary(c => c.Guid, c => c);
 			var matchedExisting = new HashSet<Guid>();
 			var result = new List<ModComponent>();
 
-			
 			foreach ( ModComponent incomingComponent in incoming )
 			{
 				if ( existingByGuid.TryGetValue(incomingComponent.Guid, out ModComponent existingComponent) )
 				{
-					
+
 					UpdateComponentByGuid(existingComponent, incomingComponent);
 					result.Add(existingComponent);
 					matchedExisting.Add(existingComponent.Guid);
 				}
 				else
 				{
-					
+
 					result.Add(incomingComponent);
 					existingByGuid[incomingComponent.Guid] = incomingComponent;
 				}
 			}
 
-			
-			
 			foreach ( ModComponent existingComponent in existing )
 			{
 				if ( !matchedExisting.Contains(existingComponent.Guid) )
 				{
-					
+
 					int insertIndex = FindInsertionPoint(result, existingComponent, existing);
 					result.Insert(insertIndex, existingComponent);
 				}
 			}
 
-			
 			existing.Clear();
 			existing.AddRange(result);
 		}
 
-		
-		
-		
-		
+
 		private static int FindInsertionPoint(
 			[NotNull] List<ModComponent> result,
 			[NotNull] ModComponent componentToInsert,
 			[NotNull] List<ModComponent> originalExisting)
 		{
-			
+
 			int originalIndex = originalExisting.IndexOf(componentToInsert);
 			if ( originalIndex < 0 ) return result.Count;
 
-			
 			for ( int i = originalIndex + 1; i < originalExisting.Count; i++ )
 			{
 				ModComponent afterComponent = originalExisting[i];
 				int afterIndexInResult = result.FindIndex(c => c.Guid == afterComponent.Guid);
 				if ( afterIndexInResult >= 0 )
 				{
-					
+
 					return afterIndexInResult;
 				}
 			}
 
-			
 			return result.Count;
 		}
 
-		
-		
-		
 		private static void UpdateComponentByGuid([NotNull] ModComponent target, [NotNull] ModComponent source)
 		{
-			
+
 			Guid originalGuid = target.Guid;
 
-			
 			target.Name = source.Name;
 			target.Author = source.Author;
 			target.Category = source.Category;
@@ -146,7 +122,6 @@ namespace KOTORModSync.Core.Services
 			target.Directions = source.Directions;
 			target.InstallationMethod = source.InstallationMethod;
 
-			
 			if ( source.Language.Count > 0 )
 			{
 				var set = new HashSet<string>(target.Language, StringComparer.OrdinalIgnoreCase);
@@ -159,8 +134,6 @@ namespace KOTORModSync.Core.Services
 					}
 				}
 			}
-
-
 
 			if ( source.ModLink.Count > 0 )
 			{
@@ -175,9 +148,6 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-
-
-			
 			if ( source.Dependencies.Count > 0 )
 			{
 				var set = new HashSet<Guid>(target.Dependencies);
@@ -210,7 +180,6 @@ namespace KOTORModSync.Core.Services
 				target.InstallBefore = set.ToList();
 			}
 
-			
 			if ( source.Instructions.Count > 0 )
 			{
 				target.Instructions.Clear();
@@ -218,7 +187,6 @@ namespace KOTORModSync.Core.Services
 					target.Instructions.Add(instruction);
 			}
 
-			
 			if ( source.Options.Count > 0 )
 			{
 				target.Options.Clear();
@@ -226,7 +194,6 @@ namespace KOTORModSync.Core.Services
 					target.Options.Add(option);
 			}
 
-			
 			target.Guid = originalGuid;
 		}
 	}

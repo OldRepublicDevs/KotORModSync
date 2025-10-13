@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -12,14 +13,9 @@ using KOTORModSync.Core.Services;
 namespace KOTORModSync.Services
 {
 
-	
-	
-	
 	public class ComponentProcessingService
 	{
-		
-		
-		
+
 		public static async Task<ComponentProcessingResult> ProcessComponentsAsync(List<ModComponent> components)
 		{
 			var result = new ComponentProcessingResult
@@ -38,10 +34,8 @@ namespace KOTORModSync.Services
 					return result;
 				}
 
-				
 				await Logger.LogVerboseAsync($"Processing {components.Count} components");
 
-			
 			try
 			{
 				(bool isCorrectOrder, List<ModComponent> reorderedList) =
@@ -75,9 +69,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		
-		
-		
 		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 		{
 			if ( components == null || components.Count == 0 )
@@ -90,14 +81,13 @@ namespace KOTORModSync.Services
 
 				foreach ( ModComponent component in components )
 				{
-					
+
 					if ( component.Instructions.Count > 0 )
 					{
 						skippedCount++;
 						continue;
 					}
 
-					
 					bool success = component.TryGenerateInstructionsFromArchive();
 					if ( !success )
 						continue;

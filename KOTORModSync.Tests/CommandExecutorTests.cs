@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System.Diagnostics;
@@ -52,39 +53,32 @@ namespace KOTORModSync.Tests
 		[CancelAfter(10000)]
 		public void TryExecuteCommand_ShouldReturnSuccessAndOutput()
 		{
-			
+
 			const string command = "echo Hello, Windows!";
 			const string expectedOutput = "Hello, Windows!";
 
-			
 			var completed = new ManualResetEvent(false);
 			var sharedData = new Dictionary<string, object>();
 
-			
 			var thread = new Thread(() => ExecuteCommand(command, completed, sharedData));
 			thread.Start();
 
-			
-			if ( !completed.WaitOne(11000) ) 
+			if ( !completed.WaitOne(11000) )
 			{
 				Logger.Log("The test did not complete within the expected time.");
 				Logger.Log("The test thread is still running.");
 
-				
 				thread.Interrupt();
 
-				
 				thread.Join();
 
-				
 			}
 			else if ( thread.ThreadState != ThreadState.Stopped )
 			{
-				
+
 				Logger.Log("The test thread is still running.");
 			}
 
-			
 			bool success = (bool)sharedData["success"];
 			string output = (string)sharedData["output"];
 			Assert.Multiple(
@@ -99,10 +93,9 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GetAvailableMemory_ShouldReturnNonZero_OnSupportedPlatform()
 		{
-			
+
 			long availableMemory = PlatformAgnosticMethods.GetAvailableMemory();
 
-			
 			Assert.That(availableMemory, Is.GreaterThan(0));
 		}
 	}

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -49,9 +50,9 @@ namespace KOTORModSync.Core
 
 		public static void EnableCloseButton()
 		{
-			
+
 			_ = GetSystemMenu(GetConsoleWindow(), true);
-			
+
 			hSysMenu = GetSystemMenu(GetConsoleWindow(), false);
 		}
 
@@ -59,7 +60,7 @@ namespace KOTORModSync.Core
 		{
 			try
 			{
-				IntPtr consoleHandle = GetStdHandle(-10); 
+				IntPtr consoleHandle = GetStdHandle(-10);
 				if ( !GetConsoleMode(consoleHandle, out uint consoleMode) )
 				{
 					Logger.LogWarning("Could not get current console mode. You can ignore this warning if you're piping your terminal to something other than cmd.exe and powershell.");

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -44,10 +45,10 @@ namespace KOTORModSync.Core.Utility
 									switch ( value )
 									{
 										case IList<object> list:
-											RemoveEmptyCollections(list); 
+											RemoveEmptyCollections(list);
 											return list.IsNullOrEmptyOrAllNull();
 										case IDictionary<string, object> dict:
-											RemoveEmptyCollections(dict); 
+											RemoveEmptyCollections(dict);
 											return dict.IsNullOrEmptyOrAllNull();
 										default:
 											return false;
@@ -69,12 +70,11 @@ namespace KOTORModSync.Core.Utility
 							break;
 						}
 					case IList<object> list:
-						RemoveEmptyCollections(list); 
+						RemoveEmptyCollections(list);
 						break;
 				}
 			}
 
-			
 			foreach ( string item in itemsToRemove )
 			{
 				if ( item is null )
@@ -99,7 +99,7 @@ namespace KOTORModSync.Core.Utility
 						continue;
 					case IDictionary<string, object> dict:
 						{
-							RemoveEmptyCollections(dict); 
+							RemoveEmptyCollections(dict);
 							if ( dict.IsNullOrEmptyCollection() )
 								list.RemoveAt(i);
 
@@ -107,7 +107,7 @@ namespace KOTORModSync.Core.Utility
 						}
 					case IList<object> subList:
 						{
-							RemoveEmptyCollections(subList); 
+							RemoveEmptyCollections(subList);
 							if ( subList.IsNullOrEmptyCollection() )
 								list.RemoveAt(i);
 

@@ -1,5 +1,6 @@
-
-
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 
 
 using System;
@@ -11,23 +12,17 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
+
 	public class ComponentManagerService
 	{
-		
-		
-		
-		
-		
-		
+
+
+
 		public static async Task<bool> FindDuplicateComponentsAsync([NotNull][ItemNotNull] List<ModComponent> components, bool promptUser = true)
 		{
 			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
 
-			
 			bool duplicatesFixed = true;
 			bool continuePrompting = promptUser;
 
@@ -57,15 +52,14 @@ namespace KOTORModSync.Core.Services
 				bool? confirm = true;
 				if ( continuePrompting )
 				{
-					
-					
+
 					if ( MainConfig.AttemptFixes )
 					{
 						confirm = true;
 					}
 					else
 					{
-						
+
 						return false;
 					}
 				}
@@ -89,11 +83,8 @@ namespace KOTORModSync.Core.Services
 			return duplicatesFixed;
 		}
 
-		
-		
-		
-		
-		
+
+
 		public static async Task<bool> ValidateComponentsForInstallationAsync([NotNull][ItemNotNull] List<ModComponent> components)
 		{
 			if ( components == null )
@@ -145,22 +136,14 @@ namespace KOTORModSync.Core.Services
 			return individuallyValidated;
 		}
 
-		
-		
-		
-		
+
 		public static ModComponent CreateNewComponent() => new ModComponent
 		{
 			Guid = Guid.NewGuid(),
 			Name = "new mod_" + Path.GetFileNameWithoutExtension(Path.GetRandomFileName()),
 		};
 
-		
-		
-		
-		
-		
-		
+
 		public static bool CanRemoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components)
 		{
 			if ( component == null )
@@ -171,12 +154,7 @@ namespace KOTORModSync.Core.Services
 			return !components.Any(c => c.Dependencies.Any(g => g == component.Guid));
 		}
 
-		
-		
-		
-		
-		
-		
+
 		public static void MoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
 			if ( component == null )

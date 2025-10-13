@@ -94,6 +94,9 @@ namespace KOTORModSync.Core.Services
 		[JsonPropertyName("retention_days")]
 		public int RetentionDays { get; set; } = 30;
 
+		[JsonIgnore]
+		public string SigningSecret { get; private set; }
+
 		public TelemetryConfiguration()
 		{
 
@@ -108,36 +111,89 @@ namespace KOTORModSync.Core.Services
 			);
 		}
 
-		public static TelemetryConfiguration Load()
+	public static TelemetryConfiguration Load()
+	{
+		try
+		{
+			if ( File.Exists(ConfigFilePath) )
+			{
+				string json = File.ReadAllText(ConfigFilePath);
+				var config = JsonSerializer.Deserialize<TelemetryConfiguration>(json);
+
+				config.SessionId = Guid.NewGuid().ToString();
+				config.IsFirstRun = false;
+				config.SigningSecret = LoadSigningSecret();
+
+				return config;
+			}
+		}
+		catch ( Exception ex )
+		{
+			Logger.LogException(ex, "[Telemetry] Failed to load configuration");
+		}
+
+		var newConfig = new TelemetryConfiguration
+		{
+			IsEnabled = true,
+			UserConsented = true,
+			IsFirstRun = true,
+			EnableOtlpExporter = true,
+			EnablePrometheusExporter = false,
+			EnableFileExporter = false,
+		};
+		newConfig.SigningSecret = LoadSigningSecret();
+		return newConfig;
+	}
+
+	/// <summary>
+	/// Loads the telemetry signing secret from multiple sources (priority order):
+	/// 1. Environment variable KOTORMODSYNC_SIGNING_SECRET
+	/// 2. Local config file (not in repo): %AppData%/KOTORModSync/telemetry.key
+	/// 3. Embedded secret (only in official builds via GitHub Actions)
+	/// </summary>
+	private static string LoadSigningSecret()
+	{
+		string secret = System.Environment.GetEnvironmentVariable("KOTORMODSYNC_SIGNING_SECRET");
+		if ( !string.IsNullOrEmpty(secret) )
+		{
+			Logger.LogVerbose("[Telemetry] Signing secret loaded from environment variable");
+			return secret.Trim();
+		}
+
+		string configPath = Path.Combine(
+			System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+			"KOTORModSync",
+			"telemetry.key"
+		);
+
+		if ( File.Exists(configPath) )
 		{
 			try
 			{
-				if ( File.Exists(ConfigFilePath) )
+				secret = File.ReadAllText(configPath).Trim();
+				if ( !string.IsNullOrEmpty(secret) )
 				{
-					string json = File.ReadAllText(ConfigFilePath);
-					var config = JsonSerializer.Deserialize<TelemetryConfiguration>(json);
-
-					config.SessionId = Guid.NewGuid().ToString();
-					config.IsFirstRun = false;
-
-					return config;
+					Logger.LogVerbose("[Telemetry] Signing secret loaded from config file");
+					return secret;
 				}
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex, "[Telemetry] Failed to load configuration");
+				Logger.LogWarning($"[Telemetry] Could not read signing secret from {configPath}: {ex.Message}");
 			}
-
-			return new TelemetryConfiguration
-			{
-				IsEnabled = true,
-				UserConsented = true,
-				IsFirstRun = true,
-				EnableOtlpExporter = true,
-				EnablePrometheusExporter = false,
-				EnableFileExporter = false,
-			};
 		}
+
+#if OFFICIAL_BUILD
+		if ( !string.IsNullOrEmpty(EmbeddedSecrets.TELEMETRY_SIGNING_KEY) )
+		{
+			Logger.LogVerbose("[Telemetry] Signing secret loaded from embedded source");
+			return EmbeddedSecrets.TELEMETRY_SIGNING_KEY.Trim();
+		}
+#endif
+
+		Logger.LogWarning("[Telemetry] No signing secret found - telemetry will be disabled");
+		return null;
+	}
 
 		public void Save()
 		{

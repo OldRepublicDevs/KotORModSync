@@ -374,3 +374,9 @@ mod-builds/
 chrome/
 *.nettrace
 *.ps1
+
+# Telemetry signing secrets (NEVER commit these!)
+**/telemetry.key
+**/EmbeddedSecrets.cs
+KOTORModSync.Core/Services/EmbeddedSecrets.cs
+KOTORModSync.GUI/Services/EmbeddedSecrets.cs

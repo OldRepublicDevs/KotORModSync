@@ -14,6 +14,9 @@ using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+#if !NETSTANDARD2_0
+using OpenTelemetry.Exporter.Prometheus;
+#endif
 
 namespace KOTORModSync.Core.Services
 {
@@ -23,6 +26,7 @@ namespace KOTORModSync.Core.Services
 		private static readonly Lazy<TelemetryService> _instance = new Lazy<TelemetryService>(() => new TelemetryService());
 
 		private TelemetryConfiguration _config;
+		private TelemetryAuthenticator _authenticator;
 		private TracerProvider _tracerProvider;
 		private MeterProvider _meterProvider;
 		private ActivitySource _activitySource;
@@ -55,6 +59,14 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
+				_authenticator = new TelemetryAuthenticator(_config.SigningSecret, _config.SessionId);
+
+				if ( !_authenticator.HasValidSecret() )
+				{
+					Logger.LogWarning("[Telemetry] No signing secret available - telemetry will be disabled");
+					_config.IsEnabled = false;
+					return;
+				}
 
 				var resourceBuilder = ResourceBuilder.CreateDefault()
 					.AddService(
@@ -102,6 +114,7 @@ namespace KOTORModSync.Core.Services
 					{
 						options.Endpoint = new Uri(_config.OtlpEndpoint);
 						options.Protocol = OtlpExportProtocol.HttpProtobuf;
+						options.Headers = GetAuthHeaders("/v1/traces");
 					});
 				}
 
@@ -122,16 +135,29 @@ namespace KOTORModSync.Core.Services
 					{
 						options.Endpoint = new Uri(_config.OtlpEndpoint);
 						options.Protocol = OtlpExportProtocol.HttpProtobuf;
+						options.Headers = GetAuthHeaders("/v1/metrics");
 					});
 				}
 
 				if ( _config.EnablePrometheusExporter )
 				{
+					try
+					{
+#if NETSTANDARD2_0
+						Logger.LogWarning("[Telemetry] Prometheus HTTP listener requires .NET Core 3.1+ or .NET 5+. Use OTLP exporter for authenticated remote telemetry.");
+#else
 					meterProviderBuilder.AddPrometheusHttpListener(options =>
 					{
 						options.UriPrefixes = new string[] { $"http://localhost:{_config.PrometheusPort}/" };
 					});
-					Logger.Log($"[Telemetry] Prometheus metrics endpoint started on http://localhost:{_config.PrometheusPort}/metrics");
+					Logger.Log($"[Telemetry] Prometheus HTTP listener started on http://localhost:{_config.PrometheusPort}/metrics (LOCAL ONLY - for development/testing)");
+					Logger.Log("[Telemetry] Note: For authenticated remote telemetry, use OTLP exporter (enabled by default)");
+#endif
+					}
+					catch ( Exception ex )
+					{
+						Logger.LogException(ex, "[Telemetry] Failed to start Prometheus HTTP listener");
+					}
 				}
 
 				_meterProvider = meterProviderBuilder.Build();
@@ -387,14 +413,48 @@ namespace KOTORModSync.Core.Services
 					return BitConverter.ToString(hashBytes).Replace("-", "").Substring(0, 16);
 				}
 #else
-			byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-			return Convert.ToHexString(hashBytes).Substring(0, 16);
+				byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+				return Convert.ToHexString(hashBytes).Substring(0, 16);
 #endif
 			}
 			catch
 			{
 
 				return "hash_error";
+			}
+		}
+
+		/// <summary>
+		/// Generates authentication headers for OTLP requests
+		/// </summary>
+		private string GetAuthHeaders(string requestPath)
+		{
+			if ( _authenticator == null || !_authenticator.HasValidSecret() )
+			{
+				return string.Empty;
+			}
+
+			try
+			{
+				long timestamp = TelemetryAuthenticator.GetUnixTimestamp();
+				string signature = _authenticator.ComputeSignature(requestPath, timestamp);
+
+				if ( string.IsNullOrEmpty(signature) )
+				{
+					return string.Empty;
+				}
+
+				string version = typeof(TelemetryService).Assembly.GetName().Version?.ToString() ?? "1.0.0";
+
+				return $"X-KMS-Signature={signature}," +
+					   $"X-KMS-Timestamp={timestamp}," +
+					   $"X-KMS-Session-ID={_config.SessionId}," +
+					   $"X-KMS-Client-Version={version}";
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to generate authentication headers");
+				return string.Empty;
 			}
 		}
 

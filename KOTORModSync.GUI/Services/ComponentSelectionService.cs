@@ -96,7 +96,7 @@ namespace KOTORModSync.Services
 					bool hasSelectedOption = component.Options.Any(opt => opt.IsSelected);
 					if ( !hasSelectedOption )
 					{
-						bool optionSelected = TryAutoSelectFirstOption(component);
+						bool optionSelected = ComponentSelectionService.TryAutoSelectFirstOption(component);
 
 						
 						
@@ -289,7 +289,7 @@ namespace KOTORModSync.Services
 		
 		
 		
-		private bool TryAutoSelectFirstOption(ModComponent component)
+		private static bool TryAutoSelectFirstOption(ModComponent component)
 		{
 			if ( component?.Options == null || component.Options.Count == 0 )
 				return false;

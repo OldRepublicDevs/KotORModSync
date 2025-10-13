@@ -2995,21 +2995,21 @@ namespace KOTORModSync
 						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Selected tab is already the current tab '{tabName}', returning");
 						return;
 					}
-					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Preparing to swap tabs from '{lastTabName}' to '{tabName}'");
-					bool shouldSwapTabs = true;
-					if ( tabName == "summary" )
-					{
-						
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'summary', refreshing markdown content");
-						RenderMarkdownContent(CurrentComponent);
-					}
-					else if ( tabName == "raw" )
-					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'raw', loading into RawEditTextBox");
-						shouldSwapTabs = await LoadIntoRawEditTextBox(CurrentComponent);
-						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] LoadIntoRawEditTextBox returned: {shouldSwapTabs}");
-					}
-					else if ( lastTabName == "raw" )
+				await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Preparing to swap tabs from '{lastTabName}' to '{tabName}'");
+				bool shouldSwapTabs = true;
+				if ( tabName == "summary" )
+				{
+					
+					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'summary', refreshing markdown content");
+					RenderMarkdownContent(CurrentComponent);
+				}
+				else if ( tabName == "raw" )
+				{
+					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'raw', loading into RawEditTextBox");
+					await LoadIntoRawEditTextBox(CurrentComponent);
+					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] LoadIntoRawEditTextBox completed");
+				}
+				else if ( lastTabName == "raw" )
 					{
 						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Source was 'raw', checking if changes should be saved");
 						shouldSwapTabs = await ShouldSaveChanges();
@@ -3097,55 +3097,64 @@ namespace KOTORModSync
 			IgnoreInternalTabChange = false;
 		}
 
+	
+	private async void LoadComponentDetails([NotNull] ModComponent selectedComponent)
+	{
+		if ( selectedComponent == null )
+			throw new ArgumentNullException(nameof(selectedComponent));
+		await Logger.LogVerboseAsync($"[LoadComponentDetails] START for component '{selectedComponent.Name}' (GUID={selectedComponent.Guid})");
+		await Logger.LogVerboseAsync($"[LoadComponentDetails] CurrentComponent={(CurrentComponent == null ? "null" : $"'{CurrentComponent.Name}' (GUID={CurrentComponent.Guid})")}");
 		
-		private async void LoadComponentDetails([NotNull] ModComponent selectedComponent)
+		
+		if ( selectedComponent == CurrentComponent )
 		{
-			if ( selectedComponent == null )
-				throw new ArgumentNullException(nameof(selectedComponent));
-			await Logger.LogVerboseAsync($"[LoadComponentDetails] START for component '{selectedComponent.Name}' (GUID={selectedComponent.Guid})");
-			await Logger.LogVerboseAsync($"[LoadComponentDetails] CurrentComponent={(CurrentComponent == null ? "null" : $"'{CurrentComponent.Name}' (GUID={CurrentComponent.Guid})")}");
-			bool confirmLoadOverwrite = true;
-			string currentTabName = GetControlNameFromHeader(GetCurrentTabItem(TabControl))?.ToLowerInvariant();
-			await Logger.LogVerboseAsync($"[LoadComponentDetails] Current tab: '{currentTabName}'");
-			if ( currentTabName == "raw" )
-			{
-				await Logger.LogVerboseAsync("[LoadComponentDetails] Current tab is 'raw', loading into RawEditTextBox");
-				confirmLoadOverwrite = await LoadIntoRawEditTextBox(selectedComponent);
-				await Logger.LogVerboseAsync($"[LoadComponentDetails] LoadIntoRawEditTextBox returned: {confirmLoadOverwrite}");
-			}
-			else if ( selectedComponent != CurrentComponent )
-			{
-				await Logger.LogVerboseAsync("[LoadComponentDetails] Different component selected, checking if changes should be saved");
-				confirmLoadOverwrite = await ShouldSaveChanges();
-				await Logger.LogVerboseAsync($"[LoadComponentDetails] ShouldSaveChanges returned: {confirmLoadOverwrite}");
-			}
-			else
-			{
-				await Logger.LogVerboseAsync("[LoadComponentDetails] Same component already loaded, no changes to save");
-			}
-			if ( !confirmLoadOverwrite )
-			{
-				await Logger.LogVerboseAsync("[LoadComponentDetails] Load cancelled by user, returning");
-				return;
-			}
-			
-			await Logger.LogVerboseAsync($"[LoadComponentDetails] Setting CurrentComponent to '{selectedComponent.Name}'");
-			SetCurrentModComponent(selectedComponent);
-			await Logger.LogVerboseAsync("[LoadComponentDetails] SetCurrentComponent completed");
-			
-			
-			await Logger.LogVerboseAsync($"[LoadComponentDetails] InitialTab.IsSelected={InitialTab.IsSelected}, TabControl.SelectedIndex={TabControl.SelectedIndex}");
-			if ( InitialTab.IsSelected || TabControl.SelectedIndex == int.MaxValue )
-			{
-				await Logger.LogVerboseAsync("[LoadComponentDetails] Switching to SummaryTabItem");
-				SetTabInternal(TabControl, SummaryTabItem);
-			}
-			else
-			{
-				await Logger.LogVerboseAsync($"[LoadComponentDetails] Keeping current tab '{currentTabName}'");
-			}
-			await Logger.LogVerboseAsync("[LoadComponentDetails] COMPLETED");
+			await Logger.LogVerboseAsync("[LoadComponentDetails] Same component already loaded, no action needed");
+			return;
 		}
+		
+		bool confirmLoadOverwrite = true;
+		string currentTabName = GetControlNameFromHeader(GetCurrentTabItem(TabControl))?.ToLowerInvariant();
+		await Logger.LogVerboseAsync($"[LoadComponentDetails] Current tab: '{currentTabName}'");
+		
+		
+		if ( currentTabName == "raw" && CurrentComponent != null )
+		{
+			await Logger.LogVerboseAsync("[LoadComponentDetails] Current tab is 'raw' and switching components, checking if changes should be saved");
+			confirmLoadOverwrite = await ShouldSaveChanges();
+			await Logger.LogVerboseAsync($"[LoadComponentDetails] ShouldSaveChanges returned: {confirmLoadOverwrite}");
+		}
+		
+		if ( !confirmLoadOverwrite )
+		{
+			await Logger.LogVerboseAsync("[LoadComponentDetails] Load cancelled by user, returning");
+			return;
+		}
+		
+		await Logger.LogVerboseAsync($"[LoadComponentDetails] Setting CurrentComponent to '{selectedComponent.Name}'");
+		SetCurrentModComponent(selectedComponent);
+		await Logger.LogVerboseAsync("[LoadComponentDetails] SetCurrentComponent completed");
+		
+		
+		if ( currentTabName == "raw" )
+		{
+			await Logger.LogVerboseAsync("[LoadComponentDetails] Current tab is 'raw', loading new component into RawEditTextBox");
+			await LoadIntoRawEditTextBox(selectedComponent);
+			await Logger.LogVerboseAsync("[LoadComponentDetails] LoadIntoRawEditTextBox completed");
+		}
+		
+		
+		await Logger.LogVerboseAsync($"[LoadComponentDetails] InitialTab.IsSelected={InitialTab.IsSelected}, TabControl.SelectedIndex={TabControl.SelectedIndex}");
+		if ( InitialTab.IsSelected || TabControl.SelectedIndex == int.MaxValue )
+		{
+			await Logger.LogVerboseAsync("[LoadComponentDetails] Switching to SummaryTabItem");
+			SetTabInternal(TabControl, SummaryTabItem);
+		}
+		else
+		{
+			await Logger.LogVerboseAsync($"[LoadComponentDetails] Keeping current tab '{currentTabName}'");
+		}
+		await Logger.LogVerboseAsync("[LoadComponentDetails] COMPLETED");
+	}
 
 		public void SetCurrentModComponent([CanBeNull] ModComponent c)
 		{
@@ -3216,7 +3225,7 @@ namespace KOTORModSync
 			throw new ArgumentNullException(nameof(selectedComponent));
 
 		
-		string serializedContent = await _componentEditorService.LoadIntoRawEditorAsync(selectedComponent);
+		string serializedContent = await Services.ComponentEditorService.LoadIntoRawEditorAsync(selectedComponent);
 		RawEditTextBox.Text = serializedContent;
 	}
 

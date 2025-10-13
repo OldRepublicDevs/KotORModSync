@@ -10,9 +10,9 @@ using KOTORModSync.Dialogs;
 
 namespace KOTORModSync.Services
 {
-	
-	
-	
+
+
+
 	public class ComponentEditorService
 	{
 		private readonly MainConfig _mainConfig;
@@ -24,9 +24,9 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		
-		
-		
+
+
+
 		public static bool HasUnsavedChanges(ModComponent currentComponent, string rawEditText)
 		{
 			return currentComponent != null
@@ -34,9 +34,9 @@ namespace KOTORModSync.Services
 				   && rawEditText != currentComponent.SerializeComponent();
 		}
 
-		
-		
-		
+
+
+
 		public async Task<bool> SaveChangesAsync(ModComponent currentComponent, string rawEditText, bool noPrompt = false)
 		{
 			try
@@ -59,19 +59,19 @@ namespace KOTORModSync.Services
 					switch ( result )
 					{
 						case ConfirmationDialog.ConfirmationResult.Save:
-							
+
 							break;
 						case ConfirmationDialog.ConfirmationResult.Discard:
-							
+
 							await Logger.LogVerboseAsync("User chose to discard changes in ComponentEditorService.");
 							return true;
 						case ConfirmationDialog.ConfirmationResult.Cancel:
-							
+
 							return false;
 					}
 				}
 
-				
+
 				if ( currentComponent is null )
 				{
 					string output = "CurrentComponent is null which shouldn't ever happen in this context." +
@@ -86,10 +86,10 @@ namespace KOTORModSync.Services
 				if ( string.IsNullOrEmpty(rawEditText) )
 					return true;
 
-				
+
 				ModComponent newComponent = null;
 
-				
+
 				try
 				{
 					await Logger.LogVerboseAsync("Attempting YAML deserialization...");
@@ -100,7 +100,7 @@ namespace KOTORModSync.Services
 					await Logger.LogVerboseAsync($"YAML deserialization failed: {ex.Message}");
 				}
 
-				
+
 				if ( newComponent == null )
 				{
 					try
@@ -114,7 +114,7 @@ namespace KOTORModSync.Services
 					}
 				}
 
-				
+
 				if ( newComponent is null )
 				{
 					bool? confirmResult = await ConfirmationDialog.ShowConfirmationDialog(
@@ -129,7 +129,7 @@ namespace KOTORModSync.Services
 					return confirmResult == true;
 				}
 
-				
+
 				int index = _mainConfig.allComponents.IndexOf(currentComponent);
 				if ( index == -1 )
 				{
@@ -145,7 +145,7 @@ namespace KOTORModSync.Services
 					return false;
 				}
 
-				
+
 				ModComponent existingComponent = _mainConfig.allComponents[index];
 				CopyComponentProperties(newComponent, existingComponent);
 
@@ -161,24 +161,24 @@ namespace KOTORModSync.Services
 			}
 		}
 
-	
-	
-	
-	public async Task<string> LoadIntoRawEditorAsync(ModComponent component)
-	{
-		if ( component is null )
-			throw new ArgumentNullException(nameof(component));
 
-		await Logger.LogVerboseAsync($"Loading '{component.Name}' into the raw editor...");
 
-		
-		string serialized = component.SerializeComponent();
-		return serialized;
-	}
 
-		
-		
-		
+		public static async Task<string> LoadIntoRawEditorAsync(ModComponent component)
+		{
+			if ( component is null )
+				throw new ArgumentNullException(nameof(component));
+
+			await Logger.LogVerboseAsync($"Loading '{component.Name}' into the raw editor...");
+
+
+			string serialized = component.SerializeComponent();
+			return serialized;
+		}
+
+
+
+
 		public ModComponent CreateNewComponent()
 		{
 			var newComponent = new ModComponent
@@ -193,9 +193,9 @@ namespace KOTORModSync.Services
 			return newComponent;
 		}
 
-		
-		
-		
+
+
+
 		public async Task<bool> RemoveComponentAsync(ModComponent component)
 		{
 			try
@@ -206,7 +206,7 @@ namespace KOTORModSync.Services
 					return false;
 				}
 
-				
+
 				var dependentComponents = new System.Collections.Generic.List<ModComponent>();
 				foreach ( var c in _mainConfig.allComponents )
 				{
@@ -221,7 +221,7 @@ namespace KOTORModSync.Services
 
 				if ( dependentComponents.Count != 0 )
 				{
-					
+
 					Logger.Log($"Cannot remove '{component.Name}' - {dependentComponents.Count} components depend on it:");
 					foreach ( ModComponent dependent in dependentComponents )
 					{
@@ -238,14 +238,14 @@ namespace KOTORModSync.Services
 						Logger.Log($"  - {dependent.Name} ({string.Join(", ", dependencyTypes)})");
 					}
 
-					
+
 					(bool confirmed, System.Collections.Generic.List<ModComponent> componentsToUnlink) = await DependencyUnlinkDialog.ShowUnlinkDialog(
 						_parentWindow, component, dependentComponents);
 
 					if ( !confirmed )
 						return false;
 
-					
+
 					foreach ( ModComponent componentToUnlink in componentsToUnlink )
 					{
 						_ = componentToUnlink.Dependencies.Remove(component.Guid);
@@ -257,7 +257,7 @@ namespace KOTORModSync.Services
 					}
 				}
 
-				
+
 				_ = _mainConfig.allComponents.Remove(component);
 				Logger.Log($"Removed component: {component.Name}");
 				return true;

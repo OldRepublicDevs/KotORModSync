@@ -233,15 +233,15 @@ namespace KOTORModSync
 			switch ( progress.Status )
 			{
 				case DownloadStatus.InProgress:
-					InsertSorted(_activeDownloads, progress, p => p.StartTime);
+					DownloadProgressWindow.InsertSorted(_activeDownloads, progress, p => p.StartTime);
 					break;
 				case DownloadStatus.Pending:
-					InsertSorted(_pendingDownloads, progress, p => p.StartTime);
+					DownloadProgressWindow.InsertSorted(_pendingDownloads, progress, p => p.StartTime);
 					break;
 				case DownloadStatus.Completed:
 				case DownloadStatus.Failed:
 				case DownloadStatus.Skipped:
-					InsertSorted(_completedDownloads, progress, p => p.EndTime ?? p.StartTime);
+					DownloadProgressWindow.InsertSorted(_completedDownloads, progress, p => p.EndTime ?? p.StartTime);
 					break;
 			}
 
@@ -252,7 +252,7 @@ namespace KOTORModSync
 		
 		
 		
-		private void InsertSorted(ObservableCollection<DownloadProgress> collection, DownloadProgress item, Func<DownloadProgress, DateTime> timestampSelector)
+		private static void InsertSorted(ObservableCollection<DownloadProgress> collection, DownloadProgress item, Func<DownloadProgress, DateTime> timestampSelector)
 		{
 			DateTime itemTimestamp = timestampSelector(item);
 

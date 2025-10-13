@@ -390,7 +390,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		private KeyValuePair<string, object>[] CreateTagList(string eventName, Dictionary<string, object> tags)
+		private static KeyValuePair<string, object>[] CreateTagList(string eventName, Dictionary<string, object> tags)
 		{
 			var tagList = new List<KeyValuePair<string, object>>
 			{
@@ -408,7 +408,7 @@ namespace KOTORModSync.Core.Services
 			return tagList.ToArray();
 		}
 		
-		private string HashString(string input)
+		private static string HashString(string input)
 		{
 			if (string.IsNullOrEmpty(input))
 				return "empty";

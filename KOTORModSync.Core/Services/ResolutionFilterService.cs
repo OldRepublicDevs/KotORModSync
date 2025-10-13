@@ -144,7 +144,7 @@ namespace KOTORModSync.Core.Services
 		
 		
 		
-		private Resolution ExtractResolution(string urlOrFilename)
+		private static Resolution ExtractResolution(string urlOrFilename)
 		{
 			if ( string.IsNullOrWhiteSpace(urlOrFilename) )
 				return null;
@@ -209,7 +209,7 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		private Resolution DetectWindowsResolution()
+		private static Resolution DetectWindowsResolution()
 		{
 			try
 			{
@@ -230,7 +230,7 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		private Resolution DetectLinuxResolution()
+		private static Resolution DetectLinuxResolution()
 		{
 			try
 			{
@@ -270,7 +270,7 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		private Resolution DetectMacOSResolution()
+		private static Resolution DetectMacOSResolution()
 		{
 			try
 			{
@@ -299,7 +299,7 @@ namespace KOTORModSync.Core.Services
 		
 		
 		
-		private string GetDisplayName(string urlOrPath)
+		private static string GetDisplayName(string urlOrPath)
 		{
 			if ( string.IsNullOrWhiteSpace(urlOrPath) )
 				return urlOrPath;

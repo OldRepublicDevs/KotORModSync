@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.ComponentModel;
@@ -71,7 +71,7 @@ namespace KOTORModSync.Core.Utility
 			if ( RuntimeInformation.IsOSPlatform(OSPlatform.Linux) )
 				return OSPlatform.Linux;
 
-			// Fallbacks
+			
 			switch ( Environment.OSVersion.Platform )
 			{
 				case PlatformID.Win32NT:
@@ -102,7 +102,7 @@ namespace KOTORModSync.Core.Utility
 				);
 			}
 
-			// Navigate up two levels from 'MacOS' to get to KOTORModSync.app/Contents/MacOS/../../
+			
 			var directoryInfo = new DirectoryInfo(baseDirectory);
 			if ( !(directoryInfo.Parent?.Parent is null) )
 				baseDirectory = directoryInfo.Parent.Parent.FullName;

@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -11,17 +11,17 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Service for managing file paths and directory operations.
-	/// </summary>
+	
+	
+	
 	public static class PathManagementService
 	{
-		/// <summary>
-		/// Loads recent mod directories from a file.
-		/// </summary>
-		/// <param name="filePath">Path to the file containing recent directories.</param>
-		/// <returns>List of recent mod directory paths.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when filePath is null.</exception>
+		
+		
+		
+		
+		
+		
 		public static async Task<List<string>> LoadRecentModDirectoriesAsync([NotNull] string filePath)
 		{
 			if ( filePath == null )
@@ -54,12 +54,12 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Saves recent mod directories to a file.
-		/// </summary>
-		/// <param name="directories">List of directory paths to save.</param>
-		/// <param name="filePath">Path where to save the directories.</param>
-		/// <exception cref="ArgumentNullException">Thrown when directories or filePath is null.</exception>
+		
+		
+		
+		
+		
+		
 		public static async Task SaveRecentModDirectoriesAsync([NotNull][ItemNotNull] List<string> directories, [NotNull] string filePath)
 		{
 			if ( directories == null )
@@ -69,7 +69,7 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				// Ensure directory exists
+				
 				string directory = Path.GetDirectoryName(filePath);
 				if ( !string.IsNullOrEmpty(directory) && !Directory.Exists(directory) )
 				{
@@ -78,7 +78,7 @@ namespace KOTORModSync.Core.Services
 
 				using ( var writer = new StreamWriter(filePath) )
 				{
-					foreach ( string dir in directories.Take(10) ) // Limit to 10 recent directories
+					foreach ( string dir in directories.Take(10) ) 
 					{
 						if ( !string.IsNullOrWhiteSpace(dir) )
 						{
@@ -93,13 +93,13 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Adds a directory to the recent directories list.
-		/// </summary>
-		/// <param name="directory">Directory to add.</param>
-		/// <param name="recentDirectories">Current list of recent directories.</param>
-		/// <param name="maxCount">Maximum number of recent directories to keep.</param>
-		/// <exception cref="ArgumentNullException">Thrown when directory or recentDirectories is null.</exception>
+		
+		
+		
+		
+		
+		
+		
 		public static void AddToRecentDirectories([NotNull] string directory, [NotNull][ItemNotNull] List<string> recentDirectories, int maxCount = 10)
 		{
 			if ( directory == null )
@@ -110,27 +110,27 @@ namespace KOTORModSync.Core.Services
 			if ( string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory) )
 				return;
 
-			// Remove if already exists
+			
 			_ = recentDirectories.RemoveAll(d => string.Equals(d, directory, StringComparison.OrdinalIgnoreCase));
 
-			// Add to beginning
+			
 			recentDirectories.Insert(0, directory);
 
-			// Trim to max count
+			
 			if ( recentDirectories.Count > maxCount )
 			{
 				recentDirectories.RemoveRange(maxCount, recentDirectories.Count - maxCount);
 			}
 		}
 
-		/// <summary>
-		/// Gets path suggestions based on input text and existing directories.
-		/// </summary>
-		/// <param name="inputText">The input text to search for.</param>
-		/// <param name="baseDirectories">Base directories to search in.</param>
-		/// <param name="maxSuggestions">Maximum number of suggestions to return.</param>
-		/// <returns>List of suggested paths.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when inputText or baseDirectories is null.</exception>
+		
+		
+		
+		
+		
+		
+		
+		
 		public static List<string> GetPathSuggestions([NotNull] string inputText, [NotNull][ItemNotNull] List<string> baseDirectories, int maxSuggestions = 10)
 		{
 			if ( inputText == null )
@@ -161,7 +161,7 @@ namespace KOTORModSync.Core.Services
 				}
 				catch ( Exception )
 				{
-					// Ignore exceptions when searching directories
+					
 					continue;
 				}
 			}
@@ -169,12 +169,12 @@ namespace KOTORModSync.Core.Services
 			return suggestions.Take(maxSuggestions).ToList();
 		}
 
-		/// <summary>
-		/// Validates if a path can be used as a source path.
-		/// </summary>
-		/// <param name="path">Path to validate.</param>
-		/// <returns>True if the path is valid for use as a source path.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when path is null.</exception>
+		
+		
+		
+		
+		
+		
 		public static bool IsValidSourcePath([NotNull] string path)
 		{
 			if ( path == null )
@@ -194,12 +194,12 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Validates if a path can be used as an install path.
-		/// </summary>
-		/// <param name="path">Path to validate.</param>
-		/// <returns>True if the path is valid for use as an install path.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when path is null.</exception>
+		
+		
+		
+		
+		
+		
 		public static bool IsValidInstallPath([NotNull] string path)
 		{
 			if ( path == null )

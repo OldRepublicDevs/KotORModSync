@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -12,9 +12,9 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for showing file dialogs and managing dialog interactions
-	/// </summary>
+	
+	
+	
 	public class DialogService
 	{
 		private readonly Window _parentWindow;
@@ -25,9 +25,9 @@ namespace KOTORModSync.Services
 			                ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		/// <summary>
-		/// Shows a file or folder picker dialog
-		/// </summary>
+		
+		
+		
 		public async Task<string[]> ShowFileDialogAsync(
 			bool isFolderDialog,
 			bool allowMultiple = false,
@@ -77,9 +77,9 @@ namespace KOTORModSync.Services
 			return null;
 		}
 
-		/// <summary>
-		/// Shows a save file dialog
-		/// </summary>
+		
+		
+		
 		public async Task<string> ShowSaveFileDialogAsync(string suggestedFileName = null, string defaultExtension = "toml")
 		{
 			try
@@ -109,9 +109,9 @@ namespace KOTORModSync.Services
 			return null;
 		}
 
-		/// <summary>
-		/// Gets a storage folder from a path
-		/// </summary>
+		
+		
+		
 		public async Task<IStorageFolder> GetStorageFolderFromPathAsync(string path)
 		{
 			try

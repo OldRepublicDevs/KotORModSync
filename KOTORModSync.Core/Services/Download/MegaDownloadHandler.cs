@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -33,7 +33,7 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				await Logger.LogVerboseAsync($"[MEGA] Resolving filename for URL: {url}");
 
-				// Ensure logged out before login
+				
 				try
 				{
 					await _client.LogoutAsync().ConfigureAwait(false);
@@ -42,10 +42,10 @@ namespace KOTORModSync.Core.Services.Download
 
 				await _client.LoginAnonymousAsync().ConfigureAwait(false);
 
-				// Convert URL format if needed
+				
 				string processedUrl = ConvertMegaUrl(url);
 
-				// Get node information to extract filename
+				
 				INode node = await _client.GetNodeFromLinkAsync(new Uri(processedUrl)).ConfigureAwait(false);
 				await Logger.LogVerboseAsync($"[MEGA] Resolved filename: {node.Name}");
 
@@ -86,7 +86,7 @@ namespace KOTORModSync.Core.Services.Download
 					StartTime = DateTime.Now
 				});
 
-				// Ensure we are logged out before attempting a new login (handles prior sessions)
+				
 				try
 				{
 					await _client.LogoutAsync().ConfigureAwait(false);
@@ -108,7 +108,7 @@ namespace KOTORModSync.Core.Services.Download
 					ProgressPercentage = 30
 				});
 
-				// Convert old MEGA URL format (#!) to new format (/file/)
+				
 				await Logger.LogVerboseAsync($"[MEGA] BEFORE conversion: {url}");
 				string processedUrl = ConvertMegaUrl(url);
 				await Logger.LogVerboseAsync($"[MEGA] AFTER conversion: {processedUrl}");
@@ -130,10 +130,10 @@ namespace KOTORModSync.Core.Services.Download
 					StartTime = DateTime.Now
 				});
 
-				// Create a progress wrapper - MEGA's API reports progress as 0-100, not 0.0-1.0
+				
 				var megaProgress = new Progress<double>(percent =>
 				{
-					// Clamp to 0-100 range in case API reports values outside this range
+					
 					double progressPercent = Math.Max(0, Math.Min(percent, 100));
 
 					progress?.Report(new DownloadProgress
@@ -148,8 +148,8 @@ namespace KOTORModSync.Core.Services.Download
 					});
 				});
 
-				// Use Download method with progress wrapper and cancellation token
-				// Write directly to disk without DownloadHelper to avoid double progress reporting
+				
+				
 				using ( Stream downloadStream = await _client.DownloadAsync(node, megaProgress, cancellationToken).ConfigureAwait(false) )
 				using ( FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true) )
 				{
@@ -195,7 +195,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = argEx,
-					ProgressPercentage = 100, // Mark as complete so UI shows it's done
+					ProgressPercentage = 100, 
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -218,7 +218,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = authEx,
-					ProgressPercentage = 100, // Mark as complete so UI shows it's done
+					ProgressPercentage = 100, 
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -242,7 +242,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = fileEx,
-					ProgressPercentage = 100, // Mark as complete so UI shows it's done
+					ProgressPercentage = 100, 
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -261,7 +261,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = ex,
-					ProgressPercentage = 100, // Mark as complete so UI shows it's done
+					ProgressPercentage = 100, 
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -275,54 +275,54 @@ namespace KOTORModSync.Core.Services.Download
 				}
 				catch
 				{
-					// ignore
+					
 				}
 				_sessionLock.Release();
 			}
 		}
 
-		/// <summary>
-		/// Converts old MEGA URL format to new format.
-		/// Old: https://mega.nz/#!1A4RCLha!Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4
-		/// New: https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4
-		/// </summary>
+		
+		
+		
+		
+		
 		private static string ConvertMegaUrl(string url)
 		{
 			if ( string.IsNullOrEmpty(url) )
 				return url;
 
-			// Check if it's the old format with #!
+			
 			if ( url.Contains("#!") )
 			{
-				// Extract the parts: #!{fileId}!{key}
+				
 				int hashIndex = url.IndexOf("#!", StringComparison.Ordinal);
 				if ( hashIndex >= 0 )
 				{
 					string baseUrl = url.Substring(0, hashIndex);
-					string fragment = url.Substring(hashIndex + 2); // Skip the #!
+					string fragment = url.Substring(hashIndex + 2); 
 
-					// Split by ! to get fileId and key
+					
 					string[] parts = fragment.Split(s_separator, StringSplitOptions.None);
 					if ( parts.Length >= 2 )
 					{
 						string fileId = parts[0];
 						string key = parts[1];
 
-						// Convert to new format: {baseUrl}file/{fileId}#{key}
+						
 						string newUrl = $"{baseUrl}file/{fileId}#{key}";
 						return newUrl;
 					}
 				}
 			}
 
-			// Check if it's the old folder format with #F!
+			
 			if ( !url.Contains("#F!") )
 				return url;
 			int hashIndex2 = url.IndexOf("#F!", StringComparison.Ordinal);
 			if ( hashIndex2 < 0 )
 				return url;
 			string baseUrl2 = url.Substring(0, hashIndex2);
-			string fragment2 = url.Substring(hashIndex2 + 3); // Skip the #F!
+			string fragment2 = url.Substring(hashIndex2 + 3); 
 
 			string[] parts2 = fragment2.Split(s_separator, StringSplitOptions.None);
 			if ( parts2.Length < 2 )

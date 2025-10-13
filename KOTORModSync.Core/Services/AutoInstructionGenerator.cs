@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -13,17 +13,17 @@ using SharpCompress.Archives;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Automatically generates default instructions for components based on archive contents.
-	/// </summary>
+	
+	
+	
 	public static class AutoInstructionGenerator
 	{
-		/// <summary>
-		/// Analyzes an archive and generates appropriate default instructions.
-		/// </summary>
-		/// <param name="component">The component to generate instructions for</param>
-		/// <param name="archivePath">Path to the mod archive</param>
-		/// <returns>True if instructions were generated successfully</returns>
+		
+		
+		
+		
+		
+		
 		public static bool GenerateInstructions([NotNull] ModComponent component, [NotNull] string archivePath)
 		{
 			if ( component is null )
@@ -53,17 +53,17 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Generates all appropriate instructions based on what's detected in the archive.
-		/// Handles hybrid scenarios (e.g., TSLPatcher + loose files).
-		/// Only removes instructions related to this specific archive to support multiple archives.
-		/// </summary>
+		
+		
+		
+		
+		
 		private static bool GenerateAllInstructions(ModComponent component, string archivePath, ArchiveAnalysis analysis)
 		{
 			string archiveFileName = Path.GetFileName(archivePath);
 			string extractedPath = archiveFileName.Replace(Path.GetExtension(archiveFileName), "");
 
-			// Remove only instructions that reference THIS archive (to support multiple archives per component)
+			
 			var instructionsToRemove = component.Instructions
 				.Where(i => i.Source != null && i.Source.Any(s =>
 					s.IndexOf(archiveFileName, StringComparison.OrdinalIgnoreCase) >= 0))
@@ -74,7 +74,7 @@ namespace KOTORModSync.Core.Services
 				component.Instructions.Remove(instr);
 			}
 
-			// Always start with Extract if we have any content
+			
 			if ( analysis.HasTslPatchData || analysis.HasSimpleOverrideFiles )
 			{
 				var extractInstruction = new Instruction
@@ -89,11 +89,11 @@ namespace KOTORModSync.Core.Services
 			}
 			else
 			{
-				// Nothing to install
+				
 				return false;
 			}
 
-			// Handle TSLPatcher instructions
+			
 			if ( analysis.HasTslPatchData )
 			{
 				if ( analysis.HasNamespacesIni )
@@ -102,26 +102,26 @@ namespace KOTORModSync.Core.Services
 					AddSimplePatcherInstruction(component, analysis, extractedPath);
 			}
 
-			// Handle loose Override files
+			
 			if ( analysis.HasSimpleOverrideFiles )
 			{
-				// Exclude folders that are part of TSLPatcher
+				
 				var overrideFolders = analysis.FoldersWithFiles
 					.Where(f => !IsTslPatcherFolder(f, analysis))
 					.ToList();
 
 				if ( overrideFolders.Count > 1 )
-					// Multiple folders - create Choose instruction
+					
 					AddMultiFolderChooseInstructions(component, extractedPath, overrideFolders);
 				else if ( overrideFolders.Count == 1 )
-					// Single folder - simple Move
+					
 					AddSimpleMoveInstruction(component, extractedPath, overrideFolders[0]);
 				else if ( analysis.HasFlatFiles )
-					// Flat files in root
+					
 					AddSimpleMoveInstruction(component, extractedPath, null);
 			}
 
-			// Set installation method based on what we found
+			
 			if ( analysis.HasTslPatchData && analysis.HasSimpleOverrideFiles )
 				component.InstallationMethod = "Hybrid (TSLPatcher + Loose Files)";
 			else if ( analysis.HasTslPatchData )
@@ -132,15 +132,15 @@ namespace KOTORModSync.Core.Services
 			return component.Instructions.Count > 0;
 		}
 
-		/// <summary>
-		/// Checks if a folder is part of the TSLPatcher structure and should be excluded from Override moves.
-		/// </summary>
+		
+		
+		
 		private static bool IsTslPatcherFolder(string folderName, ArchiveAnalysis analysis)
 		{
 			if ( string.IsNullOrEmpty(folderName) )
 				return false;
 
-			// Check if this folder is the TSLPatcher path or contains tslpatchdata
+			
 			if ( folderName.Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase) )
 				return true;
 
@@ -153,9 +153,9 @@ namespace KOTORModSync.Core.Services
 			return false;
 		}
 
-		/// <summary>
-		/// Adds Choose instruction with options from namespaces.ini.
-		/// </summary>
+		
+		
+		
 		private static void AddNamespacesChooseInstructions(ModComponent component, string archivePath, ArchiveAnalysis analysis, string extractedPath)
 		{
 			Dictionary<string, Dictionary<string, string>> namespaces =
@@ -169,7 +169,7 @@ namespace KOTORModSync.Core.Services
 
 			var optionGuids = new List<string>();
 
-			// Create an option for each namespace
+			
 			foreach ( string ns in value.Values )
 			{
 				if ( !namespaces.TryGetValue(ns, out Dictionary<string, string> namespaceData) )
@@ -185,7 +185,7 @@ namespace KOTORModSync.Core.Services
 					IsSelected = false
 				};
 
-				// Add patcher instruction for this namespace
+				
 				string iniName = namespaceData.TryGetValue("IniName", out string value4) ? value4 : "changes.ini";
 				string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
 					? extractedPath
@@ -209,7 +209,7 @@ namespace KOTORModSync.Core.Services
 				component.Options.Add(option);
 			}
 
-			// Add Choose instruction
+			
 			var chooseInstruction = new Instruction
 			{
 				Guid = Guid.NewGuid(),
@@ -221,9 +221,9 @@ namespace KOTORModSync.Core.Services
 			component.Instructions.Add(chooseInstruction);
 		}
 
-		/// <summary>
-		/// Adds a simple Patcher instruction for changes.ini.
-		/// </summary>
+		
+		
+		
 		private static void AddSimplePatcherInstruction(ModComponent component, ArchiveAnalysis analysis, string extractedPath)
 		{
 			string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
@@ -246,9 +246,9 @@ namespace KOTORModSync.Core.Services
 			component.Instructions.Add(patcherInstruction);
 		}
 
-		/// <summary>
-		/// Adds Choose instruction for multiple folders.
-		/// </summary>
+		
+		
+		
 		private static void AddMultiFolderChooseInstructions(ModComponent component, string extractedPath, List<string> folders)
 		{
 			var optionGuids = new List<string>();
@@ -266,7 +266,7 @@ namespace KOTORModSync.Core.Services
 					IsSelected = false
 				};
 
-				// Add move instruction for this folder
+				
 				var moveInstruction = new Instruction
 				{
 					Guid = Guid.NewGuid(),
@@ -280,7 +280,7 @@ namespace KOTORModSync.Core.Services
 				component.Options.Add(option);
 			}
 
-			// Add Choose instruction
+			
 			var chooseInstruction = new Instruction
 			{
 				Guid = Guid.NewGuid(),
@@ -292,12 +292,12 @@ namespace KOTORModSync.Core.Services
 			component.Instructions.Add(chooseInstruction);
 		}
 
-		/// <summary>
-		/// Adds a simple Move instruction to Override.
-		/// </summary>
-		/// <param name="component">The component to add the instruction to</param>
-		/// <param name="extractedPath">The base extracted path of the archive</param>
-		/// <param name="folderName">Folder to move from, or null for flat files</param>
+		
+		
+		
+		
+		
+		
 		private static void AddSimpleMoveInstruction(ModComponent component, string extractedPath, string folderName)
 		{
 			string sourcePath = string.IsNullOrEmpty(folderName)
@@ -328,7 +328,7 @@ namespace KOTORModSync.Core.Services
 				string path = entry.Key.Replace('\\', '/');
 				string[] pathParts = path.Split('/');
 
-				// Check for TSLPatchData folder
+				
 				if ( pathParts.Any(p => p.Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase)) )
 				{
 					analysis.HasTslPatchData = true;
@@ -353,21 +353,21 @@ namespace KOTORModSync.Core.Services
 				}
 				else
 				{
-					// Check for loose files that would go to Override
+					
 					string extension = Path.GetExtension(path).ToLowerInvariant();
 					if ( !IsGameFile(extension) )
 						continue;
 					analysis.HasSimpleOverrideFiles = true;
 
-					// Track which folders contain game files
+					
 					if ( pathParts.Length == 1 )
 					{
-						// File is in root of archive (flat structure)
+						
 						analysis.HasFlatFiles = true;
 					}
 					else if ( pathParts.Length >= 2 )
 					{
-						// File is in a subfolder - track the folder
+						
 						string topLevelFolder = pathParts[0];
 						if ( !analysis.FoldersWithFiles.Contains(topLevelFolder) )
 							analysis.FoldersWithFiles.Add(topLevelFolder);
@@ -378,13 +378,13 @@ namespace KOTORModSync.Core.Services
 		}
 		private static string GetTslPatcherPath(string iniPath)
 		{
-			// Extract the directory containing tslpatchdata
+			
 			string[] parts = iniPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
 			for ( int i = 0; i < parts.Length - 1; i++ )
 			{
 				if ( parts[i].Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase) )
 				{
-					// Return the path up to (but not including) tslpatchdata
+					
 					return string.Join("/", parts.Take(i));
 				}
 			}
@@ -393,7 +393,7 @@ namespace KOTORModSync.Core.Services
 
 		private static bool IsGameFile(string extension)
 		{
-			// Common KOTOR file extensions
+			
 			var gameExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 			{
 				".2da", ".are", ".bik", ".dds",

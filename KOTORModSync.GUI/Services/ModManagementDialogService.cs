@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -104,8 +104,8 @@ namespace KOTORModSync
 
 		public void RefreshStatistics()
 		{
-			// This would trigger a refresh of the statistics display in the dialog
-			// For now, we'll just update the DataContext if it's a ModManagementDialog
+			
+			
 			if ( _parentWindow is ModManagementDialog dialog && dialog.DataContext is ModManagementService.ModStatistics )
 				dialog.DataContext = _modManagementService.GetModStatistics();
 		}

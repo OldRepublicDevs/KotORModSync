@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -14,9 +14,9 @@ using KOTORModSync.Dialogs;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for auto-generating instructions from archives
-	/// </summary>
+	
+	
+	
 	public class InstructionGenerationService
 	{
 		private readonly MainConfig _mainConfig;
@@ -33,9 +33,9 @@ namespace KOTORModSync.Services
 			_downloadOrchestrationService = downloadOrchestrationService ?? throw new ArgumentNullException(nameof(downloadOrchestrationService));
 		}
 
-		/// <summary>
-		/// Generates instructions from mod links (downloads if needed)
-		/// </summary>
+		
+		
+		
 		public async Task<int> GenerateInstructionsFromModLinksAsync(ModComponent component)
 		{
 			try
@@ -48,7 +48,7 @@ namespace KOTORModSync.Services
 					return 0;
 				}
 
-				// Clear existing instructions
+				
 				component.Instructions.Clear();
 				component.Options.Clear();
 
@@ -56,14 +56,14 @@ namespace KOTORModSync.Services
 				var invalidLinks = new List<string>();
 				var nonArchiveFiles = new List<string>();
 
-				// Check if mod directory is set
+				
 				if ( _mainConfig.sourcePath == null || !_mainConfig.sourcePath.Exists )
 				{
 					await InformationDialog.ShowInformationDialog(_parentWindow, "Mod directory is not set. Please configure the mod directory first.");
 					return 0;
 				}
 
-				// Process each mod link
+				
 				foreach ( string modLink in component.ModLink )
 				{
 					if ( string.IsNullOrWhiteSpace(modLink) )
@@ -71,7 +71,7 @@ namespace KOTORModSync.Services
 
 					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Processing link: {modLink}");
 
-					// Check if it's a URL or local file
+					
 					if ( IsValidUrl(modLink) )
 					{
 						string downloadedFilePath = await DownloadOrchestrationService.DownloadModFromUrlAsync(modLink, component);
@@ -89,7 +89,7 @@ namespace KOTORModSync.Services
 					}
 					else
 					{
-						// It's a local file path
+						
 						string fullPath = Path.IsPathRooted(modLink) ? modLink : Path.Combine(_mainConfig.sourcePath.FullName, modLink);
 
 						if ( File.Exists(fullPath) )
@@ -106,7 +106,7 @@ namespace KOTORModSync.Services
 					}
 				}
 
-                // Generate instructions from valid archives
+                
                 int totalInstructionsGenerated = 0;
 				foreach ( string archivePath in validArchives )
 				{
@@ -116,12 +116,12 @@ namespace KOTORModSync.Services
 					{
 						totalInstructionsGenerated += component.Instructions.Count;
                         await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Successfully generated instructions for: {archivePath}");
-                        // We have a valid local archive; mark as downloaded to fix UI state
+                        
                         component.IsDownloaded = true;
 					}
 				}
 
-				// Generate Move instructions for non-archive files
+				
 				foreach ( string filePath in nonArchiveFiles )
 				{
 					string fileName = Path.GetFileName(filePath);
@@ -142,10 +142,10 @@ namespace KOTORModSync.Services
 					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Added Move instruction for file: {fileName}");
 				}
 
-                // Show results
+                
                 if ( totalInstructionsGenerated > 0 )
 				{
-                    // If any instructions were created, consider the component downloaded
+                    
                     component.IsDownloaded = true;
 					string message = $"Successfully generated {totalInstructionsGenerated} instructions";
 					if ( invalidLinks.Count > 0 )
@@ -172,16 +172,16 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Generates instructions from a selected archive file
-		/// </summary>
+		
+		
+		
 		public async Task<bool> GenerateInstructionsFromArchiveAsync(ModComponent component, Func<Task<string[]>> showFileDialog)
 		{
 			try
 			{
 				await Logger.LogVerboseAsync("[GenerateInstructionsFromArchive] START");
 
-				// Open file dialog to select archive
+				
 				string[] filePaths = await showFileDialog();
 
 				if ( filePaths is null || filePaths.Length == 0 )
@@ -193,7 +193,7 @@ namespace KOTORModSync.Services
 				string archivePath = filePaths[0];
 				await Logger.LogVerboseAsync($"[GenerateInstructionsFromArchive] Selected archive: {archivePath}");
 
-				// Validate file
+				
 				if ( !File.Exists(archivePath) )
 				{
 					await InformationDialog.ShowInformationDialog(_parentWindow, "Selected file does not exist");
@@ -206,7 +206,7 @@ namespace KOTORModSync.Services
 					return false;
 				}
 
-				// Generate instructions
+				
 				await Logger.LogVerboseAsync("[GenerateInstructionsFromArchive] Calling AutoInstructionGenerator.GenerateInstructions");
 				bool success = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
@@ -233,9 +233,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Attempts to auto-generate instructions for components that don't have any
-		/// </summary>
+		
+		
+		
 		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 		{
 			if ( components == null || components.Count == 0 )
@@ -248,14 +248,14 @@ namespace KOTORModSync.Services
 
 				foreach ( ModComponent component in components )
 				{
-					// Skip if already has instructions
+					
 					if ( component.Instructions.Count > 0 )
 					{
 						skippedCount++;
 						continue;
 					}
 
-					// Try to generate instructions
+					
 					bool success = component.TryGenerateInstructionsFromArchive();
 					if ( !success )
 						continue;
@@ -303,15 +303,15 @@ namespace KOTORModSync.Services
 			if ( string.IsNullOrEmpty(basePath) || string.IsNullOrEmpty(targetPath) )
 				return targetPath;
 
-			// Normalize paths
+			
 			basePath = Path.GetFullPath(basePath);
 			targetPath = Path.GetFullPath(targetPath);
 
-			// Check if target is within base path
+			
 			if ( !targetPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase) )
 				return Path.GetFileName(targetPath);
 
-			// Get relative path
+			
 			string relativePath = targetPath.Substring(basePath.Length);
 			if ( relativePath.StartsWith(Path.DirectorySeparatorChar.ToString()) )
 				relativePath = relativePath.Substring(1);

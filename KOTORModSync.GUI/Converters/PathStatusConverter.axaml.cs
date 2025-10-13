@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Globalization;
@@ -9,14 +9,14 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Converters
 {
-	/// <summary>
-	/// Converts path status to show whether paths are resolved or contain placeholders
-	/// </summary>
+	
+	
+	
 	public partial class PathStatusConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			// Handle null or empty values
+			
 			if ( value == null )
 				return "❓ Empty";
 
@@ -26,20 +26,20 @@ namespace KOTORModSync.Converters
 			if ( string.IsNullOrEmpty(path) )
 				return "❓ Empty";
 
-			// Get the Instruction from the parameter to check the Action type
+			
 			Instruction instruction = parameter as Instruction;
 
-			// Check if path contains unresolved placeholders
+			
 			if ( path.Contains("<<modDirectory>>") || path.Contains("<<kotorDirectory>>") )
 			{
-				// For Patcher actions, <<kotorDirectory>> in Destination is EXPECTED and CORRECT
+				
 				if ( instruction != null && instruction.Action == Instruction.ActionType.Patcher
 					&& path.Equals("<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
 				{
 					return "✅ Valid (Patcher destination)";
 				}
 
-				// Check if the directories are configured
+				
 				if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
 				{
 					return "⚠️ Paths not configured";
@@ -54,12 +54,12 @@ namespace KOTORModSync.Converters
 				}
 				else
 				{
-					// Placeholders are present and directories are configured - this is normal/expected
+					
 					return "✅ Valid (will be resolved)";
 				}
 			}
 
-			// Path appears to be resolved
+			
 			return "✅ Resolved";
 		}
 

@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -18,9 +18,9 @@ using SharpCompress.Readers;
 
 namespace KOTORModSync.Core.Services.FileSystem
 {
-	/// <summary>
-	/// Real file system provider that performs actual file operations.
-	/// </summary>
+	
+	
+	
 	public class RealFileSystemProvider : IFileSystemProvider
 	{
 		public bool IsDryRun => false;
@@ -147,7 +147,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 
 					await Logger.LogAsync($"Extracting archive '{sourcePath}'...");
 
-					// Handle self-extracting executable archives (7zip)
+					
 					if ( archive.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase) )
 					{
 						(int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(archive.FullName, $" -o\"{archive.DirectoryName}\" -y");

@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -14,9 +14,9 @@ using static KOTORModSync.Core.Services.ModManagementService;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for managing the mod list display and interactions
-	/// </summary>
+	
+	
+	
 	public class ModListService
 	{
 		private readonly MainConfig _mainConfig;
@@ -26,9 +26,9 @@ namespace KOTORModSync.Services
 			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 		}
 
-		/// <summary>
-		/// Filters the mod list based on search criteria
-		/// </summary>
+		
+		
+		
 		public List<ModComponent> FilterModList(string searchText, ModSearchOptions options = null)
 		{
 			try
@@ -65,9 +65,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Populates the mod list UI with components
-		/// </summary>
+		
+		
+		
 		public static void PopulateModList(ListBox modListBox, List<ModComponent> components, Action updateModCounts)
 		{
 			try
@@ -90,9 +90,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Refreshes mod list visuals without rebuilding the entire list
-		/// </summary>
+		
+		
+		
 		public static void RefreshModListVisuals(ListBox modListBox, Action updateStepProgress)
 		{
 			try
@@ -100,12 +100,12 @@ namespace KOTORModSync.Services
 				if ( modListBox?.ItemsSource == null )
 					return;
 
-				// Force re-evaluation of all mod list items by refreshing the ItemsSource
+				
 				var currentItems = modListBox.ItemsSource;
 				modListBox.ItemsSource = null;
 				modListBox.ItemsSource = currentItems;
 
-				// Update step progress after refreshing visuals
+				
 				updateStepProgress?.Invoke();
 			}
 			catch ( Exception ex )
@@ -114,9 +114,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Refreshes a single component's visual state
-		/// </summary>
+		
+		
+		
 		public static void RefreshSingleComponentVisuals(ListBox modListBox, ModComponent component)
 		{
 			try
@@ -124,32 +124,32 @@ namespace KOTORModSync.Services
 				if ( modListBox == null || component == null )
 					return;
 
-				// Ensure UI updates happen on the UI thread
+				
 				Dispatcher.UIThread.Post(() =>
 				{
 					try
 					{
-						// Find the container for this specific component
+						
 						if ( !(modListBox.ContainerFromItem(component) is ListBoxItem container) )
 							return;
 
-						// Find the ModListItem control
+						
 						if ( container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault() is ModListItem modListItem )
 						{
-							// Directly call UpdateValidationState to refresh border colors
+							
 							modListItem.UpdateValidationState(component);
 
-							// Force the ItemsControl for options to re-evaluate its bindings
-							// This ensures the options section appears/disappears immediately
+							
+							
 							var optionsContainer = modListItem.FindControl<ItemsControl>("OptionsContainer");
 							if ( optionsContainer != null )
 							{
-								// Trigger a re-evaluation of the ItemsSource and IsVisible bindings
+								
 								var currentItems = optionsContainer.ItemsSource;
 								optionsContainer.ItemsSource = null;
 								optionsContainer.ItemsSource = currentItems;
 
-								// Also force the IsVisible binding to re-evaluate
+								
 								var currentVisibility = optionsContainer.IsVisible;
 								optionsContainer.IsVisible = !currentVisibility;
 								optionsContainer.IsVisible = currentVisibility;
@@ -168,9 +168,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Refreshes all mod list item controls (context menus, visibility, etc.)
-		/// </summary>
+		
+		
+		
 		public void RefreshModListItems(ListBox modListBox, bool editorMode, Func<ModComponent, ContextMenu> buildContextMenu)
 		{
 			try
@@ -178,36 +178,36 @@ namespace KOTORModSync.Services
 				if ( modListBox == null )
 					return;
 
-				// Force all ModListItem controls to refresh their context menus and visibility
+				
 				foreach ( object item in modListBox.Items )
 				{
-#pragma warning disable IDE0078 // Use pattern matching
+#pragma warning disable IDE0078 
 					if ( !(item is ModComponent component) )
 						continue;
-#pragma warning restore IDE0078 // Use pattern matching
+#pragma warning restore IDE0078 
 
-					// Find the container for this item
-#pragma warning disable IDE0078 // Use pattern matching
+					
+#pragma warning disable IDE0078 
 					if ( !(modListBox.ContainerFromItem(item) is ListBoxItem container) )
 						continue;
-#pragma warning restore IDE0078 // Use pattern matching
+#pragma warning restore IDE0078 
 
-					// Find the ModListItem control
+					
 					ModListItem modListItem = container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault();
 					if ( modListItem == null )
 						continue;
 
-					// Trigger context menu rebuild
+					
 					modListItem.ContextMenu = buildContextMenu(component);
 
-					// Update editor mode visibility for child elements
+					
 					if ( modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock )
 						indexBlock.IsVisible = editorMode;
 
 					if ( modListItem.FindControl<TextBlock>("DragHandle") is TextBlock dragHandle )
 						dragHandle.IsVisible = editorMode;
 
-					// Update index if in editor mode
+					
 					if ( !editorMode )
 						continue;
 					int index = _mainConfig.allComponents.IndexOf(component);
@@ -221,9 +221,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Updates mod count displays
-		/// </summary>
+		
+		
+		
 		public void UpdateModCounts(
 			TextBlock modCountText,
 			TextBlock selectedCountText,
@@ -244,7 +244,7 @@ namespace KOTORModSync.Services
 					selectedCountText.Text = selectedCount == 1 ? "1 selected" : $"{selectedCount} selected";
 				}
 
-				// Update SelectAllCheckBox state
+				
 				if ( selectAllCheckBox != null )
 				{
 					setSuppressSelectAllEvents?.Invoke(true);

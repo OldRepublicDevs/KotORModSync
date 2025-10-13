@@ -1,20 +1,20 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for theme management and application
-	/// </summary>
+	
+	
+	
 	public class ThemeService
 	{
-		/// <summary>
-		/// Applies a theme to the application
-		/// </summary>
+		
+		
+		
 		public static void ApplyTheme(string stylePath)
 		{
 			try
@@ -34,9 +34,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Gets the current theme path
-		/// </summary>
+		
+		
+		
 		public static string GetCurrentTheme()
 		{
 			try

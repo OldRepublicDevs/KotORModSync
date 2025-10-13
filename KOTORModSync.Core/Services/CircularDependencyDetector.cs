@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -9,10 +9,10 @@ using System.Text;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Detects and resolves circular dependency issues in component lists.
-	/// Uses industry-standard topological sorting and cycle detection algorithms.
-	/// </summary>
+	
+	
+	
+	
 	public static class CircularDependencyDetector
 	{
 		public class CircularDependencyResult
@@ -23,24 +23,24 @@ namespace KOTORModSync.Core.Services
 			public string DetailedErrorMessage { get; set; }
 		}
 
-		/// <summary>
-		/// Detects circular dependencies using DFS-based cycle detection.
-		/// This is the industry-standard approach used by npm, cargo, apt, etc.
-		/// </summary>
+		
+		
+		
+		
 		public static CircularDependencyResult DetectCircularDependencies(List<ModComponent> components)
 		{
 			var result = new CircularDependencyResult();
 			var componentsByGuid = components.ToDictionary(c => c.Guid, c => c);
 			result.ComponentsByGuid = componentsByGuid;
 
-			// Build adjacency list for dependency graph
+			
 			var graph = new Dictionary<Guid, List<Guid>>();
 			foreach ( ModComponent component in components )
 			{
 				if ( !graph.ContainsKey(component.Guid) )
 					graph[component.Guid] = new List<Guid>();
 
-				// Add edges for dependencies
+				
 				foreach ( Guid depGuid in component.Dependencies )
 				{
 					if ( !componentsByGuid.ContainsKey(depGuid) )
@@ -50,7 +50,7 @@ namespace KOTORModSync.Core.Services
 					graph[component.Guid].Add(depGuid);
 				}
 
-				// Add edges for InstallAfter (soft dependencies)
+				
 				foreach ( Guid afterGuid in component.InstallAfter )
 				{
 					if ( !componentsByGuid.ContainsKey(afterGuid) )
@@ -61,7 +61,7 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			// DFS-based cycle detection
+			
 			var visited = new HashSet<Guid>();
 			var recursionStack = new HashSet<Guid>();
 			var currentPath = new List<Guid>();
@@ -72,7 +72,7 @@ namespace KOTORModSync.Core.Services
 					result.HasCircularDependencies = true;
 			}
 
-			// Build detailed error message
+			
 			if ( result.HasCircularDependencies )
 			{
 				var sb = new StringBuilder();
@@ -94,7 +94,7 @@ namespace KOTORModSync.Core.Services
 						if ( !string.IsNullOrWhiteSpace(comp.Author) )
 							_ = sb.Append($" by {comp.Author}");
 
-						// Show what it depends on
+						
 						if ( j < cycle.Count - 1 )
 						{
 							Guid nextGuid = cycle[j + 1];
@@ -103,7 +103,7 @@ namespace KOTORModSync.Core.Services
 						}
 						else
 						{
-							// Last item cycles back to first
+							
 							Guid firstGuid = cycle[0];
 							if ( componentsByGuid.TryGetValue(firstGuid, out ModComponent firstComp) )
 								_ = sb.Append($" → depends on → {firstComp.Name} (CYCLE!)");
@@ -124,10 +124,10 @@ namespace KOTORModSync.Core.Services
 			return result;
 		}
 
-		/// <summary>
-		/// DFS helper method to detect cycles.
-		/// Returns true if a cycle is detected.
-		/// </summary>
+		
+		
+		
+		
 		private static bool DfsDetectCycle(
 			Guid node,
 			Dictionary<Guid, List<Guid>> graph,
@@ -151,12 +151,12 @@ namespace KOTORModSync.Core.Services
 					}
 					else if ( recursionStack.Contains(neighbor) )
 					{
-						// Found a cycle! Extract the cycle from currentPath
+						
 						int cycleStartIndex = currentPath.IndexOf(neighbor);
 						var cycle = currentPath.Skip(cycleStartIndex).ToList();
-						cycle.Add(neighbor); // Complete the cycle
+						cycle.Add(neighbor); 
 
-						// Check if this cycle is already recorded (avoid duplicates)
+						
 						bool isDuplicate = result.Cycles.Any(existingCycle =>
 							existingCycle.Count == cycle.Count &&
 							existingCycle.Intersect(cycle).Count() == cycle.Count);
@@ -174,16 +174,16 @@ namespace KOTORModSync.Core.Services
 			return false;
 		}
 
-		/// <summary>
-		/// Suggests which components could be unchecked to break circular dependencies.
-		/// Uses minimum vertex cover algorithm to find the smallest set of components to remove.
-		/// </summary>
+		
+		
+		
+		
 		public static List<ModComponent> SuggestComponentsToRemove(CircularDependencyResult result)
 		{
 			if ( !result.HasCircularDependencies )
 				return new List<ModComponent>();
 
-			// Count how many cycles each component appears in
+			
 			var componentCycleCount = new Dictionary<Guid, int>();
 			foreach ( List<Guid> cycle in result.Cycles )
 			{
@@ -195,12 +195,12 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			// Sort by cycle count descending - removing components that appear in more cycles is more effective
+			
 			var suggestions = componentCycleCount
 				.OrderByDescending(kvp => kvp.Value)
 				.Select(kvp => result.ComponentsByGuid.ContainsKey(kvp.Key) ? result.ComponentsByGuid[kvp.Key] : null)
 				.Where(comp => !(comp is null))
-				.Take(3) // Suggest up to 3 components
+				.Take(3) 
 				.ToList();
 
 			return suggestions;

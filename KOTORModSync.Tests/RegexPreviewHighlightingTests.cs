@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System.Collections.ObjectModel;
 using Avalonia.Controls.Documents;
 using Avalonia.Headless.NUnit;
@@ -28,7 +28,7 @@ namespace KOTORModSync.Tests
 			Assert.That(inlines, Is.Not.Null, "Inlines collection should not be null");
 			Assert.That(inlines, Is.Not.Empty, "Expected at least one inline generated for preview");
 
-			// 1) There should be more than one run (split text implies highlighting inserted)
+			
 			Assert.That(inlines, Has.Count.GreaterThan(1), "Expected multiple runs inlines indicating segmentation");
 
 			bool anyBold = false;
@@ -54,7 +54,7 @@ namespace KOTORModSync.Tests
 
 					if ( run.Foreground is SolidColorBrush brush )
 					{
-						// We consider pure white un-highlighted baseline
+						
 						if ( brush.Color != Colors.White )
 						{
 							anyColoredNonWhite = true;
@@ -66,15 +66,15 @@ namespace KOTORModSync.Tests
 
 			Assert.Multiple(() =>
 			{
-				// 2) We expect at least one bold run (highlighted capture)
+				
 				Assert.That(anyBold, Is.True, "Expected bold run for highlighted group");
-				// 3) At least one non-white colored run
+				
 				Assert.That(anyColoredNonWhite, Is.True, "Expected a colored (non-white) run for highlighted group");
-				// 4) The captured text should appear in at least one run
+				
 				Assert.That(containsNameText, Is.True, "Expected highlighted run to contain captured group text");
-				// 5) There should be a non-trivial amount of text represented
+				
 				Assert.That(totalRunChars, Is.GreaterThan(10), "Expected non-trivial text content in runs");
-				// 6) Sanity: counts of bold/colored are positive
+				
 				Assert.That(boldCount, Is.GreaterThanOrEqualTo(1));
 				Assert.That(coloredCount, Is.GreaterThanOrEqualTo(1));
 			});

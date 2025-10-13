@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -16,15 +16,15 @@ using SharpCompress.Archives.Zip;
 
 namespace KOTORModSync.Core.Services.FileSystem
 {
-	/// <summary>
-	/// Virtual file system provider for dry-run validation.
-	/// Tracks file locations in memory without making actual file system changes.
-	/// </summary>
+	
+	
+	
+	
 	public class VirtualFileSystemProvider : IFileSystemProvider
 	{
 		private readonly HashSet<string> _virtualFiles;
 		private readonly HashSet<string> _virtualDirectories;
-		private readonly HashSet<string> _removedFiles; // Track files that have been deleted/moved from their original location
+		private readonly HashSet<string> _removedFiles; 
 		private readonly List<ValidationIssue> _issues;
 		private readonly Dictionary<string, HashSet<string>> _archiveContents;
 
@@ -42,9 +42,9 @@ namespace KOTORModSync.Core.Services.FileSystem
 			_issues = new List<ValidationIssue>();
 			_archiveContents = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 		}
-		/// <summary>
-		/// Initializes the virtual file system with the current state of the real file system (synchronous version).
-		/// </summary>
+		
+		
+		
 		public void InitializeFromRealFileSystem(string rootPath)
 		{
 			if (!Directory.Exists(rootPath))
@@ -56,7 +56,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 				{
 					_virtualFiles.Add(file.FullName);
 
-					// Pre-scan archives to know their contents synchronously during initialization
+					
 					if (IsArchiveFile(file.FullName))
 						ScanArchiveContents(file.FullName);
 				}
@@ -73,9 +73,9 @@ namespace KOTORModSync.Core.Services.FileSystem
 			}
 		}
 
-		/// <summary>
-		/// Scans an archive file to determine its contents (synchronous version).
-		/// </summary>
+		
+		
+		
 		private void ScanArchiveContents([NotNull] string archivePath)
 		{
 			if (_archiveContents.ContainsKey(archivePath))
@@ -113,9 +113,9 @@ namespace KOTORModSync.Core.Services.FileSystem
 			_archiveContents[archivePath] = contents;
 		}
 
-		/// <summary>
-		/// Initializes the virtual file system with the current state of the real file system.
-		/// </summary>
+		
+		
+		
 		public async Task InitializeFromRealFileSystemAsync(string rootPath)
 		{
 			if ( !Directory.Exists(rootPath) )
@@ -127,7 +127,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 				{
 					_virtualFiles.Add(file.FullName);
 
-					// Pre-scan archives to know their contents synchronously during initialization
+					
 					if ( IsArchiveFile(file.FullName) )
 						await ScanArchiveContentsAsync(file.FullName);
 				}
@@ -144,9 +144,9 @@ namespace KOTORModSync.Core.Services.FileSystem
 			}
 		}
 
-		/// <summary>
-		/// Scans an archive file to determine its contents.
-		/// </summary>
+		
+		
+		
 		private async Task ScanArchiveContentsAsync([NotNull] string archivePath)
 		{
 			if ( _archiveContents.ContainsKey(archivePath) )
@@ -210,10 +210,10 @@ namespace KOTORModSync.Core.Services.FileSystem
 			if ( string.IsNullOrWhiteSpace(path) )
 				return false;
 
-			// If file was explicitly removed/moved, it doesn't exist even if still on disk
+			
 			if ( _removedFiles.Contains(path) )
 			{
-				//Console.WriteLine($"[VFS] FileExists: path={path}, REMOVED, result=False");
+				
 				return false;
 			}
 
@@ -221,16 +221,16 @@ namespace KOTORModSync.Core.Services.FileSystem
 			bool onDisk = File.Exists(path);
 			bool result = inVirtual || onDisk;
 
-			//Console.WriteLine($"[VFS] FileExists: path={path}, inVirtual={inVirtual}, onDisk={onDisk}, result={result}");
+			
 			if ( !result && _virtualFiles.Count > 0 )
 			{
-				//Console.WriteLine($"[VFS] FileExists: Virtual files ({_virtualFiles.Count}):");
-				//foreach ( var f in _virtualFiles.Take(10) )
-				//{
-				//Console.WriteLine($"[VFS]   - {f}");
-				//}
-				//if ( _virtualFiles.Count > 10 )
-				//Console.WriteLine($"[VFS]   ... and {_virtualFiles.Count - 10} more");
+				
+				
+				
+				
+				
+				
+				
 			}
 
 			return result;
@@ -254,15 +254,15 @@ namespace KOTORModSync.Core.Services.FileSystem
 				return Task.CompletedTask;
 			}
 
-			// Simulate copy by adding to virtual files
+			
 			_ = _virtualFiles.Add(destinationPath);
-			_ = _removedFiles.Remove(destinationPath); // Destination now exists
+			_ = _removedFiles.Remove(destinationPath); 
 
-			// If source is an archive, copy its metadata too
+			
 			if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
 				_archiveContents[destinationPath] = new HashSet<string>(archiveContents, StringComparer.OrdinalIgnoreCase);
 
-			// Ensure parent directory exists
+			
 			string parentDir = Path.GetDirectoryName(destinationPath);
 			if ( !string.IsNullOrEmpty(parentDir) && !DirectoryExists(parentDir) )
 				_ = _virtualDirectories.Add(parentDir);
@@ -290,25 +290,25 @@ namespace KOTORModSync.Core.Services.FileSystem
 				return Task.CompletedTask;
 			}
 
-			// Simulate move by removing source and adding destination
+			
 			bool removed = _virtualFiles.Remove(sourcePath);
 			_ = _virtualFiles.Add(destinationPath);
-			_ = _removedFiles.Add(sourcePath); // Mark source as removed
-			_ = _removedFiles.Remove(destinationPath); // Destination now exists
+			_ = _removedFiles.Add(sourcePath); 
+			_ = _removedFiles.Remove(destinationPath); 
 			Console.WriteLine($"[VFS] MoveFileAsync: Removed={removed}, total files now={_virtualFiles.Count}");
 			foreach ( string f in _virtualFiles.Take(10) )
 			{
 				Console.WriteLine($"[VFS]   - {f}");
 			}
 
-			// If source is an archive, move its metadata too
+			
 			if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
 			{
 				_ = _archiveContents.Remove(sourcePath);
 				_archiveContents[destinationPath] = archiveContents;
 			}
 
-			// Ensure parent directory exists
+			
 			string parentDir = Path.GetDirectoryName(destinationPath);
 			if ( !string.IsNullOrEmpty(parentDir) && !DirectoryExists(parentDir) )
 				_ = _virtualDirectories.Add(parentDir);
@@ -326,9 +326,9 @@ namespace KOTORModSync.Core.Services.FileSystem
 			}
 
 			_ = _virtualFiles.Remove(path);
-			_ = _removedFiles.Add(path); // Mark as removed
+			_ = _removedFiles.Add(path); 
 
-			// If it's an archive, remove its metadata too
+			
 			if ( IsArchiveFile(path) )
 				_ = _archiveContents.Remove(path);
 
@@ -354,13 +354,13 @@ namespace KOTORModSync.Core.Services.FileSystem
 				return Task.CompletedTask;
 			}
 
-			// Simulate rename
+			
 			_ = _virtualFiles.Remove(sourcePath);
 			_virtualFiles.Add(destinationPath);
-			_ = _removedFiles.Add(sourcePath); // Mark source as removed
-			_ = _removedFiles.Remove(destinationPath); // Destination now exists
+			_ = _removedFiles.Add(sourcePath); 
+			_ = _removedFiles.Remove(destinationPath); 
 
-			// If source is an archive, rename its metadata too
+			
 			if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
 			{
 				_ = _archiveContents.Remove(sourcePath);
@@ -372,8 +372,8 @@ namespace KOTORModSync.Core.Services.FileSystem
 
 		public Task<string> ReadFileAsync(string path)
 		{
-			// For dry-run, we don't actually read file contents
-			// Just validate that the file exists
+			
+			
 			if ( !FileExists(path) )
 			{
 				AddIssue(ValidationSeverity.Error, "ReadFile",
@@ -381,17 +381,17 @@ namespace KOTORModSync.Core.Services.FileSystem
 				return Task.FromResult(string.Empty);
 			}
 
-			// Return empty string for virtual reads
-			// Real file content doesn't matter for validation
+			
+			
 			return Task.FromResult(string.Empty);
 		}
 
 		public Task WriteFileAsync(string path, string contents)
 		{
-			// Simulate writing a file - just mark it as existing
+			
 			_virtualFiles.Add(path);
 
-			// Ensure parent directory exists
+			
 			string directory = GetDirectoryName(path);
 			if ( !string.IsNullOrEmpty(directory) )
 				_ = _virtualDirectories.Add(directory);
@@ -418,7 +418,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 				return extractedFiles;
 			}
 
-			// Ensure archive contents are scanned
+			
 			if ( !_archiveContents.ContainsKey(archivePath) )
 				await ScanArchiveContentsAsync(archivePath);
 
@@ -429,7 +429,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 				return extractedFiles;
 			}
 
-			// Simulate extraction by adding all archive entries to virtual file system
+			
 			string extractFolderName = Path.GetFileNameWithoutExtension(archivePath);
 
 			Console.WriteLine($"[VFS] ExtractArchive: archivePath={archivePath}");
@@ -439,19 +439,19 @@ namespace KOTORModSync.Core.Services.FileSystem
 
 			foreach ( string entryPath in contents )
 			{
-				// Normalize path separators (archives often use forward slashes)
+				
 				string normalizedEntry = entryPath.Replace('/', Path.DirectorySeparatorChar);
 				string fullPath = Path.Combine(destinationPath, extractFolderName, normalizedEntry);
-				// Further normalize to ensure consistent separator usage
+				
 				fullPath = fullPath.Replace('/', Path.DirectorySeparatorChar).Replace("\\\\", "\\");
 
 				Console.WriteLine($"[VFS] ExtractArchive: Adding virtual file: {fullPath}");
 
 				_ = _virtualFiles.Add(fullPath);
-				_ = _removedFiles.Remove(fullPath); // Extracted file now exists
+				_ = _removedFiles.Remove(fullPath); 
 				extractedFiles.Add(fullPath);
 
-				// Ensure parent directory exists
+				
 				string parentDir = Path.GetDirectoryName(fullPath);
 				if ( !string.IsNullOrEmpty(parentDir) )
 					_ = _virtualDirectories.Add(parentDir);
@@ -467,13 +467,13 @@ namespace KOTORModSync.Core.Services.FileSystem
 			if ( !DirectoryExists(directoryPath) )
 				return new List<string>();
 
-			// Normalize directory path - ensure it ends with separator for proper matching
+			
 			string normalizedDir = directoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-			// Collect files from virtual file system
+			
 			var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-			// Add virtual files
+			
 			foreach ( string f in _virtualFiles )
 			{
 				string fileDir = Path.GetDirectoryName(f);
@@ -489,7 +489,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 					_ = files.Add(f);
 			}
 
-			// Also check for real files on disk (excluding removed files)
+			
 			if ( Directory.Exists(directoryPath) )
 			{
 				try
@@ -502,17 +502,17 @@ namespace KOTORModSync.Core.Services.FileSystem
 				}
 				catch ( UnauthorizedAccessException )
 				{
-					// Ignore access errors when enumerating
+					
 				}
 				catch ( DirectoryNotFoundException )
 				{
-					// Directory was removed, ignore
+					
 				}
 			}
 
-			// NOTE: searchPattern is intentionally ignored here
-			// PathHelper.EnumerateFilesWithWildcards always passes "*" and then uses
-			// PathHelper.WildcardPathMatch for ALL filtering - we just provide the raw file list
+			
+			
+			
 			return files.ToList();
 		}
 
@@ -532,14 +532,14 @@ namespace KOTORModSync.Core.Services.FileSystem
 
 		public Task<(int exitCode, string output, string error)> ExecuteProcessAsync(string programPath, string arguments)
 		{
-			// For dry-run, just validate the program exists
+			
 			if ( FileExists(programPath) )
 				return Task.FromResult((0, "[Dry-run: Program execution simulated]", string.Empty));
 			AddIssue(ValidationSeverity.Error, "ExecuteProcess",
 				$"Program file does not exist: {programPath}", programPath);
 			return Task.FromResult((1, string.Empty, $"Program not found: {programPath}"));
 
-			// Simulate successful execution
+			
 		}
 
 		public string GetActualPath(string path) => path;
@@ -555,25 +555,25 @@ namespace KOTORModSync.Core.Services.FileSystem
 				Timestamp = DateTimeOffset.UtcNow
 			});
 
-		/// <summary>
-		/// Gets all tracked files in the virtual file system.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public List<string> GetTrackedFiles() => new List<string>(_virtualFiles);
 
-		/// <summary>
-		/// Gets all validation issues encountered during dry-run.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public List<ValidationIssue> GetValidationIssues() => new List<ValidationIssue>(_issues);
 	}
 
-	/// <summary>
-	/// Represents a validation issue found during dry-run.
-	/// </summary>
+	
+	
+	
 	public class ValidationIssue
 	{
-		// Core/Services fields
+		
 		public ValidationSeverity Severity { get; set; }
 		public string Category { get; set; }
 		public string Message { get; set; }
@@ -583,16 +583,16 @@ namespace KOTORModSync.Core.Services.FileSystem
 		public Instruction AffectedInstruction { get; set; }
 		public int InstructionIndex { get; set; }
 
-		// GUI/Dialogs fields
+		
 		public string Icon { get; set; }
 		public string IssueType { get; set; }
 		public string Solution { get; set; }
 		public bool HasSolution => !string.IsNullOrEmpty(Solution);
 	}
 
-	/// <summary>
-	/// Severity level for validation issues.
-	/// </summary>
+	
+	
+	
 	public enum ValidationSeverity
 	{
 		Info,

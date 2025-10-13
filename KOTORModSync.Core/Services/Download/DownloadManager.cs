@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,9 +14,9 @@ namespace KOTORModSync.Core.Services.Download
 	{
 		private readonly List<IDownloadHandler> _handlers;
 		private const double Tolerance = 0.01;
-		private static readonly SemaphoreSlim _deadlyStreamConcurrencyLimiter = new SemaphoreSlim(5, 5); // Max 5 concurrent downloads
+		private static readonly SemaphoreSlim _deadlyStreamConcurrencyLimiter = new SemaphoreSlim(5, 5); 
 
-		// Per-download log throttling: track last log time and last status for each URL
+		
 		private readonly Dictionary<string, DateTime> _lastProgressLogTime = new Dictionary<string, DateTime>();
 		private readonly Dictionary<string, DownloadStatus> _lastLoggedStatus = new Dictionary<string, DownloadStatus>();
 		private readonly object _logThrottleLock = new object();
@@ -35,9 +35,9 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		/// <summary>
-		/// Resolves URLs to their filenames without downloading
-		/// </summary>
+		
+		
+		
 		public async Task<Dictionary<string, List<string>>> ResolveUrlsToFilenamesAsync(
 			IEnumerable<string> urls,
 			CancellationToken cancellationToken = default)
@@ -74,17 +74,17 @@ namespace KOTORModSync.Core.Services.Download
 			return results;
 		}
 
-		/// <summary>
-		/// Cancels all ongoing downloads using cooperative cancellation
-		/// </summary>
+		
+		
+		
 		public void CancelAll()
 		{
 			try
 			{
 				Logger.LogVerbose("[DownloadManager] CancelAll() called - using cooperative cancellation");
 
-				// Use cooperative cancellation - this is safe and doesn't kill threads
-				// The downloads will check the cancellation token and stop gracefully
+				
+				
 				_globalCancellationTokenSource?.Cancel();
 
 				Logger.LogVerbose("[DownloadManager] Cooperative cancellation signal sent - downloads will stop gracefully");
@@ -101,7 +101,7 @@ namespace KOTORModSync.Core.Services.Download
 				IProgress<DownloadProgress> progressReporter = null,
 				CancellationToken cancellationToken = default)
 		{
-			// Combine global cancellation token with passed cancellation token
+			
 			var combinedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
 				_globalCancellationTokenSource.Token,
 				cancellationToken).Token;
@@ -111,7 +111,7 @@ namespace KOTORModSync.Core.Services.Download
 			await Logger.LogVerboseAsync($"[DownloadManager] Destination directory: {destinationDirectory}");
 			await Logger.LogVerboseAsync($"[DownloadManager] Concurrency limit: 5 concurrent DeadlyStream downloads (other handlers unlimited)");
 
-			// Log every single URL being processed
+			
 			await Logger.LogVerboseAsync($"[DownloadManager] URLs to download:");
 			foreach ( var kvp in urlToProgressMap )
 			{
@@ -124,7 +124,7 @@ namespace KOTORModSync.Core.Services.Download
 			var results = new List<DownloadResult>();
 			var tasks = new List<Task<DownloadResult>>();
 
-			// Create tasks for all downloads with concurrency limiting
+			
 			foreach ( string url in urlList )
 			{
 				DownloadProgress progressItem = urlToProgressMap[url];
@@ -132,7 +132,7 @@ namespace KOTORModSync.Core.Services.Download
 				tasks.Add(DownloadSingleWithConcurrencyLimit(url, progressItem, destinationDirectory, progressReporter, combinedCancellationToken));
 			}
 
-			// Wait for all downloads to complete
+			
 			DownloadResult[] downloadResults = await Task.WhenAll(tasks).ConfigureAwait(false);
 			results.AddRange(downloadResults);
 
@@ -150,7 +150,7 @@ namespace KOTORModSync.Core.Services.Download
 			IProgress<DownloadProgress> progressReporter,
 			CancellationToken combinedCancellationToken)
 		{
-			// Check for cancellation
+			
 			if ( combinedCancellationToken.IsCancellationRequested )
 			{
 				await Logger.LogVerboseAsync("[DownloadManager] Download cancelled by user");
@@ -171,13 +171,13 @@ namespace KOTORModSync.Core.Services.Download
 			await Logger.LogVerboseAsync($"[DownloadManager] Using handler: {handler.GetType().Name} for URL: {url}");
 			progressItem.AddLog($"Using handler: {handler.GetType().Name}");
 
-			// Check if this is a DeadlyStream download that needs concurrency limiting
+			
 			bool isDeadlyStream = handler.GetType().Name.Contains("DeadlyStream");
 			bool concurrencyAcquired = false;
 
 			if ( isDeadlyStream )
 			{
-				// Acquire concurrency limiter for DeadlyStream downloads only (max 5 concurrent)
+				
 				await _deadlyStreamConcurrencyLimiter.WaitAsync(combinedCancellationToken);
 				concurrencyAcquired = true;
 				await Logger.LogVerboseAsync($"[DownloadManager] DeadlyStream download - Concurrency: {5 - _deadlyStreamConcurrencyLimiter.CurrentCount}/{5} slots in use");
@@ -191,15 +191,15 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				await Logger.LogVerboseAsync($"[DownloadManager] Starting download: {url}");
 
-				// Update status to indicate download is starting
+				
 				progressItem.Status = DownloadStatus.InProgress;
 				progressItem.StatusMessage = "Starting download...";
 				progressItem.StartTime = DateTime.Now;
 
-				// Create a progress reporter that updates the DownloadProgress object and logs changes
+				
 				var internalProgressReporter = new Progress<DownloadProgress>(update =>
 				{
-					// Determine if we should log this progress update based on throttling rules
+					
 					bool shouldLog = false;
 					lock ( _logThrottleLock )
 					{
@@ -213,7 +213,7 @@ namespace KOTORModSync.Core.Services.Download
 						bool throttleExpired = !isFirstLog &&
 											   (now - _lastProgressLogTime[url]).TotalSeconds >= LogThrottleSeconds;
 
-						// Log if: first update, status changed, terminal status, has error, or throttle expired
+						
 						shouldLog = isFirstLog || statusChanged || isTerminalStatus || hasError || throttleExpired;
 
 						if ( shouldLog )
@@ -223,10 +223,10 @@ namespace KOTORModSync.Core.Services.Download
 						}
 					}
 
-					// Only log start, completion, and failures (not intermediate progress)
+					
 					if ( shouldLog )
 					{
-						// Only log significant status changes: Pending (start), Completed/Skipped (end), Failed (error)
+						
 						if ( update.Status == DownloadStatus.Pending ||
 							 update.Status == DownloadStatus.Completed ||
 							 update.Status == DownloadStatus.Skipped ||
@@ -238,11 +238,11 @@ namespace KOTORModSync.Core.Services.Download
 						}
 					}
 
-					// Log status changes
+					
 					if ( update.Status != DownloadStatus.Pending && !string.IsNullOrEmpty(update.StatusMessage) )
 						progressItem.AddLog($"[{update.Status}] {update.StatusMessage}");
 
-					// Log errors
+					
 					if ( !string.IsNullOrEmpty(update.ErrorMessage) )
 					{
 						progressItem.AddLog($"[ERROR] {update.ErrorMessage}");
@@ -254,7 +254,7 @@ namespace KOTORModSync.Core.Services.Download
 						}
 					}
 
-					// Log progress milestones
+					
 					if ( update.ProgressPercentage > 0 && update.ProgressPercentage % 25 == 0 &&
 						 Math.Abs(update.ProgressPercentage - progressItem.ProgressPercentage) > Tolerance )
 					{
@@ -263,7 +263,7 @@ namespace KOTORModSync.Core.Services.Download
 							: $"Progress: {update.ProgressPercentage:F1}%");
 					}
 
-					// Update the progress item
+					
 					progressItem.Status = update.Status;
 					progressItem.ProgressPercentage = update.ProgressPercentage;
 					progressItem.BytesDownloaded = update.BytesDownloaded;
@@ -278,7 +278,7 @@ namespace KOTORModSync.Core.Services.Download
 					if ( update.EndTime != null )
 						progressItem.EndTime = update.EndTime;
 
-					// Forward the update to the external progress reporter
+					
 					progressReporter?.Report(progressItem);
 				});
 
@@ -289,7 +289,7 @@ namespace KOTORModSync.Core.Services.Download
 				}
 				catch ( OperationCanceledException )
 				{
-					// Download was cancelled by user
+					
 					await Logger.LogAsync($"[DownloadManager] Download cancelled by user: {url}");
 					progressItem.AddLog("[CANCELLED] Download cancelled by user");
 
@@ -301,11 +301,11 @@ namespace KOTORModSync.Core.Services.Download
 				}
 				catch ( Exception ex )
 				{
-					// Catch any unexpected exceptions from the download handler
+					
 					await Logger.LogErrorAsync($"[DownloadManager] Unexpected exception during download of '{url}': {ex.Message}");
 					progressItem.AddLog($"[UNEXPECTED EXCEPTION] {ex.GetType().Name}: {ex.Message}");
 
-					// Create a failed result instead of letting the exception bubble up
+					
 					result = DownloadResult.Failed($"Unexpected error: {ex.Message}");
 					progressItem.Status = DownloadStatus.Failed;
 					progressItem.StatusMessage = "Download failed due to unexpected error";
@@ -321,16 +321,16 @@ namespace KOTORModSync.Core.Services.Download
 					if ( result.WasSkipped )
 					{
 						progressItem.AddLog("File was skipped (already exists)");
-						// Update the progress item to reflect that it was skipped - EXPLICITLY set everything
+						
 						progressItem.Status = DownloadStatus.Skipped;
 						progressItem.StatusMessage = "File already exists";
 						progressItem.ProgressPercentage = 100;
-						progressItem.FilePath = result.FilePath; // Ensure file path is set
+						progressItem.FilePath = result.FilePath; 
 						progressItem.EndTime = DateTime.Now;
 						if ( progressItem.StartTime == default )
 							progressItem.StartTime = DateTime.Now;
 
-						// Set file size if we can get it
+						
 						if ( !string.IsNullOrEmpty(result.FilePath) && System.IO.File.Exists(result.FilePath) )
 						{
 							try
@@ -352,7 +352,7 @@ namespace KOTORModSync.Core.Services.Download
 					await Logger.LogErrorAsync($"[DownloadManager] Failed to download URL '{url}': {result.Message}");
 					progressItem.AddLog($"Download failed: {result.Message}");
 
-					// CRITICAL: Update status to Failed so UI shows correct state
+					
 					progressItem.Status = DownloadStatus.Failed;
 					progressItem.StatusMessage = "Download failed";
 					progressItem.ErrorMessage = result.Message;
@@ -363,14 +363,14 @@ namespace KOTORModSync.Core.Services.Download
 			}
 			finally
 			{
-				// Clean up throttling state for this download to prevent memory buildup
+				
 				lock ( _logThrottleLock )
 				{
 					_lastProgressLogTime.Remove(url);
 					_lastLoggedStatus.Remove(url);
 				}
 
-				// Only release the concurrency limiter if we acquired it (DeadlyStream downloads only)
+				
 				if ( concurrencyAcquired )
 				{
 					_deadlyStreamConcurrencyLimiter.Release();

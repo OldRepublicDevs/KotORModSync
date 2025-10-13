@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Linq;
@@ -12,9 +12,9 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for navigating between setup steps in the Getting Started tab
-	/// </summary>
+	
+	
+	
 	public class StepNavigationService
 	{
 		private readonly MainConfig _mainConfig;
@@ -26,29 +26,29 @@ namespace KOTORModSync.Services
 			_validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
 		}
 
-		/// <summary>
-		/// Determines the current incomplete step based on completion status
-		/// </summary>
+		
+		
+		
 		public int GetCurrentIncompleteStep()
 		{
 			try
 			{
-				// Check Step 1: Directories
+				
 				bool step1Complete = ValidationService.IsStep1Complete();
 				if ( !step1Complete )
 					return 1;
 
-				// Check Step 2: Components loaded
+				
 				bool step2Complete = _mainConfig.allComponents?.Count > 0;
 				if ( !step2Complete )
 					return 2;
 
-				// Check Step 3: At least one component selected
+				
 				bool step3Complete = _mainConfig.allComponents?.Any(c => c.IsSelected) == true;
 				if ( !step3Complete )
 					return 3;
 
-				// Check Step 4: Downloads
+				
 				bool step4Complete = false;
 				if ( step3Complete && _mainConfig.allComponents != null )
 				{
@@ -59,7 +59,7 @@ namespace KOTORModSync.Services
 				if ( !step4Complete )
 					return 4;
 
-				// All steps complete, return 5 (validation/install)
+				
 				return 5;
 			}
 			catch ( Exception ex )
@@ -69,9 +69,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Jumps to the current incomplete step in the Getting Started tab
-		/// </summary>
+		
+		
+		
 		public async Task JumpToCurrentStepAsync(
 			ScrollViewer scrollViewer,
 			Func<string, Border> findBorder)
@@ -86,22 +86,22 @@ namespace KOTORModSync.Services
 
 				if ( targetStepBorder != null )
 				{
-					// Calculate the position to scroll to
+					
 					Rect targetBounds = targetStepBorder.Bounds;
 					double targetOffset = targetBounds.Top - scrollViewer.Viewport.Height / 2 + targetBounds.Height / 2;
 
-					// Ensure we don't scroll past the content bounds
+					
 					targetOffset = Math.Max(0, Math.Min(targetOffset, scrollViewer.Extent.Height - scrollViewer.Viewport.Height));
 
-					// Scroll to the target position
+					
 					scrollViewer.Offset = new Vector(0, targetOffset);
 
-					// Briefly highlight the target step
+					
 					await HighlightStepAsync(targetStepBorder);
 				}
 				else
 				{
-					// All steps complete - scroll to the progress section
+					
 					Border progressSection = FindProgressSection(scrollViewer.Content as Panel);
 					if ( progressSection == null )
 						return;
@@ -118,25 +118,25 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Highlights a step border briefly
-		/// </summary>
+		
+		
+		
 		private static async Task HighlightStepAsync(Border stepBorder)
 		{
 			try
 			{
-				// Store original border properties
+				
 				IBrush originalBorderBrush = stepBorder.BorderBrush;
 				Thickness originalBorderThickness = stepBorder.BorderThickness;
 
-				// Create highlight effect
-				stepBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)); // Gold
+				
+				stepBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)); 
 				stepBorder.BorderThickness = new Thickness(3);
 
-				// Wait for the highlight effect
+				
 				await Task.Delay(1000);
 
-				// Restore original appearance
+				
 				stepBorder.BorderBrush = originalBorderBrush;
 				stepBorder.BorderThickness = originalBorderThickness;
 			}
@@ -146,9 +146,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Finds the progress section in the panel
-		/// </summary>
+		
+		
+		
 		private static Border FindProgressSection(Panel panel)
 		{
 			if ( panel == null ) return null;

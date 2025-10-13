@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using KOTORModSync.Core;
 
@@ -12,7 +12,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ConfirmComponentsInstallOrder_InstallBefore_ReturnsTrue()
 		{
-			// Arrange
+			
 			var thisGuid = Guid.NewGuid();
 			var componentsListExpectedOrder = new List<ModComponent>
 			{
@@ -35,11 +35,11 @@ namespace KOTORModSync.Tests
 				},
 			};
 
-			// Act
+			
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
 				ModComponent.ConfirmComponentsInstallOrder(componentsListExpectedOrder);
 
-			// Assert
+			
 			foreach ( ModComponent component in reorderedComponents )
 			{
 				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
@@ -59,7 +59,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ConfirmComponentsInstallOrder_InstallBefore_ReturnsFalse()
 		{
-			// Arrange
+			
 			var thisGuid = Guid.NewGuid();
 			var unorderedList = new List<ModComponent>
 			{
@@ -82,15 +82,15 @@ namespace KOTORModSync.Tests
 				},
 			};
 
-			// Act
+			
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
 				ModComponent.ConfirmComponentsInstallOrder(unorderedList);
 
-			// Create a copy of unorderedList with the expected order
+			
 			var componentsListExpectedOrder = new List<ModComponent>(unorderedList);
 			Swap(componentsListExpectedOrder, index1: 0, index2: 1);
 
-			// Assert
+			
 			foreach ( ModComponent component in reorderedComponents )
 			{
 				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
@@ -110,7 +110,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ConfirmComponentsInstallOrder_InstallAfter_ReturnsTrue()
 		{
-			// Arrange
+			
 			var thisGuid = Guid.NewGuid();
 			var componentsListExpectedOrder = new List<ModComponent>
 			{
@@ -133,11 +133,11 @@ namespace KOTORModSync.Tests
 				},
 			};
 
-			// Act
+			
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
 				ModComponent.ConfirmComponentsInstallOrder(componentsListExpectedOrder);
 
-			// Assert
+			
 			foreach ( ModComponent component in reorderedComponents )
 			{
 				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
@@ -157,7 +157,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ConfirmComponentsInstallOrder_InstallAfter_ReturnsFalse()
 		{
-			// Arrange
+			
 			var thisGuid = Guid.NewGuid();
 			var unorderedList = new List<ModComponent>
 			{
@@ -180,15 +180,15 @@ namespace KOTORModSync.Tests
 				},
 			};
 
-			// Act
+			
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
 				ModComponent.ConfirmComponentsInstallOrder(unorderedList);
 
-			// Create a copy of unorderedList with the expected order
+			
 			var componentsListExpectedOrder = new List<ModComponent>(unorderedList);
 			Swap(componentsListExpectedOrder, index1: 0, index2: 1);
 
-			// Assert
+			
 			foreach ( ModComponent component in reorderedComponents )
 			{
 				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
@@ -208,7 +208,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ConfirmComponentsInstallOrder_ComplexScenario_CorrectOrder()
 		{
-			// Arrange
+			
 			var componentA = new ModComponent
 			{
 				Name = "A",
@@ -314,11 +314,11 @@ namespace KOTORModSync.Tests
 				componentG,
 				componentJ };
 
-			// Act
+			
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
 				ModComponent.ConfirmComponentsInstallOrder(correctOrderedComponentsList);
 
-			// Assert
+			
 			foreach ( ModComponent component in reorderedComponents )
 			{
 				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
@@ -338,7 +338,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ConfirmComponentsInstallOrder_ComplexScenario_Unordered()
 		{
-			// Arrange
+			
 			var componentA = new ModComponent
 			{
 				Name = "A",
@@ -460,11 +460,11 @@ namespace KOTORModSync.Tests
 				componentG,
 				componentJ };
 
-			// Act
+			
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
 				ModComponent.ConfirmComponentsInstallOrder(unorderedComponentsList);
 
-			// Assert
+			
 			foreach ( ModComponent component in reorderedComponents )
 			{
 				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
@@ -484,7 +484,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ConfirmComponentsInstallOrder_ImpossibleScenario_ReturnsFalse()
 		{
-			// Arrange
+			
 			var componentA = new ModComponent
 			{
 				Name = "A",
@@ -522,7 +522,7 @@ namespace KOTORModSync.Tests
 				componentA, componentB, componentC,
 			};
 
-			// Act & Assert
+			
 			_ = Assert.Throws<KeyNotFoundException>(
 				() => { _ = ModComponent.ConfirmComponentsInstallOrder(componentsList); },
 				message: "ConfirmComponentsInstallOrder should have raised a KeyNotFoundException"

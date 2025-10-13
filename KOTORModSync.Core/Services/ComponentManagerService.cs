@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -11,23 +11,23 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Service for managing components and their operations
-	/// </summary>
+	
+	
+	
 	public class ComponentManagerService
 	{
-		/// <summary>
-		/// Finds and resolves duplicate components in the list
-		/// </summary>
-		/// <param name="components">List of components to check</param>
-		/// <param name="promptUser">Whether to prompt user for confirmation</param>
-		/// <returns>True if all duplicates were resolved, false otherwise</returns>
+		
+		
+		
+		
+		
+		
 		public static async Task<bool> FindDuplicateComponentsAsync([NotNull][ItemNotNull] List<ModComponent> components, bool promptUser = true)
 		{
 			if ( components == null )
 				throw new ArgumentNullException(nameof(components));
 
-			// Check for duplicate GUID
+			
 			bool duplicatesFixed = true;
 			bool continuePrompting = promptUser;
 
@@ -57,15 +57,15 @@ namespace KOTORModSync.Core.Services
 				bool? confirm = true;
 				if ( continuePrompting )
 				{
-					// This would need to be handled by the UI layer
-					// For now, we'll auto-fix if AttemptFixes is enabled
+					
+					
 					if ( MainConfig.AttemptFixes )
 					{
 						confirm = true;
 					}
 					else
 					{
-						// Return false to indicate user interaction is needed
+						
 						return false;
 					}
 				}
@@ -89,11 +89,11 @@ namespace KOTORModSync.Core.Services
 			return duplicatesFixed;
 		}
 
-		/// <summary>
-		/// Validates all selected components for installation
-		/// </summary>
-		/// <param name="components">List of components to validate</param>
-		/// <returns>True if all components are valid, false otherwise</returns>
+		
+		
+		
+		
+		
 		public static async Task<bool> ValidateComponentsForInstallationAsync([NotNull][ItemNotNull] List<ModComponent> components)
 		{
 			if ( components == null )
@@ -145,22 +145,22 @@ namespace KOTORModSync.Core.Services
 			return individuallyValidated;
 		}
 
-		/// <summary>
-		/// Creates a new component with default values
-		/// </summary>
-		/// <returns>New component instance</returns>
+		
+		
+		
+		
 		public static ModComponent CreateNewComponent() => new ModComponent
 		{
 			Guid = Guid.NewGuid(),
 			Name = "new mod_" + Path.GetFileNameWithoutExtension(Path.GetRandomFileName()),
 		};
 
-		/// <summary>
-		/// Removes a component from the list, checking for dependencies
-		/// </summary>
-		/// <param name="component">ModComponent to remove</param>
-		/// <param name="components">List of all components</param>
-		/// <returns>True if component can be removed, false if dependencies exist</returns>
+		
+		
+		
+		
+		
+		
 		public static bool CanRemoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components)
 		{
 			if ( component == null )
@@ -171,12 +171,12 @@ namespace KOTORModSync.Core.Services
 			return !components.Any(c => c.Dependencies.Any(g => g == component.Guid));
 		}
 
-		/// <summary>
-		/// Moves a component to a new position in the list
-		/// </summary>
-		/// <param name="component">ModComponent to move</param>
-		/// <param name="components">List of components</param>
-		/// <param name="relativeIndex">Relative index to move (-1 for up, 1 for down)</param>
+		
+		
+		
+		
+		
+		
 		public static void MoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
 			if ( component == null )

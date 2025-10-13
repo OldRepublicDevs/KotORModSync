@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -26,13 +26,13 @@ namespace KOTORModSync.Dialogs
 		private string _previewSummary;
 		private string _previewMarkdown;
 		private ObservableCollection<Inline> _highlightedPreview;
-		private int _selectedTabIndex; // Default to Simple tab (index 0)
+		private int _selectedTabIndex; 
 
 		public MergeHeuristicsOptions Heuristics { get; private set; }
 
-		/// <summary>
-		/// The configured profile after user edits. This is what should be used for parsing.
-		/// </summary>
+		
+		
+		
 		public MarkdownImportProfile ConfiguredProfile => Profile;
 
 		public RegexImportDialogViewModel([NotNull] string markdown, [NotNull] MarkdownImportProfile profile)
@@ -87,7 +87,7 @@ namespace KOTORModSync.Dialogs
 			{
 				_selectedTabIndex = value;
 				OnPropertyChanged();
-				// Update the profile mode based on selected tab
+				
 				Profile.Mode = value == 0 ? RegexMode.Individual : RegexMode.Raw;
 			}
 		}
@@ -105,7 +105,7 @@ namespace KOTORModSync.Dialogs
 			int links = result.Components.Sum(c => c.ModLink.Count);
 			PreviewSummary = $"Components: {comp} | Links: {links}";
 
-			// Generate highlighted preview and update counts
+			
 			GenerateHighlightedPreview();
 			UpdateCounts();
 		}
@@ -127,7 +127,7 @@ namespace KOTORModSync.Dialogs
 					return;
 				}
 
-				// Define colors for different groups (theme resources)
+				
 				IBrush GetResource(string key, IBrush fallback) =>
 					Application.Current?.TryGetResource(key, Application.Current?.ActualThemeVariant, out object value) == true && value is IBrush b ? b : fallback;
 				var groupColors = new Dictionary<string, IBrush>
@@ -162,7 +162,7 @@ namespace KOTORModSync.Dialogs
 							inlines.Add(new Run(beforeText) { Foreground = Brushes.White });
 						}
 
-						// highlight named groups directly from RAW pattern
+						
 						var processedRanges = new List<(int start, int end)>();
 						foreach ( string groupName in groupColors.Keys )
 						{
@@ -193,9 +193,9 @@ namespace KOTORModSync.Dialogs
 						inlines.Add(new Run(remainingText) { Foreground = Brushes.White });
 					}
 				}
-				else // Individual mode highlighting
+				else 
 				{
-					// First find component sections
+					
 					var sectionRegex = new Regex(Profile.ComponentSectionPattern, Profile.ComponentSectionOptions);
 					MatchCollection sections = sectionRegex.Matches(_markdown);
 					Logger.LogVerbose($"Found {sections.Count} section matches (INDIVIDUAL mode)");
@@ -206,7 +206,7 @@ namespace KOTORModSync.Dialogs
 						if ( section.Index > cursor )
 							inlines.Add(new Run(_markdown.Substring(cursor, section.Index - cursor)) { Foreground = Brushes.White });
 
-						// choose text to process (prefer named 'content' group if present)
+						
 						string sectionText;
 						int sectionTextStartInDoc;
 						Group contentGroup = section.Groups["content"];
@@ -223,7 +223,7 @@ namespace KOTORModSync.Dialogs
 
 						Logger.LogVerbose($"Processing section at {sectionTextStartInDoc} length {sectionText.Length}");
 
-						// Build a list of colored ranges inside the section using individual field patterns
+						
 						var ranges = new List<(int start, int end, IBrush brush)>();
 
 						void AddGroupRange(string pattern, string groupName, IBrush brush)
@@ -253,20 +253,20 @@ namespace KOTORModSync.Dialogs
 						AddGroupRange(Profile.InstallationMethodPattern, "installation_method", groupColors["installation_method"]);
 						AddGroupRange(Profile.InstallationInstructionsPattern, "installation_instructions", groupColors["installation_instructions"]);
 
-						// Sort and merge overlapping ranges, preferring earlier added (field order) ranges
+						
 						ranges = ranges.OrderBy(r => r.start).ThenByDescending(r => r.end - r.start).ToList();
 
 						int pos = sectionTextStartInDoc;
 						foreach ( (int start, int end, IBrush brush) in ranges )
 						{
-							if ( start < pos ) continue; // overlap already handled
+							if ( start < pos ) continue; 
 							if ( start > pos )
 								inlines.Add(new Run(_markdown.Substring(pos, start - pos)) { Foreground = Brushes.White });
 							inlines.Add(new Run(_markdown.Substring(start, end - start)) { Foreground = brush, FontWeight = FontWeight.Bold });
 							pos = end;
 						}
 
-						// tail of section
+						
 						int sectionEnd = section.Index + section.Length;
 						if ( pos < sectionEnd )
 							inlines.Add(new Run(_markdown.Substring(pos, sectionEnd - pos)) { Foreground = Brushes.White });
@@ -274,14 +274,14 @@ namespace KOTORModSync.Dialogs
 						cursor = section.Index + section.Length;
 					}
 
-					// after last section
+					
 					if ( cursor < _markdown.Length )
 						inlines.Add(new Run(_markdown.Substring(cursor)) { Foreground = Brushes.White });
 				}
 			}
 			catch ( Exception ex )
 			{
-				// If regex fails, show plain text
+				
 				inlines.Clear();
 				inlines.Add(new Run(_markdown) { Foreground = Brushes.White });
 				inlines.Add(new Run($"\n\n[Regex Error: {ex.Message}]") { Foreground = Brushes.Red });
@@ -292,7 +292,7 @@ namespace KOTORModSync.Dialogs
 
 		private void UpdateCounts()
 		{
-			// Update the preview summary with match counts
+			
 			var parser = new MarkdownParser(Profile,
 				logInfo => Logger.Log(logInfo),
 				Logger.LogVerbose);

@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -33,7 +33,7 @@ namespace KOTORModSync.Dialogs
 			this.AttachDevTools();
 #endif
 
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -61,11 +61,11 @@ namespace KOTORModSync.Dialogs
 
 			DataContext = ViewModel;
 
-			// Wire up events
+			
 			ViewModel.JumpToRawViewRequested += OnJumpToRawViewRequested;
 			ViewModel.SyncSelectionRequested += OnSyncSelectionRequested;
 
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -123,7 +123,7 @@ namespace KOTORModSync.Dialogs
 		{
 			if ( !(sender is Border border) || !(border.DataContext is ComponentConflictItem item) )
 				return;
-			// Single click: highlight and show details
+			
 			if ( item.IsFromExisting )
 				ViewModel.SelectedExistingItem = item;
 			else
@@ -134,7 +134,7 @@ namespace KOTORModSync.Dialogs
 
 		private void OnItemContextRequested(object sender, RoutedEventArgs e)
 		{
-			// Select the item when context menu is requested
+			
 			if ( !(sender is Border border) || !(border.DataContext is ComponentConflictItem item) )
 				return;
 			if ( item.IsFromExisting )
@@ -194,7 +194,7 @@ namespace KOTORModSync.Dialogs
 				if ( !(sender is TabControl tabControl) )
 					return;
 
-				// If Raw TOML tab is selected (index 1), generate the TOML
+				
 				if ( tabControl.SelectedIndex == 1 )
 					ViewModel?.UpdateExistingTomlView();
 			}
@@ -211,7 +211,7 @@ namespace KOTORModSync.Dialogs
 				if ( !(sender is TabControl tabControl) )
 					return;
 
-				// If Raw TOML tab is selected (index 1), generate the TOML
+				
 				if ( tabControl.SelectedIndex == 1 )
 					ViewModel?.UpdateIncomingTomlView();
 			}
@@ -228,7 +228,7 @@ namespace KOTORModSync.Dialogs
 				if ( !(sender is TabControl tabControl) )
 					return;
 
-				// If Merged TOML tab is selected (index 1), generate the TOML
+				
 				if ( tabControl.SelectedIndex == 1 )
 					ViewModel?.UpdateMergedTomlView();
 			}
@@ -244,44 +244,44 @@ namespace KOTORModSync.Dialogs
 			{
 				if ( e.Item == null ) return;
 
-				// Switch to raw TOML tab and scroll to the component
+				
 				if ( e.Item.IsFromExisting )
 				{
-					// Find the existing tab control and switch to Raw TOML tab (index 1)
+					
 					TabControl existingTabControl = this.FindControl<TabControl>("ExistingTabControl");
 					if ( existingTabControl == null )
 						return;
 					existingTabControl.SelectedIndex = 1;
-					// Generate TOML if not already generated
+					
 					ViewModel?.UpdateExistingTomlView();
 
-					// Scroll to the component's line
+					
 					if ( ViewModel == null )
 						return;
 					int lineNumber = ViewModel.GetComponentLineNumber(e.Item);
 					if ( lineNumber > 0 )
 					{
-						// Use dispatcher to ensure the view is rendered before scrolling
+						
 						Avalonia.Threading.Dispatcher.UIThread.Post(() => ComponentMergeConflictDialog.ScrollToLineInTomlView(existingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
 					}
 				}
 				else
 				{
-					// Find the incoming tab control and switch to Raw TOML tab (index 1)
+					
 					TabControl incomingTabControl = this.FindControl<TabControl>("IncomingTabControl");
 					if ( incomingTabControl == null )
 						return;
 					incomingTabControl.SelectedIndex = 1;
-					// Generate TOML if not already generated
+					
 					ViewModel?.UpdateIncomingTomlView();
 
-					// Scroll to the component's line
+					
 					if ( ViewModel == null )
 						return;
 					int lineNumber = ViewModel.GetComponentLineNumber(e.Item);
 					if ( lineNumber > 0 )
 					{
-						// Use dispatcher to ensure the view is rendered before scrolling
+						
 						Avalonia.Threading.Dispatcher.UIThread.Post(() => ComponentMergeConflictDialog.ScrollToLineInTomlView(incomingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
 					}
 				}
@@ -296,34 +296,34 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				// Find the ScrollViewer in the Raw TOML tab (index 1)
+				
 				if ( tabControl.SelectedIndex != 1 ) return;
 
 				ScrollViewer scrollViewer = ComponentMergeConflictDialog.FindScrollViewerInTab(tabControl);
 				if ( scrollViewer == null ) return;
 
-				// Find the ListBox containing the TOML lines
+				
 				ListBox listBox = FindDescendant<ListBox>(scrollViewer);
 				if ( listBox == null || listBox.ItemCount == 0 ) return;
 
-				// Ensure we're scrolled within bounds
+				
 				Avalonia.Threading.Dispatcher.UIThread.Post(() =>
 				{
 					try
 					{
-						// Clamp line number to valid range
+						
 						int targetIndex = Math.Max(0, Math.Min(lineNumber - 1, listBox.ItemCount - 1));
 
-						// Measure actual item height from first item
+						
 						if ( listBox.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
 						{
 							double itemHeight = firstItem.Bounds.Height;
-							double targetOffset = Math.Max(0, (targetIndex - 2) * itemHeight); // Subtract 2 for some context
+							double targetOffset = Math.Max(0, (targetIndex - 2) * itemHeight); 
 							scrollViewer.Offset = new Vector(0, targetOffset);
 						}
 						else
 						{
-							// Fallback: use BringIntoView if we can't measure
+							
 							if ( listBox.ContainerFromIndex(targetIndex) is Control targetItem )
 								targetItem.BringIntoView();
 						}
@@ -380,15 +380,15 @@ namespace KOTORModSync.Dialogs
 			{
 				if ( e.MatchedItem == null ) return;
 
-				// Scroll to the matched item in the appropriate list
-				// Note: The ViewModel already handles highlighting, we just need to scroll
+				
+				
 				Avalonia.Threading.Dispatcher.UIThread.Post(() =>
 				{
-					// Scroll in the matched list (existing or incoming)
+					
 					string scrollViewerName = e.MatchedItem.IsFromExisting ? "ExistingListScrollViewer" : "IncomingListScrollViewer";
 					ScrollToItemInList(scrollViewerName, e.MatchedItem);
 
-					// Also scroll to the component in the preview list if it exists
+					
 					ScrollToMatchedItemInPreview(e.SelectedItem);
 				}, Avalonia.Threading.DispatcherPriority.Loaded);
 			}
@@ -404,18 +404,18 @@ namespace KOTORModSync.Dialogs
 			{
 				if ( selectedItem == null || ViewModel == null ) return;
 
-				// Find the preview item that corresponds to this component
+				
 				PreviewItem previewItem = ViewModel.PreviewComponents.FirstOrDefault(p =>
 					p.ModComponent == selectedItem.ModComponent ||
 					p.Name == selectedItem.Name);
 
 				if ( previewItem == null ) return;
 
-				// Find the preview scroll viewer
+				
 				ScrollViewer previewScrollViewer = this.FindControl<ScrollViewer>("PreviewScrollViewer");
 				if ( previewScrollViewer == null ) return;
 
-				// Find the index of the preview item
+				
 				int index = ViewModel.PreviewComponents.IndexOf(previewItem);
 				if ( index < 0 ) return;
 
@@ -423,20 +423,20 @@ namespace KOTORModSync.Dialogs
 				{
 					try
 					{
-						// Find the ItemsControl in the preview area
+						
 						ItemsControl itemsControl = FindDescendant<ItemsControl>(previewScrollViewer);
 						if ( itemsControl == null || itemsControl.ItemCount == 0 ) return;
 
-						// Measure actual item height from first rendered item
+						
 						if ( itemsControl.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
 						{
 							double itemHeight = firstItem.Bounds.Height;
-							double targetOffset = Math.Max(0, (index - 1) * itemHeight); // Subtract 1 for some context
+							double targetOffset = Math.Max(0, (index - 1) * itemHeight); 
 							previewScrollViewer.Offset = new Vector(0, targetOffset);
 						}
 						else if ( itemsControl.ContainerFromIndex(index) is Control targetItem )
 						{
-							// Fallback: use BringIntoView
+							
 							targetItem.BringIntoView();
 						}
 					}
@@ -459,14 +459,14 @@ namespace KOTORModSync.Dialogs
 				ScrollViewer scrollViewer = this.FindControl<ScrollViewer>(scrollViewerName);
 				if ( scrollViewer == null ) return;
 
-				// Find the ItemsControl that contains our items
+				
 				ItemsControl itemsControl = FindDescendant<ItemsControl>(scrollViewer);
 
-				// Get the visual collection
+				
 				if ( !(itemsControl?.Items is System.Collections.IEnumerable source) )
 					return;
 
-				// Find the index of the item
+				
 				int index = 0;
 				foreach ( object listItem in source )
 				{
@@ -476,18 +476,18 @@ namespace KOTORModSync.Dialogs
 						{
 							try
 							{
-								// Measure actual item height from first rendered item
+								
 								if ( itemsControl.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
 								{
 									double itemHeight = firstItem.Bounds.Height;
 
-									// Account for margins, padding, borders by measuring actual total height
+									
 									double targetOffset = Math.Max(0, index * itemHeight);
 									scrollViewer.Offset = new Vector(0, targetOffset);
 								}
 								else if ( itemsControl.ContainerFromIndex(index) is Control targetItem )
 								{
-									// Fallback: use BringIntoView
+									
 									targetItem.BringIntoView();
 								}
 							}
@@ -524,7 +524,7 @@ namespace KOTORModSync.Dialogs
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			// Don't start window drag if clicking on interactive controls
+			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -537,15 +537,15 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			// Get the element under the pointer
+			
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			// Walk up the visual tree to check if we're clicking on an interactive element
+			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				// Check if we're clicking on any interactive control
+				
 				if ( current is Button ||
 					 current is TextBox ||
 					 current is ComboBox ||
@@ -562,7 +562,7 @@ namespace KOTORModSync.Dialogs
 					return true;
 				}
 
-				// Check if the element has context menu or flyout open
+				
 				if ( current is Control control )
 				{
 					if ( control.ContextMenu?.IsOpen == true )

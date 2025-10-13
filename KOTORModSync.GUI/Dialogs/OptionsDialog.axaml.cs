@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -28,7 +28,7 @@ namespace KOTORModSync.Dialogs
 		{
 			InitializeComponent();
 			OkButton.Click += OKButton_Click;
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -76,29 +76,29 @@ namespace KOTORModSync.Dialogs
 				OptionStackPanel.Children.Add(radioButton);
 			}
 
-			// Measure and arrange the optionStackPanel to update DesiredSize
+			
 			OptionStackPanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
 			OptionStackPanel.Arrange(new Rect(OptionStackPanel.DesiredSize));
 
-			// Get the actual size of the optionStackPanel including children and transformations
+			
 			Size actualSize = OptionStackPanel.Bounds.Size;
 
-			// Define padding values
-			const double horizontalPadding = 100; // Padding on the left and right
-			const double verticalPadding = 150;   // Padding on the top and bottom
+			
+			const double horizontalPadding = 100; 
+			const double verticalPadding = 150;   
 
-			// Calculate the desired width and height for the content with padding
+			
 			double contentWidth = actualSize.Width + 2 * horizontalPadding;
 			double contentHeight = actualSize.Height + 2 * verticalPadding;
 
-			// Set the width and height of the window
+			
 			Width = contentWidth;
 			Height = contentHeight;
 
 			InvalidateArrange();
 			InvalidateMeasure();
 
-			// Center the window on the screen
+			
 			Screen screen = Screens.ScreenFromVisual(this);
 			if ( screen is null )
 				throw new NullReferenceException(nameof(screen));
@@ -164,7 +164,7 @@ namespace KOTORModSync.Dialogs
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			// Don't start window drag if clicking on interactive controls
+			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -177,17 +177,17 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			// Get the element under the pointer
+			
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			// Walk up the visual tree to check if we're clicking on an interactive element
+			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch (current)
 				{
-					// Check if we're clicking on any interactive control
+					
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -200,7 +200,7 @@ namespace KOTORModSync.Dialogs
 					case TabItem _:
 					case ProgressBar _:
 					case ScrollViewer _:
-					// Check if the element has context menu or flyout open
+					
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

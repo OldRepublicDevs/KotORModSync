@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -10,7 +10,7 @@ namespace KOTORModSync.Models
 	public class TierFilterItem : INotifyPropertyChanged
 	{
 		private bool _isSelected;
-		private bool _isIncluded; // Included because of higher tier selection
+		private bool _isIncluded; 
 		private string _name;
 		private int _count;
 		private int _priority;
@@ -83,7 +83,7 @@ namespace KOTORModSync.Models
 			}
 		}
 
-		// Either directly selected or included by hierarchy
+		
 		public bool EffectiveSelection => IsSelected || IsIncluded;
 
 		public string DisplayText => $"{Name} ({Count})";

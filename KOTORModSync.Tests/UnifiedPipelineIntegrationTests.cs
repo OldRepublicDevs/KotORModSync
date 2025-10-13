@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -17,10 +17,10 @@ using SharpCompress.Common;
 
 namespace KOTORModSync.Tests
 {
-	/// <summary>
-	/// Integration tests for the unified ModLinkProcessingService pipeline.
-	/// Tests the full flow: Download -> Extract instruction -> AutoInstructionGenerator
-	/// </summary>
+	
+	
+	
+	
 	[TestFixture]
 	public class UnifiedPipelineIntegrationTests
 	{
@@ -35,7 +35,7 @@ namespace KOTORModSync.Tests
 			Directory.CreateDirectory(_testDirectory);
 			Directory.CreateDirectory(_downloadDirectory);
 
-			// Initialize MainConfig for the tests
+			
 			var mainConfig = new MainConfig();
 			mainConfig.sourcePath = new DirectoryInfo(_downloadDirectory);
 			mainConfig.destinationPath = new DirectoryInfo(Path.Combine(_testDirectory, "KOTOR"));
@@ -52,14 +52,14 @@ namespace KOTORModSync.Tests
 			}
 			catch
 			{
-				// Ignore cleanup errors
+				
 			}
 		}
 
 		[Test]
 		public void UnifiedPipeline_LocalArchive_GeneratesInstructions()
 		{
-			// Arrange - Create a local archive file
+			
 			string archivePath = CreateTestArchive("test_mod.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "Override/appearance.2da", "2DA");
@@ -73,7 +73,7 @@ namespace KOTORModSync.Tests
 				ModLink = new List<string> { "file:///" + archivePath.Replace("\\", "/") }
 			};
 
-			// Set up the unified pipeline
+			
 			var downloadCacheService = new DownloadCacheService();
 			var httpClient = new System.Net.Http.HttpClient();
 			var handlers = new List<IDownloadHandler>
@@ -84,14 +84,14 @@ namespace KOTORModSync.Tests
 			downloadCacheService.SetDownloadManager(downloadManager);
 			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
-			// Act
+			
 			int result = modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
 				CancellationToken.None);
 
-			// Assert
+			
 			Assert.That(result, Is.GreaterThan(0), "Should process at least one component");
 			Assert.That(component.Instructions, Is.Not.Empty, "Should have instructions");
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract), "First instruction should be Extract");
@@ -100,7 +100,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void UnifiedPipeline_MultipleModLinks_CreatesInstructionsForEach()
 		{
-			// Arrange - Create two archives
+			
 			string archive1 = CreateTestArchive("mod1.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "file1.2da", "2DA");
@@ -129,17 +129,17 @@ namespace KOTORModSync.Tests
 			downloadCacheService.SetDownloadManager(downloadManager);
 			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
-			// Act
+			
 			modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
 				CancellationToken.None);
 
-			// Assert
+			
 			Assert.That(component.Instructions.Count, Is.EqualTo(4), "Should have 2 Extract + 2 Move instructions");
 
-			// Check for both archives
+			
 			var mod1Instructions = component.Instructions.Where(i =>
 				i.Source != null && i.Source.Any(s => s.Contains("mod1"))).ToList();
 			var mod2Instructions = component.Instructions.Where(i =>
@@ -152,7 +152,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void UnifiedPipeline_ComponentWithExistingInstructions_AddsNewOnes()
 		{
-			// Arrange - Component already has an instruction
+			
 			string archivePath = CreateTestArchive("new_mod.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "file.2da", "2DA");
@@ -165,7 +165,7 @@ namespace KOTORModSync.Tests
 				ModLink = new List<string> { "file:///" + archivePath.Replace("\\", "/") }
 			};
 
-			// Add existing instruction manually
+			
 			var existingInstruction = new Instruction
 			{
 				Guid = Guid.NewGuid(),
@@ -183,14 +183,14 @@ namespace KOTORModSync.Tests
 			downloadCacheService.SetDownloadManager(downloadManager);
 			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
-			// Act
+			
 			modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
 				CancellationToken.None);
 
-			// Assert
+			
 			Assert.That(component.Instructions.Count, Is.EqualTo(3), "Should have existing + Extract + Move");
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Copy), "Existing instruction should remain");
 		}
@@ -198,7 +198,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void UnifiedPipeline_ProcessSameArchiveTwice_DoesNotDuplicate()
 		{
-			// Arrange
+			
 			string archivePath = CreateTestArchive("same_mod.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "file.2da", "2DA");
@@ -218,7 +218,7 @@ namespace KOTORModSync.Tests
 			downloadCacheService.SetDownloadManager(downloadManager);
 			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
-			// Act - Process twice
+			
 			modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
@@ -235,7 +235,7 @@ namespace KOTORModSync.Tests
 
 			int instructionsAfterSecond = component.Instructions.Count;
 
-			// Assert
+			
 			Assert.That(instructionsAfterFirst, Is.EqualTo(instructionsAfterSecond),
 				"Processing same archive twice should not duplicate instructions");
 		}
@@ -243,7 +243,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void UnifiedPipeline_TSLPatcherArchive_CreatesPatcherInstructionBeforeMove()
 		{
-			// Arrange - Create hybrid archive
+			
 			string archivePath = CreateTestArchive("hybrid.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "tslpatchdata/changes.ini", "[Settings]\nLookupGameFolder=1");
@@ -265,14 +265,14 @@ namespace KOTORModSync.Tests
 			downloadCacheService.SetDownloadManager(downloadManager);
 			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
-			// Act
+			
 			modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
 				CancellationToken.None);
 
-			// Assert
+			
 			Assert.That(component.Instructions.Count, Is.GreaterThanOrEqualTo(3), "Should have Extract + Patcher + Move");
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
 			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher),

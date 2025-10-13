@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.IO;
@@ -32,7 +32,7 @@ namespace KOTORModSync.Core
 
 				Log($"Logging initialized at {DateTime.Now}");
 
-				// Set up unhandled exception handling
+				
 				AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
 				TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
@@ -58,13 +58,13 @@ namespace KOTORModSync.Core
 				string logMessage = $"[{DateTime.Now}] {internalMessage}";
 
 				string consoleMessage = $"[{DateTime.Now:HH:mm:ss}] {internalMessage}";
-				// Set color if specified.
+				
 				if ( color.HasValue )
 					Console.ForegroundColor = color.Value;
 
 				await Console.Out.WriteLineAsync(consoleMessage);
 
-				// Reset the color before continuing.
+				
 				if ( color.HasValue )
 					Console.ResetColor();
 
@@ -129,7 +129,7 @@ namespace KOTORModSync.Core
 		public static Task LogVerboseAsync([CanBeNull] string message) =>
 			LogInternalAsync($"[Verbose] {message}", verbose: true, color: ConsoleColor.DarkGray);
 
-		// ReSharper disable once UnusedMember.Global
+		
 		public static void LogWarning([NotNull] string message) => _ = LogInternalAsync(
 			$"[Warning] {message}",
 			color: ConsoleColor.Yellow
@@ -158,7 +158,7 @@ namespace KOTORModSync.Core
 			await LogInternalAsync($"Exception: {ex.GetType()?.Name} - {ex.Message}", color: ConsoleColor.Red);
 			await LogInternalAsync($"Stack trace:{Environment.NewLine}{ex.StackTrace}", color: ConsoleColor.Magenta);
 
-			ExceptionLogged?.Invoke(ex); // Raise the ExceptionLogged event
+			ExceptionLogged?.Invoke(ex); 
 		}
 
 		private static void CurrentDomain_UnhandledException(

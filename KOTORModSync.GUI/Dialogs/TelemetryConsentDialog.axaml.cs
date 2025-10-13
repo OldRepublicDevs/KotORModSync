@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using Avalonia.Controls;
@@ -25,23 +25,23 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				// Build configuration based on user choices
+				
 				Configuration.SetUserConsent(true);
 				Configuration.CollectUsageData = CollectUsageCheckBox?.IsChecked ?? true;
 				Configuration.CollectPerformanceMetrics = CollectPerformanceCheckBox?.IsChecked ?? true;
 				Configuration.CollectCrashReports = CollectCrashReportsCheckBox?.IsChecked ?? true;
 				Configuration.CollectMachineInfo = CollectMachineInfoCheckBox?.IsChecked ?? false;
 
-				// Configure export options based on storage choice
+				
 				bool localOnly = LocalOnlyRadio?.IsChecked ?? true;
 				Configuration.EnableFileExporter = localOnly;
 				Configuration.EnableOtlpExporter = !localOnly;
 
-				// If user wants to send remotely, enable the OTLP exporter
-				// Note: You'll need to set the actual endpoint URL
+				
+				
 				if (!localOnly)
 				{
-					// TODO: Set your actual telemetry endpoint here
+					
 					Configuration.OtlpEndpoint = "https://telemetry.kotormodsync.com/v1/traces";
 				}
 
@@ -76,11 +76,11 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		/// <summary>
-		/// Shows the telemetry consent dialog to the user.
-		/// </summary>
-		/// <param name="parent">Parent window</param>
-		/// <returns>True if user accepted, false otherwise</returns>
+		
+		
+		
+		
+		
 		public static bool? ShowConsentDialog(Window parent)
 		{
 			var dialog = new TelemetryConsentDialog();

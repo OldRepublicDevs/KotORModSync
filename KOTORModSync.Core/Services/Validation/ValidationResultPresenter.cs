@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -10,15 +10,15 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Core.Services.Validation
 {
-	/// <summary>
-	/// Helper class to present validation results to users with actionable information.
-	/// Used by GUI layer to create dialogs and user controls.
-	/// </summary>
+	
+	
+	
+	
 	public static class ValidationResultPresenter
 	{
-		/// <summary>
-		/// Gets a user-friendly title for the validation result dialog.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public static string GetDialogTitle([NotNull] DryRunValidationResult result)
 		{
@@ -38,9 +38,9 @@ namespace KOTORModSync.Core.Services.Validation
 			return "✗ Validation Failed";
 		}
 
-		/// <summary>
-		/// Gets the main message to display to the user.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public static string GetMainMessage([NotNull] DryRunValidationResult result, bool isEditorMode)
 		{
@@ -52,9 +52,9 @@ namespace KOTORModSync.Core.Services.Validation
 				: result.GetEndUserMessage();
 		}
 
-		/// <summary>
-		/// Gets actionable steps the user can take to resolve issues.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		[ItemNotNull]
 		public static List<ActionableStep> GetActionableSteps([NotNull] DryRunValidationResult result, bool isEditorMode)
@@ -66,10 +66,10 @@ namespace KOTORModSync.Core.Services.Validation
 
 			if ( result.IsValid )
 			{
-				return steps; // No actions needed
+				return steps; 
 			}
 
-			// Group issues by component
+			
 			var componentIssues = result.Issues
 				.Where(i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical)
 				.Where(i => i.AffectedComponent != null)
@@ -81,13 +81,13 @@ namespace KOTORModSync.Core.Services.Validation
 				ModComponent component = group.Key;
 				List<ValidationIssue> issues = group.ToList();
 
-				// Determine if issues are fixable
+				
 				bool hasArchiveIssues = issues.Any(i => i.Category == "ArchiveValidation" || i.Category == "ExtractArchive");
 				bool hasOrderIssues = issues.Any(i => i.Message.Contains("does not exist") && !hasArchiveIssues);
 
 				if ( hasArchiveIssues && !isEditorMode )
 				{
-					// End user: suggest downloading missing mods
+					
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.DownloadMod,
@@ -106,7 +106,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 				else if ( hasOrderIssues && isEditorMode )
 				{
-					// Editor mode: suggest reordering instructions
+					
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.ReorderInstructions,
@@ -125,7 +125,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 				else if ( !isEditorMode )
 				{
-					// End user: suggest disabling problematic component
+					
 					bool isRequiredDependency = MainConfig.AllComponents
 						.Any(c => c != component && c.IsSelected && c.Dependencies.Contains(component.Guid));
 
@@ -165,7 +165,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 				else
 				{
-					// Editor mode: general fix instruction
+					
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.EditInstructions,
@@ -187,9 +187,9 @@ namespace KOTORModSync.Core.Services.Validation
 			return steps;
 		}
 
-		/// <summary>
-		/// Checks if auto-resolution is available for any issues.
-		/// </summary>
+		
+		
+		
 		public static bool CanAutoResolve([NotNull] DryRunValidationResult result)
 		{
 			if ( result == null )
@@ -199,10 +199,10 @@ namespace KOTORModSync.Core.Services.Validation
 			return componentsToDisable.Count > 0;
 		}
 
-		/// <summary>
-		/// Auto-resolves issues by disabling problematic components.
-		/// </summary>
-		/// <returns>Number of components that were disabled.</returns>
+		
+		
+		
+		
 		public static int AutoResolveIssues([NotNull] DryRunValidationResult result)
 		{
 			if ( result == null )
@@ -218,9 +218,9 @@ namespace KOTORModSync.Core.Services.Validation
 			return componentsToDisable.Count;
 		}
 
-		/// <summary>
-		/// Gets components that should be highlighted in the UI.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> GetComponentsToHighlight([NotNull] DryRunValidationResult result)
@@ -232,9 +232,9 @@ namespace KOTORModSync.Core.Services.Validation
 		}
 	}
 
-	/// <summary>
-	/// Represents an actionable step the user can take to resolve validation issues.
-	/// </summary>
+	
+	
+	
 	public class ActionableStep
 	{
 		public ActionType ActionType { get; set; }
@@ -253,9 +253,9 @@ namespace KOTORModSync.Core.Services.Validation
 		public bool CanAutoResolve { get; set; }
 	}
 
-	/// <summary>
-	/// Type of action the user can take.
-	/// </summary>
+	
+	
+	
 	public enum ActionType
 	{
 		DownloadMod,

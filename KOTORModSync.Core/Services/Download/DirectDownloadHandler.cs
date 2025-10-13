@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,14 +35,14 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				await Logger.LogVerboseAsync($"[DirectDownload] Resolving filename for URL: {url}");
 
-				// Validate URL
+				
 				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 				{
 					await Logger.LogWarningAsync($"[DirectDownload] Invalid URL format: {url}");
 					return new List<string>();
 				}
 
-				// Try HEAD request first to get Content-Disposition without downloading the whole file
+				
 				var request = new HttpRequestMessage(HttpMethod.Head, url);
 				HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
@@ -53,7 +53,7 @@ namespace KOTORModSync.Core.Services.Download
 					return new List<string>();
 				}
 
-				// Try to get filename from Content-Disposition or URL
+				
 				string fileName = null;
 				if ( response.Content.Headers.ContentDisposition != null )
 				{
@@ -63,7 +63,7 @@ namespace KOTORModSync.Core.Services.Download
 
 				if ( string.IsNullOrWhiteSpace(fileName) )
 				{
-					// Fall back to URL path
+					
 					string urlPath = Uri.UnescapeDataString(validatedUri.AbsolutePath);
 					fileName = Path.GetFileName(urlPath);
 					await Logger.LogVerboseAsync($"[DirectDownload] Got filename from URL path: {fileName}");
@@ -92,7 +92,7 @@ namespace KOTORModSync.Core.Services.Download
 
 			try
 			{
-				// Validate URL first
+				
 				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 				{
 					string errorMsg = $"Invalid URL format: {url}";
@@ -107,7 +107,7 @@ namespace KOTORModSync.Core.Services.Download
 					return DownloadResult.Failed(errorMsg);
 				}
 
-				// Determine expected filename from URL
+				
 				string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
 				await Logger.LogVerboseAsync($"[DirectDownload] Expected filename from URL: '{expectedFileName}'");
 				await Logger.LogVerboseAsync($"[DirectDownload] Destination directory: '{destinationDirectory}'");
@@ -158,7 +158,7 @@ namespace KOTORModSync.Core.Services.Download
 					TotalBytes = totalBytes
 				});
 
-				// Use unified download helper for consistent progress reporting
+				
 				using ( Stream contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false) )
 				{
 					await DownloadHelper.DownloadWithProgressAsync(

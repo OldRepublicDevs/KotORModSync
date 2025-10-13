@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -58,10 +58,10 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 
 				await Logger.LogAsync($"Step 2: Attempting to set access rights of the target '{pathInfo.FullName}' using icacls...");
-				// /T - apply the permissions recursively to all subdirectories and files
-				// /C - continue processing even when an error occurs
-				// /L - process symbolic links (and junctions) instead of the target they point to.
-				// | find /V \"processed file: \"" - filters out the files/folders that do not have errors.
+				
+				
+				
+				
 				(int, string, string) icaclsResult = await PlatformAgnosticMethods.ExecuteProcessAsync(
 					programFile: "icacls",
 					args: $"\"{pathInfo.FullName}\" /grant *S-1-1-0:(OI)(CI)F /T /C /L",
@@ -133,7 +133,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		private static void SetDotNetPermissions(FileSystemInfo pathInfo)
 		{
-			// Fallback to .NET API
+			
 			try
 			{
 				if ( pathInfo is FileInfo filePathInfo )

@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -9,28 +9,28 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Service for handling component editing operations
-	/// </summary>
+	
+	
+	
 	public class ComponentEditorService
 	{
-		/// <summary>
-		/// Checks if a component has changes compared to its serialized form
-		/// </summary>
-		/// <param name="component">ModComponent to check</param>
-		/// <param name="rawText">Raw text to compare against</param>
-		/// <returns>True if component has changes</returns>
+		
+		
+		
+		
+		
+		
 		public static bool ComponentHasChanges([CanBeNull] ModComponent component, [CanBeNull] string rawText) => component != null
 				&& !string.IsNullOrWhiteSpace(rawText)
 				&& rawText != component.SerializeComponent();
 
-		/// <summary>
-		/// Saves changes to a component from raw text
-		/// </summary>
-		/// <param name="component">ModComponent to update</param>
-		/// <param name="rawText">Raw text containing component data</param>
-		/// <param name="allComponents">All components list for updating</param>
-		/// <returns>True if save was successful</returns>
+		
+		
+		
+		
+		
+		
+		
 		public static async Task<bool> SaveComponentChangesAsync([NotNull] ModComponent component, [NotNull] string rawText, [NotNull][ItemNotNull] List<ModComponent> allComponents)
 		{
 			if ( component == null )
@@ -49,7 +49,7 @@ namespace KOTORModSync.Core.Services
 					return false;
 				}
 
-				// Find the corresponding component in the collection
+				
 				int index = allComponents.IndexOf(component);
 				if ( index == -1 )
 				{
@@ -63,7 +63,7 @@ namespace KOTORModSync.Core.Services
 					return false;
 				}
 
-				// Update the properties of the component
+				
 				allComponents[index] = newComponent;
 				await Logger.LogAsync($"Saved '{newComponent.Name}' successfully. Refer to the output window for more information.");
 				return true;
@@ -77,12 +77,12 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Creates a new instruction for a component
-		/// </summary>
-		/// <param name="component">ModComponent to add instruction to</param>
-		/// <param name="index">Index where to insert the instruction</param>
-		/// <returns>Created instruction</returns>
+		
+		
+		
+		
+		
+		
 		public static Instruction CreateNewInstruction([NotNull] ModComponent component, int index = 0)
 		{
 			if ( component == null )
@@ -92,11 +92,11 @@ namespace KOTORModSync.Core.Services
 			return component.Instructions[index];
 		}
 
-		/// <summary>
-		/// Deletes an instruction from a component
-		/// </summary>
-		/// <param name="component">ModComponent to remove instruction from</param>
-		/// <param name="instruction">Instruction to remove</param>
+		
+		
+		
+		
+		
 		public static void DeleteInstruction([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
@@ -111,11 +111,11 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Moves an instruction up in the list
-		/// </summary>
-		/// <param name="component">ModComponent containing the instruction</param>
-		/// <param name="instruction">Instruction to move</param>
+		
+		
+		
+		
+		
 		public static void MoveInstructionUp([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
@@ -130,11 +130,11 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Moves an instruction down in the list
-		/// </summary>
-		/// <param name="component">ModComponent containing the instruction</param>
-		/// <param name="instruction">Instruction to move</param>
+		
+		
+		
+		
+		
 		public static void MoveInstructionDown([NotNull] ModComponent component, [NotNull] Instruction instruction)
 		{
 			if ( component == null )
@@ -149,12 +149,12 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Creates a new option for a component
-		/// </summary>
-		/// <param name="component">ModComponent to add option to</param>
-		/// <param name="index">Index where to insert the option</param>
-		/// <returns>Created option</returns>
+		
+		
+		
+		
+		
+		
 		public static Option CreateNewOption([NotNull] ModComponent component, int index = 0)
 		{
 			if ( component == null )
@@ -164,11 +164,11 @@ namespace KOTORModSync.Core.Services
 			return component.Options[index];
 		}
 
-		/// <summary>
-		/// Deletes an option from a component
-		/// </summary>
-		/// <param name="component">ModComponent to remove option from</param>
-		/// <param name="option">Option to remove</param>
+		
+		
+		
+		
+		
 		public static void DeleteOption([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
@@ -183,11 +183,11 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Moves an option up in the list
-		/// </summary>
-		/// <param name="component">ModComponent containing the option</param>
-		/// <param name="option">Option to move</param>
+		
+		
+		
+		
+		
 		public static void MoveOptionUp([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
@@ -202,11 +202,11 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Moves an option down in the list
-		/// </summary>
-		/// <param name="component">ModComponent containing the option</param>
-		/// <param name="option">Option to move</param>
+		
+		
+		
+		
+		
 		public static void MoveOptionDown([NotNull] ModComponent component, [NotNull] Option option)
 		{
 			if ( component == null )
@@ -221,13 +221,13 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Handles component checkbox state changes with dependency resolution
-		/// </summary>
-		/// <param name="component">ModComponent that was checked/unchecked</param>
-		/// <param name="isChecked">New checked state</param>
-		/// <param name="allComponents">All components for dependency resolution</param>
-		/// <param name="visitedComponents">Set of already processed components to prevent circular dependencies</param>
+		
+		
+		
+		
+		
+		
+		
 		public void HandleComponentCheckboxChange([NotNull] ModComponent component, bool isChecked, [NotNull][ItemNotNull] List<ModComponent> allComponents, [CanBeNull] HashSet<ModComponent> visitedComponents = null)
 		{
 			if ( component == null )
@@ -237,14 +237,14 @@ namespace KOTORModSync.Core.Services
 
 			visitedComponents = visitedComponents ?? new HashSet<ModComponent>();
 
-			// Check if the component has already been visited
+			
 			if ( visitedComponents.Contains(component) )
 			{
 				Logger.LogError($"ModComponent '{component.Name}' has dependencies/restrictions that cannot be resolved automatically!");
 				return;
 			}
 
-			// Add the component to the visited set
+			
 			_ = visitedComponents.Add(component);
 
 			if ( isChecked )
@@ -265,7 +265,7 @@ namespace KOTORModSync.Core.Services
 				allComponents
 			);
 
-			// Handling conflicts based on what's defined for THIS component
+			
 			if ( conflicts.TryGetValue("Dependency", out List<ModComponent> dependencyConflicts) )
 			{
 				foreach ( ModComponent conflictComponent in dependencyConflicts )
@@ -290,7 +290,7 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			// Handling OTHER component's defined restrictions based on the change to THIS component.
+			
 			foreach ( ModComponent c in allComponents )
 			{
 				if ( !c.IsSelected || !c.Restrictions.Contains(component.Guid) )
@@ -303,7 +303,7 @@ namespace KOTORModSync.Core.Services
 
 		private void HandleComponentUnchecked([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> allComponents, [NotNull] HashSet<ModComponent> visitedComponents)
 		{
-			// Handling OTHER component's defined dependencies based on the change to THIS component.
+			
 			foreach ( ModComponent c in allComponents )
 			{
 				if ( c.IsSelected && c.Dependencies.Contains(component.Guid) )

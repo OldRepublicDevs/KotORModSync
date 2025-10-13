@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -13,9 +13,9 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Converters
 {
-	/// <summary>
-	/// Converts instruction paths by resolving placeholders like `modDirectory` and `kotorDirectory`
-	/// </summary>
+	
+	
+	
 	public partial class PathResolverConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -48,10 +48,10 @@ namespace KOTORModSync.Converters
 			if ( string.IsNullOrEmpty(path) )
 				return string.Empty;
 
-			// Check if paths are defined before resolving
+			
 			if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
 			{
-				return path; // Return original path if directories aren't configured
+				return path; 
 			}
 
 			try
@@ -60,7 +60,7 @@ namespace KOTORModSync.Converters
 			}
 			catch ( Exception )
 			{
-				// If resolution fails, return the original path
+				
 				return path;
 			}
 		}

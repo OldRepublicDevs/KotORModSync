@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -10,9 +10,9 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for displaying validation results in the UI
-	/// </summary>
+	
+	
+	
 	public class ValidationDisplayService
 	{
 		private readonly ValidationService _validationService;
@@ -26,9 +26,9 @@ namespace KOTORModSync.Services
 			_getMainComponents = getMainComponents ?? throw new ArgumentNullException(nameof(getMainComponents));
 		}
 
-		/// <summary>
-		/// Shows validation results in the UI
-		/// </summary>
+		
+		
+		
 		public void ShowValidationResults(
 			Border validationResultsArea,
 			TextBlock validationSummaryText,
@@ -43,7 +43,7 @@ namespace KOTORModSync.Services
 				var selectedComponents = mainComponents.Where(c => c.IsSelected).ToList();
 				_validationErrors.Clear();
 
-				// Find all components with validation errors
+				
 				foreach ( ModComponent component in selectedComponents )
 				{
 					if ( !isComponentValid(component) )
@@ -57,7 +57,7 @@ namespace KOTORModSync.Services
 
 				if ( _validationErrors.Count == 0 )
 				{
-					// No errors - show success message
+					
 					if ( validationSummaryText != null )
 						validationSummaryText.Text = $"✅ All {selectedComponents.Count} mods validated successfully!";
 					if ( errorNavigationArea != null )
@@ -69,7 +69,7 @@ namespace KOTORModSync.Services
 				}
 				else
 				{
-					// Show errors
+					
 					int validCount = selectedComponents.Count - _validationErrors.Count;
 					if ( validationSummaryText != null )
 						validationSummaryText.Text = $"⚠️ {validCount}/{selectedComponents.Count} mods validated successfully";
@@ -80,7 +80,7 @@ namespace KOTORModSync.Services
 					if ( validationSuccessArea != null )
 						validationSuccessArea.IsVisible = false;
 
-					// Show first error
+					
 					_currentErrorIndex = 0;
 					UpdateErrorDisplay(null, null, null, null, null, null, null);
 				}
@@ -91,9 +91,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Updates the error display for the current error
-		/// </summary>
+		
+		
+		
 		public void UpdateErrorDisplay(
 			TextBlock errorCounterText,
 			TextBlock errorModNameText,
@@ -110,7 +110,7 @@ namespace KOTORModSync.Services
 
 				ModComponent currentError = _validationErrors[_currentErrorIndex];
 
-				// Update navigation
+				
 				if ( errorCounterText != null )
 					errorCounterText.Text = $"Error {_currentErrorIndex + 1} of {_validationErrors.Count}";
 
@@ -123,7 +123,7 @@ namespace KOTORModSync.Services
 				if ( nextErrorButton != null )
 					nextErrorButton.IsEnabled = _currentErrorIndex < _validationErrors.Count - 1;
 
-				// Get error details
+				
 				(string ErrorType, string Description, bool CanAutoFix) errorDetails = _validationService.GetComponentErrorDetails(currentError);
 
 				if ( errorTypeText != null )
@@ -132,7 +132,7 @@ namespace KOTORModSync.Services
 				if ( errorDescriptionText != null )
 					errorDescriptionText.Text = errorDetails.Description;
 
-				// Show/hide auto-fix button based on error type
+				
 				if ( autoFixButton != null )
 					autoFixButton.IsVisible = errorDetails.CanAutoFix;
 			}
@@ -142,9 +142,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Navigates to the previous error
-		/// </summary>
+		
+		
+		
 		public void NavigateToPreviousError(
 			TextBlock errorCounterText,
 			TextBlock errorModNameText,
@@ -161,9 +161,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Navigates to the next error
-		/// </summary>
+		
+		
+		
 		public void NavigateToNextError(
 			TextBlock errorCounterText,
 			TextBlock errorModNameText,
@@ -180,9 +180,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Attempts to auto-fix the current error
-		/// </summary>
+		
+		
+		
 		public bool AutoFixCurrentError(Action<ModComponent> refreshModListVisuals)
 		{
 			try
@@ -196,7 +196,7 @@ namespace KOTORModSync.Services
 				if ( !errorDetails.CanAutoFix )
 					return false;
 
-				// Implement auto-fix logic based on error type
+				
 				if ( errorDetails.ErrorType.Contains("Missing required dependencies") )
 				{
 					AutoFixMissingDependencies(currentError);
@@ -216,9 +216,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Gets the current error component for jumping to it
-		/// </summary>
+		
+		
+		
 		public ModComponent GetCurrentError()
 		{
 			if ( _validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count )

@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -44,9 +44,9 @@ namespace KOTORModSync.Core
 		}
 
 		public bool Run() =>
-			// Verify all the instructions' paths line up with hierarchy of the archives
+			
 			VerifyExtractPaths()
-			// Ensure all the 'Destination' keys are valid for their respective action.
+			
 			&& ParseDestinationWithAction();
 
 		private void AddError([NotNull] string message, [NotNull] Instruction instruction) =>
@@ -87,10 +87,10 @@ namespace KOTORModSync.Core
 			{
 				bool success = true;
 
-				// Confirm that all Dependencies are found in either InstallBefore and InstallAfter:
+				
 				List<string> allArchives = GetAllArchivesFromInstructions();
 
-				// probably something wrong if there's no archives found.
+				
 				if ( allArchives.IsNullOrEmptyCollection() )
 				{
 					foreach ( Instruction instruction in ComponentToValidate.Instructions )
@@ -125,9 +125,9 @@ namespace KOTORModSync.Core
 							AddError(message: "Action cannot be null", instruction);
 							success = false;
 							continue;
-						// we already checked if the archive exists in GetAllArchivesFromInstructions.
+						
 						case Instruction.ActionType.Extract:
-						// 'choose' action uses Source as list of guids to options.
+						
 						case Instruction.ActionType.Choose:
 							continue;
 						case Instruction.ActionType.Execute:
@@ -142,9 +142,9 @@ namespace KOTORModSync.Core
 							break;
 					}
 
-					// ReSharper disable once ConditionIsAlwaysTrueOrFalse
+					
 					if ( instruction.Source is null )
-					// ReSharper disable twice HeuristicUnreachableCode
+					
 					{
 						AddWarning(message: "Instruction does not have a 'Source' key defined", instruction);
 						success = false;
@@ -156,11 +156,11 @@ namespace KOTORModSync.Core
 					{
 						string sourcePath = PathHelper.FixPathFormatting(instruction.Source[index]);
 
-						// todo
+						
 						if ( sourcePath.StartsWith(value: "<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
 							continue;
 
-						// ensure tslpatcher.exe sourcePaths use the action 'tslpatcher'
+						
 						if ( sourcePath.EndsWith(value: "tslpatcher.exe", StringComparison.OrdinalIgnoreCase)
 							&& instruction.Action != Instruction.ActionType.Patcher )
 						{
@@ -173,16 +173,16 @@ namespace KOTORModSync.Core
 
 						(bool, bool) result = IsSourcePathInArchives(sourcePath, allArchives, instruction);
 
-						// For some unholy reason, some archives act like there's another top level folder named after the archive to extract.
-						// doesn't even seem to be related to the archive type. Can't reproduce in 7zip either.
-						// either way, this will hide the issue until a real solution comes along.
+						
+						
+						
 						if ( !result.Item1 && MainConfig.AttemptFixes )
 						{
-							// Split the directory name using the directory separator character
+							
 							string[] parts = sourcePath.Split(Path.DirectorySeparatorChar);
 
-							// Add the first part of the path and repeat it at the beginning
-							// i.e. archive/my/custom/path becomes archive/archive/my/custom/path
+							
+							
 							string duplicatedPart = parts[1] + Path.DirectorySeparatorChar + parts[1];
 							string[] remainingParts = parts.Skip(2).ToArray();
 
@@ -246,7 +246,7 @@ namespace KOTORModSync.Core
 				if ( instruction.Action != Instruction.ActionType.Extract )
 					continue;
 
-				// Use real file system for validation (before installation)
+				
 				var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
 				List<string> realPaths = PathHelper.EnumerateFilesWithWildcards(
 					instruction.Source.ConvertAll(Utility.Utility.ReplaceCustomVariables),
@@ -264,7 +264,7 @@ namespace KOTORModSync.Core
 					if ( Path.GetExtension(realSourcePath).Equals(value: ".exe", StringComparison.OrdinalIgnoreCase) )
 					{
 						allArchives.Add(realSourcePath);
-						continue; // no easy way to verify self-extracting executables ( see ArchiveHelper.IsValidArchive )
+						continue; 
 					}
 
 					if ( File.Exists(realSourcePath) )
@@ -298,7 +298,7 @@ namespace KOTORModSync.Core
 				{
 					case Instruction.ActionType.Unset:
 						continue;
-					// patcher must always use <<kotorDirectory>> and nothing else.
+					
 					case Instruction.ActionType.Patcher when string.IsNullOrEmpty(instruction.Destination):
 						AddWarning(
 							message:
@@ -326,7 +326,7 @@ namespace KOTORModSync.Core
 						}
 
 						break;
-					// choose, extract, and delete cannot use the 'Destination' key.
+					
 					case Instruction.ActionType.Choose:
 					case Instruction.ActionType.Extract:
 					case Instruction.ActionType.Delete:
@@ -347,7 +347,7 @@ namespace KOTORModSync.Core
 						}
 
 						break;
-					// rename should never use <<kotorDirectory>>\\Override
+					
 					case Instruction.ActionType.Rename:
 						if ( instruction.Destination.Equals(
 								$"<<kotorDirectory>>{Path.DirectorySeparatorChar}Override",
@@ -364,7 +364,7 @@ namespace KOTORModSync.Core
 						}
 
 						break;
-					// don't validate arduous execute/run actions.
+					
 					case Instruction.ActionType.Run:
 					case Instruction.ActionType.Execute:
 						break;
@@ -393,7 +393,7 @@ namespace KOTORModSync.Core
 								Logger.Log("Fixing the above error automatically...");
 								try
 								{
-									// ReSharper disable once AssignNullToNotNullAttribute
+									
 									_ = Directory.CreateDirectory(destinationPath);
 									success = true;
 								}
@@ -468,7 +468,7 @@ namespace KOTORModSync.Core
 					continue;
 				}
 
-				// Check if the archive name matches the first portion of the sourcePath
+				
 				string archiveName = Path.GetFileNameWithoutExtension(archivePath);
 
 				string[] pathParts = sourcePath.Split(Path.DirectorySeparatorChar);
@@ -508,13 +508,13 @@ namespace KOTORModSync.Core
 				return (true, true);
 			}
 
-			// todo, stop displaying errors for self extracting executables. This is the only mod using one that I've seen out of 200-some.
+			
 			if ( ComponentToValidate.Name.Equals(value: "Improved AI", StringComparison.OrdinalIgnoreCase) )
 			{
 				return (true, true);
 			}
 
-			// archive not required if instruction isn't running.
+			
 			if ( !ModComponent.ShouldRunInstruction(instruction, _componentsList) )
 			{
 				return (true, true);
@@ -534,7 +534,7 @@ namespace KOTORModSync.Core
 			if ( !ArchiveHelper.IsArchive(archivePath) )
 				return ArchivePathCode.NotAnArchive;
 
-			// todo: self-extracting 7z executables
+			
 			if ( Path.GetExtension(archivePath) == ".exe" )
 				return ArchivePathCode.FoundSuccessfully;
 
@@ -558,10 +558,10 @@ namespace KOTORModSync.Core
 				if ( archive is null )
 					return ArchivePathCode.CouldNotOpenArchive;
 
-				// everything is extracted to a new directory named after the archive.
+				
 				string archiveNameAppend = Path.GetFileNameWithoutExtension(archivePath);
 
-				// if the Source key represents the top level extraction directory, check that first.
+				
 				if ( PathHelper.WildcardPathMatch(archiveNameAppend, relativePath) )
 					return ArchivePathCode.FoundSuccessfully;
 
@@ -569,19 +569,19 @@ namespace KOTORModSync.Core
 
 				foreach ( IArchiveEntry entry in archive.Entries )
 				{
-					// Append extracted directory and ensure every slash is a backslash.
+					
 					string itemInArchivePath = archiveNameAppend
 						+ Path.DirectorySeparatorChar
 						+ entry.Key.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-					// Some archives loop through folders while others don't.
+					
 					string folderName = Path.GetFileName(itemInArchivePath);
 					if ( entry.IsDirectory )
 					{
 						folderName = Path.GetDirectoryName(itemInArchivePath);
 					}
 
-					// Add the folder path to the list, after removing trailing slashes.
+					
 					if ( !string.IsNullOrEmpty(folderName) )
 					{
 						_ = folderPaths.Add(
@@ -589,12 +589,12 @@ namespace KOTORModSync.Core
 						);
 					}
 
-					// Check if itemInArchivePath matches relativePath using wildcard matching.
+					
 					if ( PathHelper.WildcardPathMatch(itemInArchivePath, relativePath) )
 						return ArchivePathCode.FoundSuccessfully;
 				}
 
-				// check if instruction.Source matches a folder.
+				
 				foreach ( string folderPath in folderPaths )
 				{
 					if ( !(folderPath is null) && PathHelper.WildcardPathMatch(folderPath, relativePath) )

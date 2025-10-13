@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -44,15 +44,15 @@ namespace KOTORModSync.Dialogs
 			QuickActions = new ObservableCollection<QuickActionItem>();
 			ApplyQuickActionCommand = new RelayCommand(ApplyQuickAction);
 
-			// Build summary
+			
 			int dependentCount = dependentComponents.Count;
 			SummaryText = $"Cannot delete '{componentToDelete.Name}' because {dependentCount} component{(dependentCount > 1 ? "s" : "")} depend on it. " +
 						  "You must first unlink these dependencies by unchecking the dependent components below.";
 
-			// Build detailed dependency info
+			
 			DetailedDependencyInfo = DependencyUnlinkViewModel.BuildDetailedDependencyInfo(componentToDelete, dependentComponents);
 
-			// Build dependent component items
+			
 			foreach ( ModComponent component in dependentComponents )
 			{
 				var item = new DependentComponentItem(component, componentToDelete);
@@ -60,7 +60,7 @@ namespace KOTORModSync.Dialogs
 				DependentComponents.Add(item);
 			}
 
-			// Build quick actions
+			
 			BuildQuickActions(dependentComponents);
 
 			UpdateStatus();
@@ -78,7 +78,7 @@ namespace KOTORModSync.Dialogs
 			{
 				var dependencyTypes = new List<string>();
 
-				// Check different types of dependencies
+				
 				if ( dependent.Dependencies.Contains(componentToDelete.Guid) )
 					dependencyTypes.Add("Dependency");
 				if ( dependent.Restrictions.Contains(componentToDelete.Guid) )
@@ -97,22 +97,22 @@ namespace KOTORModSync.Dialogs
 
 		private void BuildQuickActions(List<ModComponent> dependentComponents)
 		{
-			// Add "Uncheck All" action
+			
 			QuickActions.Add(new QuickActionItem
 			{
 				ActionType = QuickActionType.UncheckAll,
 				Text = "❌ Uncheck All Dependencies"
 			});
 
-			// Add "Uncheck Selected Only" action
+			
 			QuickActions.Add(new QuickActionItem
 			{
 				ActionType = QuickActionType.UncheckSelectedOnly,
 				Text = "☑️ Uncheck Only Selected Dependencies"
 			});
 
-			// Add individual component actions
-			foreach ( ModComponent component in dependentComponents.Take(5) ) // Limit to first 5 for UI space
+			
+			foreach ( ModComponent component in dependentComponents.Take(5) ) 
 			{
 				QuickActions.Add(new QuickActionItem
 				{
@@ -153,7 +153,7 @@ namespace KOTORModSync.Dialogs
 					break;
 
 				case QuickActionType.UncheckSelectedOnly:
-					// Uncheck only components that are currently selected for installation
+					
 					foreach ( DependentComponentItem item in DependentComponents.Where(c => c.ModComponent.IsSelected) )
 					{
 						item.IsSelected = false;
@@ -209,9 +209,9 @@ namespace KOTORModSync.Dialogs
 		public DependentComponentItem(ModComponent component, ModComponent componentToDelete)
 		{
 			ModComponent = component;
-			_isSelected = true; // Start with all dependencies selected (will be unlinked)
+			_isSelected = true; 
 
-			// Build dependency info
+			
 			var dependencyTypes = new List<string>();
 			if ( component.Dependencies.Contains(componentToDelete.Guid) )
 				dependencyTypes.Add("Dependency");

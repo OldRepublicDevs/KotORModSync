@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -12,14 +12,14 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Core.Services.Validation
 {
-	/// <summary>
-	/// Service for performing dry-run validation of component installations.
-	/// </summary>
+	
+	
+	
 	public static class DryRunValidator
 	{
-		/// <summary>
-		/// Validates all selected components using a virtual file system.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public static async Task<DryRunValidationResult> ValidateInstallationAsync(
 			[NotNull][ItemNotNull] List<ModComponent> components,
@@ -35,7 +35,7 @@ namespace KOTORModSync.Core.Services.Validation
 			await Logger.LogAsync("Starting dry-run validation of installation...");
 			await Logger.LogAsync($"Validating {components.Count(c => c.IsSelected)} selected component(s)...");
 
-			// Get only selected components
+			
 			List<ModComponent> selectedComponents = components.Where(c => c.IsSelected).ToList();
 
 			if ( selectedComponents.Count == 0 )
@@ -44,7 +44,7 @@ namespace KOTORModSync.Core.Services.Validation
 				return result;
 			}
 
-			// Validate each component in installation order
+			
 			int componentIndex = 0;
 			foreach ( ModComponent component in selectedComponents )
 			{
@@ -55,7 +55,7 @@ namespace KOTORModSync.Core.Services.Validation
 
 				try
 				{
-					// Check if component should be installed (dependencies/restrictions)
+					
 					if ( !component.ShouldInstallComponent(components) )
 					{
 						await Logger.LogWarningAsync(
@@ -74,7 +74,7 @@ namespace KOTORModSync.Core.Services.Validation
 						continue;
 					}
 
-					// Validate component by executing with virtual file system
+					
 					await ValidateComponentInstructionsAsync(
 						component,
 						components,
@@ -98,7 +98,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 			}
 
-			// Add all issues from the virtual file system
+			
 			foreach ( ValidationIssue issue in virtualFileSystem.ValidationIssues )
 			{
 				result.Issues.Add(issue);
@@ -112,11 +112,11 @@ namespace KOTORModSync.Core.Services.Validation
 			return result;
 		}
 
-		/// <summary>
-		/// Validates component instructions by calling the ACTUAL ExecuteInstructionsAsync method
-		/// with a virtual file system provider. This ensures 100% code reuse between validation
-		/// and real installation - the ONLY difference is VirtualFileSystemProvider vs RealFileSystemProvider.
-		/// </summary>
+		
+		
+		
+		
+		
 		private static async Task ValidateComponentInstructionsAsync(
 			[NotNull] ModComponent component,
 			[NotNull][ItemNotNull] List<ModComponent> allComponents,
@@ -136,16 +136,16 @@ namespace KOTORModSync.Core.Services.Validation
 
 			try
 			{
-				// THIS IS THE KEY: We call the ACTUAL installation method with a virtual file system!
-				// No duplicate logic, no separate validation path. Just swap the file system provider.
+				
+				
 				ModComponent.InstallExitCode exitCode = await component.ExecuteInstructionsAsync(
 					component.Instructions,
 					allComponents,
 					cancellationToken,
-					fileSystem  // Virtual file system provider
+					fileSystem  
 				);
 
-				// Check for errors
+				
 				if ( exitCode != ModComponent.InstallExitCode.Success )
 				{
 					result.Issues.Add(new ValidationIssue

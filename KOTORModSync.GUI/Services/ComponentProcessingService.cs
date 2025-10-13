@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -12,14 +12,14 @@ using KOTORModSync.Core.Services;
 namespace KOTORModSync.Services
 {
 
-	/// <summary>
-	/// Service responsible for processing components including dependency resolution and ordering
-	/// </summary>
+	
+	
+	
 	public class ComponentProcessingService
 	{
-		/// <summary>
-		/// Processes components with dependency checking and reordering
-		/// </summary>
+		
+		
+		
 		public static async Task<ComponentProcessingResult> ProcessComponentsAsync(List<ModComponent> components)
 		{
 			var result = new ComponentProcessingResult
@@ -38,10 +38,10 @@ namespace KOTORModSync.Services
 					return result;
 				}
 
-				// Validate components
+				
 				await Logger.LogVerboseAsync($"Processing {components.Count} components");
 
-			// Check for circular dependencies and reorder if needed
+			
 			try
 			{
 				(bool isCorrectOrder, List<ModComponent> reorderedList) =
@@ -75,9 +75,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Attempts to auto-generate instructions for components without any
-		/// </summary>
+		
+		
+		
 		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 		{
 			if ( components == null || components.Count == 0 )
@@ -90,14 +90,14 @@ namespace KOTORModSync.Services
 
 				foreach ( ModComponent component in components )
 				{
-					// Skip if already has instructions
+					
 					if ( component.Instructions.Count > 0 )
 					{
 						skippedCount++;
 						continue;
 					}
 
-					// Try to generate instructions
+					
 					bool success = component.TryGenerateInstructionsFromArchive();
 					if ( !success )
 						continue;

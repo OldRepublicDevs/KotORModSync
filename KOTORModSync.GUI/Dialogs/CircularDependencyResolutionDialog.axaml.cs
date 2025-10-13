@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +30,7 @@ namespace KOTORModSync.Dialogs
 		public CircularDependencyResolutionDialog()
 		{
 			InitializeComponent();
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -42,7 +42,7 @@ namespace KOTORModSync.Dialogs
 			InitializeComponent();
 			ViewModel = new CircularDependencyResolutionViewModel(components, cycleInfo);
 			DataContext = ViewModel;
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -71,7 +71,7 @@ namespace KOTORModSync.Dialogs
 			List<ModComponent> components,
 			CircularDependencyDetector.CircularDependencyResult cycleInfo)
 		{
-			// Don't show dialog if there are no circular dependencies
+			
 			if ( !cycleInfo.HasCircularDependencies || cycleInfo.Cycles.Count == 0 )
 				return (false, components);
 
@@ -120,7 +120,7 @@ namespace KOTORModSync.Dialogs
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			// Don't start window drag if clicking on interactive controls
+			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -133,17 +133,17 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			// Get the element under the pointer
+			
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			// Walk up the visual tree to check if we're clicking on an interactive element
+			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch (current)
 				{
-					// Check if we're clicking on any interactive control
+					
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -156,7 +156,7 @@ namespace KOTORModSync.Dialogs
 					case TabItem _:
 					case ProgressBar _:
 					case ScrollViewer _:
-					// Check if the element has context menu or flyout open
+					
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

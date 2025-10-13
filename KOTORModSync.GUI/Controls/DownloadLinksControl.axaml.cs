@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -29,7 +29,7 @@ namespace KOTORModSync.Controls
 		public static readonly StyledProperty<Guid> ComponentGuidProperty =
 			AvaloniaProperty.Register<DownloadLinksControl, Guid>(nameof(ComponentGuid));
 
-		private bool _isUpdatingFromTextBox; // Re-entrancy guard
+		private bool _isUpdatingFromTextBox; 
 
 		public List<string> DownloadLinks
 		{
@@ -61,7 +61,7 @@ namespace KOTORModSync.Controls
 
 			if ( change.Property == DownloadLinksProperty )
 			{
-				// Don't update display if we're in the middle of updating from a TextBox
+				
 				if ( _isUpdatingFromTextBox )
 					return;
 
@@ -70,7 +70,7 @@ namespace KOTORModSync.Controls
 			}
 			else if ( change.Property == DownloadCacheServiceProperty || change.Property == ComponentGuidProperty )
 			{
-				// Refresh validation when cache service or component changes
+				
 				RefreshAllUrlValidation();
 			}
 		}
@@ -97,8 +97,8 @@ namespace KOTORModSync.Controls
 				return;
 			LinksItemsControl.ItemsSource = DownloadLinks;
 
-			// Note: URL validation will be handled by individual TextBox TextChanged events
-			// This avoids potential deadlocks during UI layout
+			
+			
 		}
 
 		private void UpdateEmptyStateVisibility()
@@ -113,14 +113,14 @@ namespace KOTORModSync.Controls
 			if ( DownloadLinks == null )
 				DownloadLinks = new List<string>();
 
-			// User-initiated action, allow full update cycle
+			
 			_isUpdatingFromTextBox = false;
 
-			// Create a new list to ensure property change notification
+			
 			var newList = new List<string>(DownloadLinks) { string.Empty };
 			DownloadLinks = newList;
 
-			// Focus the newly added textbox
+			
 			Dispatcher.UIThread.Post(() =>
 			{
 				try
@@ -141,7 +141,7 @@ namespace KOTORModSync.Controls
 			if ( !(sender is Button button) || DownloadLinks == null )
 				return;
 
-			// Find the parent Grid, then the Border to get the associated TextBox
+			
 			if ( !(button.Parent is Grid parentGrid) )
 				return;
 
@@ -153,10 +153,10 @@ namespace KOTORModSync.Controls
 			if ( index < 0 || index >= DownloadLinks.Count )
 				return;
 
-			// User-initiated action, allow full update cycle
+			
 			_isUpdatingFromTextBox = false;
 
-			// Create a new list to ensure property change notification
+			
 			var newList = new List<string>(DownloadLinks);
 			newList.RemoveAt(index);
 			DownloadLinks = newList;
@@ -168,7 +168,7 @@ namespace KOTORModSync.Controls
 				return;
 			try
 			{
-				// Ensure the URL has a protocol
+				
 				if ( !url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
 					!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
 				{
@@ -184,7 +184,7 @@ namespace KOTORModSync.Controls
 			}
 			catch ( Exception ex )
 			{
-				// Could show an error message to the user here
+				
 				Logger.LogException(ex, $"Failed to open URL: {ex.Message}");
 			}
 		}
@@ -193,25 +193,25 @@ namespace KOTORModSync.Controls
 		{
 			if ( !(sender is TextBox textBox) || DownloadLinks == null )
 				return;
-			// Find the index of this textbox in the list
+			
 			int index = GetTextBoxIndex(textBox);
 			if ( index < 0 || index >= DownloadLinks.Count )
 				return;
 
 			string newText = textBox.Text ?? string.Empty;
 
-			// Only update if the value actually changed to prevent infinite loop
+			
 			if ( DownloadLinks[index] == newText )
 			{
 				UpdateUrlValidation(textBox);
 				return;
 			}
 
-			// Set re-entrancy guard to prevent OnPropertyChanged from updating display
+			
 			_isUpdatingFromTextBox = true;
 			try
 			{
-				// Create a new list to ensure property change notification
+				
 				var newList = new List<string>(DownloadLinks)
 				{
 					[index] = newText
@@ -248,21 +248,21 @@ namespace KOTORModSync.Controls
 			switch ( e.Key )
 			{
 				case Key.Enter:
-					// Add a new link when Enter is pressed
+					
 					AddLink_Click(sender, e);
 					e.Handled = true;
 					break;
 				case Key.Delete when sender is TextBox deleteTextBox &&
 									 DownloadLinks != null && string.IsNullOrWhiteSpace(deleteTextBox.Text):
 					{
-						// Remove empty link when Delete is pressed on empty textbox
+						
 						int index = GetTextBoxIndex(deleteTextBox);
 						if ( index >= 0 && index < DownloadLinks.Count )
 						{
-							// User-initiated action, allow full update cycle
+							
 							_isUpdatingFromTextBox = false;
 
-							// Create a new list to ensure property change notification
+							
 							var newList = new List<string>(DownloadLinks);
 							newList.RemoveAt(index);
 							DownloadLinks = newList;
@@ -278,10 +278,10 @@ namespace KOTORModSync.Controls
 			if ( textBox == null )
 				return;
 
-			// Only validate URLs when in EditorMode
+			
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) || !mainWindow.EditorMode )
 			{
-				// Reset to default styling when not in EditorMode
+				
 				textBox.ClearValue(TextBox.BorderBrushProperty);
 				textBox.ClearValue(TextBox.BorderThicknessProperty);
 				ToolTip.SetTip(textBox, null);
@@ -290,29 +290,29 @@ namespace KOTORModSync.Controls
 
 			string url = textBox.Text?.Trim() ?? string.Empty;
 
-			// Update visual styling based on validation
+			
 			if ( string.IsNullOrWhiteSpace(url) )
 			{
-				// Reset to default styling for empty URLs
+				
 				textBox.ClearValue(BorderBrushProperty);
 				textBox.ClearValue(BorderThicknessProperty);
 				ToolTip.SetTip(textBox, null);
 				return;
 			}
 
-			// Check URL format first
+			
 			bool isValidFormat = DownloadLinksControl.IsValidUrl(url);
 
 			if ( !isValidFormat )
 			{
-				// Invalid URL format - red border
+				
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationInvalidBrush;
 				textBox.BorderThickness = new Thickness(2);
 				ToolTip.SetTip(textBox, $"Invalid URL format: {url}");
 				return;
 			}
 
-			// Check if the URL is downloaded/cached using DownloadCacheService
+			
 			bool isDownloaded = false;
 			if ( DownloadCacheService != null && ComponentGuid != Guid.Empty )
 			{
@@ -328,7 +328,7 @@ namespace KOTORModSync.Controls
 
 			if ( isDownloaded )
 			{
-				// Valid URL and downloaded - green border
+				
 				string archiveName = DownloadCacheService?.GetArchiveName(ComponentGuid, url) ?? "unknown";
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationValidBrush;
 				textBox.BorderThickness = new Thickness(2);
@@ -336,30 +336,30 @@ namespace KOTORModSync.Controls
 			}
 			else
 			{
-				// Valid URL format but not downloaded - orange/yellow border
+				
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationWarningBrush;
 				textBox.BorderThickness = new Thickness(2);
 				ToolTip.SetTip(textBox, $"⚠️ Valid URL but not downloaded yet");
 			}
 		}
 
-		/// <summary>
-		/// Checks if a string is a valid URL
-		/// </summary>
+		
+		
+		
 		private static bool IsValidUrl(string url)
 		{
 			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
 
-			// Basic URL validation
+			
 			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri uri) )
 				return false;
 
-			// Check if it's HTTP or HTTPS
+			
 			if ( uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps )
 				return false;
 
-			// Check if it has a valid host
+			
 			if ( string.IsNullOrWhiteSpace(uri.Host) )
 				return false;
 

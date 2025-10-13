@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -86,8 +86,8 @@ namespace KOTORModSync.Core.FileSystemUtils
 			}
 			catch ( Exception )
 			{
-				// In .NET Framework 4.6.2 and earlier, the DirectoryInfo constructor throws an exception
-				// when the path is invalid. We catch the exception and return null instead for a unified experience.
+				
+				
 				return null;
 			}
 		}
@@ -108,8 +108,8 @@ namespace KOTORModSync.Core.FileSystemUtils
 			}
 			catch ( Exception )
 			{
-				// In .NET Framework 4.6.2 and earlier, the FileInfo constructor throws an exception
-				// when the path is invalid. We catch the exception and return null instead for a unified experience.
+				
+				
 				return null;
 			}
 		}
@@ -153,7 +153,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				if ( result == 0 )
 					throw new Win32Exception(Marshal.GetLastWin32Error());
 
-				// The result may be prefixed with "\\?\"
+				
 				string finalPath = buffer.ToString();
 				const string prefix = @"\\?\";
 				if ( finalPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) )
@@ -217,14 +217,14 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 			if ( commonLength < relativeTo.Length )
 			{
-				//sb.Append("..");
+				
 
 				for ( int i = commonLength + 1; i < relativeTo.Length; i++ )
 				{
 					if ( relativeTo[i] == Path.DirectorySeparatorChar )
 					{
-						//sb.Append(Path.DirectorySeparatorChar);
-						//sb.Append("..");
+						
+						
 					}
 				}
 			}
@@ -344,7 +344,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 			string formattedPath = Path.GetFullPath(FixPathFormatting(path));
 
-			// quick lookup
+			
 			bool fileExists = File.Exists(formattedPath);
 			bool folderExists = Directory.Exists(formattedPath);
 			if ( fileExists && (isFile == true || !folderExists) )
@@ -357,18 +357,18 @@ namespace KOTORModSync.Core.FileSystemUtils
 				StringSplitOptions.RemoveEmptyEntries
 			);
 
-			// no path parts available (no separators found). Maybe it's a file/folder that exists in cur directory.
+			
 			if ( parts.Length == 0 )
 				parts = new[] { formattedPath };
 
-			// insert the root into the list (will be / on unix, and drive name (e.g. C:\\ on windows)
+			
 			string currentPath = Path.GetPathRoot(formattedPath);
 			if ( !string.IsNullOrEmpty(currentPath) && !Path.IsPathRooted(parts[0]) )
 			{
 				parts = new[] { currentPath }.Concat(parts).ToArray();
 			}
 
-			// append directory separator to drive roots
+			
 			if ( parts[0].EndsWith(":") )
 				parts[0] += Path.DirectorySeparatorChar;
 
@@ -376,7 +376,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 			string caseSensitiveCurrentPath = null;
 			for ( int i = 1; i < parts.Length; i++ )
 			{
-				// find the closest matching file/folder in the current path for unix, useful for duplicates.
+				
 				string previousCurrentPath = Path.Combine(parts.Take(i).ToArray());
 				currentPath = Path.Combine(previousCurrentPath, parts[i]);
 				if ( Utility.Utility.GetOperatingSystem() != OSPlatform.Windows
@@ -406,13 +406,13 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 					parts[i] = closestMatch;
 				}
-				// resolve case-sensitive pathing. largestExistingPathPartsIndex determines the largest index of the existing path parts.
-				// todo: check if it's the last part of the path, then conditionally call directory.exists OR file.exists based on isFile.
+				
+				
 				else if ( string.IsNullOrEmpty(caseSensitiveCurrentPath)
 					&& !File.Exists(currentPath)
 					&& !Directory.Exists(currentPath) )
 				{
-					// Get the case-sensitive path based on the existing parts we've determined.
+					
 					largestExistingPathPartsIndex = i;
 					caseSensitiveCurrentPath = ConvertWindowsPathToCaseSensitive(previousCurrentPath);
 				}
@@ -438,14 +438,14 @@ namespace KOTORModSync.Core.FileSystemUtils
 			if ( string.IsNullOrEmpty(str2) )
 				throw new ArgumentException(message: "Value cannot be null or empty.", nameof(str2));
 
-			// don't consider a match if any char in the paths are not case-insensitive matches.
+			
 			if ( !str1.Equals(str2, StringComparison.OrdinalIgnoreCase) )
 				return -1;
 
 			int matchingCount = 0;
 			for ( int i = 0; i < str1.Length && i < str2.Length; i++ )
 			{
-				// increment matching count if case-sensitive match at this char index succeeds
+				
 				if ( str1[i] == str2[i] )
 					matchingCount++;
 			}
@@ -483,13 +483,13 @@ namespace KOTORModSync.Core.FileSystemUtils
 				}
 			}
 
-			// The file is closed at this point, so it can be safely deleted
+			
 			File.Delete(sourcePath);
 		}
 
-		/// <summary>
-		/// Enumerates files with wildcard support using the provided file system provider.
-		/// </summary>
+		
+		
+		
 		public static List<string> EnumerateFilesWithWildcards(
 			IEnumerable<string> filesAndFolders,
 			Services.FileSystem.IFileSystemProvider fileSystemProvider,
@@ -514,12 +514,12 @@ namespace KOTORModSync.Core.FileSystemUtils
 					string formattedPath = FixPathFormatting(path);
 					Console.WriteLine($"[PathHelper] EnumerateFilesWithWildcards: path={path}, formatted={formattedPath}");
 
-					// ReSharper disable once AssignNullToNotNullAttribute
+					
 					if ( !ContainsWildcards(formattedPath) )
 					{
 						Console.WriteLine("[PathHelper] No wildcards, checking FileExists...");
 
-						// Handle non-wildcard paths
+						
 						if ( !fileSystemProvider.FileExists(formattedPath) )
 						{
 							Console.WriteLine("[PathHelper] Not found, trying case-sensitive...");
@@ -541,16 +541,16 @@ namespace KOTORModSync.Core.FileSystemUtils
 						continue;
 					}
 
-					// Handle wildcard paths
-					//
-					// determine the closest parent folder in hierarchy that doesn't have wildcards
-					// then wildcard match them all by hierarchy level.
+					
+					
+					
+					
 					string currentDir = formattedPath;
 					while ( ContainsWildcards(currentDir) )
 					{
 						string parentDirectory = Path.GetDirectoryName(currentDir);
 
-						// Exit the loop if no parent directory is found or if the parent directory is the same as the current directory
+						
 						if ( string.IsNullOrEmpty(parentDirectory) || parentDirectory == currentDir )
 							break;
 
@@ -560,7 +560,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 					if ( !fileSystemProvider.DirectoryExists(currentDir) )
 						continue;
 
-					// Use file system provider to get files
+					
 					List<string> checkFiles = fileSystemProvider.GetFilesInDirectory(
 						currentDir,
 						"*",
@@ -575,9 +575,9 @@ namespace KOTORModSync.Core.FileSystemUtils
 						select filePath
 					);
 
-					// For case-insensitive pathing, check duplicate folders
-					// Note: For virtual file system (dry-run), this is skipped as the virtual
-					// provider handles case-insensitivity internally
+					
+					
+					
 					if ( MainConfig.CaseInsensitivePathing && !fileSystemProvider.IsDryRun )
 					{
 						IEnumerable<FileSystemInfo> duplicates = FindCaseInsensitiveDuplicates(
@@ -588,7 +588,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 						foreach ( FileSystemInfo thisDuplicateFolder in duplicates )
 						{
-							// Get all files in the parent directory.
+							
 							if ( !(thisDuplicateFolder is DirectoryInfo dirInfo) )
 								throw new NullReferenceException(nameof(dirInfo));
 
@@ -610,7 +610,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				}
 				catch ( Exception ex )
 				{
-					// Handle or log the exception as required
+					
 					Console.WriteLine($"An error occurred while processing path '{path}': {ex.Message}");
 				}
 			}
@@ -628,19 +628,19 @@ namespace KOTORModSync.Core.FileSystemUtils
 			if ( patternInput is null )
 				throw new ArgumentNullException(nameof(patternInput));
 
-			// Fix path formatting
+			
 			input = FixPathFormatting(input);
 			patternInput = FixPathFormatting(patternInput);
 
-			// Split the input and patternInput into directory levels
+			
 			string[] inputLevels = input.Split(Path.DirectorySeparatorChar);
 			string[] patternLevels = patternInput.Split(Path.DirectorySeparatorChar);
 
-			// Ensure the number of levels match
+			
 			if ( inputLevels.Length != patternLevels.Length )
 				return false;
 
-			// Iterate over each level and perform wildcard matching
+			
 			for ( int i = 0; i < inputLevels.Length; i++ )
 			{
 				string inputLevel = inputLevels[i];
@@ -649,7 +649,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				if ( patternLevel is "*" )
 					continue;
 
-				// Check if the current level matches the pattern
+				
 				if ( !WildcardMatch(inputLevel, patternLevel) )
 					return false;
 			}
@@ -657,7 +657,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 			return true;
 		}
 
-		// Most end users don't know Regex, this function will convert basic wildcards to regex patterns.
+		
 		private static bool WildcardMatch(string input, string patternInput)
 		{
 			if ( input is null )
@@ -665,14 +665,14 @@ namespace KOTORModSync.Core.FileSystemUtils
 			if ( patternInput is null )
 				throw new ArgumentNullException(nameof(patternInput));
 
-			// Escape special characters in the pattern
+			
 			patternInput = Regex.Escape(patternInput);
 
-			// Replace * with .* and ? with . in the pattern
+			
 			patternInput = patternInput.Replace(oldValue: @"\*", newValue: ".*")
 				.Replace(oldValue: @"\?", newValue: ".");
 
-			// Use regex to perform the wildcard matching
+			
 			return Regex.IsMatch(input, $"^{patternInput}$");
 		}
 
@@ -686,19 +686,19 @@ namespace KOTORModSync.Core.FileSystemUtils
 			if ( string.IsNullOrWhiteSpace(path) )
 				return path;
 
-			// Replace all slashes with the operating system's path separator
+			
 			string formattedPath = path.TrimStart('\\')
 				.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
 				.Replace(oldChar: '\\', Path.DirectorySeparatorChar).Replace(oldChar: '/', Path.DirectorySeparatorChar);
 
-			// Fix repeated slashes
+			
 			formattedPath = Regex.Replace(
 				formattedPath,
 				$"(?<!:){Path.DirectorySeparatorChar}{Path.DirectorySeparatorChar}+",
 				Path.DirectorySeparatorChar.ToString()
 			);
 
-			// Fix trailing slashes
+			
 			if ( formattedPath.Length > 1 )
 				formattedPath = formattedPath.TrimEnd(Path.DirectorySeparatorChar);
 
@@ -710,15 +710,15 @@ namespace KOTORModSync.Core.FileSystemUtils
 			DirectoryInfo dirInfo,
 			bool includeSubFolders = true
 		) =>
-			// ReSharper disable once AssignNullToNotNullAttribute - no point duplicating the null check
+			
 			FindCaseInsensitiveDuplicates(dirInfo?.FullName, includeSubFolders, isFile: false);
 
 		[NotNull]
 		public static IEnumerable<FileSystemInfo> FindCaseInsensitiveDuplicates(FileInfo fileInfo) =>
-			// ReSharper disable once AssignNullToNotNullAttribute - no point duplicating the null check
+			
 			FindCaseInsensitiveDuplicates(fileInfo?.FullName, isFile: true);
 
-		// Finds all duplicate items in a path.
+		
 		public static IEnumerable<FileSystemInfo> FindCaseInsensitiveDuplicates(
 			[NotNull] string path,
 			bool includeSubFolders = true,
@@ -735,7 +735,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 			if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
 				yield break;
 
-			// determine if path is a folder or a file, and resolve case-insensitive pathing.
+			
 			DirectoryInfo dirInfo = null;
 			string fileName = Path.GetFileName(formattedPath);
 			switch ( isFile )
@@ -785,7 +785,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 			if ( !dirInfo?.Exists ?? false )
 				throw new ArgumentException($"Path item doesn't exist on disk: '{formattedPath}'");
 
-			// build duplicate files/folders list
+			
 			var fileList = new Dictionary<string, List<FileSystemInfo>>(StringComparer.OrdinalIgnoreCase);
 			var folderList = new Dictionary<string, List<FileSystemInfo>>(StringComparer.OrdinalIgnoreCase);
 			foreach ( FileInfo file in dirInfo.EnumerateFilesSafely() )
@@ -816,7 +816,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				}
 			}
 
-			// don't iterate folders in the parent folder if original path is a file.
+			
 			if ( isFile == true )
 				yield break;
 

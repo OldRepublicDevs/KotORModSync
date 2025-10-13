@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.IO;
@@ -58,7 +58,7 @@ namespace KOTORModSync.Core.Installation
 				Directory.Delete(tempExtract, recursive: true);
 				await Task.Run(() => ZipFile.ExtractToDirectory(BackupPath, tempExtract, System.Text.Encoding.UTF8), cancellationToken);
 
-				// Remove existing contents except session folder
+				
 				foreach ( FileSystemInfo fsi in destination.EnumerateFileSystemInfos() )
 				{
 					cancellationToken.ThrowIfCancellationRequested();
@@ -68,7 +68,7 @@ namespace KOTORModSync.Core.Installation
 					SafeDelete(fsi);
 				}
 
-				// Copy restored contents
+				
 				CopyDirectory(new DirectoryInfo(tempExtract), destination, cancellationToken, skipFolder: SessionFolderName);
 			}
 			finally

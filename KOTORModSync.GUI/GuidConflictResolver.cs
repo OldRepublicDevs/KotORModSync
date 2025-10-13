@@ -1,16 +1,16 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using KOTORModSync.Core;
 
 namespace KOTORModSync
 {
-	/// <summary>
-	/// Intelligently resolves GUID conflicts during component merging.
-	/// Automatically chooses the GUID that preserves dependency integrity.
-	/// </summary>
+	
+	
+	
+	
 	public static class GuidConflictResolver
 	{
 		public class GuidResolution
@@ -23,13 +23,13 @@ namespace KOTORModSync
 			public ModComponent IncomingComponent { get; set; }
 		}
 
-		/// <summary>
-		/// Determines which GUID to use when merging two matched components.
-		/// Returns null if GUIDs are the same (no conflict).
-		/// </summary>
+		
+		
+		
+		
 		public static GuidResolution ResolveGuidConflict(ModComponent existing, ModComponent incoming)
 		{
-			// No conflict if GUIDs match
+			
 			if ( existing.Guid == incoming.Guid )
 				return null;
 
@@ -39,12 +39,12 @@ namespace KOTORModSync
 				IncomingComponent = incoming
 			};
 
-			// Check if existing component has intricate GUID usage
+			
 			bool existingHasGuidUsage = HasIntricateGuidUsage(existing);
-			// Check if incoming component has intricate GUID usage
+			
 			bool incomingHasGuidUsage = HasIntricateGuidUsage(incoming);
 
-			// Case 1: Both have intricate usage - MANUAL RESOLUTION REQUIRED
+			
 			if ( existingHasGuidUsage && incomingHasGuidUsage )
 			{
 				resolution.RequiresManualResolution = true;
@@ -65,13 +65,13 @@ namespace KOTORModSync
 					$"💡 Right-click this component to choose which GUID to use.\n" +
 					$"⚠️ Choosing incorrectly may break dependencies!";
 
-				// Default to existing for safety
+				
 				resolution.ChosenGuid = existing.Guid;
 				resolution.RejectedGuid = incoming.Guid;
 				return resolution;
 			}
 
-			// Case 2: Only existing has intricate usage - USE EXISTING GUID
+			
 			if ( existingHasGuidUsage )
 			{
 				resolution.ChosenGuid = existing.Guid;
@@ -81,7 +81,7 @@ namespace KOTORModSync
 				return resolution;
 			}
 
-			// Case 3: Only incoming has intricate usage - USE INCOMING GUID
+			
 			if ( incomingHasGuidUsage )
 			{
 				resolution.ChosenGuid = incoming.Guid;
@@ -91,7 +91,7 @@ namespace KOTORModSync
 				return resolution;
 			}
 
-			// Case 4: Neither has intricate usage - USE EXISTING GUID (preserve stability)
+			
 			resolution.ChosenGuid = existing.Guid;
 			resolution.RejectedGuid = incoming.Guid;
 			resolution.RequiresManualResolution = false;
@@ -99,12 +99,12 @@ namespace KOTORModSync
 			return resolution;
 		}
 
-		/// <summary>
-		/// Checks if a component has intricate GUID usage (dependencies, restrictions, options, etc.)
-		/// </summary>
+		
+		
+		
 		private static bool HasIntricateGuidUsage(ModComponent component)
 		{
-			// Check if component has any dependencies, restrictions, or install order requirements
+			
 			if ( component.Dependencies.Count > 0 )
 				return true;
 			if ( component.Restrictions.Count > 0 )
@@ -112,16 +112,16 @@ namespace KOTORModSync
 			if ( component.InstallAfter.Count > 0 )
 				return true;
 
-			// Check if component has options (which have their own GUIDs that might be referenced)
+			
 			if ( component.Options.Count > 0 )
 				return true;
 
 			return false;
 		}
 
-		/// <summary>
-		/// Checks if any other component in the list references this GUID
-		/// </summary>
+		
+		
+		
 		public static bool IsGuidReferencedByOthers(Guid guid, System.Collections.Generic.List<ModComponent> allComponents)
 		{
 			foreach ( ModComponent comp in allComponents )

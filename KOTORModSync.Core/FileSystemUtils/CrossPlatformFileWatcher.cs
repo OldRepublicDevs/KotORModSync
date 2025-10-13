@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 
 namespace KOTORModSync.Core.FileSystemUtils
 {
-	/// <summary>
-	/// Cross-platform file system watcher that works on Windows, Linux, and macOS.
-	/// Uses platform-specific APIs for optimal performance.
-	/// </summary>
+	
+	
+	
+	
 	public class CrossPlatformFileWatcher : IDisposable
 	{
 		private readonly string _path;
@@ -64,7 +64,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 				EnableRaisingEvents = true;
 
-				// Choose platform-specific implementation
+				
 				if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
 					StartWindowsWatcher();
 				else
@@ -145,7 +145,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 			var previousFiles = new HashSet<string>();
 			var currentFiles = new HashSet<string>();
 
-			// Initial scan
+			
 			try
 			{
 				await ScanDirectory(previousFiles, cancellationToken);
@@ -166,21 +166,21 @@ namespace KOTORModSync.Core.FileSystemUtils
 					currentFiles.Clear();
 					await ScanDirectory(currentFiles, cancellationToken);
 
-					// Check for deleted files
+					
 					foreach ( string file in previousFiles )
 					{
 						if ( !currentFiles.Contains(file) )
 							OnDeleted(new FileSystemEventArgs(WatcherChangeTypes.Deleted, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 					}
 
-					// Check for created files
+					
 					foreach ( string file in currentFiles )
 					{
 						if ( !previousFiles.Contains(file) )
 							OnCreated(new FileSystemEventArgs(WatcherChangeTypes.Created, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
 					}
 
-					// Check for changed files (simplified - just check modification time)
+					
 					foreach ( string file in currentFiles )
 					{
 						if ( !previousFiles.Contains(file) )
@@ -197,7 +197,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 						}
 					}
 
-					// Update state for next iteration
+					
 					previousFiles.Clear();
 					foreach ( string file in currentFiles )
 					{
@@ -215,7 +215,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 					await Logger.LogExceptionAsync(ex, "Error in polling loop");
 					OnError(new ErrorEventArgs(ex));
 
-					// Wait a bit before retrying to avoid rapid error loops
+					
 					try
 					{
 						await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);

@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -10,10 +10,10 @@ using KOTORModSync.Core.Services.Validation;
 
 namespace KOTORModSync.Tests
 {
-	/// <summary>
-	/// Integration tests for the full dry-run validation pipeline.
-	/// Tests DryRunValidator end-to-end with real components and instructions.
-	/// </summary>
+	
+	
+	
+	
 	[TestFixture]
 	public class DryRunValidationIntegrationTests
 	{
@@ -141,7 +141,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_DryRunValidator_ValidInstallation_Passes()
 		{
-			// Arrange - Create valid mod installation
+			
 			string mod1Archive = Path.Combine(_sourceDir, "mod1.zip");
 			CreateArchive(mod1Archive, new Dictionary<string, string>
 			{
@@ -163,15 +163,15 @@ namespace KOTORModSync.Tests
 				Destination = "<<kotorDirectory>>"
 			});
 
-			// Using static DryRunValidator
+			
 
-			// Act
+			
 			var result = await DryRunValidator.ValidateInstallationAsync(
 				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
-			// Assert
+			
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			TestContext.WriteLine($"Issues: {result.Issues.Count}");
 			foreach ( var issue in result.Issues )
@@ -186,7 +186,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_DryRunValidator_InvalidOperationOrder_Fails()
 		{
-			// Arrange - Try to move a file that was just deleted
+			
 			string archivePath = Path.Combine(_sourceDir, "test.zip");
 			CreateArchive(archivePath, new Dictionary<string, string>
 			{
@@ -216,20 +216,20 @@ namespace KOTORModSync.Tests
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Move,
-				Source = ["<<modDirectory>>\\test\\file.txt"], // Already deleted!
+				Source = ["<<modDirectory>>\\test\\file.txt"], 
 				Destination = "<<kotorDirectory>>\\moved.txt",
 				Overwrite = true
 			});
 
-			// Using static DryRunValidator
+			
 
-			// Act
+			
 			var result = await DryRunValidator.ValidateInstallationAsync(
 				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
-			// Assert
+			
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			TestContext.WriteLine($"Errors: {result.Issues.Count(i => i.Severity == ValidationSeverity.Error)}");
 			foreach ( var issue in result.Issues.Where(i => i.Severity == ValidationSeverity.Error) )
@@ -246,7 +246,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_DryRunValidator_MissingArchiveFile_Fails()
 		{
-			// Arrange - Reference non-existent archive
+			
 			var component = new ModComponent
 			{
 				Name = "Missing Archive Mod",
@@ -261,15 +261,15 @@ namespace KOTORModSync.Tests
 				Destination = "<<kotorDirectory>>"
 			});
 
-			// Using static DryRunValidator
+			
 
-			// Act
+			
 			var result = await DryRunValidator.ValidateInstallationAsync(
 				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
-			// Assert - Should have validation issues for missing file
+			
 			Assert.That(result.IsValid, Is.False);
 			Assert.That(result.Issues, Has.Some.Matches<ValidationIssue>(i => i.Severity == ValidationSeverity.Error && i.Message.Contains("Could not find any files matching the pattern")));
 		}
@@ -277,7 +277,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_DryRunValidator_FileInArchiveNotFound_Fails()
 		{
-			// Arrange - Extract archive, then try to move a file that doesn't exist in it
+			
 			string archivePath = Path.Combine(_sourceDir, "limited.zip");
 			CreateArchive(archivePath, new Dictionary<string, string>
 			{
@@ -301,20 +301,20 @@ namespace KOTORModSync.Tests
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Move,
-				Source = ["<<modDirectory>>\\limited\\doesnotexist.txt"], // Not in archive!
+				Source = ["<<modDirectory>>\\limited\\doesnotexist.txt"], 
 				Destination = "<<kotorDirectory>>\\moved.txt",
 				Overwrite = true
 			});
 
-			// Using static DryRunValidator
+			
 
-			// Act
+			
 			var result = await DryRunValidator.ValidateInstallationAsync(
 				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
-			// Assert
+			
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			foreach ( var issue in result.Issues )
 			{
@@ -328,7 +328,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_DryRunValidator_MultipleComponents_WithDependencies()
 		{
-			// Arrange - Create interdependent components
+			
 			string baseModArchive = Path.Combine(_sourceDir, "base.zip");
 			string patchArchive = Path.Combine(_sourceDir, "patch.zip");
 
@@ -378,22 +378,22 @@ namespace KOTORModSync.Tests
 			{
 				Action = Instruction.ActionType.Move,
 				Source = ["<<modDirectory>>\\patch\\patch.2da"],
-				Destination = "<<kotorDirectory>>\\override", // Overwrites base mod file
+				Destination = "<<kotorDirectory>>\\override", 
 				Overwrite = true
 			});
 
-			// Patch depends on base
+			
 			patchMod.Dependencies.Add(baseMod.Guid);
 
-			// Using static DryRunValidator
+			
 
-			// Act
+			
 			var result = await DryRunValidator.ValidateInstallationAsync(
 				new List<ModComponent> { baseMod, patchMod },
 				CancellationToken.None
 			);
 
-			// Assert
+			
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			foreach ( var issue in result.Issues )
 			{
@@ -407,7 +407,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_DryRunValidator_OverwriteConflict_Warning()
 		{
-			// Arrange - Two mods trying to write to the same file
+			
 			string mod1Archive = Path.Combine(_sourceDir, "mod1.zip");
 			string mod2Archive = Path.Combine(_sourceDir, "mod2.zip");
 
@@ -454,19 +454,19 @@ namespace KOTORModSync.Tests
 			{
 				Action = Instruction.ActionType.Move,
 				Source = ["<<modDirectory>>\\mod2\\shared.txt"],
-				Destination = "<<kotorDirectory>>\\override\\shared.txt", // Overwrites mod1's file
+				Destination = "<<kotorDirectory>>\\override\\shared.txt", 
 				Overwrite = true
 			});
 
-			// Using static DryRunValidator
+			
 
-			// Act
+			
 			var result = await DryRunValidator.ValidateInstallationAsync(
 				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
-			// Assert
+			
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			TestContext.WriteLine($"Warnings: {result.Issues.Count(i => i.Severity == ValidationSeverity.Warning)}");
 			foreach ( var issue in result.Issues )
@@ -474,14 +474,14 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
 
-			// Should pass but with warnings
+			
 			Assert.That(result.IsValid || result.Issues.All(i => i.Severity != ValidationSeverity.Error), Is.True);
 		}
 
 		[Test]
 		public async Task Test_DryRunValidator_ComplexWorkflow_AllOperationTypes()
 		{
-			// Arrange - Complex workflow with all operation types
+			
 			string mainArchive = Path.Combine(_sourceDir, "main.zip");
 			string patchArchive = Path.Combine(_sourceDir, "patch.zip");
 
@@ -507,7 +507,7 @@ namespace KOTORModSync.Tests
 				IsSelected = true
 			};
 
-			// 1. Extract main archive
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Extract,
@@ -515,7 +515,7 @@ namespace KOTORModSync.Tests
 				Destination = "<<modDirectory>>"
 			});
 
-			// 2. Copy files
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Copy,
@@ -524,7 +524,7 @@ namespace KOTORModSync.Tests
 				Overwrite = true
 			});
 
-			// 3. Move files
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Move,
@@ -533,7 +533,7 @@ namespace KOTORModSync.Tests
 				Overwrite = true
 			});
 
-			// 4. Rename file
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Rename,
@@ -542,14 +542,14 @@ namespace KOTORModSync.Tests
 				Overwrite = true
 			});
 
-			// 5. Delete backup files
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Delete,
 				Source = ["<<modDirectory>>\\main\\backup\\backup1.bak"]
 			});
 
-			// 6. Extract patch
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Extract,
@@ -557,7 +557,7 @@ namespace KOTORModSync.Tests
 				Destination = "<<modDirectory>>"
 			});
 
-			// 7. Move patch file to replace old config
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Move,
@@ -566,13 +566,13 @@ namespace KOTORModSync.Tests
 				Overwrite = true
 			});
 
-			// Act
+			
 			var result = await DryRunValidator.ValidateInstallationAsync(
 				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
-			// Assert
+			
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			TestContext.WriteLine($"Total issues: {result.Issues.Count}");
 			foreach ( var issue in result.Issues )
@@ -587,7 +587,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_DryRunValidator_WildcardOperations()
 		{
-			// Arrange
+			
 			string archivePath = Path.Combine(_sourceDir, "wildcards.zip");
 			CreateArchive(archivePath, new Dictionary<string, string>
 			{
@@ -613,7 +613,7 @@ namespace KOTORModSync.Tests
 				Destination = "<<modDirectory>>"
 			});
 
-			// Move all .ncs files
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Move,
@@ -622,7 +622,7 @@ namespace KOTORModSync.Tests
 				Overwrite = true
 			});
 
-			// Copy all .dlg files
+			
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Copy,
@@ -631,15 +631,15 @@ namespace KOTORModSync.Tests
 				Overwrite = true
 			});
 
-			// Using static DryRunValidator
+			
 
-			// Act
+			
 			var result = await DryRunValidator.ValidateInstallationAsync(
 				new List<ModComponent> { component },
 				CancellationToken.None
 			);
 
-			// Assert
+			
 			TestContext.WriteLine($"Validation result: {result.IsValid}");
 			foreach ( var issue in result.Issues )
 			{

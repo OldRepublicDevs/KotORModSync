@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.IO;
@@ -50,7 +50,7 @@ namespace KOTORModSync.Dialogs
 
 		public void InitializeFromMainWindow(Window mainWindow)
 		{
-			// Access MainConfigInstance through casting and store parent reference
+			
 			if ( mainWindow is MainWindow mw )
 			{
 				MainConfigInstance = mw.MainConfigInstance;
@@ -60,25 +60,25 @@ namespace KOTORModSync.Dialogs
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow start");
 			Logger.LogVerbose($"SettingsDialog: Source='{MainConfigInstance?.sourcePathFullName}', Dest='{MainConfigInstance?.destinationPathFullName}'");
 
-			// Initialize directory pickers with current values
+			
 			ComboBox styleComboBox = this.FindControl<ComboBox>("StyleComboBox");
 
-			// Set the current theme selection based on the actual current theme
+			
 			string currentTheme = ThemeManager.GetCurrentStylePath();
 			Logger.LogVerbose($"SettingsDialog: Current theme path='{currentTheme}'");
 
-			// Map theme paths to ComboBox indices
+			
 			int selectedIndex = 0;
 			if ( string.Equals(currentTheme, "/Styles/KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) )
-				selectedIndex = 0; // K1 Style
+				selectedIndex = 0; 
 			else if ( string.Equals(currentTheme, "/Styles/Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) )
-				selectedIndex = 1; // TSL Style
+				selectedIndex = 1; 
 
 			Logger.LogVerbose($"SettingsDialog: Setting ComboBox SelectedIndex to {selectedIndex}");
 			if ( styleComboBox != null )
 				styleComboBox.SelectedIndex = selectedIndex;
 
-			// Initialize directory picker controls with current paths
+			
 			DirectoryPickerControl modDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "ModDirectoryPicker");
 			DirectoryPickerControl kotorDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "KotorDirectoryPicker");
 
@@ -94,7 +94,7 @@ namespace KOTORModSync.Dialogs
 				kotorDirectoryPicker.SetCurrentPath(MainConfigInstance.destinationPathFullName ?? string.Empty);
 			}
 
-			// Initialize telemetry checkboxes with current configuration
+			
 			LoadTelemetrySettings();
 			
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow end");
@@ -145,18 +145,18 @@ namespace KOTORModSync.Dialogs
 				bool wasEnabled = telemetryConfig.IsEnabled;
 				bool isNowEnabled = enableTelemetryCheckBox?.IsChecked ?? true;
 				
-				// Update telemetry configuration
+				
 				telemetryConfig.SetUserConsent(isNowEnabled);
 				telemetryConfig.CollectUsageData = collectUsageDataCheckBox?.IsChecked ?? true;
 				telemetryConfig.CollectPerformanceMetrics = collectPerformanceMetricsCheckBox?.IsChecked ?? true;
 				telemetryConfig.CollectCrashReports = collectCrashReportsCheckBox?.IsChecked ?? true;
 				
-				// Update the telemetry service
+				
 				TelemetryService.Instance.UpdateConfiguration(telemetryConfig);
 				
 				Logger.Log($"[Telemetry] Telemetry settings saved: Enabled={isNowEnabled}");
 				
-				// Log telemetry state change
+				
 				if (!wasEnabled && isNowEnabled)
 				{
 					Logger.Log("[Telemetry] Telemetry has been enabled");
@@ -175,7 +175,7 @@ namespace KOTORModSync.Dialogs
 		[UsedImplicitly]
 		private void OnDirectoryChanged(object sender, DirectoryChangedEventArgs e)
 		{
-			// Handle directory changes and update MainConfig
+			
 			if ( MainConfigInstance == null ) return;
 
 			try
@@ -183,20 +183,20 @@ namespace KOTORModSync.Dialogs
 				Logger.LogVerbose($"SettingsDialog.OnDirectoryChanged type={e.PickerType} path='{e.Path}'");
 				if ( e.PickerType == DirectoryPickerType.ModDirectory )
 				{
-					// Update mod directory path
+					
 					var modDirectory = new DirectoryInfo(e.Path);
 					MainConfigInstance.sourcePath = modDirectory;
 					Logger.LogVerbose($"SettingsDialog: MainConfig.sourcePath set -> '{MainConfigInstance.sourcePathFullName}'");
 				}
 				else if ( e.PickerType == DirectoryPickerType.KotorDirectory )
 				{
-					// Update KOTOR directory path
+					
 					var kotorDirectory = new DirectoryInfo(e.Path);
 					MainConfigInstance.destinationPath = kotorDirectory;
 					Logger.LogVerbose($"SettingsDialog: MainConfig.destinationPath set -> '{MainConfigInstance.destinationPathFullName}'");
 				}
 
-				// Trigger synchronization in the parent MainWindow to update Step 1 pickers
+				
 				if ( ParentWindow == null )
 					return;
 				Logger.LogVerbose("SettingsDialog: Triggering parent window directory synchronization");
@@ -211,17 +211,17 @@ namespace KOTORModSync.Dialogs
 		[UsedImplicitly]
 		private void StyleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-			// Handle theme selection changes
+			
 			if ( sender is ComboBox comboBox && comboBox.SelectedItem is ComboBoxItem )
 			{
-				// This will be handled by the main window when the dialog closes
+				
 			}
 		}
 
 		[UsedImplicitly]
 		private void OK_Click(object sender, RoutedEventArgs e)
 		{
-			// Save telemetry settings when OK is clicked
+			
 			SaveTelemetrySettings();
 			Close(dialogResult: true);
 		}

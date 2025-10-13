@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -39,21 +39,21 @@ namespace KOTORModSync
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
 
-		// Events for download control
+		
 		public event EventHandler<DownloadControlEventArgs> DownloadControlRequested;
 
-		/// <summary>
-		/// Creates a new cancellation token source (used for retries after cancellation)
-		/// </summary>
+		
+		
+		
 		public void ResetCancellationToken()
 		{
 			_cancellationTokenSource?.Dispose();
 			_cancellationTokenSource = new CancellationTokenSource();
 		}
 
-		/// <summary>
-		/// Gets the download timeout in minutes from the UI control
-		/// </summary>
+		
+		
+		
 		public int DownloadTimeoutMinutes
 		{
 			get
@@ -63,7 +63,7 @@ namespace KOTORModSync
 				{
 					return (int)timeoutControl.Value.Value;
 				}
-				return 10; // Default to 10 minutes
+				return 10; 
 			}
 		}
 
@@ -72,7 +72,7 @@ namespace KOTORModSync
 			InitializeComponent();
 			_cancellationTokenSource = new CancellationTokenSource();
 
-			// Set up the three items controls
+			
 			ItemsControl activeControl = this.FindControl<ItemsControl>("ActiveDownloadsControl");
 			if ( activeControl != null )
 				activeControl.ItemsSource = _activeDownloads;
@@ -85,7 +85,7 @@ namespace KOTORModSync
 			if ( completedControl != null )
 				completedControl.ItemsSource = _completedDownloads;
 
-			// Wire up button events
+			
 			Button closeButton = this.FindControl<Button>("CloseButton");
 			if ( closeButton != null )
 				closeButton.Click += CloseButton_Click;
@@ -94,7 +94,7 @@ namespace KOTORModSync
 			if ( cancelButton != null )
 				cancelButton.Click += CancelButton_Click;
 
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -105,10 +105,10 @@ namespace KOTORModSync
 
 		private void DownloadItem_PointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			// Allow clicking on download items to view details
+			
 			if ( !(sender is Border border) || !(border.DataContext is DownloadProgress progress) )
 				return;
-			// Double-click to view details
+			
 			if ( e.ClickCount != 2 )
 				return;
 			try
@@ -138,7 +138,7 @@ namespace KOTORModSync
 							_ = Process.Start("explorer.exe", directory);
 						else if ( Utility.GetOperatingSystem() == OSPlatform.OSX )
 							_ = Process.Start("open", directory);
-						else // Linux
+						else 
 							_ = Process.Start("xdg-open", directory);
 					}
 				}
@@ -199,22 +199,22 @@ namespace KOTORModSync
 			{
 				_allDownloadItems.Add(progress);
 
-				// Add to appropriate category (this will call UpdateSummary internally)
+				
 				CategorizeDownload(progress);
 
-				// Subscribe to property changes to update clickable links and reorganize
+				
 				progress.PropertyChanged += DownloadProgress_PropertyChanged;
 
-				// For grouped downloads, also subscribe to child changes to update summary and recategorize parent
+				
 				if ( progress.IsGrouped )
 				{
 					foreach ( DownloadProgress child in progress.ChildDownloads )
 					{
 						child.PropertyChanged += (sender, e) =>
 						{
-							// When a child's status changes, the parent's status will also change
-							// which will trigger recategorization via the parent's PropertyChanged handler
-							// But we still need to update the summary
+							
+							
+							
 							Dispatcher.UIThread.Post(UpdateSummary);
 						};
 					}
@@ -224,12 +224,12 @@ namespace KOTORModSync
 
 		private void CategorizeDownload(DownloadProgress progress)
 		{
-			// Remove from all categories first
+			
 			_activeDownloads.Remove(progress);
 			_pendingDownloads.Remove(progress);
 			_completedDownloads.Remove(progress);
 
-			// Add to appropriate category based on status, sorted by timestamp (newest first)
+			
 			switch ( progress.Status )
 			{
 				case DownloadStatus.InProgress:
@@ -245,25 +245,25 @@ namespace KOTORModSync
 					break;
 			}
 
-			// Update section header counts
+			
 			UpdateSummary();
 		}
 
-		/// <summary>
-		/// Inserts an item into an ObservableCollection in sorted order (newest first)
-		/// </summary>
+		
+		
+		
 		private void InsertSorted(ObservableCollection<DownloadProgress> collection, DownloadProgress item, Func<DownloadProgress, DateTime> timestampSelector)
 		{
 			DateTime itemTimestamp = timestampSelector(item);
 
-			// Find the correct position to insert (newest first = descending order)
+			
 			int insertIndex = 0;
 			for ( int i = 0; i < collection.Count; i++ )
 			{
 				DateTime existingTimestamp = timestampSelector(collection[i]);
 				if ( itemTimestamp > existingTimestamp )
 				{
-					// Item is newer than this one, insert here
+					
 					insertIndex = i;
 					break;
 				}
@@ -280,10 +280,10 @@ namespace KOTORModSync
 				var existing = _allDownloadItems.FirstOrDefault(p => p.Url == progress.Url);
 				if ( existing != null )
 				{
-					// Temporarily unsubscribe from property changes to avoid cascading updates
+					
 					existing.PropertyChanged -= DownloadProgress_PropertyChanged;
 
-					// Update all properties in one batch
+					
 					existing.Status = progress.Status;
 					existing.StatusMessage = progress.StatusMessage;
 					existing.ProgressPercentage = progress.ProgressPercentage;
@@ -295,10 +295,10 @@ namespace KOTORModSync
 					existing.ErrorMessage = progress.ErrorMessage;
 					existing.Exception = progress.Exception;
 
-					// Re-subscribe to property changes
+					
 					existing.PropertyChanged += DownloadProgress_PropertyChanged;
 
-					// Manually trigger categorization and summary update once
+					
 					CategorizeDownload(existing);
 				}
 				else
@@ -332,7 +332,7 @@ namespace KOTORModSync
 			TextBlock overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
 			ProgressBar overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
 
-			// Update section headers
+			
 			TextBlock activeHeader = this.FindControl<TextBlock>("ActiveSectionHeader");
 			TextBlock pendingHeader = this.FindControl<TextBlock>("PendingSectionHeader");
 			TextBlock completedHeader = this.FindControl<TextBlock>("CompletedSectionHeader");
@@ -347,20 +347,20 @@ namespace KOTORModSync
 			if ( summaryText == null )
 				return;
 
-			// Use collection counts instead of LINQ queries for better performance
+			
 			int inProgress = _activeDownloads.Count;
 			int pending = _pendingDownloads.Count;
 
-			// Count completed/failed/skipped from the completed collection
+			
 			int completedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Completed);
 			int skippedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Skipped);
 			int failedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Failed);
 			int totalFinished = completedCount + skippedCount + failedCount;
 
-			// Calculate overall progress
+			
 			double overallProgress = _allDownloadItems.Count > 0 ? (double)totalFinished / _allDownloadItems.Count * 100 : 0;
 
-			// Update overall progress display
+			
 			if ( overallProgressText != null )
 			{
 				string progressText = $"Overall Progress: {totalFinished} / {_allDownloadItems.Count} URLs";
@@ -429,9 +429,9 @@ namespace KOTORModSync
 			CancelDownloads();
 		}
 
-		/// <summary>
-		/// Cancels all ongoing downloads
-		/// </summary>
+		
+		
+		
 		public void CancelDownloads()
 		{
 			try
@@ -440,7 +440,7 @@ namespace KOTORModSync
 
 				_cancellationTokenSource?.Cancel();
 
-				// Update UI safely using normal priority (not Send which can cause crashes)
+				
 				Dispatcher.UIThread.Post(() =>
 				{
 					Button cancelButton = this.FindControl<Button>("CancelButton");
@@ -450,7 +450,7 @@ namespace KOTORModSync
 						cancelButton.Content = "Cancelling...";
 					}
 
-					// Mark all in-progress downloads as cancelled
+					
 					foreach ( var download in _allDownloadItems.Where(d => d.Status == DownloadStatus.InProgress) )
 					{
 						download.Status = DownloadStatus.Failed;
@@ -459,7 +459,7 @@ namespace KOTORModSync
 					}
 
 					UpdateSummary();
-				}); // Use default priority - safe and won't cause crashes
+				}); 
 
 				Logger.LogVerbose("[DownloadProgressWindow] Cooperative cancellation initiated - downloads will stop gracefully");
 			}
@@ -473,11 +473,11 @@ namespace KOTORModSync
 
 		protected override void OnClosing(WindowClosingEventArgs e)
 		{
-			// If downloads are still in progress, ask for confirmation
+			
 			if ( !_isCompleted && _allDownloadItems.Any(x => x.Status == DownloadStatus.InProgress || x.Status == DownloadStatus.Pending) )
 			{
-				// In a real implementation, you'd show a confirmation dialog here
-				// For now, we'll just cancel the downloads
+				
+				
 				_cancellationTokenSource?.Cancel();
 			}
 
@@ -489,7 +489,7 @@ namespace KOTORModSync
 			if ( e.PropertyName == nameof(DownloadProgress.ErrorMessage) && sender is DownloadProgress progress )
 				Dispatcher.UIThread.Post(() => UpdateErrorMessageWithLinks(progress));
 
-			// Only reorganize when status changes (sorting is handled by InsertSorted in CategorizeDownload)
+			
 			if ( e.PropertyName == nameof(DownloadProgress.Status) && sender is DownloadProgress progressItem )
 				Dispatcher.UIThread.Post(() => CategorizeDownload(progressItem));
 		}
@@ -499,7 +499,7 @@ namespace KOTORModSync
 			if ( string.IsNullOrEmpty(progress.ErrorMessage) )
 				return;
 
-			// Find the appropriate ItemsControl based on download status
+			
 			ItemsControl itemsControl = null;
 			if ( progress.Status == DownloadStatus.InProgress )
 				itemsControl = this.FindControl<ItemsControl>("ActiveDownloadsControl");
@@ -508,19 +508,19 @@ namespace KOTORModSync
 			else
 				itemsControl = this.FindControl<ItemsControl>("CompletedDownloadsControl");
 
-			// Find the container for this specific progress item
+			
 			Control container = itemsControl?.ContainerFromItem(progress);
 			if ( container == null )
 				return;
 
-			// Find the TextBlock named ErrorMessageBlock within this container
+			
 			System.Collections.Generic.IEnumerable<TextBlock> allTextBlocks = container.GetVisualDescendants().OfType<TextBlock>();
 			TextBlock textBlock = allTextBlocks.FirstOrDefault(tb => tb.Name == "ErrorMessageBlock");
 
 			if ( textBlock == null )
 				return;
 
-			// Parse the error message and create inlines with clickable links
+			
 			textBlock.Inlines = ParseTextWithUrls(progress.ErrorMessage);
 		}
 
@@ -528,21 +528,21 @@ namespace KOTORModSync
 		{
 			var inlines = new InlineCollection();
 
-			// Regex to match URLs
+			
 			string urlPattern = @"(https?://[^\s<>""{}|\\^`\[\]]+)";
 			var regex = new Regex(urlPattern, RegexOptions.IgnoreCase);
 
 			int lastIndex = 0;
 			foreach ( Match match in regex.Matches(text) )
 			{
-				// Add text before the URL
+				
 				if ( match.Index > lastIndex )
 				{
 					string beforeText = text.Substring(lastIndex, match.Index - lastIndex);
 					inlines.Add(new Run(beforeText));
 				}
 
-				// Add the URL as a clickable button using InlineUIContainer
+				
 				string url = match.Value;
 				var button = new Button
 				{
@@ -557,10 +557,10 @@ namespace KOTORModSync
 					FontSize = 13
 				};
 
-				// Add underline style
+				
 				button.Classes.Add("link-button");
 
-				// Attach click handler
+				
 				button.Click += (sender, e) =>
 				{
 					try
@@ -574,20 +574,20 @@ namespace KOTORModSync
 					}
 				};
 
-				// Wrap button in InlineUIContainer
+				
 				inlines.Add(new InlineUIContainer { Child = button });
 
 				lastIndex = match.Index + match.Length;
 			}
 
-			// Add remaining text after the last URL
+			
 			if ( lastIndex < text.Length )
 			{
 				string afterText = text.Substring(lastIndex);
 				inlines.Add(new Run(afterText));
 			}
 
-			// If no URLs were found, just add the whole text
+			
 			if ( inlines.Count == 0 )
 				inlines.Add(new Run(text));
 
@@ -657,7 +657,7 @@ namespace KOTORModSync
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			// Don't start window drag if clicking on interactive controls
+			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -670,17 +670,17 @@ namespace KOTORModSync
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			// Get the element under the pointer
+			
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			// Walk up the visual tree to check if we're clicking on an interactive element
+			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch ( current )
 				{
-					// Check if we're clicking on any interactive control
+					
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -693,7 +693,7 @@ namespace KOTORModSync
 					case TabItem _:
 					case ProgressBar _:
 					case ScrollViewer _:
-					// Check if the element has context menu or flyout open
+					
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

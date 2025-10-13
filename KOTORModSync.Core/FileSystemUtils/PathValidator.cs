@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.IO;
@@ -12,25 +12,25 @@ namespace KOTORModSync.Core.FileSystemUtils
 {
 	public static class PathValidator
 	{
-		// Characters not allowed in Windows file and directory names
-		// we don't check colon or any slashes here, because we aren't validating file/folder names, only a full path string.
+		
+		
 		private static readonly char[] s_invalidPathCharsWindows =
 		{
 			'\0', '\a', '\b', '\t', '\n', '\v', '\f', '\r', '"', '*', '<', '>', '?',
 		};
 
 
-		// Characters not allowed in Unix file and directory names
+		
 		private static readonly char[] s_invalidPathCharsUnix = { '\0' };
 
-		// Reserved file names in Windows
+		
 		private static readonly string[] s_reservedFileNamesWindows =
 		{
 			"CON", "PRN", "AUX", "NUL", "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
 			"COM9", "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 		};
 
-		// Checks if the path is valid on running platform, or optionally (default) enforce for all platforms.
+		
 		public static bool IsValidPath(
 			[CanBeNull] string path,
 			bool enforceAllPlatforms = true,
@@ -48,12 +48,12 @@ namespace KOTORModSync.Core.FileSystemUtils
 				if ( HasRepeatedSlashes(path) )
 					return false;
 
-				// Check for forbidden os-specific ASCII characters
+				
 				char[] invalidChars = enforceAllPlatforms
-					? s_invalidPathCharsWindows // already contains the unix ones
+					? s_invalidPathCharsWindows 
 					: GetInvalidCharsForPlatform();
 
-				// should we ignore wildcards?
+				
 				invalidChars = ignoreWildcards
 					? invalidChars.Where(c => c != '*' && c != '?').ToArray()
 					: invalidChars;
@@ -61,12 +61,12 @@ namespace KOTORModSync.Core.FileSystemUtils
 				if ( path.IndexOfAny(invalidChars) >= 0 )
 					return false;
 
-				// Check for non-printable characters
+				
 				if ( ContainsNonPrintableChars(path) )
 					return false;
 
-				// Check for reserved file names in Windows
-				// ReSharper disable once InvertIf
+				
+				
 				if ( enforceAllPlatforms || Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
 				{
 					if ( HasColonOutsideOfPathRoot(path) )
@@ -75,8 +75,8 @@ namespace KOTORModSync.Core.FileSystemUtils
 					if ( IsReservedFileNameWindows(path) )
 						return false;
 
-					// Check for invalid filename parts
-					// ReSharper disable once ConvertIfStatementToReturnStatement
+					
+					
 					if ( HasInvalidWindowsFileNameParts(path) )
 						return false;
 				}
@@ -101,7 +101,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				if ( !parts[i].Contains(":") )
 					continue;
 
-				return true; // Found a colon in a non-root part
+				return true; 
 			}
 
 			return false;
@@ -132,7 +132,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 			(input?.Contains('/') ?? false) && input.Contains('\\');
 
 
-		// This method checks whether any character's ascii code in the path is less than a space (ASCII code 32).
+		
 		public static bool ContainsNonPrintableChars([CanBeNull] string path) => path?.Any(c => c < ' ') ?? false;
 
 
@@ -163,11 +163,11 @@ namespace KOTORModSync.Core.FileSystemUtils
 			);
 			foreach ( string part in pathParts )
 			{
-				// Check for a filename ending with a period or space
+				
 				if ( part.EndsWith(" ") || part.EndsWith(".") )
 					return true;
 
-				// Check for consecutive periods in the filename
+				
 				for ( int i = 0; i < part.Length - 1; i++ )
 				{
 					if ( part[i] == '.' && part[i + 1] == '.' )

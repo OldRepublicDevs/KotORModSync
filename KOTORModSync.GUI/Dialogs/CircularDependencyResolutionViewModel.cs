@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -45,15 +45,15 @@ namespace KOTORModSync.Dialogs
 			Suggestions = new ObservableCollection<SuggestionItem>();
 			ApplySuggestionCommand = new RelayCommand(ApplySuggestion);
 
-			// Build summary
+			
 			int cycleCount = cycleInfo.Cycles.Count;
 			SummaryText = $"Found {cycleCount} circular dependency cycle{(cycleCount > 1 ? "s" : "")} that prevent installation. " +
 						  "These components have conflicting dependencies that cannot be automatically resolved.";
 
-			// Build detailed cycle info
+			
 			DetailedCycleInfo = cycleInfo.DetailedErrorMessage;
 
-			// Get components involved in cycles
+			
 			var componentsInCycles = new HashSet<Guid>();
 			foreach ( List<Guid> cycle in cycleInfo.Cycles )
 			{
@@ -63,7 +63,7 @@ namespace KOTORModSync.Dialogs
 				}
 			}
 
-			// Build component items
+			
 			foreach ( ModComponent component in components )
 			{
 				bool isInCycle = componentsInCycles.Contains(component.Guid);
@@ -72,7 +72,7 @@ namespace KOTORModSync.Dialogs
 				Components.Add(item);
 			}
 
-			// Build suggestions
+			
 			List<ModComponent> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
 			foreach ( ModComponent suggestion in suggestedComponents )
 			{
@@ -167,7 +167,7 @@ namespace KOTORModSync.Dialogs
 			if ( isInCycle )
 			{
 				CycleInfo = "⚠️ Involved in circular dependency";
-				CycleInfoColor = new SolidColorBrush(Color.FromRgb(255, 193, 7)); // Warning yellow
+				CycleInfoColor = new SolidColorBrush(Color.FromRgb(255, 193, 7)); 
 				StatusIcon = "⚠️";
 				StatusTooltip = "This component is involved in a circular dependency. Consider unchecking it.";
 				BackgroundBrush = new SolidColorBrush(Color.FromArgb(30, 255, 193, 7));

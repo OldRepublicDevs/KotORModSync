@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -14,17 +14,17 @@ using SharpCompress.Archives;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Service for handling file operations and validation
-	/// </summary>
+	
+	
+	
 	public class FileOperationService
 	{
 
-		/// <summary>
-		/// Fixes iOS case sensitivity by lowercasing all files and folders
-		/// </summary>
-		/// <param name="folderPath">Path to fix case sensitivity for</param>
-		/// <returns>Number of files/folders renamed</returns>
+		
+		
+		
+		
+		
 		public static async Task<int> FixIOSCaseSensitivityAsync([NotNull] string folderPath)
 		{
 			if ( string.IsNullOrEmpty(folderPath) )
@@ -45,7 +45,7 @@ namespace KOTORModSync.Core.Services
 			try
 			{
 				int numObjectsRenamed = 0;
-				// Process all files in the current directory
+				
 				foreach ( FileInfo file in gameDirectory.GetFilesSafely() )
 				{
 					string lowercaseName = file.Name.ToLowerInvariant();
@@ -62,7 +62,7 @@ namespace KOTORModSync.Core.Services
 					}
 				}
 
-				// Recursively process all subdirectories
+				
 				foreach ( DirectoryInfo directory in gameDirectory.GetDirectoriesSafely() )
 				{
 					string lowercaseName = directory.Name.ToLowerInvariant();
@@ -76,12 +76,12 @@ namespace KOTORModSync.Core.Services
 						await Logger.LogAsync($"Rename folder '{directory.FullName}' -> '{lowercasePath}'");
 						Directory.Move(directory.FullName, lowercasePath);
 						numObjectsRenamed++;
-						// Recurse into the subdirectory
+						
 						numObjectsRenamed += await FixIOSCaseSensitivityCoreAsync(new DirectoryInfo(lowercasePath));
 					}
 					else
 					{
-						// Directory name is already lowercase, just recurse
+						
 						await Logger.LogAsync($"Recursing into folder '{directory.FullName}'...");
 						numObjectsRenamed += await FixIOSCaseSensitivityCoreAsync(directory);
 					}

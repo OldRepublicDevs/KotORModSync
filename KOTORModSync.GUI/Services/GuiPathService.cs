@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -16,9 +16,9 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for path and directory management operations in the GUI
-	/// </summary>
+	
+	
+	
 	public class GuiPathService
 	{
 		private readonly MainConfig _mainConfig;
@@ -30,9 +30,9 @@ namespace KOTORModSync.Services
 			_fileSystemService = fileSystemService;
 		}
 
-		/// <summary>
-		/// Attempts to apply a source path to the MainConfig
-		/// </summary>
+		
+		
+		
 		public bool TryApplySourcePath(string text, Action<string> onPathSet = null)
 		{
 			try
@@ -43,7 +43,7 @@ namespace KOTORModSync.Services
 
 			_mainConfig.sourcePath = new DirectoryInfo(p);
 
-			// Setup file watcher when source path changes
+			
 			Action callback = onPathSet != null ? (Action)(() => onPathSet(p)) : null;
 			_fileSystemService.SetupModDirectoryWatcher(p, callback);
 
@@ -56,9 +56,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Attempts to apply a destination (install) path to the MainConfig
-		/// </summary>
+		
+		
+		
 		public bool TryApplyDestinationPath(string text)
 		{
 			try
@@ -77,9 +77,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Updates path suggestions for autocomplete
-		/// </summary>
+		
+		
+		
 		public static void UpdatePathSuggestions(TextBox input, ComboBox combo, ref CancellationTokenSource cts)
 		{
 			try
@@ -96,7 +96,7 @@ namespace KOTORModSync.Services
 
 					if ( string.IsNullOrWhiteSpace(expanded) )
 					{
-						// Return default paths based on input type
+						
 						if ( input.Name == "ModPathInput" )
 							return PathUtilities.GetDefaultPathsForMods().ToList();
 						if ( input.Name == "InstallPathInput" )
@@ -107,7 +107,7 @@ namespace KOTORModSync.Services
 					string normalized = expanded;
 					bool endsWithSep = normalized.EndsWith(Path.DirectorySeparatorChar.ToString());
 
-					// Handle root directory case
+					
 					bool isRootDir = IsRootDirectory(normalized);
 					if ( isRootDir )
 					{
@@ -163,9 +163,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Adds a path to recent mod directories
-		/// </summary>
+		
+		
+		
 		public static async Task AddToRecentModsAsync(string path)
 		{
 			try
@@ -178,13 +178,13 @@ namespace KOTORModSync.Services
 				string file = Path.Combine(folder, "recent_mod_dirs.txt");
 				_ = Directory.CreateDirectory(folder);
 
-				// Load existing entries
+				
 				List<string> existing = await LoadRecentModDirectoriesAsync(file);
 
-				// Add the new path
+				
 				AddToRecentDirectories(path, existing, maxCount: 20);
 
-				// Save to file
+				
 				await SaveRecentModDirectoriesAsync(existing, file);
 			}
 			catch ( Exception ex )
@@ -193,9 +193,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Loads recent mod directories from file
-		/// </summary>
+		
+		
+		
 		public static async Task<List<string>> LoadRecentModDirectoriesAsync(string filePath)
 		{
 			var result = new List<string>();
@@ -205,7 +205,7 @@ namespace KOTORModSync.Services
 				if ( !File.Exists(filePath) )
 					return result;
 
-				// Use synchronous File.ReadAllLines for compatibility with .NET Framework
+				
 				string[] lines = await Task.Run(() => File.ReadAllLines(filePath));
 				result.AddRange(lines.Where(line => !string.IsNullOrWhiteSpace(line) && Directory.Exists(line)));
 			}
@@ -217,14 +217,14 @@ namespace KOTORModSync.Services
 			return result;
 		}
 
-		/// <summary>
-		/// Saves recent mod directories to file
-		/// </summary>
+		
+		
+		
 		public static async Task SaveRecentModDirectoriesAsync(List<string> directories, string filePath)
 		{
 			try
 			{
-				// Use synchronous File.WriteAllLines for compatibility with .NET Framework
+				
 				await Task.Run(() => File.WriteAllLines(filePath, directories));
 			}
 			catch ( Exception ex )
@@ -233,18 +233,18 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Adds a directory to the recent list
-		/// </summary>
+		
+		
+		
 		public static void AddToRecentDirectories(string path, List<string> existing, int maxCount = 20)
 		{
-			// Remove if already exists to avoid duplicates
+			
 			_ = existing.Remove(path);
 
-			// Add to the beginning
+			
 			existing.Insert(0, path);
 
-			// Keep only the first maxCount items
+			
 			if ( existing.Count > maxCount )
 			{
 				existing.RemoveRange(maxCount, existing.Count - maxCount);
@@ -257,7 +257,7 @@ namespace KOTORModSync.Services
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				// Check if this is a drive root (e.g., "C:\")
+				
 				if ( normalized.Length >= 2 && normalized[1] == ':' &&
 					(normalized.Length == 2 || (normalized.Length == 3 && normalized[2] == Path.DirectorySeparatorChar)) )
 				{
@@ -266,7 +266,7 @@ namespace KOTORModSync.Services
 			}
 			else
 			{
-				// For Unix systems, check if this is the root directory
+				
 				if ( normalized == "/" || normalized.EndsWith(":/") )
 					return true;
 			}
@@ -300,12 +300,12 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				// If this is the mod directory combo, preserve recent paths
+				
 				if ( combo.Name == "ModPathSuggestions" && combo.ItemsSource is IEnumerable<string> existingItems )
 				{
 					var resultsToShow = newResults.ToList();
 
-					// Add any existing items that aren't already in the results
+					
 					foreach ( string item in existingItems )
 					{
 						if ( !resultsToShow.Contains(item) && Directory.Exists(item) )
@@ -323,7 +323,7 @@ namespace KOTORModSync.Services
 						combo.ItemsSource = newResults;
 				}
 
-				// Only auto-open when the corresponding TextBox has focus
+				
 				if ( newResults.Count > 0 && input.IsKeyboardFocusWithin )
 					combo.IsDropDownOpen = true;
 			}

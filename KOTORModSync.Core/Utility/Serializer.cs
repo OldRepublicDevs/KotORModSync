@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections;
@@ -13,7 +13,7 @@ using KOTORModSync.Core.FileSystemUtils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-// ReSharper disable UnusedMember.Global
+
 namespace KOTORModSync.Core.Utility
 {
 	public static class Serializer
@@ -23,7 +23,7 @@ namespace KOTORModSync.Core.Utility
 			if ( !(numberObj is int number) )
 				throw new ArgumentException(message: "Not a valid number", nameof(numberObj));
 
-			// Negative numbers have the same ordinal suffix as their positive counterpart
+			
 			if ( number < 0 )
 				return "-" + ToOrdinal(-number);
 
@@ -32,13 +32,13 @@ namespace KOTORModSync.Core.Utility
 
 			switch ( lastTwoDigits )
 			{
-				// Handle special cases for numbers ending in 11, 12, or 13
+				
 				case 11:
 				case 12:
 				case 13:
 					return number + "th";
 				default:
-					// Determine the suffix for numbers ending in 1, 2, or 3, otherwise use "th"
+					
 					switch ( lastDigit )
 					{
 						case 1:
@@ -59,24 +59,24 @@ namespace KOTORModSync.Core.Utility
 			if ( string.IsNullOrWhiteSpace(guidString) )
 				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(guidString));
 
-			// Remove any whitespace characters
+			
 			guidString = Regex.Replace(guidString, pattern: @"\s", replacement: "");
 
-			// Remove all non-base16 characters.
+			
 			guidString = Regex.Replace(guidString, pattern: "[^0-9A-Fa-f]", replacement: "");
 
-			// not even close to a guid.
+			
 			if ( guidString.Length != 32 )
 				return Guid.Empty.ToString();
 
-			// Insert necessary dashes between the GUID sections
+			
 			guidString = Regex.Replace(
 				guidString,
 				pattern: @"(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})",
 				replacement: "$1-$2-$3-$4-$5"
 			);
 
-			// Attempt to fix common issues with GUID strings
+			
 			if ( !guidString.StartsWith(value: "{", StringComparison.Ordinal) )
 			{
 				guidString = "{" + guidString;
@@ -87,7 +87,7 @@ namespace KOTORModSync.Core.Utility
 			return guidString;
 		}
 
-		// converts accidental lists into strings and vice versa
+		
 		public static void DeserializePathInDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
 		{
 			if ( dict.Count == 0 )
@@ -123,7 +123,7 @@ namespace KOTORModSync.Core.Utility
 			}
 		}
 
-		// converts accidental lists into strings and vice versa
+		
 		public static void DeserializeGuidDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
 		{
 			if ( !dict.TryGetValue(key, out object value) )
@@ -133,25 +133,25 @@ namespace KOTORModSync.Core.Utility
 			{
 				case string stringValue:
 					{
-						// Convert the string to a list of strings
+						
 						var stringList = new List<string>
 						{
 							stringValue,
 						};
 
-						// Replace the string value with the list
+						
 						dict[key] = stringList;
 
-						// Fix GUID strings in each list item
+						
 						for ( int i = 0; i < stringList.Count; i++ )
 						{
 							if ( Guid.TryParse(stringList[i], out Guid guid) )
 								continue;
 
-							// Attempt to fix common issues with GUID strings
+							
 							string fixedGuid = FixGuidString(guid.ToString());
 
-							// Update the list item with the fixed GUID string
+							
 							stringList[i] = fixedGuid;
 						}
 
@@ -159,16 +159,16 @@ namespace KOTORModSync.Core.Utility
 					}
 				case List<string> stringList:
 					{
-						// Fix GUID strings in each list item
+						
 						for ( int i = 0; i < stringList.Count; i++ )
 						{
 							if ( Guid.TryParse(stringList[i], out Guid guid) )
 								continue;
 
-							// Attempt to fix common issues with GUID strings
+							
 							string fixedGuid = FixGuidString(guid.ToString());
 
-							// Update the list item with the fixed GUID string
+							
 							stringList[i] = fixedGuid;
 						}
 
@@ -266,7 +266,7 @@ namespace KOTORModSync.Core.Utility
 		[CanBeNull]
 		public static List<object> SerializeIntoList([CanBeNull] object obj)
 		{
-			// Use Newtonsoft.Json for serialization and deserialization
+			
 			string jsonString = JsonConvert.SerializeObject(obj);
 			return JsonConvert.DeserializeObject<List<object>>(jsonString);
 		}

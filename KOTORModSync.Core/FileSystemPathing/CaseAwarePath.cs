@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		public CaseAwarePath(params string[] args) :
 			this((object[])args)
-		{ } // Call the more general constructor directly
+		{ } 
 
 		public CaseAwarePath(params object[] args)
 		{
@@ -48,9 +48,9 @@ namespace KOTORModSync.Core.FileSystemUtils
 			Root = Path.GetPathRoot(_str);
 			Stem = Path.GetFileNameWithoutExtension(_str);
 			Suffix = Path.GetExtension(_str);
-			//Drive
-			//Anchor
-			//Parents
+			
+			
+			
 		}
 
 
@@ -88,7 +88,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			var paths = args.Select(ConvertObjectToPath).ToList();
 
-			// If the base path (_str) is not rooted, simply combine all and return.
+			
 			if ( !Path.IsPathRooted(_str) )
 			{
 				return new CaseAwarePath(
@@ -96,22 +96,22 @@ namespace KOTORModSync.Core.FileSystemUtils
 				);
 			}
 
-			string accumulatedPath = _str; // Start with the current instance path.
+			string accumulatedPath = _str; 
 
 			foreach ( string currentPath in paths )
 			{
-				// If path is rooted and contains the accumulated path hierarchy, intelligently combine.
+				
 				if ( Path.IsPathRooted(currentPath)
 					&& currentPath.StartsWith(accumulatedPath, StringComparison.OrdinalIgnoreCase) )
 				{
-					accumulatedPath = currentPath; // Take the most detailed path.
+					accumulatedPath = currentPath; 
 				}
 				else
 				{
 					accumulatedPath = Path.Combine(
 						accumulatedPath,
 						currentPath
-					); // Append both non-rooted paths and rooted ones that don't fit the accumulated hierarchy.
+					); 
 				}
 			}
 

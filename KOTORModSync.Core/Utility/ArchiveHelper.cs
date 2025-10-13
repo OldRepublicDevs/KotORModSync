@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -72,7 +72,7 @@ namespace KOTORModSync.Core.Utility
 			}
 		}
 
-		//todo: Check() seems to return true on all files regardless of content?
+		
 		public static bool IsValidArchive([CanBeNull] string filePath)
 		{
 			if ( filePath is null || !File.Exists(filePath) )
@@ -80,11 +80,11 @@ namespace KOTORModSync.Core.Utility
 
 			try
 			{
-				SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll")); // Path to 7z.dll
+				SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll")); 
 				bool valid;
 				using ( var extractor = new SevenZipExtractor(filePath) )
 				{
-					// The Check() method throws an exception if the archive is invalid.
+					
 					valid = extractor.Check();
 				}
 
@@ -94,19 +94,19 @@ namespace KOTORModSync.Core.Utility
 			}
 			catch ( Exception )
 			{
-				// Here we catch the exception if it's not a valid archive.
-				// We'll then check if it's an SFX.
+				
+				
 				return IsPotentialSevenZipSFX(filePath);
 			}
 		}
 
 		public static bool IsPotentialSevenZipSFX([NotNull] string filePath)
 		{
-			// These bytes represent a typical signature for Windows executables. 
+			
 			byte[] sfxSignature =
 			{
 				0x4D, 0x5A,
-			}; // 'MZ' header
+			}; 
 
 			byte[] fileHeader = new byte[sfxSignature.Length];
 
@@ -133,16 +133,16 @@ namespace KOTORModSync.Core.Utility
 					string fileName = Path.GetFileName(reader.Entry.Key);
 					string directory = Path.GetDirectoryName(reader.Entry.Key);
 
-					// Check for exe file
+					
 					if ( fileName.EndsWith(value: ".exe", StringComparison.OrdinalIgnoreCase) )
 					{
 						if ( exePath != null )
-							return null;  // Multiple exe files found in the archive.
+							return null;  
 
 						exePath = reader.Entry.Key;
 					}
 
-					// Check for 'tslpatchdata' folder
+					
 					if ( !(directory is null) && directory.Contains("tslpatchdata") )
 					{
 						tslPatchDataFolderExists = true;
@@ -153,7 +153,7 @@ namespace KOTORModSync.Core.Utility
 			if (
 				exePath != null
 				&& tslPatchDataFolderExists
-				// ReSharper disable once PossibleNullReferenceException
+				
 				&& Path.GetDirectoryName(exePath).Contains("tslpatchdata")
 			)
 			{
@@ -168,7 +168,7 @@ namespace KOTORModSync.Core.Utility
 			if ( !(Utility.GetOperatingSystem() == OSPlatform.Windows) )
 				throw new NotImplementedException("Non-windows OS's are not currently supported");
 
-			SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll")); // Path to 7z.dll
+			SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll")); 
 			var extractor = new SevenZipExtractor(stream);
 			extractor.ExtractArchive(destinationDirectory);
 		}
@@ -255,17 +255,6 @@ namespace KOTORModSync.Core.Utility
 					(root["Contents"] as List<object>)?.Add(fileInfo);
 				}
 
-				/*foreach (DirectoryInfo subdirectory in directory.EnumerateDirectoriesSafely())
-                {
-                    var subdirectoryInfo = new Dictionary<string, object>
-                    {
-                        { "Name", subdirectory.Name },
-                        { "Type", "directory" },
-                        { "Contents", GenerateArchiveTreeJson(subdirectory) }
-                    };
-
-                    (root["Contents"] as List<object>).Add(subdirectoryInfo);
-                }*/
 			}
 			catch ( Exception ex )
 			{
@@ -298,8 +287,8 @@ namespace KOTORModSync.Core.Utility
 					from entry in archive.Entries.Where(e => !e.IsDirectory)
 					let pathParts = entry.Key.Split(
 						archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase)
-							? '\\' // Use backslash as separator for RAR files
-							: '/'  // Use forward slash for other archive types
+							? '\\' 
+							: '/'  
 					)
 					select new ModDirectory.ArchiveEntry
 					{

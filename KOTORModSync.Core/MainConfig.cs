@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -13,9 +13,9 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core
 {
-	// there should only ever be one MainConfig instance created at any one time.
-	// instance has GET and SET access.
-	// Everyone else has readonly GET access.
+	
+	
+	
 	[SuppressMessage(
 		category: "Performance",
 		checkId: "CA1822:Mark members as static",
@@ -141,7 +141,7 @@ namespace KOTORModSync.Core
 
 		[CanBeNull] public string destinationPathFullName => DestinationPath?.FullName;
 
-		// used for the ui.
+		
 		public event PropertyChangedEventHandler PropertyChanged;
 
 		private void OnPropertyChanged([CallerMemberName][CanBeNull] string propertyName = null) =>

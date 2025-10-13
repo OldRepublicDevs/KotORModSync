@@ -1,20 +1,20 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using KOTORModSync.Core;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for managing instructions and options (CRUD operations)
-	/// </summary>
+	
+	
+	
 	public class InstructionManagementService
 	{
-		/// <summary>
-		/// Creates a new instruction at the specified index
-		/// </summary>
+		
+		
+		
 		public static void CreateInstruction(ModComponent component, int index)
 		{
 			if ( component == null )
@@ -31,9 +31,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Deletes an instruction at the specified index
-		/// </summary>
+		
+		
+		
 		public static void DeleteInstruction(ModComponent component, int index)
 		{
 			if ( component == null )
@@ -50,9 +50,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Moves an instruction to a new index
-		/// </summary>
+		
+		
+		
 		public static void MoveInstruction(ModComponent component, Instruction instruction, int newIndex)
 		{
 			if ( component == null )
@@ -71,9 +71,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Creates a new option at the specified index
-		/// </summary>
+		
+		
+		
 		public static void CreateOption(ModComponent component, int index)
 		{
 			if ( component == null )
@@ -90,9 +90,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Deletes an option at the specified index
-		/// </summary>
+		
+		
+		
 		public static void DeleteOption(ModComponent component, int index)
 		{
 			if ( component == null )
@@ -109,9 +109,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Moves an option to a new index
-		/// </summary>
+		
+		
+		
 		public static void MoveOption(ModComponent component, Option option, int newIndex)
 		{
 			if ( component == null )

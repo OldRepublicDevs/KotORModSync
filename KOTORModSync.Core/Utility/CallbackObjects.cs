@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -33,13 +33,13 @@ namespace KOTORModSync.Core.Utility
 
 		public interface IOptionsDialogCallback
 		{
-			// ReSharper disable once UnusedMemberInSuper.Global
+			
 			Task<string> ShowOptionsDialog(List<string> options);
 		}
 
 		public interface IInformationDialogCallback
 		{
-			// ReSharper disable once UnusedMemberInSuper.Global
+			
 			Task ShowInformationDialog(string message);
 		}
 	}

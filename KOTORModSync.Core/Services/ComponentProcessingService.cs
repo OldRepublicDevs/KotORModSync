@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -11,14 +11,14 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Service for processing components and managing their state.
-	/// </summary>
+	
+	
+	
 	public static class ComponentProcessingService
 	{
-	/// <summary>
-	/// Attempts to auto-generate instructions for modcomponents without any.
-	/// </summary>
+	
+	
+	
 	public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 	{
 		if ( components == null || components.Count == 0 )
@@ -26,7 +26,7 @@ namespace KOTORModSync.Core.Services
 
 		try
 		{
-			// ONLY process local archives - no downloads
+			
 			return await TryGenerateFromLocalArchivesAsync(components);
 		}
 		catch ( Exception ex )
@@ -36,25 +36,25 @@ namespace KOTORModSync.Core.Services
 		}
 	}
 
-	/// <summary>
-	/// Tries to generate instructions from archives already in the local mod directory.
-	/// </summary>
+	
+	
+	
 	public static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
 		{
 			int generatedCount = 0;
 
 			foreach ( ModComponent component in components )
 			{
-				// Process ALL components, even if they already have instructions
-				// TryGenerateInstructionsFromArchive will handle avoiding duplicates internally
+				
+				
 				int initialInstructionCount = component.Instructions.Count;
 
-				// Try to generate instructions from local archives
+				
 				bool success = component.TryGenerateInstructionsFromArchive();
 				if ( !success )
 					continue;
 
-				// Check if new instructions were added
+				
 				if ( component.Instructions.Count > initialInstructionCount )
 				{
 					generatedCount++;
@@ -68,12 +68,12 @@ namespace KOTORModSync.Core.Services
 
 			return generatedCount;
 		}
-		/// <summary>
-		/// Processes a list of components and determines their processing state.
-		/// </summary>
-		/// <param name="componentsList">The list of components to process.</param>
-		/// <returns>A result containing the processing state and any reordered components.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when componentsList is null.</exception>
+		
+		
+		
+		
+		
+		
 		public static async Task<ComponentProcessingResult> ProcessComponentsAsync([NotNull][ItemNotNull] List<ModComponent> componentsList)
 		{
 			if ( componentsList == null )
@@ -90,7 +90,7 @@ namespace KOTORModSync.Core.Services
 					};
 				}
 
-				// Check for circular dependencies and reorder if needed
+				
 				try
 				{
 					(bool isCorrectOrder, List<ModComponent> reorderedList) =
@@ -141,14 +141,14 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Validates that a component can be moved to a new position.
-		/// </summary>
-		/// <param name="component">The component to move.</param>
-		/// <param name="components">The list of components.</param>
-		/// <param name="relativeIndex">The relative index to move to.</param>
-		/// <returns>True if the move is valid, false otherwise.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when component or components is null.</exception>
+		
+		
+		
+		
+		
+		
+		
+		
 		public static bool CanMoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
 			if ( component == null )
@@ -163,14 +163,14 @@ namespace KOTORModSync.Core.Services
 				   index + relativeIndex >= 0;
 		}
 
-		/// <summary>
-		/// Moves a component to a new position in the list.
-		/// </summary>
-		/// <param name="component">The component to move.</param>
-		/// <param name="components">The list of components.</param>
-		/// <param name="relativeIndex">The relative index to move to.</param>
-		/// <returns>True if the move was successful, false otherwise.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when component or components is null.</exception>
+		
+		
+		
+		
+		
+		
+		
+		
 		public static bool MoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
 			if ( component == null )
@@ -188,47 +188,47 @@ namespace KOTORModSync.Core.Services
 		}
 	}
 
-	/// <summary>
-	/// Result of component processing operations.
-	/// </summary>
-	/// <summary>
-	/// Result of component processing operation
-	/// </summary>
+	
+	
+	
+	
+	
+	
 	public class ComponentProcessingResult
 	{
-		/// <summary>
-		/// Gets or sets whether the component list is empty.
-		/// </summary>
+		
+		
+		
 		public bool IsEmpty { get; set; }
 
-		/// <summary>
-		/// Gets or sets whether the processing was successful.
-		/// </summary>
+		
+		
+		
 		public bool Success { get; set; }
 
-		/// <summary>
-		/// Gets or sets the processed components.
-		/// </summary>
+		
+		
+		
 		public List<ModComponent> Components { get; set; }
 
-		/// <summary>
-		/// Gets or sets the reordered components (if reordering was needed).
-		/// </summary>
+		
+		
+		
 		public List<ModComponent> ReorderedComponents { get; set; }
 
-		/// <summary>
-		/// Gets or sets whether the components needed reordering.
-		/// </summary>
+		
+		
+		
 		public bool NeedsReordering { get; set; }
 
-		/// <summary>
-		/// Gets or sets whether there are circular dependencies.
-		/// </summary>
+		
+		
+		
 		public bool HasCircularDependencies { get; set; }
 
-		/// <summary>
-		/// Gets or sets any exception that occurred during processing.
-		/// </summary>
+		
+		
+		
 		public Exception Exception { get; set; }
 	}
 }

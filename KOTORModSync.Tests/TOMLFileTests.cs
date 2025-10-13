@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.Text;
 using KOTORModSync.Core;
@@ -16,24 +16,24 @@ namespace KOTORModSync.Tests
 		[SetUp]
 		public void SetUp()
 		{
-			// Create a temporary file for testing
+			
 			_filePath = Path.GetTempFileName();
 
-			// Write example TOMLIN content to the file
+			
 			File.WriteAllText(_filePath, _exampleToml);
 		}
 
 		[TearDown]
 		public void TearDown()
 		{
-			// Delete the temporary file
+			
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
 			File.Delete(_filePath);
 		}
 
 		private string _filePath = string.Empty;
 
-		// ReSharper disable once ConvertToConstant.Local
+		
 		private readonly string _exampleToml = @"[[thisMod]]
 name = ""Ultimate Dantooine""
 guid = ""{B3525945-BDBD-45D8-A324-AAF328A5E13E}""
@@ -81,27 +81,27 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void SaveAndLoadTOMLFile_MatchingComponents()
 		{
-			// Read the original TOMLIN file contents
+			
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " is null");
 			string tomlContents = File.ReadAllText(_filePath);
 
-			// Fix whitespace issues
+			
 			tomlContents = Serializer.FixWhitespaceIssues(tomlContents);
 
-			// Save the modified TOMLIN file
+			
 			string modifiedFilePath = Path.GetTempFileName();
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
-			// Arrange
+			
 			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
 
-			// Act
+			
 			ModComponent.OutputConfigFile(originalComponents, modifiedFilePath);
 
-			// Reload the modified TOMLIN file
+			
 			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
 
-			// Assert
+			
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
@@ -116,20 +116,20 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void SaveAndLoad_DefaultComponent()
 		{
-			// Deserialize default component
+			
 			ModComponent newComponent = ModComponent.DeserializeTomlComponent(_exampleToml)
 				?? throw new InvalidOperationException();
 			newComponent.Guid = Guid.NewGuid();
 			newComponent.Name = "test_mod_" + Path.GetRandomFileName();
 
-			// Serialize
+			
 			string tomlString = newComponent.SerializeComponent();
 
-			// Deserialize into new instance
+			
 			ModComponent duplicateComponent = ModComponent.DeserializeTomlComponent(tomlString)
 				?? throw new InvalidOperationException();
 
-			// Compare
+			
 			AssertComponentEquality(newComponent, duplicateComponent);
 		}
 
@@ -137,23 +137,23 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Ignore("not sure if I want to support")]
 		public void SaveAndLoadTOMLFile_CaseInsensitive()
 		{
-			// Arrange
+			
 			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
-			// Modify the TOML file contents
+			
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
 			string tomlContents = File.ReadAllText(_filePath);
 
-			// Convert field names and values to mixed case
+			
 			tomlContents = ConvertFieldNamesAndValuesToMixedCase(tomlContents);
 
-			// Act
+			
 			string modifiedFilePath = Path.GetTempFileName();
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
 			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
 
-			// Assert
+			
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
@@ -168,24 +168,24 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void SaveAndLoadTOMLFile_WhitespaceTests()
 		{
-			// Arrange
+			
 			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
-			// Modify the TOMLIN file contents
+			
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
 			string tomlContents = File.ReadAllText(_filePath);
 
-			// Add mixed line endings and extra whitespaces
+			
 			tomlContents = "    \r\n\t   \r\n\r\n\r\n" + tomlContents + "    \r\n\t   \r\n\r\n\r\n";
 
-			// Save the modified TOMLIN file
+			
 			string modifiedFilePath = Path.GetTempFileName();
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
-			// Act
+			
 			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
 
-			// Assert
+			
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
@@ -202,7 +202,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 			var convertedContents = new StringBuilder();
 			var random = new Random();
 
-			bool isFieldName = true; // Flag to determine if the current item is a field name or field value
+			bool isFieldName = true; 
 
 			foreach ( char c in tomlContents )
 			{
@@ -212,28 +212,28 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				{
 					if ( char.IsLetter(c) )
 					{
-						// Convert field name character to mixed case
+						
 						convertedChar = random.Next(2) == 0
 							? char.ToUpper(c)
 							: char.ToLower(c);
 					}
 					else if ( c == ']' )
 					{
-						isFieldName = false; // Switch to field value mode after closing bracket
+						isFieldName = false; 
 					}
 				}
 				else
 				{
 					if ( char.IsLetter(c) )
 					{
-						// Convert field value character to mixed case
+						
 						convertedChar = random.Next(2) == 0
 							? char.ToUpper(c)
 							: char.ToLower(c);
 					}
 					else if ( c == '[' )
 					{
-						isFieldName = true; // Switch to field name mode after opening bracket
+						isFieldName = true; 
 					}
 				}
 
@@ -246,17 +246,17 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void SaveAndLoadTOMLFile_EmptyComponentsList()
 		{
-			// Arrange
-			// ReSharper disable once CollectionNeverUpdated.Local
+			
+			
 			List<ModComponent> originalComponents = [];
-			// Act
+			
 			ModComponent.OutputConfigFile(originalComponents, _filePath);
 
 			try
 			{
 				List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
-				// Assert
+				
 				Assert.That(loadedComponents, Is.Null.Or.Empty);
 			}
 			catch ( InvalidDataException ) { }
@@ -265,7 +265,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void SaveAndLoadTOMLFile_DuplicateGuids()
 		{
-			// Arrange
+			
 			List<ModComponent> originalComponents =
 			[
 				new ModComponent
@@ -282,11 +282,11 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				},
 			];
 
-			// Act
+			
 			ModComponent.OutputConfigFile(originalComponents, _filePath);
 			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
-			// Assert
+			
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
@@ -301,17 +301,17 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void SaveAndLoadTOMLFile_ModifyComponents()
 		{
-			// Arrange
+			
 			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
-			// Modify some component properties
+			
 			originalComponents[0].Name = "Modified Name";
 
-			// Act
+			
 			ModComponent.OutputConfigFile(originalComponents, _filePath);
 			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
 
-			// Assert
+			
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
@@ -326,7 +326,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void SaveAndLoadTOMLFile_MultipleRounds()
 		{
-			// Arrange
+			
 			List<List<ModComponent>> rounds =
 			[
 				[
@@ -372,7 +372,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 					},
 				],
 			];
-			// Act and Assert
+			
 			foreach ( List<ModComponent> components in rounds )
 			{
 				ModComponent.OutputConfigFile(components, _filePath);
@@ -393,7 +393,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void TomlWriteStringTest()
 		{
-			// Sample nested Dictionary representing TOML data
+			
 			var innerDictionary1 = new Dictionary<string, object>
 			{
 				{
@@ -402,7 +402,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				{
 					"age", 30
 				},
-				// other key-value pairs for the first table
+				
 			};
 
 			var innerDictionary2 = new Dictionary<string, object>
@@ -413,7 +413,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				{
 					"age", 25
 				},
-				// other key-value pairs for the second table
+				
 			};
 
 			var rootTable = new Dictionary<string, object>
@@ -422,7 +422,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 					"thisMod", new List<object>
 					{
 						innerDictionary1, innerDictionary2,
-						// additional dictionaries in the list
+						
 					}
 				},
 			};
@@ -434,7 +434,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void Instruction_ConditionalSerialization_OnlyRelevantFieldsAreIncluded()
 		{
-			// Test Extract action - should NOT have Overwrite, Destination, or Arguments
+			
 			var extractComponent = new ModComponent
 			{
 				Name = "Extract Test",
@@ -445,9 +445,9 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				{
 					Action = Instruction.ActionType.Extract,
 					Source = new List<string> { "test.rar" },
-					Overwrite = true, // Should NOT be serialized
-					Destination = "some/path", // Should NOT be serialized
-					Arguments = "some args" // Should NOT be serialized
+					Overwrite = true, 
+					Destination = "some/path", 
+					Arguments = "some args" 
 				}
 			}
 			};
@@ -459,7 +459,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				Assert.That(extractToml.Contains("Arguments"), Is.False, "Extract should not serialize Arguments");
 			});
 
-			// Test Move action - SHOULD have Overwrite and Destination, but NOT Arguments
+			
 			var moveComponent = new ModComponent
 			{
 				Name = "Move Test",
@@ -484,7 +484,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				Assert.That(moveToml, Does.Not.Contain("Arguments"), "Move should not serialize Arguments");
 			});
 
-			// Test Patcher action - SHOULD have Destination and Arguments, but NOT Overwrite
+			
 			var patcherComponent = new ModComponent
 			{
 				Name = "Patcher Test",
@@ -497,7 +497,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 					Source = new List<string> { "tslpatchdata" },
 					Destination = "<<kotorDirectory>>",
 					Arguments = "0",
-					Overwrite = true // Should NOT be serialized
+					Overwrite = true 
 				}
 			}
 			};
@@ -509,7 +509,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				Assert.That(patcherToml, Does.Contain("Arguments"), "Patcher should serialize Arguments");
 			});
 
-			// Test Execute action - SHOULD have Arguments, but NOT Overwrite or Destination
+			
 			var executeComponent = new ModComponent
 			{
 				Name = "Execute Test",
@@ -521,8 +521,8 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 					Action = Instruction.ActionType.Execute,
 					Source = new List<string> { "setup.exe" },
 					Arguments = "/silent",
-					Overwrite = true, // Should NOT be serialized
-					Destination = "some/path" // Should NOT be serialized
+					Overwrite = true, 
+					Destination = "some/path" 
 				}
 			}
 			};
@@ -538,17 +538,17 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		[Test]
 		public void ModComponent_RuntimeFields_AreNotSerialized()
 		{
-			// Create a component with runtime state
+			
 			var component = new ModComponent
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				IsDownloaded = true, // Runtime state - should NOT be serialized
-				InstallState = ModComponent.ComponentInstallState.Completed, // Runtime state - should NOT be serialized
+				IsDownloaded = true, 
+				InstallState = ModComponent.ComponentInstallState.Completed, 
 				IsSelected = true
 			};
 
-			// Verify it serializes correctly
+			
 			string tomlString = component.SerializeComponent();
 			Assert.Multiple(() =>
 			{
@@ -556,7 +556,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				Assert.That(tomlString, Does.Not.Contain("InstallState"), "TOML should not contain InstallState");
 				Assert.That(tomlString, Does.Not.Contain("LastStartedUtc"), "TOML should not contain LastStartedUtc");
 				Assert.That(tomlString, Does.Not.Contain("LastCompletedUtc"), "TOML should not contain LastCompletedUtc");
-				// IsSelected should be included (it's part of the TOML definition)
+				
 				Assert.That(tomlString, Does.Contain("IsSelected"), "TOML should contain IsSelected");
 			});
 		}
@@ -570,18 +570,18 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 			if ( obj.GetType() != another.GetType() )
 				return;
 
-			// If comparing Components, normalize instruction GUIDs before comparing
+			
 			if ( obj is ModComponent comp1 && another is ModComponent comp2 )
 			{
-				// Create deep copies to avoid modifying the originals
+				
 				string json1 = JsonConvert.SerializeObject(comp1);
 				string json2 = JsonConvert.SerializeObject(comp2);
 
 				ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
 				ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
 
-				// Normalize instruction GUIDs - set ALL instruction GUIDs to a fixed value
-				// We can't use Guid.Empty because the Instruction.Guid property auto-generates a new GUID when accessed if empty
+				
+				
 				var fixedGuid = Guid.Parse("00000000-0000-0000-0000-000000000001");
 				foreach ( Instruction instruction in copy1.Instructions )
 				{
@@ -592,7 +592,7 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 					instruction.Guid = fixedGuid;
 				}
 
-				// Now compare the normalized copies
+				
 				string normalizedJson1 = JsonConvert.SerializeObject(copy1);
 				string normalizedJson2 = JsonConvert.SerializeObject(copy2);
 

@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.IO.Compression;
 using KOTORModSync.Core;
@@ -14,7 +14,7 @@ namespace KOTORModSync.Tests
 		[SetUp]
 		public void Setup()
 		{
-			// Set up the initial values for destinationPath and sourcePaths
+			
 			_destinationPath = new DirectoryInfo("DestinationPath");
 			_sourcePaths =
 			[
@@ -25,7 +25,7 @@ namespace KOTORModSync.Tests
 		[TearDown]
 		public void TearDown()
 		{
-			// Clean up any extracted files or directories after each test if necessary
+			
 			if ( _destinationPath is
 				{
 					Exists: true,
@@ -41,23 +41,23 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task ExtractFileAsync_ValidArchive_Success()
 		{
-			// Arrange
+			
 			string archivePath = CreateTemporaryArchive("validArchive.zip");
 			_sourcePaths =
 			[
 				archivePath,
 			];
 
-			// Act
+			
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
 
-			// Assert
+			
 			Assert.Multiple(
 				() =>
 				{
 					Assert.That(extractionResult, Is.Zero);
-					// Add more specific assertions if necessary
+					
 					Assert.That(Directory.Exists(_destinationPath?.FullName), Is.True);
 				}
 			);
@@ -66,23 +66,23 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task ExtractFileAsync_InvalidArchive_Failure()
 		{
-			// Arrange
+			
 			string archivePath = CreateTemporaryArchive("invalidArchive.zip");
 			_sourcePaths =
 			[
 				archivePath,
 			];
 
-			// Act
+			
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
 
-			// Assert
+			
 			Assert.Multiple(
 				() =>
 				{
 					Assert.That(extractionResult, Is.Zero);
-					// Add more specific assertions if necessary
+					
 					Assert.That(Directory.Exists(_destinationPath?.FullName), Is.False);
 				}
 			);
@@ -92,23 +92,23 @@ namespace KOTORModSync.Tests
 		[Ignore("not finished yet")]
 		public async Task ExtractFileAsync_SelfExtractingExe_Success()
 		{
-			// Arrange
-			//string archivePath = CreateTemporarySelfExtractingExe( "selfExtracting.exe" );
-			//_sourcePaths = new List<string> { archivePath };
+			
+			
+			
 
-			// Act
+			
 			if ( _sourcePaths is null )
 				throw new NullReferenceException(nameof(_sourcePaths));
 
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
 
-			// Assert
+			
 			Assert.Multiple(
 				() =>
 				{
 					Assert.That(extractionResult, Is.Zero);
-					// Add more specific assertions if necessary
+					
 					Assert.That(Directory.Exists(_destinationPath?.FullName), Is.True);
 				}
 			);
@@ -117,29 +117,29 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task ExtractFileAsync_PermissionDenied_SkipsFile()
 		{
-			// Arrange
+			
 			string archivePath = CreateTemporaryArchive("archiveWithPermissionDenied.zip");
 			_sourcePaths =
 			[
 				archivePath,
 			];
 
-			// Act
+			
 			Instruction.ActionExitCode extractionResult =
 				await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
 
-			// Assert
+			
 			Assert.Multiple(
 				() =>
 				{
 					Assert.That(extractionResult, Is.Zero);
-					// Add more specific assertions if necessary
+					
 					Assert.That(Directory.Exists(_destinationPath?.FullName), Is.True);
 				}
 			);
 		}
 
-		// Helper methods to create temporary archive files
+		
 		private static string CreateTemporaryArchive(string fileName)
 		{
 			string archivePath = Path.Combine(Path.GetTempPath(), fileName);
@@ -147,31 +147,5 @@ namespace KOTORModSync.Tests
 			return archivePath;
 		}
 
-		/*private string CreateTemporarySelfExtractingExe( string fileName )
-		{
-		    string exePath = Path.Combine( Path.GetTempPath(), fileName );
-
-		    using ( ZipFile zip = new ZipFile() )
-		    {
-		        // Add files to the archive
-		        zip.AddFile( "File1.txt" );
-		        zip.AddFile( "File2.txt" );
-
-		        // Set the self-extracting options
-		        SelfExtractorSaveOptions options = new SelfExtractorSaveOptions
-		        {
-		            Flavor = SelfExtractorFlavor.ConsoleApplication,
-		            DefaultExtractDirectory = _destinationPath?.FullName,
-		            ExtractExistingFile = ExtractExistingFileAction.OverwriteSilently,
-		            RemoveUnpackedFilesAfterExecute = true,
-		            Quiet = true
-		        };
-
-		        // Save the archive as a self-extracting executable
-		        zip.SaveSelfExtractor( exePath, options );
-		    }
-
-		    return exePath;
-		}*/
 	}
 }

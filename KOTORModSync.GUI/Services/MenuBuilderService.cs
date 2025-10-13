@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -16,9 +16,9 @@ using static KOTORModSync.Core.Services.ModManagementService;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for building context menus and global action menus
-	/// </summary>
+	
+	
+	
 	public class MenuBuilderService
 	{
 		private readonly ModManagementService _modManagementService;
@@ -30,9 +30,9 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		/// <summary>
-		/// Builds context menu for a component
-		/// </summary>
+		
+		
+		
 		public ContextMenu BuildContextMenuForComponent(
 			ModComponent component,
 			bool editorMode,
@@ -50,7 +50,7 @@ namespace KOTORModSync.Services
 			if ( component == null )
 				return contextMenu;
 
-			// Basic operations - available for all modes
+			
 			contextMenu.Items.Add(new MenuItem
 			{
 				Header = component.IsSelected ? "☑️ Deselect Mod" : "☐ Select Mod",
@@ -61,7 +61,7 @@ namespace KOTORModSync.Services
 				})
 			});
 
-			// Editor mode items
+			
 			if ( editorMode )
 			{
 				AddEditorModeMenuItems(contextMenu, component, setCurrentComponent, setTab, tabControl, guiEditTab, rawEditTab, onRemoveComponent, onInstallSingle);
@@ -70,9 +70,9 @@ namespace KOTORModSync.Services
 			return contextMenu;
 		}
 
-		/// <summary>
-		/// Builds global actions menu for MenuFlyout (DropDownButton)
-		/// </summary>
+		
+		
+		
 		public void BuildGlobalActionsFlyout(
 			MenuFlyout menu,
 			bool editorMode,
@@ -90,7 +90,7 @@ namespace KOTORModSync.Services
 		{
 			menu.Items.Clear();
 
-			// Common operations (available in all modes)
+			
 			AddCommonMenuItems(menu.Items, onRefresh, onValidateAll);
 
 			menu.Items.Add(new Separator());
@@ -101,9 +101,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Builds global actions menu for ContextMenu (right-click on mod list)
-		/// </summary>
+		
+		
+		
 		public void BuildGlobalActionsContextMenu(
 			ContextMenu menu,
 			bool editorMode,
@@ -121,7 +121,7 @@ namespace KOTORModSync.Services
 		{
 			menu.Items.Clear();
 
-			// Common operations
+			
 			AddCommonMenuItems(menu.Items, onRefresh, onValidateAll);
 
 			menu.Items.Add(new Separator());
@@ -147,7 +147,7 @@ namespace KOTORModSync.Services
 		{
 			contextMenu.Items.Add(new Separator());
 
-			// Movement operations
+			
 			contextMenu.Items.Add(new MenuItem
 			{
 				Header = "⬆️ Move Up",
@@ -176,7 +176,7 @@ namespace KOTORModSync.Services
 
 			contextMenu.Items.Add(new Separator());
 
-			// CRUD operations
+			
 			contextMenu.Items.Add(new MenuItem
 			{
 				Header = "🗑️ Delete Mod",
@@ -210,7 +210,7 @@ namespace KOTORModSync.Services
 
 			contextMenu.Items.Add(new Separator());
 
-			// Editing operations
+			
 			contextMenu.Items.Add(new MenuItem
 			{
 				Header = "📝 Edit Instructions",
@@ -233,7 +233,7 @@ namespace KOTORModSync.Services
 
 			contextMenu.Items.Add(new Separator());
 
-			// Testing and validation
+			
 			contextMenu.Items.Add(new MenuItem
 			{
 				Header = "🧪 Test Install This Mod",
@@ -304,7 +304,7 @@ namespace KOTORModSync.Services
 			Action<object, object> onSave,
 			Action<object, object> onClose)
 		{
-			// Global operations
+			
 			menu.Items.Add(new MenuItem
 			{
 				Header = "➕ Add New Mod",
@@ -321,7 +321,7 @@ namespace KOTORModSync.Services
 
 			menu.Items.Add(new Separator());
 
-			// Selection operations
+			
 			menu.Items.Add(new MenuItem
 			{
 				Header = "🔎 Select by Name",
@@ -342,7 +342,7 @@ namespace KOTORModSync.Services
 
 			menu.Items.Add(new Separator());
 
-			// Tools and utilities
+			
 			menu.Items.Add(new MenuItem
 			{
 				Header = "⚙️ Mod Management Tools",
@@ -370,7 +370,7 @@ namespace KOTORModSync.Services
 
 			menu.Items.Add(new Separator());
 
-			// File operations
+			
 			menu.Items.Add(new MenuItem
 			{
 				Header = "💾 Save Config",
@@ -397,7 +397,7 @@ namespace KOTORModSync.Services
 			Action<object, object> onSave,
 			Action<object, object> onClose)
 		{
-			// Global operations
+			
 			_ = items.Add(new MenuItem
 			{
 				Header = "➕ Add New Mod",
@@ -413,7 +413,7 @@ namespace KOTORModSync.Services
 
 			items.Add(new Separator());
 
-			// Selection operations
+			
 			items.Add(new MenuItem
 			{
 				Header = "🔎 Select by Name",
@@ -434,7 +434,7 @@ namespace KOTORModSync.Services
 
 			items.Add(new Separator());
 
-			// Tools and utilities
+			
 			items.Add(new MenuItem
 			{
 				Header = "⚙️ Mod Management Tools",
@@ -462,7 +462,7 @@ namespace KOTORModSync.Services
 
 			items.Add(new Separator());
 
-			// File operations
+			
 			items.Add(new MenuItem
 			{
 				Header = "💾 Save Config",

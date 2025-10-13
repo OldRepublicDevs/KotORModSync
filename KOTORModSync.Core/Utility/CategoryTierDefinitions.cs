@@ -1,24 +1,24 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.Collections.Generic;
 using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
 {
-	/// <summary>
-	/// Provides definitions and descriptions for mod categories and tiers used in KOTORModSync.
-	/// </summary>
+	
+	
+	
 	public static class CategoryTierDefinitions
 	{
-		/// <summary>
-		/// Dictionary of category names to their descriptions.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public static readonly Dictionary<string, string> CategoryDefinitions = new Dictionary<string, string>
 		{
-			// Core Categories
+			
 			["Patch"] = "Official or community patches that fix bugs and issues in the base game.",
 			["Bugfix"] = "Mods that fix specific bugs, glitches, or technical issues.",
 			["Bug Fix"] = "Mods that fix specific bugs, glitches, or technical issues.",
@@ -30,21 +30,21 @@ namespace KOTORModSync.Core.Utility
 			["Bugfix, Graphics Improvement & Immersion"] = "Mods that fix bugs, improve graphics, and enhance immersion.",
 			["Bugfix, Immersion, Mechanics Change & Restored Content"] = "Comprehensive mods that fix bugs, enhance immersion, change mechanics, and restore content.",
 
-			// Gameplay Categories
+			
 			["Mechanics Change"] = "Mods that alter game mechanics, rules, or gameplay systems.",
 			["Mechanics Change & Patch"] = "Mods that change game mechanics and include patches.",
 			["Mechanics Change & Immersion"] = "Mods that change game mechanics while enhancing immersion.",
 			["Mechanics Change, Bugfix & Immersion"] = "Mods that change mechanics, fix bugs, and enhance immersion.",
 			["Gameplay"] = "Mods that modify gameplay elements, combat, or game systems.",
 
-			// Visual Categories
+			
 			["Appearance Change"] = "Mods that change the appearance of characters, items, or environments.",
 			["Appearance Change & Graphics Improvement"] = "Mods that change appearances and improve graphics quality.",
 			["Appearance Change & Bugfix"] = "Mods that change appearances and fix related bugs.",
 			["Appearance Change, Immersion & Graphics Improvement"] = "Mods that change appearances, enhance immersion, and improve graphics.",
 			["Appearance Change, Bugfix & Graphics Improvement"] = "Mods that change appearances, fix bugs, and improve graphics.",
 
-			// Content Categories
+			
 			["Immersion"] = "Mods that enhance role-playing immersion, dialogue, or story elements.",
 			["Immersion & Appearance Change"] = "Mods that enhance immersion and change appearances.",
 			["Immersion & Mechanics Change"] = "Mods that enhance immersion and change game mechanics.",
@@ -56,11 +56,11 @@ namespace KOTORModSync.Core.Utility
 			["Added Content, Appearance Change & Immersion"] = "Mods that add content, change appearances, and enhance immersion.",
 			["Added Content & Immersion"] = "Mods that add new content and enhance immersion.",
 
-			// UI and Audio
+			
 			["UI"] = "Mods that modify the user interface, menus, or HUD elements.",
 			["Audio"] = "Mods that change or improve audio, music, or sound effects.",
 
-			// Combined Categories
+			
 			["Graphics Improvement & Immersion"] = "Mods that improve graphics and enhance immersion.",
 			["Graphics Improvement & Appearance Change"] = "Mods that improve graphics and change appearances.",
 			["Patch & Graphics Improvement"] = "Mods that provide patches and improve graphics.",
@@ -69,10 +69,10 @@ namespace KOTORModSync.Core.Utility
 			["Appearance Change & Immersion"] = "Mods that change appearances and enhance immersion.",
 		};
 
-		/// <summary>
-		/// Dictionary of tier names to their descriptions.
-		/// Uses numbered format (e.g., "1 - Essential") as the standard.
-		/// </summary>
+		
+		
+		
+		
 		[NotNull]
 		public static readonly Dictionary<string, string> TierDefinitions = new Dictionary<string, string>
 		{
@@ -82,11 +82,11 @@ namespace KOTORModSync.Core.Utility
 			["4 - Optional"] = "Mods that are nice to have but not necessary. Install based on personal preference.",
 		};
 
-		/// <summary>
-		/// Gets the description for a category, returning a default message if not found.
-		/// </summary>
-		/// <param name="category">The category name.</param>
-		/// <returns>The category description or a default message.</returns>
+		
+		
+		
+		
+		
 		[NotNull]
 		public static string GetCategoryDescription([CanBeNull] string category)
 		{
@@ -98,18 +98,18 @@ namespace KOTORModSync.Core.Utility
 				: $"Custom category: {category}";
 		}
 
-		/// <summary>
-		/// Gets the description for a tier, returning a default message if not found.
-		/// </summary>
-		/// <param name="tier">The tier name.</param>
-		/// <returns>The tier description or a default message.</returns>
+		
+		
+		
+		
+		
 		[NotNull]
 		public static string GetTierDescription([CanBeNull] string tier)
 		{
 			if ( string.IsNullOrEmpty(tier) )
 				return "No tier specified.";
 
-			// Normalize tier format first
+			
 			string normalizedTier = NormalizeTier(tier);
 
 			return TierDefinitions.TryGetValue(normalizedTier, out string description)
@@ -117,12 +117,12 @@ namespace KOTORModSync.Core.Utility
 				: $"Custom tier: {tier}";
 		}
 
-		/// <summary>
-		/// Normalizes tier names to the standard numbered format.
-		/// Converts old formats like "Essential" or "4 - Option" to "1 - Essential", "4 - Optional", etc.
-		/// </summary>
-		/// <param name="tier">The tier name to normalize.</param>
-		/// <returns>The normalized tier name in standard format.</returns>
+		
+		
+		
+		
+		
+		
 		[NotNull]
 		public static string NormalizeTier([CanBeNull] string tier)
 		{
@@ -131,11 +131,11 @@ namespace KOTORModSync.Core.Utility
 
 			string trimmedTier = tier.Trim();
 
-			// If it's already in the correct format, return it
+			
 			if ( TierDefinitions.ContainsKey(trimmedTier) )
 				return trimmedTier;
 
-			// Normalize old formats to new standard format
+			
 			switch ( trimmedTier.ToLowerInvariant() )
 			{
 				case "essential":
@@ -167,7 +167,7 @@ namespace KOTORModSync.Core.Utility
 					return "4 - Optional";
 
 				default:
-					// If it doesn't match any known format, return as-is
+					
 					return trimmedTier;
 			}
 		}

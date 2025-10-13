@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Globalization;
@@ -16,9 +16,9 @@ namespace KOTORModSync.Converters
 			if ( !(value is Instruction.ActionType action) )
 				return true;
 
-			// Hide Source File(s) section for DelDuplicate and Choose actions
-			// Choose actions use Source for GUIDs (displayed in Components/Options section)
-			// DelDuplicate uses Arguments for file extensions
+			
+			
+			
 			return action != Instruction.ActionType.DelDuplicate && action != Instruction.ActionType.Choose;
 		}
 

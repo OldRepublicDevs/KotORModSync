@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -20,7 +20,7 @@ namespace KOTORModSync.Tests
 		[SetUp]
 		public void Setup()
 		{
-			// Check for environment variable first (used by CI)
+			
 			string? envTestFile = Environment.GetEnvironmentVariable("TEST_FILE_PATH");
 
 			if ( !string.IsNullOrEmpty(envTestFile) )
@@ -33,7 +33,7 @@ namespace KOTORModSync.Tests
 			}
 			else
 			{
-				// Default to test_modbuild_k1.md for local testing
+				
 				_testFilePath = Path.Combine(
 					TestContext.CurrentContext.TestDirectory,
 					"..", "..", "..",
@@ -52,11 +52,11 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void RoundTrip_ParseAndGenerateDocumentation_ProducesEquivalentOutput()
 		{
-			// Arrange
+			
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act - Parse
+			
 			MarkdownParserResult parseResult = parser.Parse(_originalMarkdown);
 			IList<ModComponent> components = parseResult.Components;
 
@@ -67,10 +67,10 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"  - {warning}");
 			}
 
-			// Act - Generate
+			
 			string generatedDocs = ModComponent.GenerateModDocumentation(components.ToList());
 
-			// Write generated docs for debugging
+			
 			string debugOutputPath = Path.Combine(
 				TestContext.CurrentContext.TestDirectory,
 				"..", "..", "..",
@@ -81,22 +81,22 @@ namespace KOTORModSync.Tests
 
 			Assert.Multiple(() =>
 			{
-				// Assert - Basic structural validation
+				
 				Assert.That(components, Is.Not.Empty, "Should have parsed at least one component");
 				Assert.That(generatedDocs, Is.Not.Null.And.Not.Empty, "Generated documentation should not be empty");
 			});
 
-			// Extract sections from original (starting from ## Mod List)
+			
 			string originalModList = MarkdownToTomlConverter.ExtractModListSection(_originalMarkdown);
 			List<string> originalSections = MarkdownToTomlConverter.ExtractModSections(originalModList);
 
-			// Extract sections from generated
+			
 			List<string> generatedSections = MarkdownToTomlConverter.ExtractModSections(generatedDocs);
 
 			Console.WriteLine($"Original sections: {originalSections.Count}");
 			Console.WriteLine($"Generated sections: {generatedSections.Count}");
 
-			// Extract ALL Name field values from all sections (a section might contain multiple mods if ___ is missing)
+			
 			var originalNameFields = originalSections
 				.SelectMany(s => MarkdownToTomlConverter.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
 				.Where(n => !string.IsNullOrWhiteSpace(n))
@@ -110,7 +110,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Original mod names (from **Name:** field): {originalNameFields.Count}");
 			Console.WriteLine($"Generated mod names (from **Name:** field): {generatedNameFields.Count}");
 
-			// Require exact 1:1 match based on actual mod names
+			
 			if ( generatedNameFields.Count != originalNameFields.Count )
 			{
 				Console.WriteLine("\n=== NAME FIELD COUNT MISMATCH ===");
@@ -140,7 +140,7 @@ namespace KOTORModSync.Tests
 			Assert.That(generatedNameFields, Has.Count.EqualTo(originalNameFields.Count),
 				$"Mod count must match exactly. Original: {originalNameFields.Count}, Generated: {generatedNameFields.Count}");
 
-			// Verify all mod names are preserved
+			
 			var missingNames = originalNameFields.Except(generatedNameFields).ToList();
 			var extraNames = generatedNameFields.Except(originalNameFields).ToList();
 
@@ -178,15 +178,15 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void RoundTrip_VerifyFieldPreservation()
 		{
-			// Arrange
+			
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act - Parse
+			
 			MarkdownParserResult parseResult = parser.Parse(_originalMarkdown);
 			List<ModComponent> components = parseResult.Components.ToList();
 
-			// Assert - Check that key fields are preserved
+			
 			foreach ( ModComponent component in components )
 			{
 				Console.WriteLine($"\nVerifying component: {component.Name}");
@@ -209,14 +209,14 @@ namespace KOTORModSync.Tests
 
 		private static void CompareModSections(string original, string generated, int sectionNumber)
 		{
-			// Extract key fields from both sections using converter methods
+			
 			List<string> originalHeadings = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"###\s+(.+?)$");
 			string originalHeading = originalHeadings.FirstOrDefault() ?? string.Empty;
 
 			List<string> generatedHeadings = MarkdownToTomlConverter.ExtractAllFieldValues(generated, @"###\s+(.+?)$");
 			string generatedHeading = generatedHeadings.FirstOrDefault() ?? string.Empty;
 
-			// Extract Name field (the actual mod name from **Name:** field)
+			
 			List<string> originalNameFields = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|\s*([^\r\n]+))");
 			string originalNameField = originalNameFields.FirstOrDefault() ?? string.Empty;
 
@@ -247,12 +247,12 @@ namespace KOTORModSync.Tests
 
 			Assert.Multiple(() =>
 			{
-				// Assert: The generated heading should match the generated Name field (consistency)
+				
 				Assert.That(generatedHeading, Is.EqualTo(generatedNameField),
 					$"Section {sectionNumber}: Generated heading should match generated Name field");
 
-				// Assert: The generated name field should match the original name field
-				// (The heading might differ, but the actual mod name should be preserved)
+				
+				
 				Assert.That(generatedNameField, Is.EqualTo(originalNameField),
 					$"Section {sectionNumber}: Mod name should be preserved");
 			});
@@ -265,7 +265,7 @@ namespace KOTORModSync.Tests
 
 			if ( !string.IsNullOrWhiteSpace(originalCategory) )
 			{
-				// Parser now normalizes categories, so we can compare directly
+				
 				Assert.That(generatedCategory, Is.EqualTo(originalCategory),
 					$"Section {sectionNumber}: Category & Tier should match");
 			}

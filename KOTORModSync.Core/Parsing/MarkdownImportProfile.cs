@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -10,8 +10,8 @@ namespace KOTORModSync.Core.Parsing
 {
 	public enum RegexMode
 	{
-		Individual, // Use individual pattern fields
-		Raw,         // Use single raw regex pattern
+		Individual, 
+		Raw,         
 	}
 
 	public sealed class MarkdownImportProfile : INotifyPropertyChanged
@@ -188,7 +188,7 @@ namespace KOTORModSync.Core.Parsing
 			if ( MultilineFlag ) options |= RegexOptions.Multiline;
 			if ( SinglelineFlag ) options |= RegexOptions.Singleline;
 			if ( IgnoreCaseFlag ) options |= RegexOptions.IgnoreCase;
-			// Note: Global flag is handled differently in .NET (using Matches vs Match)
+			
 
 			return options;
 		}
@@ -206,17 +206,17 @@ namespace KOTORModSync.Core.Parsing
 			{
 				clone.Metadata[pair.Key] = pair.Value;
 			}
-			clone.PropertyChanged = null; // Don't copy event handlers
+			clone.PropertyChanged = null; 
 			return clone;
 		}
 
 		public static MarkdownImportProfile CreateDefault()
 		{
-			// Matches a mod section starting with ### heading and ending before the next ___ separator or end of string
+			
 			const string defaultRawPattern = @"(?ms)^###\s*(?<heading>.+?)\s*\r?\n(?:[\s\S]*?\*\*Name:\*\*\s*(?:\[(?<name>(?<name_link>[^\]]+))\]\([^)]+\)|(?<name_plain>.*?))(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Author:\*\*\s*(?<author>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Description:\*\*\s*(?<description>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Masters:\*\*\s*(?<masters>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Category\s*&\s*Tier:\*\*\s*(?<category_tier>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Non-English Functionality:\*\*\s*(?<non_english>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Installation Method:\*\*\s*(?<installation_method>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Installation Instructions:\*\*\s*(?<installation_instructions>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?[\s\S]*?(?=\r?\n\s*(?:-{3,}|_{3,})|\Z)";
-			// Outer pattern: Match ### heading until ___, ##, or end of string
+			
 			const string defaultOuterPattern = @"(?m)^###\s*.+?$[\s\S]*?(?=^___\s*$|^##\s|\Z)";
-			// Pattern to extract instructions/metadata from markdown comments: <!--<<ModSync>>...-->
+			
 			const string defaultInstructionsBlockPattern = @"<!--<<ModSync>>\s*(?<instructions>[\s\S]*?)-->";
 
 			return new MarkdownImportProfile
@@ -239,7 +239,7 @@ namespace KOTORModSync.Core.Parsing
 				OptionPattern = string.Empty,
 				InstructionPattern = string.Empty,
 				InstructionsBlockPattern = defaultInstructionsBlockPattern,
-				// Regex flags (defaulting to /gms)
+				
 				GlobalFlag = true,
 				MultilineFlag = true,
 				SinglelineFlag = true,

@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using IniParser.Model;
@@ -20,7 +20,7 @@ namespace KOTORModSync.Core.Utility
 
 			var mergedIniData = new IniData();
 
-			// Merge sections and keys from iniData1
+			
 			foreach ( SectionData section in iniData1.Sections )
 			{
 				_ = mergedIniData.Sections.AddSection(section.SectionName);
@@ -30,10 +30,10 @@ namespace KOTORModSync.Core.Utility
 				}
 			}
 
-			// Merge sections and keys from iniData2
+			
 			foreach ( SectionData section in iniData2.Sections )
 			{
-				// If the section already exists in iniData1, append a number to the section name
+				
 				string mergedSectionName = section.SectionName;
 				for ( int sectionNumber = 1;
 					mergedIniData.Sections.ContainsSection(mergedSectionName);

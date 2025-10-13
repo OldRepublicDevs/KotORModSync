@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -14,26 +14,26 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class ParameterizedDocumentationTests
 	{
-		/// <summary>
-		/// Dynamically generates test cases for all .md files in k1 and k2 directories.
-		/// </summary>
+		
+		
+		
 		private static IEnumerable<TestCaseData> GetAllMarkdownFiles()
 		{
-			// Get the solution root by navigating up from the executing assembly location
-			// This works during test discovery time
-			// bin/Debug/net8.0 -> bin -> Debug -> Tests -> Solution Root
+			
+			
+			
 			string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 			string assemblyDir = Path.GetDirectoryName(assemblyPath) ?? "";
 			string solutionRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", ".."));
-			string contentRoot = Path.Combine(solutionRoot, /*"KOTORModSync.Tests", */"mod-builds", "content");
+			string contentRoot = Path.Combine(solutionRoot, "mod-builds", "content");
 
-			// Get all .md files from k1 directory (exclude validated subdirectory)
+			
 			string k1Path = Path.Combine(contentRoot, "k1");
 			if (Directory.Exists(k1Path))
 			{
 				foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories))
 				{
-					// Exclude files in validated subdirectory
+					
 					if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
 						mdFile.Contains("/validated/"))
 						continue;
@@ -46,13 +46,13 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			// Get all .md files from k2 directory (exclude validated subdirectory)
+			
 			string k2Path = Path.Combine(contentRoot, "k2");
 			if (Directory.Exists(k2Path))
 			{
 				foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories))
 				{
-					// Exclude files in validated subdirectory
+					
 					if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
 						mdFile.Contains("/validated/"))
 						continue;
@@ -69,14 +69,14 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RoundTrip_ParseAndGenerateDocumentation_ProducesEquivalentOutput(string mdFilePath)
 		{
-			// Arrange
+			
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string originalMarkdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act - Parse
+			
 			MarkdownParserResult parseResult = parser.Parse(originalMarkdown);
 			IList<ModComponent> components = parseResult.Components;
 
@@ -88,10 +88,10 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"  - {warning}");
 			}
 
-			// Act - Generate
+			
 			string generatedDocs = ModComponent.GenerateModDocumentation(components.ToList());
 
-			// Write generated docs to validated folder
+			
 			string sourceDir = Path.GetDirectoryName(mdFilePath)!;
 			string validatedDir = Path.Combine(sourceDir, "validated");
 			Directory.CreateDirectory(validatedDir);
@@ -110,22 +110,22 @@ namespace KOTORModSync.Tests
 
 			Assert.Multiple(() =>
 			{
-				// Assert - Basic structural validation
+				
 				Assert.That(components, Is.Not.Empty, "Should have parsed at least one component");
 				Assert.That(generatedDocs, Is.Not.Null.And.Not.Empty, "Generated documentation should not be empty");
 			});
 
-			// Extract sections from original (starting from ## Mod List)
+			
 			string originalModList = MarkdownToTomlConverter.ExtractModListSection(originalMarkdown);
 			List<string> originalSections = MarkdownToTomlConverter.ExtractModSections(originalModList);
 
-			// Extract sections from generated
+			
 			List<string> generatedSections = MarkdownToTomlConverter.ExtractModSections(generatedDocs);
 
 			Console.WriteLine($"Original sections: {originalSections.Count}");
 			Console.WriteLine($"Generated sections: {generatedSections.Count}");
 
-			// Extract ALL Name field values from all sections
+			
 			var originalNameFields = originalSections
 				.SelectMany(s => MarkdownToTomlConverter.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
 				.Where(n => !string.IsNullOrWhiteSpace(n))
@@ -139,7 +139,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Original mod names (from **Name:** field): {originalNameFields.Count}");
 			Console.WriteLine($"Generated mod names (from **Name:** field): {generatedNameFields.Count}");
 
-			// Require exact 1:1 match based on actual mod names
+			
 			if (generatedNameFields.Count != originalNameFields.Count)
 			{
 				Console.WriteLine("\n=== NAME FIELD COUNT MISMATCH ===");
@@ -169,7 +169,7 @@ namespace KOTORModSync.Tests
 			Assert.That(generatedNameFields, Has.Count.EqualTo(originalNameFields.Count),
 				$"Mod count must match exactly. Original: {originalNameFields.Count}, Generated: {generatedNameFields.Count}");
 
-			// Verify all mod names are preserved
+			
 			var missingNames = originalNameFields.Except(generatedNameFields).ToList();
 			var extraNames = generatedNameFields.Except(originalNameFields).ToList();
 
@@ -207,21 +207,21 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RoundTrip_VerifyFieldPreservation(string mdFilePath)
 		{
-			// Arrange
+			
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string originalMarkdown = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act - Parse
+			
 			MarkdownParserResult parseResult = parser.Parse(originalMarkdown);
 			List<ModComponent> components = parseResult.Components.ToList();
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Total components: {components.Count}");
 
-			// Assert - Check that key fields are preserved
+			
 			foreach (ModComponent component in components)
 			{
 				Console.WriteLine($"\nVerifying component: {component.Name}");
@@ -244,21 +244,21 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void Parse_ValidateComponentStructure(string mdFilePath)
 		{
-			// Arrange
+			
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdownContent = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdownContent);
 			IList<ModComponent> components = result.Components;
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Total mods found: {components.Count}");
 
-			// Get all names, authors, categories, descriptions
+			
 			var modNames = components.Select(c => c.Name).ToList();
 			var modAuthors = components.Select(c => c.Author).ToList();
 			var modCategories = components.Select(c => $"{string.Join(", ", c.Category)} / {c.Tier}").ToList();
@@ -268,7 +268,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Mods with categories: {modCategories.Count(c => !string.IsNullOrWhiteSpace(c))}");
 			Console.WriteLine($"Mods with descriptions: {modDescriptions.Count(d => !string.IsNullOrWhiteSpace(d))}");
 
-			// Show first 5 and last 5 mod names for verification
+			
 			Console.WriteLine("\nFirst 5 mods:");
 			for (int i = 0; i < Math.Min(5, components.Count); i++)
 			{
@@ -296,15 +296,15 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			// Assert - The file should have at least some mod entries
+			
 			Assert.That(components, Is.Not.Empty,
 				$"Expected to find at least one mod entry in {Path.GetFileName(mdFilePath)}, found {components.Count}");
 
 			Assert.Multiple(() =>
 			{
-				// Verify that most entries have key fields (allow some without)
-				int expectedMinAuthors = (int)(components.Count * 0.5); // At least 50% should have authors
-				int expectedMinCategories = (int)(components.Count * 0.5); // At least 50% should have categories
+				
+				int expectedMinAuthors = (int)(components.Count * 0.5); 
+				int expectedMinCategories = (int)(components.Count * 0.5); 
 
 				Assert.That(modAuthors.Count(a => !string.IsNullOrWhiteSpace(a)), Is.GreaterThan(expectedMinAuthors),
 					"Most mods should have authors");
@@ -316,21 +316,21 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void Parse_ValidateModLinks(string mdFilePath)
 		{
-			// Arrange
+			
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdownContent = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdownContent);
 			IList<ModComponent> components = result.Components;
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Total components: {components.Count}");
 
-			// Verify mod links
+			
 			int componentsWithLinks = 0;
 			int totalLinks = 0;
 
@@ -344,7 +344,7 @@ namespace KOTORModSync.Tests
 					Console.WriteLine($"{component.Name}: {component.ModLink.Count} link(s)");
 					foreach (string? link in component.ModLink)
 					{
-						// Validate link format - allow URLs, anchor links, and relative paths
+						
 						if (!string.IsNullOrWhiteSpace(link))
 						{
 							bool isValidLink = link.StartsWith("http://") || link.StartsWith("https://") ||
@@ -359,7 +359,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"\nComponents with links: {componentsWithLinks}");
 			Console.WriteLine($"Total links: {totalLinks}");
 
-			// Assert - At least some components should have links
+			
 			Assert.That(componentsWithLinks, Is.GreaterThan(0),
 				$"Expected at least some components to have mod links in {Path.GetFileName(mdFilePath)}");
 		}
@@ -367,20 +367,20 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void Parse_ValidateCategoryFormat(string mdFilePath)
 		{
-			// Arrange
+			
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdownContent = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdownContent);
 			IList<ModComponent> components = result.Components;
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 
-			// Collect all unique categories and tiers
+			
 			var uniqueCategories = new HashSet<string>();
 			var uniqueTiers = new HashSet<string>();
 
@@ -412,7 +412,7 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"  - {tier}");
 			}
 
-			// Validate that categories don't have unexpected characters
+			
 			foreach (string category in uniqueCategories)
 			{
 				Assert.That(category, Is.Not.Empty, "Category should not be empty");
@@ -420,7 +420,7 @@ namespace KOTORModSync.Tests
 					$"Category should not have leading/trailing whitespace: '{category}'");
 			}
 
-			// Validate tier format (should be like "1 - Essential", "2 - Recommended", etc.)
+			
 			foreach (string tier in uniqueTiers)
 			{
 				if (!string.IsNullOrWhiteSpace(tier))
@@ -434,14 +434,14 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void Parse_NoWarningsForWellFormedFiles(string mdFilePath)
 		{
-			// Arrange
+			
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdownContent = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdownContent);
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
@@ -456,8 +456,8 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			// Note: This is informational - we don't fail if there are warnings,
-			// as some files might legitimately have issues
+			
+			
 			if (result.Warnings.Count > 0)
 			{
 				Assert.Warn($"File {Path.GetFileName(mdFilePath)} has {result.Warnings.Count} parsing warnings");
@@ -467,20 +467,20 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void Parse_ValidateInstallationMethods(string mdFilePath)
 		{
-			// Arrange
+			
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdownContent = File.ReadAllText(mdFilePath);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdownContent);
 			IList<ModComponent> components = result.Components;
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 
-			// Collect all unique installation methods
+			
 			var uniqueMethods = new HashSet<string>();
 
 			foreach (ModComponent component in components)
@@ -498,7 +498,7 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"  - {method} ({count} mods)");
 			}
 
-			// Validate that installation methods don't have unexpected format issues
+			
 			foreach (string method in uniqueMethods)
 			{
 				Assert.That(method, Is.Not.Empty, "Installation method should not be empty");

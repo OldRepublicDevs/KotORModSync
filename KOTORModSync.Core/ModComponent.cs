@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -310,7 +310,7 @@ namespace KOTORModSync.Core
 			get => _tier;
 			set
 			{
-				// Normalize tier to standard format
+				
 				_tier = CategoryTierDefinitions.NormalizeTier(value);
 				OnPropertyChanged();
 			}
@@ -543,12 +543,12 @@ namespace KOTORModSync.Core
 	};
 		private static readonly string[] s_categorySeparator = { ",", ";" };
 
-		// used for the ui.
+		
 		public event PropertyChangedEventHandler PropertyChanged;
 		private void OptionsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
-			// Explicitly specify the property name to prevent Avalonia from re-evaluating ALL bindings
-			// which would cause an infinite loop when rendering ItemsRepeater controls
+			
+			
 			OnPropertyChanged(nameof(Options));
 		}
 
@@ -560,7 +560,7 @@ namespace KOTORModSync.Core
 		{
 			try
 			{
-				// Create a lightweight DTO with only the fields we want to serialize
+				
 				var serializableData = new SerializableComponentData
 				{
 					Guid = Guid,
@@ -596,7 +596,7 @@ namespace KOTORModSync.Core
 						: null,
 				};
 
-				// Serialize to TOML
+				
 				Dictionary<string, object> dictionary = Serializer.SerializeIntoDictionary(serializableData);
 				string tomlString = TomlWriter.WriteString(dictionary);
 
@@ -612,7 +612,7 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		// Serializable DTOs for TOML output
+		
 		private class SerializableComponentData
 		{
 			public Guid Guid { get; set; }
@@ -647,16 +647,16 @@ namespace KOTORModSync.Core
 			_ = Logger.LogAsync($" == Deserialize next component '{Name}' ==");
 			Author = GetValueOrDefault<string>(componentDict, key: "Author") ?? string.Empty;
 
-			// Backwards compatible: support both string (old) and List<string> (new) for Category
+			
 			Category = GetValueOrDefault<List<string>>(componentDict, key: "Category") ?? new List<string>();
 			if ( Category.Count == 0 )
 			{
-				// Try to load as string (backwards compatibility)
+				
 				string categoryStr = GetValueOrDefault<string>(componentDict, key: "Category") ?? string.Empty;
 				if ( !string.IsNullOrEmpty(categoryStr) )
 				{
-					// Only split on comma and semicolon, not on other characters like & or /
-					// This preserves category names like "Bugfix & Graphics Improvement"
+					
+					
 					Category = categoryStr.Split(
 						s_categorySeparator,
 						StringSplitOptions.RemoveEmptyEntries
@@ -665,13 +665,13 @@ namespace KOTORModSync.Core
 			}
 			else if ( Category.Count == 1 )
 			{
-				// If we have exactly one category, check if it needs to be split
-				// This handles cases where TOML gives us a single-element list containing a comma/semicolon-separated string
+				
+				
 				string singleCategory = Category[0];
 				if ( !string.IsNullOrEmpty(singleCategory) &&
 					 (singleCategory.Contains(',') || singleCategory.Contains(';')) )
 				{
-					// Split the single category string into multiple categories
+					
 					Category = singleCategory.Split(
 						s_categorySeparator,
 						StringSplitOptions.RemoveEmptyEntries
@@ -679,7 +679,7 @@ namespace KOTORModSync.Core
 				}
 				else if ( string.IsNullOrWhiteSpace(singleCategory) )
 				{
-					// If the single category is just whitespace, treat it as empty
+					
 					Category = new List<string>();
 				}
 			}
@@ -717,7 +717,7 @@ namespace KOTORModSync.Core
 			);
 			Options = DeserializeOptions(GetValueOrDefault<IList<object>>(componentDict, key: "Options"));
 
-			// Validate and log additional errors/warnings.
+			
 			_ = Logger.LogAsync($"Successfully deserialized component '{Name}'");
 		}
 
@@ -735,7 +735,7 @@ namespace KOTORModSync.Core
 
 			foreach ( ModComponent thisComponent in components )
 			{
-				_ = stringBuilder.AppendLine("---"); // YAML document separator
+				_ = stringBuilder.AppendLine("---"); 
 				_ = stringBuilder.AppendLine(thisComponent.SerializeComponent());
 			}
 
@@ -753,21 +753,21 @@ namespace KOTORModSync.Core
 
 			var sb = new StringBuilder();
 
-			// Loop through each component
+			
 			for ( int i = 0; i < componentsList.Count; i++ )
 			{
 				ModComponent component = componentsList[i];
 
-				// Add separator before each mod entry
+				
 				_ = sb.AppendLine();
 				_ = sb.AppendLine("___");
 				_ = sb.AppendLine();
 
-				// Name with optional link
+				
 				_ = sb.Append("### ").AppendLine(component.Name);
 				_ = sb.AppendLine();
 
-				// Name field with link (if available)
+				
 				if ( component.ModLink?.Count > 0 && !string.IsNullOrWhiteSpace(component.ModLink[0]) )
 				{
 					_ = sb.Append("**Name:** [").Append(component.Name).Append("](")
@@ -780,21 +780,21 @@ namespace KOTORModSync.Core
 
 				_ = sb.AppendLine();
 
-				// Author
+				
 				if ( !string.IsNullOrWhiteSpace(component.Author) )
 				{
 					_ = sb.Append("**Author:** ").AppendLine(component.Author);
 					_ = sb.AppendLine();
 				}
 
-				// Description
+				
 				if ( !string.IsNullOrWhiteSpace(component.Description) )
 				{
 					_ = sb.Append("**Description:** ").AppendLine(component.Description);
 					_ = sb.AppendLine();
 				}
 
-				// Category & Tier
+				
 				string categoryStr = component.Category?.Count > 0
 					? string.Join(" & ", component.Category)
 					: "Uncategorized";
@@ -802,26 +802,26 @@ namespace KOTORModSync.Core
 				_ = sb.Append("**Category & Tier:** ").Append(categoryStr).Append(" / ").AppendLine(tierStr);
 				_ = sb.AppendLine();
 
-				// Non-English Functionality (derived from Language)
+				
 				string languageSupport = GetNonEnglishFunctionalityText(component.Language);
 				_ = sb.Append("**Non-English Functionality:** ").AppendLine(languageSupport);
 				_ = sb.AppendLine();
 
-				// Installation Method
+				
 				if ( !string.IsNullOrWhiteSpace(component.InstallationMethod) )
 				{
 					_ = sb.Append("**Installation Method:** ").AppendLine(component.InstallationMethod);
 					_ = sb.AppendLine();
 				}
 
-				// Installation Instructions (from Directions)
+				
 				if ( !string.IsNullOrWhiteSpace(component.Directions) )
 				{
 					_ = sb.Append("**Installation Instructions:** ").AppendLine(component.Directions);
 					_ = sb.AppendLine();
 				}
 
-				// Generate ModSync metadata block if component has instructions or options
+				
 				if ( component.Instructions.Count > 0 || component.Options.Count > 0 )
 				{
 					GenerateModSyncMetadata(sb, component);
@@ -831,12 +831,12 @@ namespace KOTORModSync.Core
 			return sb.ToString();
 		}
 
-		/// <summary>
-		/// Generates the ModSync metadata block for a component in TOML format
-		/// </summary>
+		
+		
+		
 		private static void GenerateModSyncMetadata([NotNull] StringBuilder sb, [NotNull] ModComponent component)
 		{
-			// Only generate metadata if there are instructions or options
+			
 			if ( component.Instructions.Count == 0 && component.Options.Count == 0 )
 				return;
 
@@ -844,15 +844,15 @@ namespace KOTORModSync.Core
 
 			try
 			{
-				// Use SerializeComponent to generate the TOML
+				
 				string toml = component.SerializeComponent();
 
-				// Add the TOML content (already properly formatted)
+				
 				_ = sb.Append(toml);
 			}
 			catch ( Exception ex )
 			{
-				// Fallback to basic GUID if serialization fails
+				
 				Logger.LogException(ex, "Failed to serialize component for ModSync metadata");
 				_ = sb.AppendLine($"Guid: {component.Guid}");
 			}
@@ -867,7 +867,7 @@ namespace KOTORModSync.Core
 			if ( languages == null || languages.Count == 0 )
 				return "UNKNOWN";
 
-			// Check for "All" or similar indicators
+			
 			if ( languages.Any(lang => string.Equals(lang, b: "All", StringComparison.OrdinalIgnoreCase)
 				|| string.Equals(lang, b: "YES", StringComparison.OrdinalIgnoreCase)
 				|| string.Equals(lang, b: "Universal", StringComparison.OrdinalIgnoreCase)) )
@@ -875,7 +875,7 @@ namespace KOTORModSync.Core
 				return "YES";
 			}
 
-			// Check for English-only indicators
+			
 			if ( languages.Count == 1 && languages.Any(lang =>
 				string.Equals(lang, b: "English", StringComparison.OrdinalIgnoreCase)
 				|| string.Equals(lang, b: "EN", StringComparison.OrdinalIgnoreCase)
@@ -884,21 +884,21 @@ namespace KOTORModSync.Core
 				return "NO";
 			}
 
-			// Check for partial support indicators
+			
 			if ( languages.Any(lang => string.Equals(lang, b: "Partial", StringComparison.OrdinalIgnoreCase)
 				|| (!string.IsNullOrEmpty(lang) && lang.IndexOf("Partial", StringComparison.OrdinalIgnoreCase) >= 0)) )
 			{
 				return "PARTIAL - Some text will be blank or in English";
 			}
 
-			// Multiple languages but not all
+			
 			if ( languages.Count > 1 && languages.Any(lang =>
 				string.Equals(lang, b: "English", StringComparison.OrdinalIgnoreCase)) )
 			{
 				return "PARTIAL - Supported languages: " + string.Join(", ", languages);
 			}
 
-			// Default case - list the languages
+			
 			return "Supported languages: " + string.Join(", ", languages);
 		}
 
@@ -917,7 +917,7 @@ namespace KOTORModSync.Core
 
 			var instructions = new ObservableCollection<Instruction>();
 
-			// ReSharper disable once PossibleNullReferenceException
+			
 			for ( int index = 0; index < instructionsSerializedList.Count; index++ )
 			{
 				Dictionary<string, object> instructionDict =
@@ -930,7 +930,7 @@ namespace KOTORModSync.Core
 				var instruction = new Instruction();
 				string strAction = GetValueOrDefault<string>(instructionDict, key: "Action");
 
-				// Handle backward compatibility for TSLPatcher and HoloPatcher -> Patcher
+				
 				if ( string.Equals(strAction, "TSLPatcher", StringComparison.OrdinalIgnoreCase) ||
 					string.Equals(strAction, "HoloPatcher", StringComparison.OrdinalIgnoreCase) )
 				{
@@ -985,7 +985,7 @@ namespace KOTORModSync.Core
 
 			var options = new ObservableCollection<Option>();
 
-			// ReSharper disable once PossibleNullReferenceException
+			
 			for ( int index = 0; index < optionsSerializedList.Count; index++ )
 			{
 				var optionsDict = (IDictionary<string, object>)optionsSerializedList[index];
@@ -1020,7 +1020,7 @@ namespace KOTORModSync.Core
 		private static T GetRequiredValue<T>([NotNull] IDictionary<string, object> dict, [NotNull] string key)
 		{
 			T value = GetValue<T>(dict, key, required: true);
-			// ReSharper disable once CompareNonConstrainedGenericWithNull
+			
 			return value == null
 				? throw new InvalidOperationException("GetValue cannot return null for a required value.")
 				: value;
@@ -1030,27 +1030,27 @@ namespace KOTORModSync.Core
 		private static T GetValueOrDefault<T>([NotNull] IDictionary<string, object> dict, [NotNull] string key) =>
 			GetValue<T>(dict, key, required: false);
 
-		// why did I do this...
-		/// <summary>
-		///     The function `GetValue` is a generic method that retrieves a value from a dictionary and performs
-		///     type conversion if necessary.
-		/// </summary>
-		/// <param name="dict">
-		///     A dictionary that maps string keys to object values. This dictionary contains the
-		///     data from which the value will be retrieved.
-		/// </param>
-		/// <param name="key">
-		///     The `key` parameter is a string that represents the key of the value to retrieve
-		///     from the dictionary.
-		/// </param>
-		/// <param name="required">
-		///     The `required` parameter is a boolean flag that indicates whether the value
-		///     for the specified key is required or not. If `required` is set to `true` and the value is missing or
-		///     invalid, an exception will be thrown. If `required` is set to `false`, a default value
-		/// </param>
-		/// <returns>
-		///     The method `GetValue{T}` returns a value of type `T`.
-		/// </returns>
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		[CanBeNull]
 		private static T GetValue<T>([NotNull] IDictionary<string, object> dict, [NotNull] string key, bool required)
 		{
@@ -1100,10 +1100,10 @@ namespace KOTORModSync.Core
 
 						if ( targetType == typeof(string) )
 						{
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-							// ReSharper disable once PossibleInvalidCastException
+#pragma warning disable CS8600 
+							
 							return (T)(object)valueStr;
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning restore CS8600 
 						}
 
 						break;
@@ -1140,11 +1140,11 @@ namespace KOTORModSync.Core
 							}
 							else if ( listElementType == typeof(string) )
 							{
-								// For string lists, handle nested collections that need to be flattened
-								// Check for nested collections first (but exclude strings which are also IEnumerable)
+								
+								
 								if ( item is IEnumerable<object> nestedCollection && !(item is string) )
 								{
-									// Flatten nested collections into strings
+									
 									foreach ( object nestedItem in nestedCollection )
 									{
 										string stringValue = nestedItem?.ToString() ?? string.Empty;
@@ -1162,7 +1162,7 @@ namespace KOTORModSync.Core
 								}
 								else if ( item is string strItem )
 								{
-									// Already a string, just add it
+									
 									if ( !string.IsNullOrWhiteSpace(strItem) )
 									{
 										_ = addMethod?.Invoke(
@@ -1176,7 +1176,7 @@ namespace KOTORModSync.Core
 								}
 								else
 								{
-									// Convert to string
+									
 									string stringValue = item?.ToString() ?? string.Empty;
 									if ( !string.IsNullOrWhiteSpace(stringValue) )
 									{
@@ -1249,10 +1249,10 @@ namespace KOTORModSync.Core
 
 			tomlString = Serializer.FixWhitespaceIssues(tomlString);
 
-			// Parse the TOML syntax into a IDictionary<string, object>
+			
 			DocumentSyntax tomlDocument = Toml.Parse(tomlString);
 
-			// Print any errors on the syntax
+			
 			if ( tomlDocument.HasErrors )
 			{
 				foreach ( DiagnosticMessage message in tomlDocument.Diagnostics )
@@ -1266,7 +1266,7 @@ namespace KOTORModSync.Core
 				return null;
 			}
 
-			// Get the array of ModComponent tables
+			
 			TomlTable tomlTable = tomlDocument.ToModel();
 
 			IList<TomlTable> componentTableThing = new List<TomlTable>();
@@ -1280,7 +1280,7 @@ namespace KOTORModSync.Core
 					break;
 			}
 
-			// Deserialize each IDictionary<string, object> into a ModComponent object
+			
 			var component = new ModComponent();
 			foreach ( TomlTable tomlComponent in componentTableThing )
 			{
@@ -1299,13 +1299,13 @@ namespace KOTORModSync.Core
 
 			try
 			{
-				// Create YAML deserializer with PascalCase naming convention to match our property names
+				
 				var deserializer = new YamlSerialization.DeserializerBuilder()
 					.WithNamingConvention(YamlSerialization.NamingConventions.PascalCaseNamingConvention.Instance)
 					.IgnoreUnmatchedProperties()
 					.Build();
 
-				// Parse YAML into a dictionary
+				
 				var yamlDict = deserializer.Deserialize<Dictionary<string, object>>(yamlString);
 
 				if ( yamlDict == null )
@@ -1314,7 +1314,7 @@ namespace KOTORModSync.Core
 					return null;
 				}
 
-				// Create a new ModComponent and deserialize the data
+				
 				var component = new ModComponent();
 				component.DeserializeComponent(yamlDict);
 
@@ -1338,10 +1338,10 @@ namespace KOTORModSync.Core
 			{
 				if ( MainConfig.CaseInsensitivePathing )
 					filePath = PathHelper.GetCaseSensitivePath(filePath, isFile: true).Item1;
-				// Read the contents of the file into a string
+				
 				string tomlString = File.ReadAllText(filePath)
-					// the code expects instructions to always be defined. When it's not, code errors and prevents a save.
-					// make the user experience better by just removing the empty instructions key.
+					
+					
 					.Replace(oldValue: "Instructions = []", string.Empty)
 					.Replace(oldValue: "Options = []", string.Empty);
 
@@ -1354,10 +1354,10 @@ namespace KOTORModSync.Core
 
 				tomlString = Serializer.FixWhitespaceIssues(tomlString);
 
-				// Parse the TOML syntax into a IDictionary<string, object>
+				
 				DocumentSyntax tomlDocument = Toml.Parse(tomlString);
 
-				// Print any errors on the syntax
+				
 				if ( tomlDocument.HasErrors )
 				{
 					foreach ( DiagnosticMessage message in tomlDocument.Diagnostics )
@@ -1371,10 +1371,10 @@ namespace KOTORModSync.Core
 
 				TomlTable tomlTable = tomlDocument.ToModel();
 
-				// Get the array of ModComponent tables
+				
 				var componentTables = (IList<TomlTable>)tomlTable[key: "thisMod"];
 
-				// Deserialize each IDictionary<string, object> into a ModComponent object
+				
 				var components = new List<ModComponent>();
 
 				foreach ( TomlTable tomlComponent in componentTables )
@@ -1397,44 +1397,44 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		/// <summary>
-		/// Automatically generates instructions for this component based on the first mod link's archive.
-		/// </summary>
-		/// <returns>True if instructions were generated successfully</returns>
+		
+		
+		
+		
 		public bool TryGenerateInstructionsFromArchive()
 		{
 			try
 			{
-				// Only generate if there are no instructions yet
+				
 				if ( Instructions.Count > 0 )
 					return false;
 
-				// Need at least one ModLink to find the archive
+				
 				if ( ModLink.Count == 0 )
 					return false;
 
-				// Try to find the archive file in the mod directory
+				
 				if ( MainConfig.SourcePath == null || !MainConfig.SourcePath.Exists )
 					return false;
 
-				// Get the first mod link (which should be the filename or URL)
+				
 				string firstModLink = ModLink[0];
 				if ( string.IsNullOrWhiteSpace(firstModLink) )
 					return false;
 
-				// Extract search terms from the ModLink
-				// For URLs, use the last path segment; for local paths, use the filename
+				
+				
 				string searchTerm;
 				if ( firstModLink.Contains("://") )
 				{
-					// It's a URL - extract the last meaningful part
+					
 					Uri uri = new Uri(firstModLink);
 					string lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/') ?? string.Empty;
 
-					// Remove common numeric prefixes like "2473-" from deadlystream URLs
+					
 					if ( !string.IsNullOrEmpty(lastSegment) && lastSegment.Contains('-') )
 					{
-						// Try to strip leading numbers and hyphen (e.g., "2473-mod-name" -> "mod-name")
+						
 						var match = System.Text.RegularExpressions.Regex.Match(lastSegment, @"^\d+-(.+)$");
 						searchTerm = match.Success ? match.Groups[1].Value : lastSegment;
 					}
@@ -1443,7 +1443,7 @@ namespace KOTORModSync.Core
 						searchTerm = lastSegment;
 					}
 
-					// Remove file extension if present
+					
 					if ( Path.HasExtension(searchTerm) )
 					{
 						searchTerm = Path.GetFileNameWithoutExtension(searchTerm);
@@ -1451,20 +1451,20 @@ namespace KOTORModSync.Core
 				}
 				else
 				{
-					// It's a local path - strip extension if present
+					
 					string fileName = Path.GetFileName(firstModLink);
 					searchTerm = Path.HasExtension(fileName) ? Path.GetFileNameWithoutExtension(fileName) : fileName;
 				}
 
 				if ( string.IsNullOrWhiteSpace(searchTerm) )
 				{
-					// Fallback to component name if we can't extract anything useful
+					
 					searchTerm = Name;
 				}
 
 				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Searching for archive matching '{searchTerm}'");
 
-				// Get all archives in the mod directory
+				
 				string[] archiveExtensions = { "*.zip", "*.rar", "*.7z", "*.exe" };
 				var allArchives = archiveExtensions
 					.SelectMany(ext => MainConfig.SourcePath.GetFiles(ext, SearchOption.TopDirectoryOnly))
@@ -1479,7 +1479,7 @@ namespace KOTORModSync.Core
 
 				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Found {allArchives.Count} archives to check");
 
-				// Try to find an archive that matches the search term
+				
 				string searchTermLower = searchTerm.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
 				FileInfo matchingArchive = allArchives
 					.OrderByDescending(f =>
@@ -1487,15 +1487,15 @@ namespace KOTORModSync.Core
 						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
 						string fileNameNormalized = fileWithoutExt.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
 
-						// Exact match (after normalization)
+						
 						if ( fileNameNormalized.Equals(searchTermLower) )
 							return 100;
 
-						// File contains search term
+						
 						if ( fileNameNormalized.Contains(searchTermLower) )
 							return 50;
 
-						// Search term contains file name
+						
 						if ( searchTermLower.Contains(fileNameNormalized) )
 							return 25;
 
@@ -1504,7 +1504,7 @@ namespace KOTORModSync.Core
 					.ThenByDescending(f => f.LastWriteTime)
 					.FirstOrDefault(f =>
 					{
-						// Only return matches with score > 0
+						
 						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
 						string fileNameNormalized = fileWithoutExt.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
 						return fileNameNormalized.Contains(searchTermLower) || searchTermLower.Contains(fileNameNormalized);
@@ -1518,11 +1518,11 @@ namespace KOTORModSync.Core
 
 				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Selected archive '{matchingArchive.Name}'");
 
-				// Generate instructions using the AutoInstructionGenerator
+				
 				bool generated = Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
 				if ( generated )
 				{
-					// Mark as downloaded since a matching local archive was found and analyzed
+					
 					IsDownloaded = true;
 				}
 				return generated;
@@ -1534,10 +1534,10 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		/// <summary>
-		/// Installs this component using real file system operations.
-		/// This wraps ExecuteInstructionsAsync and adds checkpoint/state management.
-		/// </summary>
+		
+		
+		
+		
 		public async Task<InstallExitCode> InstallAsync([NotNull] List<ModComponent> componentsList, CancellationToken cancellationToken)
 		{
 			if ( componentsList is null )
@@ -1554,7 +1554,7 @@ namespace KOTORModSync.Core
 				await s_checkpointSemaphore.WaitAsync(cancellationToken);
 				try
 				{
-					// Use real file system for actual installation
+					
 					var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
 
 					InstallExitCode exitCode = await ExecuteInstructionsAsync(
@@ -1615,12 +1615,12 @@ namespace KOTORModSync.Core
 			return InstallExitCode.UnknownError;
 		}
 
-		/// <summary>
-		/// Executes instructions using the provided file system provider.
-		/// Pass RealFileSystemProvider for actual installation or VirtualFileSystemProvider for dry-run validation.
-		/// This method is COMPLETELY agnostic to whether it's dry-run or real - it just uses the provider.
-		/// NO dry-run checks allowed in this method.
-		/// </summary>
+		
+		
+		
+		
+		
+		
 		public async Task<InstallExitCode> ExecuteInstructionsAsync(
 			[NotNull][ItemNotNull] ObservableCollection<Instruction> theseInstructions,
 			[NotNull][ItemNotNull] List<ModComponent> componentsList,
@@ -1647,7 +1647,7 @@ namespace KOTORModSync.Core
 
 				Instruction instruction = theseInstructions[instructionIndex - 1];
 
-				// Set file system provider on instruction so it can use it
+				
 				instruction.SetFileSystemProvider(fileSystemProvider);
 
 				if ( !ShouldRunInstruction(instruction, componentsList) )
@@ -1655,44 +1655,7 @@ namespace KOTORModSync.Core
 					continue;
 				}
 
-				// Get the original check-sums before making any modifications
-				/*await Logger.LogAsync( "Checking file hashes of the install location for mismatch..." );
-				var preinstallChecksums = MainConfig.DestinationPath.GetFilesSafely( "*.*", SearchOption.AllDirectories )
-				    .ToDictionary( file => file, file => FileChecksumValidator.CalculateSha1Async( file ).Result );
-
-				if ( instruction.OriginalChecksums is null )
-				{
-				    _ = Logger.LogVerboseAsync(
-				        "Instructions file has no checksums available, storing checksums for the current install location as the default checksums."
-				    );
-				    instruction.OriginalChecksums = preinstallChecksums;
-				}
-				else if ( !instruction.OriginalChecksums.SequenceEqual( preinstallChecksums ) )
-				{
-				    await Logger.LogAsync( "Warning! Original checksums of your KOTOR directory do not match the expected checksums from the instructions file." );
-
-				    string message =
-				        "WARNING! Some files from your install directory do not match what is expected." + Environment.NewLine
-				        + "This usually happens when there's unexpected components already installed." + Environment.NewLine
-				        + "Ensure your install location has the required mods installed (usually you want to start with the Vanilla (factory) defaults)";
-
-				    bool? confirmationResult = await PromptUserInstallError( message );
-				    switch ( confirmationResult )
-				    {
-				        // repeat instruction
-				        case true:
-				            instructionIndex -= 1;
-				            continue;
-
-				        // execute next instruction
-				        case false:
-				            continue;
-
-				        // case null: cancel installing this mod (user closed confirmation dialog)
-				        default:
-				            return (InstallExitCode.UserCancelledInstall, null);
-				    }
-				}*/
+				
 
 				Instruction.ActionExitCode exitCode = Instruction.ActionExitCode.Success;
 				switch ( instruction.Action )
@@ -1741,11 +1704,11 @@ namespace KOTORModSync.Core
 								thisOption.Instructions,
 								componentsList,
 								cancellationToken,
-								fileSystemProvider  // Pass the same provider recursively
+								fileSystemProvider  
 							);
 							installExitCode = optionExitCode;
 
-							// ReSharper disable once InvertIf
+							
 							if ( optionExitCode != InstallExitCode.Success )
 							{
 								await Logger.LogErrorAsync($"Failed to install chosen option {i + 1} in main instruction index {instructionIndex}");
@@ -1757,17 +1720,9 @@ namespace KOTORModSync.Core
 						}
 
 						break;
-					/*case "confirm":
-						(var sourcePaths, var something) = instruction.ParsePaths();
-						bool confirmationResult = await confirmDialog.ShowConfirmationDialog(sourcePaths.FirstOrDefault());
-						if (!confirmationResult)
-						{
-							this.Confirmations.Add(true);
-						}
-						break;*/
 					case Instruction.ActionType.Unset:
 					default:
-						// Handle unknown instruction type here
+						
 						await Logger.LogWarningAsync($"Unknown instruction '{instruction.ActionString}'");
 						exitCode = Instruction.ActionExitCode.UnknownInstruction;
 						break;
@@ -1782,37 +1737,10 @@ namespace KOTORModSync.Core
 						$"FAILED Instruction #{instructionIndex} Action '{instruction.ActionString}'"
 					);
 
-					// Just return the error - let caller handle prompts/checkpoints
+					
 					return InstallExitCode.UnknownError;
 				}
 
-				/*if (instruction.ExpectedChecksums != null)
-				{
-				    // Get the new checksums after the modifications
-				    var validator = new FileChecksumValidator(
-				        destinationPath: MainConfig.DestinationPath.FullName,
-				        expectedChecksums: instruction.ExpectedChecksums,
-				        originalChecksums: preinstallChecksums
-				    );
-				    bool checksumsMatch = await validator.ValidateChecksumsAsync();
-				    if (!checksumsMatch)
-				    {
-				        _ = Logger.LogWarningAsync($"ModComponent '{this.Name}' instruction #{instructionIndex} '{instruction.Action}' succeeded but modified files have unexpected checksums.");
-				        return (InstallExitCode.ValidationPostInstallMismatch, preinstallChecksums);
-				    }
-
-				    _ = Logger.LogVerboseAsync($"ModComponent '{this.Name}' instruction #{instructionIndex} '{instruction.Action}': The modified files have expected checksums.");
-				}
-				else
-				{
-				    _ = Logger.LogAsync($"ModComponent '{this.Name}' instruction #{instructionIndex} '{instruction.Action}' ran, saving the new checksums as expected.");
-				    var newChecksums = new Dictionary<FileInfo, System.Security.Cryptography.SHA1>();
-				    foreach (FileInfo file in MainConfig.DestinationPath.GetFilesSafely("*.*", SearchOption.AllDirectories))
-				    {
-				        System.Security.Cryptography.SHA1 sha1 = await FileChecksumValidator.CalculateSha1Async(file);
-				        newChecksums[file] = sha1;
-				    }
-				}*/
 
 				_ = Logger.LogAsync($"Successfully completed instruction #{instructionIndex} '{instruction.Action}'");
 			}
@@ -1844,9 +1772,9 @@ namespace KOTORModSync.Core
 					ModComponent checkComponent = FindComponentFromGuid(requiredGuid, componentsList);
 					if ( checkComponent == null )
 					{
-						// sometimes a component will be defined later by a user and all they have defined is a guid.
-						// this hacky solution will support that syntax.
-						// Only needed for 'dependencies' not 'restrictions'.
+						
+						
+						
 						var componentGuidNotFound = new ModComponent
 						{
 							Name = "ModComponent Undefined with GUID.",
@@ -1865,7 +1793,7 @@ namespace KOTORModSync.Core
 					conflicts["Dependency"] = dependencyConflicts;
 			}
 
-			// ReSharper disable once InvertIf
+			
 			if ( restrictionGuids.Count > 0 )
 			{
 				var restrictionConflicts = restrictionGuids
@@ -1880,10 +1808,10 @@ namespace KOTORModSync.Core
 			return conflicts;
 		}
 
-		//The component will be installed if all of the following conditions are met:
-		//The component has no dependencies or restrictions.
-		//The component has dependencies, and all of the required components are being installed.
-		//The component has restrictions, but none of the restricted components are being installed.
+		
+		
+		
+		
 		public bool ShouldInstallComponent([NotNull][ItemNotNull] List<ModComponent> componentsList)
 		{
 			if ( componentsList is null )
@@ -1897,10 +1825,10 @@ namespace KOTORModSync.Core
 			return conflicts.Count == 0;
 		}
 
-		//The instruction will run if any of the following conditions are met:
-		//The instruction has no dependencies or restrictions.
-		//The instruction has dependencies, and all the required components are being installed.
-		//The instruction has restrictions, but none of the restricted components are being installed.
+		
+		
+		
+		
 		public static bool ShouldRunInstruction(
 			[NotNull] Instruction instruction,
 			[NotNull] List<ModComponent> componentsList
@@ -1986,7 +1914,7 @@ namespace KOTORModSync.Core
 
 			Dictionary<Guid, GraphNode> nodeMap = CreateDependencyGraph(components);
 
-			// First, check for circular dependencies using a recursion stack
+			
 			var permanentMark = new HashSet<GraphNode>();
 			var temporaryMark = new HashSet<GraphNode>();
 
@@ -1996,13 +1924,13 @@ namespace KOTORModSync.Core
 				{
 					if ( HasCycle(node, permanentMark, temporaryMark) )
 					{
-						// Circular dependency detected - throw KeyNotFoundException to maintain compatibility
+						
 						throw new KeyNotFoundException("Circular dependency detected in component ordering");
 					}
 				}
 			}
 
-			// No cycles found, proceed with topological sort
+			
 			var visitedNodes = new HashSet<GraphNode>();
 			var orderedComponents = new List<ModComponent>();
 
@@ -2019,7 +1947,7 @@ namespace KOTORModSync.Core
 			return (isCorrectOrder, orderedComponents);
 		}
 
-		// Detects cycles using DFS with recursion stack (temporary marks)
+		
 		private static bool HasCycle(
 			[NotNull] GraphNode node,
 			[NotNull] ISet<GraphNode> permanentMark,
@@ -2027,10 +1955,10 @@ namespace KOTORModSync.Core
 		)
 		{
 			if ( permanentMark.Contains(node) )
-				return false; // Already processed, no cycle
+				return false; 
 
 			if ( temporaryMark.Contains(node) )
-				return true; // Found a back edge - cycle detected!
+				return true; 
 
 			_ = temporaryMark.Add(node);
 
@@ -2045,7 +1973,7 @@ namespace KOTORModSync.Core
 			return false;
 		}
 
-		// use a graph traversal algorithm
+		
 		private static void DepthFirstSearch(
 			[NotNull] GraphNode node,
 			[NotNull] ISet<GraphNode> visitedNodes,
@@ -2095,7 +2023,7 @@ namespace KOTORModSync.Core
 				{
 					if ( !nodeMap.TryGetValue(dependencyGuid, out GraphNode dependencyNode) )
 					{
-						// Skip missing dependencies - they're not in the current component list
+						
 						Logger.LogWarning($"ModComponent '{component.Name}' references InstallAfter GUID {dependencyGuid} which is not in the current component list");
 						continue;
 					}
@@ -2106,7 +2034,7 @@ namespace KOTORModSync.Core
 				{
 					if ( !nodeMap.TryGetValue(dependentGuid, out GraphNode dependentNode) )
 					{
-						// Skip missing dependencies - they're not in the current component list
+						
 						Logger.LogWarning($"ModComponent '{component.Name}' references InstallBefore GUID {dependentGuid} which is not in the current component list");
 						continue;
 					}

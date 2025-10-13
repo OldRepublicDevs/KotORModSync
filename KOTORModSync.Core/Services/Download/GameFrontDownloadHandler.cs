@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -16,7 +16,7 @@ namespace KOTORModSync.Core.Services.Download
 			if (httpClient == null) throw new ArgumentNullException(nameof(httpClient));
 			Logger.LogVerbose("[GameFront] Initializing GameFront download handler");
 
-			// Set up proper headers for GameFront
+			
 			if (!httpClient.DefaultRequestHeaders.Contains("User-Agent"))
 			{
 				const string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
@@ -45,7 +45,7 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			await Logger.LogVerboseAsync($"[GameFront] Cannot resolve filenames for GameFront URLs (requires JavaScript): {url}");
 			await Task.CompletedTask;
-			// GameFront requires JavaScript execution, cannot resolve without browser
+			
 			return new List<string>();
 		}
 
@@ -54,8 +54,8 @@ namespace KOTORModSync.Core.Services.Download
 			await Logger.LogVerboseAsync($"[GameFront] Starting GameFront download from URL: {url}");
 			await Logger.LogVerboseAsync($"[GameFront] Destination directory: {destinationDirectory}");
 
-			// GameFront requires JavaScript execution for automatic downloads (countdown timer)
-			// Without a full browser engine, we cannot automate this
+			
+			
 			await Logger.LogWarningAsync("[GameFront] GameFront downloads require JavaScript execution and cannot be automated without a browser engine");
 
 			string errorMessage = "GameFront downloads require manual interaction. The site uses JavaScript-based countdown timers and anti-bot protection that cannot be bypassed with HttpClient alone.\n\n" +

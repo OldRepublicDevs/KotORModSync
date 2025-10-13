@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -11,15 +11,15 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
 {
-	/// <summary>
-	/// Utility methods for working with file system paths.
-	/// </summary>
+	
+	
+	
 	public static class PathUtilities
 	{
-		/// <summary>
-		/// Gets default paths for mod directories based on the operating system.
-		/// </summary>
-		/// <returns>A collection of default mod directory paths.</returns>
+		
+		
+		
+		
 		[NotNull]
 		public static IEnumerable<string> GetDefaultPathsForMods()
 		{
@@ -43,10 +43,10 @@ namespace KOTORModSync.Core.Utility
 			return list.Where(Directory.Exists).Distinct().ToList();
 		}
 
-		/// <summary>
-		/// Gets default paths for KOTOR game installations based on the operating system.
-		/// </summary>
-		/// <returns>A collection of default game installation paths.</returns>
+		
+		
+		
+		
 		[NotNull]
 		public static IEnumerable<string> GetDefaultPathsForGame()
 		{
@@ -91,11 +91,11 @@ namespace KOTORModSync.Core.Utility
 			return results.Select(ExpandPath).Where(Directory.Exists).Distinct().ToList();
 		}
 
-		/// <summary>
-		/// Expands environment variables in a path string.
-		/// </summary>
-		/// <param name="path">The path to expand.</param>
-		/// <returns>The expanded path, or empty string if input is null or whitespace.</returns>
+		
+		
+		
+		
+		
 		[NotNull]
 		public static string ExpandPath([CanBeNull] string path)
 		{

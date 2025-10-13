@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -13,10 +13,10 @@ using OpenTelemetry.Trace;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Provides telemetry services using OpenTelemetry for traces, metrics, and structured logging.
-	/// Singleton instance that can be accessed throughout the application.
-	/// </summary>
+	
+	
+	
+	
 	public sealed class TelemetryService : IDisposable
 	{
 		private static readonly Lazy<TelemetryService> _instance = new Lazy<TelemetryService>(() => new TelemetryService());
@@ -27,7 +27,7 @@ namespace KOTORModSync.Core.Services
 		private ActivitySource _activitySource;
 		private Meter _meter;
 		
-		// Metrics
+		
 		private Counter<long> _eventCounter;
 		private Counter<long> _errorCounter;
 		private Histogram<double> _operationDuration;
@@ -39,14 +39,14 @@ namespace KOTORModSync.Core.Services
 		private bool _isInitialized;
 		private bool _disposed;
 		
-		/// <summary>
-		/// Gets the singleton instance of the TelemetryService.
-		/// </summary>
+		
+		
+		
 		public static TelemetryService Instance => _instance.Value;
 		
-		/// <summary>
-		/// Gets whether telemetry is currently enabled and operational.
-		/// </summary>
+		
+		
+		
 		public bool IsEnabled => _config?.IsEnabled ?? false;
 		
 		private TelemetryService()
@@ -54,10 +54,10 @@ namespace KOTORModSync.Core.Services
 			_config = TelemetryConfiguration.Load();
 		}
 		
-		/// <summary>
-		/// Initializes the telemetry service with OpenTelemetry providers.
-		/// Should be called once at application startup.
-		/// </summary>
+		
+		
+		
+		
 		public void Initialize()
 		{
 			if (_isInitialized || !_config.IsEnabled)
@@ -65,7 +65,7 @@ namespace KOTORModSync.Core.Services
 				
 			try
 			{
-				// Create resource with service information
+				
 				var resourceBuilder = ResourceBuilder.CreateDefault()
 					.AddService(
 						serviceName: "KOTORModSync",
@@ -79,13 +79,13 @@ namespace KOTORModSync.Core.Services
 						["platform"] = System.Environment.OSVersion.Platform.ToString()
 					});
 				
-				// Initialize ActivitySource for tracing
+				
 				_activitySource = new ActivitySource("KOTORModSync", "1.0.0");
 				
-				// Initialize Meter for metrics
+				
 				_meter = new Meter("KOTORModSync", "1.0.0");
 				
-				// Create metrics
+				
 				_eventCounter = _meter.CreateCounter<long>("kotormodsync.events", "events", "Number of events recorded");
 				_errorCounter = _meter.CreateCounter<long>("kotormodsync.errors", "errors", "Number of errors recorded");
 				_operationDuration = _meter.CreateHistogram<double>("kotormodsync.operation.duration", "ms", "Duration of operations");
@@ -94,12 +94,12 @@ namespace KOTORModSync.Core.Services
 				_downloadCounter = _meter.CreateCounter<long>("kotormodsync.downloads", "downloads", "Number of downloads");
 				_downloadSize = _meter.CreateHistogram<long>("kotormodsync.download.size", "bytes", "Size of downloads");
 				
-				// Configure TracerProvider
+				
 				var tracerProviderBuilder = Sdk.CreateTracerProviderBuilder()
 					.SetResourceBuilder(resourceBuilder)
 					.AddSource("KOTORModSync");
 				
-				// Add exporters based on configuration
+				
 				if (_config.EnableConsoleExporter)
 				{
 					tracerProviderBuilder.AddConsoleExporter();
@@ -107,7 +107,7 @@ namespace KOTORModSync.Core.Services
 				
 				if (_config.EnableFileExporter && !string.IsNullOrEmpty(_config.LocalLogPath))
 				{
-					// File exporter would need custom implementation
+					
 					Logger.LogVerbose("[Telemetry] File exporter requested but not yet implemented");
 				}
 				
@@ -121,12 +121,12 @@ namespace KOTORModSync.Core.Services
 				
 				_tracerProvider = tracerProviderBuilder.Build();
 				
-				// Configure MeterProvider
+				
 				var meterProviderBuilder = Sdk.CreateMeterProviderBuilder()
 					.SetResourceBuilder(resourceBuilder)
 					.AddMeter("KOTORModSync");
 				
-				// Add exporters based on configuration
+				
 				if (_config.EnableConsoleExporter)
 				{
 					meterProviderBuilder.AddConsoleExporter();
@@ -151,9 +151,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		/// <summary>
-		/// Updates the telemetry configuration and reinitializes if necessary.
-		/// </summary>
+		
+		
+		
 		public void UpdateConfiguration(TelemetryConfiguration newConfig)
 		{
 			if (newConfig == null)
@@ -164,21 +164,21 @@ namespace KOTORModSync.Core.Services
 			
 			_config = newConfig;
 			
-			// If telemetry was disabled and is now enabled, initialize
+			
 			if (!wasEnabled && isNowEnabled && !_isInitialized)
 			{
 				Initialize();
 			}
-			// If telemetry was enabled and is now disabled, dispose providers
+			
 			else if (wasEnabled && !isNowEnabled && _isInitialized)
 			{
 				Dispose();
 			}
 		}
 		
-		/// <summary>
-		/// Records a generic telemetry event with optional tags.
-		/// </summary>
+		
+		
+		
 		public void RecordEvent(string eventName, Dictionary<string, object> tags = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
@@ -195,9 +195,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		/// <summary>
-		/// Starts a new activity (span) for tracing operations.
-		/// </summary>
+		
+		
+		
 		public Activity StartActivity(string activityName, Dictionary<string, object> tags = null)
 		{
 			if (!IsEnabled || !_config.CollectPerformanceMetrics)
@@ -222,9 +222,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		/// <summary>
-		/// Records a mod installation event.
-		/// </summary>
+		
+		
+		
 		public void RecordModInstallation(string modName, bool success, double durationMs, string errorMessage = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
@@ -234,7 +234,7 @@ namespace KOTORModSync.Core.Services
 			{
 				var tags = new Dictionary<string, object>
 				{
-					["mod.name.hash"] = HashString(modName), // Hash for privacy
+					["mod.name.hash"] = HashString(modName), 
 					["success"] = success
 				};
 				
@@ -256,9 +256,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		/// <summary>
-		/// Records a mod validation event.
-		/// </summary>
+		
+		
+		
 		public void RecordModValidation(int componentCount, bool success, double durationMs)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
@@ -285,9 +285,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		/// <summary>
-		/// Records a download event.
-		/// </summary>
+		
+		
+		
 		public void RecordDownload(string url, bool success, long sizeBytes, double durationMs)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
@@ -297,7 +297,7 @@ namespace KOTORModSync.Core.Services
 			{
 				var tags = new Dictionary<string, object>
 				{
-					["url.host"] = new Uri(url).Host, // Only record host, not full URL
+					["url.host"] = new Uri(url).Host, 
 					["success"] = success
 				};
 				
@@ -319,9 +319,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		/// <summary>
-		/// Records a UI interaction event.
-		/// </summary>
+		
+		
+		
 		public void RecordUIInteraction(string elementName, string action)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
@@ -343,9 +343,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		/// <summary>
-		/// Records an error event.
-		/// </summary>
+		
+		
+		
 		public void RecordError(string errorType, string errorMessage, string stackTrace = null)
 		{
 			if (!IsEnabled || !_config.CollectCrashReports)
@@ -356,7 +356,7 @@ namespace KOTORModSync.Core.Services
 				var tags = new Dictionary<string, object>
 				{
 					["error.type"] = errorType,
-					["error.message.hash"] = HashString(errorMessage) // Hash for privacy
+					["error.message.hash"] = HashString(errorMessage) 
 				};
 				
 				if (!string.IsNullOrEmpty(stackTrace))
@@ -372,10 +372,10 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 		
-		/// <summary>
-		/// Flushes all telemetry data to configured exporters.
-		/// Should be called before application exit.
-		/// </summary>
+		
+		
+		
+		
 		public void Flush()
 		{
 			try
@@ -413,7 +413,7 @@ namespace KOTORModSync.Core.Services
 			if (string.IsNullOrEmpty(input))
 				return "empty";
 				
-			// Simple hash for privacy - not cryptographically secure
+			
 			unchecked
 			{
 				int hash = 17;

@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -32,7 +32,7 @@ namespace KOTORModSync.Core.TSLPatcher
 
 				fileContents = Regex.Replace(fileContents, pattern, replacement, RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
-				// Write the modified file contents back to the file
+				
 				File.WriteAllText(filePath, fileContents);
 			}
 		}
@@ -51,7 +51,7 @@ namespace KOTORModSync.Core.TSLPatcher
 					return TraverseDirectories(archive.Entries);
 			}
 
-			return null; // Folder 'tslpatchdata' or 'namespaces.ini' not found in the archive.
+			return null; 
 		}
 
 		public static Dictionary<string, Dictionary<string, string>> ReadNamespacesIniFromArchive(
@@ -70,12 +70,12 @@ namespace KOTORModSync.Core.TSLPatcher
 			}
 			catch ( InvalidOperationException )
 			{
-				// Archive type cannot be determined
+				
 				return null;
 			}
 			catch ( Exception )
 			{
-				// Any other archive-related exception
+				
 				return null;
 			}
 		}
@@ -91,7 +91,7 @@ namespace KOTORModSync.Core.TSLPatcher
 			{
 				if ( entry != null && entry.IsDirectory )
 				{
-					// Recurse into subdirectories
+					
 					IEnumerable<IArchiveEntry> subDirectoryEntries = archiveEntries.Where(
 						e => e != null && (e.Key.StartsWith(entry.Key + "/") || e.Key.StartsWith(entry.Key + "\\"))
 					);
@@ -106,7 +106,7 @@ namespace KOTORModSync.Core.TSLPatcher
 					string directoryName = Path.GetDirectoryName(entry?.Key.Replace(oldChar: '\\', newChar: '/'));
 					string fileName = Path.GetFileName(entry?.Key);
 
-					// Check if this is namespaces.ini in a tslpatchdata folder
+					
 					bool isTslPatchDataFolder = directoryName?.Split(s_separator, StringSplitOptions.RemoveEmptyEntries)
 						.Any(dir => dir.Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase)) ?? false;
 
@@ -121,7 +121,7 @@ namespace KOTORModSync.Core.TSLPatcher
 				}
 			}
 
-			return null; // No matching 'tslpatchdata/namespaces.ini' found in this directory or its subdirectories
+			return null; 
 		}
 
 		public static Dictionary<string, Dictionary<string, string>> ParseNamespacesIni(StreamReader reader)
@@ -137,14 +137,14 @@ namespace KOTORModSync.Core.TSLPatcher
 			{
 				line = line.Trim();
 
-				// Checks if the line is a section header
+				
 				if ( line.StartsWith("[") && line.EndsWith("]") )
 				{
 					string sectionName = line.Substring(startIndex: 1, line.Length - 2);
 					currentSection = new Dictionary<string, string>();
 					sections[sectionName] = currentSection;
 				}
-				// Checks if the line is a key-value pair
+				
 				else if ( currentSection != null && line.Contains("=") )
 				{
 					string[] keyValue = line.Split('=');

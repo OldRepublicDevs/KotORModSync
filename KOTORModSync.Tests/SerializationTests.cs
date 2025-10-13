@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using KOTORModSync.Core.Utility;
 
@@ -63,7 +63,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void TestSerializeObjectRecursionProblems()
 		{
-			// Arrange
+			
 			var instance1 = new MyClass();
 			instance1.NestedInstance = new MyNestedClass(instance1);
 			instance1.GuidNestedClassDict = new Dictionary<Guid, List<MyNestedClass>>
@@ -88,7 +88,7 @@ namespace KOTORModSync.Tests
 				},
 			};
 
-			// Act & Assert
+			
 			Assert.Multiple(
 				() =>
 				{
@@ -113,7 +113,7 @@ namespace KOTORModSync.Tests
 			);
 		}
 
-		private const int MaxRecursionDepth = 1000; // Set a maximum recursion depth
+		private const int MaxRecursionDepth = 1000; 
 
 		private static bool HasStackOverflow(Action action)
 		{
@@ -122,8 +122,8 @@ namespace KOTORModSync.Tests
 
 			try
 			{
-				// Hook into the unhandled exception event to capture any unhandled exceptions
-				// ReSharper disable once UnusedParameter.Local
+				
+				
 				AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
 				{
 					if ( args.ExceptionObject is StackOverflowException )
@@ -132,26 +132,26 @@ namespace KOTORModSync.Tests
 					}
 				};
 
-				// Execute the action inside a separate thread
+				
 				_ = ThreadPool.QueueUserWorkItem(
 					_ =>
 					{
 						try
 						{
-							// Call the recursive method
+							
 							RecursiveMethod(action, ref recursionDepth);
 						}
 						catch
 						{
-							// Handle any exceptions thrown during execution
+							
 						}
 					}
 				);
 
-				// Wait for the execution to complete or timeout
+				
 				Thread.Sleep(TimeSpan.FromSeconds(5));
 
-				// Check if the recursion depth exceeds the limit
+				
 				if ( recursionDepth > MaxRecursionDepth )
 				{
 					stackOverflow = true;
@@ -159,7 +159,7 @@ namespace KOTORModSync.Tests
 			}
 			catch
 			{
-				// Handle any exceptions thrown while monitoring the stack
+				
 			}
 
 			return stackOverflow;
@@ -216,7 +216,7 @@ namespace KOTORModSync.Tests
 			}
 		}
 
-		// Add more tests for additional types here
+		
 	}
 
 	public class MyClass

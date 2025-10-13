@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -15,9 +15,9 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for browsing and selecting files/folders for instructions
-	/// </summary>
+	
+	
+	
 	public class InstructionBrowsingService
 	{
 		private readonly MainConfig _mainConfig;
@@ -29,9 +29,9 @@ namespace KOTORModSync.Services
 			_dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
 		}
 
-		/// <summary>
-		/// Browses for source files and updates the instruction
-		/// </summary>
+		
+		
+		
 		public async Task BrowseSourceFilesAsync(Instruction instruction, TextBox sourceTextBox)
 		{
 			try
@@ -39,12 +39,12 @@ namespace KOTORModSync.Services
 				if ( instruction == null )
 					throw new ArgumentNullException(nameof(instruction));
 
-				// Get start folder
+				
 				var startFolder = _mainConfig.sourcePath != null
 					? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName)
 					: null;
 
-				// Open file dialog
+				
 				string[] filePaths = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: false,
 					allowMultiple: true,
@@ -67,7 +67,7 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				// Replace path with prefixed variables
+				
 				for ( int i = 0; i < files.Count; i++ )
 				{
 					string filePath = files[i];
@@ -81,7 +81,7 @@ namespace KOTORModSync.Services
 
 				instruction.Source = files;
 
-				// Update the text box
+				
 				if ( sourceTextBox != null )
 				{
 					string convertedItems = new ListToStringConverter().Convert(
@@ -100,9 +100,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Browses for source folders and updates the instruction
-		/// </summary>
+		
+		
+		
 		public async Task BrowseSourceFoldersAsync(Instruction instruction, TextBox sourceTextBox)
 		{
 			try
@@ -110,12 +110,12 @@ namespace KOTORModSync.Services
 				if ( instruction == null )
 					throw new ArgumentNullException(nameof(instruction));
 
-				// Get start folder
+				
 				var startFolder = _mainConfig.sourcePath != null
 					? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName)
 					: null;
 
-				// Open folder dialog
+				
 				string[] folderPaths = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: true,
 					allowMultiple: true,
@@ -129,7 +129,7 @@ namespace KOTORModSync.Services
 					return;
 				}
 
-				// Process folders into wildcard patterns
+				
 				var modifiedFolders = folderPaths.SelectMany(
 					thisFolder => new DirectoryInfo(thisFolder)
 						.EnumerateDirectories(searchPattern: "*", SearchOption.AllDirectories)
@@ -138,7 +138,7 @@ namespace KOTORModSync.Services
 
 				instruction.Source = modifiedFolders;
 
-				// Update the text box
+				
 				if ( sourceTextBox != null )
 				{
 					string convertedItems = new ListToStringConverter().Convert(
@@ -157,9 +157,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Browses for destination folder and updates the instruction
-		/// </summary>
+		
+		
+		
 		public async Task BrowseDestinationAsync(Instruction instruction, TextBox destinationTextBox)
 		{
 			try
@@ -167,12 +167,12 @@ namespace KOTORModSync.Services
 				if ( instruction == null )
 					throw new ArgumentNullException(nameof(instruction));
 
-				// Get start folder
+				
 				var startFolder = _mainConfig.destinationPath != null
 					? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.destinationPath.FullName)
 					: null;
 
-				// Open folder dialog
+				
 				string[] result = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: true,
 					allowMultiple: false,
@@ -200,7 +200,7 @@ namespace KOTORModSync.Services
 					instruction.Destination = Utility.RestoreCustomVariables(folderPath);
 				}
 
-				// Update the text box
+				
 				if ( destinationTextBox != null )
 					destinationTextBox.Text = instruction.Destination;
 			}

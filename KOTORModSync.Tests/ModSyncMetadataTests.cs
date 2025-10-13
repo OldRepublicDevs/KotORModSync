@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Linq;
@@ -15,7 +15,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void ParseModSyncMetadata_WithCompleteData_ParsesAllFields()
 		{
-			// Arrange
+			
 			const string markdown = @"### Test Mod
 
 **Name:** [Test Mod](https://example.com)
@@ -63,10 +63,10 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			// Assert
+			
 			Assert.That(result.Components, Has.Count.EqualTo(1), "Should parse one component");
 
 			var component = result.Components[0];
@@ -110,7 +110,7 @@ ___";
 		[Test]
 		public void ParseModSyncMetadata_WithoutMetadata_ParsesNormally()
 		{
-			// Arrange
+			
 			const string markdown = @"### Test Mod
 
 **Name:** Test Mod
@@ -128,10 +128,10 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			// Assert
+			
 			Assert.That(result.Components, Has.Count.EqualTo(1), "Should parse one component");
 			var component = result.Components[0];
 			Assert.Multiple(() =>
@@ -145,7 +145,7 @@ ___";
 		[Test]
 		public void ParseModSyncMetadata_MultipleInstructions_ParsesAll()
 		{
-			// Arrange
+			
 			const string markdown = @"### Test Mod
 
 **Name:** Test Mod
@@ -182,10 +182,10 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			// Assert
+			
 			Assert.That(result.Components, Has.Count.EqualTo(1));
 			var component = result.Components[0];
 			Assert.That(component.Instructions, Has.Count.EqualTo(3), "Should have 3 instructions");
@@ -206,7 +206,7 @@ ___";
 		[Test]
 		public void ParseModSyncMetadata_MultipleOptions_ParsesAll()
 		{
-			// Arrange
+			
 			const string markdown = @"### Test Mod
 
 **Name:** Test Mod
@@ -251,10 +251,10 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			// Assert
+			
 			Assert.That(result.Components, Has.Count.EqualTo(1));
 			var component = result.Components[0];
 			Assert.That(component.Options, Has.Count.EqualTo(3), "Should have 3 options");
@@ -276,7 +276,7 @@ ___";
 		[Test]
 		public void GenerateModSyncMetadata_WithInstructions_GeneratesCorrectFormat()
 		{
-			// Arrange
+			
 			var component = new ModComponent
 			{
 				Guid = Guid.Parse("12345678-1234-1234-1234-123456789abc"),
@@ -300,10 +300,10 @@ ___";
 			instruction.SetParentComponent(component);
 			component.Instructions.Add(instruction);
 
-			// Act
+			
 			string generated = ModComponent.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
 
-			// Assert
+			
 			Assert.That(generated, Does.Contain("<!--<<ModSync>>"), "Should contain ModSync opening tag");
 			Assert.That(generated, Does.Contain("-->"), "Should contain ModSync closing tag");
 			Assert.That(generated, Does.Contain("- **GUID:** 12345678-1234-1234-1234-123456789abc"), "Should contain component GUID");
@@ -318,7 +318,7 @@ ___";
 		[Test]
 		public void GenerateModSyncMetadata_WithOptions_GeneratesCorrectFormat()
 		{
-			// Arrange
+			
 			var component = new ModComponent
 			{
 				Guid = Guid.Parse("12345678-1234-1234-1234-123456789abc"),
@@ -337,10 +337,10 @@ ___";
 			};
 			component.Options.Add(option);
 
-			// Act
+			
 			string generated = ModComponent.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
 
-			// Assert
+			
 			Assert.That(generated, Does.Contain("#### Options"), "Should contain Options header");
 			Assert.That(generated, Does.Contain("##### Option 1"), "Should contain option number");
 			Assert.That(generated, Does.Contain("- **GUID:** 22222222-2222-2222-2222-222222222222"), "Should contain option GUID");
@@ -353,7 +353,7 @@ ___";
 		[Test]
 		public void GenerateModSyncMetadata_WithoutInstructionsOrOptions_DoesNotGenerateMetadata()
 		{
-			// Arrange
+			
 			var component = new ModComponent
 			{
 				Guid = Guid.Parse("12345678-1234-1234-1234-123456789abc"),
@@ -362,10 +362,10 @@ ___";
 				Tier = "1 - Essential"
 			};
 
-			// Act
+			
 			string generated = ModComponent.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
 
-			// Assert
+			
 			Assert.That(generated, Does.Not.Contain("<!--<<ModSync>>"), "Should not contain ModSync metadata");
 			Assert.That(generated, Does.Contain("### Test Mod"), "Should still contain component name");
 		}
@@ -373,7 +373,7 @@ ___";
 		[Test]
 		public void RoundTrip_ComplexComponent_PreservesAllData()
 		{
-			// Arrange
+			
 			const string markdown = @"### Complex Mod
 
 **Name:** Complex Mod
@@ -444,16 +444,16 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act - First parse
+			
 			MarkdownParserResult firstParse = parser.Parse(markdown);
 
-			// Act - Generate
+			
 			string generated = ModComponent.GenerateModDocumentation(firstParse.Components.ToList());
 
-			// Act - Second parse
+			
 			MarkdownParserResult secondParse = parser.Parse(generated);
 
-			// Assert - Component level
+			
 			Assert.That(secondParse.Components, Has.Count.EqualTo(1));
 			var first = firstParse.Components[0];
 			var second = secondParse.Components[0];
@@ -464,7 +464,7 @@ ___";
 				Assert.That(second.Name, Is.EqualTo(first.Name), "Name preserved");
 				Assert.That(second.Author, Is.EqualTo(first.Author), "Author preserved");
 
-				// Assert - Instructions
+				
 				Assert.That(second.Instructions, Has.Count.EqualTo(first.Instructions.Count), "Instruction count preserved");
 			});
 			for ( int i = 0; i < first.Instructions.Count; i++ )
@@ -478,7 +478,7 @@ ___";
 				});
 			}
 
-			// Assert - Options
+			
 			Assert.That(second.Options, Has.Count.EqualTo(first.Options.Count), "Option count preserved");
 			for ( int i = 0; i < first.Options.Count; i++ )
 			{
@@ -496,7 +496,7 @@ ___";
 		[Test]
 		public void ParseModSyncMetadata_MultipleComponents_ParsesEachCorrectly()
 		{
-			// Arrange
+			
 			const string markdown = @"### Mod One
 
 **Name:** Mod One
@@ -544,10 +544,10 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			// Assert
+			
 			Assert.That(result.Components, Has.Count.EqualTo(2), "Should parse two components");
 
 			var mod1 = result.Components[0];
@@ -572,7 +572,7 @@ ___";
 		[Test]
 		public void ParseModSyncMetadata_OptionWithMultipleInstructions_ParsesAll()
 		{
-			// Arrange
+			
 			const string markdown = @"### Test Mod
 
 **Name:** Test Mod
@@ -619,9 +619,9 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// ActHas.Count
+			
 			MarkdownParserResult result = parser.Parse(markdown);
-			// Assert
+			
 			Assert.That(result.Components, Has.Count.EqualTo(1));
 			var component = result.Components[0];
 			Assert.Multiple(() =>
@@ -643,7 +643,7 @@ ___";
 		[Test]
 		public void ParseModSyncMetadata_InstructionWithMultipleSources_ParsesAllSources()
 		{
-			// Arrange
+			
 			const string markdown = @"### Test Mod
 
 **Name:** Test Mod
@@ -668,10 +668,10 @@ ___";
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			// Act
+			
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			// Assert
+			
 			Assert.That(result.Components, Has.Count.EqualTo(1), "Should parse one component");
 			var component = result.Components[0];
 			Assert.That(component.Instructions, Has.Count.EqualTo(1));

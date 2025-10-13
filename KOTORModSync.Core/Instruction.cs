@@ -1,6 +1,6 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -26,9 +26,9 @@ namespace KOTORModSync.Core
 		[CanBeNull]
 		private Services.FileSystem.IFileSystemProvider _fileSystemProvider;
 
-		/// <summary>
-		/// Sets the file system provider for this instruction. Call before executing any actions.
-		/// </summary>
+		
+		
+		
 		internal void SetFileSystemProvider([NotNull] Services.FileSystem.IFileSystemProvider provider) => _fileSystemProvider = provider ?? throw new ArgumentNullException(nameof(provider));
 
 		public enum ActionExitCode
@@ -188,29 +188,29 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		// Conditional serialization methods for JSON.NET
-		// These control which fields are saved to TOML based on the Action type
+		
+		
 
-		/// <summary>
-		/// Overwrite should only be serialized for Move, Copy, and Rename actions.
-		/// </summary>
+		
+		
+		
 		public bool ShouldSerializeOverwrite()
 		{
 			return Action == ActionType.Move || Action == ActionType.Copy || Action == ActionType.Rename;
 		}
 
-		/// <summary>
-		/// Destination should only be serialized for Move, Copy, Rename, Patcher, and Delete actions.
-		/// </summary>
+		
+		
+		
 		public bool ShouldSerializeDestination()
 		{
 			return Action == ActionType.Move || Action == ActionType.Copy || Action == ActionType.Rename
 				|| Action == ActionType.Patcher || Action == ActionType.Delete;
 		}
 
-		/// <summary>
-		/// Arguments should only be serialized for DelDuplicate, Execute, and Patcher actions.
-		/// </summary>
+		
+		
+		
 		public bool ShouldSerializeArguments()
 		{
 			return Action == ActionType.DelDuplicate || Action == ActionType.Execute || Action == ActionType.Patcher;
@@ -227,18 +227,18 @@ namespace KOTORModSync.Core
 		public ModComponent GetParentComponent() => _parentComponent;
 		public void SetParentComponent(ModComponent thisComponent) => _parentComponent = thisComponent;
 
-		// This method will replace custom variables such as <<modDirectory>> and <<kotorDirectory>> with their actual paths.
-		// This method should not be ran before an instruction is executed.
-		// Otherwise we risk deserializing a full path early, which can lead to unsafe config injections. (e.g. malicious config file targeting sys files)
-		// ^ perhaps the above is user error though? User should check what they are running in advance perhaps? Either way, we attempt to baby them here.
-		// noValidate: Don't validate if the path/file exists on disk
-		// noParse: Don't perform any manipulations on Source or Destination, besides the aforementioned ReplaceCustomVariables.
+		
+		
+		
+		
+		
+		
 		internal void SetRealPaths(bool noParse = false, bool noValidate = false)
 		{
 			if ( _fileSystemProvider == null )
 				throw new InvalidOperationException("File system provider must be set before calling SetRealPaths. Call SetFileSystemProvider() first.");
 
-			// Get real path then enumerate the files/folders with wildcards and add them to the list
+			
 			if ( Source is null )
 				throw new NullReferenceException(nameof(Source));
 
@@ -246,7 +246,7 @@ namespace KOTORModSync.Core
 			List<string> newSourcePaths = Source.ConvertAll(Utility.Utility.ReplaceCustomVariables);
 			if ( !noParse )
 			{
-				// Use provider for wildcard expansion
+				
 				newSourcePaths = PathHelper.EnumerateFilesWithWildcards(newSourcePaths, _fileSystemProvider);
 
 				if ( !noValidate )
@@ -258,7 +258,7 @@ namespace KOTORModSync.Core
 						);
 					}
 
-					// Use file system provider instead of File.Exists
+					
 					if ( newSourcePaths.Any(f => !_fileSystemProvider.FileExists(f)) )
 					{
 						throw new FileNotFoundException(
@@ -267,7 +267,7 @@ namespace KOTORModSync.Core
 					}
 				}
 
-				// Remove duplicates
+				
 				RealSourcePaths = (
 					MainConfig.CaseInsensitivePathing
 						? newSourcePaths.Distinct(StringComparer.OrdinalIgnoreCase)
@@ -283,9 +283,9 @@ namespace KOTORModSync.Core
 				return;
 			}
 
-			// For Copy, Move, Rename, and Extract, the destination directory might not exist yet.
-			// The file system providers are responsible for creating it. So we don't validate, just create the DirectoryInfo
-			// For Rename, the destination is a file path, not a directory, so we also skip directory validation
+			
+			
+			
 			bool skipDestinationValidation = Action == ActionType.Copy || Action == ActionType.Move || Action == ActionType.Rename || Action == ActionType.Extract;
 
 			if ( skipDestinationValidation && thisDestination == null )
@@ -293,7 +293,7 @@ namespace KOTORModSync.Core
 				thisDestination = new DirectoryInfo(destinationPath);
 			}
 
-			// Use file system provider instead of Directory.Exists
+			
 			if ( !noValidate && !skipDestinationValidation && thisDestination != null && !_fileSystemProvider.DirectoryExists(thisDestination.FullName) )
 			{
 				if ( MainConfig.CaseInsensitivePathing )
@@ -308,7 +308,7 @@ namespace KOTORModSync.Core
 			RealDestinationPath = thisDestination;
 		}
 
-		// ReSharper disable once AssignNullToNotNullAttribute
+		
 		public async Task<ActionExitCode> ExtractFileAsync(
 			DirectoryInfo argDestinationPath = null,
 			[NotNull][ItemNotNull] List<string> argSourcePaths = null
@@ -322,7 +322,7 @@ namespace KOTORModSync.Core
 				RealSourcePaths = argSourcePaths
 					?? RealSourcePaths ?? throw new ArgumentNullException(nameof(argSourcePaths));
 
-				// Delegate to file system provider
+				
 				foreach ( string sourcePath in RealSourcePaths )
 				{
 					string destinationPath = argDestinationPath?.FullName ?? Path.GetDirectoryName(sourcePath);
@@ -368,7 +368,7 @@ namespace KOTORModSync.Core
 			if ( _fileSystemProvider == null )
 				throw new InvalidOperationException("File system provider must be set before calling DeleteDuplicateFile. Call SetFileSystemProvider() first.");
 
-			// internal args
+			
 			if ( directoryPath is null )
 				directoryPath = RealDestinationPath;
 			if ( !(directoryPath is null) && !_fileSystemProvider.DirectoryExists(directoryPath.FullName) && MainConfig.CaseInsensitivePathing )
@@ -469,9 +469,9 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		// ReSharper disable once AssignNullToNotNullAttribute
+		
 		public ActionExitCode DeleteFile(
-			// ReSharper disable once AssignNullToNotNullAttribute
+			
 			[ItemNotNull][NotNull] List<string> sourcePaths = null
 		)
 		{
@@ -486,7 +486,7 @@ namespace KOTORModSync.Core
 			ActionExitCode exitCode = ActionExitCode.Success;
 			try
 			{
-				// ReSharper disable once PossibleNullReferenceException
+				
 				foreach ( string thisFilePath in sourcePaths )
 				{
 					string realFilePath = thisFilePath;
@@ -505,7 +505,7 @@ namespace KOTORModSync.Core
 						exitCode = ActionExitCode.FileNotFoundPost;
 					}
 
-					// Delete the file using provider
+					
 					try
 					{
 						_ = _fileSystemProvider.DeleteFileAsync(realFilePath);
@@ -539,7 +539,7 @@ namespace KOTORModSync.Core
 		}
 
 		public ActionExitCode RenameFile(
-			// ReSharper disable once AssignNullToNotNullAttribute
+			
 			[ItemNotNull][NotNull] List<string> sourcePaths = null
 		)
 		{
@@ -554,7 +554,7 @@ namespace KOTORModSync.Core
 			ActionExitCode exitCode = ActionExitCode.Success;
 			try
 			{
-				// ReSharper disable once PossibleNullReferenceException
+				
 				foreach ( string sourcePath in sourcePaths )
 				{
 					string fileName = Path.GetFileName(sourcePath);
@@ -564,7 +564,7 @@ namespace KOTORModSync.Core
 							MainConfig.SourcePath.FullName,
 							sourcePath
 						);
-					// Check if the source file already exists
+					
 					if ( !_fileSystemProvider.FileExists(sourcePath) )
 					{
 						Logger.LogError($"'{sourceRelDirPath}' does not exist!");
@@ -576,7 +576,7 @@ namespace KOTORModSync.Core
 						continue;
 					}
 
-					// Check if the destination file already exists
+					
 					string destinationFilePath = Path.Combine(
 						Path.GetDirectoryName(sourcePath) ?? string.Empty,
 						Destination
@@ -606,7 +606,7 @@ namespace KOTORModSync.Core
 						_ = _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 					}
 
-					// Rename the file using provider
+					
 					try
 					{
 						_ = Logger.LogAsync($"Rename '{sourceRelDirPath}' to '{destinationRelDirPath}'");
@@ -614,7 +614,7 @@ namespace KOTORModSync.Core
 					}
 					catch ( IOException ex )
 					{
-						// Handle file move error, such as destination file already exists
+						
 						if ( exitCode == ActionExitCode.Success )
 						{
 							exitCode = ActionExitCode.IOException;
@@ -628,7 +628,7 @@ namespace KOTORModSync.Core
 			}
 			catch ( Exception ex )
 			{
-				// Handle any unexpected exceptions
+				
 				Logger.LogException(ex);
 				if ( exitCode == ActionExitCode.Success )
 				{
@@ -640,7 +640,7 @@ namespace KOTORModSync.Core
 		}
 
 		public async Task<ActionExitCode> CopyFileAsync(
-			// ReSharper disable twice AssignNullToNotNullAttribute
+			
 			[ItemNotNull][NotNull] List<string> sourcePaths = null,
 			[NotNull] DirectoryInfo destinationPath = null
 		)
@@ -666,7 +666,7 @@ namespace KOTORModSync.Core
 				SemaphoreSlim localSemaphore = semaphore;
 				async Task CopyIndividualFileAsync(string sourcePath)
 				{
-					await localSemaphore.WaitAsync(); // Wait for a semaphore slot
+					await localSemaphore.WaitAsync(); 
 					try
 					{
 						string sourceRelDirPath = MainConfig.SourcePath is null
@@ -689,7 +689,7 @@ namespace KOTORModSync.Core
 								destinationFilePath
 							);
 
-						// Check if the destination file already exists
+						
 						if ( _fileSystemProvider.FileExists(destinationFilePath) )
 						{
 							if ( !Overwrite )
@@ -719,7 +719,7 @@ namespace KOTORModSync.Core
 					}
 					finally
 					{
-						_ = localSemaphore.Release(); // Release the semaphore slot
+						_ = localSemaphore.Release(); 
 					}
 				}
 
@@ -730,7 +730,7 @@ namespace KOTORModSync.Core
 
 				try
 				{
-					await Task.WhenAll(tasks); // Wait for all move tasks to complete
+					await Task.WhenAll(tasks); 
 					return ActionExitCode.Success;
 				}
 				catch
@@ -741,7 +741,7 @@ namespace KOTORModSync.Core
 		}
 
 		public async Task<ActionExitCode> MoveFileAsync(
-			// ReSharper disable twice AssignNullToNotNullAttribute
+			
 			[ItemNotNull][NotNull] List<string> sourcePaths = null,
 			[NotNull] DirectoryInfo destinationPath = null
 		)
@@ -767,7 +767,7 @@ namespace KOTORModSync.Core
 				SemaphoreSlim localSemaphore = semaphore;
 				async Task MoveIndividualFileAsync(string sourcePath)
 				{
-					await localSemaphore.WaitAsync(); // Wait for a semaphore slot
+					await localSemaphore.WaitAsync(); 
 
 					try
 					{
@@ -791,7 +791,7 @@ namespace KOTORModSync.Core
 								destinationFilePath
 							);
 
-						// Check if the destination file already exists
+						
 						if ( _fileSystemProvider.FileExists(destinationFilePath) )
 						{
 							if ( !Overwrite )
@@ -821,7 +821,7 @@ namespace KOTORModSync.Core
 					}
 					finally
 					{
-						_ = localSemaphore.Release(); // Release the semaphore slot
+						_ = localSemaphore.Release(); 
 					}
 				}
 
@@ -831,7 +831,7 @@ namespace KOTORModSync.Core
 				var tasks = sourcePaths.Select(MoveIndividualFileAsync).ToList();
 				try
 				{
-					await Task.WhenAll(tasks); // Wait for all move tasks to complete
+					await Task.WhenAll(tasks); 
 					return ActionExitCode.Success;
 				}
 				catch
@@ -842,7 +842,7 @@ namespace KOTORModSync.Core
 		}
 
 
-		// todo: define exit codes here.
+		
 		public async Task<ActionExitCode> ExecuteTSLPatcherAsync()
 		{
 			if ( _fileSystemProvider == null )
@@ -853,18 +853,18 @@ namespace KOTORModSync.Core
 				foreach ( string t in RealSourcePaths )
 				{
 					DirectoryInfo tslPatcherDirectory = _fileSystemProvider.FileExists(t)
-						? PathHelper.TryGetValidDirectoryInfo(_fileSystemProvider.GetDirectoryName(t)) // It's a file, create DirectoryInfo instance of the parent.
-						: new DirectoryInfo(t);                                         // It's a folder, create a DirectoryInfo instance
+						? PathHelper.TryGetValidDirectoryInfo(_fileSystemProvider.GetDirectoryName(t)) 
+						: new DirectoryInfo(t);                                         
 
 					if ( tslPatcherDirectory is null || !_fileSystemProvider.DirectoryExists(tslPatcherDirectory.FullName) )
 						throw new DirectoryNotFoundException($"The directory '{t}' could not be located on the disk.");
 
-					//PlaintextLog=0
+					
 					string fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.rtf");
 					if ( _fileSystemProvider.FileExists(fullInstallLogFile) )
 						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
 
-					//PlaintextLog=1
+					
 					fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.txt");
 					if ( _fileSystemProvider.FileExists(fullInstallLogFile) )
 						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
@@ -895,8 +895,8 @@ namespace KOTORModSync.Core
 					}
 					else
 					{
-						// Handling OSX specific paths
-						// FIXME: .app's aren't accepting command-line arguments correctly.
+						
+						
 						string[] possibleOsxPaths = {
 							Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
 							Path.Combine(resourcesDir, "holopatcher"),
@@ -932,7 +932,7 @@ namespace KOTORModSync.Core
 
 					await Logger.LogAsync($"Using CLI to run command: '{patcherCliPath} {args}'");
 
-					// ReSharper disable twice UnusedVariable
+					
 					(int exitCode, string output, string error) = await _fileSystemProvider.ExecuteProcessAsync(
 						patcherCliPath.FullName,
 						args
@@ -978,7 +978,7 @@ namespace KOTORModSync.Core
 				if ( sourcePaths == null )
 					throw new ArgumentNullException(nameof(sourcePaths));
 
-				ActionExitCode exitCode = ActionExitCode.Success; // Track the success status
+				ActionExitCode exitCode = ActionExitCode.Success; 
 				foreach ( string sourcePath in sourcePaths )
 				{
 					try
@@ -1017,7 +1017,7 @@ namespace KOTORModSync.Core
 			}
 		}
 
-		// parse TSLPatcher's installlog.rtf (or installlog.txt) for errors.
+		
 		[NotNull]
 		private async Task<List<string>> VerifyInstall([ItemNotNull] List<string> sourcePaths = null)
 		{
@@ -1029,8 +1029,8 @@ namespace KOTORModSync.Core
 			if ( sourcePaths == null )
 				throw new ArgumentNullException(nameof(sourcePaths));
 
-			// For dry-run (virtual file system), we can't actually verify install logs
-			// since the patcher didn't really run. Just return empty list.
+			
+			
 			if ( _fileSystemProvider.IsDryRun )
 			{
 				Logger.LogVerbose("Skipping install log verification for dry-run");
@@ -1042,17 +1042,17 @@ namespace KOTORModSync.Core
 				string tslPatcherDirPath = _fileSystemProvider.GetDirectoryName(sourcePath)
 					?? throw new DirectoryNotFoundException($"Could not retrieve parent directory of '{sourcePath}'.");
 
-				//PlaintextLog=0
+				
 				string fullInstallLogFile = Path.Combine(tslPatcherDirPath, path2: "installlog.rtf");
 				if ( !_fileSystemProvider.FileExists(fullInstallLogFile) )
 				{
-					//PlaintextLog=1
+					
 					fullInstallLogFile = Path.Combine(tslPatcherDirPath, path2: "installlog.txt");
 					if ( !_fileSystemProvider.FileExists(fullInstallLogFile) )
 						throw new FileNotFoundException(message: "Install log file not found.", fullInstallLogFile);
 				}
 
-				// Use file system provider to read the log file
+				
 				string installLogContent = await _fileSystemProvider.ReadFileAsync(fullInstallLogFile);
 
 				return installLogContent.Split(Environment.NewLine.ToCharArray()).Where(
@@ -1075,8 +1075,5 @@ namespace KOTORModSync.Core
 				x => x != null && x.IsSelected && Source.Contains(x.Guid.ToString(), StringComparer.OrdinalIgnoreCase)
 			).ToList()
 			?? new List<Option>();
-		/*return theseChosenOptions?.Count > 0
-		    ? theseChosenOptions
-		    : throw new KeyNotFoundException( message: "Could not find chosen option for this instruction" );*/
 	}
 }

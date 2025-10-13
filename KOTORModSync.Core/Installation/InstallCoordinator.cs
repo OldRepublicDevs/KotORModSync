@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -39,7 +39,7 @@ namespace KOTORModSync.Core.Installation
 				throw new ArgumentNullException(nameof(components));
 
 			var componentMap = components.ToDictionary(c => c.Guid);
-			// Build graph where edges point from dependency to dependent
+			
 			var adjacency = new Dictionary<Guid, List<Guid>>();
 			var indegree = new Dictionary<Guid, int>();
 
@@ -94,7 +94,7 @@ namespace KOTORModSync.Core.Installation
 				}
 			}
 
-			// If there was a cycle, append remaining components in original order
+			
 			if ( ordered.Count != components.Count )
 			{
 				foreach ( ModComponent component in components )
@@ -190,11 +190,11 @@ namespace KOTORModSync.Core.Installation
 			}
 			catch ( IOException )
 			{
-				// Ignore if folder is in use
+				
 			}
 			catch ( UnauthorizedAccessException )
 			{
-				// Ignore if we don't have permission
+				
 			}
 		}
 

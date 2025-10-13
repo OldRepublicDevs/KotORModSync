@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Globalization;
@@ -16,7 +16,7 @@ namespace KOTORModSync.Converters
 			if (!(value is Instruction.ActionType action))
 				return false;
 
-			// Show TextBox for Execute and DelDuplicate actions only
+			
 			return action == Instruction.ActionType.Execute ||
 				   action == Instruction.ActionType.DelDuplicate;
 		}

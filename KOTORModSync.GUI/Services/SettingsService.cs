@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -12,9 +12,9 @@ using KOTORModSync.Models;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for application settings management
-	/// </summary>
+	
+	
+	
 	public class SettingsService
 	{
 		private readonly MainConfig _mainConfig;
@@ -26,9 +26,9 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		/// <summary>
-		/// Loads persisted settings and applies them to the application
-		/// </summary>
+		
+		
+		
 		public (AppSettings Settings, string Theme) LoadSettings()
 		{
 			try
@@ -46,9 +46,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Saves current application settings to disk
-		/// </summary>
+		
+		
+		
 		public void SaveSettings(string currentTheme)
 		{
 			try
@@ -64,16 +64,16 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Updates directory picker controls with persisted settings
-		/// </summary>
+		
+		
+		
 		public static void UpdateDirectoryPickersFromSettings(
 			AppSettings settings,
 			Func<string, DirectoryPickerControl> findControl)
 		{
 			try
 			{
-				// Update mod directory pickers
+				
 				if ( !string.IsNullOrEmpty(settings.SourcePath) )
 				{
 					DirectoryPickerControl modPicker = findControl("ModDirectoryPicker");
@@ -83,7 +83,7 @@ namespace KOTORModSync.Services
 					SettingsService.UpdateDirectoryPickerWithPath(step1ModPicker, settings.SourcePath);
 				}
 
-				// Update KOTOR directory pickers
+				
 				if ( !string.IsNullOrEmpty(settings.DestinationPath) )
 				{
 					DirectoryPickerControl kotorPicker = findControl("KotorDirectoryPicker");
@@ -99,9 +99,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Updates a directory picker control with a path
-		/// </summary>
+		
+		
+		
 		private static void UpdateDirectoryPickerWithPath(DirectoryPickerControl picker, string path)
 		{
 			if ( picker == null || string.IsNullOrEmpty(path) )
@@ -111,7 +111,7 @@ namespace KOTORModSync.Services
 			{
 				picker.SetCurrentPath(path);
 
-				// Update combobox selection
+				
 				ComboBox comboBox = picker.FindControl<ComboBox>("PathSuggestions");
 				if ( comboBox != null )
 				{
@@ -133,9 +133,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Synchronizes all directory pickers of a given type with a new path
-		/// </summary>
+		
+		
+		
 		public static void SyncDirectoryPickers(
 			DirectoryPickerType pickerType,
 			string path,
@@ -162,7 +162,7 @@ namespace KOTORModSync.Services
 					if ( step1Picker != null ) allPickers.Add(step1Picker);
 				}
 
-				// Update all pickers
+				
 				foreach ( DirectoryPickerControl picker in allPickers )
 					picker.SetCurrentPath(path);
 			}
@@ -172,9 +172,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Initializes directory pickers with current MainConfig paths
-		/// </summary>
+		
+		
+		
 		public void InitializeDirectoryPickers(Func<string, DirectoryPickerControl> findControl)
 		{
 			try

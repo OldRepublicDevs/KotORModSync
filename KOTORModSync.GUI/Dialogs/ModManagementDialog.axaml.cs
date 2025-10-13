@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -31,7 +31,7 @@ namespace KOTORModSync.Dialogs
 		public ModManagementDialog()
 		{
 			InitializeComponent();
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -47,7 +47,7 @@ namespace KOTORModSync.Dialogs
 
 			InitializeComponent();
 			DataContext = _modManagementService.GetModStatistics();
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -253,7 +253,7 @@ namespace KOTORModSync.Dialogs
 						return;
 					}
 
-					// Get existing categories
+					
 					var existingCategories = _originalComponents
 						.Where(c => c.Category != null && c.Category.Count > 0)
 						.SelectMany(c => c.Category)
@@ -262,13 +262,13 @@ namespace KOTORModSync.Dialogs
 						.OrderBy(c => c)
 						.ToList();
 
-					// Show dialog with category options
+					
 					string categoryOptions = existingCategories.Any()
 						? "\n\nExisting categories:\n  • " + string.Join("\n  • ", existingCategories)
 						: "\n\nNo existing categories found.";
 
-					// For now, prompt user to enter a category name via confirmation dialog
-					// In a full implementation, this would be a custom dialog with dropdown + text input
+					
+					
 					bool? proceed = await _dialogService.ShowConfirmationDialog(
 						$"Update category for {selectedComponents.Count} selected mod(s)?{categoryOptions}\n\n" +
 						"This feature requires a custom input dialog.\n" +
@@ -451,7 +451,7 @@ namespace KOTORModSync.Dialogs
 						totalDependencies += component.Dependencies.Count + component.InstallAfter.Count + component.InstallBefore.Count;
 					}
 
-					// Check for circular dependencies
+					
 					Dictionary<ModComponent, List<ModComponent>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
 					int circularDependencies = ModManagementDialog.DetectCircularDependencies(dependencyGraph);
 
@@ -479,13 +479,13 @@ namespace KOTORModSync.Dialogs
 				if ( !graph.ContainsKey(component) )
 					graph[component] = new List<ModComponent>();
 
-				// Add direct dependencies
+				
 				foreach ( ModComponent depComponent in component.Dependencies.Select(depGuid => components.FirstOrDefault(c => c.Guid == depGuid)).Where(depComponent => depComponent != null && !graph[component].Contains(depComponent)) )
 				{
 					graph[component].Add(depComponent);
 				}
 
-				// Add install-after relationships
+				
 				foreach ( ModComponent afterComponent in component.InstallAfter.Select(afterGuid => components.FirstOrDefault(c => c.Guid == afterGuid)).Where(afterComponent => afterComponent != null && !graph[component].Contains(afterComponent)) )
 				{
 					graph[component].Add(afterComponent);
@@ -573,8 +573,8 @@ namespace KOTORModSync.Dialogs
 					Dictionary<ModComponent, List<ModComponent>> dependencyGraph = ModManagementDialog.BuildDependencyGraph(selectedComponents);
 					string graphText = ModManagementDialog.GenerateGraphText(dependencyGraph);
 
-					// For now, just show the graph in a dialog. In a real implementation,
-					// you might want to save this to a file or display it in a visual graph control
+					
+					
 					await _dialogService.ShowInformationDialog(
 					$"Dependency Graph for {selectedComponents.Count} selected mods:\n\n" +
 					graphText +
@@ -673,7 +673,7 @@ namespace KOTORModSync.Dialogs
 
 					foreach ( ModComponent component in selectedComponents )
 					{
-						// Estimate size based on instructions and mod links
+						
 						long estimatedSize = EstimateComponentSize(component);
 
 						if ( estimatedSize <= 0 )
@@ -681,7 +681,7 @@ namespace KOTORModSync.Dialogs
 						totalSize += estimatedSize;
 						modsWithSize++;
 
-						// Categorize by size ranges
+						
 						string category = GetSizeCategory(estimatedSize);
 						if ( sizeBreakdown.ContainsKey(category) )
 							sizeBreakdown[category] = (sizeBreakdown[category].Size + estimatedSize, sizeBreakdown[category].Count + 1);
@@ -716,20 +716,20 @@ namespace KOTORModSync.Dialogs
 		{
 			long size = 0;
 
-			// Count instructions that might indicate file operations
+			
 			foreach ( Instruction instruction in component.Instructions )
 			{
 				if ( instruction.Action == Instruction.ActionType.Extract ||
 					instruction.Action == Instruction.ActionType.Copy ||
 					instruction.Action == Instruction.ActionType.Move )
 				{
-					size += 1024 * 1024; // Estimate 1MB per file operation
+					size += 1024 * 1024; 
 				}
 			}
 
-			// Add size based on mod links (if any)
+			
 			if ( component.ModLink.Count != 0 )
-				size += 50 * 1024 * 1024; // Estimate 50MB per mod link
+				size += 50 * 1024 * 1024; 
 
 			return size;
 		}
@@ -773,7 +773,7 @@ namespace KOTORModSync.Dialogs
 
 					var redundantFiles = new Dictionary<string, List<ModComponent>>();
 
-					// Collect all files referenced by instructions
+					
 					foreach ( ModComponent component in selectedComponents )
 					{
 						foreach ( Instruction instruction in component.Instructions )
@@ -798,7 +798,7 @@ namespace KOTORModSync.Dialogs
 						}
 					}
 
-					// Find files that appear in multiple components
+					
 					var actualRedundantFiles = redundantFiles.Where(kvp => kvp.Value.Count > 1).ToList();
 
 					if ( actualRedundantFiles.Count == 0 )
@@ -809,7 +809,7 @@ namespace KOTORModSync.Dialogs
 					{
 						string report = $"Found {actualRedundantFiles.Count} potentially redundant files:\n\n";
 
-						foreach ( var kvp in actualRedundantFiles.Take(10) ) // Show first 10
+						foreach ( var kvp in actualRedundantFiles.Take(10) ) 
 						{
 							string fileName = kvp.Key;
 							List<ModComponent> components = kvp.Value;
@@ -849,7 +849,7 @@ namespace KOTORModSync.Dialogs
 						return;
 					}
 
-					// Basic malware pattern detection (this is a simplified example)
+					
 					string[] suspiciousPatterns = { ".exe", ".bat", ".cmd", ".scr", ".pif", ".com", ".jar", ".vbs", ".js", ".wsf", ".hta" };
 
 					var suspiciousFiles = new List<string>();
@@ -1011,8 +1011,8 @@ namespace KOTORModSync.Dialogs
 						{
 							totalInstructions++;
 
-							// Check if instruction has signature validation configured
-							// (This would depend on how signature validation is implemented in the core)
+							
+							
 							if ( instruction.Action == Instruction.ActionType.Execute &&
 							instruction.Source.Any(s => s.Contains("signature") || s.Contains("cert")) )
 							{
@@ -1079,13 +1079,13 @@ namespace KOTORModSync.Dialogs
 					if ( confirm != true )
 						return;
 
-					// Build a set of all files that are referenced by instructions
+					
 					var referencedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 					foreach ( ModComponent component in _originalComponents )
 					{
 						foreach ( Instruction instruction in component.Instructions )
 						{
-							// Collect destination paths from instructions
+							
 							if ( string.IsNullOrWhiteSpace(instruction.Destination) )
 								continue;
 							string fileName = System.IO.Path.GetFileName(instruction.Destination);
@@ -1095,7 +1095,7 @@ namespace KOTORModSync.Dialogs
 						}
 					}
 
-					// Report analysis results
+					
 					int totalInstructions = _originalComponents.Sum(c => c.Instructions.Count);
 					int totalFiles = referencedFiles.Count;
 
@@ -1141,7 +1141,7 @@ namespace KOTORModSync.Dialogs
 						{
 							totalLinks++;
 
-							// Basic URL validation (simplified)
+							
 							if ( Uri.TryCreate(link, UriKind.Absolute, out Uri uri) &&
 							(uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) )
 							{
@@ -1204,11 +1204,11 @@ namespace KOTORModSync.Dialogs
 					if ( confirm != true )
 						return;
 
-					// Group mods by name similarity to find potential duplicates
+					
 					var modsByName = new Dictionary<string, List<ModComponent>>();
 					foreach ( ModComponent component in _originalComponents )
 					{
-						// Extract base name without version numbers
+						
 						string baseName = System.Text.RegularExpressions.Regex.Replace(
 						component.Name,
 						@"\s*[vV]?\d+\.?\d*\.?\d*\s*$",
@@ -1220,7 +1220,7 @@ namespace KOTORModSync.Dialogs
 						modsByName[baseName].Add(component);
 					}
 
-					// Find potential duplicates (same base name, multiple versions)
+					
 					var potentialDuplicates = modsByName
 					.Where(kvp => kvp.Value.Count > 1)
 					.ToList();
@@ -1349,7 +1349,7 @@ namespace KOTORModSync.Dialogs
 
 		private void Cancel_Click(object sender, RoutedEventArgs e)
 		{
-			// Restore original component list if modifications were made but not applied
+			
 			if ( ModificationsApplied )
 				_dialogService.UpdateComponents(_originalComponents);
 			Close();
@@ -1397,7 +1397,7 @@ namespace KOTORModSync.Dialogs
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			// Don't start window drag if clicking on interactive controls
+			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -1410,17 +1410,17 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			// Get the element under the pointer
+			
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			// Walk up the visual tree to check if we're clicking on an interactive element
+			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch ( current )
 				{
-					// Check if we're clicking on any interactive control
+					
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -1433,7 +1433,7 @@ namespace KOTORModSync.Dialogs
 					case TabItem _:
 					case ProgressBar _:
 					case ScrollViewer _:
-					// Check if the element has context menu or flyout open
+					
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Text.RegularExpressions;
@@ -14,14 +14,14 @@ using KOTORModSync.Converters;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for rendering markdown content in the UI
-	/// </summary>
+	
+	
+	
 	public class MarkdownRenderingService
 	{
-		/// <summary>
-		/// Renders markdown content for a component's Description and Directions
-		/// </summary>
+		
+		
+		
 		public void RenderComponentMarkdown(
 			ModComponent component,
 			TextBlock descriptionTextBlock,
@@ -32,7 +32,7 @@ namespace KOTORModSync.Services
 				if ( component == null )
 					return;
 
-				// Render Description
+				
 				if ( descriptionTextBlock != null )
 				{
 					TextBlock renderedDescription = MarkdownRenderer.RenderToTextBlock(
@@ -45,13 +45,13 @@ namespace KOTORModSync.Services
 						descriptionTextBlock.Inlines.Clear();
 						descriptionTextBlock.Inlines.AddRange(renderedDescription.Inlines);
 
-						// Don't override TextWrapping/TextTrimming - let XAML handle it
+						
 						descriptionTextBlock.PointerPressed -= OnTextBlockPointerPressed;
 						descriptionTextBlock.PointerPressed += OnTextBlockPointerPressed;
 					}
 				}
 
-				// Render Directions
+				
 				if ( directionsTextBlock != null )
 				{
 					TextBlock renderedDirections = MarkdownRenderer.RenderToTextBlock(
@@ -64,7 +64,7 @@ namespace KOTORModSync.Services
 						directionsTextBlock.Inlines.Clear();
 						directionsTextBlock.Inlines.AddRange(renderedDirections.Inlines);
 
-						// Don't override TextWrapping/TextTrimming - let XAML handle it
+						
 						directionsTextBlock.PointerPressed -= OnTextBlockPointerPressed;
 						directionsTextBlock.PointerPressed += OnTextBlockPointerPressed;
 					}
@@ -76,9 +76,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Opens a URL in the default browser
-		/// </summary>
+		
+		
+		
 		private static void OpenUrl(string url)
 		{
 			try
@@ -91,9 +91,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Handles pointer pressed events on TextBlocks to detect link clicks
-		/// </summary>
+		
+		
+		
 		private void OnTextBlockPointerPressed(object sender, PointerPressedEventArgs e)
 		{
 			try
@@ -103,7 +103,7 @@ namespace KOTORModSync.Services
 					string fullText = GetTextBlockText(textBlock);
 					if ( !string.IsNullOrEmpty(fullText) )
 					{
-						// Look for link markers
+						
 						string linkPattern = @"🔗([^🔗]+)🔗";
 						Match match = Regex.Match(fullText, linkPattern);
 						if ( match.Success )
@@ -121,9 +121,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Gets the full text content from a TextBlock including all inlines
-		/// </summary>
+		
+		
+		
 		private static string GetTextBlockText(TextBlock textBlock)
 		{
 			if ( textBlock.Inlines == null || textBlock.Inlines.Count == 0 )

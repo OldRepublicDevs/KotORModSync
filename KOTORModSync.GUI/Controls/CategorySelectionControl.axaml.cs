@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -41,10 +41,10 @@ namespace KOTORModSync.Controls
 		{
 			InitializeComponent();
 
-			// Initialize the category items
+			
 			AvailableCategories = _categoryItems;
 
-			// Ensure the ItemsControl is initialized
+			
 			if ( CategoryItemsControl != null )
 			{
 				CategoryItemsControl.ItemsSource = _categoryItems;
@@ -55,7 +55,7 @@ namespace KOTORModSync.Controls
 		{
 			base.OnAttachedToVisualTree(e);
 
-			// Ensure ItemsControl binding is set when attached to visual tree
+			
 			if ( CategoryItemsControl != null && CategoryItemsControl.ItemsSource != _categoryItems )
 			{
 				CategoryItemsControl.ItemsSource = _categoryItems;
@@ -80,7 +80,7 @@ namespace KOTORModSync.Controls
 			_isRefreshing = true;
 			try
 			{
-				// Update the checkboxes based on the selected categories
+				
 				foreach ( SelectionFilterItem item in _categoryItems )
 				{
 					item.IsSelected = SelectedCategories.Contains(item.Name, StringComparer.OrdinalIgnoreCase);
@@ -109,16 +109,16 @@ namespace KOTORModSync.Controls
 			if ( string.IsNullOrEmpty(newCategoryText) )
 				return;
 
-			// Check if category already exists
+			
 			if ( _categoryItems.Any(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase)) )
 			{
-				// Category already exists, just select it
+				
 				var existingItem = _categoryItems.First(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase));
 				existingItem.IsSelected = true;
 			}
 			else
 			{
-				// Add new category
+				
 				var newItem = new SelectionFilterItem
 				{
 					Name = newCategoryText,
@@ -148,8 +148,8 @@ namespace KOTORModSync.Controls
 				.Select(item => item.Name)
 				.ToList();
 
-			// Check if the selection has actually changed before updating
-			// This prevents creating new list instances unnecessarily
+			
+			
 			if ( SelectedCategories == null || !SelectedCategories.SequenceEqual(selected) )
 			    SelectedCategories = selected;
 		}

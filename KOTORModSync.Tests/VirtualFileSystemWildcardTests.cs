@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -9,9 +9,9 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Tests
 {
-	/// <summary>
-	/// Tests PathHelper.WildcardPathMatch integration.
-	/// </summary>
+	
+	
+	
 	[TestFixture]
 	public class VirtualFileSystemWildcardTests
 	{
@@ -25,7 +25,7 @@ namespace KOTORModSync.Tests
 		[SetUp]
 		public void SetUp()
 		{
-			// Create isolated test directories
+			
 			_testRootDir = Path.Combine(Path.GetTempPath(), "KOTORModSync_Wildcard_Tests_" + Guid.NewGuid().ToString("N"));
 			_virtualTestDir = Path.Combine(_testRootDir, "Virtual");
 			_realTestDir = Path.Combine(_testRootDir, "Real");
@@ -40,7 +40,7 @@ namespace KOTORModSync.Tests
 
 			_sevenZipPath = Find7Zip();
 
-			// Ensure placeholders resolve for each wildcard test
+			
 			_ = new MainConfig
 			{
 				sourcePath = new DirectoryInfo(_sourceDir),
@@ -98,7 +98,7 @@ namespace KOTORModSync.Tests
 			}
 			catch
 			{
-				// ignored
+				
 			}
 
 			throw new InvalidOperationException("7-Zip not found. Please install 7-Zip to run these tests.");
@@ -150,7 +150,7 @@ namespace KOTORModSync.Tests
 			string realSourcePath,
 			string realDestPath)
 		{
-			// Create copies for both tests
+			
 			string virtualSourceCopy = Path.Combine(_virtualTestDir, "source");
 			string realSourceCopy = Path.Combine(_realTestDir, "source");
 			string virtualDestCopy = Path.Combine(_virtualTestDir, "dest");
@@ -161,19 +161,19 @@ namespace KOTORModSync.Tests
 			_ = Directory.CreateDirectory(virtualDestCopy);
 			_ = Directory.CreateDirectory(realDestCopy);
 
-			// Copy source files to both locations
+			
 			CopyDirectory(realSourcePath, virtualSourceCopy);
 			CopyDirectory(realSourcePath, realSourceCopy);
 			CopyDirectory(realDestPath, virtualDestCopy);
 			CopyDirectory(realDestPath, realDestCopy);
 
-			// Update MainConfig for virtual test
+			
 			DirectoryInfo? originalSourcePath = MainConfig.SourcePath;
 			DirectoryInfo? originalDestPath = MainConfig.DestinationPath;
 
 			try
 			{
-				// Test 1: Virtual File System (Dry-Run)
+				
 				_ = new MainConfig
 				{
 					sourcePath = new DirectoryInfo(virtualSourceCopy),
@@ -194,7 +194,7 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
 				TestContext.WriteLine($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
 
-				// Test 2: Real File System
+				
 				_ = new MainConfig
 				{
 					sourcePath = new DirectoryInfo(realSourceCopy),
@@ -204,7 +204,7 @@ namespace KOTORModSync.Tests
 				var realProvider = new RealFileSystemProvider();
 				var realComponent = new ModComponent { Name = "TestComponent" };
 
-				// Re-create instructions (they were mutated by the first run)
+				
 				var realInstructions = new List<Instruction>(instructions);
 				foreach ( Instruction instruction in instructions )
 				{
@@ -233,7 +233,7 @@ namespace KOTORModSync.Tests
 			}
 			finally
 			{
-				// Restore MainConfig
+				
 				_ = new MainConfig
 				{
 					sourcePath = originalSourcePath,
@@ -262,8 +262,8 @@ namespace KOTORModSync.Tests
 
 		private static void AssertFileSystemsMatch(VirtualFileSystemProvider virtualProvider, string realDir, string subfolder = "dest")
 		{
-			// Find the virtual dest directory path by looking for files that contain "Virtual\dest" or "Real\dest"
-			// Get the dest directory from the virtual provider's tracked files
+			
+			
 			string virtBasePath = Path.GetDirectoryName(Path.GetDirectoryName(realDir))!;
 			string virtualPath = Path.Combine(virtBasePath, "Virtual", subfolder);
 
@@ -288,7 +288,7 @@ namespace KOTORModSync.Tests
 			foreach ( string file in realFiles.OrderBy(f => f) )
 				TestContext.WriteLine($"  {file}");
 
-			// Files in virtual but not in real
+			
 			var missingInReal = virtualFiles.Except(realFiles, StringComparer.OrdinalIgnoreCase).ToList();
 			if ( missingInReal.Count > 0 )
 			{
@@ -297,7 +297,7 @@ namespace KOTORModSync.Tests
 					TestContext.WriteLine($"  {file}");
 			}
 
-			// Files in real but not in virtual
+			
 			var missingInVirtual = realFiles.Except(virtualFiles, StringComparer.OrdinalIgnoreCase).ToList();
 			if ( missingInVirtual.Count > 0 )
 			{
@@ -316,7 +316,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_WildcardMove_StarPattern()
 		{
-			// Arrange - Create archive with multiple .txt files
+			
 			string archivePath = Path.Combine(_sourceDir, "files.zip");
 			CreateArchive(archivePath, new()
 			{
@@ -333,10 +333,10 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Move, Source = [@"<<modDirectory>>\files\*.txt"], Destination = "<<kotorDirectory>>", Overwrite = true }
 			};
 
-			// Act
+			
 			(VirtualFileSystemProvider v, _) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			// Assert
+			
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, Path.Combine(_realTestDir, "dest"));
 		}
@@ -344,7 +344,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_WildcardCopy_QuestionMarkPattern()
 		{
-			// Arrange - Files with single character differences
+			
 			string archivePath = Path.Combine(_sourceDir, "similar.zip");
 			CreateArchive(archivePath, new Dictionary<string, string>
 			{
@@ -352,7 +352,7 @@ namespace KOTORModSync.Tests
 				{ "file2.txt", "2" },
 				{ "file3.txt", "3" },
 				{ "fileA.txt", "A" },
-				{ "fileAB.txt", "AB" } // Should NOT match file?.txt
+				{ "fileAB.txt", "AB" } 
 			});
 
 			var instructions = new List<Instruction>
@@ -361,10 +361,10 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Copy, Source = [@"<<modDirectory>>\similar\file?.txt"], Destination = "<<kotorDirectory>>", Overwrite = true }
 			};
 
-			// Act
+			
 			(VirtualFileSystemProvider v, _) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			// Assert
+			
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, Path.Combine(_realTestDir, "dest"));
 		}
@@ -372,7 +372,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_WildcardDelete_ComplexPattern()
 		{
-			// Arrange
+			
 			string archivePath = Path.Combine(_sourceDir, "mixed.zip");
 			CreateArchive(archivePath, new Dictionary<string, string>
 			{
@@ -390,10 +390,10 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Move, Source = [@"<<modDirectory>>\mixed\*"], Destination = "<<kotorDirectory>>", Overwrite = true }
 			};
 
-			// Act
+			
 			(VirtualFileSystemProvider v, _) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			// Assert
+			
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, Path.Combine(_realTestDir, "dest"));
 		}
@@ -402,7 +402,7 @@ namespace KOTORModSync.Tests
 		[Ignore("Wildcards in archive names for Extract operations not yet supported")]
 		public async Task Test_WildcardInArchiveName()
 		{
-			// Arrange - Multiple archives matching pattern
+			
 			string archive1 = Path.Combine(_sourceDir, "mod_v1.0.zip");
 			string archive2 = Path.Combine(_sourceDir, "mod_v2.0.zip");
 			string archive3 = Path.Combine(_sourceDir, "other.zip");
@@ -427,13 +427,13 @@ namespace KOTORModSync.Tests
 			new() { Action = Instruction.ActionType.Extract, Source = [@"<<modDirectory>>\mod_*.zip"], Destination = "<<modDirectory>>" }
 		};
 
-			// Act
+			
 			(VirtualFileSystemProvider v, _) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			// Assert
+			
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 
-			// For this test, files are extracted to the source directory, so we match against that.
+			
 			AssertFileSystemsMatch(v, Path.Combine(_realTestDir, "source"), "source");
 
 			string virtualSourcePath = Path.Combine(_virtualTestDir, "source");
@@ -454,7 +454,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public async Task Test_WildcardMultiplePatterns()
 		{
-			// Arrange
+			
 			string archivePath = Path.Combine(_sourceDir, "files.zip");
 			CreateArchive(archivePath, new Dictionary<string, string>
 			{
@@ -486,7 +486,7 @@ namespace KOTORModSync.Tests
 
 			(VirtualFileSystemProvider v, _) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			// Assert
+			
 			Assert.That(v.GetValidationIssues(), Is.Empty);
 			AssertFileSystemsMatch(v, Path.Combine(_realTestDir, "dest"));
 
@@ -509,7 +509,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void Test_WildcardNoMatches_ShouldProduceValidationError()
 		{
-			// Arrange
+			
 			string archivePath = Path.Combine(_sourceDir, "empty.zip");
 			CreateArchive(archivePath, new Dictionary<string, string>
 			{
@@ -523,7 +523,7 @@ namespace KOTORModSync.Tests
 				new() { Action = Instruction.ActionType.Move, Source = [@"<<modDirectory>>\empty\*.dat"], Destination = "<<kotorDirectory>>", Overwrite = true }
 			};
 
-			// Act & Assert
+			
 			_ = Assert.ThrowsAsync<FileNotFoundException>(async () => await RunBothProviders(instructions, _sourceDir, _destinationDir));
 		}
 	}

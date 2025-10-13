@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Threading.Tasks;
@@ -22,7 +22,7 @@ namespace KOTORModSync
 			{
 				try
 				{
-					// Subscribe to the UnobservedTaskException event
+					
 					TaskScheduler.UnobservedTaskException += HandleUnobservedTaskException;
 
 					desktop.MainWindow = new MainWindow();
@@ -37,12 +37,12 @@ namespace KOTORModSync
 			base.OnFrameworkInitializationCompleted();
 		}
 
-		// ReSharper disable once MemberCanBeMadeStatic.Local
+		
 		private void HandleUnobservedTaskException([CanBeNull] object sender, UnobservedTaskExceptionEventArgs e)
 		{
-			// Log or handle the unobserved task exception here
+			
 			Logger.LogException(e.Exception);
-			e.SetObserved(); // Mark the exception as observed to prevent it from crashing the application
+			e.SetObserved(); 
 		}
 	}
 }

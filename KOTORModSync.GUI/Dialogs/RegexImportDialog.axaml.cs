@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.ObjectModel;
@@ -36,7 +36,7 @@ namespace KOTORModSync.Dialogs
 			LoadSuccessful = false;
 			_confirmationCallback = confirmationCallback;
 
-			// Wire preview inlines update (cannot bind TextBlock.Inlines)
+			
 			_previewTextBlock = this.FindControl<TextBlock>("PreviewTextBlock");
 			if ( _previewTextBlock != null )
 			{
@@ -47,23 +47,23 @@ namespace KOTORModSync.Dialogs
 						UpdatePreviewInlines();
 					}
 				};
-				// Initial paint
+				
 				UpdatePreviewInlines();
 			}
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		// Parameterless constructor required for XAML resource loading
+		
 		public RegexImportDialog()
 		{
 			InitializeComponent();
 			ViewModel = null;
 			LoadSuccessful = false;
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -85,12 +85,12 @@ namespace KOTORModSync.Dialogs
 
 		private async void OnLoad(object sender, RoutedEventArgs e)
 		{
-			// If there's a confirmation callback, call it first
+			
 			if ( _confirmationCallback != null )
 			{
 				bool confirmed = await _confirmationCallback();
 				if ( !confirmed )
-					return; // User cancelled, don't close the dialog
+					return; 
 			}
 
 			LoadSuccessful = true;
@@ -136,7 +136,7 @@ namespace KOTORModSync.Dialogs
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			// Don't start window drag if clicking on interactive controls
+			
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -149,17 +149,17 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			// Get the element under the pointer
+			
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			// Walk up the visual tree to check if we're clicking on an interactive element
+			
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch (current)
 				{
-					// Check if we're clicking on any interactive control
+					
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -172,7 +172,7 @@ namespace KOTORModSync.Dialogs
 					case TabItem _:
 					case ProgressBar _:
 					case ScrollViewer _:
-					// Check if the element has context menu or flyout open
+					
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

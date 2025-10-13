@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -27,7 +27,7 @@ namespace KOTORModSync.Tests
 			_testDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_AutoInstructionTests_" + Guid.NewGuid());
 			Directory.CreateDirectory(_testDirectory);
 
-			// Initialize MainConfig for the tests
+			
 			var mainConfig = new MainConfig();
 			mainConfig.sourcePath = new DirectoryInfo(_testDirectory);
 			mainConfig.destinationPath = new DirectoryInfo(Path.Combine(_testDirectory, "KOTOR"));
@@ -44,17 +44,17 @@ namespace KOTORModSync.Tests
 			}
 			catch
 			{
-				// Ignore cleanup errors
+				
 			}
 		}
 
 		[Test]
 		public void GenerateInstructions_TSLPatcherWithChangesIni_CreatesPatcherInstruction()
 		{
-			// Arrange
+			
 			string archivePath = CreateTestArchive("tslpatcher_simple.zip", archive =>
 			{
-				// Create TSLPatcher structure
+				
 				AddTextFileToArchive(archive, "tslpatchdata/changes.ini", "[Settings]\nLookupGameFolder=1");
 				AddTextFileToArchive(archive, "TSLPatcher.exe", "fake exe");
 				AddTextFileToArchive(archive, "example.2da", "2DA V2.0");
@@ -62,18 +62,18 @@ namespace KOTORModSync.Tests
 
 			var component = new ModComponent { Name = "Test Mod", Guid = Guid.NewGuid() };
 
-			// Act
+			
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			// Assert
+			
 			Assert.That(result, Is.True, "Should successfully generate instructions");
 			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should have Extract + Patcher instructions");
 
-			// Check Extract instruction
+			
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
 			Assert.That(component.Instructions[0].Source[0], Does.Contain("tslpatcher_simple.zip"));
 
-			// Check Patcher instruction
+			
 			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher));
 			Assert.That(component.InstallationMethod, Is.EqualTo("TSLPatcher"));
 		}
@@ -81,10 +81,10 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GenerateInstructions_TSLPatcherWithNamespacesIni_CreatesChooseWithOptions()
 		{
-			// Arrange
+			
 			string archivePath = CreateTestArchive("tslpatcher_namespaces.zip", archive =>
 			{
-				// Create TSLPatcher with namespaces
+				
 				AddTextFileToArchive(archive, "tslpatchdata/namespaces.ini",
 					"[Namespaces]\n1=Option1\n\n[Option1]\nName=First Option\nDescription=First option description\nIniName=changes1.ini");
 				AddTextFileToArchive(archive, "tslpatchdata/changes1.ini", "[Settings]\nLookupGameFolder=1");
@@ -93,10 +93,10 @@ namespace KOTORModSync.Tests
 
 			var component = new ModComponent { Name = "Test Mod", Guid = Guid.NewGuid() };
 
-			// Act
+			
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			// Assert
+			
 			Assert.That(result, Is.True);
 			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should have Extract + Choose instructions");
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
@@ -109,28 +109,28 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GenerateInstructions_HybridWithTSLPatcherAndLooseFiles_TSLPatcherComesFirst()
 		{
-			// Arrange
+			
 			string archivePath = CreateTestArchive("hybrid_mod.zip", archive =>
 			{
-				// TSLPatcher folder
+				
 				AddTextFileToArchive(archive, "tslpatchdata/changes.ini", "[Settings]\nLookupGameFolder=1");
 				AddTextFileToArchive(archive, "TSLPatcher.exe", "fake exe");
 
-				// Loose files in separate folders
+				
 				AddTextFileToArchive(archive, "Override1/appearance.2da", "2DA");
 				AddTextFileToArchive(archive, "Override2/dialog.dlg", "DLG");
 			});
 
 			var component = new ModComponent { Name = "Hybrid Mod", Guid = Guid.NewGuid() };
 
-			// Act
+			
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			// Assert
+			
 			Assert.That(result, Is.True);
 			Assert.That(component.InstallationMethod, Is.EqualTo("Hybrid (TSLPatcher + Loose Files)"));
 
-			// Verify instruction order: Extract -> Patcher -> Choose (for folders)
+			
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract), "First should be Extract");
 			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher), "Second should be Patcher (TSLPatcher before Move)");
 			Assert.That(component.Instructions[2].Action, Is.EqualTo(Instruction.ActionType.Choose), "Third should be Choose for multiple folders");
@@ -139,7 +139,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GenerateInstructions_MultipleFolders_CreatesChooseWithMoveOptions()
 		{
-			// Arrange
+			
 			string archivePath = CreateTestArchive("multi_folder.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "Folder1/appearance.2da", "2DA");
@@ -149,16 +149,16 @@ namespace KOTORModSync.Tests
 
 			var component = new ModComponent { Name = "Multi Folder Mod", Guid = Guid.NewGuid() };
 
-			// Act
+			
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			// Assert
+			
 			Assert.That(result, Is.True);
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
 			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Choose));
 			Assert.That(component.Options.Count, Is.EqualTo(3), "Should create three options for three folders");
 
-			// Each option should have a Move instruction
+			
 			foreach ( var option in component.Options )
 			{
 				Assert.That(option.Instructions.Count, Is.EqualTo(1));
@@ -170,7 +170,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GenerateInstructions_SingleFolder_CreatesSimpleMoveInstruction()
 		{
-			// Arrange
+			
 			string archivePath = CreateTestArchive("single_folder.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "Override/appearance.2da", "2DA");
@@ -179,10 +179,10 @@ namespace KOTORModSync.Tests
 
 			var component = new ModComponent { Name = "Single Folder Mod", Guid = Guid.NewGuid() };
 
-			// Act
+			
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			// Assert
+			
 			Assert.That(result, Is.True);
 			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should have Extract + Move");
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
@@ -193,7 +193,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GenerateInstructions_FlatFiles_CreatesSimpleMoveInstruction()
 		{
-			// Arrange
+			
 			string archivePath = CreateTestArchive("flat_files.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "appearance.2da", "2DA");
@@ -202,10 +202,10 @@ namespace KOTORModSync.Tests
 
 			var component = new ModComponent { Name = "Flat Files Mod", Guid = Guid.NewGuid() };
 
-			// Act
+			
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			// Assert
+			
 			Assert.That(result, Is.True);
 			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should have Extract + Move");
 			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Move));
@@ -214,7 +214,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GenerateInstructions_MultipleArchives_DoesNotDuplicate()
 		{
-			// Arrange
+			
 			string archive1Path = CreateTestArchive("archive1.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "file1.2da", "2DA");
@@ -227,21 +227,21 @@ namespace KOTORModSync.Tests
 
 			var component = new ModComponent { Name = "Multi Archive Mod", Guid = Guid.NewGuid() };
 
-			// Act - Generate from first archive
+			
 			bool result1 = AutoInstructionGenerator.GenerateInstructions(component, archive1Path);
 			int instructionsAfterFirst = component.Instructions.Count;
 
-			// Act - Generate from second archive
+			
 			bool result2 = AutoInstructionGenerator.GenerateInstructions(component, archive2Path);
 			int instructionsAfterSecond = component.Instructions.Count;
 
-			// Assert
+			
 			Assert.That(result1, Is.True);
 			Assert.That(result2, Is.True);
 			Assert.That(instructionsAfterFirst, Is.EqualTo(2), "First archive should create 2 instructions");
 			Assert.That(instructionsAfterSecond, Is.EqualTo(4), "Second archive should ADD 2 more (not replace)");
 
-			// Verify both archives have instructions
+			
 			var archive1Instructions = component.Instructions.Where(i =>
 				i.Source != null && i.Source.Any(s => s.Contains("archive1"))).ToList();
 			var archive2Instructions = component.Instructions.Where(i =>
@@ -254,7 +254,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void GenerateInstructions_RegeneratesSameArchive_ReplacesInstructions()
 		{
-			// Arrange
+			
 			string archivePath = CreateTestArchive("test.zip", archive =>
 			{
 				AddTextFileToArchive(archive, "file1.2da", "2DA");
@@ -262,14 +262,14 @@ namespace KOTORModSync.Tests
 
 			var component = new ModComponent { Name = "Test Mod", Guid = Guid.NewGuid() };
 
-			// Act - Generate twice
+			
 			AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 			var firstGuids = component.Instructions.Select(i => i.Guid).ToList();
 
 			AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 			var secondGuids = component.Instructions.Select(i => i.Guid).ToList();
 
-			// Assert
+			
 			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should still have 2 instructions");
 			Assert.That(firstGuids, Is.Not.EqualTo(secondGuids), "Instructions should be regenerated with new GUIDs");
 		}

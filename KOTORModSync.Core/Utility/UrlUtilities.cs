@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Diagnostics;
@@ -9,17 +9,17 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
 {
-	/// <summary>
-	/// Utility methods for working with URLs.
-	/// </summary>
+	
+	
+	
 	public static class UrlUtilities
 	{
-		/// <summary>
-		/// Opens a URL in the default system browser.
-		/// </summary>
-		/// <param name="url">The URL to open.</param>
-		/// <exception cref="ArgumentException">Thrown when the URL is null or empty.</exception>
-		/// <exception cref="InvalidOperationException">Thrown when the URL is invalid.</exception>
+		
+		
+		
+		
+		
+		
 		public static void OpenUrl([NotNull] string url)
 		{
 			try

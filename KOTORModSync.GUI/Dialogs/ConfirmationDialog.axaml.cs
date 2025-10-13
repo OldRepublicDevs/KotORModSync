@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Threading.Tasks;
@@ -42,10 +42,10 @@ namespace KOTORModSync.Dialogs
 		public ConfirmationDialog()
 		{
 			InitializeComponent();
-			// Apply current theme to dialog
+			
 			ThemeManager.ApplyCurrentToWindow(this);
 
-			// Attach window move event handlers
+			
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -75,9 +75,9 @@ namespace KOTORModSync.Dialogs
 
 		public enum ConfirmationResult
 		{
-			Save,    // Yes button clicked
-			Discard, // No button clicked
-			Cancel   // X button clicked
+			Save,    
+			Discard, 
+			Cancel   
 		}
 
 		public static async Task<bool?> ShowConfirmationDialog(
@@ -227,7 +227,7 @@ namespace KOTORModSync.Dialogs
 		}
 
 		private void OnOpened([CanBeNull] object sender, [CanBeNull] EventArgs e) =>
-			ConfirmTextBlock.Text = ConfirmText; // ReSharper disable twice UnusedParameter.Local
+			ConfirmTextBlock.Text = ConfirmText; 
 
 		private void YesButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
 			RaiseEvent(new RoutedEventArgs(s_yesButtonClickedEvent));

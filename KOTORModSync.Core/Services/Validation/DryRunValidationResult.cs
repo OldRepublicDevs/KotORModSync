@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.Collections.Generic;
 using System.Linq;
@@ -10,9 +10,9 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Core.Services.Validation
 {
-	/// <summary>
-	/// Result of a dry-run validation containing all issues and user-friendly messages.
-	/// </summary>
+	
+	
+	
 	public class DryRunValidationResult
 	{
 		[NotNull]
@@ -23,9 +23,9 @@ namespace KOTORModSync.Core.Services.Validation
 
 		public bool HasWarnings => Issues.Any(i => i.Severity == ValidationSeverity.Warning);
 
-		/// <summary>
-		/// Gets a user-friendly summary message.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public string GetSummaryMessage()
 		{
@@ -54,9 +54,9 @@ namespace KOTORModSync.Core.Services.Validation
 			return sb.ToString();
 		}
 
-		/// <summary>
-		/// Gets detailed user-friendly messages for end users.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public string GetEndUserMessage()
 		{
@@ -64,7 +64,7 @@ namespace KOTORModSync.Core.Services.Validation
 			_ = sb.AppendLine(GetSummaryMessage());
 			_ = sb.AppendLine();
 
-			// Group issues by component
+			
 			var componentIssues = Issues
 				.Where(i => i.AffectedComponent != null)
 				.GroupBy(i => i.AffectedComponent)
@@ -92,7 +92,7 @@ namespace KOTORModSync.Core.Services.Validation
 
 						_ = sb.AppendLine($"{icon} {issue.Message}");
 
-						// Add actionable advice
+						
 						string advice = GetEndUserAdvice(issue);
 						if ( !string.IsNullOrEmpty(advice) )
 						{
@@ -104,7 +104,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 			}
 
-			// Generic issues not tied to a specific component
+			
 			var genericIssues = Issues.Where(i => i.AffectedComponent == null).ToList();
 			if ( genericIssues.Any() )
 			{
@@ -134,9 +134,9 @@ namespace KOTORModSync.Core.Services.Validation
 			return sb.ToString();
 		}
 
-		/// <summary>
-		/// Gets detailed messages for users in editor mode.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		public string GetEditorMessage()
 		{
@@ -144,7 +144,7 @@ namespace KOTORModSync.Core.Services.Validation
 			_ = sb.AppendLine(GetSummaryMessage());
 			_ = sb.AppendLine();
 
-			// Group by component and instruction
+			
 			var componentIssues = Issues
 				.Where(i => i.AffectedComponent != null)
 				.GroupBy(i => i.AffectedComponent)
@@ -258,9 +258,9 @@ namespace KOTORModSync.Core.Services.Validation
 			return "Review the instruction parameters and execution order.";
 		}
 
-		/// <summary>
-		/// Gets a list of affected components that have validation errors.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		[ItemNotNull]
 		public List<ModComponent> GetAffectedComponents()
@@ -273,20 +273,20 @@ namespace KOTORModSync.Core.Services.Validation
 				.ToList();
 		}
 
-		/// <summary>
-		/// Gets a list of components that can be safely deselected to resolve errors.
-		/// </summary>
+		
+		
+		
 		[NotNull]
 		[ItemNotNull]
 		public List<ModComponent> GetSuggestedComponentsToDisable()
 		{
-			// Components with errors that are not dependencies of other selected components
+			
 			List<ModComponent> affectedComponents = GetAffectedComponents();
 			var allSelectedComponents = MainConfig.AllComponents.Where(c => c.IsSelected).ToList();
 
 			return affectedComponents.Where(component =>
 			{
-				// Check if any other component depends on this one
+				
 				bool isRequiredDependency = allSelectedComponents.Any(c =>
 					c != component && c.Dependencies.Contains(component.Guid));
 

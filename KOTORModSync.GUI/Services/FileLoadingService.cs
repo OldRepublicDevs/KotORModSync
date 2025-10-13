@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System;
 using System.Collections.Generic;
@@ -15,9 +15,9 @@ using KOTORModSync.Dialogs;
 
 namespace KOTORModSync.Services
 {
-	/// <summary>
-	/// Service responsible for loading TOML and Markdown files
-	/// </summary>
+	
+	
+	
 	public class FileLoadingService
 	{
 		private readonly MainConfig _mainConfig;
@@ -36,29 +36,29 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		/// <summary>
-		/// Loads a TOML file with merge strategy choice
-		/// </summary>
+		
+		
+		
 		public async Task<bool> LoadTomlFileAsync(string filePath, bool editorMode, Func<Task> onComponentsLoaded, string fileType = "instruction file")
 		{
 			try
 			{
-				// Verify the file
+				
 				var fileInfo = new FileInfo(filePath);
-				const int maxInstructionSize = 524288000; // 500mb max
+				const int maxInstructionSize = 524288000; 
 				if ( fileInfo.Length > maxInstructionSize )
 				{
 					await Logger.LogAsync($"Invalid {fileType} selected: '{fileInfo.Name}' - file too large");
 					return false;
 				}
 
-				// Load components from the TOML file
+				
 				List<ModComponent> newComponents = ModComponent.ReadComponentsFromFile(filePath);
 
-				// Process modlinks for relative paths
+				
 				FileLoadingService.ProcessModLinks(newComponents);
 
-				// If no existing components, just load the new ones
+				
 				if ( _mainConfig.allComponents.Count == 0 )
 				{
 					_mainConfig.allComponents = newComponents;
@@ -68,19 +68,19 @@ namespace KOTORModSync.Services
 					return true;
 				}
 
-				// Ask user what to do with existing components
+				
 				bool? result = await ShowConfigLoadConfirmationAsync(fileType, editorMode);
 
 				switch ( result )
 				{
-					case true: // User clicked "Merge"
+					case true: 
 						{
-							// Ask user which merge strategy to use
+							
 							MergeStrategy? mergeStrategy = await ShowMergeStrategyDialogAsync(fileType);
 							if ( mergeStrategy == null )
 								return false;
 
-							// Show conflict resolution dialog
+							
 							var conflictDialog = new ComponentMergeConflictDialog(
 								_mainConfig.allComponents,
 								newComponents,
@@ -112,12 +112,12 @@ namespace KOTORModSync.Services
 							}
 							break;
 						}
-					case false: // User clicked "Overwrite"
+					case false: 
 						_mainConfig.allComponents = newComponents;
 						_lastLoadedFileName = Path.GetFileName(filePath);
 						await Logger.LogAsync($"Overwrote existing config with {newComponents.Count} components from {fileType}.");
 						break;
-					default: // User cancelled
+					default: 
 						return false;
 				}
 
@@ -131,9 +131,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Loads a markdown file and parses it into components
-		/// </summary>
+		
+		
+		
 		public async Task<bool> LoadMarkdownFileAsync(
 			[NotNull] string filePath,
 			[NotNull] bool editorMode,
@@ -153,10 +153,10 @@ namespace KOTORModSync.Services
 					MarkdownParserResult parseResult = null;
 					MarkdownImportProfile configuredProfile = null;
 
-					// Only show RegexImportDialog in EditorMode, otherwise use default profile
+					
 					if ( editorMode )
 					{
-						// Open Regex Import Dialog - user configures the profile through UI
+						
 						var dialog = new RegexImportDialog(fileContents, profile ?? MarkdownImportProfile.CreateDefault());
 
 						dialog.Closed += async (_, __) =>
@@ -164,13 +164,13 @@ namespace KOTORModSync.Services
 							if ( !dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm) )
 								return;
 
-							// Get the user-configured profile from the dialog
+							
 							configuredProfile = vm.ConfiguredProfile;
 
-							// Parse using the configured profile (ConfirmLoad uses vm.Profile internally)
+							
 							parseResult = vm.ConfirmLoad();
 
-							// Process modlinks for relative paths
+							
 							FileLoadingService.ProcessModLinks(parseResult.Components);
 
 							await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
@@ -191,14 +191,14 @@ namespace KOTORModSync.Services
 					}
 					else
 					{
-						// Use default profile when not in editor mode
+						
 						configuredProfile = profile ?? MarkdownImportProfile.CreateDefault();
 						var parser = new MarkdownParser(configuredProfile,
 							logInfo => Logger.Log(logInfo),
 							Logger.LogVerbose);
 						parseResult = parser.Parse(fileContents);
 
-						// Process modlinks for relative paths
+						
 						FileLoadingService.ProcessModLinks(parseResult.Components);
 
 						await Logger.LogAsync($"Markdown parsing completed using default profile.");
@@ -212,7 +212,7 @@ namespace KOTORModSync.Services
 						}
 					}
 
-					// Handle merging/overwriting
+					
 					if ( _mainConfig.allComponents.Count == 0 )
 					{
 						_mainConfig.allComponents = new List<ModComponent>(parseResult.Components);
@@ -223,7 +223,7 @@ namespace KOTORModSync.Services
 					{
 						bool? confirmResult = await ShowConfigLoadConfirmationAsync("markdown file", editorMode);
 
-						if ( confirmResult == true ) // Merge
+						if ( confirmResult == true ) 
 						{
 							var conflictDialog = new ComponentMergeConflictDialog(
 								_mainConfig.allComponents,
@@ -248,7 +248,7 @@ namespace KOTORModSync.Services
 								return false;
 							}
 						}
-						else if ( confirmResult == false ) // Overwrite
+						else if ( confirmResult == false ) 
 						{
 							_mainConfig.allComponents = new List<ModComponent>(parseResult.Components);
 							await Logger.LogAsync($"Overwrote existing config with {parseResult.Components.Count} components from markdown.");
@@ -271,9 +271,9 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		/// <summary>
-		/// Saves components to a TOML file
-		/// </summary>
+		
+		
+		
 		public async Task<bool> SaveTomlFileAsync(string filePath, List<ModComponent> components)
 		{
 			try
@@ -304,9 +304,9 @@ namespace KOTORModSync.Services
 
 		#region Private Helper Methods
 
-		/// <summary>
-		/// Processes modlinks to prepend base URL if they start with /
-		/// </summary>
+		
+		
+		
 		private static void ProcessModLinks(IList<ModComponent> components)
 		{
 			if ( components == null )
@@ -323,7 +323,7 @@ namespace KOTORModSync.Services
 						string modLink = component.ModLink[i];
 						if ( !string.IsNullOrEmpty(modLink) && modLink.StartsWith("/") )
 						{
-							//HACK: Prepend base URL for relative paths starting with /
+							
 							component.ModLink[i] = baseUrl + modLink;
 						}
 					}
@@ -334,9 +334,9 @@ namespace KOTORModSync.Services
 		private async Task<bool?> ShowConfigLoadConfirmationAsync(string fileType, bool editorMode)
 		{
 			if ( _mainConfig.allComponents.Count == 0 )
-				return true; // No existing config
+				return true; 
 
-			// If editor mode is disabled, always overwrite
+			
 			if ( !editorMode )
 				return false;
 
@@ -360,9 +360,9 @@ namespace KOTORModSync.Services
 		#endregion
 	}
 
-	/// <summary>
-	/// Merge strategy for combining component lists
-	/// </summary>
+	
+	
+	
 	public enum MergeStrategy
 	{
 		ByGuid,

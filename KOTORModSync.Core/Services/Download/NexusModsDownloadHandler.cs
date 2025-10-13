@@ -1,6 +1,6 @@
-// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,7 +23,7 @@ namespace KOTORModSync.Core.Services.Download
 			Logger.LogVerbose("[NexusMods] Initializing Nexus Mods download handler");
 			Logger.LogVerbose($"[NexusMods] API key provided: {!string.IsNullOrWhiteSpace(_apiKey)}");
 
-			// Set up proper headers for Nexus Mods
+			
 			if ( !_httpClient.DefaultRequestHeaders.Contains("User-Agent") )
 			{
 				const string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -61,14 +61,14 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				await Logger.LogVerboseAsync($"[NexusMods] Resolving filename for URL: {url}");
 
-				// Without API key, cannot resolve filename
+				
 				if ( string.IsNullOrWhiteSpace(_apiKey) )
 				{
 					await Logger.LogVerboseAsync("[NexusMods] No API key provided, cannot resolve filename");
 					return new List<string>();
 				}
 
-				// Try to get filename from URL path as fallback
+				
 				if ( Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 				{
 					string fileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
@@ -96,7 +96,7 @@ namespace KOTORModSync.Core.Services.Download
 
 			try
 			{
-				// Validate URL first
+				
 				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 				{
 					string errorMsg = $"Invalid URL format: {url}";
@@ -111,7 +111,7 @@ namespace KOTORModSync.Core.Services.Download
 					return DownloadResult.Failed(errorMsg);
 				}
 
-				// Determine expected filename from URL
+				
 				string expectedFileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
 				await Logger.LogVerboseAsync($"[NexusMods] Expected filename: {expectedFileName}");
 
@@ -260,7 +260,7 @@ namespace KOTORModSync.Core.Services.Download
 				TotalBytes = totalBytes
 			});
 
-			// Use unified download helper for consistent progress reporting
+			
 			using ( Stream contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false) )
 			{
 				await DownloadHelper.DownloadWithProgressAsync(
@@ -320,7 +320,7 @@ namespace KOTORModSync.Core.Services.Download
 				ProgressPercentage = 40
 			});
 
-			// For now, we'll return a helpful error message explaining the limitation
+			
 			await Logger.LogWarningAsync("[NexusMods] Free downloads from Nexus Mods require manual interaction and cannot be automated");
 
 			progress?.Report(new DownloadProgress
@@ -339,7 +339,7 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			await Logger.LogVerboseAsync($"[NexusMods] ResolveDownloadLinkAsync called with URL: {url}");
 			await Logger.LogWarningAsync("[NexusMods] ResolveDownloadLinkAsync is not implemented - returning null");
-			// Placeholder: interpret Nexus Mods URL to API endpoint. Implementation will require Nexus Mods API usage.
+			
 			await Task.Delay(0).ConfigureAwait(false);
 			return null;
 		}

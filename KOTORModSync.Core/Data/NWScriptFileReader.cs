@@ -1,19 +1,19 @@
-﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the Business Source License 1.1 (BSL 1.1).
-// See LICENSE.txt file in the project root for full license information.
+
+
+
 
 using System.IO;
 using JetBrains.Annotations;
 
-// ReSharper disable UnusedType.Global
+
 
 namespace KOTORModSync.Core.Data
 {
-	// ReSharper disable once InconsistentNaming
-	// ReSharper disable once UnusedMember.Global
+	
+	
 	public static class NWScriptFileReader
 	{
-		// ReSharper disable once UnusedMember.Global
+		
 		public static void ReadHeader([NotNull] Stream stream, out NWScriptHeader header)
 		{
 			var reader = new BinaryReader(stream);

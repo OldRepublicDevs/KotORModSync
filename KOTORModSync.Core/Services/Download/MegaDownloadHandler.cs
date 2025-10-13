@@ -127,15 +127,18 @@ namespace KOTORModSync.Core.Services.Download
 					StartTime = DateTime.Now
 				});
 
-				// Create a progress wrapper that converts MEGA's double progress (0.0-1.0) to our format
+				// Create a progress wrapper - MEGA's API reports progress as 0-100, not 0.0-1.0
 				var megaProgress = new Progress<double>(percent =>
 				{
+					// Clamp to 0-100 range in case API reports values outside this range
+					double progressPercent = Math.Max(0, Math.Min(percent, 100));
+
 					progress?.Report(new DownloadProgress
 					{
 						Status = DownloadStatus.InProgress,
-						StatusMessage = $"Downloading {node.Name}... ({percent:P0})",
-						ProgressPercentage = percent * 100,
-						BytesDownloaded = (long)(node.Size * percent),
+						StatusMessage = $"Downloading {node.Name}... ({progressPercent:F1}%)",
+						ProgressPercentage = progressPercent,
+						BytesDownloaded = (long)(node.Size * (progressPercent / 100.0)),
 						TotalBytes = node.Size,
 						StartTime = DateTime.Now,
 						FilePath = filePath
@@ -143,16 +146,12 @@ namespace KOTORModSync.Core.Services.Download
 				});
 
 				// Use Download method with progress wrapper and cancellation token
+				// Write directly to disk without DownloadHelper to avoid double progress reporting
 				using ( Stream downloadStream = await _client.DownloadAsync(node, megaProgress, cancellationToken).ConfigureAwait(false) )
+				using ( FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true) )
 				{
-					await DownloadHelper.DownloadWithProgressAsync(
-						downloadStream,
-						filePath,
-						node.Size,
-						node.Name,
-						url,
-						progress,
-						cancellationToken: cancellationToken).ConfigureAwait(false);
+					await downloadStream.CopyToAsync(fileStream, 8192, cancellationToken).ConfigureAwait(false);
+					await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
 				}
 
 				long fileSize = new FileInfo(filePath).Length;

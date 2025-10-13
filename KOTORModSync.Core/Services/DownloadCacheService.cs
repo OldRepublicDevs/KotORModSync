@@ -531,8 +531,6 @@ namespace KOTORModSync.Core.Services
 				// Forward progress updates
 				var progressForwarder = new Progress<DownloadProgress>(p =>
 				{
-					Logger.LogVerbose($"[DownloadCacheService] Progress update received for {url}: Status={p.Status}, Message={p.StatusMessage}, Progress={p.ProgressPercentage}%");
-
 					// Update the progress tracker with the new values
 					progressTracker.Status = p.Status;
 					progressTracker.StatusMessage = p.StatusMessage;

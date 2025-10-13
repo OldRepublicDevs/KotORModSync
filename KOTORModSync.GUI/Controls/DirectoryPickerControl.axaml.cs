@@ -1,3 +1,6 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -58,12 +61,19 @@ namespace KOTORModSync.Controls
 		// Persist current value even if visual children are not yet available
 		private string _pendingPath;
 		private CancellationTokenSource _pathSuggestCts;
+		private FileSystemWatcher _fileSystemWatcher;
 
 		public DirectoryPickerControl()
 		{
 			InitializeComponent();
 			DataContext = this;
 			Logger.LogVerbose($"DirectoryPickerControl[Type={PickerType}] constructed");
+		}
+
+		protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+		{
+			base.OnDetachedFromVisualTree(e);
+			CleanupFileSystemWatcher();
 		}
 
 		protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -362,6 +372,29 @@ namespace KOTORModSync.Controls
 					AllowMultiple = false
 				};
 
+				// Try to set the suggested start location based on current path
+				string currentPath = GetCurrentPath();
+				if ( !string.IsNullOrWhiteSpace(currentPath) )
+				{
+					string startPath = FindClosestExistingParent(currentPath);
+					if ( !string.IsNullOrEmpty(startPath) )
+					{
+						try
+						{
+							IStorageFolder startFolder = await topLevel.StorageProvider.TryGetFolderFromPathAsync(new Uri(startPath));
+							if ( startFolder != null )
+							{
+								options.SuggestedStartLocation = startFolder;
+								await Logger.LogVerboseAsync($"DirectoryPickerControl[{PickerType}] Browse starting at '{startPath}'");
+							}
+						}
+						catch ( Exception ex )
+						{
+							await Logger.LogVerboseAsync($"DirectoryPickerControl[{PickerType}] Could not set start location: {ex.Message}");
+						}
+					}
+				}
+
 				IReadOnlyList<IStorageFolder> result = await topLevel.StorageProvider.OpenFolderPickerAsync(options);
 				if ( result.Count > 0 )
 				{
@@ -377,6 +410,61 @@ namespace KOTORModSync.Controls
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
+			}
+		}
+
+		private string FindClosestExistingParent(string path)
+		{
+			try
+			{
+				if ( string.IsNullOrWhiteSpace(path) )
+					return null;
+
+				// Expand environment variables and resolve relative paths
+				string expandedPath = PathUtilities.ExpandPath(path);
+				if ( string.IsNullOrWhiteSpace(expandedPath) )
+					return null;
+
+				// Try the path as-is first
+				if ( Directory.Exists(expandedPath) )
+					return expandedPath;
+
+				// Walk up the directory tree to find an existing parent
+				string current = expandedPath;
+				while ( !string.IsNullOrEmpty(current) )
+				{
+					try
+					{
+						string parent = Path.GetDirectoryName(current);
+						if ( string.IsNullOrEmpty(parent) || parent == current )
+						{
+							// Reached the root or can't go further
+							break;
+						}
+
+						if ( Directory.Exists(parent) )
+						{
+							Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Found existing parent: '{parent}' for path '{path}'");
+							return parent;
+						}
+
+						current = parent;
+					}
+					catch ( Exception ex )
+					{
+						Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Error checking parent of '{current}': {ex.Message}");
+						break;
+					}
+				}
+
+				// If we couldn't find anything, return null
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] No existing parent found for '{path}'");
+				return null;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+				return null;
 			}
 		}
 
@@ -396,6 +484,9 @@ namespace KOTORModSync.Controls
 
 			Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] TextChanged: '{_pathInput.Text}'");
 			UpdatePathSuggestions(_pathInput, _pathSuggestions, ref _pathSuggestCts, PickerType);
+
+			// Update file system watcher to watch the directory being typed
+			SetupFileSystemWatcher(_pathInput.Text);
 		}
 
 		private void PathInput_LostFocus(object sender, RoutedEventArgs e)
@@ -649,6 +740,95 @@ namespace KOTORModSync.Controls
 			catch ( Exception ex )
 			{
 				Logger.LogVerbose($"Error updating path suggestions: {ex.Message}");
+			}
+		}
+
+		private void SetupFileSystemWatcher(string path)
+		{
+			try
+			{
+				// Clean up existing watcher
+				CleanupFileSystemWatcher();
+
+				if ( string.IsNullOrWhiteSpace(path) )
+					return;
+
+				// Expand the path
+				string expandedPath = PathUtilities.ExpandPath(path);
+				if ( string.IsNullOrWhiteSpace(expandedPath) )
+					return;
+
+				// Determine which directory to watch
+				string watchPath = null;
+				if ( Directory.Exists(expandedPath) )
+				{
+					watchPath = expandedPath;
+				}
+				else
+				{
+					// Watch the parent directory
+					string parent = Path.GetDirectoryName(expandedPath);
+					if ( !string.IsNullOrEmpty(parent) && Directory.Exists(parent) )
+					{
+						watchPath = parent;
+					}
+				}
+
+				if ( string.IsNullOrEmpty(watchPath) )
+					return;
+
+				// Create and configure the watcher
+				_fileSystemWatcher = new FileSystemWatcher(watchPath)
+				{
+					NotifyFilter = NotifyFilters.DirectoryName,
+					IncludeSubdirectories = false
+				};
+
+				_fileSystemWatcher.Created += OnFileSystemChanged;
+				_fileSystemWatcher.Deleted += OnFileSystemChanged;
+				_fileSystemWatcher.Renamed += OnFileSystemChanged;
+
+				_fileSystemWatcher.EnableRaisingEvents = true;
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Watching directory: '{watchPath}'");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Could not setup file system watcher: {ex.Message}");
+				CleanupFileSystemWatcher();
+			}
+		}
+
+		private void CleanupFileSystemWatcher()
+		{
+			if ( _fileSystemWatcher != null )
+			{
+				_fileSystemWatcher.EnableRaisingEvents = false;
+				_fileSystemWatcher.Created -= OnFileSystemChanged;
+				_fileSystemWatcher.Deleted -= OnFileSystemChanged;
+				_fileSystemWatcher.Renamed -= OnFileSystemChanged;
+				_fileSystemWatcher.Dispose();
+				_fileSystemWatcher = null;
+			}
+		}
+
+		private void OnFileSystemChanged(object sender, FileSystemEventArgs e)
+		{
+			try
+			{
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] File system changed: {e.ChangeType} - {e.FullPath}");
+
+				// Refresh suggestions on the UI thread
+				Dispatcher.UIThread.Post(() =>
+				{
+					if ( _pathInput != null && _pathSuggestions != null )
+					{
+						UpdatePathSuggestions(_pathInput, _pathSuggestions, ref _pathSuggestCts, PickerType);
+					}
+				}, DispatcherPriority.Background);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Error handling file system change: {ex.Message}");
 			}
 		}
 	}

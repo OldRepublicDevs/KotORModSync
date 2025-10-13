@@ -1,5 +1,5 @@
 // Copyright 2021-2025 KOTORModSync
-// Licensed under the GNU General Public License v3.0 (GPLv3).
+// Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
@@ -88,6 +88,28 @@ namespace KOTORModSync.Services
 
 					c.IsSelected = false;
 					HandleComponentUnchecked(c, visitedComponents, suppressErrors, onComponentVisualRefresh);
+				}
+
+				// Auto-select at least one option if the component has options and none are selected
+				if ( component.Options != null && component.Options.Count > 0 )
+				{
+					bool hasSelectedOption = component.Options.Any(opt => opt.IsSelected);
+					if ( !hasSelectedOption )
+					{
+						bool optionSelected = TryAutoSelectFirstOption(component);
+
+						// If no option could be selected, uncheck the component
+						// This creates a dependency: component selection depends on at least one option being selected
+						if ( !optionSelected )
+						{
+							Logger.LogVerbose($"[ComponentSelectionService] No valid options available for '{component.Name}', unchecking component");
+							component.IsSelected = false;
+							// Don't call HandleComponentUnchecked here to avoid infinite loop
+							// Just refresh the visual
+							onComponentVisualRefresh?.Invoke(component);
+							return;
+						}
+					}
 				}
 
 				// Trigger visual refresh
@@ -185,6 +207,106 @@ namespace KOTORModSync.Services
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Error handling select all checkbox");
+			}
+		}
+
+		/// <summary>
+		/// Handles option checkbox being unchecked - enforces that at least one option must be selected
+		/// </summary>
+		public void HandleOptionUnchecked(
+			Option option,
+			ModComponent parentComponent,
+			Action<ModComponent> onComponentVisualRefresh = null)
+		{
+			if ( option is null )
+				throw new ArgumentNullException(nameof(option));
+			if ( parentComponent is null )
+				throw new ArgumentNullException(nameof(parentComponent));
+
+			try
+			{
+				// Check if all options are now unchecked
+				bool allOptionsUnchecked = parentComponent.Options.All(opt => !opt.IsSelected);
+
+				if ( allOptionsUnchecked && parentComponent.IsSelected )
+				{
+					// If all options are unchecked, the component must also be unchecked
+					// This enforces the dependency: component selection depends on at least one option being selected
+					Logger.LogVerbose($"[ComponentSelectionService] All options unchecked for '{parentComponent.Name}', unchecking component");
+					parentComponent.IsSelected = false;
+
+					// Handle cascading unchecks for components that depend on this one
+					var visitedComponents = new HashSet<ModComponent>();
+					foreach ( ModComponent c in _mainConfig.allComponents.Where(c => c.IsSelected && c.Dependencies.Contains(parentComponent.Guid)) )
+					{
+						c.IsSelected = false;
+						HandleComponentUnchecked(c, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
+					}
+
+					// Trigger visual refresh for the parent component
+					onComponentVisualRefresh?.Invoke(parentComponent);
+				}
+			}
+			catch ( Exception e )
+			{
+				Logger.LogException(e, "Error handling option unchecked");
+			}
+		}
+
+		/// <summary>
+		/// Handles option checkbox being checked - ensures parent component is also checked
+		/// </summary>
+		public void HandleOptionChecked(
+			Option option,
+			ModComponent parentComponent,
+			Action<ModComponent> onComponentVisualRefresh = null)
+		{
+			if ( option is null )
+				throw new ArgumentNullException(nameof(option));
+			if ( parentComponent is null )
+				throw new ArgumentNullException(nameof(parentComponent));
+
+			try
+			{
+				// If an option is checked, ensure the parent component is also checked
+				if ( !parentComponent.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' checked, auto-checking parent component '{parentComponent.Name}'");
+					parentComponent.IsSelected = true;
+
+					// Handle dependencies/restrictions for the parent component
+					var visitedComponents = new HashSet<ModComponent>();
+					HandleComponentChecked(parentComponent, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
+				}
+			}
+			catch ( Exception e )
+			{
+				Logger.LogException(e, "Error handling option checked");
+			}
+		}
+
+		/// <summary>
+		/// Attempts to auto-select the first available option for a component.
+		/// This ensures that when a component with options is selected, at least one option is also selected.
+		/// </summary>
+		private bool TryAutoSelectFirstOption(ModComponent component)
+		{
+			if ( component?.Options == null || component.Options.Count == 0 )
+				return false;
+
+			try
+			{
+				// Simply select the first option - options themselves don't have dependencies/restrictions
+				// The component's dependencies/restrictions have already been resolved at this point
+				Option firstOption = component.Options[0];
+				firstOption.IsSelected = true;
+				Logger.LogVerbose($"[ComponentSelectionService] Auto-selected option '{firstOption.Name}' for component '{component.Name}'");
+				return true;
+			}
+			catch ( Exception e )
+			{
+				Logger.LogException(e, $"Error auto-selecting first option for component '{component.Name}'");
+				return false;
 			}
 		}
 	}

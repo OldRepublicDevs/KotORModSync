@@ -117,14 +117,10 @@ Thank you for helping test that obnoxious UAC elevation problem legacy Windows a
 
 Tested multiple installs and provided wisdom on the internal workings of KOTOR.
 
-### Other notable users
-
-#### Fair-Strides
-
-Provided the Perl source code of TSLPatcher on GitHub, and generally maintained the TSLPatcher project in Stoffe's absence.
-
-#### *Stoffe*
-
-Creator of *TSLPatcher*
-
 Thank you to the entire KOTOR community for what you do.
+
+## License
+
+KOTORModSync is licensed under the Business Source License 1.1 (BSL 1.1).
+
+See [LICENSE.txt](LICENSE.txt) for full details.

@@ -1,3 +1,6 @@
+<!-- Copyright 2021-2025 KOTORModSync -->
+<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
+<!-- See LICENSE.txt file in the project root for full license information. -->
 <Window
     x:Class="KOTORModSync.MainWindow"
     xmlns="https://github.com/avaloniaui"
@@ -543,6 +546,7 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!--  Step 4: Download Mods & Validate  -->
                                 <Border x:Name="Step4Border" Classes="step-border">
                                     <StackPanel>
                                         <Grid ColumnDefinitions="Auto,*,Auto">
@@ -553,7 +557,7 @@
                                             <TextBlock
                                                 Grid.Column="1"
                                                 Classes="step-title"
-                                                Text="Download Mods" />
+                                                Text="Download Mods &amp; Validate" />
                                             <Border
                                                 x:Name="Step4CompleteIndicator"
                                                 Grid.Column="2"
@@ -564,8 +568,14 @@
                                                     Text="Pending" />
                                             </Border>
                                         </Grid>
+
+                                        <!--  Download Section  -->
                                         <TextBlock
-                                            Margin="30,10,0,10"
+                                            Margin="30,10,0,5"
+                                            FontWeight="Bold"
+                                            Text="📥 Download Mods" />
+                                        <TextBlock
+                                            Margin="30,5,0,10"
                                             Text="Make sure each selected mod is downloaded into your Mod Directory before installing."
                                             TextWrapping="Wrap" />
                                         <TextBlock
@@ -587,9 +597,9 @@
                                                 Content="Open Mod Directory"
                                                 ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
                                         </StackPanel>
+
                                         <!--  Download Status and Progress Indicator  -->
                                         <StackPanel Margin="30,10,0,0" Spacing="8">
-                                            <!--  Download Progress Bar  -->
                                             <Grid ColumnDefinitions="Auto,*,Auto">
                                                 <!--  LED Status Indicator  -->
                                                 <Ellipse
@@ -651,33 +661,14 @@
                                                 Opacity="0.8"
                                                 Text="Downloaded: 0 / 0 mods" />
                                         </StackPanel>
-                                    </StackPanel>
-                                </Border>
 
-                                <!--  Step 5: Validate  -->
-                                <Border x:Name="Step5Border" Classes="step-border">
-                                    <StackPanel>
-                                        <Grid ColumnDefinitions="Auto,*,Auto">
-                                            <TextBlock
-                                                Grid.Column="0"
-                                                Classes="step-number"
-                                                Text="5️⃣" />
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Classes="step-title"
-                                                Text="Validate Configuration" />
-                                            <Border
-                                                x:Name="Step5CompleteIndicator"
-                                                Grid.Column="2"
-                                                Classes="step-pending">
-                                                <TextBlock
-                                                    x:Name="Step5CompleteText"
-                                                    Classes="step-pending-text"
-                                                    Text="Pending" />
-                                            </Border>
-                                        </Grid>
+                                        <!--  Validation Section  -->
                                         <TextBlock
-                                            Margin="30,10,0,10"
+                                            Margin="30,20,0,5"
+                                            FontWeight="Bold"
+                                            Text="✅ Validate Configuration" />
+                                        <TextBlock
+                                            Margin="30,5,0,10"
                                             Text="Check for any issues before installation"
                                             TextWrapping="Wrap" />
                                         <StackPanel Margin="30,5,0,0" Orientation="Horizontal">
@@ -687,7 +678,7 @@
                                                 Click="GettingStartedValidateButton_Click"
                                                 Content="🔍 Validate"
                                                 ToolTip.Tip="Check for any issues before installation" />
-                                            <CheckBox x:Name="Step5Checkbox" IsVisible="False" />
+                                            <CheckBox x:Name="Step4Checkbox" IsVisible="False" />
                                         </StackPanel>
 
                                         <!--  Validation Results Area  -->
@@ -832,7 +823,7 @@
                                         <ProgressBar
                                             x:Name="OverallProgressBar"
                                             Height="20"
-                                            Maximum="5"
+                                            Maximum="4"
                                             Minimum="0"
                                             Value="0" />
                                         <TextBlock
@@ -912,6 +903,37 @@
                                                 Content="🐛 Create Github Issue"
                                                 ToolTip.Tip="Open GitHub to create a new issue for bug reports or feature requests" />
                                         </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!--  Sponsor Section  -->
+                                <Border Classes="help-section">
+                                    <StackPanel>
+                                        <TextBlock
+                                            HorizontalAlignment="Center"
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Text="💖 Support Development" />
+                                        <TextBlock
+                                            Margin="0,10,0,0"
+                                            HorizontalAlignment="Center"
+                                            TextAlignment="Center"
+                                            TextWrapping="Wrap"
+                                            Text="If you enjoy using KOTORModSync, please consider supporting its development!" />
+                                        <Button
+                                            x:Name="SponsorButton"
+                                            Margin="0,15,0,10"
+                                            HorizontalAlignment="Center"
+                                            Click="OpenSponsorPage_Click"
+                                            Content="❤️ Sponsor on GitHub"
+                                            ToolTip.Tip="Support the developer on GitHub Sponsors" />
+                                        <TextBlock
+                                            HorizontalAlignment="Center"
+                                            Classes="secondary-text"
+                                            FontSize="11"
+                                            TextAlignment="Center"
+                                            TextWrapping="Wrap"
+                                            Text="Your support helps maintain and improve this tool" />
                                     </StackPanel>
                                 </Border>
 

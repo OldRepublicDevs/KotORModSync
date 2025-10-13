@@ -1,5 +1,5 @@
 // Copyright 2021-2025 KOTORModSync
-// Licensed under the GNU General Public License v3.0 (GPLv3).
+// Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
@@ -16,31 +16,46 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
+			// Handle null or empty values
+			if ( value == null )
+				return "❓ Empty";
+
 			if ( !(value is string path) )
-				return "❓ Unknown";
+				return "❓ Empty";
 
 			if ( string.IsNullOrEmpty(path) )
 				return "❓ Empty";
 
+			// Get the Instruction from the parameter to check the Action type
+			Instruction instruction = parameter as Instruction;
+
 			// Check if path contains unresolved placeholders
 			if ( path.Contains("<<modDirectory>>") || path.Contains("<<kotorDirectory>>") )
 			{
+				// For Patcher actions, <<kotorDirectory>> in Destination is EXPECTED and CORRECT
+				if ( instruction != null && instruction.Action == Instruction.ActionType.Patcher
+					&& path.Equals("<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
+				{
+					return "✅ Valid (Patcher destination)";
+				}
+
 				// Check if the directories are configured
 				if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
 				{
 					return "⚠️ Paths not configured";
 				}
-				else if ( MainConfig.SourcePath == null )
+				else if ( MainConfig.SourcePath == null && path.Contains("<<modDirectory>>") )
 				{
 					return "⚠️ Mod directory not configured";
 				}
-				else if ( MainConfig.DestinationPath == null )
+				else if ( MainConfig.DestinationPath == null && path.Contains("<<kotorDirectory>>") )
 				{
 					return "⚠️ KOTOR directory not configured";
 				}
 				else
 				{
-					return "⚠️ Contains placeholders";
+					// Placeholders are present and directories are configured - this is normal/expected
+					return "✅ Valid (will be resolved)";
 				}
 			}
 

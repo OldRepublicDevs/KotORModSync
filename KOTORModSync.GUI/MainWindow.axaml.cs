@@ -1,5 +1,5 @@
 ﻿// Copyright 2021-2025 KOTORModSync
-// Licensed under the GNU General Public License v3.0 (GPLv3).
+// Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
 using System.Collections;
@@ -2231,9 +2231,9 @@ namespace KOTORModSync
 						// Update step progress after validation
 						if ( validationResult )
 						{
-							// Validation succeeded - mark Step 5 as complete
-							CheckBox step5Check = this.FindControl<CheckBox>(name: "Step5Checkbox");
-							if ( step5Check != null ) step5Check.IsChecked = true;
+							// Validation succeeded - mark Step 4 as complete
+							CheckBox step4Check = this.FindControl<CheckBox>(name: "Step4Checkbox");
+							if ( step4Check != null ) step4Check.IsChecked = true;
 							UpdateStepProgress();
 						}
 					});
@@ -2461,9 +2461,7 @@ namespace KOTORModSync
 					else
 					{
 						await Logger.LogAsync($"Successfully installed '{name}'");
-						// Mark Step 4 as complete after successful single mod installation
-						CheckBox step4Check = this.FindControl<CheckBox>(name: "Step4Checkbox");
-						if ( step4Check != null ) step4Check.IsChecked = true;
+						// No step completion here - step is only complete after validation passes
 						UpdateStepProgress();
 					}
 				}
@@ -3462,7 +3460,28 @@ namespace KOTORModSync
 				else if ( checkBox.Tag is Option thisOption )
 				{
 					Logger.LogVerbose($"[OnCheckBoxChanged] Option: '{thisOption.Name}' (GUID={thisOption.Guid}), IsChecked={checkBox.IsChecked}");
-					// Options don't need the full component checkbox logic, just update filtered instructions
+
+					// Find the parent component for this option
+					ModComponent parentComponent = MainConfig.AllComponents.FirstOrDefault(c => c.Options.Contains(thisOption));
+
+					if ( parentComponent != null )
+					{
+						if ( checkBox.IsChecked == true )
+						{
+							// Delegate to ComponentSelectionService for option checked logic
+							_componentSelectionService.HandleOptionChecked(thisOption, parentComponent, RefreshSingleComponentVisuals);
+						}
+						else if ( checkBox.IsChecked == false )
+						{
+							// Delegate to ComponentSelectionService for option unchecked logic
+							_componentSelectionService.HandleOptionUnchecked(thisOption, parentComponent, RefreshSingleComponentVisuals);
+						}
+
+						UpdateModCounts();
+						UpdateStepProgress();
+						ResetDownloadStatusDisplay();
+					}
+
 					Logger.LogVerbose("[OnCheckBoxChanged] COMPLETED (Option)");
 				}
 				else
@@ -3825,6 +3844,19 @@ namespace KOTORModSync
 				Logger.LogException(ex, "Failed to open GitHub issue creation page");
 			}
 		}
+
+		[UsedImplicitly]
+		private void OpenSponsorPage_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			try
+			{
+				UrlUtilities.OpenUrl("https://github.com/sponsors/th3w1zard1");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to open GitHub Sponsors page");
+			}
+		}
 		private static void ApplyTheme(string stylePath)
 		{
 			ThemeService.ApplyTheme(stylePath);
@@ -4125,9 +4157,9 @@ namespace KOTORModSync
 					this.FindControl<Border>("Step2Border"), this.FindControl<Border>("Step2CompleteIndicator"), this.FindControl<TextBlock>("Step2CompleteText"),
 					this.FindControl<Border>("Step3Border"), this.FindControl<Border>("Step3CompleteIndicator"), this.FindControl<TextBlock>("Step3CompleteText"),
 					this.FindControl<Border>("Step4Border"), this.FindControl<Border>("Step4CompleteIndicator"), this.FindControl<TextBlock>("Step4CompleteText"),
-					this.FindControl<Border>("Step5Border"), this.FindControl<Border>("Step5CompleteIndicator"), this.FindControl<TextBlock>("Step5CompleteText"),
+					null, null, null, // Step 5 removed - merged with Step 4
 					this.FindControl<ProgressBar>("OverallProgressBar"), this.FindControl<TextBlock>("ProgressText"),
-					this.FindControl<CheckBox>("Step5Checkbox"),
+					this.FindControl<CheckBox>("Step4Checkbox"),
 					EditorMode,
 					IsComponentValidForInstallation
 				);

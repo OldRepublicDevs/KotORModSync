@@ -118,6 +118,151 @@ namespace KOTORModSync.Core.Utility
 			return sfxSignature.SequenceEqual(fileHeader);
 		}
 
+		/// <summary>
+		/// Attempts to extract a 7z SFX executable by finding and extracting the embedded 7z payload.
+		/// </summary>
+		/// <param name="sfxPath">Path to the SFX .exe file</param>
+		/// <param name="destinationPath">Base destination directory for extraction</param>
+		/// <param name="extractedFiles">List to populate with extracted file paths</param>
+		/// <returns>True if extraction succeeded, false otherwise</returns>
+		public static bool TryExtractSevenZipSfx([NotNull] string sfxPath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
+		{
+			if ( sfxPath is null )
+				throw new ArgumentNullException(nameof(sfxPath));
+			if ( destinationPath is null )
+				throw new ArgumentNullException(nameof(destinationPath));
+			if ( extractedFiles is null )
+				throw new ArgumentNullException(nameof(extractedFiles));
+
+			if ( !File.Exists(sfxPath) )
+				return false;
+
+			// 7z signature: 37 7A BC AF 27 1C
+			byte[] sevenZipSignature = { 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C };
+			long signatureOffset = -1;
+
+			try
+			{
+				using ( var fs = new FileStream(sfxPath, FileMode.Open, FileAccess.Read) )
+				{
+					// Search for 7z signature in the file
+					var buffer = new byte[8192];
+					long position = 0;
+					int bytesRead;
+
+					while ( (bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0 )
+					{
+						for ( int i = 0; i < bytesRead - sevenZipSignature.Length + 1; i++ )
+						{
+							bool match = true;
+							for ( int j = 0; j < sevenZipSignature.Length; j++ )
+							{
+								if ( buffer[i + j] != sevenZipSignature[j] )
+								{
+									match = false;
+									break;
+								}
+							}
+
+							if ( match )
+							{
+								signatureOffset = position + i;
+								break;
+							}
+						}
+
+						if ( signatureOffset != -1 )
+							break;
+
+						position += bytesRead;
+						// Move back a bit to catch signatures that span buffer boundaries
+						if ( bytesRead == buffer.Length )
+						{
+							fs.Seek(-sevenZipSignature.Length, SeekOrigin.Current);
+							position -= sevenZipSignature.Length;
+						}
+					}
+				}
+
+				if ( signatureOffset == -1 )
+				{
+					Logger.LogVerbose($"No 7z signature found in SFX file: {sfxPath}");
+					return false;
+				}
+
+				Logger.LogVerbose($"Found 7z signature at offset {signatureOffset} in {sfxPath}");
+
+				// Create a temporary .7z file with the embedded payload
+				string tempSevenZipPath = Path.Combine(Path.GetTempPath(), $"sfx_extract_{Guid.NewGuid()}.7z");
+
+				try
+				{
+					using ( var sourceStream = new FileStream(sfxPath, FileMode.Open, FileAccess.Read) )
+					using ( var destStream = new FileStream(tempSevenZipPath, FileMode.Create, FileAccess.Write) )
+					{
+						sourceStream.Seek(signatureOffset, SeekOrigin.Begin);
+						sourceStream.CopyTo(destStream);
+					}
+
+					// Extract the temp .7z file using SharpCompress
+					string extractFolderName = Path.GetFileNameWithoutExtension(sfxPath);
+					string extractPath = Path.Combine(destinationPath, extractFolderName);
+
+					using ( var stream = File.OpenRead(tempSevenZipPath) )
+					using ( var archive = SevenZipArchive.Open(stream) )
+					using ( var reader = archive.ExtractAllEntries() )
+					{
+						while ( reader.MoveToNextEntry() )
+						{
+							if ( reader.Entry.IsDirectory )
+								continue;
+
+							string destinationItemPath = Path.Combine(extractPath, reader.Entry.Key);
+							string destinationDirectory = Path.GetDirectoryName(destinationItemPath);
+
+							if ( MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory) )
+							{
+								destinationDirectory = PathHelper.GetCaseSensitivePath(destinationDirectory, isFile: false).Item1;
+							}
+
+							if ( !Directory.Exists(destinationDirectory) )
+							{
+								_ = Directory.CreateDirectory(destinationDirectory);
+								Logger.LogVerbose($"Create directory '{destinationDirectory}'");
+							}
+
+							Logger.LogVerbose($"Extract '{reader.Entry.Key}' to '{destinationDirectory}'");
+							reader.WriteEntryToDirectory(destinationDirectory, DefaultExtractionOptions);
+							extractedFiles.Add(destinationItemPath);
+						}
+					}
+
+					Logger.Log($"Successfully extracted 7z SFX archive: {sfxPath}");
+					return true;
+				}
+				finally
+				{
+					// Clean up temp file
+					if ( File.Exists(tempSevenZipPath) )
+					{
+						try
+						{
+							File.Delete(tempSevenZipPath);
+						}
+						catch ( Exception ex )
+						{
+							Logger.LogVerbose($"Failed to delete temporary 7z file: {ex.Message}");
+						}
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Failed to extract 7z SFX: {sfxPath}");
+				return false;
+			}
+		}
+
 		public static string AnalyzeArchiveForExe(FileStream fileStream, IArchive archive)
 		{
 			string exePath = null;
@@ -161,6 +306,100 @@ namespace KOTORModSync.Core.Utility
 			}
 
 			return null;
+		}
+
+		/// <summary>
+		/// Attempts to extract using the 7z command-line tool if available.
+		/// </summary>
+		/// <param name="archivePath">Path to the archive file</param>
+		/// <param name="destinationPath">Base destination directory for extraction</param>
+		/// <param name="extractedFiles">List to populate with extracted file paths</param>
+		/// <returns>True if extraction succeeded via CLI, false if 7z CLI not available or failed</returns>
+		public static async System.Threading.Tasks.Task<bool> TryExtractWithSevenZipCliAsync([NotNull] string archivePath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
+		{
+			if ( archivePath is null )
+				throw new ArgumentNullException(nameof(archivePath));
+			if ( destinationPath is null )
+				throw new ArgumentNullException(nameof(destinationPath));
+			if ( extractedFiles is null )
+				throw new ArgumentNullException(nameof(extractedFiles));
+
+			// Try to find 7z executable
+			string sevenZipPath = null;
+			string[] possiblePaths = { "7z", "7za", "/usr/bin/7z", "/usr/local/bin/7z" };
+
+			foreach ( string path in possiblePaths )
+			{
+				try
+				{
+					var (exitCode, _, _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+						path,
+						"--help",
+						timeout: 2000,
+						hideProcess: true,
+						noLogging: true
+					);
+
+					if ( exitCode == 0 )
+					{
+						sevenZipPath = path;
+						break;
+					}
+				}
+				catch
+				{
+					// Continue to next path
+				}
+			}
+
+			if ( sevenZipPath is null )
+			{
+				Logger.LogVerbose("7z CLI not found on PATH");
+				return false;
+			}
+
+			Logger.LogVerbose($"Found 7z CLI at: {sevenZipPath}");
+
+			try
+			{
+				string extractFolderName = Path.GetFileNameWithoutExtension(archivePath);
+				string extractPath = Path.Combine(destinationPath, extractFolderName);
+
+				if ( !Directory.Exists(extractPath) )
+					_ = Directory.CreateDirectory(extractPath);
+
+				// Execute 7z extraction
+				string args = $"x \"-o{extractPath}\" -y \"{archivePath}\"";
+				var (exitCode, output, error) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+					sevenZipPath,
+					args,
+					timeout: 120000,
+					hideProcess: true,
+					noLogging: false
+				);
+
+				if ( exitCode != 0 )
+				{
+					await Logger.LogErrorAsync($"7z CLI extraction failed with exit code {exitCode}");
+					return false;
+				}
+
+				// Enumerate extracted files
+				if ( Directory.Exists(extractPath) )
+				{
+					var files = Directory.GetFiles(extractPath, "*", SearchOption.AllDirectories);
+					extractedFiles.AddRange(files);
+					Logger.Log($"Successfully extracted archive using 7z CLI: {archivePath}");
+					return true;
+				}
+
+				return false;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Failed to extract with 7z CLI: {archivePath}");
+				return false;
+			}
 		}
 
 		public static void ExtractWith7Zip(FileStream stream, string destinationDirectory)

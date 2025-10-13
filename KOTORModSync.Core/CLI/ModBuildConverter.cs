@@ -18,6 +18,7 @@ namespace KOTORModSync.Core.CLI
 {
 	public static class ModBuildConverter
 	{
+		private static MainConfig _config;
 		// Base options shared by all commands
 		public class BaseOptions
 		{
@@ -43,6 +44,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option('s', "select", Required = false, HelpText = "Select components by category or tier (format: 'category:Name' or 'tier:Name'). Can be specified multiple times.")]
 			public IEnumerable<string> Select { get; set; }
+
+			[Option("source-path", Required = false, HelpText = "Path to source directory containing downloaded mod files")]
+			public string SourcePath { get; set; }
 		}
 
 		// Merge command options
@@ -268,6 +272,26 @@ namespace KOTORModSync.Core.CLI
 					return 1;
 				}
 
+				// Set source path if provided
+				if ( !string.IsNullOrEmpty(opts.SourcePath) )
+				{
+					Logger.LogVerbose($"Source path provided: {opts.SourcePath}");
+					if ( Directory.Exists(opts.SourcePath) )
+					{
+						// Preserve debugLogging when creating new config
+						_config = new MainConfig
+						{
+							sourcePath = new DirectoryInfo(opts.SourcePath),
+							debugLogging = opts.Verbose
+						};
+						Logger.LogVerbose($"Source path set to: {opts.SourcePath}");
+					}
+					else
+					{
+						Logger.LogWarning($"Source path does not exist: {opts.SourcePath}");
+					}
+				}
+
 				Logger.LogVerbose("Loading components from input file...");
 				List<ModComponent> components = FileLoadingService.LoadFromFile(opts.InputPath);
 				Logger.LogVerbose($"Loaded {components.Count} components");
@@ -283,21 +307,22 @@ namespace KOTORModSync.Core.CLI
 					downloadCache.SetDownloadManager();
 
 					int totalComponents = components.Count(c => c.ModLink != null && c.ModLink.Count > 0);
-					Logger.LogVerbose($"Processing {totalComponents} components in parallel...");
+					Logger.LogVerbose($"Processing {totalComponents} components sequentially...");
 
-					// Process all components in parallel for 10x+ speed improvement
-					var componentTasks = components
-						.Where(c => c.ModLink != null && c.ModLink.Count > 0)
-						.Select(async component =>
+					// Process all components sequentially (no concurrency)
+					int successCount = 0;
+					foreach ( var component in components.Where(c => c.ModLink != null && c.ModLink.Count > 0) )
+					{
+						component.IsSelected = true;
+						Logger.Log($"[Auto-Generate] Processing component: {component.Name}");
+						bool success = await Services.AutoInstructionGenerator.GenerateInstructionsFromUrlsAsync(
+							component, downloadCache);
+						if ( success )
 						{
-							Logger.LogVerbose($"Processing component: {component.Name}");
-							return await Services.AutoInstructionGenerator.GenerateInstructionsFromUrlsAsync(
-								component, downloadCache);
-						})
-						.ToList();
-
-					bool[] results = await Task.WhenAll(componentTasks);
-					int successCount = results.Count(r => r);
+							Logger.LogVerbose($"Auto-generation successful for component: {component.Name}");
+							successCount++;
+						}
+					}
 
 					Logger.LogVerbose($"Auto-generation complete: {successCount}/{totalComponents} components processed successfully");
 				}

@@ -50,7 +50,7 @@ namespace KOTORModSync.Controls
 			set => SetValue(PickerTypeProperty, value);
 		}
 
-		
+
 		public event EventHandler<DirectoryChangedEventArgs> DirectoryChanged;
 
 		private TextBlock _titleTextBlock;
@@ -59,7 +59,7 @@ namespace KOTORModSync.Controls
 		private ComboBox _pathSuggestions;
 		private bool _suppressEvents;
 		private bool _suppressSelection;
-		
+
 		private string _pendingPath;
 		private CancellationTokenSource _pathSuggestCts;
 		private FileSystemWatcher _fileSystemWatcher;
@@ -90,7 +90,7 @@ namespace KOTORModSync.Controls
 			UpdateTitle();
 			UpdateWatermark();
 			InitializePathSuggestions();
-			
+
 			if ( string.IsNullOrEmpty(_pendingPath) )
 				return;
 			Logger.LogVerbose($"DirectoryPickerControl applying pending path in OnApplyTemplate: '{_pendingPath}'");
@@ -101,7 +101,7 @@ namespace KOTORModSync.Controls
 		{
 			base.OnAttachedToVisualTree(e);
 			Logger.LogVerbose("DirectoryPickerControl.OnAttachedToVisualTree");
-			
+
 			InitializePathSuggestions();
 			if ( string.IsNullOrEmpty(_pendingPath) )
 				return;
@@ -177,11 +177,11 @@ namespace KOTORModSync.Controls
 				List<string> defaultPaths = DirectoryPickerControl.GetDefaultPathsForGame();
 				var newPaths = defaultPaths.Where(Directory.Exists).ToList();
 
-				
+
 				List<string> currentItems = (_pathSuggestions?.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
 				string currentSelection = _pathSuggestions?.SelectedItem?.ToString();
 
-				
+
 				foreach (string path in newPaths)
 				{
 					if (!currentItems.Any(item => string.Equals(item, path, StringComparison.OrdinalIgnoreCase)))
@@ -190,10 +190,10 @@ namespace KOTORModSync.Controls
 					}
 				}
 
-				
+
 				_pathSuggestions.ItemsSource = currentItems;
 
-				
+
 				if (!string.IsNullOrEmpty(currentSelection))
 				{
 					_pathSuggestions.SelectedItem = currentSelection;
@@ -215,7 +215,7 @@ namespace KOTORModSync.Controls
 
 			if ( osType == OSPlatform.Windows )
 			{
-				
+
 				paths.AddRange(new[]
 				{
 					@"C:\Program Files (x86)\Steam\steamapps\common\swkotor",
@@ -224,7 +224,7 @@ namespace KOTORModSync.Controls
 					@"C:\Program Files\Steam\steamapps\common\Knights of the Old Republic II"
 				});
 
-				
+
 				paths.AddRange(new[]
 				{
 					@"C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR",
@@ -233,7 +233,7 @@ namespace KOTORModSync.Controls
 					@"C:\Program Files\GOG Galaxy\Games\Star Wars - KotOR2"
 				});
 
-				
+
 				paths.AddRange(new[]
 				{
 					@"C:\Program Files (x86)\Origin Games\Star Wars Knights of the Old Republic",
@@ -330,7 +330,7 @@ namespace KOTORModSync.Controls
 					_pathInput.Text = path ?? string.Empty;
 				}
 
-				
+
 				if ( fireEvent && !string.IsNullOrEmpty(path) && Directory.Exists(path) )
 				{
 					DirectoryChanged?.Invoke(this, new DirectoryChangedEventArgs(path, PickerType));
@@ -373,7 +373,7 @@ namespace KOTORModSync.Controls
 					AllowMultiple = false
 				};
 
-				
+
 				string currentPath = GetCurrentPath();
 				if ( !string.IsNullOrWhiteSpace(currentPath) )
 				{
@@ -421,16 +421,16 @@ namespace KOTORModSync.Controls
 				if ( string.IsNullOrWhiteSpace(path) )
 					return null;
 
-				
+
 				string expandedPath = PathUtilities.ExpandPath(path);
 				if ( string.IsNullOrWhiteSpace(expandedPath) )
 					return null;
 
-				
+
 				if ( Directory.Exists(expandedPath) )
 					return expandedPath;
 
-				
+
 				string current = expandedPath;
 				while ( !string.IsNullOrEmpty(current) )
 				{
@@ -439,7 +439,7 @@ namespace KOTORModSync.Controls
 						string parent = Path.GetDirectoryName(current);
 						if ( string.IsNullOrEmpty(parent) || parent == current )
 						{
-							
+
 							break;
 						}
 
@@ -458,7 +458,7 @@ namespace KOTORModSync.Controls
 					}
 				}
 
-				
+
 				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] No existing parent found for '{path}'");
 				return null;
 			}
@@ -486,7 +486,7 @@ namespace KOTORModSync.Controls
 			Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] TextChanged: '{_pathInput.Text}'");
 			UpdatePathSuggestions(_pathInput, _pathSuggestions, ref _pathSuggestCts, PickerType);
 
-			
+
 			SetupFileSystemWatcher(_pathInput.Text);
 		}
 
@@ -511,7 +511,7 @@ namespace KOTORModSync.Controls
 			try
 			{
 				_suppressSelection = true;
-				
+
 				Dispatcher.UIThread.Post(() =>
 				{
 					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Suggestion selected '{selectedPath}'");
@@ -533,23 +533,23 @@ namespace KOTORModSync.Controls
 				_suppressEvents = true;
 				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] ApplyPath '{path}'");
 
-				
+
 				SetCurrentPath(path, fireEvent: false);
 
-				
+
 				if ( PickerType == DirectoryPickerType.ModDirectory )
 				{
 					SaveRecentModPath(path);
-					
+
 					RefreshSuggestionsSafely();
 				}
 				else if ( PickerType == DirectoryPickerType.KotorDirectory )
 				{
-					
+
 					AddPathToSuggestions(path);
 				}
 
-				
+
 				DirectoryChanged?.Invoke(this, new DirectoryChangedEventArgs(path, PickerType));
 
 				_suppressEvents = false;
@@ -583,7 +583,7 @@ namespace KOTORModSync.Controls
 					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Refreshed defaults that exist: {defaults.Count}");
 				}
 
-				
+
 			}
 			finally
 			{
@@ -600,11 +600,11 @@ namespace KOTORModSync.Controls
 			{
 				var currentItems = (_pathSuggestions.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
 
-				
+
 				if ( !currentItems.Contains(path) )
 				{
-					currentItems.Insert(0, path); 
-												  
+					currentItems.Insert(0, path);
+
 					if ( currentItems.Count > 20 )
 						currentItems = currentItems.Take(20).ToList();
 
@@ -632,7 +632,7 @@ namespace KOTORModSync.Controls
 					string expanded = PathUtilities.ExpandPath(typed);
 					if ( string.IsNullOrWhiteSpace(expanded) )
 					{
-						
+
 						if ( pickerType == DirectoryPickerType.ModDirectory )
 							return PathUtilities.GetDefaultPathsForMods().ToList();
 						if ( pickerType == DirectoryPickerType.KotorDirectory )
@@ -643,11 +643,11 @@ namespace KOTORModSync.Controls
 					string normalized = expanded;
 					bool endsWithSep = normalized.EndsWith(Path.DirectorySeparatorChar.ToString());
 
-					
+
 					bool isRootDir = false;
 					if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 					{
-						
+
 						if ( normalized.Length >= 2 && normalized[1] == ':' &&
 							 (normalized.Length == 2 || (normalized.Length == 3 && normalized[2] == Path.DirectorySeparatorChar)) )
 						{
@@ -657,7 +657,7 @@ namespace KOTORModSync.Controls
 					}
 					else
 					{
-						
+
 						if ( normalized == "/" || normalized.EndsWith(value: ":/") )
 							isRootDir = true;
 					}
@@ -692,12 +692,12 @@ namespace KOTORModSync.Controls
 
 						if ( string.IsNullOrEmpty(fragment) )
 						{
-							
+
 							results.AddRange(dirs);
 						}
 						else
 						{
-							
+
 							results.AddRange(dirs.Where(d =>
 								Path.GetFileName(d).IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0));
 						}
@@ -709,12 +709,12 @@ namespace KOTORModSync.Controls
 					if ( token.IsCancellationRequested || t.IsFaulted ) return;
 					Dispatcher.UIThread.Post(() =>
 					{
-						
+
 						if ( combo.ItemsSource is IEnumerable<string> existingItems )
 						{
 							var newResults = t.Result.ToList();
 
-							
+
 							foreach ( string item in existingItems )
 							{
 								if ( !newResults.Contains(item) && Directory.Exists(item) )
@@ -732,7 +732,7 @@ namespace KOTORModSync.Controls
 								combo.ItemsSource = t.Result;
 						}
 
-						
+
 						if ( t.Result.Count > 0 && input.IsKeyboardFocusWithin )
 							combo.IsDropDownOpen = true;
 					});
@@ -748,18 +748,18 @@ namespace KOTORModSync.Controls
 		{
 			try
 			{
-				
+
 				CleanupFileSystemWatcher();
 
 				if ( string.IsNullOrWhiteSpace(path) )
 					return;
 
-				
+
 				string expandedPath = PathUtilities.ExpandPath(path);
 				if ( string.IsNullOrWhiteSpace(expandedPath) )
 					return;
 
-				
+
 				string watchPath = null;
 				if ( Directory.Exists(expandedPath) )
 				{
@@ -767,7 +767,7 @@ namespace KOTORModSync.Controls
 				}
 				else
 				{
-					
+
 					string parent = Path.GetDirectoryName(expandedPath);
 					if ( !string.IsNullOrEmpty(parent) && Directory.Exists(parent) )
 					{
@@ -778,7 +778,7 @@ namespace KOTORModSync.Controls
 				if ( string.IsNullOrEmpty(watchPath) )
 					return;
 
-				
+
 				_fileSystemWatcher = new FileSystemWatcher(watchPath)
 				{
 					NotifyFilter = NotifyFilters.DirectoryName,
@@ -818,7 +818,7 @@ namespace KOTORModSync.Controls
 			{
 				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] File system changed: {e.ChangeType} - {e.FullPath}");
 
-				
+
 				Dispatcher.UIThread.Post(() =>
 				{
 					if ( _pathInput != null && _pathSuggestions != null )

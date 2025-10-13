@@ -58,10 +58,10 @@ namespace KOTORModSync.Core.FileSystemUtils
 				}
 
 				await Logger.LogAsync($"Step 2: Attempting to set access rights of the target '{pathInfo.FullName}' using icacls...");
-				
-				
-				
-				
+
+
+
+
 				(int, string, string) icaclsResult = await PlatformAgnosticMethods.ExecuteProcessAsync(
 					programFile: "icacls",
 					args: $"\"{pathInfo.FullName}\" /grant *S-1-1-0:(OI)(CI)F /T /C /L",
@@ -133,7 +133,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		private static void SetDotNetPermissions(FileSystemInfo pathInfo)
 		{
-			
+
 			try
 			{
 				if ( pathInfo is FileInfo filePathInfo )

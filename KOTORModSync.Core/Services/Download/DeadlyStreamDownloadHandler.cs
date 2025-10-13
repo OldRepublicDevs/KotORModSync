@@ -86,12 +86,57 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
+		/// <summary>
+		/// Normalizes a DeadlyStream URL by removing query parameters and fragments.
+		/// Example: https://deadlystream.com/topic/mod-example/?tab=comments#comment-87106
+		/// becomes: https://deadlystream.com/topic/mod-example/
+		/// </summary>
+		private static string NormalizeDeadlyStreamUrl(string url)
+		{
+			if ( string.IsNullOrEmpty(url) )
+				return url;
+
+			// Find the position of '?' and '#' and strip everything after them
+			int queryIndex = url.IndexOf('?');
+			int fragmentIndex = url.IndexOf('#');
+
+			// Determine where to cut the URL
+			int cutIndex = -1;
+			if ( queryIndex >= 0 && fragmentIndex >= 0 )
+			{
+				// Both present - cut at whichever comes first
+				cutIndex = Math.Min(queryIndex, fragmentIndex);
+			}
+			else if ( queryIndex >= 0 )
+			{
+				// Only query present
+				cutIndex = queryIndex;
+			}
+			else if ( fragmentIndex >= 0 )
+			{
+				// Only fragment present
+				cutIndex = fragmentIndex;
+			}
+
+			// If we found a cut point, return the substring
+			if ( cutIndex >= 0 )
+			{
+				return url.Substring(0, cutIndex);
+			}
+
+			// No query or fragment found - return as-is
+			return url;
+		}
+
 		public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)
 		{
 			try
 			{
 				await Logger.LogVerboseAsync($"[DeadlyStream] Resolving filenames for URL: {url}");
 
+				// Strip fragment (#) and query parameters (?) from URL
+				url = NormalizeDeadlyStreamUrl(url);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL: {url}");
 
 				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 				{
@@ -109,7 +154,7 @@ namespace KOTORModSync.Core.Services.Download
 
 				var request = new HttpRequestMessage(HttpMethod.Get, url);
 				ApplyCookiesToRequest(request, validatedUri);
-				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 				_ = pageResponse.EnsureSuccessStatusCode();
 				ExtractAndStoreCookies(pageResponse, validatedUri);
 
@@ -126,7 +171,7 @@ namespace KOTORModSync.Core.Services.Download
 
 				var downloadPageRequest = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
 				ApplyCookiesToRequest(downloadPageRequest, validatedUri);
-				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, cancellationToken).ConfigureAwait(false);
+				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
 				List<string> filenames = new List<string>();
 
@@ -139,10 +184,12 @@ namespace KOTORModSync.Core.Services.Download
 					if ( downloadPageHtml.Contains("Download your files") || downloadPageHtml.Contains("data-action=\"download\"") )
 					{
 						List<string> confirmedLinks = ExtractConfirmedDownloadLinks(downloadPageHtml, url);
-						// Resolve all filenames in parallel
-						var filenameTasks = confirmedLinks.Select(link => ResolveFilenameFromLink(link, cancellationToken));
-						string[] resolvedFilenames = await Task.WhenAll(filenameTasks);
-						filenames.AddRange(resolvedFilenames.Where(f => !string.IsNullOrEmpty(f)));
+						foreach ( string downloadLink in confirmedLinks )
+						{
+							string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken);
+							if ( !string.IsNullOrEmpty(filename) )
+								filenames.Add(filename);
+						}
 					}
 				}
 
@@ -152,10 +199,12 @@ namespace KOTORModSync.Core.Services.Download
 				if ( filenames.Count == 0 )
 				{
 					List<string> downloadLinks = ExtractAllDownloadLinks(html, url);
-					// Resolve all filenames in parallel
-					var filenameTasks = downloadLinks.Select(link => ResolveFilenameFromLink(link, cancellationToken));
-					string[] resolvedFilenames = await Task.WhenAll(filenameTasks);
-					filenames.AddRange(resolvedFilenames.Where(f => !string.IsNullOrEmpty(f)));
+					foreach ( string downloadLink in downloadLinks )
+					{
+						string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken);
+						if ( !string.IsNullOrEmpty(filename) )
+							filenames.Add(filename);
+					}
 				}
 
 				await Logger.LogVerboseAsync($"[DeadlyStream] Resolved {filenames.Count} filename(s)");
@@ -182,7 +231,27 @@ namespace KOTORModSync.Core.Services.Download
 				if ( !response.IsSuccessStatusCode )
 				{
 					response.Dispose();
-					return null;
+					// Fallback to GET headers-only if HEAD not allowed
+					var getReq = new HttpRequestMessage(HttpMethod.Get, downloadLink);
+					ApplyCookiesToRequest(getReq, downloadUri);
+					var getResp = await _httpClient.SendAsync(getReq, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+					if ( !getResp.IsSuccessStatusCode )
+					{
+						getResp.Dispose();
+						return null;
+					}
+					string ct = getResp.Content.Headers.ContentType?.MediaType ?? string.Empty;
+					if ( ct.Contains("text/html") )
+					{
+						getResp.Dispose();
+						return null;
+					}
+
+					string nameFromGet = GetFileNameFromContentDisposition(getResp);
+					if ( string.IsNullOrWhiteSpace(nameFromGet) )
+						nameFromGet = Path.GetFileName(Uri.UnescapeDataString(downloadUri.AbsolutePath));
+					getResp.Dispose();
+					return string.IsNullOrWhiteSpace(nameFromGet) || nameFromGet.Contains("?") ? null : nameFromGet;
 				}
 
 
@@ -267,11 +336,19 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
+		public async Task<DownloadResult> DownloadAsync(
+			string url,
+			string destinationDirectory,
+			IProgress<DownloadProgress> progress = null,
+			CancellationToken cancellationToken = default
+		)
 		{
 			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
 			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
 
+			// Strip fragment (#) and query parameters (?) from URL
+			url = NormalizeDeadlyStreamUrl(url);
+			await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL: {url}");
 
 			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 			{
@@ -858,7 +935,7 @@ namespace KOTORModSync.Core.Services.Download
 			HtmlNodeCollection nodes = document.DocumentNode.SelectNodes(selector);
 			if ( nodes == null || nodes.Count == 0 )
 			{
-				Logger.LogWarning("[DeadlyStream] No download links found");
+				Logger.LogWarning($"[DeadlyStream] No download links found for URL: {baseUrl}");
 				return new List<string>();
 			}
 
@@ -1039,21 +1116,16 @@ namespace KOTORModSync.Core.Services.Download
 			string trimmed = Regex.Replace(fileName, pattern: "^\"|\"$", string.Empty);
 			string unescaped = Uri.UnescapeDataString(trimmed);
 
-			// Log only if transformations occurred
-			if ( fileName != unescaped )
+			// Only log if there's meaningful URL decoding (not just quote removal)
+			if ( trimmed != unescaped )
 			{
-				if ( fileName != trimmed && trimmed != unescaped )
-				{
-					Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{fileName}' -> '{trimmed}' -> '{unescaped}'");
-				}
-				else
-				{
-					Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{fileName}' -> '{unescaped}'");
-				}
+				// URL decoding occurred - show the transformation
+				Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{trimmed}' -> '{unescaped}'");
 			}
 			else
 			{
-				Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{fileName}'");
+				// Only quote removal or no transformation - just show final result
+				Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{unescaped}'");
 			}
 
 			return unescaped;

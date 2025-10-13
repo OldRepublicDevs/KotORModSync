@@ -57,12 +57,12 @@ namespace KOTORModSync.Core.Services
 
 			if ( options == null ) options = MergeHeuristicsOptions.CreateDefault();
 
-			
+
 			var map = existing.ToDictionary(NormalizeKey, c => c);
 			var matchedExisting = new HashSet<ModComponent>();
 			var result = new List<ModComponent>();
 
-			
+
 			foreach ( ModComponent incoming in parsed )
 			{
 				string key = NormalizeKey(incoming);
@@ -75,7 +75,7 @@ namespace KOTORModSync.Core.Services
 				}
 				else
 				{
-					
+
 					ModComponent heuristicMatch = FindHeuristicMatch(existing, incoming, options);
 					if ( heuristicMatch != null )
 					{
@@ -85,55 +85,55 @@ namespace KOTORModSync.Core.Services
 					}
 					else if ( options.AddNewWhenNoMatchFound )
 					{
-						
+
 						result.Add(incoming);
 						map[key] = incoming;
 					}
 				}
 			}
 
-			
-			
+
+
 			foreach ( ModComponent existingComponent in existing )
 			{
 				if ( matchedExisting.Contains(existingComponent) )
 					continue;
-				
+
 				int insertIndex = FindInsertionPointByNameAuthor(result, existingComponent, existing);
 				result.Insert(insertIndex, existingComponent);
 			}
 
-			
+
 			existing.Clear();
 			existing.AddRange(result);
 		}
 
-		
-		
-		
-		
+
+
+
+
 		private static int FindInsertionPointByNameAuthor(
 			[NotNull] List<ModComponent> result,
 			[NotNull] ModComponent componentToInsert,
 			[NotNull] List<ModComponent> originalExisting)
 		{
-			
+
 			int originalIndex = originalExisting.IndexOf(componentToInsert);
 			if ( originalIndex < 0 ) return result.Count;
 
-			
+
 			for ( int i = originalIndex + 1; i < originalExisting.Count; i++ )
 			{
 				ModComponent afterComponent = originalExisting[i];
 				int afterIndexInResult = result.IndexOf(afterComponent);
 				if ( afterIndexInResult >= 0 )
 				{
-					
+
 					return afterIndexInResult;
 				}
 			}
 
-			
+
 			return result.Count;
 		}
 
@@ -155,7 +155,7 @@ namespace KOTORModSync.Core.Services
 				if ( opt.UseNameSimilarity && !string.IsNullOrEmpty(inName) ) score += JaccardSimilarity(inName, exName);
 				if ( opt.UseAuthorSimilarity && !string.IsNullOrEmpty(inAuthor) ) score += JaccardSimilarity(inAuthor, exAuthor) * 0.5;
 
-				
+
 				if ( score < 0.5 && opt.MatchByDomainIfNoNameAuthorMatch )
 				{
 					string incomingDomain = GetPrimaryDomain(incoming);
@@ -191,7 +191,7 @@ namespace KOTORModSync.Core.Services
 		private static void UpdateComponent([NotNull] ModComponent target, [NotNull] ModComponent source, [CanBeNull] MergeHeuristicsOptions options = null)
 		{
 			if ( options == null ) options = MergeHeuristicsOptions.CreateDefault();
-			
+
 			if ( !(options.SkipBlankUpdates && IsBlank(source.Author)) )
 				target.Author = string.IsNullOrWhiteSpace(source.Author) ? target.Author : source.Author;
 			if ( !(options.SkipBlankUpdates && IsBlank(source.Category)) )
@@ -205,7 +205,7 @@ namespace KOTORModSync.Core.Services
 			if ( !(options.SkipBlankUpdates && IsBlank(source.InstallationMethod)) )
 				target.InstallationMethod = string.IsNullOrWhiteSpace(source.InstallationMethod) ? target.InstallationMethod : source.InstallationMethod;
 
-			
+
 			if ( source.Language.Count > 0 )
 			{
 				var set = new HashSet<string>(target.Language, StringComparer.OrdinalIgnoreCase);
@@ -225,7 +225,7 @@ namespace KOTORModSync.Core.Services
 					if ( string.IsNullOrWhiteSpace(link) ) continue;
 					_ = set.Add(link);
 				}
-				
+
 				if ( options.ValidateExistingLinksBeforeReplace )
 				{
 					set = new HashSet<string>(set.Where(IsLikelyAccessibleUrl), StringComparer.OrdinalIgnoreCase);
@@ -233,7 +233,7 @@ namespace KOTORModSync.Core.Services
 				target.ModLink = set.ToList();
 			}
 
-			
+
 			if ( source.Dependencies?.Count > 0 )
 			{
 				var set = new HashSet<Guid>(target.Dependencies ?? new List<Guid>());
@@ -271,7 +271,7 @@ namespace KOTORModSync.Core.Services
 				target.InstallBefore = set.ToList();
 			}
 
-			
+
 			if ( source.Instructions != null && source.Instructions.Count > 0 )
 			{
 				if ( target.Instructions == null || target.Instructions.Count == 0 )
@@ -283,7 +283,7 @@ namespace KOTORModSync.Core.Services
 				}
 				else
 				{
-					
+
 					var existingKeys = new HashSet<string>(target.Instructions.Select(i => (i.ActionString + "|" + i.Destination).ToLowerInvariant()));
 					foreach ( Instruction instr in source.Instructions )
 					{
@@ -294,7 +294,7 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			
+
 			if ( source.Options != null && source.Options.Count > 0 )
 			{
 				Dictionary<string, Option> optMap = target.Options?.ToDictionary(o => o.Name.Trim().ToLowerInvariant())
@@ -305,7 +305,7 @@ namespace KOTORModSync.Core.Services
 					if ( optMap.TryGetValue(oname, out Option trgOpt) )
 					{
 						if ( !string.IsNullOrWhiteSpace(srcOpt.Description) ) trgOpt.Description = srcOpt.Description;
-						
+
 						if ( srcOpt.Instructions != null && srcOpt.Instructions.Count > 0 )
 						{
 							var keys = new HashSet<string>(trgOpt.Instructions.Select(i => (i.ActionString + "|" + i.Destination).ToLowerInvariant()));
@@ -318,7 +318,7 @@ namespace KOTORModSync.Core.Services
 					}
 					else
 					{
-						
+
 						target.Options.Add(srcOpt);
 					}
 				}
@@ -327,14 +327,14 @@ namespace KOTORModSync.Core.Services
 
 		private static bool IsLikelyAccessibleUrl([NotNull] string url)
 		{
-			
+
 			if ( string.IsNullOrWhiteSpace(url) ) return false;
 			if ( !(url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) )
 				return false;
 			try
 			{
 				var uri = new Uri(url);
-				
+
 				return !string.IsNullOrWhiteSpace(uri.Host);
 			}
 			catch

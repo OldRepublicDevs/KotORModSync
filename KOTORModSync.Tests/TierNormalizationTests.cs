@@ -25,14 +25,14 @@ namespace KOTORModSync.Tests
 		[TestCase("2-Recommended", "2 - Recommended")]
 		[TestCase("1 essential", "1 - Essential")]
 		[TestCase("2 recommended", "2 - Recommended")]
-		[TestCase("Essential - 1", "1 - Essential")] 
-		[TestCase("Recommended - 2", "2 - Recommended")] 
-		[TestCase("1 - Recommended", "2 - Recommended")] 
-		[TestCase("3 - Essential", "1 - Essential")] 
-		[TestCase("2 - Optional", "4 - Optional")] 
-		[TestCase("essential", "1 - Essential")] 
-		[TestCase("RECOMMENDED", "2 - Recommended")] 
-		[TestCase("option", "4 - Optional")] 
+		[TestCase("Essential - 1", "1 - Essential")]
+		[TestCase("Recommended - 2", "2 - Recommended")]
+		[TestCase("1 - Recommended", "2 - Recommended")]
+		[TestCase("3 - Essential", "1 - Essential")]
+		[TestCase("2 - Optional", "4 - Optional")]
+		[TestCase("essential", "1 - Essential")]
+		[TestCase("RECOMMENDED", "2 - Recommended")]
+		[TestCase("option", "4 - Optional")]
 		public void NormalizeTier_HandlesVariations(string input, string expected)
 		{
 			string result = CategoryTierDefinitions.NormalizeTier(input);
@@ -47,7 +47,7 @@ namespace KOTORModSync.Tests
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				Tier = "1 - Recommended" 
+				Tier = "1 - Recommended"
 			};
 
 			Assert.That(component.Tier, Is.EqualTo("2 - Recommended"),
@@ -61,7 +61,7 @@ namespace KOTORModSync.Tests
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				Tier = "Essential - 1" 
+				Tier = "Essential - 1"
 			};
 
 			Assert.That(component.Tier, Is.EqualTo("1 - Essential"),
@@ -75,7 +75,7 @@ namespace KOTORModSync.Tests
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				Tier = "Recommended" 
+				Tier = "Recommended"
 			};
 
 			Assert.That(component.Tier, Is.EqualTo("2 - Recommended"),

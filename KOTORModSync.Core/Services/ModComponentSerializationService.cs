@@ -1021,14 +1021,17 @@ namespace KOTORModSync.Core.Services
 					}
 					componentTable["Instructions"] = instructionsArray;
 				}
-				// Add Options as a nested array-of-tables (without inline Instructions)
+				// Add Options as inline array (without Instructions property)
+				// Option instructions will be serialized separately as [[thisMod.Options.Instructions]]
 				if ( component.Options?.Count > 0 )
 				{
-					var optionsArray = new TomlTableArray();
+					var optionsArray = new TomlArray();
 					var optionInstructionsArray = new TomlTableArray();
+					bool hasOptionInstructions = false;
 
 					foreach ( Option opt in component.Options )
 					{
+						// Create inline table for each option (without Instructions)
 						var optTable = new TomlTable();
 						if ( opt.Guid != Guid.Empty )
 							optTable["Guid"] = opt.Guid.ToString();
@@ -1045,11 +1048,19 @@ namespace KOTORModSync.Core.Services
 								resArray.Add(res.ToString());
 							optTable["Restrictions"] = resArray;
 						}
+						if ( opt.Dependencies?.Count > 0 )
+						{
+							var depArray = new TomlArray();
+							foreach ( var dep in opt.Dependencies )
+								depArray.Add(dep.ToString());
+							optTable["Dependencies"] = depArray;
+						}
 						optionsArray.Add(optTable);
 
 						// Collect option instructions to be added as [[thisMod.Options.Instructions]] with Parent field
 						if ( opt.Instructions?.Count > 0 )
 						{
+							hasOptionInstructions = true;
 							foreach ( Instruction instr in opt.Instructions )
 							{
 								var instrTable = new TomlTable();
@@ -1090,15 +1101,13 @@ namespace KOTORModSync.Core.Services
 							}
 						}
 					}
+
+					// Add Options as inline array
 					componentTable["Options"] = optionsArray;
 
-					// Add flattened Options.Instructions if any exist
-					if ( optionInstructionsArray.Count > 0 )
+					// Add marker for Options.Instructions to be formatted in post-processing
+					if ( hasOptionInstructions )
 					{
-						// Create a nested table for Options
-						var optionsSubTable = new TomlTable();
-						optionsSubTable["Instructions"] = optionInstructionsArray;
-						// This will be manually formatted in post-processing
 						componentTable["_OptionsInstructions"] = optionInstructionsArray;
 					}
 				}
@@ -1106,6 +1115,7 @@ namespace KOTORModSync.Core.Services
 			}
 			tomlTable["thisMod"] = componentsArray;
 			string tomlOutput = Toml.FromModel(tomlTable);
+
 			// Post-process to add proper spacing and convert _OptionsInstructions to Options.Instructions
 			var lines = tomlOutput.Split(newLineSeparator, StringSplitOptions.None);
 			var result = new StringBuilder();
@@ -1116,7 +1126,7 @@ namespace KOTORModSync.Core.Services
 			{
 				string line = lines[i];
 
-				// Skip the _OptionsInstructions marker line
+				// Replace the _OptionsInstructions marker with Options.Instructions
 				if ( line.StartsWith("[[thisMod._OptionsInstructions]]") )
 				{
 					inOptionsInstructions = true;
@@ -1125,17 +1135,20 @@ namespace KOTORModSync.Core.Services
 					continue;
 				}
 
-				// When we're in _OptionsInstructions section, convert nested array syntax
+				// When we're in _OptionsInstructions section, handle array element separators
 				if ( inOptionsInstructions )
 				{
-					// Check if we're leaving the _OptionsInstructions section
-					if ( line.StartsWith("[[thisMod") && !line.Contains("_OptionsInstructions") )
+					// Check if we're leaving the _OptionsInstructions section (new [[thisMod]] or other section)
+					if ( line.StartsWith("[[thisMod]]") ||
+						 (line.StartsWith("[[") && !line.Contains("_OptionsInstructions")) )
 					{
 						inOptionsInstructions = false;
+						// Continue processing this line below
 					}
-					else if ( line.Trim().StartsWith("[") && !line.Trim().StartsWith("[[") )
+					else if ( line.Trim().StartsWith("[_OptionsInstructions.") ||
+							  (line.Trim().StartsWith("[") && !line.Trim().StartsWith("[[")) )
 					{
-						// Convert inline array table to new section header
+						// Convert inline array element marker to new section header
 						result.AppendLine();
 						result.AppendLine("[[thisMod.Options.Instructions]]");
 						continue;
@@ -1157,14 +1170,10 @@ namespace KOTORModSync.Core.Services
 				{
 					result.AppendLine();
 				}
-				// Add one blank line before each [[thisMod.Options]]
-				else if ( line.StartsWith("[[thisMod.Options]]") )
-				{
-					result.AppendLine();
-				}
 
 				result.AppendLine(line);
 			}
+
 			return result.ToString().TrimEnd();
 		}
 		public static string SaveToYamlString(List<ModComponent> components)

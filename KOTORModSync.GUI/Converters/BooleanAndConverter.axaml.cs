@@ -19,14 +19,14 @@ namespace KOTORModSync.Converters
 			if ( values.Count == 0 )
 				return false;
 
-			
+
 			foreach ( object value in values)
 			{
-				
+
 				if (value == null || value == AvaloniaProperty.UnsetValue)
 					return false;
 
-				
+
 				if (value is bool boolValue)
 				{
 					if (!boolValue)
@@ -34,7 +34,7 @@ namespace KOTORModSync.Converters
 				}
 				else
 				{
-					
+
 					return false;
 				}
 			}

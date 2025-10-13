@@ -159,11 +159,11 @@ namespace KOTORModSync.Core.Utility
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-#pragma warning disable CA1416 
+#pragma warning disable CA1416
 				var windowsIdentity = WindowsIdentity.GetCurrent();
 				var windowsPrincipal = new WindowsPrincipal(windowsIdentity);
 				return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
-#pragma warning restore CA1416 
+#pragma warning restore CA1416
 			}
 
 			try

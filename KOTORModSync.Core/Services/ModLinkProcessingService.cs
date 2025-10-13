@@ -23,27 +23,17 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				// Configure HttpClientHandler for better parallel performance
-				var handler = new HttpClientHandler
-				{
-					MaxConnectionsPerServer = 10, // Allow up to 10 concurrent connections per server
-					AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
-				};
 
-				var httpClient = new HttpClient(handler)
-				{
-					Timeout = TimeSpan.FromMinutes(5) // Increase timeout for parallel operations
-				};
-
-				var downloadHandlers = new List<IDownloadHandler>
-				{
-					new DeadlyStreamDownloadHandler(httpClient),
-					new MegaDownloadHandler(),
-					new NexusModsDownloadHandler(httpClient, ""),
-					new GameFrontDownloadHandler(httpClient),
-					new DirectDownloadHandler(httpClient)
-				};
-				_downloadCacheService.SetDownloadManager(new DownloadManager(downloadHandlers));
+				var httpClient = new HttpClient();
+				var handlers = new List<IDownloadHandler>
+			{
+				new DeadlyStreamDownloadHandler(httpClient),
+				new MegaDownloadHandler(),
+				new NexusModsDownloadHandler(httpClient, ""),
+				new GameFrontDownloadHandler(httpClient),
+				new DirectDownloadHandler(httpClient)
+			};
+				_downloadCacheService.SetDownloadManager(new DownloadManager(handlers));
 			}
 			catch ( Exception ex )
 			{
@@ -70,67 +60,22 @@ namespace KOTORModSync.Core.Services
 			{
 				try
 				{
-
 					if ( component.ModLink == null || component.ModLink.Count == 0 )
 						continue;
 
 					int initialInstructionCount = component.Instructions.Count;
 
-					foreach ( string modLink in component.ModLink )
-					{
-						if ( string.IsNullOrWhiteSpace(modLink) )
-							continue;
+					// Pre-resolve URLs to filenames and generate placeholder instructions
+					bool generated = await AutoInstructionGenerator.GenerateInstructionsFromUrlsAsync(
+						component,
+						_downloadCacheService,
+						cancellationToken);
 
-						if ( !modLink.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
-							!modLink.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
-							continue;
-
-						try
-						{
-
-							List<DownloadCacheEntry> cacheEntries = await _downloadCacheService.ResolveOrDownloadAsync(
-								component,
-								downloadDirectory,
-								progress,
-								cancellationToken);
-
-							if ( cacheEntries != null && cacheEntries.Count > 0 )
-							{
-								foreach ( var entry in cacheEntries )
-								{
-
-									if ( entry.IsArchive && !string.IsNullOrEmpty(entry.FilePath) && System.IO.File.Exists(entry.FilePath) )
-									{
-
-										bool generated = AutoInstructionGenerator.GenerateInstructions(component, entry.FilePath);
-										if ( generated )
-										{
-											await Logger.LogVerboseAsync($"Auto-generated detailed instructions for '{component.Name}' from {entry.ArchiveName}");
-
-											component.IsDownloaded = true;
-										}
-									}
-								}
-							}
-
-							if ( cacheEntries != null && cacheEntries.Count > 0 && component.Instructions.Count > initialInstructionCount )
-							{
-								await Logger.LogVerboseAsync($"Successfully processed ModLink for '{component.Name}': {modLink}");
-							}
-						}
-						catch ( Exception ex )
-						{
-
-							await Logger.LogVerboseAsync($"Failed to process ModLink for '{component.Name}': {modLink} - {ex.Message}");
-							continue;
-						}
-					}
-
-					if ( component.Instructions.Count > initialInstructionCount )
+					if ( generated && component.Instructions.Count > initialInstructionCount )
 					{
 						successCount++;
 						int newInstructions = component.Instructions.Count - initialInstructionCount;
-						await Logger.LogAsync($"Added {newInstructions} new instruction(s) for '{component.Name}': {component.InstallationMethod}");
+						await Logger.LogAsync($"Added {newInstructions} placeholder instruction(s) for '{component.Name}': {component.InstallationMethod}");
 					}
 				}
 				catch ( Exception ex )
@@ -141,7 +86,7 @@ namespace KOTORModSync.Core.Services
 
 			if ( successCount > 0 )
 			{
-				await Logger.LogAsync($"Processed ModLinks and generated/updated instructions for {successCount} component(s).");
+				await Logger.LogAsync($"Processed ModLinks and generated placeholder instructions for {successCount} component(s).");
 			}
 
 			return successCount;

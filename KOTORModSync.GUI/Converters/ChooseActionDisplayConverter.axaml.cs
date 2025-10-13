@@ -18,7 +18,7 @@ namespace KOTORModSync.Converters
 			{
 				if ( instruction.Action == Instruction.ActionType.Choose )
 				{
-					
+
 					int sourceCount = instruction.Source.Count;
 					if (sourceCount == 0)
 						return "Choose (no options)";

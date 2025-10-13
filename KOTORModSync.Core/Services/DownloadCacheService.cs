@@ -6,27 +6,45 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Services.FileSystem;
+using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Services
 {
 
 	public sealed class DownloadCacheService
 	{
-		private readonly Dictionary<Guid, Dictionary<string, DownloadCacheEntry>> _cache;
+		// Cache keyed by URL only (filename resolution doesn't depend on component)
+		private readonly Dictionary<string, DownloadCacheEntry> _cache;
 		private readonly object _cacheLock = new object();
 		public DownloadManager _downloadManager;
 		private VirtualFileSystemProvider _virtualFileSystem;
 		private ResolutionFilterService _resolutionFilter;
+		private readonly string _cacheFilePath;
+		private static readonly object _staticLock = new object();
+		private static bool _cacheLoaded = false;
 
 		public DownloadCacheService()
 		{
-			_cache = new Dictionary<Guid, Dictionary<string, DownloadCacheEntry>>();
+			_cache = new Dictionary<string, DownloadCacheEntry>(StringComparer.OrdinalIgnoreCase);
 			_virtualFileSystem = new VirtualFileSystemProvider();
 			_resolutionFilter = new ResolutionFilterService(MainConfig.FilterDownloadsByResolution);
+			_cacheFilePath = GetCacheFilePath();
+
+			// Load cache from disk only once per application lifetime
+			lock ( _staticLock )
+			{
+				if ( !_cacheLoaded )
+				{
+					LoadCacheFromDisk();
+					_cacheLoaded = true;
+				}
+			}
+
 			Logger.LogVerbose("[DownloadCacheService] Initialized");
 		}
 
@@ -34,26 +52,24 @@ namespace KOTORModSync.Core.Services
 		{
 			if ( downloadManager is null )
 			{
-				// Configure HttpClientHandler for better parallel performance
+				// Configure a shared HttpClient with optimized handler for resolution speed (compat with netstandard2.0)
 				var handler = new System.Net.Http.HttpClientHandler
 				{
-					MaxConnectionsPerServer = 10, // Allow up to 10 concurrent connections per server
-					AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+					AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+					MaxConnectionsPerServer = 128
 				};
-
 				var httpClient = new System.Net.Http.HttpClient(handler)
 				{
-					Timeout = TimeSpan.FromMinutes(10)
+					Timeout = TimeSpan.FromHours(3)
 				};
-
 				var handlers = new List<Core.Services.Download.IDownloadHandler>
-			{
-				new Core.Services.Download.DeadlyStreamDownloadHandler(httpClient),
-				new Core.Services.Download.MegaDownloadHandler(),
-				new Core.Services.Download.NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
-				new Core.Services.Download.GameFrontDownloadHandler(httpClient),
-				new Core.Services.Download.DirectDownloadHandler(httpClient),
-			};
+				{
+					new Core.Services.Download.DeadlyStreamDownloadHandler(httpClient),
+					new Core.Services.Download.MegaDownloadHandler(),
+					new Core.Services.Download.NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
+					new Core.Services.Download.GameFrontDownloadHandler(httpClient),
+					new Core.Services.Download.DirectDownloadHandler(httpClient),
+				};
 				_downloadManager = new Core.Services.Download.DownloadManager(handlers);
 			}
 			else
@@ -95,11 +111,64 @@ namespace KOTORModSync.Core.Services
 				return new Dictionary<string, List<string>>();
 			}
 
-			var results = await downloadManager.ResolveUrlsToFilenamesAsync(filteredUrls, cancellationToken).ConfigureAwait(false);
+			// Check cache first and only resolve URLs that aren't cached
+			var results = new Dictionary<string, List<string>>();
+			var urlsToResolve = new List<string>();
+			int cacheHits = 0;
+
+			foreach ( string url in filteredUrls )
+			{
+				if ( TryGetEntry(url, out DownloadCacheEntry cachedEntry) )
+				{
+					// Found in cache - use cached filename
+					results[url] = new List<string> { cachedEntry.FileName };
+					cacheHits++;
+					await Logger.LogVerboseAsync($"[DownloadCacheService] Cache hit for URL: {url} -> {cachedEntry.FileName}");
+				}
+				else
+				{
+					// Not in cache - need to resolve
+					urlsToResolve.Add(url);
+				}
+			}
+
+			if ( cacheHits > 0 )
+			{
+				await Logger.LogVerboseAsync($"[DownloadCacheService] Retrieved {cacheHits} filename(s) from cache");
+			}
+
+			// Resolve URLs that weren't cached
+			if ( urlsToResolve.Count > 0 )
+			{
+				await Logger.LogVerboseAsync($"[DownloadCacheService] Resolving {urlsToResolve.Count} uncached URL(s) via network");
+				var resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken).ConfigureAwait(false);
+
+				// Add resolved results to our results dictionary and cache them
+				foreach ( var kvp in resolvedResults )
+				{
+					results[kvp.Key] = kvp.Value;
+
+					// Cache the resolved filename
+					if ( kvp.Value != null && kvp.Value.Count > 0 )
+					{
+						string resolvedFilename = kvp.Value[0];
+						var cacheEntry = new DownloadCacheEntry
+						{
+							Url = kvp.Key,
+							FileName = resolvedFilename,
+							IsArchive = IsArchive(resolvedFilename),
+							ExtractInstructionGuid = Guid.Empty
+						};
+
+						AddOrUpdate(kvp.Key, cacheEntry);
+						await Logger.LogVerboseAsync($"[DownloadCacheService] Cached resolved filename: {kvp.Key} -> {resolvedFilename}");
+					}
+				}
+			}
 
 			var filteredResults = _resolutionFilter.FilterResolvedUrls(results);
 
-			await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {filteredResults.Count} URLs (after resolution filtering)");
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {filteredResults.Count} URLs ({cacheHits} from cache, {urlsToResolve.Count} from network)");
 			return filteredResults;
 		}
 
@@ -112,83 +181,82 @@ namespace KOTORModSync.Core.Services
 			await Logger.LogVerboseAsync($"[DownloadCacheService] VirtualFileSystem initialized for: {rootPath}");
 		}
 
-		public void AddOrUpdate(Guid componentGuid, string url, DownloadCacheEntry entry)
+		public void AddOrUpdate(string url, DownloadCacheEntry entry)
 		{
-			if ( componentGuid == Guid.Empty )
-			{
-				Logger.LogWarning($"[DownloadCacheService] Cannot add entry with empty component GUID for URL: {url}");
-				return;
-			}
-
 			if ( string.IsNullOrWhiteSpace(url) )
 			{
-				Logger.LogWarning($"[DownloadCacheService] Cannot add entry with empty URL for component: {componentGuid}");
+				Logger.LogWarning($"[DownloadCacheService] Cannot add entry with empty URL");
 				return;
 			}
 
 			lock ( _cacheLock )
 			{
-				if ( !_cache.ContainsKey(componentGuid) )
-					_cache[componentGuid] = new Dictionary<string, DownloadCacheEntry>(StringComparer.OrdinalIgnoreCase);
-
-				_cache[componentGuid][url] = entry;
-				Logger.LogVerbose($"[DownloadCacheService] Added/Updated cache entry for component {componentGuid}, URL: {url}, Archive: {entry.ArchiveName}");
+				_cache[url] = entry;
+				Logger.LogVerbose($"[DownloadCacheService] Added/Updated cache entry for URL: {url}, Archive: {entry.FileName}");
 			}
+
+			SaveCacheToDisk();
 		}
 
-		public bool TryGetEntry(Guid componentGuid, string url, out DownloadCacheEntry entry)
+		public bool TryGetEntry(string url, out DownloadCacheEntry entry)
 		{
 			entry = null;
 
-			if ( componentGuid == Guid.Empty || string.IsNullOrWhiteSpace(url) )
+			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
 
 			lock ( _cacheLock )
 			{
-				if ( _cache.TryGetValue(componentGuid, out Dictionary<string, DownloadCacheEntry> componentCache) )
+				if ( _cache.TryGetValue(url, out entry) )
 				{
-					if ( componentCache.TryGetValue(url, out entry) )
-					{
-						Logger.LogVerbose($"[DownloadCacheService] Cache hit for component {componentGuid}, URL: {url}");
-						return true;
-					}
+					Logger.LogVerbose($"[DownloadCacheService] Cache hit for URL: {url}");
+					return true;
 				}
 			}
 
-			Logger.LogVerbose($"[DownloadCacheService] Cache miss for component {componentGuid}, URL: {url}");
+			Logger.LogVerbose($"[DownloadCacheService] Cache miss for URL: {url}");
 			return false;
 		}
 
-		public bool IsCached(Guid componentGuid, string url)
+		public bool IsCached(string url)
 		{
-			if ( componentGuid == Guid.Empty || string.IsNullOrWhiteSpace(url) )
+			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
 
 			lock ( _cacheLock )
 			{
-				return _cache.ContainsKey(componentGuid) && _cache[componentGuid].ContainsKey(url);
+				return _cache.ContainsKey(url);
 			}
 		}
 
-		public string GetArchiveName(Guid componentGuid, string url)
+		public string GetFileName(string url)
 		{
-			if ( TryGetEntry(componentGuid, url, out DownloadCacheEntry entry) )
-				return entry.ArchiveName;
+			if ( TryGetEntry(url, out DownloadCacheEntry entry) )
+				return entry.FileName;
 
 			return null;
 		}
 
-		public string GetFilePath(Guid componentGuid, string url)
+		public string GetFilePath(string url)
 		{
-			if ( TryGetEntry(componentGuid, url, out DownloadCacheEntry entry) )
-				return entry.FilePath;
+			if ( TryGetEntry(url, out DownloadCacheEntry entry) )
+			{
+				// Compute full path on-the-fly from FileName + MainConfig.SourcePath
+				if ( string.IsNullOrEmpty(entry.FileName) )
+					return null;
+
+				if ( MainConfig.SourcePath == null )
+					return entry.FileName;
+
+				return Path.Combine(MainConfig.SourcePath.FullName, entry.FileName);
+			}
 
 			return null;
 		}
 
-		public Guid GetExtractInstructionGuid(Guid componentGuid, string url)
+		public Guid GetExtractInstructionGuid(string url)
 		{
-			if ( TryGetEntry(componentGuid, url, out DownloadCacheEntry entry) )
+			if ( TryGetEntry(url, out DownloadCacheEntry entry) )
 				return entry.ExtractInstructionGuid;
 
 			return Guid.Empty;
@@ -203,73 +271,41 @@ namespace KOTORModSync.Core.Services
 			return extension == ".zip" || extension == ".rar" || extension == ".7z";
 		}
 
-		public IReadOnlyList<string> GetCachedUrls(Guid componentGuid)
+		public IReadOnlyList<string> GetCachedUrls()
 		{
-			if ( componentGuid == Guid.Empty )
-				return Array.Empty<string>();
-
 			lock ( _cacheLock )
 			{
-				if ( _cache.TryGetValue(componentGuid, out Dictionary<string, DownloadCacheEntry> componentCache) )
-					return componentCache.Keys.ToList();
-
-				return Array.Empty<string>();
+				return _cache.Keys.ToList();
 			}
 		}
 
-		public IReadOnlyList<DownloadCacheEntry> GetCachedEntries(Guid componentGuid)
+		public IReadOnlyList<DownloadCacheEntry> GetCachedEntries()
 		{
-			if ( componentGuid == Guid.Empty )
-				return Array.Empty<DownloadCacheEntry>();
-
 			lock ( _cacheLock )
 			{
-				if ( _cache.TryGetValue(componentGuid, out Dictionary<string, DownloadCacheEntry> componentCache) )
-					return componentCache.Values.ToList();
-
-				return Array.Empty<DownloadCacheEntry>();
+				return _cache.Values.ToList();
 			}
 		}
 
-		public bool Remove(Guid componentGuid, string url)
+		public bool Remove(string url)
 		{
-			if ( componentGuid == Guid.Empty || string.IsNullOrWhiteSpace(url) )
+			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
 
+			bool removed = false;
 			lock ( _cacheLock )
 			{
-				if ( _cache.TryGetValue(componentGuid, out Dictionary<string, DownloadCacheEntry> componentCache) )
+				if ( _cache.Remove(url) )
 				{
-					if ( componentCache.Remove(url) )
-					{
-						Logger.LogVerbose($"[DownloadCacheService] Removed cache entry for component {componentGuid}, URL: {url}");
-
-						if ( componentCache.Count == 0 )
-							_cache.Remove(componentGuid);
-
-						return true;
-					}
+					Logger.LogVerbose($"[DownloadCacheService] Removed cache entry for URL: {url}");
+					removed = true;
 				}
 			}
 
-			return false;
-		}
+			if ( removed )
+				SaveCacheToDisk();
 
-		public bool RemoveComponent(Guid componentGuid)
-		{
-			if ( componentGuid == Guid.Empty )
-				return false;
-
-			lock ( _cacheLock )
-			{
-				if ( _cache.Remove(componentGuid) )
-				{
-					Logger.LogVerbose($"[DownloadCacheService] Removed all cache entries for component {componentGuid}");
-					return true;
-				}
-			}
-
-			return false;
+			return removed;
 		}
 
 		public void Clear()
@@ -279,21 +315,15 @@ namespace KOTORModSync.Core.Services
 				_cache.Clear();
 				Logger.LogVerbose("[DownloadCacheService] Cache cleared");
 			}
-		}
 
-		public int GetComponentCount()
-		{
-			lock ( _cacheLock )
-			{
-				return _cache.Count;
-			}
+			SaveCacheToDisk();
 		}
 
 		public int GetTotalEntryCount()
 		{
 			lock ( _cacheLock )
 			{
-				return _cache.Values.Sum(componentCache => componentCache.Count);
+				return _cache.Count;
 			}
 		}
 
@@ -327,31 +357,36 @@ namespace KOTORModSync.Core.Services
 
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Processing URL {i + 1}/{component.ModLink.Count}: {url}");
 
-				if ( TryGetEntry(component.Guid, url, out DownloadCacheEntry existingEntry) )
+				if ( TryGetEntry(url, out DownloadCacheEntry existingEntry) )
 				{
-					await Logger.LogVerboseAsync($"[DownloadCacheService] URL already cached: {existingEntry.ArchiveName}");
+					await Logger.LogVerboseAsync($"[DownloadCacheService] URL already cached: {existingEntry.FileName}");
 
-					if ( !string.IsNullOrEmpty(existingEntry.FilePath) && File.Exists(existingEntry.FilePath) )
+					// Compute full path from FileName + MainConfig.SourcePath
+					string existingFilePath = !string.IsNullOrEmpty(existingEntry.FileName) && MainConfig.SourcePath != null
+						? Path.Combine(MainConfig.SourcePath.FullName, existingEntry.FileName)
+						: existingEntry.FileName;
+
+					if ( !string.IsNullOrEmpty(existingFilePath) && File.Exists(existingFilePath) )
 					{
 
 						bool shouldValidate = MainConfig.ValidateAndReplaceInvalidArchives;
 
-						if ( shouldValidate && Utility.ArchiveHelper.IsArchive(existingEntry.FilePath) )
+						if ( shouldValidate && Utility.ArchiveHelper.IsArchive(existingFilePath) )
 						{
-							await Logger.LogVerboseAsync($"[DownloadCacheService] Validating archive integrity: {existingEntry.FilePath}");
-							bool isValid = Utility.ArchiveHelper.IsValidArchive(existingEntry.FilePath);
+							await Logger.LogVerboseAsync($"[DownloadCacheService] Validating archive integrity: {existingFilePath}");
+							bool isValid = Utility.ArchiveHelper.IsValidArchive(existingFilePath);
 
 							if ( !isValid )
 							{
-								await Logger.LogWarningAsync($"[DownloadCacheService] Archive validation failed (corrupt/incomplete): {existingEntry.FilePath}");
+								await Logger.LogWarningAsync($"[DownloadCacheService] Archive validation failed (corrupt/incomplete): {existingFilePath}");
 								await Logger.LogWarningAsync($"[DownloadCacheService] Deleting invalid archive and re-downloading...");
 
 								try
 								{
-									File.Delete(existingEntry.FilePath);
-									await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid archive: {existingEntry.FilePath}");
+									File.Delete(existingFilePath);
+									await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid archive: {existingFilePath}");
 
-									Remove(component.Guid, url);
+									Remove(url);
 								}
 								catch ( Exception ex )
 								{
@@ -362,7 +397,7 @@ namespace KOTORModSync.Core.Services
 							}
 							else
 							{
-								await Logger.LogVerboseAsync($"[DownloadCacheService] Archive validation successful: {existingEntry.FilePath}");
+								await Logger.LogVerboseAsync($"[DownloadCacheService] Archive validation successful: {existingFilePath}");
 
 								progress?.Report(new DownloadProgress
 								{
@@ -371,9 +406,9 @@ namespace KOTORModSync.Core.Services
 									Status = DownloadStatus.Skipped,
 									StatusMessage = "File already exists, skipping download",
 									ProgressPercentage = 100,
-									FilePath = existingEntry.FilePath,
-									TotalBytes = new FileInfo(existingEntry.FilePath).Length,
-									BytesDownloaded = new FileInfo(existingEntry.FilePath).Length
+									FilePath = existingFilePath,
+									TotalBytes = new FileInfo(existingFilePath).Length,
+									BytesDownloaded = new FileInfo(existingFilePath).Length
 								});
 
 								results.Add(existingEntry);
@@ -383,9 +418,9 @@ namespace KOTORModSync.Core.Services
 						else
 						{
 
-							string fileType = Utility.ArchiveHelper.IsArchive(existingEntry.FilePath) ? "archive" : "non-archive";
+							string fileType = Utility.ArchiveHelper.IsArchive(existingFilePath) ? "archive" : "non-archive";
 							string reason = shouldValidate ? $"{fileType} file exists" : "file exists (validation disabled)";
-							await Logger.LogVerboseAsync($"[DownloadCacheService] {char.ToUpper(reason[0])}{reason.Substring(1)}, skipping download: {existingEntry.FilePath}");
+							await Logger.LogVerboseAsync($"[DownloadCacheService] {char.ToUpper(reason[0])}{reason.Substring(1)}, skipping download: {existingFilePath}");
 
 							progress?.Report(new DownloadProgress
 							{
@@ -394,9 +429,9 @@ namespace KOTORModSync.Core.Services
 								Status = DownloadStatus.Skipped,
 								StatusMessage = "File already exists, skipping download",
 								ProgressPercentage = 100,
-								FilePath = existingEntry.FilePath,
-								TotalBytes = new FileInfo(existingEntry.FilePath).Length,
-								BytesDownloaded = new FileInfo(existingEntry.FilePath).Length
+								FilePath = existingFilePath,
+								TotalBytes = new FileInfo(existingFilePath).Length,
+								BytesDownloaded = new FileInfo(existingFilePath).Length
 							});
 
 							results.Add(existingEntry);
@@ -405,11 +440,11 @@ namespace KOTORModSync.Core.Services
 					}
 					else
 					{
-						await Logger.LogWarningAsync($"[DownloadCacheService] Cached file no longer exists: {existingEntry.FilePath}, will re-download");
+						await Logger.LogWarningAsync($"[DownloadCacheService] Cached file no longer exists: {existingFilePath}, will re-download");
 					}
 				}
 
-				if ( !TryGetEntry(component.Guid, url, out _) )
+				if ( !TryGetEntry(url, out _) )
 				{
 					await Logger.LogVerboseAsync($"[DownloadCacheService] Cache miss, checking if file exists on disk from previous session...");
 
@@ -426,7 +461,10 @@ namespace KOTORModSync.Core.Services
 						}
 
 						string expectedFileName = filteredFilenames[0];
-						string expectedFilePath = Path.Combine(destinationDirectory, expectedFileName);
+						// Always use MainConfig.SourcePath since it can change at runtime
+						string expectedFilePath = MainConfig.SourcePath != null
+							? Path.Combine(MainConfig.SourcePath.FullName, expectedFileName)
+							: Path.Combine(destinationDirectory, expectedFileName);
 
 						await Logger.LogVerboseAsync($"[DownloadCacheService] Resolved filename: {expectedFileName}");
 
@@ -466,13 +504,12 @@ namespace KOTORModSync.Core.Services
 								var diskEntry = new DownloadCacheEntry
 								{
 									Url = url,
-									ArchiveName = expectedFileName,
-									FilePath = expectedFilePath,
+									FileName = expectedFileName,
 									IsArchive = isArchive2,
 									ExtractInstructionGuid = Guid.Empty
 								};
 
-								AddOrUpdate(component.Guid, url, diskEntry);
+								AddOrUpdate(url, diskEntry);
 
 								string validationInfo = shouldValidate ? (isArchive2 ? " (validated)" : "") : " (validation disabled)";
 								await Logger.LogVerboseAsync($"[DownloadCacheService] Added existing file to cache{validationInfo}: {expectedFileName}");
@@ -552,13 +589,12 @@ namespace KOTORModSync.Core.Services
 				var newEntry = new DownloadCacheEntry
 				{
 					Url = url,
-					ArchiveName = fileName,
-					FilePath = progressTracker.FilePath,
+					FileName = fileName,
 					IsArchive = isArchive,
 					ExtractInstructionGuid = Guid.Empty
 				};
 
-				AddOrUpdate(component.Guid, url, newEntry);
+				AddOrUpdate(url, newEntry);
 				results.Add(newEntry);
 
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Download completed and cached: {fileName}");
@@ -575,17 +611,31 @@ namespace KOTORModSync.Core.Services
 
 			foreach ( var entry in entries )
 			{
-
+				// Check if instructions already exist for this file using wildcard matching
+				string archiveFullPath = $@"<<modDirectory>>\{entry.FileName}";
 				Instruction existingInstruction = null;
+
 				foreach ( var instruction in component.Instructions )
 				{
-
 					if ( instruction.Source != null && instruction.Source.Any(src =>
 						{
-
-							if ( src.IndexOf(entry.ArchiveName, StringComparison.OrdinalIgnoreCase) >= 0 )
+							// Check basic substring match
+							if ( src.IndexOf(entry.FileName, StringComparison.OrdinalIgnoreCase) >= 0 )
 								return true;
-							return _virtualFileSystem.FileExists(ResolveInstructionSource(src, entry.ArchiveName));
+
+							// Use wildcard matching for pattern-based sources
+							try
+							{
+								if ( FileSystemUtils.PathHelper.WildcardPathMatch(archiveFullPath, src) )
+									return true;
+							}
+							catch ( Exception ex )
+							{
+								Logger.LogException(ex);
+							}
+
+							// Check if resolved path exists in virtual file system
+							return _virtualFileSystem.FileExists(ResolveInstructionSource(src, entry.FileName));
 						}) )
 					{
 						existingInstruction = instruction;
@@ -595,46 +645,147 @@ namespace KOTORModSync.Core.Services
 
 				if ( existingInstruction != null )
 				{
-
+					// Update cache entry with existing instruction GUID
 					if ( entry.ExtractInstructionGuid == Guid.Empty || entry.ExtractInstructionGuid != existingInstruction.Guid )
 					{
 						entry.ExtractInstructionGuid = existingInstruction.Guid;
-						AddOrUpdate(component.Guid, entry.Url, entry);
-						await Logger.LogVerboseAsync($"[DownloadCacheService] Found existing instruction for {entry.ArchiveName} (GUID: {existingInstruction.Guid})");
+						AddOrUpdate(entry.Url, entry);
+						await Logger.LogVerboseAsync($"[DownloadCacheService] Found existing instruction for {entry.FileName} (GUID: {existingInstruction.Guid})");
 					}
 				}
 				else
 				{
+					// No existing instruction - use AutoInstructionGenerator for comprehensive analysis
+					int initialInstructionCount = component.Instructions.Count;
 
-					var newInstruction = new Instruction
+					// Compute full path from FileName
+					string entryFilePath = !string.IsNullOrEmpty(entry.FileName) && MainConfig.SourcePath != null
+						? Path.Combine(MainConfig.SourcePath.FullName, entry.FileName)
+						: entry.FileName;
+
+					if ( entry.IsArchive && !string.IsNullOrEmpty(entryFilePath) && File.Exists(entryFilePath) )
 					{
-						Guid = Guid.NewGuid(),
-						Action = entry.IsArchive ? Instruction.ActionType.Extract : Instruction.ActionType.Move,
-						Source = new List<string> { $@"<<modDirectory>>\{entry.ArchiveName}" },
-						Destination = entry.IsArchive
-							? string.Empty
-							: @"<<kotorDirectory>>\Override",
-						Overwrite = true
-					};
-					newInstruction.SetParentComponent(component);
+						// For archives, do comprehensive analysis (TSLPatcher detection, folder structure, etc.)
+						bool generated = AutoInstructionGenerator.GenerateInstructions(component, entryFilePath);
 
-					component.Instructions.Add(newInstruction);
+						// Check if the file was deleted due to corruption
+						if ( !File.Exists(entryFilePath) )
+						{
+							await Logger.LogWarningAsync($"[DownloadCacheService] Archive was deleted (likely corrupted): {entryFilePath}");
+							await Logger.LogWarningAsync($"[DownloadCacheService] Removing from cache and creating placeholder instruction");
 
-					entry.ExtractInstructionGuid = newInstruction.Guid;
-					AddOrUpdate(component.Guid, entry.Url, entry);
+							// Remove from cache
+							Remove(entry.Url);
 
-					await Logger.LogVerboseAsync($"[DownloadCacheService] Created new instruction for {entry.ArchiveName} (GUID: {newInstruction.Guid})");
+							// Create placeholder instruction since file doesn't exist anymore
+							CreateSimpleInstructionForEntry(component, entry);
+							continue;
+						}
+
+						if ( generated )
+						{
+							await Logger.LogVerboseAsync($"[DownloadCacheService] Auto-generated comprehensive instructions for {entry.FileName}");
+
+							// Find the instruction that was just created for this archive using wildcard matching
+							Instruction newInstruction = null;
+							for ( int j = initialInstructionCount; j < component.Instructions.Count; j++ )
+							{
+								var instr = component.Instructions[j];
+								if ( instr.Source != null )
+								{
+									foreach ( var s in instr.Source )
+									{
+										// Check if the source pattern matches the archive path
+										if ( s.IndexOf(entry.FileName, StringComparison.OrdinalIgnoreCase) >= 0 )
+										{
+											Logger.Log($"[DownloadCacheService] Found exact match existing instruction for {entry.FileName}: {instr.Guid.ToString()}");
+											newInstruction = instr;
+											break;
+										}
+										// Use wildcard matching for more complex patterns
+										try
+										{
+											if ( FileSystemUtils.PathHelper.WildcardPathMatch(archiveFullPath, s) )
+											{
+												Logger.Log($"[DownloadCacheService] WildcardPathMatch found existing instruction for {entry.FileName}: {instr.Guid.ToString()}");
+												newInstruction = instr;
+												break;
+											}
+										}
+										catch ( Exception ex )
+										{
+											Logger.LogException(ex);
+										}
+									}
+								}
+								if ( newInstruction != null )
+								{
+									break;
+								}
+							}
+
+							if ( newInstruction != null )
+							{
+								entry.ExtractInstructionGuid = newInstruction.Guid;
+								AddOrUpdate(entry.Url, entry);
+								Logger.LogVerbose($"[DownloadCacheService] Found existing instruction for {entry.FileName} (GUID: {newInstruction.Guid})");
+							}
+						}
+						else
+						{
+							// Fallback to simple Extract instruction if comprehensive generation failed
+							CreateSimpleInstructionForEntry(component, entry);
+						}
+					}
+					else
+					{
+						// For non-archives or files that don't exist, create simple Move/Extract instruction
+						CreateSimpleInstructionForEntry(component, entry);
+					}
 				}
 			}
 		}
 
-		public DownloadCacheEntry GetCachedAsync(Guid componentGuid, string url)
+		/// <summary>
+		/// Creates a placeholder Extract or Move instruction when comprehensive generation isn't applicable.
+		/// </summary>
+		private void CreateSimpleInstructionForEntry(ModComponent component, DownloadCacheEntry entry)
 		{
-			if ( TryGetEntry(componentGuid, url, out DownloadCacheEntry entry) )
+			var newInstruction = new Instruction
 			{
+				Guid = Guid.NewGuid(),
+				Action = entry.IsArchive
+						 ? Instruction.ActionType.Extract
+						 : Instruction.ActionType.Move,
+				Source = new List<string> { $@"<<modDirectory>>\{entry.FileName}" },
+				Destination = entry.IsArchive
+							  ? string.Empty
+							  : @"<<kotorDirectory>>\Override",
+				Overwrite = true
+			};
+			newInstruction.SetParentComponent(component);
+			component.Instructions.Add(newInstruction);
 
-				if ( !string.IsNullOrEmpty(entry.FilePath) && File.Exists(entry.FilePath) )
-					return entry;
+			entry.ExtractInstructionGuid = newInstruction.Guid;
+			AddOrUpdate(entry.Url, entry);
+
+			Logger.LogWarning($"[DownloadCacheService] Created placeholder {newInstruction.Action} instruction for {entry.FileName} due to file not being downloaded yet.");
+		}
+
+		public DownloadCacheEntry GetCachedAsync(string url)
+		{
+			if ( TryGetEntry(url, out DownloadCacheEntry entry) )
+			{
+				// Compute full path from FileName
+				if ( !string.IsNullOrEmpty(entry.FileName) )
+				{
+					string entryFilePath = MainConfig.SourcePath != null
+						? Path.Combine(MainConfig.SourcePath.FullName, entry.FileName)
+						: entry.FileName;
+
+					if ( File.Exists(entryFilePath) )
+						return entry;
+				}
 			}
 			return null;
 		}
@@ -651,16 +802,119 @@ namespace KOTORModSync.Core.Services
 
 			return Path.Combine(resolved.TrimStart('\\'), archiveName);
 		}
+
+		/// <summary>
+		/// Gets the cross-platform cache file path.
+		/// </summary>
+		private static string GetCacheFilePath()
+		{
+			string appDataPath;
+
+			// Use appropriate application data directory based on platform
+			if ( Environment.OSVersion.Platform == PlatformID.Win32NT )
+			{
+				// Windows: %LOCALAPPDATA%\KOTORModSync\
+				appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+			}
+			else
+			{
+				// Unix/Linux/Mac: ~/.local/share/KOTORModSync/ or ~/.config/KOTORModSync/
+				string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+				appDataPath = Path.Combine(homeDir, ".local", "share");
+			}
+
+			string cacheDir = Path.Combine(appDataPath, "KOTORModSync");
+
+			// Create directory if it doesn't exist
+			if ( !Directory.Exists(cacheDir) )
+			{
+				try
+				{
+					Directory.CreateDirectory(cacheDir);
+					Logger.LogVerbose($"[DownloadCacheService] Created cache directory: {cacheDir}");
+				}
+				catch ( Exception ex )
+				{
+					Logger.LogWarning($"[DownloadCacheService] Failed to create cache directory: {ex.Message}");
+				}
+			}
+
+			return Path.Combine(cacheDir, "download-cache.json");
+		}
+
+		/// <summary>
+		/// Saves the cache to disk.
+		/// </summary>
+		private void SaveCacheToDisk()
+		{
+			try
+			{
+				lock ( _cacheLock )
+				{
+					string json = JsonConvert.SerializeObject(_cache, Formatting.Indented);
+					File.WriteAllText(_cacheFilePath, json);
+				}
+
+				Logger.LogVerbose($"[DownloadCacheService] Saved cache to disk: {_cacheFilePath}");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogWarning($"[DownloadCacheService] Failed to save cache to disk: {ex.Message}");
+			}
+		}
+
+		/// <summary>
+		/// Loads the cache from disk.
+		/// </summary>
+		private void LoadCacheFromDisk()
+		{
+			if ( !File.Exists(_cacheFilePath) )
+			{
+				Logger.LogVerbose("[DownloadCacheService] No cache file found on disk, starting with empty cache");
+				return;
+			}
+
+			try
+			{
+				string json = File.ReadAllText(_cacheFilePath);
+				var loadedCache = JsonConvert.DeserializeObject<Dictionary<string, DownloadCacheEntry>>(json);
+
+				if ( loadedCache == null )
+				{
+					Logger.LogWarning("[DownloadCacheService] Cache file contained no data");
+					return;
+				}
+
+				lock ( _cacheLock )
+				{
+					_cache.Clear();
+
+					foreach ( var kvp in loadedCache )
+					{
+						// Load all cached entries - do NOT validate file existence
+						// The cache stores filenames, not full paths, so we can't validate without SourcePath
+						_cache[kvp.Key] = kvp.Value;
+						Logger.LogVerbose($"[DownloadCacheService] Loaded cached entry: {kvp.Value.FileName}");
+					}
+				}
+
+				Logger.LogVerbose($"[DownloadCacheService] Loaded cache from disk: {_cacheFilePath} ({GetTotalEntryCount()} entries)");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogWarning($"[DownloadCacheService] Failed to load cache from disk: {ex.Message}");
+			}
+		}
 	}
 
 	public sealed class DownloadCacheEntry
 	{
-
 		public string Url { get; set; }
 
-		public string ArchiveName { get; set; }
-
-		public string FilePath { get; set; }
+		/// <summary>
+		/// The filename only (NOT full path). Combine with MainConfig.SourcePath to get full path.
+		/// </summary>
+		public string FileName { get; set; }
 
 		public Guid ExtractInstructionGuid { get; set; }
 
@@ -674,7 +928,7 @@ namespace KOTORModSync.Core.Services
 		}
 
 		public override string ToString() =>
-			$"DownloadCacheEntry[Archive={ArchiveName}, IsArchive={IsArchive}, ExtractGuid={ExtractInstructionGuid}]";
+			$"DownloadCacheEntry[FileName={FileName}, IsArchive={IsArchive}, ExtractGuid={ExtractInstructionGuid}]";
 	}
 }
 

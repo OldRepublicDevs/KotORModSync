@@ -380,3 +380,8 @@ chrome/
 **/EmbeddedSecrets.cs
 KOTORModSync.Core/Services/EmbeddedSecrets.cs
 KOTORModSync.GUI/Services/EmbeddedSecrets.cs
+BOLABADEN_TELEMETRY_SETUP.md
+IMPLEMENTATION_SUMMARY.md
+missing_axaml_headers.txt
+missing_headers.txt
+nuldotnet

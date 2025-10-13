@@ -196,20 +196,22 @@ namespace KOTORModSync
 			{
 				_allDownloadItems.Add(progress);
 
-				// Add to appropriate category
+				// Add to appropriate category (this will call UpdateSummary internally)
 				CategorizeDownload(progress);
-				UpdateSummary();
 
 				// Subscribe to property changes to update clickable links and reorganize
 				progress.PropertyChanged += DownloadProgress_PropertyChanged;
 
-				// For grouped downloads, also subscribe to child changes to update summary
+				// For grouped downloads, also subscribe to child changes to update summary and recategorize parent
 				if ( progress.IsGrouped )
 				{
 					foreach ( DownloadProgress child in progress.ChildDownloads )
 					{
 						child.PropertyChanged += (sender, e) =>
 						{
+							// When a child's status changes, the parent's status will also change
+							// which will trigger recategorization via the parent's PropertyChanged handler
+							// But we still need to update the summary
 							Dispatcher.UIThread.Post(UpdateSummary);
 						};
 					}
@@ -224,33 +226,61 @@ namespace KOTORModSync
 			_pendingDownloads.Remove(progress);
 			_completedDownloads.Remove(progress);
 
-			// Add to appropriate category based on status
+			// Add to appropriate category based on status, sorted by timestamp (newest first)
 			switch ( progress.Status )
 			{
 				case DownloadStatus.InProgress:
-					_activeDownloads.Add(progress);
+					InsertSorted(_activeDownloads, progress, p => p.StartTime);
 					break;
 				case DownloadStatus.Pending:
-					_pendingDownloads.Add(progress);
+					InsertSorted(_pendingDownloads, progress, p => p.StartTime);
 					break;
 				case DownloadStatus.Completed:
 				case DownloadStatus.Failed:
 				case DownloadStatus.Skipped:
-					_completedDownloads.Add(progress);
+					InsertSorted(_completedDownloads, progress, p => p.EndTime ?? p.StartTime);
 					break;
 			}
+
+			// Update section header counts
+			UpdateSummary();
+		}
+
+		/// <summary>
+		/// Inserts an item into an ObservableCollection in sorted order (newest first)
+		/// </summary>
+		private void InsertSorted(ObservableCollection<DownloadProgress> collection, DownloadProgress item, Func<DownloadProgress, DateTime> timestampSelector)
+		{
+			DateTime itemTimestamp = timestampSelector(item);
+
+			// Find the correct position to insert (newest first = descending order)
+			int insertIndex = 0;
+			for ( int i = 0; i < collection.Count; i++ )
+			{
+				DateTime existingTimestamp = timestampSelector(collection[i]);
+				if ( itemTimestamp > existingTimestamp )
+				{
+					// Item is newer than this one, insert here
+					insertIndex = i;
+					break;
+				}
+				insertIndex = i + 1;
+			}
+
+			collection.Insert(insertIndex, item);
 		}
 
 		public void UpdateDownloadProgress(DownloadProgress progress)
 		{
 			Dispatcher.UIThread.Post(() =>
 			{
-				Logger.LogVerbose($"[DownloadProgressWindow] UpdateDownloadProgress called for URL: {progress.Url}, Status: {progress.Status}, Message: {progress.StatusMessage}");
-
 				var existing = _allDownloadItems.FirstOrDefault(p => p.Url == progress.Url);
 				if ( existing != null )
 				{
-					Logger.LogVerbose($"[DownloadProgressWindow] Found existing item, updating status from {existing.Status} to {progress.Status}");
+					// Temporarily unsubscribe from property changes to avoid cascading updates
+					existing.PropertyChanged -= DownloadProgress_PropertyChanged;
+
+					// Update all properties in one batch
 					existing.Status = progress.Status;
 					existing.StatusMessage = progress.StatusMessage;
 					existing.ProgressPercentage = progress.ProgressPercentage;
@@ -261,11 +291,15 @@ namespace KOTORModSync
 					existing.EndTime = progress.EndTime;
 					existing.ErrorMessage = progress.ErrorMessage;
 					existing.Exception = progress.Exception;
-					UpdateSummary();
+
+					// Re-subscribe to property changes
+					existing.PropertyChanged += DownloadProgress_PropertyChanged;
+
+					// Manually trigger categorization and summary update once
+					CategorizeDownload(existing);
 				}
 				else
 				{
-					Logger.LogVerbose($"[DownloadProgressWindow] No existing item found, adding new download");
 					AddDownload(progress);
 				}
 			});
@@ -310,11 +344,14 @@ namespace KOTORModSync
 			if ( summaryText == null )
 				return;
 
-			int completedCount = _allDownloadItems.Count(x => x.Status == DownloadStatus.Completed);
-			int skippedCount = _allDownloadItems.Count(x => x.Status == DownloadStatus.Skipped);
-			int failedCount = _allDownloadItems.Count(x => x.Status == DownloadStatus.Failed);
-			int inProgress = _allDownloadItems.Count(x => x.Status == DownloadStatus.InProgress);
-			int pending = _allDownloadItems.Count(x => x.Status == DownloadStatus.Pending);
+			// Use collection counts instead of LINQ queries for better performance
+			int inProgress = _activeDownloads.Count;
+			int pending = _pendingDownloads.Count;
+
+			// Count completed/failed/skipped from the completed collection
+			int completedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Completed);
+			int skippedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Skipped);
+			int failedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Failed);
 			int totalFinished = completedCount + skippedCount + failedCount;
 
 			// Calculate overall progress
@@ -449,7 +486,7 @@ namespace KOTORModSync
 			if ( e.PropertyName == nameof(DownloadProgress.ErrorMessage) && sender is DownloadProgress progress )
 				Dispatcher.UIThread.Post(() => UpdateErrorMessageWithLinks(progress));
 
-			// Reorganize downloads when status changes
+			// Only reorganize when status changes (sorting is handled by InsertSorted in CategorizeDownload)
 			if ( e.PropertyName == nameof(DownloadProgress.Status) && sender is DownloadProgress progressItem )
 				Dispatcher.UIThread.Post(() => CategorizeDownload(progressItem));
 		}

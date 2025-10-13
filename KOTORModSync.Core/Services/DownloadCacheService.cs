@@ -41,6 +41,34 @@ namespace KOTORModSync.Core.Services
 		}
 
 		/// <summary>
+		/// Pre-resolves URLs to filenames for all ModLinks in a component without downloading.
+		/// </summary>
+		public async Task<Dictionary<string, List<string>>> PreResolveUrlsAsync(
+			ModComponent component,
+			DownloadManager downloadManager,
+			CancellationToken cancellationToken = default)
+		{
+			if ( component == null )
+				throw new ArgumentNullException(nameof(component));
+			if ( downloadManager == null )
+				throw new ArgumentNullException(nameof(downloadManager));
+
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolving URLs for component: {component.Name}");
+
+			var urls = component.ModLink.Where(url => !string.IsNullOrWhiteSpace(url)).ToList();
+			if ( urls.Count == 0 )
+			{
+				await Logger.LogVerboseAsync("[DownloadCacheService] No URLs to resolve");
+				return new Dictionary<string, List<string>>();
+			}
+
+			var results = await downloadManager.ResolveUrlsToFilenamesAsync(urls, cancellationToken).ConfigureAwait(false);
+
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {results.Count} URLs");
+			return results;
+		}
+
+		/// <summary>
 		/// Initializes the virtual file system with the current state of the real file system.
 		/// This should be called before processing downloads to ensure proper archive filename detection.
 		/// </summary>
@@ -434,8 +462,8 @@ namespace KOTORModSync.Core.Services
 
 					// Report the updated progress to the UI (log only significant events)
 					if ( progressTracker.Status == DownloadStatus.Pending ||
-					     progressTracker.Status == DownloadStatus.Completed ||
-					     progressTracker.Status == DownloadStatus.Failed )
+						 progressTracker.Status == DownloadStatus.Completed ||
+						 progressTracker.Status == DownloadStatus.Failed )
 					{
 						Logger.LogVerbose($"[DownloadCache] {progressTracker.Status}: {progressTracker.StatusMessage}");
 					}

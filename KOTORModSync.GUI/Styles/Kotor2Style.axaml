@@ -895,7 +895,7 @@
             <SolidColorBrush x:Key="Log.InfoBackgroundBrush" Color="#1A00AA00" />
             <SolidColorBrush x:Key="Log.InfoBadgeBrush" Color="#00AA00" />
 
-            <!-- Expander Colors -->
+            <!--  Expander Colors  -->
             <SolidColorBrush x:Key="Expander.DefaultBackgroundBrush" Color="#0a2a22" />
             <SolidColorBrush x:Key="Expander.DefaultForegroundBrush" Color="#18ae88" />
             <SolidColorBrush x:Key="Expander.HoverBackgroundBrush" Color="#0d5945" />

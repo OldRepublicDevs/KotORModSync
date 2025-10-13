@@ -82,6 +82,140 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
+		public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				await Logger.LogVerboseAsync($"[DeadlyStream] Resolving filenames for URL: {url}");
+
+				// Validate URL
+				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
+				{
+					await Logger.LogWarningAsync($"[DeadlyStream] Invalid URL format: {url}");
+					return new List<string>();
+				}
+
+				// Normalize to HTTPS
+				if ( validatedUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) )
+				{
+					validatedUri = new UriBuilder(validatedUri) { Scheme = "https", Port = -1 }.Uri;
+					url = validatedUri.ToString();
+				}
+
+				// Fetch the page
+				var request = new HttpRequestMessage(HttpMethod.Get, url);
+				ApplyCookiesToRequest(request, validatedUri);
+				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+				_ = pageResponse.EnsureSuccessStatusCode();
+				ExtractAndStoreCookies(pageResponse, validatedUri);
+
+				string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+				pageResponse.Dispose();
+
+				// Extract csrfKey
+				string csrfKey = ExtractCsrfKey(html);
+
+				// Check for multi-file download page
+				string downloadPageUrl = !string.IsNullOrEmpty(csrfKey)
+					? $"{url}?do=download&csrfKey={csrfKey}"
+					: $"{url}?do=download";
+
+				var downloadPageRequest = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
+				ApplyCookiesToRequest(downloadPageRequest, validatedUri);
+				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, cancellationToken).ConfigureAwait(false);
+
+				List<string> filenames = new List<string>();
+
+				if ( downloadPageResponse.IsSuccessStatusCode )
+				{
+					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+					ExtractAndStoreCookies(downloadPageResponse, validatedUri);
+
+					// Check if this is a multi-file selection page
+					if ( downloadPageHtml.Contains("Download your files") || downloadPageHtml.Contains("data-action=\"download\"") )
+					{
+						List<string> confirmedLinks = ExtractConfirmedDownloadLinks(downloadPageHtml, url);
+						foreach ( string downloadLink in confirmedLinks )
+						{
+							string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken);
+							if ( !string.IsNullOrEmpty(filename) )
+								filenames.Add(filename);
+						}
+					}
+				}
+
+				downloadPageResponse.Dispose();
+
+				// If no confirmed links found, try extracting from main page
+				if ( filenames.Count == 0 )
+				{
+					List<string> downloadLinks = ExtractAllDownloadLinks(html, url);
+					foreach ( string downloadLink in downloadLinks )
+					{
+						string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken);
+						if ( !string.IsNullOrEmpty(filename) )
+							filenames.Add(filename);
+					}
+				}
+
+				await Logger.LogVerboseAsync($"[DeadlyStream] Resolved {filenames.Count} filename(s)");
+				return filenames;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogWarningAsync($"[DeadlyStream] Failed to resolve filenames: {ex.Message}");
+				return new List<string>();
+			}
+		}
+
+		private async Task<string> ResolveFilenameFromLink(string downloadLink, CancellationToken cancellationToken)
+		{
+			try
+			{
+				// Make HEAD request to get filename without downloading
+				Uri downloadUri = new Uri(downloadLink);
+				var request = new HttpRequestMessage(HttpMethod.Head, downloadLink);
+				ApplyCookiesToRequest(request, downloadUri);
+
+				HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+				if ( !response.IsSuccessStatusCode )
+				{
+					response.Dispose();
+					return null;
+				}
+
+				// Check Content-Type - if it's HTML, it's not a direct file link
+				string contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
+				if ( contentType.Contains("text/html") )
+				{
+					response.Dispose();
+					return null;
+				}
+
+				// Get filename from Content-Disposition
+				string fileName = GetFileNameFromContentDisposition(response);
+				if ( string.IsNullOrWhiteSpace(fileName) )
+				{
+					// Fall back to URL
+					fileName = Path.GetFileName(Uri.UnescapeDataString(downloadUri.AbsolutePath));
+				}
+
+				if ( string.IsNullOrWhiteSpace(fileName) || fileName.Contains("?") )
+				{
+					fileName = null;
+				}
+
+				response.Dispose();
+				return fileName;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogVerboseAsync($"[DeadlyStream] Could not resolve filename from link {downloadLink}: {ex.Message}");
+				return null;
+			}
+		}
+
 		/// <summary>
 		/// Extracts cookies from HTTP response and stores them in the cookie container
 		/// </summary>
@@ -161,19 +295,19 @@ namespace KOTORModSync.Core.Services.Download
 				ProgressPercentage = 10
 			});
 
-            try
+			try
 			{
 				// Fetch the page and extract cookies
 				await Logger.LogVerboseAsync($"[DeadlyStream] Fetching page to establish session: {url}");
-                // Normalize to HTTPS – DeadlyStream rejects plain HTTP with 403
-                if (validatedUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase))
-                {
-                    validatedUri = new UriBuilder(validatedUri) { Scheme = "https", Port = -1 }.Uri;
-                    url = validatedUri.ToString();
-                    await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL to HTTPS: {url}");
-                }
+				// Normalize to HTTPS – DeadlyStream rejects plain HTTP with 403
+				if ( validatedUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) )
+				{
+					validatedUri = new UriBuilder(validatedUri) { Scheme = "https", Port = -1 }.Uri;
+					url = validatedUri.ToString();
+					await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL to HTTPS: {url}");
+				}
 
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
+				var request = new HttpRequestMessage(HttpMethod.Get, url);
 
 				// Apply any existing cookies from previous requests
 				ApplyCookiesToRequest(request, validatedUri);
@@ -563,43 +697,17 @@ namespace KOTORModSync.Core.Services.Download
 				});
 
 				// Download with bandwidth throttling using ThrottledStream (700 KB/s cap)
-				using ( FileStream fileStream = File.Create(filePath) )
 				using ( Stream contentStream = await fileResponse.Content.ReadAsStreamAsync().ConfigureAwait(false) )
 				using ( ThrottledStream throttledStream = new ThrottledStream(contentStream, MaxBytesPerSecond) )
 				{
-					byte[] buffer = new byte[8192]; // Standard buffer size
-					int bytesRead;
-					long totalBytesRead = 0;
-					var lastProgressUpdate = DateTimeOffset.UtcNow;
-
-					while ( (bytesRead = await throttledStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0 )
-					{
-						// Check for cancellation IMMEDIATELY before writing
-						cancellationToken.ThrowIfCancellationRequested();
-
-						await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
-						totalBytesRead += bytesRead;
-
-						// Update progress (but not too frequently to avoid UI spam)
-						var now = DateTimeOffset.UtcNow;
-						if ( totalBytes > 0 && (now - lastProgressUpdate).TotalMilliseconds >= 250 )
-						{
-							lastProgressUpdate = now;
-							double fileProgress = (double)totalBytesRead / totalBytes;
-							double currentProgress = baseProgress + (progressRange * 0.1) + (progressRange * 0.9 * fileProgress);
-							progress?.Report(new DownloadProgress
-							{
-								Status = DownloadStatus.InProgress,
-								StatusMessage = $"Downloading {fileName}... ({totalBytesRead:N0} / {totalBytes:N0} bytes)",
-								ProgressPercentage = Math.Min(currentProgress, baseProgress + progressRange),
-								BytesDownloaded = totalBytesRead,
-								TotalBytes = totalBytes
-							});
-						}
-					}
-
-					// Ensure all data is written to disk
-					await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+					// Use unified download helper for consistent progress reporting
+					await DownloadHelper.DownloadWithProgressAsync(
+						throttledStream,
+						filePath,
+						totalBytes,
+						fileName,
+						progress,
+						cancellationToken).ConfigureAwait(false);
 				}
 
 				long fileSize = new FileInfo(filePath).Length;

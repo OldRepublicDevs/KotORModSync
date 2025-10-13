@@ -7,20 +7,20 @@
     xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    d:DesignWidth="1280"
-    d:DesignHeight="720"
     x:Name="RootWindow"
     Title="KOTORModSync"
     Width="1280"
     Height="720"
     MinWidth="600"
     MinHeight="400"
+    d:DesignHeight="720"
+    d:DesignWidth="1280"
     DragDrop.AllowDrop="True"
     ExtendClientAreaChromeHints="NoChrome"
     ExtendClientAreaTitleBarHeightHint="-1"
     ExtendClientAreaToDecorationsHint="True"
-    SystemDecorations="BorderOnly">
+    SystemDecorations="BorderOnly"
+    mc:Ignorable="d">
 
     <Window.Resources>
         <converters:IndexConverter x:Key="IndexConverter" />
@@ -287,8 +287,8 @@
                                             <DataTemplate>
                                                 <CheckBox
                                                     Margin="0,2"
-                                                    DataContext="{Binding .}"
                                                     Content="{Binding DisplayText}"
+                                                    DataContext="{Binding .}"
                                                     FontSize="10"
                                                     IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                     ToolTip.Tip="{Binding Name}">
@@ -942,10 +942,11 @@
                     IsVisible="{Binding EditorMode}">
                     <TabItem.Content>
                         <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="8">
-                            <StackPanel
-                                HorizontalAlignment="Stretch"
-                                DataContext="{Binding CurrentComponent}">
+                        <ScrollViewer
+                            Padding="8"
+                            HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto">
+                            <StackPanel HorizontalAlignment="Stretch" DataContext="{Binding CurrentComponent}">
 
                                 <!--  Mod Information Card  -->
                                 <Border Classes="summary-card">
@@ -1069,7 +1070,7 @@
                                 <!--  Description Card  -->
                                 <Border Classes="summary-card" IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}">
                                     <DockPanel>
-                                        <Border DockPanel.Dock="Top" Classes="summary-header">
+                                        <Border Classes="summary-header" DockPanel.Dock="Top">
                                             <TextBlock Classes="summary-section-title" Text="📄 Description" />
                                         </Border>
                                         <TextBlock
@@ -1082,7 +1083,7 @@
                                 <!--  Installation Directions Card  -->
                                 <Border Classes="summary-card" IsVisible="{Binding Directions, Converter={StaticResource StringToVisibilityConverter}}">
                                     <DockPanel>
-                                        <Border DockPanel.Dock="Top" Classes="summary-header">
+                                        <Border Classes="summary-header" DockPanel.Dock="Top">
                                             <TextBlock Classes="summary-section-title" Text="📋 Installation Notes" />
                                         </Border>
                                         <TextBlock
@@ -1222,9 +1223,7 @@
                                                                 <!--  Details for non-Choose actions  -->
                                                                 <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}" Orientation="Vertical">
                                                                     <!--  Source paths with resolved placeholders  -->
-                                                                    <TextBlock
-                                                                        Text="{Binding Source, Converter={StaticResource PathResolverConverter}}"
-                                                                        TextWrapping="Wrap" />
+                                                                    <TextBlock Text="{Binding Source, Converter={StaticResource PathResolverConverter}}" TextWrapping="Wrap" />
                                                                     <!--  Destination information  -->
                                                                     <TextBlock
                                                                         Margin="0,2,0,0"
@@ -1413,8 +1412,8 @@
                                         <Expander
                                             x:Name="DependenciesExpander"
                                             Margin="0,0,0,2"
-                                            Header="🔗 Dependencies &amp; Restrictions"
                                             HorizontalAlignment="Stretch"
+                                            Header="🔗 Dependencies &amp; Restrictions"
                                             IsExpanded="False">
                                             <Border Margin="0,2,0,0" Padding="2">
                                                 <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto">
@@ -1532,9 +1531,7 @@
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock
-                                                        Grid.Column="0"
-                                                        Text="🔧 Installation Instructions" />
+                                                    <TextBlock Grid.Column="0" Text="🔧 Installation Instructions" />
                                                     <Button
                                                         Grid.Column="1"
                                                         Margin="8,0,0,0"
@@ -1581,8 +1578,8 @@
                                         <Expander
                                             x:Name="OptionsExpander"
                                             Margin="0,0,0,2"
-                                            Header="⚙️ Optional Components"
                                             HorizontalAlignment="Stretch"
+                                            Header="⚙️ Optional Components"
                                             IsExpanded="False">
                                             <Border Margin="0,2,0,0" Padding="2">
                                                 <StackPanel Spacing="3">

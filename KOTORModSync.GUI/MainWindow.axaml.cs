@@ -574,7 +574,7 @@ namespace KOTORModSync
 			{
 				// Refresh validation state for this component in the mod list
 				RefreshComponentValidationState(component);
-                RenderMarkdownContent(component);
+				RenderMarkdownContent(component);
 			}
 		}
 

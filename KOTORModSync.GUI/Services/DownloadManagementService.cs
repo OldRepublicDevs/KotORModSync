@@ -30,7 +30,7 @@ namespace KOTORModSync.Services
 		/// <summary>
 		/// Downloads a mod from a URL using the existing download system
 		/// </summary>
-		public static async Task<string> DownloadModFromUrl(string url, ModComponent component)
+		public static async Task<string> DownloadModFromUrl(string url, ModComponent component, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -53,7 +53,7 @@ namespace KOTORModSync.Services
 					new DeadlyStreamDownloadHandler(httpClient),
 					new DirectDownloadHandler(httpClient),
 					new GameFrontDownloadHandler(httpClient),
-					new NexusModsDownloadHandler(httpClient, ""),
+					new NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
 					new MegaDownloadHandler()
 				};
 				var downloadManager = new DownloadManager(handlers);
@@ -80,7 +80,7 @@ namespace KOTORModSync.Services
 
 				// Download the file
 				var urlToProgressMap = new Dictionary<string, DownloadProgress> { { url, progress } };
-				List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(urlToProgressMap, tempDir, progressReporter, CancellationToken.None);
+				List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(urlToProgressMap, tempDir, progressReporter, cancellationToken);
 
 				// Clean up HTTP client
 				httpClient.Dispose();

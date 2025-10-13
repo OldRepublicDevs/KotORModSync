@@ -54,12 +54,27 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				// If download window is already open and visible, just activate it
-				if ( _currentDownloadWindow != null && _currentDownloadWindow.IsVisible )
+				// If download window already exists, reuse it (prevents multiple windows)
+				if ( _currentDownloadWindow != null )
 				{
+					// Check if the window is still open (not closed)
+					if ( !_currentDownloadWindow.IsVisible )
+					{
+						// Window was closed, show it again
+						_currentDownloadWindow.Show();
+					}
+
+					// Activate and focus the existing window
 					_currentDownloadWindow.Activate();
 					_ = _currentDownloadWindow.Focus();
-					await Logger.LogVerboseAsync("[DownloadOrchestration] Download window already open, activating existing window");
+					await Logger.LogVerboseAsync("[DownloadOrchestration] Download window already exists, reusing existing window");
+					return;
+				}
+
+				// Prevent starting a new session if one is already in progress
+				if ( IsDownloadInProgress )
+				{
+					await Logger.LogWarningAsync("[DownloadOrchestration] Download session already in progress, ignoring request");
 					return;
 				}
 
@@ -104,7 +119,8 @@ namespace KOTORModSync.Services
 				progressWindow.Closed += (sender, e) =>
 				{
 					_currentDownloadWindow = null;
-					Logger.LogVerbose("[DownloadOrchestration] Download window closed");
+					IsDownloadInProgress = false;
+					Logger.LogVerbose("[DownloadOrchestration] Download window closed, clearing reference");
 				};
 
 				// Setup download manager with all handlers
@@ -119,7 +135,7 @@ namespace KOTORModSync.Services
 				{
 					new DeadlyStreamDownloadHandler(httpClient),
 					new MegaDownloadHandler(),
-					new NexusModsDownloadHandler(httpClient, null),
+					new NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
 					new GameFrontDownloadHandler(httpClient),
 					new DirectDownloadHandler(httpClient),
 				};
@@ -186,11 +202,47 @@ namespace KOTORModSync.Services
 							}
 						});
 
-						// Process all components CONCURRENTLY (not sequentially!)
+						// Process all components CONCURRENTLY - each component resolves then downloads individually
+						await Logger.LogVerboseAsync("[DownloadOrchestration] Starting concurrent download processing");
+
 						await Task.WhenAll(selectedComponents.Select(async component =>
 						{
 							try
 							{
+								// STEP 1: Pre-resolve URLs to filenames for this component
+								await Logger.LogVerboseAsync($"[DownloadOrchestration] Pre-resolving URLs for: {component.Name}");
+								var urlToFilenames = await _cacheService.PreResolveUrlsAsync(component, downloadManager, progressWindow.CancellationToken);
+
+								// Update progress window with resolved filenames
+								foreach ( var kvp in urlToFilenames )
+								{
+									string url = kvp.Key;
+									List<string> filenames = kvp.Value;
+
+									if ( filenames.Count > 0 )
+									{
+										// Update the existing pending download with the resolved filename
+										string firstFilename = filenames[0];
+										string fullPath = Path.Combine(_mainConfig.sourcePath.FullName, firstFilename);
+
+										progressWindow.UpdateDownloadProgress(new DownloadProgress
+										{
+											ModName = component.Name,
+											Url = url,
+											Status = DownloadStatus.Pending,
+											StatusMessage = $"Ready to download: {firstFilename}",
+											ProgressPercentage = 0,
+											FilePath = fullPath,
+											StartTime = DateTime.Now  // Update timestamp so it moves to top
+										});
+
+										await Logger.LogVerboseAsync($"[DownloadOrchestration] Resolved URL to {filenames.Count} file(s): {url} -> {firstFilename}");
+									}
+								}
+
+								// STEP 2: Download the files for this component
+								await Logger.LogVerboseAsync($"[DownloadOrchestration] Starting download for: {component.Name}");
+
 								// Create progress reporter for this component
 								var progressReporter = new Progress<DownloadProgress>(progress =>
 								{
@@ -431,7 +483,7 @@ namespace KOTORModSync.Services
 		/// <summary>
 		/// Downloads a single mod from URL (used for auto-generation)
 		/// </summary>
-		public static async Task<string> DownloadModFromUrlAsync(string url, ModComponent component)
+		public static async Task<string> DownloadModFromUrlAsync(string url, ModComponent component, CancellationToken cancellationToken = default)
 		{
 			try
 			{
@@ -453,7 +505,7 @@ namespace KOTORModSync.Services
 					new DeadlyStreamDownloadHandler(httpClient),
 					new DirectDownloadHandler(httpClient),
 					new GameFrontDownloadHandler(httpClient),
-					new NexusModsDownloadHandler(httpClient, ""),
+					new NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
 					new MegaDownloadHandler()
 				};
 				var downloadManager = new DownloadManager(handlers);
@@ -481,7 +533,7 @@ namespace KOTORModSync.Services
 					progress.Exception = update.Exception;
 				});
 				List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(
-					urlToProgressMap, tempDir, progressReporter, CancellationToken.None);
+					urlToProgressMap, tempDir, progressReporter, cancellationToken);
 
 				httpClient.Dispose();
 

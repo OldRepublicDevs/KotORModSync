@@ -33,6 +33,45 @@ namespace KOTORModSync.Core.Services.Download
 		}
 
 		/// <summary>
+		/// Resolves URLs to their filenames without downloading
+		/// </summary>
+		public async Task<Dictionary<string, List<string>>> ResolveUrlsToFilenamesAsync(
+			IEnumerable<string> urls,
+			CancellationToken cancellationToken = default)
+		{
+			var results = new Dictionary<string, List<string>>();
+
+			await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urls.Count()} URLs to filenames");
+
+			foreach ( string url in urls )
+			{
+				try
+				{
+					IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
+					if ( handler == null )
+					{
+						await Logger.LogWarningAsync($"[DownloadManager] No handler for URL: {url}");
+						results[url] = new List<string>();
+						continue;
+					}
+
+					await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}");
+					List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
+
+					results[url] = filenames ?? new List<string>();
+					await Logger.LogVerboseAsync($"[DownloadManager] Resolved {results[url].Count} filename(s) for URL: {url}");
+				}
+				catch ( Exception ex )
+				{
+					await Logger.LogErrorAsync($"[DownloadManager] Failed to resolve URL {url}: {ex.Message}");
+					results[url] = new List<string>();
+				}
+			}
+
+			return results;
+		}
+
+		/// <summary>
 		/// Cancels all ongoing downloads using cooperative cancellation
 		/// </summary>
 		public void CancelAll()

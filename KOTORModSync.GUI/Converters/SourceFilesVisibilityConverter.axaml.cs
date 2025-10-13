@@ -13,7 +13,7 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (!(value is Instruction.ActionType action))
+			if ( !(value is Instruction.ActionType action) )
 				return true;
 
 			// Hide Source File(s) section for DelDuplicate and Choose actions

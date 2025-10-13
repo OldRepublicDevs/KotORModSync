@@ -160,6 +160,21 @@
                             Content="Validate and replace invalid archives"
                             IsChecked="{Binding validateAndReplaceInvalidArchives}"
                             ToolTip.Tip="When enabled, automatically validates downloaded archive files (zip, rar, 7z) using 7-Zip. If an archive is corrupt or incomplete, it will be automatically deleted and re-downloaded. When disabled, existing files are never replaced, which may result in using corrupt archives." />
+
+                        <TextBlock
+                            Margin="0,15,0,5"
+                            FontWeight="Bold"
+                            Text="Nexus Mods API Key (Optional):" />
+                        <TextBox
+                            Text="{Binding nexusModsApiKey}"
+                            Watermark="Enter your Nexus Mods API key here..."
+                            ToolTip.Tip="Optional: Enter your Nexus Mods API key for handling downloads from NexusMods. Get your API key from: https://www.nexusmods.com/users/myaccount?tab=api+access." />
+                        <TextBlock
+                            Margin="0,5,0,0"
+                            FontSize="11"
+                            Opacity="0.7"
+                            Text="Get your API key from: https://www.nexusmods.com/users/myaccount?tab=api+access"
+                            TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
 

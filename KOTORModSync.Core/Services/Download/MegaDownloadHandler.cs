@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +20,50 @@ namespace KOTORModSync.Core.Services.Download
 			bool canHandle = url != null && url.IndexOf("mega.nz", StringComparison.OrdinalIgnoreCase) >= 0;
 			Logger.LogVerbose($"[MEGA] CanHandle check for URL '{url}': {canHandle}");
 			return canHandle;
+		}
+
+		public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)
+		{
+			await _sessionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+			try
+			{
+				await Logger.LogVerboseAsync($"[MEGA] Resolving filename for URL: {url}");
+
+				// Ensure logged out before login
+				try
+				{
+					await _client.LogoutAsync().ConfigureAwait(false);
+				}
+				catch { }
+
+				await _client.LoginAnonymousAsync().ConfigureAwait(false);
+
+				// Convert URL format if needed
+				string processedUrl = ConvertMegaUrl(url);
+
+				// Get node information to extract filename
+				INode node = await _client.GetNodeFromLinkAsync(new Uri(processedUrl)).ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[MEGA] Resolved filename: {node.Name}");
+
+				await _client.LogoutAsync().ConfigureAwait(false);
+
+				return new List<string> { node.Name };
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogWarningAsync($"[MEGA] Failed to resolve filename: {ex.Message}");
+				try
+				{
+					await _client.LogoutAsync().ConfigureAwait(false);
+				}
+				catch { }
+				return new List<string>();
+			}
+			finally
+			{
+				_sessionLock.Release();
+			}
 		}
 
 		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
@@ -78,10 +123,37 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.InProgress,
 					StatusMessage = "Downloading from MEGA...",
 					ProgressPercentage = 50,
-					TotalBytes = node.Size
+					TotalBytes = node.Size,
+					StartTime = DateTime.Now
 				});
 
-				await _client.DownloadFileAsync(node, filePath).ConfigureAwait(false);
+				// Create a progress wrapper that converts MEGA's double progress (0.0-1.0) to our format
+				var megaProgress = new Progress<double>(percent =>
+				{
+					progress?.Report(new DownloadProgress
+					{
+						Status = DownloadStatus.InProgress,
+						StatusMessage = $"Downloading {node.Name}... ({percent:P0})",
+						ProgressPercentage = percent * 100,
+						BytesDownloaded = (long)(node.Size * percent),
+						TotalBytes = node.Size,
+						StartTime = DateTime.Now,
+						FilePath = filePath
+					});
+				});
+
+				// Use Download method with progress wrapper and cancellation token
+				using ( Stream downloadStream = await _client.DownloadAsync(node, megaProgress, cancellationToken).ConfigureAwait(false) )
+				{
+					await DownloadHelper.DownloadWithProgressAsync(
+						downloadStream,
+						filePath,
+						node.Size,
+						node.Name,
+						progress,
+						cancellationToken).ConfigureAwait(false);
+				}
+
 				long fileSize = new FileInfo(filePath).Length;
 				await Logger.LogVerboseAsync($"[MEGA] File download completed successfully. File size: {fileSize} bytes");
 

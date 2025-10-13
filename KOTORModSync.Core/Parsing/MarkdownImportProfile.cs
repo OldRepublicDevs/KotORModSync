@@ -161,22 +161,22 @@ namespace KOTORModSync.Core.Parsing
 		}
 
 
-	private string _instructionPattern = string.Empty;
-	public string InstructionPattern
-	{
-		get => _instructionPattern;
-		set { _instructionPattern = value; OnPropertyChanged(); }
-	}
+		private string _instructionPattern = string.Empty;
+		public string InstructionPattern
+		{
+			get => _instructionPattern;
+			set { _instructionPattern = value; OnPropertyChanged(); }
+		}
 
-	private string _instructionsBlockPattern = string.Empty;
-	public string InstructionsBlockPattern
-	{
-		get => _instructionsBlockPattern;
-		set { _instructionsBlockPattern = value; OnPropertyChanged(); }
-	}
+		private string _instructionsBlockPattern = string.Empty;
+		public string InstructionsBlockPattern
+		{
+			get => _instructionsBlockPattern;
+			set { _instructionsBlockPattern = value; OnPropertyChanged(); }
+		}
 
 
-	public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>();
+		public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>();
 
 		public RegexOptions GetRegexOptions()
 		{

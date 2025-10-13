@@ -94,6 +94,9 @@ namespace KOTORModSync.Core
 		public static bool ValidateAndReplaceInvalidArchives { get; private set; }
 		public bool validateAndReplaceInvalidArchives { get => ValidateAndReplaceInvalidArchives; set => ValidateAndReplaceInvalidArchives = value; }
 
+		public static string NexusModsApiKey { get; private set; }
+		public string nexusModsApiKey { get => NexusModsApiKey; set => NexusModsApiKey = value; }
+
 		[NotNull][ItemNotNull] public static List<ModComponent> AllComponents { get; set; } = new List<ModComponent>();
 
 		[NotNull]

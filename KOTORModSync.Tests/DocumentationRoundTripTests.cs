@@ -17,37 +17,37 @@ namespace KOTORModSync.Tests
 		private string _testFilePath = string.Empty;
 		private string _originalMarkdown = string.Empty;
 
-	[SetUp]
-	public void Setup()
-	{
-		// Check for environment variable first (used by CI)
-		string? envTestFile = Environment.GetEnvironmentVariable("TEST_FILE_PATH");
-
-		if ( !string.IsNullOrEmpty(envTestFile) )
+		[SetUp]
+		public void Setup()
 		{
-			_testFilePath = Path.Combine(
-				TestContext.CurrentContext.TestDirectory,
-				"..", "..", "..",
-				envTestFile
-			);
-		}
-		else
-		{
-			// Default to test_modbuild_k1.md for local testing
-			_testFilePath = Path.Combine(
-				TestContext.CurrentContext.TestDirectory,
-				"..", "..", "..",
-				"test_modbuild_k1.md"
-			);
-		}
+			// Check for environment variable first (used by CI)
+			string? envTestFile = Environment.GetEnvironmentVariable("TEST_FILE_PATH");
 
-		if ( !File.Exists(_testFilePath) )
-		{
-			Assert.Fail($"Test file not found: {_testFilePath}");
-		}
+			if ( !string.IsNullOrEmpty(envTestFile) )
+			{
+				_testFilePath = Path.Combine(
+					TestContext.CurrentContext.TestDirectory,
+					"..", "..", "..",
+					envTestFile
+				);
+			}
+			else
+			{
+				// Default to test_modbuild_k1.md for local testing
+				_testFilePath = Path.Combine(
+					TestContext.CurrentContext.TestDirectory,
+					"..", "..", "..",
+					"test_modbuild_k1.md"
+				);
+			}
 
-		_originalMarkdown = File.ReadAllText(_testFilePath);
-	}
+			if ( !File.Exists(_testFilePath) )
+			{
+				Assert.Fail($"Test file not found: {_testFilePath}");
+			}
+
+			_originalMarkdown = File.ReadAllText(_testFilePath);
+		}
 
 		[Test]
 		public void RoundTrip_ParseAndGenerateDocumentation_ProducesEquivalentOutput()

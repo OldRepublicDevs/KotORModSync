@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -51,6 +52,40 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
+		public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				await Logger.LogVerboseAsync($"[NexusMods] Resolving filename for URL: {url}");
+
+				// Without API key, cannot resolve filename
+				if ( string.IsNullOrWhiteSpace(_apiKey) )
+				{
+					await Logger.LogVerboseAsync("[NexusMods] No API key provided, cannot resolve filename");
+					return new List<string>();
+				}
+
+				// Try to get filename from URL path as fallback
+				if ( Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
+				{
+					string fileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
+					if ( !string.IsNullOrWhiteSpace(fileName) && fileName != "/" )
+					{
+						await Logger.LogVerboseAsync($"[NexusMods] Extracted filename from URL: {fileName}");
+						return new List<string> { fileName };
+					}
+				}
+
+				await Logger.LogVerboseAsync("[NexusMods] Cannot resolve filename without downloading");
+				return new List<string>();
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogWarningAsync($"[NexusMods] Failed to resolve filename: {ex.Message}");
+				return new List<string>();
+			}
+		}
+
 		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
 		{
 			await Logger.LogVerboseAsync($"[NexusMods] Starting Nexus Mods download from URL: {url}");
@@ -88,7 +123,7 @@ namespace KOTORModSync.Core.Services.Download
 				if ( !string.IsNullOrWhiteSpace(_apiKey) )
 				{
 					await Logger.LogVerboseAsync("[NexusMods] Using API key for download");
-					return await DownloadWithApiKey(url, destinationDirectory, progress);
+					return await DownloadWithApiKey(url, destinationDirectory, progress, cancellationToken);
 				}
 				else
 				{
@@ -165,7 +200,7 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		private async Task<DownloadResult> DownloadWithApiKey(string url, string destinationDirectory, IProgress<DownloadProgress> progress)
+		private async Task<DownloadResult> DownloadWithApiKey(string url, string destinationDirectory, IProgress<DownloadProgress> progress, CancellationToken cancellationToken)
 		{
 			await Logger.LogVerboseAsync("[NexusMods] Resolving download link from Nexus Mods API");
 			NexusDownloadLink linkInfo = await ResolveDownloadLinkAsync(url).ConfigureAwait(false);
@@ -217,13 +252,22 @@ namespace KOTORModSync.Core.Services.Download
 			progress?.Report(new DownloadProgress
 			{
 				Status = DownloadStatus.InProgress,
-				StatusMessage = "Writing file...",
-				ProgressPercentage = 75,
+				StatusMessage = "Starting download...",
+				ProgressPercentage = 0,
 				TotalBytes = totalBytes
 			});
 
-			using ( FileStream fileStream = File.Create(filePath) )
-				await response.Content.CopyToAsync(fileStream).ConfigureAwait(false);
+			// Use unified download helper for consistent progress reporting
+			using ( Stream contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false) )
+			{
+				await DownloadHelper.DownloadWithProgressAsync(
+					contentStream,
+					filePath,
+					totalBytes,
+					fileName,
+					progress,
+					cancellationToken).ConfigureAwait(false);
+			}
 
 			long fileSize = new FileInfo(filePath).Length;
 			await Logger.LogVerboseAsync($"[NexusMods] File download completed successfully. File size: {fileSize} bytes");

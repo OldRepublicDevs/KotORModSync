@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,6 +36,14 @@ namespace KOTORModSync.Core.Services.Download
 			bool canHandle = url != null && url.IndexOf("gamefront.com", StringComparison.OrdinalIgnoreCase) >= 0;
 			Logger.LogVerbose($"[GameFront] CanHandle check for URL '{url}': {canHandle}");
 			return canHandle;
+		}
+
+		public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)
+		{
+			await Logger.LogVerboseAsync($"[GameFront] Cannot resolve filenames for GameFront URLs (requires JavaScript): {url}");
+			await Task.CompletedTask;
+			// GameFront requires JavaScript execution, cannot resolve without browser
+			return new List<string>();
 		}
 
 		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)

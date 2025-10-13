@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -23,6 +24,62 @@ namespace KOTORModSync.Core.Services.Download
 			if ( canHandle )
 				Logger.LogVerbose($"[DirectDownload] URL scheme: {uri.Scheme}, host: {uri.Host}");
 			return canHandle;
+		}
+
+		public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				await Logger.LogVerboseAsync($"[DirectDownload] Resolving filename for URL: {url}");
+
+				// Validate URL
+				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
+				{
+					await Logger.LogWarningAsync($"[DirectDownload] Invalid URL format: {url}");
+					return new List<string>();
+				}
+
+				// Try HEAD request first to get Content-Disposition without downloading the whole file
+				var request = new HttpRequestMessage(HttpMethod.Head, url);
+				HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+				if ( !response.IsSuccessStatusCode )
+				{
+					await Logger.LogWarningAsync($"[DirectDownload] HEAD request failed with status: {response.StatusCode}");
+					response.Dispose();
+					return new List<string>();
+				}
+
+				// Try to get filename from Content-Disposition or URL
+				string fileName = null;
+				if ( response.Content.Headers.ContentDisposition != null )
+				{
+					fileName = response.Content.Headers.ContentDisposition.FileName?.Trim('"');
+					await Logger.LogVerboseAsync($"[DirectDownload] Got filename from Content-Disposition: {fileName}");
+				}
+
+				if ( string.IsNullOrWhiteSpace(fileName) )
+				{
+					// Fall back to URL path
+					string urlPath = Uri.UnescapeDataString(validatedUri.AbsolutePath);
+					fileName = Path.GetFileName(urlPath);
+					await Logger.LogVerboseAsync($"[DirectDownload] Got filename from URL path: {fileName}");
+				}
+
+				if ( string.IsNullOrWhiteSpace(fileName) || fileName == "/" )
+				{
+					fileName = "download";
+					await Logger.LogVerboseAsync($"[DirectDownload] Using default filename: {fileName}");
+				}
+
+				response.Dispose();
+				return new List<string> { fileName };
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogWarningAsync($"[DirectDownload] Failed to resolve filename: {ex.Message}");
+				return new List<string>();
+			}
 		}
 
 		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
@@ -93,13 +150,22 @@ namespace KOTORModSync.Core.Services.Download
 				progress?.Report(new DownloadProgress
 				{
 					Status = DownloadStatus.InProgress,
-					StatusMessage = "Downloading...",
-					ProgressPercentage = 50,
+					StatusMessage = "Starting download...",
+					ProgressPercentage = 0,
 					TotalBytes = totalBytes
 				});
 
-				using ( FileStream stream = File.Create(filePath) )
-					await response.Content.CopyToAsync(stream).ConfigureAwait(continueOnCapturedContext: false);
+				// Use unified download helper for consistent progress reporting
+				using ( Stream contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false) )
+				{
+					await DownloadHelper.DownloadWithProgressAsync(
+						contentStream,
+						filePath,
+						totalBytes,
+						fileName,
+						progress,
+						cancellationToken).ConfigureAwait(false);
+				}
 
 				long fileSize = new FileInfo(filePath).Length;
 				await Logger.LogVerboseAsync($"[DirectDownload] File download completed successfully. File size: {fileSize} bytes");

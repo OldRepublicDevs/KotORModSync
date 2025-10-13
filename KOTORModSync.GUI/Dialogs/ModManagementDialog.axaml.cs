@@ -1418,7 +1418,7 @@ namespace KOTORModSync.Dialogs
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				switch (current)
+				switch ( current )
 				{
 					// Check if we're clicking on any interactive control
 					case Button _:

@@ -86,7 +86,7 @@ namespace KOTORModSync.Core.Services.Download
 
 				Logger.LogVerbose("[DownloadManager] Cooperative cancellation signal sent - downloads will stop gracefully");
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				Logger.LogError($"[DownloadManager] Failed to cancel downloads: {ex.Message}");
 			}
@@ -110,7 +110,7 @@ namespace KOTORModSync.Core.Services.Download
 
 			// Log every single URL being processed
 			await Logger.LogVerboseAsync($"[DownloadManager] URLs to download:");
-			foreach (var kvp in urlToProgressMap)
+			foreach ( var kvp in urlToProgressMap )
 			{
 				await Logger.LogVerboseAsync($"[DownloadManager]   URL: {kvp.Key}");
 				await Logger.LogVerboseAsync($"[DownloadManager]     Mod: {kvp.Value.ModName}");
@@ -204,11 +204,11 @@ namespace KOTORModSync.Core.Services.Download
 						bool isFirstLog = !_lastProgressLogTime.ContainsKey(url);
 						bool statusChanged = !_lastLoggedStatus.ContainsKey(url) || _lastLoggedStatus[url] != update.Status;
 						bool isTerminalStatus = update.Status == DownloadStatus.Completed ||
-						                        update.Status == DownloadStatus.Failed ||
-						                        update.Status == DownloadStatus.Skipped;
+												update.Status == DownloadStatus.Failed ||
+												update.Status == DownloadStatus.Skipped;
 						bool hasError = !string.IsNullOrEmpty(update.ErrorMessage);
 						bool throttleExpired = !isFirstLog &&
-						                       (now - _lastProgressLogTime[url]).TotalSeconds >= LogThrottleSeconds;
+											   (now - _lastProgressLogTime[url]).TotalSeconds >= LogThrottleSeconds;
 
 						// Log if: first update, status changed, terminal status, has error, or throttle expired
 						shouldLog = isFirstLog || statusChanged || isTerminalStatus || hasError || throttleExpired;
@@ -225,12 +225,12 @@ namespace KOTORModSync.Core.Services.Download
 					{
 						// Only log significant status changes: Pending (start), Completed/Skipped (end), Failed (error)
 						if ( update.Status == DownloadStatus.Pending ||
-						     update.Status == DownloadStatus.Completed ||
-						     update.Status == DownloadStatus.Skipped ||
-						     update.Status == DownloadStatus.Failed )
+							 update.Status == DownloadStatus.Completed ||
+							 update.Status == DownloadStatus.Skipped ||
+							 update.Status == DownloadStatus.Failed )
 						{
 							Logger.Log($"[Download] {update.Status}: {System.IO.Path.GetFileName(update.FilePath ?? url)}");
-							if (!string.IsNullOrEmpty(update.StatusMessage) && update.Status != DownloadStatus.InProgress)
+							if ( !string.IsNullOrEmpty(update.StatusMessage) && update.Status != DownloadStatus.InProgress )
 								Logger.LogVerbose($"  {update.StatusMessage}");
 						}
 					}

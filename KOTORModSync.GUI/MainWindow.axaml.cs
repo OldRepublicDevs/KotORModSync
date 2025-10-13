@@ -3480,6 +3480,32 @@ namespace KOTORModSync
 
 		// Public method that can be called from ModListItem
 		public void OnComponentCheckBoxChanged(object sender, RoutedEventArgs e) => OnCheckBoxChanged(sender, e);
+
+		/// <summary>
+		/// Handles clicks on option borders in the summary tab to toggle the option selection
+		/// </summary>
+		private void SummaryOptionBorder_PointerPressed(object sender, PointerPressedEventArgs e)
+		{
+			// Prevent the event from bubbling up
+			e.Handled = true;
+
+			if ( sender is Border border && border.Tag is Option option )
+			{
+				// Toggle the option selection
+				option.IsSelected = !option.IsSelected;
+
+				// Update the background color based on selection state
+				if ( option.IsSelected )
+				{
+					border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
+				}
+				else
+				{
+					border.Background = Brushes.Transparent;
+				}
+			}
+		}
+
 		private async Task ProcessComponentsAsync([NotNull][ItemNotNull] List<ModComponent> modComponentsList)
 		{
 			try
@@ -4365,8 +4391,8 @@ namespace KOTORModSync
 		{
 			try
 			{
-				_downloadOrchestrationService.CancelAllDownloads();
-				Logger.Log("User requested to stop all downloads");
+				_downloadOrchestrationService.CancelAllDownloads(closeWindow: true);
+				Logger.Log("User requested to stop all downloads and close window");
 			}
 			catch ( Exception ex )
 			{

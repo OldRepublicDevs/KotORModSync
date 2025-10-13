@@ -339,7 +339,7 @@ namespace KOTORModSync.Core.Services
 
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Processing URL {i + 1}/{component.ModLink.Count}: {url}");
 
-				// Check if already cached
+				// STEP 1: Check if already cached in memory
 				if ( TryGetEntry(component.Guid, url, out DownloadCacheEntry existingEntry) )
 				{
 					await Logger.LogVerboseAsync($"[DownloadCacheService] URL already cached: {existingEntry.ArchiveName}");
@@ -428,7 +428,92 @@ namespace KOTORModSync.Core.Services
 					}
 				}
 
-				// Download if not cached or file missing
+				// STEP 2: Check if file exists on disk (cache miss - file downloaded in previous session)
+				// Need to resolve URL to filename first to check disk
+				if ( !TryGetEntry(component.Guid, url, out _) )
+				{
+					await Logger.LogVerboseAsync($"[DownloadCacheService] Cache miss, checking if file exists on disk from previous session...");
+
+					// Try to resolve URL to filename without downloading
+					var resolved = await _downloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, cancellationToken);
+
+					if ( resolved.TryGetValue(url, out List<string> value) && value.Count > 0 )
+					{
+						string expectedFileName = value[0]; // Use first filename if multiple
+						string expectedFilePath = Path.Combine(destinationDirectory, expectedFileName);
+
+						await Logger.LogVerboseAsync($"[DownloadCacheService] Resolved filename: {expectedFileName}");
+
+						if ( File.Exists(expectedFilePath) )
+						{
+							await Logger.LogVerboseAsync($"[DownloadCacheService] File exists on disk from previous session: {expectedFilePath}");
+
+							// Check if validation is enabled
+							bool shouldValidate = MainConfig.ValidateAndReplaceInvalidArchives;
+							bool isValid = true;
+
+							// Validate archive integrity if enabled
+							if ( shouldValidate && Utility.ArchiveHelper.IsArchive(expectedFilePath) )
+							{
+								await Logger.LogVerboseAsync($"[DownloadCacheService] Validating existing archive: {expectedFilePath}");
+								isValid = Utility.ArchiveHelper.IsValidArchive(expectedFilePath);
+
+								if ( !isValid )
+								{
+									await Logger.LogWarningAsync($"[DownloadCacheService] Existing archive is invalid: {expectedFilePath}");
+									await Logger.LogWarningAsync($"[DownloadCacheService] Deleting invalid archive and will re-download...");
+
+									try
+									{
+										File.Delete(expectedFilePath);
+										await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid archive: {expectedFilePath}");
+									}
+									catch ( Exception ex )
+									{
+										await Logger.LogErrorAsync($"[DownloadCacheService] Failed to delete invalid archive: {ex.Message}");
+									}
+								}
+							}
+
+							if ( isValid )
+							{
+								// File exists and is valid - add to cache and skip download
+								bool isArchive2 = IsArchive(expectedFilePath);
+								var diskEntry = new DownloadCacheEntry
+								{
+									Url = url,
+									ArchiveName = expectedFileName,
+									FilePath = expectedFilePath,
+									IsArchive = isArchive2,
+									ExtractInstructionGuid = Guid.Empty
+								};
+
+								AddOrUpdate(component.Guid, url, diskEntry);
+
+								string validationInfo = shouldValidate ? (isArchive2 ? " (validated)" : "") : " (validation disabled)";
+								await Logger.LogVerboseAsync($"[DownloadCacheService] Added existing file to cache{validationInfo}: {expectedFileName}");
+
+								// Report as skipped
+								progress?.Report(new DownloadProgress
+								{
+									ModName = component.Name,
+									Url = url,
+									Status = DownloadStatus.Skipped,
+									StatusMessage = $"File already exists{validationInfo}, skipping download",
+									ProgressPercentage = 100,
+									FilePath = expectedFilePath,
+									TotalBytes = new FileInfo(expectedFilePath).Length,
+									BytesDownloaded = new FileInfo(expectedFilePath).Length
+								});
+
+								results.Add(diskEntry);
+								continue; // Skip to next URL
+							}
+						}
+					}
+				}
+
+				// STEP 3: Download if not cached and not on disk (or validation failed)
 				if ( _downloadManager == null )
 					throw new InvalidOperationException("Download manager not set. Call SetDownloadManager() first.");
 

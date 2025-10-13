@@ -20,7 +20,9 @@ namespace KOTORModSync.Core.Services.Download
 		/// <param name="destinationPath">The destination file path</param>
 		/// <param name="totalBytes">Total bytes to download (0 if unknown)</param>
 		/// <param name="fileName">File name for progress messages</param>
+		/// <param name="url">URL for progress identification</param>
 		/// <param name="progress">Progress reporter</param>
+		/// <param name="modName">Optional mod name for progress identification</param>
 		/// <param name="cancellationToken">Cancellation token</param>
 		/// <returns>Total bytes downloaded</returns>
 		public static async Task<long> DownloadWithProgressAsync(
@@ -28,7 +30,9 @@ namespace KOTORModSync.Core.Services.Download
 			string destinationPath,
 			long totalBytes,
 			string fileName,
+			string url,
 			IProgress<DownloadProgress> progress = null,
+			string modName = null,
 			CancellationToken cancellationToken = default)
 		{
 			// Track start time for speed calculation
@@ -64,6 +68,8 @@ namespace KOTORModSync.Core.Services.Download
 						// Report progress with StartTime so DownloadSpeed can be calculated
 						progress?.Report(new DownloadProgress
 						{
+							ModName = modName,
+							Url = url,
 							Status = DownloadStatus.InProgress,
 							StatusMessage = totalBytes > 0
 								? $"Downloading {fileName}... ({totalBytesRead:N0} / {totalBytes:N0} bytes)"
@@ -85,6 +91,8 @@ namespace KOTORModSync.Core.Services.Download
 				{
 					progress?.Report(new DownloadProgress
 					{
+						ModName = modName,
+						Url = url,
 						Status = DownloadStatus.InProgress,
 						StatusMessage = $"Download complete: {fileName}",
 						ProgressPercentage = 100,

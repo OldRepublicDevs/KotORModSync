@@ -319,14 +319,36 @@ namespace KOTORModSync.Services
 		/// <summary>
 		/// Cancels all ongoing downloads
 		/// </summary>
-		public void CancelAllDownloads()
+		/// <param name="closeWindow">If true, closes the download progress window after cancelling</param>
+		public void CancelAllDownloads(bool closeWindow = false)
 		{
 			try
 			{
 				if ( _currentDownloadWindow != null && _currentDownloadWindow.IsVisible )
 				{
 					_currentDownloadWindow.CancelDownloads();
-					Logger.Log("Download cancellation requested by user");
+					Logger.Log($"Download cancellation requested by user (closeWindow: {closeWindow})");
+
+					if ( closeWindow )
+					{
+						// Close the window after a short delay to allow cancellation to process
+						Task.Run(async () =>
+						{
+							await Task.Delay(100); // Brief delay to allow UI updates
+							await Dispatcher.UIThread.InvokeAsync(() =>
+							{
+								try
+								{
+									_currentDownloadWindow?.Close();
+									_currentDownloadWindow = null;
+								}
+								catch ( Exception ex )
+								{
+									Logger.LogWarning($"Error closing download window: {ex.Message}");
+								}
+							});
+						});
+					}
 				}
 
 				IsDownloadInProgress = false;

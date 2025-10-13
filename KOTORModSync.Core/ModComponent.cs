@@ -560,12 +560,6 @@ namespace KOTORModSync.Core
 		{
 			try
 			{
-				// Create a serializer with PascalCase naming to match our property names
-				var serializer = new YamlSerialization.SerializerBuilder()
-					.WithNamingConvention(YamlSerialization.NamingConventions.PascalCaseNamingConvention.Instance)
-					.ConfigureDefaultValuesHandling(YamlSerialization.DefaultValuesHandling.OmitDefaults)
-					.Build();
-
 				// Create a lightweight DTO with only the fields we want to serialize
 				var serializableData = new SerializableComponentData
 				{
@@ -602,22 +596,23 @@ namespace KOTORModSync.Core
 						: null,
 				};
 
-				// Serialize to YAML
-				string yamlString = serializer.Serialize(serializableData);
+				// Serialize to TOML
+				Dictionary<string, object> dictionary = Serializer.SerializeIntoDictionary(serializableData);
+				string tomlString = TomlWriter.WriteString(dictionary);
 
-				if ( string.IsNullOrWhiteSpace(yamlString) )
-					throw new InvalidOperationException("Could not serialize component to YAML");
+				if ( string.IsNullOrWhiteSpace(tomlString) )
+					throw new InvalidOperationException("Could not serialize component to TOML");
 
-				return yamlString;
+				return tomlString;
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex, "Failed to serialize component to YAML");
+				Logger.LogException(ex, "Failed to serialize component to TOML");
 				throw;
 			}
 		}
 
-		// Serializable DTOs for YAML output
+		// Serializable DTOs for TOML output
 		private class SerializableComponentData
 		{
 			public Guid Guid { get; set; }
@@ -846,7 +841,7 @@ namespace KOTORModSync.Core
 		}
 
 		/// <summary>
-		/// Generates the ModSync metadata block for a component in YAML format
+		/// Generates the ModSync metadata block for a component in TOML format
 		/// </summary>
 		private static void GenerateModSyncMetadata([NotNull] StringBuilder sb, [NotNull] ModComponent component)
 		{
@@ -858,11 +853,11 @@ namespace KOTORModSync.Core
 
 			try
 			{
-				// Use SerializeComponent to generate the YAML
-				string yaml = component.SerializeComponent();
+				// Use SerializeComponent to generate the TOML
+				string toml = component.SerializeComponent();
 
-				// Add the YAML content (already properly formatted by YamlDotNet)
-				_ = sb.Append(yaml);
+				// Add the TOML content (already properly formatted)
+				_ = sb.Append(toml);
 			}
 			catch ( Exception ex )
 			{

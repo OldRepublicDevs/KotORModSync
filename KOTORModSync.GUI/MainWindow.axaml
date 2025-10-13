@@ -1107,7 +1107,15 @@
                                         <ItemsRepeater x:Name="OptionsSummaryRepeater" ItemsSource="{Binding Options}">
                                             <ItemsRepeater.ItemTemplate>
                                                 <DataTemplate DataType="core:Option">
-                                                    <Border Classes="summary-option-card">
+                                                    <Border Classes="summary-option-card" Cursor="Hand" Tag="{Binding}" PointerPressed="SummaryOptionBorder_PointerPressed">
+                                                        <Border.Styles>
+                                                            <Style Selector="Border">
+                                                                <Setter Property="Background" Value="Transparent" />
+                                                            </Style>
+                                                            <Style Selector="Border:pointerover">
+                                                                <Setter Property="Background" Value="{DynamicResource ModListItem.HoverBackgroundBrush}" />
+                                                            </Style>
+                                                        </Border.Styles>
                                                         <StackPanel Spacing="4">
                                                             <CheckBox
                                                                 Name="OptionIsSelectedCheckBox"

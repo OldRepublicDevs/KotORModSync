@@ -163,8 +163,9 @@ namespace KOTORModSync.Core.Services.Download
 						filePath,
 						totalBytes,
 						fileName,
+						url,
 						progress,
-						cancellationToken).ConfigureAwait(false);
+						cancellationToken: cancellationToken).ConfigureAwait(false);
 				}
 
 				long fileSize = new FileInfo(filePath).Length;

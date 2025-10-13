@@ -209,43 +209,14 @@
                                         </TextBlock>
 
                                         <!--  Download Stats  -->
-                                        <Grid
+                                        <TextBlock
                                             Grid.Row="3"
                                             Margin="0,6,0,0"
                                             HorizontalAlignment="Stretch"
-                                            ColumnDefinitions="Auto,Auto,Auto,Auto,*">
-                                            <TextBlock
-                                                Grid.Column="0"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding DownloadedSize}" />
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text=" / " />
-                                            <TextBlock
-                                                Grid.Column="2"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding TotalSize}" />
-                                            <TextBlock
-                                                Grid.Column="3"
-                                                Margin="6,0"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text=" • " />
-                                            <TextBlock
-                                                Grid.Column="4"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding DownloadSpeed}" />
-                                        </Grid>
+                                            Classes="download-status-text"
+                                            DataContext="{Binding .}"
+                                            IsVisible="{Binding IsInProgress}"
+                                            Text="{Binding DownloadSpeed}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -377,43 +348,14 @@
                                         </TextBlock>
 
                                         <!--  Download Stats  -->
-                                        <Grid
+                                        <TextBlock
                                             Grid.Row="3"
                                             Margin="0,6,0,0"
                                             HorizontalAlignment="Stretch"
-                                            ColumnDefinitions="Auto,Auto,Auto,Auto,*">
-                                            <TextBlock
-                                                Grid.Column="0"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding DownloadedSize}" />
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text=" / " />
-                                            <TextBlock
-                                                Grid.Column="2"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding TotalSize}" />
-                                            <TextBlock
-                                                Grid.Column="3"
-                                                Margin="6,0"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text=" • " />
-                                            <TextBlock
-                                                Grid.Column="4"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding DownloadSpeed}" />
-                                        </Grid>
+                                            Classes="download-status-text"
+                                            DataContext="{Binding .}"
+                                            IsVisible="{Binding IsInProgress}"
+                                            Text="{Binding DownloadSpeed}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -545,43 +487,14 @@
                                         </TextBlock>
 
                                         <!--  Download Stats  -->
-                                        <Grid
+                                        <TextBlock
                                             Grid.Row="3"
                                             Margin="0,6,0,0"
                                             HorizontalAlignment="Stretch"
-                                            ColumnDefinitions="Auto,Auto,Auto,Auto,*">
-                                            <TextBlock
-                                                Grid.Column="0"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding DownloadedSize}" />
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text=" / " />
-                                            <TextBlock
-                                                Grid.Column="2"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding TotalSize}" />
-                                            <TextBlock
-                                                Grid.Column="3"
-                                                Margin="6,0"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text=" • " />
-                                            <TextBlock
-                                                Grid.Column="4"
-                                                Classes="download-status-text"
-                                                DataContext="{Binding .}"
-                                                IsVisible="{Binding IsInProgress}"
-                                                Text="{Binding DownloadSpeed}" />
-                                        </Grid>
+                                            Classes="download-status-text"
+                                            DataContext="{Binding .}"
+                                            IsVisible="{Binding IsInProgress}"
+                                            Text="{Binding DownloadSpeed}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -596,7 +509,7 @@
             Grid.Row="2"
             Padding="16,12,24,12"
             Classes="download-footer">
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto">
                 <StackPanel Grid.Column="0" Spacing="4">
                     <TextBlock
                         x:Name="OverallProgressText"
@@ -613,10 +526,20 @@
                 </StackPanel>
 
                 <Button
-                    x:Name="CloseButton"
+                    x:Name="CancelButton"
                     Grid.Column="1"
                     Width="100"
                     Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    Click="CancelButton_Click"
+                    Content="Cancel"
+                    ToolTip.Tip="Cancel all downloads without closing window" />
+
+                <Button
+                    x:Name="CloseButton"
+                    Grid.Column="2"
+                    Width="100"
+                    Margin="8,0,0,0"
                     VerticalAlignment="Center"
                     Content="Close"
                     IsEnabled="False" />

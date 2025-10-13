@@ -2255,7 +2255,8 @@ namespace KOTORModSync
 				try
 				{
 					var startTime = DateTime.UtcNow;
-					using var activity = _telemetryService?.StartActivity("validation.environment");
+					using (var activity = _telemetryService?.StartActivity("validation.environment"))
+					{
 					
 					(bool validationResult, _) = await InstallationService.ValidateInstallationEnvironmentAsync(
 						MainConfigInstance,
@@ -2293,6 +2294,7 @@ namespace KOTORModSync
 							UpdateStepProgress();
 						}
 					});
+					}
 				}
 				catch ( Exception ex )
 				{
@@ -2498,12 +2500,14 @@ namespace KOTORModSync
 				{
 					_installRunning = true;
 					var startTime = DateTime.UtcNow;
+					ModComponent.InstallExitCode exitCode;
 					
-					using var activity = _telemetryService?.StartActivity($"mod.install.{name}");
+					using (var activity = _telemetryService?.StartActivity($"mod.install.{name}"))
+					{
 					activity?.SetTag("mod.name", name);
 					activity?.SetTag("mod.guid", CurrentComponent.Guid);
 					
-					ModComponent.InstallExitCode exitCode = await InstallationService.InstallSingleComponentAsync(
+					exitCode = await InstallationService.InstallSingleComponentAsync(
 						CurrentComponent,
 						MainConfig.AllComponents
 					);
@@ -2514,11 +2518,11 @@ namespace KOTORModSync
 					
 					_telemetryService?.RecordModInstallation(
 						name, 
-						CurrentComponent.Guid, 
-						duration, 
-						success, 
-						success ? null : Utility.GetEnumDescription(exitCode)
+						success,
+						duration.TotalMilliseconds, 
+						success ? null : Utility.GetEnumDescription(exitCode)?.ToString()
 					);
+					}
 					
 					if ( exitCode != 0 )
 					{

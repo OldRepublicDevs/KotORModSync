@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Diagnostics;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
@@ -127,9 +126,12 @@ namespace KOTORModSync.Tests
 
 			bool result = component.TryGenerateInstructionsFromArchive();
 
-			Assert.That(result, Is.True, "Should successfully generate instructions");
-			Assert.That(component.Instructions, Is.Not.Empty, "Should have generated at least one instruction");
-			Assert.That(component.InstallationMethod, Is.Not.Null.And.Not.Empty, "Should have set InstallationMethod");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True, "Should successfully generate instructions");
+				Assert.That(component.Instructions, Is.Not.Empty, "Should have generated at least one instruction");
+				Assert.That(component.InstallationMethod, Is.Not.Null.And.Not.Empty, "Should have set InstallationMethod");
+			});
 
 			Console.WriteLine($"Generated {component.Instructions.Count} instructions");
 			Console.WriteLine($"Installation Method: {component.InstallationMethod}");
@@ -156,8 +158,11 @@ namespace KOTORModSync.Tests
 
 			bool result = component.TryGenerateInstructionsFromArchive();
 
-			Assert.That(result, Is.True, "Should find the correct archive");
-			Assert.That(component.Instructions, Is.Not.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True, "Should find the correct archive");
+				Assert.That(component.Instructions, Is.Not.Empty);
+			});
 
 			var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
 			Assert.That(extractInstruction, Is.Not.Null);
@@ -179,8 +184,11 @@ namespace KOTORModSync.Tests
 
 			bool result = component.TryGenerateInstructionsFromArchive();
 
-			Assert.That(result, Is.False, "Should return false when archive is not found");
-			Assert.That(component.Instructions.Count, Is.EqualTo(0), "Should not generate any instructions");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.False, "Should return false when archive is not found");
+				Assert.That(component.Instructions, Is.Empty, "Should not generate any instructions");
+			});
 		}
 
 		[Test]
@@ -199,8 +207,11 @@ namespace KOTORModSync.Tests
 
 			bool result = component.TryGenerateInstructionsFromArchive();
 
-			Assert.That(result, Is.True, "Should find archive with fuzzy matching");
-			Assert.That(component.Instructions, Is.Not.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True, "Should find archive with fuzzy matching");
+				Assert.That(component.Instructions, Is.Not.Empty);
+			});
 		}
 
 		[Test]
@@ -236,21 +247,27 @@ namespace KOTORModSync.Tests
 			bool result2 = component2.TryGenerateInstructionsFromArchive();
 			bool result3 = component3.TryGenerateInstructionsFromArchive();
 
-			Assert.That(result1, Is.True, "Component 1 should generate instructions");
-			Assert.That(result2, Is.True, "Component 2 should generate instructions");
-			Assert.That(result3, Is.True, "Component 3 should generate instructions");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result1, Is.True, "Component 1 should generate instructions");
+				Assert.That(result2, Is.True, "Component 2 should generate instructions");
+				Assert.That(result3, Is.True, "Component 3 should generate instructions");
 
-			Assert.That(component1.InstallationMethod, Is.EqualTo("TSLPatcher"));
-			Assert.That(component2.InstallationMethod, Is.EqualTo("Loose-File Mod"));
-			Assert.That(component3.InstallationMethod, Is.EqualTo("TSLPatcher"));
+				Assert.That(component1.InstallationMethod, Is.EqualTo("TSLPatcher"));
+				Assert.That(component2.InstallationMethod, Is.EqualTo("Loose-File Mod"));
+				Assert.That(component3.InstallationMethod, Is.EqualTo("TSLPatcher"));
+			});
 
 			var extract1 = component1.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
 			var extract2 = component2.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
 			var extract3 = component3.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
 
-			Assert.That(extract1.Source[0], Does.Contain("mod-one.zip"));
-			Assert.That(extract2.Source[0], Does.Contain("mod-two.zip"));
-			Assert.That(extract3.Source[0], Does.Contain("mod-three.zip"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(extract1.Source[0], Does.Contain("mod-one.zip"));
+				Assert.That(extract2.Source[0], Does.Contain("mod-two.zip"));
+				Assert.That(extract3.Source[0], Does.Contain("mod-three.zip"));
+			});
 		}
 
 		[Test]
@@ -272,8 +289,11 @@ namespace KOTORModSync.Tests
 
 			bool result = component.TryGenerateInstructionsFromArchive();
 
-			Assert.That(result, Is.False, "Should not regenerate when instructions already exist");
-			Assert.That(component.Instructions, Has.Count.EqualTo(1), "Should keep existing instruction");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.False, "Should not regenerate when instructions already exist");
+				Assert.That(component.Instructions, Has.Count.EqualTo(1), "Should keep existing instruction");
+			});
 			Assert.That(component.Instructions[0], Is.SameAs(existingInstruction));
 		}
 
@@ -290,8 +310,11 @@ namespace KOTORModSync.Tests
 
 			bool result = component.TryGenerateInstructionsFromArchive();
 
-			Assert.That(result, Is.False);
-			Assert.That(component.Instructions.Count, Is.EqualTo(0));
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.False);
+				Assert.That(component.Instructions, Is.Empty);
+			});
 		}
 
 		[Test]
@@ -310,8 +333,11 @@ namespace KOTORModSync.Tests
 
 			bool result = component.TryGenerateInstructionsFromArchive();
 
-			Assert.That(result, Is.True, "Should extract filename from URL");
-			Assert.That(component.Instructions, Is.Not.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True, "Should extract filename from URL");
+				Assert.That(component.Instructions, Is.Not.Empty);
+			});
 		}
 	}
 }

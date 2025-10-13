@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Collections.Generic;
 using JetBrains.Annotations;
 
@@ -111,40 +110,32 @@ namespace KOTORModSync.Core.Utility
 			if ( TierDefinitions.ContainsKey(trimmedTier) )
 				return trimmedTier;
 
-			switch ( trimmedTier.ToLowerInvariant() )
-			{
-				case "essential":
-				case "1 essential":
-				case "1- essential":
-				case "1-essential":
-					return "1 - Essential";
+			
+			
+			string lowerTier = trimmedTier.ToLowerInvariant();
 
-				case "recommended":
-				case "2 recommended":
-				case "2- recommended":
-				case "2-recommended":
-					return "2 - Recommended";
+			
+			string tierName = System.Text.RegularExpressions.Regex.Replace(
+				lowerTier,
+				@"^\s*\d+\s*[-\s]*|[-\s]*\d+\s*$",
+				string.Empty
+			).Trim();
 
-				case "suggested":
-				case "3 suggested":
-				case "3- suggested":
-				case "3-suggested":
-					return "3 - Suggested";
+			
+			if ( tierName.Contains("essential") )
+				return "1 - Essential";
 
-				case "optional":
-				case "option":
-				case "4 optional":
-				case "4- optional":
-				case "4-optional":
-				case "4 - option":
-				case "4- option":
-				case "4-option":
-					return "4 - Optional";
+			if ( tierName.Contains("recommend") )
+				return "2 - Recommended";
 
-				default:
+			if ( tierName.Contains("suggest") )
+				return "3 - Suggested";
 
-					return trimmedTier;
-			}
+			if ( tierName.Contains("option") )
+				return "4 - Optional";
+
+			
+			return trimmedTier;
 		}
 	}
 }

@@ -20,20 +20,20 @@ jobs:
   lint_csharp:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set remote URL
       run: git remote set-url origin "https://github.com/${{ env.GITHUB_REPOSITORY }}.git"
 
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x' # SDK Version to use;
 
     # Format the output of dotnet format
     - name: Add dotnet-format problem matcher
       uses: xt0rted/dotnet-format-problem-matcher@v1
-      
+
     # Install dotnet format as a global tool
     - name: Install dotnet format
       run: dotnet tool update --global dotnet-format

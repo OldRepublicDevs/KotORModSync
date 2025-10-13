@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -73,14 +72,14 @@ namespace KOTORModSync.Services
 
 				if ( _mainConfig.sourcePath == null || !Directory.Exists(_mainConfig.sourcePath.FullName) )
 				{
-					await InformationDialog.ShowInformationDialog(_parentWindow,
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 						"Please set your Mod Directory in Settings before downloading mods.");
 					return;
 				}
 
 				if ( _mainConfig.allComponents.Count == 0 )
 				{
-					await InformationDialog.ShowInformationDialog(_parentWindow,
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 						"Please load a file (TOML or Markdown) before downloading mods.");
 					return;
 				}
@@ -91,7 +90,7 @@ namespace KOTORModSync.Services
 
 				if ( selectedComponents.Count == 0 )
 				{
-					await InformationDialog.ShowInformationDialog(_parentWindow,
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 						"No selected mods have download links available.");
 					return;
 				}
@@ -272,7 +271,7 @@ namespace KOTORModSync.Services
 						{
 							IsDownloadInProgress = false;
 							DownloadStateChanged?.Invoke(this, EventArgs.Empty);
-							await InformationDialog.ShowInformationDialog(_parentWindow,
+							await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 								$"An error occurred while downloading mods:\n\n{ex.Message}");
 						});
 					}
@@ -283,7 +282,7 @@ namespace KOTORModSync.Services
 				await Logger.LogExceptionAsync(ex, "Error starting download session");
 				IsDownloadInProgress = false;
 				DownloadStateChanged?.Invoke(this, EventArgs.Empty);
-				await InformationDialog.ShowInformationDialog(_parentWindow,
+				await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 					$"An error occurred while starting downloads:\n\n{ex.Message}");
 			}
 		}
@@ -362,7 +361,7 @@ namespace KOTORModSync.Services
 									"Click 'Fetch Downloads' to automatically download missing mods.";
 				}
 
-				await InformationDialog.ShowInformationDialog(_parentWindow, statusMessage);
+				await InformationDialog.ShowInformationDialogAsync(_parentWindow, statusMessage);
 			}
 			catch ( Exception ex )
 			{

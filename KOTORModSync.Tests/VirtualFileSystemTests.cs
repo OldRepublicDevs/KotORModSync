@@ -2,10 +2,10 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Tests
@@ -450,9 +450,12 @@ namespace KOTORModSync.Tests
 			};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
-			Assert.That(v.GetValidationIssues(), Is.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(v.GetValidationIssues(), Is.Empty);
 
-			Assert.That(v.GetTrackedFiles().Any(p => p.EndsWith("del\\rm.txt", StringComparison.OrdinalIgnoreCase)), Is.False);
+				Assert.That(v.GetTrackedFiles().Any(p => p.EndsWith("del\\rm.txt", StringComparison.OrdinalIgnoreCase)), Is.False);
+			});
 			AssertFileSystemsMatch(v, r);
 		}
 
@@ -1097,7 +1100,7 @@ namespace KOTORModSync.Tests
 			List<ModComponent> components;
 			try
 			{
-				components = ModComponent.ReadComponentsFromFile(tomlPath);
+				components = FileLoadingService.LoadFromFile(tomlPath);
 			}
 			catch ( Exception ex )
 			{

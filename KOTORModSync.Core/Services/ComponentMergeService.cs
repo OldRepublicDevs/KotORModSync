@@ -2,11 +2,12 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
+using KOTORModSync.Core.Parsing;
 
 namespace KOTORModSync.Core.Services
 {
@@ -18,8 +19,96 @@ namespace KOTORModSync.Core.Services
 		ByNameAndAuthor
 	}
 
+	public class MergeOptions
+	{
+		public bool ExcludeExistingOnly { get; set; }
+		public bool ExcludeIncomingOnly { get; set; }
+		public bool UseIncomingOrder { get; set; }
+		public MergeHeuristicsOptions HeuristicsOptions { get; set; }
+
+		public static MergeOptions CreateDefault() => new MergeOptions
+		{
+			ExcludeExistingOnly = false,
+			ExcludeIncomingOnly = false,
+			UseIncomingOrder = false,
+			HeuristicsOptions = MergeHeuristicsOptions.CreateDefault()
+		};
+	}
+
 	public static class ComponentMergeService
 	{
+
+		[NotNull]
+		public static List<ModComponent> MergeInstructionSets(
+				[NotNull] string existingFilePath,
+				[NotNull] string incomingFilePath,
+				MergeStrategy strategy = MergeStrategy.ByNameAndAuthor,
+				[CanBeNull] MergeOptions options = null)
+		{
+			if ( existingFilePath == null )
+				throw new ArgumentNullException(nameof(existingFilePath));
+			if ( incomingFilePath == null )
+				throw new ArgumentNullException(nameof(incomingFilePath));
+
+			options = options ?? MergeOptions.CreateDefault();
+
+			List<ModComponent> existing = FileLoadingService.LoadFromFile(existingFilePath);
+			List<ModComponent> incoming = FileLoadingService.LoadFromFile(incomingFilePath);
+
+			return MergeComponentLists(existing, incoming, strategy, options);
+		}
+
+
+		[NotNull]
+		public static List<ModComponent> MergeComponentLists(
+			[NotNull] List<ModComponent> existing,
+			[NotNull] List<ModComponent> incoming,
+			MergeStrategy strategy,
+			[CanBeNull] MergeOptions options = null)
+		{
+			if ( existing == null )
+				throw new ArgumentNullException(nameof(existing));
+			if ( incoming == null )
+				throw new ArgumentNullException(nameof(incoming));
+
+			options = options ?? MergeOptions.CreateDefault();
+			options.HeuristicsOptions = options.HeuristicsOptions ?? MergeHeuristicsOptions.CreateDefault();
+
+			options.HeuristicsOptions.AddNewWhenNoMatchFound = !options.ExcludeIncomingOnly;
+
+			List<ModComponent> result;
+
+			if ( options.UseIncomingOrder )
+			{
+				result = new List<ModComponent>(incoming);
+				MergeInto(result, existing, strategy, options.HeuristicsOptions);
+
+				if ( options.ExcludeIncomingOnly )
+				{
+					var matchedGuids = new HashSet<Guid>(existing.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
+				}
+
+				if ( options.ExcludeExistingOnly )
+				{
+					var matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
+					result = result.Where(c => matchedGuids.Contains(c.Guid)).ToList();
+				}
+			}
+			else
+			{
+				result = new List<ModComponent>(existing);
+				MergeInto(result, incoming, strategy, options.HeuristicsOptions);
+
+				if ( options.ExcludeExistingOnly )
+				{
+					var matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
+				}
+			}
+
+			return result;
+		}
 
 
 		public static void MergeInto(

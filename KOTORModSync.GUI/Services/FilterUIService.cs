@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -189,7 +188,10 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				var selectedCategories = _categoryItems.Where(c => c.IsSelected).Select(c => c.Name).ToList();
+				var selectedCategories = new HashSet<string>(
+					_categoryItems.Where(c => c.IsSelected).Select(c => c.Name),
+					StringComparer.OrdinalIgnoreCase
+				);
 
 				if ( selectedCategories.Count == 0 )
 				{

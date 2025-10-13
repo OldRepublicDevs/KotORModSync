@@ -2,10 +2,11 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Text.RegularExpressions;
 using KOTORModSync.Core;
+using KOTORModSync.Core.CLI;
 using KOTORModSync.Core.Parsing;
+using KOTORModSync.Core.Services;
 
 namespace KOTORModSync.Tests
 {
@@ -556,7 +557,7 @@ ___";
 			var parser = new MarkdownParser(profile);
 
 			MarkdownParserResult firstParse = parser.Parse(markdownWithModSync);
-			string generatedDocs = ModComponent.GenerateModDocumentation(firstParse.Components.ToList());
+			string generatedDocs = ModComponentSerializationService.GenerateModDocumentation(firstParse.Components.ToList());
 			MarkdownParserResult secondParse = parser.Parse(generatedDocs);
 
 			Assert.That(secondParse.Components, Has.Count.EqualTo(1), "Should have one component after round-trip");

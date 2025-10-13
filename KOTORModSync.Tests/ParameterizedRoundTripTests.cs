@@ -2,13 +2,14 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using KOTORModSync.Core;
+using KOTORModSync.Core.CLI;
 using KOTORModSync.Core.Parsing;
+using KOTORModSync.Core.Services;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -132,23 +133,26 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult parseResult1 = parser.Parse(originalMarkdown);
 			List<ModComponent> components1 = parseResult1.Components.ToList();
-			string generatedMarkdown1 = ModComponent.GenerateModDocumentation(components1);
+			string generatedMarkdown1 = ModComponentSerializationService.GenerateModDocumentation(components1);
 
 			Console.WriteLine($"First parse: {components1.Count} components");
 			Console.WriteLine($"First generation: {generatedMarkdown1.Length} characters");
 
 			MarkdownParserResult parseResult2 = parser.Parse(generatedMarkdown1);
 			List<ModComponent> components2 = parseResult2.Components.ToList();
-			string generatedMarkdown2 = ModComponent.GenerateModDocumentation(components2);
+			string generatedMarkdown2 = ModComponentSerializationService.GenerateModDocumentation(components2);
 
 			Console.WriteLine($"Second parse: {components2.Count} components");
 			Console.WriteLine($"Second generation: {generatedMarkdown2.Length} characters");
 
-			Assert.That(components2.Count, Is.EqualTo(components1.Count),
-				"Component count should remain stable across generations");
+			Assert.Multiple(() =>
+			{
+				Assert.That(components2, Has.Count.EqualTo(components1.Count),
+							"Component count should remain stable across generations");
 
-			Assert.That(generatedMarkdown2, Is.EqualTo(generatedMarkdown1),
-				"Second markdown generation should match first generation (idempotent)");
+				Assert.That(generatedMarkdown2, Is.EqualTo(generatedMarkdown1),
+					"Second markdown generation should match first generation (idempotent)");
+			});
 
 			var names1 = components1.Select(c => c.Name).OrderBy(n => n).ToList();
 			var names2 = components2.Select(c => c.Name).OrderBy(n => n).ToList();
@@ -173,11 +177,11 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult originalResult = parser.Parse(originalMarkdown);
 			List<ModComponent> originalComponents = originalResult.Components.ToList();
-			string generatedMarkdown = ModComponent.GenerateModDocumentation(originalComponents);
+			string generatedMarkdown = ModComponentSerializationService.GenerateModDocumentation(originalComponents);
 			MarkdownParserResult generatedResult = parser.Parse(generatedMarkdown);
 			List<ModComponent> generatedComponents = generatedResult.Components.ToList();
 
-			Assert.That(generatedComponents.Count, Is.EqualTo(originalComponents.Count),
+			Assert.That(generatedComponents, Has.Count.EqualTo(originalComponents.Count),
 				$"Should preserve all {originalComponents.Count} components");
 
 			var originalNames = originalComponents.Select(c => c.Name).ToList();
@@ -190,14 +194,20 @@ namespace KOTORModSync.Tests
 				var orig = originalComponents[i];
 				var gen = generatedComponents[i];
 
-				Assert.That(gen.Name, Is.EqualTo(orig.Name), $"Component {i}: Name mismatch");
-				Assert.That(gen.Author, Is.EqualTo(orig.Author), $"Component {i}: Author mismatch");
+				Assert.Multiple(() =>
+				{
+					Assert.That(gen.Name, Is.EqualTo(orig.Name), $"Component {i}: Name mismatch");
+					Assert.That(gen.Author, Is.EqualTo(orig.Author), $"Component {i}: Author mismatch");
+				});
 
 				var origCategory = string.Join(" & ", orig.Category ?? new List<string>());
 				var genCategory = string.Join(" & ", gen.Category ?? new List<string>());
-				Assert.That(genCategory, Is.EqualTo(origCategory), $"Component {i}: Category mismatch");
+				Assert.Multiple(() =>
+				{
+					Assert.That(genCategory, Is.EqualTo(origCategory), $"Component {i}: Category mismatch");
 
-				Assert.That(gen.Tier, Is.EqualTo(orig.Tier), $"Component {i}: Tier mismatch");
+					Assert.That(gen.Tier, Is.EqualTo(orig.Tier), $"Component {i}: Tier mismatch");
+				});
 			}
 
 			Console.WriteLine($"✓ All {originalComponents.Count} components preserved with key fields intact");
@@ -215,23 +225,23 @@ namespace KOTORModSync.Tests
 			Assert.That(File.Exists(tomlFilePath), Is.True, $"Test file not found: {tomlFilePath}");
 			Console.WriteLine($"Testing: {Path.GetFileName(tomlFilePath)}");
 
-			List<ModComponent> components1 = ModComponent.ReadComponentsFromFile(tomlFilePath);
+			List<ModComponent> components1 = FileLoadingService.LoadFromFile(tomlFilePath);
 			string tomlPath1 = Path.Combine(_testDirectory, "generation1.toml");
-			ModComponent.OutputConfigFile(components1, tomlPath1);
+			FileLoadingService.SaveToFile(components1, tomlPath1);
 			string generatedToml1 = File.ReadAllText(tomlPath1);
 
 			Console.WriteLine($"First load: {components1.Count} components");
 			Console.WriteLine($"First generation: {generatedToml1.Length} characters");
 
-			List<ModComponent> components2 = ModComponent.ReadComponentsFromFile(tomlPath1);
+			List<ModComponent> components2 = FileLoadingService.LoadFromFile(tomlPath1);
 			string tomlPath2 = Path.Combine(_testDirectory, "generation2.toml");
-			ModComponent.OutputConfigFile(components2, tomlPath2);
+			FileLoadingService.SaveToFile(components2, tomlPath2);
 			string generatedToml2 = File.ReadAllText(tomlPath2);
 
 			Console.WriteLine($"Second load: {components2.Count} components");
 			Console.WriteLine($"Second generation: {generatedToml2.Length} characters");
 
-			Assert.That(components2.Count, Is.EqualTo(components1.Count),
+			Assert.That(components2, Has.Count.EqualTo(components1.Count),
 				"Component count should remain stable across generations");
 
 			if ( generatedToml2 != generatedToml1 )
@@ -263,12 +273,12 @@ namespace KOTORModSync.Tests
 
 			Assert.That(File.Exists(tomlFilePath), Is.True, $"Test file not found: {tomlFilePath}");
 
-			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(tomlFilePath);
+			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(tomlFilePath);
 			string generatedTomlPath = Path.Combine(_testDirectory, "regenerated.toml");
-			ModComponent.OutputConfigFile(originalComponents, generatedTomlPath);
-			List<ModComponent> regeneratedComponents = ModComponent.ReadComponentsFromFile(generatedTomlPath);
+			FileLoadingService.SaveToFile(originalComponents, generatedTomlPath);
+			List<ModComponent> regeneratedComponents = FileLoadingService.LoadFromFile(generatedTomlPath);
 
-			Assert.That(regeneratedComponents.Count, Is.EqualTo(originalComponents.Count),
+			Assert.That(regeneratedComponents, Has.Count.EqualTo(originalComponents.Count),
 				$"Should preserve all {originalComponents.Count} components");
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
@@ -284,15 +294,18 @@ namespace KOTORModSync.Tests
 					Assert.That(regen.Tier, Is.EqualTo(orig.Tier), $"Component {i}: Tier mismatch");
 					Assert.That(regen.Description, Is.EqualTo(orig.Description), $"Component {i}: Description mismatch");
 					Assert.That(regen.InstallationMethod, Is.EqualTo(orig.InstallationMethod), $"Component {i}: InstallationMethod mismatch");
-					Assert.That(regen.Instructions.Count, Is.EqualTo(orig.Instructions.Count), $"Component {i}: Instructions count mismatch");
-					Assert.That(regen.Options.Count, Is.EqualTo(orig.Options.Count), $"Component {i}: Options count mismatch");
+					Assert.That(regen.Instructions, Has.Count.EqualTo(orig.Instructions.Count), $"Component {i}: Instructions count mismatch");
+					Assert.That(regen.Options, Has.Count.EqualTo(orig.Options.Count), $"Component {i}: Options count mismatch");
 				});
 
-				Assert.That(regen.Category, Is.EqualTo(orig.Category).AsCollection, $"Component {i}: Category mismatch");
-				Assert.That(regen.Language, Is.EqualTo(orig.Language).AsCollection, $"Component {i}: Language mismatch");
-				Assert.That(regen.ModLink, Is.EqualTo(orig.ModLink).AsCollection, $"Component {i}: ModLink mismatch");
-				Assert.That(regen.Dependencies, Is.EqualTo(orig.Dependencies).AsCollection, $"Component {i}: Dependencies mismatch");
-				Assert.That(regen.Restrictions, Is.EqualTo(orig.Restrictions).AsCollection, $"Component {i}: Restrictions mismatch");
+				Assert.Multiple(() =>
+				{
+					Assert.That(regen.Category, Is.EqualTo(orig.Category).AsCollection, $"Component {i}: Category mismatch");
+					Assert.That(regen.Language, Is.EqualTo(orig.Language).AsCollection, $"Component {i}: Language mismatch");
+					Assert.That(regen.ModLink, Is.EqualTo(orig.ModLink).AsCollection, $"Component {i}: ModLink mismatch");
+					Assert.That(regen.Dependencies, Is.EqualTo(orig.Dependencies).AsCollection, $"Component {i}: Dependencies mismatch");
+					Assert.That(regen.Restrictions, Is.EqualTo(orig.Restrictions).AsCollection, $"Component {i}: Restrictions mismatch");
+				});
 			}
 
 			Console.WriteLine($"✓ All {originalComponents.Count} components preserved with complete data integrity");
@@ -316,21 +329,21 @@ namespace KOTORModSync.Tests
 			MarkdownParserResult parseResult1 = parser.Parse(originalMarkdown);
 			List<ModComponent> components1 = parseResult1.Components.ToList();
 			string tomlPath1 = Path.Combine(_testDirectory, "from_markdown_1.toml");
-			ModComponent.OutputConfigFile(components1, tomlPath1);
+			FileLoadingService.SaveToFile(components1, tomlPath1);
 
-			List<ModComponent> componentsFromToml = ModComponent.ReadComponentsFromFile(tomlPath1);
-			string generatedMarkdown = ModComponent.GenerateModDocumentation(componentsFromToml);
+			List<ModComponent> componentsFromToml = FileLoadingService.LoadFromFile(tomlPath1);
+			string generatedMarkdown = ModComponentSerializationService.GenerateModDocumentation(componentsFromToml);
 			MarkdownParserResult parseResult2 = parser.Parse(generatedMarkdown);
 			List<ModComponent> components2 = parseResult2.Components.ToList();
 			string tomlPath2 = Path.Combine(_testDirectory, "from_markdown_2.toml");
-			ModComponent.OutputConfigFile(components2, tomlPath2);
+			FileLoadingService.SaveToFile(components2, tomlPath2);
 
 			string toml1 = File.ReadAllText(tomlPath1);
 			string toml2 = File.ReadAllText(tomlPath2);
 
 			Console.WriteLine($"Components: MD1={components1.Count}, TOML1={componentsFromToml.Count}, MD2={components2.Count}");
 
-			Assert.That(components2.Count, Is.EqualTo(componentsFromToml.Count),
+			Assert.That(components2, Has.Count.EqualTo(componentsFromToml.Count),
 				"Component count should remain stable");
 
 			var names1 = componentsFromToml.Select(c => c.Name).ToList();
@@ -348,8 +361,8 @@ namespace KOTORModSync.Tests
 			Assert.That(File.Exists(tomlFilePath), Is.True, $"Test file not found: {tomlFilePath}");
 			Console.WriteLine($"Testing TOML→Markdown→TOML: {Path.GetFileName(tomlFilePath)}");
 
-			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(tomlFilePath);
-			string generatedMarkdown = ModComponent.GenerateModDocumentation(originalComponents);
+			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(tomlFilePath);
+			string generatedMarkdown = ModComponentSerializationService.GenerateModDocumentation(originalComponents);
 
 			var parser = new MarkdownParser(MarkdownImportProfile.CreateDefault());
 			MarkdownParserResult parseResult = parser.Parse(generatedMarkdown);
@@ -361,7 +374,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Original TOML: {originalComponents.Count} components");
 			Console.WriteLine($"After MD round-trip: {componentsFromMarkdown.Count} components");
 
-			Assert.That(componentsFromMarkdown.Count, Is.EqualTo(originalComponents.Count),
+			Assert.That(componentsFromMarkdown, Has.Count.EqualTo(originalComponents.Count),
 				"All components should survive TOML→Markdown→Parse cycle");
 
 			for ( int i = 0; i < originalComponents.Count; i++ )
@@ -369,8 +382,11 @@ namespace KOTORModSync.Tests
 				var orig = originalComponents[i];
 				var fromMd = componentsFromMarkdown[i];
 
-				Assert.That(fromMd.Name, Is.EqualTo(orig.Name), $"Component {i}: Name mismatch");
-				Assert.That(fromMd.Author, Is.EqualTo(orig.Author), $"Component {i}: Author mismatch");
+				Assert.Multiple(() =>
+				{
+					Assert.That(fromMd.Name, Is.EqualTo(orig.Name), $"Component {i}: Name mismatch");
+					Assert.That(fromMd.Author, Is.EqualTo(orig.Author), $"Component {i}: Author mismatch");
+				});
 
 			}
 

@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -187,7 +186,7 @@ namespace KOTORModSync.Core.Installation
 		{
 			return new InstallSessionState
 			{
-				Version = "1.0",
+				Version = "2.0",
 				SessionId = Guid.NewGuid(),
 				CreatedUtc = DateTimeOffset.UtcNow,
 				DestinationPath = destinationPath,

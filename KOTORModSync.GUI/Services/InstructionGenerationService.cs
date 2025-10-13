@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,9 +26,12 @@ namespace KOTORModSync.Services
 			Window parentWindow,
 			DownloadOrchestrationService downloadOrchestrationService)
 		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
-			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
-			_downloadOrchestrationService = downloadOrchestrationService ?? throw new ArgumentNullException(nameof(downloadOrchestrationService));
+			_mainConfig = mainConfig
+						  ?? throw new ArgumentNullException(nameof(mainConfig));
+			_parentWindow = parentWindow
+			                ?? throw new ArgumentNullException(nameof(parentWindow));
+			_downloadOrchestrationService = downloadOrchestrationService
+			                                ?? throw new ArgumentNullException(nameof(downloadOrchestrationService));
 		}
 
 		public async Task<int> GenerateInstructionsFromModLinksAsync(ModComponent component)
@@ -40,7 +42,7 @@ namespace KOTORModSync.Services
 
 				if ( component.ModLink == null || component.ModLink.Count == 0 )
 				{
-					await InformationDialog.ShowInformationDialog(_parentWindow, "No mod links available for this component");
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "No mod links available for this component");
 					return 0;
 				}
 
@@ -53,7 +55,7 @@ namespace KOTORModSync.Services
 
 				if ( _mainConfig.sourcePath == null || !_mainConfig.sourcePath.Exists )
 				{
-					await InformationDialog.ShowInformationDialog(_parentWindow, "Mod directory is not set. Please configure the mod directory first.");
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "Mod directory is not set. Please configure the mod directory first.");
 					return 0;
 				}
 
@@ -144,11 +146,11 @@ namespace KOTORModSync.Services
 							message += $"\n... and {invalidLinks.Count - 5} more";
 					}
 
-					await InformationDialog.ShowInformationDialog(_parentWindow, message);
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, message);
 				}
 				else
 				{
-					await InformationDialog.ShowInformationDialog(_parentWindow, "Could not generate any instructions from the available mod links. Please check that the files exist and are in the correct format.");
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "Could not generate any instructions from the available mod links. Please check that the files exist and are in the correct format.");
 				}
 
 				return totalInstructionsGenerated;
@@ -156,7 +158,7 @@ namespace KOTORModSync.Services
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
-				await InformationDialog.ShowInformationDialog(_parentWindow, $"Error processing mod links: {ex.Message}");
+				await InformationDialog.ShowInformationDialogAsync(_parentWindow, $"Error processing mod links: {ex.Message}");
 				return 0;
 			}
 		}
@@ -180,13 +182,13 @@ namespace KOTORModSync.Services
 
 				if ( !File.Exists(archivePath) )
 				{
-					await InformationDialog.ShowInformationDialog(_parentWindow, "Selected file does not exist");
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "Selected file does not exist");
 					return false;
 				}
 
 				if ( !IsArchive(archivePath) )
 				{
-					await InformationDialog.ShowInformationDialog(_parentWindow, "Please select a supported archive format (.zip, .rar, .7z)");
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "Please select a supported archive format (.zip, .rar, .7z)");
 					return false;
 				}
 
@@ -196,14 +198,14 @@ namespace KOTORModSync.Services
 				if ( success )
 				{
 					await Logger.LogVerboseAsync($"[GenerateInstructionsFromArchive] Successfully generated {component.Instructions.Count} instructions");
-					await InformationDialog.ShowInformationDialog(_parentWindow,
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 						$"Successfully generated {component.Instructions.Count} instructions from the archive.\n\nInstallation Method: {component.InstallationMethod}");
 					return true;
 				}
 				else
 				{
 					await Logger.LogVerboseAsync("[GenerateInstructionsFromArchive] AutoInstructionGenerator returned false");
-					await InformationDialog.ShowInformationDialog(_parentWindow,
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 						"Could not generate instructions from the selected archive. The archive may not contain recognizable game files or TSLPatcher components.");
 					return false;
 				}
@@ -211,7 +213,7 @@ namespace KOTORModSync.Services
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
-				await InformationDialog.ShowInformationDialog(_parentWindow, $"Error processing archive: {ex.Message}");
+				await InformationDialog.ShowInformationDialogAsync(_parentWindow, $"Error processing archive: {ex.Message}");
 				return false;
 			}
 		}

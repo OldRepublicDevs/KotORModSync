@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -160,9 +159,11 @@ namespace KOTORModSync.Core.Utility
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
+#pragma warning disable CA1416 
 				var windowsIdentity = WindowsIdentity.GetCurrent();
 				var windowsPrincipal = new WindowsPrincipal(windowsIdentity);
 				return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
+#pragma warning restore CA1416 
 			}
 
 			try

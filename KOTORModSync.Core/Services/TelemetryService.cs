@@ -2,11 +2,11 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using OpenTelemetry;
@@ -406,15 +406,15 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-#if NETSTANDARD2_0
+#if NET8_0_OR_GREATER
+				byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+				return Convert.ToHexString(hashBytes).Substring(0, 16);
+#else
 				using ( var sha256 = SHA256.Create() )
 				{
 					byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
 					return BitConverter.ToString(hashBytes).Replace("-", "").Substring(0, 16);
 				}
-#else
-				byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-				return Convert.ToHexString(hashBytes).Substring(0, 16);
 #endif
 			}
 			catch
@@ -424,9 +424,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Generates authentication headers for OTLP requests
-		/// </summary>
+
+
+
 		private string GetAuthHeaders(string requestPath)
 		{
 			if ( _authenticator == null || !_authenticator.HasValidSecret() )

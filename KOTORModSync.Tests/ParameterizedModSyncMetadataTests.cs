@@ -2,13 +2,14 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using KOTORModSync.Core;
+using KOTORModSync.Core.CLI;
 using KOTORModSync.Core.Parsing;
+using KOTORModSync.Core.Services;
 
 namespace KOTORModSync.Tests
 {
@@ -25,13 +26,13 @@ namespace KOTORModSync.Tests
 			string contentRoot = Path.Combine(solutionRoot, "mod-builds", "content");
 
 			string k1Path = Path.Combine(contentRoot, "k1");
-			if (Directory.Exists(k1Path))
+			if ( Directory.Exists(k1Path) )
 			{
-				foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories))
+				foreach ( string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories) )
 				{
 
-					if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-						mdFile.Contains("/validated/"))
+					if ( mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
+						mdFile.Contains("/validated/") )
 						continue;
 
 					string relativePath = Path.GetRelativePath(contentRoot, mdFile);
@@ -43,13 +44,13 @@ namespace KOTORModSync.Tests
 			}
 
 			string k2Path = Path.Combine(contentRoot, "k2");
-			if (Directory.Exists(k2Path))
+			if ( Directory.Exists(k2Path) )
 			{
-				foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories))
+				foreach ( string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories) )
 				{
 
-					if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-						mdFile.Contains("/validated/"))
+					if ( mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
+						mdFile.Contains("/validated/") )
 						continue;
 
 					string relativePath = Path.GetRelativePath(contentRoot, mdFile);
@@ -79,14 +80,14 @@ namespace KOTORModSync.Tests
 			int componentsWithMetadata = 0;
 			int componentsWithValidGuids = 0;
 
-			foreach (var component in result.Components)
+			foreach ( var component in result.Components )
 			{
 
-				if (component.Instructions.Count > 0 || component.Options.Count > 0)
+				if ( component.Instructions.Count > 0 || component.Options.Count > 0 )
 				{
 					componentsWithMetadata++;
 
-					if (component.Guid != Guid.Empty)
+					if ( component.Guid != Guid.Empty )
 					{
 						componentsWithValidGuids++;
 						Console.WriteLine($"  {component.Name}: GUID = {component.Guid}");
@@ -101,7 +102,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Components with metadata: {componentsWithMetadata}");
 			Console.WriteLine($"Components with valid GUIDs: {componentsWithValidGuids}");
 
-			if (componentsWithMetadata > 0)
+			if ( componentsWithMetadata > 0 )
 			{
 				Assert.That(componentsWithValidGuids, Is.EqualTo(componentsWithMetadata),
 					"All components with ModSync metadata should have valid GUIDs");
@@ -125,24 +126,24 @@ namespace KOTORModSync.Tests
 			int totalInstructions = 0;
 			int invalidGuids = 0;
 
-			foreach (var component in result.Components)
+			foreach ( var component in result.Components )
 			{
-				foreach (var instruction in component.Instructions)
+				foreach ( var instruction in component.Instructions )
 				{
 					totalInstructions++;
-					if (instruction.Guid == Guid.Empty)
+					if ( instruction.Guid == Guid.Empty )
 					{
 						invalidGuids++;
 						Console.WriteLine($"  {component.Name}: Instruction with action {instruction.Action} has empty GUID");
 					}
 				}
 
-				foreach (var option in component.Options)
+				foreach ( var option in component.Options )
 				{
-					foreach (var instruction in option.Instructions)
+					foreach ( var instruction in option.Instructions )
 					{
 						totalInstructions++;
-						if (instruction.Guid == Guid.Empty)
+						if ( instruction.Guid == Guid.Empty )
 						{
 							invalidGuids++;
 							Console.WriteLine($"  {component.Name} -> {option.Name}: Instruction with action {instruction.Action} has empty GUID");
@@ -154,7 +155,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Total instructions: {totalInstructions}");
 			Console.WriteLine($"Instructions with invalid GUIDs: {invalidGuids}");
 
-			if (totalInstructions > 0)
+			if ( totalInstructions > 0 )
 			{
 				Assert.That(invalidGuids, Is.EqualTo(0), "All instructions should have valid GUIDs");
 			}
@@ -177,12 +178,12 @@ namespace KOTORModSync.Tests
 			int totalOptions = 0;
 			int invalidGuids = 0;
 
-			foreach (var component in result.Components)
+			foreach ( var component in result.Components )
 			{
-				foreach (var option in component.Options)
+				foreach ( var option in component.Options )
 				{
 					totalOptions++;
-					if (option.Guid == Guid.Empty)
+					if ( option.Guid == Guid.Empty )
 					{
 						invalidGuids++;
 						Console.WriteLine($"  {component.Name} -> {option.Name}: Option has empty GUID");
@@ -193,7 +194,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Total options: {totalOptions}");
 			Console.WriteLine($"Options with invalid GUIDs: {invalidGuids}");
 
-			if (totalOptions > 0)
+			if ( totalOptions > 0 )
 			{
 				Assert.That(invalidGuids, Is.EqualTo(0), "All options should have valid GUIDs");
 			}
@@ -215,7 +216,7 @@ namespace KOTORModSync.Tests
 				.Where(c => c.Instructions.Count > 0 || c.Options.Count > 0)
 				.ToList();
 
-			if (componentsWithMetadata.Count == 0)
+			if ( componentsWithMetadata.Count == 0 )
 			{
 				Assert.Pass($"No components with ModSync metadata in {Path.GetFileName(mdFilePath)}");
 				return;
@@ -224,14 +225,14 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 			Console.WriteLine($"Components with metadata: {componentsWithMetadata.Count}");
 
-			string generated = ModComponent.GenerateModDocumentation(componentsWithMetadata);
+			string generated = ModComponentSerializationService.GenerateModDocumentation(componentsWithMetadata);
 
 			MarkdownParserResult secondParse = parser.Parse(generated);
 
 			Assert.That(secondParse.Components, Has.Count.EqualTo(componentsWithMetadata.Count),
 				"Component count should be preserved");
 
-			for (int i = 0; i < componentsWithMetadata.Count; i++)
+			for ( int i = 0; i < componentsWithMetadata.Count; i++ )
 			{
 				var first = componentsWithMetadata[i];
 				var second = secondParse.Components[i];
@@ -242,13 +243,13 @@ namespace KOTORModSync.Tests
 				{
 					Assert.That(second.Guid, Is.EqualTo(first.Guid), $"{first.Name}: GUID preserved");
 					Assert.That(second.Name, Is.EqualTo(first.Name), $"{first.Name}: Name preserved");
-					Assert.That(second.Instructions.Count, Is.EqualTo(first.Instructions.Count),
+					Assert.That(second.Instructions, Has.Count.EqualTo(first.Instructions.Count),
 						$"{first.Name}: Instruction count preserved");
-					Assert.That(second.Options.Count, Is.EqualTo(first.Options.Count),
+					Assert.That(second.Options, Has.Count.EqualTo(first.Options.Count),
 						$"{first.Name}: Option count preserved");
 				});
 
-				for (int j = 0; j < first.Instructions.Count; j++)
+				for ( int j = 0; j < first.Instructions.Count; j++ )
 				{
 					Assert.Multiple(() =>
 					{
@@ -259,7 +260,7 @@ namespace KOTORModSync.Tests
 					});
 				}
 
-				for (int j = 0; j < first.Options.Count; j++)
+				for ( int j = 0; j < first.Options.Count; j++ )
 				{
 					Assert.Multiple(() =>
 					{
@@ -289,36 +290,36 @@ namespace KOTORModSync.Tests
 			var validActions = Enum.GetValues(typeof(Instruction.ActionType)).Cast<Instruction.ActionType>().ToList();
 			var actionCounts = new Dictionary<Instruction.ActionType, int>();
 
-			foreach (var component in result.Components)
+			foreach ( var component in result.Components )
 			{
-				foreach (var instruction in component.Instructions)
+				foreach ( var instruction in component.Instructions )
 				{
 					Assert.That(validActions, Contains.Item(instruction.Action),
 						$"{component.Name}: Instruction has invalid action {instruction.Action}");
 
-					if (!actionCounts.ContainsKey(instruction.Action))
+					if ( !actionCounts.ContainsKey(instruction.Action) )
 						actionCounts[instruction.Action] = 0;
 					actionCounts[instruction.Action]++;
 				}
 
-				foreach (var option in component.Options)
+				foreach ( var option in component.Options )
 				{
-					foreach (var instruction in option.Instructions)
+					foreach ( var instruction in option.Instructions )
 					{
 						Assert.That(validActions, Contains.Item(instruction.Action),
 							$"{component.Name} -> {option.Name}: Instruction has invalid action {instruction.Action}");
 
-						if (!actionCounts.ContainsKey(instruction.Action))
+						if ( !actionCounts.ContainsKey(instruction.Action) )
 							actionCounts[instruction.Action] = 0;
 						actionCounts[instruction.Action]++;
 					}
 				}
 			}
 
-			if (actionCounts.Count > 0)
+			if ( actionCounts.Count > 0 )
 			{
 				Console.WriteLine("\nAction distribution:");
-				foreach (var kvp in actionCounts.OrderByDescending(x => x.Value))
+				foreach ( var kvp in actionCounts.OrderByDescending(x => x.Value) )
 				{
 					Console.WriteLine($"  {kvp.Key}: {kvp.Value}");
 				}
@@ -339,12 +340,12 @@ namespace KOTORModSync.Tests
 
 			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
 
-			foreach (var component in result.Components)
+			foreach ( var component in result.Components )
 			{
-				foreach (var instruction in component.Instructions)
+				foreach ( var instruction in component.Instructions )
 				{
 
-					switch (instruction.Action)
+					switch ( instruction.Action )
 					{
 						case Instruction.ActionType.Extract:
 						case Instruction.ActionType.Move:
@@ -360,7 +361,7 @@ namespace KOTORModSync.Tests
 							break;
 					}
 
-					if (instruction.Source?.Count > 0)
+					if ( instruction.Source?.Count > 0 )
 					{
 						Console.WriteLine($"  {component.Name}: {instruction.Action} -> Source: {string.Join(", ", instruction.Source.Take(2))}");
 					}

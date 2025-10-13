@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <Window
     x:Class="KOTORModSync.MainWindow"
     xmlns="https://github.com/avaloniaui"
@@ -31,6 +31,7 @@
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:InvalidUrlVisibilityConverter x:Key="InvalidUrlVisibilityConverter" />
         <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
+        <converters:ListToStringConverter x:Key="ListToStringConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
         <converters:NotChooseActionVisibility x:Key="NotChooseActionVisibility" />
         <converters:GuidToComponentConverter x:Key="GuidToComponentConverter" />
@@ -858,9 +859,10 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!--  Additional Help  -->
+                                <!--  Help & Support Section  -->
                                 <Border Classes="help-section">
                                     <StackPanel>
+                                        <!--  Need Help  -->
                                         <TextBlock
                                             Margin="0,0,0,10"
                                             HorizontalAlignment="Center"
@@ -902,13 +904,10 @@
                                                 Content="🐛 Create Github Issue"
                                                 ToolTip.Tip="Open GitHub to create a new issue for bug reports or feature requests" />
                                         </StackPanel>
-                                    </StackPanel>
-                                </Border>
 
-                                <!--  Sponsor Section  -->
-                                <Border Classes="help-section">
-                                    <StackPanel>
+                                        <!--  Support Development  -->
                                         <TextBlock
+                                            Margin="0,25,0,10"
                                             HorizontalAlignment="Center"
                                             FontSize="16"
                                             FontWeight="Bold"
@@ -916,9 +915,9 @@
                                         <TextBlock
                                             Margin="0,10,0,0"
                                             HorizontalAlignment="Center"
+                                            Text="If you enjoy using KOTORModSync, please consider supporting its development!"
                                             TextAlignment="Center"
-                                            TextWrapping="Wrap"
-                                            Text="If you enjoy using KOTORModSync, please consider supporting its development!" />
+                                            TextWrapping="Wrap" />
                                         <Button
                                             x:Name="SponsorButton"
                                             Margin="0,15,0,10"
@@ -930,9 +929,9 @@
                                             HorizontalAlignment="Center"
                                             Classes="secondary-text"
                                             FontSize="11"
+                                            Text="Your support helps maintain and improve this tool"
                                             TextAlignment="Center"
-                                            TextWrapping="Wrap"
-                                            Text="Your support helps maintain and improve this tool" />
+                                            TextWrapping="Wrap" />
                                     </StackPanel>
                                 </Border>
 
@@ -976,7 +975,7 @@
                                             <TextBlock Classes="summary-section-title" Text="📦 Mod Information" />
                                         </Border>
 
-                                        <Grid ColumnDefinitions="80,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                                        <Grid ColumnDefinitions="80,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
                                             <!--  Name  -->
                                             <TextBlock
                                                 Grid.Row="0"
@@ -990,55 +989,118 @@
                                                 IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}"
                                                 Text="{Binding Name}" />
 
-                                            <!--  Author  -->
+                                            <!--  GUID (Editor Mode Only)  -->
                                             <TextBlock
                                                 Grid.Row="1"
+                                                Grid.Column="0"
+                                                Classes="summary-label"
+                                                IsVisible="{Binding $parent[Window].EditorMode}"
+                                                Text="GUID:" />
+                                            <TextBlock
+                                                Grid.Row="1"
+                                                Grid.Column="1"
+                                                FontFamily="Consolas,Courier New,monospace"
+                                                FontSize="11"
+                                                IsVisible="{Binding $parent[Window].EditorMode}"
+                                                Text="{Binding Guid}" />
+
+                                            <!--  Author  -->
+                                            <TextBlock
+                                                Grid.Row="2"
                                                 Grid.Column="0"
                                                 Classes="summary-label"
                                                 IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}"
                                                 Text="Author:" />
                                             <TextBlock
-                                                Grid.Row="1"
+                                                Grid.Row="2"
                                                 Grid.Column="1"
                                                 IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}"
                                                 Text="{Binding Author}" />
 
-                                            <!--  Category & Tier  -->
+                                            <!--  Installation Method  -->
+                                            <TextBlock
+                                                Grid.Row="3"
+                                                Grid.Column="0"
+                                                Classes="summary-label"
+                                                IsVisible="{Binding InstallationMethod, Converter={StaticResource StringToVisibilityConverter}}"
+                                                Text="Method:" />
+                                            <TextBlock
+                                                Grid.Row="3"
+                                                Grid.Column="1"
+                                                IsVisible="{Binding InstallationMethod, Converter={StaticResource StringToVisibilityConverter}}"
+                                                Text="{Binding InstallationMethod}" />
+
+                                            <!--  Language Support  -->
+                                            <TextBlock
+                                                Grid.Row="4"
+                                                Grid.Column="0"
+                                                Classes="summary-label"
+                                                IsVisible="{Binding Language, Converter={StaticResource ListToVisibilityConverter}}"
+                                                Text="Languages:" />
+                                            <TextBlock
+                                                Grid.Row="4"
+                                                Grid.Column="1"
+                                                IsVisible="{Binding Language, Converter={StaticResource ListToVisibilityConverter}}"
+                                                Text="{Binding Language, Converter={StaticResource CategoryListDisplayConverter}}" />
+
+                                            <!--  Flags  -->
                                             <StackPanel
-                                                Grid.Row="2"
+                                                Grid.Row="5"
                                                 Grid.Column="0"
                                                 Grid.ColumnSpan="2"
                                                 Margin="0,4,0,0"
                                                 Orientation="Horizontal"
-                                                Spacing="12">
-                                                <StackPanel IsVisible="{Binding Category, Converter={StaticResource ListToVisibilityConverter}}">
-                                                    <TextBlock
-                                                        Margin="0,0,0,2"
-                                                        Classes="summary-label"
-                                                        Text="Categories" />
-                                                    <Border
-                                                        Padding="6,3"
-                                                        Classes="category-badge"
-                                                        CornerRadius="4"
-                                                        ToolTip.Tip="{Binding Category, Converter={StaticResource CategoryTooltipConverter}}">
-                                                        <TextBlock Text="{Binding Category, Converter={StaticResource CategoryListDisplayConverter}}" />
-                                                    </Border>
-                                                </StackPanel>
-                                                <StackPanel IsVisible="{Binding Tier, Converter={StaticResource StringToVisibilityConverter}}">
-                                                    <TextBlock
-                                                        Margin="0,0,0,2"
-                                                        Classes="summary-label"
-                                                        Text="Tier" />
-                                                    <Border
-                                                        Padding="6,3"
-                                                        Classes="tier-badge"
-                                                        CornerRadius="4"
-                                                        ToolTip.Tip="{Binding Tier, Converter={StaticResource TierTooltipConverter}}">
-                                                        <TextBlock Text="{Binding Tier}" />
-                                                    </Border>
-                                                </StackPanel>
+                                                Spacing="8">
+                                                <Border
+                                                    Padding="4,2"
+                                                    Background="#40FFA500"
+                                                    CornerRadius="3"
+                                                    IsVisible="{Binding WidescreenOnly}">
+                                                    <TextBlock Text="🖥️ Widescreen Only" />
+                                                </Border>
+                                                <Border
+                                                    Padding="4,2"
+                                                    Background="#4000BFFF"
+                                                    CornerRadius="3"
+                                                    IsVisible="{Binding AspyrExclusive}">
+                                                    <TextBlock Text="🎮 Aspyr Only" />
+                                                </Border>
                                             </StackPanel>
+
                                         </Grid>
+
+                                        <!--  Category & Tier badges outside the grid  -->
+                                        <StackPanel
+                                            Margin="0,8,0,0"
+                                            Orientation="Horizontal"
+                                            Spacing="12">
+                                            <StackPanel IsVisible="{Binding Category, Converter={StaticResource ListToVisibilityConverter}}">
+                                                <TextBlock
+                                                    Margin="0,0,0,2"
+                                                    Classes="summary-label"
+                                                    Text="Categories" />
+                                                <Border
+                                                    Padding="6,3"
+                                                    Classes="category-badge"
+                                                    CornerRadius="4"
+                                                    ToolTip.Tip="{Binding Category, Converter={StaticResource CategoryTooltipConverter}}">
+                                                    <TextBlock Text="{Binding Category, Converter={StaticResource CategoryListDisplayConverter}}" />
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel IsVisible="{Binding Tier, Converter={StaticResource StringToVisibilityConverter}}">
+                                                <TextBlock
+                                                    Margin="0,0,0,2"
+                                                    Classes="summary-label"
+                                                    Text="Tier" />
+                                                <Border
+                                                    Padding="6,3"
+                                                    Classes="tier-badge"
+                                                    CornerRadius="4"
+                                                    ToolTip.Tip="{Binding Tier, Converter={StaticResource TierTooltipConverter}}">
+                                                    <TextBlock Text="{Binding Tier}" />
+                                                </Border>
+                                            </StackPanel>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
@@ -1114,6 +1176,97 @@
                                     </DockPanel>
                                 </Border>
 
+                                <!--  Download Instructions Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding DownloadInstructions, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <DockPanel>
+                                        <Border Classes="summary-header" DockPanel.Dock="Top">
+                                            <TextBlock Classes="summary-section-title" Text="⬇️ Download Instructions" />
+                                        </Border>
+                                        <TextBlock
+                                            DockPanel.Dock="Top"
+                                            Text="{Binding DownloadInstructions}"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </Border>
+
+                                <!--  Usage Warning Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding UsageWarning, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <DockPanel>
+                                        <Border Classes="summary-header" DockPanel.Dock="Top">
+                                            <TextBlock Classes="summary-section-title" Text="⚠️ Usage Warning" />
+                                        </Border>
+                                        <TextBlock
+                                            DockPanel.Dock="Top"
+                                            Foreground="#FFFF8C00"
+                                            Text="{Binding UsageWarning}"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </Border>
+
+                                <!--  Screenshots Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding Screenshots, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <StackPanel>
+                                        <Border Classes="summary-header">
+                                            <TextBlock Classes="summary-section-title" Text="📸 Screenshots" />
+                                        </Border>
+                                        <controls:ScreenshotDisplayControl ScreenshotData="{Binding Screenshots}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!--  Known Bugs Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding KnownBugs, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <DockPanel>
+                                        <Border Classes="summary-header" DockPanel.Dock="Top">
+                                            <TextBlock Classes="summary-section-title" Text="🐛 Known Bugs" />
+                                        </Border>
+                                        <TextBlock
+                                            DockPanel.Dock="Top"
+                                            Foreground="#FFFF6B6B"
+                                            Text="{Binding KnownBugs}"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </Border>
+
+                                <!--  Installation Warning Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding InstallationWarning, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <DockPanel>
+                                        <Border Classes="summary-header" DockPanel.Dock="Top">
+                                            <TextBlock Classes="summary-section-title" Text="⚠️ Installation Warning" />
+                                        </Border>
+                                        <TextBlock
+                                            DockPanel.Dock="Top"
+                                            Foreground="#FFFF8C00"
+                                            Text="{Binding InstallationWarning}"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </Border>
+
+                                <!--  Compatibility Warning Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding CompatibilityWarning, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <DockPanel>
+                                        <Border Classes="summary-header" DockPanel.Dock="Top">
+                                            <TextBlock Classes="summary-section-title" Text="🔧 Compatibility Warning" />
+                                        </Border>
+                                        <TextBlock
+                                            DockPanel.Dock="Top"
+                                            Text="{Binding CompatibilityWarning}"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </Border>
+
+                                <!--  Steam Notes Card  -->
+                                <Border Classes="summary-card" IsVisible="{Binding SteamNotes, Converter={StaticResource StringToVisibilityConverter}}">
+                                    <DockPanel>
+                                        <Border Classes="summary-header" DockPanel.Dock="Top">
+                                            <TextBlock Classes="summary-section-title" Text="🎮 Steam Notes" />
+                                        </Border>
+                                        <TextBlock
+                                            DockPanel.Dock="Top"
+                                            Text="{Binding SteamNotes}"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </Border>
+
                                 <!--  Options/Customizations Card  -->
                                 <Border Classes="summary-card" IsVisible="{Binding ElementName=OptionsSummaryRepeater, Path=ItemsSource, Converter={StaticResource ListToVisibilityConverter}}">
                                     <StackPanel>
@@ -1128,7 +1281,11 @@
                                         <ItemsRepeater x:Name="OptionsSummaryRepeater" ItemsSource="{Binding Options}">
                                             <ItemsRepeater.ItemTemplate>
                                                 <DataTemplate DataType="core:Option">
-                                                    <Border Classes="summary-option-card" Cursor="Hand" Tag="{Binding}" PointerPressed="SummaryOptionBorder_PointerPressed">
+                                                    <Border
+                                                        Classes="summary-option-card"
+                                                        Cursor="Hand"
+                                                        PointerPressed="SummaryOptionBorder_PointerPressed"
+                                                        Tag="{Binding}">
                                                         <Border.Styles>
                                                             <Style Selector="Border">
                                                                 <Setter Property="Background" Value="Transparent" />
@@ -1364,6 +1521,37 @@
                                                     </StackPanel>
 
                                                     <StackPanel>
+                                                        <TextBlock Classes="summary-label" Text="GUID" />
+                                                        <TextBox
+                                                            HorizontalAlignment="Stretch"
+                                                            FontFamily="Consolas,Courier New,monospace"
+                                                            FontSize="11"
+                                                            IsReadOnly="True"
+                                                            Text="{Binding Guid}"
+                                                            ToolTip.Tip="Unique identifier for this mod - Do not modify unless you know what you're doing" />
+                                                    </StackPanel>
+
+                                                    <Grid ColumnDefinitions="*,8,Auto">
+                                                        <StackPanel Grid.Column="0">
+                                                            <TextBlock Classes="summary-label" Text="Heading (for documentation)" />
+                                                            <TextBox
+                                                                HorizontalAlignment="Stretch"
+                                                                Focusable="True"
+                                                                Text="{Binding Heading}"
+                                                                TextWrapping="Wrap"
+                                                                Watermark="Optional display heading..." />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2">
+                                                            <TextBlock Classes="summary-label" Text="Level" />
+                                                            <NumericUpDown
+                                                                Width="80"
+                                                                Maximum="6"
+                                                                Minimum="1"
+                                                                Value="{Binding HeadingLevel}" />
+                                                        </StackPanel>
+                                                    </Grid>
+
+                                                    <StackPanel>
                                                         <TextBlock Classes="summary-label" Text="Author(s)" />
                                                         <TextBox
                                                             HorizontalAlignment="Stretch"
@@ -1397,6 +1585,42 @@
                                                             DownloadCacheService="{Binding $parent[Window].DownloadCacheService}"
                                                             DownloadLinks="{Binding ModLink, Mode=TwoWay}" />
                                                     </StackPanel>
+
+                                                    <StackPanel>
+                                                        <TextBlock Classes="summary-label" Text="Installation Method" />
+                                                        <TextBox
+                                                            HorizontalAlignment="Stretch"
+                                                            Focusable="True"
+                                                            Text="{Binding InstallationMethod}"
+                                                            Watermark="e.g., TSLPatcher, Manual, HoloPatcher..." />
+                                                    </StackPanel>
+
+                                                    <StackPanel>
+                                                        <TextBlock Classes="summary-label" Text="Language Support" />
+                                                        <TextBlock
+                                                            Margin="0,0,0,1"
+                                                            Classes="secondary-text"
+                                                            FontSize="9"
+                                                            Text="One language per line" />
+                                                        <TextBox
+                                                            HorizontalAlignment="Stretch"
+                                                            AcceptsReturn="True"
+                                                            Focusable="True"
+                                                            Text="{Binding Language, Converter={StaticResource ListToStringConverter}}"
+                                                            TextWrapping="Wrap"
+                                                            Watermark="English&#x0a;French&#x0a;German..." />
+                                                    </StackPanel>
+
+                                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                                        <CheckBox
+                                                            Content="Widescreen Only"
+                                                            IsChecked="{Binding WidescreenOnly}"
+                                                            ToolTip.Tip="Check if this mod only works with widescreen patches" />
+                                                        <CheckBox
+                                                            Content="Aspyr Exclusive"
+                                                            IsChecked="{Binding AspyrExclusive}"
+                                                            ToolTip.Tip="Check if this mod only works on Aspyr versions (mobile/console)" />
+                                                    </StackPanel>
                                                 </StackPanel>
                                             </Border>
                                         </Expander>
@@ -1409,27 +1633,105 @@
                                             Header="📄 Description &amp; Directions"
                                             IsExpanded="False">
                                             <Border Margin="0,2,0,0" Padding="2">
-                                                <Grid ColumnDefinitions="*,*">
-                                                    <StackPanel Grid.Column="0" Margin="0,0,3,2">
-                                                        <TextBlock Classes="summary-label" Text="Description" />
+                                                <StackPanel Spacing="3">
+                                                    <Grid ColumnDefinitions="*,*">
+                                                        <StackPanel Grid.Column="0" Margin="0,0,3,2">
+                                                            <TextBlock Classes="summary-label" Text="Description" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="9"
+                                                                Text="What this mod does and why users might want it" />
+                                                            <controls:ExpandableTextBox Text="{Binding Description, Mode=TwoWay}" Watermark="Enter mod description..." />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="1" Margin="3,0,0,2">
+                                                            <TextBlock Classes="summary-label" Text="Installation Notes" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="9"
+                                                                Text="Special instructions or warnings for users (handled automatically)" />
+                                                            <controls:ExpandableTextBox Text="{Binding Directions, Mode=TwoWay}" Watermark="Enter any special directions..." />
+                                                        </StackPanel>
+                                                    </Grid>
+
+                                                    <Grid ColumnDefinitions="*,*">
+                                                        <StackPanel Grid.Column="0" Margin="0,0,3,2">
+                                                            <TextBlock Classes="summary-label" Text="Download Instructions" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="9"
+                                                                Text="How to obtain/download this mod" />
+                                                            <controls:ExpandableTextBox Text="{Binding DownloadInstructions, Mode=TwoWay}" Watermark="Enter download instructions..." />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="1" Margin="3,0,0,2">
+                                                            <TextBlock Classes="summary-label" Text="Usage Warning" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="9"
+                                                                Text="Important warnings about using this mod" />
+                                                            <controls:ExpandableTextBox Text="{Binding UsageWarning, Mode=TwoWay}" Watermark="Enter any warnings..." />
+                                                        </StackPanel>
+                                                    </Grid>
+
+                                                    <StackPanel>
+                                                        <TextBlock Classes="summary-label" Text="Screenshots" />
                                                         <TextBlock
                                                             Margin="0,0,0,1"
                                                             Classes="secondary-text"
                                                             FontSize="9"
-                                                            Text="What this mod does and why users might want it" />
-                                                        <controls:ExpandableTextBox Text="{Binding Description, Mode=TwoWay}" Watermark="Enter mod description..." />
+                                                            Text="URLs or markdown for screenshots" />
+                                                        <controls:ExpandableTextBox Text="{Binding Screenshots, Mode=TwoWay}" Watermark="Enter screenshot URLs or markdown..." />
                                                     </StackPanel>
 
-                                                    <StackPanel Grid.Column="1" Margin="3,0,0,2">
-                                                        <TextBlock Classes="summary-label" Text="Installation Notes" />
-                                                        <TextBlock
-                                                            Margin="0,0,0,1"
-                                                            Classes="secondary-text"
-                                                            FontSize="9"
-                                                            Text="Special instructions or warnings for users (handled automatically)" />
-                                                        <controls:ExpandableTextBox Text="{Binding Directions, Mode=TwoWay}" Watermark="Enter any special directions..." />
-                                                    </StackPanel>
-                                                </Grid>
+                                                    <Grid ColumnDefinitions="*,*">
+                                                        <StackPanel Grid.Column="0" Margin="0,0,3,2">
+                                                            <TextBlock Classes="summary-label" Text="Known Bugs" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="9"
+                                                                Text="List any known issues or bugs with this mod" />
+                                                            <controls:ExpandableTextBox Text="{Binding KnownBugs, Mode=TwoWay}" Watermark="Enter known bugs or issues..." />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="1" Margin="3,0,0,2">
+                                                            <TextBlock Classes="summary-label" Text="Installation Warning" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="9"
+                                                                Text="Critical warnings about installation process" />
+                                                            <controls:ExpandableTextBox Text="{Binding InstallationWarning, Mode=TwoWay}" Watermark="Enter installation warnings..." />
+                                                        </StackPanel>
+                                                    </Grid>
+
+                                                    <Grid ColumnDefinitions="*,*">
+                                                        <StackPanel Grid.Column="0" Margin="0,0,3,2">
+                                                            <TextBlock Classes="summary-label" Text="Compatibility Warning" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="9"
+                                                                Text="Warnings about compatibility with other mods or game versions" />
+                                                            <controls:ExpandableTextBox Text="{Binding CompatibilityWarning, Mode=TwoWay}" Watermark="Enter compatibility warnings..." />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="1" Margin="3,0,0,2">
+                                                            <TextBlock Classes="summary-label" Text="Steam Notes" />
+                                                            <TextBlock
+                                                                Margin="0,0,0,1"
+                                                                Classes="secondary-text"
+                                                                FontSize="9"
+                                                                Text="Special notes for Steam version users" />
+                                                            <controls:ExpandableTextBox Text="{Binding SteamNotes, Mode=TwoWay}" Watermark="Enter Steam-specific notes..." />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
                                             </Border>
                                         </Expander>
                                     </StackPanel>

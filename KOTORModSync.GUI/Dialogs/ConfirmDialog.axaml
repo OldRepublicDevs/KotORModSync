@@ -1,0 +1,46 @@
+<!-- Copyright 2021-2025 KOTORModSync -->
+<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
+<!-- See LICENSE.txt file in the project root for full license information. -->
+<Window
+    x:Class="KOTORModSync.Dialogs.ConfirmDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Confirm"
+    Width="500"
+    Height="250"
+    CanResize="False"
+    WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="24" RowDefinitions="*,Auto">
+        <StackPanel Grid.Row="0" Spacing="12">
+            <TextBlock
+                x:Name="TitleText"
+                FontSize="16"
+                FontWeight="SemiBold"
+                Text="Confirm Action" />
+
+            <TextBlock
+                x:Name="MessageText"
+                Text="Are you sure?"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto">
+            <Button
+                x:Name="CancelButton"
+                Grid.Column="1"
+                Margin="0,0,12,0"
+                Padding="24,8"
+                Click="CancelButton_Click"
+                Content="Cancel" />
+
+            <Button
+                x:Name="ConfirmButton"
+                Grid.Column="2"
+                Padding="24,8"
+                Click="ConfirmButton_Click"
+                Content="Confirm" />
+        </Grid>
+    </Grid>
+</Window>
+

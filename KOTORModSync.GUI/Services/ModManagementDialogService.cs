@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -92,10 +91,10 @@ namespace KOTORModSync
 			}
 		}
 
-		public async Task ShowInformationDialog(string message) => await InformationDialog.ShowInformationDialog(_parentWindow, message);
+		public async Task ShowInformationDialog(string message) => await InformationDialog.ShowInformationDialogAsync(_parentWindow, message);
 
 		public async Task<bool?> ShowConfirmationDialog(string message, string yesButtonText = "Yes", string noButtonText = "No")
-			=> await ConfirmationDialog.ShowConfirmationDialog(_parentWindow, message);
+			=> await ConfirmationDialog.ShowConfirmationDialogAsync(_parentWindow, message);
 
 		public IReadOnlyList<ModComponent> GetComponents()
 			=> _getComponents()?.AsReadOnly() ?? new List<ModComponent>().AsReadOnly();

@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -86,8 +85,11 @@ namespace KOTORModSync.Tests
 				null,
 				CancellationToken.None);
 
-			Assert.That(result, Is.GreaterThan(0), "Should process at least one component");
-			Assert.That(component.Instructions, Is.Not.Empty, "Should have instructions");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.GreaterThan(0), "Should process at least one component");
+				Assert.That(component.Instructions, Is.Not.Empty, "Should have instructions");
+			});
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract), "First instruction should be Extract");
 		}
 
@@ -129,15 +131,18 @@ namespace KOTORModSync.Tests
 				null,
 				CancellationToken.None);
 
-			Assert.That(component.Instructions.Count, Is.EqualTo(4), "Should have 2 Extract + 2 Move instructions");
+			Assert.That(component.Instructions, Has.Count.EqualTo(4), "Should have 2 Extract + 2 Move instructions");
 
 			var mod1Instructions = component.Instructions.Where(i =>
 				i.Source != null && i.Source.Any(s => s.Contains("mod1"))).ToList();
 			var mod2Instructions = component.Instructions.Where(i =>
 				i.Source != null && i.Source.Any(s => s.Contains("mod2"))).ToList();
 
-			Assert.That(mod1Instructions.Count, Is.EqualTo(2), "Should have Extract + Move for mod1");
-			Assert.That(mod2Instructions.Count, Is.EqualTo(2), "Should have Extract + Move for mod2");
+			Assert.Multiple(() =>
+			{
+				Assert.That(mod1Instructions, Has.Count.EqualTo(2), "Should have Extract + Move for mod1");
+				Assert.That(mod2Instructions, Has.Count.EqualTo(2), "Should have Extract + Move for mod2");
+			});
 		}
 
 		[Test]
@@ -179,7 +184,7 @@ namespace KOTORModSync.Tests
 				null,
 				CancellationToken.None);
 
-			Assert.That(component.Instructions.Count, Is.EqualTo(3), "Should have existing + Extract + Move");
+			Assert.That(component.Instructions, Has.Count.EqualTo(3), "Should have existing + Extract + Move");
 			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Copy), "Existing instruction should remain");
 		}
 
@@ -257,11 +262,14 @@ namespace KOTORModSync.Tests
 				null,
 				CancellationToken.None);
 
-			Assert.That(component.Instructions.Count, Is.GreaterThanOrEqualTo(3), "Should have Extract + Patcher + Move");
-			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
-			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher),
-				"TSLPatcher instruction should come before Move");
-			Assert.That(component.Instructions[2].Action, Is.EqualTo(Instruction.ActionType.Move));
+			Assert.That(component.Instructions, Has.Count.GreaterThanOrEqualTo(3), "Should have Extract + Patcher + Move");
+			Assert.Multiple(() =>
+			{
+				Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
+				Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher),
+					"TSLPatcher instruction should come before Move");
+				Assert.That(component.Instructions[2].Action, Is.EqualTo(Instruction.ActionType.Move));
+			});
 		}
 
 		#region Helper Methods

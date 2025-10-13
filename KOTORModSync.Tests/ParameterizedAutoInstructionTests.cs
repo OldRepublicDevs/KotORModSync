@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -103,23 +102,6 @@ namespace KOTORModSync.Tests
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
-			var downloadCacheService = new DownloadCacheService();
-			var httpClient = new System.Net.Http.HttpClient();
-			var handlers = new List<IDownloadHandler>
-		{
-			new DeadlyStreamDownloadHandler(httpClient),
-			new MegaDownloadHandler(),
-			new NexusModsDownloadHandler(httpClient, ""),
-			new GameFrontDownloadHandler(httpClient),
-			new DirectDownloadHandler(httpClient)
-		};
-			var downloadManager = new DownloadManager(handlers);
-			downloadCacheService.SetDownloadManager(downloadManager);
-
-			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
-			string downloadDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_TestDownloads");
-			Directory.CreateDirectory(downloadDirectory);
-
 			string k1Path = Path.Combine(contentRoot, "k1");
 			if ( Directory.Exists(k1Path) )
 			{
@@ -136,15 +118,6 @@ namespace KOTORModSync.Tests
 						.Where(c => c.ModLink?.Any(link => !string.IsNullOrWhiteSpace(link) &&
 							link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true)
 						.ToList();
-
-					if ( deadlyStreamComponents.Count > 0 )
-					{
-						modLinkProcessor.ProcessComponentModLinksSync(
-							deadlyStreamComponents,
-							downloadDirectory,
-							progress: null,
-							cancellationToken: CancellationToken.None);
-					}
 
 					foreach ( var component in deadlyStreamComponents )
 					{
@@ -175,15 +148,6 @@ namespace KOTORModSync.Tests
 						.Where(c => c.ModLink?.Any(link => !string.IsNullOrWhiteSpace(link) &&
 							link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true)
 						.ToList();
-
-					if ( deadlyStreamComponents.Count > 0 )
-					{
-						modLinkProcessor.ProcessComponentModLinksSync(
-							deadlyStreamComponents,
-							downloadDirectory,
-							progress: null,
-							cancellationToken: CancellationToken.None);
-					}
 
 					foreach ( var component in deadlyStreamComponents )
 					{

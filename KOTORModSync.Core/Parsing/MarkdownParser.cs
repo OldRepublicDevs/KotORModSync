@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,6 +16,7 @@ namespace KOTORModSync.Core.Parsing
 		private readonly MarkdownImportProfile _profile;
 		private readonly Action<string> _logInfo;
 		private readonly Action<string> _logVerbose;
+		private static readonly char[] separator = new[] { ',', ';' };
 
 		public MarkdownParser([NotNull] MarkdownImportProfile profile, [CanBeNull] Action<string> logInfo = null, [CanBeNull] Action<string> logVerbose = null)
 		{
@@ -36,12 +36,48 @@ namespace KOTORModSync.Core.Parsing
 
 			var components = new List<ModComponent>();
 			var warnings = new List<string>();
+			string beforeModListContent = string.Empty;
+			string afterModListContent = string.Empty;
+			string widescreenSectionContent = string.Empty;
+			string aspyrSectionContent = string.Empty;
 
-			int originalLength = markdown.Length;
-			markdown = MarkdownUtilities.ExtractModListSection(markdown);
-			if ( markdown.Length < originalLength )
+
+			string originalMarkdown = markdown;
+			int modListIndex = markdown.IndexOf("## Mod List", StringComparison.Ordinal);
+
+
+			int aspyrSectionIndex = -1;
+			if ( modListIndex >= 0 )
 			{
-				_logVerbose($"Found '## Mod List' marker, parsing content after it ({markdown.Length} characters)");
+
+				string beforeModList = markdown.Substring(0, modListIndex);
+				aspyrSectionIndex = beforeModList.IndexOf("## CRITICAL:", StringComparison.OrdinalIgnoreCase);
+				if ( aspyrSectionIndex >= 0 )
+				{
+					_logVerbose($"Found Aspyr-exclusive section at index {aspyrSectionIndex}");
+				}
+			}
+
+
+			int modListEndIndex = -1;
+			if ( modListIndex >= 0 )
+			{
+
+				string afterModList = markdown.Substring(modListIndex + "## Mod List".Length);
+				var nextHeaderMatch = Regex.Match(afterModList, @"^##\s+(?!#)", RegexOptions.Multiline);
+				if ( nextHeaderMatch.Success )
+				{
+					modListEndIndex = modListIndex + "## Mod List".Length + nextHeaderMatch.Index;
+					_logVerbose($"Found end of mod list section at index {modListEndIndex}");
+				}
+			}
+
+			if ( modListIndex >= 0 )
+			{
+				beforeModListContent = markdown.Substring(0, modListIndex).TrimEnd();
+				markdown = markdown.Substring(modListIndex);
+				_logVerbose($"Captured {beforeModListContent.Length} characters before '## Mod List'");
+				_logVerbose($"Parsing content after '## Mod List' ({markdown.Length} characters)");
 			}
 			else
 			{
@@ -50,30 +86,99 @@ namespace KOTORModSync.Core.Parsing
 
 			_logVerbose($"Using outer pattern to split sections: {_profile.ComponentSectionPattern}");
 
+
+			int widescreenSectionIndex = markdown.IndexOf("## Optional Widescreen", StringComparison.OrdinalIgnoreCase);
+			_logVerbose(widescreenSectionIndex >= 0
+				? $"Found widescreen section at index {widescreenSectionIndex}"
+				: "No widescreen section marker found");
+
 			var outerRegex = new Regex(
 				_profile.ComponentSectionPattern,
 				_profile.ComponentSectionOptions
 			);
 
-			MatchCollection outerMatches = outerRegex.Matches(markdown);
+
+			MatchCollection outerMatches = outerRegex.Matches(originalMarkdown);
 			_logInfo($"Found {outerMatches.Count} component sections using outer pattern");
 
 			int componentIndex = 0;
+			int lastValidComponentEndIndex = 0;
+			int lastNonWidescreenComponentEndIndex = 0;
+			int firstWidescreenComponentStartIndex = -1;
+			int lastNonAspyrComponentEndIndex = 0;
+			int firstAspyrComponentStartIndex = -1;
 
 			foreach ( Match outerMatch in outerMatches )
 			{
 				componentIndex++;
 				_logVerbose($"Processing component section {componentIndex}/{outerMatches.Count}");
 
+				// Skip components that appear before "## Mod List"
+				if ( modListIndex >= 0 && outerMatch.Index < modListIndex )
+				{
+					_logVerbose($"Skipping component {componentIndex} as it's before the mod list section (before index {modListIndex})");
+					continue;
+				}
+
+				// Skip components that appear after the mod list section ends
+				if ( modListEndIndex >= 0 && outerMatch.Index >= modListEndIndex )
+				{
+					_logVerbose($"Skipping component {componentIndex} as it's outside the mod list section (after index {modListEndIndex})");
+					continue;
+				}
+
 				string sectionText = outerMatch.Value;
 				_logVerbose($"ModComponent {componentIndex} section length: {sectionText.Length} characters");
+
+
+				bool isAspyrExclusive = false;
+				bool isWidescreenOnly = false;
+
+
+				if ( aspyrSectionIndex >= 0 && modListIndex >= 0 )
+				{
+					isAspyrExclusive = outerMatch.Index >= aspyrSectionIndex && outerMatch.Index < modListIndex;
+				}
+
+
+				if ( modListIndex >= 0 )
+				{
+
+					int absoluteWidescreenIndex = widescreenSectionIndex >= 0 ? modListIndex + widescreenSectionIndex : -1;
+					isWidescreenOnly = absoluteWidescreenIndex >= 0 && outerMatch.Index >= absoluteWidescreenIndex;
+				}
 
 				ModComponent component = ParseComponentFromText(sectionText, out string warning, componentIndex);
 
 				if ( component != null )
 				{
+					component.AspyrExclusive = isAspyrExclusive ? true : (bool?)null;
+					component.WidescreenOnly = isWidescreenOnly;
 					components.Add(component);
-					_logVerbose($"Successfully parsed component {componentIndex}: '{component.Name}' by {component.Author}");
+					_logVerbose($"Successfully parsed component {componentIndex}: '{component.Name}' by {component.Author} (AspyrExclusive: {isAspyrExclusive}, WidescreenOnly: {isWidescreenOnly})");
+
+
+					lastValidComponentEndIndex = Math.Max(lastValidComponentEndIndex, outerMatch.Index + outerMatch.Length);
+
+
+					if ( !isAspyrExclusive && aspyrSectionIndex >= 0 )
+					{
+						lastNonAspyrComponentEndIndex = outerMatch.Index + outerMatch.Length;
+					}
+					else if ( isAspyrExclusive && firstAspyrComponentStartIndex == -1 )
+					{
+						firstAspyrComponentStartIndex = outerMatch.Index;
+					}
+
+
+					if ( !isWidescreenOnly )
+					{
+						lastNonWidescreenComponentEndIndex = outerMatch.Index + outerMatch.Length;
+					}
+					else if ( firstWidescreenComponentStartIndex == -1 )
+					{
+						firstWidescreenComponentStartIndex = outerMatch.Index;
+					}
 				}
 				else if ( !string.IsNullOrEmpty(warning) )
 				{
@@ -86,6 +191,40 @@ namespace KOTORModSync.Core.Parsing
 				}
 			}
 
+
+			if ( lastNonAspyrComponentEndIndex > 0 && firstAspyrComponentStartIndex > lastNonAspyrComponentEndIndex )
+			{
+				aspyrSectionContent = originalMarkdown.Substring(
+					lastNonAspyrComponentEndIndex,
+					firstAspyrComponentStartIndex - lastNonAspyrComponentEndIndex
+				).Trim();
+				_logVerbose($"Captured {aspyrSectionContent.Length} characters for Aspyr section content");
+			}
+
+
+			if ( lastNonWidescreenComponentEndIndex > 0 && firstWidescreenComponentStartIndex > lastNonWidescreenComponentEndIndex )
+			{
+				widescreenSectionContent = originalMarkdown.Substring(
+					lastNonWidescreenComponentEndIndex,
+					firstWidescreenComponentStartIndex - lastNonWidescreenComponentEndIndex
+				).Trim();
+				_logVerbose($"Captured {widescreenSectionContent.Length} characters for widescreen section content");
+			}
+
+
+			if ( modListEndIndex >= 0 && modListEndIndex < originalMarkdown.Length )
+			{
+
+				afterModListContent = originalMarkdown.Substring(modListEndIndex).TrimStart();
+				_logVerbose($"Captured {afterModListContent.Length} characters after mod list section (from index {modListEndIndex})");
+			}
+			else if ( lastValidComponentEndIndex > 0 && lastValidComponentEndIndex < originalMarkdown.Length )
+			{
+
+				afterModListContent = originalMarkdown.Substring(lastValidComponentEndIndex).TrimStart();
+				_logVerbose($"Captured {afterModListContent.Length} characters after last valid component (from index {lastValidComponentEndIndex})");
+			}
+
 			_logInfo($"Parsing completed. Successfully parsed {components.Count} components with {warnings.Count} warnings");
 			foreach ( ModComponent component in components )
 			{
@@ -93,13 +232,31 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  - '{component.Name}' by {component.Author} ({component.Category}/{component.Tier}) with {linkCount} links");
 			}
 
+
+			ResolveDependencies(components);
+
 			return new MarkdownParserResult
 			{
 				Components = components,
 				Warnings = warnings,
 				Metadata = _profile.Metadata,
+				BeforeModListContent = beforeModListContent,
+				AfterModListContent = afterModListContent,
+				WidescreenSectionContent = widescreenSectionContent,
+				AspyrSectionContent = aspyrSectionContent,
 			};
 		}
+
+
+		private Dictionary<Guid, string> _tempMasterNames = new Dictionary<Guid, string>();
+
+
+		private static readonly Dictionary<string, string> s_authorAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+		{
+			{ "JC", "JCarter426" },
+			{ "JCarter426", "JC" },
+		};
+		private static readonly string[] separatorArray = new[] { "&" };
 
 		[CanBeNull]
 		private ModComponent ParseComponentFromText([NotNull] string componentText, out string warning, int componentIndex)
@@ -118,11 +275,39 @@ namespace KOTORModSync.Core.Parsing
 				Guid = Guid.NewGuid(),
 			};
 
+
+			string extractedHeading = null;
+			if ( !string.IsNullOrWhiteSpace(_profile.HeadingPattern) )
+			{
+				extractedHeading = ExtractValue(componentText, _profile.HeadingPattern, "heading");
+				if ( extractedHeading != null )
+				{
+					component.Heading = extractedHeading;
+					_logVerbose($"  Extracted Heading: '{extractedHeading}'");
+				}
+			}
+
+
 			string extractedName = ExtractValue(componentText, _profile.NamePattern, "name|name_plain|name_link");
 			if ( extractedName != null )
 			{
 				component.Name = extractedName;
-				_logVerbose($"  Extracted Name: '{extractedName}'");
+				_logVerbose($"  Extracted Name from field: '{extractedName}'");
+
+
+				var nameFieldMatch = Regex.Match(componentText, _profile.NamePattern, RegexOptions.Compiled | RegexOptions.Multiline);
+				if ( nameFieldMatch.Success )
+				{
+
+					component.NameFieldContent = nameFieldMatch.Value.Replace("**Name:**", "").Trim();
+					_logVerbose($"  Captured full Name field content: '{component.NameFieldContent.Substring(0, Math.Min(100, component.NameFieldContent.Length))}...'");
+				}
+			}
+			else if ( extractedHeading != null )
+			{
+
+				component.Name = extractedHeading;
+				_logVerbose($"  Name field not found, using heading as name: '{extractedHeading}'");
 			}
 			else
 			{
@@ -162,6 +347,17 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No installation method found using pattern: {_profile.InstallationMethodPattern}");
 			}
 
+			string extractedDownloadInstructions = ExtractValue(componentText, _profile.DownloadInstructionsPattern, "download");
+			if ( extractedDownloadInstructions != null )
+			{
+				component.DownloadInstructions = extractedDownloadInstructions;
+				_logVerbose($"  Extracted Download Instructions: '{extractedDownloadInstructions.Substring(0, Math.Min(100, extractedDownloadInstructions.Length))}...'");
+			}
+			else
+			{
+				_logVerbose($"  No download instructions found using pattern: {_profile.DownloadInstructionsPattern}");
+			}
+
 			string extractedDirections = ExtractValue(componentText, _profile.InstallationInstructionsPattern, "directions");
 			if ( extractedDirections != null )
 			{
@@ -173,21 +369,118 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No directions found using pattern: {_profile.InstallationInstructionsPattern}");
 			}
 
-			MatchCollection modLinkMatches = string.IsNullOrWhiteSpace(_profile.ModLinkPattern)
-				? null
-				: Regex.Matches(componentText, _profile.ModLinkPattern, RegexOptions.Compiled | RegexOptions.Multiline);
-			if ( !(modLinkMatches is null) && modLinkMatches.Count > 0 )
+			string extractedWarning = ExtractValue(componentText, _profile.UsageWarningPattern, "warning");
+			if ( extractedWarning != null )
 			{
-				component.ModLink = modLinkMatches.Cast<Match>()
-					.Select(m => m.Groups["link"].Value.Trim())
-					.Where(l => !string.IsNullOrEmpty(l))
-					.Distinct()
-					.ToList();
-				_logVerbose($"  Extracted {component.ModLink.Count} mod links");
+				component.UsageWarning = extractedWarning;
+				_logVerbose($"  Extracted Usage Warning: '{extractedWarning.Substring(0, Math.Min(100, extractedWarning.Length))}...'");
 			}
 			else
 			{
-				_logVerbose($"  No mod links found using pattern: {_profile.ModLinkPattern}");
+				_logVerbose($"  No usage warning found using pattern: {_profile.UsageWarningPattern}");
+			}
+
+			string extractedScreenshots = ExtractValue(componentText, _profile.ScreenshotsPattern, "screenshots");
+			if ( extractedScreenshots != null )
+			{
+				component.Screenshots = extractedScreenshots;
+				_logVerbose($"  Extracted Screenshots: '{extractedScreenshots.Substring(0, Math.Min(100, extractedScreenshots.Length))}...'");
+			}
+			else
+			{
+				_logVerbose($"  No screenshots found using pattern: {_profile.ScreenshotsPattern}");
+			}
+
+			string extractedKnownBugs = ExtractValue(componentText, _profile.KnownBugsPattern, "bugs");
+			if ( extractedKnownBugs != null )
+			{
+				component.KnownBugs = extractedKnownBugs;
+				_logVerbose($"  Extracted Known Bugs: '{extractedKnownBugs.Substring(0, Math.Min(100, extractedKnownBugs.Length))}...'");
+			}
+			else
+			{
+				_logVerbose($"  No known bugs found using pattern: {_profile.KnownBugsPattern}");
+			}
+
+			string extractedInstallationWarning = ExtractValue(componentText, _profile.InstallationWarningPattern, "installwarning");
+			if ( extractedInstallationWarning != null )
+			{
+				component.InstallationWarning = extractedInstallationWarning;
+				_logVerbose($"  Extracted Installation Warning: '{extractedInstallationWarning.Substring(0, Math.Min(100, extractedInstallationWarning.Length))}...'");
+			}
+			else
+			{
+				_logVerbose($"  No installation warning found using pattern: {_profile.InstallationWarningPattern}");
+			}
+
+			string extractedCompatibilityWarning = ExtractValue(componentText, _profile.CompatibilityWarningPattern, "compatwarning");
+			if ( extractedCompatibilityWarning != null )
+			{
+				component.CompatibilityWarning = extractedCompatibilityWarning;
+				_logVerbose($"  Extracted Compatibility Warning: '{extractedCompatibilityWarning.Substring(0, Math.Min(100, extractedCompatibilityWarning.Length))}...'");
+			}
+			else
+			{
+				_logVerbose($"  No compatibility warning found using pattern: {_profile.CompatibilityWarningPattern}");
+			}
+
+			string extractedSteamNotes = ExtractValue(componentText, _profile.SteamNotesPattern, "steamnotes");
+			if ( extractedSteamNotes != null )
+			{
+				component.SteamNotes = extractedSteamNotes;
+				_logVerbose($"  Extracted Steam Notes: '{extractedSteamNotes.Substring(0, Math.Min(100, extractedSteamNotes.Length))}...'");
+			}
+			else
+			{
+				_logVerbose($"  No steam notes found using pattern: {_profile.SteamNotesPattern}");
+			}
+
+
+			string extractedMasters = ExtractValue(componentText, _profile.DependenciesPattern, "masters");
+			if ( extractedMasters != null )
+			{
+				_tempMasterNames[component.Guid] = extractedMasters;
+				_logVerbose($"  Extracted Masters: '{extractedMasters}'");
+			}
+			else
+			{
+				_logVerbose($"  No masters found using pattern: {_profile.DependenciesPattern}");
+			}
+
+
+			if ( !string.IsNullOrWhiteSpace(_profile.ModLinkPattern) && !string.IsNullOrWhiteSpace(_profile.NamePattern) )
+			{
+
+				var nameFieldMatch = Regex.Match(componentText, _profile.NamePattern, RegexOptions.Compiled | RegexOptions.Multiline);
+				if ( nameFieldMatch.Success )
+				{
+
+					string nameFieldText = nameFieldMatch.Value;
+
+
+					MatchCollection modLinkMatches = Regex.Matches(nameFieldText, _profile.ModLinkPattern, RegexOptions.Compiled | RegexOptions.Multiline);
+					if ( modLinkMatches.Count > 0 )
+					{
+						component.ModLink = modLinkMatches.Cast<Match>()
+							.Select(m => m.Groups["link"].Value.Trim())
+							.Where(l => !string.IsNullOrEmpty(l))
+							.Distinct()
+							.ToList();
+						_logVerbose($"  Extracted {component.ModLink.Count} mod links from Name field");
+					}
+					else
+					{
+						_logVerbose($"  No mod links found in Name field");
+					}
+				}
+				else
+				{
+					_logVerbose($"  Could not find Name field to extract mod links from");
+				}
+			}
+			else
+			{
+				_logVerbose($"  ModLink or Name pattern not configured");
 			}
 
 			if ( !string.IsNullOrWhiteSpace(_profile.CategoryTierPattern) )
@@ -206,7 +499,7 @@ namespace KOTORModSync.Core.Parsing
 					_logVerbose($"  [DEBUG] Normalized: '{normalizedCategory}'");
 
 					var splitResult = normalizedCategory.Split(
-						new[] { "&" },
+						separatorArray,
 						StringSplitOptions.RemoveEmptyEntries
 					).Select(c => c.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
 
@@ -243,8 +536,32 @@ namespace KOTORModSync.Core.Parsing
 
 			if ( string.IsNullOrWhiteSpace(component.Name) )
 			{
-				warning = "ModComponent has no name";
-				_logVerbose($"  ModComponent {componentIndex} rejected: no name found");
+
+				bool hasComponentFields = componentText.ToLower().Contains("**name:**") ||
+										  componentText.ToLower().Contains("**author:**") ||
+										  componentText.ToLower().Contains("**description:**") ||
+										  componentText.ToLower().Contains("**category:**") ||
+										  componentText.ToLower().Contains("**installation:**");
+
+				if ( hasComponentFields )
+				{
+
+					string excerpt = componentText.Length > 180
+						? componentText.Substring(0, 180).Replace('\n', ' ').Replace('\r', ' ') + "..."
+						: componentText.Replace('\n', ' ').Replace('\r', ' ');
+					warning = $"ModComponent entry at section {componentIndex} is missing a **Name:** field or name value.";
+					_logVerbose(
+						$"  [REJECT MOD] Section {componentIndex} appears to be a mod entry (fields present: Name/Author/Description/etc) but does not have a valid **Name:** field or name was left blank. Section excerpt: \"{excerpt}\"");
+				}
+				else
+				{
+
+					string preview = componentText.Length > 120
+						? componentText.Substring(0, 120).Replace('\n', ' ').Replace('\r', ' ') + "..."
+						: componentText.Replace('\n', ' ').Replace('\r', ' ');
+					_logVerbose(
+						$"  [SKIP NON-MOD] Section {componentIndex} does not contain any expected mod entry fields (Name/Author/Description/Category/Installation). Skipping as likely non-mod content. Preview: \"{preview}\"");
+				}
 				return null;
 			}
 
@@ -318,7 +635,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"    Detected YAML format, attempting to deserialize...");
 				try
 				{
-					ModComponent yamlComponent = ModComponent.DeserializeYAMLComponent(metadataText);
+					ModComponent yamlComponent = Services.ModComponentSerializationService.DeserializeYAMLComponent(metadataText);
 					if ( yamlComponent != null )
 					{
 
@@ -374,7 +691,15 @@ namespace KOTORModSync.Core.Parsing
 		private static bool DetectTomlFormat([NotNull] string text)
 		{
 
-			return text.Contains("[[thisMod]]") || Regex.IsMatch(text, @"^\s*\w+\s*=", RegexOptions.Multiline);
+			if ( text.Contains("[[thisMod]]") || text.Contains("[thisMod]") )
+				return true;
+
+
+			if ( !text.Contains("Guid") || !text.Contains("Instructions") )
+				return false;
+
+
+			return Regex.IsMatch(text, @"^[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*[""'\[\d]", RegexOptions.Multiline);
 		}
 
 		private static void MergeComponentMetadata([NotNull] ModComponent target, [NotNull] ModComponent source)
@@ -690,6 +1015,115 @@ namespace KOTORModSync.Core.Parsing
 			string pattern = $@"\*\*{Regex.Escape(key)}:\*\*\s*(.+)$";
 			Match match = Regex.Match(line, pattern, RegexOptions.IgnoreCase);
 			return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
+		}
+
+		private void ResolveDependencies([NotNull] List<ModComponent> components)
+		{
+
+			var nameToGuid = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+			foreach ( ModComponent component in components )
+			{
+				if ( !string.IsNullOrWhiteSpace(component.Name) )
+				{
+					nameToGuid[component.Name] = component.Guid;
+				}
+				// Also map heading to GUID for dependency resolution
+				if ( !string.IsNullOrWhiteSpace(component.Heading) && !nameToGuid.ContainsKey(component.Heading) )
+				{
+					nameToGuid[component.Heading] = component.Guid;
+				}
+			}
+
+
+			foreach ( ModComponent component in components )
+			{
+				if ( _tempMasterNames.TryGetValue(component.Guid, out string masterNames) )
+				{
+
+					string[] dependencyNames;
+					if ( !string.IsNullOrWhiteSpace(_profile.DependenciesSeparatorPattern) )
+					{
+						dependencyNames = Regex.Split(masterNames, _profile.DependenciesSeparatorPattern);
+					}
+					else
+					{
+
+						dependencyNames = masterNames.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+					}
+
+					foreach ( string depName in dependencyNames )
+					{
+						string trimmedName = depName.Trim();
+						if ( string.IsNullOrWhiteSpace(trimmedName) )
+							continue;
+
+						Guid dependencyGuid = Guid.Empty;
+						bool resolved = false;
+
+
+						if ( nameToGuid.TryGetValue(trimmedName, out dependencyGuid) )
+						{
+							resolved = true;
+							_logVerbose($"  Resolved dependency '{trimmedName}' to GUID {dependencyGuid} (exact match) for component '{component.Name}'");
+						}
+						else if ( trimmedName.Contains("'s ") || trimmedName.Contains("'s ") )
+						{
+
+							string[] parts = trimmedName.Split(new[] { "'s ", "'s " }, 2, StringSplitOptions.None);
+							if ( parts.Length == 2 )
+							{
+								string authorPrefix = parts[0].Trim();
+								string componentName = parts[1].Trim();
+
+
+								ModComponent matchedComponent = components.FirstOrDefault(c =>
+									string.Equals(c.Name, componentName, StringComparison.OrdinalIgnoreCase) &&
+									AuthorMatches(c.Author, authorPrefix));
+
+								if ( matchedComponent != null )
+								{
+									dependencyGuid = matchedComponent.Guid;
+									resolved = true;
+									_logVerbose($"  Resolved dependency '{trimmedName}' to GUID {dependencyGuid} (author's name match) for component '{component.Name}'");
+								}
+							}
+						}
+
+						if ( resolved && dependencyGuid != Guid.Empty )
+						{
+							component.Dependencies.Add(dependencyGuid);
+							component.DependencyNames.Add(trimmedName);
+							component.DependencyGuidToOriginalName[dependencyGuid] = trimmedName;
+						}
+						else
+						{
+							_logInfo($"Warning: Could not resolve dependency '{trimmedName}' for component '{component.Name}' - no matching component found");
+						}
+					}
+				}
+			}
+
+
+			_tempMasterNames.Clear();
+		}
+
+		private static bool AuthorMatches(string componentAuthor, string searchAuthor)
+		{
+			if ( string.IsNullOrWhiteSpace(componentAuthor) || string.IsNullOrWhiteSpace(searchAuthor) )
+				return false;
+
+
+			if ( componentAuthor.IndexOf(searchAuthor, StringComparison.OrdinalIgnoreCase) >= 0 )
+				return true;
+
+
+			if ( s_authorAliases.TryGetValue(searchAuthor, out string alias) )
+			{
+				if ( componentAuthor.IndexOf(alias, StringComparison.OrdinalIgnoreCase) >= 0 )
+					return true;
+			}
+
+			return false;
 		}
 	}
 }

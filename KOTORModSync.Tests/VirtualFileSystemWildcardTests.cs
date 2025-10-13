@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using KOTORModSync.Core;
@@ -394,7 +393,7 @@ namespace KOTORModSync.Tests
 
 			CreateArchive(archive1, new Dictionary<string, string>
 		{
-			{ "version.txt", "1.0" }
+			{ "version.txt", "2.0" }
 		});
 
 			CreateArchive(archive2, new Dictionary<string, string>

@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,9 +19,9 @@ namespace KOTORModSync.Core.Services.Download
 	public sealed class DeadlyStreamDownloadHandler : IDownloadHandler
 	{
 		private readonly HttpClient _httpClient;
-		private const long MaxBytesPerSecond = 700 * 1024; 
+		private const long MaxBytesPerSecond = 700 * 1024;
 
-		
+
 		private readonly System.Net.CookieContainer _cookieContainer;
 
 		public DeadlyStreamDownloadHandler(HttpClient httpClient)
@@ -31,7 +30,7 @@ namespace KOTORModSync.Core.Services.Download
 			_cookieContainer = new System.Net.CookieContainer();
 			Logger.LogVerbose("[DeadlyStream] Initializing download handler with session cookie management");
 
-			
+
 			if ( !_httpClient.DefaultRequestHeaders.Contains("User-Agent") )
 			{
 				string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -65,13 +64,13 @@ namespace KOTORModSync.Core.Services.Download
 				Logger.LogVerbose($"[DeadlyStream] Accept-Language header already present: {string.Join(", ", _httpClient.DefaultRequestHeaders.AcceptLanguage)}");
 			}
 
-			
+
 			_httpClient.DefaultRequestHeaders.Add("X-KOTORModSync-App", "Installer/1.0");
 			_httpClient.DefaultRequestHeaders.Add("X-KOTORModSync-Repo", "https://github.com/KOTORModSync/KOTORModSync");
 			_httpClient.DefaultRequestHeaders.Add("X-Accept-KOTORModSync", "true");
 			Logger.LogVerbose("[DeadlyStream] Added custom identification headers: X-KOTORModSync-App, X-KOTORModSync-Repo, X-Accept-KOTORModSync");
 
-			
+
 			_httpClient.DefaultRequestHeaders.Authorization =
 				new AuthenticationHeaderValue("Bearer", "KOTOR_MODSYNC_PUBLIC");
 			Logger.LogVerbose("[DeadlyStream] Added identification bearer token: KOTOR_MODSYNC_PUBLIC");
@@ -93,21 +92,21 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				await Logger.LogVerboseAsync($"[DeadlyStream] Resolving filenames for URL: {url}");
 
-				
+
 				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 				{
 					await Logger.LogWarningAsync($"[DeadlyStream] Invalid URL format: {url}");
 					return new List<string>();
 				}
 
-				
+
 				if ( validatedUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) )
 				{
 					validatedUri = new UriBuilder(validatedUri) { Scheme = "https", Port = -1 }.Uri;
 					url = validatedUri.ToString();
 				}
 
-				
+
 				var request = new HttpRequestMessage(HttpMethod.Get, url);
 				ApplyCookiesToRequest(request, validatedUri);
 				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -117,10 +116,10 @@ namespace KOTORModSync.Core.Services.Download
 				string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
 				pageResponse.Dispose();
 
-				
+
 				string csrfKey = ExtractCsrfKey(html);
 
-				
+
 				string downloadPageUrl = !string.IsNullOrEmpty(csrfKey)
 					? $"{url}?do=download&csrfKey={csrfKey}"
 					: $"{url}?do=download";
@@ -136,31 +135,27 @@ namespace KOTORModSync.Core.Services.Download
 					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
 					ExtractAndStoreCookies(downloadPageResponse, validatedUri);
 
-					
+
 					if ( downloadPageHtml.Contains("Download your files") || downloadPageHtml.Contains("data-action=\"download\"") )
 					{
 						List<string> confirmedLinks = ExtractConfirmedDownloadLinks(downloadPageHtml, url);
-						foreach ( string downloadLink in confirmedLinks )
-						{
-							string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken);
-							if ( !string.IsNullOrEmpty(filename) )
-								filenames.Add(filename);
-						}
+						// Resolve all filenames in parallel
+						var filenameTasks = confirmedLinks.Select(link => ResolveFilenameFromLink(link, cancellationToken));
+						string[] resolvedFilenames = await Task.WhenAll(filenameTasks);
+						filenames.AddRange(resolvedFilenames.Where(f => !string.IsNullOrEmpty(f)));
 					}
 				}
 
 				downloadPageResponse.Dispose();
 
-				
+
 				if ( filenames.Count == 0 )
 				{
 					List<string> downloadLinks = ExtractAllDownloadLinks(html, url);
-					foreach ( string downloadLink in downloadLinks )
-					{
-						string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken);
-						if ( !string.IsNullOrEmpty(filename) )
-							filenames.Add(filename);
-					}
+					// Resolve all filenames in parallel
+					var filenameTasks = downloadLinks.Select(link => ResolveFilenameFromLink(link, cancellationToken));
+					string[] resolvedFilenames = await Task.WhenAll(filenameTasks);
+					filenames.AddRange(resolvedFilenames.Where(f => !string.IsNullOrEmpty(f)));
 				}
 
 				await Logger.LogVerboseAsync($"[DeadlyStream] Resolved {filenames.Count} filename(s)");
@@ -177,7 +172,7 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			try
 			{
-				
+
 				Uri downloadUri = new Uri(downloadLink);
 				var request = new HttpRequestMessage(HttpMethod.Head, downloadLink);
 				ApplyCookiesToRequest(request, downloadUri);
@@ -190,7 +185,7 @@ namespace KOTORModSync.Core.Services.Download
 					return null;
 				}
 
-				
+
 				string contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
 				if ( contentType.Contains("text/html") )
 				{
@@ -198,11 +193,11 @@ namespace KOTORModSync.Core.Services.Download
 					return null;
 				}
 
-				
+
 				string fileName = GetFileNameFromContentDisposition(response);
 				if ( string.IsNullOrWhiteSpace(fileName) )
 				{
-					
+
 					fileName = Path.GetFileName(Uri.UnescapeDataString(downloadUri.AbsolutePath));
 				}
 
@@ -221,21 +216,21 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		
-		
-		
+
+
+
 		private void ExtractAndStoreCookies(HttpResponseMessage response, Uri uri)
 		{
 			try
 			{
-				
+
 				if ( response.Headers.TryGetValues("Set-Cookie", out var cookieHeaders) )
 				{
 					foreach ( string cookieHeader in cookieHeaders )
 					{
 						try
 						{
-							
+
 							_cookieContainer.SetCookies(uri, cookieHeader);
 							Logger.LogVerbose($"[DeadlyStream] Stored cookie from response: {cookieHeader.Substring(0, Math.Min(50, cookieHeader.Length))}...");
 						}
@@ -252,9 +247,9 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		
-		
-		
+
+
+
 		private void ApplyCookiesToRequest(HttpRequestMessage request, Uri uri)
 		{
 			try
@@ -263,7 +258,7 @@ namespace KOTORModSync.Core.Services.Download
 				if ( !string.IsNullOrEmpty(cookieHeader) )
 				{
 					request.Headers.Add("Cookie", cookieHeader);
-					
+
 				}
 			}
 			catch ( Exception ex )
@@ -277,7 +272,7 @@ namespace KOTORModSync.Core.Services.Download
 			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
 			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
 
-			
+
 			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 			{
 				string errorMsg = $"Invalid URL format: {url}";
@@ -301,9 +296,9 @@ namespace KOTORModSync.Core.Services.Download
 
 			try
 			{
-				
+
 				await Logger.LogVerboseAsync($"[DeadlyStream] Fetching page to establish session: {url}");
-				
+
 				if ( validatedUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) )
 				{
 					validatedUri = new UriBuilder(validatedUri) { Scheme = "https", Port = -1 }.Uri;
@@ -313,19 +308,19 @@ namespace KOTORModSync.Core.Services.Download
 
 				var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-				
+
 				ApplyCookiesToRequest(request, validatedUri);
 
 				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
 				_ = pageResponse.EnsureSuccessStatusCode();
 
-				
+
 				ExtractAndStoreCookies(pageResponse, validatedUri);
 
 				string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
 				await Logger.LogVerboseAsync($"[DeadlyStream] Downloaded HTML content, length: {html.Length} characters");
 
-				
+
 				string csrfKey = ExtractCsrfKey(html);
 				if ( string.IsNullOrEmpty(csrfKey) )
 				{
@@ -336,7 +331,7 @@ namespace KOTORModSync.Core.Services.Download
 					await Logger.LogVerboseAsync($"[DeadlyStream] Extracted csrfKey: {csrfKey.Substring(0, Math.Min(8, csrfKey.Length))}...");
 				}
 
-				
+
 				string downloadPageUrl = !string.IsNullOrEmpty(csrfKey)
 					? $"{url}?do=download&csrfKey={csrfKey}"
 					: $"{url}?do=download";
@@ -352,7 +347,7 @@ namespace KOTORModSync.Core.Services.Download
 					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
 					ExtractAndStoreCookies(downloadPageResponse, validatedUri);
 
-					
+
 					if ( downloadPageHtml.Contains("Download your files") || downloadPageHtml.Contains("data-action=\"download\"") )
 					{
 						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page");
@@ -364,7 +359,7 @@ namespace KOTORModSync.Core.Services.Download
 							downloadPageResponse.Dispose();
 							pageResponse.Dispose();
 
-							
+
 							var multiFileDownloads = new List<string>();
 							int multiFileIndex = 0;
 
@@ -401,7 +396,7 @@ namespace KOTORModSync.Core.Services.Download
 								return DownloadResult.Failed(errorMsg);
 							}
 
-							
+
 							string multiFileResultMessage = multiFileDownloads.Count == 1
 								? "Downloaded from DeadlyStream"
 								: $"Downloaded {multiFileDownloads.Count} files from DeadlyStream";
@@ -429,7 +424,7 @@ namespace KOTORModSync.Core.Services.Download
 
 				pageResponse.Dispose();
 
-				
+
 				List<string> downloadLinks = ExtractAllDownloadLinks(html, url);
 
 				if ( downloadLinks == null || downloadLinks.Count == 0 )
@@ -468,7 +463,7 @@ namespace KOTORModSync.Core.Services.Download
 
 				pageResponse.Dispose();
 
-				
+
 				var downloadedFiles = new List<string>();
 				int fileIndex = 0;
 
@@ -505,7 +500,7 @@ namespace KOTORModSync.Core.Services.Download
 					return DownloadResult.Failed(errorMsg);
 				}
 
-				
+
 				string resultMessage = downloadedFiles.Count == 1
 					? "Downloaded from DeadlyStream"
 					: $"Downloaded {downloadedFiles.Count} files from DeadlyStream";
@@ -515,7 +510,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Completed,
 					StatusMessage = resultMessage,
 					ProgressPercentage = 100,
-					FilePath = downloadedFiles[0], 
+					FilePath = downloadedFiles[0],
 					EndTime = DateTime.Now
 				});
 
@@ -586,9 +581,9 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		
-		
-		
+
+
+
 		private async Task<string> DownloadSingleFile(
 			string downloadLink,
 			string destinationDirectory,
@@ -599,24 +594,24 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			try
 			{
-				
+
 				cancellationToken.ThrowIfCancellationRequested();
 
 				await Logger.LogVerboseAsync($"[DeadlyStream] Downloading from: {downloadLink}");
 
-				
+
 				Uri downloadUri = new Uri(downloadLink);
 				var fileRequest = new HttpRequestMessage(HttpMethod.Get, downloadLink);
 				ApplyCookiesToRequest(fileRequest, downloadUri);
 				HttpResponseMessage fileResponse = await _httpClient.SendAsync(fileRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
-				
+
 				if ( !fileResponse.IsSuccessStatusCode )
 					await Logger.LogErrorAsync($"[DeadlyStream] File response status: {fileResponse.StatusCode}");
 
 				_ = fileResponse.EnsureSuccessStatusCode();
 
-				
+
 				string contentType = fileResponse.Content.Headers.ContentType?.MediaType ?? string.Empty;
 				if ( contentType.Contains("text/html") )
 				{
@@ -624,7 +619,7 @@ namespace KOTORModSync.Core.Services.Download
 					string html = await fileResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
 					fileResponse.Dispose();
 
-					
+
 					if ( html.Contains("Download your files") || html.Contains("data-action=\"download\"") )
 					{
 						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page, extracting actual download links");
@@ -634,7 +629,7 @@ namespace KOTORModSync.Core.Services.Download
 						{
 							await Logger.LogVerboseAsync($"[DeadlyStream] Found {actualDownloadLinks.Count} confirmed download link(s) on selection page");
 
-							
+
 							string lastDownloadedFile = null;
 							for ( int i = 0; i < actualDownloadLinks.Count; i++ )
 							{
@@ -663,18 +658,18 @@ namespace KOTORModSync.Core.Services.Download
 						}
 					}
 
-					
+
 					string errorMsg = "Received HTML instead of file - download link may be invalid or require authentication";
 					await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}");
 					fileResponse.Dispose();
 					return null;
 				}
 
-				
+
 				string fileName = GetFileNameFromContentDisposition(fileResponse);
 				if ( string.IsNullOrWhiteSpace(fileName) )
 				{
-					
+
 					fileName = Path.GetFileName(Uri.UnescapeDataString(downloadUri.AbsolutePath));
 					if ( string.IsNullOrWhiteSpace(fileName) || fileName.Contains("?") )
 					{
@@ -687,7 +682,7 @@ namespace KOTORModSync.Core.Services.Download
 					await Logger.LogVerboseAsync($"[DeadlyStream] Filename: {fileName}");
 				}
 
-				
+
 				_ = Directory.CreateDirectory(destinationDirectory);
 				string filePath = Path.Combine(destinationDirectory, fileName);
 
@@ -700,11 +695,11 @@ namespace KOTORModSync.Core.Services.Download
 					TotalBytes = totalBytes
 				});
 
-				
+
 				using ( Stream contentStream = await fileResponse.Content.ReadAsStreamAsync().ConfigureAwait(false) )
 				using ( ThrottledStream throttledStream = new ThrottledStream(contentStream, MaxBytesPerSecond) )
 				{
-					
+
 					await DownloadHelper.DownloadWithProgressAsync(
 						throttledStream,
 						filePath,
@@ -729,15 +724,15 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		
-		
-		
+
+
+
 		private static string ExtractCsrfKey(string html)
 		{
 			if ( string.IsNullOrEmpty(html) )
 				return null;
 
-			
+
 			var jsMatch = Regex.Match(html, @"csrfKey:\s*[""']([^""']+)[""']", RegexOptions.IgnoreCase);
 			if ( jsMatch.Success )
 			{
@@ -745,7 +740,7 @@ namespace KOTORModSync.Core.Services.Download
 				return jsMatch.Groups[1].Value;
 			}
 
-			
+
 			var linkMatch = Regex.Match(html, @"csrfKey=([^&""'<>\s]+)", RegexOptions.IgnoreCase);
 			if ( linkMatch.Success )
 			{
@@ -757,10 +752,10 @@ namespace KOTORModSync.Core.Services.Download
 			return null;
 		}
 
-		
-		
-		
-		
+
+
+
+
 		private static List<string> ExtractConfirmedDownloadLinks(string html, string baseUrl)
 		{
 			Logger.LogVerbose($"[DeadlyStream] ExtractConfirmedDownloadLinks called with HTML length: {html?.Length ?? 0}, baseUrl: {baseUrl}");
@@ -775,8 +770,8 @@ namespace KOTORModSync.Core.Services.Download
 			document.LoadHtml(html);
 			Logger.LogVerbose("[DeadlyStream] HTML document loaded successfully");
 
-			
-			
+
+
 			string[] selectors = new[]
 			{
 				"//a[@data-action='download' and contains(@href,'?do=download')]",
@@ -801,7 +796,7 @@ namespace KOTORModSync.Core.Services.Download
 						if ( string.IsNullOrWhiteSpace(href) )
 							continue;
 
-						
+
 						if ( !href.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
 							!href.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
 						{
@@ -810,10 +805,10 @@ namespace KOTORModSync.Core.Services.Download
 							href = absoluteUri.ToString();
 						}
 
-						
+
 						href = WebUtility.HtmlDecode(href);
 
-						
+
 						if ( !downloadLinks.Contains(href) )
 						{
 							downloadLinks.Add(href);
@@ -822,7 +817,7 @@ namespace KOTORModSync.Core.Services.Download
 					}
 				}
 
-				
+
 				if ( downloadLinks.Count > 0 )
 					break;
 			}
@@ -839,9 +834,9 @@ namespace KOTORModSync.Core.Services.Download
 			return downloadLinks;
 		}
 
-		
-		
-		
+
+
+
 		private static List<string> ExtractAllDownloadLinks(string html, string baseUrl)
 		{
 			Logger.LogVerbose($"[DeadlyStream] ExtractAllDownloadLinks called with HTML length: {html?.Length ?? 0}, baseUrl: {baseUrl}");
@@ -856,7 +851,7 @@ namespace KOTORModSync.Core.Services.Download
 			document.LoadHtml(html);
 			Logger.LogVerbose("[DeadlyStream] HTML document loaded successfully");
 
-			
+
 			string selector = "//a[contains(@href,'?do=download')]";
 			Logger.LogVerbose($"[DeadlyStream] Using XPath selector: {selector}");
 
@@ -876,7 +871,7 @@ namespace KOTORModSync.Core.Services.Download
 				if ( string.IsNullOrWhiteSpace(href) )
 					continue;
 
-				
+
 				if ( !href.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
 					!href.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
 				{
@@ -885,10 +880,10 @@ namespace KOTORModSync.Core.Services.Download
 					href = absoluteUri.ToString();
 				}
 
-				
+
 				href = WebUtility.HtmlDecode(href);
 
-				
+
 				if ( !downloadLinks.Contains(href) )
 				{
 					downloadLinks.Add(href);
@@ -918,23 +913,23 @@ namespace KOTORModSync.Core.Services.Download
 			document.LoadHtml(html);
 			Logger.LogVerbose("[DeadlyStream] HTML document loaded successfully");
 
-			
-			
+
+
 			string[] selectors = new[]
 			{
-				
+
 				"//a[contains(text(),'Download this file') and contains(@href,'?do=download')]",
-				
+
 				"//a[contains(@href,'?do=download')]",
-				
+
 				"//a[contains(@class,'ipsButton') and contains(@class,'ipsButton_fullWidth') and contains(@class,'ipsButton_large') and contains(@class,'ipsButton_important')]",
-				
+
 				"//a[contains(@class,'ipsButton_important') and contains(@href,'download')]"
 			};
 
 			Logger.LogVerbose($"[DeadlyStream] Trying {selectors.Length} different XPath selectors to find download link(s)");
 
-			
+
 			var allDownloadLinks = new System.Collections.Generic.List<string>();
 
 			for ( int i = 0; i < selectors.Length; i++ )
@@ -958,7 +953,7 @@ namespace KOTORModSync.Core.Services.Download
 							continue;
 						}
 
-						
+
 						if ( !href.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
 							 !href.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
 						{
@@ -971,13 +966,13 @@ namespace KOTORModSync.Core.Services.Download
 						else
 							Logger.LogVerbose($"[DeadlyStream] URL is already absolute: '{href}'");
 
-						
+
 						string originalHref = href;
 						href = WebUtility.HtmlDecode(href);
 						if ( originalHref != href )
 							Logger.LogVerbose($"[DeadlyStream] Decoded HTML entities: '{originalHref}' -> '{href}'");
 
-						
+
 						if ( !allDownloadLinks.Contains(href) )
 						{
 							allDownloadLinks.Add(href);
@@ -985,7 +980,7 @@ namespace KOTORModSync.Core.Services.Download
 						}
 					}
 
-					
+
 					if ( allDownloadLinks.Count > 0 )
 					{
 						if ( allDownloadLinks.Count > 1 )
@@ -1043,7 +1038,23 @@ namespace KOTORModSync.Core.Services.Download
 
 			string trimmed = Regex.Replace(fileName, pattern: "^\"|\"$", string.Empty);
 			string unescaped = Uri.UnescapeDataString(trimmed);
-			Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{fileName}' -> '{trimmed}' -> '{unescaped}'");
+
+			// Log only if transformations occurred
+			if ( fileName != unescaped )
+			{
+				if ( fileName != trimmed && trimmed != unescaped )
+				{
+					Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{fileName}' -> '{trimmed}' -> '{unescaped}'");
+				}
+				else
+				{
+					Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{fileName}' -> '{unescaped}'");
+				}
+			}
+			else
+			{
+				Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{fileName}'");
+			}
 
 			return unescaped;
 		}

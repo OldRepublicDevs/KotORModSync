@@ -2,11 +2,11 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
 using KOTORModSync.Dialogs;
 
 namespace KOTORModSync.Services
@@ -19,11 +19,16 @@ namespace KOTORModSync.Services
 
 		public ComponentEditorService(MainConfig mainConfig, Window parentWindow)
 		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
-			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
+			_mainConfig = mainConfig
+						  ?? throw new ArgumentNullException(nameof(mainConfig));
+			_parentWindow = parentWindow
+						    ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		public static bool HasUnsavedChanges(ModComponent currentComponent, string rawEditText)
+		public static bool HasUnsavedChanges(
+			ModComponent currentComponent,
+			string rawEditText
+		)
 		{
 			return currentComponent != null
 				   && !string.IsNullOrWhiteSpace(rawEditText)
@@ -71,7 +76,7 @@ namespace KOTORModSync.Services
 								   "Please report this issue to a developer, this should never happen.";
 
 					await Logger.LogErrorAsync(output);
-					await InformationDialog.ShowInformationDialog(_parentWindow, output);
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, output);
 					return false;
 				}
 
@@ -83,7 +88,7 @@ namespace KOTORModSync.Services
 				try
 				{
 					await Logger.LogVerboseAsync("Attempting YAML deserialization...");
-					newComponent = ModComponent.DeserializeYAMLComponent(rawEditText);
+					newComponent = ModComponentSerializationService.DeserializeYAMLComponent(rawEditText);
 				}
 				catch ( Exception ex )
 				{
@@ -105,7 +110,7 @@ namespace KOTORModSync.Services
 
 				if ( newComponent is null )
 				{
-					bool? confirmResult = await ConfirmationDialog.ShowConfirmationDialog(
+					bool? confirmResult = await ConfirmationDialog.ShowConfirmationDialogAsync(
 						_parentWindow,
 						"Could not deserialize your raw config text into a ModComponent instance in memory." +
 						" There may be syntax errors, check the output window for details." +
@@ -127,7 +132,7 @@ namespace KOTORModSync.Services
 								   " Ensure you single-clicked on a component on the left before pressing save." +
 								   " Please back up your work and try again.";
 					await Logger.LogErrorAsync(output);
-					await InformationDialog.ShowInformationDialog(_parentWindow, output);
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, output);
 
 					return false;
 				}
@@ -142,7 +147,7 @@ namespace KOTORModSync.Services
 			{
 				string output = "An unexpected exception was thrown. Please refer to the output window for details and report this issue to a developer.";
 				await Logger.LogExceptionAsync(ex);
-				await InformationDialog.ShowInformationDialog(_parentWindow, output + Environment.NewLine + ex.Message);
+				await InformationDialog.ShowInformationDialogAsync(_parentWindow, output + Environment.NewLine + ex.Message);
 				return false;
 			}
 		}

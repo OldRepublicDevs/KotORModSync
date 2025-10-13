@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using JetBrains.Annotations;
@@ -17,6 +16,6 @@ namespace KOTORModSync.CallbackDialogs
 		public InformationDialogCallback([CanBeNull] Window topLevelWindow) => _topLevelWindow = topLevelWindow;
 
 		public async Task ShowInformationDialog([CanBeNull] string message) =>
-			await InformationDialog.ShowInformationDialog(_topLevelWindow, message);
+			await InformationDialog.ShowInformationDialogAsync(_topLevelWindow, message);
 	}
 }

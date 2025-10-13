@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -167,7 +166,7 @@ namespace KOTORModSync.Services
 				Command = ReactiveCommand.CreateFromTask(async () =>
 				{
 					setCurrentComponent(component);
-					bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
+					bool? confirm = await ConfirmationDialog.ShowConfirmationDialogAsync(
 						_parentWindow,
 						$"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
 						yesButtonText: "Delete",
@@ -234,13 +233,13 @@ namespace KOTORModSync.Services
 					ModValidationResult validation = _modManagementService.ValidateMod(component);
 					if ( !validation.IsValid )
 					{
-						await InformationDialog.ShowInformationDialog(_parentWindow,
+						await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 							$"Validation failed for '{component.Name}':\n\n" +
 							string.Join("\n", validation.Errors.Take(5)));
 					}
 					else
 					{
-						await InformationDialog.ShowInformationDialog(_parentWindow,
+						await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 							$"✅ '{component.Name}' validation passed!");
 					}
 				})
@@ -265,7 +264,7 @@ namespace KOTORModSync.Services
 					int errorCount = results.Count(r => !r.Value.IsValid);
 					int warningCount = results.Sum(r => r.Value.Warnings.Count);
 
-					await InformationDialog.ShowInformationDialog(_parentWindow,
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 						"Validation complete!\n\n" +
 						$"Errors: {errorCount}\n" +
 						$"Warnings: {warningCount}\n\n" +
@@ -344,7 +343,7 @@ namespace KOTORModSync.Services
 									   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
 									   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
 
-					await InformationDialog.ShowInformationDialog(_parentWindow, statsText);
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, statsText);
 				})
 			});
 
@@ -433,7 +432,7 @@ namespace KOTORModSync.Services
 									   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
 									   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
 
-					await InformationDialog.ShowInformationDialog(_parentWindow, statsText);
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow, statsText);
 				})
 			});
 

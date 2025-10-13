@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using KOTORModSync.Core;
@@ -173,8 +172,11 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
 
-			Assert.That(result.IsValid, Is.True);
-			Assert.That(result.Issues.Where(i => i.Severity == ValidationSeverity.Error), Is.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(result.IsValid, Is.True);
+				Assert.That(result.Issues.Where(i => i.Severity == ValidationSeverity.Error), Is.Empty);
+			});
 		}
 
 		[Test]
@@ -227,10 +229,13 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"  {issue.Category}: {issue.Message}");
 			}
 
-			Assert.That(result.IsValid, Is.False);
-			Assert.That(result.Issues, Has.Some.Matches<ValidationIssue>(i =>
-				i.Severity == ValidationSeverity.Error &&
-				i.Message.Contains("Could not find any files matching the pattern")));
+			Assert.Multiple(() =>
+			{
+				Assert.That(result.IsValid, Is.False);
+				Assert.That(result.Issues, Has.Some.Matches<ValidationIssue>(i =>
+					i.Severity == ValidationSeverity.Error &&
+					i.Message.Contains("Could not find any files matching the pattern")));
+			});
 		}
 
 		[Test]
@@ -256,8 +261,11 @@ namespace KOTORModSync.Tests
 				CancellationToken.None
 			);
 
-			Assert.That(result.IsValid, Is.False);
-			Assert.That(result.Issues, Has.Some.Matches<ValidationIssue>(i => i.Severity == ValidationSeverity.Error && i.Message.Contains("Could not find any files matching the pattern")));
+			Assert.Multiple(() =>
+			{
+				Assert.That(result.IsValid, Is.False);
+				Assert.That(result.Issues, Has.Some.Matches<ValidationIssue>(i => i.Severity == ValidationSeverity.Error && i.Message.Contains("Could not find any files matching the pattern")));
+			});
 		}
 
 		[Test]
@@ -303,8 +311,11 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
 
-			Assert.That(result.IsValid, Is.False);
-			Assert.That(result.Issues, Has.Some.Matches<ValidationIssue>(i => i.Severity == ValidationSeverity.Error && i.Message.Contains("Could not find any files matching the pattern")));
+			Assert.Multiple(() =>
+			{
+				Assert.That(result.IsValid, Is.False);
+				Assert.That(result.Issues, Has.Some.Matches<ValidationIssue>(i => i.Severity == ValidationSeverity.Error && i.Message.Contains("Could not find any files matching the pattern")));
+			});
 		}
 
 		[Test]
@@ -377,8 +388,11 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
 
-			Assert.That(result.IsValid, Is.True);
-			Assert.That(result.Issues.Where(i => i.Severity != ValidationSeverity.Error), Is.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(result.IsValid, Is.True);
+				Assert.That(result.Issues.Where(i => i.Severity != ValidationSeverity.Error), Is.Empty);
+			});
 		}
 
 		[Test]
@@ -543,8 +557,11 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
 
-			Assert.That(result.IsValid, Is.True);
-			Assert.That(result.Issues.Where(i => i.Severity == ValidationSeverity.Error), Is.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(result.IsValid, Is.True);
+				Assert.That(result.Issues.Where(i => i.Severity == ValidationSeverity.Error), Is.Empty);
+			});
 		}
 
 		[Test]
@@ -603,8 +620,11 @@ namespace KOTORModSync.Tests
 				TestContext.WriteLine($"  [{issue.Severity}] {issue.Category}: {issue.Message}");
 			}
 
-			Assert.That(result.IsValid, Is.True);
-			Assert.That(result.Issues.Where(i => i.Severity == ValidationSeverity.Error), Is.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(result.IsValid, Is.True);
+				Assert.That(result.Issues.Where(i => i.Severity == ValidationSeverity.Error), Is.Empty);
+			});
 		}
 	}
 }

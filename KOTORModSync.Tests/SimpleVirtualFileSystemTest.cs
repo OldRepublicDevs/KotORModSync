@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
 
@@ -39,8 +38,11 @@ namespace KOTORModSync.Tests
 
 			provider.WriteFileAsync("test.txt", "content").Wait();
 
-			Assert.That(provider.FileExists("test.txt"), Is.True);
-			Assert.That(provider.FileExists("nonexistent.txt"), Is.False);
+			Assert.Multiple(() =>
+			{
+				Assert.That(provider.FileExists("test.txt"), Is.True);
+				Assert.That(provider.FileExists("nonexistent.txt"), Is.False);
+			});
 		}
 
 		[Test]
@@ -49,8 +51,11 @@ namespace KOTORModSync.Tests
 
 			var config = new MainConfig();
 
-			Assert.That(config.caseInsensitivePathing, Is.TypeOf<bool>());
-			Assert.That(config.useMultiThreadedIO, Is.False);
+			Assert.Multiple(() =>
+			{
+				Assert.That(config.caseInsensitivePathing, Is.TypeOf<bool>());
+				Assert.That(config.useMultiThreadedIO, Is.False);
+			});
 		}
 	}
 }

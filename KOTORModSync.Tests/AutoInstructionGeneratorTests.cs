@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -64,14 +63,20 @@ namespace KOTORModSync.Tests
 
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			Assert.That(result, Is.True, "Should successfully generate instructions");
-			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should have Extract + Patcher instructions");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True, "Should successfully generate instructions");
+				Assert.That(component.Instructions, Has.Count.EqualTo(2), "Should have Extract + Patcher instructions");
+			});
 
-			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
-			Assert.That(component.Instructions[0].Source[0], Does.Contain("tslpatcher_simple.zip"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
+				Assert.That(component.Instructions[0].Source[0], Does.Contain("tslpatcher_simple.zip"));
 
-			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher));
-			Assert.That(component.InstallationMethod, Is.EqualTo("TSLPatcher"));
+				Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher));
+				Assert.That(component.InstallationMethod, Is.EqualTo("TSLPatcher"));
+			});
 		}
 
 		[Test]
@@ -91,12 +96,18 @@ namespace KOTORModSync.Tests
 
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			Assert.That(result, Is.True);
-			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should have Extract + Choose instructions");
-			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
-			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Choose));
-			Assert.That(component.Options.Count, Is.EqualTo(1), "Should create one option");
-			Assert.That(component.Options[0].Instructions.Count, Is.EqualTo(1), "Option should have Patcher instruction");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True);
+				Assert.That(component.Instructions, Has.Count.EqualTo(2), "Should have Extract + Choose instructions");
+			});
+			Assert.Multiple(() =>
+			{
+				Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
+				Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Choose));
+				Assert.That(component.Options, Has.Count.EqualTo(1), "Should create one option");
+			});
+			Assert.That(component.Options[0].Instructions, Has.Count.EqualTo(1), "Option should have Patcher instruction");
 			Assert.That(component.Options[0].Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Patcher));
 		}
 
@@ -118,12 +129,15 @@ namespace KOTORModSync.Tests
 
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			Assert.That(result, Is.True);
-			Assert.That(component.InstallationMethod, Is.EqualTo("Hybrid (TSLPatcher + Loose Files)"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True);
+				Assert.That(component.InstallationMethod, Is.EqualTo("Hybrid (TSLPatcher + Loose Files)"));
 
-			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract), "First should be Extract");
-			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher), "Second should be Patcher (TSLPatcher before Move)");
-			Assert.That(component.Instructions[2].Action, Is.EqualTo(Instruction.ActionType.Choose), "Third should be Choose for multiple folders");
+				Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract), "First should be Extract");
+				Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher), "Second should be Patcher (TSLPatcher before Move)");
+				Assert.That(component.Instructions[2].Action, Is.EqualTo(Instruction.ActionType.Choose), "Third should be Choose for multiple folders");
+			});
 		}
 
 		[Test]
@@ -141,16 +155,22 @@ namespace KOTORModSync.Tests
 
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			Assert.That(result, Is.True);
-			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
-			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Choose));
-			Assert.That(component.Options.Count, Is.EqualTo(3), "Should create three options for three folders");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True);
+				Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
+				Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Choose));
+				Assert.That(component.Options, Has.Count.EqualTo(3), "Should create three options for three folders");
+			});
 
 			foreach ( var option in component.Options )
 			{
-				Assert.That(option.Instructions.Count, Is.EqualTo(1));
-				Assert.That(option.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Move));
-				Assert.That(option.Instructions[0].Destination, Does.Contain("Override"));
+				Assert.That(option.Instructions, Has.Count.EqualTo(1));
+				Assert.Multiple(() =>
+				{
+					Assert.That(option.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Move));
+					Assert.That(option.Instructions[0].Destination, Does.Contain("Override"));
+				});
 			}
 		}
 
@@ -168,11 +188,17 @@ namespace KOTORModSync.Tests
 
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			Assert.That(result, Is.True);
-			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should have Extract + Move");
-			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
-			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Move));
-			Assert.That(component.Instructions[1].Destination, Does.Contain("Override"));
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True);
+				Assert.That(component.Instructions, Has.Count.EqualTo(2), "Should have Extract + Move");
+			});
+			Assert.Multiple(() =>
+			{
+				Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
+				Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Move));
+				Assert.That(component.Instructions[1].Destination, Does.Contain("Override"));
+			});
 		}
 
 		[Test]
@@ -189,8 +215,11 @@ namespace KOTORModSync.Tests
 
 			bool result = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
-			Assert.That(result, Is.True);
-			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should have Extract + Move");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result, Is.True);
+				Assert.That(component.Instructions, Has.Count.EqualTo(2), "Should have Extract + Move");
+			});
 			Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Move));
 		}
 
@@ -216,18 +245,24 @@ namespace KOTORModSync.Tests
 			bool result2 = AutoInstructionGenerator.GenerateInstructions(component, archive2Path);
 			int instructionsAfterSecond = component.Instructions.Count;
 
-			Assert.That(result1, Is.True);
-			Assert.That(result2, Is.True);
-			Assert.That(instructionsAfterFirst, Is.EqualTo(2), "First archive should create 2 instructions");
-			Assert.That(instructionsAfterSecond, Is.EqualTo(4), "Second archive should ADD 2 more (not replace)");
+			Assert.Multiple(() =>
+			{
+				Assert.That(result1, Is.True);
+				Assert.That(result2, Is.True);
+				Assert.That(instructionsAfterFirst, Is.EqualTo(2), "First archive should create 2 instructions");
+				Assert.That(instructionsAfterSecond, Is.EqualTo(4), "Second archive should ADD 2 more (not replace)");
+			});
 
 			var archive1Instructions = component.Instructions.Where(i =>
 				i.Source != null && i.Source.Any(s => s.Contains("archive1"))).ToList();
 			var archive2Instructions = component.Instructions.Where(i =>
 				i.Source != null && i.Source.Any(s => s.Contains("archive2"))).ToList();
 
-			Assert.That(archive1Instructions.Count, Is.EqualTo(2), "Archive1 instructions should still exist");
-			Assert.That(archive2Instructions.Count, Is.EqualTo(2), "Archive2 instructions should be added");
+			Assert.Multiple(() =>
+			{
+				Assert.That(archive1Instructions, Has.Count.EqualTo(2), "Archive1 instructions should still exist");
+				Assert.That(archive2Instructions, Has.Count.EqualTo(2), "Archive2 instructions should be added");
+			});
 		}
 
 		[Test]
@@ -247,8 +282,11 @@ namespace KOTORModSync.Tests
 			AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 			var secondGuids = component.Instructions.Select(i => i.Guid).ToList();
 
-			Assert.That(component.Instructions.Count, Is.EqualTo(2), "Should still have 2 instructions");
-			Assert.That(firstGuids, Is.Not.EqualTo(secondGuids), "Instructions should be regenerated with new GUIDs");
+			Assert.Multiple(() =>
+			{
+				Assert.That(component.Instructions, Has.Count.EqualTo(2), "Should still have 2 instructions");
+				Assert.That(firstGuids, Is.Not.EqualTo(secondGuids), "Instructions should be regenerated with new GUIDs");
+			});
 		}
 
 		#region Helper Methods

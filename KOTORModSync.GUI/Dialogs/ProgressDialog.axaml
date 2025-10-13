@@ -1,0 +1,38 @@
+<!-- Copyright 2021-2025 KOTORModSync -->
+<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
+<!-- See LICENSE.txt file in the project root for full license information. -->
+<Window
+    x:Class="KOTORModSync.Dialogs.ProgressDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Progress"
+    Width="500"
+    Height="200"
+    CanResize="False"
+    WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*">
+        <TextBlock
+            x:Name="TitleText"
+            Grid.Row="0"
+            FontSize="16"
+            FontWeight="SemiBold"
+            Text="Operation in Progress" />
+
+        <TextBlock
+            x:Name="MessageText"
+            Grid.Row="1"
+            Margin="0,12,0,0"
+            Text="Please wait..."
+            TextWrapping="Wrap" />
+
+        <ProgressBar
+            x:Name="ProgressBar"
+            Grid.Row="2"
+            Height="8"
+            Margin="0,16,0,0"
+            VerticalAlignment="Top"
+            IsIndeterminate="True" />
+    </Grid>
+</Window>
+

@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.IO;
 using System.Text.Json;
@@ -145,12 +144,12 @@ namespace KOTORModSync.Core.Services
 		return newConfig;
 	}
 
-	/// <summary>
-	/// Loads the telemetry signing secret from multiple sources (priority order):
-	/// 1. Environment variable KOTORMODSYNC_SIGNING_SECRET
-	/// 2. Local config file (not in repo): %AppData%/KOTORModSync/telemetry.key
-	/// 3. Embedded secret (only in official builds via GitHub Actions)
-	/// </summary>
+	
+	
+	
+	
+	
+	
 	private static string LoadSigningSecret()
 	{
 		string secret = System.Environment.GetEnvironmentVariable("KOTORMODSYNC_SIGNING_SECRET");

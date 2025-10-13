@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -299,33 +298,42 @@ namespace KOTORModSync.Controls
 				return;
 			}
 
-			bool isDownloaded = false;
+			bool hasResolvedFilename = false;
+			string archiveName = null;
 			if ( DownloadCacheService != null && ComponentGuid != Guid.Empty )
 			{
 				try
 				{
-					isDownloaded = DownloadCacheService.IsCached(ComponentGuid, url);
+
+					if ( DownloadCacheService.TryGetEntry(ComponentGuid, url, out DownloadCacheEntry entry) )
+					{
+
+						if ( !string.IsNullOrWhiteSpace(entry.ArchiveName) )
+						{
+							hasResolvedFilename = true;
+							archiveName = entry.ArchiveName;
+						}
+					}
 				}
 				catch ( Exception ex )
 				{
-					Logger.LogException(ex, "Error checking download cache status");
+					Logger.LogException(ex, "Error checking cached filename for URL");
 				}
 			}
 
-			if ( isDownloaded )
+			if ( hasResolvedFilename )
 			{
 
-				string archiveName = DownloadCacheService?.GetArchiveName(ComponentGuid, url) ?? "unknown";
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationValidBrush;
 				textBox.BorderThickness = new Thickness(2);
-				ToolTip.SetTip(textBox, $"✅ Downloaded: {archiveName}");
+				ToolTip.SetTip(textBox, $"✅ Resolves to: {archiveName}");
 			}
 			else
 			{
 
-				textBox.BorderBrush = ThemeResourceHelper.UrlValidationWarningBrush;
+				textBox.BorderBrush = ThemeResourceHelper.UrlValidationInvalidBrush;
 				textBox.BorderThickness = new Thickness(2);
-				ToolTip.SetTip(textBox, $"⚠️ Valid URL but not downloaded yet");
+				ToolTip.SetTip(textBox, $"❌ Cannot resolve to filename (not cached)");
 			}
 		}
 

@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Runtime.InteropServices;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
@@ -172,9 +171,12 @@ namespace KOTORModSync.Tests
 
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-			Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True);
-			Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True);
+			Assert.Multiple(() =>
+			{
+				Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+				Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True);
+				Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True);
+			});
 		}
 
 		[Test]
@@ -200,10 +202,13 @@ namespace KOTORModSync.Tests
 
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-			Assert.That(File.Exists(Path.Combine(realSource, "file.txt")), Is.False);
-			Assert.That(File.Exists(Path.Combine(realSource, "file.png")), Is.True);
-			Assert.That(File.Exists(Path.Combine(realSource, "file.jpg")), Is.True);
+			Assert.Multiple(() =>
+			{
+				Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+				Assert.That(File.Exists(Path.Combine(realSource, "file.txt")), Is.False);
+				Assert.That(File.Exists(Path.Combine(realSource, "file.png")), Is.True);
+				Assert.That(File.Exists(Path.Combine(realSource, "file.jpg")), Is.True);
+			});
 		}
 
 		[Test]
@@ -227,9 +232,12 @@ namespace KOTORModSync.Tests
 
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-			Assert.That(File.Exists(Path.Combine(realSource, "FILE.tga")), Is.False);
-			Assert.That(File.Exists(Path.Combine(realSource, "fIle.tpc")), Is.True);
+			Assert.Multiple(() =>
+			{
+				Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+				Assert.That(File.Exists(Path.Combine(realSource, "FILE.tga")), Is.False);
+				Assert.That(File.Exists(Path.Combine(realSource, "fIle.tpc")), Is.True);
+			});
 		}
 
 		[Test]
@@ -253,9 +261,12 @@ namespace KOTORModSync.Tests
 
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-			Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True);
-			Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True);
+			Assert.Multiple(() =>
+			{
+				Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+				Assert.That(File.Exists(Path.Combine(_sourceDir, "file1.txt")), Is.True);
+				Assert.That(File.Exists(Path.Combine(_sourceDir, "file2.png")), Is.True);
+			});
 		}
 
 		[Test]
@@ -274,8 +285,11 @@ namespace KOTORModSync.Tests
 
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-			Assert.That(Directory.GetFiles(_sourceDir), Is.Empty);
+			Assert.Multiple(() =>
+			{
+				Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+				Assert.That(Directory.GetFiles(_sourceDir), Is.Empty);
+			});
 		}
 
 		[Test]
@@ -301,9 +315,12 @@ namespace KOTORModSync.Tests
 
 			var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
-			Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
-			Assert.That(File.Exists(file1), Is.True);
-			Assert.That(File.Exists(file2), Is.True);
+			Assert.Multiple(() =>
+			{
+				Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
+				Assert.That(File.Exists(file1), Is.True);
+				Assert.That(File.Exists(file2), Is.True);
+			});
 		}
 
 		[Test]

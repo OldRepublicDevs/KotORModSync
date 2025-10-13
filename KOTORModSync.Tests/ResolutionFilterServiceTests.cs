@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using KOTORModSync.Core.Services;
@@ -28,7 +27,7 @@ namespace KOTORModSync.Tests
 
 			List<string> filtered = service.FilterByResolution(urls);
 
-			Assert.IsNotNull(filtered, "Filtered list should not be null");
+			Assert.That(filtered, Is.Not.Null, "Filtered list should not be null");
 
 			Assert.That(filtered.Count, Is.GreaterThanOrEqualTo(1), "Should include at least non-resolution-specific files");
 
@@ -49,8 +48,8 @@ namespace KOTORModSync.Tests
 
 			List<string> filtered = service.FilterByResolution(urls);
 
-			Assert.IsNotNull(filtered, "Filtered list should not be null");
-			Assert.That(filtered.Count, Is.EqualTo(urls.Count), "When filtering disabled, should return all URLs");
+			Assert.That(filtered, Is.Not.Null, "Filtered list should not be null");
+			Assert.That(filtered, Has.Count.EqualTo(urls.Count), "When filtering disabled, should return all URLs");
 		}
 
 		[Test]
@@ -62,8 +61,8 @@ namespace KOTORModSync.Tests
 
 			List<string> filtered = service.FilterByResolution(urls);
 
-			Assert.IsNotNull(filtered, "Filtered list should not be null");
-			Assert.That(filtered.Count, Is.EqualTo(0), "Empty input should return empty output");
+			Assert.That(filtered, Is.Not.Null, "Filtered list should not be null");
+			Assert.That(filtered, Is.Empty, "Empty input should return empty output");
 		}
 
 		[Test]
@@ -74,8 +73,8 @@ namespace KOTORModSync.Tests
 
 			List<string> filtered = service.FilterByResolution(null);
 
-			Assert.IsNotNull(filtered, "Filtered list should not be null");
-			Assert.That(filtered.Count, Is.EqualTo(0), "Null input should return empty output");
+			Assert.That(filtered, Is.Not.Null, "Filtered list should not be null");
+			Assert.That(filtered, Is.Empty, "Null input should return empty output");
 		}
 
 		[Test]
@@ -92,8 +91,8 @@ namespace KOTORModSync.Tests
 
 			List<string> filtered = service.FilterByResolution(urls);
 
-			Assert.IsNotNull(filtered, "Filtered list should not be null");
-			Assert.That(filtered.Count, Is.EqualTo(urls.Count), "Files without resolution patterns should always be included");
+			Assert.That(filtered, Is.Not.Null, "Filtered list should not be null");
+			Assert.That(filtered, Has.Count.EqualTo(urls.Count), "Files without resolution patterns should always be included");
 		}
 
 		[Test]
@@ -110,7 +109,7 @@ namespace KOTORModSync.Tests
 
 			Dictionary<string, List<string>> filtered = service.FilterResolvedUrls(urlToFilenames);
 
-			Assert.IsNotNull(filtered, "Filtered dictionary should not be null");
+			Assert.That(filtered, Is.Not.Null, "Filtered dictionary should not be null");
 
 			Assert.That(filtered.ContainsKey("https://example.com/mod3"), Is.True, "Should include URL with non-resolution-specific file");
 		}
@@ -128,8 +127,8 @@ namespace KOTORModSync.Tests
 
 			Dictionary<string, List<string>> filtered = service.FilterResolvedUrls(urlToFilenames);
 
-			Assert.IsNotNull(filtered, "Filtered dictionary should not be null");
-			Assert.That(filtered.Count, Is.EqualTo(urlToFilenames.Count), "When filtering disabled, should return all entries");
+			Assert.That(filtered, Is.Not.Null, "Filtered dictionary should not be null");
+			Assert.That(filtered, Has.Count.EqualTo(urlToFilenames.Count), "When filtering disabled, should return all entries");
 		}
 
 		[Test]
@@ -138,9 +137,12 @@ namespace KOTORModSync.Tests
 
 			var service = new ResolutionFilterService(enableFiltering: true);
 
-			Assert.That(service.ShouldDownload("https://example.com/mod.zip"), Is.True, "Files without resolution should be downloadable");
-			Assert.That(service.ShouldDownload("generic_file.rar"), Is.True, "Generic files should be downloadable");
-			Assert.That(service.ShouldDownload("some_mod_v2.0.7z"), Is.True, "Version numbers should not be confused with resolutions");
+			Assert.Multiple(() =>
+			{
+				Assert.That(service.ShouldDownload("https://example.com/mod.zip"), Is.True, "Files without resolution should be downloadable");
+				Assert.That(service.ShouldDownload("generic_file.rar"), Is.True, "Generic files should be downloadable");
+				Assert.That(service.ShouldDownload("some_mod_v2.0.7z"), Is.True, "Version numbers should not be confused with resolutions");
+			});
 		}
 
 		[Test]
@@ -149,9 +151,12 @@ namespace KOTORModSync.Tests
 
 			var service = new ResolutionFilterService(enableFiltering: false);
 
-			Assert.That(service.ShouldDownload("https://example.com/cutscenes_1920x1080.7z"), Is.True);
-			Assert.That(service.ShouldDownload("https://example.com/cutscenes_3840x2160.7z"), Is.True);
-			Assert.That(service.ShouldDownload("generic_mod.zip"), Is.True);
+			Assert.Multiple(() =>
+			{
+				Assert.That(service.ShouldDownload("https://example.com/cutscenes_1920x1080.7z"), Is.True);
+				Assert.That(service.ShouldDownload("https://example.com/cutscenes_3840x2160.7z"), Is.True);
+				Assert.That(service.ShouldDownload("generic_mod.zip"), Is.True);
+			});
 		}
 
 		[Test]
@@ -171,7 +176,7 @@ namespace KOTORModSync.Tests
 
 			List<string> filtered = service.FilterByResolution(urls);
 
-			Assert.IsNotNull(filtered, "Should process resolution patterns");
+			Assert.That(filtered, Is.Not.Null, "Should process resolution patterns");
 		}
 
 		[Test]
@@ -190,7 +195,7 @@ namespace KOTORModSync.Tests
 
 			List<string> filtered = service.FilterByResolution(urls);
 
-			Assert.That(filtered.Count, Is.EqualTo(urls.Count),
+			Assert.That(filtered, Has.Count.EqualTo(urls.Count),
 				"Files without valid resolution patterns should all be included");
 		}
 
@@ -200,7 +205,7 @@ namespace KOTORModSync.Tests
 
 			var service = new ResolutionFilterService(enableFiltering: true);
 
-			Assert.IsNotNull(service, "Service should be created successfully");
+			Assert.That(service, Is.Not.Null, "Service should be created successfully");
 		}
 
 		[Test]
@@ -209,7 +214,7 @@ namespace KOTORModSync.Tests
 
 			var service = new ResolutionFilterService(enableFiltering: false);
 
-			Assert.IsNotNull(service, "Service should be created successfully even when disabled");
+			Assert.That(service, Is.Not.Null, "Service should be created successfully even when disabled");
 
 			var result = service.ShouldDownload("file_1920x1080.zip");
 			Assert.That(result, Is.True, "When disabled, all files should be allowed");

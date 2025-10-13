@@ -1,0 +1,75 @@
+<!--
+    Copyright 2021-2025 KOTORModSync
+    Licensed under the Business Source License 1.1 (BSL 1.1).
+    See LICENSE.txt file in the project root for full license information.
+-->
+<Window
+    x:Class="KOTORModSync.Dialogs.WidescreenNotificationDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Widescreen Mod Notice"
+    Width="600"
+    Height="500"
+    MinWidth="500"
+    MinHeight="400"
+    CanResize="True"
+    WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Header  -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock
+                FontSize="24"
+                FontWeight="Bold"
+                Text="📺 Widescreen Mod Detected" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Text="Please read the following important information before continuing:"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!--  Content Area with ScrollViewer  -->
+        <Border
+            Grid.Row="1"
+            Padding="12"
+            BorderThickness="1"
+            CornerRadius="4">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBlock
+                    x:Name="ContentTextBlock"
+                    LineHeight="24"
+                    TextWrapping="Wrap" />
+            </ScrollViewer>
+        </Border>
+
+        <!--  Don't Show Again Checkbox  -->
+        <CheckBox
+            x:Name="DontShowAgainCheckBox"
+            Grid.Row="2"
+            Margin="0,16,0,12"
+            Content="Don't show this message again for this session" />
+
+        <!--  Buttons  -->
+        <StackPanel
+            Grid.Row="3"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal"
+            Spacing="8">
+            <Button
+                Width="140"
+                Click="CancelButton_Click"
+                Content="Cancel Installation" />
+            <Button
+                Width="120"
+                Click="ContinueButton_Click"
+                Content="Continue" />
+        </StackPanel>
+    </Grid>
+</Window>

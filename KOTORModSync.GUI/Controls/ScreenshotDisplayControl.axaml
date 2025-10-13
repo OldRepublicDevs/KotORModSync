@@ -1,0 +1,50 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Controls.ScreenshotDisplayControl"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="200"
+    d:DesignWidth="400"
+    mc:Ignorable="d">
+    <StackPanel Spacing="8">
+        <!--  Image Gallery  -->
+        <ItemsControl x:Name="ImageItemsControl">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border
+                        Margin="0,0,0,8"
+                        Padding="4"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                        <StackPanel Spacing="4">
+                            <!--  Image  -->
+                            <Image
+                                MaxHeight="400"
+                                Source="{Binding}"
+                                Stretch="Uniform" />
+                            <!--  URL Text (clickable)  -->
+                            <SelectableTextBlock
+                                Cursor="Hand"
+                                FontSize="11"
+                                Opacity="0.7"
+                                Tapped="ImageUrl_Tapped"
+                                Text="{Binding}"
+                                TextDecorations="Underline"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!--  Fallback Text (for non-URL content)  -->
+        <TextBlock
+            x:Name="FallbackTextBlock"
+            IsVisible="False"
+            TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

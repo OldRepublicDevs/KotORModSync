@@ -8,10 +8,10 @@ using System.Text;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Handles HMAC-SHA256 signing for telemetry requests to bolabaden.org
-	/// Prevents unauthorized clients from sending fake metrics
-	/// </summary>
+	
+	
+	
+	
 	public class TelemetryAuthenticator
 	{
 		private readonly string _signingSecret;
@@ -23,12 +23,12 @@ namespace KOTORModSync.Core.Services
 			_sessionId = sessionId;
 		}
 
-		/// <summary>
-		/// Computes HMAC-SHA256 signature for a telemetry request
-		/// </summary>
-		/// <param name="requestPath">Request path (e.g., "/v1/metrics")</param>
-		/// <param name="timestamp">Unix timestamp in seconds</param>
-		/// <returns>Hex-encoded HMAC-SHA256 signature, or null if no secret available</returns>
+		
+		
+		
+		
+		
+		
 		public string ComputeSignature(string requestPath, long timestamp)
 		{
 			if ( string.IsNullOrEmpty(_signingSecret) )
@@ -45,17 +45,17 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Gets the current Unix timestamp in seconds
-		/// </summary>
+		
+		
+		
 		public static long GetUnixTimestamp()
 		{
 			return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		}
 
-		/// <summary>
-		/// Checks if the authenticator has a valid signing secret
-		/// </summary>
+		
+		
+		
 		public bool HasValidSecret()
 		{
 			return !string.IsNullOrEmpty(_signingSecret);

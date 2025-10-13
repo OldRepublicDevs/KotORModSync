@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -41,21 +40,51 @@ namespace KOTORModSync
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
 
-		
+
 		public event EventHandler<DownloadControlEventArgs> DownloadControlRequested;
 
-		
-		
-		
+		public void UpdateCheckpointProgress(string message, int current, int total)
+		{
+			Dispatcher.UIThread.Post(() =>
+			{
+				var checkpointPanel = this.FindControl<StackPanel>("CheckpointProgressPanel");
+				var checkpointText = this.FindControl<TextBlock>("CheckpointProgressText");
+				var checkpointBar = this.FindControl<ProgressBar>("CheckpointProgressBar");
+
+				if ( checkpointPanel != null )
+					checkpointPanel.IsVisible = true;
+
+				if ( checkpointText != null )
+					checkpointText.Text = message;
+
+				if ( checkpointBar != null && total > 0 )
+				{
+					checkpointBar.IsIndeterminate = false;
+					checkpointBar.Value = (double)current / total * 100;
+				}
+				else if ( checkpointBar != null )
+				{
+					checkpointBar.IsIndeterminate = true;
+				}
+			});
+		}
+
+		public void HideCheckpointProgress()
+		{
+			Dispatcher.UIThread.Post(() =>
+			{
+				var checkpointPanel = this.FindControl<StackPanel>("CheckpointProgressPanel");
+				if ( checkpointPanel != null )
+					checkpointPanel.IsVisible = false;
+			});
+		}
+
 		public void ResetCancellationToken()
 		{
 			_cancellationTokenSource?.Dispose();
 			_cancellationTokenSource = new CancellationTokenSource();
 		}
 
-		
-		
-		
 		public int DownloadTimeoutMinutes
 		{
 			get
@@ -65,7 +94,7 @@ namespace KOTORModSync
 				{
 					return (int)timeoutControl.Value.Value;
 				}
-				return 10; 
+				return 10;
 			}
 		}
 
@@ -74,7 +103,7 @@ namespace KOTORModSync
 			InitializeComponent();
 			_cancellationTokenSource = new CancellationTokenSource();
 
-			
+
 			ItemsControl activeControl = this.FindControl<ItemsControl>("ActiveDownloadsControl");
 			if ( activeControl != null )
 				activeControl.ItemsSource = _activeDownloads;
@@ -87,7 +116,7 @@ namespace KOTORModSync
 			if ( completedControl != null )
 				completedControl.ItemsSource = _completedDownloads;
 
-			
+
 			Button closeButton = this.FindControl<Button>("CloseButton");
 			if ( closeButton != null )
 				closeButton.Click += CloseButton_Click;
@@ -96,7 +125,7 @@ namespace KOTORModSync
 			if ( cancelButton != null )
 				cancelButton.Click += CancelButton_Click;
 
-			
+
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
@@ -107,10 +136,10 @@ namespace KOTORModSync
 
 		private void DownloadItem_PointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			
+
 			if ( !(sender is Border border) || !(border.DataContext is DownloadProgress progress) )
 				return;
-			
+
 			if ( e.ClickCount != 2 )
 				return;
 			try
@@ -140,7 +169,7 @@ namespace KOTORModSync
 							_ = Process.Start("explorer.exe", directory);
 						else if ( Utility.GetOperatingSystem() == OSPlatform.OSX )
 							_ = Process.Start("open", directory);
-						else 
+						else
 							_ = Process.Start("xdg-open", directory);
 					}
 				}
@@ -201,22 +230,22 @@ namespace KOTORModSync
 			{
 				_allDownloadItems.Add(progress);
 
-				
+
 				CategorizeDownload(progress);
 
-				
+
 				progress.PropertyChanged += DownloadProgress_PropertyChanged;
 
-				
+
 				if ( progress.IsGrouped )
 				{
 					foreach ( DownloadProgress child in progress.ChildDownloads )
 					{
 						child.PropertyChanged += (sender, e) =>
 						{
-							
-							
-							
+
+
+
 							Dispatcher.UIThread.Post(UpdateSummary);
 						};
 					}
@@ -226,12 +255,12 @@ namespace KOTORModSync
 
 		private void CategorizeDownload(DownloadProgress progress)
 		{
-			
+
 			_activeDownloads.Remove(progress);
 			_pendingDownloads.Remove(progress);
 			_completedDownloads.Remove(progress);
 
-			
+
 			switch ( progress.Status )
 			{
 				case DownloadStatus.InProgress:
@@ -247,25 +276,22 @@ namespace KOTORModSync
 					break;
 			}
 
-			
+
 			UpdateSummary();
 		}
 
-		
-		
-		
 		private static void InsertSorted(ObservableCollection<DownloadProgress> collection, DownloadProgress item, Func<DownloadProgress, DateTime> timestampSelector)
 		{
 			DateTime itemTimestamp = timestampSelector(item);
 
-			
+
 			int insertIndex = 0;
 			for ( int i = 0; i < collection.Count; i++ )
 			{
 				DateTime existingTimestamp = timestampSelector(collection[i]);
 				if ( itemTimestamp > existingTimestamp )
 				{
-					
+
 					insertIndex = i;
 					break;
 				}
@@ -282,10 +308,10 @@ namespace KOTORModSync
 				var existing = _allDownloadItems.FirstOrDefault(p => p.Url == progress.Url);
 				if ( existing != null )
 				{
-					
+
 					existing.PropertyChanged -= DownloadProgress_PropertyChanged;
 
-					
+
 					existing.Status = progress.Status;
 					existing.StatusMessage = progress.StatusMessage;
 					existing.ProgressPercentage = progress.ProgressPercentage;
@@ -297,10 +323,10 @@ namespace KOTORModSync
 					existing.ErrorMessage = progress.ErrorMessage;
 					existing.Exception = progress.Exception;
 
-					
+
 					existing.PropertyChanged += DownloadProgress_PropertyChanged;
 
-					
+
 					CategorizeDownload(existing);
 				}
 				else
@@ -334,7 +360,7 @@ namespace KOTORModSync
 			TextBlock overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
 			ProgressBar overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
 
-			
+
 			TextBlock activeHeader = this.FindControl<TextBlock>("ActiveSectionHeader");
 			TextBlock pendingHeader = this.FindControl<TextBlock>("PendingSectionHeader");
 			TextBlock completedHeader = this.FindControl<TextBlock>("CompletedSectionHeader");
@@ -349,20 +375,20 @@ namespace KOTORModSync
 			if ( summaryText == null )
 				return;
 
-			
+
 			int inProgress = _activeDownloads.Count;
 			int pending = _pendingDownloads.Count;
 
-			
+
 			int completedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Completed);
 			int skippedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Skipped);
 			int failedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Failed);
 			int totalFinished = completedCount + skippedCount + failedCount;
 
-			
+
 			double overallProgress = _allDownloadItems.Count > 0 ? (double)totalFinished / _allDownloadItems.Count * 100 : 0;
 
-			
+
 			if ( overallProgressText != null )
 			{
 				string progressText = $"Overall Progress: {totalFinished} / {_allDownloadItems.Count} URLs";
@@ -431,9 +457,6 @@ namespace KOTORModSync
 			CancelDownloads();
 		}
 
-		
-		
-		
 		public void CancelDownloads()
 		{
 			try
@@ -442,7 +465,7 @@ namespace KOTORModSync
 
 				_cancellationTokenSource?.Cancel();
 
-				
+
 				Dispatcher.UIThread.Post(() =>
 				{
 					Button cancelButton = this.FindControl<Button>("CancelButton");
@@ -452,7 +475,7 @@ namespace KOTORModSync
 						cancelButton.Content = "Cancelling...";
 					}
 
-					
+
 					foreach ( var download in _allDownloadItems.Where(d => d.Status == DownloadStatus.InProgress) )
 					{
 						download.Status = DownloadStatus.Failed;
@@ -461,7 +484,7 @@ namespace KOTORModSync
 					}
 
 					UpdateSummary();
-				}); 
+				});
 
 				Logger.LogVerbose("[DownloadProgressWindow] Cooperative cancellation initiated - downloads will stop gracefully");
 			}
@@ -475,11 +498,11 @@ namespace KOTORModSync
 
 		protected override void OnClosing(WindowClosingEventArgs e)
 		{
-			
+
 			if ( !_isCompleted && _allDownloadItems.Any(x => x.Status == DownloadStatus.InProgress || x.Status == DownloadStatus.Pending) )
 			{
-				
-				
+
+
 				_cancellationTokenSource?.Cancel();
 			}
 
@@ -491,7 +514,7 @@ namespace KOTORModSync
 			if ( e.PropertyName == nameof(DownloadProgress.ErrorMessage) && sender is DownloadProgress progress )
 				Dispatcher.UIThread.Post(() => UpdateErrorMessageWithLinks(progress));
 
-			
+
 			if ( e.PropertyName == nameof(DownloadProgress.Status) && sender is DownloadProgress progressItem )
 				Dispatcher.UIThread.Post(() => CategorizeDownload(progressItem));
 		}
@@ -501,7 +524,7 @@ namespace KOTORModSync
 			if ( string.IsNullOrEmpty(progress.ErrorMessage) )
 				return;
 
-			
+
 			ItemsControl itemsControl = null;
 			if ( progress.Status == DownloadStatus.InProgress )
 				itemsControl = this.FindControl<ItemsControl>("ActiveDownloadsControl");
@@ -510,19 +533,19 @@ namespace KOTORModSync
 			else
 				itemsControl = this.FindControl<ItemsControl>("CompletedDownloadsControl");
 
-			
+
 			Control container = itemsControl?.ContainerFromItem(progress);
 			if ( container == null )
 				return;
 
-			
+
 			System.Collections.Generic.IEnumerable<TextBlock> allTextBlocks = container.GetVisualDescendants().OfType<TextBlock>();
 			TextBlock textBlock = allTextBlocks.FirstOrDefault(tb => tb.Name == "ErrorMessageBlock");
 
 			if ( textBlock == null )
 				return;
 
-			
+
 			textBlock.Inlines = ParseTextWithUrls(progress.ErrorMessage);
 		}
 
@@ -530,21 +553,21 @@ namespace KOTORModSync
 		{
 			var inlines = new InlineCollection();
 
-			
+
 			string urlPattern = @"(https?://[^\s<>""{}|\\^`\[\]]+)";
 			var regex = new Regex(urlPattern, RegexOptions.IgnoreCase);
 
 			int lastIndex = 0;
 			foreach ( Match match in regex.Matches(text) )
 			{
-				
+
 				if ( match.Index > lastIndex )
 				{
 					string beforeText = text.Substring(lastIndex, match.Index - lastIndex);
 					inlines.Add(new Run(beforeText));
 				}
 
-				
+
 				string url = match.Value;
 				var button = new Button
 				{
@@ -559,10 +582,10 @@ namespace KOTORModSync
 					FontSize = 13
 				};
 
-				
+
 				button.Classes.Add("link-button");
 
-				
+
 				button.Click += (sender, e) =>
 				{
 					try
@@ -576,20 +599,20 @@ namespace KOTORModSync
 					}
 				};
 
-				
+
 				inlines.Add(new InlineUIContainer { Child = button });
 
 				lastIndex = match.Index + match.Length;
 			}
 
-			
+
 			if ( lastIndex < text.Length )
 			{
 				string afterText = text.Substring(lastIndex);
 				inlines.Add(new Run(afterText));
 			}
 
-			
+
 			if ( inlines.Count == 0 )
 				inlines.Add(new Run(text));
 
@@ -659,7 +682,7 @@ namespace KOTORModSync
 			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
 				return;
 
-			
+
 			if ( ShouldIgnorePointerForWindowDrag(e) )
 				return;
 
@@ -672,17 +695,17 @@ namespace KOTORModSync
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			
+
 			if ( !(e.Source is Visual source) )
 				return false;
 
-			
+
 			Visual current = source;
 			while ( current != null && current != this )
 			{
 				switch ( current )
 				{
-					
+
 					case Button _:
 					case TextBox _:
 					case ComboBox _:
@@ -695,7 +718,7 @@ namespace KOTORModSync
 					case TabItem _:
 					case ProgressBar _:
 					case ScrollViewer _:
-					
+
 					case Control control when control.ContextMenu?.IsOpen == true:
 						return true;
 					case Control control when control.ContextFlyout?.IsOpen == true:

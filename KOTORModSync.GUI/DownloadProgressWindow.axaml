@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <Window
     x:Class="KOTORModSync.DownloadProgressWindow"
     xmlns="https://github.com/avaloniaui"
@@ -512,8 +512,12 @@
             Grid.Row="2"
             Padding="16,12,24,12"
             Classes="download-footer">
-            <Grid ColumnDefinitions="*,Auto,Auto">
-                <StackPanel Grid.Column="0" Spacing="4">
+            <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                <!--  Overall Progress  -->
+                <StackPanel
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Spacing="4">
                     <TextBlock
                         x:Name="OverallProgressText"
                         FontSize="13"
@@ -528,8 +532,32 @@
                         Value="0" />
                 </StackPanel>
 
+                <!--  Checkpoint Progress (hidden by default)  -->
+                <StackPanel
+                    x:Name="CheckpointProgressPanel"
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="0,8,0,0"
+                    IsVisible="False"
+                    Spacing="4">
+                    <TextBlock
+                        x:Name="CheckpointProgressText"
+                        FontSize="12"
+                        Foreground="#2196F3"
+                        Text="📍 Creating checkpoint..." />
+                    <ProgressBar
+                        x:Name="CheckpointProgressBar"
+                        Height="6"
+                        Classes="download-progress"
+                        IsIndeterminate="False"
+                        Maximum="100"
+                        Minimum="0"
+                        Value="0" />
+                </StackPanel>
+
                 <Button
                     x:Name="CancelButton"
+                    Grid.Row="0"
                     Grid.Column="1"
                     Width="100"
                     Margin="12,0,0,0"
@@ -540,6 +568,7 @@
 
                 <Button
                     x:Name="CloseButton"
+                    Grid.Row="0"
                     Grid.Column="2"
                     Width="100"
                     Margin="8,0,0,0"

@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,8 +23,6 @@ namespace KOTORModSync.Core.Services
 															  				?? throw new ArgumentNullException(nameof(mainConfig));
 
 		#region CRUD Operations
-
-
 
 		public ModComponent CreateMod(string name = null, string author = null, string category = null)
 		{
@@ -216,8 +213,6 @@ namespace KOTORModSync.Core.Services
 		#endregion
 
 		#region Validation and Error Checking
-
-
 
 		public ModValidationResult ValidateMod(ModComponent component)
 		{
@@ -417,8 +412,6 @@ namespace KOTORModSync.Core.Services
 			}).ToList();
 		}
 
-
-
 		public void SortMods(ModSortCriteria sortBy = ModSortCriteria.Name, SortOrder sortOrder = SortOrder.Ascending)
 		{
 			Comparison<ModComponent> comparison;
@@ -483,8 +476,6 @@ namespace KOTORModSync.Core.Services
 		#endregion
 
 		#region Batch Operations
-
-
 
 		public async Task<BatchOperationResult> PerformBatchOperation(IEnumerable<ModComponent> components, BatchModOperation operation, Dictionary<string, object> parameters = null)
 		{
@@ -580,8 +571,6 @@ namespace KOTORModSync.Core.Services
 
 		#region Import/Export
 
-
-
 		public static async Task<bool> ExportMods(IEnumerable<ModComponent> components, string filePath, ExportFormat format = ExportFormat.Toml)
 		{
 			try
@@ -624,7 +613,7 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				List<ModComponent> importedComponents = ModComponent.ReadComponentsFromFile(filePath);
+				List<ModComponent> importedComponents = FileLoadingService.LoadFromFile(filePath);
 
 				if ( importedComponents.Count == 0 )
 					return importedComponents;

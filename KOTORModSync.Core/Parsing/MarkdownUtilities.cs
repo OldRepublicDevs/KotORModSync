@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,8 +28,7 @@ namespace KOTORModSync.Core.Parsing
 			}
 			return markdown;
 		}
-
-
+		private static readonly string[] newLineSeparator = new[] { "\r\n", "\r", "\n" };
 
 		[NotNull]
 		[ItemNotNull]
@@ -40,7 +38,7 @@ namespace KOTORModSync.Core.Parsing
 				throw new ArgumentNullException(nameof(markdown));
 
 			var sections = new List<string>();
-			string[] lines = markdown.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+			string[] lines = markdown.Split(newLineSeparator, StringSplitOptions.None);
 			var currentSection = new List<string>();
 
 			foreach ( string line in lines )
@@ -130,9 +128,6 @@ namespace KOTORModSync.Core.Parsing
 
 			return values;
 		}
-
-
-
 		[NotNull]
 		public static string NormalizeWhitespace([CanBeNull] string text)
 		{
@@ -141,9 +136,6 @@ namespace KOTORModSync.Core.Parsing
 
 			return Regex.Replace(text.Trim(), @"\s+", " ");
 		}
-
-
-
 		[NotNull]
 		public static string NormalizeCategoryFormat([CanBeNull] string category)
 		{

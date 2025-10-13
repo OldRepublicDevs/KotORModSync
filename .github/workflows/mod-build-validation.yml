@@ -1,73 +1,73 @@
 name: Mod Build Validation & Conversion
 
 on:
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch: # Allow manual triggering
   schedule:
-    - cron: '0 0 * * *'  # Run daily at midnight UTC
+    - cron: "0 0 * * *" # Run daily at midnight UTC
 
 permissions:
-  contents: write  # Required for pushing back to the repo
+  contents: write # Required for pushing back to the repo
 
 jobs:
   validate-and-convert:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false  # Don't cancel other jobs if one fails
+      fail-fast: false # Don't cancel other jobs if one fails
       matrix:
         build:
-          - name: 'K1 Full'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/full.md'
-            output_path: 'mod-builds/validated/k1'
-            filename: 'full'
-          - name: 'K1 Full Mobile'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/full_mobile.md'
-            output_path: 'mod-builds/validated/k1'
-            filename: 'full_mobile'
-          - name: 'K1 Spoiler-Free'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/spoiler-free.md'
-            output_path: 'mod-builds/validated/k1'
-            filename: 'spoiler-free'
-          - name: 'K1 Spoiler-Free Mobile'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/spoiler-free_mobile.md'
-            output_path: 'mod-builds/validated/k1'
-            filename: 'spoiler-free_mobile'
-          - name: 'K1 Widescreen'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/widescreen.md'
-            output_path: 'mod-builds/validated/k1'
-            filename: 'widescreen'
-          - name: 'K2 Full'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/full.md'
-            output_path: 'mod-builds/validated/k2'
-            filename: 'full'
-          - name: 'K2 Full Mobile'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/full_mobile.md'
-            output_path: 'mod-builds/validated/k2'
-            filename: 'full_mobile'
-          - name: 'K2 Spoiler-Free'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/spoiler-free.md'
-            output_path: 'mod-builds/validated/k2'
-            filename: 'spoiler-free'
-          - name: 'K2 Spoiler-Free Mobile'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/spoiler-free_mobile.md'
-            output_path: 'mod-builds/validated/k2'
-            filename: 'spoiler-free_mobile'
-          - name: 'K2 Widescreen'
-            url: 'https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/widescreen.md'
-            output_path: 'mod-builds/validated/k2'
-            filename: 'widescreen'
+          - name: "K1 Full"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/full.md"
+            output_path: "mod-builds/validated/k1"
+            filename: "full"
+          - name: "K1 Full Mobile"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/full_mobile.md"
+            output_path: "mod-builds/validated/k1"
+            filename: "full_mobile"
+          - name: "K1 Spoiler-Free"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/spoiler-free.md"
+            output_path: "mod-builds/validated/k1"
+            filename: "spoiler-free"
+          - name: "K1 Spoiler-Free Mobile"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/spoiler-free_mobile.md"
+            output_path: "mod-builds/validated/k1"
+            filename: "spoiler-free_mobile"
+          - name: "K1 Widescreen"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k1/widescreen.md"
+            output_path: "mod-builds/validated/k1"
+            filename: "widescreen"
+          - name: "K2 Full"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/full.md"
+            output_path: "mod-builds/validated/k2"
+            filename: "full"
+          - name: "K2 Full Mobile"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/full_mobile.md"
+            output_path: "mod-builds/validated/k2"
+            filename: "full_mobile"
+          - name: "K2 Spoiler-Free"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/spoiler-free.md"
+            output_path: "mod-builds/validated/k2"
+            filename: "spoiler-free"
+          - name: "K2 Spoiler-Free Mobile"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/spoiler-free_mobile.md"
+            output_path: "mod-builds/validated/k2"
+            filename: "spoiler-free_mobile"
+          - name: "K2 Widescreen"
+            url: "https://raw.githubusercontent.com/KOTOR-Community-Portal/mod-builds/refs/heads/dev/content/k2/widescreen.md"
+            output_path: "mod-builds/validated/k2"
+            filename: "widescreen"
 
     name: ${{ matrix.build.name }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Full history for proper change detection
+          fetch-depth: 0 # Full history for proper change detection
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - name: Download markdown file
         id: download
@@ -252,4 +252,3 @@ jobs:
           echo "**Workflow Run:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Check individual job results above for details." >> $GITHUB_STEP_SUMMARY
-

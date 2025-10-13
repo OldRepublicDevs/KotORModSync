@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -38,16 +37,7 @@ namespace KOTORModSync.Core.Utility
 			}
 			return list.Where(Directory.Exists).Distinct().ToList();
 		}
-
-
-		[NotNull]
-		public static IEnumerable<string> GetDefaultPathsForGame()
-		{
-			OSPlatform os = Utility.GetOperatingSystem();
-			var results = new List<string>();
-			if ( os == OSPlatform.Windows )
-			{
-				results.AddRange(new[]
+		private static readonly string[] collection = new[]
 				{
 					@"C:\Program Files\Steam\steamapps\common\swkotor",
 					@"C:\Program Files (x86)\Steam\steamapps\common\swkotor",
@@ -59,7 +49,16 @@ namespace KOTORModSync.Core.Utility
 					@"C:\Program Files\LucasArts\SWKotOR2",
 					@"C:\Program Files (x86)\LucasArts\SWKotOR2",
 					@"C:\GOG Games\Star Wars - KotOR2",
-				});
+				};
+
+		[NotNull]
+		public static IEnumerable<string> GetDefaultPathsForGame()
+		{
+			OSPlatform os = Utility.GetOperatingSystem();
+			var results = new List<string>();
+			if ( os == OSPlatform.Windows )
+			{
+				results.AddRange(collection);
 			}
 			else if ( os == OSPlatform.OSX )
 			{

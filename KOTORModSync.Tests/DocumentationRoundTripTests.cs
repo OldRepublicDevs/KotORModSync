@@ -2,13 +2,15 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using KOTORModSync.Core;
+using KOTORModSync.Core.CLI;
 using KOTORModSync.Core.Parsing;
+using KOTORModSync.Core.Services;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Tests
 {
@@ -67,7 +69,7 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"  - {warning}");
 			}
 
-			string generatedDocs = ModComponent.GenerateModDocumentation(components.ToList());
+			string generatedDocs = ModComponentSerializationService.GenerateModDocumentation(components.ToList());
 
 			string debugOutputPath = Path.Combine(
 				TestContext.CurrentContext.TestDirectory,
@@ -84,21 +86,21 @@ namespace KOTORModSync.Tests
 				Assert.That(generatedDocs, Is.Not.Null.And.Not.Empty, "Generated documentation should not be empty");
 			});
 
-			string originalModList = MarkdownToTomlConverter.ExtractModListSection(_originalMarkdown);
-			List<string> originalSections = MarkdownToTomlConverter.ExtractModSections(originalModList);
+			string originalModList = MarkdownUtilities.ExtractModListSection(_originalMarkdown);
+			List<string> originalSections = MarkdownUtilities.ExtractModSections(originalModList);
 
-			List<string> generatedSections = MarkdownToTomlConverter.ExtractModSections(generatedDocs);
+			List<string> generatedSections = MarkdownUtilities.ExtractModSections(generatedDocs);
 
 			Console.WriteLine($"Original sections: {originalSections.Count}");
 			Console.WriteLine($"Generated sections: {generatedSections.Count}");
 
 			var originalNameFields = originalSections
-				.SelectMany(s => MarkdownToTomlConverter.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
+				.SelectMany(s => MarkdownUtilities.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
 				.Where(n => !string.IsNullOrWhiteSpace(n))
 				.ToList();
 
 			var generatedNameFields = generatedSections
-				.SelectMany(s => MarkdownToTomlConverter.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
+				.SelectMany(s => MarkdownUtilities.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
 				.Where(n => !string.IsNullOrWhiteSpace(n))
 				.ToList();
 
@@ -200,28 +202,28 @@ namespace KOTORModSync.Tests
 		private static void CompareModSections(string original, string generated, int sectionNumber)
 		{
 
-			List<string> originalHeadings = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"###\s+(.+?)$");
+			List<string> originalHeadings = MarkdownUtilities.ExtractAllFieldValues(original, @"###\s+(.+?)$");
 			string originalHeading = originalHeadings.FirstOrDefault() ?? string.Empty;
 
-			List<string> generatedHeadings = MarkdownToTomlConverter.ExtractAllFieldValues(generated, @"###\s+(.+?)$");
+			List<string> generatedHeadings = MarkdownUtilities.ExtractAllFieldValues(generated, @"###\s+(.+?)$");
 			string generatedHeading = generatedHeadings.FirstOrDefault() ?? string.Empty;
 
-			List<string> originalNameFields = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|\s*([^\r\n]+))");
+			List<string> originalNameFields = MarkdownUtilities.ExtractAllFieldValues(original, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|\s*([^\r\n]+))");
 			string originalNameField = originalNameFields.FirstOrDefault() ?? string.Empty;
 
-			List<string> generatedNameFields = MarkdownToTomlConverter.ExtractAllFieldValues(generated, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|\s*([^\r\n]+))");
+			List<string> generatedNameFields = MarkdownUtilities.ExtractAllFieldValues(generated, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|\s*([^\r\n]+))");
 			string generatedNameField = generatedNameFields.FirstOrDefault() ?? string.Empty;
 
-			List<string> originalAuthors = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"\*\*Author:\*\*\s*(.+?)(?:\r?\n|$)");
+			List<string> originalAuthors = MarkdownUtilities.ExtractAllFieldValues(original, @"\*\*Author:\*\*\s*(.+?)(?:\r?\n|$)");
 			string originalAuthor = originalAuthors.FirstOrDefault() ?? string.Empty;
 
-			List<string> generatedAuthors = MarkdownToTomlConverter.ExtractAllFieldValues(generated, @"\*\*Author:\*\*\s*(.+?)(?:\r?\n|$)");
+			List<string> generatedAuthors = MarkdownUtilities.ExtractAllFieldValues(generated, @"\*\*Author:\*\*\s*(.+?)(?:\r?\n|$)");
 			string generatedAuthor = generatedAuthors.FirstOrDefault() ?? string.Empty;
 
-			List<string> originalCategories = MarkdownToTomlConverter.ExtractAllFieldValues(original, @"\*\*Category & Tier:\*\*\s*(.+?)(?:\r?\n|$)");
+			List<string> originalCategories = MarkdownUtilities.ExtractAllFieldValues(original, @"\*\*Category & Tier:\*\*\s*(.+?)(?:\r?\n|$)");
 			string originalCategory = originalCategories.FirstOrDefault() ?? string.Empty;
 
-			List<string> generatedCategories = MarkdownToTomlConverter.ExtractAllFieldValues(generated, @"\*\*Category & Tier:\*\*\s*(.+?)(?:\r?\n|$)");
+			List<string> generatedCategories = MarkdownUtilities.ExtractAllFieldValues(generated, @"\*\*Category & Tier:\*\*\s*(.+?)(?:\r?\n|$)");
 			string generatedCategory = generatedCategories.FirstOrDefault() ?? string.Empty;
 
 			Console.WriteLine($"Section {sectionNumber}:");

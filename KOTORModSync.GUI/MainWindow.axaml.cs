@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -29,6 +28,7 @@ using KOTORModSync.CallbackDialogs;
 using KOTORModSync.Controls;
 using KOTORModSync.Converters;
 using KOTORModSync.Core;
+using KOTORModSync.Core.CLI;
 using KOTORModSync.Models;
 using KOTORModSync.Services;
 using KOTORModSync.Core.FileSystemUtils;
@@ -39,6 +39,7 @@ using ReactiveUI;
 using SharpCompress.Archives;
 using static KOTORModSync.Core.Services.ModManagementService;
 using NotNullAttribute = JetBrains.Annotations.NotNullAttribute;
+using FileLoadingService = KOTORModSync.Core.Services.FileLoadingService;
 
 namespace KOTORModSync
 {
@@ -93,7 +94,7 @@ namespace KOTORModSync
 		private readonly DialogService _dialogService;
 		private readonly MenuBuilderService _menuBuilderService;
 		private readonly DragDropService _dragDropService;
-		private readonly FileLoadingService _fileLoadingService;
+		private readonly KOTORModSync.Services.FileLoadingService _fileLoadingService;
 		private readonly Services.ComponentEditorService _componentEditorService;
 		private readonly ComponentSelectionService _componentSelectionService;
 		private readonly DownloadOrchestrationService _downloadOrchestrationService;
@@ -185,6 +186,7 @@ namespace KOTORModSync
 				_modManagementService.ModValidationCompleted += OnModValidationCompleted;
 
 				_downloadCacheService = new DownloadCacheService();
+				_downloadCacheService.SetDownloadManager();
 
 				_modListService = new ModListService(MainConfigInstance);
 				_validationService = new ValidationService(MainConfigInstance);
@@ -196,7 +198,7 @@ namespace KOTORModSync
 				_dialogService = new DialogService(this);
 				_menuBuilderService = new MenuBuilderService(_modManagementService, this);
 				_dragDropService = new DragDropService(this, () => MainConfig.AllComponents, () => ProcessComponentsAsync(MainConfig.AllComponents));
-				_fileLoadingService = new FileLoadingService(MainConfigInstance, this);
+				_fileLoadingService = new KOTORModSync.Services.FileLoadingService(MainConfigInstance, this);
 				_componentEditorService = new Services.ComponentEditorService(MainConfigInstance, this);
 				_componentSelectionService = new ComponentSelectionService(MainConfigInstance);
 				_downloadOrchestrationService = new DownloadOrchestrationService(_downloadCacheService, MainConfigInstance, this);
@@ -513,7 +515,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				string[] result = await ShowFileDialog(isFolderDialog: true, windowName: "Select your mod directory");
+				string[] result = await _dialogService.ShowFileDialogAsync(isFolderDialog: true, windowName: "Select your mod directory");
 				if ( !(result?.Length > 0) )
 					return;
 				TextBox modInput = this.FindControl<TextBox>(name: "ModPathInput");
@@ -648,6 +650,11 @@ namespace KOTORModSync
 				{
 					Header = "Fix file/folder permissions.",
 					Command = ReactiveCommand.Create( () => FixPathPermissionsClick(new object(), new RoutedEventArgs()) ),
+				},
+				new MenuItem
+				{
+					Header = "Manage Checkpoints",
+					Command = ReactiveCommand.Create( () => OpenCheckpointManagement_Click(new object(), new RoutedEventArgs()) ),
 				},
 				new MenuItem
 				{
@@ -1036,7 +1043,7 @@ namespace KOTORModSync
 
 				bool? result = (
 					EditorMode is true
-					? await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really close KOTORModSync Please save your changes before pressing Quit?",
+						? await ConfirmationDialog.ShowConfirmationDialogAsync(this, confirmText: "Really close KOTORModSync Please save your changes before pressing Quit?",
 					noButtonText: "Cancel",
 					yesButtonText: "Quit"
 				)
@@ -1073,8 +1080,7 @@ namespace KOTORModSync
 
 			componentListColumn.Width = new GridLength(300);
 
-			RawEditTextBox.LostFocus +=
-				RawEditTextBox_LostFocus;
+			RawEditTextBox.LostFocus += RawEditTextBox_LostFocus;
 			RawEditTextBox.DataContext = new ObservableCollection<string>();
 			GuiEditGrid.DataContext = CurrentComponent;
 
@@ -1153,7 +1159,7 @@ namespace KOTORModSync
 
 						case Key.Delete:
 							SetCurrentModComponent(component);
-							_ = DeleteModWithConfirmation(component);
+							_ = DeleteModWithConfirmationAsync(component);
 							e.Handled = true;
 							break;
 
@@ -1170,8 +1176,7 @@ namespace KOTORModSync
 				}
 			};
 		}
-		[UsedImplicitly]
-		private async Task DeleteModWithConfirmation(ModComponent component)
+		private async Task DeleteModWithConfirmationAsync(ModComponent component)
 		{
 			try
 			{
@@ -1180,7 +1185,7 @@ namespace KOTORModSync
 					Logger.Log(message: "No component provided for deletion.");
 					return;
 				}
-				bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
+				bool? confirm = await ConfirmationDialog.ShowConfirmationDialogAsync(
 					this,
 					$"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
 					yesButtonText: "Delete",
@@ -1252,7 +1257,7 @@ namespace KOTORModSync
 					Command = ReactiveCommand.CreateFromTask(async () =>
 					{
 						SetCurrentModComponent(component);
-						bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
+						bool? confirm = await ConfirmationDialog.ShowConfirmationDialogAsync(
 							this,
 							$"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
 							yesButtonText: "Delete",
@@ -1314,13 +1319,13 @@ namespace KOTORModSync
 						ModValidationResult validation = ModManagementService.ValidateMod(component);
 						if ( !validation.IsValid )
 						{
-							_ = InformationDialog.ShowInformationDialog(this,
+							_ = InformationDialog.ShowInformationDialogAsync(this,
 								$"Validation failed for '{component.Name}':\n\n" +
 								string.Join("\n", validation.Errors.Take(5)));
 						}
 						else
 						{
-							_ = InformationDialog.ShowInformationDialog(this,
+							_ = InformationDialog.ShowInformationDialogAsync(this,
 								$"✅ '{component.Name}' validation passed!");
 						}
 					})
@@ -1360,7 +1365,7 @@ namespace KOTORModSync
 					Dictionary<ModComponent, ModValidationResult> results = ModManagementService.ValidateAllMods();
 					int errorCount = results.Count(r => !r.Value.IsValid);
 					int warningCount = results.Sum(r => r.Value.Warnings.Count);
-					await InformationDialog.ShowInformationDialog(this,
+					await InformationDialog.ShowInformationDialogAsync(this,
 						"Validation complete!\n\n" +
 						$"Errors: {errorCount}\n" +
 						$"Warnings: {warningCount}\n\n" +
@@ -1422,7 +1427,7 @@ namespace KOTORModSync
 										   $"Tiers:\n{string.Join("\n", stats.Tiers.Select(t => $"  • {t.Key}: {t.Value}"))}\n\n" +
 										   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
 										   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
-						await InformationDialog.ShowInformationDialog(this, statsText);
+						await InformationDialog.ShowInformationDialogAsync(this, statsText);
 					})
 				});
 				_ = menu.Items.Add(new Separator());
@@ -1459,7 +1464,7 @@ namespace KOTORModSync
 					Dictionary<ModComponent, ModValidationResult> results = ModManagementService.ValidateAllMods();
 					int errorCount = results.Count(r => !r.Value.IsValid);
 					int warningCount = results.Sum(r => r.Value.Warnings.Count);
-					await InformationDialog.ShowInformationDialog(this,
+					await InformationDialog.ShowInformationDialogAsync(this,
 						"Validation complete!\n\n" +
 						$"Errors: {errorCount}\n" +
 						$"Warnings: {warningCount}\n\n" +
@@ -1520,7 +1525,7 @@ namespace KOTORModSync
 										   $"Tiers:\n{string.Join("\n", stats.Tiers.Select(t => $"  • {t.Key}: {t.Value}"))}\n\n" +
 										   $"Average Instructions/Mod: {stats.AverageInstructionsPerMod:F1}\n" +
 										   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
-						await InformationDialog.ShowInformationDialog(this, statsText);
+						await InformationDialog.ShowInformationDialogAsync(this, statsText);
 					})
 				});
 				_ = menu.Items.Add(new Separator());
@@ -1887,20 +1892,11 @@ namespace KOTORModSync
 		private void MinimizeButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) =>
 			WindowState = WindowState.Minimized;
 		[ItemCanBeNull]
-		public async Task<string> SaveFile(
+		public async Task<string> SaveFileAsync(
 			string saveFileName = null
 		)
 		{
 			return await _dialogService.ShowSaveFileDialogAsync(saveFileName ?? "my_toml_instructions.toml", "toml");
-		}
-		public async Task<string[]> ShowFileDialog(
-			bool isFolderDialog,
-			bool allowMultiple = false,
-			IStorageFolder startFolder = null,
-			string windowName = null
-		)
-		{
-			return await _dialogService.ShowFileDialogAsync(isFolderDialog, allowMultiple, startFolder, windowName);
 		}
 
 		[UsedImplicitly]
@@ -1912,7 +1908,7 @@ namespace KOTORModSync
 			{
 				var startTime = DateTime.UtcNow;
 
-				string[] result = await ShowFileDialog(
+				string[] result = await _dialogService.ShowFileDialogAsync(
 					windowName: "Load a TOML or Markdown instruction file",
 					isFolderDialog: false
 				);
@@ -2052,14 +2048,14 @@ namespace KOTORModSync
 			{
 				if ( CurrentComponent is null )
 				{
-					await InformationDialog.ShowInformationDialog(
+					await InformationDialog.ShowInformationDialogAsync(
 						this,
 						message: "Please select a component from the list or create a new one before saving."
 					);
 					return;
 				}
 				await Logger.LogVerboseAsync($"Selected '{CurrentComponent.Name}'");
-				if ( !await ShouldSaveChanges() )
+				if ( !await ShouldSaveChangesAsync() )
 					return;
 				await ProcessComponentsAsync(MainConfig.AllComponents);
 			}
@@ -2074,7 +2070,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				string[] results = await ShowFileDialog(
+				string[] results = await _dialogService.ShowFileDialogAsync(
 					windowName: "Select the folder(s) you'd like to fix permissions to.",
 					isFolderDialog: true,
 					allowMultiple: true
@@ -2104,7 +2100,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				string[] results = await ShowFileDialog(
+				string[] results = await _dialogService.ShowFileDialogAsync(
 					windowName: "Select the folder(s) you'd like to lowercase all files/folders inside",
 					isFolderDialog: true,
 					allowMultiple: true
@@ -2134,7 +2130,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				bool? answer = await ConfirmationDialog.ShowConfirmationDialog(
+				bool? answer = await ConfirmationDialog.ShowConfirmationDialogAsync(
 					this,
 					"This button will resolve all case-sensitive duplicate files/folders in your install directory and your mod download directory."
 					+ Environment.NewLine
@@ -2155,7 +2151,7 @@ namespace KOTORModSync
 				{
 					await Logger.LogWarningAsync(duplicate?.FullName + " is duplicated on the storage drive.");
 				}
-				answer = await ConfirmationDialog.ShowConfirmationDialog(
+				answer = await ConfirmationDialog.ShowConfirmationDialogAsync(
 					this,
 					"Duplicate file/folder search finished."
 					+ Environment.NewLine
@@ -2220,7 +2216,7 @@ namespace KOTORModSync
 
 						(bool validationResult, _) = await InstallationService.ValidateInstallationEnvironmentAsync(
 							MainConfigInstance,
-							async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
+							async message => await ConfirmationDialog.ShowConfirmationDialogAsync(this, message) == true
 						);
 
 						var modIssues = new List<ValidationIssue>();
@@ -2362,7 +2358,7 @@ namespace KOTORModSync
 				if ( !(MainConfig.DestinationPath is null) )
 					startFolder = await StorageProvider.TryGetFolderFromPathAsync(MainConfig.DestinationPath.FullName);
 
-				string[] result = await ShowFileDialog(
+				string[] result = await _dialogService.ShowFileDialogAsync(
 					windowName: "Select your <<kotorDirectory>> (path to the game install)",
 					isFolderDialog: true,
 					startFolder: startFolder
@@ -2383,7 +2379,7 @@ namespace KOTORModSync
 				if ( !(MainConfig.SourcePath is null) )
 					startFolder = await StorageProvider.TryGetFolderFromPathAsync(MainConfig.SourcePath.FullName) ?? startFolder;
 
-				result = await ShowFileDialog(
+				result = await _dialogService.ShowFileDialogAsync(
 					windowName: "Select your <<modDirectory>> where ALL your mods are downloaded.",
 					isFolderDialog: true,
 					startFolder: startFolder
@@ -2418,7 +2414,7 @@ namespace KOTORModSync
 			{
 				if ( _installRunning )
 				{
-					await InformationDialog.ShowInformationDialog(
+					await InformationDialog.ShowInformationDialogAsync(
 						this,
 						message: "There's already another installation running, please check the output window."
 					);
@@ -2440,7 +2436,7 @@ namespace KOTORModSync
 					return;
 				}
 				string name = CurrentComponent.Name;
-				bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
+				bool? confirm = await ConfirmationDialog.ShowConfirmationDialogAsync(
 					this,
 					CurrentComponent.Directions
 					+ Environment.NewLine
@@ -2482,7 +2478,7 @@ namespace KOTORModSync
 
 					if ( exitCode != 0 )
 					{
-						await InformationDialog.ShowInformationDialog(
+						await InformationDialog.ShowInformationDialogAsync(
 							this,
 							$"There was a problem installing '{name}':"
 							+ Environment.NewLine
@@ -2529,7 +2525,7 @@ namespace KOTORModSync
 					{
 						await Dispatcher.UIThread.InvokeAsync(async () =>
 						{
-							await InformationDialog.ShowInformationDialog(
+							await InformationDialog.ShowInformationDialogAsync(
 								this,
 								message: "There's already an installation running, please check the output window."
 							);
@@ -2539,14 +2535,14 @@ namespace KOTORModSync
 
 					(bool success, string informationMessage) = await InstallationService.ValidateInstallationEnvironmentAsync(
 						MainConfigInstance,
-						async message => await ConfirmationDialog.ShowConfirmationDialog(this, message) == true
+						async message => await ConfirmationDialog.ShowConfirmationDialogAsync(this, message) == true
 					);
 
 					if ( !success )
 					{
 						await Dispatcher.UIThread.InvokeAsync(async () =>
 						{
-							await InformationDialog.ShowInformationDialog(this, informationMessage);
+							await InformationDialog.ShowInformationDialogAsync(this, informationMessage);
 						});
 						return;
 					}
@@ -2569,20 +2565,20 @@ namespace KOTORModSync
 			{
 
 				UpdateStepProgress();
-				if ( await ConfirmationDialog.ShowConfirmationDialog(
+				if ( await ConfirmationDialog.ShowConfirmationDialogAsync(
 						this,
 						"WARNING! While there is code in place to prevent incorrect instructions from running,"
 						+ $" the program cannot predict every possible mistake a user could make in a config file.{Environment.NewLine}"
-						+ " Additionally, some mod builds can be 20GB or larger! Due to this, KOTORModSync will not explicitly create any backups."
-						+ " Please ensure you've backed up your Install directory"
-						+ $" and you've ensured you're running a Vanilla installation.{Environment.NewLine}{Environment.NewLine}"
+						+ " KOTORModSync now uses a checkpoint system that tracks file changes after each mod installation."
+						+ " You can rollback to any checkpoint if something goes wrong."
+						+ $" However, you should still back up your Install directory before proceeding.{Environment.NewLine}{Environment.NewLine}"
 						+ " Are you sure you're ready to continue?"
 					)
 					!= true )
 				{
 					return;
 				}
-				if ( await ConfirmationDialog.ShowConfirmationDialog(this, confirmText: "Really install all mods?") != true )
+				if ( await ConfirmationDialog.ShowConfirmationDialogAsync(this, confirmText: "Really install all mods?") != true )
 					return;
 				var progressWindow = new ProgressWindow { ProgressBar = { Value = 0 }, Topmost = true };
 				DateTime installStartTime = DateTime.UtcNow;
@@ -2634,7 +2630,7 @@ namespace KOTORModSync
 
 						e2.Cancel = true;
 
-						bool? result = await ConfirmationDialog.ShowConfirmationDialog(
+						bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(
 							this,
 							confirmText:
 							"Closing the progress window will stop the install after the current instruction completes. Really cancel the install?"
@@ -2697,6 +2693,19 @@ namespace KOTORModSync
 							continue;
 						}
 						await Logger.LogAsync($"Start Install of '{component.Name}'...");
+
+
+						if ( component.WidescreenOnly && !string.IsNullOrWhiteSpace(MainConfig.WidescreenSectionContent) )
+						{
+							bool shouldContinue = await ShowWidescreenNotificationAsync();
+							if ( !shouldContinue )
+							{
+								await Logger.LogAsync(message: "Install cancelled by user at widescreen notification");
+								exitCode = ModComponent.InstallExitCode.UserCancelledInstall;
+								break;
+							}
+						}
+
 						exitCode = await InstallationService.InstallSingleComponentAsync(
 							component,
 							MainConfig.AllComponents
@@ -2704,7 +2713,7 @@ namespace KOTORModSync
 						await Logger.LogAsync($"Install of '{component.Name}' finished with exit code {exitCode}");
 						if ( exitCode != 0 )
 						{
-							bool? confirm = await ConfirmationDialog.ShowConfirmationDialog(
+							bool? confirm = await ConfirmationDialog.ShowConfirmationDialogAsync(
 								this,
 								$"There was a problem installing '{component.Name}':"
 								+ Environment.NewLine
@@ -2725,7 +2734,7 @@ namespace KOTORModSync
 					}
 					if ( exitCode != ModComponent.InstallExitCode.Success )
 						return;
-					await InformationDialog.ShowInformationDialog(
+					await InformationDialog.ShowInformationDialogAsync(
 						this,
 						message: "Install Completed. Check the output window for information."
 					);
@@ -2783,14 +2792,14 @@ namespace KOTORModSync
 
 				if ( MainConfig.AllComponents == null || MainConfig.AllComponents.Count == 0 )
 				{
-					await InformationDialog.ShowInformationDialog(
+					await InformationDialog.ShowInformationDialogAsync(
 						this,
 						message: "No mod components available to generate documentation."
 					);
 					return;
 				}
 
-				string file = await SaveFile(
+				string file = await SaveFileAsync(
 					saveFileName: "ModList_Documentation.md"
 				);
 
@@ -2801,12 +2810,17 @@ namespace KOTORModSync
 				}
 
 				await Logger.LogAsync($"Generating documentation for {MainConfig.AllComponents.Count} mod component(s)...");
-				string docs = ModComponent.GenerateModDocumentation(MainConfig.AllComponents);
+				string docs = ModComponentSerializationService.GenerateModDocumentation(
+					MainConfig.AllComponents,
+					MainConfig.BeforeModListContent,
+					MainConfig.AfterModListContent,
+					MainConfig.WidescreenSectionContent,
+					MainConfig.AspyrSectionContent);
 
 				if ( string.IsNullOrWhiteSpace(docs) )
 				{
 					await Logger.LogWarningAsync("Generated documentation is empty.");
-					await InformationDialog.ShowInformationDialog(
+					await InformationDialog.ShowInformationDialogAsync(
 						this,
 						message: "The generated documentation is empty. Please check your mod components."
 					);
@@ -2817,12 +2831,12 @@ namespace KOTORModSync
 
 				string successMessage = $"Successfully generated and saved documentation for {MainConfig.AllComponents.Count} mod component(s) to:\n\n{file}";
 				await Logger.LogAsync($"Documentation saved to '{file}'");
-				await InformationDialog.ShowInformationDialog(this, successMessage);
+				await InformationDialog.ShowInformationDialogAsync(this, successMessage);
 			}
 			catch ( IOException ioEx )
 			{
 				await Logger.LogExceptionAsync(ioEx, customMessage: "IO error while saving documentation file");
-				await InformationDialog.ShowInformationDialog(
+				await InformationDialog.ShowInformationDialogAsync(
 					this,
 					message: $"Failed to save documentation file. The file may be in use or the path may be invalid.\n\nError: {ioEx.Message}"
 				);
@@ -2830,7 +2844,7 @@ namespace KOTORModSync
 			catch ( UnauthorizedAccessException uaEx )
 			{
 				await Logger.LogExceptionAsync(uaEx, customMessage: "Access denied while saving documentation");
-				await InformationDialog.ShowInformationDialog(
+				await InformationDialog.ShowInformationDialogAsync(
 					this,
 					message: $"Access denied while saving the documentation file. Please check file permissions.\n\nError: {uaEx.Message}"
 				);
@@ -2838,18 +2852,12 @@ namespace KOTORModSync
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex, customMessage: "Unexpected error generating and saving documentation");
-				await InformationDialog.ShowInformationDialog(
+				await InformationDialog.ShowInformationDialogAsync(
 					this,
 					message: $"An unexpected error occurred while generating and saving documentation.\n\nError: {ex.Message}"
 				);
 			}
 		}
-
-
-
-
-
-
 
 
 		[UsedImplicitly]
@@ -2920,13 +2928,13 @@ namespace KOTORModSync
 					else if ( tabName == "raw" )
 					{
 						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'raw', loading into RawEditTextBox");
-						await LoadIntoRawEditTextBox(CurrentComponent);
+						await LoadIntoRawEditTextBoxAsync(CurrentComponent);
 						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] LoadIntoRawEditTextBox completed");
 					}
 					else if ( lastTabName == "raw" )
 					{
 						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Source was 'raw', checking if changes should be saved");
-						shouldSwapTabs = await ShouldSaveChanges();
+						shouldSwapTabs = await ShouldSaveChangesAsync();
 						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] ShouldSaveChanges returned: {shouldSwapTabs}");
 						if ( shouldSwapTabs )
 						{
@@ -3031,7 +3039,7 @@ namespace KOTORModSync
 			if ( currentTabName == "raw" && CurrentComponent != null )
 			{
 				await Logger.LogVerboseAsync("[LoadComponentDetails] Current tab is 'raw' and switching components, checking if changes should be saved");
-				confirmLoadOverwrite = await ShouldSaveChanges();
+				confirmLoadOverwrite = await ShouldSaveChangesAsync();
 				await Logger.LogVerboseAsync($"[LoadComponentDetails] ShouldSaveChanges returned: {confirmLoadOverwrite}");
 			}
 
@@ -3048,7 +3056,7 @@ namespace KOTORModSync
 			if ( currentTabName == "raw" )
 			{
 				await Logger.LogVerboseAsync("[LoadComponentDetails] Current tab is 'raw', loading new component into RawEditTextBox");
-				await LoadIntoRawEditTextBox(selectedComponent);
+				await LoadIntoRawEditTextBoxAsync(selectedComponent);
 				await Logger.LogVerboseAsync("[LoadComponentDetails] LoadIntoRawEditTextBox completed");
 			}
 
@@ -3089,6 +3097,23 @@ namespace KOTORModSync
 				SummaryTabItem.IsVisible = true;
 				GuiEditTabItem.IsVisible = true;
 				RawEditTabItem.IsVisible = true;
+
+				if ( c.ModLink != null && c.ModLink.Count > 0 )
+				{
+					Task.Run(async () =>
+					{
+						try
+						{
+							await Logger.LogVerboseAsync($"[SetCurrentComponent] Pre-resolving URLs for component '{c.Name}' in editor mode");
+							await _downloadCacheService.PreResolveUrlsAsync(c, _downloadCacheService._downloadManager, System.Threading.CancellationToken.None);
+							await Logger.LogVerboseAsync($"[SetCurrentComponent] Pre-resolution completed for '{c.Name}'");
+						}
+						catch ( Exception ex )
+						{
+							await Logger.LogExceptionAsync(ex, $"[SetCurrentComponent] Error pre-resolving URLs for '{c.Name}'");
+						}
+					});
+				}
 			}
 			Logger.LogVerbose("[SetCurrentComponent] Tabs visibility set to true");
 
@@ -3101,6 +3126,20 @@ namespace KOTORModSync
 			Logger.LogVerbose("[SetCurrentComponent] Markdown content rendering completed");
 
 			Logger.LogVerbose($"[SetCurrentComponent] Tab check: isNewComponent={isNewComponent}, InitialTab.IsSelected={InitialTab.IsSelected}, SelectedIndex={TabControl.SelectedIndex}, GuiEditTabItem.IsSelected={GuiEditTabItem.IsSelected}, RawEditTabItem.IsSelected={RawEditTabItem.IsSelected}");
+
+			if ( isNewComponent && RawEditTabItem.IsSelected )
+			{
+				Logger.LogVerbose("[SetCurrentComponent] New component and Raw tab is selected, updating raw editor content");
+				Task.Run(async () =>
+				{
+					if ( await ShouldSaveChangesAsync() )
+					{
+						await LoadIntoRawEditTextBoxAsync(c);
+						Logger.LogVerbose("[SetCurrentComponent] Raw editor content updated");
+					}
+				});
+			}
+
 			if ( isNewComponent && (InitialTab.IsSelected || TabControl.SelectedIndex == int.MaxValue || (!GuiEditTabItem.IsSelected && !RawEditTabItem.IsSelected)) )
 			{
 				Logger.LogVerbose("[SetCurrentComponent] Switching to SummaryTabItem");
@@ -3118,7 +3157,7 @@ namespace KOTORModSync
 			_markdownRenderingService.RenderComponentMarkdown(component, DescriptionTextBlock, DirectionsTextBlock);
 		}
 
-		private async Task LoadIntoRawEditTextBox([NotNull] ModComponent selectedComponent)
+		private async Task LoadIntoRawEditTextBoxAsync([NotNull] ModComponent selectedComponent)
 		{
 			if ( selectedComponent is null )
 				throw new ArgumentNullException(nameof(selectedComponent));
@@ -3139,9 +3178,7 @@ namespace KOTORModSync
 			return result;
 		}
 
-
-
-		private async Task<bool> ShouldSaveChanges(bool noPrompt = false)
+		private async Task<bool> ShouldSaveChangesAsync(bool noPrompt = false)
 		{
 			try
 			{
@@ -3160,7 +3197,7 @@ namespace KOTORModSync
 			{
 				string output = "An unexpected exception was thrown. Please refer to the output window for details and report this issue to a developer.";
 				await Logger.LogExceptionAsync(ex);
-				await InformationDialog.ShowInformationDialog(this, output + Environment.NewLine + ex.Message);
+				await InformationDialog.ShowInformationDialogAsync(this, output + Environment.NewLine + ex.Message);
 				return false;
 			}
 		}
@@ -3284,7 +3321,7 @@ namespace KOTORModSync
 					? Path.ChangeExtension(_lastLoadedFileName, extension.TrimStart('.'))
 					: $"my_mod_instructions{extension}";
 
-				string filePath = await SaveFile(saveFileName: defaultFileName);
+				string filePath = await SaveFileAsync(saveFileName: defaultFileName);
 				if ( filePath == null )
 					return;
 
@@ -3320,6 +3357,9 @@ namespace KOTORModSync
 			{
 
 				var sb = new System.Text.StringBuilder();
+
+				MainWindow.WriteYamlMetadataSection(sb);
+
 				foreach ( var component in MainConfig.AllComponents )
 				{
 					sb.AppendLine("---");
@@ -3337,12 +3377,58 @@ namespace KOTORModSync
 			}
 		}
 
+		private static void WriteYamlMetadataSection(System.Text.StringBuilder sb)
+		{
+			bool hasAnyMetadata = !string.IsNullOrWhiteSpace(MainConfig.TargetGame)
+				|| !string.IsNullOrWhiteSpace(MainConfig.BuildName)
+				|| !string.IsNullOrWhiteSpace(MainConfig.BuildAuthor)
+				|| !string.IsNullOrWhiteSpace(MainConfig.BuildDescription)
+				|| MainConfig.LastModified.HasValue;
+
+			if ( !hasAnyMetadata && MainConfig.FileFormatVersion == "2.0" )
+				return;
+
+			sb.AppendLine("---");
+			sb.AppendLine("# Metadata");
+			sb.AppendLine($"fileFormatVersion: \"{MainConfig.FileFormatVersion}\"");
+
+			if ( !string.IsNullOrWhiteSpace(MainConfig.TargetGame) )
+				sb.AppendLine($"targetGame: \"{MainConfig.TargetGame}\"");
+
+			if ( !string.IsNullOrWhiteSpace(MainConfig.BuildName) )
+				sb.AppendLine($"buildName: \"{MainConfig.BuildName}\"");
+
+			if ( !string.IsNullOrWhiteSpace(MainConfig.BuildAuthor) )
+				sb.AppendLine($"buildAuthor: \"{MainConfig.BuildAuthor}\"");
+
+			if ( !string.IsNullOrWhiteSpace(MainConfig.BuildDescription) )
+			{
+				string escapedDescription = MainConfig.BuildDescription
+					.Replace("\\", "\\\\")
+					.Replace("\"", "\\\"")
+					.Replace("\n", "\\n")
+					.Replace("\r", "\\r")
+					.Replace("\t", "\\t");
+				sb.AppendLine($"buildDescription: \"{escapedDescription}\"");
+			}
+
+			if ( MainConfig.LastModified.HasValue )
+				sb.AppendLine($"lastModified: \"{MainConfig.LastModified.Value:O}\"");
+
+			sb.AppendLine();
+		}
+
 		private static async Task<bool> SaveMarkdownFileAsync(string filePath)
 		{
 			try
 			{
 
-				string markdown = ModComponent.GenerateModDocumentation(MainConfig.AllComponents);
+				string markdown = ModComponentSerializationService.GenerateModDocumentation(
+					MainConfig.AllComponents,
+					MainConfig.BeforeModListContent,
+					MainConfig.AfterModListContent,
+					MainConfig.WidescreenSectionContent,
+					MainConfig.AspyrSectionContent);
 				File.WriteAllText(filePath, markdown);
 				await Logger.LogAsync($"Saved {MainConfig.AllComponents.Count} components to Markdown file: {filePath}");
 				return true;
@@ -3568,7 +3654,7 @@ namespace KOTORModSync
 				if ( CurrentComponent is null )
 				{
 					await Logger.LogVerboseAsync("[AddNewInstruction_Click] CurrentComponent is null, showing dialog");
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				var addButton = (Button)sender;
@@ -3616,7 +3702,7 @@ namespace KOTORModSync
 			{
 				if ( CurrentComponent is null )
 				{
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				Instruction thisInstruction = (Instruction)((Button)sender).Tag
@@ -3638,12 +3724,12 @@ namespace KOTORModSync
 			{
 				if ( CurrentComponent is null )
 				{
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				await Logger.LogVerboseAsync($"[AutoGenerateInstructions_Click] START - CurrentComponent='{CurrentComponent.Name}'");
 
-				bool? useModLinks = await ConfirmationDialog.ShowConfirmationDialog(
+				bool? useModLinks = await ConfirmationDialog.ShowConfirmationDialogAsync(
 					this,
 					"Where would you like to source these instructions from?",
 					"From Mod Links",
@@ -3656,7 +3742,7 @@ namespace KOTORModSync
 
 				if ( CurrentComponent.Instructions.Count > 0 )
 				{
-					bool? confirmed = await ConfirmationDialog.ShowConfirmationDialog(
+					bool? confirmed = await ConfirmationDialog.ShowConfirmationDialogAsync(
 						this,
 						"Replace Existing Instructions",
 						"This will replace all existing instructions with auto-generated ones. Continue?");
@@ -3678,7 +3764,7 @@ namespace KOTORModSync
 			catch ( Exception exception )
 			{
 				await Logger.LogExceptionAsync(exception);
-				await InformationDialog.ShowInformationDialog(this, message: $"Error generating instructions: {exception.Message}");
+				await InformationDialog.ShowInformationDialogAsync(this, message: $"Error generating instructions: {exception.Message}");
 			}
 		}
 		private async Task GenerateInstructionsFromModLinks()
@@ -3689,7 +3775,7 @@ namespace KOTORModSync
 		}
 		private async Task GenerateInstructionsFromArchive()
 		{
-			bool success = await _instructionGenerationService.GenerateInstructionsFromArchiveAsync(CurrentComponent, () => ShowFileDialog(false, false, null, "Select the mod archive to analyze for auto-generation"));
+			bool success = await _instructionGenerationService.GenerateInstructionsFromArchiveAsync(CurrentComponent, () => _dialogService.ShowFileDialogAsync(false, false, null, "Select the mod archive to analyze for auto-generation"));
 			if ( success )
 				LoadComponentDetails(CurrentComponent);
 		}
@@ -3722,7 +3808,7 @@ namespace KOTORModSync
 			{
 				if ( CurrentComponent is null )
 				{
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				var thisInstruction = (Instruction)((Button)sender).Tag;
@@ -3747,7 +3833,7 @@ namespace KOTORModSync
 			{
 				if ( CurrentComponent is null )
 				{
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				var thisInstruction = (Instruction)((Button)sender).Tag;
@@ -3785,6 +3871,31 @@ namespace KOTORModSync
 				ApplyTheme(selectedTheme);
 
 				SaveSettings();
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+			}
+		}
+
+		[UsedImplicitly]
+		private async void OpenCheckpointManagement_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			try
+			{
+				if ( MainConfig.DestinationPath == null || !Directory.Exists(MainConfig.DestinationPath.FullName) )
+				{
+					var dialog = new Dialogs.MessageDialog(
+						"No Destination Path",
+						"Please set a KOTOR installation directory before managing checkpoints.",
+						"OK"
+					);
+					await dialog.ShowDialog(this);
+					return;
+				}
+
+				var checkpointDialog = new Dialogs.CheckpointManagementDialog(MainConfig.DestinationPath.FullName);
+				await checkpointDialog.ShowDialog(this);
 			}
 			catch ( Exception ex )
 			{
@@ -3874,7 +3985,7 @@ namespace KOTORModSync
 				if ( CurrentComponent is null )
 				{
 					await Logger.LogVerboseAsync("[AddNewOption_Click] CurrentComponent is null, showing dialog");
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				var addButton = (Button)sender;
@@ -3920,7 +4031,7 @@ namespace KOTORModSync
 			{
 				if ( CurrentComponent is null )
 				{
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				var thisOption = (Option)((Button)sender).Tag;
@@ -3942,7 +4053,7 @@ namespace KOTORModSync
 			{
 				if ( CurrentComponent is null )
 				{
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				var thisOption = (Option)((Button)sender).Tag;
@@ -3964,7 +4075,7 @@ namespace KOTORModSync
 			{
 				if ( CurrentComponent is null )
 				{
-					await InformationDialog.ShowInformationDialog(this, message: "Load a component first");
+					await InformationDialog.ShowInformationDialogAsync(this, message: "Load a component first");
 					return;
 				}
 				var thisOption = (Option)((Button)sender).Tag;
@@ -4737,6 +4848,34 @@ namespace KOTORModSync
 		{
 			return ValidationService.GetUrlValidationReason(url);
 		}
+
+		private bool _widescreenNotificationShown;
+
+		private async Task<bool> ShowWidescreenNotificationAsync()
+		{
+
+			if ( _widescreenNotificationShown )
+				return true;
+
+			try
+			{
+				var dialog = new Dialogs.WidescreenNotificationDialog(MainConfig.WidescreenSectionContent);
+				bool? result = await dialog.ShowDialog<bool?>(this);
+
+				if ( dialog.DontShowAgain )
+				{
+					_widescreenNotificationShown = true;
+				}
+
+				return result == true && !dialog.UserCancelled;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogErrorAsync($"Error showing widescreen notification: {ex.Message}");
+				return true;
+			}
+		}
+
 		#endregion
 		private async void JumpToInstruction_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{

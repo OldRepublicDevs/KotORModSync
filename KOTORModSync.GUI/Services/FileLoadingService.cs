@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,11 +11,11 @@ using Avalonia.Controls;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Parsing;
+using KOTORModSync.Core.Services;
 using KOTORModSync.Dialogs;
 
 namespace KOTORModSync.Services
 {
-
 	public class FileLoadingService
 	{
 		private readonly MainConfig _mainConfig;
@@ -35,7 +34,11 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		public async Task<bool> LoadTomlFileAsync(string filePath, bool editorMode, Func<Task> onComponentsLoaded, string fileType = "instruction file")
+		public async Task<bool> LoadTomlFileAsync(
+			[NotNull] string filePath,
+			[NotNull] bool editorMode,
+			[NotNull] Func<Task> onComponentsLoaded,
+			[NotNull] string fileType = "instruction file")
 		{
 			try
 			{
@@ -48,7 +51,7 @@ namespace KOTORModSync.Services
 					return false;
 				}
 
-				List<ModComponent> newComponents = ModComponent.ReadComponentsFromFile(filePath);
+				List<ModComponent> newComponents = Core.Services.FileLoadingService.LoadFromFile(filePath);
 
 				FileLoadingService.ProcessModLinks(newComponents);
 
@@ -67,7 +70,6 @@ namespace KOTORModSync.Services
 				{
 					case true:
 						{
-
 							MergeStrategy? mergeStrategy = await ShowMergeStrategyDialogAsync(fileType);
 							if ( mergeStrategy == null )
 								return false;
@@ -195,6 +197,13 @@ namespace KOTORModSync.Services
 						}
 					}
 
+
+					_mainConfig.beforeModListContent = parseResult.BeforeModListContent ?? string.Empty;
+					_mainConfig.afterModListContent = parseResult.AfterModListContent ?? string.Empty;
+					_mainConfig.widescreenSectionContent = parseResult.WidescreenSectionContent ?? string.Empty;
+					_mainConfig.aspyrSectionContent = parseResult.AspyrSectionContent ?? string.Empty;
+					await Logger.LogAsync($"Stored {_mainConfig.beforeModListContent.Length} characters before mod list and {_mainConfig.afterModListContent.Length} characters after.");
+
 					if ( _mainConfig.allComponents.Count == 0 )
 					{
 						_mainConfig.allComponents = new List<ModComponent>(parseResult.Components);
@@ -262,14 +271,7 @@ namespace KOTORModSync.Services
 
 				await Logger.LogVerboseAsync($"Saving TOML config to {filePath}");
 
-				using ( var writer = new StreamWriter(filePath) )
-				{
-					foreach ( ModComponent c in components )
-					{
-						string tomlContents = c.SerializeComponent();
-						await writer.WriteLineAsync(tomlContents);
-					}
-				}
+				Core.Services.FileLoadingService.SaveToFile(components, filePath);
 
 				_lastLoadedFileName = Path.GetFileName(filePath);
 				return true;
@@ -316,7 +318,7 @@ namespace KOTORModSync.Services
 				return false;
 
 			string confirmText = $"You already have a config loaded. Do you want to merge the {fileType} with existing components or load it as a new config?";
-			return await ConfirmationDialog.ShowConfirmationDialog(_parentWindow, confirmText, yesButtonText: "Merge", noButtonText: "Load as New");
+			return await ConfirmationDialog.ShowConfirmationDialogAsync(_parentWindow, confirmText, yesButtonText: "Merge", noButtonText: "Load as New");
 		}
 
 		private async Task<MergeStrategy?> ShowMergeStrategyDialogAsync(string fileType = "TOML")
@@ -325,7 +327,7 @@ namespace KOTORModSync.Services
 								"• GUID Matching: Matches components by their unique GUID (recommended for TOML files)\n" +
 								"• Name/Author Matching: Matches components by name and author using fuzzy matching";
 
-			bool? result = await ConfirmationDialog.ShowConfirmationDialog(_parentWindow, confirmText, yesButtonText: "GUID Matching", noButtonText: "Name/Author Matching");
+			bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(_parentWindow, confirmText, yesButtonText: "GUID Matching", noButtonText: "Name/Author Matching");
 
 			if ( result == null )
 				return null;

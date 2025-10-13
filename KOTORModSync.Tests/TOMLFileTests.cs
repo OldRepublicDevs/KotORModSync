@@ -2,9 +2,9 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Text;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Utility;
 using Newtonsoft.Json;
 using Tomlyn;
@@ -18,7 +18,7 @@ namespace KOTORModSync.Tests
 		public void SetUp()
 		{
 
-			_filePath = Path.GetTempFileName();
+			_filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
 
 			File.WriteAllText(_filePath, _exampleToml);
 		}
@@ -86,14 +86,14 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 
 			tomlContents = Serializer.FixWhitespaceIssues(tomlContents);
 
-			string modifiedFilePath = Path.GetTempFileName();
+			string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
-			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
+			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
-			ModComponent.OutputConfigFile(originalComponents, modifiedFilePath);
+			FileLoadingService.SaveToFile(originalComponents, modifiedFilePath);
 
-			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
+			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -128,17 +128,17 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoadTOMLFile_CaseInsensitive()
 		{
 
-			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
+			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
 
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
 			string tomlContents = File.ReadAllText(_filePath);
 
 			tomlContents = ConvertFieldNamesAndValuesToMixedCase(tomlContents);
 
-			string modifiedFilePath = Path.GetTempFileName();
+			string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
-			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
+			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -155,17 +155,17 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoadTOMLFile_WhitespaceTests()
 		{
 
-			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
+			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
 
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
 			string tomlContents = File.ReadAllText(_filePath);
 
 			tomlContents = "    \r\n\t   \r\n\r\n\r\n" + tomlContents + "    \r\n\t   \r\n\r\n\r\n";
 
-			string modifiedFilePath = Path.GetTempFileName();
+			string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
 			File.WriteAllText(modifiedFilePath, tomlContents);
 
-			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(modifiedFilePath);
+			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -230,11 +230,11 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 
 			List<ModComponent> originalComponents = [];
 
-			ModComponent.OutputConfigFile(originalComponents, _filePath);
+			FileLoadingService.SaveToFile(originalComponents, _filePath);
 
 			try
 			{
-				List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
+				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
 
 				Assert.That(loadedComponents, Is.Null.Or.Empty);
 			}
@@ -261,8 +261,8 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 				},
 			];
 
-			ModComponent.OutputConfigFile(originalComponents, _filePath);
-			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
+			FileLoadingService.SaveToFile(originalComponents, _filePath);
+			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -279,12 +279,12 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		public void SaveAndLoadTOMLFile_ModifyComponents()
 		{
 
-			List<ModComponent> originalComponents = ModComponent.ReadComponentsFromFile(_filePath);
+			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
 
 			originalComponents[0].Name = "Modified Name";
 
-			ModComponent.OutputConfigFile(originalComponents, _filePath);
-			List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
+			FileLoadingService.SaveToFile(originalComponents, _filePath);
+			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -349,8 +349,8 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 
 			foreach ( List<ModComponent> components in rounds )
 			{
-				ModComponent.OutputConfigFile(components, _filePath);
-				List<ModComponent> loadedComponents = ModComponent.ReadComponentsFromFile(_filePath);
+				FileLoadingService.SaveToFile(components, _filePath);
+				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
 
 				Assert.That(loadedComponents, Has.Count.EqualTo(components.Count));
 

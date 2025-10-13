@@ -1,0 +1,36 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<Window
+    x:Class="KOTORModSync.Dialogs.MessageDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Message"
+    Width="450"
+    Height="200"
+    CanResize="False"
+    WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="24" RowDefinitions="*,Auto">
+        <StackPanel Grid.Row="0" Spacing="12">
+            <TextBlock
+                x:Name="TitleText"
+                FontSize="16"
+                FontWeight="SemiBold"
+                Text="Message" />
+
+            <TextBlock
+                x:Name="MessageText"
+                Text="Message content"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Button
+            x:Name="OkButton"
+            Grid.Row="1"
+            Padding="24,8"
+            HorizontalAlignment="Right"
+            Click="OkButton_Click"
+            Content="OK" />
+    </Grid>
+</Window>

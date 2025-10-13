@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Linq;
 
@@ -61,9 +60,6 @@ namespace KOTORModSync
 
 			return string.Join(" ", input.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
 		}
-
-
-
 
 		private static bool AreSimilar(string s1, string s2, double threshold = 0.75)
 		{
@@ -164,9 +160,6 @@ namespace KOTORModSync
 
 			return AreSimilar(norm1, norm2, threshold: 0.8);
 		}
-
-
-
 
 		public static bool FuzzyMatch(string existingName, string existingAuthor, string incomingName, string incomingAuthor)
 		{

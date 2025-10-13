@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -66,11 +65,14 @@ namespace KOTORModSync.Dialogs
 			string currentTheme = ThemeManager.GetCurrentStylePath();
 			Logger.LogVerbose($"SettingsDialog: Current theme path='{currentTheme}'");
 
-			int selectedIndex = 0;
-			if ( string.Equals(currentTheme, "/Styles/KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) )
-				selectedIndex = 0;
-			else if ( string.Equals(currentTheme, "/Styles/Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) )
-				selectedIndex = 1;
+			int selectedIndex = SettingsDialog.GetThemeIndexFromTargetGame();
+			if ( selectedIndex == -1 )
+			{
+				if ( string.Equals(currentTheme, "/Styles/KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) )
+					selectedIndex = 0;
+				else if ( string.Equals(currentTheme, "/Styles/Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) )
+					selectedIndex = 1;
+			}
 
 			Logger.LogVerbose($"SettingsDialog: Setting ComboBox SelectedIndex to {selectedIndex}");
 			if ( styleComboBox != null )
@@ -94,6 +96,32 @@ namespace KOTORModSync.Dialogs
 			LoadTelemetrySettings();
 
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow end");
+		}
+
+		private static int GetThemeIndexFromTargetGame()
+		{
+			if ( string.IsNullOrWhiteSpace(MainConfig.TargetGame) )
+				return -1;
+
+			string game = MainConfig.TargetGame.Trim();
+
+			if ( game.Equals("K1", StringComparison.OrdinalIgnoreCase) ||
+				 game.Equals("KOTOR1", StringComparison.OrdinalIgnoreCase) )
+			{
+				Logger.LogVerbose($"SettingsDialog: Target game '{game}' -> K1 theme");
+				return 0;
+			}
+
+			if ( game.Equals("TSL", StringComparison.OrdinalIgnoreCase) ||
+				 game.Equals("K2", StringComparison.OrdinalIgnoreCase) ||
+				 game.Equals("KOTOR2", StringComparison.OrdinalIgnoreCase) )
+			{
+				Logger.LogVerbose($"SettingsDialog: Target game '{game}' -> TSL theme");
+				return 1;
+			}
+
+			Logger.LogVerbose($"SettingsDialog: Unknown target game '{game}', using default theme");
+			return -1;
 		}
 
 		private void LoadTelemetrySettings()
@@ -211,7 +239,7 @@ namespace KOTORModSync.Dialogs
 				var telemetryConfig = TelemetryConfiguration.Load();
 				string privacySummary = telemetryConfig.GetPrivacySummary();
 
-				await InformationDialog.ShowInformationDialog(this, privacySummary);
+				await InformationDialog.ShowInformationDialogAsync(this, privacySummary);
 			}
 			catch ( Exception ex )
 			{

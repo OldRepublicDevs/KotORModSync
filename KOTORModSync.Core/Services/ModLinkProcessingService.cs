@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,9 +23,19 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
+				// Configure HttpClientHandler for better parallel performance
+				var handler = new HttpClientHandler
+				{
+					MaxConnectionsPerServer = 10, // Allow up to 10 concurrent connections per server
+					AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+				};
 
-				var httpClient = new HttpClient();
-				var handlers = new List<IDownloadHandler>
+				var httpClient = new HttpClient(handler)
+				{
+					Timeout = TimeSpan.FromMinutes(5) // Increase timeout for parallel operations
+				};
+
+				var downloadHandlers = new List<IDownloadHandler>
 				{
 					new DeadlyStreamDownloadHandler(httpClient),
 					new MegaDownloadHandler(),
@@ -34,7 +43,7 @@ namespace KOTORModSync.Core.Services
 					new GameFrontDownloadHandler(httpClient),
 					new DirectDownloadHandler(httpClient)
 				};
-				_downloadCacheService.SetDownloadManager(new DownloadManager(handlers));
+				_downloadCacheService.SetDownloadManager(new DownloadManager(downloadHandlers));
 			}
 			catch ( Exception ex )
 			{
@@ -43,40 +52,37 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-
-
-
 		public async Task<int> ProcessComponentModLinksAsync(
 			List<ModComponent> components,
 			string downloadDirectory,
 			IProgress<Download.DownloadProgress> progress = null,
 			CancellationToken cancellationToken = default)
 		{
-			if (components == null || components.Count == 0)
+			if ( components == null || components.Count == 0 )
 				return 0;
 
-			if (string.IsNullOrWhiteSpace(downloadDirectory))
+			if ( string.IsNullOrWhiteSpace(downloadDirectory) )
 				return 0;
 
 			int successCount = 0;
 
-			foreach (ModComponent component in components)
+			foreach ( ModComponent component in components )
 			{
 				try
 				{
 
-					if (component.ModLink == null || component.ModLink.Count == 0)
+					if ( component.ModLink == null || component.ModLink.Count == 0 )
 						continue;
 
 					int initialInstructionCount = component.Instructions.Count;
 
-					foreach (string modLink in component.ModLink)
+					foreach ( string modLink in component.ModLink )
 					{
-						if (string.IsNullOrWhiteSpace(modLink))
+						if ( string.IsNullOrWhiteSpace(modLink) )
 							continue;
 
-						if (!modLink.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
-							!modLink.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+						if ( !modLink.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+							!modLink.StartsWith("https://", StringComparison.OrdinalIgnoreCase) )
 							continue;
 
 						try
@@ -88,16 +94,16 @@ namespace KOTORModSync.Core.Services
 								progress,
 								cancellationToken);
 
-							if (cacheEntries != null && cacheEntries.Count > 0)
+							if ( cacheEntries != null && cacheEntries.Count > 0 )
 							{
-								foreach (var entry in cacheEntries)
+								foreach ( var entry in cacheEntries )
 								{
 
-									if (entry.IsArchive && !string.IsNullOrEmpty(entry.FilePath) && System.IO.File.Exists(entry.FilePath))
+									if ( entry.IsArchive && !string.IsNullOrEmpty(entry.FilePath) && System.IO.File.Exists(entry.FilePath) )
 									{
 
 										bool generated = AutoInstructionGenerator.GenerateInstructions(component, entry.FilePath);
-										if (generated)
+										if ( generated )
 										{
 											await Logger.LogVerboseAsync($"Auto-generated detailed instructions for '{component.Name}' from {entry.ArchiveName}");
 
@@ -107,12 +113,12 @@ namespace KOTORModSync.Core.Services
 								}
 							}
 
-							if (cacheEntries != null && cacheEntries.Count > 0 && component.Instructions.Count > initialInstructionCount)
+							if ( cacheEntries != null && cacheEntries.Count > 0 && component.Instructions.Count > initialInstructionCount )
 							{
 								await Logger.LogVerboseAsync($"Successfully processed ModLink for '{component.Name}': {modLink}");
 							}
 						}
-						catch (Exception ex)
+						catch ( Exception ex )
 						{
 
 							await Logger.LogVerboseAsync($"Failed to process ModLink for '{component.Name}': {modLink} - {ex.Message}");
@@ -120,20 +126,20 @@ namespace KOTORModSync.Core.Services
 						}
 					}
 
-					if (component.Instructions.Count > initialInstructionCount)
+					if ( component.Instructions.Count > initialInstructionCount )
 					{
 						successCount++;
 						int newInstructions = component.Instructions.Count - initialInstructionCount;
 						await Logger.LogAsync($"Added {newInstructions} new instruction(s) for '{component.Name}': {component.InstallationMethod}");
 					}
 				}
-				catch (Exception ex)
+				catch ( Exception ex )
 				{
 					await Logger.LogExceptionAsync(ex, $"Error processing component '{component.Name}'");
 				}
 			}
 
-			if (successCount > 0)
+			if ( successCount > 0 )
 			{
 				await Logger.LogAsync($"Processed ModLinks and generated/updated instructions for {successCount} component(s).");
 			}

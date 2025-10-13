@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
@@ -13,7 +12,7 @@ namespace KOTORModSync.Core.Installation
 	public sealed class InstallSessionState
 	{
 		[JsonProperty]
-		public string Version { get; set; } = "1.0";
+		public string Version { get; set; } = "2.0";
 
 		[JsonProperty]
 		public Guid SessionId { get; set; } = Guid.Empty;

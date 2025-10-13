@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -12,8 +11,8 @@ namespace KOTORModSync.Core.Parsing
 {
 	public enum RegexMode
 	{
-		Individual, 
-		Raw,         
+		Individual,
+		Raw,
 	}
 
 	public sealed class MarkdownImportProfile : INotifyPropertyChanged
@@ -130,11 +129,60 @@ namespace KOTORModSync.Core.Parsing
 			set { _installationMethodPattern = value; OnPropertyChanged(); }
 		}
 
+		private string _downloadInstructionsPattern = string.Empty;
+		public string DownloadInstructionsPattern
+		{
+			get => _downloadInstructionsPattern;
+			set { _downloadInstructionsPattern = value; OnPropertyChanged(); }
+		}
+
 		private string _installationInstructionsPattern = string.Empty;
 		public string InstallationInstructionsPattern
 		{
 			get => _installationInstructionsPattern;
 			set { _installationInstructionsPattern = value; OnPropertyChanged(); }
+		}
+
+		private string _usageWarningPattern = string.Empty;
+		public string UsageWarningPattern
+		{
+			get => _usageWarningPattern;
+			set { _usageWarningPattern = value; OnPropertyChanged(); }
+		}
+
+		private string _screenshotsPattern = string.Empty;
+		public string ScreenshotsPattern
+		{
+			get => _screenshotsPattern;
+			set { _screenshotsPattern = value; OnPropertyChanged(); }
+		}
+
+		private string _knownBugsPattern = string.Empty;
+		public string KnownBugsPattern
+		{
+			get => _knownBugsPattern;
+			set { _knownBugsPattern = value; OnPropertyChanged(); }
+		}
+
+		private string _installationWarningPattern = string.Empty;
+		public string InstallationWarningPattern
+		{
+			get => _installationWarningPattern;
+			set { _installationWarningPattern = value; OnPropertyChanged(); }
+		}
+
+		private string _compatibilityWarningPattern = string.Empty;
+		public string CompatibilityWarningPattern
+		{
+			get => _compatibilityWarningPattern;
+			set { _compatibilityWarningPattern = value; OnPropertyChanged(); }
+		}
+
+		private string _steamNotesPattern = string.Empty;
+		public string SteamNotesPattern
+		{
+			get => _steamNotesPattern;
+			set { _steamNotesPattern = value; OnPropertyChanged(); }
 		}
 
 		private string _nonEnglishPattern = string.Empty;
@@ -149,6 +197,13 @@ namespace KOTORModSync.Core.Parsing
 		{
 			get => _dependenciesPattern;
 			set { _dependenciesPattern = value; OnPropertyChanged(); }
+		}
+
+		private string _dependenciesSeparatorPattern = string.Empty;
+		public string DependenciesSeparatorPattern
+		{
+			get => _dependenciesSeparatorPattern;
+			set { _dependenciesSeparatorPattern = value; OnPropertyChanged(); }
 		}
 
 		private string _restrictionsPattern = string.Empty;
@@ -188,7 +243,7 @@ namespace KOTORModSync.Core.Parsing
 			if ( MultilineFlag ) options |= RegexOptions.Multiline;
 			if ( SinglelineFlag ) options |= RegexOptions.Singleline;
 			if ( IgnoreCaseFlag ) options |= RegexOptions.IgnoreCase;
-			
+
 
 			return options;
 		}
@@ -206,17 +261,17 @@ namespace KOTORModSync.Core.Parsing
 			{
 				clone.Metadata[pair.Key] = pair.Value;
 			}
-			clone.PropertyChanged = null; 
+			clone.PropertyChanged = null;
 			return clone;
 		}
 
 		public static MarkdownImportProfile CreateDefault()
 		{
-			
+
 			const string defaultRawPattern = @"(?ms)^###\s*(?<heading>.+?)\s*\r?\n(?:[\s\S]*?\*\*Name:\*\*\s*(?:\[(?<name>(?<name_link>[^\]]+))\]\([^)]+\)|(?<name_plain>.*?))(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Author:\*\*\s*(?<author>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Description:\*\*\s*(?<description>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Masters:\*\*\s*(?<masters>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Category\s*&\s*Tier:\*\*\s*(?<category_tier>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Non-English Functionality:\*\*\s*(?<non_english>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Installation Method:\*\*\s*(?<installation_method>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?(?:[\s\S]*?\*\*Installation Instructions:\*\*\s*(?<installation_instructions>.*?)(?=\r?\n\s*\*\*[^:\n]{1,100}:\*\*|\r?\n\s*(?:-{3,}|_{3,})|\Z))?[\s\S]*?(?=\r?\n\s*(?:-{3,}|_{3,})|\Z)";
-			
+
 			const string defaultOuterPattern = @"(?m)^###\s*.+?$[\s\S]*?(?=^___\s*$|^##\s|\Z)";
-			
+
 			const string defaultInstructionsBlockPattern = @"<!--<<ModSync>>\s*(?<instructions>[\s\S]*?)-->";
 
 			return new MarkdownImportProfile
@@ -226,20 +281,29 @@ namespace KOTORModSync.Core.Parsing
 				ComponentSectionOptions = RegexOptions.Multiline,
 				RawRegexPattern = defaultRawPattern,
 				RawRegexOptions = RegexOptions.Multiline | RegexOptions.Singleline,
-				NamePattern = @"\*\*Name:\*\*\s*(?:\[(?<name>(?<name_link>[^\]]+))\]\([^)]+\)|(?<name_plain>[^\r\n]+))",
+				HeadingPattern = @"^###\s+(?<heading>.+?)(?:\s*\[.*?\])?\s*$",
+				NamePattern = @"\*\*Name:\*\*\s*(?:\[(?<name>(?<name_link>[^\]]+))\]\([^)]+\)|(?<name_plain>[^\r\n]+))[^\r\n]*",
 				AuthorPattern = @"\*\*Author:\*\*\s*(?<author>[^\r\n]+)",
 				DescriptionPattern = @"\*\*Description:\*\*\s*(?<description>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
 				ModLinkPattern = @"\[(?<label>[^]]+)\]\((?<link>[^)]+)\)",
 				CategoryTierPattern = @"\*\*Category\s*&\s*Tier:\*\*\s*(?<category>[^/\r\n]+)/\s*(?<tier>[^\r\n]+)",
 				InstallationMethodPattern = @"\*\*Installation Method:\*\*\s*(?<method>[^\r\n]+)",
-				InstallationInstructionsPattern = @"\*\*Installation Instructions:\*\*\s*(?<directions>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
+				DownloadInstructionsPattern = @"\*\*Download Instructions:\*\*\s*(?<download>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
+				InstallationInstructionsPattern = @"\*\*(?:Install(?:ation)?|Installation) Instructions:\*\*\s*(?<directions>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
+				UsageWarningPattern = @"\*\*Usage Warning:\*\*\s*(?<warning>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
+				ScreenshotsPattern = @"\*\*Screenshots:\*\*\s*(?<screenshots>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
+				KnownBugsPattern = @"\*\*Known Bugs:\*\*\s*(?<bugs>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
+				InstallationWarningPattern = @"\*\*Installation Warning:\*\*\s*(?<installwarning>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
+				CompatibilityWarningPattern = @"\*\*Compatibility Warning:\*\*\s*(?<compatwarning>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
+				SteamNotesPattern = @"\*\*Steam Notes:\*\*\s*(?<steamnotes>(?:(?!\r?\n\s*(?:\*\*\w+[^:]*:\*\*|_{3,}|-{3,}|##)).)*)",
 				NonEnglishPattern = @"\*\*Non-English Functionality:\*\*\s*(?<value>[^\r\n]+)",
 				DependenciesPattern = @"\*\*Masters:\*\*\s*(?<masters>[^\r\n]+)",
+				DependenciesSeparatorPattern = @"[,;+&]",
 				RestrictionsPattern = string.Empty,
 				OptionPattern = string.Empty,
 				InstructionPattern = string.Empty,
 				InstructionsBlockPattern = defaultInstructionsBlockPattern,
-				
+
 				GlobalFlag = true,
 				MultilineFlag = true,
 				SinglelineFlag = true,

@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -108,9 +107,6 @@ namespace KOTORModSync.Services
             }
         }
 
-
-
-
         public static async Task NavigateToControlAsync(
             [CanBeNull] TabItem tabItem = null,
             [CanBeNull] Expander expander = null,
@@ -156,9 +152,6 @@ namespace KOTORModSync.Services
         #region Estimation Methods (Fallback Strategy)
 
 
-
-
-
         #endregion
 
         #region Private Methods
@@ -189,9 +182,6 @@ namespace KOTORModSync.Services
                 return 0;
             }
         }
-
-
-
 
         public static double CalculateEstimatedScrollPosition(
             [CanBeNull] Grid parentGrid,
@@ -292,9 +282,6 @@ namespace KOTORModSync.Services
 
             return Math.Max(0, baseOffset);
         }
-
-
-
 
         public static double CalculateEstimatedScrollPositionWithSections(
             [CanBeNull] Grid parentGrid,

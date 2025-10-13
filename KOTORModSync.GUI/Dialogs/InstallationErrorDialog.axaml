@@ -1,0 +1,162 @@
+<!-- Copyright 2021-2025 KOTORModSync -->
+<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
+<!-- See LICENSE.txt file in the project root for full license information. -->
+<Window
+    x:Class="KOTORModSync.Dialogs.InstallationErrorDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Installation Error"
+    Width="600"
+    Height="450"
+    MinWidth="500"
+    MinHeight="350"
+    CanResize="True"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!--  Header  -->
+        <Border
+            Grid.Row="0"
+            Padding="24,20"
+            Background="#D32F2F">
+            <StackPanel>
+                <TextBlock
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="⚠️ Installation Error" />
+                <TextBlock
+                    x:Name="ErrorTitleText"
+                    Margin="0,8,0,0"
+                    Foreground="White"
+                    Opacity="0.9"
+                    Text="An error occurred during installation"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <!--  Content  -->
+        <ScrollViewer Grid.Row="1" Padding="24,20">
+            <StackPanel Spacing="16">
+                <!--  Component Info  -->
+                <Border Padding="12" CornerRadius="4">
+                    <StackPanel Spacing="8">
+                        <TextBlock FontWeight="SemiBold" Text="Failed Component:" />
+                        <TextBlock
+                            x:Name="ComponentNameText"
+                            Margin="12,0,0,0"
+                            Text="Component Name" />
+                    </StackPanel>
+                </Border>
+
+                <!--  Error Details  -->
+                <Border Padding="12" CornerRadius="4">
+                    <StackPanel Spacing="8">
+                        <TextBlock FontWeight="SemiBold" Text="Error Details:" />
+                        <TextBox
+                            x:Name="ErrorDetailsText"
+                            MinHeight="120"
+                            Margin="12,0,0,0"
+                            IsReadOnly="True"
+                            Text="Error message here"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!--  Checkpoint Info  -->
+                <Border
+                    x:Name="CheckpointInfoPanel"
+                    Padding="12"
+                    CornerRadius="4"
+                    IsVisible="True">
+                    <StackPanel Spacing="8">
+                        <TextBlock FontWeight="SemiBold" Text="📍 Checkpoint Information:" />
+                        <TextBlock
+                            x:Name="CheckpointInfoText"
+                            Margin="12,0,0,0"
+                            Text="Checkpoints are available for rollback"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!--  Actions  -->
+                <Border Padding="12" CornerRadius="4">
+                    <StackPanel Spacing="12">
+                        <TextBlock FontWeight="SemiBold" Text="What would you like to do?" />
+
+                        <StackPanel Margin="12,0,0,0" Spacing="8">
+                            <RadioButton
+                                x:Name="RollbackRadio"
+                                Content="Rollback Installation - Undo all changes and restore original state"
+                                GroupName="ErrorAction"
+                                IsChecked="True" />
+
+                            <RadioButton
+                                x:Name="ContinueRadio"
+                                Content="Skip Failed Component - Continue with remaining components"
+                                GroupName="ErrorAction" />
+
+                            <RadioButton
+                                x:Name="AbortRadio"
+                                Content="Abort Installation - Stop without rollback (keep partial changes)"
+                                GroupName="ErrorAction" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!--  Warning  -->
+                <Border
+                    Padding="12"
+                    Background="#FFF3E0"
+                    CornerRadius="4">
+                    <StackPanel Spacing="4">
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Foreground="#E65100"
+                            Text="⚠️ Important:" />
+                        <TextBlock
+                            Foreground="#E65100"
+                            Text="Rolling back will undo all changes made during this installation session. This may take several minutes depending on the number of files modified."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!--  Footer Buttons  -->
+        <Border
+            Grid.Row="2"
+            Padding="24,16"
+            BorderBrush="#E0E0E0"
+            BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <Button
+                    x:Name="ViewLogButton"
+                    Grid.Column="0"
+                    Padding="16,8"
+                    HorizontalAlignment="Left"
+                    Click="ViewLogButton_Click"
+                    Content="View Full Log" />
+
+                <Button
+                    x:Name="CancelButton"
+                    Grid.Column="1"
+                    Margin="0,0,12,0"
+                    Padding="16,8"
+                    Click="CancelButton_Click"
+                    Content="Cancel" />
+
+                <Button
+                    x:Name="ConfirmButton"
+                    Grid.Column="2"
+                    Padding="16,8"
+                    Click="ConfirmButton_Click"
+                    Content="Proceed" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
+

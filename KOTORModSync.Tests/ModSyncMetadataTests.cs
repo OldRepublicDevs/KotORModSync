@@ -2,11 +2,12 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Linq;
 using KOTORModSync.Core;
+using KOTORModSync.Core.CLI;
 using KOTORModSync.Core.Parsing;
+using KOTORModSync.Core.Services;
 
 namespace KOTORModSync.Tests
 {
@@ -134,8 +135,8 @@ ___";
 			Assert.Multiple(() =>
 			{
 				Assert.That(component.Name, Is.EqualTo("Test Mod"), "Component name");
-				Assert.That(component.Instructions.Count, Is.EqualTo(0), "Should have no instructions");
-				Assert.That(component.Options.Count, Is.EqualTo(0), "Should have no options");
+				Assert.That(component.Instructions, Is.Empty, "Should have no instructions");
+				Assert.That(component.Options, Is.Empty, "Should have no options");
 			});
 		}
 
@@ -293,7 +294,7 @@ ___";
 			instruction.SetParentComponent(component);
 			component.Instructions.Add(instruction);
 
-			string generated = ModComponent.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
+			string generated = ModComponentSerializationService.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
 
 			Assert.That(generated, Does.Contain("<!--<<ModSync>>"), "Should contain ModSync opening tag");
 			Assert.That(generated, Does.Contain("-->"), "Should contain ModSync closing tag");
@@ -328,7 +329,7 @@ ___";
 			};
 			component.Options.Add(option);
 
-			string generated = ModComponent.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
+			string generated = ModComponentSerializationService.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
 
 			Assert.That(generated, Does.Contain("#### Options"), "Should contain Options header");
 			Assert.That(generated, Does.Contain("##### Option 1"), "Should contain option number");
@@ -351,7 +352,7 @@ ___";
 				Tier = "1 - Essential"
 			};
 
-			string generated = ModComponent.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
+			string generated = ModComponentSerializationService.GenerateModDocumentation(new System.Collections.Generic.List<ModComponent> { component });
 
 			Assert.That(generated, Does.Not.Contain("<!--<<ModSync>>"), "Should not contain ModSync metadata");
 			Assert.That(generated, Does.Contain("### Test Mod"), "Should still contain component name");
@@ -433,7 +434,7 @@ ___";
 
 			MarkdownParserResult firstParse = parser.Parse(markdown);
 
-			string generated = ModComponent.GenerateModDocumentation(firstParse.Components.ToList());
+			string generated = ModComponentSerializationService.GenerateModDocumentation(firstParse.Components.ToList());
 
 			MarkdownParserResult secondParse = parser.Parse(generated);
 

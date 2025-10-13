@@ -27,18 +27,18 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       should_build: ${{ steps.check.outputs.should_build }}
-    
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@v5
+
       - name: Extract Version from MainConfig.cs
         id: extract
         shell: pwsh
         run: |
           $mainConfigPath = "KOTORModSync.Core/MainConfig.cs"
           $content = Get-Content $mainConfigPath -Raw
-          
+
           if ($content -match 'CurrentVersion\s*=>\s*"([^"]+)"') {
             $codeVersion = $matches[1]
             Write-Host "Found version in MainConfig.cs: $codeVersion"
@@ -47,13 +47,13 @@ jobs:
             Write-Host "Could not find version in MainConfig.cs"
             echo "code_version=1.0.0" >> $env:GITHUB_OUTPUT
           }
-      
+
       - name: Determine Version
         id: version
         shell: bash
         run: |
           CODE_VERSION="${{ steps.extract.outputs.code_version }}"
-          
+
           if [ "${{ github.event_name }}" = "release" ]; then
             VERSION="${{ github.event.release.tag_name }}"
             echo "Using GitHub release tag: $VERSION"
@@ -69,10 +69,10 @@ jobs:
             VERSION="v${CODE_VERSION}"
             echo "Using MainConfig.cs version: $VERSION"
           fi
-          
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📦 Building version: $VERSION"
-      
+
       - name: Check if Should Build
         id: check
         run: |
@@ -88,15 +88,15 @@ jobs:
     name: Build and Test
     needs: determine-version
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -114,21 +114,21 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "🔐 Injecting telemetry signing secret for official build..."
-          
+
           $secretFile = "KOTORModSync.Core/Services/EmbeddedSecrets.cs"
-          
+
           # Ensure the directory exists
           $dir = Split-Path -Parent $secretFile
           if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
           }
-          
+
           # Generate the EmbeddedSecrets.cs file
           $content = @"
           // Copyright 2021-2025 KOTORModSync
           // Licensed under the Business Source License 1.1 (BSL 1.1).
           // See LICENSE.txt file in the project root for full license information.
-          
+
           // =============================================================================
           // AUTO-GENERATED FILE - DO NOT COMMIT TO GIT
           // =============================================================================
@@ -140,7 +140,7 @@ jobs:
           // Workflow: $env:GITHUB_WORKFLOW
           // Run ID: $env:GITHUB_RUN_ID
           // =============================================================================
-          
+
           namespace KOTORModSync.Core.Services
           {
               /// <summary>
@@ -156,7 +156,7 @@ jobs:
               }
           }
           "@
-          
+
           $content | Out-File -FilePath $secretFile -Encoding UTF8 -NoNewline
           Write-Host "✅ Telemetry secret injected successfully"
           Write-Host "📄 File created: $secretFile"
@@ -195,7 +195,7 @@ jobs:
             os: windows-latest
             framework: net8.0
             platform: x64
-          
+
           # Linux builds
           - rid: linux-x64
             os: ubuntu-latest
@@ -205,7 +205,7 @@ jobs:
             os: ubuntu-latest
             framework: net8.0
             platform: x64
-          
+
           # macOS builds
           - rid: osx-x64
             os: macos-latest
@@ -218,10 +218,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -231,21 +231,21 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "🔐 Injecting telemetry signing secret..."
-          
+
           $secretFile = "KOTORModSync.Core/Services/EmbeddedSecrets.cs"
           $dir = Split-Path -Parent $secretFile
           if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
           }
-          
+
           $content = @"
           // Copyright 2021-2025 KOTORModSync
           // Licensed under the Business Source License 1.1 (BSL 1.1).
           // See LICENSE.txt file in the project root for full license information.
-          
+
           // AUTO-GENERATED FILE - DO NOT COMMIT
           // Generated: $((Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss UTC"))
-          
+
           namespace KOTORModSync.Core.Services
           {
               internal static class EmbeddedSecrets
@@ -254,7 +254,7 @@ jobs:
               }
           }
           "@
-          
+
           $content | Out-File -FilePath $secretFile -Encoding UTF8 -NoNewline
           Write-Host "✅ Secret injected for ${{ matrix.rid }}"
 
@@ -282,16 +282,16 @@ jobs:
           $publishDir = "./publish/${{ matrix.rid }}"
           $version = "${{ needs.determine-version.outputs.version }}"
           $packageDir = "./package/KOTORModSync $version"
-          
+
           Write-Host "📦 Preparing release package for ${{ matrix.rid }} version $version..."
-          
+
           # Create package directory structure
           New-Item -ItemType Directory -Path "$packageDir" -Force | Out-Null
           New-Item -ItemType Directory -Path "$packageDir/docs" -Force | Out-Null
-          
+
           # Copy application files
           Copy-Item -Path "$publishDir/*" -Destination "$packageDir/" -Recurse -Force
-          
+
           # Copy documentation
           if (Test-Path "LICENSE.txt") {
             Copy-Item "LICENSE.txt" "$packageDir/docs/"
@@ -305,7 +305,7 @@ jobs:
           if (Test-Path "README.md") {
             Copy-Item "README.md" "$packageDir/docs/"
           }
-          
+
           Write-Host "✅ Package prepared: $packageDir"
 
       - name: Create Archive (Windows)
@@ -315,11 +315,11 @@ jobs:
           $packageDir = "./package"
           $version = "${{ needs.determine-version.outputs.version }}"
           $archiveName = "KOTORModSync-$version-${{ matrix.rid }}.zip"
-          
+
           Write-Host "🗜️ Creating archive: $archiveName"
-          
+
           Compress-Archive -Path "$packageDir/*" -DestinationPath $archiveName -Force
-          
+
           Write-Host "✅ Archive created: $archiveName"
           Write-Host "📊 Archive size: $((Get-Item $archiveName).Length / 1MB) MB"
 
@@ -329,13 +329,13 @@ jobs:
         run: |
           version="${{ needs.determine-version.outputs.version }}"
           archive_name="KOTORModSync-$version-${{ matrix.rid }}.zip"
-          
+
           echo "🗜️ Creating archive: $archive_name"
-          
+
           cd package
           zip -r "../$archive_name" "KOTORModSync $version"
           cd ..
-          
+
           echo "✅ Archive created: $archive_name"
           echo "📊 Archive size: $(du -h $archive_name | cut -f1)"
 
@@ -361,13 +361,13 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 

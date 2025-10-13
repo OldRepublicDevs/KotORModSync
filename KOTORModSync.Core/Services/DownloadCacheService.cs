@@ -2,7 +2,6 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,7 +18,7 @@ namespace KOTORModSync.Core.Services
 	{
 		private readonly Dictionary<Guid, Dictionary<string, DownloadCacheEntry>> _cache;
 		private readonly object _cacheLock = new object();
-		private DownloadManager _downloadManager;
+		public DownloadManager _downloadManager;
 		private VirtualFileSystemProvider _virtualFileSystem;
 		private ResolutionFilterService _resolutionFilter;
 
@@ -31,20 +30,49 @@ namespace KOTORModSync.Core.Services
 			Logger.LogVerbose("[DownloadCacheService] Initialized");
 		}
 
-		public void SetDownloadManager(DownloadManager downloadManager)
+		public void SetDownloadManager(DownloadManager downloadManager = null)
 		{
-			_downloadManager = downloadManager;
+			if ( downloadManager is null )
+			{
+				// Configure HttpClientHandler for better parallel performance
+				var handler = new System.Net.Http.HttpClientHandler
+				{
+					MaxConnectionsPerServer = 10, // Allow up to 10 concurrent connections per server
+					AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+				};
+
+				var httpClient = new System.Net.Http.HttpClient(handler)
+				{
+					Timeout = TimeSpan.FromMinutes(10)
+				};
+
+				var handlers = new List<Core.Services.Download.IDownloadHandler>
+			{
+				new Core.Services.Download.DeadlyStreamDownloadHandler(httpClient),
+				new Core.Services.Download.MegaDownloadHandler(),
+				new Core.Services.Download.NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
+				new Core.Services.Download.GameFrontDownloadHandler(httpClient),
+				new Core.Services.Download.DirectDownloadHandler(httpClient),
+			};
+				_downloadManager = new Core.Services.Download.DownloadManager(handlers);
+			}
+			else
+			{
+				_downloadManager = downloadManager;
+			}
 		}
 
 		public async Task<Dictionary<string, List<string>>> PreResolveUrlsAsync(
 			ModComponent component,
-			DownloadManager downloadManager,
+			DownloadManager downloadManager = null,
 			CancellationToken cancellationToken = default)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
+
+			downloadManager = downloadManager ?? _downloadManager;
 			if ( downloadManager == null )
-				throw new ArgumentNullException(nameof(downloadManager));
+				throw new InvalidOperationException("DownloadManager is not set. Call SetDownloadManager() first.");
 
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolving URLs for component: {component.Name}");
 

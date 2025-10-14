@@ -586,6 +586,66 @@ namespace KOTORModSync.Core.Services
 				string fileName = Path.GetFileName(progressTracker.FilePath);
 				bool isArchive = IsArchive(fileName);
 
+				// Validate downloaded archives if enabled
+				if ( MainConfig.ValidateAndReplaceInvalidArchives && isArchive && !string.IsNullOrEmpty(progressTracker.FilePath) )
+				{
+					await Logger.LogVerboseAsync($"[DownloadCacheService] Validating downloaded archive: {progressTracker.FilePath}");
+					bool isValid = Utility.ArchiveHelper.IsValidArchive(progressTracker.FilePath);
+
+					if ( !isValid )
+					{
+						await Logger.LogWarningAsync($"[DownloadCacheService] Downloaded archive is corrupt or incomplete: {progressTracker.FilePath}");
+						await Logger.LogWarningAsync($"[DownloadCacheService] Deleting invalid download and retrying...");
+
+						try
+						{
+							File.Delete(progressTracker.FilePath);
+							await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid download: {progressTracker.FilePath}");
+
+							// Retry the download once
+							await Logger.LogVerboseAsync($"[DownloadCacheService] Retrying download for URL: {url}");
+
+							var retryResults = await _downloadManager.DownloadAllWithProgressAsync(
+								urlMap,
+								destinationDirectory,
+								progressForwarder,
+								cancellationToken);
+
+							if ( retryResults.Count == 0 || !retryResults[0].Success )
+							{
+								await Logger.LogErrorAsync($"[DownloadCacheService] Retry download failed for URL: {url}");
+								continue;
+							}
+
+							// Update progress tracker with retry results
+							progressTracker.FilePath = retryResults[0].FilePath;
+
+							// Validate retry
+							if ( Utility.ArchiveHelper.IsArchive(progressTracker.FilePath) )
+							{
+								bool retryValid = Utility.ArchiveHelper.IsValidArchive(progressTracker.FilePath);
+								if ( !retryValid )
+								{
+									await Logger.LogErrorAsync($"[DownloadCacheService] Retry download also corrupt, skipping: {url}");
+									//if ( File.Exists(progressTracker.FilePath) )
+									//	File.Delete(progressTracker.FilePath);
+									continue;
+								}
+								await Logger.LogVerboseAsync($"[DownloadCacheService] Retry download validated successfully: {progressTracker.FilePath}");
+							}
+						}
+						catch ( Exception ex )
+						{
+							await Logger.LogErrorAsync($"[DownloadCacheService] Error handling invalid download: {ex.Message}");
+							continue;
+						}
+					}
+					else
+					{
+						await Logger.LogVerboseAsync($"[DownloadCacheService] Downloaded archive validated successfully: {progressTracker.FilePath}");
+					}
+				}
+
 				var newEntry = new DownloadCacheEntry
 				{
 					Url = url,

@@ -37,7 +37,6 @@ namespace KOTORModSync.Core.Services
 			}
 			catch ( Exception ex )
 			{
-
 				Logger.LogException(ex, "Failed to configure default DownloadManager for ModLinkProcessingService");
 			}
 		}

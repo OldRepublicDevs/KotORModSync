@@ -38,48 +38,48 @@ namespace KOTORModSync.Core.Services.Download
 
 
 
-	public async Task<Dictionary<string, List<string>>> ResolveUrlsToFilenamesAsync(
-		IEnumerable<string> urls,
-		CancellationToken cancellationToken = default)
-	{
-		var urlList = urls.ToList();
-		await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urlList.Count} URLs to filenames (concurrent)");
-
-		// Resolve URLs concurrently for better performance
-		var resolutionTasks = urlList.Select(async url =>
+		public async Task<Dictionary<string, List<string>>> ResolveUrlsToFilenamesAsync(
+			IEnumerable<string> urls,
+			CancellationToken cancellationToken = default)
 		{
-			IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
-			if ( handler == null )
+			var urlList = urls.ToList();
+			await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urlList.Count} URLs to filenames (concurrent)");
+
+			// Resolve URLs concurrently for better performance
+			var resolutionTasks = urlList.Select(async url =>
 			{
-				await Logger.LogWarningAsync($"[DownloadManager] No handler for URL: {url}");
-				return (url, filenames: new List<string>());
+				IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
+				if ( handler == null )
+				{
+					await Logger.LogWarningAsync($"[DownloadManager] No handler for URL: {url}");
+					return (url, filenames: new List<string>());
+				}
+
+				try
+				{
+					await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}");
+					List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
+
+					await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames?.Count ?? 0} filename(s) for URL: {url}");
+					return (url, filenames: filenames ?? new List<string>());
+				}
+				catch ( Exception ex )
+				{
+					await Logger.LogErrorAsync($"[DownloadManager] Failed to resolve URL {url}: {ex.Message}");
+					return (url, filenames: new List<string>());
+				}
+			}).ToList();
+
+			var resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
+
+			var results = new Dictionary<string, List<string>>();
+			foreach ( var (url, filenames) in resolvedItems )
+			{
+				results[url] = filenames;
 			}
 
-			try
-			{
-				await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}");
-				List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
-
-				await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames?.Count ?? 0} filename(s) for URL: {url}");
-				return (url, filenames: filenames ?? new List<string>());
-			}
-			catch ( Exception ex )
-			{
-				await Logger.LogErrorAsync($"[DownloadManager] Failed to resolve URL {url}: {ex.Message}");
-				return (url, filenames: new List<string>());
-			}
-		}).ToList();
-
-		var resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
-
-		var results = new Dictionary<string, List<string>>();
-		foreach ( var (url, filenames) in resolvedItems )
-		{
-			results[url] = filenames;
+			return results;
 		}
-
-		return results;
-	}
 
 
 
@@ -230,27 +230,27 @@ namespace KOTORModSync.Core.Services.Download
 						}
 					}
 
-				// Non-blocking logging (fire and forget style)
-				if ( shouldLog )
-				{
-					// Fire and forget logging task
-					_ = Task.Run(() =>
+					// Non-blocking logging (fire and forget style)
+					if ( shouldLog )
 					{
-						try
+						// Fire and forget logging task
+						_ = Task.Run(() =>
 						{
-							if ( update.Status == DownloadStatus.Pending ||
-								 update.Status == DownloadStatus.Completed ||
-								 update.Status == DownloadStatus.Skipped ||
-								 update.Status == DownloadStatus.Failed )
+							try
 							{
-								Logger.Log($"[Download] {update.Status}: {Path.GetFileName(update.FilePath ?? url)}");
-								if ( !string.IsNullOrEmpty(update.StatusMessage) && update.Status != DownloadStatus.InProgress )
-									Logger.LogVerbose($"  {update.StatusMessage}");
+								if ( update.Status == DownloadStatus.Pending ||
+									 update.Status == DownloadStatus.Completed ||
+									 update.Status == DownloadStatus.Skipped ||
+									 update.Status == DownloadStatus.Failed )
+								{
+									Logger.Log($"[Download] {update.Status}: {Path.GetFileName(update.FilePath ?? url)}");
+									if ( !string.IsNullOrEmpty(update.StatusMessage) && update.Status != DownloadStatus.InProgress )
+										Logger.LogVerbose($"  {update.StatusMessage}");
+								}
 							}
-						}
-						catch { /* Ignore logging errors */ }
-					});
-				}
+							catch { /* Ignore logging errors */ }
+						});
+					}
 
 					// Report progress to caller (non-blocking)
 					progressReporter?.Report(progressItem);
@@ -259,7 +259,13 @@ namespace KOTORModSync.Core.Services.Download
 				DownloadResult result;
 				try
 				{
-					result = await handler.DownloadAsync(url, destinationDirectory, internalProgressReporter, combinedCancellationToken).ConfigureAwait(false);
+					// Try optimized download (runs in parallel with traditional download)
+					result = await DownloadCacheOptimizer.TryOptimizedDownload(
+						url,
+						destinationDirectory,
+						() => handler.DownloadAsync(url, destinationDirectory, internalProgressReporter, combinedCancellationToken),
+						internalProgressReporter,
+						combinedCancellationToken).ConfigureAwait(false);
 				}
 				catch ( OperationCanceledException )
 				{
@@ -328,17 +334,17 @@ namespace KOTORModSync.Core.Services.Download
 					progressItem.EndTime = DateTime.Now;
 				}
 
-			return result;
-		}
-		finally
-		{
-
-			lock ( _logThrottleLock )
+				return result;
+			}
+			finally
 			{
-				_lastProgressLogTime.Remove(url);
-				_lastLoggedStatus.Remove(url);
+
+				lock ( _logThrottleLock )
+				{
+					_lastProgressLogTime.Remove(url);
+					_lastLoggedStatus.Remove(url);
+				}
 			}
 		}
-	}
 	}
 }

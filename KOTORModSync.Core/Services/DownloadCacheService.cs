@@ -52,25 +52,25 @@ namespace KOTORModSync.Core.Services
 		{
 			if ( downloadManager is null )
 			{
-				// Configure a shared HttpClient with optimized handler for resolution speed (compat with netstandard2.0)
-				var handler = new System.Net.Http.HttpClientHandler
-				{
-					AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
-					MaxConnectionsPerServer = 128
-				};
-				var httpClient = new System.Net.Http.HttpClient(handler)
-				{
-					Timeout = TimeSpan.FromHours(3)
-				};
-				var handlers = new List<Core.Services.Download.IDownloadHandler>
-				{
-					new Core.Services.Download.DeadlyStreamDownloadHandler(httpClient),
-					new Core.Services.Download.MegaDownloadHandler(),
-					new Core.Services.Download.NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
-					new Core.Services.Download.GameFrontDownloadHandler(httpClient),
-					new Core.Services.Download.DirectDownloadHandler(httpClient),
-				};
-				_downloadManager = new Core.Services.Download.DownloadManager(handlers);
+			// Configure a shared HttpClient with optimized handler for resolution speed (compat with netstandard2.0)
+			var handler = new System.Net.Http.HttpClientHandler
+			{
+				AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+				MaxConnectionsPerServer = 128
+			};
+			var httpClient = new System.Net.Http.HttpClient(handler)
+			{
+				Timeout = TimeSpan.FromHours(3)
+			};
+			var handlers = new List<Core.Services.Download.IDownloadHandler>
+			{
+				new Core.Services.Download.DeadlyStreamDownloadHandler(httpClient),
+				new Core.Services.Download.MegaDownloadHandler(),
+				new Core.Services.Download.NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
+				new Core.Services.Download.GameFrontDownloadHandler(httpClient),
+				new Core.Services.Download.DirectDownloadHandler(httpClient),
+			};
+			_downloadManager = new Core.Services.Download.DownloadManager(handlers);
 			}
 			else
 			{

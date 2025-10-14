@@ -844,7 +844,7 @@ namespace KOTORModSync.Core
 				Services.ModComponentSerializationService.GetValueOrDefault<IList<object>>(componentDict, key: "Instructions"), this
 			);
 			Options = Services.ModComponentSerializationService.DeserializeOptions(Services.ModComponentSerializationService.GetValueOrDefault<IList<object>>(componentDict, key: "Options"));
-			_ = Logger.LogAsync($"Successfully deserialized component '{Name}'");
+			_ = Logger.LogVerboseAsync($"Successfully deserialized component '{Name}'");
 		}
 		[CanBeNull]
 		public static ModComponent DeserializeTomlComponent([NotNull] string tomlString)

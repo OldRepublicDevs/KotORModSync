@@ -62,8 +62,8 @@ namespace KOTORModSync.Core.CLI
 			if ( _isEnabled )
 			{
 				Console.Write(HIDE_CURSOR);
-				// Refresh display every 250ms (reduced from 100ms to minimize flicker)
-				_refreshTimer = new Timer(_ => Render(), null, TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
+				// Refresh display every 16ms (~60fps) to keep status area anchored at bottom even with rapid log output
+				_refreshTimer = new Timer(_ => Render(), null, TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16));
 			}
 		}
 
@@ -86,33 +86,33 @@ namespace KOTORModSync.Core.CLI
 		/// <summary>
 		/// Add or update a progress item
 		/// </summary>
-	public void UpdateProgress(string key, string displayText, double progress, string status = "processing")
-	{
-		// In plaintext mode, output progress updates directly
-		if ( _usePlainText )
+		public void UpdateProgress(string key, string displayText, double progress, string status = "processing")
 		{
-			Console.WriteLine($"[{status.ToUpper()}] {displayText} - {progress:F1}%");
-			return;
-		}
-
-		if ( !_isEnabled ) return;
-
-		bool isNewItem = !_activeItems.ContainsKey(key);
-		bool shouldRender = isNewItem; // Always render for new items
-		
-		_activeItems.AddOrUpdate(key,
-			new ProgressItem
+			// In plaintext mode, output progress updates directly
+			if ( _usePlainText )
 			{
-				Key = key,
-				DisplayText = displayText,
-				Progress = progress,
-				LastUpdate = DateTime.Now,
-				Status = status
-			},
+				Console.WriteLine($"[{status.ToUpper()}] {displayText} - {progress:F1}%");
+				return;
+			}
+
+			if ( !_isEnabled ) return;
+
+			bool isNewItem = !_activeItems.ContainsKey(key);
+			bool shouldRender = isNewItem; // Always render for new items
+
+			_activeItems.AddOrUpdate(key,
+				new ProgressItem
+				{
+					Key = key,
+					DisplayText = displayText,
+					Progress = progress,
+					LastUpdate = DateTime.Now,
+					Status = status
+				},
 			(k, existing) =>
 			{
-				// Only trigger render if progress changed by at least 1% or status changed
-				if ( Math.Abs(existing.Progress - progress) >= 1.0 || existing.Status != status )
+				// Only trigger render if progress changed by at least 0.5% or status changed
+				if ( Math.Abs(existing.Progress - progress) >= 0.5 || existing.Status != status )
 				{
 					shouldRender = true;
 				}
@@ -122,12 +122,12 @@ namespace KOTORModSync.Core.CLI
 				existing.Status = status;
 				return existing;
 			});
-		
-		if ( shouldRender )
-		{
-			_needsRender = true;
+
+			if ( shouldRender )
+			{
+				_needsRender = true;
+			}
 		}
-	}
 
 		/// <summary>
 		/// Remove a progress item (when completed)
@@ -196,35 +196,35 @@ namespace KOTORModSync.Core.CLI
 		/// <summary>
 		/// Add a scrolling log message
 		/// </summary>
-	public void AddLog(string message)
-	{
-		// In plaintext mode, output log directly
-		if ( _usePlainText )
+		public void AddLog(string message)
 		{
-			Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
-			return;
-		}
-
-		if ( !_isEnabled )
-		{
-			// Fallback to normal console output
-			Console.WriteLine(message);
-			return;
-		}
-
-		lock ( _lock )
-		{
-			_scrollingLogs.Enqueue(message);
-
-			// Keep only recent logs
-			while ( _scrollingLogs.Count > _maxScrollingLogs )
+			// In plaintext mode, output log directly
+			if ( _usePlainText )
 			{
-				_scrollingLogs.Dequeue();
+				Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+				return;
 			}
-			
-			_needsRender = true;
+
+			if ( !_isEnabled )
+			{
+				// Fallback to normal console output
+				Console.WriteLine(message);
+				return;
+			}
+
+			lock ( _lock )
+			{
+				_scrollingLogs.Enqueue(message);
+
+				// Keep only recent logs
+				while ( _scrollingLogs.Count > _maxScrollingLogs )
+				{
+					_scrollingLogs.Dequeue();
+				}
+
+				_needsRender = true;
+			}
 		}
-	}
 
 		/// <summary>
 		/// Render the entire display
@@ -233,7 +233,7 @@ namespace KOTORModSync.Core.CLI
 		{
 			if ( !_isEnabled || _disposed ) return;
 
-			// Only render if something changed
+			// Skip rendering if nothing has changed
 			if ( !_needsRender ) return;
 
 			lock ( _lock )
@@ -256,7 +256,8 @@ namespace KOTORModSync.Core.CLI
 				try
 				{
 					int consoleHeight = Console.WindowHeight;
-					int statusStartLine = Math.Max(1, consoleHeight - statusLines);
+					// Ensure status area is always at the very bottom
+					int statusStartLine = Math.Max(1, consoleHeight - statusLines + 1);
 
 					// Move to status area start and clear from there to bottom
 					sb.Append($"\x1b[{statusStartLine};1H");
@@ -379,41 +380,41 @@ namespace KOTORModSync.Core.CLI
 		/// <summary>
 		/// Write a log that scrolls above the status area
 		/// </summary>
-	public void WriteScrollingLog(string message)
-	{
-		// In plaintext mode, just write directly
-		if ( _usePlainText || !_isEnabled )
+		public void WriteScrollingLog(string message)
 		{
-			Console.WriteLine(message);
-			return;
-		}
-
-		lock ( _lock )
-		{
-			try
+			// In plaintext mode, just write directly
+			if ( _usePlainText || !_isEnabled )
 			{
-				// Calculate position above status area
-				int statusLines = CalculateStatusLines();
-				int consoleHeight = Console.WindowHeight;
-				int statusStartLine = Math.Max(1, consoleHeight - statusLines);
-
-				// Clear the status area, write message, then trigger re-render
-				Console.Write($"\x1b[{statusStartLine};1H");
-				Console.Write("\x1b[0J"); // Clear from cursor to end of screen
-				Console.Write($"\x1b[{statusStartLine - 1};1H");
 				Console.WriteLine(message);
-
-				// Force immediate re-render of status area
-				_needsRender = true;
-				Render();
+				return;
 			}
-			catch
+
+			lock ( _lock )
 			{
-				// Fallback to normal output
-				Console.WriteLine(message);
+				try
+				{
+					// Calculate position above status area
+					int statusLines = CalculateStatusLines();
+					int consoleHeight = Console.WindowHeight;
+					int statusStartLine = Math.Max(1, consoleHeight - statusLines);
+
+					// Clear the status area, write message, then trigger re-render
+					Console.Write($"\x1b[{statusStartLine};1H");
+					Console.Write("\x1b[0J"); // Clear from cursor to end of screen
+					Console.Write($"\x1b[{statusStartLine - 1};1H");
+					Console.WriteLine(message);
+
+					// Force immediate re-render of status area
+					_needsRender = true;
+					Render();
+				}
+				catch
+				{
+					// Fallback to normal output
+					Console.WriteLine(message);
+				}
 			}
 		}
-	}
 
 		public void Dispose()
 		{

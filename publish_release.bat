@@ -30,7 +30,7 @@ for /r "%publishProfilesDir%" %%i in (*.pubxml) do (
 
     :: Build the dotnet publish command with the --framework argument
     :: For .NET Framework, clear RuntimeIdentifier to avoid SDK validation issues with deprecated win7-* RIDs
-    if "!framework!"=="net462" (
+    if "!framework!"=="net48" (
         set publishCommand=dotnet publish %projectFile% -c Release --framework !framework! /p:PublishProfile=!fileName!.pubxml /p:RuntimeIdentifier=
     ) else (
         set publishCommand=dotnet publish %projectFile% -c Release --framework !framework! /p:PublishProfile=!fileName!.pubxml

@@ -497,87 +497,87 @@ namespace KOTORModSync.Core.CLI
 				}
 			});
 
-		try
-		{
-			// Process components concurrently with a limit to prevent overwhelming the system
-			var componentsToProcess = components.Where(c => c.ModLink != null && c.ModLink.Count > 0).ToList();
-			Logger.LogVerbose($"[Download] Processing {componentsToProcess.Count} components with concurrency limit of 10");
+			try
+			{
+				// Process components concurrently with a limit to prevent overwhelming the system
+				var componentsToProcess = components.Where(c => c.ModLink != null && c.ModLink.Count > 0).ToList();
+				Logger.LogVerbose($"[Download] Processing {componentsToProcess.Count} components with concurrency limit of 10");
 
-			// Use SemaphoreSlim to limit concurrent operations
-			using ( var semaphore = new SemaphoreSlim(10) ) // Max 10 components downloading concurrently
-			{
-				var downloadTasks = componentsToProcess.Select(async component =>
-			{
-				await semaphore.WaitAsync();
-				try
+				// Use SemaphoreSlim to limit concurrent operations
+				using ( var semaphore = new SemaphoreSlim(10) ) // Max 10 components downloading concurrently
 				{
-					Logger.LogVerbose($"[Download] Processing component: {component.Name} ({component.ModLink.Count} URL(s))");
-
+					var downloadTasks = componentsToProcess.Select(async component =>
+				{
+					await semaphore.WaitAsync();
 					try
 					{
-						// Use DownloadCacheService which handles caching and file existence checks
-						var results = await downloadCache.ResolveOrDownloadAsync(
-							component,
-							destinationDirectory,
-							progressReporter,
-							CancellationToken.None);
+						Logger.LogVerbose($"[Download] Processing component: {component.Name} ({component.ModLink.Count} URL(s))");
 
-						// Count successful downloads
-						int successCount = results.Count(entry =>
+						try
 						{
-							string filePath = MainConfig.SourcePath != null
-								? Path.Combine(MainConfig.SourcePath.FullName, entry.FileName)
-								: Path.Combine(destinationDirectory, entry.FileName);
-							return File.Exists(filePath);
-						});
+							// Use DownloadCacheService which handles caching and file existence checks
+							var results = await downloadCache.ResolveOrDownloadAsync(
+								component,
+								destinationDirectory,
+								progressReporter,
+								CancellationToken.None);
 
-						return (component, results, successCount, error: (string)null);
-					}
-					catch ( Exception ex )
-					{
-						string errorMsg = $"Error processing component {component.Name}: {ex.Message}";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
-						else
-							Logger.LogError(errorMsg);
+							// Count successful downloads
+							int successCount = results.Count(entry =>
+							{
+								string filePath = MainConfig.SourcePath != null
+									? Path.Combine(MainConfig.SourcePath.FullName, entry.FileName)
+									: Path.Combine(destinationDirectory, entry.FileName);
+								return File.Exists(filePath);
+							});
 
-						if ( verbose )
-						{
-							Logger.LogException(ex);
+							return (component, results, successCount, error: (string)null);
 						}
+						catch ( Exception ex )
+						{
+							string errorMsg = $"Error processing component {component.Name}: {ex.Message}";
+							if ( _progressDisplay != null )
+								_progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+							else
+								Logger.LogError(errorMsg);
 
-						return (component, results: new List<Services.DownloadCacheEntry>(), successCount: 0, error: errorMsg);
+							if ( verbose )
+							{
+								Logger.LogException(ex);
+							}
+
+							return (component, results: new List<Services.DownloadCacheEntry>(), successCount: 0, error: errorMsg);
+						}
 					}
-				}
-				finally
-				{
-					semaphore.Release();
-				}
+					finally
+					{
+						semaphore.Release();
+					}
 				}).ToList();
 
-				// Wait for all components to complete
-				var downloadResults = await Task.WhenAll(downloadTasks);
+					// Wait for all components to complete
+					var downloadResults = await Task.WhenAll(downloadTasks);
 
-				// Aggregate results
-				int totalSuccessCount = downloadResults.Sum(r => r.successCount);
-				int totalFailCount = downloadResults.Count(r => r.error != null);
+					// Aggregate results
+					int totalSuccessCount = downloadResults.Sum(r => r.successCount);
+					int totalFailCount = downloadResults.Count(r => r.error != null);
 
-				string summaryMsg = $"Download results: {totalSuccessCount} files available, {totalFailCount} failed";
-				if ( _progressDisplay != null )
-					_progressDisplay.WriteScrollingLog(summaryMsg);
-				else
-					Logger.Log(summaryMsg);
-
-				if ( totalFailCount > 0 )
-				{
-					string warningMsg = "Some downloads failed. Check logs for details.";
+					string summaryMsg = $"Download results: {totalSuccessCount} files available, {totalFailCount} failed";
 					if ( _progressDisplay != null )
-						_progressDisplay.WriteScrollingLog($"⚠ {warningMsg}");
+						_progressDisplay.WriteScrollingLog(summaryMsg);
 					else
-						Logger.LogWarning(warningMsg);
+						Logger.Log(summaryMsg);
+
+					if ( totalFailCount > 0 )
+					{
+						string warningMsg = "Some downloads failed. Check logs for details.";
+						if ( _progressDisplay != null )
+							_progressDisplay.WriteScrollingLog($"⚠ {warningMsg}");
+						else
+							Logger.LogWarning(warningMsg);
+					}
 				}
 			}
-		}
 			catch ( Exception ex )
 			{
 				string errorMsg = $"Error during download: {ex.Message}";
@@ -867,43 +867,43 @@ namespace KOTORModSync.Core.CLI
 						else
 							Logger.LogVerbose(msg);
 
-					foreach ( var component in incomingComponents )
-					{
-						component.IsSelected = true;
-					}
+						foreach ( var component in incomingComponents )
+						{
+							component.IsSelected = true;
+						}
 
-					// Deduplicate components before downloading (by GUID to avoid processing same mod twice)
-					msg = "Deduplicating components from both instruction sets...";
-					if ( _progressDisplay != null )
-						_progressDisplay.WriteScrollingLog(msg);
-					else
-						Logger.LogVerbose(msg);
+						// Deduplicate components before downloading (by GUID to avoid processing same mod twice)
+						msg = "Deduplicating components from both instruction sets...";
+						if ( _progressDisplay != null )
+							_progressDisplay.WriteScrollingLog(msg);
+						else
+							Logger.LogVerbose(msg);
 
-					var allComponents = existingComponents.Concat(incomingComponents)
-						.GroupBy(c => c.Guid)
-						.Select(g => g.First()) // Take first instance of each unique GUID
-						.ToList();
+						var allComponents = existingComponents.Concat(incomingComponents)
+							.GroupBy(c => c.Guid)
+							.Select(g => g.First()) // Take first instance of each unique GUID
+							.ToList();
 
-					msg = $"After deduplication: {allComponents.Count} unique components (was {existingComponents.Count + incomingComponents.Count})";
-					if ( _progressDisplay != null )
-						_progressDisplay.WriteScrollingLog(msg);
-					else
-						Logger.LogVerbose(msg);
+						msg = $"After deduplication: {allComponents.Count} unique components (was {existingComponents.Count + incomingComponents.Count})";
+						if ( _progressDisplay != null )
+							_progressDisplay.WriteScrollingLog(msg);
+						else
+							Logger.LogVerbose(msg);
 
-					// Download all unique components once
-					msg = "Downloading files for all unique components...";
-					if ( _progressDisplay != null )
-						_progressDisplay.WriteScrollingLog(msg);
-					else
-						Logger.Log(msg);
+						// Download all unique components once
+						msg = "Downloading files for all unique components...";
+						if ( _progressDisplay != null )
+							_progressDisplay.WriteScrollingLog(msg);
+						else
+							Logger.Log(msg);
 
-					await DownloadAllModFilesAsync(allComponents, opts.SourcePath, opts.Verbose);
+						await DownloadAllModFilesAsync(allComponents, opts.SourcePath, opts.Verbose);
 
-					msg = "Download complete for all components";
-					if ( _progressDisplay != null )
-						_progressDisplay.WriteScrollingLog(msg);
-					else
-						Logger.Log(msg);
+						msg = "Download complete for all components";
+						if ( _progressDisplay != null )
+							_progressDisplay.WriteScrollingLog(msg);
+						else
+							Logger.Log(msg);
 					}
 
 					// Now perform the merge
@@ -1531,7 +1531,7 @@ namespace KOTORModSync.Core.CLI
 					Console.WriteLine("Skipping validation (--skip-validation specified)");
 				}
 
-				// Store the API key in MainConfig
+				// Store the API key in MainConfig (both instance and static properties)
 				_config.nexusModsApiKey = opts.ApiKey;
 				Logger.Log("API key stored in MainConfig");
 

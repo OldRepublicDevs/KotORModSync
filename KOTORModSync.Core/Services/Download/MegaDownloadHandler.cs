@@ -35,34 +35,43 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				await Logger.LogVerboseAsync($"[MEGA] Resolving filename for URL: {url}");
 
-			// Apply timeout to entire operation
-			try
-			{
+				// Apply timeout to entire operation
+				try
+				{
+					await _client.LogoutAsync().ConfigureAwait(false);
+				}
+				catch { }
+
+				// Add timeout for login
+				var loginTask = _client.LoginAnonymousAsync();
+				var loginTimeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
+
+				var loginCompletedTask = await Task.WhenAny(loginTask, loginTimeoutTask).ConfigureAwait(false);
+				if ( loginCompletedTask == loginTimeoutTask )
+				{
+					throw new OperationCanceledException($"MEGA login timed out after {TimeoutSeconds} seconds");
+				}
+				await loginTask.ConfigureAwait(false);
+
+				string processedUrl = ConvertMegaUrl(url);
+
+				// MEGA SDK doesn't support CancellationToken, so we use Task.WhenAny for timeout
+				var getNodeTask = _client.GetNodeFromLinkAsync(new Uri(processedUrl));
+				var timeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
+
+				var completedTask = await Task.WhenAny(getNodeTask, timeoutTask).ConfigureAwait(false);
+
+				if ( completedTask == timeoutTask )
+				{
+					throw new OperationCanceledException($"MEGA GetNodeFromLink timed out after {TimeoutSeconds} seconds");
+				}
+
+				INode node = await getNodeTask.ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[MEGA] Resolved filename: {node.Name}");
+
 				await _client.LogoutAsync().ConfigureAwait(false);
-			}
-			catch { }
 
-			await _client.LoginAnonymousAsync().ConfigureAwait(false);
-
-			string processedUrl = ConvertMegaUrl(url);
-
-			// MEGA SDK doesn't support CancellationToken, so we use Task.WhenAny for timeout
-			var getNodeTask = _client.GetNodeFromLinkAsync(new Uri(processedUrl));
-			var timeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
-			
-			var completedTask = await Task.WhenAny(getNodeTask, timeoutTask).ConfigureAwait(false);
-			
-			if (completedTask == timeoutTask)
-			{
-				throw new OperationCanceledException($"MEGA operation timed out after {TimeoutSeconds} seconds");
-			}
-			
-			INode node = await getNodeTask.ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[MEGA] Resolved filename: {node.Name}");
-
-			await _client.LogoutAsync().ConfigureAwait(false);
-
-			return new List<string> { node.Name };
+				return new List<string> { node.Name };
 			}
 			catch ( OperationCanceledException )
 			{
@@ -107,56 +116,66 @@ namespace KOTORModSync.Core.Services.Download
 					StartTime = DateTime.Now
 				});
 
-
+				// Logout before login (cleanup)
 				try
 				{
-					await _client.LogoutAsync().ConfigureAwait(false);
-					await Logger.LogVerboseAsync("[MEGA] Performed pre-login logout (if any session was active)");
+					var preLogoutTask = _client.LogoutAsync();
+					var preLogoutTimeout = Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+					var preLogoutCompleted = await Task.WhenAny(preLogoutTask, preLogoutTimeout).ConfigureAwait(false);
+					if ( preLogoutCompleted == preLogoutTask )
+					{
+						await preLogoutTask.ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[MEGA] Performed pre-login logout (if any session was active)");
+					}
+					else
+					{
+						await Logger.LogVerboseAsync("[MEGA] Pre-login logout timed out (not critical)");
+					}
 				}
 				catch ( Exception preLogoutEx )
 				{
 					await Logger.LogVerboseAsync($"[MEGA] Pre-login logout not required or failed: {preLogoutEx.Message}");
 				}
 
-			await Logger.LogVerboseAsync("[MEGA] Logging in anonymously to MEGA");
-			
-			// MEGA SDK doesn't support CancellationToken, use Task.WhenAny for timeout
-			var loginTask = _client.LoginAnonymousAsync();
-			var loginTimeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
-			
-			var loginCompletedTask = await Task.WhenAny(loginTask, loginTimeoutTask).ConfigureAwait(false);
-			if (loginCompletedTask == loginTimeoutTask)
-			{
-				throw new OperationCanceledException($"MEGA login timed out after {TimeoutSeconds} seconds");
-			}
-			await loginTask.ConfigureAwait(false);
-			
-			await Logger.LogVerboseAsync("[MEGA] Successfully logged in to MEGA");
+				await Logger.LogVerboseAsync("[MEGA] Logging in anonymously to MEGA");
 
-			progress?.Report(new DownloadProgress
-			{
-				Status = DownloadStatus.InProgress,
-				StatusMessage = "Fetching file information...",
-				ProgressPercentage = 30
-			});
+				// MEGA SDK doesn't support CancellationToken, use Task.WhenAny for timeout
+				var loginTask = _client.LoginAnonymousAsync();
+				var loginTimeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
 
-			await Logger.LogVerboseAsync($"[MEGA] BEFORE conversion: {url}");
-			string processedUrl = ConvertMegaUrl(url);
-			await Logger.LogVerboseAsync($"[MEGA] AFTER conversion: {processedUrl}");
-			await Logger.LogVerboseAsync($"[MEGA] Getting node information from URL: {processedUrl}");
+				var loginCompletedTask = await Task.WhenAny(loginTask, loginTimeoutTask).ConfigureAwait(false);
+				if ( loginCompletedTask == loginTimeoutTask )
+				{
+					throw new OperationCanceledException($"MEGA login timed out after {TimeoutSeconds} seconds");
+				}
+				await loginTask.ConfigureAwait(false);
 
-			// Add timeout for GetNodeFromLink using Task.WhenAny
-			var getNodeTask = _client.GetNodeFromLinkAsync(new Uri(processedUrl));
-			var nodeTimeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
-			
-			var nodeCompletedTask = await Task.WhenAny(getNodeTask, nodeTimeoutTask).ConfigureAwait(false);
-			if (nodeCompletedTask == nodeTimeoutTask)
-			{
-				throw new OperationCanceledException($"MEGA GetNodeFromLink timed out after {TimeoutSeconds} seconds");
-			}
-			
-			INode node = await getNodeTask.ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[MEGA] Retrieved node: Name='{node.Name}', Size={node.Size} bytes, Type={node.Type}");
+				await Logger.LogVerboseAsync("[MEGA] Successfully logged in to MEGA");
+
+				progress?.Report(new DownloadProgress
+				{
+					Status = DownloadStatus.InProgress,
+					StatusMessage = "Fetching file information...",
+					ProgressPercentage = 30
+				});
+
+				await Logger.LogVerboseAsync($"[MEGA] BEFORE conversion: {url}");
+				string processedUrl = ConvertMegaUrl(url);
+				await Logger.LogVerboseAsync($"[MEGA] AFTER conversion: {processedUrl}");
+				await Logger.LogVerboseAsync($"[MEGA] Getting node information from URL: {processedUrl}");
+
+				// Add timeout for GetNodeFromLink using Task.WhenAny
+				var getNodeTask = _client.GetNodeFromLinkAsync(new Uri(processedUrl));
+				var nodeTimeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
+
+				var nodeCompletedTask = await Task.WhenAny(getNodeTask, nodeTimeoutTask).ConfigureAwait(false);
+				if ( nodeCompletedTask == nodeTimeoutTask )
+				{
+					throw new OperationCanceledException($"MEGA GetNodeFromLink timed out after {TimeoutSeconds} seconds");
+				}
+
+				INode node = await getNodeTask.ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[MEGA] Retrieved node: Name='{node.Name}', Size={node.Size} bytes, Type={node.Type}");
 
 				_ = Directory.CreateDirectory(destinationDirectory);
 				string filePath = Path.Combine(destinationDirectory, node.Name);
@@ -191,12 +210,30 @@ namespace KOTORModSync.Core.Services.Download
 
 
 
-				using ( Stream downloadStream = await _client.DownloadAsync(node, megaProgress, cancellationToken).ConfigureAwait(false) )
-				using ( FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true) )
+				// MEGA SDK's DownloadAsync doesn't support cancellation, wrap it with timeout
+				// Note: Large files need longer timeouts, so we calculate based on file size (assume 100KB/s minimum speed)
+				int downloadTimeoutSeconds = Math.Max(300, (int)(node.Size / (100 * 1024))); // Minimum 5 minutes or file size / 100KB/s
+				await Logger.LogVerboseAsync($"[MEGA] Calculated download timeout: {downloadTimeoutSeconds} seconds for {node.Size} byte file");
+
+				var downloadTask = Task.Run(async () =>
 				{
-					await downloadStream.CopyToAsync(fileStream, 8192, cancellationToken).ConfigureAwait(false);
-					await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+					using ( Stream downloadStream = await _client.DownloadAsync(node, megaProgress, cancellationToken).ConfigureAwait(false) )
+					using ( FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true) )
+					{
+						await downloadStream.CopyToAsync(fileStream, 8192, cancellationToken).ConfigureAwait(false);
+						await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+					}
+				}, cancellationToken);
+
+				var downloadTimeoutTask = Task.Delay(TimeSpan.FromSeconds(downloadTimeoutSeconds), cancellationToken);
+				var downloadCompletedTask = await Task.WhenAny(downloadTask, downloadTimeoutTask).ConfigureAwait(false);
+
+				if ( downloadCompletedTask == downloadTimeoutTask )
+				{
+					throw new OperationCanceledException($"MEGA file download timed out after {downloadTimeoutSeconds} seconds (no progress detected)");
 				}
+
+				await downloadTask.ConfigureAwait(false); // Await to catch any exceptions
 
 				long fileSize = new FileInfo(filePath).Length;
 				await Logger.LogVerboseAsync($"[MEGA] File download completed successfully. File size: {fileSize} bytes");
@@ -213,8 +250,21 @@ namespace KOTORModSync.Core.Services.Download
 				});
 
 				await Logger.LogVerboseAsync("[MEGA] Logging out from MEGA");
-				await _client.LogoutAsync().ConfigureAwait(false);
-				await Logger.LogVerboseAsync("[MEGA] Successfully logged out from MEGA");
+
+				// Add timeout for logout
+				var logoutTask = _client.LogoutAsync();
+				var logoutTimeoutTask = Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+				var logoutCompletedTask = await Task.WhenAny(logoutTask, logoutTimeoutTask).ConfigureAwait(false);
+
+				if ( logoutCompletedTask == logoutTask )
+				{
+					await logoutTask.ConfigureAwait(false);
+					await Logger.LogVerboseAsync("[MEGA] Successfully logged out from MEGA");
+				}
+				else
+				{
+					await Logger.LogVerboseAsync("[MEGA] Logout timed out (not critical, session will expire)");
+				}
 
 				return DownloadResult.Succeeded(filePath, "Downloaded from MEGA");
 			}
@@ -331,8 +381,20 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				try
 				{
-					await _client.LogoutAsync().ConfigureAwait(false);
-					await Logger.LogVerboseAsync("[MEGA] Ensured logout after operation");
+					// Add timeout for final logout
+					var finalLogoutTask = _client.LogoutAsync();
+					var finalLogoutTimeout = Task.Delay(TimeSpan.FromSeconds(5));
+					var finalLogoutCompleted = await Task.WhenAny(finalLogoutTask, finalLogoutTimeout).ConfigureAwait(false);
+
+					if ( finalLogoutCompleted == finalLogoutTask )
+					{
+						await finalLogoutTask.ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[MEGA] Ensured logout after operation");
+					}
+					else
+					{
+						await Logger.LogVerboseAsync("[MEGA] Final logout timed out (session will expire naturally)");
+					}
 				}
 				catch
 				{

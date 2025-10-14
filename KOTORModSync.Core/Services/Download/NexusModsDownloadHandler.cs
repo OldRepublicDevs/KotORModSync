@@ -25,28 +25,23 @@ namespace KOTORModSync.Core.Services.Download
 			Logger.LogVerbose("[NexusMods] Initializing Nexus Mods download handler");
 			Logger.LogVerbose($"[NexusMods] API key provided: {!string.IsNullOrWhiteSpace(_apiKey)}");
 
+			// Set proper User-Agent identifying this application (Nexus Mods requirement)
+			// Format: ApplicationName/Version (contact_url)
 			if ( !_httpClient.DefaultRequestHeaders.Contains("User-Agent") )
 			{
-				const string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+				const string userAgent = "KOTORModSync/1.0 (https://github.com/th3w1zard1/KOTORModSync)";
 				_httpClient.DefaultRequestHeaders.Add("User-Agent", userAgent);
 				Logger.LogVerbose($"[NexusMods] Added User-Agent header: {userAgent}");
 			}
 
 			if ( !_httpClient.DefaultRequestHeaders.Contains("Accept") )
 			{
-				const string acceptHeader = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8";
+				const string acceptHeader = "application/json";
 				_httpClient.DefaultRequestHeaders.Add("Accept", acceptHeader);
 				Logger.LogVerbose($"[NexusMods] Added Accept header: {acceptHeader}");
 			}
 
-			if ( !_httpClient.DefaultRequestHeaders.Contains("Accept-Language") )
-			{
-				const string acceptLanguage = "en-US,en;q=0.9";
-				_httpClient.DefaultRequestHeaders.Add("Accept-Language", acceptLanguage);
-				Logger.LogVerbose($"[NexusMods] Added Accept-Language header: {acceptLanguage}");
-			}
-
-			Logger.LogVerbose("[NexusMods] Handler initialized with proper browser headers");
+			Logger.LogVerbose("[NexusMods] Handler initialized with Nexus Mods API compliance");
 		}
 
 		public bool CanHandle(string url)
@@ -136,13 +131,27 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogErrorAsync($"[NexusMods] HTTP request failed for URL '{url}': {httpEx.Message}");
 				await Logger.LogExceptionAsync(httpEx);
 
-				string userMessage = "Nexus Mods download failed. This usually happens when:\n\n" +
-									 "• The site is blocking automated downloads (403 Forbidden)\n" +
-									 "• An API key is required but not configured\n" +
-									 "• The mod page requires login/authentication\n\n" +
-									 $"Please download manually from: {url}\n\n" +
-									 "Or configure a Nexus Mods API key in settings (coming soon) for automated downloads.\n\n" +
-									 $"Technical details: {httpEx.Message}";
+				string userMessage;
+				if ( httpEx.Message.Contains("403") || httpEx.Message.Contains("Forbidden") )
+				{
+					userMessage = "Nexus Mods download failed due to access restrictions. This usually happens when:\n\n" +
+								  "• The file requires Nexus Mods Premium membership\n" +
+								  "• The mod author has restricted downloads to Premium users only\n" +
+								  "• The file is temporarily unavailable\n\n" +
+								  $"Please download manually from: {url}\n\n" +
+								  "Consider upgrading to Nexus Mods Premium for automated downloads of premium files.\n\n" +
+								  $"Technical details: {httpEx.Message}";
+				}
+				else
+				{
+					userMessage = "Nexus Mods download failed. This usually happens when:\n\n" +
+								  "• An API key is required but not configured\n" +
+								  "• The mod page requires login/authentication\n" +
+								  "• Network connectivity issues\n\n" +
+								  $"Please download manually from: {url}\n\n" +
+								  "Or ensure your Nexus Mods API key is correctly configured.\n\n" +
+								  $"Technical details: {httpEx.Message}";
+				}
 
 				progress?.Report(new DownloadProgress
 				{
@@ -207,14 +216,24 @@ namespace KOTORModSync.Core.Services.Download
 			if ( linkInfos == null || linkInfos.Count == 0 )
 			{
 				await Logger.LogErrorAsync("[NexusMods] Failed to resolve download links from Nexus Mods API");
+				string errorMessage = "Unable to resolve Nexus Mods download links.\n\n" +
+									  "This could mean:\n" +
+									  "• The mod has no main files (only optional files)\n" +
+									  "• Files require Nexus Mods Premium membership\n" +
+									  "• Files require manual download from the website\n" +
+									  "• The mod page exists but files were removed\n" +
+									  "• The API key doesn't have access to premium files\n\n" +
+									  $"Please visit the mod page and download manually: {url}\n\n" +
+									  "If this is a premium file, consider upgrading your Nexus Mods account.";
+
 				progress?.Report(new DownloadProgress
 				{
 					Status = DownloadStatus.Failed,
-					ErrorMessage = "Unable to resolve Nexus Mods download links. This could mean: no files found, mod requires manual download, or API error.",
+					ErrorMessage = errorMessage,
 					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
-				return DownloadResult.Failed("Unable to resolve Nexus Mods download links.");
+				return DownloadResult.Failed(errorMessage);
 			}
 
 			await Logger.LogVerboseAsync($"[NexusMods] Resolved {linkInfos.Count} download link(s)");
@@ -239,8 +258,10 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogVerboseAsync($"[NexusMods] Making HTTP GET request to download URL");
 				var request = new HttpRequestMessage(HttpMethod.Get, linkInfo.Url);
 				// Note: Download links from the API don't require the API key in the header
+				// But we still need proper User-Agent
 				request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
 
+				// Don't use MakeApiRequestAsync for file downloads (not API endpoints, just CDN)
 				HttpResponseMessage response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 				await Logger.LogVerboseAsync($"[NexusMods] Received response with status code: {response.StatusCode}");
 
@@ -327,6 +348,39 @@ namespace KOTORModSync.Core.Services.Download
 			return DownloadResult.Failed("Free downloads from Nexus Mods require manual interaction. Please download the mod manually from the website or provide an API key for automated downloads.");
 		}
 
+		/// <summary>
+		/// Makes an API request with error handling
+		/// </summary>
+		private async Task<HttpResponseMessage> MakeApiRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
+		{
+			HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+			// Handle rate limiting (429 Too Many Requests) if the API implements it
+			// Note: HttpStatusCode.TooManyRequests not available in .NET Framework 4.6.2, use numeric value
+			if ( response.StatusCode == (System.Net.HttpStatusCode)429 )
+			{
+				var retryAfter = response.Headers.RetryAfter;
+				if ( retryAfter?.Delta.HasValue == true )
+				{
+					int retrySeconds = (int)retryAfter.Delta.Value.TotalSeconds;
+					await Logger.LogWarningAsync($"[NexusMods] Rate limited by API. Waiting {retrySeconds} seconds before retry...");
+					await Task.Delay(TimeSpan.FromSeconds(retrySeconds), cancellationToken).ConfigureAwait(false);
+
+					// Retry once after waiting
+					response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+				}
+				else
+				{
+					await Logger.LogWarningAsync("[NexusMods] Rate limited by API (no Retry-After header). Waiting 60 seconds...");
+					await Task.Delay(TimeSpan.FromSeconds(60), cancellationToken).ConfigureAwait(false);
+
+					response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+				}
+			}
+
+			return response;
+		}
+
 		private async Task<List<NexusDownloadLink>> ResolveDownloadLinksAsync(string url)
 		{
 			await Logger.LogVerboseAsync($"[NexusMods] ResolveDownloadLinksAsync called with URL: {url}");
@@ -347,14 +401,15 @@ namespace KOTORModSync.Core.Services.Download
 
 			try
 			{
-				// Get list of files for this mod
+				// Get list of files for this mod (Updated API endpoint)
 				string filesUrl = $"https://api.nexusmods.com/v1/games/{gameDomain}/mods/{modId}/files.json";
 				await Logger.LogVerboseAsync($"[NexusMods] Fetching file list from: {filesUrl}");
 
 				var request = new HttpRequestMessage(HttpMethod.Get, filesUrl);
 				request.Headers.Add("apikey", _apiKey);
+				request.Headers.Add("User-Agent", "KOTORModSync/1.0 (https://github.com/th3w1zard1/KOTORModSync)");
 
-				HttpResponseMessage response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+				HttpResponseMessage response = await MakeApiRequestAsync(request).ConfigureAwait(false);
 				response.EnsureSuccessStatusCode();
 
 				string jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -385,10 +440,19 @@ namespace KOTORModSync.Core.Services.Download
 					string fileName = ((string)fileNameToken) ?? "unknown";
 					string categoryName = ((string)categoryNameToken) ?? "";
 
-					// Skip optional files, only download main/update files
+					// Skip optional files, but include main files and updates
 					if ( categoryName.Equals("OPTIONAL", StringComparison.OrdinalIgnoreCase) )
 					{
 						await Logger.LogVerboseAsync($"[NexusMods] Skipping optional file: {fileName}");
+						continue;
+					}
+
+					// Include main files and update files
+					if ( !categoryName.Equals("MAIN", StringComparison.OrdinalIgnoreCase) &&
+						 !categoryName.Equals("UPDATE", StringComparison.OrdinalIgnoreCase) &&
+						 !categoryName.Equals("MISCELLANEOUS", StringComparison.OrdinalIgnoreCase) )
+					{
+						await Logger.LogVerboseAsync($"[NexusMods] Skipping non-main file: {fileName} (category: {categoryName})");
 						continue;
 					}
 
@@ -396,21 +460,26 @@ namespace KOTORModSync.Core.Services.Download
 
 					try
 					{
-						// Get download URLs for this file
+						// Get download URLs for this file (Updated API endpoint)
 						string downloadLinkUrl = $"https://api.nexusmods.com/v1/games/{gameDomain}/mods/{modId}/files/{fileId}/download_link.json";
 						var downloadRequest = new HttpRequestMessage(HttpMethod.Get, downloadLinkUrl);
 						downloadRequest.Headers.Add("apikey", _apiKey);
+						downloadRequest.Headers.Add("User-Agent", "KOTORModSync/1.0 (https://github.com/th3w1zard1/KOTORModSync)");
 
-						HttpResponseMessage downloadResponse = await _httpClient.SendAsync(downloadRequest).ConfigureAwait(false);
+						HttpResponseMessage downloadResponse = await MakeApiRequestAsync(downloadRequest).ConfigureAwait(false);
 						downloadResponse.EnsureSuccessStatusCode();
 
 						string downloadJson = await downloadResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-						var downloadData = Newtonsoft.Json.Linq.JArray.Parse(downloadJson);
+						await Logger.LogVerboseAsync($"[NexusMods] Download link response: {downloadJson}");
 
-						if ( downloadData.Count > 0 )
+						var downloadData = Newtonsoft.Json.Linq.JObject.Parse(downloadJson);
+
+						// The API returns an array of download links, use the first one
+						var uriArray = downloadData["download_links"] as Newtonsoft.Json.Linq.JArray;
+						if ( uriArray != null && uriArray.Count > 0 )
 						{
-							// Use the first download server
-							var uriToken = downloadData[0]["URI"];
+							var firstLink = uriArray[0];
+							var uriToken = firstLink["URI"];
 							string downloadUrl = (string)uriToken;
 							if ( !string.IsNullOrEmpty(downloadUrl) )
 							{
@@ -426,11 +495,6 @@ namespace KOTORModSync.Core.Services.Download
 
 						downloadRequest.Dispose();
 						downloadResponse.Dispose();
-					}
-					catch ( HttpRequestException httpEx )
-					{
-						await Logger.LogWarningAsync($"[NexusMods] Failed to get download link for '{fileName}': {httpEx.Message}");
-						continue;
 					}
 					catch ( Exception ex )
 					{
@@ -480,11 +544,11 @@ namespace KOTORModSync.Core.Services.Download
 						return (false, "API key appears to be too short. Nexus Mods API keys are typically longer.");
 					}
 
-					// Test 2: Try to authenticate with the API
+					// Test 2: Try to authenticate with the API (Updated endpoint)
 					await Logger.LogAsync("[NexusMods] Testing API key authentication...");
 					var request = new HttpRequestMessage(HttpMethod.Get, "https://api.nexusmods.com/v1/users/validate.json");
 					request.Headers.Add("apikey", apiKey);
-					request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+					request.Headers.Add("User-Agent", "KOTORModSync/1.0 (https://github.com/th3w1zard1/KOTORModSync)");
 
 					HttpResponseMessage response = await httpClient.SendAsync(request);
 
@@ -496,6 +560,12 @@ namespace KOTORModSync.Core.Services.Download
 					if ( response.StatusCode == System.Net.HttpStatusCode.Forbidden )
 					{
 						return (false, "API key is forbidden from accessing the API. Please check your Nexus Mods account permissions.");
+					}
+
+					// Note: HttpStatusCode.TooManyRequests not available in .NET Framework 4.6.2, use numeric value
+					if ( response.StatusCode == (System.Net.HttpStatusCode)429 )
+					{
+						return (false, "API rate limit exceeded. Please wait a few minutes and try again.");
 					}
 
 					if ( !response.IsSuccessStatusCode )

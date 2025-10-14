@@ -172,7 +172,7 @@ namespace KOTORModSync.Core.Services
 				return false;
 
 			string extension = Path.GetExtension(filePath).ToLowerInvariant();
-			return extension == ".zip" || extension == ".rar" || extension == ".7z";
+			return extension == ".zip" || extension == ".rar" || extension == ".7z" || extension == ".exe";
 		}
 
 		public IReadOnlyList<string> GetCachedUrls(Guid componentGuid)

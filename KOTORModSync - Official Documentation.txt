@@ -41,7 +41,7 @@ Patcher -> Execute a Patcher install from the given tslpatchdata directory path.
 Rename -> Renames a file
 Choose -> Defines an instruction that'll choose between a list of GUID options.
 DelDuplicate -> An instruction that will deletes all files containing the specified extension, when the filenames duplicate.
-Extract -> Extracts an archive. Currently supports [.7z, .rar, .zip, and 7zip .EXE] archives ONLY.
+Extract -> Extracts an archive. Currently supports [.7z, .rar, .zip, and 7zip .EXE] archives ONLY. 7z SFX executables (.exe) are extracted cross-platform by parsing the embedded 7z payload, with a CLI fallback (7z) on non-Windows systems if available.
 Delete -> Deletes a file.
 
 All of these instructions have the following fields:

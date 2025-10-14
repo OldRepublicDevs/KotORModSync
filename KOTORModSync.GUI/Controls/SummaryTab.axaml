@@ -1,0 +1,525 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Controls.SummaryTab"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:KOTORModSync.Controls"
+    xmlns:converters="clr-namespace:KOTORModSync.Converters"
+    xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:IndexConverter x:Key="IndexConverter" />
+        <converters:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <converters:InvalidUrlVisibilityConverter x:Key="InvalidUrlVisibilityConverter" />
+        <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
+        <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
+        <converters:NotDestinationActionVisibility x:Key="NotDestinationActionVisibility" />
+        <converters:GuidToComponentConverter x:Key="GuidToComponentConverter" />
+        <converters:GuidListConverter x:Key="GuidListConverter" />
+        <converters:CategoryTooltipConverter x:Key="CategoryTooltipConverter" />
+        <converters:TierTooltipConverter x:Key="TierTooltipConverter" />
+        <converters:PathResolverConverter x:Key="PathResolverConverter" />
+        <converters:InstructionDestinationConverter x:Key="InstructionDestinationConverter" />
+        <converters:BooleanAndConverter x:Key="BooleanAndConverter" />
+        <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
+        <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
+    </UserControl.Resources>
+
+    <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
+    <ScrollViewer
+        Padding="8"
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <StackPanel HorizontalAlignment="Stretch" DataContext="{Binding CurrentComponent}">
+
+            <!--  Mod Information Card  -->
+            <Border Classes="summary-card">
+                <StackPanel>
+                    <Border Classes="summary-header">
+                        <TextBlock Classes="summary-section-title" Text="📦 Mod Information" />
+                    </Border>
+
+                    <Grid ColumnDefinitions="80,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                        <!--  Name  -->
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Classes="summary-label"
+                            IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}"
+                            Text="Name:" />
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            IsVisible="{Binding Name, Converter={StaticResource StringToVisibilityConverter}}"
+                            Text="{Binding Name}" />
+
+                        <!--  GUID (Editor Mode Only)  -->
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Classes="summary-label"
+                            IsVisible="{Binding $parent[Window].EditorMode}"
+                            Text="GUID:" />
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            FontFamily="Consolas,Courier New,monospace"
+                            FontSize="11"
+                            IsVisible="{Binding $parent[Window].EditorMode}"
+                            Text="{Binding Guid}" />
+
+                        <!--  Author  -->
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Classes="summary-label"
+                            IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}"
+                            Text="Author:" />
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            IsVisible="{Binding Author, Converter={StaticResource StringToVisibilityConverter}}"
+                            Text="{Binding Author}" />
+
+                        <!--  Installation Method  -->
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="0"
+                            Classes="summary-label"
+                            IsVisible="{Binding InstallationMethod, Converter={StaticResource StringToVisibilityConverter}}"
+                            Text="Method:" />
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            IsVisible="{Binding InstallationMethod, Converter={StaticResource StringToVisibilityConverter}}"
+                            Text="{Binding InstallationMethod}" />
+
+                        <!--  Language Support  -->
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="0"
+                            Classes="summary-label"
+                            IsVisible="{Binding Language, Converter={StaticResource ListToVisibilityConverter}}"
+                            Text="Languages:" />
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            IsVisible="{Binding Language, Converter={StaticResource ListToVisibilityConverter}}"
+                            Text="{Binding Language, Converter={StaticResource CategoryListDisplayConverter}}" />
+
+                        <!--  Flags  -->
+                        <StackPanel
+                            Grid.Row="5"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Margin="0,4,0,0"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Border
+                                Padding="4,2"
+                                Background="#40FFA500"
+                                CornerRadius="3"
+                                IsVisible="{Binding WidescreenOnly}">
+                                <TextBlock Text="🖥️ Widescreen Only" />
+                            </Border>
+                            <Border
+                                Padding="4,2"
+                                Background="#4000BFFF"
+                                CornerRadius="3"
+                                IsVisible="{Binding AspyrExclusive}">
+                                <TextBlock Text="🎮 Aspyr Only" />
+                            </Border>
+                        </StackPanel>
+
+                    </Grid>
+
+                    <!--  Category & Tier badges outside the grid  -->
+                    <StackPanel
+                        Margin="0,8,0,0"
+                        Orientation="Horizontal"
+                        Spacing="12">
+                        <StackPanel IsVisible="{Binding Category, Converter={StaticResource ListToVisibilityConverter}}">
+                            <TextBlock
+                                Margin="0,0,0,2"
+                                Classes="summary-label"
+                                Text="Categories" />
+                            <Border
+                                Padding="6,3"
+                                Classes="category-badge"
+                                CornerRadius="4"
+                                ToolTip.Tip="{Binding Category, Converter={StaticResource CategoryTooltipConverter}}">
+                                <TextBlock Text="{Binding Category, Converter={StaticResource CategoryListDisplayConverter}}" />
+                            </Border>
+                        </StackPanel>
+                        <StackPanel IsVisible="{Binding Tier, Converter={StaticResource StringToVisibilityConverter}}">
+                            <TextBlock
+                                Margin="0,0,0,2"
+                                Classes="summary-label"
+                                Text="Tier" />
+                            <Border
+                                Padding="6,3"
+                                Classes="tier-badge"
+                                CornerRadius="4"
+                                ToolTip.Tip="{Binding Tier, Converter={StaticResource TierTooltipConverter}}">
+                                <TextBlock Text="{Binding Tier}" />
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!--  Download Links Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding ModLink, Converter={StaticResource ListToVisibilityConverter}}">
+                <StackPanel>
+                    <Border Classes="summary-header">
+                        <TextBlock Classes="summary-section-title" Text="🔗 Download Links" />
+                    </Border>
+                    <TextBlock
+                        Margin="0,0,0,4"
+                        Classes="secondary-text"
+                        Text="Click any link to open in your browser" />
+                    <ItemsRepeater ItemsSource="{Binding ModLink}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="summary-link-container">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <SelectableTextBlock
+                                            Grid.Column="0"
+                                            Cursor="Hand"
+                                            FontSize="14"
+                                            Tapped="OpenLink_Tapped"
+                                            Text="{Binding}"
+                                            TextDecorations="Underline"
+                                            TextWrapping="Wrap">
+                                            <TextBlock.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Click="CopyTextToClipboard_Click" Header="Copy" />
+                                                </ContextMenu>
+                                            </TextBlock.ContextMenu>
+                                        </SelectableTextBlock>
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Margin="8,0,0,0"
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Foreground="{DynamicResource UrlValidation.ErrorIconBrush}"
+                                            IsVisible="{Binding ., Converter={StaticResource InvalidUrlVisibilityConverter}}"
+                                            Text="❌"
+                                            ToolTip.Tip="Invalid URL" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Border>
+
+            <!--  Description Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}">
+                <DockPanel>
+                    <Border Classes="summary-header" DockPanel.Dock="Top">
+                        <TextBlock Classes="summary-section-title" Text="📄 Description" />
+                    </Border>
+                    <TextBlock
+                        Name="DescriptionTextBlock"
+                        DockPanel.Dock="Top"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!--  Installation Directions Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding Directions, Converter={StaticResource StringToVisibilityConverter}}">
+                <DockPanel>
+                    <Border Classes="summary-header" DockPanel.Dock="Top">
+                        <TextBlock Classes="summary-section-title" Text="📋 Installation Notes" />
+                    </Border>
+                    <TextBlock
+                        Name="DirectionsTextBlock"
+                        DockPanel.Dock="Top"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!--  Download Instructions Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding DownloadInstructions, Converter={StaticResource StringToVisibilityConverter}}">
+                <DockPanel>
+                    <Border Classes="summary-header" DockPanel.Dock="Top">
+                        <TextBlock Classes="summary-section-title" Text="⬇️ Download Instructions" />
+                    </Border>
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Text="{Binding DownloadInstructions}"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!--  Usage Warning Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding UsageWarning, Converter={StaticResource StringToVisibilityConverter}}">
+                <DockPanel>
+                    <Border Classes="summary-header" DockPanel.Dock="Top">
+                        <TextBlock Classes="summary-section-title" Text="⚠️ Usage Warning" />
+                    </Border>
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Foreground="#FFFF8C00"
+                        Text="{Binding UsageWarning}"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!--  Screenshots Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding Screenshots, Converter={StaticResource StringToVisibilityConverter}}">
+                <StackPanel>
+                    <Border Classes="summary-header">
+                        <TextBlock Classes="summary-section-title" Text="📸 Screenshots" />
+                    </Border>
+                    <controls:ScreenshotDisplayControl ScreenshotData="{Binding Screenshots}" />
+                </StackPanel>
+            </Border>
+
+            <!--  Known Bugs Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding KnownBugs, Converter={StaticResource StringToVisibilityConverter}}">
+                <DockPanel>
+                    <Border Classes="summary-header" DockPanel.Dock="Top">
+                        <TextBlock Classes="summary-section-title" Text="🐛 Known Bugs" />
+                    </Border>
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Foreground="#FFFF6B6B"
+                        Text="{Binding KnownBugs}"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!--  Installation Warning Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding InstallationWarning, Converter={StaticResource StringToVisibilityConverter}}">
+                <DockPanel>
+                    <Border Classes="summary-header" DockPanel.Dock="Top">
+                        <TextBlock Classes="summary-section-title" Text="⚠️ Installation Warning" />
+                    </Border>
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Foreground="#FFFF8C00"
+                        Text="{Binding InstallationWarning}"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!--  Compatibility Warning Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding CompatibilityWarning, Converter={StaticResource StringToVisibilityConverter}}">
+                <DockPanel>
+                    <Border Classes="summary-header" DockPanel.Dock="Top">
+                        <TextBlock Classes="summary-section-title" Text="🔧 Compatibility Warning" />
+                    </Border>
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Text="{Binding CompatibilityWarning}"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!--  Steam Notes Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding SteamNotes, Converter={StaticResource StringToVisibilityConverter}}">
+                <DockPanel>
+                    <Border Classes="summary-header" DockPanel.Dock="Top">
+                        <TextBlock Classes="summary-section-title" Text="🎮 Steam Notes" />
+                    </Border>
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Text="{Binding SteamNotes}"
+                        TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+
+            <!--  Options/Customizations Card  -->
+            <Border Classes="summary-card" IsVisible="{Binding ElementName=OptionsSummaryRepeater, Path=ItemsSource, Converter={StaticResource ListToVisibilityConverter}}">
+                <StackPanel>
+                    <Border Classes="summary-header">
+                        <TextBlock Classes="summary-section-title" Text="⚙️ Options &amp; Customizations" />
+                    </Border>
+                    <TextBlock
+                        Margin="0,0,0,4"
+                        Classes="secondary-text"
+                        Text="Select the options you want to install" />
+
+                    <ItemsRepeater x:Name="OptionsSummaryRepeater" ItemsSource="{Binding Options}">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate DataType="core:Option">
+                                <Border
+                                    Classes="summary-option-card"
+                                    Cursor="Hand"
+                                    PointerPressed="SummaryOptionBorder_PointerPressed"
+                                    Tag="{Binding}">
+                                    <Border.Styles>
+                                        <Style Selector="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                        </Style>
+                                        <Style Selector="Border:pointerover">
+                                            <Setter Property="Background" Value="{DynamicResource ModListItem.HoverBackgroundBrush}" />
+                                        </Style>
+                                    </Border.Styles>
+                                    <StackPanel Spacing="4">
+                                        <CheckBox
+                                            Name="OptionIsSelectedCheckBox"
+                                            IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                            IsCheckedChanged="OnCheckBoxChanged"
+                                            Tag="{Binding}"
+                                            ToolTip.Tip="Check to install this option">
+                                            <TextBlock Classes="summary-option-title" Text="{Binding Name}" />
+                                        </CheckBox>
+
+                                        <TextBlock
+                                            Margin="24,0,0,0"
+                                            IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}"
+                                            Text="{Binding Description}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </Border>
+            <!--  Instructions Overview Card  -->
+            <Border Classes="summary-card">
+                <Border.IsVisible>
+                    <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                        <Binding Path="$parent[Window].EditorMode" />
+                        <Binding
+                            Converter="{StaticResource ListToVisibilityConverter}"
+                            ElementName="InstructionsSummaryRepeater"
+                            Path="ItemsSource" />
+                    </MultiBinding>
+                </Border.IsVisible>
+                <StackPanel>
+                    <Border Classes="summary-header">
+                        <TextBlock Classes="summary-section-title" Text="🔧 Installation Instructions" />
+                    </Border>
+                    <TextBlock
+                        Margin="0,0,0,4"
+                        Classes="secondary-text"
+                        Text="These operations will be performed automatically" />
+
+                    <Grid>
+                        <ItemsRepeater
+                            x:Name="InstructionsSummaryRepeater"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding Instructions}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate DataType="core:Instruction">
+                                    <Expander
+                                        HorizontalAlignment="Stretch"
+                                        Classes="summary-instruction-card"
+                                        IsExpanded="False">
+                                        <Expander.Header>
+                                            <DockPanel LastChildFill="True">
+                                                <!--  Jump to Instruction Button - Dock Right First  -->
+                                                <Button
+                                                    Margin="8,0,0,0"
+                                                    Padding="8,4"
+                                                    VerticalAlignment="Center"
+                                                    Click="JumpToInstruction_Click"
+                                                    Content="🔗 Jump to Instruction"
+                                                    DockPanel.Dock="Right"
+                                                    FontSize="11"
+                                                    Tag="{Binding .}"
+                                                    ToolTip.Tip="Jump to this instruction in Editor tab" />
+
+                                                <!--  Instruction Number  -->
+                                                <Border
+                                                    Margin="0,0,8,0"
+                                                    Padding="6,2"
+                                                    VerticalAlignment="Center"
+                                                    Background="{DynamicResource mod-list-item-badge}"
+                                                    CornerRadius="4"
+                                                    DockPanel.Dock="Left">
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        FontWeight="Bold">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding Converter="{StaticResource IndexConverter}">
+                                                                <MultiBinding.Bindings>
+                                                                    <Binding Path="$parent[ItemsRepeater].ItemsSource" />
+                                                                    <Binding Path="." />
+                                                                </MultiBinding.Bindings>
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </Border>
+
+                                                <!--  Action (with Choose options count)  -->
+                                                <TextBlock
+                                                    Margin="0,0,8,0"
+                                                    VerticalAlignment="Center"
+                                                    Classes="summary-instruction-action"
+                                                    DockPanel.Dock="Left"
+                                                    Text="{Binding ., Converter={StaticResource ChooseActionDisplayConverter}}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="NoWrap" />
+
+                                                <!--  First Source Path - Fills Remaining Space  -->
+                                                <TextBlock
+                                                    Margin="0,0,8,0"
+                                                    VerticalAlignment="Center"
+                                                    IsVisible="{Binding Action, Converter={StaticResource NotDestinationActionVisibility}}"
+                                                    Text="{Binding Source, Converter={StaticResource FirstSourcePathConverter}}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="NoWrap" />
+                                            </DockPanel>
+                                        </Expander.Header>
+
+                                        <StackPanel Margin="0,4,0,0">
+                                            <!--  Details for non-Choose actions  -->
+                                            <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotDestinationActionVisibility}}" Orientation="Vertical">
+                                                <!--  Source paths with resolved placeholders  -->
+                                                <TextBlock Text="{Binding Source, Converter={StaticResource PathResolverConverter}}" TextWrapping="Wrap" />
+                                                <!--  Destination information  -->
+                                                <TextBlock
+                                                    Margin="0,2,0,0"
+                                                    FontStyle="Italic"
+                                                    Text="{Binding ., Converter={StaticResource InstructionDestinationConverter}}"
+                                                    TextWrapping="Wrap" />
+                                                <!--  Arguments if present  -->
+                                                <TextBlock
+                                                    Margin="0,2,0,0"
+                                                    FontSize="11"
+                                                    IsVisible="{Binding Arguments, Converter={StaticResource StringToVisibilityConverter}}"
+                                                    Text="{Binding Arguments}"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <!--  Details for Choose actions  -->
+                                            <ItemsControl IsVisible="{Binding Action, Converter={StaticResource ChooseActionVisibility}}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock
+                                                            Margin="0,2,0,0"
+                                                            Text="{Binding ., Converter={StaticResource GuidToComponentConverter}}"
+                                                            TextWrapping="Wrap"
+                                                            ToolTip.Tip="{Binding .}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                                <ItemsControl.ItemsSource>
+                                                    <Binding Converter="{StaticResource GuidListConverter}" Path="Source" />
+                                                </ItemsControl.ItemsSource>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

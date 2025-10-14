@@ -220,11 +220,17 @@ namespace KOTORModSync.Controls
 			if ( nameTextBlock == null )
 				return;
 
-			string basicTooltip = CreateBasicTooltip(component);
-			ToolTip.SetTip(nameTextBlock, basicTooltip);
-
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
+			{
+				string basicTooltip = CreateBasicTooltip(component, false);
+				ToolTip.SetTip(nameTextBlock, basicTooltip);
 				return;
+			}
+
+			bool spoilerFreeMode = mainWindow.SpoilerFreeMode;
+			string tooltip = CreateBasicTooltip(component, spoilerFreeMode);
+			ToolTip.SetTip(nameTextBlock, tooltip);
+
 			UpdateEditorModeVisibility(mainWindow.EditorMode);
 
 			if ( !mainWindow.EditorMode )
@@ -235,7 +241,7 @@ namespace KOTORModSync.Controls
 
 			try
 			{
-				string detailedTooltip = CreateRichTooltipAsync(component);
+				string detailedTooltip = CreateRichTooltipAsync(component, spoilerFreeMode);
 				ToolTip.SetTip(nameTextBlock, detailedTooltip);
 			}
 			catch ( Exception ex )
@@ -423,9 +429,10 @@ namespace KOTORModSync.Controls
 				dragHandle.IsVisible = isEditorMode;
 		}
 
-		private static string CreateBasicTooltip(ModComponent component)
+		private static string CreateBasicTooltip(ModComponent component, bool spoilerFreeMode = false)
 		{
 			var sb = new System.Text.StringBuilder();
+			string description = spoilerFreeMode ? component.DescriptionSpoilerFree : component.Description;
 
 			if ( !component.IsSelected )
 			{
@@ -437,9 +444,9 @@ namespace KOTORModSync.Controls
 					_ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
 				if ( !string.IsNullOrWhiteSpace(component.Tier) )
 					_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
-				if ( !string.IsNullOrWhiteSpace(component.Description) )
+				if ( !string.IsNullOrWhiteSpace(description) )
 				{
-					string desc = component.Description.Length > 200 ? component.Description.Substring(0, 200) + "..." : component.Description;
+					string desc = description.Length > 200 ? description.Substring(0, 200) + "..." : description;
 					_ = sb.AppendLine($"📝 {desc}");
 				}
 				return sb.ToString();
@@ -497,9 +504,10 @@ namespace KOTORModSync.Controls
 			return sb.ToString();
 		}
 
-		private static string CreateRichTooltipAsync(ModComponent component)
+		private static string CreateRichTooltipAsync(ModComponent component, bool spoilerFreeMode = false)
 		{
 			var sb = new System.Text.StringBuilder();
+			string description = spoilerFreeMode ? component.DescriptionSpoilerFree : component.Description;
 
 			if ( !component.IsSelected )
 			{
@@ -511,9 +519,9 @@ namespace KOTORModSync.Controls
 					_ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
 				if ( !string.IsNullOrWhiteSpace(component.Tier) )
 					_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
-				if ( !string.IsNullOrWhiteSpace(component.Description) )
+				if ( !string.IsNullOrWhiteSpace(description) )
 				{
-					string desc = component.Description.Length > 200 ? component.Description.Substring(0, 200) + "..." : component.Description;
+					string desc = description.Length > 200 ? description.Substring(0, 200) + "..." : description;
 					_ = sb.AppendLine($"📝 {desc}");
 				}
 				return sb.ToString();
@@ -551,7 +559,7 @@ namespace KOTORModSync.Controls
 						var missingUrls = new List<string>();
 						foreach ( string url in component.ModLink )
 						{
-							if ( !downloadCacheService.IsCached(component.Guid, url) )
+							if ( !downloadCacheService.IsCached(url) )
 							{
 								missingUrls.Add(url);
 							}
@@ -595,10 +603,10 @@ namespace KOTORModSync.Controls
 				}
 			}
 
-			if ( !string.IsNullOrWhiteSpace(component.Description) )
+			if ( !string.IsNullOrWhiteSpace(description) )
 			{
 				_ = sb.AppendLine($"📝 Description:");
-				string desc = component.Description.Length > 300 ? component.Description.Substring(0, 300) + "..." : component.Description;
+				string desc = description.Length > 300 ? description.Substring(0, 300) + "..." : description;
 				_ = sb.AppendLine(desc);
 				_ = sb.AppendLine();
 			}
@@ -656,9 +664,10 @@ namespace KOTORModSync.Controls
 			return sb.ToString();
 		}
 
-		private static string CreateRichTooltip(ModComponent component)
+		private static string CreateRichTooltip(ModComponent component, bool spoilerFreeMode = false)
 		{
 			var sb = new System.Text.StringBuilder();
+			string description = spoilerFreeMode ? component.DescriptionSpoilerFree : component.Description;
 
 			bool isMissingDownload = !component.IsDownloaded;
 			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
@@ -735,13 +744,13 @@ namespace KOTORModSync.Controls
 			if ( !string.IsNullOrEmpty(component.Tier) )
 				_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
 
-			if ( !string.IsNullOrEmpty(component.Description) )
+			if ( !string.IsNullOrEmpty(description) )
 			{
 				_ = sb.AppendLine();
 				_ = sb.AppendLine("📝 Description:");
-				string desc = component.Description.Length > 200
-					? component.Description.Substring(0, 200) + "..."
-					: component.Description;
+				string desc = description.Length > 200
+					? description.Substring(0, 200) + "..."
+					: description;
 				_ = sb.AppendLine(desc);
 			}
 

@@ -24,7 +24,6 @@
 
     <Window.Styles>
         <StyleInclude Source="/Styles/ContentPresenterFix.axaml" />
-        <StyleInclude Source="/Styles/KotorStyle.axaml" />
     </Window.Styles>
 
     <Grid Margin="20" RowDefinitions="Auto,*,Auto">
@@ -68,7 +67,7 @@
 
         <!--  Header  -->
         <TextBlock
-            Grid.Row="0"
+            Grid.Row="1"
             Margin="0,0,0,20"
             HorizontalAlignment="Center"
             FontSize="24"
@@ -76,7 +75,7 @@
             Text="⚙️ Settings" />
 
         <!--  Settings Content  -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="15">
                 <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
                 <StackPanel x:Name="SettingsStackPanel" DataContext="{Binding MainConfigInstance}">
@@ -270,7 +269,7 @@
 
         <!--  Buttons  -->
         <StackPanel
-            Grid.Row="2"
+            Grid.Row="3"
             Margin="0,20,0,0"
             HorizontalAlignment="Right"
             Orientation="Horizontal">

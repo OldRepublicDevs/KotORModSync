@@ -23,20 +23,45 @@ namespace KOTORModSync.Core.Services
 	{
 		public bool ExcludeExistingOnly { get; set; }
 		public bool ExcludeIncomingOnly { get; set; }
-		public bool UseIncomingOrder { get; set; }
+		public bool UseExistingOrder { get; set; }
 		public MergeHeuristicsOptions HeuristicsOptions { get; set; }
 
 		public static MergeOptions CreateDefault() => new MergeOptions
 		{
 			ExcludeExistingOnly = false,
 			ExcludeIncomingOnly = false,
-			UseIncomingOrder = false,
+			UseExistingOrder = false,
 			HeuristicsOptions = MergeHeuristicsOptions.CreateDefault()
 		};
 	}
 
 	public static class ComponentMergeService
 	{
+		/// <summary>
+		/// Asynchronously merges two instruction sets with optional URL validation.
+		/// If downloadCache is provided, invalid URLs will be removed during the merge.
+		/// </summary>
+		[NotNull]
+		public static async System.Threading.Tasks.Task<List<ModComponent>> MergeInstructionSetsAsync(
+				[NotNull] string existingFilePath,
+				[NotNull] string incomingFilePath,
+				MergeStrategy strategy = MergeStrategy.ByNameAndAuthor,
+				[CanBeNull] MergeOptions options = null,
+				[CanBeNull] DownloadCacheService downloadCache = null,
+				System.Threading.CancellationToken cancellationToken = default)
+		{
+			if ( existingFilePath == null )
+				throw new ArgumentNullException(nameof(existingFilePath));
+			if ( incomingFilePath == null )
+				throw new ArgumentNullException(nameof(incomingFilePath));
+
+			options = options ?? MergeOptions.CreateDefault();
+
+			List<ModComponent> existing = FileLoadingService.LoadFromFile(existingFilePath);
+			List<ModComponent> incoming = FileLoadingService.LoadFromFile(incomingFilePath);
+
+			return await MergeComponentListsAsync(existing, incoming, strategy, options, downloadCache, cancellationToken).ConfigureAwait(false);
+		}
 
 		[NotNull]
 		public static List<ModComponent> MergeInstructionSets(
@@ -58,6 +83,68 @@ namespace KOTORModSync.Core.Services
 			return MergeComponentLists(existing, incoming, strategy, options);
 		}
 
+		/// <summary>
+		/// Asynchronously merges component lists with optional URL validation.
+		/// If downloadCache is provided, invalid URLs will be removed during the merge.
+		/// </summary>
+		[NotNull]
+		public static async System.Threading.Tasks.Task<List<ModComponent>> MergeComponentListsAsync(
+			[NotNull] List<ModComponent> existing,
+			[NotNull] List<ModComponent> incoming,
+			MergeStrategy strategy,
+			[CanBeNull] MergeOptions options = null,
+			[CanBeNull] DownloadCacheService downloadCache = null,
+			System.Threading.CancellationToken cancellationToken = default)
+		{
+			if ( existing == null )
+				throw new ArgumentNullException(nameof(existing));
+			if ( incoming == null )
+				throw new ArgumentNullException(nameof(incoming));
+
+			options = options ?? MergeOptions.CreateDefault();
+			options.HeuristicsOptions = options.HeuristicsOptions ?? MergeHeuristicsOptions.CreateDefault();
+
+			List<ModComponent> result;
+
+			if ( options.UseExistingOrder )
+			{
+				// Start with EXISTING, merge INCOMING into it
+				// AddNewWhenNoMatchFound controls whether to add items from INCOMING
+				options.HeuristicsOptions.AddNewWhenNoMatchFound = !options.ExcludeIncomingOnly;
+
+				result = new List<ModComponent>(existing);
+				await MergeIntoAsync(result, incoming, strategy, options.HeuristicsOptions, downloadCache, cancellationToken).ConfigureAwait(false);
+
+				if ( options.ExcludeExistingOnly )
+				{
+					var matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
+				}
+			}
+			else
+			{
+				// Start with INCOMING, merge EXISTING into it
+				// AddNewWhenNoMatchFound controls whether to add items from EXISTING
+				options.HeuristicsOptions.AddNewWhenNoMatchFound = !options.ExcludeExistingOnly;
+
+				result = new List<ModComponent>(incoming);
+				await MergeIntoAsync(result, existing, strategy, options.HeuristicsOptions, downloadCache, cancellationToken).ConfigureAwait(false);
+
+				if ( options.ExcludeIncomingOnly )
+				{
+					var matchedGuids = new HashSet<Guid>(existing.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
+				}
+
+				if ( options.ExcludeExistingOnly )
+				{
+					var matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
+					result = result.Where(c => matchedGuids.Contains(c.Guid)).ToList();
+				}
+			}
+
+			return result;
+		}
 
 		[NotNull]
 		public static List<ModComponent> MergeComponentLists(
@@ -74,12 +161,29 @@ namespace KOTORModSync.Core.Services
 			options = options ?? MergeOptions.CreateDefault();
 			options.HeuristicsOptions = options.HeuristicsOptions ?? MergeHeuristicsOptions.CreateDefault();
 
-			options.HeuristicsOptions.AddNewWhenNoMatchFound = !options.ExcludeIncomingOnly;
-
 			List<ModComponent> result;
 
-			if ( options.UseIncomingOrder )
+			if ( options.UseExistingOrder )
 			{
+				// Start with EXISTING, merge INCOMING into it
+				// AddNewWhenNoMatchFound controls whether to add items from INCOMING
+				options.HeuristicsOptions.AddNewWhenNoMatchFound = !options.ExcludeIncomingOnly;
+
+				result = new List<ModComponent>(existing);
+				MergeInto(result, incoming, strategy, options.HeuristicsOptions);
+
+				if ( options.ExcludeExistingOnly )
+				{
+					var matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
+				}
+			}
+			else
+			{
+				// Start with INCOMING, merge EXISTING into it
+				// AddNewWhenNoMatchFound controls whether to add items from EXISTING
+				options.HeuristicsOptions.AddNewWhenNoMatchFound = !options.ExcludeExistingOnly;
+
 				result = new List<ModComponent>(incoming);
 				MergeInto(result, existing, strategy, options.HeuristicsOptions);
 
@@ -95,40 +199,57 @@ namespace KOTORModSync.Core.Services
 					result = result.Where(c => matchedGuids.Contains(c.Guid)).ToList();
 				}
 			}
-			else
-			{
-				result = new List<ModComponent>(existing);
-				MergeInto(result, incoming, strategy, options.HeuristicsOptions);
-
-				if ( options.ExcludeExistingOnly )
-				{
-					var matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
-					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
-				}
-			}
 
 			return result;
 		}
 
-
-		public static void MergeInto(
-			[NotNull] List<ModComponent> existing,
+		/// <summary>
+		/// Asynchronously merges incoming list into base list with optional URL validation.
+		/// </summary>
+		public static async System.Threading.Tasks.Task MergeIntoAsync(
+			[NotNull] List<ModComponent> baseList,
 			[NotNull] List<ModComponent> incoming,
 			MergeStrategy strategy,
-			[CanBeNull] MergeHeuristicsOptions options = null)
+			[CanBeNull] MergeHeuristicsOptions options = null,
+			[CanBeNull] DownloadCacheService downloadCache = null,
+			System.Threading.CancellationToken cancellationToken = default)
 		{
-			if ( existing == null )
-				throw new ArgumentNullException(nameof(existing));
+			if ( baseList == null )
+				throw new ArgumentNullException(nameof(baseList));
 			if ( incoming == null )
 				throw new ArgumentNullException(nameof(incoming));
 
 			switch ( strategy )
 			{
 				case MergeStrategy.ByGuid:
-					MergeByGuid(existing, incoming);
+					MergeByGuid(baseList, incoming);
 					break;
 				case MergeStrategy.ByNameAndAuthor:
-					MarkdownMergeService.MergeInto(existing, incoming, options);
+					await MarkdownMergeService.MergeIntoAsync(baseList, incoming, options, false, downloadCache, cancellationToken).ConfigureAwait(false);
+					break;
+				default:
+					throw new ArgumentException($"Unknown merge strategy: {strategy}");
+			}
+		}
+
+		public static void MergeInto(
+			[NotNull] List<ModComponent> baseList,
+			[NotNull] List<ModComponent> incoming,
+			MergeStrategy strategy,
+			[CanBeNull] MergeHeuristicsOptions options = null)
+		{
+			if ( baseList == null )
+				throw new ArgumentNullException(nameof(baseList));
+			if ( incoming == null )
+				throw new ArgumentNullException(nameof(incoming));
+
+			switch ( strategy )
+			{
+				case MergeStrategy.ByGuid:
+					MergeByGuid(baseList, incoming);
+					break;
+				case MergeStrategy.ByNameAndAuthor:
+					MarkdownMergeService.MergeInto(baseList, incoming, options);
 					break;
 				default:
 					throw new ArgumentException($"Unknown merge strategy: {strategy}");

@@ -11,6 +11,11 @@
           "type": "generic",
           "path": "KOTORModSync.Core/MainConfig.cs",
           "glob": false
+        },
+        {
+          "type": "plist",
+          "path": "Info.plist",
+          "glob": false
         }
       ],
       "changelog-sections": [

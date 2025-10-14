@@ -1,0 +1,564 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Controls.GettingStartedTab"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:KOTORModSync.Controls"
+    xmlns:converters="clr-namespace:KOTORModSync.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="800"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:IndexConverter x:Key="IndexConverter" />
+        <converters:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <converters:InvalidUrlVisibilityConverter x:Key="InvalidUrlVisibilityConverter" />
+        <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
+        <converters:ListToStringConverter x:Key="ListToStringConverter" />
+        <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
+        <converters:NotDestinationActionVisibility x:Key="NotDestinationActionVisibility" />
+        <converters:GuidToComponentConverter x:Key="GuidToComponentConverter" />
+        <converters:GuidListConverter x:Key="GuidListConverter" />
+        <converters:CategoryTooltipConverter x:Key="CategoryTooltipConverter" />
+        <converters:TierTooltipConverter x:Key="TierTooltipConverter" />
+        <converters:PathResolverConverter x:Key="PathResolverConverter" />
+        <converters:InstructionDestinationConverter x:Key="InstructionDestinationConverter" />
+        <converters:BooleanAndConverter x:Key="BooleanAndConverter" />
+        <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
+        <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20" Spacing="20">
+            <TextBlock Classes="welcome-title" Text="Welcome to KOTORModSync!" />
+
+            <TextBlock
+                Margin="0,0,0,10"
+                HorizontalAlignment="Center"
+                FontSize="16"
+                Text="Follow these steps to install your KOTOR mods:" />
+
+            <!--  Step 1: Directories  -->
+            <Border x:Name="Step1Border" Classes="step-border">
+                <StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <TextBlock
+                            Grid.Column="0"
+                            Classes="step-number"
+                            Text="1️⃣" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Classes="step-title"
+                            Text="Set Directories" />
+                        <Border
+                            x:Name="Step1CompleteIndicator"
+                            Grid.Column="2"
+                            Classes="step-pending">
+                            <TextBlock
+                                x:Name="Step1CompleteText"
+                                Classes="step-pending-text"
+                                Text="Pending" />
+                        </Border>
+                    </Grid>
+                    <TextBlock
+                        Margin="30,10,0,10"
+                        Text="Configure your mod directory and KOTOR installation directory"
+                        TextWrapping="Wrap" />
+
+                    <!--  Directory Controls  -->
+                    <StackPanel Margin="30,10,0,10">
+                        <controls:DirectoryPickerControl
+                            x:Name="Step1ModDirectoryPicker"
+                            Title="Mod Location:"
+                            Margin="0,0,0,10"
+                            DirectoryChanged="OnDirectoryChanged"
+                            PickerType="ModDirectory"
+                            Watermark="Enter mod directory path" />
+
+                        <controls:DirectoryPickerControl
+                            x:Name="Step1KotorDirectoryPicker"
+                            Title="Kotor Directory:"
+                            DirectoryChanged="OnDirectoryChanged"
+                            PickerType="KotorDirectory"
+                            Watermark="Enter KOTOR installation directory" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!--  Step 2: Load Instructions  -->
+            <Border x:Name="Step2Border" Classes="step-border">
+                <StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <TextBlock
+                            Grid.Column="0"
+                            Classes="step-number"
+                            Text="2️⃣" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Classes="step-title"
+                            Text="Load Instruction File" />
+                        <Border
+                            x:Name="Step2CompleteIndicator"
+                            Grid.Column="2"
+                            Classes="step-pending">
+                            <TextBlock
+                                x:Name="Step2CompleteText"
+                                Classes="step-pending-text"
+                                Text="Pending" />
+                        </Border>
+                    </Grid>
+                    <TextBlock
+                        Margin="30,10,0,10"
+                        Text="Load a mod configuration file or create a new one"
+                        TextWrapping="Wrap" />
+                    <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
+                        <Button
+                            x:Name="Step2Button"
+                            Margin="0,0,10,0"
+                            HorizontalAlignment="Left"
+                            Click="Step2Button_Click"
+                            Content="📄 Load Instruction File"
+                            ToolTip.Tip="Click 'Load Installation File' in the top menu" />
+                        <Button
+                            x:Name="GettingStartedSettingsButton"
+                            HorizontalAlignment="Left"
+                            Click="OpenSettings_Click"
+                            Content="⚙️ Settings"
+                            ToolTip.Tip="Open settings dialog to configure preferences" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!--  Step 3: Select Mods  -->
+            <Border x:Name="Step3Border" Classes="step-border">
+                <StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <TextBlock
+                            Grid.Column="0"
+                            Classes="step-number"
+                            Text="3️⃣" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Classes="step-title"
+                            Text="Select Mods &amp; Options" />
+                        <Border
+                            x:Name="Step3CompleteIndicator"
+                            Grid.Column="2"
+                            Classes="step-pending">
+                            <TextBlock
+                                x:Name="Step3CompleteText"
+                                Classes="step-pending-text"
+                                Text="Pending" />
+                        </Border>
+                    </Grid>
+                    <TextBlock
+                        Margin="30,10,0,10"
+                        Text="Choose which mods to install from the list on the left, and configure any options"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="30,5,0,10"
+                        FontStyle="Italic"
+                        Text="👈 Use the left panel to select mods and customize their options" />
+                </StackPanel>
+            </Border>
+
+            <!--  Step 4: Download Mods & Validate  -->
+            <Border x:Name="Step4Border" Classes="step-border">
+                <StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <TextBlock
+                            Grid.Column="0"
+                            Classes="step-number"
+                            Text="4️⃣" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Classes="step-title"
+                            Text="Download Mods &amp; Validate" />
+                        <Border
+                            x:Name="Step4CompleteIndicator"
+                            Grid.Column="2"
+                            Classes="step-pending">
+                            <TextBlock
+                                x:Name="Step4CompleteText"
+                                Classes="step-pending-text"
+                                Text="Pending" />
+                        </Border>
+                    </Grid>
+
+                    <!--  Download Section  -->
+                    <TextBlock
+                        Margin="30,10,0,5"
+                        FontWeight="Bold"
+                        Text="📥 Download Mods" />
+                    <TextBlock
+                        Margin="30,5,0,10"
+                        Text="Make sure each selected mod is downloaded into your Mod Directory before installing."
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="30,0,0,10"
+                        Text="The downloader will attempt to fetch files automatically, but you may need to grab some manually."
+                        TextWrapping="Wrap" />
+                    <StackPanel
+                        Margin="30,5,0,0"
+                        Orientation="Horizontal"
+                        Spacing="10">
+                        <Button
+                            x:Name="ScrapeDownloadsButton"
+                            Click="ScrapeDownloadsButton_Click"
+                            Content="Fetch Downloads"
+                            ToolTip.Tip="Try to download all missing mod archives automatically" />
+                        <Button
+                            x:Name="OpenModDirectoryButton"
+                            Click="OpenModDirectoryButton_Click"
+                            Content="Open Mod Directory"
+                            ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
+                    </StackPanel>
+
+                    <!--  Download Status and Progress Indicator  -->
+                    <StackPanel Margin="30,10,0,0" Spacing="8">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <!--  LED Status Indicator  -->
+                            <Ellipse
+                                x:Name="DownloadLedIndicator"
+                                Grid.Column="0"
+                                Width="12"
+                                Height="12"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Center"
+                                Fill="Gray"
+                                ToolTip.Tip="Download status indicator" />
+
+                            <!--  Status Text (Clickable)  -->
+                            <Button
+                                x:Name="DownloadStatusButton"
+                                Grid.Column="1"
+                                Padding="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Click="DownloadStatusButton_Click"
+                                Cursor="Hand"
+                                ToolTip.Tip="Click to view download progress and status">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock
+                                        x:Name="DownloadStatusText"
+                                        Foreground="Gray"
+                                        Text="Status: Waiting for download scan..."
+                                        TextWrapping="Wrap" />
+                                    <TextBlock
+                                        x:Name="DownloadRunningText"
+                                        Margin="8,0,0,0"
+                                        FontWeight="Bold"
+                                        Foreground="Orange"
+                                        IsVisible="False"
+                                        Text="Running..." />
+                                </StackPanel>
+                            </Button>
+
+                            <!--  Stop Downloads Button  -->
+                            <Button
+                                x:Name="StopDownloadsButton"
+                                Grid.Column="2"
+                                Margin="8,0,0,0"
+                                Padding="6,4"
+                                Click="StopDownloadsButton_Click"
+                                Content="⏹️ Stop"
+                                IsVisible="False"
+                                ToolTip.Tip="Stop all active downloads" />
+                        </Grid>
+
+                        <!--  Download Progress Counter  -->
+                        <TextBlock
+                            x:Name="DownloadProgressText"
+                            FontSize="11"
+                            IsVisible="False"
+                            Opacity="0.8"
+                            Text="Downloaded: 0 / 0 mods" />
+                    </StackPanel>
+
+                    <!--  Validation Section  -->
+                    <TextBlock
+                        Margin="30,20,0,5"
+                        FontWeight="Bold"
+                        Text="✅ Validate Configuration" />
+                    <TextBlock
+                        Margin="30,5,0,10"
+                        Text="Check for any issues before installation"
+                        TextWrapping="Wrap" />
+                    <StackPanel Margin="30,5,0,0" Orientation="Horizontal">
+                        <Button
+                            x:Name="ValidateButton"
+                            Margin="0,0,10,0"
+                            Click="GettingStartedValidateButton_Click"
+                            Content="🔍 Validate"
+                            ToolTip.Tip="Check for any issues before installation" />
+                        <CheckBox x:Name="Step4Checkbox" IsVisible="False" />
+                    </StackPanel>
+
+                    <!--  Validation Results Area  -->
+                    <Border
+                        x:Name="ValidationResultsArea"
+                        Margin="30,10,0,0"
+                        Padding="16"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        IsVisible="False">
+                        <StackPanel Spacing="12">
+                            <!--  Validation Summary Header  -->
+                            <TextBlock
+                                x:Name="ValidationSummaryText"
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Text="Validation Results" />
+
+                            <!--  Error Navigation & Details (only shown if there are errors)  -->
+                            <StackPanel x:Name="ErrorNavigationArea" Spacing="10" IsVisible="False">
+                                <!--  Error Counter & Navigation  -->
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" Height="36">
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,12,0"
+                                        x:Name="ErrorCounterText"
+                                        FontWeight="SemiBold"
+                                        Text="Error 1 of 3" />
+                                    
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        x:Name="ErrorModNameText"
+                                        TextTrimming="CharacterEllipsis"
+                                        Text="Mod Name" />
+
+                                    <Button
+                                        x:Name="PrevErrorButton"
+                                        Grid.Column="2"
+                                        Width="32"
+                                        Height="32"
+                                        Margin="8,0,4,0"
+                                        Padding="0"
+                                        Click="PrevErrorButton_Click"
+                                        Content="◀"
+                                        ToolTip.Tip="Previous error" />
+
+                                    <Button
+                                        x:Name="NextErrorButton"
+                                        Grid.Column="3"
+                                        Width="32"
+                                        Height="32"
+                                        Padding="0"
+                                        Click="NextErrorButton_Click"
+                                        Content="▶"
+                                        ToolTip.Tip="Next error" />
+                                    
+                                    <Button
+                                        x:Name="JumpToModButton"
+                                        Grid.Column="4"
+                                        Height="32"
+                                        Margin="8,0,0,0"
+                                        Padding="8,0"
+                                        Click="JumpToModButton_Click"
+                                        Content="📍 Jump to Mod"
+                                        ToolTip.Tip="Go to this mod in the Summary tab" />
+                                </Grid>
+
+                                <!--  Current Error Details  -->
+                                <Border
+                                    x:Name="ErrorDetailsArea"
+                                    Padding="12"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    IsVisible="False">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock
+                                            x:Name="ErrorTypeText"
+                                            FontWeight="SemiBold"
+                                            Text="Error Type" />
+                                        <TextBlock
+                                            x:Name="ErrorDescriptionText"
+                                            TextWrapping="Wrap"
+                                            Opacity="0.9"
+                                            Text="Error description" />
+                                        <Button
+                                            x:Name="AutoFixButton"
+                                            HorizontalAlignment="Left"
+                                            Click="AutoFixButton_Click"
+                                            Content="🔧 Auto-Fix"
+                                            IsVisible="False"
+                                            ToolTip.Tip="Automatically fix this error" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!--  Success Message (shown when no errors)  -->
+                            <Border
+                                x:Name="ValidationSuccessArea"
+                                Padding="12"
+                                CornerRadius="4"
+                                IsVisible="False">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock
+                                        FontSize="20"
+                                        Text="✅" />
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontWeight="SemiBold"
+                                        Text="All mods validated successfully! Ready for installation." />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!--  Progress Section  -->
+            <Border Classes="progress-section">
+                <StackPanel>
+                    <TextBlock
+                        Margin="0,0,0,10"
+                        HorizontalAlignment="Center"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="📊 Progress Overview" />
+                    <ProgressBar
+                        x:Name="OverallProgressBar"
+                        Height="20"
+                        Maximum="4"
+                        Minimum="0"
+                        Value="0" />
+                    <TextBlock
+                        x:Name="ProgressText"
+                        Margin="0,5,0,0"
+                        HorizontalAlignment="Center"
+                        FontStyle="Italic"
+                        Text="Complete the steps above to get started" />
+                </StackPanel>
+            </Border>
+
+            <!--  Installation Section  -->
+            <Border Classes="progress-section">
+                <StackPanel>
+                    <TextBlock
+                        Margin="0,0,0,10"
+                        HorizontalAlignment="Center"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="🚀 Ready to Install" />
+                    <TextBlock
+                        Margin="0,0,0,15"
+                        HorizontalAlignment="Center"
+                        Text="All preparation steps are complete. You can now install your mods."
+                        TextWrapping="Wrap" />
+                    <Button
+                        x:Name="InstallButton"
+                        HorizontalAlignment="Center"
+                        Click="InstallButton_Click"
+                        Content="⚡ Start Install"
+                        ToolTip.Tip="Begin the mod installation process" />
+                    <CheckBox x:Name="Step6Checkbox" IsVisible="False" />
+                </StackPanel>
+            </Border>
+
+            <!--  Help & Support Section  -->
+            <Border Classes="help-section">
+                <StackPanel>
+                    <!--  Need Help  -->
+                    <TextBlock
+                        Margin="0,0,0,10"
+                        HorizontalAlignment="Center"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="💡 Need Help?" />
+                    <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap">
+                        <Run Text="• Check the " />
+                        <Run FontWeight="Bold" Text="Output Window" />
+                        <Run Text=" for detailed logs and error messages" />
+                        <LineBreak />
+                        <Run Text="• Use the " />
+                        <Run FontWeight="Bold" Text="Validate" />
+                        <Run Text=" button to check for issues before installing" />
+                        <LineBreak />
+                        <Run Text="• Enable " />
+                        <Run FontWeight="Bold" Text="Verbose Logging" />
+                        <Run Text=" in Settings for more details" />
+                    </TextBlock>
+                    <StackPanel
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal">
+                        <Button
+                            x:Name="GettingStartedOpenOutputButton"
+                            Margin="0,0,10,0"
+                            Click="OpenOutputWindow_Click"
+                            Content="📊 Open Output Window"
+                            ToolTip.Tip="Open the output window to view detailed logs" />
+                        <Button
+                            x:Name="GettingStartedHelpSettingsButton"
+                            Margin="0,0,10,0"
+                            Click="OpenSettings_Click"
+                            Content="⚙️ Settings"
+                            ToolTip.Tip="Open settings dialog to configure preferences" />
+                        <Button
+                            x:Name="CreateGithubIssueButton"
+                            Click="CreateGithubIssue_Click"
+                            Content="🐛 Create Github Issue"
+                            ToolTip.Tip="Open GitHub to create a new issue for bug reports or feature requests" />
+                    </StackPanel>
+
+                    <!--  Support Development  -->
+                    <TextBlock
+                        Margin="0,25,0,10"
+                        HorizontalAlignment="Center"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="💖 Support Development" />
+                    <TextBlock
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Center"
+                        Text="If you enjoy using KOTORModSync, please consider supporting its development!"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                    <Button
+                        x:Name="SponsorButton"
+                        Margin="0,15,0,10"
+                        HorizontalAlignment="Center"
+                        Click="OpenSponsorPage_Click"
+                        Content="❤️ Sponsor on GitHub"
+                        ToolTip.Tip="Support the developer on GitHub Sponsors" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Classes="secondary-text"
+                        FontSize="11"
+                        Text="Your support helps maintain and improve this tool"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!--  Jump to Current Step Button  -->
+            <Border Classes="help-section">
+                <StackPanel>
+                    <Button
+                        x:Name="JumpToCurrentStepButton"
+                        Margin="0,0,0,10"
+                        HorizontalAlignment="Center"
+                        Click="JumpToCurrentStep_Click"
+                        Content="📍 Jump to Current Step"
+                        ToolTip.Tip="Scroll to the step you should work on next" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Classes="secondary-text"
+                        FontSize="12"
+                        Text="Click to automatically scroll to the next step you need to complete" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

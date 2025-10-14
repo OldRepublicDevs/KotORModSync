@@ -1,0 +1,60 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Lint with pylint (if available)
+      continue-on-error: true
+      run: |
+        pip install pylint
+        pylint auth_service.py || true
+
+    - name: Check syntax
+      run: python3 -m py_compile auth_service.py
+
+    - name: Build Docker image
+      run: docker build -t test-auth-service .
+
+    - name: Test Docker image runs
+      run: |
+        docker run -d --name test-container \
+          -e REQUIRE_AUTH=false \
+          -p 8080:8080 \
+          test-auth-service
+        sleep 5
+        
+    - name: Health check
+      run: |
+        curl -f http://localhost:8080/health || exit 1
+        echo "✅ Health check passed"
+    
+    - name: Test authentication disabled
+      run: |
+        response=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8080/ \
+          -H "X-Forwarded-Uri: /v1/metrics")
+        if [ "$response" -eq 200 ]; then
+          echo "✅ Auth disabled test passed"
+        else
+          echo "❌ Expected 200, got $response"
+          exit 1
+        fi
+    
+    - name: Cleanup
+      if: always()
+      run: docker stop test-container && docker rm test-container
+

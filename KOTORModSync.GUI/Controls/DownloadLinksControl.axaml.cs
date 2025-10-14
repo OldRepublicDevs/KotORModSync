@@ -269,7 +269,7 @@ namespace KOTORModSync.Controls
 
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) || !mainWindow.EditorMode )
 			{
-
+				// Clear any validation styling when not in editor mode
 				textBox.ClearValue(TextBox.BorderBrushProperty);
 				textBox.ClearValue(TextBox.BorderThicknessProperty);
 				ToolTip.SetTip(textBox, null);
@@ -280,7 +280,7 @@ namespace KOTORModSync.Controls
 
 			if ( string.IsNullOrWhiteSpace(url) )
 			{
-
+				// Clear validation for empty URLs
 				textBox.ClearValue(BorderBrushProperty);
 				textBox.ClearValue(BorderThicknessProperty);
 				ToolTip.SetTip(textBox, null);
@@ -291,50 +291,17 @@ namespace KOTORModSync.Controls
 
 			if ( !isValidFormat )
 			{
-
+				// Show error for invalid URL format
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationInvalidBrush;
 				textBox.BorderThickness = new Thickness(2);
 				ToolTip.SetTip(textBox, $"Invalid URL format: {url}");
 				return;
 			}
 
-			bool hasResolvedFilename = false;
-			string archiveName = null;
-			if ( DownloadCacheService != null && ComponentGuid != Guid.Empty )
-			{
-				try
-				{
-
-					if ( DownloadCacheService.TryGetEntry(ComponentGuid, url, out DownloadCacheEntry entry) )
-					{
-
-						if ( !string.IsNullOrWhiteSpace(entry.ArchiveName) )
-						{
-							hasResolvedFilename = true;
-							archiveName = entry.ArchiveName;
-						}
-					}
-				}
-				catch ( Exception ex )
-				{
-					Logger.LogException(ex, "Error checking cached filename for URL");
-				}
-			}
-
-			if ( hasResolvedFilename )
-			{
-
-				textBox.BorderBrush = ThemeResourceHelper.UrlValidationValidBrush;
-				textBox.BorderThickness = new Thickness(2);
-				ToolTip.SetTip(textBox, $"✅ Resolves to: {archiveName}");
-			}
-			else
-			{
-
-				textBox.BorderBrush = ThemeResourceHelper.UrlValidationInvalidBrush;
-				textBox.BorderThickness = new Thickness(2);
-				ToolTip.SetTip(textBox, $"❌ Cannot resolve to filename (not cached)");
-			}
+			// Valid URL - clear any validation styling (no "not cached" warnings)
+			textBox.ClearValue(BorderBrushProperty);
+			textBox.ClearValue(BorderThicknessProperty);
+			ToolTip.SetTip(textBox, null);
 		}
 
 		private static bool IsValidUrl(string url)

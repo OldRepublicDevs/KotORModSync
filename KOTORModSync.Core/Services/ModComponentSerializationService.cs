@@ -18,6 +18,7 @@ using Tomlyn;
 using Tomlyn.Model;
 using KOTORModSync.Core.FileSystemUtils;
 using YamlSerialization = YamlDotNet.Serialization;
+using static KOTORModSync.Core.Instruction;
 
 namespace KOTORModSync.Core.Services
 {
@@ -605,12 +606,12 @@ namespace KOTORModSync.Core.Services
 					string.Equals(strAction, "HoloPatcher", StringComparison.OrdinalIgnoreCase) )
 				{
 					instruction.Action = Instruction.ActionType.Patcher;
-					_ = Logger.LogAsync($" -- Deserialize instruction #{index + 1} action '{strAction}' -> Patcher (backward compatibility)");
+					_ = Logger.LogVerboseAsync($" -- Deserialize instruction #{index + 1} action '{strAction}' -> Patcher (backward compatibility)");
 				}
 				else if ( Enum.TryParse(strAction, ignoreCase: true, out Instruction.ActionType action) )
 				{
 					instruction.Action = action;
-					_ = Logger.LogAsync($" -- Deserialize instruction #{index + 1} action '{action}'");
+					_ = Logger.LogVerboseAsync($" -- Deserialize instruction #{index + 1} action '{action}'");
 				}
 				else
 				{
@@ -620,7 +621,9 @@ namespace KOTORModSync.Core.Services
 					instruction.Action = Instruction.ActionType.Unset;
 				}
 				instruction.Arguments = GetValueOrDefault<string>(instructionDict, key: "Arguments") ?? string.Empty;
-				instruction.Overwrite = GetValueOrDefault<bool>(instructionDict, key: "Overwrite");
+				instruction.Overwrite = instructionDict.ContainsKey("Overwrite")
+					? GetValueOrDefault<bool>(instructionDict, key: "Overwrite")
+					: true;
 				instruction.Restrictions = GetValueOrDefault<List<Guid>>(instructionDict, key: "Restrictions")
 					?? new List<Guid>();
 				instruction.Dependencies = GetValueOrDefault<List<Guid>>(instructionDict, key: "Dependencies")
@@ -660,10 +663,10 @@ namespace KOTORModSync.Core.Services
 				Utility.Serializer.DeserializeGuidDictionary(optionsDict, key: "Restrictions");
 				Utility.Serializer.DeserializeGuidDictionary(optionsDict, key: "Dependencies");
 				var option = new Option();
-				_ = Logger.LogAsync($"-- Deserialize option #{index + 1}");
+				_ = Logger.LogVerboseAsync($"-- Deserialize option #{index + 1}");
 				option.Name = GetRequiredValue<string>(optionsDict, key: "Name");
 				option.Description = GetValueOrDefault<string>(optionsDict, key: "Description") ?? string.Empty;
-				_ = Logger.LogAsync($" == Deserialize next option '{option.Name}' ==");
+				_ = Logger.LogVerboseAsync($" == Deserialize next option '{option.Name}' ==");
 				option.Guid = GetRequiredValue<Guid>(optionsDict, key: "Guid");
 				option.Restrictions =
 					GetValueOrDefault<List<Guid>>(optionsDict, key: "Restrictions") ?? new List<Guid>();
@@ -891,7 +894,8 @@ namespace KOTORModSync.Core.Services
 		public static string SaveToTomlString(List<ModComponent> components)
 		{
 			Logger.LogVerbose($"Saving to TOML string");
-			var tomlTable = new TomlTable();
+			var result = new StringBuilder();
+
 			// Add metadata section
 			var metadataTable = new TomlTable
 			{
@@ -907,274 +911,383 @@ namespace KOTORModSync.Core.Services
 				metadataTable["buildDescription"] = MainConfig.BuildDescription;
 			if ( MainConfig.LastModified.HasValue )
 				metadataTable["lastModified"] = MainConfig.LastModified.Value;
-			tomlTable["metadata"] = metadataTable;
-			// Add components using TomlTableArray for [[thisMod]] syntax
-			var componentsArray = new TomlTableArray();
+
+			var metadataRoot = new Dictionary<string, object> { ["metadata"] = metadataTable };
+			result.AppendLine(Toml.FromModel(metadataRoot));
+
+			// Serialize each component
+			bool isFirst = true;
 			foreach ( ModComponent component in components )
 			{
-				var componentTable = new TomlTable();
-				// Use PascalCase for keys to match expected TOML format
+				if ( !isFirst )
+				{
+					result.AppendLine();
+					result.AppendLine();
+				}
+				isFirst = false;
+
+				// Serialize component to dictionary
+				var componentDict = new Dictionary<string, object>();
+
+				// Add all component properties
 				if ( component.Guid != Guid.Empty )
-					componentTable["Guid"] = component.Guid.ToString();
+					componentDict["Guid"] = component.Guid.ToString();
 				if ( !string.IsNullOrWhiteSpace(component.Name) )
-					componentTable["Name"] = component.Name;
+					componentDict["Name"] = component.Name;
 				if ( !string.IsNullOrWhiteSpace(component.Author) )
-					componentTable["Author"] = component.Author;
+					componentDict["Author"] = component.Author;
 				if ( !string.IsNullOrWhiteSpace(component.Tier) )
-					componentTable["Tier"] = component.Tier;
+					componentDict["Tier"] = component.Tier;
 				if ( !string.IsNullOrWhiteSpace(component.Description) )
-					componentTable["Description"] = component.Description;
+					componentDict["Description"] = component.Description;
 				if ( !string.IsNullOrWhiteSpace(component.InstallationMethod) )
-					componentTable["InstallationMethod"] = component.InstallationMethod;
+					componentDict["InstallationMethod"] = component.InstallationMethod;
 				if ( !string.IsNullOrWhiteSpace(component.Directions) )
-					componentTable["Directions"] = component.Directions;
+					componentDict["Directions"] = component.Directions;
+				if ( !string.IsNullOrWhiteSpace(component.DownloadInstructions) )
+					componentDict["DownloadInstructions"] = component.DownloadInstructions;
+				if ( !string.IsNullOrWhiteSpace(component.UsageWarning) )
+					componentDict["UsageWarning"] = component.UsageWarning;
+				if ( !string.IsNullOrWhiteSpace(component.Screenshots) )
+					componentDict["Screenshots"] = component.Screenshots;
+				if ( !string.IsNullOrWhiteSpace(component.KnownBugs) )
+					componentDict["KnownBugs"] = component.KnownBugs;
+				if ( !string.IsNullOrWhiteSpace(component.InstallationWarning) )
+					componentDict["InstallationWarning"] = component.InstallationWarning;
+				if ( !string.IsNullOrWhiteSpace(component.CompatibilityWarning) )
+					componentDict["CompatibilityWarning"] = component.CompatibilityWarning;
+				if ( !string.IsNullOrWhiteSpace(component.SteamNotes) )
+					componentDict["SteamNotes"] = component.SteamNotes;
+				//if ( !string.IsNullOrWhiteSpace(component.Heading) )
+				//	componentDict["Heading"] = component.Heading;
 				if ( component.IsSelected )
-					componentTable["IsSelected"] = component.IsSelected;
+					componentDict["IsSelected"] = component.IsSelected;
+				if ( component.WidescreenOnly )
+					componentDict["WidescreenOnly"] = component.WidescreenOnly;
+
+				// Add list properties
 				if ( component.Category?.Count > 0 )
-				{
-					var categoryArray = new TomlArray();
-					foreach ( var cat in component.Category )
-						categoryArray.Add(cat);
-					componentTable["Category"] = categoryArray;
-				}
+					componentDict["Category"] = component.Category;
 				if ( component.Language?.Count > 0 )
-				{
-					var languageArray = new TomlArray();
-					foreach ( var lang in component.Language )
-						languageArray.Add(lang);
-					componentTable["Language"] = languageArray;
-				}
+					componentDict["Language"] = component.Language;
 				if ( component.ModLink?.Count > 0 )
-				{
-					var modLinksArray = new TomlArray();
-					foreach ( var link in component.ModLink )
-						modLinksArray.Add(link);
-					componentTable["ModLink"] = modLinksArray;
-				}
+					componentDict["ModLink"] = component.ModLink;
+				if ( component.ExcludedDownloads?.Count > 0 )
+					componentDict["ExcludedDownloads"] = component.ExcludedDownloads;
 				if ( component.Dependencies?.Count > 0 )
-				{
-					var depsArray = new TomlArray();
-					foreach ( var dep in component.Dependencies )
-						depsArray.Add(dep.ToString());
-					componentTable["Dependencies"] = depsArray;
-				}
+					componentDict["Dependencies"] = component.Dependencies.Select(g => g.ToString()).ToList();
 				if ( component.Restrictions?.Count > 0 )
-				{
-					var resArray = new TomlArray();
-					foreach ( var res in component.Restrictions )
-						resArray.Add(res.ToString());
-					componentTable["Restrictions"] = resArray;
-				}
+					componentDict["Restrictions"] = component.Restrictions.Select(g => g.ToString()).ToList();
 				if ( component.InstallAfter?.Count > 0 )
-				{
-					var afterArray = new TomlArray();
-					foreach ( var ia in component.InstallAfter )
-						afterArray.Add(ia.ToString());
-					componentTable["InstallAfter"] = afterArray;
-				}
+					componentDict["InstallAfter"] = component.InstallAfter.Select(g => g.ToString()).ToList();
 				if ( component.InstallBefore?.Count > 0 )
-				{
-					var beforeArray = new TomlArray();
-					foreach ( var ib in component.InstallBefore )
-						beforeArray.Add(ib.ToString());
-					componentTable["InstallBefore"] = beforeArray;
-				}
-				// Add Instructions as a nested array-of-tables
+					componentDict["InstallBefore"] = component.InstallBefore.Select(g => g.ToString()).ToList();
+
+				// Add Instructions
 				if ( component.Instructions?.Count > 0 )
 				{
-					var instructionsArray = new TomlTableArray();
+					var instructionsList = new List<Dictionary<string, object>>();
 					foreach ( Instruction instr in component.Instructions )
 					{
-						var instrTable = new TomlTable();
+						var instrDict = new Dictionary<string, object>();
 						if ( instr.Guid != Guid.Empty )
-							instrTable["Guid"] = instr.Guid.ToString();
+							instrDict["Guid"] = instr.Guid.ToString();
 						if ( !string.IsNullOrWhiteSpace(instr.ActionString) )
-							instrTable["Action"] = instr.ActionString;
+							instrDict["Action"] = instr.ActionString;
 						if ( instr.Source?.Count > 0 )
-						{
-							var sourceArray = new TomlArray();
-							foreach ( var src in instr.Source )
-								sourceArray.Add(src);
-							instrTable["Source"] = sourceArray;
-						}
+							instrDict["Source"] = instr.Source;
 						if ( !string.IsNullOrWhiteSpace(instr.Destination) )
-							instrTable["Destination"] = instr.Destination;
-						if ( instr.Overwrite )
-							instrTable["Overwrite"] = instr.Overwrite;
-						if ( !string.IsNullOrWhiteSpace(instr.Arguments) )
-							instrTable["Arguments"] = instr.Arguments;
+							instrDict["Destination"] = instr.Destination;
+						if (
+							!instr.Overwrite
+							&&
+							(
+								instr.Action == ActionType.Move
+								|| instr.Action == ActionType.Copy
+								|| instr.Action == ActionType.Rename
+							)
+						)
+						{
+							instrDict["Overwrite"] = instr.Overwrite;
+						}
+						if (
+							!string.IsNullOrWhiteSpace(instr.Arguments)
+							&&
+							(
+								instr.Action == ActionType.DelDuplicate
+								|| instr.Action == ActionType.Execute
+								|| instr.Action == ActionType.Patcher
+							)
+						)
+						{
+							instrDict["Arguments"] = instr.Arguments;
+						}
 						if ( instr.Dependencies?.Count > 0 )
-						{
-							var depArray = new TomlArray();
-							foreach ( var dep in instr.Dependencies )
-								depArray.Add(dep.ToString());
-							instrTable["Dependencies"] = depArray;
-						}
+							instrDict["Dependencies"] = instr.Dependencies.Select(g => g.ToString()).ToList();
 						if ( instr.Restrictions?.Count > 0 )
-						{
-							var resArray = new TomlArray();
-							foreach ( var res in instr.Restrictions )
-								resArray.Add(res.ToString());
-							instrTable["Restrictions"] = resArray;
-						}
-						instructionsArray.Add(instrTable);
+							instrDict["Restrictions"] = instr.Restrictions.Select(g => g.ToString()).ToList();
+						instructionsList.Add(instrDict);
 					}
-					componentTable["Instructions"] = instructionsArray;
+					componentDict["Instructions"] = instructionsList;
 				}
-				// Add Options as inline array (without Instructions property)
-				// Option instructions will be serialized separately as [[thisMod.Options.Instructions]]
+
+				// Add Options
 				if ( component.Options?.Count > 0 )
 				{
-					var optionsArray = new TomlArray();
-					var optionInstructionsArray = new TomlTableArray();
-					bool hasOptionInstructions = false;
+					var optionsList = new List<Dictionary<string, object>>();
+					var optionsInstructionsList = new List<Dictionary<string, object>>();
 
 					foreach ( Option opt in component.Options )
 					{
-						// Create inline table for each option (without Instructions)
-						var optTable = new TomlTable();
+						var optDict = new Dictionary<string, object>();
 						if ( opt.Guid != Guid.Empty )
-							optTable["Guid"] = opt.Guid.ToString();
+							optDict["Guid"] = opt.Guid.ToString();
 						if ( !string.IsNullOrWhiteSpace(opt.Name) )
-							optTable["Name"] = opt.Name;
+							optDict["Name"] = opt.Name;
 						if ( !string.IsNullOrWhiteSpace(opt.Description) )
-							optTable["Description"] = opt.Description;
+							optDict["Description"] = opt.Description;
 						if ( opt.IsSelected )
-							optTable["IsSelected"] = opt.IsSelected;
+							optDict["IsSelected"] = opt.IsSelected;
 						if ( opt.Restrictions?.Count > 0 )
-						{
-							var resArray = new TomlArray();
-							foreach ( var res in opt.Restrictions )
-								resArray.Add(res.ToString());
-							optTable["Restrictions"] = resArray;
-						}
+							optDict["Restrictions"] = opt.Restrictions.Select(g => g.ToString()).ToList();
 						if ( opt.Dependencies?.Count > 0 )
-						{
-							var depArray = new TomlArray();
-							foreach ( var dep in opt.Dependencies )
-								depArray.Add(dep.ToString());
-							optTable["Dependencies"] = depArray;
-						}
-						optionsArray.Add(optTable);
+							optDict["Dependencies"] = opt.Dependencies.Select(g => g.ToString()).ToList();
+						optionsList.Add(optDict);
 
-						// Collect option instructions to be added as [[thisMod.Options.Instructions]] with Parent field
+						// Collect option instructions with Parent field
 						if ( opt.Instructions?.Count > 0 )
 						{
-							hasOptionInstructions = true;
 							foreach ( Instruction instr in opt.Instructions )
 							{
-								var instrTable = new TomlTable();
-								// Add Parent field to link back to the option
-								instrTable["Parent"] = opt.Guid.ToString();
+								var instrDict = new Dictionary<string, object>();
+								instrDict["Parent"] = opt.Guid.ToString();
 								if ( instr.Guid != Guid.Empty )
-									instrTable["Guid"] = instr.Guid.ToString();
+									instrDict["Guid"] = instr.Guid.ToString();
 								if ( !string.IsNullOrWhiteSpace(instr.ActionString) )
-									instrTable["Action"] = instr.ActionString;
+									instrDict["Action"] = instr.ActionString;
 								if ( instr.Source?.Count > 0 )
-								{
-									var sourceArray = new TomlArray();
-									foreach ( var src in instr.Source )
-										sourceArray.Add(src);
-									instrTable["Source"] = sourceArray;
-								}
+									instrDict["Source"] = instr.Source;
 								if ( !string.IsNullOrWhiteSpace(instr.Destination) )
-									instrTable["Destination"] = instr.Destination;
-								if ( instr.Overwrite )
-									instrTable["Overwrite"] = instr.Overwrite;
-								if ( !string.IsNullOrWhiteSpace(instr.Arguments) )
-									instrTable["Arguments"] = instr.Arguments;
+									instrDict["Destination"] = instr.Destination;
+								if (
+									!instr.Overwrite
+									&&
+									(
+										instr.Action == ActionType.Move ||
+									 	instr.Action == ActionType.Copy ||
+									 	instr.Action == ActionType.Rename
+									)
+								)
+								{
+									instrDict["Overwrite"] = instr.Overwrite;
+								}
+
+								if (
+									!string.IsNullOrWhiteSpace(instr.Arguments)
+									&&
+									(
+										instr.Action == ActionType.DelDuplicate ||
+									 	instr.Action == ActionType.Execute ||
+									 	instr.Action == ActionType.Patcher
+									)
+								)
+								{
+									instrDict["Arguments"] = instr.Arguments;
+								}
 								if ( instr.Dependencies?.Count > 0 )
-								{
-									var depArray = new TomlArray();
-									foreach ( var dep in instr.Dependencies )
-										depArray.Add(dep.ToString());
-									instrTable["Dependencies"] = depArray;
-								}
+									instrDict["Dependencies"] = instr.Dependencies.Select(g => g.ToString()).ToList();
 								if ( instr.Restrictions?.Count > 0 )
+									instrDict["Restrictions"] = instr.Restrictions.Select(g => g.ToString()).ToList();
+								optionsInstructionsList.Add(instrDict);
+							}
+						}
+					}
+					componentDict["Options"] = optionsList;
+					if ( optionsInstructionsList.Count > 0 )
+						componentDict["OptionsInstructions"] = optionsInstructionsList;
+				}
+
+				// Use FixSerializedTomlDict to handle nested structures
+				var nestedContent = new StringBuilder();
+				FixSerializedTomlDict(componentDict, nestedContent);
+
+				// Wrap in thisMod and convert [thisMod] to [[thisMod]]
+				var rootTable = new Dictionary<string, object>
+				{
+					["thisMod"] = componentDict
+				};
+				string componentToml = Toml.FromModel(rootTable).Replace("[thisMod]", "[[thisMod]]");
+				result.Append(componentToml.TrimEnd());
+
+				// Append nested content (Instructions, Options, Options.Instructions)
+				if ( nestedContent.Length > 0 )
+				{
+					result.AppendLine();
+					result.Append(nestedContent.ToString());
+				}
+			}
+
+			return Utility.Serializer.FixWhitespaceIssues(result.ToString());
+		}
+
+		private static void FixSerializedTomlDict(
+			Dictionary<string, object> serializedComponentDict,
+			StringBuilder tomlString
+		)
+		{
+			if ( serializedComponentDict == null )
+				throw new ArgumentNullException(nameof(serializedComponentDict));
+			if ( tomlString == null )
+				throw new ArgumentNullException(nameof(tomlString));
+
+			// Handle Options and OptionsInstructions specially - interleave them
+			if ( serializedComponentDict.TryGetValue("Instructions", out object val) )
+			{
+				List<Dictionary<string, object>> instructionsList = null;
+
+				if ( val is List<Dictionary<string, object>> list )
+				{
+					instructionsList = list;
+				}
+				else if ( val is IEnumerable<Dictionary<string, object>> enumerable )
+				{
+					instructionsList = enumerable.ToList();
+				}
+
+				if ( instructionsList != null && instructionsList.Count > 0 )
+				{
+					foreach ( var item in instructionsList )
+					{
+						if ( item == null || item.Count == 0 )
+							continue;
+
+						var model = new Dictionary<string, object>
+						{
+							{
+								"thisMod", new Dictionary<string, object>
 								{
-									var resArray = new TomlArray();
-									foreach ( var res in instr.Restrictions )
-										resArray.Add(res.ToString());
-									instrTable["Restrictions"] = resArray;
+									{ "Instructions", item }
 								}
-								optionInstructionsArray.Add(instrTable);
+							}
+						};
+						tomlString.AppendLine();
+						tomlString.Append(Toml.FromModel(model).Replace($"thisMod.Instructions", $"[thisMod.Instructions]"));
+					}
+				}
+
+				serializedComponentDict.Remove("Instructions");
+			}
+
+			bool hasOptions = serializedComponentDict.ContainsKey("Options");
+			bool hasOptionsInstructions = serializedComponentDict.ContainsKey("OptionsInstructions");
+
+			if ( hasOptions && hasOptionsInstructions )
+			{
+				var optionsList = serializedComponentDict["Options"] as List<Dictionary<string, object>>;
+				var optionsInstructionsList = serializedComponentDict["OptionsInstructions"] as List<Dictionary<string, object>>;
+
+				if ( optionsList != null && optionsInstructionsList != null )
+				{
+					// Group instructions by Parent GUID
+					var instructionsByParent = optionsInstructionsList
+						.Where(instr => instr != null && instr.ContainsKey("Parent"))
+						.GroupBy(instr => instr["Parent"]?.ToString())
+						.ToDictionary(g => g.Key, g => g.ToList());
+
+					// Interleave: for each option, output option then its instructions
+					for ( int i = 0; i < optionsList.Count; i++ )
+					{
+						Dictionary<string, object> optionDict = optionsList[i];
+						if ( optionDict is null || optionDict.Count == 0 )
+							continue;
+
+						// Output the option
+						var optionModel = new Dictionary<string, object>
+						{
+							{
+								"thisMod", new Dictionary<string, object>
+								{
+									{ "Options", optionDict }
+								}
+							}
+						};
+						tomlString.AppendLine();
+						tomlString.Append(Toml.FromModel(optionModel).Replace("thisMod.Options", "[thisMod.Options]"));
+
+						// Output instructions for this option (if any)
+						if ( optionDict.TryGetValue("Guid", out object guidObj) )
+						{
+							string optionGuid = guidObj?.ToString();
+							if ( !string.IsNullOrEmpty(optionGuid) && instructionsByParent.TryGetValue(optionGuid, out var instructions) )
+							{
+								foreach ( var instruction in instructions )
+								{
+									if ( instruction == null || instruction.Count == 0 )
+										continue;
+
+									var instrModel = new Dictionary<string, object>
+								{
+									{
+										"thisMod", new Dictionary<string, object>
+										{
+											{ "OptionsInstructions", instruction }
+										}
+									}
+								};
+									tomlString.Append(Toml.FromModel(instrModel).Replace("thisMod.OptionsInstructions", "[thisMod.OptionsInstructions]"));
+								}
 							}
 						}
 					}
 
-					// Add Options as inline array
-					componentTable["Options"] = optionsArray;
-
-					// Add marker for Options.Instructions to be formatted in post-processing
-					if ( hasOptionInstructions )
-					{
-						componentTable["_OptionsInstructions"] = optionInstructionsArray;
-					}
+					// Remove both keys since we've handled them
+					serializedComponentDict.Remove("Options");
+					serializedComponentDict.Remove("OptionsInstructions");
 				}
-				componentsArray.Add(componentTable);
 			}
-			tomlTable["thisMod"] = componentsArray;
-			string tomlOutput = Toml.FromModel(tomlTable);
 
-			// Post-process to add proper spacing and convert _OptionsInstructions to Options.Instructions
-			var lines = tomlOutput.Split(newLineSeparator, StringSplitOptions.None);
-			var result = new StringBuilder();
-			bool isFirstThisMod = true;
-			bool inOptionsInstructions = false;
-
-			for ( int i = 0; i < lines.Length; i++ )
+			// Find all other list properties that contain complex objects (not simple types like string/Guid)
+			var keysCopy = serializedComponentDict.Keys.ToList();
+			foreach ( string key in keysCopy )
 			{
-				string line = lines[i];
+				object value = serializedComponentDict[key];
 
-				// Replace the _OptionsInstructions marker with Options.Instructions
-				if ( line.StartsWith("[[thisMod._OptionsInstructions]]") )
+				// Check if it's a list of dictionaries (complex objects)
+				List<Dictionary<string, object>> listItems = null;
+				if ( value is List<Dictionary<string, object>> list )
 				{
-					inOptionsInstructions = true;
-					result.AppendLine();
-					result.AppendLine("[[thisMod.Options.Instructions]]");
+					listItems = list;
+				}
+				else if ( value is IEnumerable<Dictionary<string, object>> enumerable )
+				{
+					listItems = enumerable.ToList();
+				}
+
+				if ( listItems == null || listItems.Count == 0 )
 					continue;
-				}
 
-				// When we're in _OptionsInstructions section, handle array element separators
-				if ( inOptionsInstructions )
+				// Generate [[thisMod.Key]] sections for each item in the list
+				foreach ( var item in listItems )
 				{
-					// Check if we're leaving the _OptionsInstructions section (new [[thisMod]] or other section)
-					if ( line.StartsWith("[[thisMod]]") ||
-						 (line.StartsWith("[[") && !line.Contains("_OptionsInstructions")) )
-					{
-						inOptionsInstructions = false;
-						// Continue processing this line below
-					}
-					else if ( line.Trim().StartsWith("[_OptionsInstructions.") ||
-							  (line.Trim().StartsWith("[") && !line.Trim().StartsWith("[[")) )
-					{
-						// Convert inline array element marker to new section header
-						result.AppendLine();
-						result.AppendLine("[[thisMod.Options.Instructions]]");
+					if ( item == null || item.Count == 0 )
 						continue;
-					}
-				}
 
-				// Add two blank lines before each [[thisMod]] (except the first)
-				if ( line.StartsWith("[[thisMod]]") )
+					var model = new Dictionary<string, object>
 				{
-					if ( !isFirstThisMod )
 					{
-						result.AppendLine();
-						result.AppendLine();
+						"thisMod", new Dictionary<string, object>
+						{
+							{ key, item }
+						}
 					}
-					isFirstThisMod = false;
-				}
-				// Add one blank line before each [[thisMod.Instructions]]
-				else if ( line.StartsWith("[[thisMod.Instructions]]") )
-				{
-					result.AppendLine();
+				};
+					tomlString.AppendLine();
+					tomlString.Append(Toml.FromModel(model).Replace($"thisMod.{key}", $"[thisMod.{key}]"));
 				}
 
-				result.AppendLine(line);
+				// Remove the key from the main dictionary since we've serialized it separately
+				serializedComponentDict.Remove(key);
 			}
-
-			return result.ToString().TrimEnd();
 		}
 		public static string SaveToYamlString(List<ModComponent> components)
 		{
@@ -1234,6 +1347,8 @@ namespace KOTORModSync.Core.Services
 					dict["Language"] = component.Language;
 				if ( component.ModLink?.Count > 0 )
 					dict["ModLink"] = component.ModLink;
+				if ( component.ExcludedDownloads?.Count > 0 )
+					dict["ExcludedDownloads"] = component.ExcludedDownloads;
 				if ( component.Instructions?.Count > 0 )
 				{
 					var instructions = new List<Dictionary<string, object>>();
@@ -1255,11 +1370,11 @@ namespace KOTORModSync.Core.Services
 							 inst.Action == Instruction.ActionType.Copy) )
 							instDict["Destination"] = inst.Destination;
 
-						// Overwrite: Move, Copy
-						if ( inst.Overwrite &&
+						// Overwrite: Move, Copy (only serialize when false, since true is default)
+						if ( !inst.Overwrite &&
 							(inst.Action == Instruction.ActionType.Move ||
 							 inst.Action == Instruction.ActionType.Copy) )
-							instDict["Overwrite"] = true;
+							instDict["Overwrite"] = false;
 
 						// Arguments: Patcher, Execute
 						if ( !string.IsNullOrEmpty(inst.Arguments) &&
@@ -1324,6 +1439,7 @@ namespace KOTORModSync.Core.Services
 				if ( !string.IsNullOrWhiteSpace(c.Tier) ) componentObj["tier"] = c.Tier;
 				if ( c.Language?.Count > 0 ) componentObj["language"] = JArray.FromObject(c.Language);
 				if ( c.ModLink?.Count > 0 ) componentObj["modLink"] = JArray.FromObject(c.ModLink);
+				if ( c.ExcludedDownloads?.Count > 0 ) componentObj["excludedDownloads"] = JArray.FromObject(c.ExcludedDownloads);
 				if ( !string.IsNullOrWhiteSpace(c.InstallationMethod) ) componentObj["installationMethod"] = c.InstallationMethod;
 				if ( !string.IsNullOrWhiteSpace(c.Directions) ) componentObj["directions"] = c.Directions;
 				if ( !string.IsNullOrWhiteSpace(c.DownloadInstructions) ) componentObj["downloadInstructions"] = c.DownloadInstructions;
@@ -1367,10 +1483,10 @@ namespace KOTORModSync.Core.Services
 							 i.Action == Instruction.ActionType.Execute) )
 							instrObj["arguments"] = i.Arguments;
 
-						if ( i.Overwrite &&
+						if ( !i.Overwrite &&
 							(i.Action == Instruction.ActionType.Move ||
 							 i.Action == Instruction.ActionType.Copy) )
-							instrObj["overwrite"] = i.Overwrite;
+							instrObj["overwrite"] = false;
 
 						if ( i.Dependencies?.Count > 0 )
 							instrObj["dependencies"] = JArray.FromObject(i.Dependencies);
@@ -1424,10 +1540,10 @@ namespace KOTORModSync.Core.Services
 									 i.Action == Instruction.ActionType.Execute) )
 									instrObj["arguments"] = i.Arguments;
 
-								if ( i.Overwrite &&
+								if ( !i.Overwrite &&
 									(i.Action == Instruction.ActionType.Move ||
 									 i.Action == Instruction.ActionType.Copy) )
-									instrObj["overwrite"] = i.Overwrite;
+									instrObj["overwrite"] = false;
 
 								if ( i.Dependencies?.Count > 0 )
 									instrObj["dependencies"] = JArray.FromObject(i.Dependencies);
@@ -1494,6 +1610,9 @@ namespace KOTORModSync.Core.Services
 							(c.ModLink?.Count > 0)
 								? new XElement("ModLink", c.ModLink.Select(link => new XElement("Item", link)))
 								: null,
+							(c.ExcludedDownloads?.Count > 0)
+								? new XElement("ExcludedDownloads", c.ExcludedDownloads.Select(file => new XElement("Item", file)))
+								: null,
 							string.IsNullOrWhiteSpace(c.InstallationMethod)
 								? null
 								: new XElement("InstallationMethod", c.InstallationMethod),
@@ -1529,15 +1648,15 @@ namespace KOTORModSync.Core.Services
 										string.IsNullOrWhiteSpace(instr.Destination)
 											? null
 											: new XElement("Destination", instr.Destination),
-										string.IsNullOrWhiteSpace(instr.Arguments)
-											? null
-											: new XElement("Arguments", instr.Arguments),
-										instr.Overwrite
-											? new XElement("Overwrite", instr.Overwrite)
-											: null
-									))
-								)
-								: null,
+									string.IsNullOrWhiteSpace(instr.Arguments)
+										? null
+										: new XElement("Arguments", instr.Arguments),
+									!instr.Overwrite
+										? new XElement("Overwrite", false)
+										: null
+								))
+							)
+							: null,
 							(c.Options?.Count > 0)
 								? new XElement("Options",
 									c.Options.Select(opt => new XElement("Option",
@@ -1564,15 +1683,15 @@ namespace KOTORModSync.Core.Services
 													string.IsNullOrWhiteSpace(instr.Arguments)
 														? null
 														: new XElement("Arguments", instr.Arguments),
-													instr.Overwrite
-														? new XElement("Overwrite", instr.Overwrite)
+													!instr.Overwrite
+														? new XElement("Overwrite", false)
 														: null
-												))
-											)
-											: null
-									))
-								)
-								: null
+											))
+										)
+										: null
+								))
+							)
+							: null
 						))
 					)
 				)
@@ -1620,6 +1739,8 @@ namespace KOTORModSync.Core.Services
 					sb.AppendLine($"Language={string.Join(",", c.Language)}");
 				if ( c.ModLink?.Count > 0 )
 					sb.AppendLine($"ModLink={string.Join("|", c.ModLink)}");
+				if ( c.ExcludedDownloads?.Count > 0 )
+					sb.AppendLine($"ExcludedDownloads={string.Join("|", c.ExcludedDownloads)}");
 				if ( !string.IsNullOrWhiteSpace(c.InstallationMethod) )
 					sb.AppendLine($"InstallationMethod={c.InstallationMethod}");
 				if ( !string.IsNullOrWhiteSpace(c.Directions) )

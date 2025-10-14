@@ -237,12 +237,16 @@ namespace KOTORModSync.Services
 								if ( cacheEntries.Count > 0 && cacheEntries.Any(e => e.IsArchive) )
 								{
 									var firstArchive = cacheEntries.First(e => e.IsArchive);
-									if ( !string.IsNullOrEmpty(firstArchive.FilePath) && File.Exists(firstArchive.FilePath) )
+									if ( !string.IsNullOrEmpty(firstArchive.FileName) && MainConfig.SourcePath != null )
 									{
-										bool generated = AutoInstructionGenerator.GenerateInstructions(component, firstArchive.FilePath);
-										if ( generated )
+										string fullPath = Path.Combine(MainConfig.SourcePath.FullName, firstArchive.FileName);
+										if ( File.Exists(fullPath) )
 										{
-											await Logger.LogVerboseAsync($"[DownloadOrchestration] Auto-generated instructions for '{component.Name}'");
+											bool generated = AutoInstructionGenerator.GenerateInstructions(component, fullPath);
+											if ( generated )
+											{
+												await Logger.LogVerboseAsync($"[DownloadOrchestration] Auto-generated instructions for '{component.Name}'");
+											}
 										}
 									}
 								}
@@ -425,12 +429,11 @@ namespace KOTORModSync.Services
 					var cacheEntry = new DownloadCacheEntry
 					{
 						Url = progress.Url,
-						ArchiveName = fileName,
-						FilePath = filePath,
+						FileName = fileName,
 						IsArchive = isArchive
 					};
 
-					_cacheService.AddOrUpdate(matchingComponent.Guid, progress.Url, cacheEntry);
+					_cacheService.AddOrUpdate(progress.Url, cacheEntry);
 
 					if ( isArchive && matchingComponent.Instructions.Count == 0 )
 					{

@@ -1,0 +1,261 @@
+<!--
+Copyright 2021-2025 KOTORModSync
+Licensed under the Business Source License 1.1 (BSL 1.1).
+See LICENSE.txt file in the project root for full license information.
+-->
+<UserControl
+    x:Class="KOTORModSync.Controls.ModListSidebar"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:KOTORModSync.Controls"
+    xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="800"
+    d:DesignWidth="350"
+    mc:Ignorable="d">
+    <Grid
+        Margin="0,0,10,0"
+        ColumnDefinitions="*,Auto"
+        RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <!--  Search Box and Error Toggle  -->
+        <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
+        <controls:SearchBox
+            Name="SearchBox"
+            Grid.Row="0"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            Margin="0,0,0,2"
+            HorizontalAlignment="Stretch"
+            SearchText="{Binding SearchText, Mode=TwoWay}"
+            Watermark="Search mods by name or author..." />
+
+        <!--  Selection Panel  -->
+        <Expander
+            Grid.Row="1"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            Margin="0,0,0,2"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Center"
+            Header="🔍 Selections"
+            IsExpanded="False">
+            <Border
+                Margin="0,2,0,0"
+                Padding="8"
+                Classes="mod-list-header">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                    <!--  Quick Actions  -->
+                    <StackPanel
+                        Grid.Row="0"
+                        Margin="0,0,0,12"
+                        Spacing="4">
+                        <TextBlock
+                            Margin="0,0,0,4"
+                            FontSize="11"
+                            FontWeight="Bold"
+                            Text="Quick Actions" />
+                        <Grid ColumnDefinitions="*,*">
+                            <Button
+                                Grid.Column="0"
+                                Margin="0,0,3,0"
+                                Padding="6,4"
+                                HorizontalAlignment="Stretch"
+                                Click="SelectAll_Click"
+                                Content="✅ Select All"
+                                FontSize="10"
+                                ToolTip.Tip="Select all mods" />
+                            <Button
+                                Grid.Column="1"
+                                Margin="3,0,0,0"
+                                Padding="6,4"
+                                HorizontalAlignment="Stretch"
+                                Click="DeselectAll_Click"
+                                Content="⬜ Deselect All"
+                                FontSize="10"
+                                ToolTip.Tip="Deselect all mods" />
+                        </Grid>
+                    </StackPanel>
+
+                    <!--  Tier Selection  -->
+                    <StackPanel
+                        Grid.Row="1"
+                        Margin="0,0,0,12"
+                        Spacing="4">
+                        <TextBlock
+                            Margin="0,0,0,4"
+                            FontSize="11"
+                            FontWeight="Bold"
+                            Text="Select by Tier" />
+                        <TextBlock
+                            Margin="0,0,0,4"
+                            FontSize="9"
+                            Opacity="0.7"
+                            Text="Selecting a tier includes all lower priority tiers"
+                            TextWrapping="Wrap" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <ComboBox
+                                x:Name="TierSelectionComboBox"
+                                Grid.Column="0"
+                                Margin="0,0,4,0"
+                                HorizontalAlignment="Stretch"
+                                FontSize="10"
+                                PlaceholderText="Choose a tier...">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock DataContext="{Binding .}" Text="{Binding DisplayText}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Button
+                                Grid.Column="1"
+                                MinWidth="60"
+                                Padding="8,4"
+                                Click="SelectByTier_Click"
+                                Content="Select"
+                                FontSize="10"
+                                ToolTip.Tip="Select mods in the chosen tier and all lower priority tiers" />
+                        </Grid>
+                    </StackPanel>
+
+                    <!--  Category Selection  -->
+                    <StackPanel
+                        Grid.Row="2"
+                        Margin="0,0,0,12"
+                        Spacing="4">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                FontSize="11"
+                                FontWeight="Bold"
+                                Text="Select by Category" />
+                            <Button
+                                Grid.Column="1"
+                                MinHeight="0"
+                                Padding="4,2"
+                                Click="ClearCategorySelection_Click"
+                                Content="Clear"
+                                FontSize="9"
+                                ToolTip.Tip="Clear category selections" />
+                        </Grid>
+                        <TextBlock
+                            Margin="0,0,0,4"
+                            FontSize="9"
+                            Opacity="0.7"
+                            Text="Select one or more categories"
+                            TextWrapping="Wrap" />
+                        <ScrollViewer MaxHeight="150" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="CategorySelectionItemsControl">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox
+                                            Margin="0,2"
+                                            Content="{Binding DisplayText}"
+                                            DataContext="{Binding .}"
+                                            FontSize="10"
+                                            IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                            ToolTip.Tip="{Binding Name}">
+                                            <CheckBox.Styles>
+                                                <Style Selector="CheckBox[IsChecked=False]">
+                                                    <Setter Property="Opacity" Value="0.7" />
+                                                </Style>
+                                            </CheckBox.Styles>
+                                        </CheckBox>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </StackPanel>
+
+                    <!--  Apply Category Selections Button  -->
+                    <Button
+                        Grid.Row="3"
+                        Padding="8,6"
+                        HorizontalAlignment="Stretch"
+                        Click="ApplyCategorySelections_Click"
+                        Content="✅ Apply Category Selections"
+                        FontSize="11"
+                        FontWeight="Bold"
+                        ToolTip.Tip="Select all mods matching the chosen categories" />
+                </Grid>
+            </Border>
+        </Expander>
+
+        <!--  Select All/Deselect All Header  -->
+        <Border
+            Grid.Row="2"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            Margin="0,0,0,2"
+            Padding="8,4"
+            Classes="mod-list-header">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <TextBlock
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    VerticalAlignment="Center"
+                    FontSize="13"
+                    FontWeight="Bold"
+                    Text="Available Mods" />
+                <StackPanel
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="4">
+                    <TextBlock
+                        x:Name="ModCountText"
+                        VerticalAlignment="Center"
+                        Classes="secondary-text"
+                        Text="0 mods" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Classes="secondary-text"
+                        Text="•" />
+                    <TextBlock
+                        x:Name="SelectedCountText"
+                        VerticalAlignment="Center"
+                        Classes="secondary-text"
+                        Text="0 selected" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--  Mod List  -->
+        <ScrollViewer
+            Grid.Row="3"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer.ContextMenu>
+                <ContextMenu x:Name="ModListContextMenu" />
+            </ScrollViewer.ContextMenu>
+            <ListBox
+                x:Name="ModListBoxElement"
+                Padding="0"
+                Background="Transparent"
+                BorderThickness="0"
+                SelectionMode="Single">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="core:ModComponent">
+                        <controls:ModListItem DataContext="{Binding}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </ScrollViewer>
+
+        <!--  Mod Tools Button  -->
+        <DropDownButton
+            x:Name="GlobalActionsButton"
+            Grid.Row="4"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Left"
+            Content="⚙️ Mod Tools">
+            <DropDownButton.Flyout>
+                <MenuFlyout Placement="Top" />
+            </DropDownButton.Flyout>
+        </DropDownButton>
+    </Grid>
+</UserControl>
+

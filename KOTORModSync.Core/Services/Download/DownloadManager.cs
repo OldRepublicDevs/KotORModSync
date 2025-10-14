@@ -15,7 +15,6 @@ namespace KOTORModSync.Core.Services.Download
 	{
 		private readonly List<IDownloadHandler> _handlers;
 		private const double Tolerance = 0.01;
-		private static readonly SemaphoreSlim _deadlyStreamConcurrencyLimiter = new SemaphoreSlim(5, 5);
 
 
 		private readonly Dictionary<string, DateTime> _lastProgressLogTime = new Dictionary<string, DateTime>();
@@ -39,42 +38,48 @@ namespace KOTORModSync.Core.Services.Download
 
 
 
-		public async Task<Dictionary<string, List<string>>> ResolveUrlsToFilenamesAsync(
-			IEnumerable<string> urls,
-			CancellationToken cancellationToken = default)
+	public async Task<Dictionary<string, List<string>>> ResolveUrlsToFilenamesAsync(
+		IEnumerable<string> urls,
+		CancellationToken cancellationToken = default)
+	{
+		var urlList = urls.ToList();
+		await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urlList.Count} URLs to filenames (concurrent)");
+
+		// Resolve URLs concurrently for better performance
+		var resolutionTasks = urlList.Select(async url =>
 		{
-			var results = new Dictionary<string, List<string>>();
-
-			await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urls.Count()} URLs to filenames (sequential)");
-
-			// Resolve URLs sequentially (no concurrency in resolution)
-			foreach ( string url in urls )
+			IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
+			if ( handler == null )
 			{
-				IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
-				if ( handler == null )
-				{
-					await Logger.LogWarningAsync($"[DownloadManager] No handler for URL: {url}");
-					results[url] = new List<string>();
-					continue;
-				}
-
-				try
-				{
-					await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}");
-					List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
-
-					await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames?.Count ?? 0} filename(s) for URL: {url}");
-					results[url] = filenames ?? new List<string>();
-				}
-				catch ( Exception ex )
-				{
-					await Logger.LogErrorAsync($"[DownloadManager] Failed to resolve URL {url}: {ex.Message}");
-					results[url] = new List<string>();
-				}
+				await Logger.LogWarningAsync($"[DownloadManager] No handler for URL: {url}");
+				return (url, filenames: new List<string>());
 			}
 
-			return results;
+			try
+			{
+				await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}");
+				List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
+
+				await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames?.Count ?? 0} filename(s) for URL: {url}");
+				return (url, filenames: filenames ?? new List<string>());
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogErrorAsync($"[DownloadManager] Failed to resolve URL {url}: {ex.Message}");
+				return (url, filenames: new List<string>());
+			}
+		}).ToList();
+
+		var resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
+
+		var results = new Dictionary<string, List<string>>();
+		foreach ( var (url, filenames) in resolvedItems )
+		{
+			results[url] = filenames;
 		}
+
+		return results;
+	}
 
 
 
@@ -111,7 +116,6 @@ namespace KOTORModSync.Core.Services.Download
 			var urlList = urlToProgressMap.Keys.ToList();
 			await Logger.LogVerboseAsync($"[DownloadManager] Starting concurrent batch download with progress reporting for {urlList.Count} URLs");
 			await Logger.LogVerboseAsync($"[DownloadManager] Destination directory: {destinationDirectory}");
-			await Logger.LogVerboseAsync($"[DownloadManager] Concurrency limit: 5 concurrent DeadlyStream downloads (other handlers unlimited)");
 
 
 			await Logger.LogVerboseAsync($"[DownloadManager] URLs to download:");
@@ -172,22 +176,6 @@ namespace KOTORModSync.Core.Services.Download
 
 			await Logger.LogVerboseAsync($"[DownloadManager] Using handler: {handler.GetType().Name} for URL: {url}");
 			progressItem.AddLog($"Using handler: {handler.GetType().Name}");
-
-
-			bool isDeadlyStream = handler.GetType().Name.Contains("DeadlyStream");
-			bool concurrencyAcquired = false;
-
-			if ( isDeadlyStream )
-			{
-
-				await _deadlyStreamConcurrencyLimiter.WaitAsync(combinedCancellationToken);
-				concurrencyAcquired = true;
-				await Logger.LogVerboseAsync($"[DownloadManager] DeadlyStream download - Concurrency: {5 - _deadlyStreamConcurrencyLimiter.CurrentCount}/{5} slots in use");
-			}
-			else
-			{
-				await Logger.LogVerboseAsync($"[DownloadManager] Non-DeadlyStream download - no concurrency limit applied");
-			}
 
 			try
 			{
@@ -361,24 +349,17 @@ namespace KOTORModSync.Core.Services.Download
 					progressItem.EndTime = DateTime.Now;
 				}
 
-				return result;
-			}
-			finally
+			return result;
+		}
+		finally
+		{
+
+			lock ( _logThrottleLock )
 			{
-
-				lock ( _logThrottleLock )
-				{
-					_lastProgressLogTime.Remove(url);
-					_lastLoggedStatus.Remove(url);
-				}
-
-
-				if ( concurrencyAcquired )
-				{
-					_deadlyStreamConcurrencyLimiter.Release();
-					await Logger.LogVerboseAsync($"[DownloadManager] Released DeadlyStream concurrency slot. Available: {_deadlyStreamConcurrencyLimiter.CurrentCount}/{5}");
-				}
+				_lastProgressLogTime.Remove(url);
+				_lastLoggedStatus.Remove(url);
 			}
 		}
+	}
 	}
 }

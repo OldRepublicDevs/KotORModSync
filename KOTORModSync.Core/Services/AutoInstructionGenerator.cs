@@ -20,6 +20,77 @@ namespace KOTORModSync.Core.Services
 	public static class AutoInstructionGenerator
 	{
 		/// <summary>
+		/// Checks if a component is the special "Remove Duplicate TGA/TPC" mod.
+		/// </summary>
+		private static bool IsRemoveDuplicateTgaTpcMod([NotNull] ModComponent component)
+		{
+			// Check by name
+			if ( component.Name != null &&
+				 component.Name.Equals("Remove Duplicate TGA/TPC", StringComparison.OrdinalIgnoreCase) )
+			{
+				return true;
+			}
+
+			// Check by author (must contain both names)
+			if ( !string.IsNullOrEmpty(component.Author) )
+			{
+				string authorLower = component.Author.ToLowerInvariant();
+				if ( authorLower.Contains("flachzangen") && authorLower.Contains("th3w1zard1") )
+				{
+					return true;
+				}
+			}
+
+			// Check by ModLink
+			if ( component.ModLink != null && component.ModLink.Count > 0 )
+			{
+				foreach ( string link in component.ModLink )
+				{
+					if ( string.IsNullOrEmpty(link) )
+						continue;
+
+					string linkLower = link.ToLowerInvariant();
+					if ( linkLower.Contains("nexusmods.com/kotor/mods/1384") ||
+						 linkLower.Contains("pastebin.com/6wcn122s") )
+					{
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Generates a DelDuplicate instruction for the Remove Duplicate TGA/TPC mod.
+		/// </summary>
+		private static bool GenerateDelDuplicateInstruction([NotNull] ModComponent component)
+		{
+			var delDuplicateInstruction = new Instruction
+			{
+				Guid = Guid.NewGuid(),
+				Action = Instruction.ActionType.DelDuplicate,
+				Source = new List<string>(),
+				Arguments = ".tpc",
+				Overwrite = true
+			};
+			delDuplicateInstruction.SetParentComponent(component);
+
+			// Only add if it doesn't already exist
+			if ( !InstructionAlreadyExists(component, delDuplicateInstruction) )
+			{
+				component.Instructions.Add(delDuplicateInstruction);
+				Logger.LogVerbose($"[AutoInstructionGenerator] Added DelDuplicate instruction for Remove Duplicate TGA/TPC mod");
+				return true;
+			}
+			else
+			{
+				Logger.LogVerbose($"[AutoInstructionGenerator] DelDuplicate instruction already exists for Remove Duplicate TGA/TPC mod");
+				return true;
+			}
+		}
+
+		/// <summary>
 		/// Checks if an instruction is equivalent to a potential new instruction using comprehensive wildcard matching.
 		/// </summary>
 		/// <param name="existing">Existing instruction in the component</param>
@@ -130,9 +201,19 @@ namespace KOTORModSync.Core.Services
 			if ( string.Equals(existingNormalized, potentialNormalized, StringComparison.OrdinalIgnoreCase) )
 				return true;
 
-			// Try wildcard matching: existing pattern matches potential input
-			if ( ContainsWildcards(existingNormalized) )
+			// Check if both paths have wildcards - need special handling
+			bool existingHasWildcards = ContainsWildcards(existingNormalized);
+			bool potentialHasWildcards = ContainsWildcards(potentialNormalized);
+
+			if ( existingHasWildcards && potentialHasWildcards )
 			{
+				// Both have wildcards - check if they could potentially match the same files
+				if ( DoWildcardPatternsOverlap(existingNormalized, potentialNormalized) )
+					return true;
+			}
+			else if ( existingHasWildcards )
+			{
+				// Only existing has wildcards - try to match potential against existing pattern
 				try
 				{
 					if ( PathHelper.WildcardPathMatch(potentialNormalized, existingNormalized) )
@@ -143,10 +224,9 @@ namespace KOTORModSync.Core.Services
 					// If wildcard matching fails, fall through to filename-only check
 				}
 			}
-
-			// Try reverse: potential pattern matches existing input (in case user has wildcards in manual instructions)
-			if ( ContainsWildcards(potentialNormalized) )
+			else if ( potentialHasWildcards )
 			{
+				// Only potential has wildcards - try to match existing against potential pattern
 				try
 				{
 					if ( PathHelper.WildcardPathMatch(existingNormalized, potentialNormalized) )
@@ -162,11 +242,26 @@ namespace KOTORModSync.Core.Services
 			string existingFilename = Path.GetFileName(existingNormalized);
 			string potentialFilename = Path.GetFileName(potentialNormalized);
 
-			if ( string.Equals(existingFilename, potentialFilename, StringComparison.OrdinalIgnoreCase) )
-				return true;
+			bool existingFilenameHasWildcards = ContainsWildcards(existingFilename);
+			bool potentialFilenameHasWildcards = ContainsWildcards(potentialFilename);
 
-			// Check wildcard matching on filenames only
-			if ( ContainsWildcards(existingFilename) )
+			// If both filenames are wildcards (e.g., both are "*"), don't consider that a match
+			// because the full paths might be different (e.g., "folder1\*" vs "folder2\*")
+			if ( existingFilenameHasWildcards && potentialFilenameHasWildcards )
+			{
+				// Both have wildcards - don't do filename-only matching
+				return false;
+			}
+
+			// If neither has wildcards, check for exact filename match
+			if ( !existingFilenameHasWildcards && !potentialFilenameHasWildcards )
+			{
+				if ( string.Equals(existingFilename, potentialFilename, StringComparison.OrdinalIgnoreCase) )
+					return true;
+			}
+
+			// Check wildcard matching on filenames only (one has wildcards, one doesn't)
+			if ( existingFilenameHasWildcards )
 			{
 				try
 				{
@@ -179,7 +274,7 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			if ( ContainsWildcards(potentialFilename) )
+			if ( potentialFilenameHasWildcards )
 			{
 				try
 				{
@@ -192,6 +287,128 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
+			return false;
+		}
+
+		/// <summary>
+		/// Checks if two wildcard patterns could potentially match the same files.
+		/// For example:
+		/// - "KotOR_Dialogue_Fixes*\Corrections only\dialog.tlk" and 
+		/// - "KotOR_Dialogue_Fixes_5_2\Corrections only\*"
+		/// should be considered overlapping because the first could match a file in KotOR_Dialogue_Fixes_5_2,
+		/// and the second's wildcard could include dialog.tlk.
+		/// </summary>
+		private static bool DoWildcardPatternsOverlap([NotNull] string pattern1, [NotNull] string pattern2)
+		{
+			// Split paths into parts for component-by-component comparison
+			string[] parts1 = pattern1.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+			string[] parts2 = pattern2.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+			// If the paths have vastly different depths and neither ends with *, they probably don't overlap
+			// But if one ends with *, it could match multiple levels
+			int minParts = Math.Min(parts1.Length, parts2.Length);
+			int maxParts = Math.Max(parts1.Length, parts2.Length);
+
+			// Check each path component up to the minimum length
+			for ( int i = 0; i < minParts - 1; i++ ) // -1 because we'll handle the last part (filename) separately
+			{
+				string part1 = parts1[i];
+				string part2 = parts2[i];
+
+				// If both parts are exact matches, continue
+				if ( string.Equals(part1, part2, StringComparison.OrdinalIgnoreCase) )
+					continue;
+
+				// If one or both have wildcards, check if they could match
+				if ( ContainsWildcards(part1) && ContainsWildcards(part2) )
+				{
+					// Both have wildcards - assume they could overlap (conservative approach)
+					continue;
+				}
+				else if ( ContainsWildcards(part1) )
+				{
+					// part1 has wildcards, check if part2 matches pattern
+					try
+					{
+						if ( !PathHelper.WildcardPathMatch(part2, part1) )
+							return false; // Directory parts don't match
+					}
+					catch
+					{
+						// If matching fails, assume they don't overlap
+						return false;
+					}
+				}
+				else if ( ContainsWildcards(part2) )
+				{
+					// part2 has wildcards, check if part1 matches pattern
+					try
+					{
+						if ( !PathHelper.WildcardPathMatch(part1, part2) )
+							return false; // Directory parts don't match
+					}
+					catch
+					{
+						// If matching fails, assume they don't overlap
+						return false;
+					}
+				}
+				else
+				{
+					// Neither has wildcards and they don't match exactly
+					return false;
+				}
+			}
+
+			// Now check the filename parts (last component of each path)
+			string filename1 = parts1[parts1.Length - 1];
+			string filename2 = parts2[parts2.Length - 1];
+
+			// If one pattern is longer and doesn't end with a multi-level wildcard, check deeper levels
+			// For simplicity, we'll focus on the filename comparison
+
+			// Both filenames exact match
+			if ( string.Equals(filename1, filename2, StringComparison.OrdinalIgnoreCase) )
+				return true;
+
+			// If either filename is just "*", they overlap (wildcard matches anything)
+			if ( filename1 == "*" || filename2 == "*" )
+				return true;
+
+			// If both have wildcards
+			if ( ContainsWildcards(filename1) && ContainsWildcards(filename2) )
+			{
+				// Conservative: assume they could overlap
+				// A more sophisticated check would be to see if there's any filename that matches both patterns
+				return true;
+			}
+
+			// If one has wildcards, check if the other matches
+			if ( ContainsWildcards(filename1) )
+			{
+				try
+				{
+					return PathHelper.WildcardPathMatch(filename2, filename1);
+				}
+				catch
+				{
+					return false;
+				}
+			}
+
+			if ( ContainsWildcards(filename2) )
+			{
+				try
+				{
+					return PathHelper.WildcardPathMatch(filename1, filename2);
+				}
+				catch
+				{
+					return false;
+				}
+			}
+
+			// No wildcards and no exact match
 			return false;
 		}
 
@@ -282,39 +499,24 @@ namespace KOTORModSync.Core.Services
 		}
 
 		/// <summary>
-		/// Finds an existing option with equivalent or overlapping instructions (ignoring Name/Description differences).
-		/// Returns an option if:
-		/// 1. It has exactly the same instructions as potential, OR
-		/// 2. It has a subset of instructions (some or all of potential's instructions), OR
-		/// 3. It has a superset of instructions (all of potential's instructions plus more)
+		/// Finds an existing option with EXACTLY the same instructions (ignoring Name/Description differences).
+		/// Returns an option ONLY if it has the exact same instruction set as the potential option.
 		/// </summary>
 		/// <param name="component">The component to search</param>
 		/// <param name="potentialOption">The option we're considering</param>
-		/// <returns>Existing related option or null if none found</returns>
+		/// <returns>Existing equivalent option or null if none found</returns>
 		private static Option FindEquivalentOption([NotNull] ModComponent component, [NotNull] Option potentialOption)
 		{
-			Option bestMatch = null;
-			int highestMatchScore = 0;
-
 			foreach ( Option existingOption in component.Options )
 			{
-				int matchScore = CalculateOptionInstructionOverlap(existingOption, potentialOption);
-
-				// We consider options equivalent if they have any overlapping instructions
-				// or if existing has no instructions (empty option that could be populated)
-				if ( matchScore > 0 || (existingOption.Instructions.Count == 0 && potentialOption.Instructions.Count > 0) )
+				// Use exact instruction matching only
+				if ( AreOptionsEquivalentByInstructions(existingOption, potentialOption) )
 				{
-					if ( matchScore > highestMatchScore )
-					{
-						highestMatchScore = matchScore;
-						bestMatch = existingOption;
-					}
+					return existingOption;
 				}
 			}
 
-			// Only return a match if we found significant overlap (at least 1 matching instruction)
-			// OR if the potential option would be the first to populate an empty existing option
-			return bestMatch;
+			return null;
 		}
 
 		/// <summary>
@@ -521,6 +723,74 @@ namespace KOTORModSync.Core.Services
 		}
 
 		/// <summary>
+		/// Checks if a folder path is already covered by any existing instruction in the component.
+		/// Uses wildcard matching to determine if an instruction's source would match the folder path.
+		/// </summary>
+		/// <param name="component">The component to check</param>
+		/// <param name="folderSourcePath">The folder source path to check (e.g., "<<modDirectory>>\ExtractedMod\FolderName\*")</param>
+		/// <returns>True if the folder is already covered by an existing instruction</returns>
+		private static bool IsFolderAlreadyCoveredByInstructions([NotNull] ModComponent component, [NotNull] string folderSourcePath)
+		{
+			// Check all instructions in the component (not in options)
+			foreach ( Instruction existingInstruction in component.Instructions )
+			{
+				// Only check Move and Extract instructions (actions that handle files)
+				if ( existingInstruction.Action != Instruction.ActionType.Move &&
+					 existingInstruction.Action != Instruction.ActionType.Extract )
+				{
+					continue;
+				}
+
+				// Check if any of the existing instruction's sources match or contain the folder path
+				foreach ( string existingSource in existingInstruction.Source )
+				{
+					// Use the existing DoSourcesMatch function to check if they match with wildcard support
+					if ( DoSourcesMatch(existingSource, folderSourcePath) )
+					{
+						Logger.LogVerbose($"[AutoInstructionGenerator] Folder path '{folderSourcePath}' is covered by existing instruction source '{existingSource}'");
+						return true;
+					}
+
+					// Also check if the existing source is a parent path that would include this folder
+					// For example: "<<modDirectory>>\ExtractedMod\*\*" would cover "<<modDirectory>>\ExtractedMod\FolderName\*"
+					if ( IsParentPathCovering(existingSource, folderSourcePath) )
+					{
+						Logger.LogVerbose($"[AutoInstructionGenerator] Folder path '{folderSourcePath}' is covered by parent path '{existingSource}'");
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Checks if a parent path with wildcards would cover a child path.
+		/// For example: "<<modDirectory>>\ExtractedMod\*" could cover "<<modDirectory>>\ExtractedMod\FolderName\*"
+		/// </summary>
+		private static bool IsParentPathCovering([NotNull] string parentPath, [NotNull] string childPath)
+		{
+			string parentNormalized = NormalizePathForComparison(parentPath);
+			string childNormalized = NormalizePathForComparison(childPath);
+
+			// Remove trailing wildcards for comparison
+			string parentWithoutWildcard = parentNormalized.TrimEnd('*', '\\');
+			string childWithoutWildcard = childNormalized.TrimEnd('*', '\\');
+
+			// Check if child starts with parent path
+			if ( childWithoutWildcard.StartsWith(parentWithoutWildcard, StringComparison.OrdinalIgnoreCase) )
+			{
+				// Check if the parent path has wildcards that would include subdirectories
+				if ( parentNormalized.EndsWith("\\*") || parentNormalized.EndsWith("\\*\\*") )
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
 		/// Adds missing instructions from potentialOption to existingOption.
 		/// </summary>
 		/// <returns>Count of instructions added</returns>
@@ -595,6 +865,13 @@ namespace KOTORModSync.Core.Services
 			if ( !File.Exists(archivePath) )
 				return false;
 
+			// Special case: Remove Duplicate TGA/TPC mod
+			if ( IsRemoveDuplicateTgaTpcMod(component) )
+			{
+				Logger.LogVerbose($"[AutoInstructionGenerator] Detected Remove Duplicate TGA/TPC mod, generating DelDuplicate instruction only");
+				return GenerateDelDuplicateInstruction(component);
+			}
+
 			try
 			{
 				(IArchive archive, FileStream stream) = ArchiveHelper.OpenArchive(archivePath);
@@ -605,7 +882,7 @@ namespace KOTORModSync.Core.Services
 				using ( archive )
 				{
 					ArchiveAnalysis analysis = AnalyzeArchive(archive);
-					return GenerateAllInstructions(component, archivePath, analysis);
+					return GenerateAllInstructions(component, archivePath, archive, analysis);
 				}
 			}
 			catch ( Exception ex )
@@ -678,7 +955,7 @@ namespace KOTORModSync.Core.Services
 
 			return false;
 		}
-		private static bool GenerateAllInstructions(ModComponent component, string archivePath, ArchiveAnalysis analysis)
+		private static bool GenerateAllInstructions(ModComponent component, string archivePath, IArchive archive, ArchiveAnalysis analysis)
 		{
 			string archiveFileName = Path.GetFileName(archivePath);
 			string extractedPath = archiveFileName.Replace(Path.GetExtension(archiveFileName), "");
@@ -728,14 +1005,21 @@ namespace KOTORModSync.Core.Services
 					.ToList();
 
 				if ( overrideFolders.Count > 1 )
+				{
 					// Multiple folders - create Choose instruction with options
-					AddMultiFolderChooseInstructions(component, extractedPath, overrideFolders);
+					// Filter out folders that don't contain game files
+					AddMultiFolderChooseInstructions(component, archive, extractedPath, overrideFolders);
+				}
 				else if ( overrideFolders.Count == 1 )
-					// Single folder - create simple Move instruction
-					AddSimpleMoveInstruction(component, extractedPath, overrideFolders[0]);
+				{
+					// Single folder - create simple Move instruction only if it contains game files
+					AddSimpleMoveInstruction(component, archive, extractedPath, overrideFolders[0]);
+				}
 				else if ( analysis.HasFlatFiles )
-					// Flat files in archive root - create simple Move instruction
-					AddSimpleMoveInstruction(component, extractedPath, null);
+				{
+					// Flat files in archive root - create simple Move instruction only if there are game files
+					AddSimpleMoveInstruction(component, archive, extractedPath, null);
+				}
 			}
 
 			if ( analysis.HasTslPatchData && analysis.HasSimpleOverrideFiles )
@@ -775,6 +1059,13 @@ namespace KOTORModSync.Core.Services
 				return false;
 			}
 
+			// Special case: Remove Duplicate TGA/TPC mod
+			if ( IsRemoveDuplicateTgaTpcMod(component) )
+			{
+				Logger.LogVerbose($"[AutoInstructionGenerator] Detected Remove Duplicate TGA/TPC mod, generating DelDuplicate instruction only");
+				return GenerateDelDuplicateInstruction(component);
+			}
+
 			try
 			{
 				Logger.LogVerbose($"[AutoInstructionGenerator] Pre-resolving URLs for component: {component.Name}");
@@ -805,6 +1096,10 @@ namespace KOTORModSync.Core.Services
 
 						// Create the potential instruction to check if it already exists
 						Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
+
+						// Skip if the file is not a game file and not an archive
+						if ( potentialInstruction == null )
+							continue;
 
 						// Only add if it doesn't already exist
 						if ( !InstructionAlreadyExists(component, potentialInstruction) )
@@ -857,32 +1152,38 @@ namespace KOTORModSync.Core.Services
 
 								// Create potential instruction and check if it exists
 								Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
-								if ( !InstructionAlreadyExists(component, potentialInstruction) )
+								if ( potentialInstruction != null )
 								{
-									component.Instructions.Add(potentialInstruction);
-									Logger.LogVerbose($"[AutoInstructionGenerator] Added placeholder Extract instruction for '{fileName}'");
-								}
-								else
-								{
-									Logger.LogVerbose($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
+									if ( !InstructionAlreadyExists(component, potentialInstruction) )
+									{
+										component.Instructions.Add(potentialInstruction);
+										Logger.LogVerbose($"[AutoInstructionGenerator] Added placeholder Extract instruction for '{fileName}'");
+									}
+									else
+									{
+										Logger.LogVerbose($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
+									}
 								}
 							}
 						}
 						else
 						{
-							// Not an archive - just create Move instruction
-							Logger.LogVerbose($"[AutoInstructionGenerator] '{fileName}' is not an archive, creating Move instruction");
+							// Not an archive - check if it's a game file before creating Move instruction
+							Logger.LogVerbose($"[AutoInstructionGenerator] '{fileName}' is not an archive, checking if it's a game file");
 
 							// Create potential instruction and check if it exists
 							Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
-							if ( !InstructionAlreadyExists(component, potentialInstruction) )
+							if ( potentialInstruction != null )
 							{
-								component.Instructions.Add(potentialInstruction);
-								Logger.LogVerbose($"[AutoInstructionGenerator] Added Move instruction for '{fileName}'");
-							}
-							else
-							{
-								Logger.LogVerbose($"[AutoInstructionGenerator] Move instruction for '{fileName}' already exists, skipping");
+								if ( !InstructionAlreadyExists(component, potentialInstruction) )
+								{
+									component.Instructions.Add(potentialInstruction);
+									Logger.LogVerbose($"[AutoInstructionGenerator] Added Move instruction for '{fileName}'");
+								}
+								else
+								{
+									Logger.LogVerbose($"[AutoInstructionGenerator] Move instruction for '{fileName}' already exists, skipping");
+								}
 							}
 						}
 					}
@@ -893,14 +1194,17 @@ namespace KOTORModSync.Core.Services
 
 						// Create potential instruction and check if it exists
 						Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
-						if ( !InstructionAlreadyExists(component, potentialInstruction) )
+						if ( potentialInstruction != null )
 						{
-							component.Instructions.Add(potentialInstruction);
-							Logger.LogVerbose($"[AutoInstructionGenerator] Added placeholder instruction for '{fileName}'");
-						}
-						else
-						{
-							Logger.LogVerbose($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
+							if ( !InstructionAlreadyExists(component, potentialInstruction) )
+							{
+								component.Instructions.Add(potentialInstruction);
+								Logger.LogVerbose($"[AutoInstructionGenerator] Added placeholder instruction for '{fileName}'");
+							}
+							else
+							{
+								Logger.LogVerbose($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
+							}
 						}
 					}
 				}
@@ -924,13 +1228,27 @@ namespace KOTORModSync.Core.Services
 
 		/// <summary>
 		/// Creates a placeholder Extract or Move instruction object (does NOT add it to the component).
+		/// Returns null if the file is not a game file and not an archive.
 		/// </summary>
 		/// <param name="component">The component this instruction belongs to</param>
 		/// <param name="fileName">The filename for the instruction</param>
-		/// <returns>A new Instruction object with parent component set</returns>
+		/// <returns>A new Instruction object with parent component set, or null if not applicable</returns>
+		[CanBeNull]
 		private static Instruction CreatePlaceholderInstructionObject([NotNull] ModComponent component, [NotNull] string fileName)
 		{
 			bool isArchive = DownloadCacheService.IsArchive(fileName);
+
+			// If it's not an archive, check if it's a game file
+			if ( !isArchive )
+			{
+				string extension = Path.GetExtension(fileName);
+				if ( !IsGameFile(extension) )
+				{
+					// Not a game file and not an archive - don't create instruction
+					Logger.LogVerbose($"[AutoInstructionGenerator] Skipping non-game file '{fileName}' (extension: {extension})");
+					return null;
+				}
+			}
 
 			var instruction = new Instruction
 			{
@@ -1120,12 +1438,28 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		private static void AddMultiFolderChooseInstructions(ModComponent component, string extractedPath, List<string> folders)
+		private static void AddMultiFolderChooseInstructions(ModComponent component, IArchive archive, string extractedPath, List<string> folders)
 		{
 			var optionGuidsToAdd = new List<string>();
 
 			foreach ( string folder in folders )
 			{
+				// Check if this folder contains any game files
+				// Note: folder is the actual folder path in the archive (not including extractedPath)
+				if ( !FolderContainsGameFiles(archive, folder) )
+				{
+					Logger.LogVerbose($"[AutoInstructionGenerator] Skipping folder '{folder}' - no game files found");
+					continue;
+				}
+
+				// Check if this folder is already covered by existing instructions
+				string potentialSourcePath = $@"<<modDirectory>>\{extractedPath}\{folder}\*";
+				if ( IsFolderAlreadyCoveredByInstructions(component, potentialSourcePath) )
+				{
+					Logger.LogVerbose($"[AutoInstructionGenerator] Skipping folder '{folder}' - already covered by existing instructions");
+					continue;
+				}
+
 				// Create potential option with its instructions
 				var potentialOption = new Option
 				{
@@ -1139,7 +1473,7 @@ namespace KOTORModSync.Core.Services
 				{
 					Guid = Guid.NewGuid(),
 					Action = Instruction.ActionType.Move,
-					Source = new List<string> { $@"<<modDirectory>>\{extractedPath}\{folder}\*" },
+					Source = new List<string> { potentialSourcePath },
 					Destination = @"<<kotorDirectory>>\Override",
 					Overwrite = true
 				};
@@ -1223,11 +1557,31 @@ namespace KOTORModSync.Core.Services
 		}
 
 
-		private static void AddSimpleMoveInstruction(ModComponent component, string extractedPath, string folderName)
+		private static void AddSimpleMoveInstruction(ModComponent component, IArchive archive, string extractedPath, string folderName)
 		{
+			// Check if this folder/location contains any game files
+			// Note: folderName is the actual folder path in the archive (not including extractedPath)
+			// When folderName is null/empty, we're checking for flat files in the archive root
+			string folderPathInArchive = string.IsNullOrEmpty(folderName) ? null : folderName;
+
+			if ( !FolderContainsGameFiles(archive, folderPathInArchive) )
+			{
+				string location = string.IsNullOrEmpty(folderName) ? "root" : $"folder '{folderName}'";
+				Logger.LogVerbose($"[AutoInstructionGenerator] Skipping Move instruction for {location} - no game files found");
+				return;
+			}
+
 			string sourcePath = string.IsNullOrEmpty(folderName)
 				? $@"<<modDirectory>>\{extractedPath}\*"
 				: $@"<<modDirectory>>\{extractedPath}\{folderName}\*";
+
+			// Check if this path is already covered by existing instructions
+			if ( IsFolderAlreadyCoveredByInstructions(component, sourcePath) )
+			{
+				string location = string.IsNullOrEmpty(folderName) ? "root" : $"folder '{folderName}'";
+				Logger.LogVerbose($"[AutoInstructionGenerator] Skipping Move instruction for {location} - already covered by existing instructions");
+				return;
+			}
 
 			var moveInstruction = new Instruction
 			{
@@ -1344,6 +1698,48 @@ namespace KOTORModSync.Core.Services
 			};
 
 			return gameExtensions.Contains(extension);
+		}
+
+		/// <summary>
+		/// Checks if a folder in an archive contains any game files.
+		/// </summary>
+		/// <param name="archive">The archive to check</param>
+		/// <param name="folderPath">The folder path to check (relative to archive root)</param>
+		/// <returns>True if the folder contains at least one game file</returns>
+		private static bool FolderContainsGameFiles([NotNull] IArchive archive, [CanBeNull] string folderPath)
+		{
+			foreach ( IArchiveEntry entry in archive.Entries )
+			{
+				if ( entry.IsDirectory )
+					continue;
+
+				string entryPath = entry.Key.Replace('\\', '/');
+				string extension = Path.GetExtension(entryPath);
+
+				// Check if this is a game file
+				if ( !IsGameFile(extension) )
+					continue;
+
+				// If folderPath is null or empty, we're checking for flat files in the root
+				if ( string.IsNullOrEmpty(folderPath) )
+				{
+					// Check if the file is in the root (no path separators)
+					if ( !entryPath.Contains('/') && !entryPath.Contains('\\') )
+						return true;
+				}
+				else
+				{
+					// Check if the file is in the specified folder
+					string normalizedFolderPath = folderPath.Replace('\\', '/');
+					if ( !normalizedFolderPath.EndsWith("/") )
+						normalizedFolderPath += "/";
+
+					if ( entryPath.StartsWith(normalizedFolderPath, StringComparison.OrdinalIgnoreCase) )
+						return true;
+				}
+			}
+
+			return false;
 		}
 
 		private class ArchiveAnalysis

@@ -49,7 +49,7 @@ exporters:
   prometheus:
     endpoint: "prometheus.bolabaden.org:9090"
     namespace: kotormodsync
-  
+
   # Also log to file for debugging
   logging:
     verbosity: detailed
@@ -97,12 +97,12 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Content-Type application/x-protobuf;
-        
+
         # Increase timeouts
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
-        
+
         # Rate limiting
         limit_req zone=telemetry burst=20 nodelay;
     }
@@ -249,13 +249,33 @@ That's it. Your existing Prometheus will work as-is, no changes needed.
 
 ## Keys/Authentication
 
-Currently, KOTORModSync sends telemetry **without authentication**. If you want to add authentication:
+**IMPORTANT:** KOTORModSync sends HMAC-SHA256 signed requests for authentication.
 
-1. Add API key to OTLP collector config
-2. Configure rate limiting (shown in nginx config above)
-3. Or use IP whitelisting if needed
+### Required: Signature Verification
 
-For now, rate limiting (10 req/s per IP) should be sufficient.
+All official KOTORModSync builds include cryptographic signatures in HTTP headers:
+
+```
+X-KMS-Signature: <hmac_sha256_hex>
+X-KMS-Timestamp: <unix_timestamp>
+X-KMS-Session: <session_id>
+X-KMS-Version: <app_version>
+X-KMS-Build: official
+```
+
+**You MUST configure signature verification** to prevent fake/unauthorized telemetry.
+
+See **`GITHUB_SECRET_SETUP.md`** for:
+
+- How to generate the signing secret
+- Server-side verification implementation (Nginx Lua)
+- Testing procedures
+
+### Quick Setup
+
+1. **Use the same secret** as your GitHub Secret `KOTORMODSYNC_SIGNING_SECRET`
+2. **Configure Nginx Lua** to verify signatures (see `GITHUB_SECRET_SETUP.md`)
+3. **Rate limiting** (10 req/s per IP) as secondary protection
 
 ---
 
@@ -998,7 +1018,7 @@ If you want to add authentication:
            endpoint: 0.0.0.0:4318
            auth:
              authenticator: headers
-   
+
    extensions:
      headers_setter:
        headers:

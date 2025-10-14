@@ -154,17 +154,16 @@ namespace KOTORModSync.Services
 					{
 						await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] File already referenced in instructions: {fileName}");
 
-						Guid existingExtractGuid = _downloadCacheService.GetExtractInstructionGuid(component.Guid, modLink);
+						Guid existingExtractGuid = _downloadCacheService.GetExtractInstructionGuid(modLink);
 
 						var cacheEntry = new DownloadCacheEntry
 						{
 							Url = modLink,
-							ArchiveName = fileName,
-							FilePath = filePath,
+							FileName = fileName,
 							IsArchive = isArchive,
 							ExtractInstructionGuid = existingExtractGuid
 						};
-						_downloadCacheService.AddOrUpdate(component.Guid, modLink, cacheEntry);
+						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
 						continue;
 					}
 
@@ -187,12 +186,11 @@ namespace KOTORModSync.Services
 						var cacheEntry = new DownloadCacheEntry
 						{
 							Url = modLink,
-							ArchiveName = fileName,
-							FilePath = filePath,
+							FileName = fileName,
 							IsArchive = true,
 							ExtractInstructionGuid = extractInstruction.Guid
 						};
-						_downloadCacheService.AddOrUpdate(component.Guid, modLink, cacheEntry);
+						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
 					}
 					else
 					{
@@ -202,12 +200,11 @@ namespace KOTORModSync.Services
 						var cacheEntry = new DownloadCacheEntry
 						{
 							Url = modLink,
-							ArchiveName = fileName,
-							FilePath = filePath,
+							FileName = fileName,
 							IsArchive = false,
 							ExtractInstructionGuid = Guid.Empty
 						};
-						_downloadCacheService.AddOrUpdate(component.Guid, modLink, cacheEntry);
+						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
 					}
 				}
 			}

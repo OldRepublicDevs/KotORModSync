@@ -1,0 +1,67 @@
+# Secrets and sensitive files
+*.key
+*.secret
+*_secret.txt
+telemetry.key
+kotormodsync_signing_secret.txt
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+logs/
+
+# Environment files with secrets
+.env
+.env.local
+.env.production
+
+# Backup files
+*.bak
+*.backup
+

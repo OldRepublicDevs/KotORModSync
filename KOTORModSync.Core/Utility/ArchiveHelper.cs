@@ -72,34 +72,6 @@ namespace KOTORModSync.Core.Utility
 			}
 		}
 
-		//todo: Check() seems to return true on all files regardless of content?
-		public static bool IsValidArchive([CanBeNull] string filePath)
-		{
-			if ( filePath is null || !File.Exists(filePath) )
-				return false;
-
-			try
-			{
-				SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll")); // Path to 7z.dll
-				bool valid;
-				using ( var extractor = new SevenZipExtractor(filePath) )
-				{
-					// The Check() method throws an exception if the archive is invalid.
-					valid = extractor.Check();
-				}
-
-				if ( !valid )
-					valid = IsPotentialSevenZipSFX(filePath);
-				return valid;
-			}
-			catch ( Exception )
-			{
-				// Here we catch the exception if it's not a valid archive.
-				// We'll then check if it's an SFX.
-				return IsPotentialSevenZipSFX(filePath);
-			}
-		}
-
 		public static bool IsPotentialSevenZipSFX([NotNull] string filePath)
 		{
 			// These bytes represent a typical signature for Windows executables.

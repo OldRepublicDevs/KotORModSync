@@ -180,10 +180,15 @@ namespace KOTORModSync.Core
 		[NotNull] private List<Guid> _dependencies = new List<Guid>();
 		[NotNull] private List<string> _dependencyNames = new List<string>();
 		[NotNull] private string _description = string.Empty;
+		[NotNull] private string _descriptionSpoilerFree = string.Empty;
 		[NotNull] private string _directions = string.Empty;
+		[NotNull] private string _directionsSpoilerFree = string.Empty;
 		[NotNull] private string _downloadInstructions = string.Empty;
+		[NotNull] private string _downloadInstructionsSpoilerFree = string.Empty;
 		[NotNull] private string _usageWarning = string.Empty;
+		[NotNull] private string _usageWarningSpoilerFree = string.Empty;
 		[NotNull] private string _screenshots = string.Empty;
+		[NotNull] private string _screenshotsSpoilerFree = string.Empty;
 		private Guid _guid;
 		[NotNull] private List<Guid> _installAfter = new List<Guid>();
 		[NotNull] private string _installationMethod = string.Empty;
@@ -210,6 +215,7 @@ namespace KOTORModSync.Core
 		private Guid _installSessionId;
 		[NotNull][ItemNotNull] private List<string> _language = new List<string>();
 		[NotNull] private List<string> _modLink = new List<string>();
+		[NotNull] private List<string> _excludedDownloads = new List<string>();
 		[NotNull] private string _name = string.Empty;
 		[NotNull] private string _nameFieldContent = string.Empty;
 		[NotNull] private string _heading = string.Empty;
@@ -312,12 +318,32 @@ namespace KOTORModSync.Core
 			}
 		}
 		[NotNull]
+		public List<string> ExcludedDownloads
+		{
+			get => _excludedDownloads;
+			set
+			{
+				_excludedDownloads = value;
+				OnPropertyChanged();
+			}
+		}
+		[NotNull]
 		public string Description
 		{
 			get => _description;
 			set
 			{
 				_description = value;
+				OnPropertyChanged();
+			}
+		}
+		[NotNull]
+		public string DescriptionSpoilerFree
+		{
+			get => string.IsNullOrWhiteSpace(_descriptionSpoilerFree) ? _description : _descriptionSpoilerFree;
+			set
+			{
+				_descriptionSpoilerFree = value;
 				OnPropertyChanged();
 			}
 		}
@@ -342,12 +368,32 @@ namespace KOTORModSync.Core
 			}
 		}
 		[NotNull]
+		public string DirectionsSpoilerFree
+		{
+			get => string.IsNullOrWhiteSpace(_directionsSpoilerFree) ? _directions : _directionsSpoilerFree;
+			set
+			{
+				_directionsSpoilerFree = value;
+				OnPropertyChanged();
+			}
+		}
+		[NotNull]
 		public string DownloadInstructions
 		{
 			get => _downloadInstructions;
 			set
 			{
 				_downloadInstructions = value;
+				OnPropertyChanged();
+			}
+		}
+		[NotNull]
+		public string DownloadInstructionsSpoilerFree
+		{
+			get => string.IsNullOrWhiteSpace(_downloadInstructionsSpoilerFree) ? _downloadInstructions : _downloadInstructionsSpoilerFree;
+			set
+			{
+				_downloadInstructionsSpoilerFree = value;
 				OnPropertyChanged();
 			}
 		}
@@ -362,12 +408,32 @@ namespace KOTORModSync.Core
 			}
 		}
 		[NotNull]
+		public string UsageWarningSpoilerFree
+		{
+			get => string.IsNullOrWhiteSpace(_usageWarningSpoilerFree) ? _usageWarning : _usageWarningSpoilerFree;
+			set
+			{
+				_usageWarningSpoilerFree = value;
+				OnPropertyChanged();
+			}
+		}
+		[NotNull]
 		public string Screenshots
 		{
 			get => _screenshots;
 			set
 			{
 				_screenshots = value;
+				OnPropertyChanged();
+			}
+		}
+		[NotNull]
+		public string ScreenshotsSpoilerFree
+		{
+			get => string.IsNullOrWhiteSpace(_screenshotsSpoilerFree) ? _screenshots : _screenshotsSpoilerFree;
+			set
+			{
+				_screenshotsSpoilerFree = value;
 				OnPropertyChanged();
 			}
 		}
@@ -637,7 +703,7 @@ namespace KOTORModSync.Core
 							Action = i.Action != Instruction.ActionType.Unset ? i.Action.ToString() : null,
 							Source = i.Source?.Count > 0 ? i.Source : null,
 							Destination = !string.IsNullOrWhiteSpace(i.Destination) ? i.Destination : null,
-							Overwrite = i.Overwrite ? (bool?)true : null,
+							Overwrite = !i.Overwrite ? (bool?)false : null,
 						}).ToList()
 						: null,
 					Options = Options.Count > 0
@@ -655,7 +721,7 @@ namespace KOTORModSync.Core
 									Action = i.Action != Instruction.ActionType.Unset ? i.Action.ToString() : null,
 									Source = i.Source?.Count > 0 ? i.Source : null,
 									Destination = !string.IsNullOrWhiteSpace(i.Destination) ? i.Destination : null,
-									Overwrite = i.Overwrite ? (bool?)true : null,
+									Overwrite = !i.Overwrite ? (bool?)false : null,
 								}).ToList()
 								: null,
 						}).ToList()
@@ -735,6 +801,7 @@ namespace KOTORModSync.Core
 			Directions = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Directions") ?? string.Empty;
 			Language = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "Language") ?? new List<string>();
 			ModLink = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "ModLink") ?? new List<string>();
+			ExcludedDownloads = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "ExcludedDownloads") ?? new List<string>();
 			if ( ModLink.IsNullOrEmptyCollection() )
 			{
 				string modLink = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "ModLink") ?? string.Empty;

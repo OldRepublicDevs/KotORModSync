@@ -165,6 +165,62 @@ namespace KOTORModSync.Services
 
 				foreach ( Instruction instruction in component.Instructions )
 				{
+					// Handle Choose instructions - validate the selected option's instructions
+					if ( instruction.Action == Instruction.ActionType.Choose )
+					{
+						if ( instruction.Source != null && instruction.Source.Count > 0 )
+						{
+							// Source contains Option GUIDs
+							foreach ( string optionGuidStr in instruction.Source )
+							{
+								if ( Guid.TryParse(optionGuidStr, out Guid optionGuid) )
+								{
+									Option selectedOption = component.Options?.FirstOrDefault(o => o.Guid == optionGuid);
+									if ( selectedOption != null && selectedOption.IsSelected )
+									{
+										// Recursively validate the selected option's instructions
+										if ( selectedOption.Instructions != null )
+										{
+											foreach ( Instruction optionInstruction in selectedOption.Instructions )
+											{
+												if ( optionInstruction.Source == null || optionInstruction.Source.Count == 0 )
+													continue;
+
+												List<string> optionResolvedPaths = optionInstruction.Source
+													.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
+													.Select(sourcePath => ResolvePath(sourcePath))
+													.ToList();
+
+												if ( optionResolvedPaths.Count == 0 )
+													continue;
+
+												List<string> foundOptionFiles = PathHelper.EnumerateFilesWithWildcards(
+													optionResolvedPaths,
+													validationProvider,
+													includeSubFolders: true
+												);
+
+												if ( foundOptionFiles == null || foundOptionFiles.Count == 0 )
+												{
+													foreach ( string resolvedPath in optionResolvedPaths )
+													{
+														string fileName = Path.GetFileName(resolvedPath);
+														if ( !string.IsNullOrEmpty(fileName) && !missingFiles.Contains(fileName) )
+														{
+															missingFiles.Add(fileName);
+															Logger.LogVerbose($"[ValidationService] Missing file in option '{selectedOption.Name}': {fileName}");
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+						continue;
+					}
+
 					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						continue;
 
@@ -230,6 +286,62 @@ namespace KOTORModSync.Services
 
 				foreach ( Instruction instruction in component.Instructions )
 				{
+					// Handle Choose instructions - validate the selected option's instructions
+					if ( instruction.Action == Instruction.ActionType.Choose )
+					{
+						if ( instruction.Source != null && instruction.Source.Count > 0 )
+						{
+							// Source contains Option GUIDs
+							foreach ( string optionGuidStr in instruction.Source )
+							{
+								if ( Guid.TryParse(optionGuidStr, out Guid optionGuid) )
+								{
+									Option selectedOption = component.Options?.FirstOrDefault(o => o.Guid == optionGuid);
+									if ( selectedOption != null && selectedOption.IsSelected )
+									{
+										// Recursively validate the selected option's instructions
+										if ( selectedOption.Instructions != null )
+										{
+											foreach ( Instruction optionInstruction in selectedOption.Instructions )
+											{
+												if ( optionInstruction.Source == null || optionInstruction.Source.Count == 0 )
+													continue;
+
+												List<string> optionResolvedPaths = optionInstruction.Source
+													.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
+													.Select(sourcePath => ResolvePath(sourcePath))
+													.ToList();
+
+												if ( optionResolvedPaths.Count == 0 )
+													continue;
+
+												List<string> foundOptionFiles = PathHelper.EnumerateFilesWithWildcards(
+													optionResolvedPaths,
+													validationProvider,
+													includeSubFolders: true
+												);
+
+												if ( foundOptionFiles == null || foundOptionFiles.Count == 0 )
+												{
+													foreach ( string resolvedPath in optionResolvedPaths )
+													{
+														string fileName = Path.GetFileName(resolvedPath);
+														if ( !string.IsNullOrEmpty(fileName) && !missingFiles.Contains(fileName) )
+														{
+															missingFiles.Add(fileName);
+															Logger.LogVerbose($"[ValidationService] Missing file in option '{selectedOption.Name}': {fileName}");
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+						continue;
+					}
+
 					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						continue;
 
@@ -303,6 +415,116 @@ namespace KOTORModSync.Services
 			}
 
 			return path;
+		}
+
+		/// <summary>
+		/// Validates a single path (with wildcards and placeholders) against the virtual file system.
+		/// Returns a status message indicating whether the path will exist at installation time.
+		/// </summary>
+		public static string ValidateInstructionPath(string path, Instruction instruction, ModComponent component)
+		{
+			try
+			{
+				if ( string.IsNullOrWhiteSpace(path) )
+					return "❓ Empty";
+
+				// For Patcher actions with kotorDirectory destination, it's always valid
+				if ( instruction != null && instruction.Action == Instruction.ActionType.Patcher
+					&& path.Equals("<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
+				{
+					return "✅ Valid (Patcher destination)";
+				}
+
+				// Check if directories are configured
+				if ( path.Contains("<<modDirectory>>") && MainConfig.SourcePath == null )
+					return "⚠️ Mod directory not configured";
+				
+				if ( path.Contains("<<kotorDirectory>>") && MainConfig.DestinationPath == null )
+					return "⚠️ KOTOR directory not configured";
+
+				if ( MainConfig.SourcePath == null )
+					return "⚠️ Paths not configured";
+
+				// Resolve the path
+				string resolvedPath = ResolvePath(path);
+
+				// Create virtual filesystem and initialize from mod directory
+				var virtualProvider = new VirtualFileSystemProvider();
+				virtualProvider.InitializeFromRealFileSystem(MainConfig.SourcePath.FullName);
+
+				// Simulate previous instructions if we have component context
+				if ( component != null && instruction != null )
+				{
+					SimulatePreviousInstructions(virtualProvider, component, instruction);
+				}
+
+				// Check if the path exists (with wildcard support)
+				List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
+					new List<string> { resolvedPath },
+					virtualProvider,
+					includeSubFolders: true
+				);
+
+				if ( foundFiles != null && foundFiles.Count > 0 )
+					return $"✅ Found ({foundFiles.Count} file{(foundFiles.Count != 1 ? "s" : "")})";
+
+				// Check if it's a directory
+				if ( virtualProvider.DirectoryExists(resolvedPath) )
+					return "✅ Directory exists";
+
+				return "❌ Not found";
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Error validating path: {path}");
+				return "⚠️ Validation error";
+			}
+		}
+
+		/// <summary>
+		/// Simulates all instructions that come before the target instruction to build up the virtual filesystem state.
+		/// </summary>
+		private static void SimulatePreviousInstructions(VirtualFileSystemProvider virtualProvider, ModComponent component, Instruction targetInstruction)
+		{
+			try
+			{
+				int targetIndex = component.Instructions.IndexOf(targetInstruction);
+				if ( targetIndex < 0 )
+					return;
+
+				// Process all instructions before the target
+				for ( int i = 0; i < targetIndex; i++ )
+				{
+					Instruction prevInstruction = component.Instructions[i];
+					if ( prevInstruction.Action == Instruction.ActionType.Extract && prevInstruction.Source != null )
+					{
+						// Simulate extraction
+						foreach ( string sourcePath in prevInstruction.Source )
+						{
+							string resolvedSource = ResolvePath(sourcePath);
+							List<string> archiveFiles = PathHelper.EnumerateFilesWithWildcards(
+								new List<string> { resolvedSource },
+								virtualProvider,
+								includeSubFolders: true
+							);
+
+							foreach ( string archiveFile in archiveFiles )
+							{
+								string destination = !string.IsNullOrWhiteSpace(prevInstruction.Destination)
+									? ResolvePath(prevInstruction.Destination)
+									: MainConfig.SourcePath.FullName;
+
+								// Simulate the extraction
+								_ = virtualProvider.ExtractArchiveAsync(archiveFile, destination).GetAwaiter().GetResult();
+							}
+						}
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error simulating previous instructions");
+			}
 		}
 
 		public bool IsComponentValidForInstallation(ModComponent component, bool editorMode)

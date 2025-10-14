@@ -61,10 +61,9 @@ namespace KOTORModSync.Dialogs
 			if ( checkpointInfoPanel != null )
 				checkpointInfoPanel.IsVisible = errorArgs.CanRollback;
 
-			if ( checkpointInfoText != null && errorArgs.Session != null )
+			if ( checkpointInfoText != null && !string.IsNullOrEmpty(errorArgs.SessionId) )
 			{
-				int completedCheckpoints = errorArgs.Session.Checkpoints.Count - 1;
-				checkpointInfoText.Text = $"This installation has {completedCheckpoints} checkpoint(s) available. " +
+				checkpointInfoText.Text = $"Checkpoints are available for this installation session. " +
 					$"Rolling back will restore your game to the state before this installation began.";
 			}
 

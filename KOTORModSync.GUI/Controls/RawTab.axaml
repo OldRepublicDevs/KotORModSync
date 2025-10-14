@@ -1,0 +1,61 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Controls.RawTab"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:KOTORModSync.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:IndexConverter x:Key="IndexConverter" />
+        <converters:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <converters:InvalidUrlVisibilityConverter x:Key="InvalidUrlVisibilityConverter" />
+        <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
+        <converters:ListToStringConverter x:Key="ListToStringConverter" />
+        <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
+        <converters:NotDestinationActionVisibility x:Key="NotDestinationActionVisibility" />
+        <converters:GuidToComponentConverter x:Key="GuidToComponentConverter" />
+        <converters:GuidListConverter x:Key="GuidListConverter" />
+        <converters:CategoryTooltipConverter x:Key="CategoryTooltipConverter" />
+        <converters:TierTooltipConverter x:Key="TierTooltipConverter" />
+        <converters:PathResolverConverter x:Key="PathResolverConverter" />
+        <converters:InstructionDestinationConverter x:Key="InstructionDestinationConverter" />
+        <converters:BooleanAndConverter x:Key="BooleanAndConverter" />
+        <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
+        <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel HorizontalAlignment="Stretch">
+            <DockPanel>
+                <Button
+                    x:Name="ApplyEditorButton"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="ApplyEditorButton_Click"
+                    Content="Apply Editor Changes" />
+                <Button
+                    Click="GenerateGuidButton_Click"
+                    Content="Generate GUID"
+                    ToolTip.Tip="A GUID is used to ensure uniqueness of items. Do not replace existing guids unless you know what you're doing, else anything that relies on the pre-existing GUIDs will have their references broken." />
+                <TextBox
+                    x:Name="GuidGeneratedTextBox"
+                    HorizontalContentAlignment="Left"
+                    Focusable="True" />
+            </DockPanel>
+            <TextBox
+                x:Name="RawEditTextBox"
+                MinHeight="400"
+                AcceptsReturn="True"
+                TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

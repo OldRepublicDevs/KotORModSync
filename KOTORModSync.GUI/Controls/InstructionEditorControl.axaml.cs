@@ -33,6 +33,7 @@ namespace KOTORModSync.Controls
 		public event EventHandler<RoutedEventArgs> BrowseSourceFiles;
 		public event EventHandler<RoutedEventArgs> BrowseSourceFromFolders;
 		public event EventHandler<RoutedEventArgs> BrowseDestination;
+		public event EventHandler<Core.Services.Validation.PathValidationResult> JumpToBlockingInstruction;
 
 		private void AddNewInstruction_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => AddNewInstruction?.Invoke(sender, e);
 
@@ -47,6 +48,14 @@ namespace KOTORModSync.Controls
 		private void BrowseSourceFromFolders_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseSourceFromFolders?.Invoke(sender, e);
 
 		private void BrowseDestination_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseDestination?.Invoke(sender, e);
+
+		private void JumpToBlockingInstruction_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			if ( sender is Button button && button.Tag is Core.Services.Validation.PathValidationResult validationResult )
+			{
+				JumpToBlockingInstruction?.Invoke(this, validationResult);
+			}
+		}
 
 		protected override void OnDataContextChanged(EventArgs e)
 		{

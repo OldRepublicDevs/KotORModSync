@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core.FileSystemUtils;
@@ -32,7 +33,8 @@ namespace KOTORModSync.Core.Services
 			if ( MainConfig.CaseInsensitivePathing )
 				filePath = PathHelper.GetCaseSensitivePath(filePath, isFile: true).Item1;
 
-			string content = File.ReadAllText(filePath);
+			// Read with proper encoding handling - replace invalid UTF-8 characters
+			string content = ReadFileWithEncodingFallback(filePath);
 
 			// Extract file extension to help with format detection
 			string extension = Path.GetExtension(filePath)?.TrimStart('.').ToLowerInvariant();
@@ -89,7 +91,8 @@ namespace KOTORModSync.Core.Services
 			if ( MainConfig.CaseInsensitivePathing )
 				filePath = PathHelper.GetCaseSensitivePath(filePath, isFile: true).Item1;
 
-			string content = await Task.Run(() => File.ReadAllText(filePath));
+			// Read with proper encoding handling - replace invalid UTF-8 characters
+			string content = await Task.Run(() => ReadFileWithEncodingFallback(filePath));
 
 			// Extract file extension to help with format detection
 			string extension = Path.GetExtension(filePath)?.TrimStart('.').ToLowerInvariant();
@@ -178,6 +181,30 @@ namespace KOTORModSync.Core.Services
 			}
 
 			await Task.Run(() => File.WriteAllText(filePath, content));
+		}
+
+		/// <summary>
+		/// Reads a file with fallback encoding handling to replace invalid UTF-8 characters.
+		/// </summary>
+		private static string ReadFileWithEncodingFallback(string filePath)
+		{
+			try
+			{
+				// First try to read as UTF-8 with replacement fallback
+				var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
+				var bytes = File.ReadAllBytes(filePath);
+				var content = encoding.GetString(bytes);
+
+				// Replace any remaining invalid characters (replacement character U+FFFD) with underscore
+				content = content.Replace('\uFFFD', '_');
+
+				return content;
+			}
+			catch ( Exception )
+			{
+				// If all else fails, try reading with default encoding
+				return File.ReadAllText(filePath);
+			}
 		}
 	}
 }

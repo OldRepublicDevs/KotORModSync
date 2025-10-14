@@ -8,8 +8,14 @@
   </PropertyGroup>
 
   <!-- Enable executable output for net8.0 target (for CLI usage) -->
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' OR '$(TargetFramework)' == 'net462'">
+  <!-- Only use Exe when building standalone, not when referenced by self-contained GUI -->
+  <PropertyGroup Condition="('$(TargetFramework)' == 'net8.0' OR '$(TargetFramework)' == 'net462') AND '$(SelfContained)' != 'true'">
     <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  
+  <!-- When referenced by self-contained builds, always use Library output -->
+  <PropertyGroup Condition="'$(SelfContained)' == 'true'">
+    <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <!-- Licensing -->
@@ -46,7 +52,6 @@
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     <PackageReference Include="MegaApiClient" Version="1.10.5" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <!-- OpenTelemetry for comprehensive telemetry -->
     <PackageReference Include="OpenTelemetry" Version="1.7.0" />
     <PackageReference Include="OpenTelemetry.Api" Version="1.7.0" />
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.7.0" />
@@ -55,6 +60,7 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="Octodiff" Version="1.2.33" />
   </ItemGroup>
 
 

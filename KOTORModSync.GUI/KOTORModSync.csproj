@@ -6,12 +6,19 @@
 
   <!-- Main KOTORModSync.GUI Project Settings -->
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <Nullable>disable</Nullable>
     <LangVersion>7.3</LangVersion>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <ApplicationIcon>icon53.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- OutputType: WinExe for Windows (no console), Exe for Linux/macOS (GUI with optional console) -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)'=='' OR $(RuntimeIdentifier.StartsWith('win'))">
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+  <PropertyGroup Condition="!$(RuntimeIdentifier.StartsWith('win')) AND '$(RuntimeIdentifier)'!=''">
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <!-- Target Platforms/Frameworks -->

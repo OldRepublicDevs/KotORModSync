@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -59,30 +60,29 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			try
 			{
-				await Logger.LogVerboseAsync($"[NexusMods] Resolving filename for URL: {url}");
+				await Logger.LogVerboseAsync($"[NexusMods] Resolving filenames for URL: {url}");
 
 				if ( string.IsNullOrWhiteSpace(_apiKey) )
 				{
-					await Logger.LogVerboseAsync("[NexusMods] No API key provided, cannot resolve filename");
+					await Logger.LogVerboseAsync("[NexusMods] No API key provided, cannot resolve filenames");
 					return new List<string>();
 				}
 
-				if ( Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
+				// Use the API to get actual filenames
+				var downloadLinks = await ResolveDownloadLinksAsync(url).ConfigureAwait(false);
+				if ( downloadLinks != null && downloadLinks.Count > 0 )
 				{
-					string fileName = Path.GetFileName(Uri.UnescapeDataString(validatedUri.AbsolutePath));
-					if ( !string.IsNullOrWhiteSpace(fileName) && fileName != "/" )
-					{
-						await Logger.LogVerboseAsync($"[NexusMods] Extracted filename from URL: {fileName}");
-						return new List<string> { fileName };
-					}
+					var filenames = downloadLinks.Select(link => link.FileName).Where(name => !string.IsNullOrEmpty(name)).ToList();
+					await Logger.LogVerboseAsync($"[NexusMods] Resolved {filenames.Count} filename(s) from API");
+					return filenames;
 				}
 
-				await Logger.LogVerboseAsync("[NexusMods] Cannot resolve filename without downloading");
+				await Logger.LogVerboseAsync("[NexusMods] No filenames could be resolved from API");
 				return new List<string>();
 			}
 			catch ( Exception ex )
 			{
-				await Logger.LogWarningAsync($"[NexusMods] Failed to resolve filename: {ex.Message}");
+				await Logger.LogWarningAsync($"[NexusMods] Failed to resolve filenames: {ex.Message}");
 				return new List<string>();
 			}
 		}
@@ -202,91 +202,88 @@ namespace KOTORModSync.Core.Services.Download
 
 		private async Task<DownloadResult> DownloadWithApiKey(string url, string destinationDirectory, IProgress<DownloadProgress> progress, CancellationToken cancellationToken)
 		{
-			await Logger.LogVerboseAsync("[NexusMods] Resolving download link from Nexus Mods API");
-			NexusDownloadLink linkInfo = await ResolveDownloadLinkAsync(url).ConfigureAwait(false);
-			if ( linkInfo == null || string.IsNullOrEmpty(linkInfo.Url) )
+			await Logger.LogVerboseAsync("[NexusMods] Resolving download links from Nexus Mods API");
+			List<NexusDownloadLink> linkInfos = await ResolveDownloadLinksAsync(url).ConfigureAwait(false);
+			if ( linkInfos == null || linkInfos.Count == 0 )
 			{
-				await Logger.LogErrorAsync("[NexusMods] Failed to resolve download link from Nexus Mods API");
+				await Logger.LogErrorAsync("[NexusMods] Failed to resolve download links from Nexus Mods API");
 				progress?.Report(new DownloadProgress
 				{
 					Status = DownloadStatus.Failed,
-					ErrorMessage = "Unable to resolve Nexus Mods download link",
+					ErrorMessage = "Unable to resolve Nexus Mods download links. This could mean: no files found, mod requires manual download, or API error.",
 					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
-				return DownloadResult.Failed("Unable to resolve Nexus Mods download link.");
+				return DownloadResult.Failed("Unable to resolve Nexus Mods download links.");
 			}
 
-			await Logger.LogVerboseAsync($"[NexusMods] Resolved download URL: {linkInfo.Url}");
-			await Logger.LogVerboseAsync($"[NexusMods] Resolved filename: {linkInfo.FileName}");
+			await Logger.LogVerboseAsync($"[NexusMods] Resolved {linkInfos.Count} download link(s)");
 
-			string fileName = string.IsNullOrEmpty(linkInfo.FileName) ? "nexus_download" : linkInfo.FileName;
-			if ( string.IsNullOrEmpty(linkInfo.FileName) )
-				await Logger.LogWarningAsync("[NexusMods] No filename provided by API, using default: 'nexus_download'");
-
-			progress?.Report(new DownloadProgress
+			// Download all files
+			var downloadedFiles = new List<string>();
+			for ( int i = 0; i < linkInfos.Count; i++ )
 			{
-				Status = DownloadStatus.InProgress,
-				StatusMessage = "Downloading from Nexus Mods...",
-				ProgressPercentage = 50
-			});
+				var linkInfo = linkInfos[i];
+				await Logger.LogVerboseAsync($"[NexusMods] Downloading file {i + 1}/{linkInfos.Count}: {linkInfo.FileName}");
+				await Logger.LogVerboseAsync($"[NexusMods] Download URL: {linkInfo.Url}");
 
-			await Logger.LogVerboseAsync($"[NexusMods] Making HTTP GET request to download URL: {linkInfo.Url}");
-			var request = new HttpRequestMessage(HttpMethod.Get, linkInfo.Url);
-			request.Headers.Add("apikey", _apiKey);
-			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
-			await Logger.LogVerboseAsync("[NexusMods] Added API key and Accept header to request");
+				string fileName = string.IsNullOrEmpty(linkInfo.FileName) ? $"nexus_download_{linkInfo.FileId}" : linkInfo.FileName;
 
-			HttpResponseMessage response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[NexusMods] Received response with status code: {response.StatusCode}");
-			await Logger.LogVerboseAsync($"[NexusMods] Response content type: {response.Content.Headers.ContentType}");
-			await Logger.LogVerboseAsync($"[NexusMods] Response content length: {response.Content.Headers.ContentLength}");
+				progress?.Report(new DownloadProgress
+				{
+					Status = DownloadStatus.InProgress,
+					StatusMessage = $"Downloading {fileName} ({i + 1}/{linkInfos.Count})...",
+					ProgressPercentage = (i * 100) / linkInfos.Count
+				});
 
-			_ = response.EnsureSuccessStatusCode();
+				await Logger.LogVerboseAsync($"[NexusMods] Making HTTP GET request to download URL");
+				var request = new HttpRequestMessage(HttpMethod.Get, linkInfo.Url);
+				// Note: Download links from the API don't require the API key in the header
+				request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
 
-			_ = Directory.CreateDirectory(destinationDirectory);
-			string filePath = Path.Combine(destinationDirectory, fileName);
-			await Logger.LogVerboseAsync($"[NexusMods] Writing file to: {filePath}");
+				HttpResponseMessage response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[NexusMods] Received response with status code: {response.StatusCode}");
 
-			long totalBytes = response.Content.Headers.ContentLength ?? 0;
-			progress?.Report(new DownloadProgress
-			{
-				Status = DownloadStatus.InProgress,
-				StatusMessage = "Starting download...",
-				ProgressPercentage = 0,
-				TotalBytes = totalBytes
-			});
+				_ = response.EnsureSuccessStatusCode();
 
-			using ( Stream contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false) )
-			{
-				await DownloadHelper.DownloadWithProgressAsync(
-					contentStream,
-					filePath,
-					totalBytes,
-					fileName,
-					url,
-					progress,
-					cancellationToken: cancellationToken).ConfigureAwait(false);
+				_ = Directory.CreateDirectory(destinationDirectory);
+				string filePath = Path.Combine(destinationDirectory, fileName);
+				await Logger.LogVerboseAsync($"[NexusMods] Writing file to: {filePath}");
+
+				long totalBytes = response.Content.Headers.ContentLength ?? 0;
+
+				using ( Stream contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false) )
+				{
+					await DownloadHelper.DownloadWithProgressAsync(
+						contentStream,
+						filePath,
+						totalBytes,
+						fileName,
+						url,
+						progress,
+						cancellationToken: cancellationToken).ConfigureAwait(false);
+				}
+
+				long fileSize = new FileInfo(filePath).Length;
+				await Logger.LogVerboseAsync($"[NexusMods] File download completed successfully. File size: {fileSize} bytes");
+
+				downloadedFiles.Add(filePath);
+
+				request.Dispose();
+				response.Dispose();
 			}
-
-			long fileSize = new FileInfo(filePath).Length;
-			await Logger.LogVerboseAsync($"[NexusMods] File download completed successfully. File size: {fileSize} bytes");
 
 			progress?.Report(new DownloadProgress
 			{
 				Status = DownloadStatus.Completed,
-				StatusMessage = "Download complete",
+				StatusMessage = $"Downloaded {downloadedFiles.Count} file(s) from Nexus Mods",
 				ProgressPercentage = 100,
-				BytesDownloaded = fileSize,
-				TotalBytes = fileSize,
-				FilePath = filePath,
+				FilePath = downloadedFiles.Count > 0 ? downloadedFiles[0] : null,
 				EndTime = DateTime.Now
 			});
 
-			request.Dispose();
-			response.Dispose();
-
-			return DownloadResult.Succeeded(filePath, "Downloaded from Nexus Mods");
+			string resultMessage = $"Downloaded {downloadedFiles.Count} file(s) from Nexus Mods: {string.Join(", ", downloadedFiles.Select(Path.GetFileName))}";
+			return DownloadResult.Succeeded(downloadedFiles.Count > 0 ? downloadedFiles[0] : null, resultMessage);
 		}
 
 		private async Task<DownloadResult> DownloadWithoutApiKey(string url, IProgress<DownloadProgress> progress)
@@ -330,19 +327,208 @@ namespace KOTORModSync.Core.Services.Download
 			return DownloadResult.Failed("Free downloads from Nexus Mods require manual interaction. Please download the mod manually from the website or provide an API key for automated downloads.");
 		}
 
-		private static async Task<NexusDownloadLink> ResolveDownloadLinkAsync(string url)
+		private async Task<List<NexusDownloadLink>> ResolveDownloadLinksAsync(string url)
 		{
-			await Logger.LogVerboseAsync($"[NexusMods] ResolveDownloadLinkAsync called with URL: {url}");
-			await Logger.LogWarningAsync("[NexusMods] ResolveDownloadLinkAsync is not implemented - returning null");
+			await Logger.LogVerboseAsync($"[NexusMods] ResolveDownloadLinksAsync called with URL: {url}");
 
-			await Task.Delay(0).ConfigureAwait(false);
-			return null;
+			// Parse URL to extract game domain and mod ID
+			// URL format: https://www.nexusmods.com/{game}/mods/{modId} or https://www.nexusmods.com/{game}/mods/{modId}?tab=files
+			var match = System.Text.RegularExpressions.Regex.Match(url, @"nexusmods\.com/([^/]+)/mods/(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+			if ( !match.Success )
+			{
+				await Logger.LogErrorAsync($"[NexusMods] Failed to parse Nexus Mods URL: {url}");
+				return new List<NexusDownloadLink>();
+			}
+
+			string gameDomain = match.Groups[1].Value;
+			string modId = match.Groups[2].Value;
+
+			await Logger.LogVerboseAsync($"[NexusMods] Parsed URL - Game: {gameDomain}, Mod ID: {modId}");
+
+			try
+			{
+				// Get list of files for this mod
+				string filesUrl = $"https://api.nexusmods.com/v1/games/{gameDomain}/mods/{modId}/files.json";
+				await Logger.LogVerboseAsync($"[NexusMods] Fetching file list from: {filesUrl}");
+
+				var request = new HttpRequestMessage(HttpMethod.Get, filesUrl);
+				request.Headers.Add("apikey", _apiKey);
+
+				HttpResponseMessage response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+				response.EnsureSuccessStatusCode();
+
+				string jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[NexusMods] Received file list response, length: {jsonResponse.Length}");
+
+				// Parse JSON to get file list
+				var filesData = Newtonsoft.Json.Linq.JObject.Parse(jsonResponse);
+				var files = filesData["files"]?.ToObject<List<Newtonsoft.Json.Linq.JObject>>();
+
+				if ( files == null || files.Count == 0 )
+				{
+					await Logger.LogWarningAsync("[NexusMods] No files found for this mod");
+					return new List<NexusDownloadLink>();
+				}
+
+				await Logger.LogVerboseAsync($"[NexusMods] Found {files.Count} files for mod");
+
+				// Get download links for all files (or just main files)
+				var downloadLinks = new List<NexusDownloadLink>();
+
+				foreach ( var file in files )
+				{
+					var fileIdToken = file["file_id"];
+					var fileNameToken = file["file_name"];
+					var categoryNameToken = file["category_name"];
+
+					int fileId = fileIdToken != null ? (int)fileIdToken : 0;
+					string fileName = ((string)fileNameToken) ?? "unknown";
+					string categoryName = ((string)categoryNameToken) ?? "";
+
+					// Skip optional files, only download main/update files
+					if ( categoryName.Equals("OPTIONAL", StringComparison.OrdinalIgnoreCase) )
+					{
+						await Logger.LogVerboseAsync($"[NexusMods] Skipping optional file: {fileName}");
+						continue;
+					}
+
+					await Logger.LogVerboseAsync($"[NexusMods] Getting download link for file: {fileName} (ID: {fileId})");
+
+					try
+					{
+						// Get download URLs for this file
+						string downloadLinkUrl = $"https://api.nexusmods.com/v1/games/{gameDomain}/mods/{modId}/files/{fileId}/download_link.json";
+						var downloadRequest = new HttpRequestMessage(HttpMethod.Get, downloadLinkUrl);
+						downloadRequest.Headers.Add("apikey", _apiKey);
+
+						HttpResponseMessage downloadResponse = await _httpClient.SendAsync(downloadRequest).ConfigureAwait(false);
+						downloadResponse.EnsureSuccessStatusCode();
+
+						string downloadJson = await downloadResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+						var downloadData = Newtonsoft.Json.Linq.JArray.Parse(downloadJson);
+
+						if ( downloadData.Count > 0 )
+						{
+							// Use the first download server
+							var uriToken = downloadData[0]["URI"];
+							string downloadUrl = (string)uriToken;
+							if ( !string.IsNullOrEmpty(downloadUrl) )
+							{
+								downloadLinks.Add(new NexusDownloadLink
+								{
+									Url = downloadUrl,
+									FileName = fileName,
+									FileId = fileId
+								});
+								await Logger.LogVerboseAsync($"[NexusMods] Added download link for: {fileName}");
+							}
+						}
+
+						downloadRequest.Dispose();
+						downloadResponse.Dispose();
+					}
+					catch ( HttpRequestException httpEx )
+					{
+						await Logger.LogWarningAsync($"[NexusMods] Failed to get download link for '{fileName}': {httpEx.Message}");
+						continue;
+					}
+					catch ( Exception ex )
+					{
+						await Logger.LogWarningAsync($"[NexusMods] Error getting download link for '{fileName}': {ex.Message}");
+						continue;
+					}
+				}
+
+				request.Dispose();
+				response.Dispose();
+
+				await Logger.LogVerboseAsync($"[NexusMods] Resolved {downloadLinks.Count} download links");
+				return downloadLinks;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, $"[NexusMods] Failed to resolve download links for URL: {url}");
+				return new List<NexusDownloadLink>();
+			}
 		}
 
 		private sealed class NexusDownloadLink
 		{
 			public string Url { get; set; } = string.Empty;
 			public string FileName { get; set; } = string.Empty;
+			public int FileId { get; set; }
+		}
+
+		/// <summary>
+		/// Validates a Nexus Mods API key by making test API calls
+		/// </summary>
+		public static async Task<(bool IsValid, string Message)> ValidateApiKeyAsync(string apiKey)
+		{
+			if ( string.IsNullOrWhiteSpace(apiKey) )
+			{
+				return (false, "API key cannot be empty");
+			}
+
+			try
+			{
+				using ( var httpClient = new HttpClient() )
+				{
+					// Test 1: Validate the API key format
+					await Logger.LogAsync("[NexusMods] Validating API key format...");
+					if ( apiKey.Length < 20 )
+					{
+						return (false, "API key appears to be too short. Nexus Mods API keys are typically longer.");
+					}
+
+					// Test 2: Try to authenticate with the API
+					await Logger.LogAsync("[NexusMods] Testing API key authentication...");
+					var request = new HttpRequestMessage(HttpMethod.Get, "https://api.nexusmods.com/v1/users/validate.json");
+					request.Headers.Add("apikey", apiKey);
+					request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+
+					HttpResponseMessage response = await httpClient.SendAsync(request);
+
+					if ( response.StatusCode == System.Net.HttpStatusCode.Unauthorized )
+					{
+						return (false, "API key is invalid or unauthorized. Please check your key and try again.");
+					}
+
+					if ( response.StatusCode == System.Net.HttpStatusCode.Forbidden )
+					{
+						return (false, "API key is forbidden from accessing the API. Please check your Nexus Mods account permissions.");
+					}
+
+					if ( !response.IsSuccessStatusCode )
+					{
+						return (false, $"API validation failed with status code: {response.StatusCode}. Message: {await response.Content.ReadAsStringAsync()}");
+					}
+
+					// Read user info to confirm
+					string content = await response.Content.ReadAsStringAsync();
+					await Logger.LogVerboseAsync($"[NexusMods] API validation response: {content}");
+
+					// Test 3: Try to get user info
+					await Logger.LogAsync("[NexusMods] Retrieving user information...");
+					if ( content.Contains("user_id") || content.Contains("name") )
+					{
+						await Logger.LogAsync("[NexusMods] ✓ API key validated successfully!");
+						await Logger.LogAsync("[NexusMods] ✓ User authentication confirmed");
+						return (true, "API key is valid and working correctly!");
+					}
+
+					return (false, "API key validation returned unexpected response format.");
+				}
+			}
+			catch ( HttpRequestException ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+				return (false, $"Network error during API validation: {ex.Message}");
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+				return (false, $"Unexpected error during API validation: {ex.Message}");
+			}
 		}
 	}
 }

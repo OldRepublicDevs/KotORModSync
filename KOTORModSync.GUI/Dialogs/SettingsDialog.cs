@@ -57,6 +57,9 @@ namespace KOTORModSync.Dialogs
 				ParentWindow = mw;
 			}
 
+			// Apply the current theme to this dialog
+			ThemeManager.ApplyCurrentToWindow(this);
+
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow start");
 			Logger.LogVerbose($"SettingsDialog: Source='{MainConfigInstance?.sourcePathFullName}', Dest='{MainConfigInstance?.destinationPathFullName}'");
 
@@ -175,6 +178,28 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
+		private void SaveAppSettings()
+		{
+			try
+			{
+				if ( MainConfigInstance == null )
+				{
+					Logger.LogWarning("Cannot save settings: MainConfigInstance is null");
+					return;
+				}
+
+				string currentTheme = GetSelectedTheme();
+				var settings = Models.AppSettings.FromCurrentState(MainConfigInstance, currentTheme);
+				Models.SettingsManager.SaveSettings(settings);
+
+				Logger.Log("Application settings saved successfully");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to save application settings");
+			}
+		}
+
 		[UsedImplicitly]
 		private void OnDirectoryChanged(object sender, DirectoryChangedEventArgs e)
 		{
@@ -223,8 +248,8 @@ namespace KOTORModSync.Dialogs
 		[UsedImplicitly]
 		private void OK_Click(object sender, RoutedEventArgs e)
 		{
-
 			SaveTelemetrySettings();
+			SaveAppSettings();
 			Close(dialogResult: true);
 		}
 

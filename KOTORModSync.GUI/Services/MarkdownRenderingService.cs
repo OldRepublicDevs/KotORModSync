@@ -21,7 +21,8 @@ namespace KOTORModSync.Services
 		public void RenderComponentMarkdown(
 			ModComponent component,
 			TextBlock descriptionTextBlock,
-			TextBlock directionsTextBlock)
+			TextBlock directionsTextBlock,
+			bool spoilerFreeMode = false)
 		{
 			try
 			{
@@ -30,8 +31,12 @@ namespace KOTORModSync.Services
 
 				if ( descriptionTextBlock != null )
 				{
+					string descriptionContent = spoilerFreeMode
+						? component.DescriptionSpoilerFree
+						: component.Description;
+
 					TextBlock renderedDescription = MarkdownRenderer.RenderToTextBlock(
-						component.Description,
+						descriptionContent,
 						url => MarkdownRenderingService.OpenUrl(url)
 					);
 
@@ -47,8 +52,12 @@ namespace KOTORModSync.Services
 
 				if ( directionsTextBlock != null )
 				{
+					string directionsContent = spoilerFreeMode
+						? component.DirectionsSpoilerFree
+						: component.Directions;
+
 					TextBlock renderedDirections = MarkdownRenderer.RenderToTextBlock(
-						component.Directions,
+						directionsContent,
 						url => MarkdownRenderingService.OpenUrl(url)
 					);
 

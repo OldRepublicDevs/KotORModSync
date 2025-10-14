@@ -9,10 +9,10 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Converters
 {
-	public sealed partial class NotChooseActionVisibility : IValueConverter
+	public sealed partial class NotDestinationActionVisibility : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-			!(value is Instruction.ActionType action && action.Equals(Instruction.ActionType.Choose));
+			!(value is Instruction.ActionType action && (action.Equals(Instruction.ActionType.Choose) || action.Equals(Instruction.ActionType.Extract)));
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
 			throw new NotImplementedException();

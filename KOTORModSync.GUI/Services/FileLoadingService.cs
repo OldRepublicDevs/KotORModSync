@@ -299,7 +299,7 @@ namespace KOTORModSync.Services
 					for ( int i = 0; i < component.ModLink.Count; i++ )
 					{
 						string modLink = component.ModLink[i];
-						if ( !string.IsNullOrEmpty(modLink) && modLink.StartsWith('/') )
+						if ( !string.IsNullOrEmpty(modLink) && modLink.StartsWith("/") )
 						{
 
 							component.ModLink[i] = baseUrl + modLink;

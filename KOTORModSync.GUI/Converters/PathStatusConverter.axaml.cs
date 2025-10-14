@@ -4,8 +4,10 @@
 
 using System;
 using System.Globalization;
+using System.Linq;
 using Avalonia.Data.Converters;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services.Validation;
 
 namespace KOTORModSync.Converters
 {
@@ -14,47 +16,48 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-
-			if ( value == null )
-				return "❓ Empty";
-
-			if ( !(value is string path) )
-				return "❓ Empty";
-
-			if ( string.IsNullOrEmpty(path) )
-				return "❓ Empty";
-
+			// Get the instruction from parameter
 			Instruction instruction = parameter as Instruction;
 
-			if ( path.Contains("<<modDirectory>>") || path.Contains("<<kotorDirectory>>") )
+			// For single path validation
+			if ( value is string singlePath )
 			{
-
-				if ( instruction != null && instruction.Action == Instruction.ActionType.Patcher
-					&& path.Equals("<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
-				{
-					return "✅ Valid (Patcher destination)";
-				}
-
-				if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
-				{
-					return "⚠️ Paths not configured";
-				}
-				else if ( MainConfig.SourcePath == null && path.Contains("<<modDirectory>>") )
-				{
-					return "⚠️ Mod directory not configured";
-				}
-				else if ( MainConfig.DestinationPath == null && path.Contains("<<kotorDirectory>>") )
-				{
-					return "⚠️ KOTOR directory not configured";
-				}
-				else
-				{
-
-					return "✅ Valid (will be resolved)";
-				}
+				return ValidateSinglePath(singlePath, instruction);
 			}
 
-			return "✅ Resolved";
+			// For multiple paths (Source can be a list)
+			if ( value is System.Collections.Generic.List<string> pathList )
+			{
+				if ( pathList == null || pathList.Count == 0 )
+					return "❓ Empty";
+
+				// Validate the first path as a representative
+				return ValidateSinglePath(pathList.FirstOrDefault(), instruction);
+			}
+
+			return "❓ Empty";
+		}
+
+		private static string ValidateSinglePath(string path, Instruction instruction)
+		{
+			if ( string.IsNullOrWhiteSpace(path) )
+				return "❓ Empty";
+
+			// Use the DryRunValidator to check if the path will exist at installation time
+			// This simulates all previous instructions to get the correct filesystem state
+			ModComponent currentComponent = MainConfig.CurrentComponent;
+
+			try
+			{
+				// Call the async method synchronously (acceptable for validation in UI converters)
+				return DryRunValidator.ValidateInstructionPathAsync(path, instruction, currentComponent)
+					.GetAwaiter().GetResult();
+			}
+			catch ( Exception ex )
+			{
+				Core.Logger.LogException(ex, "Error in path validation converter");
+				return "⚠️ Validation error";
+			}
 		}
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

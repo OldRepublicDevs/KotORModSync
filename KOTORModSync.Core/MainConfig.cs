@@ -92,6 +92,17 @@ namespace KOTORModSync.Core
 			get => AllComponents;
 			set => AllComponents = value ?? throw new ArgumentNullException(nameof(value));
 		}
+		[CanBeNull] public static ModComponent CurrentComponent { get; set; }
+		[CanBeNull]
+		public ModComponent currentComponent
+		{
+			get => CurrentComponent;
+			set
+			{
+				CurrentComponent = value;
+				OnPropertyChanged(nameof(currentComponent));
+			}
+		}
 		public static string BeforeModListContent { get; set; } = string.Empty;
 		public string beforeModListContent
 		{

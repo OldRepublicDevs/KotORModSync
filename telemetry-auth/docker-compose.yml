@@ -1,0 +1,35 @@
+version: '3.8'
+
+# Standalone docker-compose for testing telemetry-auth service
+# This allows testing the auth service independently
+
+services:
+  telemetry-auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bolabaden/kotormodsync-telemetry-auth:latest
+    container_name: telemetry-auth-test
+    hostname: telemetry-auth
+    ports:
+      - "8080:8080"
+    secrets:
+      - signing_secret
+    environment:
+      AUTH_SERVICE_PORT: 8080
+      KOTORMODSYNC_SECRET_FILE: /run/secrets/signing_secret
+      REQUIRE_AUTH: ${REQUIRE_AUTH:-true}
+      MAX_TIMESTAMP_DRIFT: ${MAX_TIMESTAMP_DRIFT:-300}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+secrets:
+  signing_secret:
+    file: ${SECRET_FILE:-./signing_secret.txt}
+

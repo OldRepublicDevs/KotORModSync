@@ -20,7 +20,7 @@ namespace KOTORModSync.Core.Services
 		public ResolutionFilterService(bool enableFiltering = true)
 		{
 			_filterEnabled = enableFiltering;
-			_systemResolution = DetectSystemResolution();
+			_systemResolution = ResolutionFilterService.DetectSystemResolution();
 
 			if ( _filterEnabled && _systemResolution != null )
 			{
@@ -151,7 +151,7 @@ namespace KOTORModSync.Core.Services
 			return false;
 		}
 
-		private Resolution DetectSystemResolution()
+		private static Resolution DetectSystemResolution()
 		{
 			try
 			{

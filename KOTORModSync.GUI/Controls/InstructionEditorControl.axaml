@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <UserControl
     x:Class="KOTORModSync.Controls.InstructionEditorControl"
     xmlns="https://github.com/avaloniaui"
@@ -14,7 +14,7 @@
         <converters:ChooseInstructionDisplayConverter x:Key="ChooseInstructionDisplayConverter" />
         <converters:ComponentsListConverter x:Key="ComponentsListConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
-        <converters:NotChooseActionVisibility x:Key="NotChooseActionVisibility" />
+        <converters:NotDestinationActionVisibility x:Key="NotDestinationActionVisibility" />
         <converters:PatcherActionVisibility x:Key="PatcherActionVisibility" />
         <converters:NotPatcherActionVisibility x:Key="NotPatcherActionVisibility" />
         <converters:ArgumentsVisibilityConverter x:Key="ArgumentsVisibilityConverter" />
@@ -28,6 +28,11 @@
         <converters:NamespacesIniOptionConverter x:Key="NamespacesIniOptionConverter" />
         <converters:PathStatusConverter x:Key="PathStatusConverter" />
         <converters:PathResolverConverter x:Key="PathResolverConverter" />
+        <converters:PathStatusDetailedConverter x:Key="PathStatusDetailedConverter" />
+        <converters:ValidationStatusMessageConverter x:Key="ValidationStatusMessageConverter" />
+        <converters:ValidationDetailedMessageConverter x:Key="ValidationDetailedMessageConverter" />
+        <converters:ValidationHasBlockingInstructionConverter x:Key="ValidationHasBlockingInstructionConverter" />
+        <converters:ValidationBlockingInstructionTextConverter x:Key="ValidationBlockingInstructionTextConverter" />
     </UserControl.Resources>
 
     <Border
@@ -67,13 +72,13 @@
                         <TextBlock Opacity="0.5" Text="→" />
                         <TextBlock
                             MaxWidth="300"
-                            Opacity="0.7"
                             DataContext="{Binding .}"
+                            Opacity="0.7"
                             TextTrimming="CharacterEllipsis">
                             <TextBlock.Text>
                                 <MultiBinding Converter="{StaticResource ChooseInstructionDisplayConverter}">
                                     <Binding Path="." />
-                                    <Binding Path="$parent[UserControl].DataContext" Converter="{StaticResource ComponentsListConverter}" />
+                                    <Binding Converter="{StaticResource ComponentsListConverter}" Path="$parent[UserControl].DataContext" />
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -158,12 +163,27 @@
                         Padding="4,3"
                         Classes="summary-card">
                         <StackPanel Spacing="2">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock
-                                    Classes="secondary-text"
-                                    FontSize="9"
-                                    Text="{Binding Source, Converter={StaticResource PathStatusConverter}, ConverterParameter={Binding .}}" />
-                            </StackPanel>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Orientation="Horizontal"
+                                    Spacing="4">
+                                    <TextBlock
+                                        Classes="secondary-text"
+                                        FontSize="9"
+                                        Text="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationStatusMessageConverter}}"
+                                        ToolTip.Tip="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationDetailedMessageConverter}}" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    Padding="4,2"
+                                    Click="JumpToBlockingInstruction_Click"
+                                    Content="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationBlockingInstructionTextConverter}}"
+                                    FontSize="8"
+                                    IsVisible="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationHasBlockingInstructionConverter}}"
+                                    Tag="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}}"
+                                    ToolTip.Tip="Click to jump to the instruction that's preventing this path from being valid" />
+                            </Grid>
                             <TextBlock
                                 Classes="secondary-text"
                                 FontSize="8"
@@ -176,7 +196,7 @@
                 </StackPanel>
 
                 <!--  Destination Field (Move, Copy, Rename, Patcher)  -->
-                <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}" Spacing="1">
+                <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotDestinationActionVisibility}}" Spacing="1">
                     <TextBlock Classes="summary-label" Text="Destination" />
                     <TextBlock
                         Classes="secondary-text"
@@ -205,12 +225,27 @@
                         Padding="3,2"
                         Classes="summary-card">
                         <StackPanel Spacing="1">
-                            <StackPanel Orientation="Horizontal" Spacing="3">
-                                <TextBlock
-                                    Classes="secondary-text"
-                                    FontSize="8"
-                                    Text="{Binding Destination, Converter={StaticResource PathStatusConverter}, ConverterParameter={Binding .}}" />
-                            </StackPanel>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Orientation="Horizontal"
+                                    Spacing="3">
+                                    <TextBlock
+                                        Classes="secondary-text"
+                                        FontSize="8"
+                                        Text="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationStatusMessageConverter}}"
+                                        ToolTip.Tip="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationDetailedMessageConverter}}" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    Padding="3,1"
+                                    Click="JumpToBlockingInstruction_Click"
+                                    Content="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationBlockingInstructionTextConverter}}"
+                                    FontSize="7"
+                                    IsVisible="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationHasBlockingInstructionConverter}}"
+                                    Tag="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}}"
+                                    ToolTip.Tip="Click to jump to the instruction that's preventing this path from being valid" />
+                            </Grid>
                             <TextBlock
                                 Classes="secondary-text"
                                 FontSize="8"
@@ -233,28 +268,26 @@
 
                     <!--  ComboBox for Patcher with namespaces.ini  -->
                     <ComboBox
-                        IsVisible="{Binding ., Converter={StaticResource PatcherWithNamespacesVisibilityConverter}}"
                         HorizontalAlignment="Stretch"
                         Focusable="True"
+                        IsVisible="{Binding ., Converter={StaticResource PatcherWithNamespacesVisibilityConverter}}"
                         ItemsSource="{Binding ., Converter={StaticResource NamespacesIniOptionConverter}}"
                         SelectedIndex="{Binding Arguments}"
                         ToolTip.Tip="Select namespace option" />
 
                     <!--  File Extensions Control for DelDuplicate actions  -->
-                    <controls:FileExtensionsControl
-                        x:Name="FileExtensionsControl"
-                        IsVisible="{Binding Action, Converter={StaticResource ExecuteDelDuplicateVisibilityConverter}}" />
+                    <controls:FileExtensionsControl x:Name="FileExtensionsControl" IsVisible="{Binding Action, Converter={StaticResource ExecuteDelDuplicateVisibilityConverter}}" />
 
                     <!--  TextBox for Execute actions only  -->
                     <TextBox
-                        IsVisible="{Binding Action, Converter={StaticResource ExecuteActionVisibilityConverter}}"
                         Focusable="True"
+                        IsVisible="{Binding Action, Converter={StaticResource ExecuteActionVisibilityConverter}}"
                         Text="{Binding Arguments}"
                         Watermark="Enter command line arguments..." />
                 </StackPanel>
 
                 <!--  Overwrite Checkbox (Move, Copy, Rename, Extract)  -->
-                <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}" Spacing="1">
+                <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotDestinationActionVisibility}}" Spacing="1">
                     <CheckBox
                         Content="Overwrite existing files"
                         Focusable="True"
@@ -268,7 +301,10 @@
                 <Expander Header="⚙️ Conditional Execution ⚙️" IsExpanded="False">
                     <Border Margin="0,2,0,0" Padding="2">
                         <Grid ColumnDefinitions="*,*">
-                            <StackPanel Grid.Column="0" Margin="0,0,2,2" Spacing="1">
+                            <StackPanel
+                                Grid.Column="0"
+                                Margin="0,0,2,2"
+                                Spacing="1">
                                 <TextBlock
                                     Classes="summary-label"
                                     Text="Dependencies"
@@ -282,7 +318,10 @@
                                 <controls:DependencyControl HorizontalAlignment="Stretch" ThisGuidList="{Binding Dependencies}" />
                             </StackPanel>
 
-                            <StackPanel Grid.Column="1" Margin="2,0,0,2" Spacing="1">
+                            <StackPanel
+                                Grid.Column="1"
+                                Margin="2,0,0,2"
+                                Spacing="1">
                                 <TextBlock
                                     Classes="summary-label"
                                     Text="Restrictions"

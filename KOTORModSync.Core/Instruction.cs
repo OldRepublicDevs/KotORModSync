@@ -63,7 +63,7 @@ namespace KOTORModSync.Core
 		[NotNull] private string _arguments = string.Empty;
 		[NotNull] private List<Guid> _dependencies = new List<Guid>();
 		[NotNull] private string _destination = string.Empty;
-		private bool _overwrite;
+		private bool _overwrite = true;
 		[NotNull] private List<Guid> _restrictions = new List<Guid>();
 		[NotNull][ItemNotNull] private List<string> _source = new List<string>();
 		public Guid Guid

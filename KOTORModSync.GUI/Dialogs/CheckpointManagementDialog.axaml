@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <Window
     x:Class="KOTORModSync.Dialogs.CheckpointManagementDialog"
     xmlns="https://github.com/avaloniaui"
@@ -32,7 +32,7 @@
                     Margin="0,8,0,0"
                     Foreground="White"
                     Opacity="0.9"
-                    Text="View and manage installation checkpoints for rollback"
+                    Text="View and manage installation checkpoints with bidirectional delta compression"
                     TextWrapping="Wrap" />
             </StackPanel>
         </Border>
@@ -63,9 +63,7 @@
                                         Cursor="Hand"
                                         PointerPressed="SessionItem_PointerPressed">
                                         <StackPanel Spacing="4">
-                                            <TextBlock
-                                                FontWeight="SemiBold"
-                                                Text="{Binding SessionName}" />
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding SessionName}" />
                                             <TextBlock
                                                 FontSize="12"
                                                 Opacity="0.7"
@@ -116,16 +114,12 @@
                                                 Text="📍" />
 
                                             <StackPanel Grid.Column="1" Spacing="4">
-                                                <TextBlock
-                                                    FontWeight="SemiBold"
-                                                    Text="{Binding ComponentName}" />
+                                                <TextBlock FontWeight="SemiBold" Text="{Binding ComponentName}" />
                                                 <TextBlock
                                                     FontSize="12"
                                                     Opacity="0.7"
-                                                    Text="{Binding Timestamp, StringFormat='Created: {0:g}'}" />
-                                                <TextBlock
-                                                    FontSize="12"
-                                                    Text="{Binding ChangeSummary}" />
+                                                    Text="{Binding Timestamp}" />
+                                                <TextBlock FontSize="12" Text="{Binding ChangeSummary}" />
                                             </StackPanel>
 
                                             <Button
@@ -133,8 +127,9 @@
                                                 Padding="12,6"
                                                 VerticalAlignment="Center"
                                                 Click="RollbackButton_Click"
-                                                Content="Rollback"
-                                                Tag="{Binding}" />
+                                                Content="Restore"
+                                                Tag="{Binding}"
+                                                ToolTip.Tip="Restore game directory to this checkpoint" />
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -146,18 +141,34 @@
                         Grid.Row="2"
                         Margin="0,16,0,0"
                         Padding="12"
-                        Background="#FFF3E0"
+                        Background="#E8F5E9"
                         CornerRadius="4">
-                        <StackPanel Spacing="4">
+                        <StackPanel Spacing="6">
                             <TextBlock
                                 FontWeight="SemiBold"
-                                Foreground="#E65100"
-                                Text="⚠️ About Rollback:" />
+                                Foreground="#2E7D32"
+                                Text="💡 About Checkpoints:" />
                             <TextBlock
                                 FontSize="12"
-                                Foreground="#E65100"
-                                Text="Rolling back to a checkpoint will undo all mod installations that occurred after that point. This operation cannot be undone."
-                                TextWrapping="Wrap" />
+                                Foreground="#2E7D32"
+                                TextWrapping="Wrap">
+                                <Run Text="• " />
+                                <Run Text="Checkpoints use bidirectional delta compression to minimize storage" />
+                            </TextBlock>
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="#2E7D32"
+                                TextWrapping="Wrap">
+                                <Run Text="• " />
+                                <Run Text="📍 Anchor checkpoints (every 10th) enable fast restoration" />
+                            </TextBlock>
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="#2E7D32"
+                                TextWrapping="Wrap">
+                                <Run Text="• " />
+                                <Run Text="Restoring undoes all mods installed after the selected checkpoint" />
+                            </TextBlock>
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -206,4 +217,3 @@
         </Border>
     </Grid>
 </Window>
-

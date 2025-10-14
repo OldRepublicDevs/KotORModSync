@@ -333,16 +333,15 @@ namespace KOTORModSync.Core.Services
 			IProgress<DownloadProgress> progress = null,
 			CancellationToken cancellationToken = default)
 		{
-			if ( component == null )
-				throw new ArgumentNullException(nameof(component));
+		if ( component == null )
+			throw new ArgumentNullException(nameof(component));
 
-			var results = new List<DownloadCacheEntry>();
+		await Logger.LogVerboseAsync($"[DownloadCacheService] Processing component: {component.Name} ({component.ModLink.Count} URL(s))");
 
-			await Logger.LogVerboseAsync($"[DownloadCacheService] ResolveOrDownloadAsync for component: {component.Name} (GUID: {component.Guid})");
-			await Logger.LogVerboseAsync($"[DownloadCacheService] ModComponent has {component.ModLink.Count} URLs");
+		await InitializeVirtualFileSystemAsync(destinationDirectory);
 
-			await InitializeVirtualFileSystemAsync(destinationDirectory);
-
+			// Collect all URLs that need processing
+			var urlsToProcess = new List<string>();
 			for ( int i = 0; i < component.ModLink.Count; i++ )
 			{
 				string url = component.ModLink[i];
@@ -355,12 +354,26 @@ namespace KOTORModSync.Core.Services
 					continue;
 				}
 
-				await Logger.LogVerboseAsync($"[DownloadCacheService] Processing URL {i + 1}/{component.ModLink.Count}: {url}");
+				urlsToProcess.Add(url);
+			}
 
+			if ( urlsToProcess.Count == 0 )
+			{
+				await Logger.LogVerboseAsync("[DownloadCacheService] No URLs to process");
+				return new List<DownloadCacheEntry>();
+			}
+
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Processing {urlsToProcess.Count} URLs concurrently");
+
+			// Step 1: Check cache and existing files concurrently
+			var cachedResults = new List<DownloadCacheEntry>();
+			var urlsNeedingDownload = new List<string>();
+
+			// Process all URLs concurrently to check cache and file existence
+			var cacheCheckTasks = urlsToProcess.Select(async url =>
+			{
 				if ( TryGetEntry(url, out DownloadCacheEntry existingEntry) )
 				{
-					await Logger.LogVerboseAsync($"[DownloadCacheService] URL already cached: {existingEntry.FileName}");
-
 					// Compute full path from FileName + MainConfig.SourcePath
 					string existingFilePath = !string.IsNullOrEmpty(existingEntry.FileName) && MainConfig.SourcePath != null
 						? Path.Combine(MainConfig.SourcePath.FullName, existingEntry.FileName)
@@ -368,56 +381,24 @@ namespace KOTORModSync.Core.Services
 
 					if ( !string.IsNullOrEmpty(existingFilePath) && File.Exists(existingFilePath) )
 					{
-
 						bool shouldValidate = MainConfig.ValidateAndReplaceInvalidArchives;
+						bool isValid = true;
 
 						if ( shouldValidate && Utility.ArchiveHelper.IsArchive(existingFilePath) )
 						{
 							await Logger.LogVerboseAsync($"[DownloadCacheService] Validating archive integrity: {existingFilePath}");
-							bool isValid = true; // TODO: Implement archive validation
+							isValid = true; // TODO: Implement archive validation
 
 							if ( !isValid )
 							{
-								await Logger.LogWarningAsync($"[DownloadCacheService] Archive validation failed (corrupt/incomplete): {existingFilePath}");
-								await Logger.LogWarningAsync($"[DownloadCacheService] Deleting invalid archive and re-downloading...");
-
-								try
-								{
-									File.Delete(existingFilePath);
-									await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid archive: {existingFilePath}");
-
-									Remove(url);
-								}
-								catch ( Exception ex )
-								{
-									await Logger.LogErrorAsync($"[DownloadCacheService] Failed to delete invalid archive: {ex.Message}");
-
-								}
-
-							}
-							else
-							{
-								await Logger.LogVerboseAsync($"[DownloadCacheService] Archive validation successful: {existingFilePath}");
-
-								progress?.Report(new DownloadProgress
-								{
-									ModName = component.Name,
-									Url = url,
-									Status = DownloadStatus.Skipped,
-									StatusMessage = "File already exists, skipping download",
-									ProgressPercentage = 100,
-									FilePath = existingFilePath,
-									TotalBytes = new FileInfo(existingFilePath).Length,
-									BytesDownloaded = new FileInfo(existingFilePath).Length
-								});
-
-								results.Add(existingEntry);
-								continue;
+								await Logger.LogWarningAsync($"[DownloadCacheService] Archive validation failed: {existingFilePath}");
+								Remove(url);
+								return (url, entry: null, needsDownload: true);
 							}
 						}
-						else
-						{
 
+						if ( isValid )
+						{
 							string fileType = Utility.ArchiveHelper.IsArchive(existingFilePath) ? "archive" : "non-archive";
 							string reason = shouldValidate ? $"{fileType} file exists" : "file exists (validation disabled)";
 							await Logger.LogVerboseAsync($"[DownloadCacheService] {char.ToUpper(reason[0])}{reason.Substring(1)}, skipping download: {existingFilePath}");
@@ -434,44 +415,25 @@ namespace KOTORModSync.Core.Services
 								BytesDownloaded = new FileInfo(existingFilePath).Length
 							});
 
-							results.Add(existingEntry);
-							continue;
+							return (url, entry: existingEntry, needsDownload: false);
 						}
-					}
-					else
-					{
-						await Logger.LogWarningAsync($"[DownloadCacheService] Cached file no longer exists: {existingFilePath}, will re-download");
 					}
 				}
 
-				if ( !TryGetEntry(url, out _) )
+				// Check if file exists on disk from previous session
+				var resolved = await _downloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, cancellationToken);
+				if ( resolved.TryGetValue(url, out List<string> value) && value.Count > 0 )
 				{
-					await Logger.LogVerboseAsync($"[DownloadCacheService] Cache miss, checking if file exists on disk from previous session...");
-
-					var resolved = await _downloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, cancellationToken);
-
-					if ( resolved.TryGetValue(url, out List<string> value) && value.Count > 0 )
+					List<string> filteredFilenames = _resolutionFilter.FilterByResolution(value);
+					if ( filteredFilenames.Count > 0 )
 					{
-
-						List<string> filteredFilenames = _resolutionFilter.FilterByResolution(value);
-						if ( filteredFilenames.Count == 0 )
-						{
-							await Logger.LogVerboseAsync($"[DownloadCacheService] All resolved filenames filtered out by resolution filter");
-							continue;
-						}
-
 						string expectedFileName = filteredFilenames[0];
-						// Always use MainConfig.SourcePath since it can change at runtime
 						string expectedFilePath = MainConfig.SourcePath != null
 							? Path.Combine(MainConfig.SourcePath.FullName, expectedFileName)
 							: Path.Combine(destinationDirectory, expectedFileName);
 
-						await Logger.LogVerboseAsync($"[DownloadCacheService] Resolved filename: {expectedFileName}");
-
 						if ( File.Exists(expectedFilePath) )
 						{
-							await Logger.LogVerboseAsync($"[DownloadCacheService] File exists on disk from previous session: {expectedFilePath}");
-
 							bool shouldValidate = MainConfig.ValidateAndReplaceInvalidArchives;
 							bool isValid = true;
 
@@ -482,187 +444,184 @@ namespace KOTORModSync.Core.Services
 
 								if ( !isValid )
 								{
-									await Logger.LogWarningAsync($"[DownloadCacheService] Existing archive is invalid: {expectedFilePath}");
-									await Logger.LogWarningAsync($"[DownloadCacheService] Deleting invalid archive and will re-download...");
-
 									try
 									{
 										File.Delete(expectedFilePath);
-										await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid archive: {expectedFilePath}");
 									}
 									catch ( Exception ex )
 									{
 										await Logger.LogErrorAsync($"[DownloadCacheService] Failed to delete invalid archive: {ex.Message}");
 									}
+									return (url, entry: null, needsDownload: true);
 								}
 							}
 
 							if ( isValid )
 							{
-
-								bool isArchive2 = IsArchive(expectedFilePath);
+								bool isArchive = IsArchive(expectedFilePath);
 								var diskEntry = new DownloadCacheEntry
 								{
 									Url = url,
 									FileName = expectedFileName,
-									IsArchive = isArchive2,
+									IsArchive = isArchive,
 									ExtractInstructionGuid = Guid.Empty
 								};
 
 								AddOrUpdate(url, diskEntry);
-
-								string validationInfo = shouldValidate ? (isArchive2 ? " (validated)" : "") : " (validation disabled)";
-								await Logger.LogVerboseAsync($"[DownloadCacheService] Added existing file to cache{validationInfo}: {expectedFileName}");
+								await Logger.LogVerboseAsync($"[DownloadCacheService] Added existing file to cache: {expectedFileName}");
 
 								progress?.Report(new DownloadProgress
 								{
 									ModName = component.Name,
 									Url = url,
 									Status = DownloadStatus.Skipped,
-									StatusMessage = $"File already exists{validationInfo}, skipping download",
+									StatusMessage = "File already exists, skipping download",
 									ProgressPercentage = 100,
 									FilePath = expectedFilePath,
 									TotalBytes = new FileInfo(expectedFilePath).Length,
 									BytesDownloaded = new FileInfo(expectedFilePath).Length
 								});
 
-								results.Add(diskEntry);
-								continue;
+								return (url, entry: diskEntry, needsDownload: false);
 							}
 						}
 					}
 				}
 
-				if ( _downloadManager == null )
-					throw new InvalidOperationException("Download manager not set. Call SetDownloadManager() first.");
+				return (url, entry: null, needsDownload: true);
+			}).ToList();
 
-				await Logger.LogVerboseAsync($"[DownloadCacheService] Downloading: {url}");
+			var cacheCheckResults = await Task.WhenAll(cacheCheckTasks);
 
-				var progressTracker = new DownloadProgress
+			// Separate cached results from URLs that need downloading
+			foreach ( var result in cacheCheckResults )
+			{
+				string url = result.Item1;
+				DownloadCacheEntry entry = result.Item2;
+				bool needsDownload = result.Item3;
+
+				if ( entry != null )
 				{
-					ModName = component.Name,
-					Url = url,
-					Status = DownloadStatus.Pending,
-					StatusMessage = "Waiting to start...",
-					ProgressPercentage = 0
-				};
+					cachedResults.Add(entry);
+				}
+				else if ( needsDownload )
+				{
+					urlsNeedingDownload.Add(url);
+				}
+			}
 
+			await Logger.LogVerboseAsync($"[DownloadCacheService] {cachedResults.Count} URLs cached, {urlsNeedingDownload.Count} need download");
+
+			// Step 2: Download missing files concurrently
+			if ( urlsNeedingDownload.Count > 0 )
+			{
+				await Logger.LogVerboseAsync($"[DownloadCacheService] Downloading {urlsNeedingDownload.Count} URLs concurrently");
+
+				// Create progress trackers for all URLs
+				var urlToProgressMap = new Dictionary<string, DownloadProgress>();
+				var progressTrackers = new List<DownloadProgress>();
+
+				foreach ( string url in urlsNeedingDownload )
+				{
+					var progressTracker = new DownloadProgress
+					{
+						ModName = component.Name,
+						Url = url,
+						Status = DownloadStatus.Pending,
+						StatusMessage = "Waiting to start...",
+						ProgressPercentage = 0
+					};
+					urlToProgressMap[url] = progressTracker;
+					progressTrackers.Add(progressTracker);
+				}
+
+				// Create progress forwarder
 				var progressForwarder = new Progress<DownloadProgress>(p =>
 				{
-
-					progressTracker.Status = p.Status;
-					progressTracker.StatusMessage = p.StatusMessage;
-					progressTracker.ProgressPercentage = p.ProgressPercentage;
-					progressTracker.BytesDownloaded = p.BytesDownloaded;
-					progressTracker.TotalBytes = p.TotalBytes;
-					progressTracker.FilePath = p.FilePath;
-					progressTracker.StartTime = p.StartTime;
-					progressTracker.EndTime = p.EndTime;
-					progressTracker.ErrorMessage = p.ErrorMessage;
-					progressTracker.Exception = p.Exception;
-
-					if ( progressTracker.Status == DownloadStatus.Pending ||
-						 progressTracker.Status == DownloadStatus.Completed ||
-						 progressTracker.Status == DownloadStatus.Failed )
+					if ( urlToProgressMap.TryGetValue(p.Url, out DownloadProgress tracker) )
 					{
-						Logger.LogVerbose($"[DownloadCache] {progressTracker.Status}: {progressTracker.StatusMessage}");
+						tracker.Status = p.Status;
+						tracker.StatusMessage = p.StatusMessage;
+						tracker.ProgressPercentage = p.ProgressPercentage;
+						tracker.BytesDownloaded = p.BytesDownloaded;
+						tracker.TotalBytes = p.TotalBytes;
+						tracker.FilePath = p.FilePath;
+						tracker.StartTime = p.StartTime;
+						tracker.EndTime = p.EndTime;
+						tracker.ErrorMessage = p.ErrorMessage;
+						tracker.Exception = p.Exception;
+
+						if ( tracker.Status == DownloadStatus.Pending ||
+							 tracker.Status == DownloadStatus.Completed ||
+							 tracker.Status == DownloadStatus.Failed )
+						{
+							Logger.LogVerbose($"[DownloadCache] {tracker.Status}: {tracker.StatusMessage}");
+						}
+						progress?.Report(tracker);
 					}
-					progress?.Report(progressTracker);
 				});
 
-				var urlMap = new Dictionary<string, DownloadProgress> { { url, progressTracker } };
+				// Download all URLs concurrently
 				var downloadResults = await _downloadManager.DownloadAllWithProgressAsync(
-					urlMap,
+					urlToProgressMap,
 					destinationDirectory,
 					progressForwarder,
 					cancellationToken);
 
-				if ( downloadResults.Count == 0 || !downloadResults[0].Success || progressTracker.Status != DownloadStatus.Completed )
+				// Process download results - need to match results back to original URLs
+				for ( int i = 0; i < downloadResults.Count && i < urlsNeedingDownload.Count; i++ )
 				{
-					await Logger.LogErrorAsync($"[DownloadCacheService] Download failed for URL: {url}");
-					continue;
-				}
+					var result = downloadResults[i];
+					string originalUrl = urlsNeedingDownload[i];
 
-				string fileName = Path.GetFileName(progressTracker.FilePath);
-				bool isArchive = IsArchive(fileName);
-
-				// Validate downloaded archives if enabled
-				if ( MainConfig.ValidateAndReplaceInvalidArchives && isArchive && !string.IsNullOrEmpty(progressTracker.FilePath) )
-				{
-					await Logger.LogVerboseAsync($"[DownloadCacheService] Validating downloaded archive: {progressTracker.FilePath}");
-					bool isValid = true; // TODO: Implement archive validation
-
-					if ( !isValid )
+					if ( !result.Success )
 					{
-						await Logger.LogWarningAsync($"[DownloadCacheService] Downloaded archive is corrupt or incomplete: {progressTracker.FilePath}");
-						await Logger.LogWarningAsync($"[DownloadCacheService] Deleting invalid download and retrying...");
+						await Logger.LogErrorAsync($"[DownloadCacheService] Download failed for URL: {originalUrl}");
+						continue;
+					}
 
-						try
+					string fileName = Path.GetFileName(result.FilePath);
+					bool isArchive = IsArchive(fileName);
+
+					// Validate downloaded archives if enabled
+					if ( MainConfig.ValidateAndReplaceInvalidArchives && isArchive && !string.IsNullOrEmpty(result.FilePath) )
+					{
+						await Logger.LogVerboseAsync($"[DownloadCacheService] Validating downloaded archive: {result.FilePath}");
+						bool isValid = true; // TODO: Implement archive validation
+
+						if ( !isValid )
 						{
-							File.Delete(progressTracker.FilePath);
-							await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid download: {progressTracker.FilePath}");
-
-							// Retry the download once
-							await Logger.LogVerboseAsync($"[DownloadCacheService] Retrying download for URL: {url}");
-
-							var retryResults = await _downloadManager.DownloadAllWithProgressAsync(
-								urlMap,
-								destinationDirectory,
-								progressForwarder,
-								cancellationToken);
-
-							if ( retryResults.Count == 0 || !retryResults[0].Success )
+							await Logger.LogWarningAsync($"[DownloadCacheService] Downloaded archive is corrupt: {result.FilePath}");
+							try
 							{
-								await Logger.LogErrorAsync($"[DownloadCacheService] Retry download failed for URL: {url}");
-								continue;
+								File.Delete(result.FilePath);
+								await Logger.LogVerboseAsync($"[DownloadCacheService] Deleted invalid download: {result.FilePath}");
 							}
-
-							// Update progress tracker with retry results
-							progressTracker.FilePath = retryResults[0].FilePath;
-
-							// Validate retry
-							if ( Utility.ArchiveHelper.IsArchive(progressTracker.FilePath) )
+							catch ( Exception ex )
 							{
-								bool retryValid = true; // TODO: Implement archive validation
-								if ( !retryValid )
-								{
-									await Logger.LogErrorAsync($"[DownloadCacheService] Retry download also corrupt, skipping: {url} path: {progressTracker.FilePath}");
-									//if ( File.Exists(progressTracker.FilePath) )
-									//	File.Delete(progressTracker.FilePath);
-									continue;
-								}
-								await Logger.LogVerboseAsync($"[DownloadCacheService] Retry download validated successfully: {progressTracker.FilePath} url: {url}");
+								await Logger.LogErrorAsync($"[DownloadCacheService] Error deleting invalid download: {ex.Message}");
 							}
-						}
-						catch ( Exception ex )
-						{
-							await Logger.LogErrorAsync($"[DownloadCacheService] Error handling invalid download: {ex.Message}");
 							continue;
 						}
 					}
-					else
+
+					var newEntry = new DownloadCacheEntry
 					{
-						await Logger.LogVerboseAsync($"[DownloadCacheService] Downloaded archive validated successfully: {progressTracker.FilePath}");
-					}
+						Url = originalUrl,
+						FileName = fileName,
+						IsArchive = isArchive,
+						ExtractInstructionGuid = Guid.Empty
+					};
+
+					AddOrUpdate(originalUrl, newEntry);
+					cachedResults.Add(newEntry);
+
+					await Logger.LogVerboseAsync($"[DownloadCacheService] Download completed and cached: {fileName}");
 				}
-
-				var newEntry = new DownloadCacheEntry
-				{
-					Url = url,
-					FileName = fileName,
-					IsArchive = isArchive,
-					ExtractInstructionGuid = Guid.Empty
-				};
-
-				AddOrUpdate(url, newEntry);
-				results.Add(newEntry);
-
-				await Logger.LogVerboseAsync($"[DownloadCacheService] Download completed and cached: {fileName}");
 			}
 
-			await EnsureInstructionsExist(component, results);
-
-			return results;
+			await EnsureInstructionsExist(component, cachedResults);
+			return cachedResults;
 		}
 
 		private async Task EnsureInstructionsExist(ModComponent component, List<DownloadCacheEntry> entries)
@@ -991,4 +950,5 @@ namespace KOTORModSync.Core.Services
 			$"DownloadCacheEntry[FileName={FileName}, IsArchive={IsArchive}, ExtractGuid={ExtractInstructionGuid}]";
 	}
 }
+
 

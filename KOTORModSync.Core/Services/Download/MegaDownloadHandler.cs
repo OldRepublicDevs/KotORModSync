@@ -16,6 +16,7 @@ namespace KOTORModSync.Core.Services.Download
 		private readonly MegaApiClient _client = new MegaApiClient();
 		private readonly SemaphoreSlim _sessionLock = new SemaphoreSlim(1, 1);
 		private static readonly char[] s_separator = new[] { '!' };
+		private const int TimeoutSeconds = 30; // 30 second timeout for MEGA operations
 
 		public MegaDownloadHandler() => Logger.LogVerbose("[MEGA] Initializing MEGA download handler");
 
@@ -34,25 +35,44 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				await Logger.LogVerboseAsync($"[MEGA] Resolving filename for URL: {url}");
 
-				
+			// Apply timeout to entire operation
+			try
+			{
+				await _client.LogoutAsync().ConfigureAwait(false);
+			}
+			catch { }
+
+			await _client.LoginAnonymousAsync().ConfigureAwait(false);
+
+			string processedUrl = ConvertMegaUrl(url);
+
+			// MEGA SDK doesn't support CancellationToken, so we use Task.WhenAny for timeout
+			var getNodeTask = _client.GetNodeFromLinkAsync(new Uri(processedUrl));
+			var timeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
+			
+			var completedTask = await Task.WhenAny(getNodeTask, timeoutTask).ConfigureAwait(false);
+			
+			if (completedTask == timeoutTask)
+			{
+				throw new OperationCanceledException($"MEGA operation timed out after {TimeoutSeconds} seconds");
+			}
+			
+			INode node = await getNodeTask.ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[MEGA] Resolved filename: {node.Name}");
+
+			await _client.LogoutAsync().ConfigureAwait(false);
+
+			return new List<string> { node.Name };
+			}
+			catch ( OperationCanceledException )
+			{
+				await Logger.LogWarningAsync($"[MEGA] Filename resolution timed out after {TimeoutSeconds} seconds for URL: {url}");
 				try
 				{
 					await _client.LogoutAsync().ConfigureAwait(false);
 				}
 				catch { }
-
-				await _client.LoginAnonymousAsync().ConfigureAwait(false);
-
-				
-				string processedUrl = ConvertMegaUrl(url);
-
-				
-				INode node = await _client.GetNodeFromLinkAsync(new Uri(processedUrl)).ConfigureAwait(false);
-				await Logger.LogVerboseAsync($"[MEGA] Resolved filename: {node.Name}");
-
-				await _client.LogoutAsync().ConfigureAwait(false);
-
-				return new List<string> { node.Name };
+				return new List<string>();
 			}
 			catch ( Exception ex )
 			{
@@ -75,7 +95,7 @@ namespace KOTORModSync.Core.Services.Download
 			await Logger.LogVerboseAsync($"[MEGA] Starting MEGA download from URL: {url}");
 			await Logger.LogVerboseAsync($"[MEGA] Destination directory: {destinationDirectory}");
 
-			await _sessionLock.WaitAsync().ConfigureAwait(false);
+			await _sessionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
 
 			try
 			{
@@ -87,7 +107,7 @@ namespace KOTORModSync.Core.Services.Download
 					StartTime = DateTime.Now
 				});
 
-				
+
 				try
 				{
 					await _client.LogoutAsync().ConfigureAwait(false);
@@ -98,25 +118,45 @@ namespace KOTORModSync.Core.Services.Download
 					await Logger.LogVerboseAsync($"[MEGA] Pre-login logout not required or failed: {preLogoutEx.Message}");
 				}
 
-				await Logger.LogVerboseAsync("[MEGA] Logging in anonymously to MEGA");
-				await _client.LoginAnonymousAsync().ConfigureAwait(false);
-				await Logger.LogVerboseAsync("[MEGA] Successfully logged in to MEGA");
+			await Logger.LogVerboseAsync("[MEGA] Logging in anonymously to MEGA");
+			
+			// MEGA SDK doesn't support CancellationToken, use Task.WhenAny for timeout
+			var loginTask = _client.LoginAnonymousAsync();
+			var loginTimeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
+			
+			var loginCompletedTask = await Task.WhenAny(loginTask, loginTimeoutTask).ConfigureAwait(false);
+			if (loginCompletedTask == loginTimeoutTask)
+			{
+				throw new OperationCanceledException($"MEGA login timed out after {TimeoutSeconds} seconds");
+			}
+			await loginTask.ConfigureAwait(false);
+			
+			await Logger.LogVerboseAsync("[MEGA] Successfully logged in to MEGA");
 
-				progress?.Report(new DownloadProgress
-				{
-					Status = DownloadStatus.InProgress,
-					StatusMessage = "Fetching file information...",
-					ProgressPercentage = 30
-				});
+			progress?.Report(new DownloadProgress
+			{
+				Status = DownloadStatus.InProgress,
+				StatusMessage = "Fetching file information...",
+				ProgressPercentage = 30
+			});
 
-				
-				await Logger.LogVerboseAsync($"[MEGA] BEFORE conversion: {url}");
-				string processedUrl = ConvertMegaUrl(url);
-				await Logger.LogVerboseAsync($"[MEGA] AFTER conversion: {processedUrl}");
-				await Logger.LogVerboseAsync($"[MEGA] Getting node information from URL: {processedUrl}");
+			await Logger.LogVerboseAsync($"[MEGA] BEFORE conversion: {url}");
+			string processedUrl = ConvertMegaUrl(url);
+			await Logger.LogVerboseAsync($"[MEGA] AFTER conversion: {processedUrl}");
+			await Logger.LogVerboseAsync($"[MEGA] Getting node information from URL: {processedUrl}");
 
-				INode node = await _client.GetNodeFromLinkAsync(new Uri(processedUrl)).ConfigureAwait(false);
-				await Logger.LogVerboseAsync($"[MEGA] Retrieved node: Name='{node.Name}', Size={node.Size} bytes, Type={node.Type}");
+			// Add timeout for GetNodeFromLink using Task.WhenAny
+			var getNodeTask = _client.GetNodeFromLinkAsync(new Uri(processedUrl));
+			var nodeTimeoutTask = Task.Delay(TimeSpan.FromSeconds(TimeoutSeconds), cancellationToken);
+			
+			var nodeCompletedTask = await Task.WhenAny(getNodeTask, nodeTimeoutTask).ConfigureAwait(false);
+			if (nodeCompletedTask == nodeTimeoutTask)
+			{
+				throw new OperationCanceledException($"MEGA GetNodeFromLink timed out after {TimeoutSeconds} seconds");
+			}
+			
+			INode node = await getNodeTask.ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[MEGA] Retrieved node: Name='{node.Name}', Size={node.Size} bytes, Type={node.Type}");
 
 				_ = Directory.CreateDirectory(destinationDirectory);
 				string filePath = Path.Combine(destinationDirectory, node.Name);
@@ -131,10 +171,10 @@ namespace KOTORModSync.Core.Services.Download
 					StartTime = DateTime.Now
 				});
 
-				
+
 				var megaProgress = new Progress<double>(percent =>
 				{
-					
+
 					double progressPercent = Math.Max(0, Math.Min(percent, 100));
 
 					progress?.Report(new DownloadProgress
@@ -149,8 +189,8 @@ namespace KOTORModSync.Core.Services.Download
 					});
 				});
 
-				
-				
+
+
 				using ( Stream downloadStream = await _client.DownloadAsync(node, megaProgress, cancellationToken).ConfigureAwait(false) )
 				using ( FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true) )
 				{
@@ -196,7 +236,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = argEx,
-					ProgressPercentage = 100, 
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -219,7 +259,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = authEx,
-					ProgressPercentage = 100, 
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -243,7 +283,27 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = fileEx,
-					ProgressPercentage = 100, 
+					ProgressPercentage = 100,
+					EndTime = DateTime.Now
+				});
+				return DownloadResult.Failed(userMessage);
+			}
+			catch ( OperationCanceledException )
+			{
+				await Logger.LogErrorAsync($"[MEGA] Download timed out or was cancelled for URL '{url}'");
+
+				string userMessage = $"MEGA.nz download timed out after {TimeoutSeconds} seconds.\n\n" +
+									 "This can happen when:\n" +
+									 "• MEGA servers are slow or experiencing issues\n" +
+									 "• Your internet connection is unstable\n" +
+									 "• MEGA API is rate-limiting requests\n\n" +
+									 $"Please try downloading manually from: {url}";
+
+				progress?.Report(new DownloadProgress
+				{
+					Status = DownloadStatus.Failed,
+					ErrorMessage = userMessage,
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -262,7 +322,7 @@ namespace KOTORModSync.Core.Services.Download
 					Status = DownloadStatus.Failed,
 					ErrorMessage = userMessage,
 					Exception = ex,
-					ProgressPercentage = 100, 
+					ProgressPercentage = 100,
 					EndTime = DateTime.Now
 				});
 				return DownloadResult.Failed(userMessage);
@@ -276,54 +336,54 @@ namespace KOTORModSync.Core.Services.Download
 				}
 				catch
 				{
-					
+
 				}
 				_sessionLock.Release();
 			}
 		}
 
-		
-		
-		
-		
-		
+
+
+
+
+
 		private static string ConvertMegaUrl(string url)
 		{
 			if ( string.IsNullOrEmpty(url) )
 				return url;
 
-			
+
 			if ( url.Contains("#!") )
 			{
-				
+
 				int hashIndex = url.IndexOf("#!", StringComparison.Ordinal);
 				if ( hashIndex >= 0 )
 				{
 					string baseUrl = url.Substring(0, hashIndex);
-					string fragment = url.Substring(hashIndex + 2); 
+					string fragment = url.Substring(hashIndex + 2);
 
-					
+
 					string[] parts = fragment.Split(s_separator, StringSplitOptions.None);
 					if ( parts.Length >= 2 )
 					{
 						string fileId = parts[0];
 						string key = parts[1];
 
-						
+
 						string newUrl = $"{baseUrl}file/{fileId}#{key}";
 						return newUrl;
 					}
 				}
 			}
 
-			
+
 			if ( !url.Contains("#F!") )
 				return url;
 			int hashIndex2 = url.IndexOf("#F!", StringComparison.Ordinal);
 			if ( hashIndex2 < 0 )
 				return url;
 			string baseUrl2 = url.Substring(0, hashIndex2);
-			string fragment2 = url.Substring(hashIndex2 + 3); 
+			string fragment2 = url.Substring(hashIndex2 + 3);
 
 			string[] parts2 = fragment2.Split(s_separator, StringSplitOptions.None);
 			if ( parts2.Length < 2 )

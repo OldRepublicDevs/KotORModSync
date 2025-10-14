@@ -186,74 +186,10 @@ namespace KOTORModSync.Core.Services.Download
 				progressItem.StatusMessage = "Starting download...";
 				progressItem.StartTime = DateTime.Now;
 
-
+				// Optimized progress reporter that minimizes blocking operations
 				var internalProgressReporter = new Progress<DownloadProgress>(update =>
 				{
-
-					bool shouldLog = false;
-					lock ( _logThrottleLock )
-					{
-						DateTime now = DateTime.Now;
-						bool isFirstLog = !_lastProgressLogTime.ContainsKey(url);
-						bool statusChanged = !_lastLoggedStatus.ContainsKey(url) || _lastLoggedStatus[url] != update.Status;
-						bool isTerminalStatus = update.Status == DownloadStatus.Completed ||
-												update.Status == DownloadStatus.Failed ||
-												update.Status == DownloadStatus.Skipped;
-						bool hasError = !string.IsNullOrEmpty(update.ErrorMessage);
-						bool throttleExpired = !isFirstLog &&
-											   (now - _lastProgressLogTime[url]).TotalSeconds >= LogThrottleSeconds;
-
-
-						shouldLog = isFirstLog || statusChanged || isTerminalStatus || hasError || throttleExpired;
-
-						if ( shouldLog )
-						{
-							_lastProgressLogTime[url] = now;
-							_lastLoggedStatus[url] = update.Status;
-						}
-					}
-
-
-					if ( shouldLog )
-					{
-
-						if ( update.Status == DownloadStatus.Pending ||
-							 update.Status == DownloadStatus.Completed ||
-							 update.Status == DownloadStatus.Skipped ||
-							 update.Status == DownloadStatus.Failed )
-						{
-							Logger.Log($"[Download] {update.Status}: {System.IO.Path.GetFileName(update.FilePath ?? url)}");
-							if ( !string.IsNullOrEmpty(update.StatusMessage) && update.Status != DownloadStatus.InProgress )
-								Logger.LogVerbose($"  {update.StatusMessage}");
-						}
-					}
-
-
-					if ( update.Status != DownloadStatus.Pending && !string.IsNullOrEmpty(update.StatusMessage) )
-						progressItem.AddLog($"[{update.Status}] {update.StatusMessage}");
-
-
-					if ( !string.IsNullOrEmpty(update.ErrorMessage) )
-					{
-						progressItem.AddLog($"[ERROR] {update.ErrorMessage}");
-						if ( update.Exception != null )
-						{
-							progressItem.AddLog($"[EXCEPTION] {update.Exception.GetType().Name}: {update.Exception.Message}");
-							if ( !string.IsNullOrEmpty(update.Exception.StackTrace) )
-								progressItem.AddLog($"[STACK TRACE] {update.Exception.StackTrace}");
-						}
-					}
-
-
-					if ( update.ProgressPercentage > 0 && update.ProgressPercentage % 25 == 0 &&
-						 Math.Abs(update.ProgressPercentage - progressItem.ProgressPercentage) > Tolerance )
-					{
-						progressItem.AddLog(update.TotalBytes > 0
-							? $"Progress: {update.ProgressPercentage:F1}% ({update.BytesDownloaded}/{update.TotalBytes} bytes)"
-							: $"Progress: {update.ProgressPercentage:F1}%");
-					}
-
-
+					// Update progress item fields first (fast operations)
 					progressItem.Status = update.Status;
 					progressItem.ProgressPercentage = update.ProgressPercentage;
 					progressItem.BytesDownloaded = update.BytesDownloaded;
@@ -268,7 +204,55 @@ namespace KOTORModSync.Core.Services.Download
 					if ( update.EndTime != null )
 						progressItem.EndTime = update.EndTime;
 
+					// Throttled logging to avoid blocking (minimal operations)
+					bool shouldLog = false;
+					var now = DateTime.Now;
 
+					lock ( _logThrottleLock )
+					{
+						bool isFirstLog = !_lastProgressLogTime.ContainsKey(url);
+						bool statusChanged = !_lastLoggedStatus.ContainsKey(url) || _lastLoggedStatus[url] != update.Status;
+						bool isTerminalStatus = update.Status == DownloadStatus.Completed ||
+												update.Status == DownloadStatus.Failed ||
+												update.Status == DownloadStatus.Skipped;
+						bool hasError = !string.IsNullOrEmpty(update.ErrorMessage);
+						DateTime lastLogTime;
+						_lastProgressLogTime.TryGetValue(url, out lastLogTime);
+						bool throttleExpired = !isFirstLog &&
+											   (now - lastLogTime).TotalSeconds >= LogThrottleSeconds;
+
+						shouldLog = isFirstLog || statusChanged || isTerminalStatus || hasError || throttleExpired;
+
+						if ( shouldLog )
+						{
+							_lastProgressLogTime[url] = now;
+							_lastLoggedStatus[url] = update.Status;
+						}
+					}
+
+				// Non-blocking logging (fire and forget style)
+				if ( shouldLog )
+				{
+					// Fire and forget logging task
+					_ = Task.Run(() =>
+					{
+						try
+						{
+							if ( update.Status == DownloadStatus.Pending ||
+								 update.Status == DownloadStatus.Completed ||
+								 update.Status == DownloadStatus.Skipped ||
+								 update.Status == DownloadStatus.Failed )
+							{
+								Logger.Log($"[Download] {update.Status}: {Path.GetFileName(update.FilePath ?? url)}");
+								if ( !string.IsNullOrEmpty(update.StatusMessage) && update.Status != DownloadStatus.InProgress )
+									Logger.LogVerbose($"  {update.StatusMessage}");
+							}
+						}
+						catch { /* Ignore logging errors */ }
+					});
+				}
+
+					// Report progress to caller (non-blocking)
 					progressReporter?.Report(progressItem);
 				});
 
@@ -279,7 +263,6 @@ namespace KOTORModSync.Core.Services.Download
 				}
 				catch ( OperationCanceledException )
 				{
-
 					await Logger.LogAsync($"[DownloadManager] Download cancelled by user: {url}");
 					progressItem.AddLog("[CANCELLED] Download cancelled by user");
 
@@ -291,10 +274,8 @@ namespace KOTORModSync.Core.Services.Download
 				}
 				catch ( Exception ex )
 				{
-
 					await Logger.LogErrorAsync($"[DownloadManager] Unexpected exception during download of '{url}': {ex.Message}");
 					progressItem.AddLog($"[UNEXPECTED EXCEPTION] {ex.GetType().Name}: {ex.Message}");
-
 
 					result = DownloadResult.Failed($"Unexpected error: {ex.Message}");
 					progressItem.Status = DownloadStatus.Failed;
@@ -320,12 +301,11 @@ namespace KOTORModSync.Core.Services.Download
 						if ( progressItem.StartTime == default )
 							progressItem.StartTime = DateTime.Now;
 
-
-						if ( !string.IsNullOrEmpty(result.FilePath) && System.IO.File.Exists(result.FilePath) )
+						if ( !string.IsNullOrEmpty(result.FilePath) && File.Exists(result.FilePath) )
 						{
 							try
 							{
-								long fileSize = new System.IO.FileInfo(result.FilePath).Length;
+								long fileSize = new FileInfo(result.FilePath).Length;
 								progressItem.BytesDownloaded = fileSize;
 								progressItem.TotalBytes = fileSize;
 								await Logger.LogVerboseAsync($"[DownloadManager] File already exists ({fileSize} bytes): {result.FilePath}");
@@ -341,7 +321,6 @@ namespace KOTORModSync.Core.Services.Download
 				{
 					await Logger.LogErrorAsync($"[DownloadManager] Failed to download URL '{url}': {result.Message}");
 					progressItem.AddLog($"Download failed: {result.Message}");
-
 
 					progressItem.Status = DownloadStatus.Failed;
 					progressItem.StatusMessage = "Download failed";

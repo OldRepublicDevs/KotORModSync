@@ -24,6 +24,9 @@ namespace KOTORModSync.Core.CLI
 		private readonly Timer _refreshTimer;
 		private bool _disposed = false;
 		private bool _isEnabled = false;
+		private bool _usePlainText = false;
+		private bool _needsRender = false;
+		private string _lastRenderedContent = string.Empty;
 		private int _consoleWidth = 80;
 		private int _maxActiveItems = 5;
 		private int _maxFailedItems = 10;
@@ -36,8 +39,10 @@ namespace KOTORModSync.Core.CLI
 		private const string HIDE_CURSOR = "\x1b[?25l";
 		private const string SHOW_CURSOR = "\x1b[?25h";
 
-		public ConsoleProgressDisplay()
+		public ConsoleProgressDisplay(bool usePlainText = false)
 		{
+			_usePlainText = usePlainText;
+
 			try
 			{
 				_consoleWidth = Console.WindowWidth;
@@ -48,11 +53,17 @@ namespace KOTORModSync.Core.CLI
 				_isEnabled = false;
 			}
 
+			// If plaintext mode is enabled, disable the fancy display
+			if ( _usePlainText )
+			{
+				_isEnabled = false;
+			}
+
 			if ( _isEnabled )
 			{
 				Console.Write(HIDE_CURSOR);
-				// Refresh display every 100ms
-				_refreshTimer = new Timer(_ => Render(), null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
+				// Refresh display every 250ms (reduced from 100ms to minimize flicker)
+				_refreshTimer = new Timer(_ => Render(), null, TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
 			}
 		}
 
@@ -75,36 +86,67 @@ namespace KOTORModSync.Core.CLI
 		/// <summary>
 		/// Add or update a progress item
 		/// </summary>
-		public void UpdateProgress(string key, string displayText, double progress, string status = "processing")
+	public void UpdateProgress(string key, string displayText, double progress, string status = "processing")
+	{
+		// In plaintext mode, output progress updates directly
+		if ( _usePlainText )
 		{
-			if ( !_isEnabled ) return;
-
-			_activeItems.AddOrUpdate(key,
-				new ProgressItem
-				{
-					Key = key,
-					DisplayText = displayText,
-					Progress = progress,
-					LastUpdate = DateTime.Now,
-					Status = status
-				},
-				(k, existing) =>
-				{
-					existing.DisplayText = displayText;
-					existing.Progress = progress;
-					existing.LastUpdate = DateTime.Now;
-					existing.Status = status;
-					return existing;
-				});
+			Console.WriteLine($"[{status.ToUpper()}] {displayText} - {progress:F1}%");
+			return;
 		}
+
+		if ( !_isEnabled ) return;
+
+		bool isNewItem = !_activeItems.ContainsKey(key);
+		bool shouldRender = isNewItem; // Always render for new items
+		
+		_activeItems.AddOrUpdate(key,
+			new ProgressItem
+			{
+				Key = key,
+				DisplayText = displayText,
+				Progress = progress,
+				LastUpdate = DateTime.Now,
+				Status = status
+			},
+			(k, existing) =>
+			{
+				// Only trigger render if progress changed by at least 1% or status changed
+				if ( Math.Abs(existing.Progress - progress) >= 1.0 || existing.Status != status )
+				{
+					shouldRender = true;
+				}
+				existing.DisplayText = displayText;
+				existing.Progress = progress;
+				existing.LastUpdate = DateTime.Now;
+				existing.Status = status;
+				return existing;
+			});
+		
+		if ( shouldRender )
+		{
+			_needsRender = true;
+		}
+	}
 
 		/// <summary>
 		/// Remove a progress item (when completed)
 		/// </summary>
 		public void RemoveProgress(string key)
 		{
+			// In plaintext mode, output completion message
+			if ( _usePlainText )
+			{
+				if ( _activeItems.TryGetValue(key, out var item) )
+				{
+					Console.WriteLine($"[COMPLETED] {item.DisplayText}");
+				}
+				return;
+			}
+
 			if ( !_isEnabled ) return;
 			_activeItems.TryRemove(key, out _);
+			_needsRender = true;
 		}
 
 		/// <summary>
@@ -112,6 +154,14 @@ namespace KOTORModSync.Core.CLI
 		/// </summary>
 		public void AddFailedItem(string url, string error)
 		{
+			// In plaintext mode, output error directly
+			if ( _usePlainText )
+			{
+				Console.WriteLine($"[FAILED] {url}");
+				Console.WriteLine($"  Error: {error}");
+				return;
+			}
+
 			if ( !_isEnabled ) return;
 
 			lock ( _lock )
@@ -132,38 +182,49 @@ namespace KOTORModSync.Core.CLI
 						.Take(_failedItems.Count - _maxFailedItems)
 						.Select(kvp => kvp.Key)
 						.ToList();
-					
-					foreach (var key in oldestKeys)
+
+					foreach ( var key in oldestKeys )
 					{
 						_failedItems.Remove(key);
 					}
 				}
+
+				_needsRender = true;
 			}
 		}
 
 		/// <summary>
 		/// Add a scrolling log message
 		/// </summary>
-		public void AddLog(string message)
+	public void AddLog(string message)
+	{
+		// In plaintext mode, output log directly
+		if ( _usePlainText )
 		{
-			if ( !_isEnabled )
-			{
-				// Fallback to normal console output
-				Console.WriteLine(message);
-				return;
-			}
-
-			lock ( _lock )
-			{
-				_scrollingLogs.Enqueue(message);
-
-				// Keep only recent logs
-				while ( _scrollingLogs.Count > _maxScrollingLogs )
-				{
-					_scrollingLogs.Dequeue();
-				}
-			}
+			Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+			return;
 		}
+
+		if ( !_isEnabled )
+		{
+			// Fallback to normal console output
+			Console.WriteLine(message);
+			return;
+		}
+
+		lock ( _lock )
+		{
+			_scrollingLogs.Enqueue(message);
+
+			// Keep only recent logs
+			while ( _scrollingLogs.Count > _maxScrollingLogs )
+			{
+				_scrollingLogs.Dequeue();
+			}
+			
+			_needsRender = true;
+		}
+	}
 
 		/// <summary>
 		/// Render the entire display
@@ -171,6 +232,9 @@ namespace KOTORModSync.Core.CLI
 		private void Render()
 		{
 			if ( !_isEnabled || _disposed ) return;
+
+			// Only render if something changed
+			if ( !_needsRender ) return;
 
 			lock ( _lock )
 			{
@@ -188,17 +252,15 @@ namespace KOTORModSync.Core.CLI
 				// Calculate how many lines we need for the status area
 				int statusLines = CalculateStatusLines();
 
-				// Save cursor position
-				sb.Append(SAVE_CURSOR);
-
 				// Move to the status area (bottom of console)
 				try
 				{
 					int consoleHeight = Console.WindowHeight;
 					int statusStartLine = Math.Max(1, consoleHeight - statusLines);
 
-					// Move to status area start
+					// Move to status area start and clear from there to bottom
 					sb.Append($"\x1b[{statusStartLine};1H");
+					sb.Append("\x1b[0J"); // Clear from cursor to end of screen
 
 					// Render failed items first (at top of status area, single line per failure)
 					var failedItems = _failedItems.Values
@@ -208,15 +270,15 @@ namespace KOTORModSync.Core.CLI
 
 					if ( failedItems.Count > 0 )
 					{
-						sb.AppendLine(CLEAR_LINE + "╔═══ FAILED DOWNLOADS ═══");
+						sb.AppendLine("╔═══ FAILED DOWNLOADS ═══");
 						foreach ( var failed in failedItems )
 						{
 							// Single line: URL with abbreviated error in parentheses
-							string truncatedUrl = ConsoleProgressDisplay.TruncateString(failed.Url, _consoleWidth - 35);
+							string truncatedUrl = TruncateString(failed.Url, _consoleWidth - 35);
 							string shortError = failed.Error.Length > 25 ? failed.Error.Substring(0, 22) + "..." : failed.Error;
-							sb.AppendLine(CLEAR_LINE + $"║ ✗ {truncatedUrl} ({shortError})");
+							sb.AppendLine($"║ ✗ {truncatedUrl} ({shortError})");
 						}
-						sb.AppendLine(CLEAR_LINE + "╚" + new string('═', Math.Min(_consoleWidth - 2, 50)));
+						sb.AppendLine("╚" + new string('═', Math.Min(_consoleWidth - 2, 50)));
 					}
 
 					// Render active progress items last (at bottom)
@@ -227,28 +289,27 @@ namespace KOTORModSync.Core.CLI
 
 					if ( activeItems.Count > 0 )
 					{
-						sb.AppendLine(CLEAR_LINE + "╔═══ ACTIVE DOWNLOADS ═══");
+						sb.AppendLine("╔═══ ACTIVE DOWNLOADS ═══");
 						foreach ( var item in activeItems )
 						{
-							string progressBar = ConsoleProgressDisplay.RenderProgressBar(item.Progress, 30);
-							string statusIcon = ConsoleProgressDisplay.GetStatusIcon(item.Status);
-							string displayText = ConsoleProgressDisplay.TruncateString(item.DisplayText, _consoleWidth - 45);
-							sb.AppendLine(CLEAR_LINE + $"{statusIcon} {displayText} {progressBar} {item.Progress:F1}%");
+							string progressBar = RenderProgressBar(item.Progress, 30);
+							string statusIcon = GetStatusIcon(item.Status);
+							string displayText = TruncateString(item.DisplayText, _consoleWidth - 45);
+							sb.AppendLine($"{statusIcon} {displayText} {progressBar} {item.Progress:F1}%");
 						}
-						sb.AppendLine(CLEAR_LINE + "╚" + new string('═', Math.Min(_consoleWidth - 2, 50)));
+						sb.AppendLine("╚" + new string('═', Math.Min(_consoleWidth - 2, 50)));
 					}
 
-					// Clear any remaining lines in the status area
-					for ( int i = 0; i < 2; i++ )
+					string newContent = sb.ToString();
+
+					// Only write if content actually changed
+					if ( newContent != _lastRenderedContent )
 					{
-						sb.AppendLine(CLEAR_LINE);
+						Console.Write(newContent);
+						_lastRenderedContent = newContent;
 					}
 
-					// Restore cursor position
-					sb.Append(RESTORE_CURSOR);
-
-					// Write to console
-					Console.Write(sb.ToString());
+					_needsRender = false;
 				}
 				catch
 				{
@@ -318,36 +379,41 @@ namespace KOTORModSync.Core.CLI
 		/// <summary>
 		/// Write a log that scrolls above the status area
 		/// </summary>
-		public void WriteScrollingLog(string message)
+	public void WriteScrollingLog(string message)
+	{
+		// In plaintext mode, just write directly
+		if ( _usePlainText || !_isEnabled )
 		{
-			if ( !_isEnabled )
+			Console.WriteLine(message);
+			return;
+		}
+
+		lock ( _lock )
+		{
+			try
 			{
+				// Calculate position above status area
+				int statusLines = CalculateStatusLines();
+				int consoleHeight = Console.WindowHeight;
+				int statusStartLine = Math.Max(1, consoleHeight - statusLines);
+
+				// Clear the status area, write message, then trigger re-render
+				Console.Write($"\x1b[{statusStartLine};1H");
+				Console.Write("\x1b[0J"); // Clear from cursor to end of screen
+				Console.Write($"\x1b[{statusStartLine - 1};1H");
 				Console.WriteLine(message);
-				return;
+
+				// Force immediate re-render of status area
+				_needsRender = true;
+				Render();
 			}
-
-			lock ( _lock )
+			catch
 			{
-				try
-				{
-					// Clear the status area temporarily
-					int statusLines = CalculateStatusLines();
-					int consoleHeight = Console.WindowHeight;
-					int statusStartLine = Math.Max(1, consoleHeight - statusLines);
-
-					// Move to line just above status area
-					Console.Write($"\x1b[{statusStartLine - 1};1H");
-					Console.WriteLine(CLEAR_LINE + message);
-
-					// The next render will redraw the status area
-				}
-				catch
-				{
-					// Fallback to normal output
-					Console.WriteLine(message);
-				}
+				// Fallback to normal output
+				Console.WriteLine(message);
 			}
 		}
+	}
 
 		public void Dispose()
 		{

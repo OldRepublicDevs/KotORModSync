@@ -295,25 +295,25 @@ namespace KOTORModSync.Core.Services
 				switch ( component.InstallState )
 				{
 					case ModComponent.ComponentInstallState.Completed:
-						await Logger.LogAsync($"Skipping '{component.Name}' (already completed).");
-						coordinator.SessionManager.UpdateComponentState(component);
-						component.PersistCheckpoint();
-						await coordinator.SessionManager.SaveAsync();
-						continue;
-					case ModComponent.ComponentInstallState.Skipped:
-					case ModComponent.ComponentInstallState.Blocked:
-						await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).");
-						coordinator.SessionManager.UpdateComponentState(component);
-						component.PersistCheckpoint();
-						await coordinator.SessionManager.SaveAsync();
-						continue;
+					await Logger.LogAsync($"Skipping '{component.Name}' (already completed).");
+					coordinator.SessionManager.UpdateComponentState(component);
+					// component.PersistCheckpoint(); // Old checkpoint system disabled
+					await coordinator.SessionManager.SaveAsync();
+					continue;
+				case ModComponent.ComponentInstallState.Skipped:
+				case ModComponent.ComponentInstallState.Blocked:
+					await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).");
+					coordinator.SessionManager.UpdateComponentState(component);
+					// component.PersistCheckpoint(); // Old checkpoint system disabled
+					await coordinator.SessionManager.SaveAsync();
+					continue;
 				}
 
-				await Logger.LogAsync($"Start install of '{component.Name}'...");
-				exitCode = await component.InstallAsync(allComponents, cancellationToken);
-				coordinator.SessionManager.UpdateComponentState(component);
-				component.PersistCheckpoint();
-				await coordinator.SessionManager.SaveAsync();
+			await Logger.LogAsync($"Start install of '{component.Name}'...");
+			exitCode = await component.InstallAsync(allComponents, cancellationToken);
+			coordinator.SessionManager.UpdateComponentState(component);
+			// component.PersistCheckpoint(); // Old checkpoint system disabled
+			await coordinator.SessionManager.SaveAsync();
 
 				if ( exitCode == ModComponent.InstallExitCode.Success )
 				{
@@ -325,11 +325,11 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogErrorAsync($"Install of '{component.Name}' failed with exit code {exitCode}");
 					InstallCoordinator.MarkBlockedDescendants(orderedComponents, component.Guid);
 					foreach ( ModComponent blocked in orderedComponents.Where(c => c.InstallState == ModComponent.ComponentInstallState.Blocked) )
-					{
-						coordinator.SessionManager.UpdateComponentState(blocked);
-						blocked.PersistCheckpoint();
-					}
-					await coordinator.SessionManager.SaveAsync();
+				{
+					coordinator.SessionManager.UpdateComponentState(blocked);
+					// blocked.PersistCheckpoint(); // Old checkpoint system disabled
+				}
+				await coordinator.SessionManager.SaveAsync();
 					break;
 				}
 			}

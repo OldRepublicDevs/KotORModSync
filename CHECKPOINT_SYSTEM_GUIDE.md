@@ -5,6 +5,7 @@
 The KOTORModSync checkpoint system provides **incremental, space-efficient backup and rollback capabilities** for mod installations using industry-standard binary differencing. It allows users to restore their game to any previous state without requiring massive full backups of the 80GB+ KOTOR directory.
 
 This system was designed after extensive research and storage calculations to achieve optimal balance between:
+
 - **Storage Efficiency**: ~2x original game size for full installation history
 - **Restore Speed**: 10-30 seconds for nearby checkpoints, 1-2 minutes for distant ones
 - **Reliability**: Content-addressable storage prevents corruption and enables deduplication
@@ -25,6 +26,7 @@ All file contents and binary deltas are stored by their **SHA256 hash**, not by 
 - **Garbage Collection**: Safely remove unreferenced objects
 
 **Storage Structure:**
+
 ```
 .kotor_modsync/checkpoints/
   objects/
@@ -39,11 +41,13 @@ All file contents and binary deltas are stored by their **SHA256 hash**, not by 
 Each checkpoint stores **binary differences** (deltas) from adjacent checkpoints using **Octodiff**, not entire files.
 
 **Strategy:**
+
 - **Regular Checkpoints** (1-9, 11-19, etc.): Store forward + reverse deltas to neighbors
 - **Anchor Checkpoints** (10, 20, 30, ...): Store delta from baseline + neighbor deltas
 - **Baseline**: Initial snapshot of game directory before any mods installed
 
 **Why Bidirectional?**
+
 - Forward deltas: Efficient navigation from checkpoint N to N+1
 - Reverse deltas: Fast backward navigation from N+1 to N
 - Enables restoration in both directions without recomputing
@@ -51,6 +55,7 @@ Each checkpoint stores **binary differences** (deltas) from adjacent checkpoints
 #### 3. **Octodiff Binary Differencing**
 
 Industry-standard C# library for creating and applying binary patches:
+
 - **Rolling hash signatures**: Efficiently finds matching blocks between files
 - **Streaming operations**: Handles 79GB files without loading into memory
 - **Compression-friendly**: Deltas are typically 1-10% of file size for similar binaries
@@ -62,6 +67,7 @@ Industry-standard C# library for creating and applying binary patches:
 ### Real-World Scenario
 
 **Installation Profile:**
+
 - **Total Size**: 80GB KOTOR directory
 - **Large Files**: 10 files @ 7.9GB each = 79GB (e.g., movies, voice archives)
 - **Regular Files**: Remaining 1GB (textures, scripts, 2DA files, etc.)
@@ -72,11 +78,13 @@ Industry-standard C# library for creating and applying binary patches:
 ### Storage Calculation
 
 #### Baseline (Checkpoint 0)
+
 - **Purpose**: Initial game state before any modifications
 - **Storage**: 0 bytes (files remain in game directory)
 - **Metadata**: ~1MB (file paths, hashes, sizes)
 
 #### Large File Mod (Checkpoint 1)
+
 - **Changes**: 10 files @ 7.9GB each modified
 - **Forward Deltas**: 10 × 100MB = 1GB (estimated ~1.3% delta for binary patches)
 - **Reverse Deltas**: 10 × 100MB = 1GB (to restore original files)
@@ -84,15 +92,18 @@ Industry-standard C# library for creating and applying binary patches:
 - **Note**: Original 79GB already exists in game directory
 
 #### Regular Mods (Checkpoints 2-200)
+
 Each mod changes ~50-100 small files:
 
 **Non-Anchor Checkpoints (2-9, 11-19, etc.)** - 180 checkpoints:
+
 - **Forward Delta**: ~5MB per checkpoint
 - **Reverse Delta**: ~5MB per checkpoint
 - **Total per checkpoint**: ~10MB
 - **Subtotal**: 180 × 10MB = **1.8GB**
 
 **Anchor Checkpoints (10, 20, 30, ... 200)** - 20 checkpoints:
+
 - **Delta from Baseline**: ~75MB (cumulative changes from original)
 - **Forward Delta**: ~5MB (to next checkpoint)
 - **Reverse Delta**: ~5MB (to previous checkpoint)
@@ -126,9 +137,10 @@ Each mod changes ~50-100 small files:
 ### Checkpoint Creation Time
 
 **Per ModComponent:**
+
 - **File Scanning**: 1-3 seconds (recursive directory scan + SHA256 hashing)
 - **Change Detection**: < 1 second (hash comparison)
-- **Delta Generation**: 
+- **Delta Generation**:
   - Small files (< 10MB): < 1 second
   - Large files (> 1GB): 5-20 seconds per file
   - Uses streaming, no memory issues
@@ -142,12 +154,14 @@ Each mod changes ~50-100 small files:
 Restore time depends on **distance** from current state to target checkpoint:
 
 #### Nearby Restore (±10 checkpoints)
+
 - **Operations**: Apply 1-10 forward or reverse deltas sequentially
 - **Time**: 10-30 seconds
 - **Example**: Currently at checkpoint 45, restore to checkpoint 40 = apply 5 reverse deltas
 
 #### Far Restore (> 10 checkpoints)
-- **Operations**: 
+
+- **Operations**:
   1. Rebuild from nearest anchor (max 10 operations)
   2. Apply deltas to target (max 10 operations)
 - **Time**: 1-2 minutes
@@ -157,6 +171,7 @@ Restore time depends on **distance** from current state to target checkpoint:
   - Total: ~10 operations
 
 #### Maximum Operations
+
 - **Worst case**: ~20 operations to any checkpoint
 - **Why**: Anchors every 10 checkpoints + bidirectional navigation
 - **Optimization**: System automatically chooses shortest path
@@ -315,6 +330,7 @@ Task<string> ComputeHashAsync(string filePath)
 ```
 
 **Why two-level directories?**
+
 - Prevents millions of files in one directory (filesystem performance)
 - First 2 chars of hash = subdirectory name
 - Remaining chars = filename
@@ -348,6 +364,7 @@ Task ApplyDeltaAsync(
 3. **Delta Application**: Apply differences to source to recreate target
 
 **Key Benefits:**
+
 - Handles binary files (not just text)
 - Streaming operations (low memory usage)
 - Efficient for large files with small changes
@@ -407,6 +424,7 @@ await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
 ### Session Metadata Format
 
 **`session.json`:**
+
 ```json
 {
   "Id": "550e8400-e29b-41d4-a716-446655440000",
@@ -429,6 +447,7 @@ await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
 ### Checkpoint Metadata Format
 
 **`checkpoint_00001.json`:**
+
 ```json
 {
   "Id": "00001",
@@ -479,6 +498,7 @@ await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
 ### Anchor Checkpoint Format
 
 **`checkpoint_00010.json`:**
+
 ```json
 {
   "Id": "00010",
@@ -510,11 +530,13 @@ await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
 Checkpoints are created **automatically after each mod is successfully installed**. No user interaction required!
 
 **Progress Indication:**
+
 - Progress window shows "Creating checkpoint for '<ModName>'..."
 - Displays "Scanning for file changes..." during detection
 - Footer shows checkpoint creation progress
 
 **What's Happening:**
+
 1. Mod installs (all instructions executed)
 2. System scans game directory
 3. Detects file changes
@@ -528,18 +550,21 @@ Checkpoints are created **automatically after each mod is successfully installed
 If a mod installation fails, you'll see an **Installation Error Dialog** with options:
 
 #### Option 1: Rollback Installation (Recommended)
+
 - Restores game to state **before the installation began**
 - Undoes all mods installed in this session
 - Uses baseline checkpoint
 - **Time**: 30 seconds - 2 minutes depending on changes
 
 #### Option 2: Skip This Mod
+
 - Continues installation with remaining mods
 - Failed mod is skipped
 - Checkpoints continue normally
 - **Risk**: Installation may be incomplete
 
 #### Option 3: Abort Installation
+
 - Stops installation immediately
 - Keeps all changes made so far
 - No rollback performed
@@ -550,10 +575,12 @@ If a mod installation fails, you'll see an **Installation Error Dialog** with op
 #### Access Checkpoint Management
 
 **GUI:**
+
 1. Click **Tools** → **Manage Checkpoints**
 2. Or click the checkpoint icon in toolbar
 
 **Dialog Features:**
+
 - **Left Panel**: List of installation sessions
   - Shows: Session name, date, checkpoint count, status
   - Status indicators: ✅ Completed | ⏳ In Progress
@@ -574,6 +601,7 @@ If a mod installation fails, you'll see an **Installation Error Dialog** with op
 6. Wait for restoration to complete
 
 **Restoration Details:**
+
 - Game directory will match state **after** the selected mod was installed
 - All mods installed **after** will be removed
 - Process is **logged** for troubleshooting
@@ -593,6 +621,7 @@ Checkpoint data accumulates over time. Clean up when no longer needed:
    - Report freed disk space
 
 **Storage Info:**
+
 - Footer shows: `💾 X session(s), Y checkpoint(s), Z.Z GB total storage`
 - Updated in real-time
 
@@ -603,6 +632,7 @@ If you need to manually remove checkpoint data:
 **Location**: `<KOTOR_Directory>/.kotor_modsync/checkpoints/`
 
 **Safe to Delete:**
+
 - Entire `.kotor_modsync` directory (removes all checkpoints)
 - Individual session directories (removes specific sessions)
 - Run garbage collection afterward to clean orphaned CAS objects
@@ -618,6 +648,7 @@ If you need to manually remove checkpoint data:
 The checkpoint system includes robust validation:
 
 #### Automatic Validation
+
 - **On Restore**: Verifies all CAS references exist
 - **On Load**: Checks checkpoint metadata integrity
 - **Hash Verification**: Confirms file contents match expected hash
@@ -646,6 +677,7 @@ bool repaired = await checkpointService.TryRepairCheckpointAsync(checkpointId);
 ```
 
 **Repair Process:**
+
 1. Identify missing CAS objects
 2. Check if files still exist in game directory
 3. Recompute hashes and restore to CAS
@@ -663,11 +695,13 @@ Logger.LogInfo($"Removed {orphanedObjects} orphaned objects");
 ```
 
 **When to Run:**
+
 - After deleting sessions
 - After failed installations
 - Periodically for housekeeping
 
 **How It Works:**
+
 1. Scan all checkpoint metadata for CAS references
 2. Identify CAS objects not referenced
 3. Safely delete orphaned objects
@@ -699,16 +733,19 @@ Logger.LogInfo($"Removed {orphanedObjects} orphaned objects");
 ### "Checkpoint creation is slow"
 
 **Causes:**
+
 - Large number of files changed (500+)
 - Large individual files (> 1GB)
 - Slow disk (HDD vs SSD)
 
 **Solutions:**
+
 - Normal for large mods, be patient
 - Consider SSD upgrade
 - Check disk space (> 10GB free recommended)
 
 **Expected Times:**
+
 - Small mod (< 100 files): 3-5 seconds
 - Medium mod (100-500 files): 5-15 seconds
 - Large mod (500+ files): 15-60 seconds
@@ -716,11 +753,13 @@ Logger.LogInfo($"Removed {orphanedObjects} orphaned objects");
 ### "Restoration failed"
 
 **Possible Causes:**
+
 - Missing CAS objects (corruption)
 - Insufficient disk space
 - File access permissions
 
 **Solutions:**
+
 1. Check log file for specific error
 2. Try validation: `ValidateCheckpointAsync(checkpointId)`
 3. Attempt repair: `TryRepairCheckpointAsync(checkpointId)`
@@ -732,12 +771,14 @@ Logger.LogInfo($"Removed {orphanedObjects} orphaned objects");
 **Expected Usage**: ~7-15% of game directory size for full installation history
 
 **If Higher:**
+
 1. Run cleanup: Delete old completed sessions
 2. Run garbage collection
 3. Check for duplicate sessions (failed installations)
 4. Review checkpoint count (> 500 is unusual)
 
 **Manual Cleanup:**
+
 - Delete `.kotor_modsync/checkpoints/` directory entirely
 - Removes ALL checkpoints and history
 
@@ -753,6 +794,7 @@ Logger.LogInfo($"Removed {orphanedObjects} orphaned objects");
 | Hashing failed | Corrupted file | Verify game files via Steam/GOG |
 
 **Debug Steps:**
+
 1. Check log file in output window
 2. Verify disk space: `> 10GB free`
 3. Check permissions: Can you create files in game directory?
@@ -765,7 +807,8 @@ Logger.LogInfo($"Removed {orphanedObjects} orphaned objects");
 
 **Why**: Generate deltas from baseline (more file processing)
 
-**Normal Behavior**: 
+**Normal Behavior**:
+
 - Regular checkpoint: 5-10 seconds
 - Anchor checkpoint: 15-30 seconds
 
@@ -778,6 +821,7 @@ Logger.LogInfo($"Removed {orphanedObjects} orphaned objects");
 ### Q: Why bidirectional deltas instead of just forward?
 
 **A**: Fast backward navigation. Without reverse deltas, rolling back 100 checkpoints would require:
+
 1. Restore baseline
 2. Apply 100 forward deltas to reach target
 
@@ -788,17 +832,20 @@ With reverse deltas: Just apply reverse deltas directly.
 **A**: Balance between storage and restore speed.
 
 **Trade-off Analysis:**
+
 - **Every 5**: Faster long jumps, 2x more anchor storage
 - **Every 10**: Good balance (chosen)
 - **Every 20**: Slower long jumps, less storage
 
 With 200 checkpoints:
+
 - Max delta chain: 10 (acceptable performance)
 - Anchor storage: ~1.7GB (reasonable)
 
 ### Q: Why SHA256 instead of MD5?
 
-**A**: 
+**A**:
+
 - **Security**: SHA256 is cryptographically secure
 - **Collision Resistance**: Virtually impossible to have two different files with same hash
 - **Integrity**: Detect corruption with high confidence
@@ -807,6 +854,7 @@ With 200 checkpoints:
 ### Q: How does CAS deduplication work across sessions?
 
 **A**: If two sessions install the same mod:
+
 1. Session 1 stores file with hash `abc123...`
 2. Session 2 tries to store same file
 3. Hash matches existing CAS object → skip storage
@@ -818,6 +866,7 @@ With 200 checkpoints:
 **A**: Checkpoints referencing deleted objects become invalid.
 
 **Recovery**:
+
 1. Run `ValidateCheckpointAsync()` to detect missing objects
 2. Run `TryRepairCheckpointAsync()` if files still in game directory
 3. Otherwise, those checkpoints are unusable
@@ -829,16 +878,19 @@ With 200 checkpoints:
 **A**: Yes! The `.kotor_modsync/checkpoints/` directory is self-contained.
 
 **To Backup**:
+
 1. Copy entire `checkpoints/` directory to external drive
 2. Compress for space savings
 
 **To Restore**:
+
 1. Copy `checkpoints/` directory back to `.kotor_modsync/`
 2. Sessions will be available in checkpoint management dialog
 
 ### Q: Why not use git internally?
 
-**A**: 
+**A**:
+
 - Git is designed for text files and code, not 79GB binary files
 - Git LFS still requires server infrastructure
 - Octodiff is specifically designed for binary differencing
@@ -847,6 +899,7 @@ With 200 checkpoints:
 ### Q: Does this work on Linux/Mac?
 
 **A**: Yes! The checkpoint system is fully cross-platform:
+
 - .NET Standard 2.0 compatible
 - Path handling uses `Path.Combine()` for OS-agnostic paths
 - Octodiff works on all platforms
@@ -931,7 +984,7 @@ Potential improvements being considered:
 ### Technologies Used
 
 - **Octodiff**: Binary differencing library by Octopus Deploy
-  - GitHub: https://github.com/OctopusDeploy/Octodiff
+  - GitHub: <https://github.com/OctopusDeploy/Octodiff>
   - License: Apache 2.0
 
 - **Newtonsoft.Json**: JSON serialization
@@ -950,8 +1003,8 @@ Potential improvements being considered:
 
 For issues, questions, or contributions:
 
-- **GitHub Issues**: https://github.com/th3w1zard1/KOTORModSync/issues
-- **Discord**: https://discord.gg/nDkHXfc36s
+- **GitHub Issues**: <https://github.com/th3w1zard1/KOTORModSync/issues>
+- **Discord**: <https://discord.gg/nDkHXfc36s>
 - **Documentation**: Check log files in output window for detailed error messages
 
 ---

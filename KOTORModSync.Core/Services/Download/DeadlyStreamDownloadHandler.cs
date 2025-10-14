@@ -19,7 +19,7 @@ namespace KOTORModSync.Core.Services.Download
 	public sealed class DeadlyStreamDownloadHandler : IDownloadHandler
 	{
 		private readonly HttpClient _httpClient;
-		private const long MaxBytesPerSecond = 700 * 1024;
+		private const long MaxBytesPerSecond = 7 * 1024 * 1024; // 7 MB/s
 
 
 		private readonly System.Net.CookieContainer _cookieContainer;
@@ -75,9 +75,9 @@ namespace KOTORModSync.Core.Services.Download
 				new AuthenticationHeaderValue("Bearer", "KOTOR_MODSYNC_PUBLIC");
 			Logger.LogVerbose("[DeadlyStream] Added identification bearer token: KOTOR_MODSYNC_PUBLIC");
 
-			Logger.LogVerbose("[DeadlyStream] Handler initialized with proper browser headers and identification markers");
-			Logger.LogVerbose($"[DeadlyStream] Bandwidth throttling enabled: {MaxBytesPerSecond / 1024} KB/s using ThrottledStream");
-		}
+		Logger.LogVerbose("[DeadlyStream] Handler initialized with proper browser headers and identification markers");
+		Logger.LogVerbose($"[DeadlyStream] Bandwidth throttling enabled: {MaxBytesPerSecond / 1024 / 1024} MB/s using ThrottledStream");
+	}
 
 		public bool CanHandle(string url)
 		{

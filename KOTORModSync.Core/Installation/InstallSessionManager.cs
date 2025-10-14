@@ -101,48 +101,60 @@ namespace KOTORModSync.Core.Installation
 			throw new KeyNotFoundException($"ModComponent {componentId} not found in session state");
 		}
 
-		internal ModComponent.InstructionCheckpoint GetInstructionEntry(ModComponent component, Guid instructionId, int instructionIndex)
-		{
-			ComponentSessionEntry componentEntry = GetComponentEntry(component.Guid);
-			ModComponent.InstructionCheckpoint checkpoint = componentEntry.Instructions.FirstOrDefault(c => c.InstructionId == instructionId);
-			if ( checkpoint != null )
-				return checkpoint;
-
-			checkpoint = new ModComponent.InstructionCheckpoint
-			{
-				InstructionId = instructionId,
-				InstructionIndex = instructionIndex,
-				State = ModComponent.InstructionInstallState.Pending,
-				LastUpdatedUtc = DateTimeOffset.UtcNow,
-			};
-
-			componentEntry.Instructions.Add(checkpoint);
+	// Old checkpoint methods disabled - using new bidirectional delta system
+	/*
+	internal ModComponent.InstructionCheckpoint GetInstructionEntry(ModComponent component, Guid instructionId, int instructionIndex)
+	{
+		ComponentSessionEntry componentEntry = GetComponentEntry(component.Guid);
+		ModComponent.InstructionCheckpoint checkpoint = componentEntry.Instructions.FirstOrDefault(c => c.InstructionId == instructionId);
+		if ( checkpoint != null )
 			return checkpoint;
-		}
 
-		public void UpdateComponentState(ModComponent component)
+		checkpoint = new ModComponent.InstructionCheckpoint
 		{
-			ComponentSessionEntry entry = GetComponentEntry(component.Guid);
-			entry.State = component.InstallState;
-			entry.LastStartedUtc = component.LastStartedUtc;
-			entry.LastCompletedUtc = component.LastCompletedUtc;
-			entry.Instructions = component.InstructionCheckpoints.Select(c => c.Clone()).ToList();
-		}
+			InstructionId = instructionId,
+			InstructionIndex = instructionIndex,
+			State = ModComponent.InstructionInstallState.Pending,
+			LastUpdatedUtc = DateTimeOffset.UtcNow,
+		};
 
-		internal void UpdateInstructionState(ModComponent component, ModComponent.InstructionCheckpoint checkpoint)
+		componentEntry.Instructions.Add(checkpoint);
+		return checkpoint;
+	}
+
+	public void UpdateComponentState(ModComponent component)
+	{
+		ComponentSessionEntry entry = GetComponentEntry(component.Guid);
+		entry.State = component.InstallState;
+		entry.LastStartedUtc = component.LastStartedUtc;
+		entry.LastCompletedUtc = component.LastCompletedUtc;
+		entry.Instructions = component.InstructionCheckpoints.Select(c => c.Clone()).ToList();
+	}
+
+	internal void UpdateInstructionState(ModComponent component, ModComponent.InstructionCheckpoint checkpoint)
+	{
+		ComponentSessionEntry entry = GetComponentEntry(component.Guid);
+		ModComponent.InstructionCheckpoint existing = entry.Instructions.FirstOrDefault(c => c.InstructionId == checkpoint.InstructionId);
+		if ( existing == null )
 		{
-			ComponentSessionEntry entry = GetComponentEntry(component.Guid);
-			ModComponent.InstructionCheckpoint existing = entry.Instructions.FirstOrDefault(c => c.InstructionId == checkpoint.InstructionId);
-			if ( existing == null )
-			{
-				entry.Instructions.Add(checkpoint.Clone());
-			}
-			else
-			{
-				existing.State = checkpoint.State;
-				existing.LastUpdatedUtc = checkpoint.LastUpdatedUtc;
-			}
+			entry.Instructions.Add(checkpoint.Clone());
 		}
+		else
+		{
+			existing.State = checkpoint.State;
+			existing.LastUpdatedUtc = checkpoint.LastUpdatedUtc;
+		}
+	}
+	*/
+
+	public void UpdateComponentState(ModComponent component)
+	{
+		ComponentSessionEntry entry = GetComponentEntry(component.Guid);
+		entry.State = component.InstallState;
+		entry.LastStartedUtc = component.LastStartedUtc;
+		entry.LastCompletedUtc = component.LastCompletedUtc;
+		// InstructionCheckpoints removed - using new checkpoint system
+	}
 
 		public void UpdateBackupPath(string backupPath) => _state.BackupPath = backupPath;
 
@@ -159,27 +171,27 @@ namespace KOTORModSync.Core.Installation
 					_state.Components[component.Guid] = entry;
 				}
 
-				component.InstallState = entry.State;
-				component.LastStartedUtc = entry.LastStartedUtc;
-				component.LastCompletedUtc = entry.LastCompletedUtc;
-				component.ReplaceInstructionCheckpoints(entry.Instructions.Select(c => c.Clone()));
+		component.InstallState = entry.State;
+		component.LastStartedUtc = entry.LastStartedUtc;
+		component.LastCompletedUtc = entry.LastCompletedUtc;
+		// component.ReplaceInstructionCheckpoints disabled - using new checkpoint system
 			}
 		}
 
 		private void SyncInitialComponentState(IList<ModComponent> components)
 		{
-			foreach ( ModComponent component in components )
+		foreach ( ModComponent component in components )
+		{
+			ComponentSessionEntry entry = new ComponentSessionEntry
 			{
-				ComponentSessionEntry entry = new ComponentSessionEntry
-				{
-					ComponentId = component.Guid,
-					State = component.InstallState,
-					LastStartedUtc = component.LastStartedUtc,
-					LastCompletedUtc = component.LastCompletedUtc,
-					Instructions = component.InstructionCheckpoints.Select(c => c.Clone()).ToList(),
-				};
-				_state.Components[component.Guid] = entry;
-			}
+				ComponentId = component.Guid,
+				State = component.InstallState,
+				LastStartedUtc = component.LastStartedUtc,
+				LastCompletedUtc = component.LastCompletedUtc,
+				// Instructions removed - using new checkpoint system
+			};
+			_state.Components[component.Guid] = entry;
+		}
 		}
 
 		private static InstallSessionState CreateNewState(IList<ModComponent> components, string destinationPath)

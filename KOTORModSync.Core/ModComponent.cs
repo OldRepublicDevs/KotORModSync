@@ -54,6 +54,9 @@ namespace KOTORModSync.Core
 			Completed,
 			Failed,
 		}
+		// NOTE: Old instruction-level checkpoint system disabled in favor of new bidirectional delta checkpoint system
+		// See KOTORModSync.Core/Services/ImmutableCheckpoint/ for new implementation
+		/*
 		[JsonObject(MemberSerialization.OptIn)]
 		public sealed class InstructionCheckpoint
 		{
@@ -93,6 +96,10 @@ namespace KOTORModSync.Core
 			[JsonProperty]
 			public string CheckpointVersion { get; set; } = "2.0";
 		}
+		*/
+
+		// Old checkpoint methods disabled - using new bidirectional delta system instead
+		/*
 		private void PersistCheckpointInternal()
 		{
 			try
@@ -175,6 +182,7 @@ namespace KOTORModSync.Core
 			string json = JsonConvert.SerializeObject(checkpoint, s_checkpointSerializerSettings);
 			File.WriteAllText(path, json);
 		}
+		*/
 		[NotNull] private string _author = string.Empty;
 		[NotNull] private List<string> _category = new List<string>();
 		[NotNull] private List<Guid> _dependencies = new List<Guid>();
@@ -200,6 +208,9 @@ namespace KOTORModSync.Core
 		private ComponentInstallState _installState = ComponentInstallState.Pending;
 		private DateTimeOffset? _lastStartedUtc;
 		private DateTimeOffset? _lastCompletedUtc;
+
+		// Old checkpoint fields disabled - using new bidirectional delta system instead
+		/*
 		private readonly List<InstructionCheckpoint> _instructionCheckpoints = new List<InstructionCheckpoint>();
 		private string _lastKnownBackupDirectory;
 		private ComponentCheckpoint _currentCheckpoint;
@@ -213,6 +224,10 @@ namespace KOTORModSync.Core
 		};
 		private bool _checkpointLoaded;
 		private Guid _installSessionId;
+		*/
+
+		// Keep CheckpointFolderName for backward compatibility with new system
+		public const string CheckpointFolderName = ".kotor_modsync";
 		[NotNull][ItemNotNull] private List<string> _language = new List<string>();
 		[NotNull] private List<string> _modLink = new List<string>();
 		[NotNull] private List<string> _excludedDownloads = new List<string>();
@@ -607,6 +622,8 @@ namespace KOTORModSync.Core
 				OnPropertyChanged();
 			}
 		}
+		// Old checkpoint properties disabled
+		/*
 		[NotNull]
 		internal IReadOnlyList<InstructionCheckpoint> InstructionCheckpoints => _instructionCheckpoints;
 		internal void ReplaceInstructionCheckpoints(IEnumerable<InstructionCheckpoint> checkpoints)
@@ -615,6 +632,7 @@ namespace KOTORModSync.Core
 			if ( checkpoints != null )
 				_instructionCheckpoints.AddRange(checkpoints.Select(c => c.Clone()));
 		}
+		*/
 		[NotNull]
 		public ObservableCollection<Option> Options
 		{
@@ -962,57 +980,47 @@ namespace KOTORModSync.Core
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
 			cancellationToken.ThrowIfCancellationRequested();
-			EnsureCheckpointLoaded();
+
+			// Old checkpoint system disabled - new bidirectional delta system handles checkpoints at component level
 			InstallState = ComponentInstallState.Running;
 			LastStartedUtc = DateTimeOffset.UtcNow;
-			PersistCheckpoint();
+
 			try
 			{
-				await s_checkpointSemaphore.WaitAsync(cancellationToken);
-				try
+				var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
+				InstallExitCode exitCode = await ExecuteInstructionsAsync(
+					Instructions,
+					componentsList,
+					cancellationToken,
+					realFileSystem
+				);
+				await Logger.LogAsync((string)Utility.Utility.GetEnumDescription(exitCode));
+				if ( exitCode == InstallExitCode.Success )
 				{
-					var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
-					InstallExitCode exitCode = await ExecuteInstructionsAsync(
-						Instructions,
-						componentsList,
-						cancellationToken,
-						realFileSystem
-					);
-					await Logger.LogAsync((string)Utility.Utility.GetEnumDescription(exitCode));
-					if ( exitCode == InstallExitCode.Success )
-					{
-						InstallState = ComponentInstallState.Completed;
-						LastCompletedUtc = DateTimeOffset.UtcNow;
-					}
-					else if ( exitCode == InstallExitCode.DependencyViolation )
-					{
-						InstallState = ComponentInstallState.Blocked;
-						LastCompletedUtc = DateTimeOffset.UtcNow;
-					}
-					else
-					{
-						InstallState = ComponentInstallState.Failed;
-						LastCompletedUtc = DateTimeOffset.UtcNow;
-					}
-					PersistCheckpoint();
-					return exitCode;
+					InstallState = ComponentInstallState.Completed;
+					LastCompletedUtc = DateTimeOffset.UtcNow;
 				}
-				finally
+				else if ( exitCode == InstallExitCode.DependencyViolation )
 				{
-					_ = s_checkpointSemaphore.Release();
+					InstallState = ComponentInstallState.Blocked;
+					LastCompletedUtc = DateTimeOffset.UtcNow;
 				}
+				else
+				{
+					InstallState = ComponentInstallState.Failed;
+					LastCompletedUtc = DateTimeOffset.UtcNow;
+				}
+				return exitCode;
 			}
 			catch ( InvalidOperationException ex )
 			{
 				await Logger.LogExceptionAsync(ex);
 				InstallState = ComponentInstallState.Failed;
 				LastCompletedUtc = DateTimeOffset.UtcNow;
-				PersistCheckpoint();
 			}
 			catch ( OperationCanceledException )
 			{
 				InstallState = ComponentInstallState.Failed;
-				PersistCheckpoint();
 				throw;
 			}
 			catch ( Exception ex )
@@ -1024,7 +1032,6 @@ namespace KOTORModSync.Core
 				);
 				InstallState = ComponentInstallState.Failed;
 				LastCompletedUtc = DateTimeOffset.UtcNow;
-				PersistCheckpoint();
 			}
 			return InstallExitCode.UnknownError;
 		}

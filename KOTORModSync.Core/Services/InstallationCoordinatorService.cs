@@ -18,8 +18,9 @@ namespace KOTORModSync.Core.Services
 	/// </summary>
 	public class InstallationCoordinatorService
 	{
-		private CheckpointService _checkpointService;
-		private string _currentSessionId;
+		// Checkpoint system disabled
+		// private CheckpointService _checkpointService;
+		// private string _currentSessionId;
 		private bool _widescreenNotificationShown;
 
 		public event EventHandler<ComponentInstallEventArgs> ComponentInstallStarted;
@@ -41,27 +42,24 @@ namespace KOTORModSync.Core.Services
 			IProgress<InstallProgress> progress = null,
 			CancellationToken cancellationToken = default)
 		{
-			try
+		try
+		{
+			// Checkpoint system disabled - clean start-to-finish installation
+			/*
+			_checkpointService = new CheckpointService(destinationPath);
+			_checkpointService.Progress += (sender, e) =>
 			{
-				// Initialize checkpoint service
-				_checkpointService = new CheckpointService(destinationPath);
-
-				// Wire up progress events
-				_checkpointService.Progress += (sender, e) =>
+				progress?.Report(new InstallProgress
 				{
-					progress?.Report(new InstallProgress
-					{
-						Phase = InstallPhase.CreatingCheckpoint,
-						Message = e.Message,
-						Current = e.Current,
-						Total = e.Total
-					});
-				};
-
-				// Start installation session and capture baseline
-				_currentSessionId = await _checkpointService.StartInstallationSessionAsync(cancellationToken);
-
-				await Logger.LogAsync($"[Installation] Started session: {_currentSessionId}");
+					Phase = InstallPhase.CreatingCheckpoint,
+					Message = e.Message,
+					Current = e.Current,
+					Total = e.Total
+				});
+			};
+			_currentSessionId = await _checkpointService.StartInstallationSessionAsync(cancellationToken);
+			await Logger.LogAsync($"[Installation] Started session: {_currentSessionId}");
+			*/
 
 
 				int componentIndex = 0;
@@ -69,12 +67,12 @@ namespace KOTORModSync.Core.Services
 				{
 					componentIndex++;
 
-					if ( cancellationToken.IsCancellationRequested )
-					{
-						await Logger.LogWarningAsync("[Installation] Installation cancelled by user");
-						await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
-						return ModComponent.InstallExitCode.UserCancelledInstall;
-					}
+				if ( cancellationToken.IsCancellationRequested )
+				{
+					await Logger.LogWarningAsync("[Installation] Installation cancelled by user");
+					// await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
+					return ModComponent.InstallExitCode.UserCancelledInstall;
+				}
 
 
 					if ( component.WidescreenOnly && !_widescreenNotificationShown )
@@ -91,12 +89,12 @@ namespace KOTORModSync.Core.Services
 						WidescreenNotificationRequested?.Invoke(this, widescreenArgs);
 
 
-						if ( widescreenArgs.UserCancelled )
-						{
-							await Logger.LogWarningAsync("[Installation] User cancelled installation at widescreen notification");
-							await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
-							return ModComponent.InstallExitCode.UserCancelledInstall;
-						}
+					if ( widescreenArgs.UserCancelled )
+					{
+						await Logger.LogWarningAsync("[Installation] User cancelled installation at widescreen notification");
+						// await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
+						return ModComponent.InstallExitCode.UserCancelledInstall;
+					}
 
 						_widescreenNotificationShown = true;
 						await Logger.LogAsync("[Installation] Widescreen notification acknowledged, continuing");
@@ -127,14 +125,14 @@ namespace KOTORModSync.Core.Services
 						{
 							await Logger.LogErrorAsync($"[Installation] Component '{component.Name}' failed with exit code: {exitCode}");
 
-							// Offer rollback option
-							var errorArgs = new InstallationErrorEventArgs
-							{
-								Component = component,
-								ErrorCode = exitCode,
-								CanRollback = true,
-								SessionId = _currentSessionId
-							};
+						// Offer rollback option
+						var errorArgs = new InstallationErrorEventArgs
+						{
+							Component = component,
+							ErrorCode = exitCode,
+							CanRollback = false, // Checkpoint system disabled
+							SessionId = null // _currentSessionId
+						};
 
 							InstallationError?.Invoke(this, errorArgs);
 
@@ -147,55 +145,57 @@ namespace KOTORModSync.Core.Services
 							ComponentInstallFailed?.Invoke(this, new ComponentInstallEventArgs(component, componentIndex, components.Count));
 
 
-							if ( exitCode == ModComponent.InstallExitCode.UserCancelledInstall || exitCode == ModComponent.InstallExitCode.UnknownError )
-							{
-								await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
-								return exitCode;
-							}
+						if ( exitCode == ModComponent.InstallExitCode.UserCancelledInstall || exitCode == ModComponent.InstallExitCode.UnknownError )
+						{
+							// await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
+							return exitCode;
+						}
 
 							continue;
 						}
 
-						// Create checkpoint after successful installation
-						progress?.Report(new InstallProgress
-						{
-							Phase = InstallPhase.CreatingCheckpoint,
-							Message = $"Creating checkpoint for {component.Name}",
-							Current = componentIndex,
-							Total = components.Count,
-							ComponentName = component.Name
-						});
-
-						string checkpointId = await _checkpointService.CreateCheckpointAsync(
-							component.Name,
-							component.Guid.ToString(),
-							cancellationToken
-						);
-
-						await Logger.LogAsync($"[Installation] Created checkpoint: {checkpointId} for component: {component.Name}");
-
-						ComponentInstallCompleted?.Invoke(this, new ComponentInstallEventArgs(component, componentIndex, components.Count)
-						{
-							CheckpointId = checkpointId
-						});
-					}
-					catch ( OperationCanceledException )
+					// Checkpoint system disabled
+					/*
+					progress?.Report(new InstallProgress
 					{
-						await Logger.LogWarningAsync("[Installation] Installation cancelled");
-						await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
-						return ModComponent.InstallExitCode.UserCancelledInstall;
-					}
-					catch ( Exception ex )
-					{
-						await Logger.LogErrorAsync($"[Installation] Unexpected error installing component '{component.Name}': {ex.Message}");
+						Phase = InstallPhase.CreatingCheckpoint,
+						Message = $"Creating checkpoint for {component.Name}",
+						Current = componentIndex,
+						Total = components.Count,
+						ComponentName = component.Name
+					});
 
-						var errorArgs = new InstallationErrorEventArgs
-						{
-							Component = component,
-							Exception = ex,
-							CanRollback = true,
-							SessionId = _currentSessionId
-						};
+					string checkpointId = await _checkpointService.CreateCheckpointAsync(
+						component.Name,
+						component.Guid.ToString(),
+						cancellationToken
+					);
+
+					await Logger.LogAsync($"[Installation] Created checkpoint: {checkpointId} for component: {component.Name}");
+					*/
+
+					ComponentInstallCompleted?.Invoke(this, new ComponentInstallEventArgs(component, componentIndex, components.Count)
+					{
+						CheckpointId = null // checkpointId
+					});
+					}
+				catch ( OperationCanceledException )
+				{
+					await Logger.LogWarningAsync("[Installation] Installation cancelled");
+					// await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
+					return ModComponent.InstallExitCode.UserCancelledInstall;
+				}
+				catch ( Exception ex )
+				{
+					await Logger.LogErrorAsync($"[Installation] Unexpected error installing component '{component.Name}': {ex.Message}");
+
+					var errorArgs = new InstallationErrorEventArgs
+					{
+						Component = component,
+						Exception = ex,
+						CanRollback = false, // Checkpoint system disabled
+						SessionId = null // _currentSessionId
+					};
 
 						InstallationError?.Invoke(this, errorArgs);
 
@@ -207,13 +207,13 @@ namespace KOTORModSync.Core.Services
 
 						ComponentInstallFailed?.Invoke(this, new ComponentInstallEventArgs(component, componentIndex, components.Count));
 					}
-				}
+			}
 
 
-				await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
-				await Logger.LogAsync("[Installation] Installation completed successfully");
+			// await _checkpointService.CompleteSessionAsync(keepCheckpoints: true);
+			await Logger.LogAsync("[Installation] Installation completed successfully");
 
-				return ModComponent.InstallExitCode.Success;
+			return ModComponent.InstallExitCode.Success;
 			}
 			catch ( Exception ex )
 			{
@@ -222,99 +222,45 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		/// <summary>
-		/// Rolls back the current installation to the baseline (pre-installation state).
-		/// </summary>
-		public async Task RollbackInstallationAsync(
-			IProgress<InstallProgress> progress = null,
-			CancellationToken cancellationToken = default)
-		{
-			if ( _checkpointService == null || string.IsNullOrEmpty(_currentSessionId) )
-				return;
+	/// <summary>
+	/// Rolls back the current installation to the baseline (pre-installation state).
+	/// Disabled: Checkpoint system removed.
+	/// </summary>
+	public async Task RollbackInstallationAsync(
+		IProgress<InstallProgress> progress = null,
+		CancellationToken cancellationToken = default)
+	{
+		// Checkpoint system disabled - rollback not available
+		await Logger.LogAsync("[Installation] Rollback not available - checkpoint system disabled");
+		return;
+	}
 
-			await Logger.LogAsync("[Installation] Rolling back installation to baseline...");
+	/// <summary>
+	/// Lists all available checkpoint sessions.
+	/// Disabled: Checkpoint system removed.
+	/// </summary>
+	public async Task<List<CheckpointSession>> ListAvailableSessionsAsync()
+	{
+		// Checkpoint system disabled
+		await Task.CompletedTask; // Keep async signature
+		return new List<CheckpointSession>();
+	}
 
-			progress?.Report(new InstallProgress
-			{
-				Phase = InstallPhase.RollingBack,
-				Message = "Rolling back installation..."
-			});
-
-			// Get all checkpoints in the session
-			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
-
-			if ( checkpoints.Any() )
-			{
-				// Restore to baseline (checkpoint 0 / before any mods)
-				// Since we track from baseline, we just need to restore backwards through all checkpoints
-				var firstCheckpoint = checkpoints.OrderBy(c => c.Sequence).FirstOrDefault();
-				if ( firstCheckpoint != null )
-				{
-					progress?.Report(new InstallProgress
-					{
-						Phase = InstallPhase.RollingBack,
-						Message = "Restoring to baseline state...",
-						Current = 0,
-						Total = checkpoints.Count
-					});
-
-					// Restore to the state before first checkpoint (baseline)
-					await _checkpointService.RestoreCheckpointAsync(
-						firstCheckpoint.Id,
-						cancellationToken
-					);
-				}
-			}
-
-			await _checkpointService.CompleteSessionAsync(keepCheckpoints: false);
-			await Logger.LogAsync("[Installation] Rollback completed");
-		}
-
-		/// <summary>
-		/// Lists all available checkpoint sessions.
-		/// </summary>
-		public async Task<List<CheckpointSession>> ListAvailableSessionsAsync()
-		{
-			if ( _checkpointService == null )
-				return new List<CheckpointSession>();
-
-			return await _checkpointService.ListSessionsAsync();
-		}
-
-		/// <summary>
-		/// Rolls back to a specific checkpoint in a session.
-		/// </summary>
-		public static async Task RestoreToCheckpointAsync(
-			string sessionId,
-			string checkpointId,
-			string destinationPath,
-			IProgress<InstallProgress> progress = null,
-			CancellationToken cancellationToken = default)
-		{
-			var tempCheckpointService = new CheckpointService(destinationPath);
-
-			// Verify session exists
-			var sessions = await tempCheckpointService.ListSessionsAsync();
-			var session = sessions.FirstOrDefault(s => s.Id == sessionId);
-
-			if ( session == null )
-				throw new ArgumentException($"Session {sessionId} not found");
-
-			progress?.Report(new InstallProgress
-			{
-				Phase = InstallPhase.RollingBack,
-				Message = "Restoring checkpoint...",
-				Current = 0,
-				Total = 1
-			});
-
-			await tempCheckpointService.RestoreCheckpointAsync(
-				checkpointId,
-				cancellationToken
-			);
-
-			await Logger.LogAsync($"[Installation] Restored to checkpoint: {checkpointId}");
-		}
+	/// <summary>
+	/// Rolls back to a specific checkpoint in a session.
+	/// Disabled: Checkpoint system removed.
+	/// </summary>
+	public static async Task RestoreToCheckpointAsync(
+		string sessionId,
+		string checkpointId,
+		string destinationPath,
+		IProgress<InstallProgress> progress = null,
+		CancellationToken cancellationToken = default)
+	{
+		// Checkpoint system disabled - restore not available
+		await Logger.LogAsync("[Installation] Checkpoint restore not available - checkpoint system disabled");
+		return;
+	}
 	}
 
 	#region Event Args

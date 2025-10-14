@@ -2643,32 +2643,34 @@ namespace KOTORModSync
 					_ = Logger.LogVerboseAsync("Disabling the close button on the console window, to prevent an install from being interrupted...");
 					ConsoleConfig.DisableConsoleCloseButton();
 				}
-				// Initialize checkpoint service for this installation session
-				Core.Services.ImmutableCheckpoint.CheckpointService checkpointService = null;
-				string currentSessionId = null;
+			// Checkpoint system disabled - clean start-to-finish installation
+			/*
+			Core.Services.ImmutableCheckpoint.CheckpointService checkpointService = null;
+			string currentSessionId = null;
 
+			// Start checkpoint session
+			if ( MainConfig.DestinationPath != null )
+			{
 				try
 				{
-					_ = Logger.LogAsync("Start installing all mods...");
-					_installRunning = true;
+					checkpointService = new Core.Services.ImmutableCheckpoint.CheckpointService(
+						MainConfig.DestinationPath.FullName
+					);
+					currentSessionId = await checkpointService.StartInstallationSessionAsync();
+					await Logger.LogAsync($"Checkpoint session started: {currentSessionId}");
+				}
+				catch ( Exception ex )
+				{
+					await Logger.LogErrorAsync($"Failed to initialize checkpoint system: {ex.Message}");
+					await Logger.LogErrorAsync("Installation will continue without checkpoint support.");
+				}
+			}
+			*/
 
-					// Start checkpoint session
-					if ( MainConfig.DestinationPath != null )
-					{
-						try
-						{
-							checkpointService = new Core.Services.ImmutableCheckpoint.CheckpointService(
-								MainConfig.DestinationPath.FullName
-							);
-							currentSessionId = await checkpointService.StartInstallationSessionAsync();
-							await Logger.LogAsync($"Checkpoint session started: {currentSessionId}");
-						}
-						catch ( Exception ex )
-						{
-							await Logger.LogErrorAsync($"Failed to initialize checkpoint system: {ex.Message}");
-							await Logger.LogErrorAsync("Installation will continue without checkpoint support.");
-						}
-					}
+			try
+			{
+				_ = Logger.LogAsync("Start installing all mods...");
+				_installRunning = true;
 
 					progressWindow.Closed += ProgressWindowClosed;
 					progressWindow.Closing += async (sender2, e2) =>
@@ -2779,32 +2781,34 @@ namespace KOTORModSync
 							await Logger.LogAsync(message: "Install cancelled");
 							break;
 						}
-						await Logger.LogAsync($"Finished installed '{component.Name}'");
+					await Logger.LogAsync($"Finished installed '{component.Name}'");
 
-						// Create checkpoint after successful installation
-						if ( checkpointService != null && !string.IsNullOrEmpty(currentSessionId) )
+					// Checkpoint system disabled
+					/*
+					if ( checkpointService != null && !string.IsNullOrEmpty(currentSessionId) )
+					{
+						try
 						{
-							try
+							await Dispatcher.UIThread.InvokeAsync(() =>
 							{
-								await Dispatcher.UIThread.InvokeAsync(() =>
-								{
-									progressWindow.ProgressTextBlock.Text = $"Creating checkpoint for '{component.Name}'..."
-																			+ Environment.NewLine
-																			+ "Scanning for file changes...";
-								});
+								progressWindow.ProgressTextBlock.Text = $"Creating checkpoint for '{component.Name}'..."
+																		+ Environment.NewLine
+																		+ "Scanning for file changes...";
+							});
 
-								string checkpointId = await checkpointService.CreateCheckpointAsync(
-									component.Name,
-									component.Guid.ToString()
-								);
-								await Logger.LogAsync($"Checkpoint created: {checkpointId}");
-							}
-							catch ( Exception ex )
-							{
-								await Logger.LogErrorAsync($"Failed to create checkpoint: {ex.Message}");
-								await Logger.LogErrorAsync("Installation will continue, but this checkpoint is unavailable.");
-							}
+							string checkpointId = await checkpointService.CreateCheckpointAsync(
+								component.Name,
+								component.Guid.ToString()
+							);
+							await Logger.LogAsync($"Checkpoint created: {checkpointId}");
 						}
+						catch ( Exception ex )
+						{
+							await Logger.LogErrorAsync($"Failed to create checkpoint: {ex.Message}");
+							await Logger.LogErrorAsync("Installation will continue, but this checkpoint is unavailable.");
+						}
+					}
+					*/
 					}
 					if ( exitCode != ModComponent.InstallExitCode.Success )
 						return;
@@ -2821,21 +2825,23 @@ namespace KOTORModSync
 					await Logger.LogErrorAsync(message: "Terminating install due to unhandled exception:");
 					throw;
 				}
-				finally
+			finally
+			{
+				// Checkpoint system disabled
+				/*
+				if ( checkpointService != null && !string.IsNullOrEmpty(currentSessionId) )
 				{
-					// Complete checkpoint session
-					if ( checkpointService != null && !string.IsNullOrEmpty(currentSessionId) )
+					try
 					{
-						try
-						{
-							await checkpointService.CompleteSessionAsync(keepCheckpoints: true);
-							await Logger.LogAsync("Checkpoint session completed successfully");
-						}
-						catch ( Exception ex )
-						{
-							await Logger.LogErrorAsync($"Failed to complete checkpoint session: {ex.Message}");
-						}
+						await checkpointService.CompleteSessionAsync(keepCheckpoints: true);
+						await Logger.LogAsync("Checkpoint session completed successfully");
 					}
+					catch ( Exception ex )
+					{
+						await Logger.LogErrorAsync($"Failed to complete checkpoint session: {ex.Message}");
+					}
+				}
+				*/
 
 					_installRunning = false;
 					_isClosingProgressWindow = true;

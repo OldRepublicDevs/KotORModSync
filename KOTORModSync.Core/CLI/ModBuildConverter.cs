@@ -236,6 +236,9 @@ namespace KOTORModSync.Core.CLI
 		{
 			[Option('v', "verbose", Required = false, HelpText = "Enable verbose output for debugging.")]
 			public bool Verbose { get; set; }
+
+			[Option("plaintext", Required = false, HelpText = "Use plaintext output instead of fancy ANSI progress display.")]
+			public bool PlainText { get; set; }
 		}
 
 		// Convert/Merge command options
@@ -405,6 +408,7 @@ namespace KOTORModSync.Core.CLI
 
 			// Track last logged progress for each download to throttle updates
 			var lastLoggedProgress = new Dictionary<string, double>();
+			var progressLock = new object();
 
 			// Create progress reporter for console output
 			var progressReporter = new Progress<DownloadProgress>(progress =>
@@ -424,19 +428,26 @@ namespace KOTORModSync.Core.CLI
 					{
 						// Fallback to traditional logging
 						bool shouldLog = false;
-						if ( !lastLoggedProgress.TryGetValue(progressKey, out double lastProgress) )
+						lock ( progressLock )
 						{
-							shouldLog = true;
-						}
-						else if ( progress.ProgressPercentage - lastProgress >= 10.0 )
-						{
-							shouldLog = true;
+							if ( !lastLoggedProgress.TryGetValue(progressKey, out double lastProgress) )
+							{
+								shouldLog = true;
+							}
+							else if ( progress.ProgressPercentage - lastProgress >= 10.0 )
+							{
+								shouldLog = true;
+							}
+
+							if ( shouldLog )
+							{
+								lastLoggedProgress[progressKey] = progress.ProgressPercentage;
+							}
 						}
 
 						if ( shouldLog )
 						{
 							Logger.LogVerbose($"[Download] {progress.ModName}: {progress.ProgressPercentage:F1}% - {fileName}");
-							lastLoggedProgress[progressKey] = progress.ProgressPercentage;
 						}
 					}
 				}
@@ -451,7 +462,10 @@ namespace KOTORModSync.Core.CLI
 					{
 						Logger.Log($"[Download] Completed: {fileName}");
 					}
-					lastLoggedProgress.Remove(progressKey);
+					lock ( progressLock )
+					{
+						lastLoggedProgress.Remove(progressKey);
+					}
 				}
 				else if ( progress.Status == DownloadStatus.Failed )
 				{
@@ -465,7 +479,10 @@ namespace KOTORModSync.Core.CLI
 					{
 						Logger.LogError($"[Download] Failed: {fileName} - {progress.ErrorMessage}");
 					}
-					lastLoggedProgress.Remove(progressKey);
+					lock ( progressLock )
+					{
+						lastLoggedProgress.Remove(progressKey);
+					}
 				}
 				else if ( progress.Status == DownloadStatus.Skipped )
 				{
@@ -480,13 +497,19 @@ namespace KOTORModSync.Core.CLI
 				}
 			});
 
-			try
-			{
-				int successCount = 0;
-				int failCount = 0;
+		try
+		{
+			// Process components concurrently with a limit to prevent overwhelming the system
+			var componentsToProcess = components.Where(c => c.ModLink != null && c.ModLink.Count > 0).ToList();
+			Logger.LogVerbose($"[Download] Processing {componentsToProcess.Count} components with concurrency limit of 10");
 
-				// Process each component using the cache service
-				foreach ( var component in components.Where(c => c.ModLink != null && c.ModLink.Count > 0) )
+			// Use SemaphoreSlim to limit concurrent operations
+			using ( var semaphore = new SemaphoreSlim(10) ) // Max 10 components downloading concurrently
+			{
+				var downloadTasks = componentsToProcess.Select(async component =>
+			{
+				await semaphore.WaitAsync();
+				try
 				{
 					Logger.LogVerbose($"[Download] Processing component: {component.Name} ({component.ModLink.Count} URL(s))");
 
@@ -499,22 +522,20 @@ namespace KOTORModSync.Core.CLI
 							progressReporter,
 							CancellationToken.None);
 
-						// Count results based on cache entries
-						foreach ( var entry in results )
+						// Count successful downloads
+						int successCount = results.Count(entry =>
 						{
 							string filePath = MainConfig.SourcePath != null
 								? Path.Combine(MainConfig.SourcePath.FullName, entry.FileName)
 								: Path.Combine(destinationDirectory, entry.FileName);
+							return File.Exists(filePath);
+						});
 
-							if ( File.Exists(filePath) )
-							{
-								successCount++;
-							}
-						}
+						return (component, results, successCount, error: (string)null);
 					}
 					catch ( Exception ex )
 					{
-						string errorMsg = $"[Download] Error processing component {component.Name}: {ex.Message}";
+						string errorMsg = $"Error processing component {component.Name}: {ex.Message}";
 						if ( _progressDisplay != null )
 							_progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
 						else
@@ -524,17 +545,30 @@ namespace KOTORModSync.Core.CLI
 						{
 							Logger.LogException(ex);
 						}
-						failCount++;
+
+						return (component, results: new List<Services.DownloadCacheEntry>(), successCount: 0, error: errorMsg);
 					}
 				}
+				finally
+				{
+					semaphore.Release();
+				}
+				}).ToList();
 
-				string summaryMsg = $"Download results: {successCount} files available, {failCount} failed";
+				// Wait for all components to complete
+				var downloadResults = await Task.WhenAll(downloadTasks);
+
+				// Aggregate results
+				int totalSuccessCount = downloadResults.Sum(r => r.successCount);
+				int totalFailCount = downloadResults.Count(r => r.error != null);
+
+				string summaryMsg = $"Download results: {totalSuccessCount} files available, {totalFailCount} failed";
 				if ( _progressDisplay != null )
 					_progressDisplay.WriteScrollingLog(summaryMsg);
 				else
 					Logger.Log(summaryMsg);
 
-				if ( failCount > 0 )
+				if ( totalFailCount > 0 )
 				{
 					string warningMsg = "Some downloads failed. Check logs for details.";
 					if ( _progressDisplay != null )
@@ -543,6 +577,7 @@ namespace KOTORModSync.Core.CLI
 						Logger.LogWarning(warningMsg);
 				}
 			}
+		}
 			catch ( Exception ex )
 			{
 				string errorMsg = $"Error during download: {ex.Message}";
@@ -701,7 +736,7 @@ namespace KOTORModSync.Core.CLI
 			SetVerboseMode(opts.Verbose);
 
 			// Initialize progress display for dynamic terminal output
-			_progressDisplay = new ConsoleProgressDisplay();
+			_progressDisplay = new ConsoleProgressDisplay(usePlainText: opts.PlainText);
 
 			try
 			{
@@ -805,7 +840,7 @@ namespace KOTORModSync.Core.CLI
 							Logger.LogVerbose(msg);
 
 						List<ModComponent> existingComponents = FileLoadingService.LoadFromFile(opts.ExistingPath);
-						
+
 						msg = $"Loaded {existingComponents.Count} components from existing";
 						if ( _progressDisplay != null )
 							_progressDisplay.WriteScrollingLog(msg);
@@ -825,47 +860,50 @@ namespace KOTORModSync.Core.CLI
 							Logger.LogVerbose(msg);
 
 						List<ModComponent> incomingComponents = FileLoadingService.LoadFromFile(opts.IncomingPath);
-						
+
 						msg = $"Loaded {incomingComponents.Count} components from incoming";
 						if ( _progressDisplay != null )
 							_progressDisplay.WriteScrollingLog(msg);
 						else
 							Logger.LogVerbose(msg);
 
-						foreach ( var component in incomingComponents )
-						{
-							component.IsSelected = true;
-						}
+					foreach ( var component in incomingComponents )
+					{
+						component.IsSelected = true;
+					}
 
-						// Download files for existing components
-						msg = "Downloading files for EXISTING instruction set...";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.Log(msg);
+					// Deduplicate components before downloading (by GUID to avoid processing same mod twice)
+					msg = "Deduplicating components from both instruction sets...";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.LogVerbose(msg);
 
-						await DownloadAllModFilesAsync(existingComponents, opts.SourcePath, opts.Verbose);
-						
-						msg = "Download complete for existing components";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.Log(msg);
+					var allComponents = existingComponents.Concat(incomingComponents)
+						.GroupBy(c => c.Guid)
+						.Select(g => g.First()) // Take first instance of each unique GUID
+						.ToList();
 
-						// Download files for incoming components
-						msg = "Downloading files for INCOMING instruction set...";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.Log(msg);
+					msg = $"After deduplication: {allComponents.Count} unique components (was {existingComponents.Count + incomingComponents.Count})";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.LogVerbose(msg);
 
-						await DownloadAllModFilesAsync(incomingComponents, opts.SourcePath, opts.Verbose);
-						
-						msg = "Download complete for incoming components";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.Log(msg);
+					// Download all unique components once
+					msg = "Downloading files for all unique components...";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.Log(msg);
+
+					await DownloadAllModFilesAsync(allComponents, opts.SourcePath, opts.Verbose);
+
+					msg = "Download complete for all components";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.Log(msg);
 					}
 
 					// Now perform the merge
@@ -895,7 +933,7 @@ namespace KOTORModSync.Core.CLI
 						Logger.LogVerbose(msg);
 
 					components = FileLoadingService.LoadFromFile(opts.InputPath);
-					
+
 					msg = $"Loaded {components.Count} components";
 					if ( _progressDisplay != null )
 						_progressDisplay.WriteScrollingLog(msg);
@@ -912,7 +950,7 @@ namespace KOTORModSync.Core.CLI
 							Logger.Log(msg);
 
 						await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose);
-						
+
 						msg = "Download complete";
 						if ( _progressDisplay != null )
 							_progressDisplay.WriteScrollingLog(msg);
@@ -1014,7 +1052,7 @@ namespace KOTORModSync.Core.CLI
 					}
 
 					File.WriteAllText(opts.OutputPath, output);
-					
+
 					string successMsg = $"✓ Conversion completed successfully, saved to: {opts.OutputPath}";
 					if ( _progressDisplay != null )
 						_progressDisplay.WriteScrollingLog(successMsg);

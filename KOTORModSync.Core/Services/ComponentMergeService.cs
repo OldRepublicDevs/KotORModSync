@@ -92,6 +92,7 @@ namespace KOTORModSync.Core.Services
 				[NotNull] string incomingFilePath,
 				[NotNull] MergeOptions options,
 				[CanBeNull] DownloadCacheService downloadCache = null,
+				bool sequential = true,
 				System.Threading.CancellationToken cancellationToken = default)
 		{
 			if ( existingFilePath == null )
@@ -109,6 +110,7 @@ namespace KOTORModSync.Core.Services
 				incoming,
 				options,
 				downloadCache,
+				sequential,
 				cancellationToken
 			).ConfigureAwait(false);
 		}
@@ -138,6 +140,7 @@ namespace KOTORModSync.Core.Services
 			[NotNull] List<ModComponent> incoming,
 			[NotNull] MergeOptions options,
 			[CanBeNull] DownloadCacheService downloadCache = null,
+			bool sequential = true,
 			System.Threading.CancellationToken cancellationToken = default)
 		{
 			if ( existing == null )
@@ -159,6 +162,7 @@ namespace KOTORModSync.Core.Services
 					options.HeuristicsOptions,
 					options,
 					downloadCache,
+					sequential,
 					cancellationToken
 				).ConfigureAwait(false);
 
@@ -177,12 +181,13 @@ namespace KOTORModSync.Core.Services
 					options.HeuristicsOptions,
 					options,
 					downloadCache,
+					sequential,
 					cancellationToken
 				).ConfigureAwait(false);
 
-				if ( options.ExcludeIncomingOnly )
+				if ( options.ExcludeExistingOnly )
 				{
-					var matchedGuids = new HashSet<Guid>(existing.Select(c => c.Guid));
+					var matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
 					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
 				}
 			}
@@ -243,6 +248,7 @@ namespace KOTORModSync.Core.Services
 			[NotNull] MergeHeuristicsOptions heuristicsOptions,
 			[NotNull] MergeOptions mergeOptions,
 			[CanBeNull] DownloadCacheService downloadCache = null,
+			bool sequential = true,
 			System.Threading.CancellationToken cancellationToken = default)
 		{
 			if ( incomingList == null )
@@ -250,7 +256,7 @@ namespace KOTORModSync.Core.Services
 			if ( existingList == null )
 				throw new ArgumentNullException(nameof(existingList));
 
-			await MergeModComponentsAsync(incomingList, existingList, heuristicsOptions, mergeOptions, downloadCache, cancellationToken).ConfigureAwait(false);
+			await MergeModComponentsAsync(incomingList, existingList, heuristicsOptions, mergeOptions, downloadCache, sequential, cancellationToken).ConfigureAwait(false);
 		}
 
 		public static void MergeInto(
@@ -277,6 +283,7 @@ namespace KOTORModSync.Core.Services
 			[CanBeNull] MergeHeuristicsOptions heuristicsOptions = null,
 			[CanBeNull] MergeOptions mergeOptions = null,
 			[CanBeNull] DownloadCacheService downloadCache = null,
+			bool sequential = true,
 			System.Threading.CancellationToken cancellationToken = default)
 		{
 			if ( incomingList == null )
@@ -292,7 +299,7 @@ namespace KOTORModSync.Core.Services
 			// Validate URLs before merge if enabled
 			if ( heuristicsOptions.ValidateExistingLinksBeforeReplace && downloadCache != null )
 			{
-				await ValidateAndFilterUrlsAsync(incomingList, existingList, downloadCache, cancellationToken).ConfigureAwait(false);
+				await ValidateAndFilterUrlsAsync(incomingList, existingList, downloadCache, sequential, cancellationToken).ConfigureAwait(false);
 			}
 
 			// Build GUID lookup for existing components
@@ -429,7 +436,8 @@ namespace KOTORModSync.Core.Services
 			[NotNull] List<ModComponent> incomingList,
 			[NotNull] List<ModComponent> existingList,
 			[NotNull] DownloadCacheService downloadCache,
-			System.Threading.CancellationToken cancellationToken)
+			bool sequential = true,
+			System.Threading.CancellationToken cancellationToken = default)
 		{
 			await Logger.LogVerboseAsync("[ComponentMerge] Validating URLs before merge...");
 
@@ -460,6 +468,7 @@ namespace KOTORModSync.Core.Services
 			var validUrls = await ValidateUrlsViaResolutionAsync(
 				allUrls.ToList(),
 				downloadCache,
+				sequential,
 				cancellationToken
 			).ConfigureAwait(false);
 			var validUrlSet = new HashSet<string>(validUrls, StringComparer.OrdinalIgnoreCase);
@@ -701,6 +710,7 @@ namespace KOTORModSync.Core.Services
 		private static async System.Threading.Tasks.Task<List<string>> ValidateUrlsViaResolutionAsync(
 			[NotNull] List<string> urls,
 			[NotNull] DownloadCacheService downloadCache,
+			bool sequential = true,
 			System.Threading.CancellationToken cancellationToken = default)
 		{
 			if ( urls.Count == 0 )
@@ -727,7 +737,7 @@ namespace KOTORModSync.Core.Services
 
 			Dictionary<string, List<string>> resolvedUrls = await downloadCache.PreResolveUrlsAsync(
 				tempComponent, null,
-				sequential: false,
+				sequential: sequential,
 				cancellationToken
 			).ConfigureAwait(false);
 

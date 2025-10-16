@@ -26,7 +26,7 @@ namespace KOTORModSync.Core.Services
 		public Dictionary<Guid, List<string>> InstructionIssues { get; set; } = new Dictionary<Guid, List<string>>();
 		public Dictionary<string, List<string>> UrlFailures { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
-		public void AddComponentIssue(Guid componentGuid, string issue)
+		public void AddModComponentIssue(Guid componentGuid, string issue)
 		{
 			if ( !ComponentIssues.ContainsKey(componentGuid) )
 				ComponentIssues[componentGuid] = new List<string>();
@@ -91,7 +91,7 @@ namespace KOTORModSync.Core.Services
 			{
 				if ( issue.AffectedComponent != null )
 				{
-					context.AddComponentIssue(issue.AffectedComponent.Guid, $"{issue.Category}: {issue.Message}");
+					context.AddModComponentIssue(issue.AffectedComponent.Guid, $"{issue.Category}: {issue.Message}");
 				}
 
 				if ( issue.AffectedInstruction != null )
@@ -710,10 +710,17 @@ namespace KOTORModSync.Core.Services
 					instruction.Action = ActionType.Unset;
 				}
 				instruction.Arguments = GetValueOrDefault<string>(instructionDict, key: "Arguments") ?? string.Empty;
-				instruction.Overwrite = !instructionDict.ContainsKey("Overwrite")
-										|| GetValueOrDefault<bool>(instructionDict, key: "Overwrite");
+				// Default Overwrite behavior: Delete defaults to false (lenient), others default to true
+				if ( instructionDict.ContainsKey("Overwrite") )
+				{
+					instruction.Overwrite = GetValueOrDefault<bool>(instructionDict, key: "Overwrite");
+				}
+				else
+				{
+					instruction.Overwrite = instruction.Action != ActionType.Delete;
+				}
 				instruction.Restrictions = GetValueOrDefault<List<Guid>>(instructionDict, key: "Restrictions")
-					?? new List<Guid>();
+						?? new List<Guid>();
 				instruction.Dependencies = GetValueOrDefault<List<Guid>>(instructionDict, key: "Dependencies")
 					?? new List<Guid>();
 				instruction.Source = GetValueOrDefault<List<string>>(instructionDict, key: "Source")
@@ -1138,7 +1145,14 @@ namespace KOTORModSync.Core.Services
 							instrDict["Source"] = instr.Source;
 						if ( !string.IsNullOrWhiteSpace(instr.Destination) )
 							instrDict["Destination"] = instr.Destination;
-						if (
+						// Serialize Overwrite when it differs from default:
+						// Delete default is false, so serialize when true
+						// Move/Copy/Rename default is true, so serialize when false
+						if ( instr.Action == ActionType.Delete && instr.Overwrite )
+						{
+							instrDict["Overwrite"] = instr.Overwrite;
+						}
+						else if (
 							!instr.Overwrite
 							&&
 							(
@@ -1207,13 +1221,20 @@ namespace KOTORModSync.Core.Services
 									instrDict["Source"] = instr.Source;
 								if ( !string.IsNullOrWhiteSpace(instr.Destination) )
 									instrDict["Destination"] = instr.Destination;
-								if (
+								// Serialize Overwrite when it differs from default:
+								// Delete default is false, so serialize when true
+								// Move/Copy/Rename default is true, so serialize when false
+								if ( instr.Action == ActionType.Delete && instr.Overwrite )
+								{
+									instrDict["Overwrite"] = instr.Overwrite;
+								}
+								else if (
 									!instr.Overwrite
 									&&
 									(
 										instr.Action == ActionType.Move ||
-									 	instr.Action == ActionType.Copy ||
-									 	instr.Action == ActionType.Rename
+										 instr.Action == ActionType.Copy ||
+										 instr.Action == ActionType.Rename
 									)
 								)
 								{
@@ -1663,10 +1684,20 @@ namespace KOTORModSync.Core.Services
 							 inst.Action == ActionType.Copy) )
 							instDict["Destination"] = inst.Destination;
 
-						if ( !inst.Overwrite &&
+						// Serialize Overwrite when it differs from default:
+						// Delete default is false, so serialize when true
+						// Move/Copy/Rename default is true, so serialize when false
+						if ( inst.Action == ActionType.Delete && inst.Overwrite )
+						{
+							instDict["Overwrite"] = true;
+						}
+						else if ( !inst.Overwrite &&
 							(inst.Action == ActionType.Move ||
-							 inst.Action == ActionType.Copy) )
+							 inst.Action == ActionType.Copy ||
+							 inst.Action == ActionType.Rename) )
+						{
 							instDict["Overwrite"] = false;
+						}
 
 						if ( !string.IsNullOrEmpty(inst.Arguments) &&
 							(inst.Action == ActionType.Patcher ||
@@ -1820,10 +1851,20 @@ namespace KOTORModSync.Core.Services
 							 i.Action == ActionType.Execute) )
 							instrObj["arguments"] = i.Arguments;
 
-						if ( !i.Overwrite &&
+						// Serialize Overwrite when it differs from default:
+						// Delete default is false, so serialize when true
+						// Move/Copy/Rename default is true, so serialize when false
+						if ( i.Action == ActionType.Delete && i.Overwrite )
+						{
+							instrObj["overwrite"] = true;
+						}
+						else if ( !i.Overwrite &&
 							(i.Action == ActionType.Move ||
-							 i.Action == ActionType.Copy) )
+							 i.Action == ActionType.Copy ||
+							 i.Action == ActionType.Rename) )
+						{
 							instrObj["overwrite"] = false;
+						}
 
 						if ( i.Dependencies?.Count > 0 )
 							instrObj["dependencies"] = JArray.FromObject(i.Dependencies);
@@ -1885,10 +1926,20 @@ namespace KOTORModSync.Core.Services
 									 i.Action == ActionType.Execute) )
 									instrObj["arguments"] = i.Arguments;
 
-								if ( !i.Overwrite &&
+								// Serialize Overwrite when it differs from default:
+								// Delete default is false, so serialize when true
+								// Move/Copy/Rename default is true, so serialize when false
+								if ( i.Action == ActionType.Delete && i.Overwrite )
+								{
+									instrObj["overwrite"] = true;
+								}
+								else if ( !i.Overwrite &&
 									(i.Action == ActionType.Move ||
-									 i.Action == ActionType.Copy) )
+									 i.Action == ActionType.Copy ||
+									 i.Action == ActionType.Rename) )
+								{
 									instrObj["overwrite"] = false;
+								}
 
 								if ( i.Dependencies?.Count > 0 )
 									instrObj["dependencies"] = JArray.FromObject(i.Dependencies);
@@ -2048,6 +2099,22 @@ namespace KOTORModSync.Core.Services
 							}
 						}
 
+						// Serialize Overwrite when it differs from default:
+						// Delete default is false, so serialize when true
+						// Move/Copy/Rename default is true, so serialize when false
+						XElement overwriteElement = null;
+						if ( instr.Action == ActionType.Delete && instr.Overwrite )
+						{
+							overwriteElement = new XElement("Overwrite", true);
+						}
+						else if ( !instr.Overwrite &&
+							(instr.Action == ActionType.Move ||
+							 instr.Action == ActionType.Copy ||
+							 instr.Action == ActionType.Rename) )
+						{
+							overwriteElement = new XElement("Overwrite", false);
+						}
+
 						instructionsElement.Add(new XElement("Instruction",
 							new XElement("Guid", instr.Guid.ToString()),
 							new XElement("Action", instr.ActionString),
@@ -2060,9 +2127,7 @@ namespace KOTORModSync.Core.Services
 							!string.IsNullOrWhiteSpace(instr.Arguments)
 								? new XElement("Arguments", instr.Arguments)
 								: null,
-							!instr.Overwrite
-								? new XElement("Overwrite", false)
-								: null
+							overwriteElement
 						));
 					}
 					componentElement.Add(instructionsElement);
@@ -2098,6 +2163,22 @@ namespace KOTORModSync.Core.Services
 									}
 								}
 
+								// Serialize Overwrite when it differs from default:
+								// Delete default is false, so serialize when true
+								// Move/Copy/Rename default is true, so serialize when false
+								XElement optOverwriteElement = null;
+								if ( instr.Action == ActionType.Delete && instr.Overwrite )
+								{
+									optOverwriteElement = new XElement("Overwrite", true);
+								}
+								else if ( !instr.Overwrite &&
+									(instr.Action == ActionType.Move ||
+									 instr.Action == ActionType.Copy ||
+									 instr.Action == ActionType.Rename) )
+								{
+									optOverwriteElement = new XElement("Overwrite", false);
+								}
+
 								optInstructionsElement.Add(new XElement("Instruction",
 									new XElement("Guid", instr.Guid.ToString()),
 									!string.IsNullOrWhiteSpace(instr.ActionString)
@@ -2112,9 +2193,7 @@ namespace KOTORModSync.Core.Services
 									!string.IsNullOrWhiteSpace(instr.Arguments)
 										? new XElement("Arguments", instr.Arguments)
 										: null,
-									!instr.Overwrite
-										? new XElement("Overwrite", false)
-										: null
+									optOverwriteElement
 								));
 							}
 							optionElement.Add(optInstructionsElement);

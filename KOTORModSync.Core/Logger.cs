@@ -32,6 +32,17 @@ namespace KOTORModSync.Core
 			lock ( s_initializationLock )
 			{
 				s_isInitialized = true;
+
+				// Set console encoding to UTF-8 to properly display Unicode characters
+				try
+				{
+					Console.OutputEncoding = System.Text.Encoding.UTF8;
+				}
+				catch ( Exception )
+				{
+					// If setting UTF-8 fails (e.g., on some limited environments), continue anyway
+				}
+
 				Log($"Logging initialized at {DateTime.Now}");
 				AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 				TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
@@ -47,14 +58,14 @@ namespace KOTORModSync.Core
 			if ( verbose && !MainConfig.DebugLogging )
 				return;
 			internalMessage = internalMessage ?? string.Empty;
-			await s_semaphore.WaitAsync();
+			await s_semaphore.WaitAsync().ConfigureAwait(false);
 			try
 			{
 				string logMessage = $"[{DateTime.Now}] {internalMessage}";
 				string consoleMessage = $"[{DateTime.Now:HH:mm:ss}] {internalMessage}";
 				if ( color.HasValue )
 					Console.ForegroundColor = color.Value;
-				await Console.Out.WriteLineAsync(consoleMessage);
+				await Console.Out.WriteLineAsync(consoleMessage).ConfigureAwait(false);
 				if ( color.HasValue )
 					Console.ResetColor();
 				string formattedDate = DateTime.Now.ToString("yyyy-MM-dd");
@@ -71,16 +82,16 @@ namespace KOTORModSync.Core
 							logDir,
 							LogFileName + formattedDate + ".log"
 						);
-						using ( var writer = new StreamWriter(logFilePath, append: true) )
+						using ( var writer = new StreamWriter(logFilePath, append: true, System.Text.Encoding.UTF8) )
 						{
-							await writer.WriteLineAsync(logMessage);
+							await writer.WriteLineAsync(logMessage).ConfigureAwait(false);
 							fileWritten = true;
 						}
 					}
 					catch ( IOException ex )
 					{
 						Console.WriteLine($"IOException occurred while writing log message: {ex.Message}");
-						await Task.Delay(millisecondsDelay: 100, token);
+						await Task.Delay(millisecondsDelay: 100, token).ConfigureAwait(false);
 					}
 					catch ( Exception ex )
 					{
@@ -163,9 +174,9 @@ namespace KOTORModSync.Core
 		public static async Task LogExceptionAsync([CanBeNull] Exception ex, [CanBeNull] string customMessage = null)
 		{
 			ex = ex ?? new ApplicationException();
-			await LogErrorAsync(customMessage ?? $"Unhandled exception: {ex.GetType()?.Name}");
-			await LogInternalAsync($"Exception: {ex.GetType()?.Name} - {ex.Message}", color: ConsoleColor.Red);
-			await LogInternalAsync($"Stack trace:{Environment.NewLine}{ex.StackTrace}", color: ConsoleColor.Magenta);
+			await LogErrorAsync(customMessage ?? $"Unhandled exception: {ex.GetType()?.Name}").ConfigureAwait(false);
+			await LogInternalAsync($"Exception: {ex.GetType()?.Name} - {ex.Message}", color: ConsoleColor.Red).ConfigureAwait(false);
+			await LogInternalAsync($"Stack trace:{Environment.NewLine}{ex.StackTrace}", color: ConsoleColor.Magenta).ConfigureAwait(false);
 			ExceptionLogged?.Invoke(ex);
 		}
 		private static void CurrentDomain_UnhandledException(

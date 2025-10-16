@@ -1,0 +1,1741 @@
+=== FILE: full_mobile.md - Line 51 ===
+**Installation Instructions:** The choice of which version to use is up to you; I recommend PC Response Moderation, as it makes your character sound less like a giddy little schoolchild following every little dialogue, but if you prefer only bugfixes it is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable would normally be)—in this very specific case, NOT the override.
+
+=== FILE: full_mobile.md - Line 105 ===
+**Installation Instructions:** Move everything from the Straight Fixes, Resolution Fixes, and Aesthetic Improvements folders to your Override. Move everything from the "Things what bother me" folder as well, EXCEPT the files for the Sith uniform changes: N_AdmrlSaulKar.mdl, N_AdmrlSaulKar.mdx, N_SithComF.mdl, N_SithComF.mdx, N_SithComM.mdl, and N_SithComM.mdx (in other words, move all "MAN26" files and the two "plc_kiosk" files at the bottom). The fix in the Bugfix folder will be applied by a later mod, so you can also skip it.
+
+=== FILE: full_mobile.md - Line 123 ===
+**Installation Instructions:** For this specific mod *only*, the patch is actually run first! Run the patch and apply its changes, then open the main mod file. ONLY look at the Transparent/Non-Transparent folders within the main file; move your preferred textures from one of those folders to your override, and optionally **also** move the contents of the sub-folders for Sith eyes if desired. You will be prompted to overwrite, and this is normal. Do NOT move any of the files in the main mod folder! Your install is done once you've moved your desired textures from the main mod download.
+
+=== FILE: full_mobile.md - Line 141 ===
+**Installation Instructions:** Be aware that this mod is one of the very few in the builds that is installed via the HoloPatcher, a new install method. For your purposes as the enduser, it functions almost identically to the TSLPatcher. Run the installer, then move the files from the patch to your override.
+
+=== FILE: full_mobile.md - Line 175 ===
+**Installation Instructions:** Install the main mod, then re-run the patcher and select the K1CP compatibility install option and install it as well, if using K1CP.
+
+=== FILE: full_mobile.md - Line 221 ===
+**Installation Instructions:** Move the files from both the Override and Optional folders to your game's override folder.
+
+=== FILE: full_mobile.md - Line 239 ===
+**Installation Instructions:** If using both components of JC's Republic Soldier Fix mod, install Options 3 and 5; if using only the main component of JC's mod, install only Option 5; if not using JC's mod, install the Main file and Option 2.
+
+=== FILE: full_mobile.md - Line 257 ===
+**Installation Instructions:** I recommend avoiding the upscale option for the purposes of playing on mobile.
+
+=== FILE: full_mobile.md - Line 291 ===
+**Installation Instructions:** Choose whether to use the slim or original necks; your preference.
+
+=== FILE: full_mobile.md - Line 309 ===
+**Installation Instructions:** Unzip the mod, enter the NPC Replacement folder, and move the six files within (NOT including the optional folder or its contents) to the override.
+
+=== FILE: full_mobile.md - Line 393 ===
+**Installation Instructions:** If running the Community Patch (you should be), install the Community Patch-Compatible install option; otherwise, select Basic. If you would like Master Uthar or Yuthura Ban (the two top Sith at the academy) to wear alternate outfits instead of robes, re-run the patcher to select your preferred options AFTER running the initial install.
+
+=== FILE: full_mobile.md - Line 411 ===
+**Installation Instructions:** When installing, use the screenshots provided to determine which robe style you would like to use. Aesthetically, I strongly recommend the Brown-Red-Blue Alternative.
+
+=== FILE: full_mobile.md - Line 429 ===
+**Installation Instructions:** If you use Cloaked Jedi Robes's 100% Brown option, make sure to install the 100% Brown compatibility patch after the main mod installation (re-run the executable).
+
+=== FILE: full_mobile.md - Line 449 ===
+**Installation Instructions:** Only move the files from "Jedi Robes Override".
+
+=== FILE: full_mobile.md - Line 503 ===
+**Installation Instructions:** When installing, select the Community Patch-compatible installation, if using the K1CP (you should be). Ignore the other install options.
+
+=== FILE: full_mobile.md - Line 553 ===
+**Installation Instructions:** Move the files from "to override" to your override folder, then also move the files from the Animation Fix folder and overwrite when prompted.
+
+=== FILE: full_mobile.md - Line 571 ===
+**Download Instructions:** I strongly recommend the Small version for mobile.
+
+=== FILE: full_mobile.md - Line 589 ===
+**Installation Instructions:** If you would like the forcefield for the hangar to be visible, re-run the installer after installing the main option and also install the visible forcefield option. If using HQ Cockpit Skyboxes, move the files from the resolution folder corresponding to the HQ Cockpit Skyboxes size you utilized to your override, then delete ebo_yab.tga, ebo_yaf.tga, ebo_yal.tga, ebo_yar.tga and ebo_yat.tga from your override.
+
+=== FILE: full_mobile.md - Line 607 ===
+**Installation Instructions:** Don't install the included modifications to the Dantooine Estates or Sith Base, you'll only be installing the contents of Part 1 and Part 2. You will additionally need to delete the following files from the Part 1 folder before moving the mod content to the override folder: LTS_Bsky01.tga, LTS_Bsky02.tga, and (sorted by name) LTS_sky0001.tga **through** LTS_SKY0005.tga
+
+=== FILE: full_mobile.md - Line 641 ===
+**Download Instructions:** Unless using one of the mods for which Kex has developed skyboxes (*not* recommended, as they're almost certainly not compatible with this build) simply download the 'HQSkyboxesII_K1.7z' file.
+
+=== FILE: full_mobile.md - Line 643 ===
+**Installation Instructions:** Delete m36aa_01_lm0 through m36aa_01_lm2.tga before moving to the override, then apply the patch.
+
+=== FILE: full_mobile.md - Line 661 ===
+**Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply the contents of the "Leviathan - K1CP Forcefield" folder (if using K1CP) and HQ Skyboxes compatch (if using HQ Skyboxes).
+
+=== FILE: full_mobile.md - Line 743 ===
+**Installation Instructions:** The mod builds are only tested with the standard install option; other options are untested for compatibility and function. Use at your own risk!
+
+=== FILE: full_mobile.md - Line 825 ===
+**Install Instructions:** For realism I personally recommend the "Senni Vek's Ambush" install, but if you'd like to remain as close to vanilla as possible, choose the Senni Vek Restoration instead.
+
+=== FILE: full_mobile.md - Line 843 ===
+**Installation Instructions:** Run the installer first. Once completed, move the upscaled textures to override (if desired). If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder. If using the Senni Vek Mod, ensure to also re-run the installer and select the compatibility patch for whichever version of that mod you've chosen to use (Senni Vek's Ambush or Senni Vek Restoration).
+
+=== FILE: full_mobile.md - Line 913 ===
+**Installation Instructions:** Move "dan13_dorak.dlg" only.
+
+=== FILE: full_mobile.md - Line 1029 ===
+**Installation Instructions:** Delete "ii_trapkit_001.tga" through "ii_trapkit_004.tga" before installing.
+
+=== FILE: full_mobile.md - Line 1079 ===
+**Installation Instructions:** The optional file included in the install is compatible with the builds, and it's your choice to use it or not.
+
+=== FILE: full_mobile.md - Line 1114 ===
+**Installation Instructions:** Use the K1CP compatible install option, if using the K1CP (you should be).
+
+=== FILE: full_mobile.md - Line 1180 ===
+**Installation Instructions:** I personally recommend option 2.
+
+=== FILE: full_mobile.md - Line 1198 ===
+**Download Instructions:** Full or Light version is your choice.
+
+=== FILE: full_mobile.md - Line 1264 ===
+**Installation Instructions:** Extract the mod, navigate to the 'TSLPatchdata' folder, and delete the file 'keblastore.utm'. Run the installer—it will give you a single error, this is intended. After the install has completed, rename the files 'w_ionrfl_04.mdl' and 'w_ionrfl_04.mdx' to 'w_ionrfl_004.mdl' and 'w_ionrfl_004.mdx'. Delete the following files from your override directory: w_rptnblstr_004.mdl, w_rptnblstr_004.mdx, w_blstrpstl_006.mdl, w_blstrpstl_006.mdx and g1_w_rptnblstr01.uti
+
+=== FILE: full_mobile.md - Line 1284 ===
+**Installation Instructions:** Run the installer to install the mod, then re-run it once more, for the optional install HQ Blasters. Then install the patch.
+
+=== FILE: full_mobile.md - Line 1400 ===
+**Installation Instructions:** Install the base mod first, then move the file from the patch directly to your override.
+
+=== FILE: full_mobile.md - Line 1450 ===
+**Installation Instructions:** Use the regular install—other install variants have been linked to sequence breaks, but the normal install variant is fully functional.
+
+=== FILE: full_mobile.md - Line 1464 ===
+**Download Instructions:** Ignore the patch in the downloads, as it's only for updating from a previous version.
+
+=== FILE: full_mobile.md - Line 1486 ===
+**Installation Instructions:** This mod is not a file archive unlike all the other mods you've downloaded, just a single pre-extracted file. When you get the file, just put it directly in your Override folder.
+
+=== FILE: full_mobile.md - Line 1520 ===
+**Installation Instructions:** Which of the three versions is used is up to your preference. Full is the entire package, lite is without the player swoop displayed on the race platform, and ultra lite is without the doors fix.
+
+=== FILE: full_mobile.md - Line 1554 ===
+**Installation Instructions:** If you have installed the K1CP, install just the pillar facing fix. The lighting fix is already included in the K1CP.
+
+=== FILE: full_mobile.md - Line 1620 ===
+**Download Instructions:** If you choose to do the complete install with Dantooine and also use JCarter's Fashion Line mod, you'll need the compatibility patch here as well. I recommend the Base install option, however.
+
+=== FILE: full_mobile.md - Line 1654 ===
+**Installation Instructions:** Recommend the Revisited option.
+
+=== FILE: full_mobile.md - Line 1738 ===
+**Installation Instructions:** Use the version not for the Weapon Model Overhaul, unless you choose to install it separately (NOT tested and NOT recommended).
+
+=== FILE: full_mobile.md - Line 1756 ===
+**Installation Instructions:** Install the Sith Specter/Rece compatibility option if using Ajunta Pall's Swords.
+
+=== FILE: full_mobile.md - Line 1774 ===
+**Installation Instructions:** Install Option A. I recommend NOT re-running the patcher to install the extra textures, as upscaled textures installed in UCO are much higher-quality than these.
+
+=== FILE: full_mobile.md - Line 1794 ===
+**Installation Instructions:** Run the patcher and select your desired install. I personally would recommend using at least one of the first three, as the mod is not worth it for just the feat changes in my opinion. My personal recommendation would be option 2 or 3 (especially if intending to use JC's Blaster Adjustment below), but I tested it with option 1 and did not find it terribly overpowered. Indeed, it made the game way harder at points as enemies were beaming me with multiple rifle attacks, so if you want an extra challenge option 1 is a valid choice.
+
+=== FILE: full_mobile.md - Line 1812 ===
+**Installation Instructions:** If you installed the main option of Multifire and Autofire, I recommend using the *Blaster Pistol + Critical* option of this mod, as applying its changes to repeaters and rifles would make them insanely overpowered with their auto-attacks. If using Options 2 or 3 of Multifire and Autofire, I would recommend the *Blaster Pistol & Blaster Rifle + Critical* version of this mod--don't worry, it won't make rifles way stronger; JC's changes to the damage will overwrite bdaman's, in effect just adding JC's alterations to the critical strike ranges. Finally, if not using bdaman's mod, I recommend the full install.
+
+=== FILE: full_mobile.md - Line 1942 ===
+**Installation Instructions:** Ignore the Patch folder unless using K2 Force Powers for K1 (untested, but should function). I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
+
+=== FILE: full_mobile.md - Line 1958 ===
+**Installation Instructions:** Place DelDuplicateTGA-TPC (or the bash script version) in your main game folder (NOT override!), run it, say that **TPC should be deleted** and do not manually confirm. If you are on a Mac or other device that cannot run .bat files and the bash script is not an option for you to use, a list of all the files you will need to manually delete can be found [here](/modding/mod_builds/k1/delete.html).
+
+=== FILE: full_mobile.md - Line 1974 ===
+**Installation Instructions:** If the device you're currently using runs a Windows OS, download one of the executable files from the linked github page matching your operating system's architecture (32-bit or 64-bit; google which your Windows OS is if you're not sure), place the file in the main dummy directory which you have created to install the mods to (NOT the override folder), and run the executable.
+
+=== FILE: full.md - Line 83 ===
+**Installation Instructions:** The choice of which version to use is up to you; I recommend PC Response Moderation, as it makes your character sound less like a giddy little schoolchild following every little dialogue, but if you prefer only bugfixes it is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable is)—in this very specific case, NOT the override.
+
+=== FILE: full.md - Line 137 ===
+**Installation Instructions:** Move everything from the Straight Fixes, Resolution Fixes, and Aesthetic Improvements folders to your Override. Move everything from the "Things what bother me" folder as well, EXCEPT the files for the Sith uniform changes: N_AdmrlSaulKar.mdl, N_AdmrlSaulKar.mdx, N_SithComF.mdl, N_SithComF.mdx, N_SithComM.mdl, and N_SithComM.mdx (in other words, move all "MAN26" files and the two "plc_kiosk" files at the bottom). The fix in the Bugfix folder will be applied by a later mod, so you can also skip it.
+
+=== FILE: full.md - Line 155 ===
+**Installation Instructions:** For this specific mod *only*, the patch is actually run first! Run the patch and apply its changes, then open the main mod file. ONLY look at the Transparent/Non-Transparent folders within the main file; move your preferred textures from one of those folders to your override, and optionally **also** move the contents of the sub-folders for Sith eyes if desired. You will be prompted to overwrite, and this is normal. Do NOT move any of the files in the main mod folder! Your install is done once you've moved your desired textures from the main mod download.
+
+=== FILE: full.md - Line 173 ===
+**Installation Instructions:** Be aware that this mod is one of the very few in the builds that is installed via the HoloPatcher, a new install method. For your purposes as the enduser, it functions almost identically to the TSLPatcher. Run the installer, then move the files from the patch to your override.
+
+=== FILE: full.md - Line 207 ===
+**Installation Instructions:** Install the main mod, then re-run the patcher and select the K1CP compatibility install option and install it as well, if using K1CP.
+
+=== FILE: full.md - Line 225 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Don't worry about it saying it requires Kexikus's skyboxes, that mod will be installed later.
+
+=== FILE: full.md - Line 243 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: full.md - Line 261 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: full.md - Line 279 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: full.md - Line 297 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: full.md - Line 315 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: full.md - Line 333 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Please note, there are confirmed visual bugs when utilizing this mod unless ALSO using Quanon's Taris retexture (installed further down this list). Make sure to delete LSI_win01.tpc and LSI_box01.tpc **before** moving to override.
+
+=== FILE: full.md - Line 351 ===
+**Installation Instructions:** For now, ignore all patches (those will be installed later). Just download the main package, and MAKE SURE it is the .tpc file version! I recommend the 2x version for the best combination of performance and quality.
+
+=== FILE: full.md - Line 371 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete LUN_blst01.tpc and LUN_blst02.tpc before moving to your override.
+
+=== FILE: full.md - Line 389 ===
+**Download Instructions:** Download and install both files.
+
+=== FILE: full.md - Line 439 ===
+**Installation Instructions:** Move all the loose files to the Override. If you'd like KOTOR 2-style specialty cards (green-colored), move the files from the "green" folder to the override folder as well.
+
+=== FILE: full.md - Line 457 ===
+**Installation Instructions:** Move the files from both the Override and Optional folders to your game's override folder.
+
+=== FILE: full.md - Line 475 ===
+**Installation Instructions:** If using both components of JC's Republic Soldier Fix mod, install Options 3 and 5; if using only the main component of JC's mod, install only Option 5; if not using JC's mod, install the Main file and Option 2.
+
+=== FILE: full.md - Line 575 ===
+**Installation Instructions:** I recommend using the upscale option.
+
+=== FILE: full.md - Line 609 ===
+**Installation Instructions:** The file has the wrong readme; move all the files in the Creatures folder, except for the readme and Gizka.jpg (any .jpg/.png files are always previews and can be deleted), to the override.
+
+=== FILE: full.md - Line 707 ===
+**Installation Instructions:** Choose whether to use the slim or original necks; your preference.
+
+=== FILE: full.md - Line 725 ===
+**Download Instructions:** Download the 'hd_twilek_female.rar' file, and ignore the other versions.
+
+=== FILE: full.md - Line 743 ===
+**Installation Instructions:** Unzip the mod, enter the NPC Replacement folder, and move the six files within (NOT including the optional folder or its contents) to the override.
+
+=== FILE: full.md - Line 795 ===
+**Download Instructions:** Do not download the .tga file.
+
+=== FILE: full.md - Line 797 ===
+**Installation Instructions:** If intending to use CineMalak below (recommended!), select your preferred head texture from the Malak (Red Eyes) or Malak (Blue Eyes) folders and move the files within to your override. You can ignore N_DarthMalak01.tga, unless you do not want to use CineMalak, in which case you should also move it to your override.
+
+=== FILE: full.md - Line 815 ===
+**Installation Instructions:** The downloaded file is a loose .tga, not inside an archive. For this mod, just move the downloaded file (N_DarthMalak01.tga) to your override directly.
+
+=== FILE: full.md - Line 833 ===
+**Installation Instructions:** Make a copy of the file and rename it PMBJ01, then move all files to override.
+
+=== FILE: full.md - Line 883 ===
+**Download Instructions:** Download just the random UI elements download, not the optional T3-M4 request.
+
+=== FILE: full.md - Line 901 ===
+**Download Instructions:** Download the V2 option.
+
+=== FILE: full.md - Line 903 ===
+**Installation Instructions:** Ignore the 'V1 Looks' option.
+
+=== FILE: full.md - Line 923 ===
+**Installation Instructions:** Delete n_commm07.tga and N_CommMD01.tga. Delete N_CommM08.tga, then make a copy of N_CommM0801 and paste it in the same directory. This should create a duplicate file; rename that duplicate file to "N_CommM08.tga" and then move all files to override.
+
+=== FILE: full.md - Line 941 ===
+**Install Instructions:** Use the Body & Lightsaber version, we will use a different head model. Make sure to install the patch after, it fixes an issue with her lightsaber which can cause it to disappear.
+
+=== FILE: full.md - Line 975 ===
+**Installation Instructions:** If running the Community Patch (you should be), install the Community Patch-Compatible install option; otherwise, select Basic. If you would like Master Uthar or Yuthura Ban (the two top Sith at the academy) to wear alternate outfits instead of robes, re-run the patcher to select your preferred options AFTER running the initial install.
+
+=== FILE: full.md - Line 993 ===
+**Installation Instructions:** When installing, use the screenshots provided to determine which robe style you would like to use. Aesthetically, I strongly recommend the Brown-Red-Blue Alternative.
+
+=== FILE: full.md - Line 1011 ===
+**Installation Instructions:** If you use Cloaked Jedi Robes's 100% Brown option, make sure to install the 100% Brown compatibility patch after the main mod installation (re-run the executable).
+
+=== FILE: full.md - Line 1031 ===
+**Installation Instructions:** Only move the files from "Jedi Robes Override".
+
+=== FILE: full.md - Line 1067 ===
+**Installation Instructions:** Delete PO_phk47.tga before moving the two other files to the override.
+
+=== FILE: full.md - Line 1101 ===
+**Download Instructions:** Download the "Kiosk HD 15.03.2024" version, then, ensuring you are logged in to Deadly Stream, the plc_kiosk3_fixed.zip attachment in Marius Fett's comment as the patch. **Make sure not to use the K2 version of the patch**. Doing so will result in a crash as soon as you leave the Taris hideout.
+
+=== FILE: full.md - Line 1183 ===
+**Download Instructions:** Unless you want icons like those in the preview images (which I recommend against, as it will not match the vanilla aesthetic for most of the other equipment icons in the game), do not download the "stunbaton 2025" file; only download "Stun baton HD".
+
+=== FILE: full.md - Line 1303 ===
+**Installation Instructions:** Delete N_CommF02.tga & .txi before moving to override.
+
+=== FILE: full.md - Line 1353 ===
+**Installation Instructions:** Delete po_pt3m33.tga before moving the files to your override.
+
+=== FILE: full.md - Line 1403 ===
+**Download Instructions:** Download only the file which adds clothing, unless you like the head & face changes the mod makes
+
+=== FILE: full.md - Line 1405 ===
+**Installation Instructions:** Delete PO_pcarth3.tga before moving the other files to the override.
+
+=== FILE: full.md - Line 1423 ===
+**Download Instructions:** Download only the version marked 'new clothes,' which includes both clothing and body textures. We get our head texture from the below mod. Remember to also download the patch.
+
+=== FILE: full.md - Line 1441 ===
+**Installation Instructions:** Move only P_CandH01.tga to your override.
+
+=== FILE: full.md - Line 1475 ===
+**Download Instructions:** Download the default, not the iconic recolor.
+
+=== FILE: full.md - Line 1477 ===
+**Installation Instructions:** Move ONLY P_joleeh01.tga and P_joleeh01.txi to your override.
+
+=== FILE: full.md - Line 1495 ===
+**Installation Instructions:** Delete po_pzaalbar3.tga before moving the files to your override.
+
+=== FILE: full.md - Line 1513 ===
+**Installation Instructions:** When installing, select the Community Patch-compatible installation, if using the K1CP (you should be). Ignore the other install options.
+
+=== FILE: full.md - Line 1531 ===
+**Installation Instructions:** Strongly recommend the Lite version—the quality difference is not noticeable, but the filesize footprint of the large versions is huge and could contribute to load errors in multiple modules.
+
+=== FILE: full.md - Line 1597 ===
+**Installation Instructions:** Once the mod is extracted, copy the file 'LDA_EHawk01' and make a duplicate of it. Rename this duplicate to 'M36_EHawk01.tga' and then move all files to the override.
+
+=== FILE: full.md - Line 1615 ===
+**Installation Instructions:** Move the files from "to override" to your override folder, then also move the files from the Animation Fix folder and overwrite when prompted.
+
+=== FILE: full.md - Line 1633 ===
+**Download Instructions:** Download the version of the mod you would like based upon how detailed you want the cockpit skyboxes to appear. Keep in mind that load time into the Ebon Hawk could be significantly increased if using very large cockpit textures, and there's also a risk of save corruption when using very large texture sizes—I recommend the Medium texture option for the best balance of quality and size/performance.
+
+=== FILE: full.md - Line 1651 ===
+**Installation Instructions:** If you would like the forcefield for the hangar to be visible, re-run the installer after installing the main option and also install the visible forcefield option. If using HQ Cockpit Skyboxes, move the files from the resolution folder corresponding to the HQ Cockpit Skyboxes size you utilized to your override, then delete ebo_yab.tga, ebo_yaf.tga, ebo_yal.tga, ebo_yar.tga and ebo_yat.tga from your override. Finally, if you utilize Vurt's "K1 Hi-Res Ebon Hawk Retexture," download [this patch](https://mega.nz/file/QAhhFTzD#rxS91pehFgNP7xFh3DNnNFC1d_YelF43K4-q6mh8xfI) and move its contents to your override.
+
+=== FILE: full.md - Line 1685 ===
+**Installation Instructions:** Recommend the version without overlays, but it's personal preference.
+
+=== FILE: full.md - Line 1703 ===
+**Installation Instructions:** Don't install the included modifications to the Dantooine Estates or Sith Base, you'll only be installing the contents of Part 1 and Part 2. You will additionally need to delete the following files from the Part 1 folder before moving the mod content to the override folder: LTS_Bsky01.tga, LTS_Bsky02.tga, and (sorted by name) LTS_sky0001.tga **through** LTS_SKY0005.tga
+
+=== FILE: full.md - Line 1737 ===
+**Download Instructions:** Unless using one of the mods for which Kex has developed skyboxes (*not* recommended, as they're almost certainly not compatible with this build) simply download the 'HQSkyboxesII_K1.7z' file.
+
+=== FILE: full.md - Line 1739 ===
+**Installation Instructions:** Delete m36aa_01_lm0 through m36aa_01_lm2.tga before moving to the override, then apply the patch.
+
+=== FILE: full.md - Line 1757 ===
+**Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply the contents of the "Leviathan - K1CP Forcefield" folder (if using K1CP) and HQ Skyboxes compatch (if using HQ Skyboxes).
+
+=== FILE: full.md - Line 1841 ===
+**Installation Instructions:** I recommend against any of the included optional files.
+
+=== FILE: full.md - Line 1923 ===
+**Installation Instructions:** The mod builds are only tested with the standard install option; other options are untested for compatibility and function. Use at your own risk!
+
+=== FILE: full.md - Line 1957 ===
+**Installation Instructions:** Move everything from the override folder to your game's override directory, unless you would like yellow/green disruptors, in which case those files should be moved from the optional folder after moving all loose files to the override first.
+
+=== FILE: full.md - Line 2023 ===
+**Install Instructions:** For realism I personally recommend the "Senni Vek's Ambush" install, but if you'd like to remain as close to vanilla as possible, choose the Senni Vek Restoration instead.
+
+=== FILE: full.md - Line 2041 ===
+**Installation Instructions:** Run the installer first. Once completed, move the upscaled textures to override (if desired). If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder. If using the Senni Vek Mod, ensure to also re-run the installer and select the compatibility patch for whichever version of that mod you've chosen to use (Senni Vek's Ambush or Senni Vek Restoration).
+
+=== FILE: full.md - Line 2111 ===
+**Installation Instructions:** Move "dan13_dorak.dlg" only.
+
+=== FILE: full.md - Line 2229 ===
+**Installation Instructions:** Delete "ii_trapkit_001.tga" through "ii_trapkit_004.tga" before installing.
+
+=== FILE: full.md - Line 2279 ===
+**Installation Instructions:** The optional file included in the install is compatible with the builds, and it's your choice to use it or not.
+
+=== FILE: full.md - Line 2313 ===
+**Installation Instructions:** Use the K1CP compatible install option, if using the K1CP (you should be).
+
+=== FILE: full.md - Line 2379 ===
+**Installation Instructions:** I personally recommend option 2.
+
+=== FILE: full.md - Line 2397 ===
+**Download Instructions:** Full or Light version is your choice.
+
+=== FILE: full.md - Line 2463 ===
+**Installation Instructions:** Extract the mod, navigate to the 'TSLPatchdata' folder, and delete the file 'keblastore.utm'. Run the installer—it will give you a single error, this is intended. After the install has completed, rename the files 'w_ionrfl_04.mdl' and 'w_ionrfl_04.mdx' to 'w_ionrfl_004.mdl' and 'w_ionrfl_004.mdx'. Delete the following files from your override directory: w_rptnblstr_004.mdl, w_rptnblstr_004.mdx, w_blstrpstl_006.mdl, w_blstrpstl_006.mdx and g1_w_rptnblstr01.uti
+
+=== FILE: full.md - Line 2483 ===
+**Installation Instructions:** Run the installer to install the mod, then re-run it twice more, once for each of the optional installs, if using Loadscreens in Color/HQ Blasters.
+
+=== FILE: full.md - Line 2599 ===
+**Installation Instructions:** Install the base mod first, then move the file from the patch directly to your override.
+
+=== FILE: full.md - Line 2649 ===
+**Installation Instructions:** Use the regular install—other install variants have been linked to sequence breaks, but the normal install variant is fully functional.
+
+=== FILE: full.md - Line 2683 ===
+**Installation Instructions:** This mod is not a file archive unlike all the other mods you've downloaded, just a single pre-extracted file. When you get the file, just put it directly in your Override folder.
+
+=== FILE: full.md - Line 2717 ===
+**Installation Instructions:** Which of the three versions is used is up to your preference. Full is the entire package, lite is without the player swoop displayed on the race platform, and ultra lite is without the doors fix.
+
+=== FILE: full.md - Line 2751 ===
+**Installation Instructions:** If you have installed the K1CP, install just the pillar facing fix. The lighting fix is already included in the K1CP.
+
+=== FILE: full.md - Line 2769 ===
+**Installation Instructions:** If using Dark Hope's HD Ithorian texture, also download and apply [this patch](https://mega.nz/file/wUYRUTAD#tE7J08QTc0NSSbG-Xu3cSFsynLVtg7J59BruxOlDnKY), which Sith Holocron was kind enough to make at my request, after installing this mod.
+
+=== FILE: full.md - Line 2819 ===
+**Download Instructions:** I recommend the Base install option. If you wish to add these NPCs to Dantooine, you can also install the optional module; just make sure to add the compatibility patch if you're using 'Cloaked Jedi Robes' above.
+
+=== FILE: full.md - Line 2853 ===
+**Installation Instructions:** Recommend the Revisited option.
+
+=== FILE: full.md - Line 2953 ===
+**Installation Instructions:** Use the version not for the Weapon Model Overhaul, unless you choose to install it separately (NOT tested and NOT recommended).
+
+=== FILE: full.md - Line 2971 ===
+**Installation Instructions:** Install the Sith Specter/Rece compatibility option if using Ajunta Pall's Swords.
+
+=== FILE: full.md - Line 2989 ===
+**Installation Instructions:** Install Option A. I recommend NOT re-running the patcher to install the extra textures, as upscaled textures installed in UCO are much higher-quality than these.
+
+=== FILE: full.md - Line 3009 ===
+**Installation Instructions:** Run the patcher and select your desired install. I personally would recommend using at least one of the first three, as the mod is not worth it for just the feat changes in my opinion. My personal recommendation would be option 2 or 3 (especially if intending to use JC's Blaster Adjustment below), but I tested it with option 1 and did not find it terribly overpowered. Indeed, it made the game way harder at points as enemies were beaming me with multiple rifle attacks, so if you want an extra challenge option 1 is a valid choice.
+
+=== FILE: full.md - Line 3027 ===
+**Installation Instructions:** If you installed the main option of Multifire and Autofire, I recommend using the *Blaster Pistol + Critical* option of this mod, as applying its changes to repeaters and rifles would make them insanely overpowered with their auto-attacks. If using Options 2 or 3 of Multifire and Autofire, I would recommend the *Blaster Pistol & Blaster Rifle + Critical* version of this mod--don't worry, it won't make rifles way stronger; JC's changes to the damage will overwrite bdaman's, in effect just adding JC's alterations to the critical strike ranges. Finally, if not using bdaman's mod, I recommend the full install.
+
+=== FILE: full.md - Line 3173 ===
+**Installation Instructions:** Ignore the Patch folder unless using K2 Force Powers for K1 (untested, but should function). I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
+
+=== FILE: full.md - Line 3191 ===
+**Installation Instructions:** If intending to play [in widescreen](#Optional_Widescreen) and with the widescreen menus mod (part of several additional widescreen support mods [here](/modding/mod_builds/k1/widescreen.html)), install this mod *after* the widescreen menus installation, and move the file from the optional download "HR Menu Patch.zip" file which corresponds to your resolution to your override folder *after* the initial installation completes; otherwise, install the base mod now.
+
+=== FILE: full.md - Line 3207 ===
+**Installation Instructions:** Place DelDuplicateTGA-TPC (or the bash script version) in your main game folder (NOT override!), run it, **say that TPC should be deleted** and do not manually confirm. If you are on a Mac or other device that cannot run .bat files and the bash script is not an option for you to use, a list of all the files you will need to manually delete can be found [here](/modding/mod_builds/k1/delete.html).
+
+=== FILE: full.md - Line 3229 ===
+**Download Instructions:** Skip the compatch for Better Twi'lek Male Heads if you chose to use Leilukin's Male Twi'lek NPC Diversity.
+
+=== FILE: full.md - Line 3231 ===
+**Installation Instructions:** Scroll down to the "optional files" section of the mod page. In order, install the compatch for JC's Minor Fixes, the K1CP (delete "PLC_SSldCrps.tpc". Additionally delete N_CommM01 - 06, plus N_CommM08, if using Dark Hope's male clothing upscale. Only then move the files to your override), and then all remaining content that matches content you chose to use from the builds (again, skipping Better Twi'lek Male Heads, if using Leilukin's mod). I also recommend against using the patch for JC's Mandalorian Armor, as there are better options (in my opinion) in Character Textures & Model Fixes below. If using Thigh-High Boots for Twi'lek, only move the patch content from the NPC Replacement folder. If using Republic Soldier's New Shade, use the New Shade option.
+
+=== FILE: full.md - Line 3249 ===
+**Download Instructions:** *Strongly* recommend the 2x .tpc version; the fidelity loss for 2x is minimal, .tpc is a lossless conversion and is much slimmer in filesize, and the automated compatibility program for this mod relies on the filetype being .tpc to function.
+
+=== FILE: full.md - Line 3251 ===
+**Installation Instructions:** If you are on a system which can run .bat files, I *strongly* recommend using the automated system to deal with compatibility for this mod. To do so, first extract redrob's mod from its archive, then go to [this page](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/scripts/cleaner.bat) and click on the button with the arrow pointing down at the top of the code list (the one which says "download raw file"). Place cleaner.bat in the folder from redrob's mod called "Copy contents to KotOR's Override folder", then go to [here](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/scripts/cleanlist_k1.txt) and repeat the same step, placing cleanlist_k1.txt in the same location. You can now run cleanlist.bat: follow the instructions onscreen, selecting whether you did or didn't use any of the given mods, and the batch file will automatically delete the incompatible files. Once you reach the end of the list, you can exit the .bat window, delete cleaner.bat and cleanlist_k1.txt, and then move the remaining files in the folder to your override.
+
+=== FILE: full.md - Line 3269 ===
+**Installation Instructions:** If you intend to add widescreen support, *proceed to the below section and* **FULLY** *apply your chosen widescreen resolution* **AND** *all additional widescreen support mods you choose to use* **BEFORE** *completing this step*. Once you are done applying all your chosen widescreen content, you are then free to apply this patch.
+
+=== FILE: full.md - Line 3315 ===
+**Installation Instructions:** Make a copy of your swkotor.exe (only AFTER having applied the UniWS widescreen patch) and paste it into the extracted mod folder with the .bat file within. Run the .bat file (NOT the .exe!) and input the necessary data. The .bat will generate a new file called swkotor.exe, as well as swkotor.exe.bak—*swkotor.exe is the correct file*, and the file with .bak appended at the end is a backup which you can safely delete. Take the new swkotor.exe file and replace the one in your main game directory with it, then move the HR Menus files for your selected resolution into your override folder.
+
+=== FILE: full.md - Line 3365 ===
+**Installation Instructions:** I recommend using the .tpc file option. For **THIS MOD ONLY**, do not overwrite when prompted!
+
+=== FILE: full.md - Line 3385 ===
+**Installation Instructions:** In the "JC's Cloaked Jedis" folder, select the files from the version of JC's Cloaked Jedi Robes you utilized. Ignore the Effix folder unless playing with that specific mod.
+
+=== FILE: full.md - Line 3453 ===
+**Installation Instructions:** Choose the resolution option which most closely fits your monitor's screen size during the download process. I *STRONGLY* recommend choosing the 30fps option for that resolution—there have been crashes directly linked to the 60fps versions. When installing, there will be several optional files based on how dialogue in cutscenes are displayed (floating text or not, etc). Which of these you choose is your preference; use the mod screenshots to determine. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: full.md - Line 3475 ===
+**Installation Instructions:** Use only Pops Maellard's cutscenes or this version by naelavok. To install, choose the resolution option which most closely fits your monitor's screen size during the download process. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: spoiler-free_mobile.md - Line 47 ===
+**Installation Instructions:** The choice of which version to use is up to you; I recommend PC Response Moderation, as in vanilla your character sounds like a giddy little schoolchild following even the most minor dialogue interactions, and that mod serves to correct that without actually changing the underlying dialogue much, but if you prefer only bugfixes that option is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable would normally be)—in this very specific case, NOT the override.
+
+=== FILE: spoiler-free_mobile.md - Line 65 ===
+**Installation Instructions:** Make sure you don't forget to install the patch!
+
+=== FILE: spoiler-free_mobile.md - Line 103 ===
+**Installation Instructions:** Move everything from the Straight Fixes, Resolution Fixes, and Aesthetic Improvements folders to your Override. Move everything from the "Things what bother me" folder as well, EXCEPT the files for the Sith uniform changes: N_AdmrlSaulKar.mdl, N_AdmrlSaulKar.mdx, N_SithComF.mdl, N_SithComF.mdx, N_SithComM.mdl, and N_SithComM.mdx (in other words, move all "MAN26" files and the two "plc_kiosk" files at the bottom). The fix in the Bugfix folder will be applied by a later mod, so you can also skip it.
+
+=== FILE: spoiler-free_mobile.md - Line 121 ===
+**Installation Instructions:** For this specific mod *only*, the patch is actually run first! Run the patch and apply its changes, then open the main mod file. ONLY look at the Transparent/Non-Transparent folders within the main file; move your preferred textures from one of those folders to your override, and optionally **also** move the contents of the sub-folders for Sith eyes if desired. You will be prompted to overwrite, and this is normal. Do NOT move any of the files in the main mod folder! Your install is done once you've moved your desired textures from the main mod download.
+
+=== FILE: spoiler-free_mobile.md - Line 141 ===
+**Installation Instructions:** Be aware that this mod is one of the very few in the builds that is installed via the HoloPatcher, a new install method. For your purposes as the enduser, it functions almost identically to the TSLPatcher. Run the installer, then move the files from the patch to your override.
+
+=== FILE: spoiler-free_mobile.md - Line 175 ===
+**Installation Instructions:** Install the main mod, then re-run the patcher and select the K1CP compatibility install option and install it as well, if using K1CP.
+
+=== FILE: spoiler-free_mobile.md - Line 225 ===
+**Installation Instructions:** Move the files from both the Override and Optional folders to your game's override folder.
+
+=== FILE: spoiler-free_mobile.md - Line 243 ===
+**Installation Instructions:** If using both components of JC's Republic Soldier Fix mod, install Options 3 and 5; if using only the main component of JC's mod, install only Option 5; if not using JC's mod, install the Main file and Option 2.
+
+=== FILE: spoiler-free_mobile.md - Line 261 ===
+**Installation Instructions:** I recommend avoiding the upscale option for the purposes of playing on mobile.
+
+=== FILE: spoiler-free_mobile.md - Line 295 ===
+**Installation Instructions:** Choose whether to use the slim or original necks; your preference.
+
+=== FILE: spoiler-free_mobile.md - Line 313 ===
+**Installation Instructions:** Unzip the mod, enter the NPC Replacement folder, and move the six files within (NOT including the optional folder or its contents) to the override.
+
+=== FILE: spoiler-free_mobile.md - Line 397 ===
+**Installation Instructions:** If running the Community Patch (you should be), install the Community Patch-Compatible install option; otherwise, select Basic. If you would like Master Uthar or Yuthura Ban (the two top Sith at the academy) to wear alternate outfits instead of robes, re-run the patcher to select your preferred options AFTER running the initial install.
+
+=== FILE: spoiler-free_mobile.md - Line 415 ===
+**Installation Instructions:** When installing, use the screenshots provided to determine which robe style you would like to use. Aesthetically, I strongly recommend the Brown-Red-Blue Alternative.
+
+=== FILE: spoiler-free_mobile.md - Line 433 ===
+**Installation Instructions:** If you use Cloaked Jedi Robes's 100% Brown option, make sure to install the 100% Brown compatibility patch after the main mod installation (re-run the executable).
+
+=== FILE: spoiler-free_mobile.md - Line 453 ===
+**Installation Instructions:** Only move the files from "Jedi Robes Override".
+
+=== FILE: spoiler-free_mobile.md - Line 509 ===
+**Installation Instructions:** When installing, select the Community Patch-compatible installation, if using the K1CP (you should be). Ignore the other install options.
+
+=== FILE: spoiler-free_mobile.md - Line 559 ===
+**Installation Instructions:** Move the files from "to override" to your override folder, then also move the files from the Animation Fix folder and overwrite when prompted.
+
+=== FILE: spoiler-free_mobile.md - Line 577 ===
+**Download Instructions:** I strongly recommend the Small version for mobile.
+
+=== FILE: spoiler-free_mobile.md - Line 595 ===
+**Installation Instructions:** If you would like the forcefield for the hangar to be visible, re-run the installer after installing the main option and also install the visible forcefield option. If using HQ Cockpit Skyboxes, move the files from the resolution folder corresponding to the HQ Cockpit Skyboxes size you utilized to your override, then delete ebo_yab.tga, ebo_yaf.tga, ebo_yal.tga, ebo_yar.tga and ebo_yat.tga from your override.
+
+=== FILE: spoiler-free_mobile.md - Line 613 ===
+**Installation Instructions:** Don't install the included modifications to the Dantooine Estates or Sith Base, you'll only be installing the contents of Part 1 and Part 2. You will additionally need to delete the following files from the Part 1 folder before moving the mod content to the override folder: LTS_Bsky01.tga, LTS_Bsky02.tga, and (sorted by name) LTS_sky0001.tga **through** LTS_SKY0005.tga
+
+=== FILE: spoiler-free_mobile.md - Line 647 ===
+**Download Instructions:** Unless using one of the mods for which Kex has developed skyboxes (*not* recommended, as they're almost certainly not compatible with this build) simply download the 'HQSkyboxesII_K1.7z' file.
+
+=== FILE: spoiler-free_mobile.md - Line 649 ===
+**Installation Instructions:** Delete m36aa_01_lm0 through m36aa_01_lm2.tga before moving to the override, then apply the patch.
+
+=== FILE: spoiler-free_mobile.md - Line 667 ===
+**Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply the contents of the "Leviathan - K1CP Forcefield" folder (if using K1CP) and HQ Skyboxes compatch (if using HQ Skyboxes).
+
+=== FILE: spoiler-free_mobile.md - Line 749 ===
+**Installation Instructions:** The mod builds are only tested with the standard install option; other options are untested for compatibility and function. Use at your own risk!
+
+=== FILE: spoiler-free_mobile.md - Line 831 ===
+**Installation Instructions:** Run the installer first. Once completed, move the upscaled textures to override (if desired). If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder. If using the Senni Vek Mod, ensure to also re-run the installer and select the compatibility patch (use the patch for Senni Vek Restoration, NOT Senni Vek's Ambush; that is a different mod version).
+
+=== FILE: spoiler-free_mobile.md - Line 901 ===
+**Installation Instructions:** Move "dan13_dorak.dlg" only.
+
+=== FILE: spoiler-free_mobile.md - Line 1017 ===
+**Installation Instructions:** Delete "ii_trapkit_001.tga" through "ii_trapkit_004.tga" before installing.
+
+=== FILE: spoiler-free_mobile.md - Line 1051 ===
+**Installation Instructions:** Use the K1CP compatible install option, if using the K1CP (you should be).
+
+=== FILE: spoiler-free_mobile.md - Line 1117 ===
+**Installation Instructions:** I personally recommend option 2.
+
+=== FILE: spoiler-free_mobile.md - Line 1135 ===
+**Download Instructions:** Full or Light version is your choice.
+
+=== FILE: spoiler-free_mobile.md - Line 1185 ===
+**Installation Instructions:** Extract the mod, navigate to the 'TSLPatchdata' folder, and delete the file 'keblastore.utm'. Run the installer—it will give you a single error, this is intended. After the install has completed, rename the files 'w_ionrfl_04.mdl' and 'w_ionrfl_04.mdx' to 'w_ionrfl_004.mdl' and 'w_ionrfl_004.mdx'. Delete the following files from your override directory: w_rptnblstr_004.mdl, w_rptnblstr_004.mdx, w_blstrpstl_006.mdl, w_blstrpstl_006.mdx and g1_w_rptnblstr01.uti
+
+=== FILE: spoiler-free_mobile.md - Line 1205 ===
+**Installation Instructions:** Run the installer to install the mod, then re-run it once more, for the optional install HQ Blasters. Then install the patch.
+
+=== FILE: spoiler-free_mobile.md - Line 1321 ===
+**Installation Instructions:** Install the base mod first, then move the file from the patch directly to your override.
+
+=== FILE: spoiler-free_mobile.md - Line 1383 ===
+**Download Instructions:** Ignore the patch in the downloads, as it's only for updating from a previous version.
+
+=== FILE: spoiler-free_mobile.md - Line 1405 ===
+**Installation Instructions:** This mod is not a file archive unlike all the other mods you've downloaded, just a single pre-extracted file. When you get the file, just put it directly in your Override folder.
+
+=== FILE: spoiler-free_mobile.md - Line 1439 ===
+**Installation Instructions:** Which of the three versions is used is up to your preference. Full is the entire package, lite is without the player swoop displayed on the race platform, and ultra lite is without the doors fix.
+
+=== FILE: spoiler-free_mobile.md - Line 1473 ===
+**Installation Instructions:** If you have installed the K1CP, install just the pillar facing fix. The lighting fix is already included in the K1CP.
+
+=== FILE: spoiler-free_mobile.md - Line 1655 ===
+**Installation Instructions:** Use the version not for the Weapon Model Overhaul, unless you choose to install it separately (NOT tested and NOT recommended).
+
+=== FILE: spoiler-free_mobile.md - Line 1673 ===
+**Installation Instructions:** Install the Sith Specter/Rece compatibility option if using Ajunta Pall's Swords.
+
+=== FILE: spoiler-free_mobile.md - Line 1691 ===
+**Installation Instructions:** Install Option A. I recommend NOT re-running the patcher to install the extra textures, as upscaled textures installed in UCO are much higher-quality than these.
+
+=== FILE: spoiler-free_mobile.md - Line 1711 ===
+**Installation Instructions:** Run the patcher and select your desired install. I personally would recommend using at least one of the first three, as the mod is not worth it for just the feat changes in my opinion. My personal recommendation would be option 2 or 3 (especially if intending to use JC's Blaster Adjustment below), but I tested it with option 1 and did not find it terribly overpowered. Indeed, it made the game way harder at points as enemies were beaming me with multiple rifle attacks, so if you want an extra challenge option 1 is a valid choice.
+
+=== FILE: spoiler-free_mobile.md - Line 1729 ===
+**Installation Instructions:** If you installed the main option of Multifire and Autofire, I recommend using the *Blaster Pistol + Critical* option of this mod, as applying its changes to repeaters and rifles would make them insanely overpowered with their auto-attacks. If using Options 2 or 3 of Multifire and Autofire, I would recommend the *Blaster Pistol & Blaster Rifle + Critical* version of this mod--don't worry, it won't make rifles way stronger; JC's changes to the damage will overwrite bdaman's, in effect just adding JC's alterations to the critical strike ranges. Finally, if not using bdaman's mod, I recommend the full install.
+
+=== FILE: spoiler-free_mobile.md - Line 1859 ===
+**Installation Instructions:** Ignore the Patch folder unless using K2 Force Powers for K1 (untested, but should function). I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
+
+=== FILE: spoiler-free_mobile.md - Line 1875 ===
+**Installation Instructions:** Place DelDuplicateTGA-TPC (or the bash script version) in your main game folder (NOT override!), run it, say that **TPC should be deleted** and do not manually confirm. If you are on a Mac or other device that cannot run .bat files and the bash script is not an option for you to use, a list of all the files you will need to manually delete can be found [here](/modding/mod_builds/k1/delete.html).
+
+=== FILE: spoiler-free_mobile.md - Line 1891 ===
+**Installation Instructions:** If the device you're currently using runs a Windows OS, download one of the executable files from the linked github page matching your operating system's architecture (32-bit or 64-bit; google which your Windows OS is if you're not sure), place the file in the main dummy directory which you have created to install the mods to (NOT the override folder), and run the executable.
+
+=== FILE: spoiler-free.md - Line 79 ===
+**Installation Instructions:** The choice of which version to use is up to you; I recommend PC Response Moderation, as in vanilla your character sounds like a giddy little schoolchild following even the most minor dialogue interactions, and that mod serves to correct that without actually changing the underlying dialogue much, but if you prefer only bugfixes that option is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable is)—in this very specific case, NOT the override.
+
+=== FILE: spoiler-free.md - Line 97 ===
+**Installation Instructions:** Make sure you don't forget to install the patch!
+
+=== FILE: spoiler-free.md - Line 135 ===
+**Installation Instructions:** Move everything from the Straight Fixes, Resolution Fixes, and Aesthetic Improvements folders to your Override. Move everything from the "Things what bother me" folder as well, EXCEPT the files for the Sith uniform changes: N_AdmrlSaulKar.mdl, N_AdmrlSaulKar.mdx, N_SithComF.mdl, N_SithComF.mdx, N_SithComM.mdl, and N_SithComM.mdx (in other words, move all "MAN26" files and the two "plc_kiosk" files at the bottom). The fix in the Bugfix folder will be applied by a later mod, so you can also skip it.
+
+=== FILE: spoiler-free.md - Line 153 ===
+**Installation Instructions:** For this specific mod *only*, the patch is actually run first! Run the patch and apply its changes, then open the main mod file. ONLY look at the Transparent/Non-Transparent folders within the main file; move your preferred textures from one of those folders to your override, and optionally **also** move the contents of the sub-folders for Sith eyes if desired. You will be prompted to overwrite, and this is normal. Do NOT move any of the files in the main mod folder! Your install is done once you've moved your desired textures from the main mod download.
+
+=== FILE: spoiler-free.md - Line 173 ===
+**Installation Instructions:** Be aware that this mod is one of the very few in the builds that is installed via the HoloPatcher, a new install method. For your purposes as the enduser, it functions almost identically to the TSLPatcher. Run the installer, then move the files from the patch to your override.
+
+=== FILE: spoiler-free.md - Line 207 ===
+**Installation Instructions:** Install the main mod, then re-run the patcher and select the K1CP compatibility install option and install it as well, if using K1CP.
+
+=== FILE: spoiler-free.md - Line 225 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Don't worry about it saying it requires Kexikus's skyboxes, that mod will be installed later.
+
+=== FILE: spoiler-free.md - Line 243 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: spoiler-free.md - Line 261 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: spoiler-free.md - Line 279 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: spoiler-free.md - Line 299 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: spoiler-free.md - Line 317 ===
+**Installation Instructions:** Download the .tpc variant of the mod.
+
+=== FILE: spoiler-free.md - Line 335 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Please note, there are confirmed visual bugs when utilizing this mod unless ALSO using Quanon's Taris retexture (installed further down this list). Make sure to delete LSI_win01.tpc and LSI_box01.tpc **before** moving to override.
+
+=== FILE: spoiler-free.md - Line 353 ===
+**Installation Instructions:** For now, ignore all patches (those will be installed later). Just download the main package, and and MAKE SURE it is the .tpc file version! I recommend the 2x version for the best combination of performance and quality.
+
+=== FILE: spoiler-free.md - Line 373 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete LUN_blst01.tpc and LUN_blst02.tpc before moving to your override.
+
+=== FILE: spoiler-free.md - Line 391 ===
+**Download Instructions:** Download and install both files.
+
+=== FILE: spoiler-free.md - Line 441 ===
+**Installation Instructions:** Move all the loose files to the Override. If you'd like KOTOR 2-style specialty cards (green-colored), move the files from the "green" folder to the override folder as well.
+
+=== FILE: spoiler-free.md - Line 459 ===
+**Installation Instructions:** Move the files from both the Override and Optional folders to your game's override folder.
+
+=== FILE: spoiler-free.md - Line 477 ===
+**Installation Instructions:** If using both components of JC's Republic Soldier Fix mod, install Options 3 and 5; if using only the main component of JC's mod, install only Option 5; if not using JC's mod, install the Main file and Option 2.
+
+=== FILE: spoiler-free.md - Line 577 ===
+**Installation Instructions:** I recommend using the upscale option.
+
+=== FILE: spoiler-free.md - Line 611 ===
+**Installation Instructions:** The file has the wrong readme; move all the files in the Creatures folder, except for the readme and Gizka.jpg (any .jpg/.png files are always previews and can be deleted), to the override.
+
+=== FILE: spoiler-free.md - Line 709 ===
+**Installation Instructions:** Choose whether to use the slim or original necks; your preference.
+
+=== FILE: spoiler-free.md - Line 727 ===
+**Download Instructions:** Download the 'hd_twilek_female.rar' file, and ignore the other versions.
+
+=== FILE: spoiler-free.md - Line 745 ===
+**Installation Instructions:** Unzip the mod, enter the NPC Replacement folder, and move the six files within (NOT including the optional folder or its contents) to the override.
+
+=== FILE: spoiler-free.md - Line 797 ===
+**Download Instructions:** Do not download the .tga file.
+
+=== FILE: spoiler-free.md - Line 799 ===
+**Installation Instructions:** If intending to use CineMalak below (recommended!), select your preferred head texture from the Malak (Red Eyes) or Malak (Blue Eyes) folders and move the files within to your override. You can ignore N_DarthMalak01.tga, unless you do not want to use CineMalak, in which case you should also move it to your override.
+
+=== FILE: spoiler-free.md - Line 817 ===
+**Installation Instructions:** The downloaded file is a loose .tga, not inside an archive. For this mod, just move the downloaded file (N_DarthMalak01.tga) to your override directly.
+
+=== FILE: spoiler-free.md - Line 835 ===
+**Installation Instructions:** Make a copy of the file and rename it PMBJ01, then move all files to override.
+
+=== FILE: spoiler-free.md - Line 901 ===
+**Download Instructions:** Download the V2 option.
+
+=== FILE: spoiler-free.md - Line 903 ===
+**Installation Instructions:** Ignore the 'V1 Looks' option.
+
+=== FILE: spoiler-free.md - Line 923 ===
+**Installation Instructions:** Delete n_commm07.tga and N_CommMD01.tga. Delete N_CommM08.tga, then make a copy of N_CommM0801 and paste it in the same directory. This should create a duplicate file; rename that duplicate file to "N_CommM08.tga" and then move all files to override.
+
+=== FILE: spoiler-free.md - Line 973 ===
+**Installation Instructions:** If running the Community Patch (you should be), install the Community Patch-Compatible install option; otherwise, select Basic. If you would like Master Uthar or Yuthura Ban (the two top Sith at the academy) to wear alternate outfits instead of robes, re-run the patcher to select your preferred options AFTER running the initial install.
+
+=== FILE: spoiler-free.md - Line 991 ===
+**Installation Instructions:** When installing, use the screenshots provided to determine which robe style you would like to use. Aesthetically, I strongly recommend the Brown-Red-Blue Alternative.
+
+=== FILE: spoiler-free.md - Line 1009 ===
+**Installation Instructions:** If you use Cloaked Jedi Robes's 100% Brown option, make sure to install the 100% Brown compatibility patch after the main mod installation (re-run the executable).
+
+=== FILE: spoiler-free.md - Line 1029 ===
+**Installation Instructions:** Only move the files from "Jedi Robes Override".
+
+=== FILE: spoiler-free.md - Line 1065 ===
+**Installation Instructions:** Delete PO_phk47.tga before moving the two other files to the override.
+
+=== FILE: spoiler-free.md - Line 1099 ===
+**Download Instructions:** Download the "Kiosk HD 15.03.2024" version, then, ensuring you are logged in to Deadly Stream, the plc_kiosk3_fixed.zip attachment in Marius Fett's comment as the patch. **Make sure not to use the K2 version of the patch**. Doing so will result in a crash as soon as you leave the Taris hideout.
+
+=== FILE: spoiler-free.md - Line 1181 ===
+**Download Instructions:** Unless you want icons like those in the preview images (which I recommend against, as it will not match the vanilla aesthetic for most of the other equipment icons in the game), do not download the "stunbaton 2025" file; only download "Stun baton HD".
+
+=== FILE: spoiler-free.md - Line 1303 ===
+**Installation Instructions:** Delete N_CommF02.tga & .txi before moving to override.
+
+=== FILE: spoiler-free.md - Line 1353 ===
+**Installation Instructions:** Delete po_pt3m33.tga before moving the files to your override.
+
+=== FILE: spoiler-free.md - Line 1403 ===
+**Download Instructions:** Download only the file which adds clothing, unless you like the head & face changes the mod makes
+
+=== FILE: spoiler-free.md - Line 1405 ===
+**Installation Instructions:** Delete PO_pcarth3.tga before moving the other files to the override.
+
+=== FILE: spoiler-free.md - Line 1423 ===
+**Download Instructions:** Download only the version marked 'new clothes,' which includes both clothing and body textures. We get our head texture from the below mod. Remember to also download the patch.
+
+=== FILE: spoiler-free.md - Line 1441 ===
+**Installation Instructions:** Move only P_CandH01.tga to your override.
+
+=== FILE: spoiler-free.md - Line 1475 ===
+**Download Instructions:** Download the default, not the iconic recolor.
+
+=== FILE: spoiler-free.md - Line 1477 ===
+**Installation Instructions:** Move ONLY P_joleeh01.tga and P_joleeh01.txi to your override.
+
+=== FILE: spoiler-free.md - Line 1495 ===
+**Installation Instructions:** Delete po_pzaalbar3.tga before moving the files to your override.
+
+=== FILE: spoiler-free.md - Line 1513 ===
+**Installation Instructions:** When installing, select the Community Patch-compatible installation, if using the K1CP (you should be). Ignore the other install options.
+
+=== FILE: spoiler-free.md - Line 1579 ===
+**Installation Instructions:** Once the mod is extracted, copy the file 'LDA_EHawk01' and make a duplicate of it. Rename this duplicate to 'M36_EHawk01.tga' and then move all files to the override.
+
+=== FILE: spoiler-free.md - Line 1597 ===
+**Installation Instructions:** Move the files from "to override" to your override folder, then also move the files from the Animation Fix folder and overwrite when prompted.
+
+=== FILE: spoiler-free.md - Line 1615 ===
+**Download Instructions:** Download the version of the mod you would like based upon how detailed you want the cockpit skyboxes to appear. Keep in mind that load time into the Ebon Hawk could be significantly increased if using very large cockpit textures, and there's also a risk of save corruption when using very large texture sizes—I recommend the Medium texture option for the best balance of quality and size/performance.
+
+=== FILE: spoiler-free.md - Line 1633 ===
+**Installation Instructions:** If you would like the forcefield for the hangar to be visible, re-run the installer after installing the main option and also install the visible forcefield option. If using HQ Cockpit Skyboxes, move the files from the resolution folder corresponding to the HQ Cockpit Skyboxes size you utilized to your override, then delete ebo_yab.tga, ebo_yaf.tga, ebo_yal.tga, ebo_yar.tga and ebo_yat.tga from your override. Finally, if you utilize Vurt's "K1 Hi-Res Ebon Hawk Retexture," download [this patch](https://mega.nz/file/QAhhFTzD#rxS91pehFgNP7xFh3DNnNFC1d_YelF43K4-q6mh8xfI) and move its contents to your override.
+
+=== FILE: spoiler-free.md - Line 1667 ===
+**Installation Instructions:** Recommend the version without overlays, but it's personal preference.
+
+=== FILE: spoiler-free.md - Line 1685 ===
+**Installation Instructions:** Don't install the included modifications to the Dantooine Estates or Sith Base, you'll only be installing the contents of Part 1 and Part 2. You will additionally need to delete the following files from the Part 1 folder before moving the mod content to the override folder: LTS_Bsky01.tga, LTS_Bsky02.tga, and (sorted by name) LTS_sky0001.tga **through** LTS_SKY0005.tga
+
+=== FILE: spoiler-free.md - Line 1719 ===
+**Download Instructions:** Unless using one of the mods for which Kex has developed skyboxes (*not* recommended, as they're almost certainly not compatible with this build) simply download the 'HQSkyboxesII_K1.7z' file.
+
+=== FILE: spoiler-free.md - Line 1721 ===
+**Installation Instructions:** Delete m36aa_01_lm0 through m36aa_01_lm2.tga before moving to the override, then apply the patch.
+
+=== FILE: spoiler-free.md - Line 1739 ===
+**Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply the contents of the "Leviathan - K1CP Forcefield" folder (if using K1CP) and HQ Skyboxes compatch (if using HQ Skyboxes).
+
+=== FILE: spoiler-free.md - Line 1823 ===
+**Installation Instructions:** I recommend against any of the included optional files.
+
+=== FILE: spoiler-free.md - Line 1905 ===
+**Installation Instructions:** The mod builds are only tested with the standard install option; other options are untested for compatibility and function. Use at your own risk!
+
+=== FILE: spoiler-free.md - Line 1923 ===
+**Installation Instructions:** Move everything from the override folder to your game's override directory, unless you would like yellow/green disruptors, in which case those files should be moved from the optional folder after moving all loose files to the override first.
+
+=== FILE: spoiler-free.md - Line 2005 ===
+**Installation Instructions:** Run the installer first. Once completed, move the upscaled textures to override (if desired). If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder. If using the Senni Vek Mod, ensure to also re-run the installer and select the compatibility patch (use the patch for Senni Vek Restoration, NOT Senni Vek's Ambush; that is a different mod version).
+
+=== FILE: spoiler-free.md - Line 2075 ===
+**Installation Instructions:** Move "dan13_dorak.dlg" only.
+
+=== FILE: spoiler-free.md - Line 2193 ===
+**Installation Instructions:** Delete "ii_trapkit_001.tga" through "ii_trapkit_004.tga" before installing.
+
+=== FILE: spoiler-free.md - Line 2227 ===
+**Installation Instructions:** Use the K1CP compatible install option, if using the K1CP (you should be).
+
+=== FILE: spoiler-free.md - Line 2293 ===
+**Installation Instructions:** I personally recommend option 2.
+
+=== FILE: spoiler-free.md - Line 2311 ===
+**Download Instructions:** Full or Light version is your choice.
+
+=== FILE: spoiler-free.md - Line 2361 ===
+**Installation Instructions:** Extract the mod, navigate to the 'TSLPatchdata' folder, and delete the file 'keblastore.utm'. Run the installer—it will give you a single error, this is intended. After the install has completed, rename the files 'w_ionrfl_04.mdl' and 'w_ionrfl_04.mdx' to 'w_ionrfl_004.mdl' and 'w_ionrfl_004.mdx'. Delete the following files from your override directory: w_rptnblstr_004.mdl, w_rptnblstr_004.mdx, w_blstrpstl_006.mdl, w_blstrpstl_006.mdx and g1_w_rptnblstr01.uti
+
+=== FILE: spoiler-free.md - Line 2381 ===
+**Installation Instructions:** Run the installer to install the mod, then re-run it twice more, once for each of the optional installs, if using Loadscreens in Color/HQ Blasters.
+
+=== FILE: spoiler-free.md - Line 2497 ===
+**Installation Instructions:** Install the base mod first, then move the file from the patch directly to your override.
+
+=== FILE: spoiler-free.md - Line 2579 ===
+**Installation Instructions:** This mod is not a file archive unlike all the other mods you've downloaded, just a single pre-extracted file. When you get the file, just put it directly in your Override folder.
+
+=== FILE: spoiler-free.md - Line 2613 ===
+**Installation Instructions:** Which of the three versions is used is up to your preference. Full is the entire package, lite is without the player swoop displayed on the race platform, and ultra lite is without the doors fix.
+
+=== FILE: spoiler-free.md - Line 2647 ===
+**Installation Instructions:** If you have installed the K1CP, install just the pillar facing fix. The lighting fix is already included in the K1CP.
+
+=== FILE: spoiler-free.md - Line 2665 ===
+**Installation Instructions:** If using Dark Hope's HD Ithorian texture, also download and apply [this patch](https://mega.nz/file/wUYRUTAD#tE7J08QTc0NSSbG-Xu3cSFsynLVtg7J59BruxOlDnKY), which Sith Holocron was kind enough to make at my request, after installing this mod.
+
+=== FILE: spoiler-free.md - Line 2749 ===
+**Installation Instructions:** Recommend the "Revisited" option.
+
+=== FILE: spoiler-free.md - Line 2833 ===
+**Installation Instructions:** Use the version not for the Weapon Model Overhaul, unless you choose to install it separately (NOT tested and NOT recommended).
+
+=== FILE: spoiler-free.md - Line 2851 ===
+**Installation Instructions:** Install the Sith Specter/Rece compatibility option if using Ajunta Pall's Swords.
+
+=== FILE: spoiler-free.md - Line 2869 ===
+**Installation Instructions:** Install Option A. I recommend NOT re-running the patcher to install the extra textures, as upscaled textures installed in UCO are much higher-quality than these.
+
+=== FILE: spoiler-free.md - Line 2889 ===
+**Installation Instructions:** Run the patcher and select your desired install. I personally would recommend using at least one of the first three, as the mod is not worth it for just the feat changes in my opinion. My personal recommendation would be option 2 or 3 (especially if intending to use JC's Blaster Adjustment below), but I tested it with option 1 and did not find it terribly overpowered. Indeed, it made the game way harder at points as enemies were beaming me with multiple rifle attacks, so if you want an extra challenge option 1 is a valid choice.
+
+=== FILE: spoiler-free.md - Line 2907 ===
+**Installation Instructions:** If you installed the main option of Multifire and Autofire, I recommend using the *Blaster Pistol + Critical* option of this mod, as applying its changes to repeaters and rifles would make them insanely overpowered with their auto-attacks. If using Options 2 or 3 of Multifire and Autofire, I would recommend the *Blaster Pistol & Blaster Rifle + Critical* version of this mod--don't worry, it won't make rifles way stronger; JC's changes to the damage will overwrite bdaman's, in effect just adding JC's alterations to the critical strike ranges. Finally, if not using bdaman's mod, I recommend the full install.
+
+=== FILE: spoiler-free.md - Line 3053 ===
+**Installation Instructions:** Ignore the Patch folder unless using K2 Force Powers for K1 (untested, but should function). I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
+
+=== FILE: spoiler-free.md - Line 3071 ===
+**Installation Instructions:** If intending to play [in widescreen](#Optional_Widescreen) and with the widescreen menus mod (part of several additional widescreen support mods [here](/modding/mod_builds/k1/widescreen)), install this mod *after* the widescreen menus installation, and move the file from the optional download "HR Menu Patch.zip" file which corresponds to your resolution to your override folder *after* the initial installation completes; if not intending to play in widescreen, install the base mod now.
+
+=== FILE: spoiler-free.md - Line 3087 ===
+**Installation Instructions:** Place DelDuplicateTGA-TPC (or the bash script version) in your main game folder (NOT override!), run it, say that **TPC should be deleted** and do not manually confirm. If you are on a Mac or other device that cannot run .bat files and the bash script is not an option for you to use, a list of all the files you will need to manually delete can be found [here](/modding/mod_builds/k1/delete.html).
+
+=== FILE: spoiler-free.md - Line 3109 ===
+**Installation Instructions:** Scroll down to the "optional files" section of the mod page. In order, install the compatch for JC's Minor Fixes, the K1CP (delete "PLC_SSldCrps.tpc". Additionally delete N_CommM01 - 06, plus N_CommM08, if using Dark Hope's male clothing upscale. Only then move the files to your override), and then all remaining content that matches content you chose to use from the builds (again, skipping Better Twi'lek Male Heads, if using Leilukin's mod). I also recommend against using the patch for JC's Mandalorian Armor, as there are better options (in my opinion) in Character Textures & Model Fixes below. If using Thigh-High Boots for Twi'lek, only move the patch content from the NPC Replacement folder. If using Republic Soldier's New Shade, use the New Shade option.
+
+=== FILE: spoiler-free.md - Line 3131 ===
+**Download Instructions:** *Strongly* recommend the 2x .tpc version; the fidelity loss for 2x is minimal, .tpc is a lossless conversion and is much slimmer in filesize, and the automated compatibility program for this mod relies on the filetype being .tpc to function.
+
+=== FILE: spoiler-free.md - Line 3133 ===
+**Installation Instructions:** If you are on a system which can run .bat files, I *strongly* recommend using the automated system to deal with compatibility for this mod. To do so, first extract redrob's mod from its archive, then go to [this page](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/scripts/cleaner.bat) and click on the button with the arrow pointing down at the top of the code list (the one which says "download raw file"). Place cleaner.bat in the folder from redrob's mod called "Copy contents to KotOR's Override folder", then go to [here](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/scripts/cleanlist_k1_sf.txt) and repeat the same step, placing cleanlist_k1_sf.txt in the same location. You can now run cleanlist.bat: follow the instructions onscreen, selecting whether you did or didn't use any of the given mods, and the batch file will automatically delete the incompatible files. Once you reach the end of the list, you can exit the .bat window, delete cleaner.bat and cleanlist_k1_sf.txt, and then move the remaining files in the folder to your override.
+
+=== FILE: spoiler-free.md - Line 3151 ===
+**Installation Instructions:** If you intend to add widescreen support, *proceed to the below section and* **FULLY** *apply your chosen widescreen resolution* **AND** *all additional widescreen support mods you choose to use* **BEFORE** *completing this step*. Once you are done applying all your chosen widescreen content, you are then free to apply this patch.
+
+=== FILE: spoiler-free.md - Line 3197 ===
+**Installation Instructions:** Make a copy of your swkotor.exe (only AFTER having applied the UniWS widescreen patch) and paste it into the extracted mod folder with the .bat file within. Run the .bat file (NOT the .exe!) and input the necessary data. The .bat will generate a new file called swkotor.exe, as well as swkotor.exe.bak—*swkotor.exe is the correct file*, and the file with .bak appended at the end is a backup which you can safely delete. Take the new swkotor.exe file and replace the one in your main game directory with it, then move the HR Menus files for your selected resolution into your override folder.
+
+=== FILE: spoiler-free.md - Line 3247 ===
+**Installation Instructions:** I recommend using the .tpc file option. For **THIS MOD ONLY**, do not overwrite when prompted!
+
+=== FILE: spoiler-free.md - Line 3267 ===
+**Installation Instructions:** In the "JC's Cloaked Jedis" folder, select the files from the version of JC's Cloaked Jedi Robes you utilized. Ignore the Effix folder unless playing with that specific mod.
+
+=== FILE: spoiler-free.md - Line 3335 ===
+**Installation Instructions:** Choose the resolution option which most closely fits your monitor's screen size during the download process. I *STRONGLY* recommend choosing the 30fps option for that resolution—there have been crashes directly linked to the 60fps versions. When installing, there will be several optional files based on how dialogue in cutscenes are displayed (floating text or not, etc). Which of these you choose is your preference; use the mod screenshots to determine. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: spoiler-free.md - Line 3357 ===
+**Installation Instructions:** Use only Pops Maellard's cutscenes or this version by naelavok. To install, choose the resolution option which most closely fits your monitor's screen size during the download process. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: widescreen.md - Line 29 ===
+**Installation Instructions:** Make a copy of your swkotor.exe (only AFTER having applied the UniWS widescreen patch) and paste it into the extracted mod folder with the .bat file within. Run the .bat file (NOT the .exe!) and input the necessary data. The .bat will generate a new file called swkotor.exe, as well as swkotor.exe.bak—*swkotor.exe is the correct file*, and the file with .bak appended at the end is a backup which you can safely delete. Take the new swkotor.exe file and replace the one in your main game directory with it, then move the HR Menus files for your selected resolution into your override folder.
+
+=== FILE: widescreen.md - Line 73 ===
+**Installation Instructions:** I recommend using the .tpc file option. For **THIS MOD ONLY**, do not overwrite when prompted!
+
+=== FILE: widescreen.md - Line 91 ===
+**Installation Instructions:** In the "JC's Cloaked Jedis" folder, select the files from the version of JC's Cloaked Jedi Robes you utilized. Ignore the Effix folder unless playing with that specific mod.
+
+=== FILE: widescreen.md - Line 151 ===
+**Installation Instructions:** Choose the resolution option which most closely fits your monitor's screen size during the download process. I *STRONGLY* recommend choosing the 30fps option for that resolution—there have been crashes directly linked to the 60fps versions. When installing, there will be several optional files based on how dialogue in cutscenes are displayed (floating text or not, etc). Which of these you choose is your preference; use the mod screenshots to determine. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: widescreen.md - Line 172 ===
+**Installation Instructions:** Use only Pops Maellard's cutscenes or this version by naelavok. To install, choose the resolution option which most closely fits your monitor's screen size during the download process. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: full_mobile.md - Line 47 ===
+**Installation Instructions:** For now, disregard the installation instructions included in the mod, as we will be dragging over the completed installation in batch. Once the mod is downloaded, extract it to a location of your choice on your PC/Mac and delete everything inside the dlc folder except for the 'mods_*x*' directory, the 'x' corresponding to your language of choice.
+
+=== FILE: full_mobile.md - Line 71 ===
+**Installation Instructions:** Don't use the complete installer, instead selecting the individual component installer—this is *critical* for compatibility, not just to choose specific options. The installer for this mod will need to be run 7 times, once to install each of the options we'll be using: Kaevee Removal Parts 1 & 2, Saedhe's Head, Atton at the End, Kreia-Atris Dialogue Tweak, Trayus Mandalore Conversation, and Trayus Sith Lord Masks.
+
+=== FILE: full_mobile.md - Line 91 ===
+**Installation Instructions:** Move just 153sion.dlg to the override.
+
+=== FILE: full_mobile.md - Line 113 ===
+**Installation Instructions:** If you would like to have Visas's class as Sith Assassin, install the "Standard + Sith Assassin Visas" option. Otherwise, simply install "Standard."
+
+=== FILE: full_mobile.md - Line 131 ===
+**Installation Instructions:** I advise users to only install the Jedi Master/Sith Lord fixes.
+
+=== FILE: full_mobile.md - Line 149 ===
+**Installation Instructions:** Strongly recommend downloading the standard option. Weaker Consulars can be extremely punishing, so if you choose this option be aware that you're in for a rough time at some places!
+
+=== FILE: full_mobile.md - Line 167 ===
+**Installation Instructions:** Extract the mod. Ignore the included subfolders, and move just the files in the base folder to your override. Overwrite when prompted.
+
+=== FILE: full_mobile.md - Line 187 ===
+**Installation Instructions:** Remember, warnings during an installation are normal—errors are not.
+
+=== FILE: full_mobile.md - Line 237 ===
+**Installation Instructions:** Move only the files from the ritual folder, not the water.
+
+=== FILE: full_mobile.md - Line 271 ===
+**Download Instructions:** Use the V2 version of the mod.
+
+=== FILE: full_mobile.md - Line 307 ===
+**Installation Instructions:** If you are using the K2 Community Patch, install the contents of every folder but Straight Fixes (that was already in the K2CP).
+
+=== FILE: full_mobile.md - Line 423 ===
+**Installation Instructions:** Go into the NPC Replacement folder and move all the loose files to the override directory. Ignore the optional folder.
+
+=== FILE: full_mobile.md - Line 441 ===
+**Installation Instructions:** Choose whether to use the slim or original necks; your preference.
+
+=== FILE: full_mobile.md - Line 459 ===
+**Installation Instructions:** Run the installer first. I do not recommend the use of the upscaled textures on mobile. If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder.
+
+=== FILE: full_mobile.md - Line 477 ===
+**Installation Instructions:** I recommend against the use of the upscaled textures for this mod on mobile.
+
+=== FILE: full_mobile.md - Line 513 ===
+**Installation Instructions:** Move the files from the override folder to your override directory. Optionally, if you prefer the aesthetic of the K1 running animation, you can also move the files from the 'K1 Style Running' folder to your override and overwrite.
+
+=== FILE: full_mobile.md - Line 549 ===
+**Installation Instructions:** Recommend the 'zombie-like' appearance, as it matches vanilla DS transitions.
+
+=== FILE: full_mobile.md - Line 603 ===
+**Installation Instructions:** Choose which version of the head model you would like to use from the screenshots provided. Place the files from the corresponding folder into your override.
+
+=== FILE: full_mobile.md - Line 621 ===
+**Installation Instructions:** Install the files within the Override folder.
+
+=== FILE: full_mobile.md - Line 655 ===
+**Download Instructions:** Either option is fine, choose which you prefer based on the screenshots.
+
+=== FILE: full_mobile.md - Line 705 ===
+**Installation Instructions:** Recommend using the default without optional textures, because J's mod below uses the defaults as its base for its reflections.
+
+=== FILE: full_mobile.md - Line 739 ===
+**Installation Instructions:** Use the files in the "Alternate Textures" folder.
+
+=== FILE: full_mobile.md - Line 757 ===
+**Installation Instructions:** Move the files from the Original folder to the override, as well as the file from the "One Replacement Screen" folder if using Peragus Large Monitor Adjustment.
+
+=== FILE: full_mobile.md - Line 823 ===
+**Download Instructions:** Download just the main file (HQSkyboxesII_TSL_1k.7z), not any of the compatches. I **strongly** recommend the 1k version for mobile devices; it will be hard to see the full benefit of the 2k version on a mobile device, the 2k version is a much larger filesize, and the larger texture size could interfere with module loading on the mobile version.
+
+=== FILE: full_mobile.md - Line 825 ===
+**Installation Instructions:** After this mod has finished installing, if you are using the K2CP, extract the K2CP once again—*do not* re-run its TSLPatcher! Open the TSLPatchdata folder and move 231teld.mdl and 231teld.mdx to your override, and overwrite when prompted.
+
+=== FILE: full_mobile.md - Line 859 ===
+**Download Instructions:** I recommend the reskin-friendly version; the reflectivity version is untested with the builds and may look odd.
+
+=== FILE: full_mobile.md - Line 861 ===
+**Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply any of the following you use in this order: "K2CP and_or Nar Shaddaa Landing Pad Repair by PapaZinos", "High Quality Skyboxes II by Kexikus" (but *NOT* the 'M4-78 with HQ Skyboxes II' folder!), and "Spark Effect - Ebon Hawk by PapaZinos".
+
+=== FILE: full_mobile.md - Line 879 ===
+**Download Instructions:** Strongly recommend low resolution for the mobile version. Make sure to use the .tpc file format files!
+
+=== FILE: full_mobile.md - Line 881 ===
+**Installation Instructions:** Move the loose files to the override, followed by the file in the "With Nar Realistic Skybox" folder if you use HQ Skyboxes II.
+
+=== FILE: full_mobile.md - Line 899 ===
+**Download Instructions:** Download the larger of the two files.
+
+=== FILE: full_mobile.md - Line 917 ===
+**Installation Instructions:** Recommend Drew's fix, as it preserves more of the original dialogue.
+
+=== FILE: full_mobile.md - Line 1069 ===
+**Installation Instructions:** Run the HoloPatcher executable. Select the default install, not M4-78. When the install is completed, go into the "Compatibility Patches" folder, enter the one for Kreia's Fall Ingame Cutscene, and install that patch as well if you've chosen to use the above mod.
+
+=== FILE: full_mobile.md - Line 1089 ===
+**Installation Instructions:** Make SURE to install the mobile TSLRCM version, your game will crash if using the main install option.
+
+=== FILE: full_mobile.md - Line 1109 ===
+**Installation Instructions:** Use the 'No M4-78EP Installed' option. The 'Extended Enclave Tweaks' is a separate mod we don't use in this build.
+
+=== FILE: full_mobile.md - Line 1129 ===
+**Installation Instructions:** Due differences in the way the mobile versions localize some files, you will receive an error on running this mod that alerts you of missing lips files—this is normal. After the installation is completed, go into the mod's tslpatchdata folder and move all the files of the .lip filetype to your override (there should be 6).
+
+=== FILE: full_mobile.md - Line 1147 ===
+**Installation Instructions:** Use the TSLPatcher installer method (mandatory for compatibility), not the manual install.
+
+=== FILE: full_mobile.md - Line 1167 ===
+**Installation Instructions:** Run the installers for Force Crush Balance and Disable Droid Interface Feat. The other mod options are untested with the builds and I don't personally recommend them.
+
+=== FILE: full_mobile.md - Line 1185 ===
+**Installation Instructions:** Recommend running all three options, the main install first and then the two optionals.
+
+=== FILE: full_mobile.md - Line 1221 ===
+**Installation Instructions:** First choose your base install option, either Standard or No Force Rating (the latter removes the inherent DS alignment bonus to saves in some modules, which also gives an equivalent malus to LS characters in those modules). After this is installed, if you would like for Visas to ambush you as a Sith Assassin (which is a *very difficult fight*—remember, she will have Sneak Attack, and that fight forcibly stuns you), re-run the patcher and also install that option.
+
+=== FILE: full_mobile.md - Line 1287 ===
+**Installation Instructions:** Practically speaking there are only two relevant install options: "Class-Based Properties + Workbench Attunement", which is the full package, or "Bug Fixes Only". If you don't like the mod's changes but would like to have its bugfixes, install the latter; otherwise, install the former.
+
+=== FILE: full_mobile.md - Line 1325 ===
+**Installation Instructions:** Install part 1 and then part 2, then, if using Better Jekk'Jekk Tarr Thugs, also install the compatch.
+
+=== FILE: full_mobile.md - Line 1345 ===
+**Installation Instructions:** I recommend the "With Additional Scene" option for maximum restored content and internal consistency for the sequence.
+
+=== FILE: full_mobile.md - Line 1363 ===
+**Installation Instructions:** The lightsaber version of this mod is broken when used alongside the mod builds, so please ensure to use specifically the longsword version.
+
+=== FILE: full_mobile.md - Line 1419 ===
+**Installation Instructions:** Run the installer once for the first part of the install, then again to apply the second half.
+
+=== FILE: full_mobile.md - Line 1437 ===
+**Installation Instructions:** Unless you intend on playing a character with very high awareness, I recommend the reduced difficulty option if using Lewok's Sith Assassins with Lightsabers, because the damage will be ridiculous. Remember to also apply the compatch for Lewok's mod after running the main install option of your choice, if using it.
+
+=== FILE: full_mobile.md - Line 1455 ===
+**Installation Instructions:** Strongly recommend using the Snigaroo Cut for balance and immersion's sake.
+
+=== FILE: full_mobile.md - Line 1473 ===
+**Installation Instructions:** When installing, for best internal consistency choose install options 1 or 2 (not underwear). Option 2 is technically the most consistent but the visual differentiation is very slight and likely would not be noticeable. When the install is completed, if you would like the miners to have burned skin (as they realistically would have had) move the files from the "OPTION - Burned Skin Textures" folder (or the upscaled textures therein) to your override.
+
+=== FILE: full_mobile.md - Line 1509 ===
+**Installation Instructions:** Move all the various files inside the 7 folders within the "TSL Version" folder, EXCEPT for "War Droid K1," if using HQ Blasters above.
+
+=== FILE: full_mobile.md - Line 1559 ===
+**Installation Instructions:** Run the TSLPatcher for the Head Fix, then use the screenshots included with the mod to determine whether you prefer option 1 or 2 for the body modification (I recommend 2). Once you know your preference, enter the Body Options folder and and run the patcher for the version which matches your preference. Finally, once again use the screenshots to determine whether you wish to utilize the alternate texture also located in the Body Options folder (recommended).
+
+=== FILE: full_mobile.md - Line 1577 ===
+**Installation Instructions:** Select between one of the two TSLRCM-compatible install options.
+
+=== FILE: full_mobile.md - Line 1597 ===
+**Installation Instructions:** Run the patcher using the Default install option. Expanded Ending is not compatible with mobile.
+
+=== FILE: full_mobile.md - Line 1615 ===
+**Installation Instructions:** Ignore all the loose files in the folder; use the TSLPatcher to install the mod.
+
+=== FILE: full_mobile.md - Line 1633 ===
+**Installation Instructions:** Install the TSLRCM option.
+
+=== FILE: full_mobile.md - Line 1651 ===
+**Installation Instructions:** Recommend the "Location and Medpac" install option, it gives the player an extra medpac as compensation for having to fight the first droids with a plasma torch.
+
+=== FILE: full_mobile.md - Line 1669 ===
+**Installation Instructions:** Install the Vanilla/TSLRCM option.
+
+=== FILE: full_mobile.md - Line 1689 ===
+**Download Instructions:** Download just the main file, not the robes patch.
+
+=== FILE: full_mobile.md - Line 1707 ===
+**Download Instructions:** Download both files.
+
+=== FILE: full_mobile.md - Line 1725 ===
+**Installation Instructions:** Male and female PCs, Mira, the Disciple and Atton are the only changes that can be used from this pack. Use the linked pictures on deadlystream to decide which packages of those you would like to use, then (for the male and female PCs) move the files to the override or (for Mira, the Disciple and Atton) run the TSLPatcher to install for each version. Note that for female PCs, one of the four underwear replacers can be chosen *in addition to* the "Dancer Muscles" fix, which changes the PC's model specifically for that one outfit.
+
+=== FILE: full_mobile.md - Line 1791 ===
+**Installation Instructions:** Recommend installing all three modules.
+
+=== FILE: full_mobile.md - Line 1809 ===
+**Installation Instructions:** I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
+
+=== FILE: full_mobile.md - Line 1859 ===
+**Installation Instructions:** Place DelDuplicateTGA-TPC (or the bash script version) in your main game folder (NOT override!), run it, say that **TPC should be deleted** and do not manually confirm. If you are on a Mac or other device that cannot run .bat files and the bash script is not an option for you to use, a list of all the files you will need to manually delete can be found [here](/modding/mod_builds/k1/delete.html).
+
+=== FILE: full_mobile.md - Line 1893 ===
+**Installation Instructions:** Before proceeding, delete the dummy executable used to facilitate the mod installations. If the device you're currently using runs a Windows OS, download one of the executable files from the linked github page matching your operating system's architecture (32-bit or 64-bit; google which your Windows OS is if you're not sure), place the file in the main dummy directory which you have created to install the mods to (NOT the override folder), and run the executable.
+
+=== FILE: full.md - Line 131 ===
+**Download Instructions:** Download just forcecage_updated_1.1.0.zip
+
+=== FILE: full.md - Line 147 ===
+**Installation Instructions:**  This step should only be performed if you are **NOT** on the Aspyr patch and have not applied J's 3C-FD patcher! 3C-FD applies this as part of its fixes to the Aspyr version. Just like 3C-FD, since the Mac Appstore version is not an executable, this program cannot be utilized on the Mac Appstore edition of the game.
+
+=== FILE: full.md - Line 185 ===
+**Installation Instructions:** Don't use the complete installer, instead selecting the individual component installer—this is *critical* for compatibility, not just to choose specific options. The installer for this mod will need to be run 6 times, once to install each of the options we'll be using: Kaevee Removal Parts 1 & 2, Saedhe's Head, Kreia-Atris Dialogue Tweak, Trayus Mandalore Conversation, and Trayus Sith Lord Masks. Most of the other options for this mod are untested with the mod builds, but will likely function--I still recommend against using them, since compatibility isn't 100% guaranteed, but you can try. The one exception is *Atton at the End*, which is completely incompatible with one of the most important mods in this build, which is a much more comprehensive implementation of Atton's dialogue at endgame.
+
+=== FILE: full.md - Line 205 ===
+**Installation Instructions:** Move just 153sion.dlg to the override.
+
+=== FILE: full.md - Line 227 ===
+**Installation Instructions:** If you would like to have Visas's class as Sith Assassin, install the "Standard + Sith Assassin Visas" option. Otherwise, simply install "Standard."
+
+=== FILE: full.md - Line 245 ===
+**Installation Instructions:** I advise users to only install the Jedi Master/Sith Lord fixes.
+
+=== FILE: full.md - Line 263 ===
+**Installation Instructions:** Strongly recommend downloading the standard option. Weaker Consulars can be extremely punishing, so if you choose this option be aware that you're in for a rough time at some places!
+
+=== FILE: full.md - Line 281 ===
+**Installation Instructions:** Extract the mod. Ignore the included subfolders, and move just the files in the base folder to your override. Overwrite when prompted.
+
+=== FILE: full.md - Line 301 ===
+**Installation Instructions:** Remember, warnings during an installation are normal—errors are not.
+
+=== FILE: full.md - Line 351 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete PER_Gr01.tpc, TEL_rock.tpc through TEL_rock07.tpc, and TEL_wl05.tpc before moving the files to your override folder.
+
+=== FILE: full.md - Line 369 ===
+**Installation Instructions:** For now, ignore all patches (those will be installed later). Just download the main package, either Full or Lite based on your quality preferences (I recommend the 2x version, as the graphical differences are minimal). Just **MAKE SURE** they are in .tpc file format! Delete N_OndSoldMH1.tpc, PMBJ02.tpc, PMHC03.tpc, PMHC03D1.tpc, and PMHC03D2.tpc before moving to override.
+
+=== FILE: full.md - Line 387 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete NAR_fl01.tpc, NAR_Met4.tpc, and NAR_wl07.tpc before moving to your Override.
+
+=== FILE: full.md - Line 405 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete DAN_MWFl.tpc, DAN_NEW1.tpc and DAN_wall03.tpc before moving to your Override.
+
+=== FILE: full.md - Line 423 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete DXN_BWa1 through DXN_BWa8.tpc before moving the files to your override folder, then apply the patch.
+
+=== FILE: full.md - Line 441 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete OND_dor1.tpc & OND_dor3.tpc before moving to your Override.
+
+=== FILE: full.md - Line 459 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete KOR_water01.tpc before moving the files to your override folder.
+
+=== FILE: full.md - Line 477 ===
+**Installation Instructions:** Download the .tpc variant of the mod. For this mod *only*, do not overwrite if prompted!
+
+=== FILE: full.md - Line 495 ===
+**Download Instructions:** Download and install both files.
+
+=== FILE: full.md - Line 513 ===
+**Installation Instructions:** Move only the files from the ritual folder, not the water.
+
+=== FILE: full.md - Line 547 ===
+**Download Instructions:** Use the V2 version of the mod.
+
+=== FILE: full.md - Line 583 ===
+**Installation Instructions:** If you are using the K2 Community Patch, install the contents of every folder but Straight Fixes (that was already in the K2CP). Delete DXn_grassfx.tga and DXN_jungfx.tga in Aesthetic Improvements before moving files to override.
+
+=== FILE: full.md - Line 633 ===
+**Download Instructions:** Download the "Kiosk HD 15.03.2024" version, then, ensuring you are logged in to Deadly Stream, the plc_kiosk3_fixed.zip attachment in Marius Fett's comment as the patch.
+
+=== FILE: full.md - Line 717 ===
+**Installation Instructions:** Move everything from the override folder to your game's override directory, unless you would like yellow/green disruptors, in which case those files should be moved from the optional folder after moving all loose files to the override first.
+
+=== FILE: full.md - Line 767 ===
+**Installation Instructions:** Ignore the "Player Bodies" folder. Go into the NPC Replacement folder and move all the loose files to the override directory. Ignore the optional folder.
+
+=== FILE: full.md - Line 785 ===
+**Installation Instructions:** Choose whether to use the slim or original necks; your preference.
+
+=== FILE: full.md - Line 803 ===
+**Installation Instructions:** Run the installer first. Once completed, move the upscaled textures to override (if desired). If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder.
+
+=== FILE: full.md - Line 821 ===
+**Installation Instructions:** The use of the upscaled textures or not is your preference, though I recommend them.
+
+=== FILE: full.md - Line 857 ===
+**Installation Instructions:** Move the files from the override folder to your override directory. Optionally, if you prefer the aesthetic of the K1 running animation, you can also move the files from the 'K1 Style Running' folder to your override and overwrite.
+
+=== FILE: full.md - Line 941 ===
+**Installation Instructions:** Recommend the 'zombie-like' appearance, as it matches vanilla DS transitions.
+
+=== FILE: full.md - Line 959 ===
+**Download Instructions:** Download the .tpc version of the mod.
+
+=== FILE: full.md - Line 977 ===
+**Installation Instructions:** Ignore the MacOS folder, only move the .TGA files.
+
+=== FILE: full.md - Line 1013 ===
+**Installation Instructions:** Choose which version of the head model you would like to use from the screenshots provided. Place the files from the corresponding folder into your override.
+
+=== FILE: full.md - Line 1047 ===
+**Download Instructions:** Download and install the .tpc filetype version: it is nearly lossless, much more performant due to the smaller size, and critically fixes several issues caused by the very large texture size of the original upload.
+
+=== FILE: full.md - Line 1065 ===
+**Installation Instructions:** Install the files within the Override folder.
+
+=== FILE: full.md - Line 1115 ===
+**Download Instructions:** Either option is fine, choose which you prefer based on the screenshots.
+
+=== FILE: full.md - Line 1133 ===
+**Installation Instructions:** Only move the four .dds filetype files to your override, ignore the remainder. If installing this mod alongside either the K2CP or Ultimate Character Overhaul, P_VisasBB.tpc, P_VisasH01.tpc/.tga, P_VisasHD01.tpc/.tga, and P_VisasHD02.tpc/.tga must be deleted from the override so this mod's .dds-based files will load.
+
+=== FILE: full.md - Line 1167 ===
+**Installation Instructions:** If present in your Override, P_t3m4_01.tpc/.tga must be deleted so this mod's .dds-based files will load.
+
+=== FILE: full.md - Line 1217 ===
+**Installation Instructions:** Before moving the files to override, make a copy of N_Duros02.tga and paste it into the same location you extracted the mod to. On a Windows OS, this should create a file called N_Duros.tga-COPY. Rename this file to "N_Duros04.tga". Repeat this process with the file N_Duros03, creating two copies and naming them N_Duros05.tga and N_Duros06.tga. When you move all the files to the override, you should be moving eight total. Following this, download and install the patch.
+
+=== FILE: full.md - Line 1235 ===
+**Installation Instructions:** Similar to the above, make a copy of C_Ithorian03.tga and rename it to N_Chodo.tga. You should move a total of 5 files to the override.
+
+=== FILE: full.md - Line 1285 ===
+**Installation Instructions:** Recommend using the default without optional textures, because J's mod below uses the defaults as its base for its reflections.
+
+=== FILE: full.md - Line 1335 ===
+**Download Instructions:** Download only the Damaged version, it contains files for both.
+
+=== FILE: full.md - Line 1385 ===
+**Installation Instructions:** The files in this mod need to be duplicated and those duplicates renamed. On a Windows OS you can do this by copying the two files within and pasting them into the same folder which you copied them from. This should create duplicates of the original files with a slightly different filename (such as PLC_CompPnl-COPY). Take the two copied files and rename them to PLC_CompPnl_b. Make sure you have one .tga filetype and one .txi filetype. When the files are moved to the override, you should be moving four files: PLC_CompPnl.tga, PLC_CompPnl.txi, PLC_CompPnl_b.tga, and PLC_CompPnl_b.txi
+
+=== FILE: full.md - Line 1403 ===
+**Installation Instructions:** Recommend solid options. Do NOT use experimental install options!
+
+=== FILE: full.md - Line 1437 ===
+**Installation Instructions:** Install the files from the included Override directory only. Delete all the files beginning with "leh_". There should be four.
+
+=== FILE: full.md - Line 1471 ===
+**Download Instructions:** Download just the main file (HQSkyboxesII_TSL.7z or HQSkyboxesII_TSL_1k.7z), not any of the compatches. Whether you use the 1k version is your choice or not; on older systems, the 1k version will give better performance.
+
+=== FILE: full.md - Line 1473 ===
+**Installation Instructions:** After this mod has finished installing, if you are using the K2CP, extract the K2CP once again—*do not* re-run its TSLPatcher! Open the TSLPatchdata folder and move 231teld.mdl and 231teld.mdx to your override, and overwrite when prompted.
+
+=== FILE: full.md - Line 1507 ===
+**Installation Instructions:** Recommend the version without overlays, but it's personal preference.
+
+=== FILE: full.md - Line 1541 ===
+**Download Instructions:** I recommend the reskin-friendly version; the reflectivity version is untested with the builds and may look odd.
+
+=== FILE: full.md - Line 1543 ===
+**Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply any of the following you use in this order: K2CP ("K2CP and_or Nar Shaddaa Landing Pad Repair by PapaZinos"), "High Quality Skyboxes II by Kexikus" (but *NOT* the 'M4-78 with HQ Skyboxes II' folder!), and "Spark Effect - Ebon Hawk by PapaZinos". **DO NOT USE** the content of the "Korriban Distorted Model Fix" folder, even if you are on the Aspyr patch! With the C3-FD patcher, this is no longer a concern.
+
+=== FILE: full.md - Line 1561 ===
+**Download Instructions:** Download the version of the mod you would like based upon how detailed you want the cockpit skyboxes to appear. Keep in mind that load time into the Ebon Hawk could be significantly increased if using very large cockpit textures, and there's also a risk of save corruption when using very large texture sizes—I recommend the Medium texture option for the best balance of quality and size/performance. Whatever size you decide to use, make sure to use the .tpc format files!
+
+=== FILE: full.md - Line 1563 ===
+**Installation Instructions:** Move the loose files to the override, followed by the file in the "With Nar Realistic Skybox" folder if you use HQ Skyboxes II.
+
+=== FILE: full.md - Line 1597 ===
+**Download Instructions:** Download the larger of the two files.
+
+=== FILE: full.md - Line 1615 ===
+**Installation Instructions:** Recommend Drew's fix, as it preserves more of the original dialogue.
+
+=== FILE: full.md - Line 1767 ===
+**Installation Instructions:** Run the HoloPatcher executable. Select the default install, not M4-78. When the install is completed, go into the "Compatibility Patches" folder, enter the one for Kreia's Fall Ingame Cutscene, and install that patch as well if you've chosen to use the above mod.
+
+=== FILE: full.md - Line 1807 ===
+**Installation Instructions:** Use the 'No M4-78EP Installed' option. The 'Extended Enclave Tweaks' is a separate mod we don't use in this build.
+
+=== FILE: full.md - Line 1843 ===
+**Installation Instructions:** Use the TSLPatcher installer method (mandatory for compatibility), not the manual install.
+
+=== FILE: full.md - Line 1863 ===
+**Installation Instructions:** Run the installers for Force Crush Balance and Disable Droid Interface Feat. The other mod options are untested with the builds and I don't personally recommend them.
+
+=== FILE: full.md - Line 1881 ===
+**Installation Instructions:** Recommend running all three options, the main install first and then the two optionals.
+
+=== FILE: full.md - Line 1917 ===
+**Installation Instructions:** First choose your base install option, either Standard or No Force Rating (the latter removes the inherent DS alignment bonus to saves in some modules, which also gives an equivalent malus to LS characters in those modules). After this is installed, if you would like for Visas to ambush you as a Sith Assassin (which is a *very difficult fight*—remember, she will have Sneak Attack, and that fight forcibly stuns you), re-run the patcher and also install that option.
+
+=== FILE: full.md - Line 1983 ===
+**Installation Instructions:** Practically speaking there are only two relevant install options: "Class-Based Properties + Workbench Attunement", which is the full package, or "Bug Fixes Only". If you don't like the mod's changes but would like to have its bugfixes, install the latter; otherwise, install the former.
+
+=== FILE: full.md - Line 2021 ===
+**Installation Instructions:** Install part 1 and then part 2, then, if using Better Jekk'Jekk Tarr Thugs, also install the compatch.
+
+=== FILE: full.md - Line 2041 ===
+**Installation Instructions:** I recommend the "With Additional Scene" option for maximum restored content and internal consistency for the sequence.
+
+=== FILE: full.md - Line 2059 ===
+**Installation Instructions:** The lightsaber version of this mod is broken when used alongside the mod builds, so please ensure to use specifically the longsword version.
+
+=== FILE: full.md - Line 2077 ===
+**Installation Instructions:** Use the installer version.
+
+=== FILE: full.md - Line 2133 ===
+**Installation Instructions:** Run the installer once for the first part of the install, then again to apply the second half.
+
+=== FILE: full.md - Line 2151 ===
+**Installation Instructions:** Unless you intend on playing a character with very high awareness, I recommend the reduced difficulty option if using Lewok's Sith Assassins with Lightsabers, because the damage will be ridiculous. Remember to also apply the compatch for Lewok's mod after running the main install option of your choice, if using it.
+
+=== FILE: full.md - Line 2169 ===
+**Installation Instructions:** Strongly recommend using the Snigaroo Cut for balance and immersion's sake.
+
+=== FILE: full.md - Line 2187 ===
+**Installation Instructions:** When installing, for best internal consistency choose install options 1 or 2 (not underwear). Option 2 is technically the most consistent but the visual differentiation is very slight and likely would not be noticeable. When the install is completed, if you would like the miners to have burned skin (as they realistically would have had) move the files from the "OPTION - Burned Skin Textures" folder (or the upscaled textures therein) to your override.
+
+=== FILE: full.md - Line 2223 ===
+**Installation Instructions:** Move all the various files inside the 7 folders within the "TSL Version" folder, EXCEPT for "War Droid K1," if using HQ Blasters above.
+
+=== FILE: full.md - Line 2257 ===
+**Installation Instructions:** Delete if_finesse01.tga, if_finesse02.tga, iw_dblsbr_010.tga, iw_dsrptpstl_001.tga, iw_dsrptpstl_002.tga, iw_dsrptpstl_003.tga, iw_dsrptpstl_004.tga,iw_Lghtsbr_011.tga, iw_qtrstaff_001.tga, iw_qtrstaff_002.tga, and iw_qtrstaff_003.tga before moving the files to the override and overwriting any conflicts.
+
+=== FILE: full.md - Line 2291 ===
+**Installation Instructions:** Select between one of the two TSLRCM-compatible install options.
+
+=== FILE: full.md - Line 2311 ===
+**Installation Instructions:** If you are NOT playing the game on a 4:3 aspect ratio monitor, regardless of what your aspect ratio is, install the 16:9 main install option. Then re-run the patcher and apply the Transparent Cockpit Windows - Retexture Friendly option, if using the Transparent Cockpit Windows mod.
+
+=== FILE: full.md - Line 2331 ===
+**Installation Instructions:** Run the patcher using the Default install option, then re-run and apply the Expanded Ending compatch, if using Expanded Ending.
+
+=== FILE: full.md - Line 2349 ===
+**Installation Instructions:** Ignore all the loose files in the folder; use the TSLPatcher to install the mod. Then copy the two files from the patch into override.
+
+=== FILE: full.md - Line 2367 ===
+**Installation Instructions:** Install the TSLRCM option.
+
+=== FILE: full.md - Line 2385 ===
+**Installation Instructions:** Move all the files but load_301NARa (in Part 2) to the override.
+
+=== FILE: full.md - Line 2403 ===
+**Installation Instructions:** Recommend the "Location and Medpac" install option, it gives the player an extra medpac as compensation for having to fight the first droids with a plasma torch.
+
+=== FILE: full.md - Line 2421 ===
+**Installation Instructions:** Use the files in the "Alternate Textures" folder.
+
+=== FILE: full.md - Line 2439 ===
+**Installation Instructions:** Move the files from the Original folder to the override, as well as the file from the "One Replacement Screen" folder if using Peragus Large Monitor Adjustment.
+
+=== FILE: full.md - Line 2457 ===
+**Installation Instructions:** Install the Vanilla/TSLRCM option.
+
+=== FILE: full.md - Line 2477 ===
+**Download Instructions:** Download just the main file, not the robes patch.
+
+=== FILE: full.md - Line 2495 ===
+**Download Instructions:** Download both files.
+
+=== FILE: full.md - Line 2561 ===
+**Installation Instructions:** Recommend installing all three modules.
+
+=== FILE: full.md - Line 2579 ===
+**Installation Instructions:** I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
+
+=== FILE: full.md - Line 2599 ===
+**Installation Instructions:** Scroll down to the "optional files" section of the mod page. In order, install the compatches for TSLRCM, the K2CP, JC's Minor Fixes, and then all remaining content that matches content you chose to use from the builds (skipping Better Twi'lek Male Heads, if using Leilukin's Male Twi'lek Diversity mod), following the below instructions:
+
+=== FILE: full.md - Line 2651 ===
+**Installation Instructions:** Place DelDuplicateTGA-TPC (or the bash script version) in your main game folder (NOT override!), run it, say that **TPC should be deleted** and do not manually confirm. If you are on a Mac or other device that cannot run .bat files and the bash script is not an option for you to use, a list of all the files you will need to manually delete can be found [here](/modding/mod_builds/k2/delete.html).
+
+=== FILE: full.md - Line 2689 ===
+**Download Instructions:** *Strongly* recommend the 2x .tpc version; the fidelity loss for 2x is minimal, .tpc is a lossless conversion and is much slimmer in filesize, and the automated compatibility program for this mod relies on the filetype being .tpc to function.
+
+=== FILE: full.md - Line 2691 ===
+**Installation Instructions:** If you are on a system which can run .bat files, I *strongly* recommend using the automated system to deal with compatibility for this mod. To do so, first extract redrob's mod from its archive, then enter the "TSL Optional Kreia Model" folder, copy the four model files within, paste them into the "Copy contents to TSL's Override folder" and overwrite. After this, navigate to [this page](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/scripts/cleaner.bat) and click on the button with the arrow pointing down at the top of the code list (the one which says "download raw file"). Place cleaner.bat in the folder from redrob's mod called "Copy contents to TSL's Override folder", then go to [here](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/scripts/cleanlist_k2.txt) and repeat the same step, placing cleanlist_k2.txt in the same location. You can now run cleanlist.bat: follow the instructions onscreen, selecting whether you did or didn't use any of the given mods, and the batch file will automatically delete the incompatible files. Once you reach the end of the list, you can exit the .bat window, delete cleaner.bat and cleanlist_k1.txt, and then move the remaining files in the folder to your override.
+
+=== FILE: full.md - Line 2713 ===
+**Installation Instructions:** Apply the contents of the "for override folder". If you would like to have the TSLRCM version of the KOTOR 2 logo on your main menu, you will need to BOTH move the contents of the "FOR TSLRCM" folder to your override, as well as the contents of the separate download "Updated_TSLRCM_Logo_v1.8.6".
+
+=== FILE: full.md - Line 2733 ===
+**Download Instructions:** Choose the resolution option which most closely fits your monitor's screen size during the download process. If using TSLRCM or Extended Enclave, download both the main file most closely corresponding to your monitor resolution as well as the file of the same resolution with "_mods" appended to the filename (for instance, *k2rs_30fps_1920x1080.7z* and *k2rs_30fps_mods_1920x1080.7z*).
+
+=== FILE: full.md - Line 2735 ===
+**Installation Instructions:** When installing, there will be several optional files based on how dialogue in cutscenes are displayed (floating text or not, etc). Which of these you choose is your preference; use the mod screenshots to determine. Install the main module first, then open the "mods" version of the file and apply the upscaled cutscenes for any mods which you use from the main build list. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: full.md - Line 2755 ===
+**Installation Instructions:** Use only Pops Maellard's cutscenes or this version by naelavok. To install, choose the resolution option which most closely fits your monitor's screen size during the download process. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: spoiler-free_mobile.md - Line 43 ===
+**Installation Instructions:** For now, disregard the installation instructions included in the mod, as we will be dragging over the completed installation in batch. Once the mod is downloaded, extract it to a location of your choice on your PC/Mac and delete everything inside the dlc folder except for the 'mods_*x*' directory, the 'x' corresponding to your language of choice.
+
+=== FILE: spoiler-free_mobile.md - Line 67 ===
+**Installation Instructions:** The installer for this mod will need to be run 7 times, once to install each of the options we'll be using: Kaevee Removal Parts 1 & 2, Saedhe's Head, Atton at the End, Dialogue Tweak, Mandalore Conversation, and Extra 1 - SLM.
+
+=== FILE: spoiler-free_mobile.md - Line 87 ===
+**Installation Instructions:** Move just 153sion.dlg to the override.
+
+=== FILE: spoiler-free_mobile.md - Line 127 ===
+**Installation Instructions:** I advise users to only install the Jedi Master/Sith Lord fixes.
+
+=== FILE: spoiler-free_mobile.md - Line 145 ===
+**Installation Instructions:** Strongly recommend downloading the standard option. Weaker Consulars can be extremely punishing, so if you choose this option be aware that you're in for a rough time at some places!
+
+=== FILE: spoiler-free_mobile.md - Line 163 ===
+**Installation Instructions:** Extract the mod. Ignore the included subfolders, and move just the files in the base folder to your override. Overwrite when prompted.
+
+=== FILE: spoiler-free_mobile.md - Line 185 ===
+**Installation Instructions:** Remember, warnings during an installation are normal—errors are not.
+
+=== FILE: spoiler-free_mobile.md - Line 251 ===
+**Download Instructions:** Use the V2 version of the mod.
+
+=== FILE: spoiler-free_mobile.md - Line 287 ===
+**Installation Instructions:** If you are using the K2 Community Patch, install the contents of every folder but Straight Fixes (that was already in the K2CP).
+
+=== FILE: spoiler-free_mobile.md - Line 403 ===
+**Installation Instructions:** Go into the NPC Replacement folder and move all the loose files to the override directory. Ignore the optional folder.
+
+=== FILE: spoiler-free_mobile.md - Line 421 ===
+**Installation Instructions:** Choose whether to use the slim or original necks; your preference.
+
+=== FILE: spoiler-free_mobile.md - Line 441 ===
+**Installation Instructions:** Run the installer first. I do not recommend the use of the upscaled textures on mobile. If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder.
+
+=== FILE: spoiler-free_mobile.md - Line 459 ===
+**Installation Instructions:** I recommend against the use of the upscaled textures for this mod on mobile.
+
+=== FILE: spoiler-free_mobile.md - Line 495 ===
+**Installation Instructions:** Move the files from the override folder to your override directory. Optionally, if you prefer the aesthetic of the K1 running animation, you can also move the files from the 'K1 Style Running' folder to your override and overwrite.
+
+=== FILE: spoiler-free_mobile.md - Line 531 ===
+**Installation Instructions:** Recommend the 'zombie-like' appearance, as it matches vanilla DS transitions.
+
+=== FILE: spoiler-free_mobile.md - Line 585 ===
+**Installation Instructions:** Choose which version of the head model you would like to use from the screenshots provided. Place the files from the corresponding folder into your override.
+
+=== FILE: spoiler-free_mobile.md - Line 603 ===
+**Installation Instructions:** Install the files within the Override folder.
+
+=== FILE: spoiler-free_mobile.md - Line 639 ===
+**Download Instructions:** Either option is fine, choose which you prefer based on the screenshots.
+
+=== FILE: spoiler-free_mobile.md - Line 689 ===
+**Installation Instructions:** Recommend using the default without optional textures, because J's mod below uses the defaults as its base for its reflections.
+
+=== FILE: spoiler-free_mobile.md - Line 723 ===
+**Installation Instructions:** Use the files in the "Alternate Textures" folder.
+
+=== FILE: spoiler-free_mobile.md - Line 741 ===
+**Installation Instructions:** Move the files from the Original folder to the override, as well as the file from the "One Replacement Screen" folder if using Peragus Large Monitor Adjustment.
+
+=== FILE: spoiler-free_mobile.md - Line 809 ===
+**Download Instructions:** Download just the main file (HQSkyboxesII_TSL_1k.7z), not any of the compatches. I **strongly** recommend the 1k version for mobile devices; it will be hard to see the full benefit of the 2k version on a mobile device, the 2k version is a much larger filesize, and the larger texture size could interfere with module loading on the mobile version.
+
+=== FILE: spoiler-free_mobile.md - Line 811 ===
+**Installation Instructions:** After this mod has finished installing, if you are using the K2CP, extract the K2CP once again—*do not* re-run its TSLPatcher! Open the TSLPatchdata folder and move 231teld.mdl and 231teld.mdx to your override, and overwrite when prompted.
+
+=== FILE: spoiler-free_mobile.md - Line 845 ===
+**Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply any of the following you use in this order: "K2CP and_or Nar Shaddaa Landing Pad Repair by PapaZinos", "High Quality Skyboxes II by Kexikus" (but *NOT* the 'M4-78 with HQ Skyboxes II' folder!), and "Spark Effect - Ebon Hawk by PapaZinos".
+
+=== FILE: spoiler-free_mobile.md - Line 863 ===
+**Download Instructions:** Download the larger of the two files.
+
+=== FILE: spoiler-free_mobile.md - Line 995 ===
+**Installation Instructions:** MAKE SURE to install the mobile TSLRCM version, the default version will crash your game.
+
+=== FILE: spoiler-free_mobile.md - Line 1015 ===
+**Installation Instructions:** Due differences in the way the mobile versions localize some files, you will receive an error on running this mod that alerts you of missing lips files—this is normal. After the installation is completed, go into the mod's tslpatchdata folder and move all the files of the .lip filetype to your override (there should be 6).
+
+=== FILE: spoiler-free_mobile.md - Line 1033 ===
+**Installation Instructions:** Use the TSLPatcher installer method (mandatory for compatibility), not the manual install.
+
+=== FILE: spoiler-free_mobile.md - Line 1053 ===
+**Installation Instructions:** Run the installers for Force Crush Balance and Disable Droid Interface Feat. The other mod options are untested with the builds and I don't personally recommend them.
+
+=== FILE: spoiler-free_mobile.md - Line 1071 ===
+**Installation Instructions:** Recommend running all three options, the main install first and then the two optionals.
+
+=== FILE: spoiler-free_mobile.md - Line 1107 ===
+**Installation Instructions:** The "No Force Rating" option removes inherent DS alignment bonus to saves in some game areas; these DS bonuses also give equivalent maluses to LS characters in those modules. The choice of whether to use it or not is entirely up to you; I personally do recommend it simply because the module-based alignment system in the game is not very well-balanced or coherent at present, and we have yet to make a mod which rationalizes it.
+
+=== FILE: spoiler-free_mobile.md - Line 1173 ===
+**Installation Instructions:** Practically speaking there are only two relevant install options: "Class-Based Properties + Workbench Attunement", which is the full package, or "Bug Fixes Only". If you don't like the mod's changes but would like to have its bugfixes, install the latter; otherwise, install the former.
+
+=== FILE: spoiler-free_mobile.md - Line 1211 ===
+**Installation Instructions:** Install part 1 and then part 2, then, if using Better JJT Thugs, also install the compatch.
+
+=== FILE: spoiler-free_mobile.md - Line 1231 ===
+**Installation Instructions:** I recommend the "With Additional Scene" option for maximum restored content and internal consistency for the sequence.
+
+=== FILE: spoiler-free_mobile.md - Line 1249 ===
+**Installation Instructions:** There are two versions of the install, and the first one is incompatible with the mod builds and will be marked "DO NOT USE." Switch to the second install when running the patcher.
+
+=== FILE: spoiler-free_mobile.md - Line 1319 ===
+**Installation Instructions:** Run the installer once for the first part of the install, then again to apply the second half.
+
+=== FILE: spoiler-free_mobile.md - Line 1337 ===
+**Installation Instructions:** I recommend the reduced difficulty option if using SAwL, but without SAwL you should be fine to use the full version of this mod, though it will give a similar level of challenge as using SAwL alone. Remember to also apply the compatch for SAwL after running the main install option of your choice, if using SAwL.
+
+=== FILE: spoiler-free_mobile.md - Line 1355 ===
+**Installation Instructions:** Strongly recommend using the Snigaroo Cut for balance and immersion's sake.
+
+=== FILE: spoiler-free_mobile.md - Line 1373 ===
+**Installation Instructions:** When installing, for best internal consistency choose install options 1 or 2 (not underwear). Option 2 is technically the most consistent but the visual differentiation is very slight and likely would not be noticeable. When the install is completed, if you would like the miners to have burned skin (as they realistically would have had) move the files from the "OPTION - Burned Skin Textures" folder (or the upscaled textures therein) to your override.
+
+=== FILE: spoiler-free_mobile.md - Line 1409 ===
+**Installation Instructions:** Move all the various files inside the 7 folders within the "TSL Version" folder, EXCEPT for "War Droid K1," if using HQ Blasters above.
+
+=== FILE: spoiler-free_mobile.md - Line 1459 ===
+**Installation Instructions:** Run the TSLPatcher for the Head Fix, then use the screenshots included with the mod to determine whether you prefer option 1 or 2 for the body modification (I recommend 2). Once you know your preference, enter the Body Options folder and and run the patcher for the version which matches your preference. Finally, once again use the screenshots to determine whether you wish to utilize the alternate texture also located in the Body Options folder (recommended).
+
+=== FILE: spoiler-free_mobile.md - Line 1477 ===
+**Installation Instructions:** Select between one of the two TSLRCM-compatible install options.
+
+=== FILE: spoiler-free_mobile.md - Line 1497 ===
+**Installation Instructions:** Run the patcher using the Default install option. Expanded Ending is not compatible with mobile.
+
+=== FILE: spoiler-free_mobile.md - Line 1515 ===
+**Installation Instructions:** Ignore all the loose files in the folder; use the TSLPatcher to install the mod. Then copy the two files from the patch into override.
+
+=== FILE: spoiler-free_mobile.md - Line 1533 ===
+**Installation Instructions:** Install the TSLRCM option.
+
+=== FILE: spoiler-free_mobile.md - Line 1551 ===
+**Installation Instructions:** Recommend the "Location and Medpac" install option, it gives the player an extra medpac as compensation for having to fight the enemy with a worse weapon option.
+
+=== FILE: spoiler-free_mobile.md - Line 1569 ===
+**Installation Instructions:** Install the Vanilla/TSLRCM option.
+
+=== FILE: spoiler-free_mobile.md - Line 1589 ===
+**Download Instructions:** Download just the main file, not the robes patch.
+
+=== FILE: spoiler-free_mobile.md - Line 1607 ===
+**Download Instructions:** Download both files.
+
+=== FILE: spoiler-free_mobile.md - Line 1673 ===
+**Installation Instructions:** Recommend installing all three modules.
+
+=== FILE: spoiler-free_mobile.md - Line 1691 ===
+**Installation Instructions:** I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
+
+=== FILE: spoiler-free_mobile.md - Line 1741 ===
+**Installation Instructions:** Place DelDuplicateTGA-TPC (or the bash script version) in your main game folder (NOT override!), run it, say that **TPC should be deleted** and do not manually confirm. If you are on a Mac or other device that cannot run .bat files and the bash script is not an option for you to use, a list of all the files you will need to manually delete can be found [here](/modding/mod_builds/k1/delete.html).
+
+=== FILE: spoiler-free_mobile.md - Line 1775 ===
+**Installation Instructions:** Before proceeding, delete the dummy executable used to facilitate the mod installations. If the device you're currently using runs a Windows OS, download one of the executable files from the linked github page matching your operating system's architecture (32-bit or 64-bit; google which your Windows OS is if you're not sure), place the file in the main dummy directory which you have created to install the mods to (NOT the override folder), and run the executable.
+
+=== FILE: spoiler-free.md - Line 127 ===
+**Download Instructions:** Download just forcecage_updated_1.1.0.zip
+
+=== FILE: spoiler-free.md - Line 143 ===
+**Installation Instructions:**  This step should only be performed if you are **NOT** on the Aspyr patch and have not applied J's 3C-FD patcher! 3C-FD applies this as part of its fixes to the Aspyr version. Just like 3C-FD, since the Mac Appstore version is not an executable, this program cannot be utilized on the Mac Appstore edition of the game.
+
+=== FILE: spoiler-free.md - Line 181 ===
+**Installation Instructions:** The installer for this mod will need to be run 6 times, once to install each of the options we'll be using: Kaevee Removal Parts 1 & 2, Saedhe's Head, Dialogue Tweak, Mandalore Conversation, and Extra 1 - SLM.
+
+=== FILE: spoiler-free.md - Line 201 ===
+**Installation Instructions:** Move just 153sion.dlg to the override.
+
+=== FILE: spoiler-free.md - Line 241 ===
+**Installation Instructions:** I advise users to only install the Jedi Master/Sith Lord fixes.
+
+=== FILE: spoiler-free.md - Line 259 ===
+**Installation Instructions:** Strongly recommend downloading the standard option. Weaker Consulars can be extremely punishing, so if you choose this option be aware that you're in for a rough time at some places!
+
+=== FILE: spoiler-free.md - Line 277 ===
+**Installation Instructions:** Extract the mod. Ignore the included subfolders, and move just the files in the base folder to your override. Overwrite when prompted.
+
+=== FILE: spoiler-free.md - Line 299 ===
+**Installation Instructions:** Remember, warnings during an installation are normal—errors are not.
+
+=== FILE: spoiler-free.md - Line 349 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete PER_Gr01.tpc, TEL_rock.tpc through TEL_rock07.tpc, and TEL_wl05.tpc before moving the files to your override folder.
+
+=== FILE: spoiler-free.md - Line 367 ===
+**Installation Instructions:** For now, ignore all patches (those will be installed later). Just download the main package, either Full or Lite based on your quality preferences (I recommend the 2x version, as the graphical differences are minimal). Just **MAKE SURE** they are in .tpc file format! Delete N_OndSoldMH1.tpc, PMBJ02.tpc, PMHC03.tpc, PMHC03D1.tpc, and PMHC03D2.tpc before moving to override.
+
+=== FILE: spoiler-free.md - Line 385 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete NAR_fl01.tpc, NAR_Met4.tpc, and NAR_wl07.tpc before moving to your Override.
+
+=== FILE: spoiler-free.md - Line 405 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete DAN_MWFl.tpc, DAN_NEW1.tpc and DAN_wall03.tpc before moving to your Override.
+
+=== FILE: spoiler-free.md - Line 423 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete DXN_BWa1 through DXN_BWa8.tpc before moving the files to your override folder, then apply the patch.
+
+=== FILE: spoiler-free.md - Line 441 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete OND_dor1.tpc & OND_dor3.tpc before moving to your Override.
+
+=== FILE: spoiler-free.md - Line 461 ===
+**Installation Instructions:** Download the .tpc variant of the mod. Delete >!KOR_water01.tpc!< before moving the files to your override folder.
+
+=== FILE: spoiler-free.md - Line 481 ===
+**Installation Instructions:** Download the .tpc variant of the mod. For this mod *only*, do not overwrite if prompted!
+
+=== FILE: spoiler-free.md - Line 515 ===
+**Download Instructions:** Use the V2 version of the mod.
+
+=== FILE: spoiler-free.md - Line 551 ===
+**Installation Instructions:** If you are using the K2 Community Patch, install the contents of every folder but Straight Fixes (that was already in the K2CP). Delete DXn_grassfx.tga and DXN_jungfx.tga in Aesthetic Improvements before moving files to override.
+
+=== FILE: spoiler-free.md - Line 601 ===
+**Download Instructions:** Download the "Kiosk HD 15.03.2024" version, then, ensuring you are logged in to Deadly Stream, the plc_kiosk3_fixed.zip attachment in Marius Fett's comment as the patch.
+
+=== FILE: spoiler-free.md - Line 685 ===
+**Installation Instructions:** Move everything from the override folder to your game's override directory, unless you would like yellow/green disruptors, in which case those files should be moved from the optional folder after moving all loose files to the override first.
+
+=== FILE: spoiler-free.md - Line 735 ===
+**Installation Instructions:** Ignore the "Player Bodies" folder. Go into the NPC Replacement folder and move all the loose files to the override directory. Ignore the optional folder.
+
+=== FILE: spoiler-free.md - Line 753 ===
+**Installation Instructions:** Choose whether to use the slim or original necks; your preference.
+
+=== FILE: spoiler-free.md - Line 773 ===
+**Installation Instructions:** Run the installer first. Once completed, move the upscaled textures to override (if desired). If using the original necks option of Ashton Scorpius's Better Twi'lek Males mod, also ensure to move the files in the "Optional - Original Necks" folder.
+
+=== FILE: spoiler-free.md - Line 791 ===
+**Installation Instructions:** The use of the upscaled textures or not is your preference, though I recommend them.
+
+=== FILE: spoiler-free.md - Line 827 ===
+**Installation Instructions:** Move the files from the override folder to your override directory. Optionally, if you prefer the aesthetic of the K1 running animation, you can also move the files from the 'K1 Style Running' folder to your override and overwrite.
+
+=== FILE: spoiler-free.md - Line 911 ===
+**Installation Instructions:** Recommend the 'zombie-like' appearance, as it matches vanilla DS transitions.
+
+=== FILE: spoiler-free.md - Line 929 ===
+**Download Instructions:** Download the .tpc version of the mod.
+
+=== FILE: spoiler-free.md - Line 947 ===
+**Installation Instructions:** Ignore the MacOS folder, only move the .TGA files.
+
+=== FILE: spoiler-free.md - Line 983 ===
+**Installation Instructions:** Choose which version of the head model you would like to use from the screenshots provided. Place the files from the corresponding folder into your override.
+
+=== FILE: spoiler-free.md - Line 1033 ===
+**Installation Instructions:** Install the files within the Override folder.
+
+=== FILE: spoiler-free.md - Line 1085 ===
+**Download Instructions:** Either option is fine, choose which you prefer based on the screenshots.
+
+=== FILE: spoiler-free.md - Line 1103 ===
+**Installation Instructions:** Only move the four .dds filetype files to your override, ignore the remainder. If installing this mod alongside either the K2CP or Ultimate Character Overhaul, P_VisasBB.tpc, P_VisasH01.tpc/.tga, P_VisasHD01.tpc/.tga, and P_VisasHD02.tpc/.tga must be deleted from the override so this mod's .dds-based files will load.
+
+=== FILE: spoiler-free.md - Line 1137 ===
+**Installation Instructions:** If present in your Override, P_t3m4_01.tpc/.tga must be deleted so this mod's .dds-based files will load.
+
+=== FILE: spoiler-free.md - Line 1187 ===
+**Installation Instructions:** Before moving the files to override, make a copy of N_Duros02.tga and paste it into the same location you extracted the mod to. On a Windows OS, this should create a file called N_Duros.tga-COPY. Rename this file to "N_Duros04.tga". Repeat this process with the file N_Duros03, creating two copies and naming them N_Duros05.tga and N_Duros06.tga. When you move all the files to the override, you should be moving eight total. Following this, download and install the patch.
+
+=== FILE: spoiler-free.md - Line 1205 ===
+**Installation Instructions:** Similar to the above, make a copy of C_Ithorian03.tga and rename it to N_Chodo.tga. You should move a total of 5 files to the override.
+
+=== FILE: spoiler-free.md - Line 1255 ===
+**Installation Instructions:** Recommend using the default without optional textures, because J's mod below uses the defaults as its base for its reflections.
+
+=== FILE: spoiler-free.md - Line 1305 ===
+**Download Instructions:** Download only the Damaged version, it contains files for both.
+
+=== FILE: spoiler-free.md - Line 1355 ===
+**Installation Instructions:** The files in this mod need to be duplicated and those duplicates renamed. On a Windows OS you can do this by copying the two files within and pasting them into the same folder which you copied them from. This should create duplicates of the original files with a slightly different filename (such as PLC_CompPnl-COPY). Take the two copied files and rename them to PLC_CompPnl_b. Make sure you have one .tga filetype and one .txi filetype. When the files are moved to the override, you should be moving four files: PLC_CompPnl.tga, PLC_CompPnl.txi, PLC_CompPnl_b.tga, and PLC_CompPnl_b.txi
+
+=== FILE: spoiler-free.md - Line 1373 ===
+**Installation Instructions:** Recommend solid options. Do NOT use experimental install options!
+
+=== FILE: spoiler-free.md - Line 1441 ===
+**Download Instructions:** Download just the main file (HQSkyboxesII_TSL.7z or HQSkyboxesII_TSL_1k.7z), not any of the compatches. Whether you use the 1k version is your choice or not; on older systems, the 1k version will give better performance.
+
+=== FILE: spoiler-free.md - Line 1443 ===
+**Installation Instructions:** After this mod has finished installing, if you are using the K2CP, extract the K2CP once again—*do not* re-run its TSLPatcher! Open the TSLPatchdata folder and move 231teld.mdl and 231teld.mdx to your override, and overwrite when prompted.
+
+=== FILE: spoiler-free.md - Line 1477 ===
+**Installation Instructions:** Recommend the version without overlays, but it's personal preference.
+
+=== FILE: spoiler-free.md - Line 1511 ===
+**Installation Instructions:** Apply the main installation, then go into the Compatibility Patches folder and apply any of the following you use in this order: "K2CP and_or Nar Shaddaa Landing Pad Repair by PapaZinos", "High Quality Skyboxes II by Kexikus" (but *NOT* the 'M4-78 with HQ Skyboxes II' folder!), and "Spark Effect - Ebon Hawk by PapaZinos". **DO NOT USE** the content of the "Korriban Distorted Model Fix" folder, even if you are on the Aspyr patch! With the C3-FD patcher, this is no longer a concern.
+
+=== FILE: spoiler-free.md - Line 1529 ===
+**Installation Instructions:** Move the loose files to the override, followed by the file in the "With Nar Realistic Skybox" folder if you use HQ Skyboxes.
+
+=== FILE: spoiler-free.md - Line 1563 ===
+**Download Instructions:** Download the larger of the two files.
+
+=== FILE: spoiler-free.md - Line 1731 ===
+**Installation Instructions:** Use the TSLPatcher installer method (mandatory for compatibility), not the manual install.
+
+=== FILE: spoiler-free.md - Line 1751 ===
+**Installation Instructions:** Run the installers for Force Crush Balance and Disable Droid Interface Feat. The other mod options are untested with the builds and I don't personally recommend them.
+
+=== FILE: spoiler-free.md - Line 1769 ===
+**Installation Instructions:** Recommend running all three options, the main install first and then the two optionals.
+
+=== FILE: spoiler-free.md - Line 1805 ===
+**Installation Instructions:** The "No Force Rating" option removes inherent DS alignment bonus to saves in some game areas; these DS bonuses also give equivalent maluses to LS characters in those modules. The choice of whether to use it or not is entirely up to you; I personally do recommend it simply because the module-based alignment system in the game is not very well-balanced or coherent at present, and we have yet to make a mod which rationalizes it.
+
+=== FILE: spoiler-free.md - Line 1871 ===
+**Installation Instructions:** Practically speaking there are only two relevant install options: "Class-Based Properties + Workbench Attunement", which is the full package, or "Bug Fixes Only". If you don't like the mod's changes but would like to have its bugfixes, install the latter; otherwise, install the former.
+
+=== FILE: spoiler-free.md - Line 1909 ===
+**Installation Instructions:** Install part 1 and then part 2, then, if using Better JJT Thugs, also install the compatch.
+
+=== FILE: spoiler-free.md - Line 1929 ===
+**Installation Instructions:** I recommend the "With Additional Scene" option for maximum restored content and internal consistency for the sequence.
+
+=== FILE: spoiler-free.md - Line 1947 ===
+**Installation Instructions:** There are two versions of the install, and the first one is incompatible with the mod builds and will be marked "DO NOT USE." Switch to the second install when running the patcher.
+
+=== FILE: spoiler-free.md - Line 1967 ===
+**Installation Instructions:** Use the installer version.
+
+=== FILE: spoiler-free.md - Line 2037 ===
+**Installation Instructions:** Run the installer once for the first part of the install, then again to apply the second half.
+
+=== FILE: spoiler-free.md - Line 2055 ===
+**Installation Instructions:** I recommend the reduced difficulty option if using SAwL, but without SAwL you should be fine to use the full version of this mod, though it will give a similar level of challenge as using SAwL alone. Remember to also apply the compatch for SAwL after running the main install option of your choice, if using SAwL.
+
+=== FILE: spoiler-free.md - Line 2073 ===
+**Installation Instructions:** Strongly recommend using the Snigaroo Cut for balance and immersion's sake.
+
+=== FILE: spoiler-free.md - Line 2091 ===
+**Installation Instructions:** When installing, for best internal consistency choose install options 1 or 2 (not underwear). Option 2 is technically the most consistent but the visual differentiation is very slight and likely would not be noticeable. When the install is completed, if you would like the miners to have burned skin (as they realistically would have had) move the files from the "OPTION - Burned Skin Textures" folder (or the upscaled textures therein) to your override.
+
+=== FILE: spoiler-free.md - Line 2127 ===
+**Installation Instructions:** Move all the various files inside the 7 folders within the "TSL Version" folder, EXCEPT for "War Droid K1," if using HQ Blasters above.
+
+=== FILE: spoiler-free.md - Line 2161 ===
+**Installation Instructions:** Delete if_finesse01.tga, if_finesse02.tga, iw_dblsbr_010.tga, iw_dsrptpstl_001.tga, iw_dsrptpstl_002.tga, iw_dsrptpstl_003.tga, iw_dsrptpstl_004.tga,iw_Lghtsbr_011.tga, iw_qtrstaff_001.tga, iw_qtrstaff_002.tga, and iw_qtrstaff_003.tga before moving the files to the override and overwriting any conflicts.
+
+=== FILE: spoiler-free.md - Line 2195 ===
+**Installation Instructions:** Select between one of the two TSLRCM-compatible install options.
+
+=== FILE: spoiler-free.md - Line 2215 ===
+**Installation Instructions:** If you are NOT playing the game on a 4:3 aspect ratio monitor, regardless of what your aspect ratio is, install the 16:9 main install option. Then re-run the patcher and apply the Transparent Cockpit Windows - Retexture Friendly option, if using the Transparent Cockpit Windows mod.
+
+=== FILE: spoiler-free.md - Line 2235 ===
+**Installation Instructions:** Run the patcher using the Default install option, then re-run and apply the Expanded Ending compatch, if using Expanded Ending.
+
+=== FILE: spoiler-free.md - Line 2253 ===
+**Installation Instructions:** Ignore all the loose files in the folder; use the TSLPatcher to install the mod. Then copy the two files from the patch into override.
+
+=== FILE: spoiler-free.md - Line 2271 ===
+**Installation Instructions:** Install the TSLRCM option.
+
+=== FILE: spoiler-free.md - Line 2305 ===
+**Installation Instructions:** Recommend the "Location and Medpac" install option, it gives the player an extra medpac as compensation for having to fight the enemy with a worse weapon option.
+
+=== FILE: spoiler-free.md - Line 2323 ===
+**Installation Instructions:** Use the files in the "Alternate Textures" folder.
+
+=== FILE: spoiler-free.md - Line 2341 ===
+**Installation Instructions:** Move the files from the Original folder to the override, as well as the file from the "One Replacement Screen" folder if using Peragus Large Monitor Adjustment.
+
+=== FILE: spoiler-free.md - Line 2360 ===
+**Installation Instructions:** Install the Vanilla/TSLRCM option.
+
+=== FILE: spoiler-free.md - Line 2380 ===
+**Download Instructions:** Download just the main file, not the robes patch.
+
+=== FILE: spoiler-free.md - Line 2398 ===
+**Download Instructions:** Download both files.
+
+=== FILE: spoiler-free.md - Line 2464 ===
+**Installation Instructions:** Recommend installing all three modules.
+
+=== FILE: spoiler-free.md - Line 2482 ===
+**Installation Instructions:** I strongly recommend the combined install of "Alignment Affects Force Powers + Treat Injury Affects Force Healing."
+
+=== FILE: spoiler-free.md - Line 2502 ===
+**Installation Instructions:** Scroll down to the "optional files" section of the mod page. In order, install the compatches for TSLRCM, the K2CP, JC's Minor Fixes, and then all remaining content that matches content you chose to use from the builds (skipping Better Twi'lek Male Heads, if using Leilukin's Male Twi'lek Diversity mod), following the below instructions:
+
+=== FILE: spoiler-free.md - Line 2554 ===
+**Installation Instructions:** Place DelDuplicateTGA-TPC (or the bash script version) in your main game folder (NOT override!), run it, say that **TPC should be deleted** and do not manually confirm. If you are on a Mac or other device that cannot run .bat files and the bash script is not an option for you to use, a list of all the files you will need to manually delete can be found [here](/modding/mod_builds/k2/delete.html).
+
+=== FILE: spoiler-free.md - Line 2594 ===
+**Download Instructions:** *Strongly* recommend the 2x .tpc version; the fidelity loss for 2x is minimal, .tpc is a lossless conversion and is much slimmer in filesize, and the automated compatibility program for this mod relies on the filetype being .tpc to function.
+
+=== FILE: spoiler-free.md - Line 2596 ===
+**Installation Instructions:** If you are on a system which can run .bat files, I *strongly* recommend using the automated system to deal with compatibility for this mod. To do so, first extract redrob's mod from its archive, then enter the "TSL Optional Kreia Model" folder, copy the four model files within, paste them into the "Copy contents to TSL's Override folder" and overwrite. After this, navigate to [this page](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/scripts/cleaner.bat) and click on the button with the arrow pointing down at the top of the code list (the one which says "download raw file"). Place cleaner.bat in the folder from redrob's mod called "Copy contents to TSL's Override folder", then go to [here](https://github.com/KOTOR-Community-Portal/mod-builds/blob/dev/scripts/cleanlist_k2_sf.txt) and repeat the same step, placing cleanlist_k2_sf.txt in the same location. You can now run cleanlist.bat: follow the instructions onscreen, selecting whether you did or didn't use any of the given mods, and the batch file will automatically delete the incompatible files. Once you reach the end of the list, you can exit the .bat window, delete cleaner.bat and cleanlist_k1.txt, and then move the remaining files in the folder to your override.
+
+=== FILE: spoiler-free.md - Line 2618 ===
+**Installation Instructions:** Apply the contents of the "for override folder". If you would like to have the TSLRCM version of the KOTOR 2 logo on your main menu, you will need to BOTH move the contents of the "FOR TSLRCM" folder to your override, as well as the contents of the separate download "Updated_TSLRCM_Logo_v1.8.6".
+
+=== FILE: spoiler-free.md - Line 2638 ===
+**Download Instructions:** Choose the resolution option which most closely fits your monitor's screen size during the download process. If using TSLRCM or Extended Enclave, download both the main file most closely corresponding to your monitor resolution as well as the file of the same resolution with "_mods" appended to the filename (for instance, *k2rs_30fps_1920x1080.7z* and *k2rs_30fps_mods_1920x1080.7z*).
+
+=== FILE: spoiler-free.md - Line 2640 ===
+**Installation Instructions:** When installing, there will be several optional files based on how dialogue in cutscenes are displayed (floating text or not, etc). Which of these you choose is your preference; use the mod screenshots to determine. Install the main module first, then open the "mods" version of the file and apply the upscaled cutscenes for any mods which you use from the main build list. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: spoiler-free.md - Line 2660 ===
+**Installation Instructions:** Use only Pops Maellard's cutscenes or this version by naelavok. To install, choose the resolution option which most closely fits your monitor's screen size during the download process. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: widescreen.md - Line 15 ===
+**Installation Instructions:** Apply the contents of the "for override folder". If you would like to have the TSLRCM version of the KOTOR 2 logo on your main menu, you will need to BOTH move the contents of the "FOR TSLRCM" folder to your override, as well as the contents of the separate download "Updated_TSLRCM_Logo_v1.8.6".
+
+=== FILE: widescreen.md - Line 33 ===
+**Download Instructions:** Choose the resolution option which most closely fits your monitor's screen size during the download process. If using TSLRCM or Extended Enclave, download both the main file most closely corresponding to your monitor resolution as well as the file of the same resolution with "_mods" appended to the filename (for instance, *k2rs_30fps_1920x1080.7z* and *k2rs_30fps_mods_1920x1080.7z*).
+
+=== FILE: widescreen.md - Line 35 ===
+**Installation Instructions:** When installing, there will be several optional files based on how dialogue in cutscenes are displayed (floating text or not, etc). Which of these you choose is your preference; use the mod screenshots to determine. Install the main module first, then open the "mods" version of the file and apply the upscaled cutscenes for any mods which you use from the main build list. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+=== FILE: widescreen.md - Line 53 ===
+**Installation Instructions:** Use only Pops Maellard's cutscenes or this version by naelavok. To install, choose the resolution option which most closely fits your monitor's screen size during the download process. Bear in mind that the files from this mod go in your *movies* folder, not override.
+
+

@@ -392,6 +392,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option("prefer-existing-modlinks", Required = false, HelpText = "[Merge] Prefer EXISTING mod link filenames when both exist")]
 			public bool PreferExistingModLinks { get; set; }
+
+			[Option("concurrent", Required = false, HelpText = "Process downloads concurrently/in parallel instead of sequentially (faster but harder to debug) (default: false, sequential)")]
+			public bool Concurrent { get; set; }
 		}
 
 		[Verb("merge", HelpText = "Merge two instruction sets together")]
@@ -465,6 +468,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option("prefer-existing-modlinks", Required = false, HelpText = "Prefer EXISTING mod link filenames when both exist")]
 			public bool PreferExistingModLinks { get; set; }
+
+			[Option("concurrent", Required = false, HelpText = "Process downloads concurrently/in parallel instead of sequentially (faster but harder to debug) (default: false, sequential)")]
+			public bool Concurrent { get; set; }
 		}
 
 		[Verb("validate", HelpText = "Validate instruction files for errors")]
@@ -750,7 +756,7 @@ namespace KOTORModSync.Core.CLI
 			WriteOutput(new string('=', 80));
 		}
 
-		private static async Task<DownloadCacheService> DownloadAllModFilesAsync(List<ModComponent> components, string destinationDirectory, bool verbose)
+		private static async Task<DownloadCacheService> DownloadAllModFilesAsync(List<ModComponent> components, string destinationDirectory, bool verbose, bool sequential = true)
 		{
 			int componentCount = components.Count(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0);
 			if ( componentCount == 0 )
@@ -890,7 +896,7 @@ namespace KOTORModSync.Core.CLI
 								component,
 								destinationDirectory,
 								progressReporter,
-								sequential: false,
+								sequential: sequential,
 								CancellationToken.None);
 
 							int successCount = results.Count(entry =>
@@ -1309,7 +1315,7 @@ namespace KOTORModSync.Core.CLI
 					else
 						Logger.Log(msg);
 
-					downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose);
+					downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose, sequential: !opts.Concurrent);
 
 					msg = "Download complete";
 					if ( _progressDisplay != null )
@@ -1438,7 +1444,7 @@ namespace KOTORModSync.Core.CLI
 						var component = components.FirstOrDefault(c => c.Name == error.ComponentName);
 						if ( component != null )
 						{
-							validationContext.AddComponentIssue(component.Guid, error.Message);
+							validationContext.AddModComponentIssue(component.Guid, error.Message);
 						}
 					}
 				}
@@ -1652,6 +1658,14 @@ namespace KOTORModSync.Core.CLI
 				List<ModComponent> components;
 				try
 				{
+					// Initialize download cache if we need to download or validate URLs
+					if ( opts.Download && downloadCache == null )
+					{
+						downloadCache = new DownloadCacheService();
+						downloadCache.SetDownloadManager();
+						_globalDownloadCache = downloadCache;
+					}
+
 					var mergeOptions = new Services.MergeOptions
 					{
 						ExcludeExistingOnly = opts.ExcludeExistingOnly,
@@ -1692,10 +1706,14 @@ namespace KOTORModSync.Core.CLI
 					if ( opts.PreferExistingModLinks )
 						mergeOptions.PreferExistingModLinkFilenames = true;
 
-					components = ComponentMergeService.MergeInstructionSets(
+					// Use async merge to support URL validation with sequential flag
+					components = await ComponentMergeService.MergeInstructionSetsAsync(
 						opts.ExistingPath,
 						opts.IncomingPath,
-						mergeOptions);
+						mergeOptions,
+						downloadCache,
+						sequential: !opts.Concurrent,
+						cancellationToken: CancellationToken.None);
 
 					msg = $"Merged result contains {components.Count} unique components";
 					if ( _progressDisplay != null )
@@ -1727,7 +1745,7 @@ namespace KOTORModSync.Core.CLI
 					else
 						Logger.Log(msg);
 
-					downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose);
+					downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose, sequential: !opts.Concurrent);
 
 					msg = "Download complete for all components";
 					if ( _progressDisplay != null )
@@ -1760,7 +1778,7 @@ namespace KOTORModSync.Core.CLI
 						var component = components.FirstOrDefault(c => c.Name == error.ComponentName);
 						if ( component != null )
 						{
-							validationContext.AddComponentIssue(component.Guid, error.Message);
+							validationContext.AddModComponentIssue(component.Guid, error.Message);
 						}
 					}
 				}

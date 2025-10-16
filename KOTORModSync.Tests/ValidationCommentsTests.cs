@@ -21,8 +21,8 @@ namespace KOTORModSync.Tests
 			var guid = Guid.NewGuid();
 
 			// Act
-			context.AddComponentIssue(guid, "Test issue 1");
-			context.AddComponentIssue(guid, "Test issue 2");
+			context.AddModComponentIssue(guid, "Test issue 1");
+			context.AddModComponentIssue(guid, "Test issue 2");
 
 			// Assert
 			var issues = context.GetComponentIssues(guid);
@@ -88,8 +88,8 @@ namespace KOTORModSync.Tests
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddComponentIssue(component.Guid, "Missing required files");
-			context.AddComponentIssue(component.Guid, "Invalid instruction format");
+			context.AddModComponentIssue(component.Guid, "Missing required files");
+			context.AddModComponentIssue(component.Guid, "Invalid instruction format");
 
 			// Act
 			string toml = ModComponentSerializationService.SaveToTomlString(
@@ -182,7 +182,7 @@ namespace KOTORModSync.Tests
 			component.Instructions.Add(instruction);
 
 			var context = new ComponentValidationContext();
-			context.AddComponentIssue(component.Guid, "Component validation issue");
+			context.AddModComponentIssue(component.Guid, "Component validation issue");
 			context.AddInstructionIssue(instruction.Guid, "ExtractArchive: Archive does not exist");
 
 			// Act
@@ -207,7 +207,7 @@ namespace KOTORModSync.Tests
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddComponentIssue(component.Guid, "JSON validation test");
+			context.AddModComponentIssue(component.Guid, "JSON validation test");
 			context.AddUrlFailure("https://example.com/test.zip", "Resolution failed");
 
 			component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
@@ -238,7 +238,7 @@ namespace KOTORModSync.Tests
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddComponentIssue(component.Guid, "XML test issue");
+			context.AddModComponentIssue(component.Guid, "XML test issue");
 
 			// Act
 			string xml = ModComponentSerializationService.SaveToXmlString(
@@ -262,7 +262,7 @@ namespace KOTORModSync.Tests
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddComponentIssue(component.Guid, "INI validation issue");
+			context.AddModComponentIssue(component.Guid, "INI validation issue");
 
 			// Act
 			string ini = ModComponentSerializationService.SaveToIniString(
@@ -286,7 +286,7 @@ namespace KOTORModSync.Tests
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddComponentIssue(component.Guid, "Markdown test warning");
+			context.AddModComponentIssue(component.Guid, "Markdown test warning");
 
 			// Act
 			string markdown = ModComponentSerializationService.SaveToMarkdownString(
@@ -346,8 +346,8 @@ namespace KOTORModSync.Tests
 			var comp2 = new ModComponent { Guid = Guid.NewGuid(), Name = "Mod 2" };
 
 			var context = new ComponentValidationContext();
-			context.AddComponentIssue(comp1.Guid, "Mod 1 issue");
-			context.AddComponentIssue(comp2.Guid, "Mod 2 issue");
+			context.AddModComponentIssue(comp1.Guid, "Mod 1 issue");
+			context.AddModComponentIssue(comp2.Guid, "Mod 2 issue");
 
 			// Act
 			string toml = ModComponentSerializationService.SaveToTomlString(

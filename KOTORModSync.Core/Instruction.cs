@@ -417,8 +417,18 @@ namespace KOTORModSync.Core
 						);
 					if ( !Path.IsPathRooted(realFilePath) || !_fileSystemProvider.FileExists(realFilePath) )
 					{
-						Logger.LogWarning($"Invalid wildcards or file does not exist: '{sourceRelDirPath}'");
-						exitCode = ActionExitCode.FileNotFoundPost;
+						// Overwrite=false (default): lenient mode, just log and continue
+						// Overwrite=true: strict mode, treat as error
+						if ( Overwrite )
+						{
+							Logger.LogWarning($"Invalid wildcards or file does not exist: '{sourceRelDirPath}'");
+							exitCode = ActionExitCode.FileNotFoundPost;
+						}
+						else
+						{
+							Logger.LogVerbose($"File does not exist (skipping): '{sourceRelDirPath}'");
+						}
+						continue;
 					}
 					try
 					{

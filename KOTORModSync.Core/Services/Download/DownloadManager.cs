@@ -33,57 +33,73 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-
-
-
 		public async Task<Dictionary<string, List<string>>> ResolveUrlsToFilenamesAsync(
 			IEnumerable<string> urls,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default,
+			bool sequential = false)
 		{
 			var urlList = urls.ToList();
-			await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urlList.Count} URLs to filenames (concurrent)");
-
-			var resolutionTasks = urlList.Select(async url =>
-			{
-				IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
-				if ( handler == null )
-				{
-					await Logger.LogWarningAsync($"[DownloadManager] No handler for URL: {url}");
-					return (url, filenames: new List<string>());
-				}
-
-				try
-				{
-					await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}");
-					List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
-
-					if ( filenames == null || filenames.Count == 0 )
-					{
-						await Logger.LogWarningAsync($"[DownloadManager] No filenames resolved for URL: {url} (Handler: {handler.GetType().Name}). The URL may be incorrect, the page structure may have changed, or the file may no longer be available.");
-					}
-					else
-					{
-						await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames.Count} filename(s) for URL: {url}");
-					}
-
-					return (url, filenames: filenames ?? new List<string>());
-				}
-				catch ( Exception ex )
-				{
-					await Logger.LogExceptionAsync(ex, $"[DownloadManager] Failed to resolve URL: {url}");
-					return (url, filenames: new List<string>());
-				}
-			}).ToList();
-
-			var resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
+			string mode = sequential ? "sequential" : "concurrent";
+			await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urlList.Count} URLs to filenames ({mode})");
 
 			var results = new Dictionary<string, List<string>>();
-			foreach ( var (url, filenames) in resolvedItems )
+
+			if ( sequential )
 			{
-				results[url] = filenames;
+				// Process URLs sequentially
+				foreach ( string url in urlList )
+				{
+					var (resolvedUrl, filenames) = await ResolveUrlToFilenamesInternalAsync(url, cancellationToken).ConfigureAwait(false);
+					results[resolvedUrl] = filenames;
+				}
+			}
+			else
+			{
+				// Process URLs concurrently
+				var resolutionTasks = urlList.Select(url => ResolveUrlToFilenamesInternalAsync(url, cancellationToken)).ToList();
+				var resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
+
+				foreach ( var (url, filenames) in resolvedItems )
+				{
+					results[url] = filenames;
+				}
 			}
 
 			return results;
+		}
+
+		private async Task<(string url, List<string> filenames)> ResolveUrlToFilenamesInternalAsync(
+			string url,
+			CancellationToken cancellationToken)
+		{
+			IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
+			if ( handler == null )
+			{
+				await Logger.LogWarningAsync($"[DownloadManager] No handler for URL: {url}");
+				return (url, filenames: new List<string>());
+			}
+
+			try
+			{
+				await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}");
+				List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
+
+				if ( filenames == null || filenames.Count == 0 )
+				{
+					await Logger.LogWarningAsync($"[DownloadManager] No filenames resolved for URL: {url} (Handler: {handler.GetType().Name}). The URL may be incorrect, the page structure may have changed, or the file may no longer be available.");
+				}
+				else
+				{
+					await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames.Count} filename(s) for URL: {url}");
+				}
+
+				return (url, filenames: filenames ?? new List<string>());
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, $"[DownloadManager] Failed to resolve URL: {url}");
+				return (url, filenames: new List<string>());
+			}
 		}
 
 

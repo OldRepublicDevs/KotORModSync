@@ -17,13 +17,12 @@ namespace KOTORModSync.Core.Services
 
 	public sealed class DownloadCacheService
 	{
-		private readonly Dictionary<string, DownloadCacheEntry> _cache;
-		private readonly object _cacheLock = new object();
+		private static readonly Dictionary<string, DownloadCacheEntry> s_cache = new Dictionary<string, DownloadCacheEntry>(StringComparer.OrdinalIgnoreCase);
+		private static readonly object s_cacheLock = new object();
 		public DownloadManager DownloadManager;
 		private readonly ComponentValidationService _validationService;
 		private readonly ResolutionFilterService _resolutionFilter;
-		private readonly string _cacheFilePath;
-		private static readonly object s_staticLock = new object();
+		private static readonly string s_cacheFilePath = GetCacheFilePath();
 		private static bool s_cacheLoaded;
 
 		private readonly Dictionary<string, DownloadFailureInfo> _failedDownloads = new Dictionary<string, DownloadFailureInfo>(StringComparer.OrdinalIgnoreCase);
@@ -31,12 +30,10 @@ namespace KOTORModSync.Core.Services
 
 		public DownloadCacheService()
 		{
-			_cache = new Dictionary<string, DownloadCacheEntry>(StringComparer.OrdinalIgnoreCase);
 			_validationService = new ComponentValidationService();
 			_resolutionFilter = new ResolutionFilterService(MainConfig.FilterDownloadsByResolution);
-			_cacheFilePath = GetCacheFilePath();
 
-			lock ( s_staticLock )
+			lock ( s_cacheLock )
 			{
 				if ( !s_cacheLoaded )
 				{
@@ -184,7 +181,7 @@ namespace KOTORModSync.Core.Services
 			if ( urlsToResolve.Count > 0 )
 			{
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Resolving {urlsToResolve.Count} uncached URL(s) via network");
-				Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken).ConfigureAwait(false);
+				Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken, sequential).ConfigureAwait(false);
 
 				if ( sequential )
 				{
@@ -398,9 +395,9 @@ namespace KOTORModSync.Core.Services
 				return;
 			}
 
-			lock ( _cacheLock )
+			lock ( s_cacheLock )
 			{
-				_cache[url] = entry;
+				s_cache[url] = entry;
 				Logger.LogVerbose($"[DownloadCacheService] Added/Updated cache entry for URL: {url}, Archive: {entry.FileName}");
 			}
 
@@ -414,9 +411,9 @@ namespace KOTORModSync.Core.Services
 			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
 
-			lock ( _cacheLock )
+			lock ( s_cacheLock )
 			{
-				if ( _cache.TryGetValue(url, out entry) )
+				if ( s_cache.TryGetValue(url, out entry) )
 				{
 					Logger.LogVerbose($"[DownloadCacheService] Cache hit for URL: {url}");
 					return true;
@@ -432,9 +429,9 @@ namespace KOTORModSync.Core.Services
 			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
 
-			lock ( _cacheLock )
+			lock ( s_cacheLock )
 			{
-				return _cache.ContainsKey(url);
+				return s_cache.ContainsKey(url);
 			}
 		}
 
@@ -476,9 +473,9 @@ namespace KOTORModSync.Core.Services
 				return false;
 
 			bool removed = false;
-			lock ( _cacheLock )
+			lock ( s_cacheLock )
 			{
-				if ( _cache.Remove(url) )
+				if ( s_cache.Remove(url) )
 				{
 					Logger.LogVerbose($"[DownloadCacheService] Removed cache entry for URL: {url}");
 					removed = true;
@@ -493,9 +490,9 @@ namespace KOTORModSync.Core.Services
 
 		public void Clear()
 		{
-			lock ( _cacheLock )
+			lock ( s_cacheLock )
 			{
-				_cache.Clear();
+				s_cache.Clear();
 				Logger.LogVerbose("[DownloadCacheService] Cache cleared");
 			}
 
@@ -504,17 +501,17 @@ namespace KOTORModSync.Core.Services
 
 		public int GetTotalEntryCount()
 		{
-			lock ( _cacheLock )
+			lock ( s_cacheLock )
 			{
-				return _cache.Count;
+				return s_cache.Count;
 			}
 		}
 
 		public IReadOnlyList<DownloadCacheEntry> GetCachedEntries()
 		{
-			lock ( _cacheLock )
+			lock ( s_cacheLock )
 			{
-				return _cache.Values.ToList();
+				return s_cache.Values.ToList();
 			}
 		}
 
@@ -1244,17 +1241,17 @@ namespace KOTORModSync.Core.Services
 			return Path.Combine(cacheDir, "download-cache.json");
 		}
 
-		private void SaveCacheToDisk()
+		private static void SaveCacheToDisk()
 		{
 			try
 			{
-				lock ( _cacheLock )
+				lock ( s_cacheLock )
 				{
-					string json = JsonConvert.SerializeObject(_cache, Formatting.Indented);
-					File.WriteAllText(_cacheFilePath, json);
+					string json = JsonConvert.SerializeObject(s_cache, Formatting.Indented);
+					File.WriteAllText(s_cacheFilePath, json);
 				}
 
-				Logger.LogVerbose($"[DownloadCacheService] Saved cache to disk: {_cacheFilePath}");
+				Logger.LogVerbose($"[DownloadCacheService] Saved cache to disk: {s_cacheFilePath}");
 			}
 			catch ( Exception ex )
 			{
@@ -1262,9 +1259,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		private void LoadCacheFromDisk()
+		private static void LoadCacheFromDisk()
 		{
-			if ( !File.Exists(_cacheFilePath) )
+			if ( !File.Exists(s_cacheFilePath) )
 			{
 				Logger.LogVerbose("[DownloadCacheService] No cache file found on disk, starting with empty cache");
 				return;
@@ -1272,7 +1269,7 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				string json = File.ReadAllText(_cacheFilePath);
+				string json = File.ReadAllText(s_cacheFilePath);
 				Dictionary<string, DownloadCacheEntry> loadedCache = JsonConvert.DeserializeObject<Dictionary<string, DownloadCacheEntry>>(json);
 
 				if ( loadedCache == null )
@@ -1281,18 +1278,18 @@ namespace KOTORModSync.Core.Services
 					return;
 				}
 
-				lock ( _cacheLock )
+				lock ( s_cacheLock )
 				{
-					_cache.Clear();
+					s_cache.Clear();
 
 					foreach ( KeyValuePair<string, DownloadCacheEntry> kvp in loadedCache )
 					{
-						_cache[kvp.Key] = kvp.Value;
+						s_cache[kvp.Key] = kvp.Value;
 						Logger.LogVerbose($"[DownloadCacheService] Loaded cached entry: {kvp.Value.FileName}");
 					}
 				}
 
-				Logger.LogVerbose($"[DownloadCacheService] Loaded cache from disk: {_cacheFilePath} ({GetTotalEntryCount()} entries)");
+				Logger.LogVerbose($"[DownloadCacheService] Loaded cache from disk: {s_cacheFilePath} ({s_cache.Count} entries)");
 			}
 			catch ( Exception ex )
 			{

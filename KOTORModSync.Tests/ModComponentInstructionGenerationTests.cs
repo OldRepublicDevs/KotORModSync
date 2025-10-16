@@ -77,7 +77,7 @@ namespace KOTORModSync.Tests
 			return archivePath;
 		}
 
-		private string CreateLooseFileArchive(string archiveName, params string[] fileNames)
+		private void CreateLooseFileArchive(string archiveName, params string[] fileNames)
 		{
 			Debug.Assert(_testDirectory != null);
 			string archivePath = Path.Combine(_testDirectory, archiveName);
@@ -93,13 +93,11 @@ namespace KOTORModSync.Tests
 					archive.AddEntry(fileName, memStream);
 				}
 
-				using ( var fileStream = File.Create(archivePath) )
+				using ( FileStream fileStream = File.Create(archivePath) )
 				{
 					archive.SaveTo(fileStream, new WriterOptions(CompressionType.Deflate));
 				}
 			}
-
-			return archivePath;
 		}
 
 		#endregion
@@ -118,13 +116,19 @@ namespace KOTORModSync.Tests
 				InstallationMethod = "TSLPatcher Mod",
 				IsSelected = false,
 				Category = new List<string> { "Restored Content" },
-				ModLink = new List<string> { "https://deadlystream.com/files/file/2473-kotor-swoop-bike-upgrades/" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{
+						"https://deadlystream.com/files/file/2473-kotor-swoop-bike-upgrades/",
+						new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+					}
+				}
 			};
 
-			string archiveName = "kotor-swoop-bike-upgrades.zip";
-			string archivePath = CreateTslPatcherArchive(archiveName);
+			const string archiveName = "kotor-swoop-bike-upgrades.zip";
+			CreateTslPatcherArchive(archiveName);
 
-			bool result = component.TryGenerateInstructionsFromArchive();
+			bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 
 			Assert.Multiple(() =>
 			{
@@ -135,7 +139,7 @@ namespace KOTORModSync.Tests
 
 			Console.WriteLine($"Generated {component.Instructions.Count} instructions");
 			Console.WriteLine($"Installation Method: {component.InstallationMethod}");
-			foreach ( var instruction in component.Instructions )
+			foreach ( Instruction instruction in component.Instructions )
 			{
 				Console.WriteLine($"  - {instruction.Action}: {string.Join(", ", instruction.Source)}");
 			}
@@ -145,18 +149,24 @@ namespace KOTORModSync.Tests
 		public void TryGenerateInstructionsFromArchive_WithExactFileName_UsesCorrectArchive()
 		{
 
-			string wrongArchive1 = CreateTslPatcherArchive("wrong-mod-1.zip");
-			string wrongArchive2 = CreateTslPatcherArchive("wrong-mod-2.zip");
-			string correctArchive = CreateTslPatcherArchive("correct-mod.zip");
+			CreateTslPatcherArchive("wrong-mod-1.zip");
+			CreateTslPatcherArchive("wrong-mod-2.zip");
+			CreateTslPatcherArchive("correct-mod.zip");
 
 			var component = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = "Correct Mod",
-				ModLink = new List<string> { "https://example.com/download/correct-mod.zip" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{
+						"https://example.com/download/correct-mod.zip",
+						new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+					}
+				}
 			};
 
-			bool result = component.TryGenerateInstructionsFromArchive();
+			bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 
 			Assert.Multiple(() =>
 			{
@@ -164,7 +174,7 @@ namespace KOTORModSync.Tests
 				Assert.That(component.Instructions, Is.Not.Empty);
 			});
 
-			var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
+			Instruction? extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
 			Assert.That(extractInstruction, Is.Not.Null);
 			Assert.That(extractInstruction.Source[0], Does.Contain("correct-mod.zip"));
 		}
@@ -179,10 +189,13 @@ namespace KOTORModSync.Tests
 			{
 				Guid = Guid.NewGuid(),
 				Name = "Non-Existent Mod",
-				ModLink = new List<string> { "https://example.com/download/missing-mod.zip" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "https://example.com/download/missing-mod.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
-			bool result = component.TryGenerateInstructionsFromArchive();
+			bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 
 			Assert.Multiple(() =>
 			{
@@ -195,17 +208,20 @@ namespace KOTORModSync.Tests
 		public void TryGenerateInstructionsFromArchive_WithFuzzyMatch_FindsArchive()
 		{
 
-			string archiveName = "Swoop_Bike_Upgrades_v1.2.zip";
+			const string archiveName = "Swoop_Bike_Upgrades_v1.2.zip";
 			CreateTslPatcherArchive(archiveName);
 
 			var component = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = "Swoop Bike Upgrades",
-				ModLink = new List<string> { "https://example.com/swoop-bike-upgrades.zip" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "https://example.com/swoop-bike-upgrades.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
-			bool result = component.TryGenerateInstructionsFromArchive();
+			bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 
 			Assert.Multiple(() =>
 			{
@@ -218,34 +234,43 @@ namespace KOTORModSync.Tests
 		public void TryGenerateInstructionsFromArchive_MultipleComponents_EachGetsUniqueInstructions()
 		{
 
-			string archive1 = CreateTslPatcherArchive("mod-one.zip");
-			string archive2 = CreateLooseFileArchive("mod-two.zip", "file1.2da", "file2.tga");
-			string archive3 = CreateTslPatcherArchive("mod-three.zip");
+			CreateTslPatcherArchive("mod-one.zip");
+			CreateLooseFileArchive("mod-two.zip", "file1.2da", "file2.tga");
+			CreateTslPatcherArchive("mod-three.zip");
 
 			var component1 = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = "Mod One",
-				ModLink = new List<string> { "https://example.com/mod-one.zip" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "https://example.com/mod-one.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
 			var component2 = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = "Mod Two",
-				ModLink = new List<string> { "https://example.com/mod-two.zip" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "https://example.com/mod-two.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
 			var component3 = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = "Mod Three",
-				ModLink = new List<string> { "https://example.com/mod-three.zip" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "https://example.com/mod-three.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
-			bool result1 = component1.TryGenerateInstructionsFromArchive();
-			bool result2 = component2.TryGenerateInstructionsFromArchive();
-			bool result3 = component3.TryGenerateInstructionsFromArchive();
+			bool result1 = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component1);
+			bool result2 = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component2);
+			bool result3 = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component3);
 
 			Assert.Multiple(() =>
 			{
@@ -258,9 +283,9 @@ namespace KOTORModSync.Tests
 				Assert.That(component3.InstallationMethod, Is.EqualTo("TSLPatcher"));
 			});
 
-			var extract1 = component1.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
-			var extract2 = component2.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
-			var extract3 = component3.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
+			Instruction? extract1 = component1.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
+			Instruction? extract2 = component2.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
+			Instruction? extract3 = component3.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
 
 			Assert.Multiple(() =>
 			{
@@ -280,14 +305,17 @@ namespace KOTORModSync.Tests
 			{
 				Guid = Guid.NewGuid(),
 				Name = "Test Mod",
-				ModLink = new List<string> { "https://example.com/test-mod.zip" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "https://example.com/test-mod.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
 			var existingInstruction = new Instruction { Action = Instruction.ActionType.Move };
 			existingInstruction.SetParentComponent(component);
 			component.Instructions.Add(existingInstruction);
 
-			bool result = component.TryGenerateInstructionsFromArchive();
+			bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 
 			Assert.Multiple(() =>
 			{
@@ -305,10 +333,10 @@ namespace KOTORModSync.Tests
 			{
 				Guid = Guid.NewGuid(),
 				Name = "No Link Mod",
-				ModLink = new List<string>()
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
 			};
 
-			bool result = component.TryGenerateInstructionsFromArchive();
+			bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 
 			Assert.Multiple(() =>
 			{
@@ -321,17 +349,20 @@ namespace KOTORModSync.Tests
 		public void TryGenerateInstructionsFromArchive_WithUrlModLink_ExtractsFilename()
 		{
 
-			string archiveName = "download-file-1234.zip";
+			const string archiveName = "download-file-1234.zip";
 			CreateTslPatcherArchive(archiveName);
 
 			var component = new ModComponent
 			{
 				Guid = Guid.NewGuid(),
 				Name = "URL Test Mod",
-				ModLink = new List<string> { $"https://deadlystream.com/files/download-file-1234.zip" }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "https://deadlystream.com/files/download-file-1234.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
-			bool result = component.TryGenerateInstructionsFromArchive();
+			bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 
 			Assert.Multiple(() =>
 			{

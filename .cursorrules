@@ -1,1 +1,21 @@
 When creating XAML or other UI controls/elements NEVER specify in the element itself the font/style information. Do not use classes either unless absolutely necessary. Omit font/colors entirely so the implicit defaults from the theme will always be used.
+
+=== PATH SANDBOXING & SECURITY MODEL ===
+Instructions MUST use relative paths with placeholders: <<modDirectory>>\filename*.zip or <<kotorDirectory>>/Override
+- ALL instruction Source/Destination fields MUST START with <<modDirectory>> or <<kotorDirectory>>
+- This prevents malicious TOML files from targeting system directories (C:\Windows, etc.)
+- Internal code can make paths absolute as needed, but instruction definitions must use placeholders
+
+=== PATH RESOLUTION PIPELINE ===
+- Replaces <<modDirectory>>/<<kotorDirectory>> with actual paths at install time or dry-run time.
+- Require all Actions (except for Choose) to be defined with the prefixes <<modDirectory>> or <<kotorDirectory>>. NO absolute paths are allowed.
+- EnumerateFilesWithWildcards() - Resolves wildcards (*, ?) to actual file paths using the file system provider (either VirtualFileSystemProvider or RealFileSystemProvider based on whether an install is happening)
+- SetRealPaths() - Used during dry-run/real installs to resolve <<modDirectory>>
+
+=== VIRTUAL FILE SYSTEM (CRITICAL) ===
+- VirtualFileSystemProvider tracks files as they're created/moved/deleted/renamed during instruction execution
+- Used for dry-run validation and download analysis to predict file state at each instruction
+- MUST be initialized with InitializeFromRealFileSystemAsync() to load existing files from disk first
+- As instructions execute, VFS updates: Extract adds files, Move relocates them, Delete removes them
+- NEVER use RealFileSystemProvider for validation/analysis - only VirtualFileSystemProvider
+- See ExecuteInstructionsAsync for the instruction execution flow that updates VFS state

@@ -3,6 +3,7 @@
 // See LICENSE.txt file in the project root for full license information.
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,26 +12,174 @@ using System.Xml;
 using System.Xml.Linq;
 using JetBrains.Annotations;
 using KOTORModSync.Core.Parsing;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 using Tomlyn;
 using Tomlyn.Model;
-using KOTORModSync.Core.FileSystemUtils;
-using YamlSerialization = YamlDotNet.Serialization;
 using static KOTORModSync.Core.Instruction;
+using YamlSerialization = YamlDotNet.Serialization;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Centralized service for loading and saving ModComponent lists from/to various formats (TOML, YAML, Markdown).
-	/// </summary>
+	public class ComponentValidationContext
+	{
+		public Dictionary<Guid, List<string>> ComponentIssues { get; set; } = new Dictionary<Guid, List<string>>();
+		public Dictionary<Guid, List<string>> InstructionIssues { get; set; } = new Dictionary<Guid, List<string>>();
+		public Dictionary<string, List<string>> UrlFailures { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+		public void AddComponentIssue(Guid componentGuid, string issue)
+		{
+			if ( !ComponentIssues.ContainsKey(componentGuid) )
+				ComponentIssues[componentGuid] = new List<string>();
+			ComponentIssues[componentGuid].Add(issue);
+		}
+
+		public void AddInstructionIssue(Guid instructionGuid, string issue)
+		{
+			if ( !InstructionIssues.ContainsKey(instructionGuid) )
+				InstructionIssues[instructionGuid] = new List<string>();
+			InstructionIssues[instructionGuid].Add(issue);
+		}
+
+		public void AddUrlFailure(string url, string error)
+		{
+			if ( !UrlFailures.ContainsKey(url) )
+				UrlFailures[url] = new List<string>();
+			UrlFailures[url].Add(error);
+		}
+
+		public List<string> GetComponentIssues(Guid componentGuid)
+		{
+			return ComponentIssues.TryGetValue(componentGuid, out List<string> issues) ? issues : new List<string>();
+		}
+
+		public List<string> GetInstructionIssues(Guid instructionGuid)
+		{
+			return InstructionIssues.TryGetValue(instructionGuid, out List<string> issues) ? issues : new List<string>();
+		}
+
+		public List<string> GetUrlFailures(string url)
+		{
+			return UrlFailures.TryGetValue(url, out List<string> failures) ? failures : new List<string>();
+		}
+
+		public bool HasIssues(Guid componentGuid)
+		{
+			return ComponentIssues.ContainsKey(componentGuid);
+		}
+
+		public bool HasInstructionIssues(Guid instructionGuid)
+		{
+			return InstructionIssues.ContainsKey(instructionGuid);
+		}
+
+		public bool HasUrlFailures(string url)
+		{
+			return UrlFailures.ContainsKey(url);
+		}
+
+		/// <summary>
+		/// Creates a validation context from VirtualFileSystemProvider validation issues
+		/// </summary>
+		public static ComponentValidationContext FromVirtualFileSystem(
+			[NotNull] List<ModComponent> components,
+			[NotNull] FileSystem.VirtualFileSystemProvider vfs)
+		{
+			var context = new ComponentValidationContext();
+			List<FileSystem.ValidationIssue> issues = vfs.GetValidationIssues();
+
+			foreach ( FileSystem.ValidationIssue issue in issues )
+			{
+				if ( issue.AffectedComponent != null )
+				{
+					context.AddComponentIssue(issue.AffectedComponent.Guid, $"{issue.Category}: {issue.Message}");
+				}
+
+				if ( issue.AffectedInstruction != null )
+				{
+					context.AddInstructionIssue(issue.AffectedInstruction.Guid, $"{issue.Category}: {issue.Message}");
+				}
+			}
+
+			return context;
+		}
+	}
+
 	public static class ModComponentSerializationService
 	{
-		#region Loading Functions
+		#region Encoding Sanitization
 		/// <summary>
-		/// Loads components from a TOML string.
+		/// Sanitizes string content to handle problematic characters that break parsers.
+		/// Uses the encoding specified in MainConfig.FileEncoding (default: utf-8)
 		/// </summary>
+		private static string SanitizeUtf8(string input)
+		{
+			if ( string.IsNullOrEmpty(input) )
+				return input;
+
+			try
+			{
+				// Get the configured encoding (default to UTF-8)
+				string encodingName = MainConfig.FileEncoding
+									  ?? "utf-8";
+				Encoding targetEncoding;
+
+				// Map encoding name to .NET Encoding
+				if ( encodingName.Equals("windows-1252", StringComparison.OrdinalIgnoreCase) ||
+					encodingName.Equals("cp-1252", StringComparison.OrdinalIgnoreCase) ||
+					encodingName.Equals("cp1252", StringComparison.OrdinalIgnoreCase) )
+				{
+					targetEncoding = Encoding.GetEncoding(1252);
+				}
+				else if ( encodingName.Equals("utf-8", StringComparison.OrdinalIgnoreCase) ||
+						 encodingName.Equals("utf8", StringComparison.OrdinalIgnoreCase) )
+				{
+					targetEncoding = new UTF8Encoding(false, false);
+				}
+				else
+				{
+					// Try to get encoding by name, fallback to UTF-8
+					try
+					{
+						targetEncoding = Encoding.GetEncoding(encodingName);
+					}
+					catch
+					{
+						Logger.LogWarning($"Unknown encoding '{encodingName}', using UTF-8");
+						targetEncoding = new UTF8Encoding(false, false);
+					}
+				}
+
+				var result = new StringBuilder(input.Length);
+
+				foreach ( char c in input )
+				{
+					try
+					{
+						// Try to encode this character to target encoding
+						byte[] bytes = targetEncoding.GetBytes(new char[] { c });
+						// If successful, add it to result
+						result.Append(c);
+					}
+					catch
+					{
+						// If encoding fails, ignore/skip this character
+						var lineNumber = input.Substring(0, input.IndexOf(c)).Count(x => x == '\n') + 1;
+						var columnNumber = input.Substring(0, input.IndexOf(c)).Length - input.Substring(0, input.IndexOf(c)).LastIndexOf('\n') + 1;
+						Logger.LogVerbose($"Failed to encode character `{c}` with encoding '{encodingName}' at line {lineNumber} column {columnNumber}, ignoring");
+					}
+				}
+
+				return result.ToString();
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogWarning($"Failed to sanitize content with encoding (using original): {ex.Message}");
+				return input;
+			}
+		}
+		#endregion
+
+		#region Loading Functions
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> LoadFromTomlString([NotNull] string tomlContent)
@@ -38,6 +187,7 @@ namespace KOTORModSync.Core.Services
 			Logger.LogVerbose($"Loading from TOML string");
 			if ( tomlContent == null )
 				throw new ArgumentNullException(nameof(tomlContent));
+			tomlContent = SanitizeUtf8(tomlContent);
 			tomlContent = tomlContent
 				.Replace(oldValue: "Instructions = []", string.Empty)
 				.Replace(oldValue: "Options = []", string.Empty);
@@ -56,11 +206,9 @@ namespace KOTORModSync.Core.Services
 			var tomlTable = tomlDocument.ToModel();
 			ParseMetadataSection(tomlTable);
 
-			// Check if "thisMod" key exists
 			if ( !tomlTable.ContainsKey("thisMod") )
 				throw new InvalidDataException("TOML content does not contain 'thisMod' array.");
 
-			// Handle TomlTableArray properly
 			object thisModObj = tomlTable["thisMod"];
 			IEnumerable<object> componentTables;
 
@@ -92,24 +240,20 @@ namespace KOTORModSync.Core.Services
 
 					thisComponent.DeserializeComponent(componentDict);
 
-					// Handle flattened Options.Instructions format (new format with Parent field)
 					if ( componentDict.ContainsKey("_OptionsInstructions") || componentDict.ContainsKey("Options") )
 					{
-						// Try to find nested Options.Instructions
-						object optionsInstructionsObj = null;
-						if ( componentDict.TryGetValue("_OptionsInstructions", out optionsInstructionsObj) ||
-							 (componentDict.TryGetValue("Options", out var optionsObj) &&
+						if ( componentDict.TryGetValue("_OptionsInstructions", out object optionsInstructionsObj) ||
+							 (componentDict.TryGetValue("Options", out object optionsObj) &&
 							  optionsObj is IDictionary<string, object> optionsDict &&
 							  optionsDict.TryGetValue("Instructions", out optionsInstructionsObj)) )
 						{
 							if ( optionsInstructionsObj is IList<object> optionInstructionsList )
 							{
-								// Group instructions by Parent GUID
 								var instructionsByParent = new Dictionary<string, List<object>>();
-								foreach ( var instrObj in optionInstructionsList )
+								foreach ( object instrObj in optionInstructionsList )
 								{
 									if ( instrObj is IDictionary<string, object> instrDict &&
-										 instrDict.TryGetValue("Parent", out var parentObj) )
+										 instrDict.TryGetValue("Parent", out object parentObj) )
 									{
 										string parentGuid = parentObj?.ToString();
 										if ( !string.IsNullOrEmpty(parentGuid) )
@@ -121,13 +265,11 @@ namespace KOTORModSync.Core.Services
 									}
 								}
 
-								// Assign instructions to their parent options
-								foreach ( var option in thisComponent.Options )
+								foreach ( Option option in thisComponent.Options )
 								{
 									string optionGuidStr = option.Guid.ToString();
-									if ( instructionsByParent.TryGetValue(optionGuidStr, out var instructions) )
+									if ( instructionsByParent.TryGetValue(optionGuidStr, out List<object> instructions) )
 									{
-										// Only replace if the option doesn't already have instructions (from old format)
 										if ( option.Instructions.Count == 0 )
 										{
 											option.Instructions = DeserializeInstructions(instructions, option);
@@ -154,11 +296,8 @@ namespace KOTORModSync.Core.Services
 
 			return components;
 		}
-		private static readonly string[] yamlSeparator = new[] { "---" };
-		private static readonly string[] newLineSeparator = new[] { "\r\n", "\r", "\n" };
-		/// <summary>
-		/// Loads components from a YAML string.
-		/// </summary>
+		private static readonly string[] s_yamlSeparator = new[] { "---" };
+		private static readonly string[] s_newLineSeparator = new[] { "\r\n", "\r", "\n" };
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> LoadFromYamlString([NotNull] string yamlContent)
@@ -166,9 +305,9 @@ namespace KOTORModSync.Core.Services
 			Logger.LogVerbose($"Loading from YAML string");
 			if ( yamlContent == null )
 				throw new ArgumentNullException(nameof(yamlContent));
+			yamlContent = SanitizeUtf8(yamlContent);
 			var components = new List<ModComponent>();
-			// Split YAML by document separator if multiple components
-			var yamlDocs = yamlContent.Split(yamlSeparator, StringSplitOptions.RemoveEmptyEntries);
+			string[] yamlDocs = yamlContent.Split(s_yamlSeparator, StringSplitOptions.RemoveEmptyEntries);
 			foreach ( string yamlDoc in yamlDocs )
 			{
 				if ( string.IsNullOrWhiteSpace(yamlDoc) )
@@ -183,16 +322,14 @@ namespace KOTORModSync.Core.Services
 				throw new InvalidDataException("No valid components found in YAML content.");
 			return components;
 		}
-		/// <summary>
-		/// Loads components from a Markdown string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> LoadFromMarkdownString([NotNull] string markdownContent)
 		{
-			Logger.LogVerbose($"Loading from Markdown string");
+			Logger.LogVerbose("Loading from Markdown string");
 			if ( markdownContent == null )
 				throw new ArgumentNullException(nameof(markdownContent));
+			markdownContent = SanitizeUtf8(markdownContent);
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 			MarkdownParserResult result = parser.Parse(markdownContent);
@@ -200,18 +337,15 @@ namespace KOTORModSync.Core.Services
 				throw new InvalidDataException("No valid components found in Markdown content.");
 			return result.Components.ToList();
 		}
-		/// <summary>
-		/// Loads components from a JSON string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> LoadFromJsonString([NotNull] string jsonContent)
 		{
-			Logger.LogVerbose($"Loading from JSON string");
+			Logger.LogVerbose("Loading from JSON string");
 			if ( jsonContent == null )
 				throw new ArgumentNullException(nameof(jsonContent));
+			jsonContent = SanitizeUtf8(jsonContent);
 			var jsonObject = JObject.Parse(jsonContent);
-			// Parse metadata if present
 			if ( jsonObject["metadata"] is JObject metadataObj )
 			{
 				MainConfig.FileFormatVersion = metadataObj["fileFormatVersion"]?.ToString() ?? "2.0";
@@ -237,20 +371,17 @@ namespace KOTORModSync.Core.Services
 				throw new InvalidDataException("No valid components found in JSON content.");
 			return components;
 		}
-		/// <summary>
-		/// Loads components from an XML string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> LoadFromXmlString([NotNull] string xmlContent)
 		{
-			Logger.LogVerbose($"Loading from XML string");
+			Logger.LogVerbose("Loading from XML string");
 			if ( xmlContent == null )
 				throw new ArgumentNullException(nameof(xmlContent));
+			xmlContent = SanitizeUtf8(xmlContent);
 			var doc = XDocument.Parse(xmlContent);
-			var root = doc.Root;
-			// Parse metadata
-			var metadataElem = root?.Element("Metadata");
+			XElement root = doc.Root;
+			XElement metadataElem = root?.Element("Metadata");
 			if ( metadataElem != null )
 			{
 				MainConfig.FileFormatVersion = metadataElem.Element("FileFormatVersion")?.Value
@@ -265,12 +396,12 @@ namespace KOTORModSync.Core.Services
 					MainConfig.LastModified = lastMod;
 			}
 			var components = new List<ModComponent>();
-			var componentsElem = root?.Element("Components");
+			XElement componentsElem = root?.Element("Components");
 			if ( componentsElem != null )
 			{
-				foreach ( var compElem in componentsElem.Elements("Component") )
+				foreach ( XElement compElem in componentsElem.Elements("Component") )
 				{
-					var compDict = XmlElementToDictionary(compElem);
+					Dictionary<string, object> compDict = XmlElementToDictionary(compElem);
 					var component = new ModComponent();
 					component.DeserializeComponent(compDict);
 					components.Add(component);
@@ -280,12 +411,8 @@ namespace KOTORModSync.Core.Services
 				throw new InvalidDataException("No valid components found in XML content.");
 			return components;
 		}
-		private static readonly char[] iniKeyValueSeparators = new[] { '=' };
-		private static readonly char[] categorySeparator = new[] { ',', ';' };
+		private static readonly char[] s_iniKeyValueSeparators = new[] { '=' };
 
-		/// <summary>
-		/// Loads components from an INI string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> LoadFromIniString([NotNull] string iniContent)
@@ -293,19 +420,19 @@ namespace KOTORModSync.Core.Services
 			Logger.LogVerbose($"Loading from INI string");
 			if ( iniContent == null )
 				throw new ArgumentNullException(nameof(iniContent));
+			iniContent = SanitizeUtf8(iniContent);
 			var components = new List<ModComponent>();
-			var lines = iniContent.Split(newLineSeparator, StringSplitOptions.RemoveEmptyEntries);
+			var lines = iniContent.Split(s_newLineSeparator, StringSplitOptions.RemoveEmptyEntries);
 			Dictionary<string, object> currentSection = null;
 			string currentSectionName = null;
-			foreach ( var line in lines )
+			foreach ( string line in lines )
 			{
-				var trimmed = line.Trim();
+				string trimmed = line.Trim();
 				if ( string.IsNullOrEmpty(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("#") )
 					continue;
 				if ( trimmed.StartsWith("[") && trimmed.EndsWith("]") )
 				{
-					// Save previous section if it was a component
-					if ( currentSection != null && currentSectionName != null && currentSectionName.StartsWith("Component") )
+					if ( currentSection != null && currentSectionName.StartsWith("Component") )
 					{
 						var component = new ModComponent();
 						component.DeserializeComponent(currentSection);
@@ -316,17 +443,16 @@ namespace KOTORModSync.Core.Services
 				}
 				else if ( trimmed.Contains("=") && currentSection != null )
 				{
-					var parts = trimmed.Split(iniKeyValueSeparators, 2);
+					string[] parts = trimmed.Split(s_iniKeyValueSeparators, 2);
 					if ( parts.Length == 2 )
 					{
-						var key = parts[0].Trim();
-						var value = parts[1].Trim();
+						string key = parts[0].Trim();
+						string value = parts[1].Trim();
 						currentSection[key] = value;
 					}
 				}
 			}
-			// Save last section
-			if ( currentSection != null && currentSectionName != null && currentSectionName.StartsWith("Component") )
+			if ( currentSection != null && currentSectionName.StartsWith("Component") )
 			{
 				var component = new ModComponent();
 				component.DeserializeComponent(currentSection);
@@ -336,18 +462,16 @@ namespace KOTORModSync.Core.Services
 				throw new InvalidDataException("No valid components found in INI content.");
 			return components;
 		}
-		/// <summary>
-		/// Loads components from a string, attempting TOML first, then JSON, then YAML, then XML, then Markdown.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
-		public static List<ModComponent> LoadFromString([NotNull] string content, [CanBeNull] string format = null)
+		public static List<ModComponent> LoadFromString(
+			[NotNull] string content,
+			[CanBeNull] string format = null)
 		{
 			Logger.LogVerbose($"Loading from string with format: {format ?? "auto-detect"}");
 			if ( content == null )
 				throw new ArgumentNullException(nameof(content));
 
-			// If format is provided, dispatch directly
 			if ( !string.IsNullOrWhiteSpace(format) )
 			{
 				string fmt = format.Trim().ToLowerInvariant();
@@ -373,7 +497,6 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			// Auto-detect / try fallback order
 			try
 			{
 				return LoadFromTomlString(content);
@@ -382,7 +505,6 @@ namespace KOTORModSync.Core.Services
 			{
 				Logger.LogVerbose($"TOML parsing failed: {tomlEx.Message}");
 
-				// Try Markdown next
 				try
 				{
 					return LoadFromMarkdownString(content);
@@ -391,7 +513,6 @@ namespace KOTORModSync.Core.Services
 				{
 					Logger.LogVerbose($"Markdown parsing failed: {mdEx.Message}");
 
-					// Try YAML next
 					try
 					{
 						return LoadFromYamlString(content);
@@ -400,7 +521,6 @@ namespace KOTORModSync.Core.Services
 					{
 						Logger.LogVerbose($"YAML parsing failed: {yamlEx.Message}");
 
-						// Try TOML again (now as fallback after YAML)
 						try
 						{
 							return LoadFromTomlString(content);
@@ -409,7 +529,6 @@ namespace KOTORModSync.Core.Services
 						{
 							Logger.LogVerbose($"TOML (second attempt) parsing failed: {tomlSecondEx.Message}");
 
-							// Try JSON next
 							try
 							{
 								return LoadFromJsonString(content);
@@ -418,7 +537,6 @@ namespace KOTORModSync.Core.Services
 							{
 								Logger.LogVerbose($"JSON parsing failed: {jsonEx.Message}");
 
-								// If all else fails, try XML last
 								return LoadFromXmlString(content);
 							}
 						}
@@ -426,63 +544,42 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 		}
-		/// <summary>
-		/// Async version: Loads components from a TOML string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static Task<List<ModComponent>> LoadFromTomlStringAsync([NotNull] string tomlContent)
 		{
 			return Task.Run(() => LoadFromTomlString(tomlContent));
 		}
-		/// <summary>
-		/// Async version: Loads components from a YAML string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static Task<List<ModComponent>> LoadFromYamlStringAsync([NotNull] string yamlContent)
 		{
 			return Task.Run(() => LoadFromYamlString(yamlContent));
 		}
-		/// <summary>
-		/// Async version: Loads components from a Markdown string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static Task<List<ModComponent>> LoadFromMarkdownStringAsync([NotNull] string markdownContent)
 		{
 			return Task.Run(() => LoadFromMarkdownString(markdownContent));
 		}
-		/// <summary>
-		/// Async version: Loads components from a JSON string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static Task<List<ModComponent>> LoadFromJsonStringAsync([NotNull] string jsonContent)
 		{
 			return Task.Run(() => LoadFromJsonString(jsonContent));
 		}
-		/// <summary>
-		/// Async version: Loads components from an XML string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static Task<List<ModComponent>> LoadFromXmlStringAsync([NotNull] string xmlContent)
 		{
 			return Task.Run(() => LoadFromXmlString(xmlContent));
 		}
-		/// <summary>
-		/// Async version: Loads components from an INI string.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static Task<List<ModComponent>> LoadFromIniStringAsync([NotNull] string iniContent)
 		{
 			return Task.Run(() => LoadFromIniString(iniContent));
 		}
-		/// <summary>
-		/// Async version: Loads components from a string, attempting TOML first, then JSON, then YAML, then XML, then Markdown.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static Task<List<ModComponent>> LoadFromStringAsync([NotNull] string content, [CanBeNull] string format = null)
@@ -491,13 +588,11 @@ namespace KOTORModSync.Core.Services
 		}
 		#endregion
 		#region Saving Functions
-		/// <summary>
-		/// Saves components to a string in the specified format.
-		/// </summary>
 		[NotNull]
 		public static string SaveToString(
 			[NotNull] List<ModComponent> components,
-			[NotNull] string format = "toml"
+			[NotNull] string format = "toml",
+			[CanBeNull] ComponentValidationContext validationContext = null
 		)
 		{
 			Logger.LogVerbose($"Saving to string with format: {format}");
@@ -509,26 +604,23 @@ namespace KOTORModSync.Core.Services
 			{
 				case "toml":
 				case "tml":
-					return SaveToTomlString(components);
+					return SaveToTomlString(components, validationContext);
 				case "yaml":
 				case "yml":
-					return SaveToYamlString(components);
+					return SaveToYamlString(components, validationContext);
 				case "md":
 				case "markdown":
-					return SaveToMarkdownString(components);
+					return SaveToMarkdownString(components, validationContext);
 				case "json":
-					return SaveToJsonString(components);
+					return SaveToJsonString(components, validationContext);
 				case "xml":
-					return SaveToXmlString(components);
+					return SaveToXmlString(components, validationContext);
 				case "ini":
-					return SaveToIniString(components);
+					return SaveToIniString(components, validationContext);
 				default:
 					throw new NotSupportedException($"Unsupported format: {format}");
 			}
 		}
-		/// <summary>
-		/// Async version: Saves components to a string in the specified format.
-		/// </summary>
 		[NotNull]
 		public static Task<string> SaveToStringAsync([NotNull] List<ModComponent> components, [NotNull] string format = "toml")
 		{
@@ -537,9 +629,6 @@ namespace KOTORModSync.Core.Services
 		#endregion
 		#region Public Helpers
 
-		/// <summary>
-		/// Parses the metadata section from a TOML table and populates MainConfig.
-		/// </summary>
 		public static void ParseMetadataSection(TomlTable tomlTable)
 		{
 			if ( tomlTable == null )
@@ -555,18 +644,18 @@ namespace KOTORModSync.Core.Services
 				if ( tomlTable.TryGetValue("metadata", out object metadataObj) && metadataObj is TomlTable metadataTable )
 				{
 					if ( metadataTable.TryGetValue("fileFormatVersion", out object versionObj) )
-						MainConfig.FileFormatVersion = versionObj?.ToString() ?? "2.0";
+						MainConfig.FileFormatVersion = versionObj.ToString() ?? "2.0";
 					if ( metadataTable.TryGetValue("targetGame", out object gameObj) )
-						MainConfig.TargetGame = gameObj?.ToString() ?? string.Empty;
+						MainConfig.TargetGame = gameObj.ToString() ?? string.Empty;
 					if ( metadataTable.TryGetValue("buildName", out object nameObj) )
-						MainConfig.BuildName = nameObj?.ToString() ?? string.Empty;
+						MainConfig.BuildName = nameObj.ToString() ?? string.Empty;
 					if ( metadataTable.TryGetValue("buildAuthor", out object authorObj) )
-						MainConfig.BuildAuthor = authorObj?.ToString() ?? string.Empty;
+						MainConfig.BuildAuthor = authorObj.ToString() ?? string.Empty;
 					if ( metadataTable.TryGetValue("buildDescription", out object descObj) )
-						MainConfig.BuildDescription = descObj?.ToString() ?? string.Empty;
+						MainConfig.BuildDescription = descObj.ToString() ?? string.Empty;
 					if ( metadataTable.TryGetValue("lastModified", out object modifiedObj) )
 					{
-						if ( modifiedObj != null && DateTime.TryParse(modifiedObj.ToString(), out DateTime parsedDate) )
+						if ( DateTime.TryParse(modifiedObj.ToString(), out DateTime parsedDate) )
 							MainConfig.LastModified = parsedDate;
 					}
 					Logger.LogVerbose($"Loaded metadata: Game={MainConfig.TargetGame}, Version={MainConfig.FileFormatVersion}, Build={MainConfig.BuildName}");
@@ -605,10 +694,10 @@ namespace KOTORModSync.Core.Services
 				if ( string.Equals(strAction, "TSLPatcher", StringComparison.OrdinalIgnoreCase) ||
 					string.Equals(strAction, "HoloPatcher", StringComparison.OrdinalIgnoreCase) )
 				{
-					instruction.Action = Instruction.ActionType.Patcher;
+					instruction.Action = ActionType.Patcher;
 					_ = Logger.LogVerboseAsync($" -- Deserialize instruction #{index + 1} action '{strAction}' -> Patcher (backward compatibility)");
 				}
-				else if ( Enum.TryParse(strAction, ignoreCase: true, out Instruction.ActionType action) )
+				else if ( Enum.TryParse(strAction, ignoreCase: true, out ActionType action) )
 				{
 					instruction.Action = action;
 					_ = Logger.LogVerboseAsync($" -- Deserialize instruction #{index + 1} action '{action}'");
@@ -618,12 +707,11 @@ namespace KOTORModSync.Core.Services
 					_ = Logger.LogErrorAsync(
 						$"{Environment.NewLine} -- Missing/invalid action for instruction #{index}"
 					);
-					instruction.Action = Instruction.ActionType.Unset;
+					instruction.Action = ActionType.Unset;
 				}
 				instruction.Arguments = GetValueOrDefault<string>(instructionDict, key: "Arguments") ?? string.Empty;
-				instruction.Overwrite = instructionDict.ContainsKey("Overwrite")
-					? GetValueOrDefault<bool>(instructionDict, key: "Overwrite")
-					: true;
+				instruction.Overwrite = !instructionDict.ContainsKey("Overwrite")
+										|| GetValueOrDefault<bool>(instructionDict, key: "Overwrite");
 				instruction.Restrictions = GetValueOrDefault<List<Guid>>(instructionDict, key: "Restrictions")
 					?? new List<Guid>();
 				instruction.Dependencies = GetValueOrDefault<List<Guid>>(instructionDict, key: "Dependencies")
@@ -638,8 +726,6 @@ namespace KOTORModSync.Core.Services
 				instructions.Add(instruction);
 				if ( parentComponent is ModComponent parentMc )
 					instruction.SetParentComponent(parentMc);
-				else if ( parentComponent is Option parentOpt )
-					instruction.SetParentComponent(parentOpt);
 			}
 			return instructions;
 		}
@@ -651,9 +737,8 @@ namespace KOTORModSync.Core.Services
 		)
 		{
 			if ( optionsSerializedList == null || optionsSerializedList.Count == 0 )
-			{
 				return new System.Collections.ObjectModel.ObservableCollection<Option>();
-			}
+
 			var options = new System.Collections.ObjectModel.ObservableCollection<Option>();
 			for ( int index = 0; index < optionsSerializedList.Count; index++ )
 			{
@@ -682,7 +767,9 @@ namespace KOTORModSync.Core.Services
 		}
 
 		[NotNull]
-		internal static T GetRequiredValue<T>([NotNull] IDictionary<string, object> dict, [NotNull] string key)
+		internal static T GetRequiredValue<T>(
+			[NotNull] IDictionary<string, object> dict,
+			[NotNull] string key)
 		{
 			T value = GetValue<T>(dict, key, required: true);
 			return value == null
@@ -691,11 +778,15 @@ namespace KOTORModSync.Core.Services
 		}
 
 		[CanBeNull]
-		internal static T GetValueOrDefault<T>([NotNull] IDictionary<string, object> dict, [NotNull] string key) =>
+		internal static T GetValueOrDefault<T>(
+			[NotNull] IDictionary<string, object> dict,
+			[NotNull] string key) =>
 			GetValue<T>(dict, key, required: false);
 
 		[CanBeNull]
-		internal static T GetValue<T>([NotNull] IDictionary<string, object> dict, [NotNull] string key, bool required)
+		internal static T GetValue<T>(
+			[NotNull] IDictionary<string, object> dict,
+			[NotNull] string key, bool required)
 		{
 			try
 			{
@@ -772,49 +863,58 @@ namespace KOTORModSync.Core.Services
 							}
 							else if ( listElementType == typeof(string) )
 							{
-								if ( item is IEnumerable<object> nestedCollection && !(item is string) )
+								switch ( item )
 								{
-									foreach ( object nestedItem in nestedCollection )
-									{
-										string stringValue = nestedItem?.ToString() ?? string.Empty;
-										if ( !string.IsNullOrWhiteSpace(stringValue) )
+									case IEnumerable<object> nestedCollection when true:
 										{
-											_ = addMethod?.Invoke(
-												list,
-												new[]
+											foreach ( object nestedItem in nestedCollection )
+											{
+												string stringValue = nestedItem?.ToString() ?? string.Empty;
+												if ( !string.IsNullOrWhiteSpace(stringValue) )
 												{
-												(object)stringValue,
+													_ = addMethod?.Invoke(
+														list,
+														new[]
+														{
+															(object)stringValue,
+														}
+													);
 												}
-											);
+											}
+
+											break;
 										}
-									}
-								}
-								else if ( item is string strItem )
-								{
-									if ( !string.IsNullOrWhiteSpace(strItem) )
-									{
-										_ = addMethod?.Invoke(
-											list,
-											new[]
+									case string strItem:
+										{
+											if ( !string.IsNullOrWhiteSpace(strItem) )
 											{
-											(object)strItem,
+												_ = addMethod?.Invoke(
+													list,
+													new[]
+													{
+														(object)strItem,
+													}
+												);
 											}
-										);
-									}
-								}
-								else
-								{
-									string stringValue = item?.ToString() ?? string.Empty;
-									if ( !string.IsNullOrWhiteSpace(stringValue) )
-									{
-										_ = addMethod?.Invoke(
-											list,
-											new[]
+
+											break;
+										}
+									default:
+										{
+											string stringValue = item?.ToString() ?? string.Empty;
+											if ( !string.IsNullOrWhiteSpace(stringValue) )
 											{
-											(object)stringValue,
+												_ = addMethod?.Invoke(
+													list,
+													new[]
+													{
+														(object)stringValue,
+													}
+												);
 											}
-										);
-									}
+
+											break;
+										}
 								}
 							}
 							else
@@ -891,12 +991,13 @@ namespace KOTORModSync.Core.Services
 				return null;
 			}
 		}
-		public static string SaveToTomlString(List<ModComponent> components)
+		public static string SaveToTomlString(
+			List<ModComponent> components,
+			ComponentValidationContext validationContext = null)
 		{
 			Logger.LogVerbose($"Saving to TOML string");
 			var result = new StringBuilder();
 
-			// Add metadata section
 			var metadataTable = new TomlTable
 			{
 				["fileFormatVersion"] = MainConfig.FileFormatVersion ?? "2.0"
@@ -915,7 +1016,6 @@ namespace KOTORModSync.Core.Services
 			var metadataRoot = new Dictionary<string, object> { ["metadata"] = metadataTable };
 			result.AppendLine(Toml.FromModel(metadataRoot));
 
-			// Serialize each component
 			bool isFirst = true;
 			foreach ( ModComponent component in components )
 			{
@@ -926,10 +1026,39 @@ namespace KOTORModSync.Core.Services
 				}
 				isFirst = false;
 
-				// Serialize component to dictionary
+				// Add validation comments for component issues
+				if ( validationContext != null )
+				{
+					var componentIssues = validationContext.GetComponentIssues(component.Guid);
+					if ( componentIssues.Count > 0 )
+					{
+						result.AppendLine("# VALIDATION ISSUES:");
+						foreach ( var issue in componentIssues )
+						{
+							result.AppendLine($"# {issue}");
+						}
+					}
+
+					// Add URL failure comments
+					if ( component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0 )
+					{
+						foreach ( var url in component.ModLinkFilenames.Keys )
+						{
+							var urlFailures = validationContext.GetUrlFailures(url);
+							if ( urlFailures.Count > 0 )
+							{
+								result.AppendLine($"# URL RESOLUTION FAILURE: {url}");
+								foreach ( var failure in urlFailures )
+								{
+									result.AppendLine($"# {failure}");
+								}
+							}
+						}
+					}
+				}
+
 				var componentDict = new Dictionary<string, object>();
 
-				// Add all component properties
 				if ( component.Guid != Guid.Empty )
 					componentDict["Guid"] = component.Guid.ToString();
 				if ( !string.IsNullOrWhiteSpace(component.Name) )
@@ -940,16 +1069,26 @@ namespace KOTORModSync.Core.Services
 					componentDict["Tier"] = component.Tier;
 				if ( !string.IsNullOrWhiteSpace(component.Description) )
 					componentDict["Description"] = component.Description;
+				if ( !string.IsNullOrWhiteSpace(component._descriptionSpoilerFree) && component._descriptionSpoilerFree != component.Description )
+					componentDict["DescriptionSpoilerFree"] = component._descriptionSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(component.InstallationMethod) )
 					componentDict["InstallationMethod"] = component.InstallationMethod;
 				if ( !string.IsNullOrWhiteSpace(component.Directions) )
 					componentDict["Directions"] = component.Directions;
+				if ( !string.IsNullOrWhiteSpace(component._directionsSpoilerFree) && component._directionsSpoilerFree != component.Directions )
+					componentDict["DirectionsSpoilerFree"] = component._directionsSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(component.DownloadInstructions) )
 					componentDict["DownloadInstructions"] = component.DownloadInstructions;
+				if ( !string.IsNullOrWhiteSpace(component._downloadInstructionsSpoilerFree) && component._downloadInstructionsSpoilerFree != component.DownloadInstructions )
+					componentDict["DownloadInstructionsSpoilerFree"] = component._downloadInstructionsSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(component.UsageWarning) )
 					componentDict["UsageWarning"] = component.UsageWarning;
+				if ( !string.IsNullOrWhiteSpace(component._usageWarningSpoilerFree) && component._usageWarningSpoilerFree != component.UsageWarning )
+					componentDict["UsageWarningSpoilerFree"] = component._usageWarningSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(component.Screenshots) )
 					componentDict["Screenshots"] = component.Screenshots;
+				if ( !string.IsNullOrWhiteSpace(component._screenshotsSpoilerFree) && component._screenshotsSpoilerFree != component.Screenshots )
+					componentDict["ScreenshotsSpoilerFree"] = component._screenshotsSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(component.KnownBugs) )
 					componentDict["KnownBugs"] = component.KnownBugs;
 				if ( !string.IsNullOrWhiteSpace(component.InstallationWarning) )
@@ -958,20 +1097,22 @@ namespace KOTORModSync.Core.Services
 					componentDict["CompatibilityWarning"] = component.CompatibilityWarning;
 				if ( !string.IsNullOrWhiteSpace(component.SteamNotes) )
 					componentDict["SteamNotes"] = component.SteamNotes;
-				//if ( !string.IsNullOrWhiteSpace(component.Heading) )
-				//	componentDict["Heading"] = component.Heading;
 				if ( component.IsSelected )
 					componentDict["IsSelected"] = component.IsSelected;
 				if ( component.WidescreenOnly )
 					componentDict["WidescreenOnly"] = component.WidescreenOnly;
 
-				// Add list properties
 				if ( component.Category?.Count > 0 )
 					componentDict["Category"] = component.Category;
 				if ( component.Language?.Count > 0 )
 					componentDict["Language"] = component.Language;
-				if ( component.ModLink?.Count > 0 )
-					componentDict["ModLink"] = component.ModLink;
+
+				// Serialize ModLinkFilenames - keep as inline nested dictionary
+				if ( component.ModLinkFilenames?.Count > 0 )
+				{
+					componentDict["ModLinkFilenames"] = SerializeModLinkFilenames(component.ModLinkFilenames);
+				}
+
 				if ( component.ExcludedDownloads?.Count > 0 )
 					componentDict["ExcludedDownloads"] = component.ExcludedDownloads;
 				if ( component.Dependencies?.Count > 0 )
@@ -983,7 +1124,6 @@ namespace KOTORModSync.Core.Services
 				if ( component.InstallBefore?.Count > 0 )
 					componentDict["InstallBefore"] = component.InstallBefore.Select(g => g.ToString()).ToList();
 
-				// Add Instructions
 				if ( component.Instructions?.Count > 0 )
 				{
 					var instructionsList = new List<Dictionary<string, object>>();
@@ -1031,7 +1171,6 @@ namespace KOTORModSync.Core.Services
 					componentDict["Instructions"] = instructionsList;
 				}
 
-				// Add Options
 				if ( component.Options?.Count > 0 )
 				{
 					var optionsList = new List<Dictionary<string, object>>();
@@ -1054,7 +1193,6 @@ namespace KOTORModSync.Core.Services
 							optDict["Dependencies"] = opt.Dependencies.Select(g => g.ToString()).ToList();
 						optionsList.Add(optDict);
 
-						// Collect option instructions with Parent field
 						if ( opt.Instructions?.Count > 0 )
 						{
 							foreach ( Instruction instr in opt.Instructions )
@@ -1107,19 +1245,77 @@ namespace KOTORModSync.Core.Services
 						componentDict["OptionsInstructions"] = optionsInstructionsList;
 				}
 
-				// Use FixSerializedTomlDict to handle nested structures
 				var nestedContent = new StringBuilder();
-				FixSerializedTomlDict(componentDict, nestedContent);
+				var modLinkFilenamesDict = FixSerializedTomlDict(componentDict, nestedContent, validationContext, component);
 
-				// Wrap in thisMod and convert [thisMod] to [[thisMod]]
 				var rootTable = new Dictionary<string, object>
 				{
 					["thisMod"] = componentDict
 				};
 				string componentToml = Toml.FromModel(rootTable).Replace("[thisMod]", "[[thisMod]]");
+
+				// Insert ModLinkFilenames inline if present
+				if ( modLinkFilenamesDict != null && modLinkFilenamesDict.Count > 0 )
+				{
+					var mlf = new StringBuilder();
+					mlf.Append("ModLinkFilenames = { ");
+
+					bool firstUrl = true;
+					foreach ( var urlEntry in modLinkFilenamesDict )
+					{
+						if ( !firstUrl )
+							mlf.Append(", ");
+						firstUrl = false;
+
+						string url = urlEntry.Key;
+						mlf.Append('"');
+						mlf.Append(url.Replace("\"", "\\\""));
+						mlf.Append("\" = { ");
+
+						if ( urlEntry.Value is Dictionary<string, object> filenamesDict && filenamesDict.Count > 0 )
+						{
+							bool firstFile = true;
+							foreach ( var fileEntry in filenamesDict )
+							{
+								if ( !firstFile )
+									mlf.Append(", ");
+								firstFile = false;
+
+								string filename = fileEntry.Key;
+								mlf.Append('"');
+								mlf.Append(filename.Replace("\"", "\\\""));
+								mlf.Append("\" = ");
+
+								if ( fileEntry.Value is bool boolVal )
+								{
+									mlf.Append(boolVal ? "true" : "false");
+								}
+								else if ( fileEntry.Value is string strVal && strVal == "null" )
+								{
+									mlf.Append("\"null\"");
+								}
+								else
+								{
+									mlf.Append("\"null\"");
+								}
+							}
+						}
+
+						mlf.Append(" }");
+					}
+
+					mlf.AppendLine(" }");
+
+					// Insert after the [[thisMod]] line
+					int insertPos = componentToml.IndexOf('\n');
+					if ( insertPos > 0 )
+					{
+						componentToml = componentToml.Insert(insertPos + 1, mlf.ToString());
+					}
+				}
+
 				result.Append(componentToml.TrimEnd());
 
-				// Append nested content (Instructions, Options, Options.Instructions)
 				if ( nestedContent.Length > 0 )
 				{
 					result.AppendLine();
@@ -1127,12 +1323,14 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			return Utility.Serializer.FixWhitespaceIssues(result.ToString());
+			return SanitizeUtf8(Utility.Serializer.FixWhitespaceIssues(result.ToString()));
 		}
 
-		private static void FixSerializedTomlDict(
+		private static Dictionary<string, object> FixSerializedTomlDict(
 			Dictionary<string, object> serializedComponentDict,
-			StringBuilder tomlString
+			StringBuilder tomlString,
+			ComponentValidationContext validationContext = null,
+			ModComponent component = null
 		)
 		{
 			if ( serializedComponentDict == null )
@@ -1140,7 +1338,6 @@ namespace KOTORModSync.Core.Services
 			if ( tomlString == null )
 				throw new ArgumentNullException(nameof(tomlString));
 
-			// Handle Options and OptionsInstructions specially - interleave them
 			if ( serializedComponentDict.TryGetValue("Instructions", out object val) )
 			{
 				List<Dictionary<string, object>> instructionsList = null;
@@ -1156,10 +1353,27 @@ namespace KOTORModSync.Core.Services
 
 				if ( instructionsList != null && instructionsList.Count > 0 )
 				{
+					int instructionIndex = 0;
 					foreach ( var item in instructionsList )
 					{
 						if ( item == null || item.Count == 0 )
 							continue;
+
+						// Add validation comments for instruction issues
+						if ( validationContext != null && component != null && instructionIndex < component.Instructions.Count )
+						{
+							var instruction = component.Instructions[instructionIndex];
+							var instructionIssues = validationContext.GetInstructionIssues(instruction.Guid);
+							if ( instructionIssues.Count > 0 )
+							{
+								tomlString.AppendLine();
+								tomlString.AppendLine("# INSTRUCTION VALIDATION ISSUES:");
+								foreach ( var issue in instructionIssues )
+								{
+									tomlString.AppendLine($"# {issue}");
+								}
+							}
+						}
 
 						var model = new Dictionary<string, object>
 						{
@@ -1172,10 +1386,22 @@ namespace KOTORModSync.Core.Services
 						};
 						tomlString.AppendLine();
 						tomlString.Append(Toml.FromModel(model).Replace($"thisMod.Instructions", $"[thisMod.Instructions]"));
+						instructionIndex++;
 					}
 				}
 
 				serializedComponentDict.Remove("Instructions");
+			}
+
+			// Remove ModLinkFilenames - we'll add it manually after the main TOML generation
+			Dictionary<string, object> modLinkFilenamesDict = null;
+			if ( serializedComponentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesVal) )
+			{
+				if ( modLinkFilenamesVal is Dictionary<string, object> mlf )
+				{
+					modLinkFilenamesDict = mlf;
+					serializedComponentDict.Remove("ModLinkFilenames");
+				}
 			}
 
 			bool hasOptions = serializedComponentDict.ContainsKey("Options");
@@ -1188,20 +1414,17 @@ namespace KOTORModSync.Core.Services
 
 				if ( optionsList != null && optionsInstructionsList != null )
 				{
-					// Group instructions by Parent GUID
 					var instructionsByParent = optionsInstructionsList
 						.Where(instr => instr != null && instr.ContainsKey("Parent"))
 						.GroupBy(instr => instr["Parent"]?.ToString())
 						.ToDictionary(g => g.Key, g => g.ToList());
 
-					// Interleave: for each option, output option then its instructions
 					for ( int i = 0; i < optionsList.Count; i++ )
 					{
 						Dictionary<string, object> optionDict = optionsList[i];
 						if ( optionDict is null || optionDict.Count == 0 )
 							continue;
 
-						// Output the option
 						var optionModel = new Dictionary<string, object>
 						{
 							{
@@ -1214,64 +1437,76 @@ namespace KOTORModSync.Core.Services
 						tomlString.AppendLine();
 						tomlString.Append(Toml.FromModel(optionModel).Replace("thisMod.Options", "[thisMod.Options]"));
 
-						// Output instructions for this option (if any)
 						if ( optionDict.TryGetValue("Guid", out object guidObj) )
 						{
 							string optionGuid = guidObj?.ToString();
 							if ( !string.IsNullOrEmpty(optionGuid) && instructionsByParent.TryGetValue(optionGuid, out var instructions) )
 							{
-								foreach ( var instruction in instructions )
+								// Find the option in the component
+								Option currentOption = null;
+								if ( component != null && Guid.TryParse(optionGuid, out Guid optGuid) )
 								{
-									if ( instruction == null || instruction.Count == 0 )
-										continue;
+									currentOption = component.Options.FirstOrDefault(opt => opt.Guid == optGuid);
+								}
 
-									var instrModel = new Dictionary<string, object>
+								int optionInstrIndex = 0;
+								foreach ( var instruction in instructions.Where(instruction => instruction != null && instruction.Count != 0) )
 								{
+									// Add validation comments for option instruction issues
+									if ( validationContext != null && currentOption != null && optionInstrIndex < currentOption.Instructions.Count )
 									{
-										"thisMod", new Dictionary<string, object>
+										Instruction optionInstruction = currentOption.Instructions[optionInstrIndex];
+										List<string> instructionIssues = validationContext.GetInstructionIssues(optionInstruction.Guid);
+										if ( instructionIssues.Count > 0 )
 										{
-											{ "OptionsInstructions", instruction }
+											tomlString.AppendLine();
+											tomlString.AppendLine("# OPTION INSTRUCTION VALIDATION ISSUES:");
+											foreach ( string issue in instructionIssues )
+											{
+												tomlString.AppendLine($"# {issue}");
+											}
 										}
 									}
-								};
-									tomlString.Append(Toml.FromModel(instrModel).Replace("thisMod.OptionsInstructions", "[thisMod.OptionsInstructions]"));
+
+									var instrModel = new Dictionary<string, object>
+									{
+										{
+											"thisMod", new Dictionary<string, object>
+											{
+												{ "OptionsInstructions", instruction }
+											}
+										}
+									};
+									tomlString.Append(Toml.FromModel(instrModel).Replace(
+										"thisMod.OptionsInstructions",
+										"[thisMod.Options.Instructions]"
+									));
+									optionInstrIndex++;
 								}
 							}
 						}
 					}
 
-					// Remove both keys since we've handled them
 					serializedComponentDict.Remove("Options");
 					serializedComponentDict.Remove("OptionsInstructions");
 				}
 			}
 
-			// Find all other list properties that contain complex objects (not simple types like string/Guid)
 			var keysCopy = serializedComponentDict.Keys.ToList();
 			foreach ( string key in keysCopy )
 			{
 				object value = serializedComponentDict[key];
 
-				// Check if it's a list of dictionaries (complex objects)
 				List<Dictionary<string, object>> listItems = null;
 				if ( value is List<Dictionary<string, object>> list )
-				{
 					listItems = list;
-				}
-				else if ( value is IEnumerable<Dictionary<string, object>> enumerable )
-				{
-					listItems = enumerable.ToList();
-				}
+				else if ( value is IEnumerable<Dictionary<string, object>> enumerable ) listItems = enumerable.ToList();
 
 				if ( listItems == null || listItems.Count == 0 )
 					continue;
 
-				// Generate [[thisMod.Key]] sections for each item in the list
-				foreach ( var item in listItems )
+				foreach ( Dictionary<string, object> item in listItems.Where(item => item != null && item.Count != 0) )
 				{
-					if ( item == null || item.Count == 0 )
-						continue;
-
 					var model = new Dictionary<string, object>
 				{
 					{
@@ -1285,22 +1520,57 @@ namespace KOTORModSync.Core.Services
 					tomlString.Append(Toml.FromModel(model).Replace($"thisMod.{key}", $"[thisMod.{key}]"));
 				}
 
-				// Remove the key from the main dictionary since we've serialized it separately
 				serializedComponentDict.Remove(key);
 			}
+
+			return modLinkFilenamesDict;
 		}
-		public static string SaveToYamlString(List<ModComponent> components)
+		public static string SaveToYamlString(
+				List<ModComponent> components,
+				ComponentValidationContext validationContext = null
+			)
 		{
-			Logger.LogVerbose($"Saving to YAML string");
+			Logger.LogVerbose("Saving to YAML string");
 			var sb = new StringBuilder();
-			var serializer = new YamlDotNet.Serialization.SerializerBuilder()
+			YamlSerialization.ISerializer serializer = new YamlDotNet.Serialization.SerializerBuilder()
 				.WithNamingConvention(YamlDotNet.Serialization.NamingConventions.PascalCaseNamingConvention.Instance)
 				.ConfigureDefaultValuesHandling(YamlDotNet.Serialization.DefaultValuesHandling.OmitNull)
+				.DisableAliases()
 				.Build();
 			foreach ( ModComponent component in components )
 			{
 				sb.AppendLine("---");
-				// Serialize to dictionary first to control what gets serialized
+
+				// Add validation comments for component issues
+				if ( validationContext != null )
+				{
+					List<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
+					if ( componentIssues.Count > 0 )
+					{
+						sb.AppendLine("# VALIDATION ISSUES:");
+						foreach ( string issue in componentIssues )
+						{
+							sb.AppendLine($"# {issue}");
+						}
+					}
+
+					// Add URL failure comments
+					if ( component.ModLinkFilenames is { Count: > 0 } )
+					{
+						foreach ( string url in component.ModLinkFilenames.Keys )
+						{
+							List<string> urlFailures = validationContext.GetUrlFailures(url);
+							if ( urlFailures.Count > 0 )
+							{
+								sb.AppendLine($"# URL RESOLUTION FAILURE: {url}");
+								foreach ( string failure in urlFailures )
+								{
+									sb.AppendLine($"# {failure}");
+								}
+							}
+						}
+					}
+				}
 				var dict = new Dictionary<string, object>
 				{
 					{ "Guid", component.Guid },
@@ -1311,6 +1581,8 @@ namespace KOTORModSync.Core.Services
 					dict["Author"] = component.Author;
 				if ( !string.IsNullOrWhiteSpace(component.Description) )
 					dict["Description"] = component.Description;
+				if ( !string.IsNullOrWhiteSpace(component._descriptionSpoilerFree) && component._descriptionSpoilerFree != component.Description )
+					dict["DescriptionSpoilerFree"] = component._descriptionSpoilerFree;
 				if ( component.Category?.Count > 0 )
 					dict["Category"] = component.Category;
 				if ( !string.IsNullOrWhiteSpace(component.Tier) )
@@ -1323,6 +1595,8 @@ namespace KOTORModSync.Core.Services
 					dict["InstallationMethod"] = component.InstallationMethod;
 				if ( !string.IsNullOrWhiteSpace(component.UsageWarning) )
 					dict["UsageWarning"] = component.UsageWarning;
+				if ( !string.IsNullOrWhiteSpace(component._usageWarningSpoilerFree) && component._usageWarningSpoilerFree != component.UsageWarning )
+					dict["UsageWarningSpoilerFree"] = component._usageWarningSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(component.CompatibilityWarning) )
 					dict["CompatibilityWarning"] = component.CompatibilityWarning;
 				if ( !string.IsNullOrWhiteSpace(component.KnownBugs) )
@@ -1339,47 +1613,64 @@ namespace KOTORModSync.Core.Services
 					dict["Restrictions"] = component.Restrictions;
 				if ( !string.IsNullOrWhiteSpace(component.DownloadInstructions) )
 					dict["DownloadInstructions"] = component.DownloadInstructions;
+				if ( !string.IsNullOrWhiteSpace(component._downloadInstructionsSpoilerFree) && component._downloadInstructionsSpoilerFree != component.DownloadInstructions )
+					dict["DownloadInstructionsSpoilerFree"] = component._downloadInstructionsSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(component.Directions) )
 					dict["Directions"] = component.Directions;
+				if ( !string.IsNullOrWhiteSpace(component._directionsSpoilerFree) && component._directionsSpoilerFree != component.Directions )
+					dict["DirectionsSpoilerFree"] = component._directionsSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(component.Screenshots) )
 					dict["Screenshots"] = component.Screenshots;
+				if ( !string.IsNullOrWhiteSpace(component._screenshotsSpoilerFree) && component._screenshotsSpoilerFree != component.Screenshots )
+					dict["ScreenshotsSpoilerFree"] = component._screenshotsSpoilerFree;
 				if ( component.Language?.Count > 0 )
 					dict["Language"] = component.Language;
-				if ( component.ModLink?.Count > 0 )
-					dict["ModLink"] = component.ModLink;
+
+				// Serialize ModLinkFilenames
+				if ( component.ModLinkFilenames?.Count > 0 )
+				{
+					dict["ModLinkFilenames"] = SerializeModLinkFilenames(component.ModLinkFilenames);
+				}
+
 				if ( component.ExcludedDownloads?.Count > 0 )
 					dict["ExcludedDownloads"] = component.ExcludedDownloads;
 				if ( component.Instructions?.Count > 0 )
 				{
 					var instructions = new List<Dictionary<string, object>>();
-					foreach ( var inst in component.Instructions )
+					foreach ( Instruction inst in component.Instructions )
 					{
 						var instDict = new Dictionary<string, object>
 					{
 						{ "Action", inst.Action.ToString().ToLowerInvariant() }
 					};
 
-						// Conditional field serialization based on action type
-						if ( inst.Source?.Count > 0 )
-							instDict["Source"] = inst.Source.Count == 1 ? (object)inst.Source[0] : inst.Source;
+						// Add validation warnings as a special field
+						if ( validationContext != null )
+						{
+							List<string> instructionIssues = validationContext.GetInstructionIssues(inst.Guid);
+							if ( instructionIssues.Count > 0 )
+							{
+								instDict["_ValidationWarnings"] = instructionIssues;
+							}
+						}
 
-						// Destination: Move, Patcher, Copy
+						if ( inst.Source?.Count > 0 )
+							instDict["Source"] = inst.Source;
+
 						if ( !string.IsNullOrEmpty(inst.Destination) &&
-							(inst.Action == Instruction.ActionType.Move ||
-							 inst.Action == Instruction.ActionType.Patcher ||
-							 inst.Action == Instruction.ActionType.Copy) )
+							(inst.Action == ActionType.Move ||
+							 inst.Action == ActionType.Patcher ||
+							 inst.Action == ActionType.Copy) )
 							instDict["Destination"] = inst.Destination;
 
-						// Overwrite: Move, Copy (only serialize when false, since true is default)
 						if ( !inst.Overwrite &&
-							(inst.Action == Instruction.ActionType.Move ||
-							 inst.Action == Instruction.ActionType.Copy) )
+							(inst.Action == ActionType.Move ||
+							 inst.Action == ActionType.Copy) )
 							instDict["Overwrite"] = false;
 
-						// Arguments: Patcher, Execute
 						if ( !string.IsNullOrEmpty(inst.Arguments) &&
-							(inst.Action == Instruction.ActionType.Patcher ||
-							 inst.Action == Instruction.ActionType.Execute) )
+							(inst.Action == ActionType.Patcher ||
+							 inst.Action == ActionType.Execute) )
 							instDict["Arguments"] = inst.Arguments;
 
 						instructions.Add(instDict);
@@ -1388,25 +1679,28 @@ namespace KOTORModSync.Core.Services
 				}
 				sb.AppendLine(serializer.Serialize(dict));
 			}
-			return sb.ToString();
+			return SanitizeUtf8(sb.ToString());
 		}
-		public static string SaveToMarkdownString(List<ModComponent> components)
+		public static string SaveToMarkdownString(
+			List<ModComponent> components,
+			ComponentValidationContext validationContext = null)
 		{
-			Logger.LogVerbose($"Saving to Markdown string");
+			Logger.LogVerbose("Saving to Markdown string");
 			return GenerateModDocumentation(
 				components,
 				MainConfig.BeforeModListContent,
 				MainConfig.AfterModListContent,
 				MainConfig.WidescreenSectionContent,
-				MainConfig.AspyrSectionContent);
+				MainConfig.AspyrSectionContent,
+				validationContext);
 		}
-		public static string SaveToJsonString(List<ModComponent> components)
+		public static string SaveToJsonString(
+			List<ModComponent> components,
+			ComponentValidationContext validationContext = null)
 		{
-			Logger.LogVerbose($"Saving to JSON string");
-			// Build JSON structure manually to support conditional field serialization
+			Logger.LogVerbose("Saving to JSON string");
 			var jsonRoot = new JObject();
 
-			// Metadata section
 			var metadata = new JObject
 			{
 				["fileFormatVersion"] = MainConfig.FileFormatVersion ?? "2.0"
@@ -1423,9 +1717,8 @@ namespace KOTORModSync.Core.Services
 				metadata["lastModified"] = MainConfig.LastModified.Value;
 			jsonRoot["metadata"] = metadata;
 
-			// Components array
 			var componentsArray = new JArray();
-			foreach ( var c in components )
+			foreach ( ModComponent c in components )
 			{
 				var componentObj = new JObject
 				{
@@ -1433,18 +1726,56 @@ namespace KOTORModSync.Core.Services
 					["name"] = c.Name
 				};
 
+				// Add validation warnings for component
+				if ( validationContext != null )
+				{
+					List<string> componentIssues = validationContext.GetComponentIssues(c.Guid);
+					if ( componentIssues.Count > 0 )
+						componentObj["_validationWarnings"] = JArray.FromObject(componentIssues);
+
+					// Add URL failure warnings
+					if ( c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0 )
+					{
+						var urlFailures = new List<string>();
+						foreach ( var url in c.ModLinkFilenames.Keys )
+						{
+							List<string> failures = validationContext.GetUrlFailures(url);
+							if ( failures.Count > 0 )
+							{
+								urlFailures.Add($"URL: {url}");
+								urlFailures.AddRange(failures);
+							}
+						}
+						if ( urlFailures.Count > 0 )
+						{
+							componentObj["_urlResolutionFailures"] = JArray.FromObject(urlFailures);
+						}
+					}
+				}
+
 				if ( !string.IsNullOrWhiteSpace(c.Author) ) componentObj["author"] = c.Author;
 				if ( !string.IsNullOrWhiteSpace(c.Description) ) componentObj["description"] = c.Description;
+				if ( !string.IsNullOrWhiteSpace(c._descriptionSpoilerFree) && c._descriptionSpoilerFree != c.Description ) componentObj["descriptionSpoilerFree"] = c._descriptionSpoilerFree;
 				if ( c.Category?.Count > 0 ) componentObj["category"] = JArray.FromObject(c.Category);
 				if ( !string.IsNullOrWhiteSpace(c.Tier) ) componentObj["tier"] = c.Tier;
 				if ( c.Language?.Count > 0 ) componentObj["language"] = JArray.FromObject(c.Language);
-				if ( c.ModLink?.Count > 0 ) componentObj["modLink"] = JArray.FromObject(c.ModLink);
+
+				// Serialize ModLinkFilenames
+				if ( c.ModLinkFilenames?.Count > 0 )
+				{
+					componentObj["modLinkFilenames"] = JObject.FromObject(SerializeModLinkFilenames(c.ModLinkFilenames));
+				}
+
 				if ( c.ExcludedDownloads?.Count > 0 ) componentObj["excludedDownloads"] = JArray.FromObject(c.ExcludedDownloads);
 				if ( !string.IsNullOrWhiteSpace(c.InstallationMethod) ) componentObj["installationMethod"] = c.InstallationMethod;
 				if ( !string.IsNullOrWhiteSpace(c.Directions) ) componentObj["directions"] = c.Directions;
+				if ( !string.IsNullOrWhiteSpace(c._directionsSpoilerFree) && c._directionsSpoilerFree != c.Directions ) componentObj["directionsSpoilerFree"] = c._directionsSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(c.DownloadInstructions) ) componentObj["downloadInstructions"] = c.DownloadInstructions;
+				if ( !string.IsNullOrWhiteSpace(c._downloadInstructionsSpoilerFree) && c._downloadInstructionsSpoilerFree != c.DownloadInstructions ) componentObj["downloadInstructionsSpoilerFree"] = c._downloadInstructionsSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(c.UsageWarning) ) componentObj["usageWarning"] = c.UsageWarning;
+				if ( !string.IsNullOrWhiteSpace(c._usageWarningSpoilerFree) && c._usageWarningSpoilerFree != c.UsageWarning ) componentObj["usageWarningSpoilerFree"] = c._usageWarningSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(c.Screenshots) ) componentObj["screenshots"] = c.Screenshots;
+				if ( !string.IsNullOrWhiteSpace(c._screenshotsSpoilerFree) && c._screenshotsSpoilerFree != c.Screenshots ) componentObj["screenshotsSpoilerFree"] = c._screenshotsSpoilerFree;
 				if ( !string.IsNullOrWhiteSpace(c.KnownBugs) ) componentObj["knownBugs"] = c.KnownBugs;
 				if ( !string.IsNullOrWhiteSpace(c.InstallationWarning) ) componentObj["installationWarning"] = c.InstallationWarning;
 				if ( !string.IsNullOrWhiteSpace(c.CompatibilityWarning) ) componentObj["compatibilityWarning"] = c.CompatibilityWarning;
@@ -1456,11 +1787,10 @@ namespace KOTORModSync.Core.Services
 				if ( !string.IsNullOrWhiteSpace(c.Heading) ) componentObj["heading"] = c.Heading;
 				if ( c.WidescreenOnly ) componentObj["widescreenOnly"] = c.WidescreenOnly;
 
-				// Instructions with conditional serialization
 				if ( c.Instructions?.Count > 0 )
 				{
 					var instructionsArray = new JArray();
-					foreach ( var i in c.Instructions )
+					foreach ( Instruction i in c.Instructions )
 					{
 						var instrObj = new JObject
 						{
@@ -1468,24 +1798,31 @@ namespace KOTORModSync.Core.Services
 							["action"] = i.ActionString
 						};
 
+						// Add validation warnings for instruction
+						if ( validationContext != null )
+						{
+							List<string> instructionIssues = validationContext.GetInstructionIssues(i.Guid);
+							if ( instructionIssues.Count > 0 )
+								instrObj["_validationWarnings"] = JArray.FromObject(instructionIssues);
+						}
+
 						if ( i.Source?.Count > 0 )
 							instrObj["source"] = JArray.FromObject(i.Source);
 
-						// Conditional fields based on action type
 						if ( !string.IsNullOrEmpty(i.Destination) &&
-							(i.Action == Instruction.ActionType.Move ||
-							 i.Action == Instruction.ActionType.Patcher ||
-							 i.Action == Instruction.ActionType.Copy) )
+							(i.Action == ActionType.Move ||
+							 i.Action == ActionType.Patcher ||
+							 i.Action == ActionType.Copy) )
 							instrObj["destination"] = i.Destination;
 
 						if ( !string.IsNullOrEmpty(i.Arguments) &&
-							(i.Action == Instruction.ActionType.Patcher ||
-							 i.Action == Instruction.ActionType.Execute) )
+							(i.Action == ActionType.Patcher ||
+							 i.Action == ActionType.Execute) )
 							instrObj["arguments"] = i.Arguments;
 
 						if ( !i.Overwrite &&
-							(i.Action == Instruction.ActionType.Move ||
-							 i.Action == Instruction.ActionType.Copy) )
+							(i.Action == ActionType.Move ||
+							 i.Action == ActionType.Copy) )
 							instrObj["overwrite"] = false;
 
 						if ( i.Dependencies?.Count > 0 )
@@ -1498,11 +1835,10 @@ namespace KOTORModSync.Core.Services
 					componentObj["instructions"] = instructionsArray;
 				}
 
-				// Options
 				if ( c.Options?.Count > 0 )
 				{
 					var optionsArray = new JArray();
-					foreach ( var o in c.Options )
+					foreach ( Option o in c.Options )
 					{
 						var optionObj = new JObject
 						{
@@ -1517,7 +1853,7 @@ namespace KOTORModSync.Core.Services
 						if ( o.Instructions?.Count > 0 )
 						{
 							var optInstructionsArray = new JArray();
-							foreach ( var i in o.Instructions )
+							foreach ( Instruction i in o.Instructions )
 							{
 								var instrObj = new JObject
 								{
@@ -1525,24 +1861,33 @@ namespace KOTORModSync.Core.Services
 									["action"] = i.ActionString
 								};
 
+								// Add validation warnings for option instruction
+								if ( validationContext != null )
+								{
+									List<string> instructionIssues = validationContext.GetInstructionIssues(i.Guid);
+									if ( instructionIssues.Count > 0 )
+									{
+										instrObj["_validationWarnings"] = JArray.FromObject(instructionIssues);
+									}
+								}
+
 								if ( i.Source?.Count > 0 )
 									instrObj["source"] = JArray.FromObject(i.Source);
 
-								// Conditional fields based on action type
 								if ( !string.IsNullOrEmpty(i.Destination) &&
-									(i.Action == Instruction.ActionType.Move ||
-									 i.Action == Instruction.ActionType.Patcher ||
-									 i.Action == Instruction.ActionType.Copy) )
+									(i.Action == ActionType.Move ||
+									 i.Action == ActionType.Patcher ||
+									 i.Action == ActionType.Copy) )
 									instrObj["destination"] = i.Destination;
 
 								if ( !string.IsNullOrEmpty(i.Arguments) &&
-									(i.Action == Instruction.ActionType.Patcher ||
-									 i.Action == Instruction.ActionType.Execute) )
+									(i.Action == ActionType.Patcher ||
+									 i.Action == ActionType.Execute) )
 									instrObj["arguments"] = i.Arguments;
 
 								if ( !i.Overwrite &&
-									(i.Action == Instruction.ActionType.Move ||
-									 i.Action == Instruction.ActionType.Copy) )
+									(i.Action == ActionType.Move ||
+									 i.Action == ActionType.Copy) )
 									instrObj["overwrite"] = false;
 
 								if ( i.Dependencies?.Count > 0 )
@@ -1564,149 +1909,245 @@ namespace KOTORModSync.Core.Services
 			}
 			jsonRoot["components"] = componentsArray;
 
-			return jsonRoot.ToString(Newtonsoft.Json.Formatting.Indented);
+			return SanitizeUtf8(jsonRoot.ToString(Newtonsoft.Json.Formatting.Indented));
 		}
-		public static string SaveToXmlString(List<ModComponent> components)
+		public static string SaveToXmlString(
+			List<ModComponent> components,
+			ComponentValidationContext validationContext = null)
 		{
-			Logger.LogVerbose($"Saving to XML string");
-			var doc = new XDocument(
-				new XDeclaration("2.0", "utf-8", "yes"),
-				new XElement("ModBuild",
-					new XElement("Metadata",
-						new XElement("FileFormatVersion", MainConfig.FileFormatVersion ?? "2.0"),
-						!string.IsNullOrWhiteSpace(MainConfig.TargetGame)
-							? new XElement("TargetGame", MainConfig.TargetGame)
-							: null,
-						!string.IsNullOrWhiteSpace(MainConfig.BuildName)
-							? new XElement("BuildName", MainConfig.BuildName)
-							: null,
-						!string.IsNullOrWhiteSpace(MainConfig.BuildAuthor)
-							? new XElement("BuildAuthor", MainConfig.BuildAuthor)
-							: null,
-						!string.IsNullOrWhiteSpace(MainConfig.BuildDescription)
-							? new XElement("BuildDescription", MainConfig.BuildDescription)
-							: null,
-						MainConfig.LastModified.HasValue
-							? new XElement("LastModified", MainConfig.LastModified.Value.ToString("o"))
-							: null
-					),
-					new XElement("Components",
-						components.Select(c => new XElement("Component",
-							new XElement("Guid", c.Guid.ToString()),
-							new XElement("Name", c.Name),
-							string.IsNullOrWhiteSpace(c.Author)
-								? null
-								: new XElement("Author", c.Author),
-							string.IsNullOrWhiteSpace(c.Description)
-								? null
-								: new XElement("Description", c.Description),
-							(c.Category?.Count > 0)
-								? new XElement("Category", c.Category.Select(cat => new XElement("Item", cat)))
+			Logger.LogVerbose("Saving to XML string");
+
+			var metadataElement = new XElement("Metadata",
+				new XElement("FileFormatVersion", MainConfig.FileFormatVersion ?? "2.0"),
+				!string.IsNullOrWhiteSpace(MainConfig.TargetGame)
+					? new XElement("TargetGame", MainConfig.TargetGame)
+					: null,
+				!string.IsNullOrWhiteSpace(MainConfig.BuildName)
+					? new XElement("BuildName", MainConfig.BuildName)
+					: null,
+				!string.IsNullOrWhiteSpace(MainConfig.BuildAuthor)
+					? new XElement("BuildAuthor", MainConfig.BuildAuthor)
+					: null,
+				!string.IsNullOrWhiteSpace(MainConfig.BuildDescription)
+					? new XElement("BuildDescription", MainConfig.BuildDescription)
+					: null,
+				MainConfig.LastModified.HasValue
+					? new XElement("LastModified", MainConfig.LastModified.Value.ToString("o"))
+					: null
+			);
+
+			var componentsElement = new XElement("Components");
+
+			foreach ( ModComponent c in components )
+			{
+				var componentElement = new XElement("Component");
+
+				// Add validation comment for component
+				if ( validationContext != null )
+				{
+					List<string> componentIssues = validationContext.GetComponentIssues(c.Guid);
+					if ( componentIssues.Count > 0 )
+					{
+						string issuesText = "VALIDATION ISSUES: " + string.Join("; ", componentIssues);
+						componentElement.Add(new XComment(issuesText));
+					}
+
+					// Add URL failure comments
+					if ( c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0 )
+					{
+						foreach ( string url in c.ModLinkFilenames.Keys )
+						{
+							List<string> urlFailures = validationContext.GetUrlFailures(url);
+							if ( urlFailures.Count > 0 )
+							{
+								string failureText = $"URL RESOLUTION FAILURE ({url}): " + string.Join("; ", urlFailures);
+								componentElement.Add(new XComment(failureText));
+							}
+						}
+					}
+				}
+
+				componentElement.Add(new XElement("Guid", c.Guid.ToString()));
+				componentElement.Add(new XElement("Name", c.Name));
+
+				if ( !string.IsNullOrWhiteSpace(c.Author) )
+					componentElement.Add(new XElement("Author", c.Author));
+				if ( !string.IsNullOrWhiteSpace(c.Description) )
+					componentElement.Add(new XElement("Description", c.Description));
+				if ( !string.IsNullOrWhiteSpace(c._descriptionSpoilerFree) && c._descriptionSpoilerFree != c.Description )
+					componentElement.Add(new XElement("DescriptionSpoilerFree", c._descriptionSpoilerFree));
+				if ( c.Category?.Count > 0 )
+					componentElement.Add(new XElement("Category", c.Category.Select(cat => new XElement("Item", cat))));
+				if ( !string.IsNullOrWhiteSpace(c.Tier) )
+					componentElement.Add(new XElement("Tier", c.Tier));
+				if ( c.Language?.Count > 0 )
+					componentElement.Add(new XElement("Language", c.Language.Select(lang => new XElement("Item", lang))));
+
+				// Serialize ModLinkFilenames
+				if ( c.ModLinkFilenames?.Count > 0 )
+				{
+					componentElement.Add(new XElement("ModLinkFilenames",
+						c.ModLinkFilenames.Select(urlEntry =>
+							new XElement("Url",
+								new XAttribute("Value", urlEntry.Key),
+								urlEntry.Value.Select(fileEntry =>
+									new XElement("File",
+										new XAttribute("Name", fileEntry.Key),
+										new XAttribute("ShouldDownload", fileEntry.Value?.ToString() ?? "null")))))));
+				}
+
+				if ( c.ExcludedDownloads?.Count > 0 )
+					componentElement.Add(new XElement("ExcludedDownloads", c.ExcludedDownloads.Select(file => new XElement("Item", file))));
+				if ( !string.IsNullOrWhiteSpace(c.InstallationMethod) )
+					componentElement.Add(new XElement("InstallationMethod", c.InstallationMethod));
+				if ( !string.IsNullOrWhiteSpace(c.Directions) )
+					componentElement.Add(new XElement("Directions", c.Directions));
+				if ( !string.IsNullOrWhiteSpace(c._directionsSpoilerFree) && c._directionsSpoilerFree != c.Directions )
+					componentElement.Add(new XElement("DirectionsSpoilerFree", c._directionsSpoilerFree));
+				if ( !string.IsNullOrWhiteSpace(c.DownloadInstructions) )
+					componentElement.Add(new XElement("DownloadInstructions", c.DownloadInstructions));
+				if ( !string.IsNullOrWhiteSpace(c._downloadInstructionsSpoilerFree) && c._downloadInstructionsSpoilerFree != c.DownloadInstructions )
+					componentElement.Add(new XElement("DownloadInstructionsSpoilerFree", c._downloadInstructionsSpoilerFree));
+				if ( !string.IsNullOrWhiteSpace(c._usageWarningSpoilerFree) && c._usageWarningSpoilerFree != c.UsageWarning )
+					componentElement.Add(new XElement("UsageWarningSpoilerFree", c._usageWarningSpoilerFree));
+				if ( !string.IsNullOrWhiteSpace(c._screenshotsSpoilerFree) && c._screenshotsSpoilerFree != c.Screenshots )
+					componentElement.Add(new XElement("ScreenshotsSpoilerFree", c._screenshotsSpoilerFree));
+				if ( !string.IsNullOrWhiteSpace(c.KnownBugs) )
+					componentElement.Add(new XElement("KnownBugs", c.KnownBugs));
+				if ( !string.IsNullOrWhiteSpace(c.InstallationWarning) )
+					componentElement.Add(new XElement("InstallationWarning", c.InstallationWarning));
+				if ( !string.IsNullOrWhiteSpace(c.CompatibilityWarning) )
+					componentElement.Add(new XElement("CompatibilityWarning", c.CompatibilityWarning));
+				if ( !string.IsNullOrWhiteSpace(c.SteamNotes) )
+					componentElement.Add(new XElement("SteamNotes", c.SteamNotes));
+				if ( c.Dependencies?.Count > 0 )
+					componentElement.Add(new XElement("Dependencies", c.Dependencies.Select(dep => new XElement("Item", dep))));
+				if ( c.Restrictions?.Count > 0 )
+					componentElement.Add(new XElement("Restrictions", c.Restrictions.Select(res => new XElement("Item", res))));
+				if ( c.InstallBefore?.Count > 0 )
+					componentElement.Add(new XElement("InstallBefore", c.InstallBefore.Select(ib => new XElement("Item", ib))));
+				if ( c.InstallAfter?.Count > 0 )
+					componentElement.Add(new XElement("InstallAfter", c.InstallAfter.Select(ia => new XElement("Item", ia))));
+				if ( c.WidescreenOnly )
+					componentElement.Add(new XElement("WidescreenOnly", c.WidescreenOnly));
+
+				// Handle Instructions with validation comments
+				if ( c.Instructions?.Count > 0 )
+				{
+					var instructionsElement = new XElement("Instructions");
+					foreach ( Instruction instr in c.Instructions )
+					{
+						// Add validation comment before instruction
+						if ( validationContext != null )
+						{
+							List<string> instructionIssues = validationContext.GetInstructionIssues(instr.Guid);
+							if ( instructionIssues.Count > 0 )
+							{
+								string issuesText = "INSTRUCTION VALIDATION: " + string.Join("; ", instructionIssues);
+								instructionsElement.Add(new XComment(issuesText));
+							}
+						}
+
+						instructionsElement.Add(new XElement("Instruction",
+							new XElement("Guid", instr.Guid.ToString()),
+							new XElement("Action", instr.ActionString),
+							instr.Source?.Count > 0
+								? new XElement("Source", instr.Source.Select(s => new XElement("Item", s)))
 								: null,
-							string.IsNullOrWhiteSpace(c.Tier) ? null : new XElement("Tier", c.Tier),
-							(c.Language?.Count > 0)
-								? new XElement("Language", c.Language.Select(lang => new XElement("Item", lang)))
+							!string.IsNullOrWhiteSpace(instr.Destination)
+								? new XElement("Destination", instr.Destination)
 								: null,
-							(c.ModLink?.Count > 0)
-								? new XElement("ModLink", c.ModLink.Select(link => new XElement("Item", link)))
+							!string.IsNullOrWhiteSpace(instr.Arguments)
+								? new XElement("Arguments", instr.Arguments)
 								: null,
-							(c.ExcludedDownloads?.Count > 0)
-								? new XElement("ExcludedDownloads", c.ExcludedDownloads.Select(file => new XElement("Item", file)))
-								: null,
-							string.IsNullOrWhiteSpace(c.InstallationMethod)
-								? null
-								: new XElement("InstallationMethod", c.InstallationMethod),
-							string.IsNullOrWhiteSpace(c.Directions)
-								? null
-								: new XElement("Directions", c.Directions),
-							string.IsNullOrWhiteSpace(c.DownloadInstructions)
-								? null
-								: new XElement("DownloadInstructions", c.DownloadInstructions),
-							(c.Dependencies?.Count > 0)
-								? new XElement("Dependencies", c.Dependencies.Select(dep => new XElement("Item", dep)))
-								: null,
-							(c.Restrictions?.Count > 0)
-								? new XElement("Restrictions", c.Restrictions.Select(res => new XElement("Item", res)))
-								: null,
-							(c.InstallBefore?.Count > 0)
-								? new XElement("InstallBefore", c.InstallBefore.Select(ib => new XElement("Item", ib)))
-								: null,
-							(c.InstallAfter?.Count > 0)
-								? new XElement("InstallAfter", c.InstallAfter.Select(ia => new XElement("Item", ia)))
-								: null,
-							c.WidescreenOnly
-								? new XElement("WidescreenOnly", c.WidescreenOnly)
-								: null,
-							(c.Instructions?.Count > 0)
-								? new XElement("Instructions",
-									c.Instructions.Select(instr => new XElement("Instruction",
-										new XElement("Guid", instr.Guid.ToString()),
-										new XElement("Action", instr.ActionString),
-										(instr.Source?.Count > 0)
-											? new XElement("Source", instr.Source.Select(s => new XElement("Item", s)))
-											: null,
-										string.IsNullOrWhiteSpace(instr.Destination)
-											? null
-											: new XElement("Destination", instr.Destination),
-									string.IsNullOrWhiteSpace(instr.Arguments)
-										? null
-										: new XElement("Arguments", instr.Arguments),
+							!instr.Overwrite
+								? new XElement("Overwrite", false)
+								: null
+						));
+					}
+					componentElement.Add(instructionsElement);
+				}
+
+				// Handle Options with validation comments
+				if ( c.Options?.Count > 0 )
+				{
+					var optionsElement = new XElement("Options");
+					foreach ( Option opt in c.Options )
+					{
+						var optionElement = new XElement("Option");
+						optionElement.Add(new XElement("Guid", opt.Guid.ToString()));
+						if ( !string.IsNullOrWhiteSpace(opt.Name) )
+							optionElement.Add(new XElement("Name", opt.Name));
+						if ( !string.IsNullOrWhiteSpace(opt.Description) )
+							optionElement.Add(new XElement("Description", opt.Description));
+
+						// Handle option instructions
+						if ( opt.Instructions?.Count > 0 )
+						{
+							var optInstructionsElement = new XElement("Instructions");
+							foreach ( Instruction instr in opt.Instructions )
+							{
+								// Add validation comment before option instruction
+								if ( validationContext != null )
+								{
+									List<string> instructionIssues = validationContext.GetInstructionIssues(instr.Guid);
+									if ( instructionIssues.Count > 0 )
+									{
+										string issuesText = "OPTION INSTRUCTION VALIDATION: " + string.Join("; ", instructionIssues);
+										optInstructionsElement.Add(new XComment(issuesText));
+									}
+								}
+
+								optInstructionsElement.Add(new XElement("Instruction",
+									new XElement("Guid", instr.Guid.ToString()),
+									!string.IsNullOrWhiteSpace(instr.ActionString)
+										? new XElement("Action", instr.ActionString)
+										: null,
+									instr.Source?.Count > 0
+										? new XElement("Source", instr.Source.Select(s => new XElement("Item", s)))
+										: null,
+									!string.IsNullOrWhiteSpace(instr.Destination)
+										? new XElement("Destination", instr.Destination)
+										: null,
+									!string.IsNullOrWhiteSpace(instr.Arguments)
+										? new XElement("Arguments", instr.Arguments)
+										: null,
 									!instr.Overwrite
 										? new XElement("Overwrite", false)
 										: null
-								))
-							)
-							: null,
-							(c.Options?.Count > 0)
-								? new XElement("Options",
-									c.Options.Select(opt => new XElement("Option",
-										new XElement("Guid", opt.Guid.ToString()),
-										string.IsNullOrWhiteSpace(opt.Name)
-											? null
-											: new XElement("Name", opt.Name),
-										string.IsNullOrWhiteSpace(opt.Description)
-											? null
-											: new XElement("Description", opt.Description),
-										(opt.Instructions?.Count > 0)
-											? new XElement("Instructions",
-												opt.Instructions.Select(instr => new XElement("Instruction",
-													new XElement("Guid", instr.Guid.ToString()),
-													string.IsNullOrWhiteSpace(instr.ActionString)
-														? null
-														: new XElement("Action", instr.ActionString),
-													(instr.Source?.Count > 0)
-														? new XElement("Source", instr.Source.Select(s => new XElement("Item", s)))
-														: null,
-													string.IsNullOrWhiteSpace(instr.Destination)
-														? null
-														: new XElement("Destination", instr.Destination),
-													string.IsNullOrWhiteSpace(instr.Arguments)
-														? null
-														: new XElement("Arguments", instr.Arguments),
-													!instr.Overwrite
-														? new XElement("Overwrite", false)
-														: null
-											))
-										)
-										: null
-								))
-							)
-							: null
-						))
-					)
+								));
+							}
+							optionElement.Add(optInstructionsElement);
+						}
+
+						optionsElement.Add(optionElement);
+					}
+					componentElement.Add(optionsElement);
+				}
+
+				componentsElement.Add(componentElement);
+			}
+
+			var doc = new XDocument(
+				new XDeclaration("2.0", "utf-8", "yes"),
+				new XElement("ModBuild",
+					metadataElement,
+					componentsElement
 				)
 			);
+
 			var sb = new StringBuilder();
 			using ( var writer = XmlWriter.Create(sb, new XmlWriterSettings { Indent = true, OmitXmlDeclaration = false }) )
 			{
 				doc.Save(writer);
 			}
-			return sb.ToString();
+			return SanitizeUtf8(sb.ToString());
 		}
-		public static string SaveToIniString(List<ModComponent> components)
+		public static string SaveToIniString(
+			List<ModComponent> components,
+			ComponentValidationContext validationContext = null)
 		{
 			var sb = new StringBuilder();
-			// Metadata section
 			sb.AppendLine("[Metadata]");
 			sb.AppendLine($"fileFormatVersion={MainConfig.FileFormatVersion ?? "2.0"}");
 			if ( !string.IsNullOrWhiteSpace(MainConfig.TargetGame) )
@@ -1720,10 +2161,41 @@ namespace KOTORModSync.Core.Services
 			if ( MainConfig.LastModified.HasValue )
 				sb.AppendLine($"lastModified={MainConfig.LastModified.Value:o}");
 			sb.AppendLine();
-			// Components
 			for ( int i = 0; i < components.Count; i++ )
 			{
-				var c = components[i];
+				ModComponent c = components[i];
+
+				// Add validation comments for component
+				if ( validationContext != null )
+				{
+					List<string> componentIssues = validationContext.GetComponentIssues(c.Guid);
+					if ( componentIssues.Count > 0 )
+					{
+						sb.AppendLine("; VALIDATION ISSUES:");
+						foreach ( string issue in componentIssues )
+						{
+							sb.AppendLine($"; {issue}");
+						}
+					}
+
+					// Add URL failure comments
+					if ( c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0 )
+					{
+						foreach ( string url in c.ModLinkFilenames.Keys )
+						{
+							List<string> urlFailures = validationContext.GetUrlFailures(url);
+							if ( urlFailures.Count > 0 )
+							{
+								sb.AppendLine($"; URL RESOLUTION FAILURE: {url}");
+								foreach ( string failure in urlFailures )
+								{
+									sb.AppendLine($"; {failure}");
+								}
+							}
+						}
+					}
+				}
+
 				sb.AppendLine($"[Component{i + 1}]");
 				sb.AppendLine($"Guid={c.Guid}");
 				sb.AppendLine($"Name={c.Name}");
@@ -1731,20 +2203,43 @@ namespace KOTORModSync.Core.Services
 					sb.AppendLine($"Author={c.Author}");
 				if ( !string.IsNullOrWhiteSpace(c.Description) )
 					sb.AppendLine($"Description={c.Description}");
+				if ( !string.IsNullOrWhiteSpace(c._descriptionSpoilerFree) && c._descriptionSpoilerFree != c.Description )
+					sb.AppendLine($"DescriptionSpoilerFree={c._descriptionSpoilerFree}");
 				if ( c.Category?.Count > 0 )
 					sb.AppendLine($"Category={string.Join(",", c.Category)}");
 				if ( !string.IsNullOrWhiteSpace(c.Tier) )
 					sb.AppendLine($"Tier={c.Tier}");
 				if ( c.Language?.Count > 0 )
 					sb.AppendLine($"Language={string.Join(",", c.Language)}");
-				if ( c.ModLink?.Count > 0 )
-					sb.AppendLine($"ModLink={string.Join("|", c.ModLink)}");
+
+				// Serialize ModLinkFilenames URLs as ModLinkFilenames for INI format (INI doesn't support nested structures well)
+				if ( c.ModLinkFilenames?.Count > 0 )
+				{
+					List<string> urls = c.ModLinkFilenames.Keys.ToList();
+					if ( urls.Count > 0 )
+						sb.AppendLine($"ModLinkFilenames={string.Join("|", urls)}");
+				}
+
 				if ( c.ExcludedDownloads?.Count > 0 )
 					sb.AppendLine($"ExcludedDownloads={string.Join("|", c.ExcludedDownloads)}");
 				if ( !string.IsNullOrWhiteSpace(c.InstallationMethod) )
 					sb.AppendLine($"InstallationMethod={c.InstallationMethod}");
 				if ( !string.IsNullOrWhiteSpace(c.Directions) )
 					sb.AppendLine($"Directions={c.Directions.Replace("\r\n", "\\n").Replace("\n", "\\n")}");
+				if ( !string.IsNullOrWhiteSpace(c._directionsSpoilerFree) && c._directionsSpoilerFree != c.Directions )
+					sb.AppendLine($"DirectionsSpoilerFree={c._directionsSpoilerFree.Replace("\r\n", "\\n").Replace("\n", "\\n")}");
+				if ( !string.IsNullOrWhiteSpace(c.DownloadInstructions) )
+					sb.AppendLine($"DownloadInstructions={c.DownloadInstructions.Replace("\r\n", "\\n").Replace("\n", "\\n")}");
+				if ( !string.IsNullOrWhiteSpace(c._downloadInstructionsSpoilerFree) && c._downloadInstructionsSpoilerFree != c.DownloadInstructions )
+					sb.AppendLine($"DownloadInstructionsSpoilerFree={c._downloadInstructionsSpoilerFree.Replace("\r\n", "\\n").Replace("\n", "\\n")}");
+				if ( !string.IsNullOrWhiteSpace(c.UsageWarning) )
+					sb.AppendLine($"UsageWarning={c.UsageWarning.Replace("\r\n", "\\n").Replace("\n", "\\n")}");
+				if ( !string.IsNullOrWhiteSpace(c._usageWarningSpoilerFree) && c._usageWarningSpoilerFree != c.UsageWarning )
+					sb.AppendLine($"UsageWarningSpoilerFree={c._usageWarningSpoilerFree.Replace("\r\n", "\\n").Replace("\n", "\\n")}");
+				if ( !string.IsNullOrWhiteSpace(c.Screenshots) )
+					sb.AppendLine($"Screenshots={c.Screenshots.Replace("\r\n", "\\n").Replace("\n", "\\n")}");
+				if ( !string.IsNullOrWhiteSpace(c._screenshotsSpoilerFree) && c._screenshotsSpoilerFree != c.Screenshots )
+					sb.AppendLine($"ScreenshotsSpoilerFree={c._screenshotsSpoilerFree.Replace("\r\n", "\\n").Replace("\n", "\\n")}");
 				if ( c.Dependencies?.Count > 0 )
 					sb.AppendLine($"Dependencies={string.Join(",", c.Dependencies)}");
 				if ( c.Restrictions?.Count > 0 )
@@ -1753,30 +2248,53 @@ namespace KOTORModSync.Core.Services
 					sb.AppendLine($"WidescreenOnly=true");
 				sb.AppendLine();
 			}
-			return sb.ToString();
+			return SanitizeUtf8(sb.ToString());
 		}
-		/// <summary>
-		/// Helper to convert XElement to Dictionary for deserialization.
-		/// </summary>
 		public static Dictionary<string, object> XmlElementToDictionary(XElement element)
 		{
 			var dict = new Dictionary<string, object>();
-			foreach ( var child in element.Elements() )
+			foreach ( XElement child in element.Elements() )
 			{
-				var childName = child.Name.LocalName;
-				// Handle list elements
-				if ( child.Elements("Item").Any() )
+				string childName = child.Name.LocalName;
+
+				if ( childName == "ModLinkFilenames" && child.Elements("Url").Any() )
 				{
-					var list = child.Elements("Item").Select(item => (object)item.Value).ToList();
+					var modLinkFilenamesDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+					foreach ( XElement urlElem in child.Elements("Url") )
+					{
+						string url = urlElem.Attribute("Value")?.Value;
+						if ( string.IsNullOrEmpty(url) )
+							continue;
+
+						var filenamesDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+						foreach ( XElement fileElem in urlElem.Elements("File") )
+						{
+							string filename = fileElem.Attribute("Name")?.Value;
+							string shouldDownloadStr = fileElem.Attribute("ShouldDownload")?.Value;
+
+							if ( !string.IsNullOrEmpty(filename) && bool.TryParse(shouldDownloadStr, out bool shouldDownload) )
+							{
+								filenamesDict[filename] = shouldDownload;
+							}
+						}
+
+						if ( filenamesDict.Count > 0 )
+						{
+							modLinkFilenamesDict[url] = filenamesDict;
+						}
+					}
+					dict[childName] = modLinkFilenamesDict;
+				}
+				else if ( child.Elements("Item").Any() )
+				{
+					List<object> list = child.Elements("Item").Select(item => (object)item.Value).ToList();
 					dict[childName] = list;
 				}
-				// Handle nested objects
 				else if ( child.HasElements && !child.Elements("Item").Any() )
 				{
-					// Check if it's a list of complex objects (like Instructions, Options)
 					if ( child.Elements().All(e => e.Name.LocalName == child.Elements().First().Name.LocalName) )
 					{
-						var list = child.Elements().Select(e => (object)XmlElementToDictionary(e)).ToList();
+						List<object> list = child.Elements().Select(e => (object)XmlElementToDictionary(e)).ToList();
 						dict[childName] = list;
 					}
 					else
@@ -1792,24 +2310,20 @@ namespace KOTORModSync.Core.Services
 			return dict;
 		}
 
-		/// <summary>
-		/// Generates markdown documentation from a list of mod components.
-		/// This is the source of truth for documentation generation.
-		/// </summary>
 		[NotNull]
 		public static string GenerateModDocumentation(
 			[NotNull][ItemNotNull] List<ModComponent> componentsList,
 			[CanBeNull] string beforeModListContent = null,
 			[CanBeNull] string afterModListContent = null,
 			[CanBeNull] string widescreenSectionContent = null,
-			[CanBeNull] string aspyrSectionContent = null)
+			[CanBeNull] string aspyrSectionContent = null,
+			[CanBeNull] ComponentValidationContext validationContext = null)
 		{
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
 
 			var sb = new StringBuilder();
 
-			// Add before content
 			if ( !string.IsNullOrWhiteSpace(beforeModListContent) )
 			{
 				_ = sb.Append(beforeModListContent);
@@ -1820,10 +2334,8 @@ namespace KOTORModSync.Core.Services
 				_ = sb.AppendLine();
 			}
 
-			// Add mod list header
 			_ = sb.AppendLine("## Mod List");
 
-			// Create GUID to name mapping for dependency resolution
 			var guidToName = componentsList.ToDictionary(c => c.Guid, c => c.Name);
 
 			bool widescreenHeaderWritten = false;
@@ -1833,7 +2345,6 @@ namespace KOTORModSync.Core.Services
 			{
 				ModComponent component = componentsList[i];
 
-				// Add Aspyr section header if needed
 				if ( component.AspyrExclusive == true && !aspyrHeaderWritten && !string.IsNullOrWhiteSpace(aspyrSectionContent) )
 				{
 					_ = sb.AppendLine();
@@ -1842,7 +2353,6 @@ namespace KOTORModSync.Core.Services
 					aspyrHeaderWritten = true;
 				}
 
-				// Add widescreen section header if needed
 				if ( component.WidescreenOnly && !widescreenHeaderWritten && !string.IsNullOrWhiteSpace(widescreenSectionContent) )
 				{
 					_ = sb.AppendLine();
@@ -1851,7 +2361,6 @@ namespace KOTORModSync.Core.Services
 					widescreenHeaderWritten = true;
 				}
 
-				// Add separator between components (but not before first)
 				if ( i > 0 )
 				{
 					_ = sb.AppendLine("___");
@@ -1862,31 +2371,69 @@ namespace KOTORModSync.Core.Services
 					_ = sb.AppendLine();
 				}
 
-				// Component heading
+				// Add validation warnings for component
+				if ( validationContext != null )
+				{
+					List<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
+					if ( componentIssues.Count > 0 )
+					{
+						_ = sb.AppendLine("> **⚠️ VALIDATION WARNINGS:**");
+						foreach ( string issue in componentIssues )
+						{
+							_ = sb.AppendLine($"> - {issue}");
+						}
+						_ = sb.AppendLine();
+					}
+
+					// Add URL failure warnings
+					if ( component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0 )
+					{
+						foreach ( string url in component.ModLinkFilenames.Keys )
+						{
+							List<string> urlFailures = validationContext.GetUrlFailures(url);
+							if ( urlFailures.Count > 0 )
+							{
+								_ = sb.AppendLine($"> **⚠️ URL RESOLUTION FAILURE:** `{url}`");
+								foreach ( string failure in urlFailures )
+								{
+									_ = sb.AppendLine($"> - {failure}");
+								}
+								_ = sb.AppendLine();
+							}
+						}
+					}
+				}
+
 				string heading = !string.IsNullOrWhiteSpace(component.Heading) ? component.Heading : component.Name;
 				_ = sb.Append("### ").AppendLine(heading);
 				_ = sb.AppendLine();
 
-				// Name field with links
 				if ( !string.IsNullOrWhiteSpace(component.NameFieldContent) )
 				{
 					_ = sb.Append("**Name:** ").AppendLine(component.NameFieldContent);
 				}
-				else if ( component.ModLink?.Count > 0 && !string.IsNullOrWhiteSpace(component.ModLink[0]) )
+				else if ( component.ModLinkFilenames?.Count > 0 )
 				{
-					_ = sb.Append("**Name:** [").Append(component.Name).Append("](")
-						.Append(component.ModLink[0]).Append(")");
-
-					// Additional patch links
-					for ( int linkIdx = 1; linkIdx < component.ModLink.Count; linkIdx++ )
+					List<string> urls = component.ModLinkFilenames.Keys.ToList();
+					if ( urls.Count > 0 && !string.IsNullOrWhiteSpace(urls[0]) )
 					{
-						if ( !string.IsNullOrWhiteSpace(component.ModLink[linkIdx]) )
-						{
-							_ = sb.Append(" and [**Patch**](").Append(component.ModLink[linkIdx]).Append(")");
-						}
-					}
+						_ = sb.Append("**Name:** [").Append(component.Name).Append("](")
+							.Append(urls[0]).Append(")");
 
-					_ = sb.AppendLine();
+						for ( int linkIdx = 1; linkIdx < urls.Count; linkIdx++ )
+						{
+							if ( !string.IsNullOrWhiteSpace(urls[linkIdx]) )
+							{
+								_ = sb.Append(" and [**Patch**](").Append(urls[linkIdx]).Append(")");
+							}
+						}
+
+						_ = sb.AppendLine();
+					}
+					else
+					{
+						_ = sb.Append("**Name:** ").AppendLine(component.Name);
+					}
 				}
 				else
 				{
@@ -1926,9 +2473,8 @@ namespace KOTORModSync.Core.Services
 					}
 					else
 					{
-						// Oxford comma for 3+ categories
-						var allButLast = component.Category.Take(component.Category.Count - 1);
-						var last = component.Category[component.Category.Count - 1];
+						IEnumerable<String> allButLast = component.Category.Take(component.Category.Count - 1);
+						string last = component.Category[component.Category.Count - 1];
 						categoryStr = $"{string.Join(", ", allButLast)} & {last}";
 					}
 				}
@@ -1976,18 +2522,15 @@ namespace KOTORModSync.Core.Services
 					_ = sb.Append("**Steam Notes:** ").AppendLine(component.SteamNotes);
 				}
 
-				// Output Masters/Dependencies if present
-				// Always use Dependencies (GUIDs) as source of truth and map to original names
 				if ( component.Dependencies?.Count > 0 )
 				{
-					// Map each GUID to its original name (if available) or resolved name
 					var masterNames = component.Dependencies
 						.Select(guid =>
 						{
 							if ( component.DependencyGuidToOriginalName.TryGetValue(guid, out string originalName) )
 								return originalName;
-							if ( guidToName.ContainsKey(guid) )
-								return guidToName[guid];
+							if ( guidToName.TryGetValue(guid, out string nameFromGuid) )
+								return nameFromGuid;
 							return null;
 						})
 						.Where(name => !string.IsNullOrWhiteSpace(name))
@@ -2021,24 +2564,21 @@ namespace KOTORModSync.Core.Services
 				_ = sb.AppendLine();
 
 				if ( component.Instructions.Count > 0 || component.Options.Count > 0 )
-				{
 					GenerateModSyncMetadata(sb, component);
-				}
 			}
 
-			// Add after content
-			if ( !string.IsNullOrWhiteSpace(afterModListContent) )
-			{
-				_ = sb.AppendLine();
-				_ = sb.Append(afterModListContent);
-			}
+			if ( string.IsNullOrWhiteSpace(afterModListContent) )
+				return sb.ToString();
+			_ = sb.AppendLine();
+			_ = sb.Append(afterModListContent);
 
-			return sb.ToString();
+			return SanitizeUtf8(sb.ToString());
 		}
 
-		private static void GenerateModSyncMetadata([NotNull] StringBuilder sb, [NotNull] ModComponent component)
+		private static void GenerateModSyncMetadata(
+			[NotNull] StringBuilder sb,
+			[NotNull] ModComponent component)
 		{
-			// Skip if no instructions or options
 			if ( component.Instructions.Count == 0 && component.Options.Count == 0 )
 				return;
 
@@ -2046,14 +2586,12 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				// Serialize component to TOML
 				string toml = component.SerializeComponent();
 
 				_ = sb.Append(toml);
 			}
 			catch ( Exception ex )
 			{
-				// Fallback to minimal metadata on serialization error
 				Logger.LogException(ex, "Failed to serialize component for ModSync metadata");
 				_ = sb.AppendLine($"Guid: {component.Guid}");
 			}
@@ -2069,7 +2607,7 @@ namespace KOTORModSync.Core.Services
 				return "UNKNOWN";
 
 			if ( languages.Count == 1 && languages.Any(lang =>
-				string.Equals(lang, b: "UNKNOWN", StringComparison.OrdinalIgnoreCase)) )
+				string.Equals(lang, "UNKNOWN", StringComparison.OrdinalIgnoreCase)) )
 			{
 				return "UNKNOWN";
 			}
@@ -2101,24 +2639,119 @@ namespace KOTORModSync.Core.Services
 				return "PARTIAL - Supported languages: " + string.Join(", ", languages);
 			}
 
-			// Handle single language with YES/NO/PARTIAL prefix or ONLY suffix
 			if ( languages.Count == 1 )
 			{
 				string singleLang = languages[0];
-				if ( !string.IsNullOrEmpty(singleLang) )
+				if ( string.IsNullOrEmpty(singleLang) )
+					return "Supported languages: " + string.Join(", ", languages);
+				string trimmed = singleLang.TrimStart();
+				if ( trimmed.StartsWith("YES", StringComparison.OrdinalIgnoreCase) ||
+					 trimmed.StartsWith("NO", StringComparison.OrdinalIgnoreCase) ||
+					 trimmed.StartsWith("PARTIAL", StringComparison.OrdinalIgnoreCase) ||
+					 trimmed.IndexOf("ONLY", StringComparison.OrdinalIgnoreCase) >= 0 )
 				{
-					string trimmed = singleLang.TrimStart();
-					if ( trimmed.StartsWith("YES", StringComparison.OrdinalIgnoreCase) ||
-						 trimmed.StartsWith("NO", StringComparison.OrdinalIgnoreCase) ||
-						 trimmed.StartsWith("PARTIAL", StringComparison.OrdinalIgnoreCase) ||
-						 trimmed.IndexOf("ONLY", StringComparison.OrdinalIgnoreCase) >= 0 )
-					{
-						return singleLang;
-					}
+					return singleLang;
 				}
 			}
 
 			return "Supported languages: " + string.Join(", ", languages);
+		}
+
+		private static Dictionary<string, object> SerializeModLinkFilenames(
+			Dictionary<string, Dictionary<string, bool?>> modLinkFilenames
+		)
+		{
+			var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+			if ( modLinkFilenames == null || modLinkFilenames.Count == 0 )
+				return result;
+
+			foreach ( KeyValuePair<string, Dictionary<string, bool?>> kvp in modLinkFilenames )
+			{
+				string url = kvp.Key;
+				Dictionary<string, bool?> filenamesDict = kvp.Value;
+
+				if ( filenamesDict == null || filenamesDict.Count == 0 )
+				{
+					// Empty dictionary means auto-discover files
+					result[url] = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+					continue;
+				}
+
+				var serializedFilenames = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+				foreach ( KeyValuePair<string, bool?> fileKvp in filenamesDict )
+				{
+					string filename = fileKvp.Key;
+					bool? shouldDownload = fileKvp.Value;
+
+					// Serialize: null = "null", true = true, false = false
+					if ( shouldDownload.HasValue )
+						serializedFilenames[filename] = shouldDownload.Value;
+					else
+						serializedFilenames[filename] = "null";
+				}
+				result[url] = serializedFilenames;
+			}
+			return result;
+		}
+
+		public static Dictionary<string, Dictionary<string, bool?>> DeserializeModLinkFilenames(IDictionary<string, object> componentDict)
+		{
+			var result = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+
+			try
+			{
+				if ( !componentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesObj) &&
+					!componentDict.TryGetValue("modLinkFilenames", out modLinkFilenamesObj) )
+				{
+					return result;
+				}
+
+				if ( modLinkFilenamesObj == null )
+					return result;
+
+				if ( modLinkFilenamesObj is IDictionary<string, object> urlDict )
+				{
+					foreach ( KeyValuePair<string, object> kvp in urlDict )
+					{
+						string url = kvp.Key;
+						var filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+
+						if ( kvp.Value is IDictionary<string, object> filenameObj )
+						{
+							foreach ( KeyValuePair<string, object> fileKvp in filenameObj )
+							{
+								string filename = fileKvp.Key;
+								bool? shouldDownload = null;
+
+								if ( fileKvp.Value is bool boolVal )
+									shouldDownload = boolVal;
+								else if ( fileKvp.Value != null )
+								{
+									string valueStr = fileKvp.Value.ToString();
+									Debug.Assert(valueStr != null, nameof(valueStr) + " != null");
+									if ( !valueStr.Equals("null", StringComparison.OrdinalIgnoreCase) &&
+										bool.TryParse(valueStr, out bool parsedBool) )
+									{
+										shouldDownload = parsedBool;
+									}
+									// else remains null (default)
+								}
+
+								filenameDict[filename] = shouldDownload;
+							}
+						}
+
+						result[url] = filenameDict;
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogWarning($"Failed to deserialize ModLinkFilenames (non-fatal): {ex.Message}");
+			}
+
+			return result;
 		}
 		#endregion
 	}

@@ -60,7 +60,6 @@ namespace KOTORModSync.Controls
 				return;
 			}
 
-			// Split by newlines and filter empty entries
 			var lines = ScreenshotData
 				.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)
 				.Select(line => line.Trim())
@@ -82,7 +81,6 @@ namespace KOTORModSync.Controls
 				}
 			}
 
-			// Display images if we have any
 			if ( imageUrls.Count > 0 )
 			{
 				imageItemsControl.ItemsSource = imageUrls;
@@ -94,7 +92,6 @@ namespace KOTORModSync.Controls
 				imageItemsControl.IsVisible = false;
 			}
 
-			// Display fallback text if we have non-image content
 			if ( nonImageContent.Count > 0 )
 			{
 				fallbackTextBlock.Text = string.Join(Environment.NewLine, nonImageContent);
@@ -112,15 +109,12 @@ namespace KOTORModSync.Controls
 			if ( string.IsNullOrWhiteSpace(text) )
 				return false;
 
-			// Check if it's a valid URL
 			if ( !Uri.TryCreate(text, UriKind.Absolute, out Uri uri) )
 				return false;
 
-			// Check if it has http or https scheme
 			if ( uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps )
 				return false;
 
-			// Check if it has a common image extension
 			var path = uri.AbsolutePath.ToLowerInvariant();
 			return path.EndsWith(".jpg") ||
 				   path.EndsWith(".jpeg") ||

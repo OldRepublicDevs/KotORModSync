@@ -19,9 +19,9 @@ using SharpCompress.Readers;
 
 namespace KOTORModSync.Core.Services.FileSystem
 {
-	
-	
-	
+
+
+
 	public class RealFileSystemProvider : IFileSystemProvider
 	{
 		public bool IsDryRun => false;
@@ -148,17 +148,15 @@ namespace KOTORModSync.Core.Services.FileSystem
 
 					await Logger.LogAsync($"Extracting archive '{sourcePath}'...");
 
-					
+
 					if ( archive.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase) )
 					{
-						// Try managed SFX extraction first (cross-platform)
 						if ( ArchiveHelper.TryExtractSevenZipSfx(archive.FullName, destPath, extracted) )
 						{
 							await Logger.LogAsync($"Successfully extracted 7z SFX archive via managed extraction: '{sourceRelDirPath}'");
 							return;
 						}
 
-						// Fallback to CLI on non-Windows platforms
 						if ( KOTORModSync.Core.Utility.Utility.GetOperatingSystem() != OSPlatform.Windows )
 						{
 							await Logger.LogAsync($"Managed SFX extraction failed, attempting 7z CLI extraction for '{sourceRelDirPath}'");
@@ -171,7 +169,6 @@ namespace KOTORModSync.Core.Services.FileSystem
 							throw new InvalidOperationException($"Failed to extract '{sourceRelDirPath}': Not a valid 7z SFX or 7z CLI not available. On Linux/macOS, install 7z package (e.g., 'apt install p7zip-full' or 'brew install p7zip').");
 						}
 
-						// On Windows, fallback to executing the SFX
 						await Logger.LogAsync($"Managed SFX extraction failed, attempting to execute SFX for '{sourceRelDirPath}'");
 						(int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(archive.FullName, $" -o\"{archive.DirectoryName}\" -y");
 

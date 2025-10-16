@@ -14,7 +14,6 @@ namespace KOTORModSync.Controls
 	[SuppressMessage("ReSharper", "UnusedParameter.Local")]
 	public partial class RawTab : UserControl
 	{
-		// Dependency property for CurrentComponent
 		public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
 			AvaloniaProperty.Register<RawTab, ModComponent>(nameof(CurrentComponent));
 
@@ -29,7 +28,6 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		// Event handlers that will be routed to MainWindow
 		public event EventHandler<RoutedEventArgs> ApplyEditorChangesRequested;
 		public event EventHandler<RoutedEventArgs> GenerateGuidRequested;
 
@@ -39,7 +37,6 @@ namespace KOTORModSync.Controls
 			DataContext = this;
 		}
 
-		// Event handler forwarders
 		private void ApplyEditorButton_Click(object sender, RoutedEventArgs e)
 		{
 			ApplyEditorChangesRequested?.Invoke(sender, e);
@@ -50,10 +47,8 @@ namespace KOTORModSync.Controls
 			GenerateGuidRequested?.Invoke(sender, e);
 		}
 
-		// Public accessor for GuidGeneratedTextBox so MainWindow can set its text
 		public TextBox GetGuidTextBox() => GuidGeneratedTextBox;
 
-		// Public accessor for RawEditTextBox so MainWindow can access it
 		public TextBox GetRawEditTextBox() => RawEditTextBox;
 	}
 }

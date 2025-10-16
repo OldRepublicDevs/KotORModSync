@@ -3,10 +3,8 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
 using JetBrains.Annotations;
 
 namespace KOTORModSync.Controls
@@ -20,55 +18,38 @@ namespace KOTORModSync.Controls
 
 		#region Routed Events
 
-		// Event for directory changes
 		public event EventHandler<DirectoryChangedEventArgs> DirectoryChangedRequested;
 
-		// Event for Step 2 button click
 		public event EventHandler<RoutedEventArgs> LoadInstructionFileRequested;
 
-		// Event for opening settings
 		public event EventHandler<RoutedEventArgs> OpenSettingsRequested;
 
-		// Event for scraping downloads
 		public event EventHandler<RoutedEventArgs> ScrapeDownloadsRequested;
 
-		// Event for opening mod directory
 		public event EventHandler<RoutedEventArgs> OpenModDirectoryRequested;
 
-		// Event for download status button
 		public event EventHandler<RoutedEventArgs> DownloadStatusRequested;
 
-		// Event for stopping downloads
 		public event EventHandler<RoutedEventArgs> StopDownloadsRequested;
 
-		// Event for validation
 		public event EventHandler<RoutedEventArgs> ValidateRequested;
 
-		// Event for previous error navigation
 		public event EventHandler<RoutedEventArgs> PrevErrorRequested;
 
-		// Event for next error navigation
 		public event EventHandler<RoutedEventArgs> NextErrorRequested;
 
-		// Event for auto-fix button
 		public event EventHandler<RoutedEventArgs> AutoFixRequested;
 
-		// Event for jump to mod button
 		public event EventHandler<RoutedEventArgs> JumpToModRequested;
 
-		// Event for install button
 		public event EventHandler<RoutedEventArgs> InstallRequested;
 
-		// Event for opening output window
 		public event EventHandler<RoutedEventArgs> OpenOutputWindowRequested;
 
-		// Event for creating GitHub issue
 		public event EventHandler<RoutedEventArgs> CreateGithubIssueRequested;
 
-		// Event for opening sponsor page
 		public event EventHandler<RoutedEventArgs> OpenSponsorPageRequested;
 
-		// Event for jumping to current step
 		public event EventHandler<RoutedEventArgs> JumpToCurrentStepRequested;
 
 		#endregion
@@ -177,7 +158,6 @@ namespace KOTORModSync.Controls
 			JumpToCurrentStepRequested?.Invoke(sender, e);
 		}
 
-		// Handler methods for MainWindow.axaml event bindings
 		[UsedImplicitly]
 		private void GettingStartedTab_AutoFixRequested(object sender, RoutedEventArgs e)
 		{

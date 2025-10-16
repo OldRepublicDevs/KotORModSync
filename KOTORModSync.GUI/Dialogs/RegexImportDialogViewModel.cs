@@ -99,7 +99,7 @@ namespace KOTORModSync.Dialogs
 			MarkdownParserResult result = parser.Parse(_markdown);
 			int comp = result.Components?.Count ?? 0;
 			Debug.Assert(result.Components != null, "result.Components != null");
-			int links = result.Components.Sum(c => c.ModLink.Count);
+			int links = result.Components.Sum(c => c.ModLinkFilenames.Count);
 			PreviewSummary = $"Components: {comp} | Links: {links}";
 
 			GenerateHighlightedPreview();
@@ -287,7 +287,7 @@ namespace KOTORModSync.Dialogs
 				Logger.LogVerbose);
 			MarkdownParserResult result = parser.Parse(_markdown);
 			int comp = result.Components.Count;
-			int links = result.Components.Sum(c => c.ModLink.Count);
+			int links = result.Components.Sum(c => c.ModLinkFilenames.Count);
 			PreviewSummary = $"Components: {comp} | Links: {links}";
 		}
 

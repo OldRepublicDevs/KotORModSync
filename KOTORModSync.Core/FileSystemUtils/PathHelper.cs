@@ -494,28 +494,28 @@ namespace KOTORModSync.Core.FileSystemUtils
 				try
 				{
 					string formattedPath = FixPathFormatting(path);
-					Console.WriteLine($"[PathHelper] EnumerateFilesWithWildcards: path={path}, formatted={formattedPath}");
+					Logger.LogVerbose($"[PathHelper] EnumerateFilesWithWildcards: path={path}, formatted={formattedPath}");
 
 					if ( !ContainsWildcards(formattedPath) )
 					{
-						Console.WriteLine("[PathHelper] No wildcards, checking FileExists...");
+						Logger.LogVerbose("[PathHelper] No wildcards, checking FileExists...");
 
 						if ( !fileSystemProvider.FileExists(formattedPath) )
 						{
-							Console.WriteLine("[PathHelper] Not found, trying case-sensitive...");
+							Logger.LogVerbose("[PathHelper] Not found, trying case-sensitive...");
 							(string, bool?) returnTuple = GetCaseSensitivePath(formattedPath);
 							formattedPath = returnTuple.Item1;
-							Console.WriteLine($"[PathHelper] Case-sensitive: {formattedPath}");
+							Logger.LogVerbose($"[PathHelper] Case-sensitive: {formattedPath}");
 						}
 
 						if ( fileSystemProvider.FileExists(formattedPath) )
 						{
-							Console.WriteLine($"[PathHelper] EXISTS! Adding: {formattedPath}");
+							Logger.LogVerbose($"[PathHelper] EXISTS! Adding: {formattedPath}");
 							result.Add(formattedPath);
 						}
 						else
 						{
-							Console.WriteLine($"[PathHelper] NOT FOUND: {formattedPath}");
+							Logger.LogVerbose($"[PathHelper] NOT FOUND: {formattedPath}");
 						}
 
 						continue;
@@ -583,7 +583,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				catch ( Exception ex )
 				{
 
-					Console.WriteLine($"An error occurred while processing path '{path}': {ex.Message}");
+					Logger.LogVerbose($"An error occurred while processing path '{path}': {ex.Message}");
 				}
 			}
 

@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -13,7 +12,7 @@ namespace KOTORModSync.Core.Services
 
 	public sealed class ResolutionFilterService
 	{
-		private static readonly Regex ResolutionPattern = new Regex(@"(\d{3,4})x(\d{3,4})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+		private static readonly Regex s_resolutionPattern = new Regex(@"(\d{3,4})x(\d{3,4})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 		private readonly Resolution _systemResolution;
 		private readonly bool _filterEnabled;
 
@@ -25,7 +24,7 @@ namespace KOTORModSync.Core.Services
 			if ( _filterEnabled && _systemResolution != null )
 			{
 				Logger.LogVerbose($"[ResolutionFilter] System resolution detected: {_systemResolution.Width}x{_systemResolution.Height}");
-				Logger.LogVerbose($"[ResolutionFilter] Resolution-based filtering ENABLED");
+				Logger.LogVerbose("[ResolutionFilter] Resolution-based filtering ENABLED");
 			}
 			else if ( _filterEnabled )
 			{
@@ -71,7 +70,7 @@ namespace KOTORModSync.Core.Services
 			if ( skipped.Count > 0 )
 			{
 				Logger.LogVerbose($"[ResolutionFilter] Skipped {skipped.Count} file(s) with non-matching resolutions:");
-				foreach ( var (url, resolution) in skipped )
+				foreach ( (string url, Resolution resolution) in skipped )
 				{
 					Logger.LogVerbose($"[ResolutionFilter]   ✗ Skipped: {GetDisplayName(url)} ({resolution.Width}x{resolution.Height} != {_systemResolution.Width}x{_systemResolution.Height})");
 				}
@@ -87,7 +86,7 @@ namespace KOTORModSync.Core.Services
 
 			var filtered = new Dictionary<string, List<string>>();
 
-			foreach ( var kvp in urlToFilenames )
+			foreach ( KeyValuePair<string, List<string>> kvp in urlToFilenames )
 			{
 				string url = kvp.Key;
 				List<string> filenames = kvp.Value;
@@ -101,9 +100,7 @@ namespace KOTORModSync.Core.Services
 
 				List<string> filteredFilenames = FilterByResolution(filenames);
 				if ( filteredFilenames.Count > 0 )
-				{
 					filtered[url] = filteredFilenames;
-				}
 			}
 
 			return filtered;
@@ -127,7 +124,7 @@ namespace KOTORModSync.Core.Services
 			if ( string.IsNullOrWhiteSpace(urlOrFilename) )
 				return null;
 
-			Match match = ResolutionPattern.Match(urlOrFilename);
+			Match match = s_resolutionPattern.Match(urlOrFilename);
 			if ( !match.Success )
 				return null;
 
@@ -145,10 +142,7 @@ namespace KOTORModSync.Core.Services
 			if ( _systemResolution == null || resolution == null )
 				return false;
 
-			if ( resolution.Width == _systemResolution.Width && resolution.Height == _systemResolution.Height )
-				return true;
-
-			return false;
+			return resolution.Width == _systemResolution.Width && resolution.Height == _systemResolution.Height;
 		}
 
 		private static Resolution DetectSystemResolution()
@@ -166,7 +160,7 @@ namespace KOTORModSync.Core.Services
 				}
 				else if ( Utility.Utility.GetOperatingSystem() == OSPlatform.OSX )
 				{
-					return DetectMacOSResolution();
+					return DetectMacOsResolution();
 				}
 			}
 			catch ( Exception ex )
@@ -203,11 +197,11 @@ namespace KOTORModSync.Core.Services
 			try
 			{
 
-				var result = Utility.PlatformAgnosticMethods.TryExecuteCommand("xrandr | grep '*' | awk '{print $1}' | head -n1");
+				(int ExitCode, string Output, string Error) result = Utility.PlatformAgnosticMethods.TryExecuteCommand("xrandr | grep '*' | awk '{print $1}' | head -n1");
 				if ( result.ExitCode == 0 && !string.IsNullOrWhiteSpace(result.Output) )
 				{
 					string resolution = result.Output.Trim();
-					Match match = ResolutionPattern.Match(resolution);
+					Match match = s_resolutionPattern.Match(resolution);
 					if ( match.Success &&
 						 int.TryParse(match.Groups[1].Value, out int width) &&
 						 int.TryParse(match.Groups[2].Value, out int height) )
@@ -220,7 +214,7 @@ namespace KOTORModSync.Core.Services
 				if ( result.ExitCode == 0 && !string.IsNullOrWhiteSpace(result.Output) )
 				{
 					string resolution = result.Output.Trim();
-					Match match = ResolutionPattern.Match(resolution);
+					Match match = s_resolutionPattern.Match(resolution);
 					if ( match.Success &&
 						 int.TryParse(match.Groups[1].Value, out int width) &&
 						 int.TryParse(match.Groups[2].Value, out int height) )
@@ -237,16 +231,16 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		private static Resolution DetectMacOSResolution()
+		private static Resolution DetectMacOsResolution()
 		{
 			try
 			{
 
-				var result = Utility.PlatformAgnosticMethods.TryExecuteCommand("system_profiler SPDisplaysDataType | grep Resolution | awk '{print $2 \"x\" $4}'");
+				(int ExitCode, string Output, string Error) result = Utility.PlatformAgnosticMethods.TryExecuteCommand("system_profiler SPDisplaysDataType | grep Resolution | awk '{print $2 \"x\" $4}'");
 				if ( result.ExitCode == 0 && !string.IsNullOrWhiteSpace(result.Output) )
 				{
 					string resolution = result.Output.Trim();
-					Match match = ResolutionPattern.Match(resolution);
+					Match match = s_resolutionPattern.Match(resolution);
 					if ( match.Success &&
 						 int.TryParse(match.Groups[1].Value, out int width) &&
 						 int.TryParse(match.Groups[2].Value, out int height) )
@@ -287,7 +281,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		[DllImport("user32.dll")]
+		// Windows-specific P/Invoke - only called when running on Windows
+		// The runtime check in DetectWindowsResolution ensures this is only invoked on Windows platforms
+		[DllImport("user32.dll", SetLastError = false)]
 		private static extern int GetSystemMetrics(int nIndex);
 
 		private class Resolution

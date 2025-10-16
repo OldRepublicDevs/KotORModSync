@@ -10,19 +10,99 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using JetBrains.Annotations;
-using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
-using KOTORModSync.Core.Utility;
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.CLI
 {
+	public class ErrorCollector
+	{
+		private readonly List<ErrorInfo> _errors = new List<ErrorInfo>();
+		private readonly object _errorLock = new object();
+
+		public enum ErrorCategory
+		{
+			Download,
+			FileOperation,
+			Extraction,
+			Validation,
+			Installation,
+			TSLPatcher,
+			General
+		}
+
+		public class ErrorInfo
+		{
+			public ErrorCategory Category { get; set; }
+			public string ComponentName { get; set; }
+			public string Message { get; set; }
+			public string Details { get; set; }
+			public Exception Exception { get; set; }
+			public DateTime Timestamp { get; set; }
+			public List<string> LogContext { get; set; }
+		}
+
+		public void RecordError(ErrorCategory category, string componentName, string message, string details = null, Exception exception = null)
+		{
+			lock ( _errorLock )
+			{
+				// Capture recent log messages for context (last 30 messages)
+				List<string> logContext = Logger.GetRecentLogMessages(30);
+
+				_errors.Add(new ErrorInfo
+				{
+					Category = category,
+					ComponentName = componentName,
+					Message = message,
+					Details = details,
+					Exception = exception,
+					Timestamp = DateTime.Now,
+					LogContext = logContext
+				});
+			}
+		}
+
+		public List<ErrorInfo> GetErrors()
+		{
+			lock ( _errorLock )
+			{
+				return _errors.ToList();
+			}
+		}
+
+		public int GetErrorCount()
+		{
+			lock ( _errorLock )
+			{
+				return _errors.Count;
+			}
+		}
+
+		public void Clear()
+		{
+			lock ( _errorLock )
+			{
+				_errors.Clear();
+			}
+		}
+
+		public Dictionary<ErrorCategory, List<ErrorInfo>> GetErrorsByCategory()
+		{
+			lock ( _errorLock )
+			{
+				return _errors.GroupBy(e => e.Category)
+					.ToDictionary(g => g.Key, g => g.ToList());
+			}
+		}
+	}
+
 	public static class ModBuildConverter
 	{
 		private static MainConfig _config;
 		private static ConsoleProgressDisplay _progressDisplay;
+		private static DownloadCacheService _globalDownloadCache;
+		private static ErrorCollector _errorCollector;
 
 		private static void EnsureConfigInitialized()
 		{
@@ -31,7 +111,6 @@ namespace KOTORModSync.Core.CLI
 				_config = new MainConfig();
 				Logger.LogVerbose("MainConfig initialized");
 
-				// Load settings from persistent storage (settings.json)
 				try
 				{
 					string settingsPath = Path.Combine(
@@ -48,7 +127,6 @@ namespace KOTORModSync.Core.CLI
 
 						if ( settings != null )
 						{
-							// Apply settings to MainConfig
 							if ( !string.IsNullOrWhiteSpace(settings.NexusModsApiKey) )
 							{
 								_config.nexusModsApiKey = settings.NexusModsApiKey;
@@ -90,7 +168,6 @@ namespace KOTORModSync.Core.CLI
 					Logger.LogWarning($"Failed to load settings.json: {ex.Message}");
 				}
 
-				// Fallback: Try to load from legacy nexusmods.config if no API key in settings.json
 				if ( string.IsNullOrWhiteSpace(_config.nexusModsApiKey) )
 				{
 					try
@@ -109,7 +186,6 @@ namespace KOTORModSync.Core.CLI
 								_config.nexusModsApiKey = apiKey;
 								Logger.LogVerbose($"Loaded Nexus Mods API key from legacy config: {legacyConfigFile}");
 
-								// Migrate to settings.json
 								SaveSettings();
 								Logger.LogVerbose("Migrated API key to settings.json");
 							}
@@ -134,7 +210,6 @@ namespace KOTORModSync.Core.CLI
 				Directory.CreateDirectory(configDir);
 				string settingsPath = Path.Combine(configDir, "settings.json");
 
-				// Load existing settings to preserve values we haven't modified
 				SettingsData settings;
 				if ( File.Exists(settingsPath) )
 				{
@@ -155,8 +230,6 @@ namespace KOTORModSync.Core.CLI
 					settings = new SettingsData();
 				}
 
-				// Update with current MainConfig values
-				// Preserve Theme if it exists, otherwise use default
 				if ( string.IsNullOrEmpty(settings.Theme) )
 					settings.Theme = "/Styles/KotorStyle.axaml";
 
@@ -185,7 +258,6 @@ namespace KOTORModSync.Core.CLI
 			}
 		}
 
-		// Internal class for JSON serialization (matches AppSettings structure)
 		private class SettingsData
 		{
 			[JsonProperty("theme")]
@@ -231,7 +303,6 @@ namespace KOTORModSync.Core.CLI
 			public string NexusModsApiKey { get; set; }
 		}
 
-		// Base options shared by all commands
 		public class BaseOptions
 		{
 			[Option('v', "verbose", Required = false, HelpText = "Enable verbose output for debugging.")]
@@ -241,7 +312,6 @@ namespace KOTORModSync.Core.CLI
 			public bool PlainText { get; set; }
 		}
 
-		// Convert/Merge command options
 		[Verb("convert", HelpText = "Convert between formats or merge instruction sets, output to stdout or file")]
 		public class ConvertOptions : BaseOptions
 		{
@@ -269,7 +339,6 @@ namespace KOTORModSync.Core.CLI
 			[Option("nexus-mods-api-key", Required = false, HelpText = "Nexus Mods API key (overrides stored key from settings.json)")]
 			public string NexusModsApiKey { get; set; }
 
-			// Merge-specific options
 			[Option('m', "merge", Required = false, HelpText = "Merge mode: merge two instruction sets (requires --existing and --incoming)")]
 			public bool Merge { get; set; }
 
@@ -287,9 +356,117 @@ namespace KOTORModSync.Core.CLI
 
 			[Option("use-existing-order", Required = false, HelpText = "[Merge] Use EXISTING component order (default: INCOMING order)")]
 			public bool UseExistingOrder { get; set; }
+
+			[Option("prefer-existing-fields", Required = false, HelpText = "[Merge] Prefer EXISTING values for ALL fields when both exist (default: prefer INCOMING)")]
+			public bool PreferExistingFields { get; set; }
+
+			[Option("prefer-incoming-fields", Required = false, HelpText = "[Merge] Prefer INCOMING values for ALL fields when both exist (default behavior)")]
+			public bool PreferIncomingFields { get; set; }
+
+			[Option("prefer-existing-name", Required = false, HelpText = "[Merge] Prefer EXISTING name when both exist")]
+			public bool PreferExistingName { get; set; }
+
+			[Option("prefer-existing-author", Required = false, HelpText = "[Merge] Prefer EXISTING author when both exist")]
+			public bool PreferExistingAuthor { get; set; }
+
+			[Option("prefer-existing-description", Required = false, HelpText = "[Merge] Prefer EXISTING description when both exist")]
+			public bool PreferExistingDescription { get; set; }
+
+			[Option("prefer-existing-directions", Required = false, HelpText = "[Merge] Prefer EXISTING directions when both exist")]
+			public bool PreferExistingDirections { get; set; }
+
+			[Option("prefer-existing-category", Required = false, HelpText = "[Merge] Prefer EXISTING category when both exist")]
+			public bool PreferExistingCategory { get; set; }
+
+			[Option("prefer-existing-tier", Required = false, HelpText = "[Merge] Prefer EXISTING tier when both exist")]
+			public bool PreferExistingTier { get; set; }
+
+			[Option("prefer-existing-installation-method", Required = false, HelpText = "[Merge] Prefer EXISTING installation method when both exist")]
+			public bool PreferExistingInstallationMethod { get; set; }
+
+			[Option("prefer-existing-instructions", Required = false, HelpText = "[Merge] Prefer EXISTING instructions when both exist")]
+			public bool PreferExistingInstructions { get; set; }
+
+			[Option("prefer-existing-options", Required = false, HelpText = "[Merge] Prefer EXISTING options when both exist")]
+			public bool PreferExistingOptions { get; set; }
+
+			[Option("prefer-existing-modlinks", Required = false, HelpText = "[Merge] Prefer EXISTING mod link filenames when both exist")]
+			public bool PreferExistingModLinks { get; set; }
 		}
 
-		// Validate command options
+		[Verb("merge", HelpText = "Merge two instruction sets together")]
+		public class MergeOptions : BaseOptions
+		{
+			[Option('e', "existing", Required = true, HelpText = "Existing instruction set file path")]
+			public string ExistingPath { get; set; }
+
+			[Option('n', "incoming", Required = true, HelpText = "Incoming instruction set file path")]
+			public string IncomingPath { get; set; }
+
+			[Option('o', "output", Required = false, HelpText = "Output file path (if not specified, writes to stdout)")]
+			public string OutputPath { get; set; }
+
+			[Option('f', "format", Required = false, Default = "toml", HelpText = "Output format (toml, yaml, json, xml, ini, markdown)")]
+			public string Format { get; set; }
+
+			[Option('d', "download", Required = false, HelpText = "Download all mod files to source-path before processing (requires --source-path)")]
+			public bool Download { get; set; }
+
+			[Option('s', "select", Required = false, HelpText = "Select components by category or tier (format: 'category:Name' or 'tier:Name'). Can be specified multiple times.")]
+			public IEnumerable<string> Select { get; set; }
+
+			[Option("source-path", Required = false, HelpText = "Path to source directory containing downloaded mod files")]
+			public string SourcePath { get; set; }
+
+			[Option("nexus-mods-api-key", Required = false, HelpText = "Nexus Mods API key (overrides stored key from settings.json)")]
+			public string NexusModsApiKey { get; set; }
+
+			[Option("exclude-existing-only", Required = false, HelpText = "Remove components that exist only in EXISTING")]
+			public bool ExcludeExistingOnly { get; set; }
+
+			[Option("exclude-incoming-only", Required = false, HelpText = "Remove components that exist only in INCOMING")]
+			public bool ExcludeIncomingOnly { get; set; }
+
+			[Option("use-existing-order", Required = false, HelpText = "Use EXISTING component order (default: INCOMING order)")]
+			public bool UseExistingOrder { get; set; }
+
+			[Option("prefer-existing-fields", Required = false, HelpText = "Prefer EXISTING values for ALL fields when both exist (default: prefer INCOMING)")]
+			public bool PreferExistingFields { get; set; }
+
+			[Option("prefer-incoming-fields", Required = false, HelpText = "Prefer INCOMING values for ALL fields when both exist (default behavior)")]
+			public bool PreferIncomingFields { get; set; }
+
+			[Option("prefer-existing-name", Required = false, HelpText = "Prefer EXISTING name when both exist")]
+			public bool PreferExistingName { get; set; }
+
+			[Option("prefer-existing-author", Required = false, HelpText = "Prefer EXISTING author when both exist")]
+			public bool PreferExistingAuthor { get; set; }
+
+			[Option("prefer-existing-description", Required = false, HelpText = "Prefer EXISTING description when both exist")]
+			public bool PreferExistingDescription { get; set; }
+
+			[Option("prefer-existing-directions", Required = false, HelpText = "Prefer EXISTING directions when both exist")]
+			public bool PreferExistingDirections { get; set; }
+
+			[Option("prefer-existing-category", Required = false, HelpText = "Prefer EXISTING category when both exist")]
+			public bool PreferExistingCategory { get; set; }
+
+			[Option("prefer-existing-tier", Required = false, HelpText = "Prefer EXISTING tier when both exist")]
+			public bool PreferExistingTier { get; set; }
+
+			[Option("prefer-existing-installation-method", Required = false, HelpText = "Prefer EXISTING installation method when both exist")]
+			public bool PreferExistingInstallationMethod { get; set; }
+
+			[Option("prefer-existing-instructions", Required = false, HelpText = "Prefer EXISTING instructions when both exist")]
+			public bool PreferExistingInstructions { get; set; }
+
+			[Option("prefer-existing-options", Required = false, HelpText = "Prefer EXISTING options when both exist")]
+			public bool PreferExistingOptions { get; set; }
+
+			[Option("prefer-existing-modlinks", Required = false, HelpText = "Prefer EXISTING mod link filenames when both exist")]
+			public bool PreferExistingModLinks { get; set; }
+		}
+
 		[Verb("validate", HelpText = "Validate instruction files for errors")]
 		public class ValidateOptions : BaseOptions
 		{
@@ -312,7 +489,6 @@ namespace KOTORModSync.Core.CLI
 			public bool ErrorsOnly { get; set; }
 		}
 
-		// Install command options
 		[Verb("install", HelpText = "Install mods from an instruction file")]
 		public class InstallOptions : BaseOptions
 		{
@@ -338,7 +514,6 @@ namespace KOTORModSync.Core.CLI
 			public bool AutoConfirm { get; set; }
 		}
 
-		// Set Nexus Mods API key command options
 		[Verb("set-nexus-api-key", HelpText = "Set and validate your Nexus Mods API key")]
 		public class SetNexusApiKeyOptions : BaseOptions
 		{
@@ -355,9 +530,10 @@ namespace KOTORModSync.Core.CLI
 
 			var parser = new Parser(with => with.HelpWriter = Console.Out);
 
-			return parser.ParseArguments<ConvertOptions, ValidateOptions, InstallOptions, SetNexusApiKeyOptions>(args)
+			return parser.ParseArguments<ConvertOptions, MergeOptions, ValidateOptions, InstallOptions, SetNexusApiKeyOptions>(args)
 			.MapResult(
 				(ConvertOptions opts) => RunConvertAsync(opts).GetAwaiter().GetResult(),
+				(MergeOptions opts) => RunMergeAsync(opts).GetAwaiter().GetResult(),
 				(ValidateOptions opts) => RunValidateAsync(opts).GetAwaiter().GetResult(),
 				(InstallOptions opts) => RunInstallAsync(opts).GetAwaiter().GetResult(),
 				(SetNexusApiKeyOptions opts) => RunSetNexusApiKeyAsync(opts).GetAwaiter().GetResult(),
@@ -366,21 +542,224 @@ namespace KOTORModSync.Core.CLI
 
 		private static void SetVerboseMode(bool verbose)
 		{
-			// Set MainConfig.DebugLogging via the instance property
 			var config = new MainConfig { debugLogging = verbose };
 		}
 
-		private static async Task DownloadAllModFilesAsync(List<ModComponent> components, string destinationDirectory, bool verbose)
+		private static void LogAllErrors(DownloadCacheService downloadCache, bool forceConsoleOutput = false)
 		{
-			// Count components with URLs
-			int componentCount = components.Count(c => c.ModLink != null && c.ModLink.Count > 0);
+			bool hasDownloadFailures = downloadCache?.GetFailures()?.Count > 0;
+			bool hasOtherErrors = _errorCollector?.GetErrorCount() > 0;
+
+			if ( !hasDownloadFailures && !hasOtherErrors )
+			{
+				if ( forceConsoleOutput )
+				{
+					Console.WriteLine("No errors to report.");
+					Console.Out.Flush();
+				}
+				return;
+			}
+
+			void WriteOutput(string message)
+			{
+				if ( forceConsoleOutput )
+				{
+					Console.WriteLine(message);
+					Console.Out.Flush();
+				}
+				else if ( _progressDisplay != null )
+				{
+					_progressDisplay.WriteScrollingLog(message);
+				}
+				else
+				{
+					Logger.Log(message);
+				}
+			}
+
+			WriteOutput("");
+			WriteOutput(new string('=', 80));
+			WriteOutput("ERROR AND FAILURE SUMMARY");
+			WriteOutput(new string('=', 80));
+
+			// Display errors by category
+			if ( hasOtherErrors )
+			{
+				var errorsByCategory = _errorCollector.GetErrorsByCategory();
+
+				foreach ( var categoryGroup in errorsByCategory.OrderBy(kvp => kvp.Key.ToString()) )
+				{
+					WriteOutput("");
+					WriteOutput($"▼ {categoryGroup.Key} Errors ({categoryGroup.Value.Count}):");
+					WriteOutput(new string('-', 80));
+
+					foreach ( var error in categoryGroup.Value )
+					{
+						string componentPrefix = !string.IsNullOrWhiteSpace(error.ComponentName)
+							? $"[{error.ComponentName}] "
+							: "";
+
+						WriteOutput($"  ✗ {componentPrefix}{error.Message}");
+
+						if ( !string.IsNullOrWhiteSpace(error.Details) )
+						{
+							WriteOutput($"    Details: {error.Details}");
+						}
+
+						// Display full log context leading up to the error
+						if ( error.LogContext != null && error.LogContext.Count > 0 )
+						{
+							WriteOutput("");
+							WriteOutput("    ═══ Log Context (leading up to error) ═══");
+							foreach ( string logLine in error.LogContext )
+							{
+								WriteOutput($"    {logLine}");
+							}
+							WriteOutput("    ═══════════════════════════════════════");
+						}
+
+						if ( error.Exception != null )
+						{
+							WriteOutput("");
+							WriteOutput($"    Exception: {error.Exception.GetType().Name} - {error.Exception.Message}");
+							WriteOutput($"    Stack trace:");
+							if ( !string.IsNullOrWhiteSpace(error.Exception.StackTrace) )
+							{
+								// Split stack trace by lines and indent each line
+								string[] stackLines = error.Exception.StackTrace.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+								foreach ( string line in stackLines )
+								{
+									WriteOutput($"      {line}");
+								}
+							}
+						}
+
+						WriteOutput("");
+					}
+				}
+			}
+
+			// Display download failures
+			if ( hasDownloadFailures )
+			{
+				var failures = downloadCache.GetFailures();
+				var failuresWithBoth = new List<DownloadCacheService.DownloadFailureInfo>();
+				var failuresUrlOnly = new List<DownloadCacheService.DownloadFailureInfo>();
+				var failuresFileOnly = new List<DownloadCacheService.DownloadFailureInfo>();
+
+				foreach ( var failure in failures )
+				{
+					bool hasUrl = !string.IsNullOrWhiteSpace(failure.Url);
+					bool hasFile = !string.IsNullOrWhiteSpace(failure.ExpectedFileName);
+
+					if ( hasUrl && hasFile )
+						failuresWithBoth.Add(failure);
+					else if ( hasUrl )
+						failuresUrlOnly.Add(failure);
+					else if ( hasFile )
+						failuresFileOnly.Add(failure);
+				}
+
+				WriteOutput("");
+				WriteOutput($"▼ Download and File Failures ({failures.Count}):");
+				WriteOutput(new string('-', 80));
+
+				if ( failuresWithBoth.Count > 0 )
+				{
+					WriteOutput("");
+					WriteOutput($"  Failed Downloads with Expected Filenames ({failuresWithBoth.Count}):");
+
+					foreach ( var failure in failuresWithBoth )
+					{
+						WriteOutput($"    [{failure.ComponentName}] {failure.Url} → {failure.ExpectedFileName}");
+						if ( !string.IsNullOrWhiteSpace(failure.ErrorMessage) )
+							WriteOutput($"      Error: {failure.ErrorMessage}");
+
+						// Display full log context leading up to the failure
+						if ( failure.LogContext != null && failure.LogContext.Count > 0 )
+						{
+							WriteOutput("");
+							WriteOutput("      ═══ Log Context (leading up to failure) ═══");
+							foreach ( string logLine in failure.LogContext )
+							{
+								WriteOutput($"      {logLine}");
+							}
+							WriteOutput("      ════════════════════════════════════════════");
+							WriteOutput("");
+						}
+					}
+				}
+
+				if ( failuresUrlOnly.Count > 0 )
+				{
+					WriteOutput("");
+					WriteOutput($"  Failed URLs (No Filename Resolved) ({failuresUrlOnly.Count}):");
+
+					foreach ( var failure in failuresUrlOnly )
+					{
+						WriteOutput($"    [{failure.ComponentName}] {failure.Url}");
+						if ( !string.IsNullOrWhiteSpace(failure.ErrorMessage) )
+							WriteOutput($"      Error: {failure.ErrorMessage}");
+
+						// Display full log context leading up to the failure
+						if ( failure.LogContext != null && failure.LogContext.Count > 0 )
+						{
+							WriteOutput("");
+							WriteOutput("      ═══ Log Context (leading up to failure) ═══");
+							foreach ( string logLine in failure.LogContext )
+							{
+								WriteOutput($"      {logLine}");
+							}
+							WriteOutput("      ════════════════════════════════════════════");
+							WriteOutput("");
+						}
+					}
+				}
+
+				if ( failuresFileOnly.Count > 0 )
+				{
+					WriteOutput("");
+					WriteOutput($"  Missing Files (No URL) ({failuresFileOnly.Count}):");
+
+					foreach ( var failure in failuresFileOnly )
+					{
+						WriteOutput($"    [{failure.ComponentName}] {failure.ExpectedFileName}");
+						if ( !string.IsNullOrWhiteSpace(failure.ErrorMessage) )
+							WriteOutput($"      Error: {failure.ErrorMessage}");
+
+						// Display full log context leading up to the failure
+						if ( failure.LogContext != null && failure.LogContext.Count > 0 )
+						{
+							WriteOutput("");
+							WriteOutput("      ═══ Log Context (leading up to failure) ═══");
+							foreach ( string logLine in failure.LogContext )
+							{
+								WriteOutput($"      {logLine}");
+							}
+							WriteOutput("      ════════════════════════════════════════════");
+							WriteOutput("");
+						}
+					}
+				}
+			}
+
+			WriteOutput("");
+			WriteOutput(new string('=', 80));
+			int totalErrors = (_errorCollector?.GetErrorCount() ?? 0) + (downloadCache?.GetFailures()?.Count ?? 0);
+			WriteOutput($"TOTAL ERRORS/FAILURES: {totalErrors}");
+			WriteOutput(new string('=', 80));
+		}
+
+		private static async Task<DownloadCacheService> DownloadAllModFilesAsync(List<ModComponent> components, string destinationDirectory, bool verbose)
+		{
+			int componentCount = components.Count(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0);
 			if ( componentCount == 0 )
 			{
 				if ( _progressDisplay != null )
 					_progressDisplay.WriteScrollingLog("No components with URLs found to download");
 				else
 					Logger.LogVerbose("No components with URLs found to download");
-				return;
+				return null;
 			}
 
 			string message = $"Processing {componentCount} component(s) for download...";
@@ -389,10 +768,9 @@ namespace KOTORModSync.Core.CLI
 			else
 				Logger.Log(message);
 
-			// Create download cache service
 			var downloadCache = new DownloadCacheService();
+			_globalDownloadCache = downloadCache;
 
-			// Create download handlers with API key
 			var httpClient = new HttpClient();
 			var handlers = new List<IDownloadHandler>
 			{
@@ -403,14 +781,11 @@ namespace KOTORModSync.Core.CLI
 			};
 			var downloadManager = new DownloadManager(handlers);
 
-			// Set download manager in cache service
 			downloadCache.SetDownloadManager(downloadManager);
 
-			// Track last logged progress for each download to throttle updates
 			var lastLoggedProgress = new Dictionary<string, double>();
 			var progressLock = new object();
 
-			// Create progress reporter for console output
 			var progressReporter = new Progress<DownloadProgress>(progress =>
 			{
 				string fileName = Path.GetFileName(progress.FilePath ?? progress.Url);
@@ -420,13 +795,11 @@ namespace KOTORModSync.Core.CLI
 				{
 					if ( _progressDisplay != null )
 					{
-						// Update dynamic progress display
 						string displayText = $"{progress.ModName}: {fileName}";
 						_progressDisplay.UpdateProgress(progressKey, displayText, progress.ProgressPercentage, "downloading");
 					}
 					else if ( verbose )
 					{
-						// Fallback to traditional logging
 						bool shouldLog = false;
 						lock ( progressLock )
 						{
@@ -499,30 +872,27 @@ namespace KOTORModSync.Core.CLI
 
 			try
 			{
-				// Process components concurrently with a limit to prevent overwhelming the system
-				var componentsToProcess = components.Where(c => c.ModLink != null && c.ModLink.Count > 0).ToList();
+				var componentsToProcess = components.Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0).ToList();
 				Logger.LogVerbose($"[Download] Processing {componentsToProcess.Count} components with concurrency limit of 10");
 
-				// Use SemaphoreSlim to limit concurrent operations
-				using ( var semaphore = new SemaphoreSlim(10) ) // Max 10 components downloading concurrently
+				using ( var semaphore = new SemaphoreSlim(10) )
 				{
 					var downloadTasks = componentsToProcess.Select(async component =>
 				{
 					await semaphore.WaitAsync();
 					try
 					{
-						Logger.LogVerbose($"[Download] Processing component: {component.Name} ({component.ModLink.Count} URL(s))");
+						Logger.LogVerbose($"[Download] Processing component: {component.Name} ({component.ModLinkFilenames.Count} URL(s))");
 
 						try
 						{
-							// Use DownloadCacheService which handles caching and file existence checks
 							var results = await downloadCache.ResolveOrDownloadAsync(
 								component,
 								destinationDirectory,
 								progressReporter,
+								sequential: false,
 								CancellationToken.None);
 
-							// Count successful downloads
 							int successCount = results.Count(entry =>
 							{
 								string filePath = MainConfig.SourcePath != null
@@ -546,7 +916,14 @@ namespace KOTORModSync.Core.CLI
 								Logger.LogException(ex);
 							}
 
-							return (component, results: new List<Services.DownloadCacheEntry>(), successCount: 0, error: errorMsg);
+							_errorCollector?.RecordError(
+								ErrorCollector.ErrorCategory.Download,
+								component.Name,
+								"Failed to process component for download",
+								errorMsg,
+								ex);
+
+							return (component, results: new List<KOTORModSync.Core.Services.DownloadCacheService.DownloadCacheEntry>(), successCount: 0, error: errorMsg);
 						}
 					}
 					finally
@@ -555,10 +932,8 @@ namespace KOTORModSync.Core.CLI
 					}
 				}).ToList();
 
-					// Wait for all components to complete
 					var downloadResults = await Task.WhenAll(downloadTasks);
 
-					// Aggregate results
 					int totalSuccessCount = downloadResults.Sum(r => r.successCount);
 					int totalFailCount = downloadResults.Count(r => r.error != null);
 
@@ -590,8 +965,18 @@ namespace KOTORModSync.Core.CLI
 				{
 					Logger.LogException(ex);
 				}
+
+				_errorCollector?.RecordError(
+					ErrorCollector.ErrorCategory.Download,
+					null,
+					"Critical error during download process",
+					errorMsg,
+					ex);
+
 				throw;
 			}
+
+			return downloadCache;
 		}
 
 		private static void ApplySelectionFilters(
@@ -603,7 +988,6 @@ namespace KOTORModSync.Core.CLI
 
 			if ( selections == null || !selections.Any() )
 			{
-				// Select all if no selections
 				foreach ( var component in components )
 				{
 					component.IsSelected = true;
@@ -614,7 +998,6 @@ namespace KOTORModSync.Core.CLI
 			var selectedCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 			var selectedTiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-			// Parse selections
 			foreach ( string selection in selections )
 			{
 				if ( string.IsNullOrWhiteSpace(selection) )
@@ -646,7 +1029,6 @@ namespace KOTORModSync.Core.CLI
 				}
 			}
 
-			// Define tier priority mapping (lower number = higher priority)
 			var tierPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
 			{
 				{ "Essential", 1 },
@@ -662,7 +1044,6 @@ namespace KOTORModSync.Core.CLI
 				bool includeByCategory = false;
 				bool includeByTier = false;
 
-				// Check category match
 				if ( selectedCategories.Count > 0 )
 				{
 					if ( component.Category != null && component.Category.Count > 0 )
@@ -672,16 +1053,13 @@ namespace KOTORModSync.Core.CLI
 				}
 				else
 				{
-					// No category filter specified, include all
 					includeByCategory = true;
 				}
 
-				// Check tier match
 				if ( selectedTiers.Count > 0 )
 				{
 					if ( !string.IsNullOrEmpty(component.Tier) )
 					{
-						// Include this tier and all higher priority tiers
 						foreach ( string selectedTier in selectedTiers )
 						{
 							if ( tierPriorities.TryGetValue(selectedTier, out int selectedPriority) &&
@@ -695,7 +1073,6 @@ namespace KOTORModSync.Core.CLI
 							}
 							else if ( component.Tier.Equals(selectedTier, StringComparison.OrdinalIgnoreCase) )
 							{
-								// Direct tier match for non-standard tiers
 								includeByTier = true;
 								break;
 							}
@@ -704,11 +1081,9 @@ namespace KOTORModSync.Core.CLI
 				}
 				else
 				{
-					// No tier filter specified, include all
 					includeByTier = true;
 				}
 
-				// Set isSelected according to filters (AND logic)
 				if ( includeByCategory && includeByTier )
 				{
 					component.IsSelected = true;
@@ -735,76 +1110,154 @@ namespace KOTORModSync.Core.CLI
 		{
 			SetVerboseMode(opts.Verbose);
 
-			// Initialize progress display for dynamic terminal output
 			_progressDisplay = new ConsoleProgressDisplay(usePlainText: opts.PlainText);
+			_errorCollector = new ErrorCollector();
+
+			DownloadCacheService downloadCache = null;
+
+			ConsoleCancelEventHandler cancelHandler = (sender, e) =>
+			{
+				e.Cancel = true;
+
+				try
+				{
+					Console.Error.WriteLine();
+					Console.Error.WriteLine();
+					Console.Error.WriteLine("====================================================================");
+					Console.Error.WriteLine("CTRL+C DETECTED - Cancellation in progress...");
+					Console.Error.WriteLine("====================================================================");
+					Console.Error.Flush();
+
+					try
+					{
+						_progressDisplay?.Dispose();
+						_progressDisplay = null;
+					}
+					catch ( Exception disposeEx )
+					{
+						Console.Error.WriteLine($"Warning: Error disposing progress display: {disposeEx.Message}");
+					}
+
+					if ( _globalDownloadCache != null )
+					{
+						try
+						{
+							Console.Error.WriteLine();
+							Console.Error.WriteLine("Logging all errors and failures...");
+							Console.Error.Flush();
+
+							LogAllErrors(_globalDownloadCache, forceConsoleOutput: true);
+
+							Console.Error.WriteLine();
+							Console.Error.WriteLine("Error logging complete.");
+							Console.Error.Flush();
+						}
+						catch ( Exception logEx )
+						{
+							Console.Error.WriteLine($"Error logging failures: {logEx.Message}");
+							Console.Error.Flush();
+						}
+					}
+					else
+					{
+						Console.Error.WriteLine("No download cache to log (no downloads were performed).");
+						Console.Error.Flush();
+					}
+
+					Console.Error.WriteLine();
+					Console.Error.WriteLine("Exiting...");
+					Console.Error.Flush();
+
+					System.Threading.Thread.Sleep(500);
+				}
+				catch ( Exception ex )
+				{
+					Console.Error.WriteLine($"Critical error in CTRL+C handler: {ex.Message}");
+					Console.Error.Flush();
+					System.Threading.Thread.Sleep(100);
+				}
+				finally
+				{
+					Environment.Exit(1);
+				}
+			};
+
+			Console.CancelKeyPress += cancelHandler;
 
 			try
 			{
-				// Initialize config first
 				EnsureConfigInitialized();
 
-				// Override API key if provided via command line
 				if ( !string.IsNullOrWhiteSpace(opts.NexusModsApiKey) )
 				{
 					_config.nexusModsApiKey = opts.NexusModsApiKey;
 					Logger.LogVerbose("Using Nexus Mods API key from command line argument");
 				}
 
-				// Validate merge vs convert mode
+				// Backward compatibility: redirect to RunMergeAsync if using --merge flag
 				if ( opts.Merge )
 				{
-					// Merge mode validation
-					if ( string.IsNullOrEmpty(opts.ExistingPath) || string.IsNullOrEmpty(opts.IncomingPath) )
-					{
-						Logger.LogError("--merge requires both --existing and --incoming to be specified");
-						Console.WriteLine("Usage: convert --merge --existing <file> --incoming <file> [options]");
-						return 1;
-					}
+					_progressDisplay?.Dispose();
+					_progressDisplay = null;
 
-					if ( !File.Exists(opts.ExistingPath) )
+					var mergeOpts = new MergeOptions
 					{
-						Logger.LogError($"Existing file not found: {opts.ExistingPath}");
-						return 1;
-					}
+						ExistingPath = opts.ExistingPath,
+						IncomingPath = opts.IncomingPath,
+						OutputPath = opts.OutputPath,
+						Format = opts.Format,
+						Download = opts.Download,
+						Select = opts.Select,
+						SourcePath = opts.SourcePath,
+						NexusModsApiKey = opts.NexusModsApiKey,
+						ExcludeExistingOnly = opts.ExcludeExistingOnly,
+						ExcludeIncomingOnly = opts.ExcludeIncomingOnly,
+						UseExistingOrder = opts.UseExistingOrder,
+						PreferExistingFields = opts.PreferExistingFields,
+						PreferIncomingFields = opts.PreferIncomingFields,
+						PreferExistingName = opts.PreferExistingName,
+						PreferExistingAuthor = opts.PreferExistingAuthor,
+						PreferExistingDescription = opts.PreferExistingDescription,
+						PreferExistingDirections = opts.PreferExistingDirections,
+						PreferExistingCategory = opts.PreferExistingCategory,
+						PreferExistingTier = opts.PreferExistingTier,
+						PreferExistingInstallationMethod = opts.PreferExistingInstallationMethod,
+						PreferExistingInstructions = opts.PreferExistingInstructions,
+						PreferExistingOptions = opts.PreferExistingOptions,
+						PreferExistingModLinks = opts.PreferExistingModLinks,
+						Verbose = opts.Verbose,
+						PlainText = opts.PlainText
+					};
 
-					if ( !File.Exists(opts.IncomingPath) )
-					{
-						Logger.LogError($"Incoming file not found: {opts.IncomingPath}");
-						return 1;
-					}
-
-					Logger.LogVerbose($"Merge mode: {opts.ExistingPath} + {opts.IncomingPath}");
+					return await RunMergeAsync(mergeOpts);
 				}
-				else
+
+				// Convert mode validation
+				if ( string.IsNullOrEmpty(opts.InputPath) )
 				{
-					// Convert mode validation
-					if ( string.IsNullOrEmpty(opts.InputPath) )
-					{
-						Logger.LogError("--input is required for convert mode (or use --merge for merge mode)");
-						Console.WriteLine("Usage: convert --input <file> [options]");
-						Console.WriteLine("   OR: convert --merge --existing <file> --incoming <file> [options]");
-						return 1;
-					}
-
-					if ( !File.Exists(opts.InputPath) )
-					{
-						Logger.LogError($"Input file not found: {opts.InputPath}");
-						return 1;
-					}
-
-					Logger.LogVerbose($"Convert mode: {opts.InputPath}");
+					Logger.LogError("--input is required for convert mode");
+					Logger.Log("Usage: convert --input <file> [options]");
+					Logger.Log("   OR: Use the 'merge' command to merge two instruction sets");
+					Logger.Log("       merge --existing <file> --incoming <file> [options]");
+					Logger.Log("   OR: convert --merge --existing <file> --incoming <file> [options] (backward compatible)");
+					return 1;
 				}
 
+				if ( !File.Exists(opts.InputPath) )
+				{
+					Logger.LogError($"Input file not found: {opts.InputPath}");
+					return 1;
+				}
+
+				Logger.LogVerbose($"Convert mode: {opts.InputPath}");
 				Logger.LogVerbose($"Output format: {opts.Format}");
 
-				// Validate download requirements
 				if ( opts.Download && string.IsNullOrEmpty(opts.SourcePath) )
 				{
 					Logger.LogError("--download requires --source-path to be specified");
 					return 1;
 				}
 
-				// Set source path if provided
 				if ( !string.IsNullOrEmpty(opts.SourcePath) )
 				{
 					Logger.LogVerbose($"Source path provided: {opts.SourcePath}");
@@ -819,119 +1272,16 @@ namespace KOTORModSync.Core.CLI
 					Logger.LogVerbose($"Source path set to: {opts.SourcePath}");
 				}
 
-				// Load components based on mode
-				List<ModComponent> components;
-				if ( opts.Merge )
-				{
-					// If download is enabled, download files BEFORE merging
-					if ( opts.Download )
-					{
-						string msg = "Download mode enabled - loading instruction sets separately for download...";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.LogVerbose(msg);
-
-						// Load existing components
-						msg = "Loading existing instruction set...";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.LogVerbose(msg);
-
-						List<ModComponent> existingComponents = FileLoadingService.LoadFromFile(opts.ExistingPath);
-
-						msg = $"Loaded {existingComponents.Count} components from existing";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.LogVerbose(msg);
-
-						foreach ( var component in existingComponents )
-						{
-							component.IsSelected = true;
-						}
-
-						// Load incoming components
-						msg = "Loading incoming instruction set...";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.LogVerbose(msg);
-
-						List<ModComponent> incomingComponents = FileLoadingService.LoadFromFile(opts.IncomingPath);
-
-						msg = $"Loaded {incomingComponents.Count} components from incoming";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.LogVerbose(msg);
-
-						foreach ( var component in incomingComponents )
-						{
-							component.IsSelected = true;
-						}
-
-						// Deduplicate components before downloading (by GUID to avoid processing same mod twice)
-						msg = "Deduplicating components from both instruction sets...";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.LogVerbose(msg);
-
-						var allComponents = existingComponents.Concat(incomingComponents)
-							.GroupBy(c => c.Guid)
-							.Select(g => g.First()) // Take first instance of each unique GUID
-							.ToList();
-
-						msg = $"After deduplication: {allComponents.Count} unique components (was {existingComponents.Count + incomingComponents.Count})";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.LogVerbose(msg);
-
-						// Download all unique components once
-						msg = "Downloading files for all unique components...";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.Log(msg);
-
-						await DownloadAllModFilesAsync(allComponents, opts.SourcePath, opts.Verbose);
-
-						msg = "Download complete for all components";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.Log(msg);
-					}
-
-					// Now perform the merge
-					Logger.LogVerbose("Merging instruction sets...");
-					var mergeOptions = new Services.MergeOptions
-					{
-						ExcludeExistingOnly = opts.ExcludeExistingOnly,
-						ExcludeIncomingOnly = opts.ExcludeIncomingOnly,
-						UseExistingOrder = opts.UseExistingOrder, // Inverted: default is now incoming order
-						HeuristicsOptions = MergeHeuristicsOptions.CreateDefault()
-					};
-
-					components = ComponentMergeService.MergeInstructionSets(
-						opts.ExistingPath,
-						opts.IncomingPath,
-						MergeStrategy.ByNameAndAuthor,
-						mergeOptions);
-
-					Logger.LogVerbose($"Merged result contains {components.Count} components");
-				}
+				// Convert mode only (merge is now handled in RunMergeAsync)
+				string msg = "Loading components from input file...";
+				if ( _progressDisplay != null )
+					_progressDisplay.WriteScrollingLog(msg);
 				else
-				{
-					string msg = "Loading components from input file...";
-					if ( _progressDisplay != null )
-						_progressDisplay.WriteScrollingLog(msg);
-					else
-						Logger.LogVerbose(msg);
+					Logger.LogVerbose(msg);
 
+				List<ModComponent> components;
+				try
+				{
 					components = FileLoadingService.LoadFromFile(opts.InputPath);
 
 					msg = $"Loaded {components.Count} components";
@@ -939,24 +1289,33 @@ namespace KOTORModSync.Core.CLI
 						_progressDisplay.WriteScrollingLog(msg);
 					else
 						Logger.LogVerbose(msg);
+				}
+				catch ( Exception ex )
+				{
+					_errorCollector?.RecordError(
+						ErrorCollector.ErrorCategory.FileOperation,
+						null,
+						"Failed to load components from file",
+						$"Input file: {opts.InputPath}",
+						ex);
+					throw;
+				}
 
-					// Download files if requested (non-merge mode)
-					if ( opts.Download )
-					{
-						msg = "Starting download of mod files...";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.Log(msg);
+				if ( opts.Download )
+				{
+					msg = "Starting download of mod files...";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.Log(msg);
 
-						await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose);
+					downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose);
 
-						msg = "Download complete";
-						if ( _progressDisplay != null )
-							_progressDisplay.WriteScrollingLog(msg);
-						else
-							Logger.Log(msg);
-					}
+					msg = "Download complete";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.Log(msg);
 				}
 
 				if ( opts.AutoGenerate )
@@ -967,20 +1326,23 @@ namespace KOTORModSync.Core.CLI
 					else
 						Logger.LogVerbose(message);
 
-					var downloadCache = new Services.DownloadCacheService();
-					downloadCache.SetDownloadManager();
+					if ( downloadCache == null )
+					{
+						downloadCache = new Services.DownloadCacheService();
+						downloadCache.SetDownloadManager();
+						_globalDownloadCache = downloadCache;
+					}
 
-					int totalComponents = components.Count(c => c.ModLink != null && c.ModLink.Count > 0);
+					int totalComponents = components.Count(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0);
 					message = $"Processing {totalComponents} components sequentially...";
 					if ( _progressDisplay != null )
 						_progressDisplay.WriteScrollingLog(message);
 					else
 						Logger.LogVerbose(message);
 
-					// Process all components sequentially (no concurrency)
 					int successCount = 0;
 					int currentIndex = 0;
-					foreach ( var component in components.Where(c => c.ModLink != null && c.ModLink.Count > 0) )
+					foreach ( var component in components.Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0) )
 					{
 						component.IsSelected = true;
 						currentIndex++;
@@ -998,8 +1360,22 @@ namespace KOTORModSync.Core.CLI
 							Logger.Log($"[Auto-Generate] Processing component: {component.Name}");
 						}
 
-						bool success = await Services.AutoInstructionGenerator.GenerateInstructionsFromUrlsAsync(
-							component, downloadCache);
+						bool success = false;
+						try
+						{
+							success = await Services.AutoInstructionGenerator.GenerateInstructionsFromUrlsAsync(
+								component, downloadCache);
+						}
+						catch ( Exception ex )
+						{
+							_errorCollector?.RecordError(
+								ErrorCollector.ErrorCategory.General,
+								component.Name,
+								"Auto-instruction generation failed",
+								$"Failed to generate instructions from URLs",
+								ex);
+							success = false;
+						}
 
 						if ( _progressDisplay != null )
 						{
@@ -1018,6 +1394,16 @@ namespace KOTORModSync.Core.CLI
 						{
 							if ( _progressDisplay != null )
 								_progressDisplay.WriteScrollingLog($"✗ Failed: {component.Name}");
+
+							// Record as error if not already recorded
+							if ( success == false )
+							{
+								_errorCollector?.RecordError(
+									ErrorCollector.ErrorCategory.General,
+									component.Name,
+									"Auto-instruction generation returned false",
+									"Failed to generate instructions from URLs");
+							}
 						}
 					}
 
@@ -1028,19 +1414,44 @@ namespace KOTORModSync.Core.CLI
 						Logger.LogVerbose(message);
 				}
 
-				// Apply selection filters
 				ApplySelectionFilters(components, opts.Select);
+
+				// Create validation context to track issues for serialization
+				var validationContext = new ComponentValidationContext();
+
+				// Collect download failures from cache
+				if ( downloadCache != null )
+				{
+					var failures = downloadCache.GetFailures();
+					foreach ( var failure in failures )
+					{
+						validationContext.AddUrlFailure(failure.Url, failure.ErrorMessage);
+					}
+				}
+
+				// Collect validation issues from error collector
+				if ( _errorCollector != null )
+				{
+					foreach ( var error in _errorCollector.GetErrors() )
+					{
+						// Try to find the component by name
+						var component = components.FirstOrDefault(c => c.Name == error.ComponentName);
+						if ( component != null )
+						{
+							validationContext.AddComponentIssue(component.Guid, error.Message);
+						}
+					}
+				}
 
 				if ( _progressDisplay != null )
 					_progressDisplay.WriteScrollingLog("Serializing to output format...");
 				else
 					Logger.LogVerbose("Serializing to output format...");
 
-				string output = ModComponentSerializationService.SaveToString(components, opts.Format);
+				string output = ModComponentSerializationService.SaveToString(components, opts.Format, validationContext);
 
 				if ( !string.IsNullOrEmpty(opts.OutputPath) )
 				{
-					// Write to file
 					string outputDir = Path.GetDirectoryName(opts.OutputPath);
 					if ( !string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir) )
 					{
@@ -1061,13 +1472,16 @@ namespace KOTORModSync.Core.CLI
 				}
 				else
 				{
-					// Clean up progress display before writing to stdout
 					_progressDisplay?.Dispose();
 					_progressDisplay = null;
 
-					// Write to stdout
-					Console.WriteLine(output);
+					Logger.Log(output);
 					Logger.LogVerbose("Conversion completed successfully (output to stdout)");
+				}
+
+				if ( downloadCache != null || _errorCollector != null )
+				{
+					LogAllErrors(downloadCache);
 				}
 
 				return 0;
@@ -1084,30 +1498,361 @@ namespace KOTORModSync.Core.CLI
 				{
 					Logger.LogException(ex);
 				}
+
+				if ( downloadCache != null || _errorCollector != null )
+				{
+					LogAllErrors(downloadCache);
+				}
+
 				return 1;
 			}
 			finally
 			{
-				// Clean up progress display
+				Console.CancelKeyPress -= cancelHandler;
+
 				_progressDisplay?.Dispose();
 				_progressDisplay = null;
+
+				_globalDownloadCache = null;
+				_errorCollector = null;
+			}
+		}
+
+		private static async Task<int> RunMergeAsync(MergeOptions opts)
+		{
+			SetVerboseMode(opts.Verbose);
+
+			_progressDisplay = new ConsoleProgressDisplay(usePlainText: opts.PlainText);
+			_errorCollector = new ErrorCollector();
+
+			DownloadCacheService downloadCache = null;
+
+			ConsoleCancelEventHandler cancelHandler = (sender, e) =>
+			{
+				e.Cancel = true;
+
+				try
+				{
+					Console.Error.WriteLine();
+					Console.Error.WriteLine();
+					Console.Error.WriteLine("====================================================================");
+					Console.Error.WriteLine("CTRL+C DETECTED - Cancellation in progress...");
+					Console.Error.WriteLine("====================================================================");
+					Console.Error.Flush();
+
+					try
+					{
+						_progressDisplay?.Dispose();
+						_progressDisplay = null;
+					}
+					catch ( Exception disposeEx )
+					{
+						Console.Error.WriteLine($"Warning: Error disposing progress display: {disposeEx.Message}");
+					}
+
+					if ( _globalDownloadCache != null )
+					{
+						try
+						{
+							Console.Error.WriteLine();
+							Console.Error.WriteLine("Logging all errors and failures...");
+							Console.Error.Flush();
+
+							LogAllErrors(_globalDownloadCache, forceConsoleOutput: true);
+
+							Console.Error.WriteLine();
+							Console.Error.WriteLine("Error logging complete.");
+							Console.Error.Flush();
+						}
+						catch ( Exception logEx )
+						{
+							Console.Error.WriteLine($"Error logging failures: {logEx.Message}");
+							Console.Error.Flush();
+						}
+					}
+					else
+					{
+						Console.Error.WriteLine("No download cache to log (no downloads were performed).");
+						Console.Error.Flush();
+					}
+
+					Console.Error.WriteLine();
+					Console.Error.WriteLine("Exiting...");
+					Console.Error.Flush();
+
+					System.Threading.Thread.Sleep(500);
+				}
+				catch ( Exception ex )
+				{
+					Console.Error.WriteLine($"Critical error in CTRL+C handler: {ex.Message}");
+					Console.Error.Flush();
+					System.Threading.Thread.Sleep(100);
+				}
+				finally
+				{
+					Environment.Exit(1);
+				}
+			};
+
+			Console.CancelKeyPress += cancelHandler;
+
+			try
+			{
+				EnsureConfigInitialized();
+
+				if ( !string.IsNullOrWhiteSpace(opts.NexusModsApiKey) )
+				{
+					_config.nexusModsApiKey = opts.NexusModsApiKey;
+					Logger.LogVerbose("Using Nexus Mods API key from command line argument");
+				}
+
+				// Validate inputs
+				if ( !File.Exists(opts.ExistingPath) )
+				{
+					Logger.LogError($"Existing file not found: {opts.ExistingPath}");
+					return 1;
+				}
+
+				if ( !File.Exists(opts.IncomingPath) )
+				{
+					Logger.LogError($"Incoming file not found: {opts.IncomingPath}");
+					return 1;
+				}
+
+				Logger.LogVerbose($"Merge mode: {opts.ExistingPath} + {opts.IncomingPath}");
+				Logger.LogVerbose($"Output format: {opts.Format}");
+
+				if ( opts.Download && string.IsNullOrEmpty(opts.SourcePath) )
+				{
+					Logger.LogError("--download requires --source-path to be specified");
+					return 1;
+				}
+
+				if ( !string.IsNullOrEmpty(opts.SourcePath) )
+				{
+					Logger.LogVerbose($"Source path provided: {opts.SourcePath}");
+					if ( !Directory.Exists(opts.SourcePath) )
+					{
+						Logger.LogVerbose($"Source path does not exist, creating: {opts.SourcePath}");
+						Directory.CreateDirectory(opts.SourcePath);
+					}
+
+					_config.sourcePath = new DirectoryInfo(opts.SourcePath);
+					_config.debugLogging = opts.Verbose;
+					Logger.LogVerbose($"Source path set to: {opts.SourcePath}");
+				}
+
+				// Merge instruction sets
+				string msg = "Merging instruction sets...";
+				if ( _progressDisplay != null )
+					_progressDisplay.WriteScrollingLog(msg);
+				else
+					Logger.LogVerbose(msg);
+
+				List<ModComponent> components;
+				try
+				{
+					var mergeOptions = new Services.MergeOptions
+					{
+						ExcludeExistingOnly = opts.ExcludeExistingOnly,
+						ExcludeIncomingOnly = opts.ExcludeIncomingOnly,
+						UseExistingOrder = opts.UseExistingOrder,
+						HeuristicsOptions = MergeHeuristicsOptions.CreateDefault()
+					};
+
+					// Apply field-level preferences
+					if ( opts.PreferExistingFields )
+					{
+						mergeOptions.PreferAllExistingFields = true;
+					}
+					else if ( opts.PreferIncomingFields )
+					{
+						mergeOptions.PreferAllIncomingFields = true;
+					}
+
+					// Individual field preferences override global settings
+					if ( opts.PreferExistingName )
+						mergeOptions.PreferExistingName = true;
+					if ( opts.PreferExistingAuthor )
+						mergeOptions.PreferExistingAuthor = true;
+					if ( opts.PreferExistingDescription )
+						mergeOptions.PreferExistingDescription = true;
+					if ( opts.PreferExistingDirections )
+						mergeOptions.PreferExistingDirections = true;
+					if ( opts.PreferExistingCategory )
+						mergeOptions.PreferExistingCategory = true;
+					if ( opts.PreferExistingTier )
+						mergeOptions.PreferExistingTier = true;
+					if ( opts.PreferExistingInstallationMethod )
+						mergeOptions.PreferExistingInstallationMethod = true;
+					if ( opts.PreferExistingInstructions )
+						mergeOptions.PreferExistingInstructions = true;
+					if ( opts.PreferExistingOptions )
+						mergeOptions.PreferExistingOptions = true;
+					if ( opts.PreferExistingModLinks )
+						mergeOptions.PreferExistingModLinkFilenames = true;
+
+					components = ComponentMergeService.MergeInstructionSets(
+						opts.ExistingPath,
+						opts.IncomingPath,
+						mergeOptions);
+
+					msg = $"Merged result contains {components.Count} unique components";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.LogVerbose(msg);
+				}
+				catch ( Exception ex )
+				{
+					_errorCollector?.RecordError(
+						ErrorCollector.ErrorCategory.General,
+						null,
+						"Failed to merge instruction sets",
+						$"Existing: {opts.ExistingPath}, Incoming: {opts.IncomingPath}",
+						ex);
+					throw;
+				}
+
+				if ( opts.Download )
+				{
+					foreach ( var component in components )
+					{
+						component.IsSelected = true;
+					}
+
+					msg = "Downloading files for merged components...";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.Log(msg);
+
+					downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose);
+
+					msg = "Download complete for all components";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(msg);
+					else
+						Logger.Log(msg);
+				}
+
+				ApplySelectionFilters(components, opts.Select);
+
+				// Create validation context to track issues for serialization
+				var validationContext = new ComponentValidationContext();
+
+				// Collect download failures from cache
+				if ( downloadCache != null )
+				{
+					var failures = downloadCache.GetFailures();
+					foreach ( var failure in failures )
+					{
+						validationContext.AddUrlFailure(failure.Url, failure.ErrorMessage);
+					}
+				}
+
+				// Collect validation issues from error collector
+				if ( _errorCollector != null )
+				{
+					foreach ( var error in _errorCollector.GetErrors() )
+					{
+						// Try to find the component by name
+						var component = components.FirstOrDefault(c => c.Name == error.ComponentName);
+						if ( component != null )
+						{
+							validationContext.AddComponentIssue(component.Guid, error.Message);
+						}
+					}
+				}
+
+				if ( _progressDisplay != null )
+					_progressDisplay.WriteScrollingLog("Serializing to output format...");
+				else
+					Logger.LogVerbose("Serializing to output format...");
+
+				string output = ModComponentSerializationService.SaveToString(components, opts.Format, validationContext);
+
+				if ( !string.IsNullOrEmpty(opts.OutputPath) )
+				{
+					string outputDir = Path.GetDirectoryName(opts.OutputPath);
+					if ( !string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir) )
+					{
+						Directory.CreateDirectory(outputDir);
+						if ( _progressDisplay != null )
+							_progressDisplay.WriteScrollingLog($"Created output directory: {outputDir}");
+						else
+							Logger.LogVerbose($"Created output directory: {outputDir}");
+					}
+
+					File.WriteAllText(opts.OutputPath, output);
+
+					string successMsg = $"✓ Merge completed successfully, saved to: {opts.OutputPath}";
+					if ( _progressDisplay != null )
+						_progressDisplay.WriteScrollingLog(successMsg);
+					else
+						Logger.LogVerbose($"Merge completed successfully, saved to: {opts.OutputPath}");
+				}
+				else
+				{
+					_progressDisplay?.Dispose();
+					_progressDisplay = null;
+
+					Logger.Log(output);
+					Logger.LogVerbose("Merge completed successfully (output to stdout)");
+				}
+
+				if ( downloadCache != null || _errorCollector != null )
+				{
+					LogAllErrors(downloadCache);
+				}
+
+				return 0;
+			}
+			catch ( Exception ex )
+			{
+				string errorMsg = $"Error during merge: {ex.Message}";
+				if ( _progressDisplay != null )
+					_progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+				else
+					Logger.LogError(errorMsg);
+
+				if ( opts.Verbose )
+				{
+					Logger.LogException(ex);
+				}
+
+				if ( downloadCache != null || _errorCollector != null )
+				{
+					LogAllErrors(downloadCache);
+				}
+
+				return 1;
+			}
+			finally
+			{
+				Console.CancelKeyPress -= cancelHandler;
+
+				_progressDisplay?.Dispose();
+				_progressDisplay = null;
+
+				_globalDownloadCache = null;
+				_errorCollector = null;
 			}
 		}
 
 		private static async Task<int> RunValidateAsync(ValidateOptions opts)
 		{
 			SetVerboseMode(opts.Verbose);
+			_errorCollector = new ErrorCollector();
 
 			try
 			{
-				// Validate input file exists
 				if ( !File.Exists(opts.InputPath) )
 				{
 					Console.Error.WriteLine($"Error: Input file not found: {opts.InputPath}");
 					return 1;
 				}
 
-				// Check for full validation requirements
 				if ( opts.FullValidation )
 				{
 					if ( string.IsNullOrEmpty(opts.GameDirectory) || string.IsNullOrEmpty(opts.SourceDirectory) )
@@ -1129,9 +1874,8 @@ namespace KOTORModSync.Core.CLI
 					}
 				}
 
-				Console.WriteLine($"Loading instruction file: {opts.InputPath}");
+				Logger.Log($"Loading instruction file: {opts.InputPath}");
 
-				// Load instruction file
 				List<ModComponent> components;
 				try
 				{
@@ -1145,6 +1889,14 @@ namespace KOTORModSync.Core.CLI
 						Console.Error.WriteLine("Stack trace:");
 						Console.Error.WriteLine(ex.StackTrace);
 					}
+
+					_errorCollector?.RecordError(
+						ErrorCollector.ErrorCategory.FileOperation,
+						null,
+						"Failed to load instruction file",
+						$"File: {opts.InputPath}",
+						ex);
+
 					return 1;
 				}
 
@@ -1154,10 +1906,9 @@ namespace KOTORModSync.Core.CLI
 					return 1;
 				}
 
-				Console.WriteLine($"Loaded {components.Count} component(s) from instruction file.");
-				Console.WriteLine();
+				Logger.Log($"Loaded {components.Count} component(s) from instruction file.");
+				Logger.Log();
 
-				// Initialize configuration if needed for full validation
 				if ( opts.FullValidation )
 				{
 					EnsureConfigInitialized();
@@ -1166,14 +1917,12 @@ namespace KOTORModSync.Core.CLI
 					_config.allComponents = components;
 				}
 
-				// Apply selection filters if specified
 				List<ModComponent> componentsToValidate = components;
 				if ( opts.Select != null && opts.Select.Any() )
 				{
 					if ( !opts.ErrorsOnly )
-						Console.WriteLine("Applying selection filters...");
+						Logger.Log("Applying selection filters...");
 
-					// Clone the list and apply filters
 					componentsToValidate = new List<ModComponent>(components);
 					ApplySelectionFilters(componentsToValidate, opts.Select);
 					componentsToValidate = componentsToValidate.Where(c => c.IsSelected).ToList();
@@ -1185,16 +1934,15 @@ namespace KOTORModSync.Core.CLI
 					}
 
 					if ( !opts.ErrorsOnly )
-						Console.WriteLine($"{componentsToValidate.Count} component(s) selected for validation.");
+						Logger.Log($"{componentsToValidate.Count} component(s) selected for validation.");
 				}
 
-				// Perform full environment validation if requested
 				if ( opts.FullValidation )
 				{
 					if ( !opts.ErrorsOnly )
 					{
-						Console.WriteLine("Performing full environment validation...");
-						Console.WriteLine(new string('-', 50));
+						Logger.Log("Performing full environment validation...");
+						Logger.Log(new string('-', 50));
 					}
 
 					(bool success, string message) = await Core.Services.InstallationService.ValidateInstallationEnvironmentAsync(_config);
@@ -1204,23 +1952,22 @@ namespace KOTORModSync.Core.CLI
 						Console.Error.WriteLine("Environment validation failed:");
 						Console.Error.WriteLine(message);
 						if ( !opts.ErrorsOnly )
-							Console.WriteLine(new string('-', 50));
+							Logger.Log(new string('-', 50));
 						return 1;
 					}
 
 					if ( !opts.ErrorsOnly )
 					{
-						Console.WriteLine("✓ Environment validation passed");
-						Console.WriteLine(new string('-', 50));
-						Console.WriteLine();
+						Logger.Log("✓ Environment validation passed");
+						Logger.Log(new string('-', 50));
+						Logger.Log();
 					}
 				}
 
-				// Validate individual components
 				if ( !opts.ErrorsOnly )
 				{
-					Console.WriteLine("Validating components...");
-					Console.WriteLine(new string('=', 50));
+					Logger.Log("Validating components...");
+					Logger.Log(new string('=', 50));
 				}
 
 				int totalComponents = componentsToValidate.Count;
@@ -1242,6 +1989,17 @@ namespace KOTORModSync.Core.CLI
 					{
 						componentsWithErrors++;
 						allErrors.Add((component, errors));
+
+						// Record validation errors in error collector
+						foreach ( string error in errors )
+						{
+							_errorCollector?.RecordError(
+								ErrorCollector.ErrorCategory.Validation,
+								component.Name,
+								error,
+								null,
+								null);
+						}
 					}
 					else if ( warnings.Count > 0 )
 					{
@@ -1253,71 +2011,67 @@ namespace KOTORModSync.Core.CLI
 						validComponents++;
 					}
 
-					// Display component validation results
 					if ( !opts.ErrorsOnly || errors.Count > 0 )
 					{
 						if ( isValid && errors.Count == 0 && warnings.Count == 0 )
 						{
 							if ( !opts.ErrorsOnly )
-								Console.WriteLine($"✓ {component.Name}");
+								Logger.Log($"✓ {component.Name}");
 						}
 						else
 						{
 							if ( errors.Count > 0 )
 							{
-								Console.WriteLine($"✗ {component.Name}");
+								Logger.Log($"✗ {component.Name}");
 								foreach ( string error in errors )
-									Console.WriteLine($"    ERROR: {error}");
+									Logger.Log($"    ERROR: {error}");
 							}
 							else if ( warnings.Count > 0 && !opts.ErrorsOnly )
 							{
-								Console.WriteLine($"⚠ {component.Name}");
+								Logger.Log($"⚠ {component.Name}");
 								foreach ( string warning in warnings )
-									Console.WriteLine($"    WARNING: {warning}");
+									Logger.Log($"    WARNING: {warning}");
 							}
 						}
 					}
 				}
 
-				// Summary
 				if ( !opts.ErrorsOnly )
 				{
-					Console.WriteLine(new string('=', 50));
-					Console.WriteLine();
-					Console.WriteLine("Validation Summary:");
-					Console.WriteLine($"  Total components validated: {totalComponents}");
-					Console.WriteLine($"  ✓ Valid: {validComponents}");
+					Logger.Log(new string('=', 50));
+					Logger.Log();
+					Logger.Log("Validation Summary:");
+					Logger.Log($"  Total components validated: {totalComponents}");
+					Logger.Log($"  ✓ Valid: {validComponents}");
 					if ( componentsWithWarnings > 0 )
-						Console.WriteLine($"  ⚠ With warnings: {componentsWithWarnings}");
+						Logger.Log($"  ⚠ With warnings: {componentsWithWarnings}");
 					if ( componentsWithErrors > 0 )
-						Console.WriteLine($"  ✗ With errors: {componentsWithErrors}");
-					Console.WriteLine();
+						Logger.Log($"  ✗ With errors: {componentsWithErrors}");
+					Logger.Log();
 				}
 
-				// Return appropriate exit code
 				if ( componentsWithErrors > 0 )
 				{
 					if ( opts.ErrorsOnly )
 					{
-						// In errors-only mode, just show the count
-						Console.WriteLine($"{componentsWithErrors} component(s) with errors");
+						Logger.Log($"{componentsWithErrors} component(s) with errors");
 					}
 					else
 					{
-						Console.WriteLine("❌ Validation failed - errors found");
+						Logger.Log("❌ Validation failed - errors found");
 					}
 					return 1;
 				}
 				else if ( componentsWithWarnings > 0 )
 				{
 					if ( !opts.ErrorsOnly )
-						Console.WriteLine("⚠️ Validation passed with warnings");
+						Logger.Log("⚠️ Validation passed with warnings");
 					return 0;
 				}
 				else
 				{
 					if ( !opts.ErrorsOnly )
-						Console.WriteLine("✅ All validations passed!");
+						Logger.Log("✅ All validations passed!");
 					return 0;
 				}
 			}
@@ -1336,29 +2090,27 @@ namespace KOTORModSync.Core.CLI
 		private static async Task<int> RunInstallAsync(InstallOptions opts)
 		{
 			SetVerboseMode(opts.Verbose);
+			_errorCollector = new ErrorCollector();
 
 			try
 			{
-				// Validate input file exists
 				if ( !File.Exists(opts.InputPath) )
 				{
 					Console.Error.WriteLine($"Error: Input file not found: {opts.InputPath}");
 					return 1;
 				}
 
-				// Validate game directory exists
 				if ( !Directory.Exists(opts.GameDirectory) )
 				{
 					Console.Error.WriteLine($"Error: Game directory not found: {opts.GameDirectory}");
 					return 1;
 				}
 
-				// Set source directory (default to input file directory if not specified)
 				string sourceDir = opts.SourceDirectory;
 				if ( string.IsNullOrEmpty(sourceDir) )
 				{
 					sourceDir = Path.GetDirectoryName(Path.GetFullPath(opts.InputPath));
-					Console.WriteLine($"Using source directory: {sourceDir}");
+					Logger.Log($"Using source directory: {sourceDir}");
 				}
 
 				if ( !Directory.Exists(sourceDir) )
@@ -1367,14 +2119,12 @@ namespace KOTORModSync.Core.CLI
 					return 1;
 				}
 
-				// Initialize configuration
 				EnsureConfigInitialized();
 				_config.sourcePath = new DirectoryInfo(sourceDir);
 				_config.destinationPath = new DirectoryInfo(opts.GameDirectory);
 
-				Console.WriteLine($"Loading instruction file: {opts.InputPath}");
+				Logger.Log($"Loading instruction file: {opts.InputPath}");
 
-				// Load instruction file (auto-detects format based on extension)
 				List<ModComponent> components = await Core.Services.FileLoadingService.LoadFromFileAsync(opts.InputPath);
 
 				if ( components == null || components.Count == 0 )
@@ -1384,16 +2134,14 @@ namespace KOTORModSync.Core.CLI
 				}
 
 				_config.allComponents = components;
-				Console.WriteLine($"Loaded {components.Count} component(s) from instruction file.");
+				Logger.Log($"Loaded {components.Count} component(s) from instruction file.");
 
-				// Apply selection filters if specified
 				if ( opts.Select != null && opts.Select.Any() )
 				{
-					Console.WriteLine("Applying selection filters...");
+					Logger.Log("Applying selection filters...");
 					ApplySelectionFilters(components, opts.Select);
 				}
 
-				// Count selected components
 				int selectedCount = components.Count(c => c.IsSelected);
 				if ( selectedCount == 0 )
 				{
@@ -1402,42 +2150,39 @@ namespace KOTORModSync.Core.CLI
 					return 1;
 				}
 
-				Console.WriteLine($"{selectedCount} component(s) selected for installation.");
-				Console.WriteLine();
+				Logger.Log($"{selectedCount} component(s) selected for installation.");
+				Logger.Log();
 
-				// List selected components
-				Console.WriteLine("Components to install:");
+				Logger.Log("Components to install:");
 				int index = 1;
 				foreach ( ModComponent component in components.Where(c => c.IsSelected) )
 				{
-					Console.WriteLine($"  {index}. {component.Name}");
+					Logger.Log($"  {index}. {component.Name}");
 					if ( !string.IsNullOrEmpty(component.Description) )
 					{
 						string desc = component.Description.Length > 80
 							? component.Description.Substring(0, 77) + "..."
 							: component.Description;
-						Console.WriteLine($"     {desc}");
+						Logger.Log($"     {desc}");
 					}
 					index++;
 				}
-				Console.WriteLine();
+				Logger.Log();
 
-				// Confirm installation unless auto-confirm is enabled
 				if ( !opts.AutoConfirm )
 				{
 					Console.Write("Proceed with installation? [y/N]: ");
 					string response = Console.ReadLine()?.Trim().ToLowerInvariant();
 					if ( response != "y" && response != "yes" )
 					{
-						Console.WriteLine("Installation cancelled by user.");
+						Logger.Log("Installation cancelled by user.");
 						return 0;
 					}
 				}
 
-				// Validate installation environment
 				if ( !opts.SkipValidation )
 				{
-					Console.WriteLine("Validating installation environment...");
+					Logger.Log("Validating installation environment...");
 					(bool success, string message) = await Core.Services.InstallationService.ValidateInstallationEnvironmentAsync(
 						_config,
 						(confirmMessage) =>
@@ -1457,27 +2202,26 @@ namespace KOTORModSync.Core.CLI
 						Console.Error.WriteLine(message);
 						return 1;
 					}
-					Console.WriteLine("Validation passed.");
-					Console.WriteLine();
+					Logger.Log("Validation passed.");
+					Logger.Log();
 				}
 
-				// Install components
-				Console.WriteLine("Starting installation...");
-				Console.WriteLine(new string('=', 50));
+				Logger.Log("Starting installation...");
+				Logger.Log(new string('=', 50));
 
 				ModComponent.InstallExitCode exitCode = await Core.Services.InstallationService.InstallAllSelectedComponentsAsync(
 					components,
 					(currentIndex, total, componentName) =>
 					{
-						Console.WriteLine($"[{currentIndex + 1}/{total}] Installing: {componentName}");
+						Logger.Log($"[{currentIndex + 1}/{total}] Installing: {componentName}");
 					}
 				);
 
-				Console.WriteLine(new string('=', 50));
+				Logger.Log(new string('=', 50));
 
 				if ( exitCode == ModComponent.InstallExitCode.Success )
 				{
-					Console.WriteLine("Installation completed successfully!");
+					Logger.Log("Installation completed successfully!");
 					return 0;
 				}
 				else
@@ -1495,6 +2239,16 @@ namespace KOTORModSync.Core.CLI
 					Console.Error.WriteLine("Stack trace:");
 					Console.Error.WriteLine(ex.StackTrace);
 				}
+
+				_errorCollector?.RecordError(
+					ErrorCollector.ErrorCategory.Installation,
+					null,
+					"Installation failed with exception",
+					$"Input: {opts.InputPath}, Game Dir: {opts.GameDirectory}",
+					ex);
+
+				LogAllErrors(null, forceConsoleOutput: true);
+
 				return 1;
 			}
 		}
@@ -1508,34 +2262,31 @@ namespace KOTORModSync.Core.CLI
 				EnsureConfigInitialized();
 
 				Logger.Log("Setting Nexus Mods API key...");
-				Console.WriteLine($"API Key: {opts.ApiKey.Substring(0, Math.Min(10, opts.ApiKey.Length))}...");
+				Logger.Log($"API Key: {opts.ApiKey.Substring(0, Math.Min(10, opts.ApiKey.Length))}...");
 
-				// Validate the API key if not skipped
 				if ( !opts.SkipValidation )
 				{
-					Console.WriteLine("\nValidating API key with Nexus Mods...");
+					Logger.Log("\nValidating API key with Nexus Mods...");
 					(bool isValid, string message) = await Services.Download.NexusModsDownloadHandler.ValidateApiKeyAsync(opts.ApiKey);
 
 					if ( !isValid )
 					{
 						Logger.LogError($"API key validation failed: {message}");
-						Console.WriteLine($"\n❌ Validation failed: {message}");
+						Logger.Log($"\n❌ Validation failed: {message}");
 						return 1;
 					}
 
-					Console.WriteLine($"\n✓ {message}");
+					Logger.Log($"\n✓ {message}");
 				}
 				else
 				{
 					Logger.LogWarning("Skipping API key validation");
-					Console.WriteLine("Skipping validation (--skip-validation specified)");
+					Logger.Log("Skipping validation (--skip-validation specified)");
 				}
 
-				// Store the API key in MainConfig (both instance and static properties)
 				_config.nexusModsApiKey = opts.ApiKey;
 				Logger.Log("API key stored in MainConfig");
 
-				// Save to persistent storage (settings.json)
 				SaveSettings();
 
 				string settingsPath = Path.Combine(
@@ -1546,10 +2297,10 @@ namespace KOTORModSync.Core.CLI
 
 				Logger.Log($"API key saved to: {settingsPath}");
 
-				Console.WriteLine($"\n✓ Nexus Mods API key set successfully!");
-				Console.WriteLine($"Settings file: {settingsPath}");
-				Console.WriteLine("\nYou can now use the download command to automatically download mods from Nexus Mods.");
-				Console.WriteLine("This setting is shared with the KOTORModSync GUI application.");
+				Logger.Log($"\n✓ Nexus Mods API key set successfully!");
+				Logger.Log($"Settings file: {settingsPath}");
+				Logger.Log("\nYou can now use the download command to automatically download mods from Nexus Mods.");
+				Logger.Log("This setting is shared with the KOTORModSync GUI application.");
 
 				return 0;
 			}
@@ -1560,7 +2311,7 @@ namespace KOTORModSync.Core.CLI
 				{
 					Logger.LogException(ex);
 				}
-				Console.WriteLine($"\n❌ Error: {ex.Message}");
+				Logger.Log($"\n❌ Error: {ex.Message}");
 				return 1;
 			}
 		}

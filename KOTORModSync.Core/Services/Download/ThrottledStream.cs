@@ -8,23 +8,17 @@ using System.Threading;
 
 namespace KOTORModSync.Core.Services.Download
 {
-	
-	
-	
-	
-	
+
+
+
+
+
 	public sealed class ThrottledStream : Stream
 	{
 		private readonly Stream _baseStream;
 		private readonly long _maximumBytesPerSecond;
 		private long _byteCount;
 		private long _start;
-
-		
-		
-		
-		
-		
 		public ThrottledStream(Stream baseStream, long maximumBytesPerSecond)
 		{
 			_baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
@@ -60,13 +54,13 @@ namespace KOTORModSync.Core.Services.Download
 
 		public override int Read(byte[] buffer, int offset, int count)
 		{
-			
+
 			Throttle(count);
 
-			
+
 			int bytesRead = _baseStream.Read(buffer, offset, count);
 
-			
+
 			_byteCount += bytesRead;
 
 			return bytesRead;
@@ -74,56 +68,53 @@ namespace KOTORModSync.Core.Services.Download
 
 		public override void Write(byte[] buffer, int offset, int count)
 		{
-			
+
 			Throttle(count);
 
-			
+
 			_baseStream.Write(buffer, offset, count);
 
-			
+
 			_byteCount += count;
 		}
 
-		
-		
-		
-		
+
 		private void Throttle(int bufferSizeInBytes)
 		{
-			if (_maximumBytesPerSecond <= 0)
+			if ( _maximumBytesPerSecond <= 0 )
 				return;
 
-			
+
 			long elapsedMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - _start;
 
-			if (elapsedMilliseconds > 0)
+			if ( elapsedMilliseconds > 0 )
 			{
-				
+
 				long expectedByteCount = (elapsedMilliseconds * _maximumBytesPerSecond) / 1000;
 
-				
-				if (_byteCount > expectedByteCount)
+
+				if ( _byteCount > expectedByteCount )
 				{
-					
+
 					long millisToWait = (_byteCount - expectedByteCount) * 1000 / _maximumBytesPerSecond;
 
-					if (millisToWait > 1)
+					if ( millisToWait > 1 )
 					{
 						try
 						{
 							Thread.Sleep((int)millisToWait);
 						}
-						catch (ThreadInterruptedException)
+						catch ( ThreadInterruptedException )
 						{
-							
+
 						}
 					}
 				}
 			}
 
-			
+
 			long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-			if (currentTime - _start > 1000)
+			if ( currentTime - _start > 1000 )
 			{
 				_byteCount = 0;
 				_start = currentTime;
@@ -132,7 +123,7 @@ namespace KOTORModSync.Core.Services.Download
 
 		protected override void Dispose(bool disposing)
 		{
-			if (disposing)
+			if ( disposing )
 			{
 				_baseStream?.Dispose();
 			}

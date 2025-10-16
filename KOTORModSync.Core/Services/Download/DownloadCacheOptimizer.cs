@@ -13,9 +13,6 @@ using System.Threading.Tasks;
 
 namespace KOTORModSync.Core.Services.Download
 {
-	/// <summary>
-	/// Internal download optimization using distributed caching.
-	/// </summary>
 	public static class DownloadCacheOptimizer
 	{
 		private static readonly object _lock = new object();
@@ -185,17 +182,20 @@ namespace KOTORModSync.Core.Services.Download
 
 			foreach ( int port in ports )
 			{
+				System.Net.Sockets.TcpListener listener = null;
 				try
 				{
-					using ( var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port) )
-					{
-						listener.Start();
-						listener.Stop();
-						return port;
-					}
+					listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port);
+					listener.Start();
+					listener.Stop();
+					return port;
 				}
 				catch ( System.Net.Sockets.SocketException )
 				{
+					if ( listener != null )
+					{
+						try { listener.Stop(); } catch { }
+					}
 					continue;
 				}
 			}
@@ -274,11 +274,10 @@ namespace KOTORModSync.Core.Services.Download
 					await Task.Delay(500, cancellationToken).ConfigureAwait(false);
 				}
 
-				// Cleanup
 				await manager.StopAsync().ConfigureAwait(false);
 				await _client.Unregister(manager).ConfigureAwait(false);
 
-				return null; // Timeout or cancelled
+				return null;
 			}
 			catch ( Exception ex )
 			{
@@ -356,7 +355,15 @@ namespace KOTORModSync.Core.Services.Download
 					return existing;
 
 				string normalized = NormalizeUrl(url);
-				byte[] hashBytes = SHA1.HashData(Encoding.UTF8.GetBytes(normalized));
+				byte[] hashBytes;
+#if NET48
+				using ( var sha1 = SHA1.Create() )
+				{
+					hashBytes = sha1.ComputeHash(Encoding.UTF8.GetBytes(normalized));
+				}
+#else
+				hashBytes = SHA1.HashData(Encoding.UTF8.GetBytes(normalized));
+#endif
 				string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
 				_urlHashes[url] = hash;
 				return hash;

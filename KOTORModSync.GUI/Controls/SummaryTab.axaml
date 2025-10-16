@@ -31,6 +31,7 @@
         <converters:BooleanAndConverter x:Key="BooleanAndConverter" />
         <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
         <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
+        <converters:SpoilerFreeContentConverter x:Key="SpoilerFreeContentConverter" />
     </UserControl.Resources>
 
     <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
@@ -186,35 +187,39 @@
                         Margin="0,0,0,4"
                         Classes="secondary-text"
                         Text="Click any link to open in your browser" />
-                    <ItemsRepeater ItemsSource="{Binding ModLink}">
+                    <ItemsRepeater x:Name="ModLinkRepeater" ItemsSource="{Binding ModLink}">
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate>
                                 <Border Classes="summary-link-container">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <SelectableTextBlock
-                                            Grid.Column="0"
-                                            Cursor="Hand"
-                                            FontSize="14"
-                                            Tapped="OpenLink_Tapped"
-                                            Text="{Binding}"
-                                            TextDecorations="Underline"
-                                            TextWrapping="Wrap">
-                                            <TextBlock.ContextMenu>
-                                                <ContextMenu>
-                                                    <MenuItem Click="CopyTextToClipboard_Click" Header="Copy" />
-                                                </ContextMenu>
-                                            </TextBlock.ContextMenu>
-                                        </SelectableTextBlock>
-                                        <TextBlock
-                                            Grid.Column="1"
-                                            Margin="8,0,0,0"
-                                            VerticalAlignment="Center"
-                                            FontSize="12"
-                                            Foreground="{DynamicResource UrlValidation.ErrorIconBrush}"
-                                            IsVisible="{Binding ., Converter={StaticResource InvalidUrlVisibilityConverter}}"
-                                            Text="❌"
-                                            ToolTip.Tip="Invalid URL" />
-                                    </Grid>
+                                    <StackPanel Spacing="2">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <SelectableTextBlock
+                                                Grid.Column="0"
+                                                Cursor="Hand"
+                                                FontSize="14"
+                                                Tapped="OpenLink_Tapped"
+                                                Text="{Binding}"
+                                                TextDecorations="Underline"
+                                                TextWrapping="Wrap">
+                                                <TextBlock.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Click="CopyTextToClipboard_Click" Header="Copy" />
+                                                    </ContextMenu>
+                                                </TextBlock.ContextMenu>
+                                            </SelectableTextBlock>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                Foreground="{DynamicResource UrlValidation.ErrorIconBrush}"
+                                                IsVisible="{Binding ., Converter={StaticResource InvalidUrlVisibilityConverter}}"
+                                                Text="❌"
+                                                ToolTip.Tip="Invalid URL" />
+                                        </Grid>
+                                        <!--  Filenames Panel (populated in code-behind)  -->
+                                        <StackPanel x:Name="SummaryFilenamesPanel" Margin="16,2,0,0" />
+                                    </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
@@ -254,10 +259,15 @@
                     <Border Classes="summary-header" DockPanel.Dock="Top">
                         <TextBlock Classes="summary-section-title" Text="⬇️ Download Instructions" />
                     </Border>
-                    <TextBlock
-                        DockPanel.Dock="Top"
-                        Text="{Binding DownloadInstructions}"
-                        TextWrapping="Wrap" />
+                    <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Path="CurrentComponent" />
+                                <Binding Path="SpoilerFreeMode" />
+                                <Binding Source="DownloadInstructions" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
                 </DockPanel>
             </Border>
 
@@ -270,8 +280,15 @@
                     <TextBlock
                         DockPanel.Dock="Top"
                         Foreground="#FFFF8C00"
-                        Text="{Binding UsageWarning}"
-                        TextWrapping="Wrap" />
+                        TextWrapping="Wrap">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Path="CurrentComponent" />
+                                <Binding Path="SpoilerFreeMode" />
+                                <Binding Source="UsageWarning" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
                 </DockPanel>
             </Border>
 
@@ -281,7 +298,15 @@
                     <Border Classes="summary-header">
                         <TextBlock Classes="summary-section-title" Text="📸 Screenshots" />
                     </Border>
-                    <controls:ScreenshotDisplayControl ScreenshotData="{Binding Screenshots}" />
+                    <controls:ScreenshotDisplayControl>
+                        <controls:ScreenshotDisplayControl.ScreenshotData>
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Path="CurrentComponent" />
+                                <Binding Path="SpoilerFreeMode" />
+                                <Binding Source="Screenshots" />
+                            </MultiBinding>
+                        </controls:ScreenshotDisplayControl.ScreenshotData>
+                    </controls:ScreenshotDisplayControl>
                 </StackPanel>
             </Border>
 
@@ -379,8 +404,15 @@
                                         <TextBlock
                                             Margin="24,0,0,0"
                                             IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}"
-                                            Text="{Binding Description}"
-                                            TextWrapping="Wrap" />
+                                            TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                                    <Binding Path="." />
+                                                    <Binding Path="$parent[UserControl].SpoilerFreeMode" />
+                                                    <Binding Source="Description" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>

@@ -36,7 +36,8 @@
     <RuntimeIdentifiers>win7-x86;win7-x64;win10-x86;win10-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
-  <!-- Release Configuration: Additional error handling, at the slight cost of performance. All optimizations enabled.-->
+  <!-- Release Configuration: Additional error handling, at the slight cost of performance. All
+  optimizations enabled.-->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <Optimize>true</Optimize>
     <AllowOptimize>true</AllowOptimize>
@@ -48,7 +49,8 @@
     <DebugType>None</DebugType>
   </PropertyGroup>
 
-  <!-- Debug Configuration: No error handling/optimizations, this provides the means to find more problems before release. -->
+  <!-- Debug Configuration: No error handling/optimizations, this provides the means to find more
+  problems before release. -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <Optimize>false</Optimize>
     <AllowOptimize>false</AllowOptimize>
@@ -63,9 +65,11 @@
   <!-- Customization -->
   <ItemGroup>
     <EmbeddedResource Include="icon53.ico" />
-    <None Include="Info.plist" Pack="true" PackagePath="Contents\" /> <!-- For .app packaging on mac os -->
+    <None Include="Info.plist" Pack="true" PackagePath="Contents\" /> <!-- For .app packaging on mac
+    os -->
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="NetSparkleUpdater.UI.Avalonia" Version="3.0.4" />
     <ProjectReference Include="..\KOTORModSync.Core\KOTORModSync.Core.csproj" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
@@ -80,14 +84,17 @@
   <ItemGroup>
     <ProjectCapability Include="Avalonia" />
     <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
-    <PackageReference Include="Avalonia" Version="11.2.5" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
-    <PackageReference Include="Avalonia.LinuxFramebuffer" Version="11.2.5" />
+    <PackageReference Include="Avalonia" Version="11.3.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.3" />
+    <PackageReference Include="Avalonia.LinuxFramebuffer" Version="11.3.3" />
     <PackageReference Include="Avalonia.Controls.ItemsRepeater" Version="11.1.5" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.5" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
-    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.5" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.3" />
+    <!--Condition
+    below is needed to remove Avalonia.Diagnostics package from build output in Release
+    configuration.-->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics"
+      Version="11.3.3" />
     <PackageReference Include="Dotnet.Bundle" Version="*" />
   </ItemGroup>
   <ItemGroup>
@@ -96,9 +103,6 @@
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="MegaApiClient" Version="1.10.5" />
     <PackageReference Include="Markdig" Version="0.37.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' ">
-    <AppFiles Include="$(SolutionDir)vendor\bin\holopatcher.app\**\*.*" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
@@ -113,33 +117,43 @@
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
 
-    <!-- For Mac -->
-    <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
-    <Move Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)HoloPatcher" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher" />
-    <Move Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' " SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)HoloPatcher" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher" />
-
-    <!-- For Linux -->
-    <Copy Condition=" '$(RuntimeIdentifier)' == 'linux-x64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher_linux" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(RuntimeIdentifier)' == 'linux-x64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher_linux" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
-    <Move Condition=" '$(RuntimeIdentifier)' == 'linux-x64' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)HoloPatcher_linux" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher" />
-    <Move Condition=" '$(RuntimeIdentifier)' == 'linux-x64' " SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)HoloPatcher_linux" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher" />
-
-    <!-- For Windows -->
-    <Copy Condition=" '$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'osx-x64' AND '$(RuntimeIdentifier)' != 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.exe" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher.exe" />
-    <Copy Condition=" '$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'osx-x64' AND '$(RuntimeIdentifier)' != 'osx-arm64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.exe" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher.exe" />
+    <!-- Copy PyKotor source (includes HoloPatcher, runs with embedded Python.NET) -->
+    <ItemGroup>
+      <PyKotorFiles
+        Include="$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar)*.py" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PyKotorFiles)"
+      DestinationFiles="@(PyKotorFiles->'$(TargetDir)Resources$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(PyKotorFiles)"
+      DestinationFiles="@(PyKotorFiles->'$(PublishDir)Resources$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)')" />
 
     <!-- For x64 Platform -->
-    <Copy Condition=" '$(Platform)' == 'x64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(Platform)' == 'x64' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
-    <Move Condition=" '$(Platform)' == 'x64' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x64.dll" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
-    <Move Condition=" '$(Platform)' == 'x64' " SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x64.dll" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <Copy Condition=" '$(Platform)' == 'x64' "
+      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll"
+      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
+    <Copy Condition=" '$(Platform)' == 'x64' "
+      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll"
+      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+    <Move Condition=" '$(Platform)' == 'x64' "
+      SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x64.dll"
+      DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <Move Condition=" '$(Platform)' == 'x64' "
+      SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x64.dll"
+      DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
 
     <!-- For x86 Platform -->
-    <Copy Condition=" '$(Platform)' == 'x86' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll" DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(Platform)' == 'x86' " SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll" DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
-    <Move Condition=" '$(Platform)' == 'x86' " SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x86.dll" DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
-    <Move Condition=" '$(Platform)' == 'x86' " SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x86.dll" DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <Copy Condition=" '$(Platform)' == 'x86' "
+      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll"
+      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
+    <Copy Condition=" '$(Platform)' == 'x86' "
+      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll"
+      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+    <Move Condition=" '$(Platform)' == 'x86' "
+      SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x86.dll"
+      DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
+    <Move Condition=" '$(Platform)' == 'x86' "
+      SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x86.dll"
+      DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
   </Target>
 
   <!-- Delete logs and other temp output -->
@@ -156,7 +170,8 @@
   </ItemGroup>
   <Target Name="MyDistClean" AfterTargets="Clean">
     <Message Importance="High" Text=" ## Running custom Clean target..." />
-    <Exec Condition=" '$(OS)' == 'Windows_NT' " Command="if not exist &quot;$(SolutionDir)logs_and_data_saved_from_dotnet_clean&quot; mkdir &quot;$(SolutionDir)logs_and_data_saved_from_dotnet_clean&quot;" />
+    <Exec Condition=" '$(OS)' == 'Windows_NT' "
+      Command="if not exist &quot;$(SolutionDir)logs_and_data_saved_from_dotnet_clean&quot; mkdir &quot;$(SolutionDir)logs_and_data_saved_from_dotnet_clean&quot;" />
     <Move SourceFiles="@(TextFiles)" DestinationFolder="@(BackupFolder)" />
     <Move SourceFiles="@(TmlFiles)" DestinationFolder="@(BackupFolder)" />
     <Move SourceFiles="@(TomlFiles)" DestinationFolder="@(BackupFolder)" />

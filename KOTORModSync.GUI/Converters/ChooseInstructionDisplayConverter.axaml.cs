@@ -17,28 +17,28 @@ namespace KOTORModSync.Converters
 		{
 			try
 			{
-				if (!(values[0] is Instruction instruction) || !(values[1] is List<ModComponent> componentsList))
+				if ( !(values[0] is Instruction instruction) || !(values[1] is List<ModComponent> componentsList) )
 					return string.Empty;
 
-				if (instruction.Action == Instruction.ActionType.Choose)
+				if ( instruction.Action == Instruction.ActionType.Choose )
 				{
-					if (instruction.Source == null || instruction.Source.Count == 0)
+					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						return "Choose (no options)";
 
 					var componentNames = (from guidString in instruction.Source
-										let guid = Guid.Parse(guidString)
-										let foundComponent = ModComponent.FindComponentFromGuid(guid, componentsList)
-										select foundComponent != null ? foundComponent.Name : guidString).ToList();
+										  let guid = Guid.Parse(guidString)
+										  let foundComponent = ModComponent.FindComponentFromGuid(guid, componentsList)
+										  select foundComponent != null ? foundComponent.Name : guidString).ToList();
 
 					return string.Join(" ", componentNames);
 				}
 
-				if (instruction.Source == null || instruction.Source.Count == 0)
+				if ( instruction.Source == null || instruction.Source.Count == 0 )
 					return string.Empty;
 
 				return string.Join(Environment.NewLine, instruction.Source);
 			}
-			catch (Exception e)
+			catch ( Exception e )
 			{
 				Logger.LogException(e);
 				return string.Empty;

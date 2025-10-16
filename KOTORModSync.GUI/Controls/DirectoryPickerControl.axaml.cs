@@ -182,9 +182,9 @@ namespace KOTORModSync.Controls
 				string currentSelection = _pathSuggestions?.SelectedItem?.ToString();
 
 
-				foreach (string path in newPaths)
+				foreach ( string path in newPaths )
 				{
-					if (!currentItems.Any(item => string.Equals(item, path, StringComparison.OrdinalIgnoreCase)))
+					if ( !currentItems.Any(item => string.Equals(item, path, StringComparison.OrdinalIgnoreCase)) )
 					{
 						currentItems.Add(path);
 					}
@@ -194,7 +194,7 @@ namespace KOTORModSync.Controls
 				_pathSuggestions.ItemsSource = currentItems;
 
 
-				if (!string.IsNullOrEmpty(currentSelection))
+				if ( !string.IsNullOrEmpty(currentSelection) )
 				{
 					_pathSuggestions.SelectedItem = currentSelection;
 				}

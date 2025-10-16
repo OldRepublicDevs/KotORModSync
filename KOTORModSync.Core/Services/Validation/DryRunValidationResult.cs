@@ -10,9 +10,9 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Core.Services.Validation
 {
-	
-	
-	
+
+
+
 	public class DryRunValidationResult
 	{
 		[NotNull]
@@ -23,9 +23,6 @@ namespace KOTORModSync.Core.Services.Validation
 
 		public bool HasWarnings => Issues.Any(i => i.Severity == ValidationSeverity.Warning);
 
-		
-		
-		
 		[NotNull]
 		public string GetSummaryMessage()
 		{
@@ -54,9 +51,6 @@ namespace KOTORModSync.Core.Services.Validation
 			return sb.ToString();
 		}
 
-		
-		
-		
 		[NotNull]
 		public string GetEndUserMessage()
 		{
@@ -64,7 +58,7 @@ namespace KOTORModSync.Core.Services.Validation
 			_ = sb.AppendLine(GetSummaryMessage());
 			_ = sb.AppendLine();
 
-			
+
 			var componentIssues = Issues
 				.Where(i => i.AffectedComponent != null)
 				.GroupBy(i => i.AffectedComponent)
@@ -92,7 +86,7 @@ namespace KOTORModSync.Core.Services.Validation
 
 						_ = sb.AppendLine($"{icon} {issue.Message}");
 
-						
+
 						string advice = GetEndUserAdvice(issue);
 						if ( !string.IsNullOrEmpty(advice) )
 						{
@@ -104,7 +98,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 			}
 
-			
+
 			var genericIssues = Issues.Where(i => i.AffectedComponent == null).ToList();
 			if ( genericIssues.Any() )
 			{
@@ -134,9 +128,6 @@ namespace KOTORModSync.Core.Services.Validation
 			return sb.ToString();
 		}
 
-		
-		
-		
 		[NotNull]
 		public string GetEditorMessage()
 		{
@@ -144,7 +135,7 @@ namespace KOTORModSync.Core.Services.Validation
 			_ = sb.AppendLine(GetSummaryMessage());
 			_ = sb.AppendLine();
 
-			
+
 			var componentIssues = Issues
 				.Where(i => i.AffectedComponent != null)
 				.GroupBy(i => i.AffectedComponent)
@@ -258,9 +249,6 @@ namespace KOTORModSync.Core.Services.Validation
 			return "Review the instruction parameters and execution order.";
 		}
 
-		
-		
-		
 		[NotNull]
 		[ItemNotNull]
 		public List<ModComponent> GetAffectedComponents()
@@ -273,20 +261,17 @@ namespace KOTORModSync.Core.Services.Validation
 				.ToList();
 		}
 
-		
-		
-		
 		[NotNull]
 		[ItemNotNull]
 		public List<ModComponent> GetSuggestedComponentsToDisable()
 		{
-			
+
 			List<ModComponent> affectedComponents = GetAffectedComponents();
 			var allSelectedComponents = MainConfig.AllComponents.Where(c => c.IsSelected).ToList();
 
 			return affectedComponents.Where(component =>
 			{
-				
+
 				bool isRequiredDependency = allSelectedComponents.Any(c =>
 					c != component && c.Dependencies.Contains(component.Guid));
 

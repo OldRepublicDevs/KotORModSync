@@ -110,18 +110,18 @@ namespace KOTORModSync.Core.Utility
 			if ( TierDefinitions.ContainsKey(trimmedTier) )
 				return trimmedTier;
 
-			
-			
+
+
 			string lowerTier = trimmedTier.ToLowerInvariant();
 
-			
+
 			string tierName = System.Text.RegularExpressions.Regex.Replace(
 				lowerTier,
 				@"^\s*\d+\s*[-\s]*|[-\s]*\d+\s*$",
 				string.Empty
 			).Trim();
 
-			
+
 			if ( tierName.Contains("essential") )
 				return "1 - Essential";
 
@@ -134,7 +134,7 @@ namespace KOTORModSync.Core.Utility
 			if ( tierName.Contains("option") )
 				return "4 - Optional";
 
-			
+
 			return trimmedTier;
 		}
 	}

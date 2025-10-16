@@ -8,14 +8,9 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
-using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 {
-	/// <summary>
-	/// Content-Addressable Storage (CAS) for deduplicating files by their SHA256 hash.
-	/// Files are stored as {hash[0:2]}/{hash[2:]} to avoid directory bloat.
-	/// </summary>
 	public class ContentAddressableStore
 	{
 		private readonly string _objectsDirectory;
@@ -23,24 +18,21 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 		public ContentAddressableStore(string checkpointDirectory)
 		{
-			if (string.IsNullOrWhiteSpace(checkpointDirectory))
+			if ( string.IsNullOrWhiteSpace(checkpointDirectory) )
 				throw new ArgumentNullException(nameof(checkpointDirectory));
 
 			_objectsDirectory = Path.Combine(checkpointDirectory, "objects");
 			Directory.CreateDirectory(_objectsDirectory);
 		}
 
-		/// <summary>
-		/// Computes the SHA256 hash of a file.
-		/// </summary>
 		public static async Task<string> ComputeFileHashAsync(string filePath)
 		{
-			if (!File.Exists(filePath))
+			if ( !File.Exists(filePath) )
 				throw new FileNotFoundException($"File not found: {filePath}");
 
-			using (var sha256 = SHA256.Create())
+			using ( var sha256 = SHA256.Create() )
 			{
-				using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 8192, useAsync: true))
+				using ( var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 8192, useAsync: true) )
 				{
 					byte[] hashBytes = await Task.Run(() => sha256.ComputeHash(stream));
 					return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
@@ -48,18 +40,15 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			}
 		}
 
-		/// <summary>
-		/// Computes the SHA256 hash of a stream (for delta files).
-		/// </summary>
 		public static async Task<string> ComputeStreamHashAsync(Stream stream)
 		{
-			if (stream == null)
+			if ( stream == null )
 				throw new ArgumentNullException(nameof(stream));
 
 			long originalPosition = stream.Position;
 			stream.Position = 0;
 
-			using (var sha256 = SHA256.Create())
+			using ( var sha256 = SHA256.Create() )
 			{
 				byte[] hashBytes = await Task.Run(() => sha256.ComputeHash(stream));
 				stream.Position = originalPosition;
@@ -67,17 +56,14 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			}
 		}
 
-		/// <summary>
-		/// Stores a file in CAS and returns its hash. If the file already exists, skips storage.
-		/// </summary>
 		public async Task<string> StoreFileAsync(string filePath)
 		{
-			if (!File.Exists(filePath))
+			if ( !File.Exists(filePath) )
 				throw new FileNotFoundException($"File not found: {filePath}");
 
 			string hash = await ContentAddressableStore.ComputeFileHashAsync(filePath);
 
-			if (HasObject(hash))
+			if ( HasObject(hash) )
 			{
 				await Logger.LogVerboseAsync($"[CAS] File already exists in CAS: {hash}");
 				return hash;
@@ -87,10 +73,9 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			string casDirectory = Path.GetDirectoryName(casPath);
 			Directory.CreateDirectory(casDirectory);
 
-			lock (_lockObject)
+			lock ( _lockObject )
 			{
-				// Double-check after acquiring lock
-				if (File.Exists(casPath))
+				if ( File.Exists(casPath) )
 				{
 					Logger.LogVerbose($"[CAS] File created by another thread: {hash}");
 					return hash;
@@ -103,17 +88,14 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return hash;
 		}
 
-		/// <summary>
-		/// Stores a stream (e.g., delta) in CAS and returns its hash.
-		/// </summary>
 		public async Task<string> StoreStreamAsync(Stream stream)
 		{
-			if (stream == null)
+			if ( stream == null )
 				throw new ArgumentNullException(nameof(stream));
 
 			string hash = await ContentAddressableStore.ComputeStreamHashAsync(stream);
 
-			if (HasObject(hash))
+			if ( HasObject(hash) )
 			{
 				await Logger.LogVerboseAsync($"[CAS] Stream already exists in CAS: {hash}");
 				return hash;
@@ -125,16 +107,15 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 			stream.Position = 0;
 
-			lock (_lockObject)
+			lock ( _lockObject )
 			{
-				// Double-check after acquiring lock
-				if (File.Exists(casPath))
+				if ( File.Exists(casPath) )
 				{
 					Logger.LogVerbose($"[CAS] Stream created by another thread: {hash}");
 					return hash;
 				}
 
-				using (var fileStream = new FileStream(casPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+				using ( var fileStream = new FileStream(casPath, FileMode.CreateNew, FileAccess.Write, FileShare.None) )
 				{
 					stream.CopyTo(fileStream);
 				}
@@ -144,22 +125,19 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return hash;
 		}
 
-		/// <summary>
-		/// Retrieves a file from CAS by hash to the specified output path.
-		/// </summary>
 		public async Task<string> RetrieveFileAsync(string hash, string outputPath)
 		{
-			if (string.IsNullOrWhiteSpace(hash))
+			if ( string.IsNullOrWhiteSpace(hash) )
 				throw new ArgumentNullException(nameof(hash));
-			if (string.IsNullOrWhiteSpace(outputPath))
+			if ( string.IsNullOrWhiteSpace(outputPath) )
 				throw new ArgumentNullException(nameof(outputPath));
 
 			string casPath = GetObjectPath(hash);
-			if (!File.Exists(casPath))
+			if ( !File.Exists(casPath) )
 				throw new FileNotFoundException($"Object not found in CAS: {hash}");
 
 			string outputDirectory = Path.GetDirectoryName(outputPath);
-			if (!string.IsNullOrEmpty(outputDirectory))
+			if ( !string.IsNullOrEmpty(outputDirectory) )
 				Directory.CreateDirectory(outputDirectory);
 
 			File.Copy(casPath, outputPath, overwrite: true);
@@ -167,39 +145,30 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return outputPath;
 		}
 
-		/// <summary>
-		/// Opens a read stream for a CAS object.
-		/// </summary>
 		public Stream OpenReadStream(string hash)
 		{
-			if (string.IsNullOrWhiteSpace(hash))
+			if ( string.IsNullOrWhiteSpace(hash) )
 				throw new ArgumentNullException(nameof(hash));
 
 			string casPath = GetObjectPath(hash);
-			if (!File.Exists(casPath))
+			if ( !File.Exists(casPath) )
 				throw new FileNotFoundException($"Object not found in CAS: {hash}");
 
 			return new FileStream(casPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 		}
 
-		/// <summary>
-		/// Checks if an object exists in CAS.
-		/// </summary>
 		public bool HasObject(string hash)
 		{
-			if (string.IsNullOrWhiteSpace(hash))
+			if ( string.IsNullOrWhiteSpace(hash) )
 				return false;
 
 			string casPath = GetObjectPath(hash);
 			return File.Exists(casPath);
 		}
 
-		/// <summary>
-		/// Gets the file path for a CAS object.
-		/// </summary>
 		private string GetObjectPath(string hash)
 		{
-			if (string.IsNullOrWhiteSpace(hash) || hash.Length < 3)
+			if ( string.IsNullOrWhiteSpace(hash) || hash.Length < 3 )
 				throw new ArgumentException("Invalid hash", nameof(hash));
 
 			string prefix = hash.Substring(0, 2);
@@ -207,20 +176,17 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return Path.Combine(_objectsDirectory, prefix, suffix);
 		}
 
-		/// <summary>
-		/// Gets all CAS object hashes.
-		/// </summary>
 		public IEnumerable<string> GetAllObjectHashes()
 		{
-			if (!Directory.Exists(_objectsDirectory))
+			if ( !Directory.Exists(_objectsDirectory) )
 				return Enumerable.Empty<string>();
 
 			var hashes = new List<string>();
 
-			foreach (string prefixDir in Directory.GetDirectories(_objectsDirectory))
+			foreach ( string prefixDir in Directory.GetDirectories(_objectsDirectory) )
 			{
 				string prefix = Path.GetFileName(prefixDir);
-				foreach (string objectFile in Directory.GetFiles(prefixDir))
+				foreach ( string objectFile in Directory.GetFiles(prefixDir) )
 				{
 					string suffix = Path.GetFileName(objectFile);
 					hashes.Add(prefix + suffix);
@@ -230,16 +196,13 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return hashes;
 		}
 
-		/// <summary>
-		/// Deletes an object from CAS.
-		/// </summary>
 		public async Task<bool> DeleteObjectAsync(string hash)
 		{
-			if (string.IsNullOrWhiteSpace(hash))
+			if ( string.IsNullOrWhiteSpace(hash) )
 				return false;
 
 			string casPath = GetObjectPath(hash);
-			if (!File.Exists(casPath))
+			if ( !File.Exists(casPath) )
 				return false;
 
 			try
@@ -248,26 +211,23 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				await Logger.LogVerboseAsync($"[CAS] Deleted object: {hash}");
 				return true;
 			}
-			catch (Exception ex)
+			catch ( Exception ex )
 			{
 				await Logger.LogErrorAsync($"[CAS] Failed to delete object {hash}: {ex.Message}");
 				return false;
 			}
 		}
 
-		/// <summary>
-		/// Gets the total size of all objects in CAS.
-		/// </summary>
 		public long GetTotalSize()
 		{
-			if (!Directory.Exists(_objectsDirectory))
+			if ( !Directory.Exists(_objectsDirectory) )
 				return 0;
 
 			long total = 0;
 
-			foreach (string prefixDir in Directory.GetDirectories(_objectsDirectory))
+			foreach ( string prefixDir in Directory.GetDirectories(_objectsDirectory) )
 			{
-				foreach (string objectFile in Directory.GetFiles(prefixDir))
+				foreach ( string objectFile in Directory.GetFiles(prefixDir) )
 				{
 					try
 					{
@@ -275,7 +235,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					}
 					catch
 					{
-						// Skip files that can't be accessed
 					}
 				}
 			}
@@ -283,12 +242,9 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return total;
 		}
 
-		/// <summary>
-		/// Garbage collects orphaned CAS objects not referenced by any checkpoint.
-		/// </summary>
 		public async Task<int> GarbageCollectAsync(HashSet<string> referencedHashes)
 		{
-			if (referencedHashes == null)
+			if ( referencedHashes == null )
 				throw new ArgumentNullException(nameof(referencedHashes));
 
 			await Logger.LogAsync("[CAS] Starting garbage collection...");
@@ -299,9 +255,9 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			await Logger.LogAsync($"[CAS] Found {orphanedHashes.Count} orphaned objects out of {allHashes.Count} total");
 
 			int deleted = 0;
-			foreach (string hash in orphanedHashes)
+			foreach ( string hash in orphanedHashes )
 			{
-				if (await DeleteObjectAsync(hash))
+				if ( await DeleteObjectAsync(hash) )
 					deleted++;
 			}
 

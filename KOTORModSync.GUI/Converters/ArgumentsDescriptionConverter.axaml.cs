@@ -13,10 +13,10 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (!(value is Instruction.ActionType action))
+			if ( !(value is Instruction.ActionType action) )
 				return "• Execute: Command-line arguments\n• DelDuplicate: File extension (e.g., .mdl)\n• Patcher: Use options above";
 
-			switch (action)
+			switch ( action )
 			{
 				case Instruction.ActionType.DelDuplicate:
 					return "File extensions to delete when filenames duplicate (e.g., .mdl, .tpc, .wav)";

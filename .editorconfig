@@ -20,7 +20,8 @@ dotnet_style_parentheses_in_other_operators = never_if_unnecessary:suggestion
 dotnet_style_parentheses_in_relational_binary_operators = never_if_unnecessary:suggestion
 dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:suggestion
 dotnet_style_parentheses_in_arithmetic_binary_operators = never_if_unnecessary:suggestion
-dotnet_style_namespace_match_folder = true:suggestion
+# IDE0130: Disabled to prevent "Changing compilation options is not supported" error with dotnet format
+dotnet_style_namespace_match_folder = true:silent
 dotnet_style_prefer_simplified_interpolation = true:suggestion
 dotnet_style_prefer_compound_assignment = true:suggestion
 
@@ -237,6 +238,34 @@ dotnet_analyzer_diagnostic.category-Style.severity = none
 
 # IDE0022: Use expression body for method
 dotnet_diagnostic.IDE0022.severity = none
+
+# IDE0130: Namespace does not match folder structure (causes dotnet format errors)
+dotnet_diagnostic.IDE0130.severity = silent
+
+# CA1861: Avoid constant arrays as arguments (fixer has known bugs)
+dotnet_diagnostic.CA1861.severity = suggestion
+
+# CA1806: Do not ignore method results (no fixer available)
+dotnet_diagnostic.CA1806.severity = suggestion
+
+# CA1816: Call GC.SuppressFinalize correctly (no fixer available)
+dotnet_diagnostic.CA1816.severity = suggestion
+
+# CA1859: Use concrete types when possible (no fixer available)
+dotnet_diagnostic.CA1859.severity = suggestion
+
+# CA1865/CA1866: Use char overload (fixer doesn't support Fix All)
+dotnet_diagnostic.CA1865.severity = suggestion
+dotnet_diagnostic.CA1866.severity = suggestion
+
+# CA1401: P/Invokes should not be visible (no fixer available)
+dotnet_diagnostic.CA1401.severity = suggestion
+
+# CA1068: CancellationToken parameters must come last (no fixer available)
+dotnet_diagnostic.CA1068.severity = suggestion
+
+# CA2208: Instantiate argument exceptions correctly (fixer doesn't support Fix All)
+dotnet_diagnostic.CA2208.severity = suggestion
 
 # SYSLIB1045: Convert to 'GeneratedRegexAttribute'.
 dotnet_diagnostic.SYSLIB1045.severity = none

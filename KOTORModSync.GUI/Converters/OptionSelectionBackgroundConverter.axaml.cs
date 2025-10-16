@@ -14,7 +14,7 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(IList<object> values, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (values == null || values.Count < 2)
+			if ( values == null || values.Count < 2 )
 				return Brushes.Transparent;
 
 			bool isSelected = values[0] is bool selected && selected;

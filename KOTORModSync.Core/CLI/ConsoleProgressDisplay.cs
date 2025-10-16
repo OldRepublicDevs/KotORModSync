@@ -11,28 +11,23 @@ using System.Threading;
 
 namespace KOTORModSync.Core.CLI
 {
-	/// <summary>
-	/// Provides a Docker-like dynamic progress display for CLI operations.
-	/// Shows active operations at the bottom, failed URLs above them, and scrolling logs at the top.
-	/// </summary>
 	public class ConsoleProgressDisplay : IDisposable
 	{
 		private readonly object _lock = new object();
 		private readonly ConcurrentDictionary<string, ProgressItem> _activeItems = new ConcurrentDictionary<string, ProgressItem>();
-		private readonly Dictionary<string, FailedItem> _failedItems = new Dictionary<string, FailedItem>(); // Use Dictionary to prevent duplicates
+		private readonly Dictionary<string, FailedItem> _failedItems = new Dictionary<string, FailedItem>();
 		private readonly Queue<string> _scrollingLogs = new Queue<string>();
 		private readonly Timer _refreshTimer;
-		private bool _disposed = false;
-		private bool _isEnabled = false;
-		private bool _usePlainText = false;
-		private bool _needsRender = false;
+		private bool _disposed;
+		private bool _isEnabled;
+		private bool _usePlainText;
+		private bool _needsRender;
 		private string _lastRenderedContent = string.Empty;
 		private int _consoleWidth = 80;
 		private int _maxActiveItems = 5;
 		private int _maxFailedItems = 10;
 		private int _maxScrollingLogs = 100;
 
-		// ANSI escape codes for cursor control
 		private const string SAVE_CURSOR = "\x1b[s";
 		private const string RESTORE_CURSOR = "\x1b[u";
 		private const string CLEAR_LINE = "\x1b[2K";
@@ -53,7 +48,6 @@ namespace KOTORModSync.Core.CLI
 				_isEnabled = false;
 			}
 
-			// If plaintext mode is enabled, disable the fancy display
 			if ( _usePlainText )
 			{
 				_isEnabled = false;
@@ -62,7 +56,6 @@ namespace KOTORModSync.Core.CLI
 			if ( _isEnabled )
 			{
 				Console.Write(HIDE_CURSOR);
-				// Refresh display every 16ms (~60fps) to keep status area anchored at bottom even with rapid log output
 				_refreshTimer = new Timer(_ => Render(), null, TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16));
 			}
 		}
@@ -73,7 +66,7 @@ namespace KOTORModSync.Core.CLI
 			public string DisplayText { get; set; }
 			public double Progress { get; set; }
 			public DateTime LastUpdate { get; set; }
-			public string Status { get; set; } // "downloading", "processing", "extracting", etc.
+			public string Status { get; set; }
 		}
 
 		private class FailedItem
@@ -83,12 +76,8 @@ namespace KOTORModSync.Core.CLI
 			public DateTime Timestamp { get; set; }
 		}
 
-		/// <summary>
-		/// Add or update a progress item
-		/// </summary>
 		public void UpdateProgress(string key, string displayText, double progress, string status = "processing")
 		{
-			// In plaintext mode, output progress updates directly
 			if ( _usePlainText )
 			{
 				Console.WriteLine($"[{status.ToUpper()}] {displayText} - {progress:F1}%");
@@ -98,7 +87,7 @@ namespace KOTORModSync.Core.CLI
 			if ( !_isEnabled ) return;
 
 			bool isNewItem = !_activeItems.ContainsKey(key);
-			bool shouldRender = isNewItem; // Always render for new items
+			bool shouldRender = isNewItem;
 
 			_activeItems.AddOrUpdate(key,
 				new ProgressItem
@@ -111,7 +100,6 @@ namespace KOTORModSync.Core.CLI
 				},
 			(k, existing) =>
 			{
-				// Only trigger render if progress changed by at least 0.5% or status changed
 				if ( Math.Abs(existing.Progress - progress) >= 0.5 || existing.Status != status )
 				{
 					shouldRender = true;
@@ -129,12 +117,8 @@ namespace KOTORModSync.Core.CLI
 			}
 		}
 
-		/// <summary>
-		/// Remove a progress item (when completed)
-		/// </summary>
 		public void RemoveProgress(string key)
 		{
-			// In plaintext mode, output completion message
 			if ( _usePlainText )
 			{
 				if ( _activeItems.TryGetValue(key, out var item) )
@@ -149,12 +133,8 @@ namespace KOTORModSync.Core.CLI
 			_needsRender = true;
 		}
 
-		/// <summary>
-		/// Add a failed item
-		/// </summary>
 		public void AddFailedItem(string url, string error)
 		{
-			// In plaintext mode, output error directly
 			if ( _usePlainText )
 			{
 				Console.WriteLine($"[FAILED] {url}");
@@ -166,7 +146,6 @@ namespace KOTORModSync.Core.CLI
 
 			lock ( _lock )
 			{
-				// Use URL as key to prevent duplicates
 				_failedItems[url] = new FailedItem
 				{
 					Url = url,
@@ -174,7 +153,6 @@ namespace KOTORModSync.Core.CLI
 					Timestamp = DateTime.Now
 				};
 
-				// Keep only recent failed items
 				if ( _failedItems.Count > _maxFailedItems * 2 )
 				{
 					var oldestKeys = _failedItems
@@ -193,12 +171,8 @@ namespace KOTORModSync.Core.CLI
 			}
 		}
 
-		/// <summary>
-		/// Add a scrolling log message
-		/// </summary>
 		public void AddLog(string message)
 		{
-			// In plaintext mode, output log directly
 			if ( _usePlainText )
 			{
 				Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
@@ -207,7 +181,6 @@ namespace KOTORModSync.Core.CLI
 
 			if ( !_isEnabled )
 			{
-				// Fallback to normal console output
 				Console.WriteLine(message);
 				return;
 			}
@@ -216,7 +189,6 @@ namespace KOTORModSync.Core.CLI
 			{
 				_scrollingLogs.Enqueue(message);
 
-				// Keep only recent logs
 				while ( _scrollingLogs.Count > _maxScrollingLogs )
 				{
 					_scrollingLogs.Dequeue();
@@ -226,14 +198,10 @@ namespace KOTORModSync.Core.CLI
 			}
 		}
 
-		/// <summary>
-		/// Render the entire display
-		/// </summary>
 		private void Render()
 		{
 			if ( !_isEnabled || _disposed ) return;
 
-			// Skip rendering if nothing has changed
 			if ( !_needsRender ) return;
 
 			lock ( _lock )
@@ -244,26 +212,20 @@ namespace KOTORModSync.Core.CLI
 				}
 				catch
 				{
-					// Ignore if console size can't be retrieved
 				}
 
 				var sb = new StringBuilder();
 
-				// Calculate how many lines we need for the status area
 				int statusLines = CalculateStatusLines();
 
-				// Move to the status area (bottom of console)
 				try
 				{
 					int consoleHeight = Console.WindowHeight;
-					// Ensure status area is always at the very bottom
 					int statusStartLine = Math.Max(1, consoleHeight - statusLines + 1);
 
-					// Move to status area start and clear from there to bottom
 					sb.Append($"\x1b[{statusStartLine};1H");
-					sb.Append("\x1b[0J"); // Clear from cursor to end of screen
+					sb.Append("\x1b[0J");
 
-					// Render failed items first (at top of status area, single line per failure)
 					var failedItems = _failedItems.Values
 						.OrderByDescending(f => f.Timestamp)
 						.Take(_maxFailedItems)
@@ -274,7 +236,6 @@ namespace KOTORModSync.Core.CLI
 						sb.AppendLine("╔═══ FAILED DOWNLOADS ═══");
 						foreach ( var failed in failedItems )
 						{
-							// Single line: URL with abbreviated error in parentheses
 							string truncatedUrl = TruncateString(failed.Url, _consoleWidth - 35);
 							string shortError = failed.Error.Length > 25 ? failed.Error.Substring(0, 22) + "..." : failed.Error;
 							sb.AppendLine($"║ ✗ {truncatedUrl} ({shortError})");
@@ -282,7 +243,6 @@ namespace KOTORModSync.Core.CLI
 						sb.AppendLine("╚" + new string('═', Math.Min(_consoleWidth - 2, 50)));
 					}
 
-					// Render active progress items last (at bottom)
 					var activeItems = _activeItems.Values
 						.OrderBy(x => x.LastUpdate)
 						.Take(_maxActiveItems)
@@ -303,7 +263,6 @@ namespace KOTORModSync.Core.CLI
 
 					string newContent = sb.ToString();
 
-					// Only write if content actually changed
 					if ( newContent != _lastRenderedContent )
 					{
 						Console.Write(newContent);
@@ -314,30 +273,27 @@ namespace KOTORModSync.Core.CLI
 				}
 				catch
 				{
-					// If rendering fails, don't crash - just skip this frame
 				}
 			}
 		}
 
 		private int CalculateStatusLines()
 		{
-			int lines = 2; // Padding
+			int lines = 2;
 
-			// Failed items section (now single line per item)
 			if ( _failedItems.Count > 0 )
 			{
-				lines += 2; // Header and footer
-				lines += Math.Min(_failedItems.Count, _maxFailedItems); // Each failed item takes 1 line now
+				lines += 2;
+				lines += Math.Min(_failedItems.Count, _maxFailedItems);
 			}
 
-			// Active items section
 			if ( !_activeItems.IsEmpty )
 			{
-				lines += 2; // Header and footer for active downloads box
+				lines += 2;
 				lines += Math.Min(_activeItems.Count, _maxActiveItems);
 			}
 
-			return Math.Min(lines, 20); // Cap at 20 lines
+			return Math.Min(lines, 20);
 		}
 
 		private static string RenderProgressBar(double progress, int width)
@@ -350,7 +306,6 @@ namespace KOTORModSync.Core.CLI
 
 		private static string GetStatusIcon(string status)
 		{
-			// Traditional switch for .NET Framework compatibility
 			switch ( status.ToLowerInvariant() )
 			{
 				case "downloading":
@@ -377,12 +332,8 @@ namespace KOTORModSync.Core.CLI
 			return text.Substring(0, maxLength - 3) + "...";
 		}
 
-		/// <summary>
-		/// Write a log that scrolls above the status area
-		/// </summary>
 		public void WriteScrollingLog(string message)
 		{
-			// In plaintext mode, just write directly
 			if ( _usePlainText || !_isEnabled )
 			{
 				Console.WriteLine(message);
@@ -393,24 +344,20 @@ namespace KOTORModSync.Core.CLI
 			{
 				try
 				{
-					// Calculate position above status area
 					int statusLines = CalculateStatusLines();
 					int consoleHeight = Console.WindowHeight;
 					int statusStartLine = Math.Max(1, consoleHeight - statusLines);
 
-					// Clear the status area, write message, then trigger re-render
 					Console.Write($"\x1b[{statusStartLine};1H");
-					Console.Write("\x1b[0J"); // Clear from cursor to end of screen
+					Console.Write("\x1b[0J");
 					Console.Write($"\x1b[{statusStartLine - 1};1H");
 					Console.WriteLine(message);
 
-					// Force immediate re-render of status area
 					_needsRender = true;
 					Render();
 				}
 				catch
 				{
-					// Fallback to normal output
 					Console.WriteLine(message);
 				}
 			}
@@ -429,7 +376,6 @@ namespace KOTORModSync.Core.CLI
 				{
 					try
 					{
-						// Clear status area
 						int statusLines = CalculateStatusLines();
 						int consoleHeight = Console.WindowHeight;
 						int statusStartLine = Math.Max(1, consoleHeight - statusLines);
@@ -440,12 +386,10 @@ namespace KOTORModSync.Core.CLI
 							Console.WriteLine(CLEAR_LINE);
 						}
 
-						// Show cursor again
 						Console.Write(SHOW_CURSOR);
 					}
 					catch
 					{
-						// Best effort cleanup
 					}
 				}
 			}

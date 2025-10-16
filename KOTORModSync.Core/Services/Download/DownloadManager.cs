@@ -15,8 +15,6 @@ namespace KOTORModSync.Core.Services.Download
 	{
 		private readonly List<IDownloadHandler> _handlers;
 		private const double Tolerance = 0.01;
-
-
 		private readonly Dictionary<string, DateTime> _lastProgressLogTime = new Dictionary<string, DateTime>();
 		private readonly Dictionary<string, DownloadStatus> _lastLoggedStatus = new Dictionary<string, DownloadStatus>();
 		private readonly object _logThrottleLock = new object();
@@ -45,7 +43,6 @@ namespace KOTORModSync.Core.Services.Download
 			var urlList = urls.ToList();
 			await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urlList.Count} URLs to filenames (concurrent)");
 
-			// Resolve URLs concurrently for better performance
 			var resolutionTasks = urlList.Select(async url =>
 			{
 				IDownloadHandler handler = _handlers.FirstOrDefault(h => h.CanHandle(url));
@@ -60,12 +57,20 @@ namespace KOTORModSync.Core.Services.Download
 					await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}");
 					List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
 
-					await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames?.Count ?? 0} filename(s) for URL: {url}");
+					if ( filenames == null || filenames.Count == 0 )
+					{
+						await Logger.LogWarningAsync($"[DownloadManager] No filenames resolved for URL: {url} (Handler: {handler.GetType().Name}). The URL may be incorrect, the page structure may have changed, or the file may no longer be available.");
+					}
+					else
+					{
+						await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames.Count} filename(s) for URL: {url}");
+					}
+
 					return (url, filenames: filenames ?? new List<string>());
 				}
 				catch ( Exception ex )
 				{
-					await Logger.LogErrorAsync($"[DownloadManager] Failed to resolve URL {url}: {ex.Message}");
+					await Logger.LogExceptionAsync(ex, $"[DownloadManager] Failed to resolve URL: {url}");
 					return (url, filenames: new List<string>());
 				}
 			}).ToList();
@@ -116,16 +121,6 @@ namespace KOTORModSync.Core.Services.Download
 			var urlList = urlToProgressMap.Keys.ToList();
 			await Logger.LogVerboseAsync($"[DownloadManager] Starting concurrent batch download with progress reporting for {urlList.Count} URLs");
 			await Logger.LogVerboseAsync($"[DownloadManager] Destination directory: {destinationDirectory}");
-
-
-			await Logger.LogVerboseAsync($"[DownloadManager] URLs to download:");
-			foreach ( var kvp in urlToProgressMap )
-			{
-				await Logger.LogVerboseAsync($"[DownloadManager]   URL: {kvp.Key}");
-				await Logger.LogVerboseAsync($"[DownloadManager]     Mod: {kvp.Value.ModName}");
-				await Logger.LogVerboseAsync($"[DownloadManager]     Status: {kvp.Value.Status}");
-				await Logger.LogVerboseAsync($"[DownloadManager]     Progress: {kvp.Value.ProgressPercentage}%");
-			}
 
 			var results = new List<DownloadResult>();
 			var tasks = new List<Task<DownloadResult>>();
@@ -186,10 +181,8 @@ namespace KOTORModSync.Core.Services.Download
 				progressItem.StatusMessage = "Starting download...";
 				progressItem.StartTime = DateTime.Now;
 
-				// Optimized progress reporter that minimizes blocking operations
 				var internalProgressReporter = new Progress<DownloadProgress>(update =>
 				{
-					// Update progress item fields first (fast operations)
 					progressItem.Status = update.Status;
 					progressItem.ProgressPercentage = update.ProgressPercentage;
 					progressItem.BytesDownloaded = update.BytesDownloaded;
@@ -204,7 +197,6 @@ namespace KOTORModSync.Core.Services.Download
 					if ( update.EndTime != null )
 						progressItem.EndTime = update.EndTime;
 
-					// Throttled logging to avoid blocking (minimal operations)
 					bool shouldLog = false;
 					var now = DateTime.Now;
 
@@ -230,10 +222,8 @@ namespace KOTORModSync.Core.Services.Download
 						}
 					}
 
-					// Non-blocking logging (fire and forget style)
 					if ( shouldLog )
 					{
-						// Fire and forget logging task
 						_ = Task.Run(() =>
 						{
 							try
@@ -248,22 +238,20 @@ namespace KOTORModSync.Core.Services.Download
 										Logger.LogVerbose($"  {update.StatusMessage}");
 								}
 							}
-							catch { /* Ignore logging errors */ }
+							catch { }
 						});
 					}
 
-					// Report progress to caller (non-blocking)
 					progressReporter?.Report(progressItem);
 				});
 
 				DownloadResult result;
 				try
 				{
-					// Try optimized download (runs in parallel with traditional download)
 					result = await DownloadCacheOptimizer.TryOptimizedDownload(
 						url,
 						destinationDirectory,
-						() => handler.DownloadAsync(url, destinationDirectory, internalProgressReporter, combinedCancellationToken),
+						() => handler.DownloadAsync(url, destinationDirectory, internalProgressReporter, progressItem.TargetFilenames, combinedCancellationToken),
 						internalProgressReporter,
 						combinedCancellationToken).ConfigureAwait(false);
 				}

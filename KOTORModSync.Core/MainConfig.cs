@@ -37,7 +37,7 @@ namespace KOTORModSync.Core
 			filterDownloadsByResolution = true;
 		}
 		[JetBrains.Annotations.NotNull]
-		public static string CurrentVersion => "2.0.0b1";
+		public static string CurrentVersion => "2.0.0";
 		public static class ValidTargetGames
 		{
 			public const string K1 = "K1";
@@ -84,6 +84,8 @@ namespace KOTORModSync.Core
 		public bool filterDownloadsByResolution { get => FilterDownloadsByResolution; set => FilterDownloadsByResolution = value; }
 		public static string NexusModsApiKey { get; private set; }
 		public string nexusModsApiKey { get => NexusModsApiKey; set => NexusModsApiKey = value; }
+		public static string FileEncoding { get; private set; } = "utf-8";
+		public string fileEncoding { get => FileEncoding; set => FileEncoding = value ?? "utf-8"; }
 		[JetBrains.Annotations.NotNull][JetBrains.Annotations.ItemNotNull] public static List<ModComponent> AllComponents { get; set; } = new List<ModComponent>();
 		[JetBrains.Annotations.NotNull]
 		[JetBrains.Annotations.ItemNotNull]

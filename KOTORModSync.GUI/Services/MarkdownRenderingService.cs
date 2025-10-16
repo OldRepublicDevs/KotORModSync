@@ -7,10 +7,9 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
-using Avalonia.Media;
+using KOTORModSync.Converters;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Utility;
-using KOTORModSync.Converters;
 
 namespace KOTORModSync.Services
 {
@@ -37,17 +36,14 @@ namespace KOTORModSync.Services
 
 					TextBlock renderedDescription = MarkdownRenderer.RenderToTextBlock(
 						descriptionContent,
-						url => MarkdownRenderingService.OpenUrl(url)
+						OpenUrl
 					);
 
-					if ( renderedDescription?.Inlines != null )
-					{
-						descriptionTextBlock.Inlines.Clear();
-						descriptionTextBlock.Inlines.AddRange(renderedDescription.Inlines);
+					descriptionTextBlock.Inlines?.Clear();
+					descriptionTextBlock.Inlines?.AddRange(renderedDescription.Inlines ?? throw new NullReferenceException("renderedDescription.Inlines is null: " + descriptionContent));
 
-						descriptionTextBlock.PointerPressed -= OnTextBlockPointerPressed;
-						descriptionTextBlock.PointerPressed += OnTextBlockPointerPressed;
-					}
+					descriptionTextBlock.PointerPressed -= OnTextBlockPointerPressed;
+					descriptionTextBlock.PointerPressed += OnTextBlockPointerPressed;
 				}
 
 				if ( directionsTextBlock != null )
@@ -58,17 +54,17 @@ namespace KOTORModSync.Services
 
 					TextBlock renderedDirections = MarkdownRenderer.RenderToTextBlock(
 						directionsContent,
-						url => MarkdownRenderingService.OpenUrl(url)
+						OpenUrl
 					);
 
-					if ( renderedDirections?.Inlines != null )
-					{
-						directionsTextBlock.Inlines.Clear();
-						directionsTextBlock.Inlines.AddRange(renderedDirections.Inlines);
+					directionsTextBlock.Inlines?.Clear();
+					directionsTextBlock.Inlines?.AddRange(
+						renderedDirections.Inlines
+						?? throw new NullReferenceException("renderedDirections.Inlines is null: " + directionsContent)
+					);
 
-						directionsTextBlock.PointerPressed -= OnTextBlockPointerPressed;
-						directionsTextBlock.PointerPressed += OnTextBlockPointerPressed;
-					}
+					directionsTextBlock.PointerPressed -= OnTextBlockPointerPressed;
+					directionsTextBlock.PointerPressed += OnTextBlockPointerPressed;
 				}
 			}
 			catch ( Exception ex )
@@ -93,22 +89,18 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				if ( sender is TextBlock textBlock )
-				{
-					string fullText = GetTextBlockText(textBlock);
-					if ( !string.IsNullOrEmpty(fullText) )
-					{
-
-						string linkPattern = @"🔗([^🔗]+)🔗";
-						Match match = Regex.Match(fullText, linkPattern);
-						if ( match.Success )
-						{
-							string url = match.Groups[1].Value;
-							MarkdownRenderingService.OpenUrl(url);
-							e.Handled = true;
-						}
-					}
-				}
+				if ( !(sender is TextBlock textBlock) )
+					return;
+				string fullText = GetTextBlockText(textBlock);
+				if ( string.IsNullOrEmpty(fullText) )
+					return;
+				string linkPattern = @"🔗([^🔗]+)🔗";
+				Match match = Regex.Match(fullText, linkPattern);
+				if ( !match.Success )
+					return;
+				string url = match.Groups[1].Value;
+				OpenUrl(url);
+				e.Handled = true;
 			}
 			catch ( Exception ex )
 			{

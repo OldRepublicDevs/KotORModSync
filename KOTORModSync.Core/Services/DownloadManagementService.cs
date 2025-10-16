@@ -8,17 +8,15 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using KOTORModSync.Core;
-using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
+using DownloadCacheEntry = KOTORModSync.Core.Services.DownloadCacheService.DownloadCacheEntry;
 
-namespace KOTORModSync.Services
+namespace KOTORModSync.Core.Services
 {
 
 	public class DownloadManagementService
 	{
 		private readonly DownloadCacheService _downloadCacheService;
-		private DownloadProgressWindow _currentDownloadWindow;
 
 		public DownloadManagementService(DownloadCacheService downloadCacheService)
 		{
@@ -113,12 +111,12 @@ namespace KOTORModSync.Services
 
 			foreach ( ModComponent component in componentsToDownload )
 			{
-				if ( component == null || component.ModLink == null || component.ModLink.Count == 0 )
+				if ( component == null || component.ModLinkFilenames == null || component.ModLinkFilenames.Count == 0 )
 					continue;
 
 				await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] Processing component: {component.Name} (GUID: {component.Guid})");
 
-				foreach ( string modLink in component.ModLink )
+				foreach ( string modLink in component.ModLinkFilenames.Keys )
 				{
 					if ( string.IsNullOrWhiteSpace(modLink) )
 						continue;
@@ -143,7 +141,7 @@ namespace KOTORModSync.Services
 					}
 
 					string fileName = Path.GetFileName(filePath);
-					bool isArchive = DownloadCacheService.IsArchive(filePath);
+					bool isArchive = Utility.ArchiveHelper.IsArchive(filePath);
 
 					await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] Processing file: {fileName}, IsArchive: {isArchive}");
 
@@ -160,7 +158,7 @@ namespace KOTORModSync.Services
 						{
 							Url = modLink,
 							FileName = fileName,
-							IsArchive = isArchive,
+							IsArchiveFile = isArchive,
 							ExtractInstructionGuid = existingExtractGuid
 						};
 						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
@@ -187,7 +185,7 @@ namespace KOTORModSync.Services
 						{
 							Url = modLink,
 							FileName = fileName,
-							IsArchive = true,
+							IsArchiveFile = true,
 							ExtractInstructionGuid = extractInstruction.Guid
 						};
 						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
@@ -201,7 +199,7 @@ namespace KOTORModSync.Services
 						{
 							Url = modLink,
 							FileName = fileName,
-							IsArchive = false,
+							IsArchiveFile = false,
 							ExtractInstructionGuid = Guid.Empty
 						};
 						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
@@ -210,12 +208,6 @@ namespace KOTORModSync.Services
 			}
 
 			await Logger.LogVerboseAsync("[ProcessDownloadCompletions] Completed processing download results");
-		}
-
-		public DownloadProgressWindow CurrentDownloadWindow
-		{
-			get => _currentDownloadWindow;
-			set => _currentDownloadWindow = value;
 		}
 	}
 }

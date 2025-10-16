@@ -80,30 +80,6 @@
                 <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
                 <StackPanel x:Name="SettingsStackPanel" DataContext="{Binding MainConfigInstance}">
 
-                    <!--  Theme Section  -->
-                    <Border
-                        Padding="15"
-                        BorderThickness="2"
-                        CornerRadius="8">
-                        <StackPanel>
-                            <TextBlock
-                                Margin="0,0,0,10"
-                                FontSize="16"
-                                FontWeight="Bold"
-                                Text="🎨 Theme Settings" />
-                            <TextBlock FontWeight="Bold" Text="Theme:" />
-                            <ComboBox
-                                x:Name="StyleComboBox"
-                                Margin="0,5,0,0"
-                                HorizontalAlignment="Stretch"
-                                HorizontalContentAlignment="Center"
-                                SelectedIndex="0"
-                                SelectionChanged="StyleComboBox_SelectionChanged">
-                                <ComboBoxItem Content="K1 Style" Tag="/Styles/KotorStyle.axaml" />
-                                <ComboBoxItem Content="TSL Style" Tag="/Styles/Kotor2Style.axaml" />
-                            </ComboBox>
-                        </StackPanel>
-                    </Border>
 
                     <!--  General Settings Section  -->
                     <Border
@@ -143,6 +119,27 @@
                                     <Binding Converter="{StaticResource IsUnixConverter}" />
                                 </CheckBox.IsVisible>
                             </CheckBox>
+
+                            <TextBlock
+                                Margin="0,15,0,5"
+                                FontWeight="Bold"
+                                Text="File Encoding:" />
+                            <ComboBox
+                                x:Name="FileEncodingComboBox"
+                                Margin="0,5,0,0"
+                                HorizontalAlignment="Stretch"
+                                SelectedIndex="0"
+                                SelectionChanged="FileEncodingComboBox_SelectionChanged"
+                                ToolTip.Tip="Character encoding used when loading/saving mod files. UTF-8 is standard, but Windows-1252 may be needed for files with special characters.">
+                                <ComboBoxItem Content="UTF-8" Tag="utf-8" />
+                                <ComboBoxItem Content="Windows-1252 (CP-1252)" Tag="windows-1252" />
+                            </ComboBox>
+                            <TextBlock
+                                Margin="0,5,0,0"
+                                FontSize="11"
+                                Opacity="0.7"
+                                Text="Change this if you're experiencing errors with special characters in TOML/YAML/JSON files."
+                                TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
 
@@ -212,6 +209,92 @@
                                 DirectoryChanged="OnDirectoryChanged"
                                 PickerType="KotorDirectory"
                                 Watermark="Enter KOTOR installation directory" />
+                        </StackPanel>
+                    </Border>
+
+                    <!--  PyKotor/HoloPatcher Settings Section  -->
+                    <Border
+                        Padding="15"
+                        BorderThickness="2"
+                        CornerRadius="8">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="🔧 PyKotor/HoloPatcher Version" />
+
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                Opacity="0.8"
+                                Text="Select and download different versions of the PyKotor library (which includes HoloPatcher). The bundled version is included with the application, but you can update to newer releases from GitHub."
+                                TextWrapping="Wrap" />
+
+                            <ComboBox
+                                x:Name="HolopatcherVersionComboBox"
+                                Margin="0,5,0,0"
+                                HorizontalAlignment="Stretch"
+                                ToolTip.Tip="Select a PyKotor version to download and install (includes HoloPatcher source)"
+                                Watermark="Fetching available PyKotor versions..." />
+
+                            <StackPanel
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal"
+                                Spacing="10">
+                                <Button
+                                    x:Name="RefreshVersionsButton"
+                                    Click="RefreshVersionsButton_Click"
+                                    Content="Refresh Versions"
+                                    ToolTip.Tip="Fetch the latest available HoloPatcher versions from GitHub" />
+                                <Button
+                                    x:Name="DownloadVersionButton"
+                                    Click="DownloadVersionButton_Click"
+                                    Content="Download Selected"
+                                    ToolTip.Tip="Download and install the selected HoloPatcher version" />
+                            </StackPanel>
+
+                            <TextBlock
+                                x:Name="CurrentVersionLabel"
+                                Margin="0,10,0,0"
+                                FontSize="11"
+                                Opacity="0.7"
+                                Text="Current: Using bundled PyKotor source"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <!--  About & Updates Section  -->
+                    <Border
+                        Padding="15"
+                        BorderThickness="2"
+                        CornerRadius="8">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="ℹ️ About &amp; Updates" />
+
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                Text="Keep KOTORModSync up to date with the latest features and improvements."
+                                TextWrapping="Wrap" />
+
+                            <Button
+                                x:Name="CheckForUpdatesButton"
+                                Margin="0,5,0,0"
+                                HorizontalAlignment="Left"
+                                Click="CheckForUpdates_Click"
+                                Content="Check for Updates"
+                                ToolTip.Tip="Manually check for available updates" />
+
+                            <TextBlock
+                                x:Name="UpdateStatusText"
+                                Margin="0,10,0,0"
+                                FontSize="12"
+                                Opacity="0.7"
+                                Text="Application will check for updates automatically."
+                                TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
 

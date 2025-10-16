@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>KOTORModSync Updates</title>
+    <link>https://github.com/th3w1zard1/KOTORModSync</link>
+    <description>Update feed for KOTORModSync</description>
+    <language>en</language>
+
+    <!-- Latest Release -->
+    <item>
+      <title>Version 2.0.0</title>
+      <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0</sparkle:releaseNotesLink>
+      <pubDate>Thu, 26 Oct 2025 12:00:00 +0000</pubDate>
+      <enclosure
+        url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0/KOTORModSync-v2.0.0-win-x64.zip"
+        sparkle:version="2.0.0"
+        sparkle:os="windows"
+        length="50000000"
+        type="application/octet-stream"
+        sparkle:edSignature="SIGNATURE_GOES_HERE" />
+    </item>
+
+    <!-- Example: Previous Release -->
+    <item>
+      <title>Version 2.0.0</title>
+      <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0</sparkle:releaseNotesLink>
+      <pubDate>Tue, 26 Oct 2025 12:00:00 +0000</pubDate>
+      <enclosure
+        url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0/KOTORModSync-v2.0.0-win-x64.zip"
+        sparkle:version="2.0.0"
+        sparkle:os="windows"
+        length="49000000"
+        type="application/octet-stream"
+        sparkle:edSignature="SIGNATURE_GOES_HERE" />
+    </item>
+  </channel>
+</rss>

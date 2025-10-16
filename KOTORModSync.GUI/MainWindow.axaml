@@ -140,6 +140,25 @@
                         IsChecked="{Binding SpoilerFreeMode, Mode=TwoWay}"
                         ToolTip.Tip="Toggle to enable Spoiler-Free Mode: hides spoiler content in descriptions, directions, and other text fields to avoid plot reveals." />
                     <Button
+                        x:Name="RunHolopatcherButton"
+                        Margin="0,0,20,0"
+                        VerticalAlignment="Center"
+                        Click="RunHolopatcherButton_Click"
+                        Content="Run HoloPatcher"
+                        ToolTip.Tip="Launches the built-in HoloPatcher." />
+                    <ComboBox
+                        x:Name="ThemeComboBox"
+                        Width="120"
+                        Margin="0,0,20,0"
+                        VerticalAlignment="Center"
+                        HorizontalContentAlignment="Center"
+                        SelectedIndex="0"
+                        SelectionChanged="ThemeComboBox_SelectionChanged"
+                        ToolTip.Tip="Select theme/target game (K1 or TSL)">
+                        <ComboBoxItem Content="K1 Theme" Tag="/Styles/KotorStyle.axaml" />
+                        <ComboBoxItem Content="TSL Theme" Tag="/Styles/Kotor2Style.axaml" />
+                    </ComboBox>
+                    <Button
                         x:Name="HomeButton"
                         Click="HomeButton_Click"
                         Content="🏠 Getting Started"
@@ -220,6 +239,7 @@
                             EditorMode="{Binding EditorMode}"
                             JumpToInstructionRequested="SummaryTab_JumpToInstructionRequested"
                             OpenLinkRequested="SummaryTab_OpenLinkRequested"
+                            SpoilerFreeMode="{Binding SpoilerFreeMode}"
                             SummaryOptionPointerPressedRequested="SummaryTab_SummaryOptionPointerPressedRequested" />
                     </TabItem.Content>
                 </TabItem>

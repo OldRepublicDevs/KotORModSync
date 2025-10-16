@@ -14,7 +14,7 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is IList<string> sourceList && sourceList.Count > 0)
+			if ( value is IList<string> sourceList && sourceList.Count > 0 )
 			{
 				return sourceList.First();
 			}

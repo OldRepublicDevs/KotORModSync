@@ -21,8 +21,8 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class UnifiedPipelineIntegrationTests
 	{
-		private string _testDirectory;
-		private string _downloadDirectory;
+		private string? _testDirectory;
+		private string? _downloadDirectory;
 
 		[SetUp]
 		public void SetUp()
@@ -66,7 +66,10 @@ namespace KOTORModSync.Tests
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				ModLink = new List<string> { "file:///" + archivePath.Replace("\\", "/") }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
 			var downloadCacheService = new DownloadCacheService();
@@ -111,10 +114,10 @@ namespace KOTORModSync.Tests
 			{
 				Name = "Multi Link Mod",
 				Guid = Guid.NewGuid(),
-				ModLink = new List<string>
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
 				{
-					"file:///" + archive1.Replace("\\", "/"),
-					"file:///" + archive2.Replace("\\", "/")
+					{ "file:///" + archive1.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) },
+					{ "file:///" + archive2.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
 				}
 			};
 
@@ -158,7 +161,10 @@ namespace KOTORModSync.Tests
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				ModLink = new List<string> { "file:///" + archivePath.Replace("\\", "/") }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
 			var existingInstruction = new Instruction
@@ -201,7 +207,10 @@ namespace KOTORModSync.Tests
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				ModLink = new List<string> { "file:///" + archivePath.Replace("\\", "/") }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
 			var downloadCacheService = new DownloadCacheService();
@@ -246,7 +255,10 @@ namespace KOTORModSync.Tests
 			{
 				Name = "Hybrid Mod",
 				Guid = Guid.NewGuid(),
-				ModLink = new List<string> { "file:///" + archivePath.Replace("\\", "/") }
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					{ "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+				}
 			};
 
 			var downloadCacheService = new DownloadCacheService();
@@ -276,6 +288,7 @@ namespace KOTORModSync.Tests
 
 		private string CreateTestArchive(string fileName, Action<ZipArchive> populateArchive)
 		{
+			Debug.Assert(_downloadDirectory is not null, "Download directory is null");
 			string archivePath = Path.Combine(_downloadDirectory, fileName);
 
 			using ( var archive = ZipArchive.Create() )

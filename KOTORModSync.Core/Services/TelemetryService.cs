@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using OpenTelemetry;
@@ -15,7 +14,6 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 #if !NETSTANDARD2_0
-using OpenTelemetry.Exporter.Prometheus;
 #endif
 
 namespace KOTORModSync.Core.Services
@@ -23,7 +21,7 @@ namespace KOTORModSync.Core.Services
 
 	public sealed class TelemetryService : IDisposable
 	{
-		private static readonly Lazy<TelemetryService> _instance = new Lazy<TelemetryService>(() => new TelemetryService());
+		private static readonly Lazy<TelemetryService> s_instance = new Lazy<TelemetryService>(() => new TelemetryService());
 
 		private TelemetryConfiguration _config;
 		private TelemetryAuthenticator _authenticator;
@@ -43,14 +41,11 @@ namespace KOTORModSync.Core.Services
 		private bool _isInitialized;
 		private bool _disposed;
 
-		public static TelemetryService Instance => _instance.Value;
+		public static TelemetryService Instance => s_instance.Value;
 
 		public bool IsEnabled => _config?.IsEnabled ?? false;
 
-		private TelemetryService()
-		{
-			_config = TelemetryConfiguration.Load();
-		}
+		private TelemetryService() => _config = TelemetryConfiguration.Load();
 
 		public void Initialize()
 		{
@@ -68,7 +63,7 @@ namespace KOTORModSync.Core.Services
 					return;
 				}
 
-				var resourceBuilder = ResourceBuilder.CreateDefault()
+				ResourceBuilder resourceBuilder = ResourceBuilder.CreateDefault()
 					.AddService(
 						serviceName: "KOTORModSync",
 						serviceVersion: typeof(TelemetryService).Assembly.GetName().Version?.ToString() ?? "1.0.0",
@@ -78,7 +73,7 @@ namespace KOTORModSync.Core.Services
 						["user.id"] = _config.AnonymousUserId,
 						["session.id"] = _config.SessionId,
 						["environment"] = _config.Environment,
-						["platform"] = System.Environment.OSVersion.Platform.ToString()
+						["platform"] = Environment.OSVersion.Platform.ToString()
 					});
 
 				_activitySource = new ActivitySource("KOTORModSync", "1.0.0");
@@ -120,7 +115,7 @@ namespace KOTORModSync.Core.Services
 
 				_tracerProvider = tracerProviderBuilder.Build();
 
-				var meterProviderBuilder = Sdk.CreateMeterProviderBuilder()
+				MeterProviderBuilder meterProviderBuilder = Sdk.CreateMeterProviderBuilder()
 					.SetResourceBuilder(resourceBuilder)
 					.AddMeter("KOTORModSync");
 
@@ -146,12 +141,12 @@ namespace KOTORModSync.Core.Services
 #if NETSTANDARD2_0
 						Logger.LogWarning("[Telemetry] Prometheus HTTP listener requires .NET Core 3.1+ or .NET 5+. Use OTLP exporter for authenticated remote telemetry.");
 #else
-					meterProviderBuilder.AddPrometheusHttpListener(options =>
-					{
-						options.UriPrefixes = new string[] { $"http://localhost:{_config.PrometheusPort}/" };
-					});
-					Logger.Log($"[Telemetry] Prometheus HTTP listener started on http://localhost:{_config.PrometheusPort}/metrics (LOCAL ONLY - for development/testing)");
-					Logger.Log("[Telemetry] Note: For authenticated remote telemetry, use OTLP exporter (enabled by default)");
+						meterProviderBuilder.AddPrometheusHttpListener(options =>
+						{
+							options.UriPrefixes = new[] { $"http://localhost:{_config.PrometheusPort}/" };
+						});
+						Logger.Log($"[Telemetry] Prometheus HTTP listener started on http://localhost:{_config.PrometheusPort}/metrics (LOCAL ONLY - for development/testing)");
+						Logger.Log("[Telemetry] Note: For authenticated remote telemetry, use OTLP exporter (enabled by default)");
 #endif
 					}
 					catch ( Exception ex )
@@ -215,10 +210,10 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				var activity = _activitySource?.StartActivity(activityName);
+				Activity activity = _activitySource?.StartActivity(activityName);
 				if ( activity != null && tags != null )
 				{
-					foreach ( var tag in tags )
+					foreach ( KeyValuePair<string, object> tag in tags )
 					{
 						activity.SetTag(tag.Key, tag.Value);
 					}
@@ -263,64 +258,8 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		public void RecordModValidation(int componentCount, bool success, double durationMs)
-		{
-			if ( !IsEnabled || !_config.CollectUsageData )
-				return;
 
-			try
-			{
-				var tags = new Dictionary<string, object>
-				{
-					["component.count"] = componentCount,
-					["success"] = success
-				};
-
-				_modValidationCounter?.Add(1, CreateTagList("mod.validation", tags));
-
-				if ( _config.CollectPerformanceMetrics )
-				{
-					_operationDuration?.Record(durationMs, CreateTagList("mod.validation", tags));
-				}
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, "[Telemetry] Failed to record mod validation");
-			}
-		}
-
-		public void RecordDownload(string url, bool success, long sizeBytes, double durationMs)
-		{
-			if ( !IsEnabled || !_config.CollectUsageData )
-				return;
-
-			try
-			{
-				var tags = new Dictionary<string, object>
-				{
-					["url.host"] = new Uri(url).Host,
-					["success"] = success
-				};
-
-				_downloadCounter?.Add(1, CreateTagList("download", tags));
-
-				if ( success )
-				{
-					_downloadSize?.Record(sizeBytes, CreateTagList("download", tags));
-				}
-
-				if ( _config.CollectPerformanceMetrics )
-				{
-					_operationDuration?.Record(durationMs, CreateTagList("download", tags));
-				}
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, "[Telemetry] Failed to record download");
-			}
-		}
-
-		public void RecordUIInteraction(string elementName, string action)
+		public void RecordUiInteraction(string elementName, string action)
 		{
 			if ( !IsEnabled || !_config.CollectUsageData )
 				return;
@@ -390,7 +329,7 @@ namespace KOTORModSync.Core.Services
 
 			if ( tags != null )
 			{
-				foreach ( var tag in tags )
+				foreach ( KeyValuePair<string, object> tag in tags )
 				{
 					tagList.Add(new KeyValuePair<string, object>(tag.Key, tag.Value));
 				}

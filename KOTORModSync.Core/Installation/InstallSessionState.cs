@@ -51,11 +51,6 @@ namespace KOTORModSync.Core.Installation
 		[JsonProperty]
 		public DateTimeOffset? LastCompletedUtc { get; set; }
 
-	// Old checkpoint system disabled
-	/*
-	[JsonProperty]
-	public List<ModComponent.InstructionCheckpoint> Instructions { get; set; } = new List<ModComponent.InstructionCheckpoint>();
-	*/
 	}
 }
 

@@ -534,8 +534,8 @@ namespace KOTORModSync.Dialogs
 						return;
 					}
 
-					int dependencyCount = conflicts.ContainsKey("Dependency") ? conflicts["Dependency"].Count : 0;
-					int restrictionCount = conflicts.ContainsKey("Restriction") ? conflicts["Restriction"].Count : 0;
+					int dependencyCount = conflicts.TryGetValue("Dependency", out List<ModComponent> dep) ? dep.Count : 0;
+					int restrictionCount = conflicts.TryGetValue("Restriction", out List<ModComponent> res) ? res.Count : 0;
 					await _dialogService.ShowInformationDialog(
 					"Conflict Resolution Results:\n\n" +
 					$"Total conflicts found: {totalConflicts}\n" +
@@ -673,8 +673,8 @@ namespace KOTORModSync.Dialogs
 						modsWithSize++;
 
 						string category = GetSizeCategory(estimatedSize);
-						if ( sizeBreakdown.ContainsKey(category) )
-							sizeBreakdown[category] = (sizeBreakdown[category].Size + estimatedSize, sizeBreakdown[category].Count + 1);
+						if ( sizeBreakdown.TryGetValue(category, out (long Size, int Count) value) )
+							sizeBreakdown[category] = (value.Size + estimatedSize, value.Count + 1);
 						else
 							sizeBreakdown[category] = (estimatedSize, 1);
 					}
@@ -716,7 +716,7 @@ namespace KOTORModSync.Dialogs
 				}
 			}
 
-			if ( component.ModLink.Count != 0 )
+			if ( component.ModLinkFilenames.Count != 0 )
 				size += 50 * 1024 * 1024;
 
 			return size;
@@ -777,8 +777,8 @@ namespace KOTORModSync.Dialogs
 								string fileName = System.IO.Path.GetFileName(sourcePath);
 								if ( string.IsNullOrEmpty(fileName) )
 									continue;
-								if ( redundantFiles.ContainsKey(fileName) )
-									redundantFiles[fileName].Add(component);
+								if ( redundantFiles.TryGetValue(fileName, out List<ModComponent> value) )
+									value.Add(component);
 								else
 									redundantFiles[fileName] = new List<ModComponent> { component };
 							}
@@ -1118,7 +1118,7 @@ namespace KOTORModSync.Dialogs
 
 					foreach ( ModComponent component in selectedComponents )
 					{
-						foreach ( string link in component.ModLink )
+						foreach ( string link in component.ModLinkFilenames.Keys )
 						{
 							totalLinks++;
 

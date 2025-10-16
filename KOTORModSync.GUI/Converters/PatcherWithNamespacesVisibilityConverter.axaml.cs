@@ -19,23 +19,23 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (!(value is Instruction instruction))
+			if ( !(value is Instruction instruction) )
 				return false;
 
-			if (instruction.Action != Instruction.ActionType.Patcher)
+			if ( instruction.Action != Instruction.ActionType.Patcher )
 				return false;
 
 			var allArchives = NamespacesIniOptionConverter.GetAllArchivesFromInstructions(instruction.GetParentComponent());
 
 			var relevantArchives = GetArchivesForSpecificInstruction(instruction, allArchives);
 
-			foreach (string archivePath in relevantArchives)
+			foreach ( string archivePath in relevantArchives )
 			{
-				if (string.IsNullOrEmpty(archivePath))
+				if ( string.IsNullOrEmpty(archivePath) )
 					continue;
 
 				var result = Core.TSLPatcher.IniHelper.ReadNamespacesIniFromArchive(archivePath);
-				if (result != null && result.Any())
+				if ( result != null && result.Any() )
 				{
 
 					var optionNames = result.Where(section =>
@@ -43,7 +43,7 @@ namespace KOTORModSync.Converters
 						section.Value != null &&
 						section.Value.ContainsKey("Name")).ToList();
 
-					if (optionNames.Any())
+					if ( optionNames.Any() )
 						return true;
 				}
 			}

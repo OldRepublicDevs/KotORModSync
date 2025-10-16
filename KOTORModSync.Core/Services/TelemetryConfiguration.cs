@@ -110,77 +110,77 @@ namespace KOTORModSync.Core.Services
 			);
 		}
 
-	public static TelemetryConfiguration Load()
-	{
-		try
-		{
-			if ( File.Exists(ConfigFilePath) )
-			{
-				string json = File.ReadAllText(ConfigFilePath);
-				var config = JsonSerializer.Deserialize<TelemetryConfiguration>(json);
-
-				config.SessionId = Guid.NewGuid().ToString();
-				config.IsFirstRun = false;
-				config.SigningSecret = LoadSigningSecret();
-
-				return config;
-			}
-		}
-		catch ( Exception ex )
-		{
-			Logger.LogException(ex, "[Telemetry] Failed to load configuration");
-		}
-
-		var newConfig = new TelemetryConfiguration
-		{
-			IsEnabled = true,
-			UserConsented = true,
-			IsFirstRun = true,
-			EnableOtlpExporter = true,
-			EnablePrometheusExporter = false,
-			EnableFileExporter = false,
-		};
-		newConfig.SigningSecret = LoadSigningSecret();
-		return newConfig;
-	}
-
-
-
-
-
-
-
-	private static string LoadSigningSecret()
-	{
-		string secret = System.Environment.GetEnvironmentVariable("KOTORMODSYNC_SIGNING_SECRET");
-		if ( !string.IsNullOrEmpty(secret) )
-		{
-			Logger.LogVerbose("[Telemetry] Signing secret loaded from environment variable");
-			return secret.Trim();
-		}
-
-		string configPath = Path.Combine(
-			System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
-			"KOTORModSync",
-			"telemetry.key"
-		);
-
-		if ( File.Exists(configPath) )
+		public static TelemetryConfiguration Load()
 		{
 			try
 			{
-				secret = File.ReadAllText(configPath).Trim();
-				if ( !string.IsNullOrEmpty(secret) )
+				if ( File.Exists(ConfigFilePath) )
 				{
-					Logger.LogVerbose("[Telemetry] Signing secret loaded from config file");
-					return secret;
+					string json = File.ReadAllText(ConfigFilePath);
+					var config = JsonSerializer.Deserialize<TelemetryConfiguration>(json);
+
+					config.SessionId = Guid.NewGuid().ToString();
+					config.IsFirstRun = false;
+					config.SigningSecret = LoadSigningSecret();
+
+					return config;
 				}
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogWarning($"[Telemetry] Could not read signing secret from {configPath}: {ex.Message}");
+				Logger.LogException(ex, "[Telemetry] Failed to load configuration");
 			}
+
+			var newConfig = new TelemetryConfiguration
+			{
+				IsEnabled = true,
+				UserConsented = true,
+				IsFirstRun = true,
+				EnableOtlpExporter = true,
+				EnablePrometheusExporter = false,
+				EnableFileExporter = false,
+			};
+			newConfig.SigningSecret = LoadSigningSecret();
+			return newConfig;
 		}
+
+
+
+
+
+
+
+		private static string LoadSigningSecret()
+		{
+			string secret = System.Environment.GetEnvironmentVariable("KOTORMODSYNC_SIGNING_SECRET");
+			if ( !string.IsNullOrEmpty(secret) )
+			{
+				Logger.LogVerbose("[Telemetry] Signing secret loaded from environment variable");
+				return secret.Trim();
+			}
+
+			string configPath = Path.Combine(
+				System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+				"KOTORModSync",
+				"telemetry.key"
+			);
+
+			if ( File.Exists(configPath) )
+			{
+				try
+				{
+					secret = File.ReadAllText(configPath).Trim();
+					if ( !string.IsNullOrEmpty(secret) )
+					{
+						Logger.LogVerbose("[Telemetry] Signing secret loaded from config file");
+						return secret;
+					}
+				}
+				catch ( Exception ex )
+				{
+					Logger.LogWarning($"[Telemetry] Could not read signing secret from {configPath}: {ex.Message}");
+				}
+			}
 
 #if OFFICIAL_BUILD
 		if ( !string.IsNullOrEmpty(EmbeddedSecrets.TELEMETRY_SIGNING_KEY) )
@@ -190,9 +190,9 @@ namespace KOTORModSync.Core.Services
 		}
 #endif
 
-		Logger.LogWarning("[Telemetry] No signing secret found - telemetry will be disabled");
-		return null;
-	}
+			Logger.LogWarning("[Telemetry] No signing secret found - telemetry will be disabled");
+			return null;
+		}
 
 		public void Save()
 		{

@@ -9,11 +9,14 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
+using KOTORModSync.Services;
 
 namespace KOTORModSync
 {
 	public class App : Application
 	{
+		private AutoUpdateService _autoUpdateService;
+
 		public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
 		public override void OnFrameworkInitializationCompleted()
@@ -27,6 +30,9 @@ namespace KOTORModSync
 
 					desktop.MainWindow = new MainWindow();
 					Logger.Log("Started main window");
+
+					// Initialize auto-update service
+					InitializeAutoUpdates();
 				}
 				catch ( Exception ex )
 				{
@@ -35,6 +41,21 @@ namespace KOTORModSync
 			}
 
 			base.OnFrameworkInitializationCompleted();
+		}
+
+		private void InitializeAutoUpdates()
+		{
+			try
+			{
+				_autoUpdateService = new AutoUpdateService();
+				_autoUpdateService.Initialize();
+				_autoUpdateService.StartUpdateCheckLoop();
+				Logger.Log("Auto-update service started successfully.");
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Failed to initialize auto-update service");
+			}
 		}
 
 		private void HandleUnobservedTaskException([CanBeNull] object sender, UnobservedTaskExceptionEventArgs e)

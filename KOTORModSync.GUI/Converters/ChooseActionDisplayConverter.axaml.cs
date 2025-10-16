@@ -14,15 +14,15 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is Instruction instruction)
+			if ( value is Instruction instruction )
 			{
 				if ( instruction.Action == Instruction.ActionType.Choose )
 				{
 
 					int sourceCount = instruction.Source.Count;
-					if (sourceCount == 0)
+					if ( sourceCount == 0 )
 						return "Choose (no options)";
-					else if (sourceCount == 1)
+					else if ( sourceCount == 1 )
 						return "Choose (1 option)";
 					else
 						return $"Choose ({sourceCount} options)";

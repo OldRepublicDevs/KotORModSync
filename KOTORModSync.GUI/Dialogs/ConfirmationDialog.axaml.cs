@@ -213,6 +213,73 @@ namespace KOTORModSync.Dialogs
 			return await tcs.Task;
 		}
 
+		public static async Task<bool?> ShowTwoOptionDialogAsync(
+			[CanBeNull] Window parentWindow,
+			[CanBeNull] string confirmText,
+			[CanBeNull] string firstButtonText,
+			[CanBeNull] string secondButtonText
+		)
+		{
+			var tcs = new TaskCompletionSource<bool?>();
+
+			await Dispatcher.UIThread.InvokeAsync(
+				() =>
+				{
+					try
+					{
+						var confirmationDialog = new ConfirmationDialog
+						{
+							ConfirmText = confirmText,
+							YesButtonText = firstButtonText ?? "First Option",
+							NoButtonText = secondButtonText ?? "Second Option",
+							Topmost = true,
+						};
+
+						confirmationDialog.YesButtonClicked += YesClickedHandler;
+						confirmationDialog.NoButtonClicked += NoClickedHandler;
+						confirmationDialog.Closed += ClosedHandler;
+						confirmationDialog.Opened += confirmationDialog.OnOpened;
+
+						_ = confirmationDialog.ShowDialog(parentWindow);
+						return;
+
+						void CleanupHandlers()
+						{
+							confirmationDialog.YesButtonClicked -= YesClickedHandler;
+							confirmationDialog.NoButtonClicked -= NoClickedHandler;
+							confirmationDialog.Closed -= ClosedHandler;
+						}
+
+						void YesClickedHandler(object sender, RoutedEventArgs e)
+						{
+							CleanupHandlers();
+							confirmationDialog.Close();
+							tcs.SetResult(true);
+						}
+
+						void NoClickedHandler(object sender, RoutedEventArgs e)
+						{
+							CleanupHandlers();
+							confirmationDialog.Close();
+							tcs.SetResult(false);
+						}
+
+						void ClosedHandler(object sender, EventArgs e)
+						{
+							CleanupHandlers();
+							tcs.SetResult(null);
+						}
+					}
+					catch ( Exception e )
+					{
+						Logger.LogException(e);
+					}
+				}
+			);
+
+			return await tcs.Task;
+		}
+
 		public event EventHandler<RoutedEventArgs> YesButtonClicked
 		{
 			add => AddHandler(s_yesButtonClickedEvent, value);

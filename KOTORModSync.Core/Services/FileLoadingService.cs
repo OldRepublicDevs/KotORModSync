@@ -12,14 +12,8 @@ using KOTORModSync.Core.FileSystemUtils;
 
 namespace KOTORModSync.Core.Services
 {
-	/// <summary>
-	/// Core file loading/saving service that handles file I/O operations for ModComponents.
-	/// </summary>
 	public static class FileLoadingService
 	{
-		/// <summary>
-		/// Loads components from a file, attempting TOML first, then YAML, then Markdown.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> LoadFromFile([NotNull] string filePath)
@@ -33,16 +27,13 @@ namespace KOTORModSync.Core.Services
 			if ( MainConfig.CaseInsensitivePathing )
 				filePath = PathHelper.GetCaseSensitivePath(filePath, isFile: true).Item1;
 
-			// Read with proper encoding handling - replace invalid UTF-8 characters
 			string content = ReadFileWithEncodingFallback(filePath);
 
-			// Extract file extension to help with format detection
 			string extension = Path.GetExtension(filePath)?.TrimStart('.').ToLowerInvariant();
 			string format = null;
 
 			if ( !string.IsNullOrEmpty(extension) )
 			{
-				// Map common extensions to their format names
 				switch ( extension )
 				{
 					case "md":
@@ -67,7 +58,7 @@ namespace KOTORModSync.Core.Services
 						format = "ini";
 						break;
 					default:
-						format = null; // Let auto-detect handle unknown extensions
+						format = null;
 						break;
 				}
 			}
@@ -75,9 +66,6 @@ namespace KOTORModSync.Core.Services
 			return ModComponentSerializationService.LoadFromString(content, format);
 		}
 
-		/// <summary>
-		/// Async version: Loads components from a file, attempting TOML first, then YAML, then Markdown.
-		/// </summary>
 		[NotNull]
 		[ItemNotNull]
 		public static async Task<List<ModComponent>> LoadFromFileAsync([NotNull] string filePath)
@@ -91,16 +79,13 @@ namespace KOTORModSync.Core.Services
 			if ( MainConfig.CaseInsensitivePathing )
 				filePath = PathHelper.GetCaseSensitivePath(filePath, isFile: true).Item1;
 
-			// Read with proper encoding handling - replace invalid UTF-8 characters
 			string content = await Task.Run(() => ReadFileWithEncodingFallback(filePath));
 
-			// Extract file extension to help with format detection
 			string extension = Path.GetExtension(filePath)?.TrimStart('.').ToLowerInvariant();
 			string format = null;
 
 			if ( !string.IsNullOrEmpty(extension) )
 			{
-				// Map common extensions to their format names
 				switch ( extension )
 				{
 					case "md":
@@ -125,7 +110,7 @@ namespace KOTORModSync.Core.Services
 						format = "ini";
 						break;
 					default:
-						format = null; // Let auto-detect handle unknown extensions
+						format = null;
 						break;
 				}
 			}
@@ -133,9 +118,6 @@ namespace KOTORModSync.Core.Services
 			return await ModComponentSerializationService.LoadFromStringAsync(content, format);
 		}
 
-		/// <summary>
-		/// Saves components to a file in the format determined by the file extension.
-		/// </summary>
 		public static void SaveToFile([NotNull] List<ModComponent> components, [NotNull] string filePath)
 		{
 			if ( components == null )
@@ -158,9 +140,6 @@ namespace KOTORModSync.Core.Services
 			File.WriteAllText(filePath, content);
 		}
 
-		/// <summary>
-		/// Async version: Saves components to a file in the format determined by the file extension.
-		/// </summary>
 		public static async Task SaveToFileAsync([NotNull] List<ModComponent> components, [NotNull] string filePath)
 		{
 			if ( components == null )
@@ -183,26 +162,20 @@ namespace KOTORModSync.Core.Services
 			await Task.Run(() => File.WriteAllText(filePath, content));
 		}
 
-		/// <summary>
-		/// Reads a file with fallback encoding handling to replace invalid UTF-8 characters.
-		/// </summary>
 		private static string ReadFileWithEncodingFallback(string filePath)
 		{
 			try
 			{
-				// First try to read as UTF-8 with replacement fallback
 				var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 				var bytes = File.ReadAllBytes(filePath);
 				var content = encoding.GetString(bytes);
 
-				// Replace any remaining invalid characters (replacement character U+FFFD) with underscore
 				content = content.Replace('\uFFFD', '_');
 
 				return content;
 			}
 			catch ( Exception )
 			{
-				// If all else fails, try reading with default encoding
 				return File.ReadAllText(filePath);
 			}
 		}

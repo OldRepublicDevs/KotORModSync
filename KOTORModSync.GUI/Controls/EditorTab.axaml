@@ -32,6 +32,7 @@
         <converters:BooleanAndConverter x:Key="BooleanAndConverter" />
         <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
         <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
+        <converters:IsK2GameConverter x:Key="IsK2GameConverter" />
     </UserControl.Resources>
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
@@ -210,6 +211,7 @@
                                     <CheckBox
                                         Content="Aspyr Exclusive"
                                         IsChecked="{Binding AspyrExclusive}"
+                                        IsVisible="{Binding $parent[UserControl].$parent[Window].MainConfigInstance.targetGame, Converter={StaticResource IsK2GameConverter}}"
                                         ToolTip.Tip="Check if this mod only works on Aspyr versions (mobile/console)" />
                                 </StackPanel>
                             </StackPanel>
@@ -249,6 +251,28 @@
 
                                 <Grid ColumnDefinitions="*,*">
                                     <StackPanel Grid.Column="0" Margin="0,0,3,2">
+                                        <TextBlock Classes="summary-label" Text="Description (Spoiler-Free)" />
+                                        <TextBlock
+                                            Margin="0,0,0,1"
+                                            Classes="secondary-text"
+                                            FontSize="9"
+                                            Text="Optional spoiler-free version of description" />
+                                        <controls:ExpandableTextBox Text="{Binding DescriptionSpoilerFree, Mode=TwoWay}" Watermark="Optional: enter spoiler-free description..." />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="3,0,0,2">
+                                        <TextBlock Classes="summary-label" Text="Installation Notes (Spoiler-Free)" />
+                                        <TextBlock
+                                            Margin="0,0,0,1"
+                                            Classes="secondary-text"
+                                            FontSize="9"
+                                            Text="Optional spoiler-free version of installation notes" />
+                                        <controls:ExpandableTextBox Text="{Binding DirectionsSpoilerFree, Mode=TwoWay}" Watermark="Optional: enter spoiler-free directions..." />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,*">
+                                    <StackPanel Grid.Column="0" Margin="0,0,3,2">
                                         <TextBlock Classes="summary-label" Text="Download Instructions" />
                                         <TextBlock
                                             Margin="0,0,0,1"
@@ -269,15 +293,49 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <StackPanel>
-                                    <TextBlock Classes="summary-label" Text="Screenshots" />
-                                    <TextBlock
-                                        Margin="0,0,0,1"
-                                        Classes="secondary-text"
-                                        FontSize="9"
-                                        Text="URLs or markdown for screenshots" />
-                                    <controls:ExpandableTextBox Text="{Binding Screenshots, Mode=TwoWay}" Watermark="Enter screenshot URLs or markdown..." />
-                                </StackPanel>
+                                <Grid ColumnDefinitions="*,*">
+                                    <StackPanel Grid.Column="0" Margin="0,0,3,2">
+                                        <TextBlock Classes="summary-label" Text="Download Instructions (Spoiler-Free)" />
+                                        <TextBlock
+                                            Margin="0,0,0,1"
+                                            Classes="secondary-text"
+                                            FontSize="9"
+                                            Text="Optional spoiler-free version of download instructions" />
+                                        <controls:ExpandableTextBox Text="{Binding DownloadInstructionsSpoilerFree, Mode=TwoWay}" Watermark="Optional: enter spoiler-free download instructions..." />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="3,0,0,2">
+                                        <TextBlock Classes="summary-label" Text="Usage Warning (Spoiler-Free)" />
+                                        <TextBlock
+                                            Margin="0,0,0,1"
+                                            Classes="secondary-text"
+                                            FontSize="9"
+                                            Text="Optional spoiler-free version of usage warning" />
+                                        <controls:ExpandableTextBox Text="{Binding UsageWarningSpoilerFree, Mode=TwoWay}" Watermark="Optional: enter spoiler-free warning..." />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,*">
+                                    <StackPanel Grid.Column="0" Margin="0,0,3,2">
+                                        <TextBlock Classes="summary-label" Text="Screenshots" />
+                                        <TextBlock
+                                            Margin="0,0,0,1"
+                                            Classes="secondary-text"
+                                            FontSize="9"
+                                            Text="URLs or markdown for screenshots" />
+                                        <controls:ExpandableTextBox Text="{Binding Screenshots, Mode=TwoWay}" Watermark="Enter screenshot URLs or markdown..." />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="3,0,0,2">
+                                        <TextBlock Classes="summary-label" Text="Screenshots (Spoiler-Free)" />
+                                        <TextBlock
+                                            Margin="0,0,0,1"
+                                            Classes="secondary-text"
+                                            FontSize="9"
+                                            Text="Optional spoiler-free version of screenshots" />
+                                        <controls:ExpandableTextBox Text="{Binding ScreenshotsSpoilerFree, Mode=TwoWay}" Watermark="Optional: enter spoiler-free screenshot URLs..." />
+                                    </StackPanel>
+                                </Grid>
 
                                 <Grid ColumnDefinitions="*,*">
                                     <StackPanel Grid.Column="0" Margin="0,0,3,2">
@@ -455,6 +513,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="🔧 Installation Instructions" />
                                 <Button
+                                    x:Name="AutoGenerateButton"
                                     Grid.Column="1"
                                     Margin="8,0,0,0"
                                     Click="AutoGenerateInstructions_Click"

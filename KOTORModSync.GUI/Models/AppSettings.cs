@@ -62,6 +62,10 @@ namespace KOTORModSync.Models
 		[CanBeNull]
 		public string NexusModsApiKey { get; set; }
 
+		[JsonPropertyName("fileEncoding")]
+		[CanBeNull]
+		public string FileEncoding { get; set; } = "utf-8";
+
 		public AppSettings()
 		{
 		}
@@ -86,7 +90,8 @@ namespace KOTORModSync.Models
 				LastOutputDirectory = mainConfig.lastOutputDirectory?.FullName,
 				ValidateAndReplaceInvalidArchives = mainConfig.validateAndReplaceInvalidArchives,
 				FilterDownloadsByResolution = mainConfig.filterDownloadsByResolution,
-				NexusModsApiKey = mainConfig.nexusModsApiKey
+				NexusModsApiKey = mainConfig.nexusModsApiKey,
+				FileEncoding = mainConfig.fileEncoding
 			};
 		}
 
@@ -101,21 +106,23 @@ namespace KOTORModSync.Models
 			if ( !string.IsNullOrEmpty(DestinationPath) && Directory.Exists(DestinationPath) )
 				mainConfig.destinationPath = new DirectoryInfo(DestinationPath);
 
-		mainConfig.debugLogging = DebugLogging;
-		mainConfig.attemptFixes = AttemptFixes;
-		mainConfig.noAdmin = NoAdmin;
-		mainConfig.caseInsensitivePathing = CaseInsensitivePathing;
-		mainConfig.archiveDeepCheck = ArchiveDeepCheck;
-		mainConfig.useMultiThreadedIO = UseMultiThreadedIO;
-		mainConfig.useCopyForMoveActions = UseCopyForMoveActions;
-		mainConfig.validateAndReplaceInvalidArchives = ValidateAndReplaceInvalidArchives;
-		mainConfig.filterDownloadsByResolution = FilterDownloadsByResolution;
-		mainConfig.nexusModsApiKey = NexusModsApiKey;
+			mainConfig.debugLogging = DebugLogging;
+			mainConfig.attemptFixes = AttemptFixes;
+			mainConfig.noAdmin = NoAdmin;
+			mainConfig.caseInsensitivePathing = CaseInsensitivePathing;
+			mainConfig.archiveDeepCheck = ArchiveDeepCheck;
+			mainConfig.useMultiThreadedIO = UseMultiThreadedIO;
+			mainConfig.useCopyForMoveActions = UseCopyForMoveActions;
+			mainConfig.validateAndReplaceInvalidArchives = ValidateAndReplaceInvalidArchives;
+			mainConfig.filterDownloadsByResolution = FilterDownloadsByResolution;
+			mainConfig.nexusModsApiKey = NexusModsApiKey;
+			mainConfig.fileEncoding = FileEncoding
+									  ?? "utf-8";
 
-		if ( !string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory) )
-			mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
+			if ( !string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory) )
+				mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
 
-		theme = Theme ?? "/Styles/KotorStyle.axaml";
+			theme = Theme ?? "/Styles/KotorStyle.axaml";
 		}
 	}
 

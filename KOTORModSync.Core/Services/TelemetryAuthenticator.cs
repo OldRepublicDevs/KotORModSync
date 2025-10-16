@@ -8,10 +8,6 @@ using System.Text;
 
 namespace KOTORModSync.Core.Services
 {
-	
-	
-	
-	
 	public class TelemetryAuthenticator
 	{
 		private readonly string _signingSecret;
@@ -23,12 +19,6 @@ namespace KOTORModSync.Core.Services
 			_sessionId = sessionId;
 		}
 
-		
-		
-		
-		
-		
-		
 		public string ComputeSignature(string requestPath, long timestamp)
 		{
 			if ( string.IsNullOrEmpty(_signingSecret) )
@@ -45,17 +35,11 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		
-		
-		
 		public static long GetUnixTimestamp()
 		{
 			return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		}
 
-		
-		
-		
 		public bool HasValidSecret()
 		{
 			return !string.IsNullOrEmpty(_signingSecret);

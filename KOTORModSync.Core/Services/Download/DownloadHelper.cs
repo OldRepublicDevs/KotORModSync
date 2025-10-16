@@ -9,26 +9,14 @@ using System.Threading.Tasks;
 
 namespace KOTORModSync.Core.Services.Download
 {
-	
-	
-	
+
+
+
 	public static class DownloadHelper
 	{
-		private const int BufferSize = 8192; 
-		private const int ProgressUpdateIntervalMs = 250; 
+		private const int BufferSize = 8192;
+		private const int ProgressUpdateIntervalMs = 250;
 
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 		public static async Task<long> DownloadWithProgressAsync(
 			Stream sourceStream,
 			string destinationPath,
@@ -39,7 +27,7 @@ namespace KOTORModSync.Core.Services.Download
 			string modName = null,
 			CancellationToken cancellationToken = default)
 		{
-			
+
 			DateTime startTime = DateTime.Now;
 
 			using ( FileStream fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, useAsync: true) )
@@ -51,25 +39,25 @@ namespace KOTORModSync.Core.Services.Download
 
 				while ( (bytesRead = await sourceStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0 )
 				{
-					
+
 					cancellationToken.ThrowIfCancellationRequested();
 
-					
+
 					await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
 					totalBytesRead += bytesRead;
 
-					
+
 					var now = DateTimeOffset.UtcNow;
 					if ( (now - lastProgressUpdate).TotalMilliseconds >= ProgressUpdateIntervalMs )
 					{
 						lastProgressUpdate = now;
 
-						
+
 						double progressPercentage = totalBytes > 0
 							? (double)totalBytesRead / totalBytes * 100.0
 							: 0;
 
-						
+
 						progress?.Report(new DownloadProgress
 						{
 							ModName = modName,
@@ -87,10 +75,10 @@ namespace KOTORModSync.Core.Services.Download
 					}
 				}
 
-				
+
 				await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-				
+
 				if ( totalBytes > 0 )
 				{
 					progress?.Report(new DownloadProgress

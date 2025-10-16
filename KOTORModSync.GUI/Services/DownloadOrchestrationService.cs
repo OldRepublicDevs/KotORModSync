@@ -13,7 +13,9 @@ using Avalonia.Threading;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Utility;
 using KOTORModSync.Dialogs;
+using static KOTORModSync.Core.Services.DownloadCacheService;
 
 namespace KOTORModSync.Services
 {
@@ -44,7 +46,7 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		public async Task StartDownloadSessionAsync(Action onScanComplete)
+		public async Task StartDownloadSessionAsync(Action onScanComplete, bool sequential = true)
 		{
 			try
 			{
@@ -85,7 +87,7 @@ namespace KOTORModSync.Services
 				}
 
 				var selectedComponents = _mainConfig.allComponents
-					.Where(c => c.IsSelected && c.ModLink.Count > 0)
+					.Where(c => c.IsSelected && c.ModLinkFilenames.Count > 0)
 					.ToList();
 
 				if ( selectedComponents.Count == 0 )
@@ -168,7 +170,7 @@ namespace KOTORModSync.Services
 						{
 							foreach ( ModComponent component in selectedComponents )
 							{
-								foreach ( string url in component.ModLink )
+								foreach ( string url in component.ModLinkFilenames.Keys )
 								{
 									var initialProgress = new DownloadProgress
 									{
@@ -183,82 +185,38 @@ namespace KOTORModSync.Services
 							}
 						});
 
-						await Logger.LogVerboseAsync("[DownloadOrchestration] Starting concurrent download processing");
+						await Logger.LogVerboseAsync(sequential
+							? "[DownloadOrchestration] Starting sequential download processing"
+							: "[DownloadOrchestration] Starting concurrent download processing");
 
-						await Task.WhenAll(selectedComponents.Select(async component =>
+						if ( sequential )
 						{
-							try
+							foreach ( ModComponent component in selectedComponents )
 							{
-
-								await Logger.LogVerboseAsync($"[DownloadOrchestration] Pre-resolving URLs for: {component.Name}");
-								var urlToFilenames = await _cacheService.PreResolveUrlsAsync(component, downloadManager, progressWindow.CancellationToken);
-
-								foreach ( var kvp in urlToFilenames )
+								try
 								{
-									string url = kvp.Key;
-									List<string> filenames = kvp.Value;
-
-									if ( filenames.Count > 0 )
-									{
-
-										string firstFilename = filenames[0];
-										string fullPath = Path.Combine(_mainConfig.sourcePath.FullName, firstFilename);
-
-										progressWindow.UpdateDownloadProgress(new DownloadProgress
-										{
-											ModName = component.Name,
-											Url = url,
-											Status = DownloadStatus.Pending,
-											StatusMessage = $"Ready to download: {firstFilename}",
-											ProgressPercentage = 0,
-											FilePath = fullPath,
-											StartTime = DateTime.Now
-										});
-
-										await Logger.LogVerboseAsync($"[DownloadOrchestration] Resolved URL to {filenames.Count} file(s): {url} -> {firstFilename}");
-									}
+									await ProcessComponentDownloadAsync(component, downloadManager, progressWindow);
 								}
-
-								await Logger.LogVerboseAsync($"[DownloadOrchestration] Starting download for: {component.Name}");
-
-								var progressReporter = new Progress<DownloadProgress>(progress =>
+								catch ( Exception ex )
 								{
-									progressWindow.UpdateDownloadProgress(progress);
-								});
-
-								var cacheEntries = await _cacheService.ResolveOrDownloadAsync(
-									component,
-									_mainConfig.sourcePath.FullName,
-									progressReporter,
-									progressWindow.CancellationToken);
-
-								await Logger.LogVerboseAsync($"[DownloadOrchestration] Processed component '{component.Name}': {cacheEntries.Count} cache entries");
-
-								if ( cacheEntries.Count > 0 && cacheEntries.Any(e => e.IsArchive) )
-								{
-									var firstArchive = cacheEntries.First(e => e.IsArchive);
-									if ( !string.IsNullOrEmpty(firstArchive.FileName) && MainConfig.SourcePath != null )
-									{
-										string fullPath = Path.Combine(MainConfig.SourcePath.FullName, firstArchive.FileName);
-										if ( File.Exists(fullPath) )
-										{
-											bool generated = AutoInstructionGenerator.GenerateInstructions(component, fullPath);
-											if ( generated )
-											{
-												await Logger.LogVerboseAsync($"[DownloadOrchestration] Auto-generated instructions for '{component.Name}'");
-											}
-										}
-									}
+									await Logger.LogExceptionAsync(ex, $"Error downloading component '{component.Name}'");
 								}
-
-								Interlocked.Increment(ref _completedComponents);
-								await Dispatcher.UIThread.InvokeAsync(() => DownloadStateChanged?.Invoke(this, EventArgs.Empty));
 							}
-							catch ( Exception ex )
+						}
+						else
+						{
+							await Task.WhenAll(selectedComponents.Select(async component =>
 							{
-								await Logger.LogExceptionAsync(ex, $"Error downloading component '{component.Name}'");
-							}
-						}));
+								try
+								{
+									await ProcessComponentDownloadAsync(component, downloadManager, progressWindow);
+								}
+								catch ( Exception ex )
+								{
+									await Logger.LogExceptionAsync(ex, $"Error downloading component '{component.Name}'");
+								}
+							}));
+						}
 
 						progressWindow.MarkCompleted();
 
@@ -291,6 +249,75 @@ namespace KOTORModSync.Services
 			}
 		}
 
+		private async Task ProcessComponentDownloadAsync(
+			ModComponent component,
+			DownloadManager downloadManager,
+			DownloadProgressWindow progressWindow)
+		{
+			await Logger.LogVerboseAsync($"[DownloadOrchestration] Pre-resolving URLs for: {component.Name}");
+			var urlToFilenames = await _cacheService.PreResolveUrlsAsync(component, downloadManager, sequential: false, progressWindow.CancellationToken);
+
+			foreach ( var kvp in urlToFilenames )
+			{
+				string url = kvp.Key;
+				List<string> filenames = kvp.Value;
+
+				if ( filenames.Count > 0 )
+				{
+					string firstFilename = filenames[0];
+					string fullPath = Path.Combine(_mainConfig.sourcePath.FullName, firstFilename);
+
+					progressWindow.UpdateDownloadProgress(new DownloadProgress
+					{
+						ModName = component.Name,
+						Url = url,
+						Status = DownloadStatus.Pending,
+						StatusMessage = $"Ready to download: {firstFilename}",
+						ProgressPercentage = 0,
+						FilePath = fullPath,
+						StartTime = DateTime.Now
+					});
+
+					await Logger.LogVerboseAsync($"[DownloadOrchestration] Resolved URL to {filenames.Count} file(s): {url} -> {firstFilename}");
+				}
+			}
+
+			await Logger.LogVerboseAsync($"[DownloadOrchestration] Starting download for: {component.Name}");
+
+			var progressReporter = new Progress<DownloadProgress>(progress =>
+			{
+				progressWindow.UpdateDownloadProgress(progress);
+			});
+
+			var cacheEntries = await _cacheService.ResolveOrDownloadAsync(
+				component,
+				_mainConfig.sourcePath.FullName,
+				progressReporter,
+				sequential: false,
+				progressWindow.CancellationToken);
+
+			await Logger.LogVerboseAsync($"[DownloadOrchestration] Processed component '{component.Name}': {cacheEntries.Count} cache entries");
+
+			if ( cacheEntries.Count > 0 && cacheEntries.Any(e => e.IsArchiveFile) )
+			{
+				var firstArchive = cacheEntries.First(e => e.IsArchiveFile);
+				if ( !string.IsNullOrEmpty(firstArchive.FileName) && MainConfig.SourcePath != null )
+				{
+					string fullPath = Path.Combine(MainConfig.SourcePath.FullName, firstArchive.FileName);
+					if ( File.Exists(fullPath) )
+					{
+						bool generated = AutoInstructionGenerator.GenerateInstructions(component, fullPath);
+						if ( generated )
+						{
+							await Logger.LogVerboseAsync($"[DownloadOrchestration] Auto-generated instructions for '{component.Name}'");
+						}
+					}
+				}
+			}
+
+			Interlocked.Increment(ref _completedComponents);
+			await Dispatcher.UIThread.InvokeAsync(() => DownloadStateChanged?.Invoke(this, EventArgs.Empty));
+		}
 
 		public void CancelAllDownloads(bool closeWindow = false)
 		{
@@ -384,7 +411,7 @@ namespace KOTORModSync.Services
 				await Logger.LogAsync($"[HandleRetryDownload] Starting retry for: {progress.ModName} ({progress.Url})");
 
 				ModComponent matchingComponent = components.FirstOrDefault(c =>
-					c.Name == progress.ModName && c.ModLink.Any(link => link == progress.Url));
+					c.Name == progress.ModName && c.ModLinkFilenames.Keys.Any(link => link == progress.Url));
 
 				if ( matchingComponent == null )
 				{
@@ -424,13 +451,13 @@ namespace KOTORModSync.Services
 
 					string filePath = results[0].FilePath;
 					string fileName = Path.GetFileName(filePath);
-					bool isArchive = DownloadCacheService.IsArchive(filePath);
+					bool isArchive = Core.Utility.ArchiveHelper.IsArchive(filePath);
 
 					var cacheEntry = new DownloadCacheEntry
 					{
 						Url = progress.Url,
 						FileName = fileName,
-						IsArchive = isArchive
+						IsArchiveFile = isArchive
 					};
 
 					_cacheService.AddOrUpdate(progress.Url, cacheEntry);

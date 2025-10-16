@@ -85,7 +85,6 @@ namespace KOTORModSync.Dialogs
 
 			try
 			{
-				// Calculate total storage used by all checkpoint sessions
 				string checkpointBaseDir = Path.Combine(_destinationPath, ".kotor_modsync", "checkpoints");
 
 				if ( !Directory.Exists(checkpointBaseDir) )
@@ -96,7 +95,6 @@ namespace KOTORModSync.Dialogs
 
 				long totalSize = 0;
 
-				// Calculate objects directory (CAS storage)
 				string objectsDir = Path.Combine(checkpointBaseDir, "objects");
 				if ( Directory.Exists(objectsDir) )
 				{
@@ -104,7 +102,6 @@ namespace KOTORModSync.Dialogs
 					totalSize += objectFiles.Sum(f => new FileInfo(f).Length);
 				}
 
-				// Calculate sessions directory (metadata)
 				string sessionsDir = Path.Combine(checkpointBaseDir, "sessions");
 				if ( Directory.Exists(sessionsDir) )
 				{
@@ -157,7 +154,6 @@ namespace KOTORModSync.Dialogs
 				if ( titleText != null )
 					titleText.Text = session.SessionName;
 
-				// Load full checkpoint details
 				var checkpoints = await _checkpointService.ListCheckpointsAsync(session.Session.Id);
 
 				await Dispatcher.UIThread.InvokeAsync(() =>
@@ -173,7 +169,6 @@ namespace KOTORModSync.Dialogs
 
 					_checkpoints.Clear();
 
-					// Show checkpoints in order
 					foreach ( var checkpoint in checkpoints.OrderBy(c => c.Sequence) )
 					{
 						_checkpoints.Add(new CheckpointViewModel(checkpoint, session.Session));
@@ -191,7 +186,6 @@ namespace KOTORModSync.Dialogs
 			if ( !(sender is Button button) || !(button.Tag is CheckpointViewModel checkpointVm) )
 				return;
 
-			// Build confirmation message
 			int totalCheckpoints = _checkpoints.Count;
 			int checkpointsToUndo = totalCheckpoints - checkpointVm.Checkpoint.Sequence;
 
@@ -311,7 +305,6 @@ namespace KOTORModSync.Dialogs
 
 				foreach ( var session in completedSessions )
 				{
-					// Calculate size before deletion
 					string sessionPath = Path.Combine(_destinationPath, ".kotor_modsync", "checkpoints", "sessions", session.Id);
 					if ( Directory.Exists(sessionPath) )
 					{
@@ -323,7 +316,6 @@ namespace KOTORModSync.Dialogs
 					cleanedCount++;
 				}
 
-				// Run garbage collection to clean up orphaned CAS objects
 				int orphanedObjects = await _checkpointService.GarbageCollectAsync();
 
 				await ShowSuccessDialog(
@@ -346,7 +338,6 @@ namespace KOTORModSync.Dialogs
 		{
 			await LoadSessionsAsync();
 
-			// Reload selected session checkpoints if any
 			if ( _selectedSession != null )
 			{
 				await LoadCheckpointsAsync(_selectedSession);
@@ -434,7 +425,6 @@ namespace KOTORModSync.Dialogs
 				if ( Checkpoint.IsAnchor )
 					result += " | 📍 Anchor";
 
-				// Add delta size info
 				if ( Checkpoint.DeltaSize > 0 )
 				{
 					result += $" | {FormatBytes(Checkpoint.DeltaSize)} delta";

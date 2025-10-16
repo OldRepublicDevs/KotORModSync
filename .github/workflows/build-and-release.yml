@@ -212,11 +212,11 @@ jobs:
           # Windows builds
           - rid: win-x64
             os: windows-latest
-            framework: net8.0
+            framework: net48
             platform: x64
           - rid: win-arm64
             os: windows-latest
-            framework: net8.0
+            framework: net48
             platform: x64
 
           # Linux builds
@@ -407,6 +407,182 @@ jobs:
           files: KOTORModSync-${{ needs.determine-version.outputs.version }}-${{ matrix.rid }}.zip
           tag_name: ${{ needs.determine-version.outputs.version }}
           fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-appcast:
+    name: Generate AppCast
+    needs: [determine-version, publish-multi-platform]
+    if: needs.determine-version.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install NetSparkle AppCast Generator
+        run: dotnet tool install --global NetSparkleUpdater.Tools.AppCastGenerator
+
+      - name: Download All Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          pattern: KOTORModSync-${{ needs.determine-version.outputs.version }}-*
+
+      - name: List Downloaded Artifacts
+        run: |
+          echo "📦 Downloaded artifacts:"
+          ls -lah artifacts/
+
+      - name: Generate AppCast Signatures
+        env:
+          NETSPARKLE_PRIVATE_KEY: ${{ secrets.NETSPARKLE_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          echo "🔐 Generating signatures for release files..."
+
+          # Create temp directory for key
+          mkdir -p ~/.netsparkle
+          echo "$NETSPARKLE_PRIVATE_KEY" > ~/.netsparkle/NetSparkle_Ed25519.priv
+          chmod 600 ~/.netsparkle/NetSparkle_Ed25519.priv
+
+          # Create signatures directory
+          mkdir -p signatures
+
+          # Generate signature for each platform
+          for artifact_dir in artifacts/KOTORModSync-*; do
+            if [ -d "$artifact_dir" ]; then
+              for zip_file in "$artifact_dir"/*.zip; do
+                if [ -f "$zip_file" ]; then
+                  filename=$(basename "$zip_file")
+                  echo "Signing: $filename"
+
+                  # Generate signature using NetSparkle
+                  signature=$(netsparkle-generate-appcast --generate-signature "$zip_file")
+                  echo "$signature" > "signatures/${filename}.signature"
+
+                  echo "✓ Signature generated for $filename"
+                fi
+              done
+            fi
+          done
+
+          echo "✅ All signatures generated"
+
+      - name: Update AppCast XML
+        shell: bash
+        run: |
+          version="${{ needs.determine-version.outputs.version }}"
+          clean_version="${version#v}"  # Remove 'v' prefix
+
+          echo "📝 Updating appcast.xml for version $version"
+
+          # Backup existing appcast
+          cp appcast.xml appcast.xml.bak
+
+          # Get current date in RFC 822 format
+          pub_date=$(date -R)
+
+          # Start building new appcast
+          cat > appcast.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+              <channel>
+                  <title>KOTORModSync Updates</title>
+                  <link>https://github.com/th3w1zard1/KOTORModSync</link>
+                  <description>Update feed for KOTORModSync</description>
+                  <language>en</language>
+          EOF
+
+          # Add item for each platform
+          for artifact_dir in artifacts/KOTORModSync-*; do
+            if [ -d "$artifact_dir" ]; then
+              for zip_file in "$artifact_dir"/*.zip; do
+                if [ -f "$zip_file" ]; then
+                  filename=$(basename "$zip_file")
+                  filesize=$(stat -c%s "$zip_file" 2>/dev/null || stat -f%z "$zip_file")
+
+                  # Extract RID from filename (e.g., win-x64 from KOTORModSync-v1.0.0-win-x64.zip)
+                  rid=$(echo "$filename" | sed -E 's/.*-([^-]+-[^.]+)\.zip/\1/')
+
+                  # Determine OS from RID
+                  case "$rid" in
+                    win-*)
+                      os="windows"
+                      ;;
+                    linux-*)
+                      os="linux"
+                      ;;
+                    osx-*)
+                      os="macos"
+                      ;;
+                    *)
+                      os="windows"
+                      ;;
+                  esac
+
+                  # Read signature
+                  signature=$(cat "signatures/${filename}.signature")
+
+                  # Add item to appcast
+                  cat >> appcast.xml << ITEM
+
+                  <!-- $rid -->
+                  <item>
+                      <title>Version $clean_version ($rid)</title>
+                      <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/$version</sparkle:releaseNotesLink>
+                      <pubDate>$pub_date</pubDate>
+                      <enclosure
+                          url="https://github.com/th3w1zard1/KOTORModSync/releases/download/$version/$filename"
+                          sparkle:version="$clean_version"
+                          sparkle:os="$os"
+                          length="$filesize"
+                          type="application/octet-stream"
+                          sparkle:edSignature="$signature" />
+                  </item>
+          ITEM
+                fi
+              done
+            fi
+          done
+
+          # Close XML
+          cat >> appcast.xml << 'EOF'
+              </channel>
+          </rss>
+          EOF
+
+          echo "✅ AppCast updated"
+          cat appcast.xml
+
+      - name: Commit and Push AppCast
+        if: github.event_name == 'release'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add appcast.xml
+
+          if git diff --staged --quiet; then
+            echo "No changes to appcast.xml"
+          else
+            git commit -m "Update appcast.xml for ${{ needs.determine-version.outputs.version }}"
+            git push
+          fi
+
+      - name: Upload AppCast to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: appcast.xml
+          tag_name: ${{ needs.determine-version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

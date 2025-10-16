@@ -8,21 +8,15 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Utility;
-using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Tomlyn;
 using Tomlyn.Model;
 using Tomlyn.Syntax;
-using System.Text.RegularExpressions;
 namespace KOTORModSync.Core
 {
 	public class ModComponent : INotifyPropertyChanged
@@ -54,149 +48,21 @@ namespace KOTORModSync.Core
 			Completed,
 			Failed,
 		}
-		// NOTE: Old instruction-level checkpoint system disabled in favor of new bidirectional delta checkpoint system
-		// See KOTORModSync.Core/Services/ImmutableCheckpoint/ for new implementation
-		/*
-		[JsonObject(MemberSerialization.OptIn)]
-		public sealed class InstructionCheckpoint
-		{
-			[JsonProperty]
-			public Guid InstructionId { get; set; }
-			[JsonProperty]
-			public int InstructionIndex { get; set; }
-			[JsonProperty]
-			public InstructionInstallState State { get; set; } = InstructionInstallState.Pending;
-			[JsonProperty]
-			public DateTimeOffset LastUpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
-			public InstructionCheckpoint Clone() => new InstructionCheckpoint
-			{
-				InstructionId = InstructionId,
-				InstructionIndex = InstructionIndex,
-				State = State,
-				LastUpdatedUtc = LastUpdatedUtc,
-			};
-		}
-		[JsonObject(MemberSerialization.OptIn)]
-		private sealed class ComponentCheckpoint
-		{
-			[JsonProperty]
-			public Guid ComponentId { get; set; }
-			[JsonProperty]
-			public ComponentInstallState State { get; set; } = ComponentInstallState.Pending;
-			[JsonProperty]
-			public DateTimeOffset? LastStartedUtc { get; set; }
-			[JsonProperty]
-			public DateTimeOffset? LastCompletedUtc { get; set; }
-			[JsonProperty]
-			public string BackupDirectory { get; set; }
-			[JsonProperty]
-			public List<InstructionCheckpoint> Instructions { get; set; } = new List<InstructionCheckpoint>();
-			[JsonProperty]
-			public Guid InstallSessionId { get; set; } = Guid.Empty;
-			[JsonProperty]
-			public string CheckpointVersion { get; set; } = "2.0";
-		}
-		*/
 
-		// Old checkpoint methods disabled - using new bidirectional delta system instead
-		/*
-		private void PersistCheckpointInternal()
-		{
-			try
-			{
-				EnsureCheckpointLoaded();
-				_currentCheckpoint.ComponentId = Guid;
-				_currentCheckpoint.State = InstallState;
-				_currentCheckpoint.LastStartedUtc = LastStartedUtc;
-				_currentCheckpoint.LastCompletedUtc = LastCompletedUtc;
-				_currentCheckpoint.BackupDirectory = _lastKnownBackupDirectory;
-				_currentCheckpoint.Instructions = _instructionCheckpoints.Select(c => c.Clone()).ToList();
-				_currentCheckpoint.InstallSessionId = EnsureInstallSessionId();
-				SaveCheckpointToDisk(_currentCheckpoint);
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, "Failed to persist checkpoint state");
-			}
-		}
-		internal void PersistCheckpoint() => PersistCheckpointInternal();
-		private void EnsureCheckpointLoaded()
-		{
-			if ( _checkpointLoaded )
-				return;
-			_checkpointLoaded = true;
-			try
-			{
-				string checkpointPath = GetComponentCheckpointFilePath();
-				if ( File.Exists(checkpointPath) )
-				{
-					string json = File.ReadAllText(checkpointPath);
-					ComponentCheckpoint checkpoint = JsonConvert.DeserializeObject<ComponentCheckpoint>(json);
-					if ( checkpoint != null && checkpoint.ComponentId == Guid )
-					{
-						_currentCheckpoint = checkpoint;
-						InstallState = checkpoint.State;
-						LastStartedUtc = checkpoint.LastStartedUtc;
-						LastCompletedUtc = checkpoint.LastCompletedUtc;
-						_lastKnownBackupDirectory = checkpoint.BackupDirectory;
-						_instructionCheckpoints.Clear();
-						_instructionCheckpoints.AddRange(checkpoint.Instructions.Select(c => c.Clone()));
-						_installSessionId = checkpoint.InstallSessionId;
-						return;
-					}
-				}
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, "Failed to load checkpoint state");
-			}
-			_currentCheckpoint = new ComponentCheckpoint
-			{
-				ComponentId = Guid,
-				State = InstallState,
-				LastStartedUtc = LastStartedUtc,
-				LastCompletedUtc = LastCompletedUtc,
-				BackupDirectory = _lastKnownBackupDirectory,
-				Instructions = _instructionCheckpoints.Select(c => c.Clone()).ToList(),
-				InstallSessionId = EnsureInstallSessionId(),
-			};
-		}
-		private Guid EnsureInstallSessionId()
-		{
-			if ( _installSessionId == Guid.Empty )
-				_installSessionId = Guid.NewGuid();
-			return _installSessionId;
-		}
-		private static string GetComponentCheckpointFilePath()
-		{
-			DirectoryInfo destination = MainConfig.DestinationPath;
-			if ( destination == null )
-				throw new InvalidOperationException("DestinationPath must be set before installing components.");
-			string hiddenDirectory = Path.Combine(destination.FullName, CheckpointFolderName);
-			_ = Directory.CreateDirectory(hiddenDirectory);
-			return Path.Combine(hiddenDirectory, CheckpointFileName);
-		}
-		private static void SaveCheckpointToDisk(ComponentCheckpoint checkpoint)
-		{
-			string path = GetComponentCheckpointFilePath();
-			string json = JsonConvert.SerializeObject(checkpoint, s_checkpointSerializerSettings);
-			File.WriteAllText(path, json);
-		}
-		*/
 		[NotNull] private string _author = string.Empty;
 		[NotNull] private List<string> _category = new List<string>();
 		[NotNull] private List<Guid> _dependencies = new List<Guid>();
 		[NotNull] private List<string> _dependencyNames = new List<string>();
 		[NotNull] private string _description = string.Empty;
-		[NotNull] private string _descriptionSpoilerFree = string.Empty;
+		[NotNull] internal string _descriptionSpoilerFree = string.Empty;
 		[NotNull] private string _directions = string.Empty;
-		[NotNull] private string _directionsSpoilerFree = string.Empty;
+		[NotNull] internal string _directionsSpoilerFree = string.Empty;
 		[NotNull] private string _downloadInstructions = string.Empty;
-		[NotNull] private string _downloadInstructionsSpoilerFree = string.Empty;
+		[NotNull] internal string _downloadInstructionsSpoilerFree = string.Empty;
 		[NotNull] private string _usageWarning = string.Empty;
-		[NotNull] private string _usageWarningSpoilerFree = string.Empty;
+		[NotNull] internal string _usageWarningSpoilerFree = string.Empty;
 		[NotNull] private string _screenshots = string.Empty;
-		[NotNull] private string _screenshotsSpoilerFree = string.Empty;
+		[NotNull] internal string _screenshotsSpoilerFree = string.Empty;
 		private Guid _guid;
 		[NotNull] private List<Guid> _installAfter = new List<Guid>();
 		[NotNull] private string _installationMethod = string.Empty;
@@ -209,27 +75,10 @@ namespace KOTORModSync.Core
 		private DateTimeOffset? _lastStartedUtc;
 		private DateTimeOffset? _lastCompletedUtc;
 
-		// Old checkpoint fields disabled - using new bidirectional delta system instead
-		/*
-		private readonly List<InstructionCheckpoint> _instructionCheckpoints = new List<InstructionCheckpoint>();
-		private string _lastKnownBackupDirectory;
-		private ComponentCheckpoint _currentCheckpoint;
-		private static readonly SemaphoreSlim s_checkpointSemaphore = new SemaphoreSlim(1, 1);
-		private const string CheckpointFileName = "install_state.json";
-		public const string CheckpointFolderName = ".kotor_modsync";
-		private static readonly JsonSerializerSettings s_checkpointSerializerSettings = new JsonSerializerSettings
-		{
-			Formatting = Formatting.Indented,
-			Converters = { new StringEnumConverter() },
-		};
-		private bool _checkpointLoaded;
-		private Guid _installSessionId;
-		*/
 
-		// Keep CheckpointFolderName for backward compatibility with new system
 		public const string CheckpointFolderName = ".kotor_modsync";
 		[NotNull][ItemNotNull] private List<string> _language = new List<string>();
-		[NotNull] private List<string> _modLink = new List<string>();
+		[NotNull] private Dictionary<string, Dictionary<string, bool?>> _modLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
 		[NotNull] private List<string> _excludedDownloads = new List<string>();
 		[NotNull] private string _name = string.Empty;
 		[NotNull] private string _nameFieldContent = string.Empty;
@@ -322,16 +171,46 @@ namespace KOTORModSync.Core
 				OnPropertyChanged();
 			}
 		}
+		/// <summary>
+		/// Legacy property that forwards to ModLinkFilenames.Keys for backward compatibility.
+		/// Getting returns the URLs as a list. Setting converts URLs to ModLinkFilenames with auto-discover.
+		/// DOES NOT trigger OnPropertyChanged - use ModLinkFilenames directly if you need property change notifications.
+		/// </summary>
 		[NotNull]
+		[JsonIgnore]
 		public List<string> ModLink
 		{
-			get => _modLink;
+			get => _modLinkFilenames?.Keys.ToList();
 			set
 			{
-				_modLink = value;
+				if ( value.Count == 0 )
+				{
+					_modLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+				}
+				else
+				{
+					_modLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+					foreach ( string url in value )
+					{
+						if ( !string.IsNullOrWhiteSpace(url) )
+							_modLinkFilenames[url] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+					}
+				}
+				// Intentionally no OnPropertyChanged() - legacy support only
+			}
+		}
+
+		[NotNull]
+		public Dictionary<string, Dictionary<string, bool?>> ModLinkFilenames
+		{
+			get => _modLinkFilenames;
+			set
+			{
+				_modLinkFilenames = value;
 				OnPropertyChanged();
 			}
 		}
+
 		[NotNull]
 		public List<string> ExcludedDownloads
 		{
@@ -517,9 +396,6 @@ namespace KOTORModSync.Core
 			}
 		}
 		[NotNull] private Dictionary<Guid, string> _dependencyGuidToOriginalName = new Dictionary<Guid, string>();
-		/// <summary>
-		/// Maps dependency GUIDs to their original names from the Masters field for preservation during regeneration
-		/// </summary>
 		[NotNull]
 		[JsonIgnore]
 		public Dictionary<Guid, string> DependencyGuidToOriginalName
@@ -527,7 +403,7 @@ namespace KOTORModSync.Core
 			get => _dependencyGuidToOriginalName;
 			set
 			{
-				_dependencyGuidToOriginalName = value ?? new Dictionary<Guid, string>();
+				_dependencyGuidToOriginalName = value;
 				OnPropertyChanged();
 			}
 		}
@@ -622,17 +498,6 @@ namespace KOTORModSync.Core
 				OnPropertyChanged();
 			}
 		}
-		// Old checkpoint properties disabled
-		/*
-		[NotNull]
-		internal IReadOnlyList<InstructionCheckpoint> InstructionCheckpoints => _instructionCheckpoints;
-		internal void ReplaceInstructionCheckpoints(IEnumerable<InstructionCheckpoint> checkpoints)
-		{
-			_instructionCheckpoints.Clear();
-			if ( checkpoints != null )
-				_instructionCheckpoints.AddRange(checkpoints.Select(c => c.Clone()));
-		}
-		*/
 		[NotNull]
 		public ObservableCollection<Option> Options
 		{
@@ -695,9 +560,7 @@ namespace KOTORModSync.Core
 				OnPropertyChanged();
 			}
 		}
-		private static readonly string[] s_separator = {
-		"\r\n", "\n",
-	};
+		private static readonly string[] s_separator = { "\r\n", "\n" };
 		private static readonly string[] s_categorySeparator = { ",", ";" };
 		public event PropertyChangedEventHandler PropertyChanged;
 		private void OptionsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -784,7 +647,7 @@ namespace KOTORModSync.Core
 		{
 			Guid = Services.ModComponentSerializationService.GetRequiredValue<Guid>(componentDict, key: "Guid");
 			Name = Services.ModComponentSerializationService.GetRequiredValue<string>(componentDict, key: "Name");
-			_ = Logger.LogAsync($" == Deserialize next component '{Name}' ==");
+			_ = Logger.LogVerboseAsync($" == Deserialize next component '{Name}' ==");
 			Author = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Author") ?? string.Empty;
 			Category = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "Category") ?? new List<string>();
 			if ( Category.Count == 0 )
@@ -816,25 +679,52 @@ namespace KOTORModSync.Core
 			}
 			Tier = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Tier") ?? string.Empty;
 			Description = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Description") ?? string.Empty;
+			DescriptionSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "DescriptionSpoilerFree") ?? string.Empty;
 			Directions = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Directions") ?? string.Empty;
+			DirectionsSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "DirectionsSpoilerFree") ?? string.Empty;
+			DownloadInstructions = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "DownloadInstructions") ?? string.Empty;
+			DownloadInstructionsSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "DownloadInstructionsSpoilerFree") ?? string.Empty;
+			UsageWarning = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "UsageWarning") ?? string.Empty;
+			UsageWarningSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "UsageWarningSpoilerFree") ?? string.Empty;
+			Screenshots = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Screenshots") ?? string.Empty;
+			ScreenshotsSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "ScreenshotsSpoilerFree") ?? string.Empty;
 			Language = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "Language") ?? new List<string>();
-			ModLink = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "ModLink") ?? new List<string>();
 			ExcludedDownloads = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "ExcludedDownloads") ?? new List<string>();
-			if ( ModLink.IsNullOrEmptyCollection() )
+
+			// Load legacy ModLink format first (if present)
+			List<string> legacyModLink = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "ModLink") ?? new List<string>();
+			if ( legacyModLink.IsNullOrEmptyCollection() )
 			{
 				string modLink = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "ModLink") ?? string.Empty;
-				if ( string.IsNullOrEmpty(modLink) )
+				if ( !string.IsNullOrEmpty(modLink) )
+					legacyModLink = modLink.Split(s_separator, StringSplitOptions.None).ToList();
+			}
+
+			// Initialize ModLinkFilenames with legacy URLs (with null values = auto-discover)
+			ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+			if ( legacyModLink.Count > 0 )
+			{
+				_ = Logger.LogVerboseAsync($"Migrating legacy ModLink to ModLinkFilenames for component '{Name}' ({legacyModLink.Count} URLs)");
+				foreach ( string url in legacyModLink )
 				{
-					Logger.LogError("Could not deserialize key 'ModLink'");
-				}
-				else
-				{
-					ModLink = modLink.Split(
-						s_separator,
-						StringSplitOptions.None
-					).ToList();
+					if ( !string.IsNullOrWhiteSpace(url) )
+					{
+						// Create an entry with an empty filename dictionary - files will be discovered during download
+						ModLinkFilenames[url] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+					}
 				}
 			}
+
+			// Load ModLinkFilenames (will merge/overwrite legacy entries if present)
+			Dictionary<string, Dictionary<string, bool?>> deserializedFilenames = Services.ModComponentSerializationService.DeserializeModLinkFilenames(componentDict);
+			if ( deserializedFilenames.Count > 0 )
+			{
+				foreach ( KeyValuePair<string, Dictionary<string, bool?>> kvp in deserializedFilenames )
+				{
+					ModLinkFilenames[kvp.Key] = kvp.Value;
+				}
+			}
+
 			Dependencies = Services.ModComponentSerializationService.GetValueOrDefault<List<Guid>>(componentDict, key: "Dependencies") ?? new List<Guid>();
 			Restrictions = Services.ModComponentSerializationService.GetValueOrDefault<List<Guid>>(componentDict, key: "Restrictions") ?? new List<Guid>();
 			InstallBefore = Services.ModComponentSerializationService.GetValueOrDefault<List<Guid>>(componentDict, key: "InstallBefore") ?? new List<Guid>();
@@ -846,6 +736,7 @@ namespace KOTORModSync.Core
 			Options = Services.ModComponentSerializationService.DeserializeOptions(Services.ModComponentSerializationService.GetValueOrDefault<IList<object>>(componentDict, key: "Options"));
 			_ = Logger.LogVerboseAsync($"Successfully deserialized component '{Name}'");
 		}
+
 		[CanBeNull]
 		public static ModComponent DeserializeTomlComponent([NotNull] string tomlString)
 		{
@@ -882,106 +773,14 @@ namespace KOTORModSync.Core
 			}
 			return component;
 		}
-		public bool TryGenerateInstructionsFromArchive()
-		{
-			try
-			{
-				if ( Instructions.Count > 0 )
-					return false;
-				if ( ModLink.Count == 0 )
-					return false;
-				if ( MainConfig.SourcePath == null || !MainConfig.SourcePath.Exists )
-					return false;
-				string firstModLink = ModLink[0];
-				if ( string.IsNullOrWhiteSpace(firstModLink) )
-					return false;
-				string searchTerm;
-				if ( firstModLink.Contains("://") )
-				{
-					Uri uri = new Uri(firstModLink);
-					string lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/') ?? string.Empty;
-					if ( !string.IsNullOrEmpty(lastSegment) && lastSegment.Contains('-') )
-					{
-						var match = Regex.Match(lastSegment, @"^\d+-(.+)$");
-						searchTerm = match.Success ? match.Groups[1].Value : lastSegment;
-					}
-					else
-					{
-						searchTerm = lastSegment;
-					}
-					if ( Path.HasExtension(searchTerm) )
-					{
-						searchTerm = Path.GetFileNameWithoutExtension(searchTerm);
-					}
-				}
-				else
-				{
-					string fileName = Path.GetFileName(firstModLink);
-					searchTerm = Path.HasExtension(fileName) ? Path.GetFileNameWithoutExtension(fileName) : fileName;
-				}
-				if ( string.IsNullOrWhiteSpace(searchTerm) )
-				{
-					searchTerm = Name;
-				}
-				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Searching for archive matching '{searchTerm}'");
-				string[] archiveExtensions = { "*.zip", "*.rar", "*.7z", "*.exe" };
-				var allArchives = archiveExtensions
-					.SelectMany(ext => MainConfig.SourcePath.GetFiles(ext, SearchOption.TopDirectoryOnly))
-					.Where(f => f.Exists)
-					.ToList();
-				if ( allArchives.Count == 0 )
-				{
-					Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': No archives found in directory");
-					return false;
-				}
-				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Found {allArchives.Count} archives to check");
-				string searchTermLower = searchTerm.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
-				FileInfo matchingArchive = allArchives
-					.OrderByDescending(f =>
-					{
-						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
-						string fileNameNormalized = fileWithoutExt.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
-						if ( fileNameNormalized.Equals(searchTermLower) )
-							return 100;
-						if ( fileNameNormalized.Contains(searchTermLower) )
-							return 50;
-						if ( searchTermLower.Contains(fileNameNormalized) )
-							return 25;
-						return 0;
-					})
-					.ThenByDescending(f => f.LastWriteTime)
-					.FirstOrDefault(f =>
-					{
-						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
-						string fileNameNormalized = fileWithoutExt.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
-						return fileNameNormalized.Contains(searchTermLower) || searchTermLower.Contains(fileNameNormalized);
-					});
-				if ( matchingArchive == null )
-				{
-					Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': No matching archive found for '{searchTerm}'");
-					return false;
-				}
-				Logger.LogVerbose($"[TryGenerateInstructions] Component '{Name}': Selected archive '{matchingArchive.Name}'");
-				bool generated = Services.AutoInstructionGenerator.GenerateInstructions(this, matchingArchive.FullName);
-				if ( generated )
-				{
-					IsDownloaded = true;
-				}
-				return generated;
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, $"Failed to auto-generate instructions for component '{Name}'");
-				return false;
-			}
-		}
-		public async Task<InstallExitCode> InstallAsync([NotNull] List<ModComponent> componentsList, CancellationToken cancellationToken)
+		public async Task<InstallExitCode> InstallAsync(
+			[NotNull] List<ModComponent> componentsList,
+			CancellationToken cancellationToken)
 		{
 			if ( componentsList is null )
 				throw new ArgumentNullException(nameof(componentsList));
 			cancellationToken.ThrowIfCancellationRequested();
 
-			// Old checkpoint system disabled - new bidirectional delta system handles checkpoints at component level
 			InstallState = ComponentInstallState.Running;
 			LastStartedUtc = DateTimeOffset.UtcNow;
 
@@ -1035,11 +834,99 @@ namespace KOTORModSync.Core
 			}
 			return InstallExitCode.UnknownError;
 		}
+		/// <summary>
+		/// Executes a single instruction using the unified instruction execution pipeline.
+		/// This method is used by both real installations and dry-run validation.
+		/// </summary>
+		public async Task<Instruction.ActionExitCode> ExecuteSingleInstructionAsync(
+			[NotNull] Instruction instruction,
+			int instructionIndex,
+			[NotNull][ItemNotNull] List<ModComponent> componentsList,
+			[NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider,
+			bool skipDependencyCheck = false,
+			CancellationToken cancellationToken = default
+		)
+		{
+			if ( instruction is null )
+				throw new ArgumentNullException(nameof(instruction));
+			if ( componentsList is null )
+				throw new ArgumentNullException(nameof(componentsList));
+			if ( fileSystemProvider is null )
+				throw new ArgumentNullException(nameof(fileSystemProvider));
+
+			Instruction.ActionExitCode exitCode = Instruction.ActionExitCode.Success;
+			switch ( instruction.Action )
+			{
+				case Instruction.ActionType.Extract:
+					instruction.SetRealPaths();
+					exitCode = await instruction.ExtractFileAsync();
+					break;
+				case Instruction.ActionType.Delete:
+					instruction.SetRealPaths(skipExistenceCheck: true);
+					exitCode = instruction.DeleteFile();
+					break;
+				case Instruction.ActionType.DelDuplicate:
+					instruction.SetRealPaths(sourceIsNotFilePath: true);
+					instruction.DeleteDuplicateFile(caseInsensitive: true);
+					exitCode = Instruction.ActionExitCode.Success;
+					break;
+				case Instruction.ActionType.Copy:
+					instruction.SetRealPaths();
+					exitCode = await instruction.CopyFileAsync();
+					break;
+				case Instruction.ActionType.Move:
+					instruction.SetRealPaths();
+					exitCode = await instruction.MoveFileAsync();
+					break;
+				case Instruction.ActionType.Rename:
+					instruction.SetRealPaths(skipExistenceCheck: true);
+					exitCode = instruction.RenameFile();
+					break;
+				case Instruction.ActionType.Patcher:
+					instruction.SetRealPaths();
+					exitCode = await instruction.ExecuteTSLPatcherAsync();
+					break;
+				case Instruction.ActionType.Execute:
+				case Instruction.ActionType.Run:
+					instruction.SetRealPaths(skipExistenceCheck: true);
+					exitCode = await instruction.ExecuteProgramAsync();
+					break;
+				case Instruction.ActionType.Choose:
+					instruction.SetRealPaths(sourceIsNotFilePath: true);
+					List<Option> list = instruction.GetChosenOptions();
+					for ( int i = 0; i < list.Count; i++ )
+					{
+						Option thisOption = list[i];
+						InstallExitCode optionExitCode = await ExecuteInstructionsAsync(
+							thisOption.Instructions,
+							componentsList,
+							cancellationToken,
+							fileSystemProvider,
+							skipDependencyCheck
+						);
+						if ( optionExitCode != InstallExitCode.Success )
+						{
+							await Logger.LogErrorAsync($"Failed to install chosen option {i + 1} in main instruction index {instructionIndex}");
+							exitCode = Instruction.ActionExitCode.OptionalInstallFailed;
+							break;
+						}
+					}
+					break;
+				case Instruction.ActionType.Unset:
+				default:
+					await Logger.LogWarningAsync($"Unknown instruction '{instruction.ActionString}'");
+					exitCode = Instruction.ActionExitCode.UnknownInstruction;
+					break;
+			}
+			return exitCode;
+		}
+
 		public async Task<InstallExitCode> ExecuteInstructionsAsync(
 			[NotNull][ItemNotNull] ObservableCollection<Instruction> theseInstructions,
 			[NotNull][ItemNotNull] List<ModComponent> componentsList,
 			CancellationToken cancellationToken,
-			[NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider
+			[NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider,
+			bool skipDependencyCheck = false
 		)
 		{
 			if ( theseInstructions is null )
@@ -1048,9 +935,14 @@ namespace KOTORModSync.Core
 				throw new ArgumentNullException(nameof(componentsList));
 			if ( fileSystemProvider is null )
 				throw new ArgumentNullException(nameof(fileSystemProvider));
-			bool shouldInstall = ShouldInstallComponent(componentsList);
-			if ( !shouldInstall )
-				return InstallExitCode.DependencyViolation;
+
+			if ( !skipDependencyCheck )
+			{
+				bool shouldInstall = ShouldInstallComponent(componentsList);
+				if ( !shouldInstall )
+					return InstallExitCode.DependencyViolation;
+			}
+
 			InstallExitCode installExitCode = InstallExitCode.Success;
 			for ( int instructionIndex = 1; instructionIndex <= theseInstructions.Count; instructionIndex++ )
 			{
@@ -1058,75 +950,17 @@ namespace KOTORModSync.Core
 				Instruction instruction = theseInstructions[instructionIndex - 1];
 				instruction.SetFileSystemProvider(fileSystemProvider);
 				if ( !ShouldRunInstruction(instruction, componentsList) )
-				{
 					continue;
-				}
-				Instruction.ActionExitCode exitCode = Instruction.ActionExitCode.Success;
-				switch ( instruction.Action )
-				{
-					case Instruction.ActionType.Extract:
-						instruction.SetRealPaths();
-						exitCode = await instruction.ExtractFileAsync();
-						break;
-					case Instruction.ActionType.Delete:
-						instruction.SetRealPaths(noValidate: true);
-						exitCode = instruction.DeleteFile();
-						break;
-					case Instruction.ActionType.DelDuplicate:
-						instruction.SetRealPaths(noParse: true);
-						instruction.DeleteDuplicateFile(caseInsensitive: true);
-						exitCode = Instruction.ActionExitCode.Success;
-						break;
-					case Instruction.ActionType.Copy:
-						instruction.SetRealPaths();
-						exitCode = await instruction.CopyFileAsync();
-						break;
-					case Instruction.ActionType.Move:
-						instruction.SetRealPaths();
-						exitCode = await instruction.MoveFileAsync();
-						break;
-					case Instruction.ActionType.Rename:
-						instruction.SetRealPaths(noValidate: true);
-						exitCode = instruction.RenameFile();
-						break;
-					case Instruction.ActionType.Patcher:
-						instruction.SetRealPaths();
-						exitCode = await instruction.ExecuteTSLPatcherAsync();
-						break;
-					case Instruction.ActionType.Execute:
-					case Instruction.ActionType.Run:
-						instruction.SetRealPaths(noValidate: true);
-						exitCode = await instruction.ExecuteProgramAsync();
-						break;
-					case Instruction.ActionType.Choose:
-						instruction.SetRealPaths(noParse: true);
-						List<Option> list = instruction.GetChosenOptions();
-						for ( int i = 0; i < list.Count; i++ )
-						{
-							Option thisOption = list[i];
-							InstallExitCode optionExitCode = await ExecuteInstructionsAsync(
-								thisOption.Instructions,
-								componentsList,
-								cancellationToken,
-								fileSystemProvider
-							);
-							installExitCode = optionExitCode;
-							if ( optionExitCode != InstallExitCode.Success )
-							{
-								await Logger.LogErrorAsync($"Failed to install chosen option {i + 1} in main instruction index {instructionIndex}");
-								exitCode = Instruction.ActionExitCode.OptionalInstallFailed;
-								if ( optionExitCode == InstallExitCode.UserCancelledInstall )
-									return optionExitCode;
-								break;
-							}
-						}
-						break;
-					case Instruction.ActionType.Unset:
-					default:
-						await Logger.LogWarningAsync($"Unknown instruction '{instruction.ActionString}'");
-						exitCode = Instruction.ActionExitCode.UnknownInstruction;
-						break;
-				}
+
+				Instruction.ActionExitCode exitCode = await ExecuteSingleInstructionAsync(
+					instruction,
+					instructionIndex,
+					componentsList,
+					fileSystemProvider,
+					skipDependencyCheck,
+					cancellationToken
+				);
+
 				_ = Logger.LogVerboseAsync(
 					$"Instruction #{instructionIndex} '{instruction.ActionString}' exited with code {exitCode}"
 				);
@@ -1135,9 +969,11 @@ namespace KOTORModSync.Core
 					await Logger.LogErrorAsync(
 						$"FAILED Instruction #{instructionIndex} Action '{instruction.ActionString}'"
 					);
+					if ( exitCode == Instruction.ActionExitCode.OptionalInstallFailed )
+						return InstallExitCode.UserCancelledInstall;
 					return InstallExitCode.UnknownError;
 				}
-				_ = Logger.LogAsync($"Successfully completed instruction #{instructionIndex} '{instruction.Action}'");
+				_ = Logger.LogVerboseAsync($"Successfully completed instruction #{instructionIndex} '{instruction.Action}'");
 			}
 			return installExitCode;
 		}
@@ -1182,7 +1018,7 @@ namespace KOTORModSync.Core
 			{
 				var restrictionConflicts = restrictionGuids
 					.Select(requiredGuid => FindComponentFromGuid(requiredGuid, componentsList)).Where(
-						checkComponent => checkComponent != null && checkComponent.IsSelected
+						checkComponent => checkComponent?.IsSelected ?? false
 					).ToList();
 				if ( restrictionConflicts.Count > 0 )
 					conflicts["Restriction"] = restrictionConflicts;
@@ -1274,22 +1110,12 @@ namespace KOTORModSync.Core
 			Dictionary<Guid, GraphNode> nodeMap = CreateDependencyGraph(components);
 			var permanentMark = new HashSet<GraphNode>();
 			var temporaryMark = new HashSet<GraphNode>();
-			foreach ( GraphNode node in nodeMap.Values )
-			{
-				if ( !permanentMark.Contains(node) )
-				{
-					if ( HasCycle(node, permanentMark, temporaryMark) )
-					{
-						throw new KeyNotFoundException("Circular dependency detected in component ordering");
-					}
-				}
-			}
+			if ( nodeMap.Values.Where(node => !permanentMark.Contains(node)).Any(node => HasCycle(node, permanentMark, temporaryMark)) )
+				throw new KeyNotFoundException("Circular dependency detected in component ordering");
 			var visitedNodes = new HashSet<GraphNode>();
 			var orderedComponents = new List<ModComponent>();
-			foreach ( GraphNode node in nodeMap.Values )
+			foreach ( GraphNode node in nodeMap.Values.Where(node => !visitedNodes.Contains(node)) )
 			{
-				if ( visitedNodes.Contains(node) )
-					continue;
 				DepthFirstSearch(node, visitedNodes, orderedComponents);
 			}
 			bool isCorrectOrder = orderedComponents.SequenceEqual(components);
@@ -1328,10 +1154,8 @@ namespace KOTORModSync.Core
 			if ( orderedComponents is null )
 				throw new ArgumentNullException(nameof(orderedComponents));
 			_ = visitedNodes.Add(node);
-			foreach ( GraphNode dependency in node.Dependencies )
+			foreach ( var dependency in node.Dependencies.Where(dependency => !visitedNodes.Contains(dependency)) )
 			{
-				if ( visitedNodes.Contains(dependency) )
-					continue;
 				DepthFirstSearch(dependency, visitedNodes, orderedComponents);
 			}
 			orderedComponents.Add(node.ModComponent);
@@ -1461,3 +1285,7 @@ namespace KOTORModSync.Core
 		}
 	}
 }
+
+
+
+

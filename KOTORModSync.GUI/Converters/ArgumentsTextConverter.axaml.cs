@@ -13,10 +13,10 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (!(value is Instruction.ActionType action))
+			if ( !(value is Instruction.ActionType action) )
 				return "Arguments / Options";
 
-			switch (action)
+			switch ( action )
 			{
 				case Instruction.ActionType.DelDuplicate:
 					return "File Extensions to Delete";

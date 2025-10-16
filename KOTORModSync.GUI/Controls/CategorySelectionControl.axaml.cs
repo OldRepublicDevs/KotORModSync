@@ -145,7 +145,7 @@ namespace KOTORModSync.Controls
 				.ToList();
 
 			if ( SelectedCategories == null || !SelectedCategories.SequenceEqual(selected) )
-			    SelectedCategories = selected;
+				SelectedCategories = selected;
 		}
 
 		public void RefreshCategories(IEnumerable<Core.ModComponent> components)

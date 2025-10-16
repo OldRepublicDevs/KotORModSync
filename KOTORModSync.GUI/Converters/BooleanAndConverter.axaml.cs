@@ -20,16 +20,16 @@ namespace KOTORModSync.Converters
 				return false;
 
 
-			foreach ( object value in values)
+			foreach ( object value in values )
 			{
 
-				if (value == null || value == AvaloniaProperty.UnsetValue)
+				if ( value == null || value == AvaloniaProperty.UnsetValue )
 					return false;
 
 
-				if (value is bool boolValue)
+				if ( value is bool boolValue )
 				{
-					if (!boolValue)
+					if ( !boolValue )
 						return false;
 				}
 				else

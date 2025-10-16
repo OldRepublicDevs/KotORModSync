@@ -79,35 +79,35 @@ namespace KOTORModSync.Services
 			}
 		}
 
-	private void OnModDirectoryChanged(object sender, FileSystemEventArgs e)
-	{
-
-		lock ( _timerLock )
+		private void OnModDirectoryChanged(object sender, FileSystemEventArgs e)
 		{
 
-			_debounceTimer?.Dispose();
-
-			_debounceTimer = new Timer(_ =>
+			lock ( _timerLock )
 			{
 
-				Dispatcher.UIThread.Post(() =>
+				_debounceTimer?.Dispose();
+
+				_debounceTimer = new Timer(_ =>
 				{
-					try
-					{
-						Logger.Log($"[File Watcher] Detected changes in mod directory ({e.ChangeType}: {Path.GetFileName(e.FullPath)}), running validation...");
 
-						NamespacesIniOptionConverter.InvalidateCache();
-
-						_onDirectoryChanged?.Invoke();
-					}
-					catch ( Exception ex )
+					Dispatcher.UIThread.Post(() =>
 					{
-						Logger.LogException(ex, "Error processing mod directory change");
-					}
-				}, DispatcherPriority.Background);
-			}, null, DebounceDelayMs, Timeout.Infinite);
+						try
+						{
+							Logger.Log($"[File Watcher] Detected changes in mod directory ({e.ChangeType}: {Path.GetFileName(e.FullPath)}), running validation...");
+
+							NamespacesIniOptionConverter.InvalidateCache();
+
+							_onDirectoryChanged?.Invoke();
+						}
+						catch ( Exception ex )
+						{
+							Logger.LogException(ex, "Error processing mod directory change");
+						}
+					}, DispatcherPriority.Background);
+				}, null, DebounceDelayMs, Timeout.Infinite);
+			}
 		}
-	}
 
 		private void OnModDirectoryWatcherError(object sender, ErrorEventArgs e)
 		{

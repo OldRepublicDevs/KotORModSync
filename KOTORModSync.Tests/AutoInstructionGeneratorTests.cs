@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using KOTORModSync.Core;
@@ -19,7 +20,7 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class AutoInstructionGeneratorTests
 	{
-		private string _testDirectory;
+		private string? _testDirectory;
 
 		[SetUp]
 		public void SetUp()
@@ -293,6 +294,7 @@ namespace KOTORModSync.Tests
 
 		private string CreateTestArchive(string fileName, Action<ZipArchive> populateArchive)
 		{
+			Debug.Assert(_testDirectory is not null, "Test directory is null");
 			string archivePath = Path.Combine(_testDirectory, fileName);
 
 			using ( var archive = ZipArchive.Create() )

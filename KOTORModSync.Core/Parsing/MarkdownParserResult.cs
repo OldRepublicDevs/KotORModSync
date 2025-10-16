@@ -12,24 +12,12 @@ namespace KOTORModSync.Core.Parsing
 		public IList<string> Warnings { get; set; } = new List<string>();
 		public IDictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
 
-		
-		
-		
 		public string BeforeModListContent { get; set; } = string.Empty;
 
-		
-		
-		
 		public string AfterModListContent { get; set; } = string.Empty;
 
-		
-		
-		
 		public string WidescreenSectionContent { get; set; } = string.Empty;
 
-		
-		
-		
 		public string AspyrSectionContent { get; set; } = string.Empty;
 	}
 }

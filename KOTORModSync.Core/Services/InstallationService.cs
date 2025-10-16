@@ -13,6 +13,8 @@ using JetBrains.Annotations;
 using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Installation;
 using KOTORModSync.Core.Utility;
+using Python.Included;
+using Python.Runtime;
 
 namespace KOTORModSync.Core.Services
 {
@@ -21,9 +23,160 @@ namespace KOTORModSync.Core.Services
 	{
 		private readonly ComponentManagerService _componentManager = new ComponentManagerService();
 		private readonly FileOperationService _fileOperation = new FileOperationService();
+		private static bool _pythonInitialized = false;
+		private static readonly SemaphoreSlim _pythonSemaphore = new SemaphoreSlim(1, 1);
+
+		/// <summary>
+		/// Initializes the embedded Python environment if not already initialized.
+		/// </summary>
+		private static async Task EnsurePythonInitializedAsync()
+		{
+			if ( _pythonInitialized )
+				return;
+
+			await _pythonSemaphore.WaitAsync();
+			try
+			{
+				if ( _pythonInitialized )
+					return;
+
+				await Installer.SetupPython();
+				PythonEngine.Initialize();
+
+				// Install required Python packages for HoloPatcher
+				await Logger.LogVerboseAsync("Installing HoloPatcher Python dependencies...");
+				await Installer.TryInstallPip();
+				await Installer.PipInstallModule("loggerplus");
+				await Installer.PipInstallModule("ply");
+
+				_pythonInitialized = true;
+			}
+			finally
+			{
+				_pythonSemaphore.Release();
+			}
+		}
+
+		/// <summary>
+		/// Locates holopatcher, checking for platform-specific executable first, then Python source.
+		/// </summary>
+		/// <param name="resourcesDir">Resources directory path</param>
+		/// <param name="baseDir">Base directory path</param>
+		/// <returns>Tuple of (holopatcherPath, usePythonVersion, found)</returns>
+		public static async Task<(string holopatcherPath, bool usePythonVersion, bool found)> FindHolopatcherAsync(
+			string resourcesDir,
+			string baseDir)
+		{
+			FileSystemInfo patcherCliPath = null;
+
+			// Try to find platform-specific holopatcher executable first
+			if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
+			{
+				patcherCliPath = new FileInfo(Path.Combine(resourcesDir, "holopatcher.exe"));
+			}
+			else
+			{
+				string[] possibleOsxPaths = {
+					Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
+					Path.Combine(resourcesDir, "holopatcher"),
+					Path.Combine(baseDir, "Resources", "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
+					Path.Combine(baseDir, "Resources", "holopatcher")
+				};
+				OSPlatform thisOperatingSystem = Utility.Utility.GetOperatingSystem();
+				foreach ( string path in possibleOsxPaths )
+				{
+					patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app")
+						? PathHelper.GetCaseSensitivePath(new DirectoryInfo(path))
+						: (FileSystemInfo)PathHelper.GetCaseSensitivePath(new FileInfo(path));
+					if ( patcherCliPath.Exists )
+					{
+						await Logger.LogVerboseAsync($"Found holopatcher executable at '{patcherCliPath.FullName}'...");
+						break;
+					}
+					await Logger.LogVerboseAsync($"Holopatcher executable not found at '{patcherCliPath.FullName}'...");
+				}
+			}
+
+			// If executable found, return it
+			if ( patcherCliPath != null && patcherCliPath.Exists )
+			{
+				return (patcherCliPath.FullName, false, true);
+			}
+
+			// Fall back to Python version
+			await Logger.LogVerboseAsync("Platform-specific holopatcher not found, using embedded Python version...");
+			string holopatcherPyPath = Path.Combine(resourcesDir, "PyKotor", "Tools", "HoloPatcher", "src", "holopatcher");
+
+			if ( Directory.Exists(holopatcherPyPath) )
+			{
+				await Logger.LogVerboseAsync($"Found holopatcher Python source at '{holopatcherPyPath}'");
+				return (holopatcherPyPath, true, true);
+			}
+
+			// Not found anywhere
+			return (null, false, false);
+		}
+
+		/// <summary>
+		/// Runs holopatcher directly using Python.NET with the embedded Python interpreter.
+		/// </summary>
+		/// <param name="holopatcherPath">Path to the holopatcher Python source directory</param>
+		/// <param name="args">Arguments to pass to holopatcher</param>
+		/// <returns>Tuple of (exit code, stdout, stderr)</returns>
+		public static async Task<(int exitCode, string stdout, string stderr)> RunHolopatcherPyAsync(string holopatcherPath, string args)
+		{
+			await EnsurePythonInitializedAsync();
+
+			return await Task.Run(() =>
+			{
+				using ( Py.GIL() )
+				{
+					try
+					{
+						// Get the PyKotor root directory from holopatcher path
+						// Path is: Resources/PyKotor/Tools/HoloPatcher/src/holopatcher
+						string pyKotorRoot = Path.GetFullPath(Path.Combine(holopatcherPath, "..", "..", "..", "..", ".."));
+						string holopatcherSrc = Path.GetDirectoryName(holopatcherPath);
+						string pyKotorLibSrc = Path.Combine(pyKotorRoot, "Libraries", "PyKotor", "src");
+						string utilityLibSrc = Path.Combine(pyKotorRoot, "Libraries", "Utility", "src");
+
+						// Add all necessary paths to Python's sys.path
+						dynamic sys = Py.Import("sys");
+						sys.path.insert(0, holopatcherSrc);
+						sys.path.insert(0, pyKotorLibSrc);
+						sys.path.insert(0, utilityLibSrc);
+
+						// Parse the arguments
+						dynamic sysArgv = new PyList();
+						sysArgv.append("holopatcher");
+						foreach ( string arg in args.Split(' ', StringSplitOptions.RemoveEmptyEntries) )
+						{
+							sysArgv.append(arg.Trim('"'));
+						}
+						sys.argv = sysArgv;
+
+						// Import and run holopatcher's main function
+						dynamic holopatcher = Py.Import("holopatcher.__main__");
+						holopatcher.main();
+
+						return (0, "", "");
+					}
+					catch ( PythonException ex )
+					{
+						return (1, "", ex.Message);
+					}
+					catch ( Exception ex )
+					{
+						return (1, "", ex.Message);
+					}
+				}
+			});
+		}
 
 
-		public static async Task<(bool success, string informationMessage)> ValidateInstallationEnvironmentAsync([NotNull] MainConfig mainConfig, [CanBeNull] Func<string, Task<bool?>> confirmationCallback = null)
+		public static async Task<(bool success, string informationMessage)> ValidateInstallationEnvironmentAsync(
+			[NotNull] MainConfig mainConfig,
+			[CanBeNull] Func<string, Task<bool?>> confirmationCallback = null)
 		{
 			if ( mainConfig == null )
 				throw new ArgumentNullException(nameof(mainConfig));
@@ -37,69 +190,57 @@ namespace KOTORModSync.Core.Services
 				bool holopatcherTestExecute = false;
 				string baseDir = Utility.Utility.GetBaseDirectory();
 				string resourcesDir = Utility.Utility.GetResourcesDirectory(baseDir);
-				FileSystemInfo patcherCliPath = null;
-				if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
+
+				// Use helper method to find holopatcher
+				(string holopatcherPath, bool usePythonVersion, bool found) = await FindHolopatcherAsync(resourcesDir, baseDir);
+
+				if ( !found )
 				{
-					patcherCliPath = new FileInfo(Path.Combine(resourcesDir, path2: "holopatcher.exe"));
+					return (false,
+						"HoloPatcher could not be found in the Resources directory. Please ensure your AV isn't quarantining it and the files exist.");
+				}
+
+				if ( usePythonVersion )
+				{
+					// Initialize Python environment and test holopatcher
+					await Logger.LogVerboseAsync("Initializing embedded Python environment...");
+					try
+					{
+						await EnsurePythonInitializedAsync();
+					}
+					catch ( Exception e )
+					{
+						await Logger.LogExceptionAsync(e);
+						holopatcherIsExecutable = false;
+					}
+
+					// Test holopatcher execution with Python
+					(int, string, string) result = await RunHolopatcherPyAsync(holopatcherPath, "--install");
+					if ( result.Item1 == 2 )
+						holopatcherTestExecute = true;
 				}
 				else
 				{
-
-					string[] possibleOsxPaths =
+					// Use platform-specific executable
+					await Logger.LogVerboseAsync("Ensuring the holopatcher binary has executable permissions...");
+					try
 					{
-						Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
-						Path.Combine(resourcesDir, path2: "holopatcher"),
-						Path.Combine(
-							baseDir,
-							"Resources",
-							"HoloPatcher.app",
-							"Contents",
-							"MacOS",
-							"holopatcher"
-						),
-						Path.Combine(baseDir, path2: "Resources", path3: "holopatcher"),
-					};
-
-					OSPlatform thisOperatingSystem = Utility.Utility.GetOperatingSystem();
-					foreach ( string path in possibleOsxPaths )
-					{
-						patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app")
-							? PathHelper.GetCaseSensitivePath(new DirectoryInfo(path))
-							: (FileSystemInfo)PathHelper.GetCaseSensitivePath(new FileInfo(path));
-
-						if ( patcherCliPath.Exists )
-						{
-							await Logger.LogVerboseAsync($"Found holopatcher at '{patcherCliPath.FullName}'...");
-							break;
-						}
-
-						await Logger.LogVerboseAsync($"Holopatcher not found at '{patcherCliPath.FullName}'...");
+						await PlatformAgnosticMethods.MakeExecutableAsync(new FileInfo(holopatcherPath));
 					}
-				}
+					catch ( Exception e )
+					{
+						await Logger.LogExceptionAsync(e);
+						holopatcherIsExecutable = false;
+					}
 
-				if ( patcherCliPath is null || !patcherCliPath.Exists )
-				{
-					return (false,
-						"HoloPatcher could not be found in the Resources directory. Please ensure your AV isn't quarantining it and the file exists.");
+					// Test holopatcher execution with executable
+					(int, string, string) result = await PlatformAgnosticMethods.ExecuteProcessAsync(
+						holopatcherPath,
+						args: "--install"
+					);
+					if ( result.Item1 == 2 )
+						holopatcherTestExecute = true;
 				}
-
-				await Logger.LogVerboseAsync("Ensuring the holopatcher binary has executable permissions...");
-				try
-				{
-					await PlatformAgnosticMethods.MakeExecutableAsync(patcherCliPath);
-				}
-				catch ( Exception e )
-				{
-					await Logger.LogExceptionAsync(e);
-					holopatcherIsExecutable = false;
-				}
-
-				(int, string, string) result = await PlatformAgnosticMethods.ExecuteProcessAsync(
-					patcherCliPath.FullName,
-					args: "--install"
-				);
-				if ( result.Item1 == 2 )
-					holopatcherTestExecute = true;
 
 				if ( MainConfig.AllComponents.IsNullOrEmptyCollection() )
 					return (false, "No instructions loaded! Press 'Load Instructions File' or create some instructions first.");
@@ -295,25 +436,22 @@ namespace KOTORModSync.Core.Services
 				switch ( component.InstallState )
 				{
 					case ModComponent.ComponentInstallState.Completed:
-					await Logger.LogAsync($"Skipping '{component.Name}' (already completed).");
-					coordinator.SessionManager.UpdateComponentState(component);
-					// component.PersistCheckpoint(); // Old checkpoint system disabled
-					await coordinator.SessionManager.SaveAsync();
-					continue;
-				case ModComponent.ComponentInstallState.Skipped:
-				case ModComponent.ComponentInstallState.Blocked:
-					await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).");
-					coordinator.SessionManager.UpdateComponentState(component);
-					// component.PersistCheckpoint(); // Old checkpoint system disabled
-					await coordinator.SessionManager.SaveAsync();
-					continue;
+						await Logger.LogAsync($"Skipping '{component.Name}' (already completed).");
+						coordinator.SessionManager.UpdateComponentState(component);
+						await coordinator.SessionManager.SaveAsync();
+						continue;
+					case ModComponent.ComponentInstallState.Skipped:
+					case ModComponent.ComponentInstallState.Blocked:
+						await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).");
+						coordinator.SessionManager.UpdateComponentState(component);
+						await coordinator.SessionManager.SaveAsync();
+						continue;
 				}
 
-			await Logger.LogAsync($"Start install of '{component.Name}'...");
-			exitCode = await component.InstallAsync(allComponents, cancellationToken);
-			coordinator.SessionManager.UpdateComponentState(component);
-			// component.PersistCheckpoint(); // Old checkpoint system disabled
-			await coordinator.SessionManager.SaveAsync();
+				await Logger.LogAsync($"Start install of '{component.Name}'...");
+				exitCode = await component.InstallAsync(allComponents, cancellationToken);
+				coordinator.SessionManager.UpdateComponentState(component);
+				await coordinator.SessionManager.SaveAsync();
 
 				if ( exitCode == ModComponent.InstallExitCode.Success )
 				{
@@ -325,11 +463,10 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogErrorAsync($"Install of '{component.Name}' failed with exit code {exitCode}");
 					InstallCoordinator.MarkBlockedDescendants(orderedComponents, component.Guid);
 					foreach ( ModComponent blocked in orderedComponents.Where(c => c.InstallState == ModComponent.ComponentInstallState.Blocked) )
-				{
-					coordinator.SessionManager.UpdateComponentState(blocked);
-					// blocked.PersistCheckpoint(); // Old checkpoint system disabled
-				}
-				await coordinator.SessionManager.SaveAsync();
+					{
+						coordinator.SessionManager.UpdateComponentState(blocked);
+					}
+					await coordinator.SessionManager.SaveAsync();
 					break;
 				}
 			}

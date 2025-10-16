@@ -20,7 +20,7 @@ namespace KOTORModSync.Services
 		public DialogService(Window parentWindow)
 		{
 			_parentWindow = parentWindow
-			                ?? throw new ArgumentNullException(nameof(parentWindow));
+							?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
 		public async Task<string[]> ShowFileDialogAsync(

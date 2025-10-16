@@ -139,7 +139,7 @@ namespace KOTORModSync.Dialogs
 			Visual current = source;
 			while ( current != null && current != this )
 			{
-				switch (current)
+				switch ( current )
 				{
 
 					case Button _:

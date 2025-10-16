@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core.Utility;
-using KOTORModSync.Core;
 
 namespace KOTORModSync.Core.Services
 {
@@ -15,24 +14,24 @@ namespace KOTORModSync.Core.Services
 	public static class ComponentProcessingService
 	{
 
-	public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
-	{
-		if ( components == null || components.Count == 0 )
-			return 0;
-
-		try
+		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 		{
+			if ( components == null || components.Count == 0 )
+				return 0;
 
-			return await TryGenerateFromLocalArchivesAsync(components);
-		}
-		catch ( Exception ex )
-		{
-			await Logger.LogExceptionAsync(ex);
-			return 0;
-		}
-	}
+			try
+			{
 
-	public static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
+				return await TryGenerateFromLocalArchivesAsync(components);
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex);
+				return 0;
+			}
+		}
+
+		public static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
 		{
 			int generatedCount = 0;
 
@@ -41,7 +40,7 @@ namespace KOTORModSync.Core.Services
 
 				int initialInstructionCount = component.Instructions.Count;
 
-				bool success = component.TryGenerateInstructionsFromArchive();
+				bool success = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 				if ( !success )
 					continue;
 

@@ -93,7 +93,7 @@ namespace KOTORModSync.Models
 				{
 					Option option = comp.Options.FirstOrDefault(o => o.Guid == guid);
 					if ( option == null )
-					    continue;
+						continue;
 					names.Add($"[Option] {comp.Name} → {option.Name}");
 					break;
 				}

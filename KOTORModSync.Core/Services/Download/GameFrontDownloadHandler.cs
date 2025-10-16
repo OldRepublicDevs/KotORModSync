@@ -14,18 +14,18 @@ namespace KOTORModSync.Core.Services.Download
 	{
 		public GameFrontDownloadHandler(HttpClient httpClient)
 		{
-			if (httpClient == null) throw new ArgumentNullException(nameof(httpClient));
+			if ( httpClient == null ) throw new ArgumentNullException(nameof(httpClient));
 			Logger.LogVerbose("[GameFront] Initializing GameFront download handler");
 
-			
-			if (!httpClient.DefaultRequestHeaders.Contains("User-Agent"))
+
+			if ( !httpClient.DefaultRequestHeaders.Contains("User-Agent") )
 			{
 				const string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
 				httpClient.DefaultRequestHeaders.Add("User-Agent", userAgent);
 				Logger.LogVerbose($"[GameFront] Added User-Agent header: {userAgent}");
 			}
 
-			if (!httpClient.DefaultRequestHeaders.Contains("Accept"))
+			if ( !httpClient.DefaultRequestHeaders.Contains("Accept") )
 			{
 				const string acceptHeader = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8";
 				httpClient.DefaultRequestHeaders.Add("Accept", acceptHeader);
@@ -46,17 +46,22 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			await Logger.LogVerboseAsync($"[GameFront] Cannot resolve filenames for GameFront URLs (requires JavaScript): {url}");
 			await Task.CompletedTask;
-			
+
 			return new List<string>();
 		}
 
-		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
+		public async Task<DownloadResult> DownloadAsync(
+			string url,
+			string destinationDirectory,
+			IProgress<DownloadProgress> progress = null,
+			List<string> targetFilenames = null,
+			CancellationToken cancellationToken = default)
 		{
 			await Logger.LogVerboseAsync($"[GameFront] Starting GameFront download from URL: {url}");
 			await Logger.LogVerboseAsync($"[GameFront] Destination directory: {destinationDirectory}");
 
-			
-			
+
+
 			await Logger.LogWarningAsync("[GameFront] GameFront downloads require JavaScript execution and cannot be automated without a browser engine");
 
 			string errorMessage = "GameFront downloads require manual interaction. The site uses JavaScript-based countdown timers and anti-bot protection that cannot be bypassed with HttpClient alone.\n\n" +

@@ -182,22 +182,23 @@ namespace KOTORModSync.Core
 		public ModComponent GetParentComponent() => _parentComponent;
 		public void SetParentComponent(ModComponent thisComponent) => _parentComponent = thisComponent;
 
-		internal void SetRealPaths(bool noParse = false, bool noValidate = false)
+		internal void SetRealPaths(bool sourceIsNotFilePath = false, bool skipExistenceCheck = false)
 		{
 			if ( _fileSystemProvider == null )
 				throw new InvalidOperationException("File system provider must be set before calling SetRealPaths. Call SetFileSystemProvider() first.");
 			if ( Source is null )
 				throw new NullReferenceException(nameof(Source));
 			List<string> newSourcePaths = Source.ConvertAll(Utility.Utility.ReplaceCustomVariables);
-			if ( !noParse )
+			if ( !sourceIsNotFilePath )
 			{
 				newSourcePaths = PathHelper.EnumerateFilesWithWildcards(newSourcePaths, _fileSystemProvider);
-				if ( !noValidate )
+				if ( !skipExistenceCheck )
 				{
 					if ( newSourcePaths.IsNullOrEmptyOrAllNull() )
 					{
-						throw new FileNotFoundException(
-							$"Could not find any files matching the pattern in the 'Source' path on disk! Got [{string.Join(separator: ", ", Source)}]"
+						throw new Exceptions.WildcardPatternNotFoundException(
+							Source,
+							_parentComponent?.Name
 						);
 					}
 					if ( newSourcePaths.Any(f => !_fileSystemProvider.FileExists(f)) )
@@ -215,17 +216,27 @@ namespace KOTORModSync.Core
 			}
 			string destinationPath = Utility.Utility.ReplaceCustomVariables(Destination);
 			DirectoryInfo thisDestination = PathHelper.TryGetValidDirectoryInfo(destinationPath);
-			if ( noParse )
+			if ( sourceIsNotFilePath )
 			{
 				RealDestinationPath = thisDestination;
 				return;
 			}
-			bool skipDestinationValidation = Action == ActionType.Copy || Action == ActionType.Move || Action == ActionType.Rename || Action == ActionType.Extract;
-			if ( skipDestinationValidation && thisDestination == null )
+			bool skipDestinationValidation = Action == ActionType.Copy
+											|| Action == ActionType.Move
+											|| Action == ActionType.Rename
+											|| Action == ActionType.Extract
+											|| Action == ActionType.DelDuplicate;
+			if ( skipDestinationValidation && thisDestination == null && !string.IsNullOrWhiteSpace(destinationPath) )
 			{
 				thisDestination = new DirectoryInfo(destinationPath);
 			}
-			if ( !noValidate && !skipDestinationValidation && thisDestination != null && !_fileSystemProvider.DirectoryExists(thisDestination.FullName) )
+			if (
+				!skipExistenceCheck
+				&& !skipDestinationValidation
+				&& thisDestination != null
+				&& !_fileSystemProvider.DirectoryExists(thisDestination.FullName)
+				&& Action != ActionType.DelDuplicate
+			)
 			{
 				if ( MainConfig.CaseInsensitivePathing )
 				{
@@ -245,8 +256,11 @@ namespace KOTORModSync.Core
 				throw new InvalidOperationException("File system provider must be set before calling ExtractFileAsync. Call SetFileSystemProvider() first.");
 			try
 			{
-				RealSourcePaths = argSourcePaths
-					?? RealSourcePaths ?? throw new ArgumentNullException(nameof(argSourcePaths));
+				if ( argSourcePaths.IsNullOrEmptyCollection() )
+					argSourcePaths = RealSourcePaths;
+				if ( argSourcePaths.IsNullOrEmptyCollection() )
+					throw new ArgumentNullException(nameof(argSourcePaths));
+				RealSourcePaths = argSourcePaths;
 				foreach ( string sourcePath in RealSourcePaths )
 				{
 					string destinationPath = argDestinationPath?.FullName ?? Path.GetDirectoryName(sourcePath);
@@ -707,6 +721,13 @@ namespace KOTORModSync.Core
 						: new DirectoryInfo(t);
 					if ( tslPatcherDirectory is null || !_fileSystemProvider.DirectoryExists(tslPatcherDirectory.FullName) )
 						throw new DirectoryNotFoundException($"The directory '{t}' could not be located on the disk.");
+
+					if ( _fileSystemProvider is Services.FileSystem.VirtualFileSystemProvider )
+					{
+						await Logger.LogAsync($"[Simulation] Skipping TSLPatcher execution for simulation mode");
+						continue;
+					}
+
 					string fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.rtf");
 					if ( _fileSystemProvider.FileExists(fullInstallLogFile) )
 						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
@@ -724,50 +745,44 @@ namespace KOTORModSync.Core
 					};
 					if ( !string.IsNullOrEmpty(Arguments) ) argList.Add($"--namespace-option-index={Arguments}");
 					string args = string.Join(separator: " ", argList);
-					FileSystemInfo patcherCliPath = null;
 					string baseDir = Utility.Utility.GetBaseDirectory();
 					string resourcesDir = Utility.Utility.GetResourcesDirectory(baseDir);
-					if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
-					{
-						patcherCliPath = new FileInfo(Path.Combine(resourcesDir, "holopatcher.exe"));
-					}
-					else
-					{
-						string[] possibleOsxPaths = {
-							Path.Combine(resourcesDir, "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
-							Path.Combine(resourcesDir, "holopatcher"),
-							Path.Combine(baseDir, "Resources", "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
-							Path.Combine(baseDir, "Resources", "holopatcher")
-						};
-						OSPlatform thisOperatingSystem = Utility.Utility.GetOperatingSystem();
-						foreach ( string path in possibleOsxPaths )
-						{
-							patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app")
-								? PathHelper.GetCaseSensitivePath(new DirectoryInfo(path))
-								: (FileSystemInfo)PathHelper.GetCaseSensitivePath(new FileInfo(path));
-							if ( patcherCliPath.Exists )
-							{
-								await Logger.LogVerboseAsync($"Found holopatcher at '{patcherCliPath.FullName}'...");
-								break;
-							}
-							await Logger.LogVerboseAsync($"Holopatcher not found at '{patcherCliPath.FullName}'...");
-						}
-					}
-					if ( patcherCliPath is null || !patcherCliPath.Exists )
+
+					// Use helper method to find holopatcher
+					(string holopatcherPath, bool usePythonVersion, bool found) = await Services.InstallationService.FindHolopatcherAsync(resourcesDir, baseDir);
+
+					if ( !found )
 						throw new FileNotFoundException($"Could not load HoloPatcher from the '{resourcesDir}' directory!");
-					patcherCliPath = new FileInfo(t);
 					if ( int.TryParse(Arguments.Trim(), out int namespaceId) )
 					{
 						string message = $"If asked to pick an option, select the {Serializer.ToOrdinal(namespaceId + 1)} from the top.";
 						_ = CallbackObjects.InformationCallback.ShowInformationDialog(message);
 						await Logger.LogWarningAsync(message);
 					}
-					await Logger.LogAsync($"Using CLI to run command: '{patcherCliPath} {args}'");
-					(int exitCode, string output, string error) = await _fileSystemProvider.ExecuteProcessAsync(
-						patcherCliPath.FullName,
-						args
-					);
-					await Logger.LogVerboseAsync($"'{patcherCliPath.Name}' exited with exit code {exitCode}");
+
+					await Logger.LogAsync($"Using CLI to run command: '{holopatcherPath}' {args}");
+
+					int exitCode;
+					string output;
+					string error;
+					if ( usePythonVersion )
+					{
+						// Use Python.NET to run holopatcher
+						(exitCode, output, error) = await Services.InstallationService.RunHolopatcherPyAsync(
+								holopatcherPath,
+								args
+							);
+					}
+					else
+					{
+						// Use platform-specific executable
+						(exitCode, output, error) = await _fileSystemProvider.ExecuteProcessAsync(
+							holopatcherPath,
+							args
+						);
+					}
+
+					await Logger.LogAsync($"'holopatcher' exited with exit code {exitCode}");
 					if ( exitCode != 0 )
 						return ActionExitCode.PatcherError;
 					try
@@ -791,15 +806,17 @@ namespace KOTORModSync.Core
 				throw;
 			}
 		}
-		public async Task<ActionExitCode> ExecuteProgramAsync([ItemNotNull] List<string> sourcePaths = null)
+		public async Task<ActionExitCode> ExecuteProgramAsync(
+			[ItemNotNull] List<string> sourcePaths = null
+		)
 		{
 			if ( _fileSystemProvider == null )
 				throw new InvalidOperationException("File system provider must be set before calling ExecuteProgramAsync. Call SetFileSystemProvider() first.");
 			try
 			{
-				if ( sourcePaths == null )
+				if ( sourcePaths.IsNullOrEmptyCollection() )
 					sourcePaths = RealSourcePaths;
-				if ( sourcePaths == null )
+				if ( sourcePaths.IsNullOrEmptyCollection() )
 					throw new ArgumentNullException(nameof(sourcePaths));
 				ActionExitCode exitCode = ActionExitCode.Success;
 				foreach ( string sourcePath in sourcePaths )
@@ -811,7 +828,7 @@ namespace KOTORModSync.Core
 								sourcePath,
 								Utility.Utility.ReplaceCustomVariables(Arguments)
 							);
-						_ = Logger.LogVerboseAsync(output + Environment.NewLine + error);
+						_ = Logger.LogAsync(output + Environment.NewLine + error);
 						if ( childExitCode == 0 )
 							continue;
 						exitCode = ActionExitCode.ChildProcessError;
@@ -841,9 +858,9 @@ namespace KOTORModSync.Core
 		{
 			if ( _fileSystemProvider == null )
 				throw new InvalidOperationException("File system provider must be set before calling VerifyInstall. Call SetFileSystemProvider() first.");
-			if ( sourcePaths == null )
+			if ( sourcePaths.IsNullOrEmptyCollection() )
 				sourcePaths = RealSourcePaths;
-			if ( sourcePaths == null )
+			if ( sourcePaths.IsNullOrEmptyCollection() )
 				throw new ArgumentNullException(nameof(sourcePaths));
 			if ( _fileSystemProvider.IsDryRun )
 			{

@@ -10,15 +10,8 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Core.Services.Validation
 {
-	
-	
-	
-	
 	public static class ValidationResultPresenter
 	{
-		
-		
-		
 		[NotNull]
 		public static string GetDialogTitle([NotNull] DryRunValidationResult result)
 		{
@@ -38,9 +31,6 @@ namespace KOTORModSync.Core.Services.Validation
 			return "✗ Validation Failed";
 		}
 
-		
-		
-		
 		[NotNull]
 		public static string GetMainMessage([NotNull] DryRunValidationResult result, bool isEditorMode)
 		{
@@ -52,9 +42,6 @@ namespace KOTORModSync.Core.Services.Validation
 				: result.GetEndUserMessage();
 		}
 
-		
-		
-		
 		[NotNull]
 		[ItemNotNull]
 		public static List<ActionableStep> GetActionableSteps([NotNull] DryRunValidationResult result, bool isEditorMode)
@@ -66,10 +53,10 @@ namespace KOTORModSync.Core.Services.Validation
 
 			if ( result.IsValid )
 			{
-				return steps; 
+				return steps;
 			}
 
-			
+
 			var componentIssues = result.Issues
 				.Where(i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical)
 				.Where(i => i.AffectedComponent != null)
@@ -81,13 +68,13 @@ namespace KOTORModSync.Core.Services.Validation
 				ModComponent component = group.Key;
 				List<ValidationIssue> issues = group.ToList();
 
-				
+
 				bool hasArchiveIssues = issues.Any(i => i.Category == "ArchiveValidation" || i.Category == "ExtractArchive");
 				bool hasOrderIssues = issues.Any(i => i.Message.Contains("does not exist") && !hasArchiveIssues);
 
 				if ( hasArchiveIssues && !isEditorMode )
 				{
-					
+
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.DownloadMod,
@@ -106,7 +93,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 				else if ( hasOrderIssues && isEditorMode )
 				{
-					
+
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.ReorderInstructions,
@@ -125,7 +112,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 				else if ( !isEditorMode )
 				{
-					
+
 					bool isRequiredDependency = MainConfig.AllComponents
 						.Any(c => c != component && c.IsSelected && c.Dependencies.Contains(component.Guid));
 
@@ -165,7 +152,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 				else
 				{
-					
+
 					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.EditInstructions,
@@ -187,9 +174,9 @@ namespace KOTORModSync.Core.Services.Validation
 			return steps;
 		}
 
-		
-		
-		
+
+
+
 		public static bool CanAutoResolve([NotNull] DryRunValidationResult result)
 		{
 			if ( result == null )
@@ -199,10 +186,10 @@ namespace KOTORModSync.Core.Services.Validation
 			return componentsToDisable.Count > 0;
 		}
 
-		
-		
-		
-		
+
+
+
+
 		public static int AutoResolveIssues([NotNull] DryRunValidationResult result)
 		{
 			if ( result == null )
@@ -218,9 +205,9 @@ namespace KOTORModSync.Core.Services.Validation
 			return componentsToDisable.Count;
 		}
 
-		
-		
-		
+
+
+
 		[NotNull]
 		[ItemNotNull]
 		public static List<ModComponent> GetComponentsToHighlight([NotNull] DryRunValidationResult result)
@@ -232,9 +219,9 @@ namespace KOTORModSync.Core.Services.Validation
 		}
 	}
 
-	
-	
-	
+
+
+
 	public class ActionableStep
 	{
 		public ActionType ActionType { get; set; }
@@ -253,9 +240,9 @@ namespace KOTORModSync.Core.Services.Validation
 		public bool CanAutoResolve { get; set; }
 	}
 
-	
-	
-	
+
+
+
 	public enum ActionType
 	{
 		DownloadMod,

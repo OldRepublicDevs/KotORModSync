@@ -74,11 +74,10 @@ namespace KOTORModSync.Core.Utility
 
 		public static bool IsPotentialSevenZipSFX([NotNull] string filePath)
 		{
-			// These bytes represent a typical signature for Windows executables.
 			byte[] sfxSignature =
 			{
 				0x4D, 0x5A,
-			}; // 'MZ' header
+			};
 
 			byte[] fileHeader = new byte[sfxSignature.Length];
 
@@ -90,13 +89,6 @@ namespace KOTORModSync.Core.Utility
 			return sfxSignature.SequenceEqual(fileHeader);
 		}
 
-		/// <summary>
-		/// Attempts to extract a 7z SFX executable by finding and extracting the embedded 7z payload.
-		/// </summary>
-		/// <param name="sfxPath">Path to the SFX .exe file</param>
-		/// <param name="destinationPath">Base destination directory for extraction</param>
-		/// <param name="extractedFiles">List to populate with extracted file paths</param>
-		/// <returns>True if extraction succeeded, false otherwise</returns>
 		public static bool TryExtractSevenZipSfx([NotNull] string sfxPath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
 		{
 			if ( sfxPath is null )
@@ -109,7 +101,6 @@ namespace KOTORModSync.Core.Utility
 			if ( !File.Exists(sfxPath) )
 				return false;
 
-			// 7z signature: 37 7A BC AF 27 1C
 			byte[] sevenZipSignature = { 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C };
 			long signatureOffset = -1;
 
@@ -117,7 +108,6 @@ namespace KOTORModSync.Core.Utility
 			{
 				using ( var fs = new FileStream(sfxPath, FileMode.Open, FileAccess.Read) )
 				{
-					// Search for 7z signature in the file
 					var buffer = new byte[8192];
 					long position = 0;
 					int bytesRead;
@@ -147,7 +137,6 @@ namespace KOTORModSync.Core.Utility
 							break;
 
 						position += bytesRead;
-						// Move back a bit to catch signatures that span buffer boundaries
 						if ( bytesRead == buffer.Length )
 						{
 							fs.Seek(-sevenZipSignature.Length, SeekOrigin.Current);
@@ -164,7 +153,6 @@ namespace KOTORModSync.Core.Utility
 
 				Logger.LogVerbose($"Found 7z signature at offset {signatureOffset} in {sfxPath}");
 
-				// Create a temporary .7z file with the embedded payload
 				string tempSevenZipPath = Path.Combine(Path.GetTempPath(), $"sfx_extract_{Guid.NewGuid()}.7z");
 
 				try
@@ -176,7 +164,6 @@ namespace KOTORModSync.Core.Utility
 						sourceStream.CopyTo(destStream);
 					}
 
-					// Extract the temp .7z file using SharpCompress
 					string extractFolderName = Path.GetFileNameWithoutExtension(sfxPath);
 					string extractPath = Path.Combine(destinationPath, extractFolderName);
 
@@ -214,7 +201,6 @@ namespace KOTORModSync.Core.Utility
 				}
 				finally
 				{
-					// Clean up temp file
 					if ( File.Exists(tempSevenZipPath) )
 					{
 						try
@@ -240,37 +226,43 @@ namespace KOTORModSync.Core.Utility
 			string exePath = null;
 			bool tslPatchDataFolderExists = false;
 
-			using ( IReader reader = archive.ExtractAllEntries() )
+			try
 			{
-				while ( reader.MoveToNextEntry() )
+				using ( IReader reader = archive.ExtractAllEntries() )
 				{
-					if ( reader.Entry.IsDirectory )
-						continue;
-
-					string fileName = Path.GetFileName(reader.Entry.Key);
-					string directory = Path.GetDirectoryName(reader.Entry.Key);
-
-					// Check for exe file
-					if ( fileName.EndsWith(value: ".exe", StringComparison.OrdinalIgnoreCase) )
+					while ( reader.MoveToNextEntry() )
 					{
-						if ( exePath != null )
-							return null;  // Multiple exe files found in the archive.
+						if ( reader.Entry.IsDirectory )
+							continue;
 
-						exePath = reader.Entry.Key;
-					}
+						string fileName = Path.GetFileName(reader.Entry.Key);
+						string directory = Path.GetDirectoryName(reader.Entry.Key);
 
-					// Check for 'tslpatchdata' folder
-					if ( !(directory is null) && directory.Contains("tslpatchdata") )
-					{
-						tslPatchDataFolderExists = true;
+						if ( fileName.EndsWith(value: ".exe", StringComparison.OrdinalIgnoreCase) )
+						{
+							if ( exePath != null )
+								return null;
+
+							exePath = reader.Entry.Key;
+						}
+
+						if ( !(directory is null) && directory.Contains("tslpatchdata") )
+						{
+							tslPatchDataFolderExists = true;
+						}
 					}
 				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogWarning($"SharpCompress failed to analyze archive: {ex.Message}");
+				Logger.LogVerbose("Archive may require 7zip for extraction.");
+				return null;
 			}
 
 			if (
 				exePath != null
 				&& tslPatchDataFolderExists
-				// ReSharper disable once PossibleNullReferenceException
 				&& Path.GetDirectoryName(exePath).Contains("tslpatchdata")
 			)
 			{
@@ -280,13 +272,175 @@ namespace KOTORModSync.Core.Utility
 			return null;
 		}
 
-		/// <summary>
-		/// Attempts to extract using the 7z command-line tool if available.
-		/// </summary>
-		/// <param name="archivePath">Path to the archive file</param>
-		/// <param name="destinationPath">Base destination directory for extraction</param>
-		/// <param name="extractedFiles">List to populate with extracted file paths</param>
-		/// <returns>True if extraction succeeded via CLI, false if 7z CLI not available or failed</returns>
+		public static async System.Threading.Tasks.Task<List<string>> TryListArchiveWithSevenZipCliAsync([NotNull] string archivePath)
+		{
+			if ( archivePath is null )
+				throw new ArgumentNullException(nameof(archivePath));
+
+			var fileList = new List<string>();
+			string sevenZipPath = null;
+			string[] possiblePaths = {
+				// Command-line accessible (PATH)
+				"7z",
+				"7za",
+				"7zr",
+
+				// Windows - Program Files locations
+				@"C:\Program Files\7-Zip\7z.exe",
+				@"C:\Program Files (x86)\7-Zip\7z.exe",
+				@"C:\Program Files\7-Zip\7za.exe",
+				@"C:\Program Files (x86)\7-Zip\7za.exe",
+				@"C:\Program Files\7-Zip\7zr.exe",
+				@"C:\Program Files (x86)\7-Zip\7zr.exe",
+
+				// Windows - Chocolatey
+				@"C:\ProgramData\chocolatey\bin\7z.exe",
+				@"C:\ProgramData\chocolatey\lib\7zip\tools\7z.exe",
+
+				// Windows - Scoop
+				@"C:\Users\%USERNAME%\scoop\apps\7zip\current\7z.exe",
+
+				// Windows - Portable installations
+				@"C:\7-Zip\7z.exe",
+				@"C:\Tools\7-Zip\7z.exe",
+				@"C:\Portable\7-Zip\7z.exe",
+
+				// macOS - Homebrew/MacPorts
+				"/usr/local/bin/7z",
+				"/usr/local/bin/7za",
+				"/opt/homebrew/bin/7z",
+				"/opt/homebrew/bin/7za",
+
+				// macOS - Manual installations
+				"/Applications/7zX.app/Contents/MacOS/7za",
+				"/Applications/Keka.app/Contents/Resources/7za",
+
+				// Linux - Common system paths
+				"/usr/bin/7z",
+				"/usr/bin/7za",
+				"/usr/bin/7zr",
+				"/usr/local/bin/7z",
+				"/usr/local/bin/7za",
+				"/usr/local/bin/7zr",
+
+				// Linux - Snap
+				"/snap/bin/7z",
+				"/snap/p7zip/current/usr/bin/7z",
+
+				// Linux - Flatpak
+				"/var/lib/flatpak/exports/bin/7z",
+
+				// Linux - AppImage
+				"/opt/7-Zip/7z",
+
+				// Cross-platform - Home directory installations
+				"~/bin/7z",
+				"~/.local/bin/7z"
+			};
+
+			foreach ( string path in possiblePaths )
+			{
+				try
+				{
+					var (exitCode, _, _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+						path,
+						"--help",
+						timeout: 2000,
+						hideProcess: true,
+						noLogging: true
+					);
+
+					if ( exitCode == 0 )
+					{
+						sevenZipPath = path;
+						Logger.LogVerbose($"Found 7z CLI at: {sevenZipPath}");
+						break;
+					}
+				}
+				catch
+				{
+				}
+			}
+
+			if ( sevenZipPath is null )
+			{
+				Logger.LogWarning("7z CLI not found in any standard location. Install 7-Zip to improve archive compatibility.");
+				Logger.LogVerbose($"Searched {possiblePaths.Length} possible 7z locations without success.");
+				return fileList;
+			}
+
+			try
+			{
+				string args = $"l -slt \"{archivePath}\"";
+				var (exitCode, output, error) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+					sevenZipPath,
+					args,
+					timeout: 30000,
+					hideProcess: true,
+					noLogging: true
+				);
+
+				if ( exitCode != 0 )
+				{
+					Logger.LogVerbose($"7z CLI list failed with exit code {exitCode}");
+					return fileList;
+				}
+
+				bool inFileSection = false;
+				string currentPath = null;
+				bool isDirectory = false;
+
+				foreach ( string line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries) )
+				{
+					string trimmedLine = line.Trim();
+
+					if ( trimmedLine.StartsWith("Path = ") )
+					{
+						if ( currentPath != null && !isDirectory )
+						{
+							fileList.Add(currentPath);
+						}
+						currentPath = trimmedLine.Substring("Path = ".Length);
+						isDirectory = false;
+						inFileSection = true;
+					}
+					else if ( inFileSection && trimmedLine.StartsWith("Folder = ") )
+					{
+						string folderValue = trimmedLine.Substring("Folder = ".Length);
+						isDirectory = folderValue.Equals("+", StringComparison.OrdinalIgnoreCase);
+					}
+					else if ( trimmedLine == "----------" )
+					{
+						if ( currentPath != null && !isDirectory )
+						{
+							fileList.Add(currentPath);
+						}
+						currentPath = null;
+						isDirectory = false;
+						inFileSection = false;
+					}
+				}
+
+				if ( currentPath != null && !isDirectory )
+				{
+					fileList.Add(currentPath);
+				}
+
+				if ( fileList.Count > 0 && fileList[0] == Path.GetFileName(archivePath) )
+				{
+					fileList.RemoveAt(0);
+				}
+
+				Logger.LogVerbose($"7z CLI listed {fileList.Count} files in archive");
+				return fileList;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Failed to list archive with 7z CLI: {archivePath}");
+				return fileList;
+			}
+		}
+
 		public static async System.Threading.Tasks.Task<bool> TryExtractWithSevenZipCliAsync([NotNull] string archivePath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
 		{
 			if ( archivePath is null )
@@ -296,7 +450,6 @@ namespace KOTORModSync.Core.Utility
 			if ( extractedFiles is null )
 				throw new ArgumentNullException(nameof(extractedFiles));
 
-			// Try to find 7z executable
 			string sevenZipPath = null;
 			string[] possiblePaths = { "7z", "7za", "/usr/bin/7z", "/usr/local/bin/7z" };
 
@@ -320,7 +473,6 @@ namespace KOTORModSync.Core.Utility
 				}
 				catch
 				{
-					// Continue to next path
 				}
 			}
 
@@ -340,7 +492,6 @@ namespace KOTORModSync.Core.Utility
 				if ( !Directory.Exists(extractPath) )
 					_ = Directory.CreateDirectory(extractPath);
 
-				// Execute 7z extraction
 				string args = $"x \"-o{extractPath}\" -y \"{archivePath}\"";
 				var (exitCode, output, error) = await PlatformAgnosticMethods.ExecuteProcessAsync(
 					sevenZipPath,
@@ -356,7 +507,6 @@ namespace KOTORModSync.Core.Utility
 					return false;
 				}
 
-				// Enumerate extracted files
 				if ( Directory.Exists(extractPath) )
 				{
 					var files = Directory.GetFiles(extractPath, "*", SearchOption.AllDirectories);
@@ -379,7 +529,7 @@ namespace KOTORModSync.Core.Utility
 			if ( !(Utility.GetOperatingSystem() == OSPlatform.Windows) )
 				throw new NotImplementedException("Non-windows OS's are not currently supported");
 
-			SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll")); // Path to 7z.dll
+			SevenZipBase.SetLibraryPath(Path.Combine(Utility.GetResourcesDirectory(), "7z.dll"));
 			var extractor = new SevenZipExtractor(stream);
 			extractor.ExtractArchive(destinationDirectory);
 		}
@@ -465,17 +615,6 @@ namespace KOTORModSync.Core.Utility
 					(root["Contents"] as List<object>)?.Add(fileInfo);
 				}
 
-				/*foreach (DirectoryInfo subdirectory in directory.EnumerateDirectoriesSafely())
-                {
-                    var subdirectoryInfo = new Dictionary<string, object>
-                    {
-                        { "Name", subdirectory.Name },
-                        { "Type", "directory" },
-                        { "Contents", GenerateArchiveTreeJson(subdirectory) }
-                    };
-
-                    (root["Contents"] as List<object>).Add(subdirectoryInfo);
-                }*/
 			}
 			catch ( Exception ex )
 			{
@@ -504,19 +643,27 @@ namespace KOTORModSync.Core.Utility
 					return archiveEntries;
 				}
 
-				archiveEntries.AddRange(
-					from entry in archive.Entries.Where(e => !e.IsDirectory)
-					let pathParts = entry.Key.Split(
-						archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase)
-							? '\\' // Use backslash as separator for RAR files
-							: '/'  // Use forward slash for other archive types
-					)
-					select new ModDirectory.ArchiveEntry
-					{
-						Name = pathParts[pathParts.Length - 1],
-						Path = entry.Key,
-					}
-				);
+				try
+				{
+					archiveEntries.AddRange(
+						from entry in archive.Entries.Where(e => !e.IsDirectory)
+						let pathParts = entry.Key.Split(
+							archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase)
+								? '\\'
+								: '/'
+						)
+						select new ModDirectory.ArchiveEntry
+						{
+							Name = pathParts[pathParts.Length - 1],
+							Path = entry.Key,
+						}
+					);
+				}
+				catch ( Exception enumEx )
+				{
+					Logger.LogWarning($"SharpCompress failed to enumerate archive entries for '{Path.GetFileName(archivePath)}': {enumEx.Message}");
+					Logger.LogVerbose("This archive may require 7zip for extraction.");
+				}
 
 				stream.Dispose();
 			}

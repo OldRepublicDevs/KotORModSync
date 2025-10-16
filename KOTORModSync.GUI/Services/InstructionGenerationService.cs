@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
+using KOTORModSync.Core.Utility;
 using KOTORModSync.Dialogs;
 
 namespace KOTORModSync.Services
@@ -29,9 +30,9 @@ namespace KOTORModSync.Services
 			_mainConfig = mainConfig
 						  ?? throw new ArgumentNullException(nameof(mainConfig));
 			_parentWindow = parentWindow
-			                ?? throw new ArgumentNullException(nameof(parentWindow));
+							?? throw new ArgumentNullException(nameof(parentWindow));
 			_downloadOrchestrationService = downloadOrchestrationService
-			                                ?? throw new ArgumentNullException(nameof(downloadOrchestrationService));
+											?? throw new ArgumentNullException(nameof(downloadOrchestrationService));
 		}
 
 		public async Task<int> GenerateInstructionsFromModLinksAsync(ModComponent component)
@@ -40,7 +41,7 @@ namespace KOTORModSync.Services
 			{
 				await Logger.LogVerboseAsync("[GenerateInstructionsFromModLinks] START");
 
-				if ( component.ModLink == null || component.ModLink.Count == 0 )
+				if ( component.ModLinkFilenames == null || component.ModLinkFilenames.Count == 0 )
 				{
 					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "No mod links available for this component");
 					return 0;
@@ -59,7 +60,7 @@ namespace KOTORModSync.Services
 					return 0;
 				}
 
-				foreach ( string modLink in component.ModLink )
+				foreach ( string modLink in component.ModLinkFilenames.Keys )
 				{
 					if ( string.IsNullOrWhiteSpace(modLink) )
 						continue;
@@ -100,7 +101,7 @@ namespace KOTORModSync.Services
 					}
 				}
 
-                int totalInstructionsGenerated = 0;
+				int totalInstructionsGenerated = 0;
 				foreach ( string archivePath in validArchives )
 				{
 					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Generating instructions for: {archivePath}");
@@ -108,9 +109,9 @@ namespace KOTORModSync.Services
 					if ( success )
 					{
 						totalInstructionsGenerated += component.Instructions.Count;
-                        await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Successfully generated instructions for: {archivePath}");
+						await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Successfully generated instructions for: {archivePath}");
 
-                        component.IsDownloaded = true;
+						component.IsDownloaded = true;
 					}
 				}
 
@@ -134,10 +135,10 @@ namespace KOTORModSync.Services
 					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Added Move instruction for file: {fileName}");
 				}
 
-                if ( totalInstructionsGenerated > 0 )
+				if ( totalInstructionsGenerated > 0 )
 				{
 
-                    component.IsDownloaded = true;
+					component.IsDownloaded = true;
 					string message = $"Successfully generated {totalInstructionsGenerated} instructions";
 					if ( invalidLinks.Count > 0 )
 					{
@@ -237,7 +238,7 @@ namespace KOTORModSync.Services
 						continue;
 					}
 
-					bool success = component.TryGenerateInstructionsFromArchive();
+					bool success = Core.Services.AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 					if ( !success )
 						continue;
 
@@ -272,11 +273,7 @@ namespace KOTORModSync.Services
 
 		private static bool IsArchive(string filePath)
 		{
-			if ( string.IsNullOrEmpty(filePath) )
-				return false;
-
-			string extension = Path.GetExtension(filePath).ToLowerInvariant();
-			return extension == ".zip" || extension == ".rar" || extension == ".7z";
+			return ArchiveHelper.IsArchive(filePath);
 		}
 
 		private static string GetRelativePath(string basePath, string targetPath)

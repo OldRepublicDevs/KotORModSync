@@ -35,7 +35,7 @@ namespace KOTORModSync.Tests
 			foreach ( var watcher in _watchers )
 			{
 				try { watcher.Dispose(); }
-				catch {  }
+				catch { }
 			}
 
 			foreach ( var file in _createdFiles )
@@ -45,7 +45,7 @@ namespace KOTORModSync.Tests
 					if ( File.Exists(file) )
 						File.Delete(file);
 				}
-				catch {  }
+				catch { }
 			}
 
 			foreach ( var dir in _createdDirectories.OrderByDescending(d => d.Length) )
@@ -55,7 +55,7 @@ namespace KOTORModSync.Tests
 					if ( Directory.Exists(dir) )
 						Directory.Delete(dir, true);
 				}
-				catch {  }
+				catch { }
 			}
 
 			try
@@ -63,14 +63,14 @@ namespace KOTORModSync.Tests
 				if ( Directory.Exists(_testDirectory) )
 					Directory.Delete(_testDirectory, true);
 			}
-			catch {  }
+			catch { }
 
 			try
 			{
 				if ( Directory.Exists(_externalDirectory) )
 					Directory.Delete(_externalDirectory, true);
 			}
-			catch {  }
+			catch { }
 		}
 
 		private string CreateTestFile(string directory, string fileName, string content = "test content")

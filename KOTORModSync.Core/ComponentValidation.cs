@@ -434,55 +434,64 @@ namespace KOTORModSync.Core
 				throw new ArgumentNullException(nameof(archivePath));
 			if ( !ArchiveHelper.IsArchive(archivePath) )
 				return ArchivePathCode.NotAnArchive;
-			if ( Path.GetExtension(archivePath) == ".exe" )
+			if ( Path.GetExtension(archivePath).Equals(".exe", StringComparison.OrdinalIgnoreCase) )
 				return ArchivePathCode.FoundSuccessfully;
-			using ( FileStream stream = File.OpenRead(archivePath) )
+
+			try
 			{
-				IArchive archive = null;
-				if ( archivePath.EndsWith(value: ".zip", StringComparison.OrdinalIgnoreCase) )
+				using ( FileStream stream = File.OpenRead(archivePath) )
 				{
-					archive = ZipArchive.Open(stream);
-				}
-				else if ( archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase) )
-				{
-					archive = RarArchive.Open(stream);
-				}
-				else if ( archivePath.EndsWith(value: ".7z", StringComparison.OrdinalIgnoreCase) )
-				{
-					archive = SevenZipArchive.Open(stream);
-				}
-				if ( archive is null )
-					return ArchivePathCode.CouldNotOpenArchive;
-				string archiveNameAppend = Path.GetFileNameWithoutExtension(archivePath);
-				if ( PathHelper.WildcardPathMatch(archiveNameAppend, relativePath) )
-					return ArchivePathCode.FoundSuccessfully;
-				var folderPaths = new HashSet<string>();
-				foreach ( IArchiveEntry entry in archive.Entries )
-				{
-					string itemInArchivePath = archiveNameAppend
-						+ Path.DirectorySeparatorChar
-						+ entry.Key.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-					string folderName = Path.GetFileName(itemInArchivePath);
-					if ( entry.IsDirectory )
+					IArchive archive = null;
+					if ( archivePath.EndsWith(value: ".zip", StringComparison.OrdinalIgnoreCase) )
 					{
-						folderName = Path.GetDirectoryName(itemInArchivePath);
+						archive = ZipArchive.Open(stream);
 					}
-					if ( !string.IsNullOrEmpty(folderName) )
+					else if ( archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase) )
 					{
-						_ = folderPaths.Add(
-							folderName.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-						);
+						archive = RarArchive.Open(stream);
 					}
-					if ( PathHelper.WildcardPathMatch(itemInArchivePath, relativePath) )
+					else if ( archivePath.EndsWith(value: ".7z", StringComparison.OrdinalIgnoreCase) )
+					{
+						archive = SevenZipArchive.Open(stream);
+					}
+					if ( archive is null )
+						return ArchivePathCode.CouldNotOpenArchive;
+					string archiveNameAppend = Path.GetFileNameWithoutExtension(archivePath);
+					if ( PathHelper.WildcardPathMatch(archiveNameAppend, relativePath) )
 						return ArchivePathCode.FoundSuccessfully;
+					var folderPaths = new HashSet<string>();
+					foreach ( IArchiveEntry entry in archive.Entries )
+					{
+						string itemInArchivePath = archiveNameAppend
+							+ Path.DirectorySeparatorChar
+							+ entry.Key.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+						string folderName = Path.GetFileName(itemInArchivePath);
+						if ( entry.IsDirectory )
+						{
+							folderName = Path.GetDirectoryName(itemInArchivePath);
+						}
+						if ( !string.IsNullOrEmpty(folderName) )
+						{
+							_ = folderPaths.Add(
+								folderName.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+							);
+						}
+						if ( PathHelper.WildcardPathMatch(itemInArchivePath, relativePath) )
+							return ArchivePathCode.FoundSuccessfully;
+					}
+					foreach ( string folderPath in folderPaths )
+					{
+						if ( !(folderPath is null) && PathHelper.WildcardPathMatch(folderPath, relativePath) )
+							return ArchivePathCode.FoundSuccessfully;
+					}
 				}
-				foreach ( string folderPath in folderPaths )
-				{
-					if ( !(folderPath is null) && PathHelper.WildcardPathMatch(folderPath, relativePath) )
-						return ArchivePathCode.FoundSuccessfully;
-				}
+				return ArchivePathCode.NotFoundInArchive;
 			}
-			return ArchivePathCode.NotFoundInArchive;
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Failed to validate archive '{Path.GetFileName(archivePath)}'");
+				return ArchivePathCode.CouldNotOpenArchive;
+			}
 		}
 	}
 }

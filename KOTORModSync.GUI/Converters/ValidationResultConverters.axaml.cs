@@ -4,20 +4,16 @@
 
 using System;
 using System.Globalization;
-using Avalonia;
 using Avalonia.Data.Converters;
 using KOTORModSync.Core.Services.Validation;
 
 namespace KOTORModSync.Converters
 {
-	/// <summary>
-	/// Extracts the status message from PathValidationResult
-	/// </summary>
 	public partial class ValidationStatusMessageConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is PathValidationResult result)
+			if ( value is PathValidationResult result )
 				return result.StatusMessage ?? "❓ Empty";
 			return "❓ Empty";
 		}
@@ -28,14 +24,11 @@ namespace KOTORModSync.Converters
 		}
 	}
 
-	/// <summary>
-	/// Extracts the detailed message from PathValidationResult for tooltip
-	/// </summary>
 	public partial class ValidationDetailedMessageConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is PathValidationResult result && !string.IsNullOrWhiteSpace(result.DetailedMessage))
+			if ( value is PathValidationResult result && !string.IsNullOrWhiteSpace(result.DetailedMessage) )
 				return result.DetailedMessage;
 			return null;
 		}
@@ -46,14 +39,11 @@ namespace KOTORModSync.Converters
 		}
 	}
 
-	/// <summary>
-	/// Converts PathValidationResult to visibility for jump buttons (blocking instruction or ModLinks)
-	/// </summary>
 	public partial class ValidationHasBlockingInstructionConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is PathValidationResult result)
+			if ( value is PathValidationResult result )
 				return result.BlockingInstructionIndex.HasValue || result.NeedsModLinkAdded;
 			return false;
 		}
@@ -64,18 +54,15 @@ namespace KOTORModSync.Converters
 		}
 	}
 
-	/// <summary>
-	/// Extracts the text for the jump button (either blocking instruction or ModLinks)
-	/// </summary>
 	public partial class ValidationBlockingInstructionTextConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if (value is PathValidationResult result)
+			if ( value is PathValidationResult result )
 			{
-				if (result.NeedsModLinkAdded)
+				if ( result.NeedsModLinkAdded )
 					return "📥 Jump to ModLinks";
-				if (result.BlockingInstructionIndex.HasValue)
+				if ( result.BlockingInstructionIndex.HasValue )
 					return $"⚠️ Jump to Instruction #{result.BlockingInstructionIndex.Value + 1}";
 			}
 			return "Jump to Error";

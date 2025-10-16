@@ -31,51 +31,51 @@ namespace KOTORModSync.Converters
 			}
 		}
 
-	public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-	{
-		try
+		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
-			if ( !(value is Instruction dataContextInstruction) )
-				return null;
-
-			if ( dataContextInstruction.Action != Instruction.ActionType.Patcher )
-				return null;
-
-			ModComponent parentComponent = dataContextInstruction.GetParentComponent();
-			if ( parentComponent is null )
-				return null;
-
-			List<string> allArchives = GetAllArchivesFromInstructions(parentComponent);
-
-			List<string> relevantArchives = GetArchivesForSpecificInstruction(dataContextInstruction, allArchives);
-
-			foreach ( string archivePath in relevantArchives )
+			try
 			{
-				if ( string.IsNullOrEmpty(archivePath) )
-					continue;
+				if ( !(value is Instruction dataContextInstruction) )
+					return null;
 
-				Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(archivePath);
-				if ( result == null || result.Count == 0 )
-					continue;
+				if ( dataContextInstruction.Action != Instruction.ActionType.Patcher )
+					return null;
 
-				var optionNames = new List<string>();
-				foreach ( KeyValuePair<string, Dictionary<string, string>> section in result )
+				ModComponent parentComponent = dataContextInstruction.GetParentComponent();
+				if ( parentComponent is null )
+					return null;
+
+				List<string> allArchives = GetAllArchivesFromInstructions(parentComponent);
+
+				List<string> relevantArchives = GetArchivesForSpecificInstruction(dataContextInstruction, allArchives);
+
+				foreach ( string archivePath in relevantArchives )
 				{
-					if ( section.Value != null && section.Value.TryGetValue("Name", out string name) )
-						optionNames.Add(name);
-				}
+					if ( string.IsNullOrEmpty(archivePath) )
+						continue;
 
-				if ( optionNames.Count != 0 )
-					return optionNames;
+					Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(archivePath);
+					if ( result == null || result.Count == 0 )
+						continue;
+
+					var optionNames = new List<string>();
+					foreach ( KeyValuePair<string, Dictionary<string, string>> section in result )
+					{
+						if ( section.Value != null && section.Value.TryGetValue("Name", out string name) )
+							optionNames.Add(name);
+					}
+
+					if ( optionNames.Count != 0 )
+						return optionNames;
+				}
+				return null;
 			}
-			return null;
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+				return null;
+			}
 		}
-		catch ( Exception ex )
-		{
-			Logger.LogException(ex);
-			return null;
-		}
-	}
 
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 

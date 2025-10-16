@@ -4,11 +4,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -16,7 +13,6 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using KOTORModSync.Core;
-using KOTORModSync.Services;
 
 namespace KOTORModSync.Controls
 {
@@ -67,11 +63,10 @@ namespace KOTORModSync.Controls
 				dragHandle.PointerPressed += OnDragHandlePressed;
 
 			Grid mainModInfo = this.FindControl<Grid>("MainModInfo");
-			if ( mainModInfo != null )
-			{
-				mainModInfo.PointerPressed += OnMainModInfoPointerPressed;
-				mainModInfo.DoubleTapped += OnMainModInfoDoubleTapped;
-			}
+			if ( mainModInfo == null )
+				return;
+			mainModInfo.PointerPressed += OnMainModInfoPointerPressed;
+			mainModInfo.DoubleTapped += OnMainModInfoDoubleTapped;
 		}
 
 		private void OnMainModInfoPointerPressed(object sender, PointerPressedEventArgs e)
@@ -175,9 +170,7 @@ namespace KOTORModSync.Controls
 		private void OnComponentPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			if ( e.PropertyName == nameof(ModComponent.IsValidating) && sender is ModComponent component )
-			{
 				UpdateValidationState(component);
-			}
 		}
 
 		private void SetupOptionSelectionHandlers(ModComponent component)
@@ -196,18 +189,16 @@ namespace KOTORModSync.Controls
 			if ( e.PropertyName == nameof(Option.IsSelected) && sender is Option option )
 			{
 
-				var optionsContainer = this.FindControl<ItemsControl>("OptionsContainer");
+				ItemsControl optionsContainer = this.FindControl<ItemsControl>("OptionsContainer");
 				if ( optionsContainer != null )
 				{
 
-					var container = optionsContainer.ContainerFromItem(option);
+					Control container = optionsContainer.ContainerFromItem(option);
 					if ( container != null )
 					{
-						var border = container.GetVisualDescendants().OfType<Border>().FirstOrDefault();
+						Border border = container.GetVisualDescendants().OfType<Border>().FirstOrDefault();
 						if ( border != null )
-						{
-							ModListItem.UpdateOptionBackground(border, option.IsSelected);
-						}
+							UpdateOptionBackground(border, option.IsSelected);
 					}
 				}
 			}
@@ -222,7 +213,7 @@ namespace KOTORModSync.Controls
 
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) )
 			{
-				string basicTooltip = CreateBasicTooltip(component, false);
+				string basicTooltip = CreateBasicTooltip(component);
 				ToolTip.SetTip(nameTextBlock, basicTooltip);
 				return;
 			}
@@ -333,12 +324,12 @@ namespace KOTORModSync.Controls
 				errorReasons.Add("No installation instructions defined");
 			}
 
-			if ( component.ModLink.Count > 0 )
+			if ( component.ModLinkFilenames.Count > 0 )
 			{
 				if ( this.FindAncestorOfType<Window>() is MainWindow mainWindow && mainWindow.EditorMode )
 				{
 					var invalidUrls = new List<string>();
-					foreach ( string link in component.ModLink )
+					foreach ( string link in component.ModLinkFilenames.Keys )
 					{
 						if ( string.IsNullOrWhiteSpace(link) )
 							continue;
@@ -381,7 +372,7 @@ namespace KOTORModSync.Controls
 				border.ClearValue(Border.BorderThicknessProperty);
 			}
 
-			ModListItem.UpdateValidationIcon(this.FindControl<TextBlock>("ValidationIcon"), hasErrors, shouldShowDownloadWarning);
+			UpdateValidationIcon(this.FindControl<TextBlock>("ValidationIcon"), hasErrors, shouldShowDownloadWarning);
 		}
 
 		private static void UpdateValidationIcon(TextBlock validationIconControl, bool hasErrors, bool shouldShowDownloadWarning)
@@ -478,8 +469,8 @@ namespace KOTORModSync.Controls
 					_ = sb.AppendLine("in your mod directory. Please:");
 					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
 					_ = sb.AppendLine("  2. Or manually download from the mod links");
-					if ( component.ModLink.Count > 0 )
-						_ = sb.AppendLine($"  3. Download Link: {component.ModLink[0]}");
+					if ( component.ModLinkFilenames.Count > 0 )
+						_ = sb.AppendLine($"  3. Download Links: {string.Join(", ", component.ModLinkFilenames.Keys)}");
 					_ = sb.AppendLine();
 				}
 
@@ -554,10 +545,10 @@ namespace KOTORModSync.Controls
 						? desktop.MainWindow as MainWindow
 						: null;
 					var downloadCacheService = mainWindow?.DownloadCacheService;
-					if ( downloadCacheService != null && component.ModLink.Count > 0 )
+					if ( downloadCacheService != null && component.ModLinkFilenames.Count > 0 )
 					{
 						var missingUrls = new List<string>();
-						foreach ( string url in component.ModLink )
+						foreach ( string url in component.ModLinkFilenames.Keys )
 						{
 							if ( !downloadCacheService.IsCached(url) )
 							{
@@ -580,8 +571,8 @@ namespace KOTORModSync.Controls
 					_ = sb.AppendLine("Please:");
 					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
 					_ = sb.AppendLine("  2. Or manually download from the mod links");
-					if ( component.ModLink.Count > 0 )
-						_ = sb.AppendLine($"  3. Download Link: {component.ModLink[0]}");
+					if ( component.ModLinkFilenames.Count > 0 )
+						_ = sb.AppendLine($"  3. Download Links: {string.Join(", ", component.ModLinkFilenames.Keys)}");
 					_ = sb.AppendLine();
 				}
 
@@ -611,15 +602,16 @@ namespace KOTORModSync.Controls
 				_ = sb.AppendLine();
 			}
 
-			if ( component.ModLink.Count > 0 )
+			if ( component.ModLinkFilenames.Count > 0 )
 			{
-				_ = sb.AppendLine($"🔗 Download Links ({component.ModLink.Count}):");
-				for ( int i = 0; i < Math.Min(component.ModLink.Count, 3); i++ )
+				_ = sb.AppendLine($"🔗 Download Links ({component.ModLinkFilenames.Count}):");
+				var linkNames = component.ModLinkFilenames.Keys.ToList();
+				for ( int i = 0; i < Math.Min(linkNames.Count, 3); i++ )
 				{
-					_ = sb.AppendLine($"  {i + 1}. {component.ModLink[i]}");
+					_ = sb.AppendLine($"  {i + 1}. {linkNames[i]}");
 				}
-				if ( component.ModLink.Count > 3 )
-					_ = sb.AppendLine($"  ... and {component.ModLink.Count - 3} more");
+				if ( linkNames.Count > 3 )
+					_ = sb.AppendLine($"  ... and {linkNames.Count - 3} more");
 				_ = sb.AppendLine();
 			}
 
@@ -682,7 +674,7 @@ namespace KOTORModSync.Controls
 				{
 					_ = sb.AppendLine("❗ Missing Download");
 
-					var missingFiles = ValidationService.GetMissingFilesForComponentStatic(component);
+					List<string> missingFiles = Core.Services.ComponentValidationService.GetMissingFilesForComponentAsync(component).GetAwaiter().GetResult();
 					if ( missingFiles.Count > 0 )
 					{
 						_ = sb.AppendLine("Missing file(s):");
@@ -697,8 +689,8 @@ namespace KOTORModSync.Controls
 					_ = sb.AppendLine("in your mod directory. Please:");
 					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
 					_ = sb.AppendLine("  2. Or manually download from the mod links");
-					if ( component.ModLink.Count > 0 )
-						_ = sb.AppendLine($"  3. Download Link: {component.ModLink[0]}");
+					if ( component.ModLinkFilenames.Count > 0 )
+						_ = sb.AppendLine($"  3. Download Links: {string.Join(", ", component.ModLinkFilenames.Keys)}");
 					_ = sb.AppendLine();
 				}
 
@@ -781,12 +773,18 @@ namespace KOTORModSync.Controls
 			{
 				Color color = solidBrush.Color;
 
-				if ( color.R > 200 && color.G < 150 )
-					border.BorderBrush = ThemeResourceHelper.ModListItemHoverErrorBrush;
-				else if ( color.R > 200 && color.G > 100 && color.G < 200 )
-					border.BorderBrush = ThemeResourceHelper.ModListItemHoverWarningBrush;
-				else
-					border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush;
+				switch ( color.R > 200 )
+				{
+					case true when color.G < 150:
+						border.BorderBrush = ThemeResourceHelper.ModListItemHoverErrorBrush;
+						break;
+					case true when color.G > 100 && color.G < 200:
+						border.BorderBrush = ThemeResourceHelper.ModListItemHoverWarningBrush;
+						break;
+					default:
+						border.BorderBrush = ThemeResourceHelper.ModListItemHoverDefaultBrush;
+						break;
+				}
 			}
 			else
 			{
@@ -817,18 +815,14 @@ namespace KOTORModSync.Controls
 		{
 			IsBeingDragged = isDragged;
 			if ( this.FindControl<Border>("RootBorder") is Border border )
-			{
 				border.Opacity = isDragged ? 0.5 : 1.0;
-			}
 		}
 
 		public void SetDropTargetState(bool isDropTarget)
 		{
 			IsDropTarget = isDropTarget;
 			if ( this.FindControl<Border>("DropIndicator") is Border indicator )
-			{
 				indicator.IsVisible = isDropTarget;
-			}
 		}
 
 		private static bool IsValidUrl(string url)
@@ -849,20 +843,6 @@ namespace KOTORModSync.Controls
 		}
 
 
-		private static string ResolvePath(string path)
-		{
-			if ( string.IsNullOrWhiteSpace(path) )
-				return path;
-
-			if ( path.Contains("<<modDirectory>>") )
-			{
-				string modDir = MainConfig.SourcePath?.FullName ?? "";
-				path = path.Replace("<<modDirectory>>", modDir);
-			}
-
-			return path;
-		}
-
 		private void OptionBorder_PointerPressed(object sender, PointerPressedEventArgs e)
 		{
 
@@ -873,7 +853,7 @@ namespace KOTORModSync.Controls
 
 				option.IsSelected = !option.IsSelected;
 
-				ModListItem.UpdateOptionBackground(border, option.IsSelected);
+				UpdateOptionBackground(border, option.IsSelected);
 			}
 		}
 
@@ -882,16 +862,9 @@ namespace KOTORModSync.Controls
 			if ( border == null )
 				return;
 
-			if ( isSelected )
-			{
-
-				border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
-			}
-			else
-			{
-
-				border.Background = Brushes.Transparent;
-			}
+			border.Background = isSelected
+				? ThemeResourceHelper.ModListItemHoverBackgroundBrush
+				: Brushes.Transparent;
 		}
 	}
 }

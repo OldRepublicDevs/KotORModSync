@@ -36,12 +36,12 @@ namespace KOTORModSync.Services
 				if ( string.IsNullOrWhiteSpace(p) || !Directory.Exists(p) )
 					return false;
 
-			_mainConfig.sourcePath = new DirectoryInfo(p);
+				_mainConfig.sourcePath = new DirectoryInfo(p);
 
-			Action callback = onPathSet != null ? (Action)(() => onPathSet(p)) : null;
-			_fileSystemService.SetupModDirectoryWatcher(p, callback);
+				Action callback = onPathSet != null ? (Action)(() => onPathSet(p)) : null;
+				_fileSystemService.SetupModDirectoryWatcher(p, callback);
 
-			return true;
+				return true;
 			}
 			catch ( Exception ex )
 			{

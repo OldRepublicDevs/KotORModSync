@@ -3,23 +3,15 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using KOTORModSync.Core.FileSystemUtils;
-using KOTORModSync.Core.Parsing;
-using KOTORModSync.Core.Utility;
-using SharpCompress.Archives;
 
 namespace KOTORModSync.Core.Services
 {
-
 	public class FileOperationService
 	{
-
-
-
 		public static async Task<int> FixIOSCaseSensitivityAsync([NotNull] string folderPath)
 		{
 			if ( string.IsNullOrEmpty(folderPath) )

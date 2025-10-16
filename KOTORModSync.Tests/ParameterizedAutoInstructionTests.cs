@@ -115,8 +115,8 @@ namespace KOTORModSync.Tests
 					MarkdownParserResult parseResult = parser.Parse(markdown);
 
 					var deadlyStreamComponents = parseResult.Components
-						.Where(c => c.ModLink?.Any(link => !string.IsNullOrWhiteSpace(link) &&
-							link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true)
+						.Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
+							link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
 						.ToList();
 
 					foreach ( var component in deadlyStreamComponents )
@@ -145,8 +145,8 @@ namespace KOTORModSync.Tests
 					MarkdownParserResult parseResult = parser.Parse(markdown);
 
 					var deadlyStreamComponents = parseResult.Components
-						.Where(c => c.ModLink?.Any(link => !string.IsNullOrWhiteSpace(link) &&
-							link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true)
+						.Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
+							link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
 						.ToList();
 
 					foreach ( var component in deadlyStreamComponents )
@@ -172,7 +172,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Testing component: {component.Name}");
 			Console.WriteLine($"From file: {Path.GetFileName(mdFilePath)}");
 
-			var deadlyStreamLinks = component.ModLink
+			var deadlyStreamLinks = component.ModLinkFilenames.Keys
 				.Where(link => !string.IsNullOrWhiteSpace(link) &&
 					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
 				.ToList();
@@ -210,8 +210,8 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Total components: {parseResult.Components.Count}");
 
 			var deadlyStreamComponents = parseResult.Components
-				.Where(c => c.ModLink?.Any(link => !string.IsNullOrWhiteSpace(link) &&
-					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true)
+				.Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
+					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
 				.ToList();
 
 			Console.WriteLine($"Components with Deadlystream links: {deadlyStreamComponents.Count}");
@@ -236,8 +236,8 @@ namespace KOTORModSync.Tests
 					continue;
 				}
 
-				var deadlyStreamLinks = component.ModLink
-					.Where(link => !string.IsNullOrWhiteSpace(link) &&
+				var deadlyStreamLinks = component.ModLinkFilenames
+					.Keys.Where(link => !string.IsNullOrWhiteSpace(link) &&
 						link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
 					.ToList();
 
@@ -308,10 +308,10 @@ namespace KOTORModSync.Tests
 
 			foreach ( var component in parseResult.Components )
 			{
-				if ( component.ModLink == null ) continue;
+				if ( component.ModLinkFilenames == null ) continue;
 
-				var deadlyStreamLinks = component.ModLink
-					.Where(link => !string.IsNullOrWhiteSpace(link) &&
+				var deadlyStreamLinks = component.ModLinkFilenames
+					.Keys.Where(link => !string.IsNullOrWhiteSpace(link) &&
 						link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
 					.ToList();
 
@@ -444,7 +444,7 @@ namespace KOTORModSync.Tests
 					methodCounts[method] = 0;
 				methodCounts[method]++;
 
-				bool hasDeadlyStream = component.ModLink?.Any(link =>
+				bool hasDeadlyStream = component.ModLinkFilenames?.Keys.Any(link =>
 					!string.IsNullOrWhiteSpace(link) &&
 					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)) == true;
 

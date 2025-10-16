@@ -10,14 +10,12 @@ using Avalonia.Interactivity;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
-using KOTORModSync.Services;
 
 namespace KOTORModSync.Controls
 {
 	[SuppressMessage("ReSharper", "UnusedParameter.Local")]
 	public partial class EditorTab : UserControl
 	{
-		// Dependency properties for MainWindow bindings
 		public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
 			AvaloniaProperty.Register<EditorTab, ModComponent>(nameof(CurrentComponent));
 
@@ -62,7 +60,6 @@ namespace KOTORModSync.Controls
 			set => SetValue(ModManagementServiceProperty, value);
 		}
 
-		// Event handlers that will be routed to MainWindow
 		public event EventHandler<RoutedEventArgs> ExpandAllSectionsRequested;
 		public event EventHandler<RoutedEventArgs> CollapseAllSectionsRequested;
 		public event EventHandler<RoutedEventArgs> AutoGenerateInstructionsRequested;
@@ -71,6 +68,8 @@ namespace KOTORModSync.Controls
 		public event EventHandler<RoutedEventArgs> BrowseDestinationRequested;
 		public event EventHandler<RoutedEventArgs> BrowseSourceFilesRequested;
 		public event EventHandler<RoutedEventArgs> BrowseSourceFromFoldersRequested;
+
+		private Button _autoGenerateButton;
 		public event EventHandler<RoutedEventArgs> MoveInstructionUpRequested;
 		public event EventHandler<RoutedEventArgs> MoveInstructionDownRequested;
 		public event EventHandler<RoutedEventArgs> AddNewOptionRequested;
@@ -83,9 +82,9 @@ namespace KOTORModSync.Controls
 		{
 			InitializeComponent();
 			DataContext = this;
+			_autoGenerateButton = this.FindControl<Button>("AutoGenerateButton");
 		}
 
-		// Event handler forwarders
 		private void ExpandAllSections_Click(object sender, RoutedEventArgs e)
 		{
 			try

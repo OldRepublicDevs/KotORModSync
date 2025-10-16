@@ -39,14 +39,11 @@ Guid: B3525945-BDBD-45D8-A324-AAF328A5E13E
 Dependencies:
   - C5418549-6B7E-4A8C-8B8E-4AA1BC63C732
   - D0F371DA-5C69-4A26-8A37-76E3A6A2A50D
-InstallOrder: 3
 Instructions:
   - Action: extract
     Source: Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar
-    Destination: '%temp%\mod_files\Dantooine HR'
-    Overwrite: true
   - Action: delete
-    Paths:
+    Source:
       - '%temp%\mod_files\Dantooine HR\DAN_wall03.tpc'
       - '%temp%\mod_files\Dantooine HR\DAN_NEW1.tpc'
       - '%temp%\mod_files\Dantooine HR\DAN_MWFl.tpc'
@@ -56,15 +53,12 @@ Instructions:
 ---
 Name: TSLRCM Tweak Pack
 Guid: C5418549-6B7E-4A8C-8B8E-4AA1BC63C732
-InstallOrder: 1
 Dependencies: []
 Instructions:
   - Action: extract
     Source: URCMTP 1.3.rar
-    Destination: '%temp%\mod_files\TSLRCM Tweak Pack'
-    Overwrite: true
   - Action: run
-    Path: '%temp%\mod_files\TSLPatcher.exe'
+    Source: '%temp%\mod_files\TSLPatcher.exe'
 ";
 
 		[Test]
@@ -80,6 +74,13 @@ Instructions:
 			File.WriteAllText(modifiedFilePath, yamlContents);
 
 			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+
+			string serializedYaml = ModComponentSerializationService.SaveToYamlString(originalComponents);
+			Console.WriteLine("=== SERIALIZED YAML ===");
+			Console.WriteLine(serializedYaml);
+			Console.WriteLine("=== END YAML ===");
+			Console.WriteLine($"\nYAML Length: {serializedYaml.Length}");
+			Console.WriteLine($"First 500 chars: {serializedYaml.Substring(0, Math.Min(500, serializedYaml.Length))}");
 
 			FileLoadingService.SaveToFile(originalComponents, modifiedFilePath);
 
@@ -99,7 +100,6 @@ Instructions:
 		[Test]
 		public void SaveAndLoad_DefaultComponent()
 		{
-			// Load all components from the example YAML and take the first one
 			List<ModComponent> components = ModComponentSerializationService.LoadFromYamlString(_exampleYaml);
 			ModComponent newComponent = components[0];
 			newComponent.Guid = Guid.NewGuid();
@@ -107,7 +107,6 @@ Instructions:
 
 			string yamlString = ModComponentSerializationService.SaveToYamlString([newComponent]);
 
-			// Load the component back
 			List<ModComponent> loadedComponents = ModComponentSerializationService.LoadFromYamlString(yamlString);
 			ModComponent duplicateComponent = loadedComponents[0];
 

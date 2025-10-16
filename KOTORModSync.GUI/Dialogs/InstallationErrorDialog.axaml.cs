@@ -8,7 +8,6 @@ using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using Logger = KOTORModSync.Core.Logger;
 
@@ -18,15 +17,9 @@ namespace KOTORModSync.Dialogs
 	{
 		public ErrorAction SelectedAction { get; private set; } = ErrorAction.Rollback;
 
-		public InstallationErrorDialog()
-		{
-			InitializeComponent();
-		}
+		public InstallationErrorDialog() => InitializeComponent();
 
-		public InstallationErrorDialog(InstallationErrorEventArgs errorArgs) : this()
-		{
-			LoadErrorData(errorArgs);
-		}
+		public InstallationErrorDialog(InstallationErrorEventArgs errorArgs) : this() => LoadErrorData(errorArgs);
 
 		private void InitializeComponent()
 		{
@@ -35,12 +28,12 @@ namespace KOTORModSync.Dialogs
 
 		private void LoadErrorData(InstallationErrorEventArgs errorArgs)
 		{
-			var componentNameText = this.FindControl<TextBlock>("ComponentNameText");
-			var errorDetailsText = this.FindControl<TextBox>("ErrorDetailsText");
-			var checkpointInfoText = this.FindControl<TextBlock>("CheckpointInfoText");
-			var checkpointInfoPanel = this.FindControl<Border>("CheckpointInfoPanel");
-			var errorTitleText = this.FindControl<TextBlock>("ErrorTitleText");
-			var rollbackRadio = this.FindControl<RadioButton>("RollbackRadio");
+			TextBlock componentNameText = this.FindControl<TextBlock>("ComponentNameText");
+			TextBox errorDetailsText = this.FindControl<TextBox>("ErrorDetailsText");
+			TextBlock checkpointInfoText = this.FindControl<TextBlock>("CheckpointInfoText");
+			Border checkpointInfoPanel = this.FindControl<Border>("CheckpointInfoPanel");
+			TextBlock errorTitleText = this.FindControl<TextBlock>("ErrorTitleText");
+			RadioButton rollbackRadio = this.FindControl<RadioButton>("RollbackRadio");
 
 			if ( componentNameText != null )
 				componentNameText.Text = errorArgs.Component?.Name ?? "Unknown Component";
@@ -63,8 +56,8 @@ namespace KOTORModSync.Dialogs
 
 			if ( checkpointInfoText != null && !string.IsNullOrEmpty(errorArgs.SessionId) )
 			{
-				checkpointInfoText.Text = $"Checkpoints are available for this installation session. " +
-					$"Rolling back will restore your game to the state before this installation began.";
+				checkpointInfoText.Text = "Checkpoints are available for this installation session. " +
+					"Rolling back will restore your game to the state before this installation began.";
 			}
 
 			if ( errorTitleText != null )
@@ -78,9 +71,9 @@ namespace KOTORModSync.Dialogs
 
 		private void ConfirmButton_Click(object sender, RoutedEventArgs e)
 		{
-			var rollbackRadio = this.FindControl<RadioButton>("RollbackRadio");
-			var continueRadio = this.FindControl<RadioButton>("ContinueRadio");
-			var abortRadio = this.FindControl<RadioButton>("AbortRadio");
+			RadioButton rollbackRadio = this.FindControl<RadioButton>("RollbackRadio");
+			RadioButton continueRadio = this.FindControl<RadioButton>("ContinueRadio");
+			RadioButton abortRadio = this.FindControl<RadioButton>("AbortRadio");
 
 			if ( rollbackRadio?.IsChecked == true )
 				SelectedAction = ErrorAction.Rollback;
@@ -102,16 +95,15 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				if ( !string.IsNullOrEmpty(Logger.LogFileName) && File.Exists(Logger.LogFileName) )
+				if ( string.IsNullOrEmpty(Logger.LogFileName) || !File.Exists(Logger.LogFileName) )
+					return;
+				var process = new System.Diagnostics.Process();
+				process.StartInfo = new System.Diagnostics.ProcessStartInfo
 				{
-					var process = new System.Diagnostics.Process();
-					process.StartInfo = new System.Diagnostics.ProcessStartInfo
-					{
-						FileName = Logger.LogFileName,
-						UseShellExecute = true
-					};
-					process.Start();
-				}
+					FileName = Logger.LogFileName,
+					UseShellExecute = true
+				};
+				process.Start();
 			}
 			catch ( Exception ex )
 			{

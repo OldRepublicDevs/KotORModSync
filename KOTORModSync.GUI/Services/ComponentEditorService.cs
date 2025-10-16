@@ -22,7 +22,7 @@ namespace KOTORModSync.Services
 			_mainConfig = mainConfig
 						  ?? throw new ArgumentNullException(nameof(mainConfig));
 			_parentWindow = parentWindow
-						    ?? throw new ArgumentNullException(nameof(parentWindow));
+							?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
 		public static bool HasUnsavedChanges(
@@ -257,7 +257,7 @@ namespace KOTORModSync.Services
 			destination.Description = source.Description;
 			destination.Directions = source.Directions;
 			destination.InstallationMethod = source.InstallationMethod;
-			destination.ModLink = source.ModLink;
+			destination.ModLinkFilenames = source.ModLinkFilenames;
 			destination.Language = source.Language;
 			destination.Dependencies = source.Dependencies;
 			destination.Restrictions = source.Restrictions;

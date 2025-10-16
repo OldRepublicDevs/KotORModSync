@@ -51,7 +51,7 @@ ___
 
 ### Ultimate Korriban
 
-**Name:** [Ultimate Korriban High Resolution](https://www.nexusmods.com/kotor/mods/1367) and [**Patch**](https://mega.nz/file/NEpH3AoZ#5RVfQHjkdk6b3lgcJzgitpCb1YQlfYqhTM0XF3Z9LMM)
+**Name:** [Ultimate Korriban High Resolution](https://www.nexusmods.com/kotor/mods/1367) and [**Patch**](https://mega.nz/file/sRw1GBIK#J8znLBwR6t7ZvZnpQbsUBYcUNfPCWA7wYNW3qU6gZSg)
 
 **Author:** ShiningRedHD
 
@@ -305,10 +305,11 @@ ___";
 			{
 				Core.ModComponent component = components[i];
 				Console.WriteLine($"{i + 1}. {component.Name}");
-				for ( int j = 0; j < component.ModLink.Count; j++ )
+				int linkIndex = 0;
+				foreach ( string modLink in component.ModLinkFilenames.Keys )
 				{
-					string? modLink = component.ModLink[j];
-					Console.WriteLine($"   ModLink {j + 1}: {modLink}");
+					linkIndex++;
+					Console.WriteLine($"   ModLinkFilenames {linkIndex}: {modLink}");
 				}
 				Console.WriteLine($"   Author: {component.Author}");
 				string categoryStr = component.Category.Count > 0
@@ -325,10 +326,11 @@ ___";
 			{
 				Core.ModComponent component = components[i];
 				Console.WriteLine($"{i + 1}. {component.Name}");
-				for ( int j = 0; j < component.ModLink.Count; j++ )
+				int linkIndex = 0;
+				foreach ( string modLink in component.ModLinkFilenames.Keys )
 				{
-					string? modLink = component.ModLink[j];
-					Console.WriteLine($"   ModLink {j + 1}: {modLink}");
+					linkIndex++;
+					Console.WriteLine($"   ModLinkFilenames {linkIndex}: {modLink}");
 				}
 				Console.WriteLine($"   Author: {component.Author}");
 				string categoryStr = component.Category.Count > 0
@@ -558,6 +560,12 @@ ___";
 
 			MarkdownParserResult firstParse = parser.Parse(markdownWithModSync);
 			string generatedDocs = ModComponentSerializationService.GenerateModDocumentation(firstParse.Components.ToList());
+
+			// Debug output to see what was generated
+			Console.WriteLine("=== GENERATED MARKDOWN ===");
+			Console.WriteLine(generatedDocs);
+			Console.WriteLine("=== END GENERATED MARKDOWN ===");
+
 			MarkdownParserResult secondParse = parser.Parse(generatedDocs);
 
 			Assert.That(secondParse.Components, Has.Count.EqualTo(1), "Should have one component after round-trip");
@@ -615,6 +623,65 @@ ___";
 					});
 				}
 			}
+		}
+
+		[Test]
+		public void InstallationInstructions_DoesNotIncludeModSyncMetadata()
+		{
+			// Test for the specific bug where Installation Instructions field was including the <!--<<ModSync>> block
+			const string markdownWithModSync = @"### KOTOR Dialogue Fixes
+
+**Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
+
+**Author:** Salk & Kainzorus Prime
+
+**Description:** In addition to fixing several typos, this mod takes the PC's dialogue.
+
+**Category & Tier:** Immersion / 1 - Essential
+
+**Non-English Functionality:** NO
+
+**Installation Instructions:** The choice of which version to use is up to you; I recommend PC Response Moderation, as it makes your character sound less like a giddy little schoolchild following every little dialogue, but if you prefer only bugfixes it is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable is)—in this very specific case, NOT the override.
+
+<!--<<ModSync>>
+Guid = ""36186e16-12d0-450d-a3fa-d1d7d930a8d7""
+Instructions = [
+     = {
+        Guid = ""aef66ecd-6b32-436c-86e9-d6b79826f026""
+        Action = ""Extract""
+        Source = [
+            ""<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"",
+        ]
+    }
+]
+-->
+
+___";
+
+			var profile = MarkdownImportProfile.CreateDefault();
+			var parser = new MarkdownParser(profile);
+
+			MarkdownParserResult result = parser.Parse(markdownWithModSync);
+
+			Assert.That(result.Components, Has.Count.EqualTo(1), "Should parse one component");
+
+			var component = result.Components[0];
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"), "Component name should be parsed");
+				Assert.That(component.Directions, Is.Not.Null.And.Not.Empty, "Directions should be extracted");
+
+				// The critical test: Directions should NOT contain the ModSync metadata block
+				Assert.That(component.Directions, Does.Not.Contain("<!--<<ModSync>>"), "Directions should not contain ModSync opening tag");
+				Assert.That(component.Directions, Does.Not.Contain("-->"), "Directions should not contain ModSync closing tag");
+				Assert.That(component.Directions, Does.Not.Contain("Guid = "), "Directions should not contain TOML/metadata content");
+				Assert.That(component.Directions, Does.Not.Contain("Instructions = ["), "Directions should not contain metadata Instructions array");
+
+				// Verify the actual content is there
+				Assert.That(component.Directions, Does.Contain("PC Response Moderation"), "Directions should contain the actual installation text");
+				Assert.That(component.Directions, Does.Contain("main game directory"), "Directions should contain the actual installation text");
+			});
 		}
 	}
 }

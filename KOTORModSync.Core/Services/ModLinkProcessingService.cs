@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,12 +58,11 @@ namespace KOTORModSync.Core.Services
 			{
 				try
 				{
-					if ( component.ModLink == null || component.ModLink.Count == 0 )
+					if ( component.ModLinkFilenames == null || component.ModLinkFilenames.Count == 0 )
 						continue;
 
 					int initialInstructionCount = component.Instructions.Count;
 
-					// Pre-resolve URLs to filenames and generate placeholder instructions
 					bool generated = await AutoInstructionGenerator.GenerateInstructionsFromUrlsAsync(
 						component,
 						_downloadCacheService,

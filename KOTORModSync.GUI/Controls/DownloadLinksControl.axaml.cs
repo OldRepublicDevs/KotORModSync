@@ -10,7 +10,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using KOTORModSync.Core;
@@ -67,11 +66,13 @@ namespace KOTORModSync.Controls
 
 				UpdateLinksDisplay();
 				UpdateEmptyStateVisibility();
+				UpdateAllFilenamePanels();
 			}
 			else if ( change.Property == DownloadCacheServiceProperty || change.Property == ComponentGuidProperty )
 			{
 
 				RefreshAllUrlValidation();
+				UpdateAllFilenamePanels();
 			}
 		}
 
@@ -269,7 +270,6 @@ namespace KOTORModSync.Controls
 
 			if ( !(this.FindAncestorOfType<Window>() is MainWindow mainWindow) || !mainWindow.EditorMode )
 			{
-				// Clear any validation styling when not in editor mode
 				textBox.ClearValue(TextBox.BorderBrushProperty);
 				textBox.ClearValue(TextBox.BorderThicknessProperty);
 				ToolTip.SetTip(textBox, null);
@@ -280,7 +280,6 @@ namespace KOTORModSync.Controls
 
 			if ( string.IsNullOrWhiteSpace(url) )
 			{
-				// Clear validation for empty URLs
 				textBox.ClearValue(BorderBrushProperty);
 				textBox.ClearValue(BorderThicknessProperty);
 				ToolTip.SetTip(textBox, null);
@@ -291,14 +290,12 @@ namespace KOTORModSync.Controls
 
 			if ( !isValidFormat )
 			{
-				// Show error for invalid URL format
 				textBox.BorderBrush = ThemeResourceHelper.UrlValidationInvalidBrush;
 				textBox.BorderThickness = new Thickness(2);
 				ToolTip.SetTip(textBox, $"Invalid URL format: {url}");
 				return;
 			}
 
-			// Valid URL - clear any validation styling (no "not cached" warnings)
 			textBox.ClearValue(BorderBrushProperty);
 			textBox.ClearValue(BorderThicknessProperty);
 			ToolTip.SetTip(textBox, null);
@@ -319,6 +316,203 @@ namespace KOTORModSync.Controls
 				return false;
 
 			return true;
+		}
+
+		private async void ResolveFilenames_Click(object sender, RoutedEventArgs e)
+		{
+			if ( !(sender is Button button) || !(button.Tag is string url) || string.IsNullOrWhiteSpace(url) )
+				return;
+
+			try
+			{
+				if ( DownloadCacheService?.DownloadManager == null )
+				{
+					await Logger.LogWarningAsync("[DownloadLinksControl] Download manager not initialized");
+					return;
+				}
+
+				await Logger.LogAsync($"[DownloadLinksControl] Resolving filenames for URL: {url}");
+
+				var resolved = await DownloadCacheService.DownloadManager.ResolveUrlsToFilenamesAsync(
+					new List<string> { url },
+					System.Threading.CancellationToken.None);
+
+				if ( resolved.TryGetValue(url, out List<string> filenames) && filenames.Count > 0 )
+				{
+					await Logger.LogAsync($"[DownloadLinksControl] Resolved {filenames.Count} filename(s) for URL: {url}");
+
+					var component = GetCurrentComponent();
+					if ( component != null )
+					{
+						if ( component.ModLinkFilenames == null )
+							component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+
+						if ( !component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) )
+						{
+							filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+							component.ModLinkFilenames[url] = filenameDict;
+						}
+
+						foreach ( string filename in filenames )
+						{
+							if ( !string.IsNullOrWhiteSpace(filename) && !filenameDict.ContainsKey(filename) )
+							{
+								filenameDict[filename] = true;
+							}
+						}
+
+						UpdateFilenamePanelForUrl(url);
+					}
+				}
+				else
+				{
+					var component = GetCurrentComponent();
+					string componentInfo = component != null ? $" [Component: '{component.Name}']" : "";
+					var expectedFilenames = component?.ModLinkFilenames?.TryGetValue(url, out var filenameDict) == true
+						? string.Join(", ", filenameDict.Keys)
+						: "none";
+					await Logger.LogWarningAsync($"[DownloadLinksControl] Failed to resolve filenames for URL: {url}{componentInfo} Expected filename(s): {expectedFilenames}");
+				}
+			}
+			catch ( Exception ex )
+			{
+				var component = GetCurrentComponent();
+				string componentInfo = component != null ? $" [Component: '{component.Name}']" : "";
+				Logger.LogException(ex, $"Error resolving filenames for URL: {button.Tag}{componentInfo}");
+			}
+		}
+
+		private ModComponent GetCurrentComponent()
+		{
+			if ( ComponentGuid != Guid.Empty && MainConfig.AllComponents != null )
+			{
+				return MainConfig.AllComponents.FirstOrDefault(c => c.Guid == ComponentGuid);
+			}
+
+			return MainConfig.CurrentComponent;
+		}
+
+		private void UpdateAllFilenamePanels()
+		{
+			if ( LinksItemsControl == null || DownloadLinks == null )
+				return;
+
+			Dispatcher.UIThread.Post(() =>
+			{
+				try
+				{
+					foreach ( string url in DownloadLinks )
+					{
+						if ( !string.IsNullOrWhiteSpace(url) )
+						{
+							UpdateFilenamePanelForUrl(url);
+						}
+					}
+				}
+				catch ( Exception ex )
+				{
+					Logger.LogException(ex, "Error updating all filename panels");
+				}
+			}, DispatcherPriority.Background);
+		}
+
+		private void UpdateFilenamePanelForUrl(string url)
+		{
+			if ( string.IsNullOrWhiteSpace(url) )
+				return;
+
+			try
+			{
+				var borders = this.GetVisualDescendants().OfType<Border>()
+					.Where(b => b.Classes.Contains("url-item")).ToList();
+
+				foreach ( var border in borders )
+				{
+					var textBox = border.GetVisualDescendants().OfType<TextBox>()
+						.FirstOrDefault(tb => tb.Text == url);
+
+					if ( textBox != null )
+					{
+						var filenamesPanel = border.GetVisualDescendants().OfType<StackPanel>()
+							.FirstOrDefault(sp => sp.Name == "FilenamesPanel");
+
+						if ( filenamesPanel != null )
+						{
+							PopulateFilenamesPanel(filenamesPanel, url);
+						}
+						break;
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Error updating filename panel for URL: {url}");
+			}
+		}
+
+		private void PopulateFilenamesPanel(StackPanel panel, string url)
+		{
+			if ( panel == null || string.IsNullOrWhiteSpace(url) )
+				return;
+
+			panel.Children.Clear();
+
+			var component = GetCurrentComponent();
+			if ( component == null || component.ModLinkFilenames == null )
+				return;
+
+			if ( !component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) ||
+				 filenameDict.Count == 0 )
+				return;
+
+			var headerText = new TextBlock
+			{
+				Text = "Resolved Filenames:",
+				FontSize = 10,
+				Opacity = 0.7,
+				Margin = new Thickness(0, 4, 0, 2)
+			};
+			panel.Children.Add(headerText);
+
+			foreach ( var filenameEntry in filenameDict )
+			{
+				string filename = filenameEntry.Key;
+				bool? shouldDownload = filenameEntry.Value;
+
+				var checkBox = new CheckBox
+				{
+					Content = filename,
+					IsChecked = shouldDownload,
+					FontSize = 11,
+					Margin = new Thickness(0, 1, 0, 1),
+					Tag = new Tuple<string, string>(url, filename)
+				};
+
+				checkBox.IsCheckedChanged += FilenameCheckBox_IsCheckedChanged;
+
+				panel.Children.Add(checkBox);
+			}
+		}
+
+		private void FilenameCheckBox_IsCheckedChanged(object sender, RoutedEventArgs e)
+		{
+			if ( !(sender is CheckBox checkBox) || !(checkBox.Tag is Tuple<string, string> tag) )
+				return;
+
+			string url = tag.Item1;
+			string filename = tag.Item2;
+			bool shouldDownload = checkBox.IsChecked ?? true;
+
+			var component = GetCurrentComponent();
+			if ( component == null || component.ModLinkFilenames == null )
+				return;
+
+			if ( component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) &&
+				 filenameDict.ContainsKey(filename) )
+			{
+				filenameDict[filename] = shouldDownload;
+				Logger.LogVerbose($"[DownloadLinksControl] Updated download flag for '{filename}': {shouldDownload}");
+			}
 		}
 	}
 }

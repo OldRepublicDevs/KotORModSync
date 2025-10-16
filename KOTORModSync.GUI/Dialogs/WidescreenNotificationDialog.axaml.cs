@@ -39,32 +39,32 @@ namespace KOTORModSync.Dialogs
 				try
 				{
 					var contentTextBlock = this.FindControl<TextBlock>("ContentTextBlock");
-					if (contentTextBlock != null && !string.IsNullOrWhiteSpace(widescreenContent))
+					if ( contentTextBlock != null && !string.IsNullOrWhiteSpace(widescreenContent) )
 					{
-						
+
 						var renderedTextBlock = MarkdownRenderer.RenderToTextBlock(
 							widescreenContent,
 							url => Core.Utility.UrlUtilities.OpenUrl(url)
 						);
 
-						if (renderedTextBlock?.Inlines != null)
+						if ( renderedTextBlock?.Inlines != null )
 						{
 							contentTextBlock.Inlines.Clear();
 							contentTextBlock.Inlines.AddRange(renderedTextBlock.Inlines);
 
-							
+
 							contentTextBlock.PointerPressed += (sender, e) =>
 							{
 								try
 								{
-									if (sender is TextBlock tb)
+									if ( sender is TextBlock tb )
 									{
 										string fullText = GetTextBlockText(tb);
-										if (!string.IsNullOrEmpty(fullText))
+										if ( !string.IsNullOrEmpty(fullText) )
 										{
 											var linkPattern = @"🔗([^🔗]+)🔗";
 											var match = System.Text.RegularExpressions.Regex.Match(fullText, linkPattern);
-											if (match.Success)
+											if ( match.Success )
 											{
 												string url = match.Groups[1].Value;
 												Core.Utility.UrlUtilities.OpenUrl(url);
@@ -73,7 +73,7 @@ namespace KOTORModSync.Dialogs
 										}
 									}
 								}
-								catch (Exception ex)
+								catch ( Exception ex )
 								{
 									Logger.LogError($"Error handling link click: {ex.Message}");
 								}
@@ -81,7 +81,7 @@ namespace KOTORModSync.Dialogs
 						}
 					}
 				}
-				catch (Exception ex)
+				catch ( Exception ex )
 				{
 					Logger.LogError($"Error loading widescreen content: {ex.Message}");
 				}
@@ -90,13 +90,13 @@ namespace KOTORModSync.Dialogs
 
 		private static string GetTextBlockText(TextBlock textBlock)
 		{
-			if (textBlock.Inlines == null || textBlock.Inlines.Count == 0)
+			if ( textBlock.Inlines == null || textBlock.Inlines.Count == 0 )
 				return textBlock.Text ?? string.Empty;
 
 			var text = new System.Text.StringBuilder();
-			foreach (var inline in textBlock.Inlines)
+			foreach ( var inline in textBlock.Inlines )
 			{
-				if (inline is Avalonia.Controls.Documents.Run run)
+				if ( inline is Avalonia.Controls.Documents.Run run )
 					text.Append(run.Text);
 			}
 			return text.ToString();

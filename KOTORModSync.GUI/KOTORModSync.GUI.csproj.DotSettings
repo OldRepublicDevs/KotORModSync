@@ -1,29 +1,16 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
 	<s:String x:Key="/Default/CodeInspection/CSharpLanguageProject/LanguageLevel/@EntryValue">CSharp73</s:String>
 
-	<!-- Code Style Settings to align with .editorconfig -->
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Arguments/ArgumentsStyle/@EntryValue">Named</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Arguments/StringLiteralArgumentsStyle/@EntryValue">Named</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/IfElseBraces/@EntryValue">RequiredForMultiline</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/ForBraces/@EntryValue">RequiredForMultiline</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/WhileBraces/@EntryValue">RequiredForMultiline</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/UsingBraces/@EntryValue">RequiredForMultiline</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/FixedBraces/@EntryValue">RequiredForMultiline</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/LockBraces/@EntryValue">RequiredForMultiline</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/ForEachBraces/@EntryValue">RequiredForMultiline</s:String>
-	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/Braces/DoWhileBraces/@EntryValue">RequiredForMultiline</s:String>
-
 	<!-- Ensure ReSharper respects .editorconfig settings -->
 	<s:Boolean x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/ReadSettingsFromEditorConfig/@EntryValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/ReadSettingsFromProjectSettings/@EntryValue">True</s:Boolean>
-
-	<!-- Disable braces style inspections entirely -->
-	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/UsePreferredBracesStyle/@EntryValue">DoNotShow</s:String>
-	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/RedundantBraces/@EntryValue">DoNotShow</s:String>
-	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/InconsistentBracesStyle/@EntryValue">DoNotShow</s:String>
 
 	<!-- Disable argument style inspections entirely -->
 	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/ArgumentsStyleLiteralHighlighting/@EntryValue">DoNotShow</s:String>
 	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/ArgumentsStyleStringLiteralHighlighting/@EntryValue">DoNotShow</s:String>
 	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/InconsistentArgumentsStyle/@EntryValue">DoNotShow</s:String>
+
+	<!-- Disable "Convert into compound assignment" ReSharper inspections -->
+	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/ConvertToCompoundAssignment/@EntryValue">DoNotShow</s:String>
+	<s:String x:Key="/Default/CodeInspection/InspectionSeverity/ConvertToCompoundAssignmentSuggestion/@EntryValue">DoNotShow</s:String>
 </wpf:ResourceDictionary>

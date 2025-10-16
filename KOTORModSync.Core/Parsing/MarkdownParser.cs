@@ -113,14 +113,12 @@ namespace KOTORModSync.Core.Parsing
 				componentIndex++;
 				_logVerbose($"Processing component section {componentIndex}/{outerMatches.Count}");
 
-				// Skip components that appear before "## Mod List"
 				if ( modListIndex >= 0 && outerMatch.Index < modListIndex )
 				{
 					_logVerbose($"Skipping component {componentIndex} as it's before the mod list section (before index {modListIndex})");
 					continue;
 				}
 
-				// Skip components that appear after the mod list section ends
 				if ( modListEndIndex >= 0 && outerMatch.Index >= modListEndIndex )
 				{
 					_logVerbose($"Skipping component {componentIndex} as it's outside the mod list section (after index {modListEndIndex})");
@@ -228,7 +226,7 @@ namespace KOTORModSync.Core.Parsing
 			_logInfo($"Parsing completed. Successfully parsed {components.Count} components with {warnings.Count} warnings");
 			foreach ( ModComponent component in components )
 			{
-				int linkCount = component.ModLink?.Count ?? 0;
+				int linkCount = component.ModLinkFilenames?.Count ?? 0;
 				_logVerbose($"  - '{component.Name}' by {component.Author} ({component.Category}/{component.Tier}) with {linkCount} links");
 			}
 
@@ -275,11 +273,25 @@ namespace KOTORModSync.Core.Parsing
 				Guid = Guid.NewGuid(),
 			};
 
+			// Extract and remove ModSync metadata block BEFORE extracting other fields
+			// This prevents the metadata from being included in fields like Directions/Installation Instructions
+			string modSyncMetadata = ExtractModSyncMetadata(componentText);
+			string componentTextWithoutMetadata = componentText;
+			if ( !string.IsNullOrWhiteSpace(modSyncMetadata) )
+			{
+				_logVerbose($"  Found ModSync metadata block, removing from text before field extraction...");
+				// Remove the entire <!--<<ModSync>> ... --> block from the component text
+				string pattern = !string.IsNullOrWhiteSpace(_profile.InstructionsBlockPattern)
+					? _profile.InstructionsBlockPattern
+					: @"<!--<<ModSync>>\s*[\s\S]*?-->";
+				componentTextWithoutMetadata = Regex.Replace(componentText, pattern, "", RegexOptions.Singleline | RegexOptions.IgnoreCase).Trim();
+				_logVerbose($"  Removed ModSync metadata block (reduced text from {componentText.Length} to {componentTextWithoutMetadata.Length} chars)");
+			}
 
 			string extractedHeading = null;
 			if ( !string.IsNullOrWhiteSpace(_profile.HeadingPattern) )
 			{
-				extractedHeading = ExtractValue(componentText, _profile.HeadingPattern, "heading");
+				extractedHeading = ExtractValue(componentTextWithoutMetadata, _profile.HeadingPattern, "heading");
 				if ( extractedHeading != null )
 				{
 					component.Heading = extractedHeading;
@@ -288,14 +300,14 @@ namespace KOTORModSync.Core.Parsing
 			}
 
 
-			string extractedName = ExtractValue(componentText, _profile.NamePattern, "name|name_plain|name_link");
+			string extractedName = ExtractValue(componentTextWithoutMetadata, _profile.NamePattern, "name|name_plain|name_link");
 			if ( extractedName != null )
 			{
 				component.Name = extractedName;
 				_logVerbose($"  Extracted Name from field: '{extractedName}'");
 
 
-				var nameFieldMatch = Regex.Match(componentText, _profile.NamePattern, RegexOptions.Compiled | RegexOptions.Multiline);
+				var nameFieldMatch = Regex.Match(componentTextWithoutMetadata, _profile.NamePattern, RegexOptions.Compiled | RegexOptions.Multiline);
 				if ( nameFieldMatch.Success )
 				{
 
@@ -314,7 +326,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No name found using pattern: {_profile.NamePattern}");
 			}
 
-			string extractedAuthor = ExtractValue(componentText, _profile.AuthorPattern, "author");
+			string extractedAuthor = ExtractValue(componentTextWithoutMetadata, _profile.AuthorPattern, "author");
 			if ( extractedAuthor != null )
 			{
 				component.Author = extractedAuthor;
@@ -325,7 +337,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No author found using pattern: {_profile.AuthorPattern}");
 			}
 
-			string extractedDescription = ExtractValue(componentText, _profile.DescriptionPattern, "description");
+			string extractedDescription = ExtractValue(componentTextWithoutMetadata, _profile.DescriptionPattern, "description");
 			if ( extractedDescription != null )
 			{
 				component.Description = extractedDescription;
@@ -336,7 +348,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No description found using pattern: {_profile.DescriptionPattern}");
 			}
 
-			string extractedMethod = ExtractValue(componentText, _profile.InstallationMethodPattern, "method");
+			string extractedMethod = ExtractValue(componentTextWithoutMetadata, _profile.InstallationMethodPattern, "method");
 			if ( extractedMethod != null )
 			{
 				component.InstallationMethod = extractedMethod;
@@ -347,7 +359,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No installation method found using pattern: {_profile.InstallationMethodPattern}");
 			}
 
-			string extractedDownloadInstructions = ExtractValue(componentText, _profile.DownloadInstructionsPattern, "download");
+			string extractedDownloadInstructions = ExtractValue(componentTextWithoutMetadata, _profile.DownloadInstructionsPattern, "download");
 			if ( extractedDownloadInstructions != null )
 			{
 				component.DownloadInstructions = extractedDownloadInstructions;
@@ -358,7 +370,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No download instructions found using pattern: {_profile.DownloadInstructionsPattern}");
 			}
 
-			string extractedDirections = ExtractValue(componentText, _profile.InstallationInstructionsPattern, "directions");
+			string extractedDirections = ExtractValue(componentTextWithoutMetadata, _profile.InstallationInstructionsPattern, "directions");
 			if ( extractedDirections != null )
 			{
 				component.Directions = extractedDirections;
@@ -369,7 +381,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No directions found using pattern: {_profile.InstallationInstructionsPattern}");
 			}
 
-			string extractedWarning = ExtractValue(componentText, _profile.UsageWarningPattern, "warning");
+			string extractedWarning = ExtractValue(componentTextWithoutMetadata, _profile.UsageWarningPattern, "warning");
 			if ( extractedWarning != null )
 			{
 				component.UsageWarning = extractedWarning;
@@ -380,7 +392,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No usage warning found using pattern: {_profile.UsageWarningPattern}");
 			}
 
-			string extractedScreenshots = ExtractValue(componentText, _profile.ScreenshotsPattern, "screenshots");
+			string extractedScreenshots = ExtractValue(componentTextWithoutMetadata, _profile.ScreenshotsPattern, "screenshots");
 			if ( extractedScreenshots != null )
 			{
 				component.Screenshots = extractedScreenshots;
@@ -391,7 +403,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No screenshots found using pattern: {_profile.ScreenshotsPattern}");
 			}
 
-			string extractedKnownBugs = ExtractValue(componentText, _profile.KnownBugsPattern, "bugs");
+			string extractedKnownBugs = ExtractValue(componentTextWithoutMetadata, _profile.KnownBugsPattern, "bugs");
 			if ( extractedKnownBugs != null )
 			{
 				component.KnownBugs = extractedKnownBugs;
@@ -402,7 +414,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No known bugs found using pattern: {_profile.KnownBugsPattern}");
 			}
 
-			string extractedInstallationWarning = ExtractValue(componentText, _profile.InstallationWarningPattern, "installwarning");
+			string extractedInstallationWarning = ExtractValue(componentTextWithoutMetadata, _profile.InstallationWarningPattern, "installwarning");
 			if ( extractedInstallationWarning != null )
 			{
 				component.InstallationWarning = extractedInstallationWarning;
@@ -413,7 +425,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No installation warning found using pattern: {_profile.InstallationWarningPattern}");
 			}
 
-			string extractedCompatibilityWarning = ExtractValue(componentText, _profile.CompatibilityWarningPattern, "compatwarning");
+			string extractedCompatibilityWarning = ExtractValue(componentTextWithoutMetadata, _profile.CompatibilityWarningPattern, "compatwarning");
 			if ( extractedCompatibilityWarning != null )
 			{
 				component.CompatibilityWarning = extractedCompatibilityWarning;
@@ -424,7 +436,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"  No compatibility warning found using pattern: {_profile.CompatibilityWarningPattern}");
 			}
 
-			string extractedSteamNotes = ExtractValue(componentText, _profile.SteamNotesPattern, "steamnotes");
+			string extractedSteamNotes = ExtractValue(componentTextWithoutMetadata, _profile.SteamNotesPattern, "steamnotes");
 			if ( extractedSteamNotes != null )
 			{
 				component.SteamNotes = extractedSteamNotes;
@@ -436,7 +448,7 @@ namespace KOTORModSync.Core.Parsing
 			}
 
 
-			string extractedMasters = ExtractValue(componentText, _profile.DependenciesPattern, "masters");
+			string extractedMasters = ExtractValue(componentTextWithoutMetadata, _profile.DependenciesPattern, "masters");
 			if ( extractedMasters != null )
 			{
 				_tempMasterNames[component.Guid] = extractedMasters;
@@ -451,7 +463,7 @@ namespace KOTORModSync.Core.Parsing
 			if ( !string.IsNullOrWhiteSpace(_profile.ModLinkPattern) && !string.IsNullOrWhiteSpace(_profile.NamePattern) )
 			{
 
-				var nameFieldMatch = Regex.Match(componentText, _profile.NamePattern, RegexOptions.Compiled | RegexOptions.Multiline);
+				var nameFieldMatch = Regex.Match(componentTextWithoutMetadata, _profile.NamePattern, RegexOptions.Compiled | RegexOptions.Multiline);
 				if ( nameFieldMatch.Success )
 				{
 
@@ -461,12 +473,21 @@ namespace KOTORModSync.Core.Parsing
 					MatchCollection modLinkMatches = Regex.Matches(nameFieldText, _profile.ModLinkPattern, RegexOptions.Compiled | RegexOptions.Multiline);
 					if ( modLinkMatches.Count > 0 )
 					{
-						component.ModLink = modLinkMatches.Cast<Match>()
+						// Fix: ModLinkFilenames expects a Dictionary<string, Dictionary<string, bool?>>
+						// We'll store each mod link as a key with an empty dictionary as value
+						var links = modLinkMatches.Cast<Match>()
 							.Select(m => m.Groups["link"].Value.Trim())
 							.Where(l => !string.IsNullOrEmpty(l))
-							.Distinct()
+							.Distinct(StringComparer.OrdinalIgnoreCase)
 							.ToList();
-						_logVerbose($"  Extracted {component.ModLink.Count} mod links from Name field");
+
+						component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+						foreach ( string link in links )
+						{
+							component.ModLinkFilenames[link] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+						}
+
+						_logVerbose($"  Extracted {component.ModLinkFilenames.Count} mod links from Name field");
 					}
 					else
 					{
@@ -480,13 +501,13 @@ namespace KOTORModSync.Core.Parsing
 			}
 			else
 			{
-				_logVerbose($"  ModLink or Name pattern not configured");
+				_logVerbose($"  ModLinkFilenames or Name pattern not configured");
 			}
 
 			if ( !string.IsNullOrWhiteSpace(_profile.CategoryTierPattern) )
 			{
 				Match categoryTierMatch = Regex.Match(
-					componentText,
+					componentTextWithoutMetadata,
 					_profile.CategoryTierPattern,
 					RegexOptions.Compiled | RegexOptions.Multiline
 				);
@@ -522,7 +543,7 @@ namespace KOTORModSync.Core.Parsing
 
 			if ( !string.IsNullOrWhiteSpace(_profile.NonEnglishPattern) )
 			{
-				string nonEnglish = ExtractValue(componentText, _profile.NonEnglishPattern, "value");
+				string nonEnglish = ExtractValue(componentTextWithoutMetadata, _profile.NonEnglishPattern, "value");
 				if ( !string.IsNullOrWhiteSpace(nonEnglish) )
 				{
 					component.Language = new List<string> { nonEnglish };
@@ -537,18 +558,18 @@ namespace KOTORModSync.Core.Parsing
 			if ( string.IsNullOrWhiteSpace(component.Name) )
 			{
 
-				bool hasComponentFields = componentText.ToLower().Contains("**name:**") ||
-										  componentText.ToLower().Contains("**author:**") ||
-										  componentText.ToLower().Contains("**description:**") ||
-										  componentText.ToLower().Contains("**category:**") ||
-										  componentText.ToLower().Contains("**installation:**");
+				bool hasComponentFields = componentTextWithoutMetadata.ToLower().Contains("**name:**") ||
+										  componentTextWithoutMetadata.ToLower().Contains("**author:**") ||
+										  componentTextWithoutMetadata.ToLower().Contains("**description:**") ||
+										  componentTextWithoutMetadata.ToLower().Contains("**category:**") ||
+										  componentTextWithoutMetadata.ToLower().Contains("**installation:**");
 
 				if ( hasComponentFields )
 				{
 
-					string excerpt = componentText.Length > 180
-						? componentText.Substring(0, 180).Replace('\n', ' ').Replace('\r', ' ') + "..."
-						: componentText.Replace('\n', ' ').Replace('\r', ' ');
+					string excerpt = componentTextWithoutMetadata.Length > 180
+						? componentTextWithoutMetadata.Substring(0, 180).Replace('\n', ' ').Replace('\r', ' ') + "..."
+						: componentTextWithoutMetadata.Replace('\n', ' ').Replace('\r', ' ');
 					warning = $"ModComponent entry at section {componentIndex} is missing a **Name:** field or name value.";
 					_logVerbose(
 						$"  [REJECT MOD] Section {componentIndex} appears to be a mod entry (fields present: Name/Author/Description/etc) but does not have a valid **Name:** field or name was left blank. Section excerpt: \"{excerpt}\"");
@@ -556,19 +577,19 @@ namespace KOTORModSync.Core.Parsing
 				else
 				{
 
-					string preview = componentText.Length > 120
-						? componentText.Substring(0, 120).Replace('\n', ' ').Replace('\r', ' ') + "..."
-						: componentText.Replace('\n', ' ').Replace('\r', ' ');
+					string preview = componentTextWithoutMetadata.Length > 120
+						? componentTextWithoutMetadata.Substring(0, 120).Replace('\n', ' ').Replace('\r', ' ') + "..."
+						: componentTextWithoutMetadata.Replace('\n', ' ').Replace('\r', ' ');
 					_logVerbose(
 						$"  [SKIP NON-MOD] Section {componentIndex} does not contain any expected mod entry fields (Name/Author/Description/Category/Installation). Skipping as likely non-mod content. Preview: \"{preview}\"");
 				}
 				return null;
 			}
 
-			string modSyncMetadata = ExtractModSyncMetadata(componentText);
+			// ModSync metadata was already extracted and removed earlier, now just parse it
 			if ( !string.IsNullOrWhiteSpace(modSyncMetadata) )
 			{
-				_logVerbose($"  Found ModSync metadata block, parsing...");
+				_logVerbose($"  Parsing extracted ModSync metadata block...");
 				try
 				{
 					ParseModSyncMetadata(component, modSyncMetadata);
@@ -1027,7 +1048,6 @@ namespace KOTORModSync.Core.Parsing
 				{
 					nameToGuid[component.Name] = component.Guid;
 				}
-				// Also map heading to GUID for dependency resolution
 				if ( !string.IsNullOrWhiteSpace(component.Heading) && !nameToGuid.ContainsKey(component.Heading) )
 				{
 					nameToGuid[component.Heading] = component.Guid;

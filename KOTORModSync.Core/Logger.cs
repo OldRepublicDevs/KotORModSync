@@ -2,7 +2,9 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -16,6 +18,11 @@ namespace KOTORModSync.Core
 		private static readonly SemaphoreSlim s_semaphore = new SemaphoreSlim(1);
 		public static event Action<string> Logged = delegate { };
 		public static event Action<Exception> ExceptionLogged = delegate { };
+
+		// Circular buffer for recent log messages (for error context)
+		private const int LogHistorySize = 200;
+		private static readonly LinkedList<string> s_logHistory = new LinkedList<string>();
+		private static readonly object s_logHistoryLock = new object();
 		public static void Initialize()
 		{
 			if ( s_isInitialized )
@@ -83,6 +90,16 @@ namespace KOTORModSync.Core
 					token.ThrowIfCancellationRequested();
 				}
 				Logged?.Invoke(logMessage);
+
+				// Add to log history for error context
+				lock ( s_logHistoryLock )
+				{
+					s_logHistory.AddLast(consoleMessage);
+					if ( s_logHistory.Count > LogHistorySize )
+					{
+						s_logHistory.RemoveFirst();
+					}
+				}
 			}
 			catch ( Exception ex )
 			{
@@ -93,7 +110,33 @@ namespace KOTORModSync.Core
 				_ = s_semaphore.Release();
 			}
 		}
-		public static void Log([CanBeNull] string message, bool fileOnly = false) =>
+
+		/// <summary>
+		/// Gets the most recent log messages for error context.
+		/// </summary>
+		/// <param name="count">Number of recent messages to retrieve (default: 50)</param>
+		/// <returns>List of recent log messages, most recent last</returns>
+		[NotNull]
+		public static List<string> GetRecentLogMessages(int count = 50)
+		{
+			lock ( s_logHistoryLock )
+			{
+				int takeCount = Math.Min(count, s_logHistory.Count);
+				return s_logHistory.Skip(s_logHistory.Count - takeCount).ToList();
+			}
+		}
+
+		/// <summary>
+		/// Clears the log history buffer.
+		/// </summary>
+		public static void ClearLogHistory()
+		{
+			lock ( s_logHistoryLock )
+			{
+				s_logHistory.Clear();
+			}
+		}
+		public static void Log([CanBeNull] string message = null, bool fileOnly = false) =>
 			_ = LogInternalAsync(message, fileOnly);
 		[NotNull]
 		public static Task LogAsync([CanBeNull] string message) => LogInternalAsync(message);

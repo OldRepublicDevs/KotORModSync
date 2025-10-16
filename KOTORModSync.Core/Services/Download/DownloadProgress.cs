@@ -27,6 +27,8 @@ namespace KOTORModSync.Core.Services.Download
 		private readonly List<string> _logs = new List<string>();
 		private readonly object _logLock = new object();
 
+		public List<string> TargetFilenames { get; set; } = new List<string>();
+
 		public List<string> GetLogs()
 		{
 			lock ( _logLock )
@@ -35,7 +37,7 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		
+
 		private readonly List<DownloadProgress> _childDownloads = new List<DownloadProgress>();
 		private bool _isGrouped;
 
@@ -73,7 +75,7 @@ namespace KOTORModSync.Core.Services.Download
 				if ( _status == value )
 					return;
 
-				
+
 				if ( _status != DownloadStatus.Pending || value != DownloadStatus.Pending )
 				{
 					AddLog($"Status changed: {_status} → {value}");
@@ -87,7 +89,7 @@ namespace KOTORModSync.Core.Services.Download
 				OnPropertyChanged(nameof(StatusIcon));
 				OnPropertyChanged(nameof(ControlButtonIcon));
 				OnPropertyChanged(nameof(ControlButtonTooltip));
-				
+
 				OnPropertyChanged(nameof(GroupStatusMessage));
 			}
 		}
@@ -101,7 +103,7 @@ namespace KOTORModSync.Core.Services.Download
 					return;
 				_progressPercentage = value;
 				OnPropertyChanged();
-				
+
 				OnPropertyChanged(nameof(GroupProgressPercentage));
 			}
 		}
@@ -142,7 +144,7 @@ namespace KOTORModSync.Core.Services.Download
 					return;
 				_statusMessage = value;
 				OnPropertyChanged();
-				
+
 				OnPropertyChanged(nameof(GroupStatusMessage));
 			}
 		}
@@ -210,7 +212,7 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		
+
 		public bool IsGrouped
 		{
 			get => _isGrouped;
@@ -251,7 +253,7 @@ namespace KOTORModSync.Core.Services.Download
 				if ( pending > 0 )
 					return $"Waiting to start {pending} of {_childDownloads.Count} files...";
 
-				
+
 				int totalFinished = completed + skipped + failed;
 				var parts = new List<string>();
 				if ( completed > 0 ) parts.Add($"{completed} downloaded");
@@ -273,7 +275,7 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		
+
 		public bool IsCompleted => IsGrouped ? _childDownloads.All(c => c.Status == DownloadStatus.Completed || c.Status == DownloadStatus.Skipped) : (Status == DownloadStatus.Completed || Status == DownloadStatus.Skipped);
 		public bool IsFailed => IsGrouped ? _childDownloads.All(c => c.Status == DownloadStatus.Failed) : Status == DownloadStatus.Failed;
 		public bool IsInProgress => IsGrouped ? _childDownloads.Any(c => c.Status == DownloadStatus.InProgress) : Status == DownloadStatus.InProgress;
@@ -281,9 +283,6 @@ namespace KOTORModSync.Core.Services.Download
 		public string DownloadedSize => FormatBytes(BytesDownloaded);
 		public string TotalSize => FormatBytes(TotalBytes);
 
-		
-		
-		
 		public string DisplayName
 		{
 			get
@@ -291,11 +290,11 @@ namespace KOTORModSync.Core.Services.Download
 				string fileName = string.IsNullOrEmpty(FilePath) ? "" : System.IO.Path.GetFileName(FilePath);
 				string url = string.IsNullOrEmpty(Url) ? "" : Url;
 
-				
+
 				if ( IsGrouped )
 					return ModName;
 
-				
+
 				if ( string.IsNullOrEmpty(fileName) )
 					return $"{ModName} - {url}";
 
@@ -330,13 +329,13 @@ namespace KOTORModSync.Core.Services.Download
 					if ( IsInProgress )
 						return "⬇️";
 
-					
+
 					if ( _childDownloads.Count > 0 )
 					{
 						int completed = _childDownloads.Count(c => c.Status == DownloadStatus.Completed || c.Status == DownloadStatus.Skipped);
 						int failed = _childDownloads.Count(c => c.Status == DownloadStatus.Failed);
 
-						
+
 						if ( completed > 0 && failed > 0 )
 							return "❌";
 					}
@@ -366,17 +365,17 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			get
 			{
-				
+
 				switch ( Status )
 				{
 					case DownloadStatus.Pending:
-						return "▶"; 
+						return "▶";
 					case DownloadStatus.InProgress:
-						return "⏹"; 
+						return "⏹";
 					case DownloadStatus.Completed:
 					case DownloadStatus.Skipped:
 					case DownloadStatus.Failed:
-						return "↻"; 
+						return "↻";
 					default:
 						return "▶";
 				}
@@ -387,7 +386,7 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			get
 			{
-				
+
 				switch ( Status )
 				{
 					case DownloadStatus.Pending:
@@ -418,9 +417,6 @@ namespace KOTORModSync.Core.Services.Download
 			return $"{len:0.##} {sizes[order]}";
 		}
 
-		
-		
-		
 		public void AddLog(string logMessage)
 		{
 			if ( string.IsNullOrEmpty(logMessage) )
@@ -433,9 +429,6 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		
-		
-		
 		public static DownloadProgress CreateGrouped(string modName, IEnumerable<string> urls)
 		{
 			var groupedProgress = new DownloadProgress
@@ -447,9 +440,9 @@ namespace KOTORModSync.Core.Services.Download
 				ProgressPercentage = 0
 			};
 
-			
+
 			var urlList = urls.ToList();
-			
+
 			groupedProgress.AddLog($"Preparing to download {urlList.Count} files for mod: {modName}");
 
 			foreach ( string url in urlList )
@@ -463,23 +456,23 @@ namespace KOTORModSync.Core.Services.Download
 					ProgressPercentage = 0
 				};
 
-				
+
 				childProgress.AddLog($"Queued for download: {url}");
 
-				
+
 				childProgress.PropertyChanged += (sender, e) =>
 				{
 					groupedProgress.OnPropertyChanged(nameof(GroupStatusMessage));
 					groupedProgress.OnPropertyChanged(nameof(GroupProgressPercentage));
 
-					
-					
-					
 
-					
+
+
+
+
 					if ( e.PropertyName == nameof(Status) )
 					{
-						
+
 						if ( sender is DownloadProgress child )
 						{
 							string fileName = "Unknown";
@@ -491,7 +484,7 @@ namespace KOTORModSync.Core.Services.Download
 								}
 								catch ( UriFormatException )
 								{
-									
+
 									fileName = System.IO.Path.GetFileName(child.Url);
 								}
 							}
@@ -504,40 +497,40 @@ namespace KOTORModSync.Core.Services.Download
 								groupedProgress.AddLog($"  ✗ ERROR: {child.ErrorMessage}");
 						}
 
-						
+
 						bool anyPending = groupedProgress._childDownloads.Any(c => c.Status == DownloadStatus.Pending);
 						bool anyInProgress = groupedProgress._childDownloads.Any(c => c.Status == DownloadStatus.InProgress);
 
-						
+
 						if ( anyInProgress )
 						{
 							groupedProgress.Status = DownloadStatus.InProgress;
 							groupedProgress.StatusMessage = "Downloading files...";
 						}
-						
+
 						else if ( !anyPending )
 						{
-							
+
 							int completed = groupedProgress._childDownloads.Count(c => c.Status == DownloadStatus.Completed);
 							int skipped = groupedProgress._childDownloads.Count(c => c.Status == DownloadStatus.Skipped);
 							int failed = groupedProgress._childDownloads.Count(c => c.Status == DownloadStatus.Failed);
 
-							
+
 							if ( failed > 0 && completed == 0 && skipped == 0 )
 							{
-								
+
 								groupedProgress.Status = DownloadStatus.Failed;
 								groupedProgress.StatusMessage = "All files failed";
 								groupedProgress.ErrorMessage = "All download attempts failed. Check individual file details for specific error information.";
 							}
 							else if ( failed > 0 )
 							{
-								
+
 								groupedProgress.Status = DownloadStatus.Failed;
 								groupedProgress.StatusMessage = $"Partially completed ({completed} downloaded, {skipped} skipped, {failed} failed)";
 								groupedProgress.ProgressPercentage = 100;
 
-								
+
 								var failedChildren = groupedProgress._childDownloads.Where(c => c.Status == DownloadStatus.Failed).ToList();
 								if ( failedChildren.Any() )
 								{
@@ -573,11 +566,11 @@ namespace KOTORModSync.Core.Services.Download
 							}
 							else
 							{
-								
+
 								groupedProgress.Status = DownloadStatus.Completed;
 								groupedProgress.StatusMessage = $"All files completed ({completed} downloaded, {skipped} skipped)";
 								groupedProgress.ProgressPercentage = 100;
-								groupedProgress.ErrorMessage = string.Empty; 
+								groupedProgress.ErrorMessage = string.Empty;
 							}
 						}
 					}

@@ -52,7 +52,7 @@ namespace KOTORModSync.Dialogs
 		public FieldSource Restrictions { get => _restrictions; set { _restrictions = value; OnPropertyChanged(); } }
 		public FieldSource InstallAfter { get => _installAfter; set { _installAfter = value; OnPropertyChanged(); } }
 		public FieldSource Options { get => _options; set { _options = value; OnPropertyChanged(); } }
-		public FieldSource ModLink { get => _modLink; set { _modLink = value; OnPropertyChanged(); } }
+		public FieldSource ModLinkFilenames { get => _modLink; set { _modLink = value; OnPropertyChanged(); } }
 		public FieldSource Language { get => _language; set { _language = value; OnPropertyChanged(); } }
 
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -338,14 +338,14 @@ namespace KOTORModSync.Dialogs
 			else
 				prefs.InstallAfter = FieldMergePreference.FieldSource.UseIncoming;
 
-			bool existingHasModLink = existing.ModLink.Count > 0;
-			bool incomingHasModLink = incoming.ModLink.Count > 0;
+			bool existingHasModLink = existing.ModLinkFilenames.Count > 0;
+			bool incomingHasModLink = incoming.ModLinkFilenames.Count > 0;
 			if ( existingHasModLink && incomingHasModLink )
-				prefs.ModLink = FieldMergePreference.FieldSource.Merge;
+				prefs.ModLinkFilenames = FieldMergePreference.FieldSource.Merge;
 			else if ( existingHasModLink )
-				prefs.ModLink = FieldMergePreference.FieldSource.UseExisting;
+				prefs.ModLinkFilenames = FieldMergePreference.FieldSource.UseExisting;
 			else
-				prefs.ModLink = FieldMergePreference.FieldSource.UseIncoming;
+				prefs.ModLinkFilenames = FieldMergePreference.FieldSource.UseIncoming;
 
 			bool existingHasLanguage = existing.Language.Count > 0;
 			bool incomingHasLanguage = incoming.Language.Count > 0;
@@ -592,7 +592,7 @@ namespace KOTORModSync.Dialogs
 				_ = sb.AppendLine($"Instructions: {component.Instructions.Count}");
 				_ = sb.AppendLine($"Options: {component.Options.Count}");
 				_ = sb.AppendLine($"Dependencies: {component.Dependencies.Count}");
-				_ = sb.AppendLine($"Links: {component.ModLink.Count}");
+				_ = sb.AppendLine($"Links: {component.ModLinkFilenames.Count}");
 
 				if ( _selectedExistingItem != null )
 				{
@@ -628,8 +628,8 @@ namespace KOTORModSync.Dialogs
 				_ = sb.AppendLine($"  Instructions: {a.Instructions.Count} vs {b.Instructions.Count}");
 			if ( a.Options.Count != b.Options.Count )
 				_ = sb.AppendLine($"  Options: {a.Options.Count} vs {b.Options.Count}");
-			if ( a.ModLink.Count != b.ModLink.Count )
-				_ = sb.AppendLine($"  Links: {a.ModLink.Count} vs {b.ModLink.Count}");
+			if ( a.ModLinkFilenames.Count != b.ModLinkFilenames.Count )
+				_ = sb.AppendLine($"  Links: {a.ModLinkFilenames.Count} vs {b.ModLinkFilenames.Count}");
 		}
 
 		public bool UseIncomingOrder
@@ -904,14 +904,14 @@ namespace KOTORModSync.Dialogs
 					else if ( existingHasInstallAfter )
 						fieldPrefs.InstallAfter = FieldMergePreference.FieldSource.UseExisting;
 
-					bool existingHasModLink = existing.ModLink != null && existing.ModLink.Count > 0;
-					bool incomingHasModLink = incoming.ModLink != null && incoming.ModLink.Count > 0;
+					bool existingHasModLink = existing.ModLinkFilenames != null && existing.ModLinkFilenames.Count > 0;
+					bool incomingHasModLink = incoming.ModLinkFilenames != null && incoming.ModLinkFilenames.Count > 0;
 					if ( existingHasModLink && incomingHasModLink )
-						fieldPrefs.ModLink = FieldMergePreference.FieldSource.Merge;
+						fieldPrefs.ModLinkFilenames = FieldMergePreference.FieldSource.Merge;
 					else if ( incomingHasModLink )
-						fieldPrefs.ModLink = FieldMergePreference.FieldSource.UseIncoming;
+						fieldPrefs.ModLinkFilenames = FieldMergePreference.FieldSource.UseIncoming;
 					else if ( existingHasModLink )
-						fieldPrefs.ModLink = FieldMergePreference.FieldSource.UseExisting;
+						fieldPrefs.ModLinkFilenames = FieldMergePreference.FieldSource.UseExisting;
 
 					bool existingHasLanguage = existing.Language != null && existing.Language.Count > 0;
 					bool incomingHasLanguage = incoming.Language != null && incoming.Language.Count > 0;
@@ -1020,14 +1020,14 @@ namespace KOTORModSync.Dialogs
 					else if ( incomingHasInstallAfter )
 						fieldPrefs.InstallAfter = FieldMergePreference.FieldSource.UseIncoming;
 
-					bool existingHasModLink = existing.ModLink != null && existing.ModLink.Count > 0;
-					bool incomingHasModLink = incoming.ModLink != null && incoming.ModLink.Count > 0;
+					bool existingHasModLink = existing.ModLinkFilenames != null && existing.ModLinkFilenames.Count > 0;
+					bool incomingHasModLink = incoming.ModLinkFilenames != null && incoming.ModLinkFilenames.Count > 0;
 					if ( existingHasModLink && incomingHasModLink )
-						fieldPrefs.ModLink = FieldMergePreference.FieldSource.Merge;
+						fieldPrefs.ModLinkFilenames = FieldMergePreference.FieldSource.Merge;
 					else if ( existingHasModLink )
-						fieldPrefs.ModLink = FieldMergePreference.FieldSource.UseExisting;
+						fieldPrefs.ModLinkFilenames = FieldMergePreference.FieldSource.UseExisting;
 					else if ( incomingHasModLink )
-						fieldPrefs.ModLink = FieldMergePreference.FieldSource.UseIncoming;
+						fieldPrefs.ModLinkFilenames = FieldMergePreference.FieldSource.UseIncoming;
 
 					bool existingHasLanguage = existing.Language != null && existing.Language.Count > 0;
 					bool incomingHasLanguage = incoming.Language != null && incoming.Language.Count > 0;
@@ -1435,14 +1435,14 @@ namespace KOTORModSync.Dialogs
 
 						var pair = Tuple.Create(matchedPair.Existing, matchedPair.Incoming);
 
-						if ( !_fieldPreferences.ContainsKey(pair) )
+						if ( !_fieldPreferences.TryGetValue(pair, out FieldMergePreference fieldPrefs) )
 						{
-							_fieldPreferences[pair] = CreateAndSubscribeFieldPreferences(
+							fieldPrefs = CreateAndSubscribeFieldPreferences(
 								matchedPair.Existing.ModComponent,
 								matchedPair.Incoming.ModComponent
 							);
+							_fieldPreferences[pair] = fieldPrefs;
 						}
-						FieldMergePreference fieldPrefs = _fieldPreferences[pair];
 
 						ModComponent mergedComponent = ComponentMergeConflictViewModel.MergeComponentData(
 							matchedPair.Existing.ModComponent,
@@ -1591,10 +1591,10 @@ namespace KOTORModSync.Dialogs
 			if ( fieldPrefs == null )
 				fieldPrefs = new FieldMergePreference();
 
-		var merged = new ModComponent
-		{
+			var merged = new ModComponent
+			{
 
-			Guid = existing.Guid,
+				Guid = existing.Guid,
 
 				Name = MergeStringField(existing.Name, incoming.Name, fieldPrefs.Name),
 				Author = MergeStringField(existing.Author, incoming.Author, fieldPrefs.Author),
@@ -1608,24 +1608,24 @@ namespace KOTORModSync.Dialogs
 				Options = MergeListField(existing.Options, incoming.Options, fieldPrefs.Options),
 
 				Dependencies = fieldPrefs.Dependencies == FieldMergePreference.FieldSource.Merge
-					? MergeLists(existing.Dependencies, incoming.Dependencies, deduplicate: true)
-					: MergeListField(existing.Dependencies, incoming.Dependencies, fieldPrefs.Dependencies),
+						? MergeLists(existing.Dependencies, incoming.Dependencies, deduplicate: true)
+						: MergeListField(existing.Dependencies, incoming.Dependencies, fieldPrefs.Dependencies),
 
 				Restrictions = fieldPrefs.Restrictions == FieldMergePreference.FieldSource.Merge
-					? MergeLists(existing.Restrictions, incoming.Restrictions, deduplicate: true)
-					: MergeListField(existing.Restrictions, incoming.Restrictions, fieldPrefs.Restrictions),
+						? MergeLists(existing.Restrictions, incoming.Restrictions, deduplicate: true)
+						: MergeListField(existing.Restrictions, incoming.Restrictions, fieldPrefs.Restrictions),
 
 				InstallAfter = fieldPrefs.InstallAfter == FieldMergePreference.FieldSource.Merge
-					? MergeLists(existing.InstallAfter, incoming.InstallAfter, deduplicate: true)
-					: MergeListField(existing.InstallAfter, incoming.InstallAfter, fieldPrefs.InstallAfter),
+						? MergeLists(existing.InstallAfter, incoming.InstallAfter, deduplicate: true)
+						: MergeListField(existing.InstallAfter, incoming.InstallAfter, fieldPrefs.InstallAfter),
 
-				ModLink = fieldPrefs.ModLink == FieldMergePreference.FieldSource.Merge
-					? MergeLists(existing.ModLink, incoming.ModLink, deduplicate: true)
-					: MergeListField(existing.ModLink, incoming.ModLink, fieldPrefs.ModLink),
+				ModLinkFilenames = fieldPrefs.ModLinkFilenames == FieldMergePreference.FieldSource.Merge
+					? MergeModLinkFilenames(existing.ModLinkFilenames, incoming.ModLinkFilenames)
+					: MergeDictionaryField(existing.ModLinkFilenames, incoming.ModLinkFilenames, fieldPrefs.ModLinkFilenames),
 
 				Language = fieldPrefs.Language == FieldMergePreference.FieldSource.Merge
-					? MergeLists(existing.Language, incoming.Language, deduplicate: true)
-					: MergeListField(existing.Language, incoming.Language, fieldPrefs.Language),
+						? MergeLists(existing.Language, incoming.Language, deduplicate: true)
+						: MergeListField(existing.Language, incoming.Language, fieldPrefs.Language),
 
 				IsSelected = existing.IsSelected,
 				InstallState = existing.InstallState,
@@ -1709,6 +1709,84 @@ namespace KOTORModSync.Dialogs
 			}
 
 			return merged;
+		}
+
+		private static Dictionary<string, Dictionary<string, bool?>> MergeModLinkFilenames(
+			Dictionary<string, Dictionary<string, bool?>> existingDict,
+			Dictionary<string, Dictionary<string, bool?>> incomingDict)
+		{
+			var result = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+
+			if ( existingDict != null )
+			{
+				foreach ( var kvp in existingDict )
+				{
+					result[kvp.Key] = new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase);
+				}
+			}
+
+			if ( incomingDict != null )
+			{
+				foreach ( var kvp in incomingDict )
+				{
+					if ( !result.ContainsKey(kvp.Key) )
+					{
+						result[kvp.Key] = new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase);
+					}
+					else
+					{
+						// Merge filename dictionaries - prefer incoming by default when both have explicit values
+						foreach ( var fileKvp in kvp.Value )
+						{
+							if ( !result[kvp.Key].TryGetValue(fileKvp.Key, out bool? value) )
+							{
+								// File doesn't exist in result, add incoming
+								result[kvp.Key][fileKvp.Key] = fileKvp.Value;
+							}
+							else if ( fileKvp.Value.HasValue && !value.HasValue )
+							{
+								// Incoming has explicit value, existing doesn't - use incoming
+								result[kvp.Key][fileKvp.Key] = fileKvp.Value;
+							}
+							else if ( fileKvp.Value.HasValue && value.HasValue )
+							{
+								// Both have explicit values - use incoming by default (new/updated data)
+								result[kvp.Key][fileKvp.Key] = fileKvp.Value;
+							}
+							else
+							{
+								// Existing has value (or both null) - keep existing
+								result[kvp.Key][fileKvp.Key] = value;
+							}
+						}
+					}
+				}
+			}
+
+			return result;
+		}
+
+		private static Dictionary<string, Dictionary<string, bool?>> MergeDictionaryField(
+			Dictionary<string, Dictionary<string, bool?>> existingDict,
+			Dictionary<string, Dictionary<string, bool?>> incomingDict,
+			FieldMergePreference.FieldSource source)
+		{
+			switch ( source )
+			{
+				case FieldMergePreference.FieldSource.UseExisting:
+					return existingDict != null
+						? existingDict.ToDictionary(kvp => kvp.Key, kvp => new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase)
+						: new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+
+				case FieldMergePreference.FieldSource.UseIncoming:
+					return incomingDict != null
+						? incomingDict.ToDictionary(kvp => kvp.Key, kvp => new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase)
+						: new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+
+				case FieldMergePreference.FieldSource.Merge:
+				default:
+					return MergeModLinkFilenames(existingDict, incomingDict);
+			}
 		}
 
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -1922,7 +2000,7 @@ namespace KOTORModSync.Dialogs
 			if ( item == null ) return 0;
 
 			Dictionary<ModComponent, int> map = item.IsFromExisting ? _existingComponentLineNumbers : _incomingComponentLineNumbers;
-			return map.ContainsKey(item.ModComponent) ? map[item.ModComponent] : 0;
+			return map.TryGetValue(item.ModComponent, out int value) ? value : 0;
 		}
 
 		private readonly Dictionary<ModComponent, int> _existingComponentLineNumbers = new Dictionary<ModComponent, int>();
@@ -2351,8 +2429,8 @@ namespace KOTORModSync.Dialogs
 					{
 						_ = sb.AppendLine();
 						_ = sb.AppendLine("⚠️ Mod archive not downloaded");
-						if ( component.ModLink.Count > 0 )
-							_ = sb.AppendLine($"🔗 Download: {component.ModLink[0]}");
+						if ( component.ModLinkFilenames.Count > 0 )
+							_ = sb.AppendLine($"🔗 Download: {component.ModLinkFilenames.Keys.FirstOrDefault()}");
 					}
 
 					if ( HasGuidConflict && !string.IsNullOrEmpty(GuidConflictTooltip) )

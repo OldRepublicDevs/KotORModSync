@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -19,7 +18,7 @@ namespace KOTORModSync.Core.Services.Download
 	public sealed class DeadlyStreamDownloadHandler : IDownloadHandler
 	{
 		private readonly HttpClient _httpClient;
-		private const long MaxBytesPerSecond = 7 * 1024 * 1024; // 7 MB/s
+		private const long MaxBytesPerSecond = 7 * 1024 * 1024;
 
 
 		private readonly System.Net.CookieContainer _cookieContainer;
@@ -75,9 +74,9 @@ namespace KOTORModSync.Core.Services.Download
 				new AuthenticationHeaderValue("Bearer", "KOTOR_MODSYNC_PUBLIC");
 			Logger.LogVerbose("[DeadlyStream] Added identification bearer token: KOTOR_MODSYNC_PUBLIC");
 
-		Logger.LogVerbose("[DeadlyStream] Handler initialized with proper browser headers and identification markers");
-		Logger.LogVerbose($"[DeadlyStream] Bandwidth throttling enabled: {MaxBytesPerSecond / 1024 / 1024} MB/s using ThrottledStream");
-	}
+			Logger.LogVerbose("[DeadlyStream] Handler initialized with proper browser headers and identification markers");
+			Logger.LogVerbose($"[DeadlyStream] Bandwidth throttling enabled: {MaxBytesPerSecond / 1024 / 1024} MB/s using ThrottledStream");
+		}
 
 		public bool CanHandle(string url)
 		{
@@ -86,45 +85,33 @@ namespace KOTORModSync.Core.Services.Download
 			return canHandle;
 		}
 
-		/// <summary>
-		/// Normalizes a DeadlyStream URL by removing query parameters and fragments.
-		/// Example: https://deadlystream.com/topic/mod-example/?tab=comments#comment-87106
-		/// becomes: https://deadlystream.com/topic/mod-example/
-		/// </summary>
 		private static string NormalizeDeadlyStreamUrl(string url)
 		{
 			if ( string.IsNullOrEmpty(url) )
 				return url;
 
-			// Find the position of '?' and '#' and strip everything after them
 			int queryIndex = url.IndexOf('?');
 			int fragmentIndex = url.IndexOf('#');
 
-			// Determine where to cut the URL
 			int cutIndex = -1;
 			if ( queryIndex >= 0 && fragmentIndex >= 0 )
 			{
-				// Both present - cut at whichever comes first
 				cutIndex = Math.Min(queryIndex, fragmentIndex);
 			}
 			else if ( queryIndex >= 0 )
 			{
-				// Only query present
 				cutIndex = queryIndex;
 			}
 			else if ( fragmentIndex >= 0 )
 			{
-				// Only fragment present
 				cutIndex = fragmentIndex;
 			}
 
-			// If we found a cut point, return the substring
 			if ( cutIndex >= 0 )
 			{
 				return url.Substring(0, cutIndex);
 			}
 
-			// No query or fragment found - return as-is
 			return url;
 		}
 
@@ -134,7 +121,6 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				await Logger.LogVerboseAsync($"[DeadlyStream] Resolving filenames for URL: {url}");
 
-				// Strip fragment (#) and query parameters (?) from URL
 				url = NormalizeDeadlyStreamUrl(url);
 				await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL: {url}");
 
@@ -212,7 +198,7 @@ namespace KOTORModSync.Core.Services.Download
 			}
 			catch ( Exception ex )
 			{
-				await Logger.LogWarningAsync($"[DeadlyStream] Failed to resolve filenames: {ex.Message}");
+				await Logger.LogExceptionAsync(ex, $"[DeadlyStream] Failed to resolve filenames");
 				return new List<string>();
 			}
 		}
@@ -231,7 +217,6 @@ namespace KOTORModSync.Core.Services.Download
 				if ( !response.IsSuccessStatusCode )
 				{
 					response.Dispose();
-					// Fallback to GET headers-only if HEAD not allowed
 					var getReq = new HttpRequestMessage(HttpMethod.Get, downloadLink);
 					ApplyCookiesToRequest(getReq, downloadUri);
 					var getResp = await _httpClient.SendAsync(getReq, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -340,13 +325,13 @@ namespace KOTORModSync.Core.Services.Download
 			string url,
 			string destinationDirectory,
 			IProgress<DownloadProgress> progress = null,
+			List<string> targetFilenames = null,
 			CancellationToken cancellationToken = default
 		)
 		{
 			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
 			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
 
-			// Strip fragment (#) and query parameters (?) from URL
 			url = NormalizeDeadlyStreamUrl(url);
 			await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL: {url}");
 
@@ -935,7 +920,9 @@ namespace KOTORModSync.Core.Services.Download
 			HtmlNodeCollection nodes = document.DocumentNode.SelectNodes(selector);
 			if ( nodes == null || nodes.Count == 0 )
 			{
-				Logger.LogWarning($"[DeadlyStream] No download links found for URL: {baseUrl}");
+				bool isTopicUrl = baseUrl.IndexOf("/topic/", StringComparison.OrdinalIgnoreCase) >= 0;
+				string urlType = isTopicUrl ? "forum topic" : "page";
+				Logger.LogWarning($"[DeadlyStream] No file attachments/download links found on {urlType}: {baseUrl}. If this is a forum topic with attachments, they may be in a different format or the page structure may have changed.");
 				return new List<string>();
 			}
 
@@ -1068,7 +1055,7 @@ namespace KOTORModSync.Core.Services.Download
 								Logger.LogVerbose($"[DeadlyStream]   Link {j + 1}: {allDownloadLinks[j]}");
 							}
 							Logger.LogVerbose("[DeadlyStream] NOTE: Multiple files available - currently downloading primary file only");
-							Logger.LogVerbose("[DeadlyStream] To download all files, add each as a separate ModLink in the component");
+							Logger.LogVerbose("[DeadlyStream] To download all files, add each as a separate ModLinkFilenames in the component");
 						}
 
 						string primaryLink = allDownloadLinks[0];
@@ -1116,15 +1103,12 @@ namespace KOTORModSync.Core.Services.Download
 			string trimmed = Regex.Replace(fileName, pattern: "^\"|\"$", string.Empty);
 			string unescaped = Uri.UnescapeDataString(trimmed);
 
-			// Only log if there's meaningful URL decoding (not just quote removal)
 			if ( trimmed != unescaped )
 			{
-				// URL decoding occurred - show the transformation
 				Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{trimmed}' -> '{unescaped}'");
 			}
 			else
 			{
-				// Only quote removal or no transformation - just show final result
 				Logger.LogVerbose($"[DeadlyStream] Extracted filename: '{unescaped}'");
 			}
 

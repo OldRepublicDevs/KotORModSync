@@ -10,16 +10,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core.FileSystemUtils;
-using KOTORModSync.Core.Utility;
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 {
-	/// <summary>
-	/// Manages installation checkpoints with bidirectional delta chains and anchor strategy.
-	/// Anchors are created every 10th checkpoint for faster long-distance navigation.
-	/// Thread-safe with file locking and corruption detection.
-	/// </summary>
 	public class CheckpointService
 	{
 		private const int ANCHOR_FREQUENCY = 10;
@@ -52,9 +46,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			_diffService = new BinaryDiffService(_casStore);
 		}
 
-		/// <summary>
-		/// Starts a new installation session and captures the baseline (initial game directory state).
-		/// </summary>
 		public async Task<string> StartInstallationSessionAsync(CancellationToken cancellationToken = default)
 		{
 			await Logger.LogAsync("[Checkpoint] Starting installation session...");
@@ -73,18 +64,15 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 			_checkpointCounter = 0;
 
-			// Capture baseline (current state of game directory)
 			ReportProgress("Scanning baseline directory...", 0, 1);
-			_baselineFiles = await ScanDirectoryAsync(_gameDirectory, cancellationToken);
+			_baselineFiles = await CheckpointService.ScanDirectoryAsync(_gameDirectory, cancellationToken);
 			_currentFiles = new Dictionary<string, FileState>(_baselineFiles, StringComparer.OrdinalIgnoreCase);
 
 			await Logger.LogAsync($"[Checkpoint] Baseline captured: {_baselineFiles.Count} files, " +
 				$"{_baselineFiles.Sum(f => f.Value.Size):N0} bytes");
 
-			// Save session metadata
 			await SaveSessionAsync();
 
-			// Save baseline
 			string baselinePath = GetBaselinePath(sessionId);
 			await CheckpointService.SaveBaselineAsync(baselinePath, _baselineFiles);
 
@@ -93,10 +81,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return sessionId;
 		}
 
-		/// <summary>
-		/// Creates a checkpoint after a ModComponent installation.
-		/// Automatically determines if this should be an anchor checkpoint.
-		/// </summary>
 		public async Task<string> CreateCheckpointAsync(
 			string componentName,
 			string componentGuid,
@@ -113,15 +97,12 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 			ReportProgress($"Creating checkpoint for {componentName}...", _checkpointCounter - 1, _currentSession.TotalComponents);
 
-			// Scan current game directory state
-			var newFiles = await ScanDirectoryAsync(_gameDirectory, cancellationToken);
+			var newFiles = await CheckpointService.ScanDirectoryAsync(_gameDirectory, cancellationToken);
 
-			// Compute changes from previous checkpoint
 			var changes = CheckpointService.ComputeFileChanges(_currentFiles, newFiles);
 
 			await Logger.LogAsync($"[Checkpoint] Detected changes: +{changes.Added.Count} ~{changes.Modified.Count} -{changes.Deleted.Count}");
 
-			// Create checkpoint
 			string checkpointId = Guid.NewGuid().ToString();
 			string previousCheckpointId = _currentSession.CheckpointIds.LastOrDefault();
 			string previousAnchorId = GetPreviousAnchorId();
@@ -139,7 +120,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				PreviousAnchorId = previousAnchorId
 			};
 
-			// Process added files
 			foreach ( string addedPath in changes.Added )
 			{
 				string fullPath = Path.Combine(_gameDirectory, addedPath);
@@ -152,20 +132,17 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				checkpoint.Files[addedPath] = fileState;
 			}
 
-			// Process modified files with bidirectional deltas
 			foreach ( string modifiedPath in changes.Modified )
 			{
 				string fullPath = Path.Combine(_gameDirectory, modifiedPath);
 				string oldFullPath = Path.Combine(_gameDirectory, modifiedPath);
 
-				// Retrieve old file from CAS temporarily
 				string tempOldFile = Path.GetTempFileName();
 				try
 				{
 					string oldCASHash = _currentFiles[modifiedPath].CASHash;
 					await _casStore.RetrieveFileAsync(oldCASHash, tempOldFile);
 
-					// Create bidirectional delta
 					var delta = await _diffService.CreateBidirectionalDeltaAsync(
 						tempOldFile,
 						fullPath,
@@ -187,32 +164,26 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				}
 			}
 
-			// Process deleted files
 			foreach ( string deletedPath in changes.Deleted )
 			{
 				checkpoint.Deleted.Add(deletedPath);
 			}
 
-			// For anchor checkpoints, store full file states
 			if ( isAnchor )
 			{
 				await Logger.LogAsync($"[Checkpoint] Storing anchor snapshot with {newFiles.Count} files");
 				checkpoint.Files = new Dictionary<string, FileState>(newFiles, StringComparer.OrdinalIgnoreCase);
 			}
 
-			// Calculate totals
 			checkpoint.FileCount = newFiles.Count;
 			checkpoint.TotalSize = newFiles.Sum(f => f.Value.Size);
 
-			// Save checkpoint
 			await SaveCheckpointAsync(checkpoint);
 
-			// Update session
 			_currentSession.CheckpointIds.Add(checkpointId);
 			_currentSession.CompletedComponents = _checkpointCounter;
 			await SaveSessionAsync();
 
-			// Update current state
 			_currentFiles = newFiles;
 
 			await Logger.LogAsync($"[Checkpoint] Checkpoint created: {checkpointId} " +
@@ -223,10 +194,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return checkpointId;
 		}
 
-		/// <summary>
-		/// Restores the game directory to a specific checkpoint.
-		/// Uses bidirectional deltas for efficient navigation.
-		/// </summary>
 		public async Task RestoreCheckpointAsync(
 			string checkpointId,
 			CancellationToken cancellationToken = default)
@@ -237,7 +204,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			if ( targetCheckpoint == null )
 				throw new InvalidOperationException($"Checkpoint not found: {checkpointId}");
 
-			// Determine restoration strategy
 			int targetSequence = targetCheckpoint.Sequence;
 			int currentSequence = _checkpointCounter;
 			int distance = Math.Abs(targetSequence - currentSequence);
@@ -245,32 +211,25 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			await Logger.LogAsync($"[Checkpoint] Distance: {distance} checkpoints " +
 				$"(Current: #{currentSequence}, Target: #{targetSequence})");
 
-			// Build restoration path
 			var checkpoints = await LoadSessionCheckpointsAsync(_currentSession.Id);
 
 			if ( targetSequence < currentSequence )
 			{
-				// Restore backwards
 				await RestoreBackwardsAsync(checkpoints, currentSequence, targetSequence, cancellationToken);
 			}
 			else
 			{
-				// Restore forwards
 				await RestoreForwardsAsync(checkpoints, currentSequence, targetSequence, cancellationToken);
 			}
 
-			// Update current state
 			_checkpointCounter = targetCheckpoint.Sequence;
-			_currentFiles = await ScanDirectoryAsync(_gameDirectory, cancellationToken);
+			_currentFiles = await CheckpointService.ScanDirectoryAsync(_gameDirectory, cancellationToken);
 
 			await Logger.LogAsync($"[Checkpoint] Restoration complete: {checkpointId}");
 
 			CheckpointRestored?.Invoke(this, new CheckpointEventArgs { Checkpoint = targetCheckpoint });
 		}
 
-		/// <summary>
-		/// Restores backwards using reverse deltas.
-		/// </summary>
 		private async Task RestoreBackwardsAsync(
 			List<Checkpoint> checkpoints,
 			int fromSequence,
@@ -279,7 +238,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 		{
 			await Logger.LogAsync($"[Checkpoint] Restoring backwards from #{fromSequence} to #{toSequence}");
 
-			// Apply reverse deltas in reverse order
 			for ( int seq = fromSequence; seq > toSequence; seq-- )
 			{
 				var checkpoint = checkpoints.FirstOrDefault(c => c.Sequence == seq);
@@ -288,7 +246,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 				ReportProgress($"Restoring backwards: checkpoint #{seq}...", fromSequence - seq, fromSequence - toSequence);
 
-				// Undo modified files (apply reverse deltas)
 				foreach ( var delta in checkpoint.Modified )
 				{
 					string fullPath = Path.Combine(_gameDirectory, delta.Path);
@@ -296,7 +253,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					await Logger.LogVerboseAsync($"[Checkpoint] Reverted: {delta.Path}");
 				}
 
-				// Undo added files (delete them)
 				foreach ( string addedPath in checkpoint.Added )
 				{
 					string fullPath = Path.Combine(_gameDirectory, addedPath);
@@ -307,12 +263,10 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					}
 				}
 
-				// Restore deleted files
 				foreach ( string deletedPath in checkpoint.Deleted )
 				{
 					string fullPath = Path.Combine(_gameDirectory, deletedPath);
 
-					// Find the file state from previous checkpoint
 					if ( seq > 1 )
 					{
 						var prevCheckpoint = checkpoints.FirstOrDefault(c => c.Sequence == seq - 1);
@@ -326,9 +280,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			}
 		}
 
-		/// <summary>
-		/// Restores forwards using forward deltas.
-		/// </summary>
 		private async Task RestoreForwardsAsync(
 			List<Checkpoint> checkpoints,
 			int fromSequence,
@@ -337,7 +288,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 		{
 			await Logger.LogAsync($"[Checkpoint] Restoring forwards from #{fromSequence} to #{toSequence}");
 
-			// Apply forward deltas in order
 			for ( int seq = fromSequence + 1; seq <= toSequence; seq++ )
 			{
 				var checkpoint = checkpoints.FirstOrDefault(c => c.Sequence == seq);
@@ -346,7 +296,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 				ReportProgress($"Restoring forwards: checkpoint #{seq}...", seq - fromSequence, toSequence - fromSequence);
 
-				// Apply modified files (apply forward deltas)
 				foreach ( var delta in checkpoint.Modified )
 				{
 					string fullPath = Path.Combine(_gameDirectory, delta.Path);
@@ -354,7 +303,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					await Logger.LogVerboseAsync($"[Checkpoint] Applied: {delta.Path}");
 				}
 
-				// Add new files
 				foreach ( string addedPath in checkpoint.Added )
 				{
 					string fullPath = Path.Combine(_gameDirectory, addedPath);
@@ -363,7 +311,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					await Logger.LogVerboseAsync($"[Checkpoint] Added: {addedPath}");
 				}
 
-				// Delete files
 				foreach ( string deletedPath in checkpoint.Deleted )
 				{
 					string fullPath = Path.Combine(_gameDirectory, deletedPath);
@@ -376,9 +323,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			}
 		}
 
-		/// <summary>
-		/// Completes the current installation session.
-		/// </summary>
 		public async Task CompleteSessionAsync(bool keepCheckpoints = true)
 		{
 			if ( _currentSession == null )
@@ -402,17 +346,11 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			_currentFiles = null;
 		}
 
-		/// <summary>
-		/// Lists all checkpoints in a session.
-		/// </summary>
 		public async Task<List<Checkpoint>> ListCheckpointsAsync(string sessionId)
 		{
 			return await LoadSessionCheckpointsAsync(sessionId);
 		}
 
-		/// <summary>
-		/// Lists all installation sessions.
-		/// </summary>
 		public async Task<List<CheckpointSession>> ListSessionsAsync()
 		{
 			var sessions = new List<CheckpointSession>();
@@ -443,9 +381,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return sessions.OrderByDescending(s => s.StartTime).ToList();
 		}
 
-		/// <summary>
-		/// Deletes a session and its checkpoints.
-		/// </summary>
 		public async Task DeleteSessionAsync(string sessionId)
 		{
 			await Logger.LogAsync($"[Checkpoint] Deleting session {sessionId}...");
@@ -458,18 +393,13 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				await Logger.LogAsync($"[Checkpoint] Session deleted: {sessionId}");
 			}
 
-			// Run garbage collection to clean up orphaned CAS objects
 			await GarbageCollectAsync();
 		}
 
-		/// <summary>
-		/// Garbage collects orphaned CAS objects not referenced by any checkpoint.
-		/// </summary>
 		public async Task<int> GarbageCollectAsync()
 		{
 			await Logger.LogAsync("[Checkpoint] Starting garbage collection...");
 
-			// Collect all referenced CAS hashes from all sessions
 			var referencedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 			var sessions = await ListSessionsAsync();
 
@@ -478,14 +408,12 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				var checkpoints = await LoadSessionCheckpointsAsync(session.Id);
 				foreach ( var checkpoint in checkpoints )
 				{
-					// Collect file CAS hashes
 					foreach ( var fileState in checkpoint.Files.Values )
 					{
 						if ( !string.IsNullOrEmpty(fileState.CASHash) )
 							referencedHashes.Add(fileState.CASHash);
 					}
 
-					// Collect delta CAS hashes
 					foreach ( var delta in checkpoint.Modified )
 					{
 						if ( !string.IsNullOrEmpty(delta.SourceCASHash) )
@@ -506,10 +434,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 		#region Helper Methods
 
-		/// <summary>
-		/// Scans a directory and returns file states.
-		/// </summary>
-		private async Task<Dictionary<string, FileState>> ScanDirectoryAsync(
+		private static async Task<Dictionary<string, FileState>> ScanDirectoryAsync(
 			string directory,
 			CancellationToken cancellationToken)
 		{
@@ -521,7 +446,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
-				// Skip checkpoint directory itself
 				if ( fullPath.Contains(".kotor_modsync") )
 					continue;
 
@@ -542,16 +466,12 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return files;
 		}
 
-		/// <summary>
-		/// Computes changes between two file states.
-		/// </summary>
 		private static FileChanges ComputeFileChanges(
 			Dictionary<string, FileState> oldFiles,
 			Dictionary<string, FileState> newFiles)
 		{
 			var changes = new FileChanges();
 
-			// Find added and modified files
 			foreach ( var kvp in newFiles )
 			{
 				string path = kvp.Key;
@@ -559,17 +479,14 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 				if ( !oldFiles.TryGetValue(path, out var oldState) )
 				{
-					// File added
 					changes.Added.Add(path);
 				}
 				else if ( oldState.Hash != newState.Hash )
 				{
-					// File modified
 					changes.Modified.Add(path);
 				}
 			}
 
-			// Find deleted files
 			foreach ( string path in oldFiles.Keys )
 			{
 				if ( !newFiles.ContainsKey(path) )
@@ -586,7 +503,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			if ( _currentSession == null || _currentSession.CheckpointIds.Count == 0 )
 				return null;
 
-			// Find the most recent anchor
 			for ( int i = _currentSession.CheckpointIds.Count - 1; i >= 0; i-- )
 			{
 				int sequence = i + 1;
@@ -646,7 +562,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			await WriteAllTextAsync(checkpointPath, json);
 		}
 
-		// Helper methods for .NET Standard 2.0 compatibility
 		private static async Task<string> ReadAllTextAsync(string path)
 		{
 			using ( var reader = new StreamReader(path, Encoding.UTF8) )
@@ -717,9 +632,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 		#region Validation and Corruption Detection
 
-		/// <summary>
-		/// Validates checkpoint integrity by checking for missing CAS objects and corrupted metadata.
-		/// </summary>
 		public async Task<(bool isValid, List<string> errors)> ValidateCheckpointAsync(string checkpointId)
 		{
 			var errors = new List<string>();
@@ -733,7 +645,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					return (false, errors);
 				}
 
-				// Validate all CAS references exist
 				foreach ( var file in checkpoint.Files.Values )
 				{
 					if ( !string.IsNullOrEmpty(file.CASHash) && !_casStore.HasObject(file.CASHash) )
@@ -742,7 +653,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					}
 				}
 
-				// Validate delta CAS references
 				foreach ( var delta in checkpoint.Modified )
 				{
 					if ( !string.IsNullOrEmpty(delta.ForwardDeltaCASHash) && !_casStore.HasObject(delta.ForwardDeltaCASHash) )
@@ -775,9 +685,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			}
 		}
 
-		/// <summary>
-		/// Validates all checkpoints in a session.
-		/// </summary>
 		public async Task<(bool isValid, Dictionary<string, List<string>> errorsByCheckpoint)> ValidateSessionAsync(string sessionId)
 		{
 			var errorsByCheckpoint = new Dictionary<string, List<string>>();
@@ -795,10 +702,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return (errorsByCheckpoint.Count == 0, errorsByCheckpoint);
 		}
 
-		/// <summary>
-		/// Attempts to repair a corrupted checkpoint by recreating missing CAS objects from the game directory.
-		/// Only works if the files still exist in the game directory.
-		/// </summary>
 		public async Task<bool> TryRepairCheckpointAsync(string checkpointId, CancellationToken cancellationToken = default)
 		{
 			try
@@ -809,11 +712,10 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 				var (isValid, errors) = await ValidateCheckpointAsync(checkpointId);
 				if ( isValid )
-					return true; // Already valid
+					return true;
 
 				await Logger.LogAsync($"Attempting to repair checkpoint {checkpointId}...");
 
-				// Attempt to restore missing CAS objects from game directory
 				foreach ( var file in checkpoint.Files.Values )
 				{
 					if ( string.IsNullOrEmpty(file.CASHash) )
@@ -837,7 +739,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					}
 				}
 
-				// Revalidate
 				var (isNowValid, _) = await ValidateCheckpointAsync(checkpointId);
 				return isNowValid;
 			}

@@ -191,7 +191,7 @@ namespace KOTORModSync.Tests
 				Console.WriteLine($"  Tier: {component.Tier}");
 				Console.WriteLine($"  Language: {string.Join(", ", component.Language)}");
 				Console.WriteLine($"  InstallationMethod: {component.InstallationMethod}");
-				Console.WriteLine($"  ModLinks: {component.ModLink?.Count ?? 0}");
+				Console.WriteLine($"  ModLinks: {component.ModLinkFilenames?.Count ?? 0}");
 				Console.WriteLine($"  Description length: {component.Description?.Length ?? 0}");
 				Console.WriteLine($"  Directions length: {component.Directions?.Length ?? 0}");
 			}

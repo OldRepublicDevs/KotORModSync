@@ -1122,7 +1122,7 @@ namespace KOTORModSync.Tests
 
 			foreach ( ModComponent component in components )
 			{
-				if ( component.ModLink.Count == 0 )
+				if ( component.ModLinkFilenames.Count == 0 )
 				{
 					TestContext.WriteLine($"  [{component.Name}] No download links available");
 					component.IsSelected = false;

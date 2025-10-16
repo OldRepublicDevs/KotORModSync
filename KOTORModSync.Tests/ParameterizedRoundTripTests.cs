@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using KOTORModSync.Core;
@@ -19,7 +20,7 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class ParameterizedRoundTripTests
 	{
-		private string _testDirectory;
+		private string? _testDirectory;
 
 		[SetUp]
 		public void SetUp()
@@ -226,6 +227,7 @@ namespace KOTORModSync.Tests
 			Console.WriteLine($"Testing: {Path.GetFileName(tomlFilePath)}");
 
 			List<ModComponent> components1 = FileLoadingService.LoadFromFile(tomlFilePath);
+			Debug.Assert(_testDirectory is not null, "Test directory is null");
 			string tomlPath1 = Path.Combine(_testDirectory, "generation1.toml");
 			FileLoadingService.SaveToFile(components1, tomlPath1);
 			string generatedToml1 = File.ReadAllText(tomlPath1);
@@ -274,6 +276,7 @@ namespace KOTORModSync.Tests
 			Assert.That(File.Exists(tomlFilePath), Is.True, $"Test file not found: {tomlFilePath}");
 
 			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(tomlFilePath);
+			Debug.Assert(_testDirectory is not null, "Test directory is null");
 			string generatedTomlPath = Path.Combine(_testDirectory, "regenerated.toml");
 			FileLoadingService.SaveToFile(originalComponents, generatedTomlPath);
 			List<ModComponent> regeneratedComponents = FileLoadingService.LoadFromFile(generatedTomlPath);
@@ -302,7 +305,7 @@ namespace KOTORModSync.Tests
 				{
 					Assert.That(regen.Category, Is.EqualTo(orig.Category).AsCollection, $"Component {i}: Category mismatch");
 					Assert.That(regen.Language, Is.EqualTo(orig.Language).AsCollection, $"Component {i}: Language mismatch");
-					Assert.That(regen.ModLink, Is.EqualTo(orig.ModLink).AsCollection, $"Component {i}: ModLink mismatch");
+					Assert.That(regen.ModLinkFilenames, Is.EqualTo(orig.ModLinkFilenames).AsCollection, $"Component {i}: ModLinkFilenames mismatch");
 					Assert.That(regen.Dependencies, Is.EqualTo(orig.Dependencies).AsCollection, $"Component {i}: Dependencies mismatch");
 					Assert.That(regen.Restrictions, Is.EqualTo(orig.Restrictions).AsCollection, $"Component {i}: Restrictions mismatch");
 				});
@@ -328,6 +331,7 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult parseResult1 = parser.Parse(originalMarkdown);
 			List<ModComponent> components1 = parseResult1.Components.ToList();
+			Debug.Assert(_testDirectory is not null, "Test directory is null");
 			string tomlPath1 = Path.Combine(_testDirectory, "from_markdown_1.toml");
 			FileLoadingService.SaveToFile(components1, tomlPath1);
 
@@ -368,6 +372,7 @@ namespace KOTORModSync.Tests
 			MarkdownParserResult parseResult = parser.Parse(generatedMarkdown);
 			List<ModComponent> componentsFromMarkdown = parseResult.Components.ToList();
 
+			Debug.Assert(_testDirectory is not null, "Test directory is null");
 			string debugMdPath = Path.Combine(_testDirectory, Path.GetFileNameWithoutExtension(tomlFilePath) + ".md");
 			File.WriteAllText(debugMdPath, generatedMarkdown);
 

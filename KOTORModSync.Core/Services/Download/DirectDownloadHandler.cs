@@ -92,12 +92,17 @@ namespace KOTORModSync.Core.Services.Download
 			}
 			catch ( Exception ex )
 			{
-				await Logger.LogWarningAsync($"[DirectDownload] Failed to resolve filename: {ex.Message}");
+				await Logger.LogExceptionAsync(ex, $"[DirectDownload] Failed to resolve filename for URL: {url}");
 				return new List<string>();
 			}
 		}
 
-		public async Task<DownloadResult> DownloadAsync(string url, string destinationDirectory, IProgress<DownloadProgress> progress = null, CancellationToken cancellationToken = default)
+		public async Task<DownloadResult> DownloadAsync(
+			string url,
+			string destinationDirectory,
+			IProgress<DownloadProgress> progress = null,
+			List<string> targetFilenames = null,
+			CancellationToken cancellationToken = default)
 		{
 			await Logger.LogVerboseAsync($"[DirectDownload] Starting direct download from URL: {url}");
 			await Logger.LogVerboseAsync($"[DirectDownload] Destination directory: {destinationDirectory}");

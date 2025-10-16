@@ -36,7 +36,7 @@ namespace KOTORModSync.Core.Services
 				Description = "A new mod component.",
 				IsSelected = false,
 				IsDownloaded = false,
-				ModLink = new List<string>(),
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase),
 				Dependencies = new List<Guid>(),
 				Restrictions = new List<Guid>(),
 				InstallAfter = new List<Guid>(),
@@ -73,7 +73,10 @@ namespace KOTORModSync.Core.Services
 				Description = sourceComponent.Description,
 				Directions = sourceComponent.Directions,
 				InstallationMethod = sourceComponent.InstallationMethod,
-				ModLink = new List<string>(sourceComponent.ModLink),
+				ModLinkFilenames = sourceComponent.ModLinkFilenames?.ToDictionary(
+				kvp => kvp.Key,
+				kvp => new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase),
+				StringComparer.OrdinalIgnoreCase),
 				Dependencies = new List<Guid>(sourceComponent.Dependencies),
 				Restrictions = new List<Guid>(sourceComponent.Restrictions),
 				InstallAfter = new List<Guid>(sourceComponent.InstallAfter),
@@ -401,7 +404,7 @@ namespace KOTORModSync.Core.Services
 				if ( searchOptions.SearchInAuthor && component.Author.IndexOf(lowerSearch, StringComparison.OrdinalIgnoreCase) >= 0 )
 					return true;
 
-				if ( searchOptions.SearchInCategory && component.Category != null &&
+				if ( searchOptions.SearchInCategory &&
 					 component.Category.Any(cat => cat.IndexOf(lowerSearch, StringComparison.OrdinalIgnoreCase) >= 0) )
 					return true;
 
@@ -443,8 +446,8 @@ namespace KOTORModSync.Core.Services
 							{ "", 4 }
 						};
 
-						int aOrder = tierOrder.TryGetValue(a.Tier, out int aVal) ? aVal : 4;
-						int bOrder = tierOrder.TryGetValue(b.Tier, out int bVal) ? bVal : 4;
+						int aOrder = tierOrder.GetValueOrDefault(a.Tier, 4);
+						int bOrder = tierOrder.GetValueOrDefault(b.Tier, 4);
 
 						int result = aOrder.CompareTo(bOrder);
 						if ( result == 0 )
@@ -705,7 +708,7 @@ namespace KOTORModSync.Core.Services
 					existing.Description = imported.Description;
 					existing.Directions = imported.Directions;
 					existing.InstallationMethod = imported.InstallationMethod;
-					existing.ModLink = imported.ModLink;
+					existing.ModLinkFilenames = imported.ModLinkFilenames;
 					existing.Dependencies = imported.Dependencies;
 					existing.Restrictions = imported.Restrictions;
 					existing.InstallAfter = imported.InstallAfter;
@@ -789,7 +792,7 @@ namespace KOTORModSync.Core.Services
 				existing.Description = imported.Description;
 				existing.Directions = imported.Directions;
 				existing.InstallationMethod = imported.InstallationMethod;
-				existing.ModLink = imported.ModLink;
+				existing.ModLinkFilenames = imported.ModLinkFilenames;
 				existing.Dependencies = imported.Dependencies;
 				existing.Restrictions = imported.Restrictions;
 				existing.InstallAfter = imported.InstallAfter;
@@ -859,7 +862,10 @@ namespace KOTORModSync.Core.Services
 			Description = source.Description,
 			Directions = source.Directions,
 			InstallationMethod = source.InstallationMethod,
-			ModLink = new List<string>(source.ModLink),
+			ModLinkFilenames = source.ModLinkFilenames?.ToDictionary(
+			kvp => kvp.Key,
+			kvp => new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase),
+			StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase),
 			Dependencies = new List<Guid>(source.Dependencies),
 			Restrictions = new List<Guid>(source.Restrictions),
 			InstallAfter = new List<Guid>(source.InstallAfter),
@@ -977,7 +983,7 @@ namespace KOTORModSync.Core.Services
 			public bool SearchInName { get; set; } = true;
 			public bool SearchInAuthor { get; set; } = true;
 			public bool SearchInCategory { get; set; } = true;
-			public bool SearchInDescription { get; set; } = false;
+			public bool SearchInDescription { get; set; }
 		}
 
 		public class ModValidationResult

@@ -181,7 +181,7 @@ namespace KOTORModSync.Core.Services
 			if ( urlsToResolve.Count > 0 )
 			{
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Resolving {urlsToResolve.Count} uncached URL(s) via network");
-				Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken, sequential).ConfigureAwait(false);
+				Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken, false).ConfigureAwait(false); // FIXME: sequential is so slow it's unusable.
 
 				if ( sequential )
 				{

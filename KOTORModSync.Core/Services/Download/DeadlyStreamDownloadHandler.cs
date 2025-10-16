@@ -137,12 +137,13 @@ namespace KOTORModSync.Core.Services.Download
 					url = validatedUri.ToString();
 				}
 
-
+				Logger.LogVerbose($"[DeadlyStream] Requesting page: {url}");
 				var request = new HttpRequestMessage(HttpMethod.Get, url);
 				ApplyCookiesToRequest(request, validatedUri);
 				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 				_ = pageResponse.EnsureSuccessStatusCode();
 				ExtractAndStoreCookies(pageResponse, validatedUri);
+				Logger.LogVerbose($"[DeadlyStream] Page response received (StatusCode: {pageResponse.StatusCode})");
 
 				string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
 				pageResponse.Dispose();
@@ -155,9 +156,11 @@ namespace KOTORModSync.Core.Services.Download
 					? $"{url}?do=download&csrfKey={csrfKey}"
 					: $"{url}?do=download";
 
+				Logger.LogVerbose($"[DeadlyStream] Requesting download page: {downloadPageUrl}");
 				var downloadPageRequest = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
 				ApplyCookiesToRequest(downloadPageRequest, validatedUri);
 				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+				Logger.LogVerbose($"[DeadlyStream] Download page response received (StatusCode: {downloadPageResponse.StatusCode})");
 
 				List<string> filenames = new List<string>();
 
@@ -207,19 +210,22 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			try
 			{
-
+				Logger.LogVerbose($"[DeadlyStream] Resolving filename from link (HEAD): {downloadLink}");
 				Uri downloadUri = new Uri(downloadLink);
 				var request = new HttpRequestMessage(HttpMethod.Head, downloadLink);
 				ApplyCookiesToRequest(request, downloadUri);
 
 				HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+				Logger.LogVerbose($"[DeadlyStream] HEAD response received (StatusCode: {response.StatusCode})");
 
 				if ( !response.IsSuccessStatusCode )
 				{
 					response.Dispose();
+					Logger.LogVerbose($"[DeadlyStream] HEAD failed, trying GET request for filename resolution");
 					var getReq = new HttpRequestMessage(HttpMethod.Get, downloadLink);
 					ApplyCookiesToRequest(getReq, downloadUri);
 					var getResp = await _httpClient.SendAsync(getReq, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+					Logger.LogVerbose($"[DeadlyStream] GET response received (StatusCode: {getResp.StatusCode})");
 					if ( !getResp.IsSuccessStatusCode )
 					{
 						getResp.Dispose();
@@ -368,19 +374,21 @@ namespace KOTORModSync.Core.Services.Download
 					await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL to HTTPS: {url}");
 				}
 
-				var request = new HttpRequestMessage(HttpMethod.Get, url);
+			await Logger.LogVerboseAsync($"[DeadlyStream] Requesting page: {url}");
+			var request = new HttpRequestMessage(HttpMethod.Get, url);
 
 
-				ApplyCookiesToRequest(request, validatedUri);
+			ApplyCookiesToRequest(request, validatedUri);
 
-				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-				_ = pageResponse.EnsureSuccessStatusCode();
+			HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+			_ = pageResponse.EnsureSuccessStatusCode();
+			await Logger.LogVerboseAsync($"[DeadlyStream] Page response received (StatusCode: {pageResponse.StatusCode})");
 
 
-				ExtractAndStoreCookies(pageResponse, validatedUri);
+			ExtractAndStoreCookies(pageResponse, validatedUri);
 
-				string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-				await Logger.LogVerboseAsync($"[DeadlyStream] Downloaded HTML content, length: {html.Length} characters");
+			string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[DeadlyStream] Downloaded HTML content, length: {html.Length} characters");
 
 
 				string csrfKey = ExtractCsrfKey(html);
@@ -403,6 +411,7 @@ namespace KOTORModSync.Core.Services.Download
 				ApplyCookiesToRequest(downloadPageRequest, validatedUri);
 
 				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, cancellationToken).ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Download page response received (StatusCode: {downloadPageResponse.StatusCode})");
 
 				if ( downloadPageResponse.IsSuccessStatusCode )
 				{

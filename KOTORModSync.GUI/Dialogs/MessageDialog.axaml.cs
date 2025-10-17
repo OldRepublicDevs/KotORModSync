@@ -20,7 +20,7 @@ namespace KOTORModSync.Dialogs
 			Title = title;
 
 			var titleText = this.FindControl<TextBlock>("TitleText");
-			var messageText = this.FindControl<TextBlock>("MessageText");
+			var messageText = this.FindControl<TextBox>("MessageText");
 			var okButton = this.FindControl<Button>("OkButton");
 
 			if ( titleText != null )

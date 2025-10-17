@@ -133,21 +133,29 @@ namespace KOTORModSync.Controls
 				_pathInput.Watermark = Watermark ?? string.Empty;
 		}
 
-		private void InitializePathSuggestions()
+		public void InitializePathSuggestions()
 		{
-			if ( _pathSuggestions == null ) return;
+			if ( _pathSuggestions == null )
+			{
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] InitializePathSuggestions: _pathSuggestions is null");
+				return;
+			}
 
 			try
 			{
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] InitializePathSuggestions: Starting initialization");
+
 				if ( PickerType == DirectoryPickerType.ModDirectory )
 				{
 					InitializeModDirectoryPaths();
 					_pathSuggestions.PlaceholderText = "Select from recent mod directories...";
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] InitializePathSuggestions: ModDirectory initialized, ItemsSource count: {(_pathSuggestions.ItemsSource as IEnumerable<object>)?.Count() ?? 0}");
 				}
 				else if ( PickerType == DirectoryPickerType.KotorDirectory )
 				{
 					InitializeKotorDirectoryPaths();
 					_pathSuggestions.PlaceholderText = "Select from detected KOTOR installations...";
+					Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] InitializePathSuggestions: KotorDirectory initialized, ItemsSource count: {(_pathSuggestions.ItemsSource as IEnumerable<object>)?.Count() ?? 0}");
 				}
 			}
 			catch ( Exception ex )
@@ -161,8 +169,14 @@ namespace KOTORModSync.Controls
 			try
 			{
 				List<string> recentPaths = DirectoryPickerControl.LoadRecentModPaths();
+				Logger.LogVerbose($"DirectoryPickerControl(ModDirectory) LoadRecentModPaths returned: {recentPaths?.Count ?? 0} paths");
+				if ( recentPaths != null && recentPaths.Count > 0 )
+				{
+					Logger.LogVerbose($"DirectoryPickerControl(ModDirectory) Recent paths: {string.Join(", ", recentPaths)}");
+				}
+
 				_pathSuggestions.ItemsSource = recentPaths;
-				Logger.LogVerbose($"DirectoryPickerControl(ModDirectory) initialized suggestions: {recentPaths?.Count ?? 0} entries");
+				Logger.LogVerbose($"DirectoryPickerControl(ModDirectory) Set ItemsSource, current ItemsSource count: {(_pathSuggestions.ItemsSource as IEnumerable<object>)?.Count() ?? 0}");
 			}
 			catch ( Exception ex )
 			{
@@ -175,12 +189,17 @@ namespace KOTORModSync.Controls
 			try
 			{
 				List<string> defaultPaths = DirectoryPickerControl.GetDefaultPathsForGame();
-				var newPaths = defaultPaths.Where(Directory.Exists).ToList();
+				Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) GetDefaultPathsForGame returned: {defaultPaths?.Count ?? 0} paths");
 
+				var newPaths = defaultPaths.Where(Directory.Exists).ToList();
+				Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) Found {newPaths.Count} existing paths");
+				if ( newPaths.Count > 0 )
+				{
+					Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) Existing paths: {string.Join(", ", newPaths)}");
+				}
 
 				List<string> currentItems = (_pathSuggestions?.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
 				string currentSelection = _pathSuggestions?.SelectedItem?.ToString();
-
 
 				foreach ( string path in newPaths )
 				{
@@ -190,9 +209,8 @@ namespace KOTORModSync.Controls
 					}
 				}
 
-
 				_pathSuggestions.ItemsSource = currentItems;
-
+				Logger.LogVerbose($"DirectoryPickerControl(KotorDirectory) Set ItemsSource with {currentItems.Count} items");
 
 				if ( !string.IsNullOrEmpty(currentSelection) )
 				{
@@ -330,6 +348,18 @@ namespace KOTORModSync.Controls
 					_pathInput.Text = path ?? string.Empty;
 				}
 
+				// If we have a valid directory and the UI is ready, add to suggestions
+				if ( !string.IsNullOrEmpty(path) && Directory.Exists(path) && _pathInput != null )
+				{
+					if ( PickerType == DirectoryPickerType.ModDirectory )
+					{
+						SaveRecentModPath(path);
+					}
+					else if ( PickerType == DirectoryPickerType.KotorDirectory )
+					{
+						AddPathToSuggestions(path);
+					}
+				}
 
 				if ( fireEvent && !string.IsNullOrEmpty(path) && Directory.Exists(path) )
 				{
@@ -357,6 +387,67 @@ namespace KOTORModSync.Controls
 			{
 				Logger.LogException(ex);
 				return string.Empty;
+			}
+		}
+
+		/// <summary>
+		/// Gets the current path, ensuring it's properly synchronized with the settings system.
+		/// </summary>
+		public string GetCurrentPathForSettings()
+		{
+			try
+			{
+				string path = GetCurrentPath();
+
+				// If we have a valid path, save it to recent paths for mod directory
+				if ( !string.IsNullOrEmpty(path) && Directory.Exists(path) && PickerType == DirectoryPickerType.ModDirectory )
+				{
+					SaveRecentModPath(path);
+				}
+
+				return path;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+				return string.Empty;
+			}
+		}
+
+		/// <summary>
+		/// Sets the current path from settings, ensuring proper synchronization.
+		/// </summary>
+		public void SetCurrentPathFromSettings(string path)
+		{
+			try
+			{
+				if ( string.IsNullOrEmpty(path) )
+					return;
+
+				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] SetCurrentPathFromSettings -> '{path}'");
+
+				// Set the path
+				SetCurrentPath(path, fireEvent: false);
+
+				// If it's a valid directory, add to suggestions
+				if ( Directory.Exists(path) )
+				{
+					if ( PickerType == DirectoryPickerType.ModDirectory )
+					{
+						SaveRecentModPath(path);
+					}
+					else if ( PickerType == DirectoryPickerType.KotorDirectory )
+					{
+						AddPathToSuggestions(path);
+					}
+
+					// Refresh the ComboBox to show the updated suggestions
+					RefreshSuggestionsSafely();
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
 			}
 		}
 
@@ -561,7 +652,7 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		private void RefreshSuggestionsSafely()
+		public void RefreshSuggestionsSafely()
 		{
 			if ( _pathSuggestions == null ) return;
 

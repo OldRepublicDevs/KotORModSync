@@ -26,7 +26,7 @@
         <StyleInclude Source="/Styles/ContentPresenterFix.axaml" />
     </Window.Styles>
 
-    <Grid Margin="20" RowDefinitions="Auto,*,Auto">
+    <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
         <!--  Custom Window Controls  -->
         <StackPanel
             Grid.Row="0"
@@ -67,7 +67,7 @@
 
         <!--  Header  -->
         <TextBlock
-            Grid.Row="1"
+            Grid.Row="3"
             Margin="0,0,0,20"
             HorizontalAlignment="Center"
             FontSize="24"
@@ -75,7 +75,10 @@
             Text="⚙️ Settings" />
 
         <!--  Settings Content  -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer
+            Grid.Row="4"
+            MaxHeight="{Binding $parent[Window].Height, RelativeSource={RelativeSource AncestorType=Window}}"
+            VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="15">
                 <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
                 <StackPanel x:Name="SettingsStackPanel" DataContext="{Binding MainConfigInstance}">
@@ -133,6 +136,124 @@
                                 ToolTip.Tip="Character encoding used when loading/saving mod files. UTF-8 is standard, but Windows-1252 may be needed for files with special characters.">
                                 <ComboBoxItem Content="UTF-8" Tag="utf-8" />
                                 <ComboBoxItem Content="Windows-1252 (CP-1252)" Tag="windows-1252" />
+                                <ComboBoxItem Content="Windows-1251 (CP-1251)" Tag="windows-1251" />
+                                <ComboBoxItem Content="Windows-1250 (CP-1250)" Tag="windows-1250" />
+                                <ComboBoxItem Content="Windows-1253 (CP-1253)" Tag="windows-1253" />
+                                <ComboBoxItem Content="Windows-1254 (CP-1254)" Tag="windows-1254" />
+                                <ComboBoxItem Content="Windows-1255 (CP-1255)" Tag="windows-1255" />
+                                <ComboBoxItem Content="Windows-1256 (CP-1256)" Tag="windows-1256" />
+                                <ComboBoxItem Content="Windows-1257 (CP-1257)" Tag="windows-1257" />
+                                <ComboBoxItem Content="Windows-1258 (CP-1258)" Tag="windows-1258" />
+                                <ComboBoxItem Content="ISO-8859-1 (Latin-1)" Tag="iso-8859-1" />
+                                <ComboBoxItem Content="ISO-8859-2 (Latin-2)" Tag="iso-8859-2" />
+                                <ComboBoxItem Content="ISO-8859-3 (Latin-3)" Tag="iso-8859-3" />
+                                <ComboBoxItem Content="ISO-8859-4 (Latin-4)" Tag="iso-8859-4" />
+                                <ComboBoxItem Content="ISO-8859-5 (Cyrillic)" Tag="iso-8859-5" />
+                                <ComboBoxItem Content="ISO-8859-6 (Arabic)" Tag="iso-8859-6" />
+                                <ComboBoxItem Content="ISO-8859-7 (Greek)" Tag="iso-8859-7" />
+                                <ComboBoxItem Content="ISO-8859-8 (Hebrew)" Tag="iso-8859-8" />
+                                <ComboBoxItem Content="ISO-8859-9 (Latin-5)" Tag="iso-8859-9" />
+                                <ComboBoxItem Content="ISO-8859-10 (Latin-6)" Tag="iso-8859-10" />
+                                <ComboBoxItem Content="ISO-8859-11 (Thai)" Tag="iso-8859-11" />
+                                <ComboBoxItem Content="ISO-8859-13 (Latin-7)" Tag="iso-8859-13" />
+                                <ComboBoxItem Content="ISO-8859-14 (Latin-8)" Tag="iso-8859-14" />
+                                <ComboBoxItem Content="ISO-8859-15 (Latin-9)" Tag="iso-8859-15" />
+                                <ComboBoxItem Content="ISO-8859-16 (Latin-10)" Tag="iso-8859-16" />
+                                <ComboBoxItem Content="KOI8-R (Russian)" Tag="koi8-r" />
+                                <ComboBoxItem Content="KOI8-U (Ukrainian)" Tag="koi8-u" />
+                                <ComboBoxItem Content="KOI8-T (Tajik)" Tag="koi8-t" />
+                                <ComboBoxItem Content="KOI8-B (Bulgarian)" Tag="koi8-b" />
+                                <ComboBoxItem Content="KOI8-F (French)" Tag="koi8-f" />
+                                <ComboBoxItem Content="MacRoman" Tag="macintosh" />
+                                <ComboBoxItem Content="MacCyrillic" Tag="x-mac-cyrillic" />
+                                <ComboBoxItem Content="MacGreek" Tag="x-mac-greek" />
+                                <ComboBoxItem Content="MacHebrew" Tag="x-mac-hebrew" />
+                                <ComboBoxItem Content="MacArabic" Tag="x-mac-arabic" />
+                                <ComboBoxItem Content="MacThai" Tag="x-mac-thai" />
+                                <ComboBoxItem Content="EUC-JP (Japanese)" Tag="euc-jp" />
+                                <ComboBoxItem Content="Shift_JIS (Japanese)" Tag="shift_jis" />
+                                <ComboBoxItem Content="ISO-2022-JP (Japanese)" Tag="iso-2022-jp" />
+                                <ComboBoxItem Content="EUC-KR (Korean)" Tag="euc-kr" />
+                                <ComboBoxItem Content="ISO-2022-KR (Korean)" Tag="iso-2022-kr" />
+                                <ComboBoxItem Content="GB2312 (Chinese Simplified)" Tag="gb2312" />
+                                <ComboBoxItem Content="GBK (Chinese)" Tag="gbk" />
+                                <ComboBoxItem Content="GB18030 (Chinese)" Tag="gb18030" />
+                                <ComboBoxItem Content="Big5 (Chinese Traditional)" Tag="big5" />
+                                <ComboBoxItem Content="Big5-HKSCS (Hong Kong)" Tag="big5-hkscs" />
+                                <ComboBoxItem Content="TIS-620 (Thai)" Tag="tis-620" />
+                                <ComboBoxItem Content="Windows-874 (Thai)" Tag="windows-874" />
+                                <ComboBoxItem Content="IBM-437 (DOS Latin US)" Tag="ibm437" />
+                                <ComboBoxItem Content="IBM-850 (DOS Latin-1)" Tag="ibm850" />
+                                <ComboBoxItem Content="IBM-852 (DOS Latin-2)" Tag="ibm852" />
+                                <ComboBoxItem Content="IBM-855 (DOS Cyrillic)" Tag="ibm855" />
+                                <ComboBoxItem Content="IBM-857 (DOS Turkish)" Tag="ibm857" />
+                                <ComboBoxItem Content="IBM-860 (DOS Portuguese)" Tag="ibm860" />
+                                <ComboBoxItem Content="IBM-861 (DOS Icelandic)" Tag="ibm861" />
+                                <ComboBoxItem Content="IBM-862 (DOS Hebrew)" Tag="ibm862" />
+                                <ComboBoxItem Content="IBM-863 (DOS Canadian French)" Tag="ibm863" />
+                                <ComboBoxItem Content="IBM-864 (DOS Arabic)" Tag="ibm864" />
+                                <ComboBoxItem Content="IBM-865 (DOS Nordic)" Tag="ibm865" />
+                                <ComboBoxItem Content="IBM-866 (DOS Cyrillic Russian)" Tag="ibm866" />
+                                <ComboBoxItem Content="IBM-869 (DOS Greek)" Tag="ibm869" />
+                                <ComboBoxItem Content="UTF-16 LE" Tag="utf-16le" />
+                                <ComboBoxItem Content="UTF-16 BE" Tag="utf-16be" />
+                                <ComboBoxItem Content="UTF-32 LE" Tag="utf-32le" />
+                                <ComboBoxItem Content="UTF-32 BE" Tag="utf-32be" />
+                                <ComboBoxItem Content="UTF-7" Tag="utf-7" />
+                                <ComboBoxItem Content="ASCII" Tag="ascii" />
+                                <ComboBoxItem Content="US-ASCII" Tag="us-ascii" />
+                                <ComboBoxItem Content="Latin-1 (ISO-8859-1)" Tag="latin1" />
+                                <ComboBoxItem Content="Windows-1251 (Cyrillic)" Tag="cp1251" />
+                                <ComboBoxItem Content="Windows-1252 (Western European)" Tag="cp1252" />
+                                <ComboBoxItem Content="Windows-1250 (Central European)" Tag="cp1250" />
+                                <ComboBoxItem Content="Windows-1253 (Greek)" Tag="cp1253" />
+                                <ComboBoxItem Content="Windows-1254 (Turkish)" Tag="cp1254" />
+                                <ComboBoxItem Content="Windows-1255 (Hebrew)" Tag="cp1255" />
+                                <ComboBoxItem Content="Windows-1256 (Arabic)" Tag="cp1256" />
+                                <ComboBoxItem Content="Windows-1257 (Baltic)" Tag="cp1257" />
+                                <ComboBoxItem Content="Windows-1258 (Vietnamese)" Tag="cp1258" />
+                                <ComboBoxItem Content="ISO-8859-1 (Western European)" Tag="iso8859-1" />
+                                <ComboBoxItem Content="ISO-8859-2 (Central European)" Tag="iso8859-2" />
+                                <ComboBoxItem Content="ISO-8859-3 (South European)" Tag="iso8859-3" />
+                                <ComboBoxItem Content="ISO-8859-4 (North European)" Tag="iso8859-4" />
+                                <ComboBoxItem Content="ISO-8859-5 (Cyrillic)" Tag="iso8859-5" />
+                                <ComboBoxItem Content="ISO-8859-6 (Arabic)" Tag="iso8859-6" />
+                                <ComboBoxItem Content="ISO-8859-7 (Greek)" Tag="iso8859-7" />
+                                <ComboBoxItem Content="ISO-8859-8 (Hebrew)" Tag="iso8859-8" />
+                                <ComboBoxItem Content="ISO-8859-9 (Turkish)" Tag="iso8859-9" />
+                                <ComboBoxItem Content="ISO-8859-10 (Nordic)" Tag="iso8859-10" />
+                                <ComboBoxItem Content="ISO-8859-11 (Thai)" Tag="iso8859-11" />
+                                <ComboBoxItem Content="ISO-8859-13 (Baltic)" Tag="iso8859-13" />
+                                <ComboBoxItem Content="ISO-8859-14 (Celtic)" Tag="iso8859-14" />
+                                <ComboBoxItem Content="ISO-8859-15 (Latin-9)" Tag="iso8859-15" />
+                                <ComboBoxItem Content="ISO-8859-16 (Latin-10)" Tag="iso8859-16" />
+                                <ComboBoxItem Content="CP437 (DOS Latin US)" Tag="cp437" />
+                                <ComboBoxItem Content="CP850 (DOS Latin-1)" Tag="cp850" />
+                                <ComboBoxItem Content="CP852 (DOS Latin-2)" Tag="cp852" />
+                                <ComboBoxItem Content="CP855 (DOS Cyrillic)" Tag="cp855" />
+                                <ComboBoxItem Content="CP857 (DOS Turkish)" Tag="cp857" />
+                                <ComboBoxItem Content="CP860 (DOS Portuguese)" Tag="cp860" />
+                                <ComboBoxItem Content="CP861 (DOS Icelandic)" Tag="cp861" />
+                                <ComboBoxItem Content="CP862 (DOS Hebrew)" Tag="cp862" />
+                                <ComboBoxItem Content="CP863 (DOS Canadian French)" Tag="cp863" />
+                                <ComboBoxItem Content="CP864 (DOS Arabic)" Tag="cp864" />
+                                <ComboBoxItem Content="CP865 (DOS Nordic)" Tag="cp865" />
+                                <ComboBoxItem Content="CP866 (DOS Cyrillic)" Tag="cp866" />
+                                <ComboBoxItem Content="CP869 (DOS Greek)" Tag="cp869" />
+                                <ComboBoxItem Content="CP874 (Thai)" Tag="cp874" />
+                                <ComboBoxItem Content="CP932 (Japanese Shift JIS)" Tag="cp932" />
+                                <ComboBoxItem Content="CP936 (Chinese GBK)" Tag="cp936" />
+                                <ComboBoxItem Content="CP949 (Korean)" Tag="cp949" />
+                                <ComboBoxItem Content="CP950 (Chinese Big5)" Tag="cp950" />
+                                <ComboBoxItem Content="CP1250 (Central European)" Tag="cp1250" />
+                                <ComboBoxItem Content="CP1251 (Cyrillic)" Tag="cp1251" />
+                                <ComboBoxItem Content="CP1252 (Western European)" Tag="cp1252" />
+                                <ComboBoxItem Content="CP1253 (Greek)" Tag="cp1253" />
+                                <ComboBoxItem Content="CP1254 (Turkish)" Tag="cp1254" />
+                                <ComboBoxItem Content="CP1255 (Hebrew)" Tag="cp1255" />
+                                <ComboBoxItem Content="CP1256 (Arabic)" Tag="cp1256" />
+                                <ComboBoxItem Content="CP1257 (Baltic)" Tag="cp1257" />
+                                <ComboBoxItem Content="CP1258 (Vietnamese)" Tag="cp1258" />
                             </ComboBox>
                             <TextBlock
                                 Margin="0,5,0,0"
@@ -234,8 +355,26 @@
                                 x:Name="HolopatcherVersionComboBox"
                                 Margin="0,5,0,0"
                                 HorizontalAlignment="Stretch"
-                                ToolTip.Tip="Select a PyKotor version to download and install (includes HoloPatcher source)"
-                                Watermark="Fetching available PyKotor versions..." />
+                                PlaceholderText="Fetching available PyKotor versions..."
+                                SelectionChanged="HolopatcherVersionComboBox_SelectionChanged"
+                                ToolTip.Tip="Select a PyKotor version to download and install (includes HoloPatcher source)" />
+
+                            <ProgressBar
+                                x:Name="DownloadProgressBar"
+                                Height="4"
+                                Margin="0,10,0,0"
+                                IsIndeterminate="True"
+                                IsVisible="False"
+                                ToolTip.Tip="Downloading PyKotor version..." />
+
+                            <TextBlock
+                                x:Name="DownloadStatusText"
+                                Margin="0,5,0,0"
+                                FontSize="11"
+                                IsVisible="False"
+                                Opacity="0.7"
+                                Text="Downloading..."
+                                TextWrapping="Wrap" />
 
                             <StackPanel
                                 Margin="0,10,0,0"
@@ -352,7 +491,7 @@
 
         <!--  Buttons  -->
         <StackPanel
-            Grid.Row="3"
+            Grid.Row="5"
             Margin="0,20,0,0"
             HorizontalAlignment="Right"
             Orientation="Horizontal">

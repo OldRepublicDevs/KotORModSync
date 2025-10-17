@@ -530,19 +530,40 @@ namespace KOTORModSync.Core.CLI
 			public bool SkipValidation { get; set; }
 		}
 
+		[Verb("install-python-deps", HelpText = "Install Python dependencies for HoloPatcher at build time")]
+		public class InstallPythonDepsOptions : BaseOptions
+		{
+			[Option("force", Required = false, Default = false, HelpText = "Force reinstall even if dependencies are already installed")]
+			public bool Force { get; set; }
+		}
+
+		[Verb("holopatcher", HelpText = "Run HoloPatcher with optional arguments")]
+		public class HolopatcherOptions : BaseOptions
+		{
+			[Option('a', "args", Required = false, Default = "", HelpText = "Arguments to pass to HoloPatcher")]
+			public string Arguments { get; set; }
+		}
+
 		public static int Run(string[] args)
 		{
+			// Disable keyring BEFORE any Python initialization to prevent pip hanging
+			// This must be set at the process level before Python.Included initializes
+			Environment.SetEnvironmentVariable("PYTHON_KEYRING_BACKEND", "keyring.backends.null.Keyring");
+			Environment.SetEnvironmentVariable("DISPLAY", "");  // Also disable X11 display waiting
+
 			Logger.Initialize();
 
 			var parser = new Parser(with => with.HelpWriter = Console.Out);
 
-			return parser.ParseArguments<ConvertOptions, MergeOptions, ValidateOptions, InstallOptions, SetNexusApiKeyOptions>(args)
+			return parser.ParseArguments<ConvertOptions, MergeOptions, ValidateOptions, InstallOptions, SetNexusApiKeyOptions, InstallPythonDepsOptions, HolopatcherOptions>(args)
 			.MapResult(
 				(ConvertOptions opts) => RunConvertAsync(opts).GetAwaiter().GetResult(),
 				(MergeOptions opts) => RunMergeAsync(opts).GetAwaiter().GetResult(),
 				(ValidateOptions opts) => RunValidateAsync(opts).GetAwaiter().GetResult(),
 				(InstallOptions opts) => RunInstallAsync(opts).GetAwaiter().GetResult(),
 				(SetNexusApiKeyOptions opts) => RunSetNexusApiKeyAsync(opts).GetAwaiter().GetResult(),
+				(InstallPythonDepsOptions opts) => RunInstallPythonDepsAsync(opts).GetAwaiter().GetResult(),
+				(HolopatcherOptions opts) => RunHolopatcherAsync(opts).GetAwaiter().GetResult(),
 				errs => 1);
 		}
 
@@ -2330,6 +2351,278 @@ namespace KOTORModSync.Core.CLI
 					Logger.LogException(ex);
 				}
 				Logger.Log($"\n❌ Error: {ex.Message}");
+				return 1;
+			}
+		}
+
+		private static async Task<int> RunInstallPythonDepsAsync(InstallPythonDepsOptions opts)
+		{
+			SetVerboseMode(opts.Verbose);
+
+			try
+			{
+				// Disable keyring to prevent pip from hanging
+				Environment.SetEnvironmentVariable("PYTHON_KEYRING_BACKEND", "keyring.backends.null.Keyring");
+				Environment.SetEnvironmentVariable("PIP_NO_INPUT", "1");
+				Environment.SetEnvironmentVariable("PIP_DISABLE_PIP_VERSION_CHECK", "1");
+
+				Logger.Log("Installing Python dependencies for HoloPatcher...");
+				Logger.Log("This may take several minutes on first run...");
+
+				var startTime = DateTime.Now;
+
+				// Setup Python environment
+				Logger.Log("Setting up Python environment...");
+				await Python.Included.Installer.SetupPython();
+
+				Logger.Log("Initializing Python engine...");
+				Logger.Log("[DEBUG] About to call PythonEngine.Initialize()");
+				Python.Runtime.PythonEngine.Initialize();
+				Logger.Log("[DEBUG] PythonEngine.Initialize() completed");
+
+				// Check if dependencies are already installed
+				bool dependenciesInstalled = false;
+				if ( !opts.Force )
+				{
+					try
+					{
+						Logger.Log("Checking if dependencies are already installed...");
+						Logger.Log("[DEBUG] Acquiring GIL...");
+						using ( Python.Runtime.Py.GIL() )
+						{
+							Logger.Log("[DEBUG] GIL acquired, importing loggerplus...");
+							Python.Runtime.Py.Import("loggerplus");
+							Logger.Log("[DEBUG] loggerplus imported, importing ply...");
+							Python.Runtime.Py.Import("ply");
+							Logger.Log("[DEBUG] ply imported");
+							dependenciesInstalled = true;
+							Logger.Log("✓ Python dependencies already installed.");
+						}
+						Logger.Log("[DEBUG] GIL released");
+					}
+					catch ( Python.Runtime.PythonException ex )
+					{
+						Logger.Log($"[DEBUG] Import failed: {ex.Message}");
+						Logger.Log("Dependencies not found, will install...");
+						dependenciesInstalled = false;
+					}
+				}
+
+				if ( !dependenciesInstalled )
+				{
+					Logger.Log("[DEBUG] ===== STARTING DEPENDENCY INSTALLATION =====");
+					Logger.Log("Installing dependencies using Python.NET (bypassing Python.Included's buggy RunCommand)...");
+
+					Logger.Log("[DEBUG] About to acquire GIL for installation");
+					using ( Python.Runtime.Py.GIL() )
+					{
+						Logger.Log("[DEBUG] GIL acquired for installation");
+
+						// First ensure pip is available
+						try
+						{
+							Logger.Log("[DEBUG] About to import ensurepip...");
+							dynamic ensurepip = Python.Runtime.Py.Import("ensurepip");
+							Logger.Log("[DEBUG] ensurepip imported, calling _bootstrap()...");
+							ensurepip._bootstrap(upgrade: true);
+							Logger.Log("✓ Pip bootstrapped");
+						}
+						catch ( Python.Runtime.PythonException ex )
+						{
+							Logger.Log($"[DEBUG] ensurepip exception: {ex.Message}");
+							Logger.Log($"ensurepip note: {ex.Message} (pip may already exist)");
+						}
+
+						// Install loggerplus using pip's internal API
+						Logger.Log("[DEBUG] ===== INSTALLING LOGGERPLUS =====");
+						Logger.Log("Installing loggerplus using pip._internal.main()...");
+						try
+						{
+							Logger.Log("[DEBUG] Importing pip._internal...");
+							dynamic pip_internal = Python.Runtime.Py.Import("pip._internal");
+							Logger.Log("[DEBUG] pip._internal imported, getting main function...");
+							dynamic pipMain = pip_internal.main;
+							Logger.Log("[DEBUG] Got pipMain, creating args list...");
+
+							using ( dynamic args = new Python.Runtime.PyList() )
+							{
+								Logger.Log("[DEBUG] Created PyList, appending 'install'...");
+								args.Append(new Python.Runtime.PyString("install"));
+								Logger.Log("[DEBUG] Appending 'loggerplus'...");
+								args.Append(new Python.Runtime.PyString("loggerplus"));
+
+								Logger.Log("[DEBUG] About to call pipMain(args)...");
+								Logger.Log("[DEBUG] THIS IS WHERE IT MIGHT HANG...");
+								pipMain(args);
+								Logger.Log("[DEBUG] pipMain() returned!");
+							}
+							Logger.Log("✓ loggerplus installed");
+						}
+						catch ( Python.Runtime.PythonException ex )
+						{
+							Logger.Log($"[DEBUG] PythonException caught: {ex.Message}");
+							// pip._internal.main() raises SystemExit on success
+							if ( ex.Message.Contains("SystemExit") && ex.Message.Contains("0") )
+							{
+								Logger.Log("✓ loggerplus installed (exit 0)");
+							}
+							else
+							{
+								Logger.LogError($"Failed to install loggerplus: {ex.Message}");
+								return 1;
+							}
+						}
+
+						// Install ply
+						Logger.Log("[DEBUG] ===== INSTALLING PLY =====");
+						Logger.Log("Installing ply using pip._internal.main()...");
+						try
+						{
+							Logger.Log("[DEBUG] Importing pip._internal for ply...");
+							dynamic pip_internal = Python.Runtime.Py.Import("pip._internal");
+							dynamic pipMain = pip_internal.main;
+							Logger.Log("[DEBUG] Creating args for ply...");
+
+							using ( dynamic args = new Python.Runtime.PyList() )
+							{
+								args.Append(new Python.Runtime.PyString("install"));
+								args.Append(new Python.Runtime.PyString("ply"));
+
+								Logger.Log("[DEBUG] Calling pipMain for ply...");
+								pipMain(args);
+								Logger.Log("[DEBUG] pipMain for ply returned!");
+							}
+							Logger.Log("✓ ply installed");
+						}
+						catch ( Python.Runtime.PythonException ex )
+						{
+							Logger.Log($"[DEBUG] ply PythonException: {ex.Message}");
+							if ( ex.Message.Contains("SystemExit") && ex.Message.Contains("0") )
+							{
+								Logger.Log("✓ ply installed (exit 0)");
+							}
+							else
+							{
+								Logger.LogError($"Failed to install ply: {ex.Message}");
+								return 1;
+							}
+						}
+					}
+					Logger.Log("[DEBUG] GIL released after installation");
+					Logger.Log("[DEBUG] ===== INSTALLATION COMPLETE =====");
+
+					Logger.Log("Python dependencies installation completed.");
+					Logger.Log("Skipping verification to avoid potential GIL issues.");
+				}
+
+				var elapsed = DateTime.Now - startTime;
+				Logger.Log($"Python dependencies setup completed in {elapsed.TotalSeconds:F1} seconds.");
+				Logger.Log("[DEBUG] ===== SHUTTING DOWN PYTHON ENGINE =====");
+
+				// Shutdown Python engine to prevent hanging
+				try
+				{
+					if ( Python.Runtime.PythonEngine.IsInitialized )
+					{
+						Logger.Log("[DEBUG] Calling PythonEngine.Shutdown()...");
+						Python.Runtime.PythonEngine.Shutdown();
+						Logger.Log("[DEBUG] PythonEngine.Shutdown() completed");
+					}
+				}
+				catch ( Exception shutdownEx )
+				{
+					Logger.Log($"[DEBUG] Shutdown warning: {shutdownEx.Message}");
+				}
+
+				Logger.Log("[DEBUG] ===== EXITING SUCCESSFULLY =====");
+
+				return 0;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogError($"Error installing Python dependencies: {ex.Message}");
+				if ( opts.Verbose )
+				{
+					Logger.LogException(ex);
+				}
+				return 1;
+			}
+		}
+
+		private static async Task<int> RunHolopatcherAsync(HolopatcherOptions opts)
+		{
+			SetVerboseMode(opts.Verbose);
+
+			try
+			{
+				Logger.Log("Launching HoloPatcher...");
+				Logger.Log($"Arguments: {(string.IsNullOrEmpty(opts.Arguments) ? "(none)" : opts.Arguments)}");
+
+				string baseDir = Core.Utility.Utility.GetBaseDirectory();
+				string resourcesDir = Core.Utility.Utility.GetResourcesDirectory(baseDir);
+
+				Logger.Log($"[DEBUG] Base directory: {baseDir}");
+				Logger.Log($"[DEBUG] Resources directory: {resourcesDir}");
+
+				// Find holopatcher
+				var (holopatcherPath, usePythonVersion, found) = await Services.InstallationService.FindHolopatcherAsync(resourcesDir, baseDir);
+
+				if ( !found )
+				{
+					Logger.LogError("HoloPatcher not found in Resources directory.");
+					Logger.Log("Please ensure PyKotor/HoloPatcher is installed correctly.");
+					return 1;
+				}
+
+				Logger.Log($"Found HoloPatcher at: {holopatcherPath}");
+				Logger.Log($"Using Python version: {usePythonVersion}");
+
+				// Run holopatcher
+				int exitCode;
+				string stdout;
+				string stderr;
+
+				if ( usePythonVersion )
+				{
+					Logger.Log("Running HoloPatcher via Python.NET...");
+					(exitCode, stdout, stderr) = await Services.InstallationService.RunHolopatcherPyAsync(holopatcherPath, opts.Arguments ?? "");
+				}
+				else
+				{
+					Logger.Log("Running HoloPatcher executable...");
+					(exitCode, stdout, stderr) = await Core.Utility.PlatformAgnosticMethods.ExecuteProcessAsync(holopatcherPath, opts.Arguments ?? "");
+				}
+
+				if ( !string.IsNullOrEmpty(stdout) )
+				{
+					Logger.Log("=== STDOUT ===");
+					Logger.Log(stdout);
+				}
+
+				if ( !string.IsNullOrEmpty(stderr) )
+				{
+					Logger.LogError("=== STDERR ===");
+					Logger.LogError(stderr);
+				}
+
+				if ( exitCode == 0 )
+				{
+					Logger.Log("✓ HoloPatcher completed successfully");
+					return 0;
+				}
+				else
+				{
+					Logger.LogError($"HoloPatcher exited with code {exitCode}");
+					return exitCode;
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogError($"Error running HoloPatcher: {ex.Message}");
+				if ( opts.Verbose )
+				{
+					Logger.LogException(ex);
+				}
 				return 1;
 			}
 		}

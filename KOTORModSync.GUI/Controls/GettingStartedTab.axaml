@@ -123,7 +123,7 @@
                             HorizontalAlignment="Left"
                             Click="Step2Button_Click"
                             Content="📄 Load Instruction File"
-                            ToolTip.Tip="Click 'Load Installation File' in the top menu" />
+                            ToolTip.Tip="Load an instruction set into the application." />
                         <Button
                             x:Name="GettingStartedSettingsButton"
                             HorizontalAlignment="Left"
@@ -328,7 +328,7 @@
                                         x:Name="ErrorCounterText"
                                         FontWeight="SemiBold"
                                         Text="Error 1 of 3" />
-                                    
+
                                     <TextBlock
                                         Grid.Column="1"
                                         VerticalAlignment="Center"
@@ -356,7 +356,7 @@
                                         Click="NextErrorButton_Click"
                                         Content="▶"
                                         ToolTip.Tip="Next error" />
-                                    
+
                                     <Button
                                         x:Name="JumpToModButton"
                                         Grid.Column="4"

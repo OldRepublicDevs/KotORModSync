@@ -40,20 +40,113 @@ namespace KOTORModSync.Core.Services
 				if ( _pythonInitialized )
 					return;
 
+				// Disable keyring to prevent pip from hanging waiting for authentication
+				// This is a known issue with pip - it tries to use keyring for authentication
+				// which can hang indefinitely waiting for user input
+				Environment.SetEnvironmentVariable("PYTHON_KEYRING_BACKEND", "keyring.backends.null.Keyring");
+
+				await Logger.LogVerboseAsync("Initializing embedded Python environment...");
+				var startTime = DateTime.Now;
+
 				await Installer.SetupPython();
 				PythonEngine.Initialize();
 
-				// Install required Python packages for HoloPatcher
-				await Logger.LogVerboseAsync("Installing HoloPatcher Python dependencies...");
-				await Installer.TryInstallPip();
-				await Installer.PipInstallModule("loggerplus");
-				await Installer.PipInstallModule("ply");
+				// Check if dependencies are already installed (from build time)
+				bool dependenciesInstalled = await CheckPythonDependenciesAsync();
+
+				if ( !dependenciesInstalled )
+				{
+					await Logger.LogVerboseAsync("Python dependencies not found, installing HoloPatcher Python dependencies...");
+					await Logger.LogVerboseAsync("This may take several minutes on first run...");
+
+					// Use Python.NET to call pip._internal.main() directly to avoid Python.Included's buggy RunCommand
+					using ( Py.GIL() )
+					{
+						try
+						{
+							// Set up stdout/stderr to prevent NoneType write errors
+							dynamic sys = Py.Import("sys");
+							dynamic io = Py.Import("io");
+							dynamic StringIO = io.StringIO;
+							sys.stdout = StringIO();
+							sys.stderr = StringIO();
+
+							await Logger.LogVerboseAsync("Set up StringIO for stdout/stderr to prevent NoneType write errors");
+
+							// Install loggerplus
+							await Logger.LogVerboseAsync("Installing loggerplus...");
+							dynamic pip = Py.Import("pip._internal");
+							dynamic pipMain = pip.main;
+							var args = new Python.Runtime.PyList();
+							args.Append(new Python.Runtime.PyString("install"));
+							args.Append(new Python.Runtime.PyString("loggerplus"));
+							pipMain(args);
+							await Logger.LogVerboseAsync("✓ loggerplus installed");
+
+							// Install ply
+							await Logger.LogVerboseAsync("Installing ply...");
+							var argsply = new Python.Runtime.PyList();
+							argsply.Append(new Python.Runtime.PyString("install"));
+							argsply.Append(new Python.Runtime.PyString("ply"));
+							pipMain(argsply);
+							await Logger.LogVerboseAsync("✓ ply installed");
+						}
+						catch ( PythonException ex )
+						{
+							await Logger.LogExceptionAsync(ex, "Failed to install Python dependencies via pip._internal");
+							throw;
+						}
+					}
+
+					await Logger.LogVerboseAsync("Python dependencies installation completed.");
+				}
+				else
+				{
+					await Logger.LogVerboseAsync("Python dependencies already installed (from build time).");
+				}
+
+				var elapsed = DateTime.Now - startTime;
+				await Logger.LogVerboseAsync($"Python environment initialization completed in {elapsed.TotalSeconds:F1} seconds.");
 
 				_pythonInitialized = true;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, "Failed to initialize Python environment");
+				throw;
 			}
 			finally
 			{
 				_pythonSemaphore.Release();
+			}
+		}
+
+		/// <summary>
+		/// Checks if the required Python dependencies are already installed.
+		/// </summary>
+		private static async Task<bool> CheckPythonDependenciesAsync()
+		{
+			try
+			{
+				using ( Py.GIL() )
+				{
+					// Try to import the required modules
+					try
+					{
+						Py.Import("loggerplus");
+						Py.Import("ply");
+						return true;
+					}
+					catch ( PythonException )
+					{
+						return false;
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogVerboseAsync($"Error checking Python dependencies: {ex.Message}");
+				return false;
 			}
 		}
 
@@ -129,46 +222,104 @@ namespace KOTORModSync.Core.Services
 
 			return await Task.Run(() =>
 			{
-				using ( Py.GIL() )
+				try
 				{
-					try
+					Logger.LogVerbose($"[RunHolopatcherPyAsync] Starting HoloPatcher from path: {holopatcherPath}");
+
+					// Run Python code to execute holopatcher's __main__.py file directly
+					// This lets HoloPatcher's own code handle all the path setup
+					using ( Py.GIL() )
 					{
-						// Get the PyKotor root directory from holopatcher path
-						// Path is: Resources/PyKotor/Tools/HoloPatcher/src/holopatcher
-						string pyKotorRoot = Path.GetFullPath(Path.Combine(holopatcherPath, "..", "..", "..", "..", ".."));
-						string holopatcherSrc = Path.GetDirectoryName(holopatcherPath);
-						string pyKotorLibSrc = Path.Combine(pyKotorRoot, "Libraries", "PyKotor", "src");
-						string utilityLibSrc = Path.Combine(pyKotorRoot, "Libraries", "Utility", "src");
-
-						// Add all necessary paths to Python's sys.path
 						dynamic sys = Py.Import("sys");
-						sys.path.insert(0, holopatcherSrc);
-						sys.path.insert(0, pyKotorLibSrc);
-						sys.path.insert(0, utilityLibSrc);
 
-						// Parse the arguments
+						// Set up stdout/stderr to prevent NoneType write errors
+						dynamic io = Py.Import("io");
+						dynamic StringIO = io.StringIO;
+						sys.stdout = StringIO();
+						sys.stderr = StringIO();
+
+						Logger.LogVerbose($"[RunHolopatcherPyAsync] Set up StringIO for stdout/stderr");
+
+						// Set sys.argv with the arguments
 						dynamic sysArgv = new PyList();
 						sysArgv.append("holopatcher");
-						foreach ( string arg in args.Split(' ', StringSplitOptions.RemoveEmptyEntries) )
+						if (!string.IsNullOrEmpty(args))
 						{
-							sysArgv.append(arg.Trim('"'));
+							foreach ( string arg in args.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries) )
+							{
+								sysArgv.append(arg.Trim('"'));
+							}
 						}
 						sys.argv = sysArgv;
 
-						// Import and run holopatcher's main function
-						dynamic holopatcher = Py.Import("holopatcher.__main__");
-						holopatcher.main();
+						Logger.LogVerbose($"[RunHolopatcherPyAsync] sys.argv set to: holopatcher {args}");
 
-						return (0, "", "");
+						// Find the __main__.py file path
+						string mainPyFile = Path.Combine(holopatcherPath, "__main__.py");
+						Logger.LogVerbose($"[RunHolopatcherPyAsync] Looking for __main__.py at: {mainPyFile}");
+
+						if (!File.Exists(mainPyFile))
+						{
+							string errorMsg = $"__main__.py not found at: {mainPyFile}";
+							Logger.LogError(errorMsg);
+							return (1, "", errorMsg);
+						}
+
+						Logger.LogVerbose($"[RunHolopatcherPyAsync] Found __main__.py, reading file...");
+						string pythonCode = File.ReadAllText(mainPyFile);
+
+						// Set __file__ so HoloPatcher's path detection works
+						Logger.LogVerbose($"[RunHolopatcherPyAsync] Executing __main__.py with __file__ = {mainPyFile}");
+
+						// Create a module-like namespace with __file__ set
+						dynamic builtins = Py.Import("builtins");
+						dynamic globals = new Python.Runtime.PyDict();
+						globals["__file__"] = mainPyFile.ToPython();
+						globals["__name__"] = "__main__".ToPython();
+						globals["__builtins__"] = builtins;
+
+						// Execute the Python code in this namespace
+						// This is equivalent to running: python __main__.py
+						Python.Runtime.PythonEngine.Exec(pythonCode, globals.Handle, globals.Handle);
+
+						// Capture any output from stdout/stderr
+						string stdout = sys.stdout.getvalue();
+						string stderr = sys.stderr.getvalue();
+
+						Logger.LogVerbose($"[RunHolopatcherPyAsync] HoloPatcher launched successfully");
+						Logger.LogVerbose($"[RunHolopatcherPyAsync] stdout: {stdout}");
+						Logger.LogVerbose($"[RunHolopatcherPyAsync] stderr: {stderr}");
+
+						return (0, stdout, stderr);
 					}
-					catch ( PythonException ex )
-					{
-						return (1, "", ex.Message);
-					}
-					catch ( Exception ex )
-					{
-						return (1, "", ex.Message);
-					}
+				}
+				catch ( PythonException ex )
+				{
+					string fullStackTrace = $@"=== PYTHON ERROR RUNNING HOLOPATCHER ===
+Error: {ex.Message}
+
+Full Stack Trace:
+{ex.StackTrace}
+
+Exception Type: {ex.GetType().FullName}";
+
+					Logger.LogError($"Python error running HoloPatcher: {ex.Message}");
+					Logger.LogVerbose(fullStackTrace);
+					return (1, "", fullStackTrace);
+				}
+				catch ( Exception ex )
+				{
+					string fullStackTrace = $@"=== ERROR RUNNING HOLOPATCHER ===
+Error: {ex.Message}
+
+Full Stack Trace:
+{ex.StackTrace}
+
+Exception Type: {ex.GetType().FullName}";
+
+					Logger.LogError($"Error running HoloPatcher: {ex.Message}");
+					Logger.LogVerbose(fullStackTrace);
+					return (1, "", fullStackTrace);
 				}
 			});
 		}

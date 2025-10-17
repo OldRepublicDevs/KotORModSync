@@ -13,6 +13,11 @@
     <ApplicationIcon>icon53.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <!-- Allow test projects to access internal members -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="KOTORModSync.Tests" />
+  </ItemGroup>
+
   <!-- OutputType: WinExe for Windows (no console), Exe for Linux/macOS (GUI with optional console) -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)'=='' OR $(RuntimeIdentifier.StartsWith('win'))">
     <OutputType>WinExe</OutputType>
@@ -115,12 +120,27 @@
     <DirectorySeparatorChar>/</DirectorySeparatorChar>
   </PropertyGroup>
 
+  <!-- Install Python dependencies at build time - DISABLED due to subprocess deadlock in MSBuild -->
+  <!-- Python dependencies will be installed at runtime on first use instead -->
+  <!-- To manually install: dotnet run (dash)(dash)project KOTORModSync.Core\KOTORModSync.Core.csproj (dash)(dash)framework net8.0 (dash)(dash) install-python-deps -->
+  <!--
+  <Target Name="InstallPythonDependencies" AfterTargets="Build" BeforeTargets="PostBuildEvent">
+    <Message Importance="High" Text="Installing Python dependencies for HoloPatcher..." />
+    <Exec Command="dotnet run (dash)(dash)project &quot;$(SolutionDir)KOTORModSync.Core\KOTORModSync.Core.csproj&quot; (dash)(dash)framework net8.0 (dash)(dash) install-python-deps"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          ContinueOnError="true" />
+    <Message Importance="High" Text="Python dependencies installation completed (or skipped if already installed)." />
+  </Target>
+  -->
+
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
 
     <!-- Copy PyKotor source (includes HoloPatcher, runs with embedded Python.NET) -->
     <ItemGroup>
       <PyKotorFiles
-        Include="$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar)*.py" />
+        Include="$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar)*.py"
+        Exclude="$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar).history$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar).venv$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar)__pycache__$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar).pytest_cache$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar).git$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar)venv$(DirectorySeparatorChar)**" />
     </ItemGroup>
     <Copy SourceFiles="@(PyKotorFiles)"
       DestinationFiles="@(PyKotorFiles->'$(TargetDir)Resources$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)')" />

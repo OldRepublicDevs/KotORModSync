@@ -1,7 +1,7 @@
 @echo off
 SETLOCAL ENABLEDELAYEDEXPANSION
 
-set kms_version=v1.0.0
+set kms_version=v2.0.0
 set projectFile=KOTORModSync.GUI\KOTORModSync.csproj
 set publishProfilesDir=KOTORModSync.GUI\Properties\PublishProfiles
 set sevenZipPath="C:\Program Files\7-Zip\7z.exe"
@@ -39,7 +39,7 @@ for /r "%publishProfilesDir%" %%i in (*.pubxml) do (
 
     :: Execute the publish command
     call !publishCommand!
-    
+
     set topLevelFolder=KOTORModSync !kms_version!
 
     :: Get the publish folder path
@@ -63,7 +63,7 @@ for /r "%publishProfilesDir%" %%i in (*.pubxml) do (
     :: Copy the license and documentation into the 'docs' folder
     copy /Y "LICENSE.TXT" "!publishFolder!\docs"
     copy /Y "KOTORModSync - Official Documentation.txt" "!publishFolder!\docs"
-    
+
     :: Define the archive file path
     set archiveFile=bin\!rid!.zip
 

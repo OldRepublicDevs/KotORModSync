@@ -28,7 +28,7 @@ namespace KOTORModSync.Models
 		public string DestinationPath { get; set; }
 
 		[JsonPropertyName("debugLogging")]
-		public bool DebugLogging { get; set; }
+		public bool DebugLogging { get; set; } = true;
 
 		[JsonPropertyName("attemptFixes")]
 		public bool AttemptFixes { get; set; } = true;
@@ -66,6 +66,10 @@ namespace KOTORModSync.Models
 		[CanBeNull]
 		public string FileEncoding { get; set; } = "utf-8";
 
+		[JsonPropertyName("selectedHolopatcherVersion")]
+		[CanBeNull]
+		public string SelectedHolopatcherVersion { get; set; }
+
 		public AppSettings()
 		{
 		}
@@ -74,6 +78,11 @@ namespace KOTORModSync.Models
 		{
 			if ( mainConfig is null )
 				throw new ArgumentNullException(nameof(mainConfig));
+
+			Logger.LogVerbose($"[AppSettings.FromCurrentState] Creating settings from MainConfig:");
+			Logger.LogVerbose($"[AppSettings.FromCurrentState] SourcePath: '{mainConfig.sourcePathFullName}'");
+			Logger.LogVerbose($"[AppSettings.FromCurrentState] DestinationPath: '{mainConfig.destinationPathFullName}'");
+			Logger.LogVerbose($"[AppSettings.FromCurrentState] Theme: '{currentTheme}'");
 
 			return new AppSettings
 			{
@@ -91,7 +100,8 @@ namespace KOTORModSync.Models
 				ValidateAndReplaceInvalidArchives = mainConfig.validateAndReplaceInvalidArchives,
 				FilterDownloadsByResolution = mainConfig.filterDownloadsByResolution,
 				NexusModsApiKey = mainConfig.nexusModsApiKey,
-				FileEncoding = mainConfig.fileEncoding
+				FileEncoding = mainConfig.fileEncoding,
+				SelectedHolopatcherVersion = mainConfig.selectedHolopatcherVersion
 			};
 		}
 
@@ -100,11 +110,29 @@ namespace KOTORModSync.Models
 			if ( mainConfig is null )
 				throw new ArgumentNullException(nameof(mainConfig));
 
-			if ( !string.IsNullOrEmpty(SourcePath) && Directory.Exists(SourcePath) )
-				mainConfig.sourcePath = new DirectoryInfo(SourcePath);
+			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applying settings to MainConfig:");
+			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SourcePath from settings: '{SourcePath}'");
+			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] DestinationPath from settings: '{DestinationPath}'");
 
-			if ( !string.IsNullOrEmpty(DestinationPath) && Directory.Exists(DestinationPath) )
+			if ( !string.IsNullOrEmpty(SourcePath) )
+			{
+				mainConfig.sourcePath = new DirectoryInfo(SourcePath);
+				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applied SourcePath: '{mainConfig.sourcePathFullName}'");
+			}
+			else
+			{
+				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SourcePath is empty, not applying");
+			}
+
+			if ( !string.IsNullOrEmpty(DestinationPath) )
+			{
 				mainConfig.destinationPath = new DirectoryInfo(DestinationPath);
+				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applied DestinationPath: '{mainConfig.destinationPathFullName}'");
+			}
+			else
+			{
+				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] DestinationPath is empty, not applying");
+			}
 
 			mainConfig.debugLogging = DebugLogging;
 			mainConfig.attemptFixes = AttemptFixes;
@@ -118,6 +146,7 @@ namespace KOTORModSync.Models
 			mainConfig.nexusModsApiKey = NexusModsApiKey;
 			mainConfig.fileEncoding = FileEncoding
 									  ?? "utf-8";
+			mainConfig.selectedHolopatcherVersion = SelectedHolopatcherVersion;
 
 			if ( !string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory) )
 				mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
@@ -146,22 +175,30 @@ namespace KOTORModSync.Models
 		{
 			try
 			{
+				Logger.LogVerbose($"[SettingsManager.LoadSettings] Loading settings from: '{SettingsFilePath}'");
+
 				if ( !File.Exists(SettingsFilePath) )
 				{
-					Logger.LogVerbose($"No settings file found at '{SettingsFilePath}', using defaults");
+					Logger.LogVerbose($"[SettingsManager.LoadSettings] No settings file found, using defaults");
 					return new AppSettings();
 				}
 
 				string json = File.ReadAllText(SettingsFilePath);
+				Logger.LogVerbose($"[SettingsManager.LoadSettings] Read settings JSON: {json}");
+
 				AppSettings settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
 
 				if ( settings is null )
 				{
-					Logger.LogWarning("Failed to deserialize settings, using defaults");
+					Logger.LogWarning("[SettingsManager.LoadSettings] Failed to deserialize settings, using defaults");
 					return new AppSettings();
 				}
 
-				Logger.LogVerbose($"Settings loaded from '{SettingsFilePath}'");
+				Logger.LogVerbose($"[SettingsManager.LoadSettings] Successfully loaded settings:");
+				Logger.LogVerbose($"[SettingsManager.LoadSettings] SourcePath: '{settings.SourcePath}'");
+				Logger.LogVerbose($"[SettingsManager.LoadSettings] DestinationPath: '{settings.DestinationPath}'");
+				Logger.LogVerbose($"[SettingsManager.LoadSettings] Theme: '{settings.Theme}'");
+
 				return settings;
 			}
 			catch ( Exception ex )
@@ -178,14 +215,20 @@ namespace KOTORModSync.Models
 
 			try
 			{
+				Logger.LogVerbose($"[SettingsManager.SaveSettings] Saving settings to: '{SettingsFilePath}'");
+				Logger.LogVerbose($"[SettingsManager.SaveSettings] SourcePath: '{settings.SourcePath}'");
+				Logger.LogVerbose($"[SettingsManager.SaveSettings] DestinationPath: '{settings.DestinationPath}'");
+				Logger.LogVerbose($"[SettingsManager.SaveSettings] Theme: '{settings.Theme}'");
 
 				if ( !Directory.Exists(SettingsDirectory) )
 					_ = Directory.CreateDirectory(SettingsDirectory);
 
 				string json = JsonSerializer.Serialize(settings, JsonOptions);
+				Logger.LogVerbose($"[SettingsManager.SaveSettings] Serialized JSON: {json}");
+
 				File.WriteAllText(SettingsFilePath, json);
 
-				Logger.LogVerbose($"Settings saved to '{SettingsFilePath}'");
+				Logger.LogVerbose($"[SettingsManager.SaveSettings] Successfully saved settings to '{SettingsFilePath}'");
 			}
 			catch ( Exception ex )
 			{

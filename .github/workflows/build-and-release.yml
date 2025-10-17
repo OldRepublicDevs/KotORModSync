@@ -118,17 +118,15 @@ jobs:
           Write-Host "✅ Info.plist updated successfully"
           Get-Content $plistPath | Select-String -Pattern "CFBundle"
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Setup MSBuild (Windows/.NET Framework 4.8)
+        uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet Packages
-        run: dotnet restore
+        run: nuget restore KOTORModSync.sln
 
       - name: Build (Development - No Telemetry Secret)
         if: github.event_name == 'pull_request'
-        run: dotnet build -c Release --no-restore
+        run: msbuild KOTORModSync.sln /p:Configuration=Release /p:TargetFramework=net48
 
       - name: Inject Telemetry Secret (Official Builds Only)
         if: github.event_name != 'pull_request'
@@ -186,10 +184,15 @@ jobs:
 
       - name: Build (Official - With Telemetry Secret)
         if: github.event_name != 'pull_request'
-        run: dotnet build -c Release --no-restore /p:DefineConstants="OFFICIAL_BUILD"
+        run: msbuild KOTORModSync.sln /p:Configuration=Release /p:TargetFramework=net48 /p:DefineConstants="OFFICIAL_BUILD"
+
+      - name: Setup .NET 8 SDK (for testing only)
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Run Unit Tests
-        run: dotnet test -c Release --no-build --verbosity normal
+        run: dotnet test -c Release --verbosity normal
 
       - name: Upload Build Artifacts (Test)
         if: github.event_name == 'pull_request'
@@ -265,7 +268,12 @@ jobs:
 
           Write-Host "✅ Info.plist updated for ${{ matrix.rid }}"
 
-      - name: Setup .NET SDK
+      - name: Setup MSBuild (Windows/.NET Framework 4.8)
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup .NET 8 SDK (Linux/macOS)
+        if: runner.os != 'Windows'
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -303,11 +311,38 @@ jobs:
           $content | Out-File -FilePath $secretFile -Encoding UTF8 -NoNewline
           Write-Host "✅ Secret injected for ${{ matrix.rid }}"
 
-      - name: Restore Dependencies
+      - name: Restore Dependencies (Windows - NuGet)
+        if: runner.os == 'Windows'
+        run: nuget restore KOTORModSync.sln
+
+      - name: Restore Dependencies (Linux/macOS - dotnet)
+        if: runner.os != 'Windows'
         run: dotnet restore
 
-      - name: Publish ${{ matrix.rid }}
+      - name: Publish ${{ matrix.rid }} (Windows - MSBuild)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
+          Write-Host "🔨 Publishing ${{ matrix.rid }} using MSBuild (.NET Framework 4.8)..."
+          msbuild ${{ env.PROJECT_FILE }} `
+            /t:Publish `
+            /p:Configuration=Release `
+            /p:TargetFramework=${{ matrix.framework }} `
+            /p:RuntimeIdentifier=${{ matrix.rid }} `
+            /p:SelfContained=true `
+            /p:Platform=${{ matrix.platform }} `
+            /p:PublishSingleFile=false `
+            /p:PublishReadyToRun=true `
+            /p:PublishTrimmed=false `
+            /p:DefineConstants="OFFICIAL_BUILD" `
+            /p:PublishDir="$PWD/publish/${{ matrix.rid }}/"
+          Write-Host "✅ Published ${{ matrix.rid }}"
+
+      - name: Publish ${{ matrix.rid }} (Linux/macOS - dotnet)
+        if: runner.os != 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "🔨 Publishing ${{ matrix.rid }} using dotnet CLI (.NET 8)..."
           dotnet publish ${{ env.PROJECT_FILE }} `
             -c Release `
             --framework ${{ matrix.framework }} `
@@ -319,7 +354,7 @@ jobs:
             -p:PublishTrimmed=false `
             -p:DefineConstants="OFFICIAL_BUILD" `
             -o ./publish/${{ matrix.rid }}
-        shell: pwsh
+          Write-Host "✅ Published ${{ matrix.rid }}"
 
       - name: Prepare Release Package
         shell: pwsh

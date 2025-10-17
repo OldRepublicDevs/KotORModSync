@@ -29,7 +29,7 @@ namespace KOTORModSync.Core
 	{
 		public MainConfig()
 		{
-			debugLogging = false;
+			debugLogging = true; // Default to true for debugging persistence issues
 			attemptFixes = true;
 			noAdmin = false;
 			caseInsensitivePathing = true;
@@ -86,6 +86,8 @@ namespace KOTORModSync.Core
 		public string nexusModsApiKey { get => NexusModsApiKey; set => NexusModsApiKey = value; }
 		public static string FileEncoding { get; private set; } = "utf-8";
 		public string fileEncoding { get => FileEncoding; set => FileEncoding = value ?? "utf-8"; }
+		public static string SelectedHolopatcherVersion { get; private set; }
+		public string selectedHolopatcherVersion { get => SelectedHolopatcherVersion; set => SelectedHolopatcherVersion = value; }
 		[JetBrains.Annotations.NotNull][JetBrains.Annotations.ItemNotNull] public static List<ModComponent> AllComponents { get; set; } = new List<ModComponent>();
 		[JetBrains.Annotations.NotNull]
 		[JetBrains.Annotations.ItemNotNull]

@@ -228,7 +228,7 @@ namespace KOTORModSync.Core.Services
 		{
 			results[kvp.Key] = kvp.Value;
 
-			if ( kvp.Value is { Count: > 0 } )
+			if ( kvp.Value != null && kvp.Value.Count > 0 )
 			{
 				List<string> filteredFilenames = _resolutionFilter.FilterByResolution(kvp.Value);
 
@@ -322,7 +322,7 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync([url], cancellationToken);
+			Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, cancellationToken);
 			if ( resolved.TryGetValue(url, out List<string> value) && value.Count > 0 )
 			{
 				List<string> filteredFilenames = _resolutionFilter.FilterByResolution(value);
@@ -564,7 +564,7 @@ namespace KOTORModSync.Core.Services
 					}
 					else
 					{
-						Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync([url], CancellationToken.None);
+						Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, CancellationToken.None);
 						if ( resolved.TryGetValue(url, out List<string> filenames) && filenames.Count > 0 )
 						{
 							var entry = new DownloadCacheEntry
@@ -657,12 +657,12 @@ namespace KOTORModSync.Core.Services
 
 					if ( TryGetEntry(url, out DownloadCacheEntry cachedEntry) && !string.IsNullOrWhiteSpace(cachedEntry.FileName) )
 					{
-						progressTracker.TargetFilenames = [cachedEntry.FileName];
+						progressTracker.TargetFilenames = new List<string> { cachedEntry.FileName };
 						await Logger.LogVerboseAsync($"[DownloadCacheService] Set target filename from cache for {url}: {cachedEntry.FileName}");
 					}
 					else
 					{
-						Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync([url], cancellationToken);
+						Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, cancellationToken);
 						if ( resolved.TryGetValue(url, out List<string> allFilenames) && allFilenames.Count > 0 )
 						{
 							List<string> filteredFilenames = _resolutionFilter.FilterByResolution(allFilenames);
@@ -680,7 +680,7 @@ namespace KOTORModSync.Core.Services
 
 								if ( !string.IsNullOrWhiteSpace(bestMatch) )
 								{
-									progressTracker.TargetFilenames = [bestMatch];
+									progressTracker.TargetFilenames = new List<string> { bestMatch };
 									await Logger.LogVerboseAsync($"[DownloadCacheService] Set target filename for {url}: {bestMatch} (pattern matched)");
 								}
 								else if ( filteredFilenames.Count > 0 )
@@ -1033,7 +1033,7 @@ namespace KOTORModSync.Core.Services
 
 					// Check for Extract instructions with mismatched archive names
 					if ( instruction.Action == Instruction.ActionType.Extract &&
-						 instruction.Source is { Count: > 0 } )
+						 instruction.Source != null && instruction.Source.Count > 0 )
 					{
 						string instructionArchiveName = ExtractFilenameFromSource(instruction.Source[0]);
 						if ( !string.IsNullOrEmpty(instructionArchiveName) &&
@@ -1044,13 +1044,14 @@ namespace KOTORModSync.Core.Services
 							string instructionBaseName = Path.GetFileNameWithoutExtension(instructionArchiveName);
 							string entryBaseName = Path.GetFileNameWithoutExtension(entry.FileName);
 
-							// Simple similarity check (could be enhanced)
-							if ( instructionBaseName.Contains(entryBaseName, StringComparison.OrdinalIgnoreCase) ||
-								 entryBaseName.Contains(instructionBaseName, StringComparison.OrdinalIgnoreCase) ||
-								 NormalizeModName(instructionBaseName).Equals(NormalizeModName(entryBaseName), StringComparison.OrdinalIgnoreCase) )
+							// Enhanced similarity check with multiple strategies
+							double similarityScore = CalculateArchiveNameSimilarity(instructionBaseName, entryBaseName);
+							const double SIMILARITY_THRESHOLD = 0.7; // 70% similarity required
+
+							if ( similarityScore >= SIMILARITY_THRESHOLD )
 							{
 								mismatchedInstruction = instruction;
-								await Logger.LogVerboseAsync($"[DownloadCacheService] Detected archive name mismatch: instruction expects '{instructionArchiveName}' but downloaded '{entry.FileName}'");
+								await Logger.LogVerboseAsync($"[DownloadCacheService] Detected archive name mismatch (similarity: {similarityScore:P0}): instruction expects '{instructionArchiveName}' but downloaded '{entry.FileName}'");
 								break;
 							}
 						}
@@ -1114,7 +1115,7 @@ namespace KOTORModSync.Core.Services
 							for ( int j = initialInstructionCount; j < component.Instructions.Count; j++ )
 							{
 								Instruction instr = component.Instructions[j];
-								if ( instr.Source is { Count: > 0 } )
+								if ( instr.Source != null && instr.Source.Count > 0 )
 								{
 									foreach ( string s in instr.Source )
 									{
@@ -1179,12 +1180,12 @@ namespace KOTORModSync.Core.Services
 			{
 				Guid = Guid.NewGuid(),
 				Action = entry.IsArchiveFile
-						 ? Instruction.ActionType.Extract
-						 : Instruction.ActionType.Move,
-				Source = [$@"<<modDirectory>>\{entry.FileName}"],
+					 ? Instruction.ActionType.Extract
+					 : Instruction.ActionType.Move,
+				Source = new List<string> { $@"<<modDirectory>>\{entry.FileName}" },
 				Destination = entry.IsArchiveFile
-							  ? string.Empty
-							  : @"<<kotorDirectory>>\Override",
+						  ? string.Empty
+						  : @"<<kotorDirectory>>\Override",
 				Overwrite = true
 			};
 			newInstruction.SetParentComponent(component);
@@ -1332,6 +1333,141 @@ namespace KOTORModSync.Core.Services
 			return normalized;
 		}
 
+		/// <summary>
+		/// Calculates similarity score between two archive names using multiple strategies.
+		/// Returns a value between 0.0 (completely different) and 1.0 (identical).
+		/// </summary>
+		private static double CalculateArchiveNameSimilarity(string name1, string name2)
+		{
+			if ( string.IsNullOrEmpty(name1) || string.IsNullOrEmpty(name2) )
+				return 0.0;
+
+			// Strategy 1: Exact match
+			if ( name1.Equals(name2, StringComparison.OrdinalIgnoreCase) )
+				return 1.0;
+
+			// Strategy 2: Substring containment (one contains the other)
+			string lower1 = name1.ToLowerInvariant();
+			string lower2 = name2.ToLowerInvariant();
+			if ( lower1.Contains(lower2) || lower2.Contains(lower1) )
+				return 0.95;
+
+			// Strategy 3: Normalized name comparison (removes versions, special chars)
+			string normalized1 = NormalizeModName(name1);
+			string normalized2 = NormalizeModName(name2);
+			if ( !string.IsNullOrEmpty(normalized1) && normalized1.Equals(normalized2, StringComparison.OrdinalIgnoreCase) )
+				return 0.90;
+
+			// Strategy 4: Token-based similarity (split on common delimiters)
+			var tokens1 = new HashSet<string>(
+				System.Text.RegularExpressions.Regex.Split(lower1, @"[\s\-_\.]+")
+					.Where(t => t.Length > 2), // Ignore very short tokens
+				StringComparer.OrdinalIgnoreCase
+			);
+			var tokens2 = new HashSet<string>(
+				System.Text.RegularExpressions.Regex.Split(lower2, @"[\s\-_\.]+")
+					.Where(t => t.Length > 2),
+				StringComparer.OrdinalIgnoreCase
+			);
+
+			if ( tokens1.Count > 0 && tokens2.Count > 0 )
+			{
+				int commonTokens = tokens1.Intersect(tokens2).Count();
+				int totalTokens = tokens1.Union(tokens2).Count();
+				double tokenSimilarity = (double)commonTokens / totalTokens;
+
+				if ( tokenSimilarity >= 0.5 ) // At least 50% tokens in common
+					return 0.75 + (tokenSimilarity * 0.15); // 0.75-0.90 range
+			}
+
+			// Strategy 5: Levenshtein distance ratio for fuzzy matching
+			int distance = CalculateLevenshteinDistance(normalized1, normalized2);
+			int maxLength = Math.Max(normalized1.Length, normalized2.Length);
+			if ( maxLength > 0 )
+			{
+				double distanceRatio = 1.0 - ((double)distance / maxLength);
+				if ( distanceRatio >= 0.7 )
+					return distanceRatio * 0.85; // Scale down slightly as it's less reliable
+			}
+
+			// Strategy 6: Longest common substring ratio
+			int lcsLength = CalculateLongestCommonSubstringLength(lower1, lower2);
+			int minLength = Math.Min(lower1.Length, lower2.Length);
+			if ( minLength > 0 )
+			{
+				double lcsRatio = (double)lcsLength / minLength;
+				if ( lcsRatio >= 0.6 )
+					return lcsRatio * 0.8; // Scale to 0.48-0.80 range
+			}
+
+			// No good match found
+			return 0.0;
+		}
+
+		/// <summary>
+		/// Calculates the Levenshtein distance (edit distance) between two strings.
+		/// Returns the minimum number of single-character edits required to change one string into the other.
+		/// </summary>
+		private static int CalculateLevenshteinDistance(string s1, string s2)
+		{
+			if ( string.IsNullOrEmpty(s1) )
+				return s2?.Length ?? 0;
+			if ( string.IsNullOrEmpty(s2) )
+				return s1.Length;
+
+			int len1 = s1.Length;
+			int len2 = s2.Length;
+			var matrix = new int[len1 + 1, len2 + 1];
+
+			// Initialize first column and row
+			for ( int i = 0; i <= len1; i++ )
+				matrix[i, 0] = i;
+			for ( int j = 0; j <= len2; j++ )
+				matrix[0, j] = j;
+
+			// Calculate distances
+			for ( int i = 1; i <= len1; i++ )
+			{
+				for ( int j = 1; j <= len2; j++ )
+				{
+					int cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
+					matrix[i, j] = Math.Min(
+						Math.Min(matrix[i - 1, j] + 1, matrix[i, j - 1] + 1),
+						matrix[i - 1, j - 1] + cost
+					);
+				}
+			}
+
+			return matrix[len1, len2];
+		}
+
+		/// <summary>
+		/// Calculates the length of the longest common substring between two strings.
+		/// Used to find the largest contiguous matching sequence.
+		/// </summary>
+		private static int CalculateLongestCommonSubstringLength(string s1, string s2)
+		{
+			if ( string.IsNullOrEmpty(s1) || string.IsNullOrEmpty(s2) )
+				return 0;
+
+			int maxLength = 0;
+			int[,] lengths = new int[s1.Length + 1, s2.Length + 1];
+
+			for ( int i = 1; i <= s1.Length; i++ )
+			{
+				for ( int j = 1; j <= s2.Length; j++ )
+				{
+					if ( char.ToLowerInvariant(s1[i - 1]) == char.ToLowerInvariant(s2[j - 1]) )
+					{
+						lengths[i, j] = lengths[i - 1, j - 1] + 1;
+						maxLength = Math.Max(maxLength, lengths[i, j]);
+					}
+				}
+			}
+
+			return maxLength;
+		}
+
 		private async Task<bool> TryFixArchiveNameMismatchAsync(
 			ModComponent component,
 			Instruction extractInstruction,
@@ -1358,7 +1494,7 @@ namespace KOTORModSync.Core.Services
 				{
 					originalInstructions[instruction.Guid] = (
 						instruction.Action,
-						[.. instruction.Source],
+						instruction.Source != null ? new List<string>(instruction.Source) : new List<string>(),
 						instruction.Destination
 					);
 				}
@@ -1369,7 +1505,7 @@ namespace KOTORModSync.Core.Services
 					{
 						originalInstructions[instruction.Guid] = (
 							instruction.Action,
-							[.. instruction.Source],
+							instruction.Source != null ? new List<string>(instruction.Source) : new List<string>(),
 							instruction.Destination
 						);
 					}
@@ -1391,13 +1527,13 @@ namespace KOTORModSync.Core.Services
 					if ( instruction.Guid == extractInstruction.Guid )
 						continue;
 
-					if ( instruction.Source is not { Count: > 0 } )
+					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						continue;
 					bool updated = false;
 					for ( int i = 0; i < instruction.Source.Count; i++ )
 					{
 						string src = instruction.Source[i];
-						if ( !src.Contains(oldExtractedFolderName, StringComparison.OrdinalIgnoreCase) )
+						if ( src.IndexOf(oldExtractedFolderName, StringComparison.OrdinalIgnoreCase) < 0 )
 							continue;
 						// Replace the old folder name with the new one
 						string updatedSrc = System.Text.RegularExpressions.Regex.Replace(
@@ -1419,14 +1555,14 @@ namespace KOTORModSync.Core.Services
 				{
 					foreach ( Instruction instruction in option.Instructions )
 					{
-						if ( instruction.Source is not { Count: > 0 } )
+						if ( instruction.Source == null || instruction.Source.Count == 0 )
 							continue;
 
 						bool updated = false;
 						for ( int i = 0; i < instruction.Source.Count; i++ )
 						{
 							string src = instruction.Source[i];
-							if ( !src.Contains(oldExtractedFolderName, StringComparison.OrdinalIgnoreCase) )
+							if ( src.IndexOf(oldExtractedFolderName, StringComparison.OrdinalIgnoreCase) < 0 )
 								continue;
 							// Replace the old folder name with the new one
 							string updatedSrc = System.Text.RegularExpressions.Regex.Replace(
@@ -1711,7 +1847,7 @@ namespace KOTORModSync.Core.Services
 															// File not in dict - use VFS to check if it satisfies any unsatisfied pattern
 						if ( validationSvc == null )
 							return false; // If no VFS available, don't download unknown files
-						List<string> testResult = validationSvc.FilterFilenamesByUnsatisfiedPatterns(component, [filename], modDir);
+						List<string> testResult = validationSvc.FilterFilenamesByUnsatisfiedPatterns(component, new List<string> { filename }, modDir);
 						return testResult.Count > 0;
 
 					})

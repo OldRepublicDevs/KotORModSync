@@ -33,6 +33,8 @@ namespace KOTORModSync.Dialogs
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
 		private List<GitHubRelease> _holopatcherReleases = new List<GitHubRelease>();
+		private bool _isDownloading = false;
+		private string _selectedHolopatcherVersion;
 
 		private class GitHubRelease
 		{
@@ -89,26 +91,108 @@ namespace KOTORModSync.Dialogs
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow start");
 			Logger.LogVerbose($"SettingsDialog: Source='{MainConfigInstance?.sourcePathFullName}', Dest='{MainConfigInstance?.destinationPathFullName}'");
 
-
-			DirectoryPickerControl modDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "ModDirectoryPicker");
-			DirectoryPickerControl kotorDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "KotorDirectoryPicker");
-
-			if ( modDirectoryPicker != null && MainConfigInstance != null )
-			{
-				Logger.LogVerbose($"SettingsDialog: Applying mod dir -> '{MainConfigInstance.sourcePathFullName}'");
-				modDirectoryPicker.SetCurrentPath(MainConfigInstance.sourcePathFullName ?? string.Empty);
-			}
-
-			if ( kotorDirectoryPicker != null && MainConfigInstance != null )
-			{
-				Logger.LogVerbose($"SettingsDialog: Applying kotor dir -> '{MainConfigInstance.destinationPathFullName}'");
-				kotorDirectoryPicker.SetCurrentPath(MainConfigInstance.destinationPathFullName ?? string.Empty);
-			}
-
+			LoadDirectorySettings();
 			LoadTelemetrySettings();
 			LoadFileEncodingSettings();
+			LoadHolopatcherVersionSettings();
 
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow end");
+		}
+
+		private void LoadDirectorySettings()
+		{
+			try
+			{
+				DirectoryPickerControl modDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "ModDirectoryPicker");
+				DirectoryPickerControl kotorDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "KotorDirectoryPicker");
+
+				// Load from MainConfig first, then from AppSettings as fallback
+				string modPath = MainConfigInstance?.sourcePathFullName ?? string.Empty;
+				string kotorPath = MainConfigInstance?.destinationPathFullName ?? string.Empty;
+
+				// If MainConfig doesn't have paths, try loading from AppSettings
+				if ( string.IsNullOrEmpty(modPath) || string.IsNullOrEmpty(kotorPath) )
+				{
+					var appSettings = Models.SettingsManager.LoadSettings();
+					if ( string.IsNullOrEmpty(modPath) && !string.IsNullOrEmpty(appSettings.SourcePath) )
+						modPath = appSettings.SourcePath;
+					if ( string.IsNullOrEmpty(kotorPath) && !string.IsNullOrEmpty(appSettings.DestinationPath) )
+						kotorPath = appSettings.DestinationPath;
+				}
+
+				if ( modDirectoryPicker != null && !string.IsNullOrEmpty(modPath) )
+				{
+					Logger.LogVerbose($"SettingsDialog: Applying mod dir -> '{modPath}'");
+					UpdateDirectoryPickerWithPath(modDirectoryPicker, modPath);
+				}
+
+				if ( kotorDirectoryPicker != null && !string.IsNullOrEmpty(kotorPath) )
+				{
+					Logger.LogVerbose($"SettingsDialog: Applying kotor dir -> '{kotorPath}'");
+					UpdateDirectoryPickerWithPath(kotorDirectoryPicker, kotorPath);
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to load directory settings");
+			}
+		}
+
+		private static void UpdateDirectoryPickerWithPath(DirectoryPickerControl picker, string path)
+		{
+			if ( picker == null || string.IsNullOrEmpty(path) )
+				return;
+
+			try
+			{
+				// Set the path first
+				picker.SetCurrentPathFromSettings(path);
+
+				// Then explicitly set the ComboBox SelectedItem to match
+				ComboBox comboBox = picker.FindControl<ComboBox>("PathSuggestions");
+				if ( comboBox != null )
+				{
+					// Ensure the path is in the ItemsSource
+					List<string> currentItems = (comboBox.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
+					if ( !currentItems.Contains(path) )
+					{
+						currentItems.Insert(0, path);
+
+						if ( currentItems.Count > 20 )
+							currentItems = currentItems.Take(20).ToList();
+						comboBox.ItemsSource = currentItems;
+					}
+
+					// Set the SelectedItem to the current path
+					comboBox.SelectedItem = path;
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Failed to update directory picker with path: {path}");
+			}
+		}
+
+		private void LoadHolopatcherVersionSettings()
+		{
+			try
+			{
+				// Get the selected version from MainConfig or AppSettings
+				string selectedVersion = MainConfigInstance?.selectedHolopatcherVersion;
+
+				if ( string.IsNullOrEmpty(selectedVersion) )
+				{
+					var appSettings = Models.SettingsManager.LoadSettings();
+					selectedVersion = appSettings.SelectedHolopatcherVersion;
+				}
+
+				// Store the selected version for later use when ComboBox is populated
+				_selectedHolopatcherVersion = selectedVersion;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to load HoloPatcher version settings");
+			}
 		}
 
 		private void LoadFileEncodingSettings()
@@ -189,21 +273,83 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
+				Logger.LogVerbose("[SettingsDialog.SaveAppSettings] === STARTING SAVE ===");
+
 				if ( MainConfigInstance == null )
 				{
 					Logger.LogWarning("Cannot save settings: MainConfigInstance is null");
 					return;
 				}
 
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings] BEFORE UpdateMainConfigFromDirectoryPickers:");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   MainConfigInstance.sourcePath: '{MainConfigInstance.sourcePathFullName}'");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   MainConfigInstance.debugLogging: '{MainConfigInstance.debugLogging}'");
+
+				// Update MainConfig with current directory picker values
+				UpdateMainConfigFromDirectoryPickers();
+
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings] AFTER UpdateMainConfigFromDirectoryPickers:");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   MainConfigInstance.sourcePath: '{MainConfigInstance.sourcePathFullName}'");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   MainConfigInstance.debugLogging: '{MainConfigInstance.debugLogging}'");
+
 				string currentTheme = ThemeManager.GetCurrentStylePath();
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings] Current theme from ThemeManager: '{currentTheme}'");
+
 				var settings = Models.AppSettings.FromCurrentState(MainConfigInstance, currentTheme);
+
+				// Update the selected HoloPatcher version
+				MainConfigInstance.selectedHolopatcherVersion = _selectedHolopatcherVersion;
+				settings.SelectedHolopatcherVersion = _selectedHolopatcherVersion;
+
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings] AppSettings created from MainConfig:");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   settings.SourcePath: '{settings.SourcePath}'");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   settings.DestinationPath: '{settings.DestinationPath}'");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   settings.Theme: '{settings.Theme}'");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   settings.DebugLogging: '{settings.DebugLogging}'");
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   settings.SelectedHolopatcherVersion: '{settings.SelectedHolopatcherVersion}'");
+
 				Models.SettingsManager.SaveSettings(settings);
 
-				Logger.Log("Application settings saved successfully");
+				Logger.Log("[SettingsDialog.SaveAppSettings] === Application settings saved successfully ===");
 			}
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Failed to save application settings");
+			}
+		}
+
+		private void UpdateMainConfigFromDirectoryPickers()
+		{
+			try
+			{
+				DirectoryPickerControl modDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "ModDirectoryPicker");
+				DirectoryPickerControl kotorDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "KotorDirectoryPicker");
+
+				if ( modDirectoryPicker != null )
+				{
+					string modPath = modDirectoryPicker.GetCurrentPathForSettings();
+					if ( !string.IsNullOrEmpty(modPath) && Directory.Exists(modPath) )
+					{
+						MainConfigInstance.sourcePath = new DirectoryInfo(modPath);
+						Logger.LogVerbose($"SettingsDialog: Updated MainConfig.sourcePath from picker -> '{modPath}'");
+					}
+				}
+
+				if ( kotorDirectoryPicker != null )
+				{
+					string kotorPath = kotorDirectoryPicker.GetCurrentPathForSettings();
+					if ( !string.IsNullOrEmpty(kotorPath) && Directory.Exists(kotorPath) )
+					{
+						MainConfigInstance.destinationPath = new DirectoryInfo(kotorPath);
+						Logger.LogVerbose($"SettingsDialog: Updated MainConfig.destinationPath from picker -> '{kotorPath}'");
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to update MainConfig from directory pickers");
 			}
 		}
 
@@ -247,6 +393,24 @@ namespace KOTORModSync.Dialogs
 
 
 		[UsedImplicitly]
+		private void HolopatcherVersionComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			try
+			{
+				var comboBox = sender as ComboBox;
+				if ( comboBox?.SelectedItem is GitHubRelease selectedRelease )
+				{
+					_selectedHolopatcherVersion = selectedRelease.TagName;
+					Logger.LogVerbose($"HoloPatcher version selection changed to: {selectedRelease.TagName}");
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to handle HoloPatcher version selection change");
+			}
+		}
+
+		[UsedImplicitly]
 		private void FileEncodingComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
 			if ( !(sender is ComboBox comboBox && comboBox.SelectedItem is ComboBoxItem selectedItem) )
@@ -265,6 +429,13 @@ namespace KOTORModSync.Dialogs
 		{
 			SaveTelemetrySettings();
 			SaveAppSettings();
+
+			// Notify parent window that settings have been updated
+			if ( ParentWindow != null )
+			{
+				ParentWindow.RefreshFromSettings();
+			}
+
 			Close(dialogResult: true);
 		}
 
@@ -378,18 +549,33 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
+				if ( _isDownloading )
+					return;
+
 				var button = this.FindControl<Button>("RefreshVersionsButton");
 				if ( button != null )
+				{
 					button.IsEnabled = false;
+					button.Content = "Refreshing...";
+				}
 
 				await FetchHolopatcherReleasesAsync();
 
 				if ( button != null )
+				{
 					button.IsEnabled = true;
+					button.Content = "Refresh Versions";
+				}
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex, "Failed to refresh HoloPatcher versions");
+				var button = this.FindControl<Button>("RefreshVersionsButton");
+				if ( button != null )
+				{
+					button.IsEnabled = true;
+					button.Content = "Refresh Versions";
+				}
 			}
 		}
 
@@ -397,6 +583,9 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
+				if ( _isDownloading )
+					return;
+
 				var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
 				if ( comboBox?.SelectedItem == null )
 				{
@@ -409,11 +598,19 @@ namespace KOTORModSync.Dialogs
 				if ( selectedRelease == null )
 					return;
 
+				_isDownloading = true;
+				SetDownloadUI(true, $"Downloading {selectedRelease.TagName}...");
+
 				await DownloadAndInstallHolopatcherAsync(selectedRelease);
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex, "Failed to download HoloPatcher");
+			}
+			finally
+			{
+				_isDownloading = false;
+				SetDownloadUI(false, "");
 			}
 		}
 
@@ -442,7 +639,8 @@ namespace KOTORModSync.Dialogs
 							string tagName = releaseElement.GetProperty("tag_name").GetString();
 
 							// Filter for patcher releases (tags ending with "-patcher")
-							if ( !tagName.ToLowerInvariant().Contains("patcher") )
+							// Format: vx.y.z-patcher or vx.y-patcher
+							if ( string.IsNullOrEmpty(tagName) || !tagName.ToLowerInvariant().EndsWith("-patcher") )
 								continue;
 
 							var release = new GitHubRelease
@@ -479,8 +677,32 @@ namespace KOTORModSync.Dialogs
 				{
 					comboBox.ItemsSource = _holopatcherReleases;
 					comboBox.DisplayMemberBinding = new Avalonia.Data.Binding("TagName");
+
+					// Select the saved version if available, otherwise default to v1.52-patcher, otherwise first item
 					if ( _holopatcherReleases.Count > 0 )
-						comboBox.SelectedIndex = 0;
+					{
+						int selectedIndex = -1;
+
+						// Try to select the saved version first
+						if ( !string.IsNullOrEmpty(_selectedHolopatcherVersion) )
+						{
+							selectedIndex = _holopatcherReleases.FindIndex(r => r.TagName.Equals(_selectedHolopatcherVersion, StringComparison.OrdinalIgnoreCase));
+						}
+
+						// Fallback to v1.52-patcher if saved version not found
+						if ( selectedIndex < 0 )
+						{
+							selectedIndex = _holopatcherReleases.FindIndex(r => r.TagName.Equals("v1.52-patcher", StringComparison.OrdinalIgnoreCase));
+						}
+
+						// Final fallback to first item
+						if ( selectedIndex < 0 )
+						{
+							selectedIndex = 0;
+						}
+
+						comboBox.SelectedIndex = selectedIndex;
+					}
 				}
 
 				await Logger.LogAsync($"Found {_holopatcherReleases.Count} HoloPatcher releases");
@@ -495,16 +717,22 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				await Logger.LogAsync($"Downloading PyKotor source code {release.TagName}...");
+				// Extract version from tag for display (e.g., "v1.5.2-patcher" -> "1.5.2")
+				string versionNumber = ExtractVersionFromTag(release.TagName);
+				string displayVersion = !string.IsNullOrEmpty(versionNumber) ? $"v{versionNumber}" : release.TagName;
+
+				SetDownloadUI(true, $"Downloading PyKotor {displayVersion}...");
+				await Logger.LogAsync($"Downloading PyKotor source code {release.TagName} (version {displayVersion})...");
 
 				string baseDir = Utility.GetBaseDirectory();
 				string resourcesDir = Utility.GetResourcesDirectory(baseDir);
 
 				// Download the PyKotor source code from GitHub
+				// Tag format: vx.y.z-patcher or vx.y-patcher
 				string downloadUrl = $"https://github.com/NickHugi/PyKotor/archive/refs/tags/{release.TagName}.zip";
 				string tempFile = Path.Combine(Path.GetTempPath(), $"PyKotor-{release.TagName}.zip");
 
-				await Logger.LogAsync($"Downloading from {downloadUrl}...");
+				await Logger.LogAsync($"Download URL: {downloadUrl}");
 
 				using ( var client = new HttpClient() )
 				{
@@ -520,6 +748,7 @@ namespace KOTORModSync.Dialogs
 					}
 				}
 
+				SetDownloadUI(true, "Extracting PyKotor...");
 				await Logger.LogAsync("Download complete. Extracting...");
 
 				// Extract to temp directory
@@ -537,28 +766,61 @@ namespace KOTORModSync.Dialogs
 						throw new DirectoryNotFoundException("Could not find PyKotor directory in extracted archive.");
 					}
 
+					SetDownloadUI(true, "Installing PyKotor...");
 					string pyKotorExtracted = extractedDirs[0];
 					string pyKotorDest = Path.Combine(resourcesDir, "PyKotor");
 
 					// Remove old PyKotor if it exists
 					if ( Directory.Exists(pyKotorDest) )
 					{
+						await Logger.LogAsync($"Removing existing PyKotor at '{pyKotorDest}'...");
 						Directory.Delete(pyKotorDest, recursive: true);
 					}
 
-					// Copy the new PyKotor
-					CopyDirectory(pyKotorExtracted, pyKotorDest);
+					// Copy the new PyKotor (entire directory structure)
+					await Logger.LogAsync($"Copying PyKotor from '{pyKotorExtracted}' to '{pyKotorDest}'...");
+					CopyDirectoryRecursive(pyKotorExtracted, pyKotorDest);
 
-					await Logger.LogAsync($"PyKotor {release.TagName} installed successfully!");
+					await Logger.LogAsync($"PyKotor {release.TagName} installed successfully to '{pyKotorDest}'");
+
+					// Log directory structure for debugging
+					await LogDirectoryStructureAsync(pyKotorDest);
+
+					SetDownloadUI(false, "");
+
+					// Wait a moment for file system to fully update
+					await Task.Delay(500);
+
+					// Update the current version label with retry mechanism
+					await UpdateCurrentVersionLabelWithRetryAsync();
+
+					// Update the parent MainWindow version display if available
+					if ( ParentWindow != null )
+					{
+						try
+						{
+							await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => ParentWindow.UpdateHolopatcherVersionDisplayWithRetryAsync());
+						}
+						catch ( Exception ex )
+						{
+							Logger.LogException(ex, "Failed to update MainWindow version display");
+						}
+					}
 
 					var successDialog = new MessageDialog(
 						"Installation Complete",
-						$"PyKotor {release.TagName} source code has been installed.\n\nHoloPatcher will use this version.",
+						$"PyKotor {displayVersion} source code has been installed.\n\nHoloPatcher will use this version.",
 						"OK"
 					);
 					await successDialog.ShowDialog(this);
 
-					UpdateCurrentVersionLabel();
+					// Ensure the combobox still shows the selected version after installation
+					var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
+					if ( comboBox != null && comboBox.SelectedItem == null )
+					{
+						// Re-fetch releases to ensure combobox is properly populated
+						await FetchHolopatcherReleasesAsync();
+					}
 				}
 				finally
 				{
@@ -571,6 +833,7 @@ namespace KOTORModSync.Dialogs
 			}
 			catch ( Exception ex )
 			{
+				SetDownloadUI(false, "");
 				await Logger.LogExceptionAsync(ex, "Failed to download and install PyKotor");
 				var errorDialog = new MessageDialog(
 					"Installation Failed",
@@ -581,17 +844,170 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private static void CopyDirectory(string sourceDir, string destDir)
+		private static void CopyDirectoryRecursive(string sourceDir, string destDir)
 		{
+			// Create destination directory if it doesn't exist
 			Directory.CreateDirectory(destDir);
 
-			foreach ( string file in Directory.GetFiles(sourceDir, "*.py", SearchOption.AllDirectories) )
+			// Copy all files in the current directory
+			foreach ( string file in Directory.GetFiles(sourceDir) )
 			{
-				string relativePath = Path.GetRelativePath(sourceDir, file);
-				string destFile = Path.Combine(destDir, relativePath);
-
-				Directory.CreateDirectory(Path.GetDirectoryName(destFile));
+				string fileName = Path.GetFileName(file);
+				string destFile = Path.Combine(destDir, fileName);
 				File.Copy(file, destFile, overwrite: true);
+			}
+
+			// Recursively copy all subdirectories
+			foreach ( string dir in Directory.GetDirectories(sourceDir) )
+			{
+				string dirName = Path.GetFileName(dir);
+				string destSubDir = Path.Combine(destDir, dirName);
+				CopyDirectoryRecursive(dir, destSubDir);
+			}
+		}
+
+		private static async Task LogDirectoryStructureAsync(string pyKotorPath)
+		{
+			try
+			{
+				await Logger.LogAsync($"[DirectoryStructure] Logging structure of: {pyKotorPath}");
+
+				if ( !Directory.Exists(pyKotorPath) )
+				{
+					await Logger.LogAsync("[DirectoryStructure] PyKotor directory does not exist!");
+					return;
+				}
+
+				// Log root level directories
+				var rootDirs = Directory.GetDirectories(pyKotorPath);
+				await Logger.LogAsync($"[DirectoryStructure] Root directories ({rootDirs.Length}): {string.Join(", ", rootDirs.Select(Path.GetFileName))}");
+
+				// Check Tools directory
+				string toolsPath = Path.Combine(pyKotorPath, "Tools");
+				if ( Directory.Exists(toolsPath) )
+				{
+					var toolDirs = Directory.GetDirectories(toolsPath);
+					await Logger.LogAsync($"[DirectoryStructure] Tools directories ({toolDirs.Length}): {string.Join(", ", toolDirs.Select(Path.GetFileName))}");
+
+					// Check HoloPatcher specifically
+					string holopatcherPath = Path.Combine(toolsPath, "HoloPatcher");
+					if ( Directory.Exists(holopatcherPath) )
+					{
+						var holopatcherDirs = Directory.GetDirectories(holopatcherPath);
+						await Logger.LogAsync($"[DirectoryStructure] HoloPatcher directories ({holopatcherDirs.Length}): {string.Join(", ", holopatcherDirs.Select(Path.GetFileName))}");
+
+						// Check src directory
+						string srcPath = Path.Combine(holopatcherPath, "src");
+						if ( Directory.Exists(srcPath) )
+						{
+							var srcDirs = Directory.GetDirectories(srcPath);
+							await Logger.LogAsync($"[DirectoryStructure] HoloPatcher/src directories ({srcDirs.Length}): {string.Join(", ", srcDirs.Select(Path.GetFileName))}");
+
+							// Check final holopatcher directory
+							string finalHolopatcherPath = Path.Combine(srcPath, "holopatcher");
+							if ( Directory.Exists(finalHolopatcherPath) )
+							{
+								var finalDirs = Directory.GetDirectories(finalHolopatcherPath);
+								var finalFiles = Directory.GetFiles(finalHolopatcherPath);
+								await Logger.LogAsync($"[DirectoryStructure] Final holopatcher directory exists with {finalDirs.Length} subdirs and {finalFiles.Length} files");
+								await Logger.LogAsync($"[DirectoryStructure] Files: {string.Join(", ", finalFiles.Select(Path.GetFileName))}");
+							}
+							else
+							{
+								await Logger.LogAsync("[DirectoryStructure] Final holopatcher directory does not exist!");
+							}
+						}
+						else
+						{
+							await Logger.LogAsync("[DirectoryStructure] HoloPatcher/src directory does not exist!");
+						}
+					}
+					else
+					{
+						await Logger.LogAsync("[DirectoryStructure] HoloPatcher directory does not exist!");
+					}
+				}
+				else
+				{
+					await Logger.LogAsync("[DirectoryStructure] Tools directory does not exist!");
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to log directory structure");
+			}
+		}
+
+		/// <summary>
+		/// Gets the relative path from one path to another. Compatible with .NET Framework 4.8.
+		/// </summary>
+		private static string GetRelativePath(string relativeTo, string path)
+		{
+#if NET48
+			// .NET Framework 4.8 doesn't have Path.GetRelativePath, so implement it
+			if ( string.IsNullOrEmpty(relativeTo) )
+				throw new ArgumentNullException(nameof(relativeTo));
+			if ( string.IsNullOrEmpty(path) )
+				throw new ArgumentNullException(nameof(path));
+
+			// Ensure paths are absolute and normalized
+			string fromPath = Path.GetFullPath(relativeTo);
+			string toPath = Path.GetFullPath(path);
+
+			// Ensure trailing directory separator for directory comparison
+			if ( !fromPath.EndsWith(Path.DirectorySeparatorChar.ToString()) )
+				fromPath += Path.DirectorySeparatorChar;
+
+			Uri fromUri = new Uri(fromPath);
+			Uri toUri = new Uri(toPath);
+
+			if ( fromUri.Scheme != toUri.Scheme )
+				return toPath; // Different schemes, return absolute path
+
+			Uri relativeUri = fromUri.MakeRelativeUri(toUri);
+			string relativePath = Uri.UnescapeDataString(relativeUri.ToString());
+
+			// Convert forward slashes to backslashes on Windows
+			if ( Path.DirectorySeparatorChar == '\\' )
+				relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
+
+			return relativePath;
+#else
+			// .NET Core/5+/8+ has Path.GetRelativePath built-in
+			return Path.GetRelativePath(relativeTo, path);
+#endif
+		}
+
+		private void SetDownloadUI(bool isDownloading, string statusText)
+		{
+			try
+			{
+				var progressBar = this.FindControl<ProgressBar>("DownloadProgressBar");
+				var statusTextBlock = this.FindControl<TextBlock>("DownloadStatusText");
+				var refreshButton = this.FindControl<Button>("RefreshVersionsButton");
+				var downloadButton = this.FindControl<Button>("DownloadVersionButton");
+
+				if ( progressBar != null )
+					progressBar.IsVisible = isDownloading;
+
+				if ( statusTextBlock != null )
+				{
+					statusTextBlock.IsVisible = isDownloading;
+					statusTextBlock.Text = statusText;
+				}
+
+				if ( refreshButton != null )
+					refreshButton.IsEnabled = !isDownloading;
+
+				if ( downloadButton != null )
+				{
+					downloadButton.IsEnabled = !isDownloading;
+					downloadButton.Content = isDownloading ? "Downloading..." : "Download Selected";
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to set download UI state");
 			}
 		}
 
@@ -603,6 +1019,80 @@ namespace KOTORModSync.Dialogs
 				if ( label == null )
 					return;
 
+				string versionInfo = GetInstalledPyKotorVersion();
+				label.Text = versionInfo;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to update current version label");
+			}
+		}
+
+		private async Task UpdateCurrentVersionLabelWithRetryAsync(int maxRetries = 3)
+		{
+			for ( int i = 0; i < maxRetries; i++ )
+			{
+				try
+				{
+					var label = this.FindControl<TextBlock>("CurrentVersionLabel");
+					if ( label == null )
+						return;
+
+					string versionInfo = GetInstalledPyKotorVersion();
+					label.Text = versionInfo;
+
+					// If we got a successful version (not missing/incomplete), we're done
+					if ( !versionInfo.Contains("missing") && !versionInfo.Contains("incomplete") )
+					{
+						Logger.LogVerbose($"[UpdateCurrentVersionLabelWithRetryAsync] Success on attempt {i + 1}: {versionInfo}");
+						return;
+					}
+
+					// If this isn't the last attempt, wait and try again
+					if ( i < maxRetries - 1 )
+					{
+						Logger.LogVerbose($"[UpdateCurrentVersionLabelWithRetryAsync] Attempt {i + 1} failed with: {versionInfo}, retrying in 1 second...");
+						await Task.Delay(1000);
+					}
+				}
+				catch ( Exception ex )
+				{
+					Logger.LogException(ex, $"Failed to update current version label on attempt {i + 1}");
+					if ( i < maxRetries - 1 )
+					{
+						await Task.Delay(1000);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Extracts version number from PyKotor/HoloPatcher tag name.
+		/// Handles formats: vx.y.z-patcher, vx.y-patcher, vx.y.z-alpha-patcher, vx.y-rc1-patcher, etc.
+		/// </summary>
+		internal static string ExtractVersionFromTag(string tagName)
+		{
+			if ( string.IsNullOrEmpty(tagName) )
+				return null;
+
+			// Match patterns like "v1.5.2-patcher", "v1.5-patcher", "v1.5.2-alpha-patcher", "v1.5-rc1-patcher"
+			// Format: [v]<version>[-<anything>]-patcher
+			var match = System.Text.RegularExpressions.Regex.Match(
+				tagName,
+				@"^v?(\d+\.\d+(?:\.\d+)?).*-patcher$",
+				System.Text.RegularExpressions.RegexOptions.IgnoreCase
+			);
+
+			if ( match.Success )
+				return match.Groups[1].Value;
+
+			return null;
+		}
+
+		private static string GetInstalledPyKotorVersion()
+		{
+			try
+			{
 				string baseDir = Utility.GetBaseDirectory();
 				string resourcesDir = Utility.GetResourcesDirectory(baseDir);
 
@@ -610,38 +1100,86 @@ namespace KOTORModSync.Dialogs
 				string pyKotorPath = Path.Combine(resourcesDir, "PyKotor");
 				string holopatcherPath = Path.Combine(pyKotorPath, "Tools", "HoloPatcher", "src", "holopatcher");
 
-				if ( Directory.Exists(holopatcherPath) )
-				{
-					// Try to read version from config.py
-					string configPath = Path.Combine(holopatcherPath, "config.py");
-					if ( File.Exists(configPath) )
-					{
-						try
-						{
-							string configContent = File.ReadAllText(configPath);
-							var versionMatch = System.Text.RegularExpressions.Regex.Match(
-								configContent,
-								@"""currentVersion"":\s*""([^""]+)"""
-							);
-							if ( versionMatch.Success )
-							{
-								label.Text = $"Current: PyKotor v{versionMatch.Groups[1].Value} (Python source)";
-								return;
-							}
-						}
-						catch { }
-					}
+				Logger.LogVerbose($"[GetInstalledPyKotorVersion] Checking PyKotor at: {pyKotorPath}");
+				Logger.LogVerbose($"[GetInstalledPyKotorVersion] Checking HoloPatcher at: {holopatcherPath}");
 
-					label.Text = "Current: Using bundled PyKotor source";
+				if ( !Directory.Exists(pyKotorPath) )
+				{
+					Logger.LogVerbose("[GetInstalledPyKotorVersion] PyKotor directory not found");
+					return "Current: PyKotor not found";
+				}
+
+				// Check if Tools directory exists
+				string toolsPath = Path.Combine(pyKotorPath, "Tools");
+				if ( !Directory.Exists(toolsPath) )
+				{
+					Logger.LogVerbose("[GetInstalledPyKotorVersion] Tools directory not found");
+					return "Current: PyKotor found but Tools missing";
+				}
+
+				// Check if HoloPatcher directory exists
+				string holopatcherDir = Path.Combine(toolsPath, "HoloPatcher");
+				if ( !Directory.Exists(holopatcherDir) )
+				{
+					Logger.LogVerbose("[GetInstalledPyKotorVersion] HoloPatcher directory not found");
+					return "Current: PyKotor found but HoloPatcher missing";
+				}
+
+				// Check if src directory exists
+				string srcPath = Path.Combine(holopatcherDir, "src");
+				if ( !Directory.Exists(srcPath) )
+				{
+					Logger.LogVerbose("[GetInstalledPyKotorVersion] HoloPatcher src directory not found");
+					return "Current: PyKotor found but HoloPatcher incomplete";
+				}
+
+				if ( !Directory.Exists(holopatcherPath) )
+				{
+					Logger.LogVerbose("[GetInstalledPyKotorVersion] HoloPatcher source directory not found");
+					return "Current: PyKotor found but HoloPatcher incomplete";
+				}
+
+				// Try to read version from config.py
+				string configPath = Path.Combine(holopatcherPath, "config.py");
+				Logger.LogVerbose($"[GetInstalledPyKotorVersion] Looking for config.py at: {configPath}");
+
+				if ( File.Exists(configPath) )
+				{
+					try
+					{
+						string configContent = File.ReadAllText(configPath);
+						var versionMatch = System.Text.RegularExpressions.Regex.Match(
+							configContent,
+							@"""currentVersion"":\s*""([^""]+)"""
+						);
+						if ( versionMatch.Success )
+						{
+							string version = versionMatch.Groups[1].Value;
+							Logger.LogVerbose($"[GetInstalledPyKotorVersion] Found version in config.py: {version}");
+							return $"Current: PyKotor v{version} (Python source)";
+						}
+						else
+						{
+							Logger.LogVerbose("[GetInstalledPyKotorVersion] Version not found in config.py");
+						}
+					}
+					catch ( Exception ex )
+					{
+						Logger.LogException(ex, "Error reading config.py");
+					}
 				}
 				else
 				{
-					label.Text = "Current: PyKotor not found";
+					Logger.LogVerbose("[GetInstalledPyKotorVersion] config.py not found");
 				}
+
+				// If we got here, PyKotor exists but we couldn't determine version
+				return "Current: PyKotor source installed (version unknown)";
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex, "Failed to update current version label");
+				Logger.LogException(ex, "Error getting installed PyKotor version");
+				return "Current: Error checking version";
 			}
 		}
 

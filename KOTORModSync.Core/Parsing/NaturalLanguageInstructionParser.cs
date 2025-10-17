@@ -952,7 +952,7 @@ namespace KOTORModSync.Core.Parsing
 					_logVerbose($"[NLParser] Found {excludedFiles.Count} exclusions to apply");
 					// Filter out excluded files
 					sources = sources.Where(s =>
-						!excludedFiles.Any(ex => s.Contains(ex, StringComparison.OrdinalIgnoreCase))
+						!excludedFiles.Any(ex => s.IndexOf(ex, StringComparison.OrdinalIgnoreCase) >= 0)
 					).ToList();
 				}
 			}
@@ -968,7 +968,7 @@ namespace KOTORModSync.Core.Parsing
 				{
 					_logVerbose($"[NLParser] Found {ignoredFiles.Count} items to ignore");
 					sources = sources.Where(s =>
-						!ignoredFiles.Any(ig => s.Contains(ig, StringComparison.OrdinalIgnoreCase))
+						!ignoredFiles.Any(ig => s.IndexOf(ig, StringComparison.OrdinalIgnoreCase) >= 0)
 					).ToList();
 				}
 			}
@@ -1023,12 +1023,12 @@ namespace KOTORModSync.Core.Parsing
 			}
 
 			// Check full unit for destination clues
-			if ( fullUnit.Contains("override", StringComparison.OrdinalIgnoreCase) )
+			if ( fullUnit.IndexOf("override", StringComparison.OrdinalIgnoreCase) >= 0 )
 			{
 				return @"<<kotorDirectory>>\Override";
 			}
 
-			if ( fullUnit.Contains("movies", StringComparison.OrdinalIgnoreCase) )
+			if ( fullUnit.IndexOf("movies", StringComparison.OrdinalIgnoreCase) >= 0 )
 			{
 				return @"<<kotorDirectory>>\Movies";
 			}
@@ -1115,7 +1115,7 @@ namespace KOTORModSync.Core.Parsing
 						Guid = Guid.NewGuid(),
 						Name = optionName,
 						Description = $"Recommended option: {optionName}",
-						IsSelected = downloadText.Contains("recommend", StringComparison.OrdinalIgnoreCase)
+						IsSelected = downloadText.IndexOf("recommend", StringComparison.OrdinalIgnoreCase) >= 0
 					};
 					options.Add(option);
 				}

@@ -288,7 +288,7 @@ namespace KOTORModSync.Tests
 
 		private string CreateTestArchive(string fileName, Action<ZipArchive> populateArchive)
 		{
-			Debug.Assert(_downloadDirectory is not null, "Download directory is null");
+			System.Diagnostics.Debug.Assert(_downloadDirectory is not null, "Download directory is null");
 			string archivePath = Path.Combine(_downloadDirectory, fileName);
 
 			using ( var archive = ZipArchive.Create() )

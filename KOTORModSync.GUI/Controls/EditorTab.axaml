@@ -2,6 +2,7 @@
 <!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
 <!--  See LICENSE.txt file in the project root for full license information.  -->
 <UserControl
+    x:Name="EditorTabRoot"
     x:Class="KOTORModSync.Controls.EditorTab"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -211,7 +212,7 @@
                                     <CheckBox
                                         Content="Aspyr Exclusive"
                                         IsChecked="{Binding AspyrExclusive}"
-                                        IsVisible="{Binding $parent[UserControl].$parent[Window].MainConfigInstance.targetGame, Converter={StaticResource IsK2GameConverter}}"
+                                        IsVisible="{Binding $parent[Window].MainConfigInstance.targetGame, Converter={StaticResource IsK2GameConverter}}"
                                         ToolTip.Tip="Check if this mod only works on Aspyr versions (mobile/console)" />
                                 </StackPanel>
                             </StackPanel>

@@ -94,7 +94,7 @@ namespace KOTORModSync.Services
 
 			try
 			{
-				picker.SetCurrentPath(path);
+				picker.SetCurrentPathFromSettings(path);
 
 				ComboBox comboBox = picker.FindControl<ComboBox>("PathSuggestions");
 				if ( comboBox != null )
@@ -144,7 +144,7 @@ namespace KOTORModSync.Services
 				}
 
 				foreach ( DirectoryPickerControl picker in allPickers )
-					picker.SetCurrentPath(path);
+					picker.SetCurrentPathFromSettings(path);
 			}
 			catch ( Exception ex )
 			{
@@ -162,16 +162,16 @@ namespace KOTORModSync.Services
 				DirectoryPickerControl step1KotorPicker = findControl("Step1KotorDirectoryPicker");
 
 				if ( modPicker != null && _mainConfig.sourcePath != null )
-					modPicker.SetCurrentPath(_mainConfig.sourcePath.FullName);
+					modPicker.SetCurrentPathFromSettings(_mainConfig.sourcePath.FullName);
 
 				if ( kotorPicker != null && _mainConfig.destinationPath != null )
-					kotorPicker.SetCurrentPath(_mainConfig.destinationPath.FullName);
+					kotorPicker.SetCurrentPathFromSettings(_mainConfig.destinationPath.FullName);
 
 				if ( step1ModPicker != null && _mainConfig.sourcePath != null )
-					step1ModPicker.SetCurrentPath(_mainConfig.sourcePath.FullName);
+					step1ModPicker.SetCurrentPathFromSettings(_mainConfig.sourcePath.FullName);
 
 				if ( step1KotorPicker != null && _mainConfig.destinationPath != null )
-					step1KotorPicker.SetCurrentPath(_mainConfig.destinationPath.FullName);
+					step1KotorPicker.SetCurrentPathFromSettings(_mainConfig.destinationPath.FullName);
 			}
 			catch ( Exception ex )
 			{

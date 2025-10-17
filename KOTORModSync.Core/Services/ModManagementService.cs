@@ -446,8 +446,8 @@ namespace KOTORModSync.Core.Services
 							{ "", 4 }
 						};
 
-						int aOrder = tierOrder.GetValueOrDefault(a.Tier, 4);
-						int bOrder = tierOrder.GetValueOrDefault(b.Tier, 4);
+						int aOrder = tierOrder.TryGetValue(a.Tier, out int aVal) ? aVal : 4;
+						int bOrder = tierOrder.TryGetValue(b.Tier, out int bVal) ? bVal : 4;
 
 						int result = aOrder.CompareTo(bOrder);
 						if ( result == 0 )

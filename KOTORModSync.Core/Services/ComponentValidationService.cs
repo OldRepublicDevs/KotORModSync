@@ -1276,8 +1276,8 @@ namespace KOTORModSync.Core.Services
 						string normalizedEntry = NormalizeModName(entryBase);
 
 						if ( normalizedExpected.Equals(normalizedEntry, StringComparison.OrdinalIgnoreCase) ||
-							 expectedBase.Contains(entryBase, StringComparison.OrdinalIgnoreCase) ||
-							 entryBase.Contains(expectedBase, StringComparison.OrdinalIgnoreCase) )
+							 expectedBase.IndexOf(entryBase, StringComparison.OrdinalIgnoreCase) >= 0 ||
+							 entryBase.IndexOf(expectedBase, StringComparison.OrdinalIgnoreCase) >= 0 )
 						{
 							matchingEntry = entry;
 							break;
@@ -1368,10 +1368,16 @@ namespace KOTORModSync.Core.Services
 					for ( int i = 0; i < instr.Source.Count; i++ )
 					{
 						string src = instr.Source[i];
-						if ( src.Contains(oldExtractedFolder, StringComparison.OrdinalIgnoreCase) )
+						if ( src.IndexOf(oldExtractedFolder, StringComparison.OrdinalIgnoreCase) >= 0 )
 						{
-							string updated = src.Replace(oldExtractedFolder, newExtractedFolder, StringComparison.OrdinalIgnoreCase);
-							instr.Source[i] = updated;
+							// Manual case-insensitive replace
+							int index = src.IndexOf(oldExtractedFolder, StringComparison.OrdinalIgnoreCase);
+							while ( index >= 0 )
+							{
+								src = src.Substring(0, index) + newExtractedFolder + src.Substring(index + oldExtractedFolder.Length);
+								index = src.IndexOf(oldExtractedFolder, index + newExtractedFolder.Length, StringComparison.OrdinalIgnoreCase);
+							}
+							instr.Source[i] = src;
 							updatedCount++;
 						}
 					}

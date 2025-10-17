@@ -139,13 +139,25 @@
                         Content="Spoiler-Free Mode"
                         IsChecked="{Binding SpoilerFreeMode, Mode=TwoWay}"
                         ToolTip.Tip="Toggle to enable Spoiler-Free Mode: hides spoiler content in descriptions, directions, and other text fields to avoid plot reveals." />
-                    <Button
-                        x:Name="RunHolopatcherButton"
+                    <StackPanel
                         Margin="0,0,20,0"
                         VerticalAlignment="Center"
-                        Click="RunHolopatcherButton_Click"
-                        Content="Run HoloPatcher"
-                        ToolTip.Tip="Launches the built-in HoloPatcher." />
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <StackPanel Orientation="Vertical" Spacing="2">
+                            <TextBlock
+                                x:Name="HolopatcherVersionText"
+                                FontSize="10"
+                                Opacity="0.7"
+                                Text="PyKotor: Loading..."
+                                ToolTip.Tip="Current PyKotor/HoloPatcher version" />
+                            <Button
+                                x:Name="RunHolopatcherButton"
+                                Click="RunHolopatcherButton_Click"
+                                Content="Run HoloPatcher"
+                                ToolTip.Tip="Launches the built-in HoloPatcher." />
+                        </StackPanel>
+                    </StackPanel>
                     <ComboBox
                         x:Name="ThemeComboBox"
                         Width="120"

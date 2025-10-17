@@ -63,6 +63,7 @@ namespace KOTORModSync
 		private bool _suppressPathEvents;
 		private bool _suppressComboEvents;
 		private bool _suppressComponentCheckboxEvents;
+		private bool _isInitializing = true;
 		private bool? _rootSelectionState;
 		private bool _editorMode;
 		private bool _spoilerFreeMode;
@@ -192,16 +193,10 @@ namespace KOTORModSync
 			{
 				InitializeComponent();
 				DataContext = this;
-				InitializeControls();
-				InitializeTopMenu();
-				UpdateMenuVisibility();
-				InitializeDirectoryPickers();
-				InitializeModListBox();
 
 				Logger.Initialize();
 
-				LoadSettings();
-
+				// Initialize core services first before any UI operations
 				_ = new InstallationService();
 
 				_modManagementService = new ModManagementService(MainConfigInstance);
@@ -214,6 +209,16 @@ namespace KOTORModSync
 				_modListService = new ModListService(MainConfigInstance);
 				_validationService = new ValidationService(MainConfigInstance);
 				_uiStateService = new UIStateService(MainConfigInstance, _validationService);
+
+				// Load settings BEFORE initializing UI controls
+				LoadSettings();
+
+				// Now initialize UI controls (services are ready)
+				InitializeControls();
+				InitializeTopMenu();
+				UpdateMenuVisibility();
+				InitializeDirectoryPickers();
+				InitializeModListBox();
 				_instructionManagementService = new InstructionManagementService();
 				_selectionService = new SelectionService(MainConfigInstance);
 				_fileSystemService = new FileSystemService();
@@ -257,7 +262,11 @@ namespace KOTORModSync
 
 				BuildGlobalActionsMenu();
 
-				Opened += async (s, e) => await InitializeTelemetryIfEnabled();
+				Opened += async (s, e) =>
+				{
+					await InitializeTelemetryIfEnabled();
+					UpdateHolopatcherVersionDisplay();
+				};
 			}
 			catch ( Exception e )
 			{
@@ -306,8 +315,27 @@ namespace KOTORModSync
 		{
 			try
 			{
+				Logger.LogVerbose("[MainWindow.LoadSettings] === STARTING LOAD ===");
+				Logger.LogVerbose($"[MainWindow.LoadSettings] BEFORE loading settings:");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.sourcePath: '{MainConfigInstance.sourcePathFullName}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.debugLogging: '{MainConfigInstance.debugLogging}'");
+
 				AppSettings settings = SettingsManager.LoadSettings();
+
+				Logger.LogVerbose($"[MainWindow.LoadSettings] Settings loaded from file:");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   settings.SourcePath: '{settings.SourcePath}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   settings.DestinationPath: '{settings.DestinationPath}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   settings.Theme: '{settings.Theme}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   settings.DebugLogging: '{settings.DebugLogging}'");
+
 				settings.ApplyToMainConfig(MainConfigInstance, out string theme);
+
+				Logger.LogVerbose($"[MainWindow.LoadSettings] AFTER ApplyToMainConfig:");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.sourcePath: '{MainConfigInstance.sourcePathFullName}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.debugLogging: '{MainConfigInstance.debugLogging}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   theme: '{theme}'");
 
 				EditorMode = false;
 
@@ -327,6 +355,10 @@ namespace KOTORModSync
 				UpdatePathDisplays();
 
 				UpdateDirectoryPickersFromSettings(settings);
+
+				// Update HoloPatcher version display
+				UpdateHolopatcherVersionDisplay();
+
 				Logger.LogVerbose("Settings loaded and applied successfully");
 			}
 			catch ( Exception ex )
@@ -422,7 +454,7 @@ namespace KOTORModSync
 			try
 			{
 
-				picker.SetCurrentPath(path);
+				picker.SetCurrentPathFromSettings(path);
 
 				ComboBox comboBox = picker.FindControl<ComboBox>("PathSuggestions");
 				if ( comboBox != null )
@@ -451,18 +483,61 @@ namespace KOTORModSync
 		{
 			try
 			{
+				Logger.LogVerbose("[MainWindow.SaveSettings] === SAVING SETTINGS ON APP CLOSE ===");
+				Logger.LogVerbose($"[MainWindow.SaveSettings] MainConfigInstance.sourcePath: '{MainConfigInstance.sourcePathFullName}'");
+				Logger.LogVerbose($"[MainWindow.SaveSettings] MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
+				Logger.LogVerbose($"[MainWindow.SaveSettings] MainConfig.TargetGame: '{MainConfig.TargetGame}'");
+
 				// Get theme from TargetGame (they're the same thing)
 				string themeToSave = !string.IsNullOrEmpty(MainConfig.TargetGame)
 					? GetThemeFromTargetGame(MainConfig.TargetGame)
 					: ThemeManager.GetCurrentStylePath();
 
+				Logger.LogVerbose($"[MainWindow.SaveSettings] Theme to save: '{themeToSave}'");
+
 				var settings = AppSettings.FromCurrentState(MainConfigInstance, themeToSave);
+
+				Logger.LogVerbose($"[MainWindow.SaveSettings] Settings created:");
+				Logger.LogVerbose($"[MainWindow.SaveSettings]   settings.SourcePath: '{settings.SourcePath}'");
+				Logger.LogVerbose($"[MainWindow.SaveSettings]   settings.DestinationPath: '{settings.DestinationPath}'");
+				Logger.LogVerbose($"[MainWindow.SaveSettings]   settings.Theme: '{settings.Theme}'");
+
 				SettingsManager.SaveSettings(settings);
-				Logger.LogVerbose($"Settings saved successfully with theme: {themeToSave} (TargetGame: {MainConfig.TargetGame})");
+				Logger.LogVerbose($"[MainWindow.SaveSettings] === Settings saved successfully with theme: {themeToSave} (TargetGame: {MainConfig.TargetGame}) ===");
 			}
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, customMessage: "Failed to save settings");
+			}
+		}
+
+		/// <summary>
+		/// Refreshes the main window from saved settings, typically called after settings dialog is closed.
+		/// </summary>
+		public void RefreshFromSettings()
+		{
+			try
+			{
+				Logger.LogVerbose("MainWindow.RefreshFromSettings - reloading settings");
+
+				// Reload settings from disk
+				var settings = SettingsManager.LoadSettings();
+				settings.ApplyToMainConfig(MainConfigInstance, out string theme);
+
+				// Update directory pickers with the loaded settings
+				UpdateDirectoryPickersFromSettings(settings);
+
+				// Update path displays
+				UpdatePathDisplays();
+
+				// Update HoloPatcher version display
+				UpdateHolopatcherVersionDisplay();
+
+				Logger.LogVerbose("MainWindow.RefreshFromSettings - completed successfully");
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to refresh from settings");
 			}
 		}
 
@@ -571,8 +646,16 @@ namespace KOTORModSync
 				MainConfig.TargetGame = GetTargetGameFromTheme(themePath);
 				Logger.LogVerbose($"TargetGame set to: {MainConfig.TargetGame}");
 
-				// Save settings
-				SaveSettings();
+				// Don't save settings during initialization - it would overwrite with empty paths!
+				if ( !_isInitializing )
+				{
+					Logger.LogVerbose("Theme changed by user - saving settings");
+					SaveSettings();
+				}
+				else
+				{
+					Logger.LogVerbose("Theme changed during initialization - NOT saving settings");
+				}
 			}
 			catch ( Exception ex )
 			{
@@ -1148,10 +1231,18 @@ namespace KOTORModSync
 
 		protected override void OnClosing(WindowClosingEventArgs e)
 		{
-			base.OnClosing(e);
-			if ( IsClosingMainWindow )
-				return;
+			Logger.LogVerbose("[MainWindow.OnClosing] === WINDOW CLOSING EVENT TRIGGERED ===");
+			Logger.LogVerbose($"[MainWindow.OnClosing] IsClosingMainWindow: {IsClosingMainWindow}");
 
+			base.OnClosing(e);
+
+			if ( IsClosingMainWindow )
+			{
+				Logger.LogVerbose("[MainWindow.OnClosing] IsClosingMainWindow=true, allowing close");
+				return;
+			}
+
+			Logger.LogVerbose("[MainWindow.OnClosing] Cancelling close event, calling HandleClosingAsync");
 			e.Cancel = true;
 
 			HandleClosingAsync();
@@ -1161,6 +1252,8 @@ namespace KOTORModSync
 		{
 			try
 			{
+				Logger.LogVerbose("[MainWindow.HandleClosingAsync] === STARTING CLOSE SEQUENCE ===");
+				Logger.LogVerbose($"[MainWindow.HandleClosingAsync] EditorMode: {EditorMode}");
 
 				bool? result = (
 					EditorMode is true
@@ -1170,8 +1263,18 @@ namespace KOTORModSync
 				)
 					: true
 				);
+
+				Logger.LogVerbose($"[MainWindow.HandleClosingAsync] Confirmation result: {result}");
+
 				if ( result != true )
+				{
+					Logger.LogVerbose("[MainWindow.HandleClosingAsync] Close cancelled by user");
 					return;
+				}
+
+				Logger.LogVerbose("[MainWindow.HandleClosingAsync] About to call SaveSettings()");
+				Logger.LogVerbose($"[MainWindow.HandleClosingAsync] BEFORE SaveSettings - MainConfigInstance.sourcePath: '{MainConfigInstance.sourcePathFullName}'");
+				Logger.LogVerbose($"[MainWindow.HandleClosingAsync] BEFORE SaveSettings - MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
 
 				SaveSettings();
 
@@ -4088,6 +4191,9 @@ namespace KOTORModSync
 				// No need to get theme from settings dialog
 
 				SaveSettings();
+
+				// Update HoloPatcher version display in case a new version was downloaded
+				UpdateHolopatcherVersionDisplay();
 			}
 			catch ( Exception ex )
 			{
@@ -4169,6 +4275,24 @@ namespace KOTORModSync
 					if ( !string.IsNullOrEmpty(stderr) )
 					{
 						await Logger.LogErrorAsync($"Error: {stderr}");
+
+						// Show detailed error dialog with full stack trace
+						var errorDialog = new Dialogs.MessageDialog(
+							"Error Launching HoloPatcher",
+							$"HoloPatcher failed to launch (exit code: {exitCode})\n\nFull Error Details:\n{stderr}",
+							"OK"
+						);
+						await errorDialog.ShowDialog(this);
+					}
+					else
+					{
+						// Show basic error dialog if no detailed error info
+						var errorDialog = new Dialogs.MessageDialog(
+							"Error Launching HoloPatcher",
+							$"HoloPatcher failed to launch (exit code: {exitCode})\n\nNo additional error details available.",
+							"OK"
+						);
+						await errorDialog.ShowDialog(this);
 					}
 				}
 			}
@@ -4177,7 +4301,7 @@ namespace KOTORModSync
 				await Logger.LogExceptionAsync(ex);
 				var dialog = new Dialogs.MessageDialog(
 					"Error Launching HoloPatcher",
-					$"Failed to launch HoloPatcher:\n{ex.Message}",
+					$"Failed to launch HoloPatcher:\n{ex.Message}\n\nFull Stack Trace:\n{ex.StackTrace}",
 					"OK"
 				);
 				await dialog.ShowDialog(this);
@@ -4557,6 +4681,14 @@ namespace KOTORModSync
 		{
 			try
 			{
+				// Check if the control is loaded yet
+				if ( GettingStartedTabControl == null )
+					return;
+
+				// Check if the service is initialized
+				if ( _uiStateService == null )
+					return;
+
 				_uiStateService.UpdateStepProgress(
 					GettingStartedTabControl.FindControl<Border>("Step1Border"), GettingStartedTabControl.FindControl<Border>("Step1CompleteIndicator"), GettingStartedTabControl.FindControl<TextBlock>("Step1CompleteText"),
 					GettingStartedTabControl.FindControl<Border>("Step2Border"), GettingStartedTabControl.FindControl<Border>("Step2CompleteIndicator"), GettingStartedTabControl.FindControl<TextBlock>("Step2CompleteText"),
@@ -4567,7 +4699,7 @@ namespace KOTORModSync
 					GettingStartedTabControl.FindControl<CheckBox>("Step4Checkbox"),
 					EditorMode,
 					IsComponentValidForInstallation
-				);
+					);
 			}
 			catch ( Exception exception )
 			{
@@ -4622,13 +4754,13 @@ namespace KOTORModSync
 				DirectoryPickerControl step1ModPicker = GettingStartedTabControl.FindControl<DirectoryPickerControl>("Step1ModDirectoryPicker");
 				DirectoryPickerControl step1KotorPicker = GettingStartedTabControl.FindControl<DirectoryPickerControl>("Step1KotorDirectoryPicker");
 				if ( modPicker != null && MainConfig.SourcePath != null )
-					modPicker.SetCurrentPath(MainConfig.SourcePath.FullName);
+					modPicker.SetCurrentPathFromSettings(MainConfig.SourcePath.FullName);
 				if ( kotorPicker != null && MainConfig.DestinationPath != null )
-					kotorPicker.SetCurrentPath(MainConfig.DestinationPath.FullName);
+					kotorPicker.SetCurrentPathFromSettings(MainConfig.DestinationPath.FullName);
 				if ( step1ModPicker != null && MainConfig.SourcePath != null )
-					step1ModPicker.SetCurrentPath(MainConfig.SourcePath.FullName);
+					step1ModPicker.SetCurrentPathFromSettings(MainConfig.SourcePath.FullName);
 				if ( step1KotorPicker != null && MainConfig.DestinationPath != null )
-					step1KotorPicker.SetCurrentPath(MainConfig.DestinationPath.FullName);
+					step1KotorPicker.SetCurrentPathFromSettings(MainConfig.DestinationPath.FullName);
 			}
 			catch ( Exception ex )
 			{
@@ -4655,7 +4787,7 @@ namespace KOTORModSync
 					if ( step1Picker != null ) allPickers.Add(step1Picker);
 				}
 
-				foreach ( DirectoryPickerControl picker in allPickers ) picker.SetCurrentPath(path);
+				foreach ( DirectoryPickerControl picker in allPickers ) picker.SetCurrentPathFromSettings(path);
 
 				UpdateStepProgress();
 			}
@@ -5324,6 +5456,152 @@ namespace KOTORModSync
 					});
 			}
 			return null;
+		}
+
+		public void UpdateHolopatcherVersionDisplay()
+		{
+			try
+			{
+				var versionText = this.FindControl<TextBlock>("HolopatcherVersionText");
+				if ( versionText == null )
+					return;
+
+				string version = GetCurrentPyKotorVersion();
+				versionText.Text = version;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to update HoloPatcher version display");
+			}
+		}
+
+		public async Task UpdateHolopatcherVersionDisplayWithRetryAsync(int maxRetries = 3)
+		{
+			for ( int i = 0; i < maxRetries; i++ )
+			{
+				try
+				{
+					var versionText = this.FindControl<TextBlock>("HolopatcherVersionText");
+					if ( versionText == null )
+						return;
+
+					string version = GetCurrentPyKotorVersion();
+					versionText.Text = version;
+
+					// If we got a successful version (not missing/incomplete), we're done
+					if ( !version.Contains("missing") && !version.Contains("incomplete") )
+					{
+						Logger.LogVerbose($"[UpdateHolopatcherVersionDisplayWithRetryAsync] Success on attempt {i + 1}: {version}");
+						return;
+					}
+
+					// If this isn't the last attempt, wait and try again
+					if ( i < maxRetries - 1 )
+					{
+						Logger.LogVerbose($"[UpdateHolopatcherVersionDisplayWithRetryAsync] Attempt {i + 1} failed with: {version}, retrying in 1 second...");
+						await Task.Delay(1000);
+					}
+				}
+				catch ( Exception ex )
+				{
+					Logger.LogException(ex, $"Failed to update HoloPatcher version display on attempt {i + 1}");
+					if ( i < maxRetries - 1 )
+					{
+						await Task.Delay(1000);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Extracts version number from PyKotor/HoloPatcher tag name.
+		/// Handles formats: vx.y.z-patcher, vx.y-patcher, vx.y.z-alpha-patcher, vx.y-rc1-patcher, etc.
+		/// </summary>
+		private static string ExtractVersionFromTag(string tagName)
+		{
+			if ( string.IsNullOrEmpty(tagName) )
+				return null;
+
+			// Match patterns like "v1.5.2-patcher", "v1.5-patcher", "v1.5.2-alpha-patcher", "v1.5-rc1-patcher"
+			// Format: [v]<version>[-<anything>]-patcher
+			var match = System.Text.RegularExpressions.Regex.Match(
+				tagName,
+				@"^v?(\d+\.\d+(?:\.\d+)?).*-patcher$",
+				System.Text.RegularExpressions.RegexOptions.IgnoreCase
+			);
+
+			if ( match.Success )
+				return match.Groups[1].Value;
+
+			return null;
+		}
+
+		private static string GetCurrentPyKotorVersion()
+		{
+			try
+			{
+				string baseDir = Utility.GetBaseDirectory();
+				string resourcesDir = Utility.GetResourcesDirectory(baseDir);
+				string pyKotorPath = Path.Combine(resourcesDir, "PyKotor");
+				string holopatcherPath = Path.Combine(pyKotorPath, "Tools", "HoloPatcher", "src", "holopatcher");
+
+				if ( !Directory.Exists(pyKotorPath) )
+				{
+					return "PyKotor: Not installed";
+				}
+
+				// Check if Tools directory exists
+				string toolsPath = Path.Combine(pyKotorPath, "Tools");
+				if ( !Directory.Exists(toolsPath) )
+				{
+					return "PyKotor: Incomplete (Tools missing)";
+				}
+
+				// Check if HoloPatcher directory exists
+				string holopatcherDir = Path.Combine(toolsPath, "HoloPatcher");
+				if ( !Directory.Exists(holopatcherDir) )
+				{
+					return "PyKotor: Incomplete (HoloPatcher missing)";
+				}
+
+				// Check if src directory exists
+				string srcPath = Path.Combine(holopatcherDir, "src");
+				if ( !Directory.Exists(srcPath) )
+				{
+					return "PyKotor: Incomplete (HoloPatcher src missing)";
+				}
+
+				if ( !Directory.Exists(holopatcherPath) )
+				{
+					return "PyKotor: Incomplete (HoloPatcher incomplete)";
+				}
+
+				// Try to read version from config.py
+				string configPath = Path.Combine(holopatcherPath, "config.py");
+				if ( File.Exists(configPath) )
+				{
+					try
+					{
+						string configContent = File.ReadAllText(configPath);
+						var versionMatch = System.Text.RegularExpressions.Regex.Match(
+							configContent,
+							@"""currentVersion"":\s*""([^""]+)"""
+						);
+						if ( versionMatch.Success )
+						{
+							return $"PyKotor: v{versionMatch.Groups[1].Value}";
+						}
+					}
+					catch { }
+				}
+
+				return "PyKotor: Installed";
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error getting PyKotor version");
+				return "PyKotor: Error";
+			}
 		}
 	}
 }

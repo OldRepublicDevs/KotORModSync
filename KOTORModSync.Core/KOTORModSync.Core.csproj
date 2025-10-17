@@ -9,15 +9,15 @@
     <_NC2>Mon</_NC2>
   </PropertyGroup>
 
-  <!-- Enable executable output for net8.0 target (for CLI usage) -->
-  <!-- Only use Exe when building standalone, not when referenced by self-contained GUI -->
-  <PropertyGroup Condition="('$(TargetFramework)' == 'net8.0' OR '$(TargetFramework)' == 'net48') AND '$(SelfContained)' != 'true'">
-    <OutputType>Exe</OutputType>
-  </PropertyGroup>
-  
-  <!-- When referenced by self-contained builds, always use Library output -->
-  <PropertyGroup Condition="'$(SelfContained)' == 'true'">
+  <!-- Default to Library (so it can be referenced by GUI) -->
+  <PropertyGroup>
     <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <!-- Only use Exe when explicitly building standalone CLI (not when referenced by another project) -->
+  <PropertyGroup Condition="'$(BuildingInsideVisualStudio)' != 'true' AND '$(DesignTimeBuild)' != 'true' AND '$(BuildProjectReferences)' != 'false' AND '$(IsPublishing)' != 'true'">
+    <!-- This allows direct 'dotnet run' on the Core project for CLI usage, but keeps it as Library when referenced -->
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <!-- Licensing -->
@@ -38,7 +38,7 @@
 
   <ItemGroup>
     <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
-    <PackageReference Include="Python.Included" Version="3.11.*" />
+    <PackageReference Include="Python.Included" Version="3.11.6" />
     <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />

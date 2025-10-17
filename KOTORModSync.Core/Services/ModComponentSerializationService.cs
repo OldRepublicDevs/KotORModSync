@@ -1576,7 +1576,7 @@ namespace KOTORModSync.Core.Services
 					}
 
 					// Add URL failure comments
-					if ( component.ModLinkFilenames is { Count: > 0 } )
+					if ( component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0 )
 					{
 						foreach ( string url in component.ModLinkFilenames.Keys )
 						{

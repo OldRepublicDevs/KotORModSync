@@ -2041,7 +2041,7 @@ namespace KOTORModSync
 				DateTime startTime = DateTime.UtcNow;
 
 				string[] result = await _dialogService.ShowFileDialogAsync(
-					windowName: "Load an instruction file (TOML, JSON, YAML, XML, or Markdown)",
+					windowName: "Load an instruction file (TOML, JSON, YAML, or Markdown)",
 					isFolderDialog: false
 				);
 				if ( result is null || result.Length <= 0 )
@@ -2085,7 +2085,7 @@ namespace KOTORModSync
 					return;
 				}
 
-				// For all other formats (TOML, JSON, YAML, XML), use unified loader with auto-detection
+				// For all other formats (TOML, JSON, YAML), use unified loader with auto-detection
 				await Logger.LogAsync($"Loading file: {Path.GetFileName(filePath)}");
 				bool loadedSuccess = await LoadTomlFile(filePath, fileType: "config file");
 
@@ -3167,8 +3167,8 @@ namespace KOTORModSync
 					}
 					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Setting visibility for controls based on selected tab");
 
-					RawTabControl.GetRawEditTextBox().IsVisible = tabName == "raw";
-					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] RawEditTextBox.IsVisible={RawTabControl.GetRawEditTextBox().IsVisible}");
+					// Note: RawTab format textboxes are managed internally by the RawTab control
+					// and should not have their visibility controlled by the main tab selection
 					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] COMPLETED SUCCESSFULLY");
 				}
 				catch ( Exception exception )
@@ -3428,7 +3428,7 @@ namespace KOTORModSync
 		private void RawEditTextBox_LostFocus([NotNull] object sender, [NotNull] RoutedEventArgs e) => e.Handled = true;
 
 		/// <summary>
-		/// Loads a config file (TOML, JSON, YAML, XML, or embedded Markdown).
+		/// Loads a config file (TOML, JSON, YAML, or embedded Markdown).
 		/// Format is auto-detected by the FileLoadingService.
 		/// </summary>
 		private async Task<bool> LoadTomlFile(string filePath, string fileType = "config file")
@@ -3454,12 +3454,14 @@ namespace KOTORModSync
 		{
 			try
 			{
-				// Get the raw text on the UI thread to avoid threading issues
+				// Get the raw text and current format on the UI thread to avoid threading issues
 				string rawEditText = await Dispatcher.UIThread.InvokeAsync(() => RawTabControl.GetRawEditTextBox()?.Text ?? string.Empty);
+				string currentFormat = await Dispatcher.UIThread.InvokeAsync(() => RawTabControl.GetCurrentFormat());
 
 				bool result = await _componentEditorService.SaveChangesAsync(
 					CurrentComponent,
 					rawEditText,
+					currentFormat,
 					noPrompt
 				);
 

@@ -404,3 +404,5 @@ test_temp_*
 dist/*
 KOTORModSync.Tests/*_20??-??-??_*.md
 test_output*.txt
+KOTORModSync.GUI/dist
+TestProject/test*.txt

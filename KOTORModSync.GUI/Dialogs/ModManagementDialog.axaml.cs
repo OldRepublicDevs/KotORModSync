@@ -338,27 +338,6 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private async void ImportFromXml_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-				await PerformImportOperationAsync(async () =>
-				{
-					string[] files = await _dialogService.ShowFileDialog(isFolderDialog: false, windowName: "Import from XML file");
-					if ( files != null && files.Length > 0 )
-					{
-						List<ModComponent> imported = await _modManagementService.ImportMods(files[0]);
-						await _dialogService.ShowInformationDialog($"Imported {imported.Count} component(s)");
-						ModificationsApplied = true;
-						_dialogService.RefreshStatistics();
-					}
-				});
-			}
-			catch ( Exception ex )
-			{
-				await Logger.LogExceptionAsync(ex, "Failed to import from XML file");
-			}
-		}
 
 		private async void ExportToToml_Click(object sender, RoutedEventArgs e)
 		{
@@ -400,25 +379,6 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private async void ExportToXml_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-				await PerformExportOperationAsync(async () =>
-				{
-					string filePath = await _dialogService.ShowSaveFileDialogAsync("exported_mods.xml");
-					if ( filePath != null )
-					{
-						bool success = await ModManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Xml);
-						await _dialogService.ShowInformationDialog(success ? "Export completed successfully" : "Export failed");
-					}
-				});
-			}
-			catch ( Exception ex )
-			{
-				await Logger.LogExceptionAsync(ex, "Failed to export to XML file");
-			}
-		}
 
 		#endregion
 

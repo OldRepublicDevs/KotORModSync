@@ -144,7 +144,6 @@
                             <StackPanel Spacing="10">
                                 <Button Click="ImportFromToml_Click" Content="Import from TOML File" />
                                 <Button Click="ImportFromJson_Click" Content="Import from JSON" />
-                                <Button Click="ImportFromXml_Click" Content="Import from XML" />
                             </StackPanel>
                         </Expander>
 
@@ -155,7 +154,6 @@
                             <StackPanel Spacing="10">
                                 <Button Click="ExportToToml_Click" Content="Export to TOML File" />
                                 <Button Click="ExportToJson_Click" Content="Export to JSON" />
-                                <Button Click="ExportToXml_Click" Content="Export to XML" />
                             </StackPanel>
                         </Expander>
 

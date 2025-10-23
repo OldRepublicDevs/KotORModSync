@@ -81,23 +81,12 @@ namespace KOTORModSync.Services
 					HandleComponentUnchecked(c, visitedComponents, suppressErrors, onComponentVisualRefresh);
 				}
 
-				if ( component.Options != null && component.Options.Count > 0 )
-				{
-					bool hasSelectedOption = component.Options.Any(opt => opt.IsSelected);
-					if ( !hasSelectedOption )
-					{
-						bool optionSelected = ComponentSelectionService.TryAutoSelectFirstOption(component);
+				// Handle component-to-option dependencies and restrictions
+				HandleComponentToOptionDependencies(component, visitedComponents, suppressErrors, onComponentVisualRefresh);
 
-						if ( !optionSelected )
-						{
-							Logger.LogVerbose($"[ComponentSelectionService] No valid options available for '{component.Name}', unchecking component");
-							component.IsSelected = false;
-
-							onComponentVisualRefresh?.Invoke(component);
-							return;
-						}
-					}
-				}
+				// Note: Removed automatic first option selection
+				// Options should only be selected based on their own dependencies/restrictions
+				// and user interaction, not automatically when parent component is selected
 
 				onComponentVisualRefresh?.Invoke(component);
 			}
@@ -199,12 +188,17 @@ namespace KOTORModSync.Services
 
 			try
 			{
+				Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' unchecked, handling cascading effects");
 
+				// Handle cascading effects for option dependencies
+				var visitedOptions = new HashSet<Option>();
+				HandleOptionDependencyCascading(option, parentComponent, visitedOptions, onComponentVisualRefresh);
+
+				// Check if all options are unchecked and handle parent component accordingly
 				bool allOptionsUnchecked = parentComponent.Options.All(opt => !opt.IsSelected);
 
 				if ( allOptionsUnchecked && parentComponent.IsSelected )
 				{
-
 					Logger.LogVerbose($"[ComponentSelectionService] All options unchecked for '{parentComponent.Name}', unchecking component");
 					parentComponent.IsSelected = false;
 
@@ -236,7 +230,9 @@ namespace KOTORModSync.Services
 
 			try
 			{
+				Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' checked, validating dependencies and restrictions");
 
+				// First, ensure parent component is selected (options require their parent to be selected)
 				if ( !parentComponent.IsSelected )
 				{
 					Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' checked, auto-checking parent component '{parentComponent.Name}'");
@@ -245,6 +241,10 @@ namespace KOTORModSync.Services
 					var visitedComponents = new HashSet<ModComponent>();
 					HandleComponentChecked(parentComponent, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
 				}
+
+				// Now validate option's own dependencies and restrictions
+				var visitedOptions = new HashSet<Option>();
+				ValidateAndResolveOptionDependencies(option, parentComponent, visitedOptions, onComponentVisualRefresh);
 			}
 			catch ( Exception e )
 			{
@@ -252,26 +252,216 @@ namespace KOTORModSync.Services
 			}
 		}
 
-
-		private static bool TryAutoSelectFirstOption(ModComponent component)
+		/// <summary>
+		/// Validates and resolves dependencies for an option when it's checked.
+		/// Handles option-to-component, option-to-option, and component-to-option dependencies.
+		/// </summary>
+		private void ValidateAndResolveOptionDependencies(
+			Option option,
+			ModComponent parentComponent,
+			HashSet<Option> visitedOptions,
+			Action<ModComponent> onComponentVisualRefresh = null)
 		{
-			if ( component?.Options == null || component.Options.Count == 0 )
-				return false;
+			if ( visitedOptions.Contains(option) )
+				return;
 
-			try
+			visitedOptions.Add(option);
+
+			// Handle option-to-component dependencies
+			foreach ( Guid dependencyGuid in option.Dependencies )
 			{
-
-				Option firstOption = component.Options[0];
-				firstOption.IsSelected = true;
-				Logger.LogVerbose($"[ComponentSelectionService] Auto-selected option '{firstOption.Name}' for component '{component.Name}'");
-				return true;
+				ModComponent dependencyComponent = ModComponent.FindComponentFromGuid(dependencyGuid, _mainConfig.allComponents);
+				if ( dependencyComponent != null && !dependencyComponent.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' requires component '{dependencyComponent.Name}', selecting it");
+					dependencyComponent.IsSelected = true;
+					var visitedComponents = new HashSet<ModComponent>();
+					HandleComponentChecked(dependencyComponent, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
+				}
 			}
-			catch ( Exception e )
+
+			// Handle option-to-option dependencies
+			foreach ( Guid dependencyGuid in option.Dependencies )
 			{
-				Logger.LogException(e, $"Error auto-selecting first option for component '{component.Name}'");
-				return false;
+				Option dependencyOption = FindOptionByGuid(dependencyGuid);
+				if ( dependencyOption != null && !dependencyOption.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' requires option '{dependencyOption.Name}', selecting it");
+					dependencyOption.IsSelected = true;
+					ModComponent depParentComponent = FindParentComponent(dependencyOption);
+					if ( depParentComponent != null )
+					{
+						ValidateAndResolveOptionDependencies(dependencyOption, depParentComponent, visitedOptions, onComponentVisualRefresh);
+					}
+				}
+			}
+
+			// Handle option restrictions (conflicts)
+			foreach ( Guid restrictionGuid in option.Restrictions )
+			{
+				ModComponent restrictionComponent = ModComponent.FindComponentFromGuid(restrictionGuid, _mainConfig.allComponents);
+				if ( restrictionComponent != null && restrictionComponent.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' conflicts with component '{restrictionComponent.Name}', deselecting it");
+					restrictionComponent.IsSelected = false;
+					var visitedComponents = new HashSet<ModComponent>();
+					HandleComponentUnchecked(restrictionComponent, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
+				}
+
+				Option restrictionOption = FindOptionByGuid(restrictionGuid);
+				if ( restrictionOption != null && restrictionOption.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Option '{option.Name}' conflicts with option '{restrictionOption.Name}', deselecting it");
+					restrictionOption.IsSelected = false;
+					ModComponent restParentComponent = FindParentComponent(restrictionOption);
+					if ( restParentComponent != null )
+					{
+						HandleOptionDependencyCascading(restrictionOption, restParentComponent, visitedOptions, onComponentVisualRefresh);
+					}
+				}
+			}
+
+			// Handle component-to-option dependencies (components that depend on this option)
+			foreach ( ModComponent component in _mainConfig.allComponents )
+			{
+				if ( component.Dependencies.Contains(option.Guid) && !component.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Component '{component.Name}' requires option '{option.Name}', selecting component");
+					component.IsSelected = true;
+					var visitedComponents = new HashSet<ModComponent>();
+					HandleComponentChecked(component, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
+				}
+			}
+
+			// Handle component restrictions (components that conflict with this option)
+			foreach ( ModComponent component in _mainConfig.allComponents )
+			{
+				if ( component.Restrictions.Contains(option.Guid) && component.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Component '{component.Name}' conflicts with option '{option.Name}', deselecting component");
+					component.IsSelected = false;
+					var visitedComponents = new HashSet<ModComponent>();
+					HandleComponentUnchecked(component, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
+				}
 			}
 		}
+
+		/// <summary>
+		/// Handles cascading effects when an option is unchecked.
+		/// Deselects dependent options and components.
+		/// </summary>
+		private void HandleOptionDependencyCascading(
+			Option option,
+			ModComponent parentComponent,
+			HashSet<Option> visitedOptions,
+			Action<ModComponent> onComponentVisualRefresh = null)
+		{
+			if ( visitedOptions.Contains(option) )
+				return;
+
+			visitedOptions.Add(option);
+
+			// Find and deselect options that depend on this option
+			foreach ( ModComponent component in _mainConfig.allComponents )
+			{
+				foreach ( Option componentOption in component.Options )
+				{
+					if ( componentOption.Dependencies.Contains(option.Guid) && componentOption.IsSelected )
+					{
+						Logger.LogVerbose($"[ComponentSelectionService] Option '{componentOption.Name}' depends on '{option.Name}', deselecting it");
+						componentOption.IsSelected = false;
+						HandleOptionDependencyCascading(componentOption, component, visitedOptions, onComponentVisualRefresh);
+					}
+				}
+			}
+
+			// Find and deselect components that depend on this option
+			foreach ( ModComponent component in _mainConfig.allComponents )
+			{
+				if ( component.Dependencies.Contains(option.Guid) && component.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Component '{component.Name}' depends on option '{option.Name}', deselecting it");
+					component.IsSelected = false;
+					var visitedComponents = new HashSet<ModComponent>();
+					HandleComponentUnchecked(component, visitedComponents, suppressErrors: true, onComponentVisualRefresh);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Finds an option by its GUID across all components.
+		/// </summary>
+		private Option FindOptionByGuid(Guid optionGuid)
+		{
+			foreach ( ModComponent component in _mainConfig.allComponents )
+			{
+				foreach ( Option option in component.Options )
+				{
+					if ( option.Guid == optionGuid )
+						return option;
+				}
+			}
+			return null;
+		}
+
+		/// <summary>
+		/// Finds the parent component of an option.
+		/// </summary>
+		private ModComponent FindParentComponent(Option option)
+		{
+			foreach ( ModComponent component in _mainConfig.allComponents )
+			{
+				if ( component.Options.Contains(option) )
+					return component;
+			}
+			return null;
+		}
+
+		/// <summary>
+		/// Handles component-to-option dependencies and restrictions.
+		/// When a component is selected, it may require or conflict with specific options.
+		/// </summary>
+		private void HandleComponentToOptionDependencies(
+			ModComponent component,
+			HashSet<ModComponent> visitedComponents,
+			bool suppressErrors,
+			Action<ModComponent> onComponentVisualRefresh = null)
+		{
+			// Handle component dependencies on options
+			foreach ( Guid dependencyGuid in component.Dependencies )
+			{
+				Option dependencyOption = FindOptionByGuid(dependencyGuid);
+				if ( dependencyOption != null && !dependencyOption.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Component '{component.Name}' requires option '{dependencyOption.Name}', selecting it");
+					dependencyOption.IsSelected = true;
+					ModComponent depParentComponent = FindParentComponent(dependencyOption);
+					if ( depParentComponent != null )
+					{
+						var visitedOptions = new HashSet<Option>();
+						ValidateAndResolveOptionDependencies(dependencyOption, depParentComponent, visitedOptions, onComponentVisualRefresh);
+					}
+				}
+			}
+
+			// Handle component restrictions on options
+			foreach ( Guid restrictionGuid in component.Restrictions )
+			{
+				Option restrictionOption = FindOptionByGuid(restrictionGuid);
+				if ( restrictionOption != null && restrictionOption.IsSelected )
+				{
+					Logger.LogVerbose($"[ComponentSelectionService] Component '{component.Name}' conflicts with option '{restrictionOption.Name}', deselecting it");
+					restrictionOption.IsSelected = false;
+					ModComponent restParentComponent = FindParentComponent(restrictionOption);
+					if ( restParentComponent != null )
+					{
+						var visitedOptions = new HashSet<Option>();
+						HandleOptionDependencyCascading(restrictionOption, restParentComponent, visitedOptions, onComponentVisualRefresh);
+					}
+				}
+			}
+		}
+
 	}
 }
 

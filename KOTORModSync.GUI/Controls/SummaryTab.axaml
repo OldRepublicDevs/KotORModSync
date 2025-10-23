@@ -32,7 +32,6 @@
         <converters:BooleanAndConverter x:Key="BooleanAndConverter" />
         <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
         <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
-        <converters:SpoilerFreeContentConverter x:Key="SpoilerFreeContentConverter" />
         <converters:ModLinkFilenamesToUrlListConverter x:Key="ModLinkFilenamesToUrlListConverter" />
     </UserControl.Resources>
 
@@ -240,12 +239,7 @@
                         DockPanel.Dock="Top"
                         TextWrapping="Wrap">
                         <TextBlock.Text>
-                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                <Binding Path="." />
-                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
-                                <Binding Source="Description" />
-                                <Binding Source="DescriptionSpoilerFree" />
-                            </MultiBinding>
+                            <Binding Path="Description" />
                         </TextBlock.Text>
                     </TextBlock>
                 </DockPanel>
@@ -262,12 +256,7 @@
                         DockPanel.Dock="Top"
                         TextWrapping="Wrap">
                         <TextBlock.Text>
-                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                <Binding Path="." />
-                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
-                                <Binding Source="Directions" />
-                                <Binding Source="DirectionsSpoilerFree" />
-                            </MultiBinding>
+                            <Binding Path="Directions" />
                         </TextBlock.Text>
                     </TextBlock>
                 </DockPanel>
@@ -281,12 +270,7 @@
                     </Border>
                     <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
                         <TextBlock.Text>
-                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                <Binding Path="." />
-                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
-                                <Binding Source="DownloadInstructions" />
-                                <Binding Source="DownloadInstructionsSpoilerFree" />
-                            </MultiBinding>
+                            <Binding Path="DownloadInstructions" />
                         </TextBlock.Text>
                     </TextBlock>
                 </DockPanel>
@@ -300,12 +284,7 @@
                     </Border>
                     <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
                         <TextBlock.Text>
-                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                <Binding Path="." />
-                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
-                                <Binding Source="UsageWarning" />
-                                <Binding Source="UsageWarningSpoilerFree" />
-                            </MultiBinding>
+                            <Binding Path="UsageWarning" />
                         </TextBlock.Text>
                     </TextBlock>
                 </DockPanel>
@@ -319,12 +298,7 @@
                     </Border>
                     <controls:ScreenshotDisplayControl>
                         <controls:ScreenshotDisplayControl.ScreenshotData>
-                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                <Binding Path="." />
-                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
-                                <Binding Source="Screenshots" />
-                                <Binding Source="ScreenshotsSpoilerFree" />
-                            </MultiBinding>
+                            <Binding Path="Screenshots" />
                         </controls:ScreenshotDisplayControl.ScreenshotData>
                     </controls:ScreenshotDisplayControl>
                 </StackPanel>
@@ -425,12 +399,7 @@
                                             IsVisible="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}"
                                             TextWrapping="Wrap">
                                             <TextBlock.Text>
-                                                <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                                    <Binding Path="." />
-                                                    <Binding Path="$parent[UserControl].SpoilerFreeMode" />
-                                                    <Binding Source="Description" />
-                                                    <Binding Source="DescriptionSpoilerFree" />
-                                                </MultiBinding>
+                                                <Binding Path="Description" />
                                             </TextBlock.Text>
                                         </TextBlock>
                                     </StackPanel>
@@ -441,16 +410,7 @@
                 </StackPanel>
             </Border>
             <!--  Instructions Overview Card  -->
-            <Border Classes="summary-card">
-                <Border.IsVisible>
-                    <MultiBinding Converter="{StaticResource BooleanAndConverter}">
-                        <Binding Path="$parent[Window].EditorMode" />
-                        <Binding
-                            Converter="{StaticResource ListToVisibilityConverter}"
-                            ElementName="InstructionsSummaryRepeater"
-                            Path="ItemsSource" />
-                    </MultiBinding>
-                </Border.IsVisible>
+            <Border Classes="summary-card" IsVisible="{Binding ElementName=InstructionsSummaryRepeater, Path=ItemsSource, Converter={StaticResource ListToVisibilityConverter}}">
                 <StackPanel>
                     <Border Classes="summary-header">
                         <TextBlock Classes="summary-section-title" Text="🔧 Installation Instructions" />

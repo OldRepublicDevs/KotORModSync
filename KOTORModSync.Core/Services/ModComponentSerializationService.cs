@@ -7,8 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Linq;
 using JetBrains.Annotations;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Utility;
@@ -543,64 +541,6 @@ namespace KOTORModSync.Core.Services
 		}
 		[NotNull]
 		[ItemNotNull]
-		public static List<ModComponent> DeserializeModComponentFromXmlString([NotNull] string xmlContent)
-		{
-			Logger.LogVerbose("Loading from XML string");
-			if ( xmlContent == null )
-				throw new ArgumentNullException(nameof(xmlContent));
-			xmlContent = SanitizeUtf8(xmlContent);
-			var doc = XDocument.Parse(xmlContent);
-			XElement root = doc.Root;
-			XElement metadataElem = root?.Element("Metadata");
-			if ( metadataElem != null )
-			{
-				MainConfig.FileFormatVersion = metadataElem.Element("FileFormatVersion")?.Value
-					?? "2.0";
-				MainConfig.TargetGame = metadataElem.Element("TargetGame")?.Value
-					?? string.Empty;
-				MainConfig.BuildName = metadataElem.Element("BuildName")?.Value
-					?? string.Empty;
-				MainConfig.BuildAuthor = metadataElem.Element("BuildAuthor")?.Value ?? string.Empty;
-				MainConfig.BuildDescription = metadataElem.Element("BuildDescription")?.Value ?? string.Empty;
-				if ( DateTime.TryParse(metadataElem.Element("LastModified")?.Value, out DateTime lastMod) )
-					MainConfig.LastModified = lastMod;
-				MainConfig.BeforeModListContent = metadataElem.Element("BeforeModListContent")?.Value ?? string.Empty;
-				MainConfig.AfterModListContent = metadataElem.Element("AfterModListContent")?.Value ?? string.Empty;
-				MainConfig.WidescreenSectionContent = metadataElem.Element("WidescreenSectionContent")?.Value ?? "Please install manually the widescreen implementations, e.g. uniws, before continuing.";
-				MainConfig.AspyrSectionContent = metadataElem.Element("AspyrSectionContent")?.Value ?? string.Empty;
-			}
-			var components = new List<ModComponent>();
-			XElement componentsElem = root?.Element("Components");
-			if ( componentsElem != null )
-			{
-				int componentIndex = 0;
-				foreach ( XElement compElem in componentsElem.Elements("Component") )
-				{
-					componentIndex++;
-					try
-					{
-						Dictionary<string, object> compDict = XmlElementToDictionary(compElem);
-
-						// Pre-process the component dictionary to handle duplicate fields
-						compDict = PreprocessComponentDictionary(compDict);
-
-						var component = DeserializeComponent(compDict);
-						components.Add(component);
-					}
-					catch ( Exception ex )
-					{
-						Logger.LogWarning($"Failed to deserialize XML component #{componentIndex}: {ex.Message} - skipping this component");
-						Logger.LogVerbose($"Component deserialization error details: {ex}");
-					}
-				}
-			}
-			if ( components.Count == 0 )
-				throw new InvalidDataException("No valid components found in XML content.");
-
-			return components;
-		}
-		[NotNull]
-		[ItemNotNull]
 		public static List<ModComponent> DeserializeModComponentFromString(
 			[NotNull] string content,
 			[CanBeNull] string format = null)
@@ -626,9 +566,6 @@ namespace KOTORModSync.Core.Services
 					case "yaml":
 					case "yml":
 						components = DeserializeModComponentFromYamlString(content);
-						break;
-					case "xml":
-						components = DeserializeModComponentFromXmlString(content);
 						break;
 					case "md":
 					case "markdown":
@@ -678,16 +615,8 @@ namespace KOTORModSync.Core.Services
 							{
 								Logger.LogVerbose($"TOML (second attempt) parsing failed: {tomlSecondEx.Message}");
 
-								try
-								{
 									components = DeserializeModComponentFromJsonString(content);
-								}
-								catch ( Exception jsonEx )
-								{
-									Logger.LogVerbose($"JSON parsing failed: {jsonEx.Message}");
 
-									components = DeserializeModComponentFromXmlString(content);
-								}
 							}
 						}
 					}
@@ -767,8 +696,6 @@ namespace KOTORModSync.Core.Services
 					return SerializeModComponentAsMarkdownString(components, validationContext);
 				case "json":
 					return SerializeModComponentAsJsonString(components, validationContext);
-				case "xml":
-					return SerializeModComponentAsXmlString(components, validationContext);
 				default:
 					throw new NotSupportedException($"Unsupported format: {format}");
 			}
@@ -785,15 +712,28 @@ namespace KOTORModSync.Core.Services
 
 		/// <summary>
 		/// Preprocesses a component dictionary to handle duplicate fields by flattening nested collections.
-		/// This handles cases where TOML/JSON/YAML/XML might have duplicate field definitions.
+		/// This handles cases where TOML/JSON/YAML might have duplicate field definitions.
 		/// </summary>
 		private static Dictionary<string, object> PreprocessComponentDictionary([NotNull] IDictionary<string, object> componentDict)
 		{
 			var processedDict = new Dictionary<string, object>(componentDict, StringComparer.OrdinalIgnoreCase);
 
+			// Add debug logging for ModLinkFilenames
+			if ( componentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesValue) )
+			{
+				Logger.LogVerbose($"PreprocessComponentDictionary: Found ModLinkFilenames field, type: {modLinkFilenamesValue?.GetType().Name}, value: {modLinkFilenamesValue}");
+			}
+
 			// Handle any potential duplicate field issues by ensuring consistent structure
 			foreach ( var kvp in componentDict )
 			{
+				// Special handling for ModLinkFilenames - preserve as dictionary, don't flatten
+				if ( kvp.Key.Equals("ModLinkFilenames", StringComparison.OrdinalIgnoreCase) )
+				{
+					processedDict[kvp.Key] = kvp.Value;
+					continue;
+				}
+
 				if ( kvp.Value is System.Collections.IEnumerable enumerable && !(kvp.Value is string) )
 				{
 					// Flatten any nested collections that might result from duplicate fields
@@ -824,6 +764,16 @@ namespace KOTORModSync.Core.Services
 			// Handle YAML deserialization issues where Instructions/Options are created as KeyValuePair objects
 			// instead of proper dictionaries
 			ProcessInstructionsAndOptions(processedDict);
+
+			// Add debug logging for ModLinkFilenames after processing
+			if ( processedDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesAfterValue) )
+			{
+				Logger.LogVerbose($"PreprocessComponentDictionary: ModLinkFilenames after processing, type: {modLinkFilenamesAfterValue?.GetType().Name}, value: {modLinkFilenamesAfterValue}");
+			}
+			else
+			{
+				Logger.LogVerbose("PreprocessComponentDictionary: ModLinkFilenames field not found after processing");
+			}
 
 			return processedDict;
 		}
@@ -1020,7 +970,20 @@ namespace KOTORModSync.Core.Services
 						}
 
 						Logger.LogVerbose($"ProcessComponentLevelProperties: Processing {kvpKey} = {kvpValue}");
-						processedDict[kvpKey] = kvpValue;
+
+						// Special handling for ModLinkFilenames - preserve the original structure
+						if ( kvpKey?.Equals("ModLinkFilenames", StringComparison.OrdinalIgnoreCase) == true )
+						{
+							Logger.LogVerbose($"ProcessComponentLevelProperties: Preserving ModLinkFilenames structure");
+							processedDict[kvpKey] = kvpValue;
+							// Don't remove the original entry for ModLinkFilenames to avoid losing it
+						}
+						else
+						{
+							processedDict[kvpKey] = kvpValue;
+							// Remove the original KeyValuePair entry to avoid duplication
+							processedDict.Remove(key);
+						}
 					}
 				}
 			}
@@ -1032,9 +995,7 @@ namespace KOTORModSync.Core.Services
 		private static List<object> GroupKeyValuePairsIntoInstructions(List<object> kvpList)
 		{
 			var instructions = new List<object>();
-			var instructionGroups = new Dictionary<string, Dictionary<string, object>>();
-			var currentInstructionIndex = 0;
-			string currentGroupKey = null;
+			var currentInstruction = new Dictionary<string, object>();
 
 			foreach ( var kvp in kvpList )
 			{
@@ -1067,37 +1028,42 @@ namespace KOTORModSync.Core.Services
 
 					Logger.LogVerbose($"GroupKeyValuePairsIntoInstructions: Processing {key} = {value}");
 
-					// Group by GUID if available (for TOML), otherwise use position-based grouping (for YAML/XML/JSON)
+					// Check if this is a new instruction (GUID field only)
 					if ( key.Equals("Guid", StringComparison.OrdinalIgnoreCase) && value != null )
 					{
-						currentGroupKey = value.ToString();
+						// If we have a current instruction, save it before starting a new one
+						if ( currentInstruction.Count > 0 )
+						{
+							instructions.Add(new Dictionary<string, object>(currentInstruction));
+							currentInstruction.Clear();
+						}
+						currentInstruction[key] = value;
 					}
 					else if ( key.Equals("Action", StringComparison.OrdinalIgnoreCase) && value != null )
 					{
-						// For formats without GUIDs, use position-based grouping
-						currentGroupKey = $"instruction_{currentInstructionIndex}";
-						currentInstructionIndex++;
-					}
-
-					if ( currentGroupKey != null )
-					{
-						if ( !instructionGroups.ContainsKey(currentGroupKey) )
+						// Only start a new instruction with Action if we don't have a current instruction
+						if ( currentInstruction.Count == 0 )
 						{
-							instructionGroups[currentGroupKey] = new Dictionary<string, object>();
+							currentInstruction[key] = value;
 						}
-						instructionGroups[currentGroupKey][key] = value;
+						else
+						{
+							// Add to current instruction
+							currentInstruction[key] = value;
+						}
+					}
+					else
+					{
+						// Add to current instruction
+						currentInstruction[key] = value;
 					}
 				}
 			}
 
-			// Convert grouped instructions to list
-			foreach ( var instruction in instructionGroups.Values )
+			// Add the final instruction if it has content
+			if ( currentInstruction.Count > 0 )
 			{
-				if ( instruction.Count > 0 )
-				{
-					Logger.LogVerbose($"GroupKeyValuePairsIntoInstructions: Completed instruction with {instruction.Count} fields");
-					instructions.Add(new Dictionary<string, object>(instruction));
-				}
+				instructions.Add(new Dictionary<string, object>(currentInstruction));
 			}
 
 			Logger.LogVerbose($"GroupKeyValuePairsIntoInstructions: Grouped {kvpList.Count} KeyValuePairs into {instructions.Count} instructions");
@@ -2279,6 +2245,20 @@ namespace KOTORModSync.Core.Services
 					return null;
 				}
 
+				// Debug: Log ModLinkFilenames structure after YAML deserialization
+				if ( yamlDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesValue) )
+				{
+					Logger.LogVerbose($"DeserializeYamlComponent: Found ModLinkFilenames field, type: {modLinkFilenamesValue?.GetType().Name}, value: {modLinkFilenamesValue}");
+					if ( modLinkFilenamesValue is Dictionary<object, object> modLinkDict )
+					{
+						Logger.LogVerbose($"DeserializeYamlComponent: ModLinkFilenames is Dictionary<object, object> with {modLinkDict.Count} entries");
+						foreach ( var kvp in modLinkDict )
+						{
+							Logger.LogVerbose($"DeserializeYamlComponent:   URL: {kvp.Key} (type: {kvp.Key?.GetType().Name}), Files: {kvp.Value} (type: {kvp.Value?.GetType().Name})");
+						}
+					}
+				}
+
 				// Pre-process the component dictionary to handle duplicate fields
 				yamlDict = PreprocessComponentDictionary(yamlDict);
 
@@ -2729,6 +2709,9 @@ namespace KOTORModSync.Core.Services
 				{
 					foreach ( Dictionary<string, object> opt in options )
 					{
+						// Remove internal metadata fields from options
+						opt.Remove("_HasInstructions");
+
 						if ( opt.ContainsKey("Instructions") && opt["Instructions"] is List<Dictionary<string, object>> optInstructions )
 						{
 							foreach ( Dictionary<string, object> instr in optInstructions )
@@ -2913,284 +2896,6 @@ namespace KOTORModSync.Core.Services
 
 			return SanitizeUtf8(jsonRoot.ToString(Newtonsoft.Json.Formatting.Indented));
 		}
-		public static string SerializeModComponentAsXmlString(
-			List<ModComponent> components,
-			ComponentValidationContext validationContext = null)
-		{
-			Logger.LogVerbose("Saving to XML string");
-
-			var metadataElement = new XElement("Metadata",
-				new XElement("FileFormatVersion", MainConfig.FileFormatVersion ?? "2.0"),
-				!string.IsNullOrWhiteSpace(MainConfig.TargetGame)
-					? new XElement("TargetGame", MainConfig.TargetGame)
-					: null,
-				!string.IsNullOrWhiteSpace(MainConfig.BuildName)
-					? new XElement("BuildName", MainConfig.BuildName)
-					: null,
-				!string.IsNullOrWhiteSpace(MainConfig.BuildAuthor)
-					? new XElement("BuildAuthor", MainConfig.BuildAuthor)
-					: null,
-				!string.IsNullOrWhiteSpace(MainConfig.BuildDescription)
-					? new XElement("BuildDescription", MainConfig.BuildDescription)
-					: null,
-				MainConfig.LastModified.HasValue
-					? new XElement("LastModified", MainConfig.LastModified.Value.ToString("o"))
-					: null,
-				!string.IsNullOrWhiteSpace(MainConfig.BeforeModListContent)
-					? new XElement("BeforeModListContent", MainConfig.BeforeModListContent)
-					: null,
-				!string.IsNullOrWhiteSpace(MainConfig.AfterModListContent)
-					? new XElement("AfterModListContent", MainConfig.AfterModListContent)
-					: null,
-				!string.IsNullOrWhiteSpace(MainConfig.WidescreenSectionContent)
-					? new XElement("WidescreenSectionContent", MainConfig.WidescreenSectionContent)
-					: null,
-				!string.IsNullOrWhiteSpace(MainConfig.AspyrSectionContent)
-					? new XElement("AspyrSectionContent", MainConfig.AspyrSectionContent)
-					: null
-			);
-
-			var componentsElement = new XElement("Components");
-
-			foreach ( ModComponent c in components )
-			{
-				var componentElement = new XElement("Component");
-
-				// Add validation comment for component
-				if ( validationContext != null )
-				{
-					List<string> componentIssues = validationContext.GetComponentIssues(c.Guid);
-					if ( componentIssues.Count > 0 )
-					{
-						string issuesText = "VALIDATION ISSUES: " + string.Join("; ", componentIssues);
-						componentElement.Add(new XComment(issuesText));
-					}
-
-					// Add URL failure comments
-					if ( c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0 )
-					{
-						foreach ( string url in c.ModLinkFilenames.Keys )
-						{
-							List<string> urlFailures = validationContext.GetUrlFailures(url);
-							if ( urlFailures.Count > 0 )
-							{
-								string failureText = $"URL RESOLUTION FAILURE ({url}): " + string.Join("; ", urlFailures);
-								componentElement.Add(new XComment(failureText));
-							}
-						}
-					}
-				}
-
-				componentElement.Add(new XElement("Guid", c.Guid.ToString()));
-				componentElement.Add(new XElement("Name", c.Name));
-
-				if ( !string.IsNullOrWhiteSpace(c.Author) )
-					componentElement.Add(new XElement("Author", c.Author));
-				if ( !string.IsNullOrWhiteSpace(c.Description) )
-					componentElement.Add(new XElement("Description", c.Description));
-				if ( !string.IsNullOrWhiteSpace(c._descriptionSpoilerFree) && c._descriptionSpoilerFree != c.Description )
-					componentElement.Add(new XElement("DescriptionSpoilerFree", c._descriptionSpoilerFree));
-				if ( c.Category?.Count > 0 )
-					componentElement.Add(new XElement("Category", c.Category.Select(cat => new XElement("Item", cat))));
-				if ( !string.IsNullOrWhiteSpace(c.Tier) )
-					componentElement.Add(new XElement("Tier", c.Tier));
-				if ( c.Language?.Count > 0 )
-					componentElement.Add(new XElement("Language", c.Language.Select(lang => new XElement("Item", lang))));
-
-				// Serialize ModLinkFilenames
-				if ( c.ModLinkFilenames?.Count > 0 )
-				{
-					componentElement.Add(new XElement("ModLinkFilenames",
-						c.ModLinkFilenames.Select(urlEntry =>
-							new XElement("Url",
-								new XAttribute("Value", urlEntry.Key),
-								urlEntry.Value.Select(fileEntry =>
-									new XElement("File",
-										new XAttribute("Name", fileEntry.Key),
-										new XAttribute("ShouldDownload", fileEntry.Value?.ToString() ?? "null")))))));
-				}
-
-				if ( c.ExcludedDownloads?.Count > 0 )
-					componentElement.Add(new XElement("ExcludedDownloads", c.ExcludedDownloads.Select(file => new XElement("Item", file))));
-				if ( !string.IsNullOrWhiteSpace(c.InstallationMethod) )
-					componentElement.Add(new XElement("InstallationMethod", c.InstallationMethod));
-				if ( !string.IsNullOrWhiteSpace(c.Directions) )
-					componentElement.Add(new XElement("Directions", c.Directions));
-				if ( !string.IsNullOrWhiteSpace(c._directionsSpoilerFree) && c._directionsSpoilerFree != c.Directions )
-					componentElement.Add(new XElement("DirectionsSpoilerFree", c._directionsSpoilerFree));
-				if ( !string.IsNullOrWhiteSpace(c.DownloadInstructions) )
-					componentElement.Add(new XElement("DownloadInstructions", c.DownloadInstructions));
-				if ( !string.IsNullOrWhiteSpace(c._downloadInstructionsSpoilerFree) && c._downloadInstructionsSpoilerFree != c.DownloadInstructions )
-					componentElement.Add(new XElement("DownloadInstructionsSpoilerFree", c._downloadInstructionsSpoilerFree));
-				if ( !string.IsNullOrWhiteSpace(c._usageWarningSpoilerFree) && c._usageWarningSpoilerFree != c.UsageWarning )
-					componentElement.Add(new XElement("UsageWarningSpoilerFree", c._usageWarningSpoilerFree));
-				if ( !string.IsNullOrWhiteSpace(c._screenshotsSpoilerFree) && c._screenshotsSpoilerFree != c.Screenshots )
-					componentElement.Add(new XElement("ScreenshotsSpoilerFree", c._screenshotsSpoilerFree));
-				if ( !string.IsNullOrWhiteSpace(c.KnownBugs) )
-					componentElement.Add(new XElement("KnownBugs", c.KnownBugs));
-				if ( !string.IsNullOrWhiteSpace(c.InstallationWarning) )
-					componentElement.Add(new XElement("InstallationWarning", c.InstallationWarning));
-				if ( !string.IsNullOrWhiteSpace(c.CompatibilityWarning) )
-					componentElement.Add(new XElement("CompatibilityWarning", c.CompatibilityWarning));
-				if ( !string.IsNullOrWhiteSpace(c.SteamNotes) )
-					componentElement.Add(new XElement("SteamNotes", c.SteamNotes));
-				if ( c.Dependencies?.Count > 0 )
-					componentElement.Add(new XElement("Dependencies", c.Dependencies.Select(dep => new XElement("Item", dep))));
-				if ( c.Restrictions?.Count > 0 )
-					componentElement.Add(new XElement("Restrictions", c.Restrictions.Select(res => new XElement("Item", res))));
-				if ( c.InstallBefore?.Count > 0 )
-					componentElement.Add(new XElement("InstallBefore", c.InstallBefore.Select(ib => new XElement("Item", ib))));
-				if ( c.InstallAfter?.Count > 0 )
-					componentElement.Add(new XElement("InstallAfter", c.InstallAfter.Select(ia => new XElement("Item", ia))));
-				if ( c.WidescreenOnly )
-					componentElement.Add(new XElement("WidescreenOnly", c.WidescreenOnly));
-
-				// Handle Instructions with validation comments
-				if ( c.Instructions?.Count > 0 )
-				{
-					var instructionsElement = new XElement("Instructions");
-					foreach ( Instruction instr in c.Instructions )
-					{
-						// Add validation comment before instruction
-						if ( validationContext != null )
-						{
-							List<string> instructionIssues = validationContext.GetInstructionIssues(instr.Guid);
-							if ( instructionIssues.Count > 0 )
-							{
-								string issuesText = "INSTRUCTION VALIDATION: " + string.Join("; ", instructionIssues);
-								instructionsElement.Add(new XComment(issuesText));
-							}
-						}
-
-						// Serialize Overwrite when it differs from default:
-						// Delete default is false, so serialize when true
-						// Move/Copy/Rename default is true, so serialize when false
-						XElement overwriteElement = null;
-						if ( instr.Action == ActionType.Delete && instr.Overwrite )
-						{
-							overwriteElement = new XElement("Overwrite", true);
-						}
-						else if ( !instr.Overwrite &&
-							(instr.Action == ActionType.Move ||
-							 instr.Action == ActionType.Copy ||
-							 instr.Action == ActionType.Rename) )
-						{
-							overwriteElement = new XElement("Overwrite", false);
-						}
-
-						instructionsElement.Add(new XElement("Instruction",
-							new XElement("Guid", instr.Guid.ToString()),
-							new XElement("Action", instr.ActionString),
-							instr.Source?.Count > 0
-								? new XElement("Source", instr.Source.Select(s => new XElement("Item", s)))
-								: null,
-							!string.IsNullOrWhiteSpace(instr.Destination)
-								? new XElement("Destination", instr.Destination)
-								: null,
-							!string.IsNullOrWhiteSpace(instr.Arguments) &&
-							(instr.Action == ActionType.DelDuplicate ||
-							 instr.Action == ActionType.Patcher ||
-							 instr.Action == ActionType.Execute)
-								? new XElement("Arguments", instr.Arguments)
-								: null,
-							overwriteElement
-						));
-					}
-					componentElement.Add(instructionsElement);
-				}
-
-				// Handle Options with validation comments
-				if ( c.Options?.Count > 0 )
-				{
-					var optionsElement = new XElement("Options");
-					foreach ( Option opt in c.Options )
-					{
-						var optionElement = new XElement("Option");
-						optionElement.Add(new XElement("Guid", opt.Guid.ToString()));
-						if ( !string.IsNullOrWhiteSpace(opt.Name) )
-							optionElement.Add(new XElement("Name", opt.Name));
-						if ( !string.IsNullOrWhiteSpace(opt.Description) )
-							optionElement.Add(new XElement("Description", opt.Description));
-
-						// Handle option instructions
-						if ( opt.Instructions?.Count > 0 )
-						{
-							var optInstructionsElement = new XElement("Instructions");
-							foreach ( Instruction instr in opt.Instructions )
-							{
-								// Add validation comment before option instruction
-								if ( validationContext != null )
-								{
-									List<string> instructionIssues = validationContext.GetInstructionIssues(instr.Guid);
-									if ( instructionIssues.Count > 0 )
-									{
-										string issuesText = "OPTION INSTRUCTION VALIDATION: " + string.Join("; ", instructionIssues);
-										optInstructionsElement.Add(new XComment(issuesText));
-									}
-								}
-
-								// Serialize Overwrite when it differs from default:
-								// Delete default is false, so serialize when true
-								// Move/Copy/Rename default is true, so serialize when false
-								XElement optOverwriteElement = null;
-								if ( instr.Action == ActionType.Delete && instr.Overwrite )
-								{
-									optOverwriteElement = new XElement("Overwrite", true);
-								}
-								else if ( !instr.Overwrite &&
-									(instr.Action == ActionType.Move ||
-									 instr.Action == ActionType.Copy ||
-									 instr.Action == ActionType.Rename) )
-								{
-									optOverwriteElement = new XElement("Overwrite", false);
-								}
-
-								optInstructionsElement.Add(new XElement("Instruction",
-									new XElement("Guid", instr.Guid.ToString()),
-									!string.IsNullOrWhiteSpace(instr.ActionString)
-										? new XElement("Action", instr.ActionString)
-										: null,
-									instr.Source?.Count > 0
-										? new XElement("Source", instr.Source.Select(s => new XElement("Item", s)))
-										: null,
-									!string.IsNullOrWhiteSpace(instr.Destination)
-										? new XElement("Destination", instr.Destination)
-										: null,
-									(!string.IsNullOrWhiteSpace(instr.Arguments) &&
-										(instr.Action == ActionType.DelDuplicate ||
-										 instr.Action == ActionType.Patcher ||
-										 instr.Action == ActionType.Execute))
-										? new XElement("Arguments", instr.Arguments)
-										: null,
-									optOverwriteElement
-								));
-							}
-							optionElement.Add(optInstructionsElement);
-						}
-
-						optionsElement.Add(optionElement);
-					}
-					componentElement.Add(optionsElement);
-				}
-
-				componentsElement.Add(componentElement);
-			}
-
-			var doc = new XDocument(
-				new XDeclaration("2.0", "utf-8", "yes"),
-				new XElement("ModBuild",
-					metadataElement,
-					componentsElement
-				)
-			);
-
-			var sb = new StringBuilder();
-			using ( var writer = XmlWriter.Create(sb, new XmlWriterSettings { Indent = true, OmitXmlDeclaration = false }) )
-			{
-				doc.Save(writer);
-			}
-			return SanitizeUtf8(sb.ToString());
-		}
 
 		/// <summary>
 		/// Serializes a single ModComponent to TOML string.
@@ -3216,65 +2921,6 @@ namespace KOTORModSync.Core.Services
 		}
 
 
-		public static Dictionary<string, object> XmlElementToDictionary(XElement element)
-		{
-			var dict = new Dictionary<string, object>();
-			foreach ( XElement child in element.Elements() )
-			{
-				string childName = child.Name.LocalName;
-
-				if ( childName == "ModLinkFilenames" && child.Elements("Url").Any() )
-				{
-					var modLinkFilenamesDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-					foreach ( XElement urlElem in child.Elements("Url") )
-					{
-						string url = urlElem.Attribute("Value")?.Value;
-						if ( string.IsNullOrEmpty(url) )
-							continue;
-
-						var filenamesDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-						foreach ( XElement fileElem in urlElem.Elements("File") )
-						{
-							string filename = fileElem.Attribute("Name")?.Value;
-							string shouldDownloadStr = fileElem.Attribute("ShouldDownload")?.Value;
-
-							if ( !string.IsNullOrEmpty(filename) && bool.TryParse(shouldDownloadStr, out bool shouldDownload) )
-							{
-								filenamesDict[filename] = shouldDownload;
-							}
-						}
-
-						if ( filenamesDict.Count > 0 )
-						{
-							modLinkFilenamesDict[url] = filenamesDict;
-						}
-					}
-					dict[childName] = modLinkFilenamesDict;
-				}
-				else if ( child.Elements("Item").Any() )
-				{
-					List<object> list = child.Elements("Item").Select(item => (object)item.Value).ToList();
-					dict[childName] = list;
-				}
-				else if ( child.HasElements && !child.Elements("Item").Any() )
-				{
-					if ( child.Elements().All(e => e.Name.LocalName == child.Elements().First().Name.LocalName) )
-					{
-						List<object> list = child.Elements().Select(e => (object)XmlElementToDictionary(e)).ToList();
-						dict[childName] = list;
-					}
-					else
-					{
-						dict[childName] = XmlElementToDictionary(child);
-					}
-				}
-				else
-				{
-					dict[childName] = child.Value;
-				}
-			}
-			return dict;
-		}
 
 		public static async Task<string> GenerateModDocumentationAsync(
 			[NotNull] string filePath,
@@ -3706,8 +3352,7 @@ namespace KOTORModSync.Core.Services
 		// CURRENT STATUS:
 		// ✓ TOML - Uses unified serialization (with special pre/post processing)
 		// ✓ YAML - Uses unified serialization
-		// ⚠ JSON  - TODO: Refactor to use DictToJToken helper (currently works but duplicates logic)
-		// ⚠ XML   - TODO: Refactor to use unified serialization (currently works but duplicates logic)
+		// ✓ JSON  - Uses unified serialization (with DictionaryToJObject conversion)
 		//
 		// BENEFITS:
 		// - Single source of truth for field serialization rules
@@ -3800,8 +3445,7 @@ namespace KOTORModSync.Core.Services
 				optDict["Name"] = opt.Name;
 			if ( !string.IsNullOrWhiteSpace(opt.Description) )
 				optDict["Description"] = opt.Description;
-			if ( opt.IsSelected )
-				optDict["IsSelected"] = opt.IsSelected;
+			optDict["IsSelected"] = opt.IsSelected;
 			if ( opt.Restrictions.Count > 0 )
 				optDict["Restrictions"] = opt.Restrictions.Select(g => g.ToString()).ToList();
 			if ( opt.Dependencies.Count > 0 )
@@ -3865,8 +3509,7 @@ namespace KOTORModSync.Core.Services
 				componentDict["SteamNotes"] = component.SteamNotes;
 			if ( !string.IsNullOrWhiteSpace(component.Heading) )
 				componentDict["Heading"] = component.Heading;
-			if ( component.IsSelected )
-				componentDict["IsSelected"] = component.IsSelected;
+			componentDict["IsSelected"] = component.IsSelected;
 			if ( component.WidescreenOnly )
 				componentDict["WidescreenOnly"] = component.WidescreenOnly;
 
@@ -4055,7 +3698,21 @@ namespace KOTORModSync.Core.Services
 				}
 				else if ( value is Dictionary<string, object> nestedDict )
 				{
-					jobj[key] = DictionaryToJObject(nestedDict);
+					// Special handling for ModLinkFilenames - preserve original case for URL keys
+					if ( key.Equals("modLinkFilenames", StringComparison.OrdinalIgnoreCase) )
+					{
+						var modLinkObj = new JObject();
+						foreach ( var nestedKvp in nestedDict )
+						{
+							// Preserve original case for URL keys in ModLinkFilenames
+							modLinkObj[nestedKvp.Key] = JToken.FromObject(nestedKvp.Value);
+						}
+						jobj[key] = modLinkObj;
+					}
+					else
+					{
+						jobj[key] = DictionaryToJObject(nestedDict);
+					}
 				}
 				else if ( value is List<Dictionary<string, object>> listOfDicts )
 				{
@@ -4127,11 +3784,15 @@ namespace KOTORModSync.Core.Services
 				if ( (!componentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesObj) &&
 					  !componentDict.TryGetValue("modLinkFilenames", out modLinkFilenamesObj)) || modLinkFilenamesObj == null )
 				{
+					Logger.LogVerbose($"DeserializeModLinkFilenames: No ModLinkFilenames field found in componentDict");
 					return result;
 				}
 
+				Logger.LogVerbose($"DeserializeModLinkFilenames: Found ModLinkFilenames field, type: {modLinkFilenamesObj?.GetType().Name}, value: {modLinkFilenamesObj}");
+
 				if ( modLinkFilenamesObj is IDictionary<string, object> urlDict )
 				{
+					Logger.LogVerbose($"DeserializeModLinkFilenames: ModLinkFilenames is IDictionary<string, object> with {urlDict.Count} entries");
 					foreach ( KeyValuePair<string, object> kvp in urlDict )
 					{
 						string url = kvp.Key;
@@ -4169,6 +3830,48 @@ namespace KOTORModSync.Core.Services
 						}
 
 						result[url] = filenameDict;
+					}
+				}
+				else
+				{
+					Logger.LogVerbose($"DeserializeModLinkFilenames: ModLinkFilenames is NOT IDictionary<string, object>, actual type: {modLinkFilenamesObj.GetType().Name}");
+					// Try to handle Dictionary<object, object> case
+					if ( modLinkFilenamesObj is IDictionary<object, object> objectDict )
+					{
+						Logger.LogVerbose($"DeserializeModLinkFilenames: ModLinkFilenames is IDictionary<object, object> with {objectDict.Count} entries");
+						foreach ( KeyValuePair<object, object> kvp in objectDict )
+						{
+							string url = kvp.Key?.ToString();
+							if ( string.IsNullOrEmpty(url) ) continue;
+
+							var filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+
+							if ( kvp.Value is IDictionary<object, object> filenameObj )
+							{
+								foreach ( KeyValuePair<object, object> fileKvp in filenameObj )
+								{
+									string filename = fileKvp.Key?.ToString();
+									if ( string.IsNullOrEmpty(filename) ) continue;
+
+									bool? shouldDownload = null;
+									if ( fileKvp.Value is bool boolVal )
+										shouldDownload = boolVal;
+									else if ( fileKvp.Value != null )
+									{
+										string valueStr = fileKvp.Value.ToString();
+										if ( !string.IsNullOrEmpty(valueStr) && !valueStr.Equals("null", StringComparison.OrdinalIgnoreCase) )
+										{
+											if ( bool.TryParse(valueStr, out bool parsedBool) )
+												shouldDownload = parsedBool;
+										}
+									}
+
+									filenameDict[filename] = shouldDownload;
+								}
+							}
+
+							result[url] = filenameDict;
+						}
 					}
 				}
 			}

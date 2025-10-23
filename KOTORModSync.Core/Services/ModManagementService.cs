@@ -593,11 +593,33 @@ namespace KOTORModSync.Core.Services
 						break;
 
 					case ExportFormat.Json:
-
+						{
+							string jsonContent = ModComponentSerializationService.SerializeModComponentAsJsonString(enumerable.ToList());
+							using ( var writer = new StreamWriter(filePath) )
+							{
+								await writer.WriteAsync(jsonContent);
+							}
+						}
 						break;
 
-					case ExportFormat.Xml:
+					case ExportFormat.Yaml:
+						{
+							string yamlContent = ModComponentSerializationService.SerializeModComponentAsYamlString(enumerable.ToList());
+							using ( var writer = new StreamWriter(filePath) )
+							{
+								await writer.WriteAsync(yamlContent);
+							}
+						}
+						break;
 
+					case ExportFormat.Markdown:
+						{
+							string markdownContent = ModComponentSerializationService.SerializeModComponentAsMarkdownString(enumerable.ToList());
+							using ( var writer = new StreamWriter(filePath) )
+							{
+								await writer.WriteAsync(markdownContent);
+							}
+						}
 						break;
 				}
 
@@ -967,7 +989,8 @@ namespace KOTORModSync.Core.Services
 		{
 			Toml,
 			Json,
-			Xml
+			Yaml,
+			Markdown
 		}
 
 		public enum ImportMergeStrategy

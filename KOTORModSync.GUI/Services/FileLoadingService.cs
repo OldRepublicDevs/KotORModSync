@@ -29,7 +29,7 @@ namespace KOTORModSync.Services
 		}
 
 		/// <summary>
-		/// Loads a config file with auto-format detection (TOML, JSON, YAML, XML, or embedded Markdown).
+		/// Loads a config file with auto-format detection (TOML, JSON, YAML, or embedded Markdown).
 		/// Uses the Core FileLoadingService which auto-detects format based on content.
 		/// </summary>
 		public async Task<bool> LoadInstructionFileAsync(
@@ -49,7 +49,7 @@ namespace KOTORModSync.Services
 					return false;
 				}
 
-				// Auto-detect format (TOML/JSON/YAML/XML/embedded-Markdown)
+				// Auto-detect format (TOML/JSON/YAML/embedded-Markdown)
 				List<ModComponent> newComponents = await Core.Services.FileLoadingService.LoadFromFileAsync(filePath);
 
 				ProcessModLinks(newComponents);
@@ -120,7 +120,7 @@ namespace KOTORModSync.Services
 
 		/// <summary>
 		/// Legacy compatibility wrapper for LoadConfigFileAsync.
-		/// Use LoadConfigFileAsync instead - this handles all formats (TOML, JSON, YAML, XML, embedded Markdown).
+		/// Use LoadConfigFileAsync instead - this handles all formats (TOML, JSON, YAML, embedded Markdown).
 		/// </summary>
 		[Obsolete("Use LoadConfigFileAsync instead - it handles all formats with auto-detection")]
 		public async Task<bool> LoadTomlFileAsync(

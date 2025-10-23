@@ -64,9 +64,13 @@ namespace KOTORModSync.Controls
 				_currentFormat == "markdown" ? this.FindControl<TextBox>("MarkdownTextBox") :
 				_currentFormat == "yaml" ? this.FindControl<TextBox>("YamlTextBox") :
 				_currentFormat == "json" ? this.FindControl<TextBox>("JsonTextBox") :
-				_currentFormat == "xml" ? this.FindControl<TextBox>("XmlTextBox") :
 				this.FindControl<TextBox>("TomlTextBox");
 		}
+
+		/// <summary>
+		/// Gets the current format that is active in the RawTab (toml, markdown, yaml, or json)
+		/// </summary>
+		public string GetCurrentFormat() => _currentFormat;
 
 		private void FormatTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
@@ -141,7 +145,6 @@ namespace KOTORModSync.Controls
 				textBox.Name == "MarkdownTextBox" ? "markdown" :
 				textBox.Name == "YamlTextBox" ? "yaml" :
 				textBox.Name == "JsonTextBox" ? "json" :
-				textBox.Name == "XmlTextBox" ? "xml" :
 				null;
 		}
 

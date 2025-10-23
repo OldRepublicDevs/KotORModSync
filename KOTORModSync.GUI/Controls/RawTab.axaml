@@ -93,16 +93,6 @@
                         TextWrapping="Wrap" />
                 </ScrollViewer>
             </TabItem>
-            <TabItem Header="XML">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <TextBox
-                        x:Name="XmlTextBox"
-                        MinHeight="400"
-                        AcceptsReturn="True"
-                        TextChanged="FormatTextBox_TextChanged"
-                        TextWrapping="Wrap" />
-                </ScrollViewer>
-            </TabItem>
         </TabControl>
     </Grid>
 </UserControl>

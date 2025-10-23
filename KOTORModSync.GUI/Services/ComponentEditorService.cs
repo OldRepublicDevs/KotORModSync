@@ -3,8 +3,11 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Dialogs;
@@ -27,19 +30,38 @@ namespace KOTORModSync.Services
 
 		public static bool HasUnsavedChanges(
 			ModComponent currentComponent,
-			string rawEditText
+			string rawEditText,
+			string currentFormat = "toml"
 		)
 		{
-			return currentComponent != null
-				   && !string.IsNullOrWhiteSpace(rawEditText)
-				   && rawEditText != currentComponent.SerializeComponent();
+			if ( currentComponent == null || string.IsNullOrWhiteSpace(rawEditText) )
+				return false;
+
+			// Serialize the component in the same format as the textbox
+			var components = new List<ModComponent> { currentComponent };
+			string serializedInCurrentFormat = ModComponentSerializationService.SerializeModComponentAsString(components, currentFormat);
+
+			// Compare the raw text with the serialized version in the same format
+			bool hasChanges = rawEditText != serializedInCurrentFormat;
+
+			if ( hasChanges )
+			{
+				Logger.LogVerbose($"[HasUnsavedChanges] Changes detected for component '{currentComponent.Name}' in format '{currentFormat}'");
+				Logger.LogVerbose($"[HasUnsavedChanges] Raw text length: {rawEditText.Length}, Serialized length: {serializedInCurrentFormat.Length}");
+			}
+			else
+			{
+				Logger.LogVerbose($"[HasUnsavedChanges] No changes detected for component '{currentComponent.Name}' in format '{currentFormat}'");
+			}
+
+			return hasChanges;
 		}
 
-		public async Task<bool> SaveChangesAsync(ModComponent currentComponent, string rawEditText, bool noPrompt = false)
+		public async Task<bool> SaveChangesAsync(ModComponent currentComponent, string rawEditText, string currentFormat = "toml", bool noPrompt = false)
 		{
 			try
 			{
-				if ( !ComponentEditorService.HasUnsavedChanges(currentComponent, rawEditText) )
+				if ( !ComponentEditorService.HasUnsavedChanges(currentComponent, rawEditText, currentFormat) )
 				{
 					await Logger.LogVerboseAsync("No changes detected, nothing to save.");
 					return true;

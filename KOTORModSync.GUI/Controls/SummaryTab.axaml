@@ -17,6 +17,7 @@
     <UserControl.Resources>
         <converters:IndexConverter x:Key="IndexConverter" />
         <converters:ListToVisibilityConverter x:Key="ListToVisibilityConverter" />
+        <converters:DictionaryToVisibilityConverter x:Key="DictionaryToVisibilityConverter" />
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:InvalidUrlVisibilityConverter x:Key="InvalidUrlVisibilityConverter" />
         <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
@@ -32,6 +33,7 @@
         <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
         <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
         <converters:SpoilerFreeContentConverter x:Key="SpoilerFreeContentConverter" />
+        <converters:ModLinkFilenamesToUrlListConverter x:Key="ModLinkFilenamesToUrlListConverter" />
     </UserControl.Resources>
 
     <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
@@ -135,7 +137,7 @@
                                 Padding="4,2"
                                 Background="#4000BFFF"
                                 CornerRadius="3"
-                                IsVisible="{Binding AspyrExclusive}">
+                                IsVisible="{Binding AspyrExclusive, FallbackValue=False}">
                                 <TextBlock Text="🎮 Aspyr Only" />
                             </Border>
                         </StackPanel>
@@ -178,7 +180,7 @@
             </Border>
 
             <!--  Download Links Card  -->
-            <Border Classes="summary-card" IsVisible="{Binding ModLink, Converter={StaticResource ListToVisibilityConverter}}">
+            <Border Classes="summary-card" IsVisible="{Binding ModLinkFilenames, Converter={StaticResource DictionaryToVisibilityConverter}}">
                 <StackPanel>
                     <Border Classes="summary-header">
                         <TextBlock Classes="summary-section-title" Text="🔗 Download Links" />
@@ -187,7 +189,7 @@
                         Margin="0,0,0,4"
                         Classes="secondary-text"
                         Text="Click any link to open in your browser" />
-                    <ItemsRepeater x:Name="ModLinkRepeater" ItemsSource="{Binding ModLink}">
+                    <ItemsRepeater x:Name="ModLinkRepeater" ItemsSource="{Binding ModLinkFilenames, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}">
                         <ItemsRepeater.ItemTemplate>
                             <DataTemplate>
                                 <Border Classes="summary-link-container">
@@ -236,7 +238,16 @@
                     <TextBlock
                         Name="DescriptionTextBlock"
                         DockPanel.Dock="Top"
-                        TextWrapping="Wrap" />
+                        TextWrapping="Wrap">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Path="." />
+                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
+                                <Binding Source="Description" />
+                                <Binding Source="DescriptionSpoilerFree" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
                 </DockPanel>
             </Border>
 
@@ -249,7 +260,16 @@
                     <TextBlock
                         Name="DirectionsTextBlock"
                         DockPanel.Dock="Top"
-                        TextWrapping="Wrap" />
+                        TextWrapping="Wrap">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Path="." />
+                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
+                                <Binding Source="Directions" />
+                                <Binding Source="DirectionsSpoilerFree" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
                 </DockPanel>
             </Border>
 
@@ -262,9 +282,10 @@
                     <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
                         <TextBlock.Text>
                             <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                <Binding Path="CurrentComponent" />
-                                <Binding Path="SpoilerFreeMode" />
+                                <Binding Path="." />
+                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
                                 <Binding Source="DownloadInstructions" />
+                                <Binding Source="DownloadInstructionsSpoilerFree" />
                             </MultiBinding>
                         </TextBlock.Text>
                     </TextBlock>
@@ -277,15 +298,13 @@
                     <Border Classes="summary-header" DockPanel.Dock="Top">
                         <TextBlock Classes="summary-section-title" Text="⚠️ Usage Warning" />
                     </Border>
-                    <TextBlock
-                        DockPanel.Dock="Top"
-                        Foreground="#FFFF8C00"
-                        TextWrapping="Wrap">
+                    <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
                         <TextBlock.Text>
                             <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                <Binding Path="CurrentComponent" />
-                                <Binding Path="SpoilerFreeMode" />
+                                <Binding Path="." />
+                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
                                 <Binding Source="UsageWarning" />
+                                <Binding Source="UsageWarningSpoilerFree" />
                             </MultiBinding>
                         </TextBlock.Text>
                     </TextBlock>
@@ -301,9 +320,10 @@
                     <controls:ScreenshotDisplayControl>
                         <controls:ScreenshotDisplayControl.ScreenshotData>
                             <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
-                                <Binding Path="CurrentComponent" />
-                                <Binding Path="SpoilerFreeMode" />
+                                <Binding Path="." />
+                                <Binding Path="$parent[UserControl].SpoilerFreeMode" />
                                 <Binding Source="Screenshots" />
+                                <Binding Source="ScreenshotsSpoilerFree" />
                             </MultiBinding>
                         </controls:ScreenshotDisplayControl.ScreenshotData>
                     </controls:ScreenshotDisplayControl>
@@ -332,7 +352,6 @@
                     </Border>
                     <TextBlock
                         DockPanel.Dock="Top"
-                        Foreground="#FFFF8C00"
                         Text="{Binding InstallationWarning}"
                         TextWrapping="Wrap" />
                 </DockPanel>
@@ -410,6 +429,7 @@
                                                     <Binding Path="." />
                                                     <Binding Path="$parent[UserControl].SpoilerFreeMode" />
                                                     <Binding Source="Description" />
+                                                    <Binding Source="DescriptionSpoilerFree" />
                                                 </MultiBinding>
                                             </TextBlock.Text>
                                         </TextBlock>

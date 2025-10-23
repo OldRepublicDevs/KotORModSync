@@ -39,7 +39,7 @@ namespace KOTORModSync.Services
 				_mainConfig.sourcePath = new DirectoryInfo(p);
 
 				Action callback = onPathSet != null ? (Action)(() => onPathSet(p)) : null;
-				_fileSystemService.SetupModDirectoryWatcher(p, callback);
+				_fileSystemService.SetupModDirectoryWatcher(p, (changedFile) => callback?.Invoke());
 
 				return true;
 			}

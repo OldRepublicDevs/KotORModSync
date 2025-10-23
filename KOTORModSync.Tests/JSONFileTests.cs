@@ -127,8 +127,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			string jsonString = ModComponentSerializationService.SaveToJsonString([newComponent]);
-			ModComponent duplicateComponent = ModComponentSerializationService.LoadFromJsonString(jsonString)[0];
+			string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([newComponent]);
+			ModComponent duplicateComponent = ModComponentSerializationService.DeserializeModComponentFromJsonString(jsonString)[0];
 
 			Assert.That(duplicateComponent, Is.Not.Null);
 			AssertComponentEquality(newComponent, duplicateComponent);
@@ -305,7 +305,7 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			string jsonString = ModComponentSerializationService.SaveToJsonString([component]);
+			string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([component]);
 
 			Assert.That(jsonString, Does.Contain("\n"), "Pretty-printed JSON should contain newlines");
 			Assert.That(jsonString, Does.Contain("  "), "Pretty-printed JSON should contain indentation");
@@ -330,7 +330,7 @@ namespace KOTORModSync.Tests
 					}
 				}
 			};
-			string extractJson = ModComponentSerializationService.SaveToJsonString([extractComponent]);
+			string extractJson = ModComponentSerializationService.SerializeModComponentAsJsonString([extractComponent]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(extractJson.Contains("overwrite"), Is.False, "Extract should not serialize Overwrite");
@@ -351,7 +351,7 @@ namespace KOTORModSync.Tests
 				IsSelected = true
 			};
 
-			string jsonString = ModComponentSerializationService.SaveToJsonString([component]);
+			string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([component]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(jsonString, Does.Not.Contain("isDownloaded"), "JSON should not contain IsDownloaded");
@@ -359,6 +359,121 @@ namespace KOTORModSync.Tests
 				Assert.That(jsonString, Does.Not.Contain("lastStartedUtc"), "JSON should not contain LastStartedUtc");
 				Assert.That(jsonString, Does.Not.Contain("lastCompletedUtc"), "JSON should not contain LastCompletedUtc");
 			});
+		}
+
+		[Test]
+		public void SaveAndLoadJSON_WithOptionsAndModLinkFilenames()
+		{
+			var testComponent = new ModComponent
+			{
+				Name = "Test Mod with Options",
+				Guid = Guid.NewGuid(),
+				Author = "Test Author",
+				Description = "Test description",
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				{
+					["https://example.com/mod.zip"] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+					{
+						["mod_v1.0.zip"] = true,
+						["mod_v2.0.zip"] = false,
+						["mod_beta.zip"] = null
+					},
+					["https://example.com/patch.rar"] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+					{
+						["patch.rar"] = true
+					}
+				},
+				ExcludedDownloads = new List<string> { "debug.zip", "old_version.rar" },
+				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+			{
+				new Instruction
+				{
+					Guid = Guid.NewGuid(),
+					Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\mod*.zip" },
+					Overwrite = true
+				}
+			},
+				Options = new System.Collections.ObjectModel.ObservableCollection<Option>
+			{
+				new Option
+				{
+					Guid = Guid.NewGuid(),
+					Name = "Optional Feature 1",
+					Description = "Adds feature 1",
+					IsSelected = false,
+					Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+					{
+						new Instruction
+						{
+							Guid = Guid.NewGuid(),
+							Action = Instruction.ActionType.Move,
+							Source = new List<string> { "<<modDirectory>>\\optional\\file1.txt" },
+							Destination = "<<kotorDirectory>>\\Override",
+							Overwrite = true
+						}
+					}
+				},
+				new Option
+				{
+					Guid = Guid.NewGuid(),
+					Name = "Optional Feature 2",
+					Description = "Adds feature 2",
+					IsSelected = true,
+					Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+					{
+						new Instruction
+						{
+							Guid = Guid.NewGuid(),
+							Action = Instruction.ActionType.Copy,
+							Source = new List<string> { "<<modDirectory>>\\optional\\file2.txt" },
+							Destination = "<<kotorDirectory>>\\Override",
+							Overwrite = false
+						}
+					}
+				}
+			}
+			};
+
+			// Save to JSON
+			string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([testComponent]);
+
+			// Verify JSON contains expected structures
+			Assert.Multiple(() =>
+			{
+				Assert.That(jsonString, Does.Contain("options"), "JSON should contain options");
+				Assert.That(jsonString, Does.Contain("Optional Feature 1"), "JSON should contain option names");
+				Assert.That(jsonString, Does.Contain("modLinkFilenames"), "JSON should contain modLinkFilenames");
+				Assert.That(jsonString, Does.Contain("mod_v1.0.zip"), "JSON should contain filename keys");
+				Assert.That(jsonString, Does.Contain("excludedDownloads"), "JSON should contain excludedDownloads");
+			});
+
+			// Load from JSON
+			List<ModComponent> loadedComponents = ModComponentSerializationService.DeserializeModComponentFromJsonString(jsonString);
+
+			Assert.That(loadedComponents, Has.Count.EqualTo(1));
+			ModComponent loadedComponent = loadedComponents[0];
+
+			// Verify component properties
+			Assert.That(loadedComponent.Name, Is.EqualTo(testComponent.Name));
+			Assert.That(loadedComponent.Options.Count, Is.EqualTo(2), "Should have 2 options");
+			Assert.That(loadedComponent.Options[0].Name, Is.EqualTo("Optional Feature 1"));
+			Assert.That(loadedComponent.Options[1].Name, Is.EqualTo("Optional Feature 2"));
+			Assert.That(loadedComponent.Options[0].Instructions.Count, Is.EqualTo(1), "Option 1 should have 1 instruction");
+			Assert.That(loadedComponent.Options[1].Instructions.Count, Is.EqualTo(1), "Option 2 should have 1 instruction");
+
+			// Verify ModLinkFilenames
+			Assert.That(loadedComponent.ModLinkFilenames.Count, Is.EqualTo(2), "Should have 2 URLs");
+			Assert.That(loadedComponent.ModLinkFilenames.ContainsKey("https://example.com/mod.zip"), Is.True);
+			Assert.That(loadedComponent.ModLinkFilenames["https://example.com/mod.zip"].Count, Is.EqualTo(3), "First URL should have 3 filenames");
+			Assert.That(loadedComponent.ModLinkFilenames["https://example.com/mod.zip"]["mod_v1.0.zip"], Is.EqualTo(true));
+			Assert.That(loadedComponent.ModLinkFilenames["https://example.com/mod.zip"]["mod_v2.0.zip"], Is.EqualTo(false));
+			Assert.That(loadedComponent.ModLinkFilenames["https://example.com/mod.zip"]["mod_beta.zip"], Is.EqualTo(null));
+
+			// Verify ExcludedDownloads
+			Assert.That(loadedComponent.ExcludedDownloads.Count, Is.EqualTo(2), "Should have 2 excluded downloads");
+			Assert.That(loadedComponent.ExcludedDownloads, Does.Contain("debug.zip"));
+			Assert.That(loadedComponent.ExcludedDownloads, Does.Contain("old_version.rar"));
 		}
 
 		private static void AssertComponentEquality(object? obj, object? another)

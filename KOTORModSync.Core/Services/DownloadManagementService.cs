@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core.Services.Download;
@@ -38,16 +39,7 @@ namespace KOTORModSync.Core.Services
 					ProgressPercentage = 0
 				};
 
-				var httpClient = new System.Net.Http.HttpClient();
-				var handlers = new List<IDownloadHandler>
-				{
-					new DeadlyStreamDownloadHandler(httpClient),
-					new DirectDownloadHandler(httpClient),
-					new GameFrontDownloadHandler(httpClient),
-					new NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
-					new MegaDownloadHandler()
-				};
-				var downloadManager = new DownloadManager(handlers);
+				var downloadManager = Download.DownloadHandlerFactory.CreateDownloadManager();
 
 				string guidString = Guid.NewGuid().ToString("N");
 				string shortGuid = guidString.Substring(0, Math.Min(8, guidString.Length));
@@ -67,10 +59,8 @@ namespace KOTORModSync.Core.Services
 					progress.TotalBytes = update.TotalBytes;
 				});
 
-				var urlToProgressMap = new Dictionary<string, DownloadProgress> { { url, progress } };
-				List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(urlToProgressMap, tempDir, progressReporter, cancellationToken);
-
-				httpClient.Dispose();
+			var urlToProgressMap = new Dictionary<string, DownloadProgress> { { url, progress } };
+			List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(urlToProgressMap, tempDir, progressReporter, cancellationToken);
 
 				if ( results.Count > 0 && results[0].Success )
 				{
@@ -102,7 +92,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		public async Task ProcessDownloadCompletions(Dictionary<string, DownloadProgress> urlToProgressMap, IReadOnlyList<ModComponent> componentsToDownload)
+		public async Task ProcessDownloadCompletions(
+			Dictionary<string, DownloadProgress> urlToProgressMap,
+			IReadOnlyList<ModComponent> componentsToDownload)
 		{
 			if ( urlToProgressMap == null || componentsToDownload == null )
 				return;
@@ -152,7 +144,7 @@ namespace KOTORModSync.Core.Services
 					{
 						await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] File already referenced in instructions: {fileName}");
 
-						Guid existingExtractGuid = _downloadCacheService.GetExtractInstructionGuid(modLink);
+						Guid existingExtractGuid = DownloadCacheService.GetExtractInstructionGuid(modLink);
 
 						var cacheEntry = new DownloadCacheEntry
 						{
@@ -161,7 +153,7 @@ namespace KOTORModSync.Core.Services
 							IsArchiveFile = isArchive,
 							ExtractInstructionGuid = existingExtractGuid
 						};
-						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
+						DownloadCacheService.AddOrUpdate(modLink, cacheEntry);
 						continue;
 					}
 
@@ -188,7 +180,7 @@ namespace KOTORModSync.Core.Services
 							IsArchiveFile = true,
 							ExtractInstructionGuid = extractInstruction.Guid
 						};
-						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
+						DownloadCacheService.AddOrUpdate(modLink, cacheEntry);
 					}
 					else
 					{
@@ -202,7 +194,7 @@ namespace KOTORModSync.Core.Services
 							IsArchiveFile = false,
 							ExtractInstructionGuid = Guid.Empty
 						};
-						_downloadCacheService.AddOrUpdate(modLink, cacheEntry);
+						DownloadCacheService.AddOrUpdate(modLink, cacheEntry);
 					}
 				}
 			}

@@ -81,6 +81,41 @@
         <Setter Property="Opacity" Value="0.5" />
     </Style>
 
+    <Style Selector="DropDownButton">
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="#062766" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="MinWidth" Value="100" />
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="DropDownButton:pointerover">
+        <Setter Property="Foreground" Value="#A8B348" />
+    </Style>
+    <Style Selector="DropDownButton:pointerover /template/ContentPresenter">
+        <Setter Property="BorderBrush" Value="#A8B348" />
+        <Setter Property="Background" Value="#000116" />
+        <Setter Property="TextBlock.Foreground" Value="#A8B348" />
+    </Style>
+    <Style Selector="DropDownButton /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="BorderBrush" Value="#062766" />
+    </Style>
+    <Style Selector="DropDownButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#000116" />
+        <Setter Property="BorderBrush" Value="#A8B348" />
+    </Style>
+    <Style Selector="DropDownButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#000116" />
+        <Setter Property="BorderBrush" Value="#3AAAFF" />
+    </Style>
+    <Style Selector="DropDownButton:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#010116" />
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+
     <Style Selector="Expander">
         <Setter Property="Background" Value="#062766" />
         <Setter Property="Foreground" Value="#3AAAFF" />

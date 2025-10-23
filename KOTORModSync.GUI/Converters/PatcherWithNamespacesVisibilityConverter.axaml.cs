@@ -66,14 +66,12 @@ namespace KOTORModSync.Converters
 
 			var relevantArchives = new List<string>();
 
-			List<string> instructionSourcePaths = instruction.Source.ConvertAll(Utility.ReplaceCustomVariables);
-
 			foreach ( string archivePath in allArchives )
 			{
 				if ( string.IsNullOrEmpty(archivePath) )
 					continue;
 
-				foreach ( string sourcePath in instructionSourcePaths )
+				foreach ( string sourcePath in instruction.Source )
 				{
 					if ( string.IsNullOrEmpty(sourcePath) )
 						continue;

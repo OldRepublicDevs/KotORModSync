@@ -138,21 +138,22 @@ Name=standard hk47 with tslrcm
 Name=hk50 with tslrcm
 ";
 
-			using var reader = new StreamReader(CreateNamespacesIniStream(content));
+			using ( var reader = new StreamReader(CreateNamespacesIniStream(content)) )
+			{
+				Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni(reader);
 
-			Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni(reader);
-
-			Assert.That(result, Is.Not.Null);
-			Assert.That(result, Has.Count.EqualTo(5));
-			Assert.Multiple(
-				() =>
-				{
-					Assert.That(result["standard"]["Name"], Is.EqualTo("standard hk47 no tslrcm"));
-					Assert.That(result["hk50"]["Name"], Is.EqualTo("hk50 no tslrcm"));
-					Assert.That(result["standardTSLRCM"]["Name"], Is.EqualTo("standard hk47 with tslrcm"));
-					Assert.That(result["hk50TSLRCM"]["Name"], Is.EqualTo("hk50 with tslrcm"));
-				}
-			);
+				Assert.That(result, Is.Not.Null);
+				Assert.That(result, Has.Count.EqualTo(5));
+				Assert.Multiple(
+					() =>
+					{
+						Assert.That(result["standard"]["Name"], Is.EqualTo("standard hk47 no tslrcm"));
+						Assert.That(result["hk50"]["Name"], Is.EqualTo("hk50 no tslrcm"));
+						Assert.That(result["standardTSLRCM"]["Name"], Is.EqualTo("standard hk47 with tslrcm"));
+						Assert.That(result["hk50TSLRCM"]["Name"], Is.EqualTo("hk50 with tslrcm"));
+					}
+				);
+			}
 		}
 
 		[Test]

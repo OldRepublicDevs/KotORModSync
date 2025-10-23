@@ -171,34 +171,6 @@ namespace KOTORModSync.Core
 				OnPropertyChanged();
 			}
 		}
-		/// <summary>
-		/// Legacy property that forwards to ModLinkFilenames.Keys for backward compatibility.
-		/// Getting returns the URLs as a list. Setting converts URLs to ModLinkFilenames with auto-discover.
-		/// DOES NOT trigger OnPropertyChanged - use ModLinkFilenames directly if you need property change notifications.
-		/// </summary>
-		[NotNull]
-		[JsonIgnore]
-		public List<string> ModLink
-		{
-			get => _modLinkFilenames?.Keys.ToList();
-			set
-			{
-				if ( value.Count == 0 )
-				{
-					_modLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
-				}
-				else
-				{
-					_modLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
-					foreach ( string url in value )
-					{
-						if ( !string.IsNullOrWhiteSpace(url) )
-							_modLinkFilenames[url] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
-					}
-				}
-				// Intentionally no OnPropertyChanged() - legacy support only
-			}
-		}
 
 		[NotNull]
 		public Dictionary<string, Dictionary<string, bool?>> ModLinkFilenames
@@ -572,169 +544,7 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string SerializeComponent()
 		{
-			try
-			{
-				var serializableData = new SerializableComponentData
-				{
-					Guid = Guid,
-					Instructions = Instructions.Count > 0
-						? Instructions.Select(i => new SerializableInstruction
-						{
-							Guid = i.Guid,
-							Action = i.Action != Instruction.ActionType.Unset ? i.Action.ToString() : null,
-							Source = i.Source?.Count > 0 ? i.Source : null,
-							Destination = !string.IsNullOrWhiteSpace(i.Destination) ? i.Destination : null,
-							Overwrite = !i.Overwrite ? (bool?)false : null,
-						}).ToList()
-						: null,
-					Options = Options.Count > 0
-						? Options.Select(o => new SerializableOption
-						{
-							Guid = o.Guid,
-							Name = !string.IsNullOrWhiteSpace(o.Name) ? o.Name : null,
-							Description = !string.IsNullOrWhiteSpace(o.Description) ? o.Description : null,
-							IsSelected = o.IsSelected ? (bool?)true : null,
-							Restrictions = o.Restrictions?.Count > 0 ? o.Restrictions : null,
-							Instructions = o.Instructions.Count > 0
-								? o.Instructions.Select(i => new SerializableInstruction
-								{
-									Guid = i.Guid,
-									Action = i.Action != Instruction.ActionType.Unset ? i.Action.ToString() : null,
-									Source = i.Source?.Count > 0 ? i.Source : null,
-									Destination = !string.IsNullOrWhiteSpace(i.Destination) ? i.Destination : null,
-									Overwrite = !i.Overwrite ? (bool?)false : null,
-								}).ToList()
-								: null,
-						}).ToList()
-						: null,
-				};
-				Dictionary<string, object> dictionary = Serializer.SerializeIntoDictionary(serializableData);
-				string tomlString = TomlWriter.WriteString(dictionary);
-				if ( string.IsNullOrWhiteSpace(tomlString) )
-					throw new InvalidOperationException("Could not serialize component to TOML");
-				return tomlString;
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, "Failed to serialize component to TOML");
-				throw;
-			}
-		}
-		private class SerializableComponentData
-		{
-			public Guid Guid { get; set; }
-			public List<SerializableInstruction> Instructions { get; set; }
-			public List<SerializableOption> Options { get; set; }
-		}
-		private class SerializableInstruction
-		{
-			public Guid Guid { get; set; }
-			public string Action { get; set; }
-			public List<string> Source { get; set; }
-			public string Destination { get; set; }
-			public bool? Overwrite { get; set; }
-		}
-		private class SerializableOption
-		{
-			public Guid Guid { get; set; }
-			public string Name { get; set; }
-			public string Description { get; set; }
-			public bool? IsSelected { get; set; }
-			public List<Guid> Restrictions { get; set; }
-			public List<SerializableInstruction> Instructions { get; set; }
-		}
-		public void DeserializeComponent([NotNull] IDictionary<string, object> componentDict)
-		{
-			Guid = Services.ModComponentSerializationService.GetRequiredValue<Guid>(componentDict, key: "Guid");
-			Name = Services.ModComponentSerializationService.GetRequiredValue<string>(componentDict, key: "Name");
-			_ = Logger.LogVerboseAsync($" == Deserialize next component '{Name}' ==");
-			Author = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Author") ?? string.Empty;
-			Category = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "Category") ?? new List<string>();
-			if ( Category.Count == 0 )
-			{
-				string categoryStr = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Category") ?? string.Empty;
-				if ( !string.IsNullOrEmpty(categoryStr) )
-				{
-					Category = categoryStr.Split(
-						s_categorySeparator,
-						StringSplitOptions.RemoveEmptyEntries
-					).Select(c => c.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
-				}
-			}
-			else if ( Category.Count == 1 )
-			{
-				string singleCategory = Category[0];
-				if ( !string.IsNullOrEmpty(singleCategory) &&
-					 (singleCategory.Contains(',') || singleCategory.Contains(';')) )
-				{
-					Category = singleCategory.Split(
-						s_categorySeparator,
-						StringSplitOptions.RemoveEmptyEntries
-					).Select(c => c.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
-				}
-				else if ( string.IsNullOrWhiteSpace(singleCategory) )
-				{
-					Category = new List<string>();
-				}
-			}
-			Tier = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Tier") ?? string.Empty;
-			Description = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Description") ?? string.Empty;
-			DescriptionSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "DescriptionSpoilerFree") ?? string.Empty;
-			Directions = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Directions") ?? string.Empty;
-			DirectionsSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "DirectionsSpoilerFree") ?? string.Empty;
-			DownloadInstructions = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "DownloadInstructions") ?? string.Empty;
-			DownloadInstructionsSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "DownloadInstructionsSpoilerFree") ?? string.Empty;
-			UsageWarning = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "UsageWarning") ?? string.Empty;
-			UsageWarningSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "UsageWarningSpoilerFree") ?? string.Empty;
-			Screenshots = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "Screenshots") ?? string.Empty;
-			ScreenshotsSpoilerFree = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "ScreenshotsSpoilerFree") ?? string.Empty;
-			Language = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "Language") ?? new List<string>();
-			ExcludedDownloads = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "ExcludedDownloads") ?? new List<string>();
-
-			// Load legacy ModLink format first (if present)
-			List<string> legacyModLink = Services.ModComponentSerializationService.GetValueOrDefault<List<string>>(componentDict, key: "ModLink") ?? new List<string>();
-			if ( legacyModLink.IsNullOrEmptyCollection() )
-			{
-				string modLink = Services.ModComponentSerializationService.GetValueOrDefault<string>(componentDict, key: "ModLink") ?? string.Empty;
-				if ( !string.IsNullOrEmpty(modLink) )
-					legacyModLink = modLink.Split(s_separator, StringSplitOptions.None).ToList();
-			}
-
-			// Initialize ModLinkFilenames with legacy URLs (with null values = auto-discover)
-			ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
-			if ( legacyModLink.Count > 0 )
-			{
-				_ = Logger.LogVerboseAsync($"Migrating legacy ModLink to ModLinkFilenames for component '{Name}' ({legacyModLink.Count} URLs)");
-				foreach ( string url in legacyModLink )
-				{
-					if ( !string.IsNullOrWhiteSpace(url) )
-					{
-						// Create an entry with an empty filename dictionary - files will be discovered during download
-						ModLinkFilenames[url] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
-					}
-				}
-			}
-
-			// Load ModLinkFilenames (will merge/overwrite legacy entries if present)
-			Dictionary<string, Dictionary<string, bool?>> deserializedFilenames = Services.ModComponentSerializationService.DeserializeModLinkFilenames(componentDict);
-			if ( deserializedFilenames.Count > 0 )
-			{
-				foreach ( KeyValuePair<string, Dictionary<string, bool?>> kvp in deserializedFilenames )
-				{
-					ModLinkFilenames[kvp.Key] = kvp.Value;
-				}
-			}
-
-			Dependencies = Services.ModComponentSerializationService.GetValueOrDefault<List<Guid>>(componentDict, key: "Dependencies") ?? new List<Guid>();
-			Restrictions = Services.ModComponentSerializationService.GetValueOrDefault<List<Guid>>(componentDict, key: "Restrictions") ?? new List<Guid>();
-			InstallBefore = Services.ModComponentSerializationService.GetValueOrDefault<List<Guid>>(componentDict, key: "InstallBefore") ?? new List<Guid>();
-			InstallAfter = Services.ModComponentSerializationService.GetValueOrDefault<List<Guid>>(componentDict, key: "InstallAfter") ?? new List<Guid>();
-			IsSelected = Services.ModComponentSerializationService.GetValueOrDefault<bool>(componentDict, key: "IsSelected");
-			Instructions = Services.ModComponentSerializationService.DeserializeInstructions(
-				Services.ModComponentSerializationService.GetValueOrDefault<IList<object>>(componentDict, key: "Instructions"), this
-			);
-			Options = Services.ModComponentSerializationService.DeserializeOptions(Services.ModComponentSerializationService.GetValueOrDefault<IList<object>>(componentDict, key: "Options"));
-			_ = Logger.LogVerboseAsync($"Successfully deserialized component '{Name}'");
+			return Services.ModComponentSerializationService.SerializeSingleComponentAsTomlString(this);
 		}
 
 		[CanBeNull]
@@ -742,36 +552,10 @@ namespace KOTORModSync.Core
 		{
 			if ( tomlString is null )
 				throw new ArgumentNullException(nameof(tomlString));
-			tomlString = Serializer.FixWhitespaceIssues(tomlString);
-			DocumentSyntax tomlDocument = Toml.Parse(tomlString);
-			if ( tomlDocument.HasErrors )
-			{
-				foreach ( DiagnosticMessage message in tomlDocument.Diagnostics )
-				{
-					if ( message is null )
-						continue;
-					Logger.Log(message.Message);
-				}
-				return null;
-			}
-			TomlTable tomlTable = tomlDocument.ToModel();
-			IList<TomlTable> componentTableThing = new List<TomlTable>();
-			switch ( tomlTable["thisMod"] )
-			{
-				case TomlArray componentTable:
-					componentTableThing.Add((TomlTable)componentTable[0]);
-					break;
-				case TomlTableArray componentTables:
-					componentTableThing = componentTables;
-					break;
-			}
-			var component = new ModComponent();
-			foreach ( TomlTable tomlComponent in componentTableThing )
-			{
-				if ( tomlComponent is IDictionary<string, object> componentDict )
-					component.DeserializeComponent(componentDict);
-			}
-			return component;
+
+			// Use the unified deserialization service
+			var components = Services.ModComponentSerializationService.DeserializeModComponentFromTomlString(tomlString);
+			return components?.FirstOrDefault();
 		}
 		public async Task<InstallExitCode> InstallAsync(
 			[NotNull] List<ModComponent> componentsList,
@@ -783,6 +567,7 @@ namespace KOTORModSync.Core
 
 			InstallState = ComponentInstallState.Running;
 			LastStartedUtc = DateTimeOffset.UtcNow;
+			var sw = System.Diagnostics.Stopwatch.StartNew();
 
 			try
 			{
@@ -794,6 +579,16 @@ namespace KOTORModSync.Core
 					realFileSystem
 				);
 				await Logger.LogAsync((string)Utility.Utility.GetEnumDescription(exitCode));
+
+				sw.Stop();
+				bool success = exitCode == InstallExitCode.Success;
+				Services.TelemetryService.Instance.RecordModInstallation(
+					modName: Name,
+					success: success,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: success ? null : exitCode.ToString()
+				);
+
 				if ( exitCode == InstallExitCode.Success )
 				{
 					InstallState = ComponentInstallState.Completed;
@@ -814,11 +609,25 @@ namespace KOTORModSync.Core
 			catch ( InvalidOperationException ex )
 			{
 				await Logger.LogExceptionAsync(ex);
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordModInstallation(
+					modName: Name,
+					success: false,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: ex.Message
+				);
 				InstallState = ComponentInstallState.Failed;
 				LastCompletedUtc = DateTimeOffset.UtcNow;
 			}
 			catch ( OperationCanceledException )
 			{
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordModInstallation(
+					modName: Name,
+					success: false,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: "Cancelled"
+				);
 				InstallState = ComponentInstallState.Failed;
 				throw;
 			}
@@ -828,6 +637,13 @@ namespace KOTORModSync.Core
 				await Logger.LogErrorAsync(
 					"The above exception is not planned and has not been experienced."
 					+ " Please report this to the developer."
+				);
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordModInstallation(
+					modName: Name,
+					success: false,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: ex.Message
 				);
 				InstallState = ComponentInstallState.Failed;
 				LastCompletedUtc = DateTimeOffset.UtcNow;
@@ -936,46 +752,71 @@ namespace KOTORModSync.Core
 			if ( fileSystemProvider is null )
 				throw new ArgumentNullException(nameof(fileSystemProvider));
 
-			if ( !skipDependencyCheck )
+			var sw = System.Diagnostics.Stopwatch.StartNew();
+			try
 			{
-				bool shouldInstall = ShouldInstallComponent(componentsList);
-				if ( !shouldInstall )
-					return InstallExitCode.DependencyViolation;
-			}
-
-			InstallExitCode installExitCode = InstallExitCode.Success;
-			for ( int instructionIndex = 1; instructionIndex <= theseInstructions.Count; instructionIndex++ )
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-				Instruction instruction = theseInstructions[instructionIndex - 1];
-				instruction.SetFileSystemProvider(fileSystemProvider);
-				if ( !ShouldRunInstruction(instruction, componentsList) )
-					continue;
-
-				Instruction.ActionExitCode exitCode = await ExecuteSingleInstructionAsync(
-					instruction,
-					instructionIndex,
-					componentsList,
-					fileSystemProvider,
-					skipDependencyCheck,
-					cancellationToken
-				);
-
-				_ = Logger.LogVerboseAsync(
-					$"Instruction #{instructionIndex} '{instruction.ActionString}' exited with code {exitCode}"
-				);
-				if ( exitCode != Instruction.ActionExitCode.Success )
+				if ( !skipDependencyCheck )
 				{
-					await Logger.LogErrorAsync(
-						$"FAILED Instruction #{instructionIndex} Action '{instruction.ActionString}'"
-					);
-					if ( exitCode == Instruction.ActionExitCode.OptionalInstallFailed )
-						return InstallExitCode.UserCancelledInstall;
-					return InstallExitCode.UnknownError;
+					bool shouldInstall = ShouldInstallComponent(componentsList);
+					if ( !shouldInstall )
+						return InstallExitCode.DependencyViolation;
 				}
-				_ = Logger.LogVerboseAsync($"Successfully completed instruction #{instructionIndex} '{instruction.Action}'");
+
+				InstallExitCode installExitCode = InstallExitCode.Success;
+				for ( int instructionIndex = 1; instructionIndex <= theseInstructions.Count; instructionIndex++ )
+				{
+					cancellationToken.ThrowIfCancellationRequested();
+					Instruction instruction = theseInstructions[instructionIndex - 1];
+					instruction.SetFileSystemProvider(fileSystemProvider);
+					if ( !ShouldRunInstruction(instruction, componentsList) )
+						continue;
+
+					Instruction.ActionExitCode exitCode = await ExecuteSingleInstructionAsync(
+						instruction,
+						instructionIndex,
+						componentsList,
+						fileSystemProvider,
+						skipDependencyCheck,
+						cancellationToken
+					);
+
+					_ = Logger.LogVerboseAsync(
+						$"Instruction #{instructionIndex} '{instruction.ActionString}' exited with code {exitCode}"
+					);
+					if ( exitCode != Instruction.ActionExitCode.Success )
+					{
+						await Logger.LogErrorAsync(
+							$"FAILED Instruction #{instructionIndex} Action '{instruction.ActionString}'"
+						);
+						if ( exitCode == Instruction.ActionExitCode.OptionalInstallFailed )
+							return InstallExitCode.UserCancelledInstall;
+						return InstallExitCode.UnknownError;
+					}
+					_ = Logger.LogVerboseAsync($"Successfully completed instruction #{instructionIndex} '{instruction.Action}'");
+				}
+
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordComponentExecution(
+					componentName: Name,
+					success: true,
+					instructionCount: theseInstructions.Count,
+					durationMs: sw.Elapsed.TotalMilliseconds
+				);
+
+				return installExitCode;
 			}
-			return installExitCode;
+			catch ( Exception ex )
+			{
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordComponentExecution(
+					componentName: Name,
+					success: false,
+					instructionCount: theseInstructions.Count,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: ex.Message
+				);
+				throw;
+			}
 		}
 		[NotNull]
 		public static Dictionary<string, List<ModComponent>> GetConflictingComponents(

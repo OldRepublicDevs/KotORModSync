@@ -32,30 +32,77 @@
         <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
     </UserControl.Resources>
 
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel HorizontalAlignment="Stretch">
-            <DockPanel>
-                <Button
-                    x:Name="ApplyEditorButton"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center"
-                    Click="ApplyEditorButton_Click"
-                    Content="Apply Editor Changes" />
-                <Button
-                    Click="GenerateGuidButton_Click"
-                    Content="Generate GUID"
-                    ToolTip.Tip="A GUID is used to ensure uniqueness of items. Do not replace existing guids unless you know what you're doing, else anything that relies on the pre-existing GUIDs will have their references broken." />
-                <TextBox
-                    x:Name="GuidGeneratedTextBox"
-                    HorizontalContentAlignment="Left"
-                    Focusable="True" />
-            </DockPanel>
+    <Grid RowDefinitions="Auto,*">
+        <DockPanel Grid.Row="0">
+            <Button
+                x:Name="ApplyEditorButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="ApplyEditorButton_Click"
+                Content="Apply Editor Changes" />
+            <Button
+                Click="GenerateGuidButton_Click"
+                Content="Generate GUID"
+                ToolTip.Tip="A GUID is used to ensure uniqueness of items. Do not replace existing guids unless you know what you're doing, else anything that relies on the pre-existing GUIDs will have their references broken." />
             <TextBox
-                x:Name="RawEditTextBox"
-                MinHeight="400"
-                AcceptsReturn="True"
-                TextWrapping="Wrap" />
-        </StackPanel>
-    </ScrollViewer>
+                x:Name="GuidGeneratedTextBox"
+                HorizontalContentAlignment="Left"
+                Focusable="True" />
+        </DockPanel>
+        <TabControl
+            x:Name="FormatTabControl"
+            Grid.Row="1"
+            SelectionChanged="FormatTabControl_SelectionChanged">
+            <TabItem Header="TOML">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <TextBox
+                        x:Name="TomlTextBox"
+                        MinHeight="400"
+                        AcceptsReturn="True"
+                        TextChanged="FormatTextBox_TextChanged"
+                        TextWrapping="Wrap" />
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Markdown">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <TextBox
+                        x:Name="MarkdownTextBox"
+                        MinHeight="400"
+                        AcceptsReturn="True"
+                        TextChanged="FormatTextBox_TextChanged"
+                        TextWrapping="Wrap" />
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="YAML">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <TextBox
+                        x:Name="YamlTextBox"
+                        MinHeight="400"
+                        AcceptsReturn="True"
+                        TextChanged="FormatTextBox_TextChanged"
+                        TextWrapping="Wrap" />
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="JSON">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <TextBox
+                        x:Name="JsonTextBox"
+                        MinHeight="400"
+                        AcceptsReturn="True"
+                        TextChanged="FormatTextBox_TextChanged"
+                        TextWrapping="Wrap" />
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="XML">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <TextBox
+                        x:Name="XmlTextBox"
+                        MinHeight="400"
+                        AcceptsReturn="True"
+                        TextChanged="FormatTextBox_TextChanged"
+                        TextWrapping="Wrap" />
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </UserControl>
-

@@ -4,6 +4,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
 using Xunit;
 using Assert = Xunit.Assert;
@@ -33,7 +34,10 @@ namespace KOTORModSync.Tests
 			foreach ( CrossPlatformFileWatcher watcher in _watchers )
 			{
 				try { watcher.Dispose(); }
-				catch { }
+				catch ( Exception ex )
+				{
+					Logger.LogException(ex);
+				}
 			}
 
 			foreach ( string file in _createdFiles )
@@ -43,7 +47,10 @@ namespace KOTORModSync.Tests
 					if ( File.Exists(file) )
 						File.Delete(file);
 				}
-				catch { }
+				catch ( Exception ex )
+				{
+					Logger.LogException(ex);
+				}
 			}
 
 			foreach ( string dir in _createdDirectories.OrderByDescending(d => d.Length) )
@@ -53,7 +60,10 @@ namespace KOTORModSync.Tests
 					if ( Directory.Exists(dir) )
 						Directory.Delete(dir, true);
 				}
-				catch { }
+				catch ( Exception ex )
+				{
+					Logger.LogException(ex);
+				}
 			}
 
 			try
@@ -61,7 +71,10 @@ namespace KOTORModSync.Tests
 				if ( Directory.Exists(_testDirectory) )
 					Directory.Delete(_testDirectory, true);
 			}
-			catch { }
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex);
+			}
 		}
 
 		#region Real-World Scenario Tests
@@ -79,7 +92,7 @@ namespace KOTORModSync.Tests
 			_watchers.Add(watcher);
 
 			int changeCount = 0;
-			object lockObj = new();
+			object lockObj = new object();
 
 			watcher.Changed += (_, e) =>
 			{

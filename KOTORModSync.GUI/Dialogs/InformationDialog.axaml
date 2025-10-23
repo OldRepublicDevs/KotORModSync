@@ -43,7 +43,8 @@
                     <Button
                         MinWidth="100"
                         Click="OKButton_Click"
-                        Content="OK" />
+                        Content="OK"
+                        ToolTip.Tip="{Binding OKButtonTooltip, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -64,7 +65,8 @@
                 HorizontalContentAlignment="Center"
                 Click="CloseButton_Click"
                 Content="X"
-                FontSize="15" />
+                FontSize="15"
+                ToolTip.Tip="{Binding CloseButtonTooltip, RelativeSource={RelativeSource AncestorType=Window}}" />
         </StackPanel>
     </Grid>
 </Window>

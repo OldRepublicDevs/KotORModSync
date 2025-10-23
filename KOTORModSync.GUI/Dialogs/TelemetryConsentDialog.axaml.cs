@@ -5,6 +5,7 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 
@@ -75,9 +76,14 @@ namespace KOTORModSync.Dialogs
 
 		public static bool? ShowConsentDialog(Window parent)
 		{
-			var dialog = new TelemetryConsentDialog();
-			dialog.ShowDialog(parent);
-			return dialog.UserAccepted;
+			bool? result = null;
+			Dispatcher.UIThread.InvokeAsync(() =>
+			{
+				var dialog = new TelemetryConsentDialog();
+				dialog.ShowDialog(parent);
+				result = dialog.UserAccepted;
+			}).Wait();
+			return result;
 		}
 	}
 }

@@ -31,6 +31,7 @@ namespace KOTORModSync.Core.Parsing
 			if ( markdown == null )
 				throw new ArgumentNullException(nameof(markdown));
 
+			var sw = System.Diagnostics.Stopwatch.StartNew();
 			_logInfo("Starting markdown parsing...");
 			_logVerbose($"Markdown content length: {markdown.Length} characters");
 
@@ -232,6 +233,14 @@ namespace KOTORModSync.Core.Parsing
 
 
 			ResolveDependencies(components);
+
+			sw.Stop();
+			Services.TelemetryService.Instance.RecordParsingOperation(
+				fileType: "markdown",
+				success: true,
+				componentCount: components.Count,
+				durationMs: sw.Elapsed.TotalMilliseconds
+			);
 
 			return new MarkdownParserResult
 			{
@@ -656,7 +665,7 @@ namespace KOTORModSync.Core.Parsing
 				_logVerbose($"    Detected YAML format, attempting to deserialize...");
 				try
 				{
-					ModComponent yamlComponent = Services.ModComponentSerializationService.DeserializeYAMLComponent(metadataText);
+					ModComponent yamlComponent = Services.ModComponentSerializationService.DeserializeYamlComponent(metadataText);
 					if ( yamlComponent != null )
 					{
 
@@ -730,6 +739,9 @@ namespace KOTORModSync.Core.Parsing
 			{
 				target.Guid = source.Guid;
 			}
+
+			// Copy IsSelected property from source to target
+			target.IsSelected = source.IsSelected;
 
 			if ( source.Instructions.Count > 0 )
 			{

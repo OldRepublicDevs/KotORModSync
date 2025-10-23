@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
@@ -28,7 +27,7 @@ namespace KOTORModSync.Core.CLI
 			Extraction,
 			Validation,
 			Installation,
-			TSLPatcher,
+			TslPatcher,
 			General
 		}
 
@@ -43,7 +42,12 @@ namespace KOTORModSync.Core.CLI
 			public List<string> LogContext { get; set; }
 		}
 
-		public void RecordError(ErrorCategory category, string componentName, string message, string details = null, Exception exception = null)
+		public void RecordError(
+			ErrorCategory category,
+			string componentName,
+			string message,
+			string details = null,
+			Exception exception = null)
 		{
 			lock ( _errorLock )
 			{
@@ -395,6 +399,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option("concurrent", Required = false, HelpText = "Process downloads concurrently/in parallel instead of sequentially (faster but harder to debug) (default: false, sequential)")]
 			public bool Concurrent { get; set; }
+
+			[Option("ignore-errors", Required = false, HelpText = "Ignore dependency resolution errors and attempt to load components in the best possible order")]
+			public bool IgnoreErrors { get; set; }
 		}
 
 		[Verb("merge", HelpText = "Merge two instruction sets together")]
@@ -471,6 +478,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option("concurrent", Required = false, HelpText = "Process downloads concurrently/in parallel instead of sequentially (faster but harder to debug) (default: false, sequential)")]
 			public bool Concurrent { get; set; }
+
+			[Option("ignore-errors", Required = false, HelpText = "Ignore dependency resolution errors and attempt to load components in the best possible order")]
+			public bool IgnoreErrors { get; set; }
 		}
 
 		[Verb("validate", HelpText = "Validate instruction files for errors")]
@@ -493,6 +503,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option("errors-only", Required = false, Default = false, HelpText = "Only show errors, suppress warnings and info messages")]
 			public bool ErrorsOnly { get; set; }
+
+			[Option("ignore-errors", Required = false, HelpText = "Ignore dependency resolution errors and attempt to load components in the best possible order")]
+			public bool IgnoreErrors { get; set; }
 		}
 
 		[Verb("install", HelpText = "Install mods from an instruction file")]
@@ -518,6 +531,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option('y', "yes", Required = false, Default = false, HelpText = "Automatically answer 'yes' to all prompts")]
 			public bool AutoConfirm { get; set; }
+
+			[Option("ignore-errors", Required = false, Default = false, HelpText = "Ignore dependency resolution errors and attempt to load components in the best possible order")]
+			public bool IgnoreErrors { get; set; }
 		}
 
 		[Verb("set-nexus-api-key", HelpText = "Set and validate your Nexus Mods API key")]
@@ -570,6 +586,73 @@ namespace KOTORModSync.Core.CLI
 		private static void SetVerboseMode(bool verbose)
 		{
 			var config = new MainConfig { debugLogging = verbose };
+		}
+
+		/// <summary>
+		/// Handles dependency resolution errors in CLI mode.
+		/// If ignoreErrors is true, attempts to resolve with errors ignored.
+		/// Otherwise, prints comprehensive error information and fails.
+		/// </summary>
+		private static List<ModComponent> HandleDependencyResolutionErrors(
+			List<ModComponent> components,
+			bool ignoreErrors,
+			string operationContext)
+		{
+			try
+			{
+				var resolutionResult = Core.Services.DependencyResolverService.ResolveDependencies(components, ignoreErrors);
+
+				if ( resolutionResult.Success )
+				{
+					Logger.LogVerbose($"Successfully resolved dependencies for {resolutionResult.OrderedComponents.Count} components");
+					return resolutionResult.OrderedComponents;
+				}
+				else
+				{
+					if ( ignoreErrors )
+					{
+						Logger.LogWarning($"Dependency resolution failed with {resolutionResult.Errors.Count} errors, but --ignore-errors flag was specified. Attempting to load in best possible order.");
+						return resolutionResult.OrderedComponents;
+					}
+					else
+					{
+						Logger.LogError($"Dependency resolution failed with {resolutionResult.Errors.Count} errors:");
+						Logger.LogError("");
+
+						foreach ( var error in resolutionResult.Errors )
+						{
+							Logger.LogError($"❌ {error.ComponentName}: {error.Message}");
+							if ( error.AffectedComponents.Count > 0 )
+							{
+								Logger.LogError($"   Affected components: {string.Join(", ", error.AffectedComponents)}");
+							}
+						}
+
+						Logger.LogError("");
+						Logger.LogError("To resolve these issues, you can:");
+						Logger.LogError("1. Fix the dependency relationships manually in your instruction file");
+						Logger.LogError("2. Use the --ignore-errors flag to attempt loading in the best possible order");
+						Logger.LogError("3. Use the GUI to auto-fix dependencies or remove all dependencies");
+						Logger.LogError("");
+						Logger.LogError($"Operation '{operationContext}' failed due to dependency resolution errors.");
+
+						throw new InvalidOperationException($"Dependency resolution failed with {resolutionResult.Errors.Count} errors. Use --ignore-errors flag to attempt loading in best possible order.");
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				if ( ignoreErrors )
+				{
+					Logger.LogWarning($"Dependency resolution failed with exception: {ex.Message}. Continuing with original order due to --ignore-errors flag.");
+					return components;
+				}
+				else
+				{
+					Logger.LogError($"Dependency resolution failed with exception: {ex.Message}");
+					throw;
+				}
+			}
 		}
 
 		private static void LogAllErrors(DownloadCacheService downloadCache, bool forceConsoleOutput = false)
@@ -777,7 +860,7 @@ namespace KOTORModSync.Core.CLI
 			WriteOutput(new string('=', 80));
 		}
 
-		private static async Task<DownloadCacheService> DownloadAllModFilesAsync(List<ModComponent> components, string destinationDirectory, bool verbose, bool sequential = true)
+		private static async Task<DownloadCacheService> DownloadAllModFilesAsync(List<ModComponent> components, string destinationDirectory, bool verbose, bool sequential = true, CancellationToken cancellationToken = default)
 		{
 			int componentCount = components.Count(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0);
 			if ( componentCount == 0 )
@@ -798,15 +881,8 @@ namespace KOTORModSync.Core.CLI
 			var downloadCache = new DownloadCacheService();
 			_globalDownloadCache = downloadCache;
 
-			var httpClient = new HttpClient();
-			var handlers = new List<IDownloadHandler>
-			{
-				new DeadlyStreamDownloadHandler(httpClient),
-				new MegaDownloadHandler(),
-				new NexusModsDownloadHandler(httpClient, _config.nexusModsApiKey),
-				new DirectDownloadHandler(httpClient)
-			};
-			var downloadManager = new DownloadManager(handlers);
+			var downloadManager = Services.Download.DownloadHandlerFactory.CreateDownloadManager(
+				nexusModsApiKey: _config.nexusModsApiKey);
 
 			downloadCache.SetDownloadManager(downloadManager);
 
@@ -918,7 +994,7 @@ namespace KOTORModSync.Core.CLI
 								destinationDirectory,
 								progressReporter,
 								sequential: sequential,
-								CancellationToken.None);
+								cancellationToken);
 
 							int successCount = results.Count(entry =>
 							{
@@ -1311,6 +1387,9 @@ namespace KOTORModSync.Core.CLI
 				{
 					components = FileLoadingService.LoadFromFile(opts.InputPath);
 
+					// Handle dependency resolution
+					components = HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Convert");
+
 					msg = $"Loaded {components.Count} components";
 					if ( _progressDisplay != null )
 						_progressDisplay.WriteScrollingLog(msg);
@@ -1336,7 +1415,10 @@ namespace KOTORModSync.Core.CLI
 					else
 						Logger.Log(msg);
 
-					downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose, sequential: !opts.Concurrent);
+					using ( var downloadCts = new CancellationTokenSource(TimeSpan.FromHours(2)) )
+					{
+						downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose, sequential: !opts.Concurrent, downloadCts.Token);
+					}
 
 					msg = "Download complete";
 					if ( _progressDisplay != null )
@@ -1414,7 +1496,7 @@ namespace KOTORModSync.Core.CLI
 							if ( _progressDisplay != null )
 								_progressDisplay.WriteScrollingLog($"✓ {component.Name}");
 							else
-								Logger.LogVerbose($"Auto-generation successful for component: {component.Name}");
+								await Logger.LogVerboseAsync($"Auto-generation successful for component: {component.Name}");
 							successCount++;
 						}
 						else
@@ -1475,7 +1557,7 @@ namespace KOTORModSync.Core.CLI
 				else
 					Logger.LogVerbose("Serializing to output format...");
 
-				string output = ModComponentSerializationService.SaveToString(components, opts.Format, validationContext);
+				string output = ModComponentSerializationService.SerializeModComponentAsString(components, opts.Format, validationContext);
 
 				if ( !string.IsNullOrEmpty(opts.OutputPath) )
 				{
@@ -1728,19 +1810,22 @@ namespace KOTORModSync.Core.CLI
 						mergeOptions.PreferExistingModLinkFilenames = true;
 
 					// Use async merge to support URL validation with sequential flag
-					components = await ComponentMergeService.MergeInstructionSetsAsync(
-						opts.ExistingPath,
-						opts.IncomingPath,
-						mergeOptions,
-						downloadCache,
-						sequential: !opts.Concurrent,
-						cancellationToken: CancellationToken.None);
+					using ( var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)) )
+					{
+						components = await ComponentMergeService.MergeInstructionSetsAsync(
+							opts.ExistingPath,
+							opts.IncomingPath,
+							mergeOptions,
+							downloadCache,
+							sequential: !opts.Concurrent,
+							cancellationToken: cts.Token);
 
-					msg = $"Merged result contains {components.Count} unique components";
-					if ( _progressDisplay != null )
-						_progressDisplay.WriteScrollingLog(msg);
-					else
-						Logger.LogVerbose(msg);
+						msg = $"Merged result contains {components.Count} unique components";
+						if ( _progressDisplay != null )
+							_progressDisplay.WriteScrollingLog(msg);
+						else
+							Logger.LogVerbose(msg);
+					}
 				}
 				catch ( Exception ex )
 				{
@@ -1766,13 +1851,16 @@ namespace KOTORModSync.Core.CLI
 					else
 						Logger.Log(msg);
 
-					downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose, sequential: !opts.Concurrent);
+					using ( var downloadCts = new CancellationTokenSource(TimeSpan.FromHours(2)) )
+					{
+						downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose, sequential: !opts.Concurrent, downloadCts.Token);
 
-					msg = "Download complete for all components";
-					if ( _progressDisplay != null )
-						_progressDisplay.WriteScrollingLog(msg);
-					else
-						Logger.Log(msg);
+						msg = "Download complete for all components";
+						if ( _progressDisplay != null )
+							_progressDisplay.WriteScrollingLog(msg);
+						else
+							Logger.Log(msg);
+					}
 				}
 
 				ApplySelectionFilters(components, opts.Select);
@@ -1793,7 +1881,7 @@ namespace KOTORModSync.Core.CLI
 				// Collect validation issues from error collector
 				if ( _errorCollector != null )
 				{
-					foreach ( var error in _errorCollector.GetErrors() )
+					foreach ( ErrorCollector.ErrorInfo error in _errorCollector.GetErrors() )
 					{
 						// Try to find the component by name
 						var component = components.FirstOrDefault(c => c.Name == error.ComponentName);
@@ -1807,9 +1895,9 @@ namespace KOTORModSync.Core.CLI
 				if ( _progressDisplay != null )
 					_progressDisplay.WriteScrollingLog("Serializing to output format...");
 				else
-					Logger.LogVerbose("Serializing to output format...");
+					await Logger.LogVerboseAsync("Serializing to output format...");
 
-				string output = ModComponentSerializationService.SaveToString(components, opts.Format, validationContext);
+				string output = ModComponentSerializationService.SerializeModComponentAsString(components, opts.Format, validationContext);
 
 				if ( !string.IsNullOrEmpty(opts.OutputPath) )
 				{
@@ -1820,7 +1908,7 @@ namespace KOTORModSync.Core.CLI
 						if ( _progressDisplay != null )
 							_progressDisplay.WriteScrollingLog($"Created output directory: {outputDir}");
 						else
-							Logger.LogVerbose($"Created output directory: {outputDir}");
+							await Logger.LogVerboseAsync($"Created output directory: {outputDir}");
 					}
 
 					File.WriteAllText(opts.OutputPath, output);
@@ -1829,15 +1917,15 @@ namespace KOTORModSync.Core.CLI
 					if ( _progressDisplay != null )
 						_progressDisplay.WriteScrollingLog(successMsg);
 					else
-						Logger.LogVerbose($"Merge completed successfully, saved to: {opts.OutputPath}");
+						await Logger.LogVerboseAsync($"Merge completed successfully, saved to: {opts.OutputPath}");
 				}
 				else
 				{
 					_progressDisplay?.Dispose();
 					_progressDisplay = null;
 
-					Logger.Log(output);
-					Logger.LogVerbose("Merge completed successfully (output to stdout)");
+					await Logger.LogAsync(output);
+					await Logger.LogVerboseAsync("Merge completed successfully (output to stdout)");
 				}
 
 				if ( downloadCache != null || _errorCollector != null )
@@ -1919,6 +2007,9 @@ namespace KOTORModSync.Core.CLI
 				try
 				{
 					components = await Core.Services.FileLoadingService.LoadFromFileAsync(opts.InputPath);
+
+					// Handle dependency resolution
+					components = HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Validate");
 				}
 				catch ( Exception ex )
 				{
@@ -2165,6 +2256,9 @@ namespace KOTORModSync.Core.CLI
 				Logger.Log($"Loading instruction file: {opts.InputPath}");
 
 				List<ModComponent> components = await Core.Services.FileLoadingService.LoadFromFileAsync(opts.InputPath);
+
+				// Handle dependency resolution
+				components = HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Install");
 
 				if ( components == null || components.Count == 0 )
 				{

@@ -229,12 +229,23 @@
 
                 <!--  Pending Downloads Section  -->
                 <StackPanel>
-                    <TextBlock
-                        x:Name="PendingSectionHeader"
-                        Margin="0,0,0,8"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        Text="⏳ Pending Downloads (0)" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                        <TextBlock
+                            x:Name="PendingSectionHeader"
+                            Grid.Column="0"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="⏳ Pending Downloads (0)" />
+                        <Button
+                            x:Name="StartAllPendingButton"
+                            Grid.Column="1"
+                            Width="100"
+                            Height="32"
+                            Margin="8,0,0,0"
+                            Click="StartAllPendingButton_Click"
+                            Content="Start All"
+                            ToolTip.Tip="Start all pending downloads" />
+                    </Grid>
                     <ItemsControl x:Name="PendingDownloadsControl" HorizontalAlignment="Stretch">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>

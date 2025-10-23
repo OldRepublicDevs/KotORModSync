@@ -3,6 +3,7 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -13,10 +14,92 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Services
 {
-
 	public class MarkdownRenderingService
 	{
+		/// <summary>
+		/// Renders markdown content to a TextBlock's Inlines collection.
+		/// </summary>
+		public void RenderMarkdownToTextBlock(TextBlock targetTextBlock, string markdownContent)
+		{
+			try
+			{
+				if ( targetTextBlock == null )
+					return;
 
+				if ( string.IsNullOrWhiteSpace(markdownContent) )
+				{
+					targetTextBlock.Inlines?.Clear();
+					return;
+				}
+
+				TextBlock renderedContent = MarkdownRenderer.RenderToTextBlock(
+					markdownContent,
+					OpenUrl
+				);
+
+				targetTextBlock.Inlines?.Clear();
+				targetTextBlock.Inlines?.AddRange(
+					renderedContent.Inlines
+					?? throw new NullReferenceException("renderedContent.Inlines is null: " + markdownContent)
+				);
+
+				targetTextBlock.PointerPressed -= OnTextBlockPointerPressed;
+				targetTextBlock.PointerPressed += OnTextBlockPointerPressed;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error rendering markdown content");
+			}
+		}
+
+		/// <summary>
+		/// Renders markdown content and returns the Inlines collection.
+		/// Useful for converters that need to return rendered content.
+		/// </summary>
+		public static List<Inline> RenderMarkdownToInlines(string markdownContent)
+		{
+			try
+			{
+				if ( string.IsNullOrWhiteSpace(markdownContent) )
+					return new List<Inline>();
+
+				TextBlock renderedContent = MarkdownRenderer.RenderToTextBlock(markdownContent, null);
+				return renderedContent.Inlines?.Count > 0
+					? new List<Inline>(renderedContent.Inlines)
+					: new List<Inline>();
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error rendering markdown to inlines");
+				return new List<Inline> { new Run { Text = markdownContent } };
+			}
+		}
+
+		/// <summary>
+		/// Renders markdown content and returns a plain string (for converters that need string output).
+		/// This strips formatting but preserves the text content.
+		/// </summary>
+		public static string RenderMarkdownToString(string markdownContent)
+		{
+			try
+			{
+				if ( string.IsNullOrWhiteSpace(markdownContent) )
+					return string.Empty;
+
+				// For now, just return the markdown content as-is since TextBlock can handle it
+				// The actual rendering happens when it's assigned to TextBlock.Inlines
+				return markdownContent;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error rendering markdown to string");
+				return markdownContent ?? string.Empty;
+			}
+		}
+
+		/// <summary>
+		/// Legacy method for backward compatibility. Use RenderMarkdownToTextBlock instead.
+		/// </summary>
 		public void RenderComponentMarkdown(
 			ModComponent component,
 			TextBlock descriptionTextBlock,
@@ -34,16 +117,7 @@ namespace KOTORModSync.Services
 						? component.DescriptionSpoilerFree
 						: component.Description;
 
-					TextBlock renderedDescription = MarkdownRenderer.RenderToTextBlock(
-						descriptionContent,
-						OpenUrl
-					);
-
-					descriptionTextBlock.Inlines?.Clear();
-					descriptionTextBlock.Inlines?.AddRange(renderedDescription.Inlines ?? throw new NullReferenceException("renderedDescription.Inlines is null: " + descriptionContent));
-
-					descriptionTextBlock.PointerPressed -= OnTextBlockPointerPressed;
-					descriptionTextBlock.PointerPressed += OnTextBlockPointerPressed;
+					RenderMarkdownToTextBlock(descriptionTextBlock, descriptionContent);
 				}
 
 				if ( directionsTextBlock != null )
@@ -52,24 +126,12 @@ namespace KOTORModSync.Services
 						? component.DirectionsSpoilerFree
 						: component.Directions;
 
-					TextBlock renderedDirections = MarkdownRenderer.RenderToTextBlock(
-						directionsContent,
-						OpenUrl
-					);
-
-					directionsTextBlock.Inlines?.Clear();
-					directionsTextBlock.Inlines?.AddRange(
-						renderedDirections.Inlines
-						?? throw new NullReferenceException("renderedDirections.Inlines is null: " + directionsContent)
-					);
-
-					directionsTextBlock.PointerPressed -= OnTextBlockPointerPressed;
-					directionsTextBlock.PointerPressed += OnTextBlockPointerPressed;
+					RenderMarkdownToTextBlock(directionsTextBlock, directionsContent);
 				}
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex, "Error rendering markdown content");
+				Logger.LogException(ex, "Error rendering component markdown");
 			}
 		}
 

@@ -173,10 +173,18 @@ namespace KOTORModSync.Core.FileSystemUtils
 			StringComparison comparisonType
 		)
 		{
+			Logger.LogVerbose($"[PathHelper.GetRelativePath] Called with relativeTo='{relativeTo}', path='{path}'");
+
 			if ( string.IsNullOrWhiteSpace(relativeTo) )
+			{
+				Logger.LogVerbose($"[PathHelper.GetRelativePath] ERROR: relativeTo is null or whitespace");
 				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(relativeTo));
+			}
 			if ( string.IsNullOrWhiteSpace(path) )
+			{
+				Logger.LogVerbose($"[PathHelper.GetRelativePath] ERROR: path is null or whitespace");
 				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(path));
+			}
 
 			if ( !Enum.IsDefined(typeof(StringComparison), comparisonType) )
 			{
@@ -187,27 +195,43 @@ namespace KOTORModSync.Core.FileSystemUtils
 				);
 			}
 
-			relativeTo = Path.GetFullPath(FixPathFormatting(relativeTo));
-			path = Path.GetFullPath(FixPathFormatting(path));
+			string fixedRelativeTo = FixPathFormatting(relativeTo);
+			string fixedPath = FixPathFormatting(path);
+			Logger.LogVerbose($"[PathHelper.GetRelativePath] After FixPathFormatting: relativeTo='{fixedRelativeTo}', path='{fixedPath}'");
+
+			relativeTo = Path.GetFullPath(fixedRelativeTo);
+			path = Path.GetFullPath(fixedPath);
+			Logger.LogVerbose($"[PathHelper.GetRelativePath] After GetFullPath: relativeTo='{relativeTo}', path='{path}'");
 
 			if ( !AreRootsEqual(relativeTo, path, comparisonType) )
+			{
+				Logger.LogVerbose($"[PathHelper.GetRelativePath] Roots are not equal, returning full path: '{path}'");
 				return path;
+			}
 
 			int commonLength = GetCommonPathLength(
 				relativeTo,
 				path,
 				comparisonType == StringComparison.OrdinalIgnoreCase
 			);
+			Logger.LogVerbose($"[PathHelper.GetRelativePath] Common path length: {commonLength}");
 
 			if ( commonLength == 0 )
+			{
+				Logger.LogVerbose($"[PathHelper.GetRelativePath] No common path, returning full path: '{path}'");
 				return path;
+			}
 
 			bool pathEndsInSeparator = path.EndsWith(Path.DirectorySeparatorChar.ToString());
 			int pathLength = path.Length;
 			if ( pathEndsInSeparator )
 				pathLength--;
 
-			if ( relativeTo.Length == pathLength && commonLength >= relativeTo.Length ) return ".";
+			if ( relativeTo.Length == pathLength && commonLength >= relativeTo.Length )
+			{
+				Logger.LogVerbose($"[PathHelper.GetRelativePath] Paths are identical, returning '.'");
+				return ".";
+			}
 
 			var sb = new StringBuilder(Math.Max(relativeTo.Length, path.Length));
 
@@ -241,18 +265,18 @@ namespace KOTORModSync.Core.FileSystemUtils
 				_ = sb.Append(path.Substring(commonLength, differenceLength));
 			}
 
-			return sb.ToString();
+			string result = sb.ToString();
+			Logger.LogVerbose($"[PathHelper.GetRelativePath] Returning relative path: '{result}'");
+			return result;
 		}
 
 		private static bool AreRootsEqual(string first, string second, StringComparison comparisonType)
 		{
-			int firstRootLength = Path.GetPathRoot(first).Length;
-			int secondRootLength = Path.GetPathRoot(second).Length;
+			int firstRootLength = Path.GetPathRoot(first)?.Length ?? 0;
+			int secondRootLength = Path.GetPathRoot(second)?.Length ?? 0;
 
-			return (
-				firstRootLength == secondRootLength
-				&& 0 == string.Compare(first, indexA: 0, second, indexB: 0, firstRootLength, comparisonType)
-			);
+			return firstRootLength == secondRootLength
+			       && 0 == string.Compare(first, indexA: 0, second, indexB: 0, firstRootLength, comparisonType);
 		}
 
 		private static int GetCommonPathLength(string first, string second, bool ignoreCase)

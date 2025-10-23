@@ -62,11 +62,11 @@ namespace KOTORModSync.Tests
 			MarkdownParserResult parseResult = parser.Parse(_originalMarkdown);
 			IList<ModComponent> components = parseResult.Components;
 
-			Console.WriteLine($"Parsed {components.Count} components");
-			Console.WriteLine($"Warnings: {parseResult.Warnings.Count}");
+			TestContext.Progress.WriteLine($"Parsed {components.Count} components");
+			TestContext.Progress.WriteLine($"Warnings: {parseResult.Warnings.Count}");
 			foreach ( string warning in parseResult.Warnings )
 			{
-				Console.WriteLine($"  - {warning}");
+				TestContext.Progress.WriteLine($"  - {warning}");
 			}
 
 			string generatedDocs = ModComponentSerializationService.GenerateModDocumentation(components.ToList());
@@ -77,7 +77,7 @@ namespace KOTORModSync.Tests
 				"test_generated_docs.md"
 			);
 			File.WriteAllText(debugOutputPath, generatedDocs);
-			Console.WriteLine($"Generated documentation written to: {debugOutputPath}");
+			TestContext.Progress.WriteLine($"Generated documentation written to: {debugOutputPath}");
 
 			Assert.Multiple(() =>
 			{
@@ -91,8 +91,8 @@ namespace KOTORModSync.Tests
 
 			List<string> generatedSections = MarkdownUtilities.ExtractModSections(generatedDocs);
 
-			Console.WriteLine($"Original sections: {originalSections.Count}");
-			Console.WriteLine($"Generated sections: {generatedSections.Count}");
+			TestContext.Progress.WriteLine($"Original sections: {originalSections.Count}");
+			TestContext.Progress.WriteLine($"Generated sections: {generatedSections.Count}");
 
 			var originalNameFields = originalSections
 				.SelectMany(s => MarkdownUtilities.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
@@ -104,31 +104,31 @@ namespace KOTORModSync.Tests
 				.Where(n => !string.IsNullOrWhiteSpace(n))
 				.ToList();
 
-			Console.WriteLine($"Original mod names (from **Name:** field): {originalNameFields.Count}");
-			Console.WriteLine($"Generated mod names (from **Name:** field): {generatedNameFields.Count}");
+			TestContext.Progress.WriteLine($"Original mod names (from **Name:** field): {originalNameFields.Count}");
+			TestContext.Progress.WriteLine($"Generated mod names (from **Name:** field): {generatedNameFields.Count}");
 
 			if ( generatedNameFields.Count != originalNameFields.Count )
 			{
-				Console.WriteLine("\n=== NAME FIELD COUNT MISMATCH ===");
+				TestContext.Progress.WriteLine("\n=== NAME FIELD COUNT MISMATCH ===");
 
 				var missingInGenerated = originalNameFields.Except(generatedNameFields).ToList();
 				var missingInOriginal = generatedNameFields.Except(originalNameFields).ToList();
 
 				if ( missingInGenerated.Count > 0 )
 				{
-					Console.WriteLine($"\nMissing in generated ({missingInGenerated.Count}):");
+					TestContext.Progress.WriteLine($"\nMissing in generated ({missingInGenerated.Count}):");
 					foreach ( string name in missingInGenerated )
 					{
-						Console.WriteLine($"  - {name}");
+						TestContext.Progress.WriteLine($"  - {name}");
 					}
 				}
 
 				if ( missingInOriginal.Count > 0 )
 				{
-					Console.WriteLine($"\nExtra in generated ({missingInOriginal.Count}):");
+					TestContext.Progress.WriteLine($"\nExtra in generated ({missingInOriginal.Count}):");
 					foreach ( string name in missingInOriginal )
 					{
-						Console.WriteLine($"  - {name}");
+						TestContext.Progress.WriteLine($"  - {name}");
 					}
 				}
 			}
@@ -141,21 +141,21 @@ namespace KOTORModSync.Tests
 
 			if ( missingNames.Count > 0 || extraNames.Count > 0 )
 			{
-				Console.WriteLine("\n=== MOD NAME MISMATCH ===");
+				TestContext.Progress.WriteLine("\n=== MOD NAME MISMATCH ===");
 				if ( missingNames.Count > 0 )
 				{
-					Console.WriteLine($"Names missing in generated ({missingNames.Count}):");
+					TestContext.Progress.WriteLine($"Names missing in generated ({missingNames.Count}):");
 					foreach ( string name in missingNames )
 					{
-						Console.WriteLine($"  - {name}");
+						TestContext.Progress.WriteLine($"  - {name}");
 					}
 				}
 				if ( extraNames.Count > 0 )
 				{
-					Console.WriteLine($"Extra names in generated ({extraNames.Count}):");
+					TestContext.Progress.WriteLine($"Extra names in generated ({extraNames.Count}):");
 					foreach ( string name in extraNames )
 					{
-						Console.WriteLine($"  - {name}");
+						TestContext.Progress.WriteLine($"  - {name}");
 					}
 				}
 			}
@@ -166,8 +166,8 @@ namespace KOTORModSync.Tests
 				Assert.That(extraNames, Is.Empty, "No extra mod names should be in generated output");
 			});
 
-			Console.WriteLine("\n✓ All 197 mod names match between original and generated");
-			Console.WriteLine("✓ Round-trip test successful: Import → Export produces identical mod list");
+			TestContext.Progress.WriteLine("\n✓ All 197 mod names match between original and generated");
+			TestContext.Progress.WriteLine("✓ Round-trip test successful: Import → Export produces identical mod list");
 		}
 
 		[Test]
@@ -182,18 +182,18 @@ namespace KOTORModSync.Tests
 
 			foreach ( ModComponent component in components )
 			{
-				Console.WriteLine($"\nVerifying component: {component.Name}");
+				TestContext.Progress.WriteLine($"\nVerifying component: {component.Name}");
 
 				Assert.That(component.Name, Is.Not.Null.And.Not.Empty, "Name should not be empty");
-				Console.WriteLine($"  Name: {component.Name}");
-				Console.WriteLine($"  Author: {component.Author}");
-				Console.WriteLine($"  Category: {string.Join(" & ", component.Category)}");
-				Console.WriteLine($"  Tier: {component.Tier}");
-				Console.WriteLine($"  Language: {string.Join(", ", component.Language)}");
-				Console.WriteLine($"  InstallationMethod: {component.InstallationMethod}");
-				Console.WriteLine($"  ModLinks: {component.ModLinkFilenames?.Count ?? 0}");
-				Console.WriteLine($"  Description length: {component.Description?.Length ?? 0}");
-				Console.WriteLine($"  Directions length: {component.Directions?.Length ?? 0}");
+				TestContext.Progress.WriteLine($"  Name: {component.Name}");
+				TestContext.Progress.WriteLine($"  Author: {component.Author}");
+				TestContext.Progress.WriteLine($"  Category: {string.Join(" & ", component.Category)}");
+				TestContext.Progress.WriteLine($"  Tier: {component.Tier}");
+				TestContext.Progress.WriteLine($"  Language: {string.Join(", ", component.Language)}");
+				TestContext.Progress.WriteLine($"  InstallationMethod: {component.InstallationMethod}");
+				TestContext.Progress.WriteLine($"  ModLinks: {component.ModLinkFilenames?.Count ?? 0}");
+				TestContext.Progress.WriteLine($"  Description length: {component.Description?.Length ?? 0}");
+				TestContext.Progress.WriteLine($"  Directions length: {component.Directions?.Length ?? 0}");
 			}
 
 			Assert.That(components, Is.Not.Empty, "Should have parsed components");
@@ -226,15 +226,15 @@ namespace KOTORModSync.Tests
 			List<string> generatedCategories = MarkdownUtilities.ExtractAllFieldValues(generated, @"\*\*Category & Tier:\*\*\s*(.+?)(?:\r?\n|$)");
 			string generatedCategory = generatedCategories.FirstOrDefault() ?? string.Empty;
 
-			Console.WriteLine($"Section {sectionNumber}:");
-			Console.WriteLine($"  Original Heading: '{originalHeading}'");
-			Console.WriteLine($"  Generated Heading: '{generatedHeading}'");
-			Console.WriteLine($"  Original Name Field: '{originalNameField}'");
-			Console.WriteLine($"  Generated Name Field: '{generatedNameField}'");
-			Console.WriteLine($"  Original Author: '{originalAuthor}'");
-			Console.WriteLine($"  Generated Author: '{generatedAuthor}'");
-			Console.WriteLine($"  Original Category: '{originalCategory}'");
-			Console.WriteLine($"  Generated Category: '{generatedCategory}'");
+			TestContext.Progress.WriteLine($"Section {sectionNumber}:");
+			TestContext.Progress.WriteLine($"  Original Heading: '{originalHeading}'");
+			TestContext.Progress.WriteLine($"  Generated Heading: '{generatedHeading}'");
+			TestContext.Progress.WriteLine($"  Original Name Field: '{originalNameField}'");
+			TestContext.Progress.WriteLine($"  Generated Name Field: '{generatedNameField}'");
+			TestContext.Progress.WriteLine($"  Original Author: '{originalAuthor}'");
+			TestContext.Progress.WriteLine($"  Generated Author: '{generatedAuthor}'");
+			TestContext.Progress.WriteLine($"  Original Category: '{originalCategory}'");
+			TestContext.Progress.WriteLine($"  Generated Category: '{generatedCategory}'");
 
 			Assert.Multiple(() =>
 			{

@@ -102,6 +102,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 					Filter = _filter,
 					NotifyFilter = _notifyFilters,
 					IncludeSubdirectories = _includeSubdirectories,
+					InternalBufferSize = 65536, // 64KB (maximum recommended size)
 					EnableRaisingEvents = true
 				};
 

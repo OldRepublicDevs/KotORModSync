@@ -23,11 +23,27 @@ namespace KOTORModSync.Core.Services.Download
 
 		public bool CanHandle(string url)
 		{
-			bool canHandle = Uri.TryCreate(url, UriKind.Absolute, out Uri uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
-			Logger.LogVerbose($"[DirectDownload] CanHandle check for URL '{url}': {canHandle}");
-			if ( canHandle )
-				Logger.LogVerbose($"[DirectDownload] URL scheme: {uri.Scheme}, host: {uri.Host}");
-			return canHandle;
+			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri uri) ||
+				 (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) )
+			{
+				Logger.LogVerbose($"[DirectDownload] CanHandle check for URL '{url}': False (invalid URL or non-HTTP)");
+				return false;
+			}
+
+			// Exclude URLs that should be handled by specialized handlers
+			string lowerUrl = url.ToLowerInvariant();
+			if ( lowerUrl.Contains("nexusmods.com") ||
+				 lowerUrl.Contains("deadlystream.com") ||
+				 lowerUrl.Contains("gamefront.com") ||
+				 lowerUrl.Contains("mega.nz") )
+			{
+				Logger.LogVerbose($"[DirectDownload] CanHandle check for URL '{url}': False (handled by specialized handler)");
+				return false;
+			}
+
+			Logger.LogVerbose($"[DirectDownload] CanHandle check for URL '{url}': True");
+			Logger.LogVerbose($"[DirectDownload] URL scheme: {uri.Scheme}, host: {uri.Host}");
+			return true;
 		}
 
 		public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)

@@ -2,12 +2,15 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services;
 
 namespace KOTORModSync.Controls
 {
@@ -25,11 +28,16 @@ namespace KOTORModSync.Controls
 			{
 				MainConfig.CurrentComponent = value;
 				SetValue(CurrentComponentProperty, value);
+				RefreshCurrentFormatContent();
 			}
 		}
 
 		public event EventHandler<RoutedEventArgs> ApplyEditorChangesRequested;
 		public event EventHandler<RoutedEventArgs> GenerateGuidRequested;
+
+		private bool _suppressTextChanged;
+		private bool _suppressFormatChanged;
+		private string _currentFormat = "toml";
 
 		public RawTab()
 		{
@@ -49,7 +57,131 @@ namespace KOTORModSync.Controls
 
 		public TextBox GetGuidTextBox() => GuidGeneratedTextBox;
 
-		public TextBox GetRawEditTextBox() => RawEditTextBox;
+		public TextBox GetRawEditTextBox()
+		{
+			// Return the currently active format textbox using FindControl for safety
+			return _currentFormat == "toml" ? this.FindControl<TextBox>("TomlTextBox") :
+				_currentFormat == "markdown" ? this.FindControl<TextBox>("MarkdownTextBox") :
+				_currentFormat == "yaml" ? this.FindControl<TextBox>("YamlTextBox") :
+				_currentFormat == "json" ? this.FindControl<TextBox>("JsonTextBox") :
+				_currentFormat == "xml" ? this.FindControl<TextBox>("XmlTextBox") :
+				this.FindControl<TextBox>("TomlTextBox");
+		}
+
+		private void FormatTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			if ( _suppressFormatChanged || !(sender is TabControl tabControl) )
+				return;
+
+			try
+			{
+				_suppressFormatChanged = true;
+
+				// Determine which format tab was selected
+				if ( tabControl.SelectedItem is TabItem selectedTab )
+				{
+					string previousFormat = _currentFormat;
+					_currentFormat = selectedTab.Header?.ToString()?.ToLowerInvariant() ?? "toml";
+
+					Logger.LogVerbose($"[RawTab] Format tab changed from '{previousFormat}' to '{_currentFormat}'");
+
+					// Regenerate content in the new format
+					RefreshCurrentFormatContent();
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[RawTab] Error in FormatTabControl_SelectionChanged");
+			}
+			finally
+			{
+				_suppressFormatChanged = false;
+			}
+		}
+
+		private void FormatTextBox_TextChanged(object sender, TextChangedEventArgs e)
+		{
+			if ( _suppressTextChanged || !(sender is TextBox textBox) )
+				return;
+
+			try
+			{
+				// Attempt to deserialize the content when it changes
+				string content = textBox.Text;
+				if ( string.IsNullOrWhiteSpace(content) )
+					return;
+
+				// Determine which format this textbox belongs to
+				string format = RawTab.GetFormatForTextBox(textBox);
+				if ( string.IsNullOrEmpty(format) )
+					return;
+
+				Logger.LogVerbose($"[RawTab] Text changed in {format} textbox, attempting deserialization");
+
+				// Attempt deserialization (this will validate the syntax)
+				List<ModComponent> components = ModComponentSerializationService.DeserializeModComponentFromString(content, format);
+				if ( components != null && components.Count > 0 )
+				{
+					Logger.LogVerbose($"[RawTab] Successfully deserialized {components.Count} component(s) from {format}");
+				}
+			}
+			catch ( Exception ex )
+			{
+				// Don't spam logs for every keystroke - just log at verbose level
+				Logger.LogVerbose($"[RawTab] Deserialization failed (may be incomplete): {ex.Message}");
+			}
+		}
+
+		private static string GetFormatForTextBox(TextBox textBox)
+		{
+			if ( textBox == null ) return null;
+
+			// Compare by name to avoid reference issues with FindControl
+			return textBox.Name == "TomlTextBox" ? "toml" :
+				textBox.Name == "MarkdownTextBox" ? "markdown" :
+				textBox.Name == "YamlTextBox" ? "yaml" :
+				textBox.Name == "JsonTextBox" ? "json" :
+				textBox.Name == "XmlTextBox" ? "xml" :
+				null;
+		}
+
+		/// <summary>
+		/// Refreshes the content of the currently selected format tab by serializing CurrentComponent
+		/// </summary>
+		public void RefreshCurrentFormatContent()
+		{
+			if ( CurrentComponent == null )
+				return;
+
+			try
+			{
+				_suppressTextChanged = true;
+
+				Logger.LogVerbose($"[RawTab] Refreshing content for format '{_currentFormat}'");
+
+				// Create a list with just the current component for serialization
+				var components = new List<ModComponent> { CurrentComponent };
+
+				// Serialize to the current format using ModComponentSerializationService
+				string serializedContent = ModComponentSerializationService.SerializeModComponentAsString(components, _currentFormat);
+
+				// Update the appropriate textbox
+				TextBox targetTextBox = GetRawEditTextBox();
+				if ( targetTextBox != null )
+				{
+					targetTextBox.Text = serializedContent;
+					Logger.LogVerbose($"[RawTab] Successfully serialized component '{CurrentComponent.Name}' to {_currentFormat}");
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"[RawTab] Error serializing component to {_currentFormat}");
+			}
+			finally
+			{
+				_suppressTextChanged = false;
+			}
+		}
 	}
 }
 

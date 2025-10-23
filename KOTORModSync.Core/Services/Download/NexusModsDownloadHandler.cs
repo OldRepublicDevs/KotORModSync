@@ -93,13 +93,10 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			try
 			{
+				await Logger.LogVerboseAsync("[NexusMods] ===== ResolveFilenamesAsync START =====");
 				await Logger.LogVerboseAsync($"[NexusMods] Resolving filenames for URL: {url}");
-
-				if ( string.IsNullOrWhiteSpace(_apiKey) )
-				{
-					await Logger.LogVerboseAsync("[NexusMods] No API key provided, cannot resolve filenames");
-					return new List<string>();
-				}
+				await Logger.LogVerboseAsync($"[NexusMods] CancellationToken: {cancellationToken}");
+				await Logger.LogVerboseAsync($"[NexusMods] API Key provided: {!string.IsNullOrWhiteSpace(_apiKey)}");
 
 				var match = System.Text.RegularExpressions.Regex.Match(url, @"nexusmods\.com/([^/]+)/mods/(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 				if ( !match.Success )
@@ -117,17 +114,39 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogVerboseAsync($"[NexusMods] Fetching file list from: {filesUrl}");
 
 				var request = new HttpRequestMessage(HttpMethod.Get, filesUrl);
-				SetApiRequestHeaders(request);
+
+				// Set API headers if we have a key, otherwise use basic headers
+				if ( !string.IsNullOrWhiteSpace(_apiKey) )
+				{
+					SetApiRequestHeaders(request);
+					await Logger.LogVerboseAsync("[NexusMods] Using authenticated API request");
+				}
+				else
+				{
+					// Use basic headers for unauthenticated API requests
+					if ( !request.Headers.Contains("User-Agent") )
+					{
+						request.Headers.Add("User-Agent", "KOTORModSync/2.0.0 (https://github.com/th3w1zard1/KOTORModSync)");
+					}
+					if ( !request.Headers.Contains("Accept") )
+					{
+						request.Headers.Add("Accept", "application/json");
+					}
+					await Logger.LogVerboseAsync("[NexusMods] Using unauthenticated API request (public file list)");
+				}
 
 				HttpResponseMessage response = await MakeApiRequestAsync(request, cancellationToken).ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[NexusMods] API response status: {response.StatusCode}");
 				response.EnsureSuccessStatusCode();
 
 				string jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 				await Logger.LogVerboseAsync($"[NexusMods] Received file list response, length: {jsonResponse.Length}");
+				await Logger.LogVerboseAsync($"[NexusMods] JSON response preview: {jsonResponse.Substring(0, Math.Min(500, jsonResponse.Length))}...");
 
 				var filesData = Newtonsoft.Json.Linq.JObject.Parse(jsonResponse);
 				var files = filesData["files"]?.ToObject<List<Newtonsoft.Json.Linq.JObject>>();
 
+				await Logger.LogVerboseAsync($"[NexusMods] Parsed files array, count: {files?.Count ?? 0}");
 				if ( files == null || files.Count == 0 )
 				{
 					await Logger.LogWarningAsync("[NexusMods] No files found for this mod");
@@ -140,13 +159,23 @@ namespace KOTORModSync.Core.Services.Download
 
 				var filenames = new List<string>();
 
-				foreach ( var file in files )
+				await Logger.LogVerboseAsync($"[NexusMods] Processing {files.Count} files from API response:");
+				for ( int i = 0; i < files.Count; i++ )
 				{
+					var file = files[i];
+					await Logger.LogVerboseAsync($"[NexusMods] Processing file {i + 1}/{files.Count}");
+
 					var fileNameToken = file["file_name"];
 					var categoryNameToken = file["category_name"];
+					var fileIdToken = file["file_id"];
 
 					string fileName = ((string)fileNameToken) ?? "unknown";
 					string categoryName = ((string)categoryNameToken) ?? "";
+					int fileId = fileIdToken != null ? (int)fileIdToken : 0;
+
+					await Logger.LogVerboseAsync($"[NexusMods]   File ID: {fileId}");
+					await Logger.LogVerboseAsync($"[NexusMods]   File Name: {fileName}");
+					await Logger.LogVerboseAsync($"[NexusMods]   Category: {categoryName}");
 
 					if ( categoryName.Equals("OPTIONAL", StringComparison.OrdinalIgnoreCase) )
 					{
@@ -162,7 +191,7 @@ namespace KOTORModSync.Core.Services.Download
 						continue;
 					}
 
-					await Logger.LogVerboseAsync($"[NexusMods] Found available file: {fileName}");
+					await Logger.LogVerboseAsync($"[NexusMods] ✓ Found available file: {fileName}");
 					filenames.Add(fileName);
 				}
 
@@ -170,6 +199,12 @@ namespace KOTORModSync.Core.Services.Download
 				response.Dispose();
 
 				await Logger.LogVerboseAsync($"[NexusMods] Resolved {filenames.Count} filename(s) from API");
+				await Logger.LogVerboseAsync("[NexusMods] Final filenames list:");
+				for ( int i = 0; i < filenames.Count; i++ )
+				{
+					await Logger.LogVerboseAsync($"[NexusMods]   {i + 1}. {filenames[i]}");
+				}
+				await Logger.LogVerboseAsync("[NexusMods] ===== ResolveFilenamesAsync END =====");
 				return filenames;
 			}
 			catch ( Exception ex )

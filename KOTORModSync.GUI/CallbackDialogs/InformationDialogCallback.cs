@@ -16,6 +16,9 @@ namespace KOTORModSync.CallbackDialogs
 		public InformationDialogCallback([CanBeNull] Window topLevelWindow) => _topLevelWindow = topLevelWindow;
 
 		public async Task ShowInformationDialog([CanBeNull] string message) =>
-			await InformationDialog.ShowInformationDialogAsync(_topLevelWindow, message);
+			await InformationDialog.ShowInformationDialogAsync(
+				_topLevelWindow,
+				message
+			);
 	}
 }

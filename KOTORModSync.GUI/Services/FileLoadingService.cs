@@ -28,7 +28,11 @@ namespace KOTORModSync.Services
 			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		public async Task<bool> LoadTomlFileAsync(
+		/// <summary>
+		/// Loads a config file with auto-format detection (TOML, JSON, YAML, XML, or embedded Markdown).
+		/// Uses the Core FileLoadingService which auto-detects format based on content.
+		/// </summary>
+		public async Task<bool> LoadInstructionFileAsync(
 			[NotNull] string filePath,
 			bool editorMode,
 			[NotNull] Func<Task> onComponentsLoaded,
@@ -45,6 +49,7 @@ namespace KOTORModSync.Services
 					return false;
 				}
 
+				// Auto-detect format (TOML/JSON/YAML/XML/embedded-Markdown)
 				List<ModComponent> newComponents = await Core.Services.FileLoadingService.LoadFromFileAsync(filePath);
 
 				ProcessModLinks(newComponents);
@@ -113,6 +118,24 @@ namespace KOTORModSync.Services
 			}
 		}
 
+		/// <summary>
+		/// Legacy compatibility wrapper for LoadConfigFileAsync.
+		/// Use LoadConfigFileAsync instead - this handles all formats (TOML, JSON, YAML, XML, embedded Markdown).
+		/// </summary>
+		[Obsolete("Use LoadConfigFileAsync instead - it handles all formats with auto-detection")]
+		public async Task<bool> LoadTomlFileAsync(
+			[NotNull] string filePath,
+			bool editorMode,
+			[NotNull] Func<Task> onComponentsLoaded,
+			[NotNull] string fileType = "instruction file")
+		{
+			return await LoadInstructionFileAsync(filePath, editorMode, onComponentsLoaded, fileType);
+		}
+
+		/// <summary>
+		/// Loads a Markdown file with special parsing dialog (for regex configuration).
+		/// For standard embedded-Markdown TOML files, use LoadConfigFileAsync instead.
+		/// </summary>
 		public async Task<bool> LoadMarkdownFileAsync(
 			[NotNull] string filePath,
 			bool editorMode,
@@ -316,7 +339,7 @@ namespace KOTORModSync.Services
 			string confirmText = $"You already have a config loaded. Do you want to merge the {fileType} with existing components or load it as a new config?";
 			return await ConfirmationDialog.ShowConfirmationDialogAsync(
 				_parentWindow,
-				confirmText,
+				confirmText: confirmText,
 				yesButtonText: "Merge",
 				noButtonText: "Load as New"
 			);

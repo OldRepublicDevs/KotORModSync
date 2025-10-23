@@ -873,7 +873,8 @@ namespace KOTORModSync.Controls
 				_fileSystemWatcher = new FileSystemWatcher(watchPath)
 				{
 					NotifyFilter = NotifyFilters.DirectoryName,
-					IncludeSubdirectories = false
+					IncludeSubdirectories = false,
+					InternalBufferSize = 65536 // 64KB (maximum recommended size)
 				};
 
 				_fileSystemWatcher.Created += OnFileSystemChanged;

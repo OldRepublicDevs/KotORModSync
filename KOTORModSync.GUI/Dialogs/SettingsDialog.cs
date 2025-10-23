@@ -27,7 +27,7 @@ using KOTORModSync.Services;
 
 namespace KOTORModSync.Dialogs
 {
-	internal partial class SettingsDialog : Window
+	public partial class SettingsDialog : Window
 	{
 		[CanBeNull] private MainConfig _mainConfigInstance;
 		private bool _mouseDownForWindowMoving;
@@ -95,6 +95,7 @@ namespace KOTORModSync.Dialogs
 			LoadTelemetrySettings();
 			LoadFileEncodingSettings();
 			LoadHolopatcherVersionSettings();
+			LoadNexusModsApiKeySettings();
 
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow end");
 		}
@@ -234,6 +235,33 @@ namespace KOTORModSync.Dialogs
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "[Telemetry] Failed to load telemetry settings");
+			}
+		}
+
+		private void LoadNexusModsApiKeySettings()
+		{
+			try
+			{
+				// Load from MainConfig first, then from AppSettings as fallback
+				string apiKey = MainConfigInstance?.nexusModsApiKey;
+
+				// If MainConfig doesn't have the API key, try loading from AppSettings
+				if ( string.IsNullOrEmpty(apiKey) )
+				{
+					var appSettings = Models.SettingsManager.LoadSettings();
+					apiKey = appSettings.NexusModsApiKey;
+				}
+
+				// Update MainConfig with the loaded API key if it's not already set
+				if ( MainConfigInstance != null && !string.IsNullOrEmpty(apiKey) && string.IsNullOrEmpty(MainConfigInstance.nexusModsApiKey) )
+				{
+					MainConfigInstance.nexusModsApiKey = apiKey;
+					Logger.LogVerbose($"SettingsDialog: Loaded Nexus Mods API key from settings");
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Failed to load Nexus Mods API key settings");
 			}
 		}
 
@@ -450,7 +478,10 @@ namespace KOTORModSync.Dialogs
 				var telemetryConfig = TelemetryConfiguration.Load();
 				string privacySummary = telemetryConfig.GetPrivacySummary();
 
-				await InformationDialog.ShowInformationDialogAsync(this, privacySummary);
+				await InformationDialog.ShowInformationDialogAsync(
+					null,
+					message: privacySummary
+				);
 			}
 			catch ( Exception ex )
 			{

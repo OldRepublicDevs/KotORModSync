@@ -292,7 +292,7 @@
                                 FontWeight="Bold"
                                 Text="Nexus Mods API Key (Optional):" />
                             <TextBox
-                                Text="{Binding nexusModsApiKey}"
+                                Text="{Binding NexusModsApiKey}"
                                 ToolTip.Tip="Optional: Enter your Nexus Mods API key for handling downloads from NexusMods. Get your API key from: https://www.nexusmods.com/users/myaccount?tab=api+access."
                                 Watermark="Enter your Nexus Mods API key here..." />
                             <TextBlock

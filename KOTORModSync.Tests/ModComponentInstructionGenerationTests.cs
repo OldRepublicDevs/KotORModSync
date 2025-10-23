@@ -137,11 +137,11 @@ namespace KOTORModSync.Tests
 				Assert.That(component.InstallationMethod, Is.Not.Null.And.Not.Empty, "Should have set InstallationMethod");
 			});
 
-			Console.WriteLine($"Generated {component.Instructions.Count} instructions");
-			Console.WriteLine($"Installation Method: {component.InstallationMethod}");
+			TestContext.Progress.WriteLine($"Generated {component.Instructions.Count} instructions");
+			TestContext.Progress.WriteLine($"Installation Method: {component.InstallationMethod}");
 			foreach ( Instruction instruction in component.Instructions )
 			{
-				Console.WriteLine($"  - {instruction.Action}: {string.Join(", ", instruction.Source)}");
+				TestContext.Progress.WriteLine($"  - {instruction.Action}: {string.Join(", ", instruction.Source)}");
 			}
 		}
 

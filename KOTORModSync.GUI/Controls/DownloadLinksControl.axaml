@@ -115,13 +115,27 @@
                                         ToolTip.Tip="Remove this link" />
                                 </Grid>
 
-                                <!--  Filenames List (if resolved)  -->
-                                <StackPanel
-                                    x:Name="FilenamesPanel"
-                                    Margin="16,4,0,0"
-                                    Spacing="2">
-                                    <!--  Populated dynamically in code-behind  -->
-                                </StackPanel>
+                                <!--  Filenames List (always visible, editable)  -->
+                                <Expander
+                                    Margin="0,4,0,0"
+                                    Header="📁 Filenames (Advanced)"
+                                    IsExpanded="False">
+                                    <StackPanel Margin="8,4,0,0" Spacing="4">
+                                        <!--  Filenames Panel - Populated dynamically  -->
+                                        <StackPanel x:Name="FilenamesPanel" Spacing="2">
+                                            <!--  Populated dynamically in code-behind  -->
+                                        </StackPanel>
+
+                                        <!--  Add Filename Button  -->
+                                        <Button
+                                            HorizontalAlignment="Left"
+                                            Classes="action-button"
+                                            Click="AddFilename_Click"
+                                            Content="➕ Add Filename Manually"
+                                            Tag="{Binding .}"
+                                            ToolTip.Tip="Manually add a filename to this URL's download list" />
+                                    </StackPanel>
+                                </Expander>
                             </StackPanel>
                         </Border>
                     </DataTemplate>

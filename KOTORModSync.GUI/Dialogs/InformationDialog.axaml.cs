@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using JetBrains.Annotations;
+using KOTORModSync.Services;
 
 namespace KOTORModSync.Dialogs
 {
@@ -17,14 +18,23 @@ namespace KOTORModSync.Dialogs
 	{
 		public static readonly AvaloniaProperty InfoTextProperty =
 			AvaloniaProperty.Register<InformationDialog, string>("InfoText");
+
+		public static readonly AvaloniaProperty OKButtonTooltipProperty =
+			AvaloniaProperty.Register<InformationDialog, string>(nameof(OKButtonTooltip));
+
+		public static readonly AvaloniaProperty CloseButtonTooltipProperty =
+			AvaloniaProperty.Register<InformationDialog, string>(nameof(CloseButtonTooltip));
+
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
+		private readonly MarkdownRenderingService _markdownService;
 
 		public InformationDialog()
 		{
 			InitializeComponent();
 
 			ThemeManager.ApplyCurrentToWindow(this);
+			_markdownService = new MarkdownRenderingService();
 
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
@@ -39,19 +49,40 @@ namespace KOTORModSync.Dialogs
 			set => SetValue(InfoTextProperty, value);
 		}
 
+		[CanBeNull]
+		public string OKButtonTooltip
+		{
+			get => GetValue(OKButtonTooltipProperty) as string;
+			set => SetValue(OKButtonTooltipProperty, value);
+		}
+
+		[CanBeNull]
+		public string CloseButtonTooltip
+		{
+			get => GetValue(CloseButtonTooltipProperty) as string;
+			set => SetValue(CloseButtonTooltipProperty, value);
+		}
+
 		public static async Task ShowInformationDialogAsync(
 			[NotNull] Window parentWindow,
 			[CanBeNull] string message,
-			[CanBeNull] string title = "Information"
+			[CanBeNull] string title = "Information",
+			[CanBeNull] string okButtonTooltip = null,
+			[CanBeNull] string closeButtonTooltip = null
 		)
 		{
-			var dialog = new InformationDialog
+			await Dispatcher.UIThread.InvokeAsync(async () =>
 			{
-				Title = title,
-				InfoText = message,
-				Topmost = true,
-			};
-			_ = await dialog.ShowDialog<bool?>(parentWindow);
+				var dialog = new InformationDialog
+				{
+					Title = title,
+					InfoText = message,
+					OKButtonTooltip = okButtonTooltip,
+					CloseButtonTooltip = closeButtonTooltip,
+					Topmost = true,
+				};
+				_ = await dialog.ShowDialog<bool?>(parentWindow);
+			});
 		}
 
 		protected override void OnOpened([NotNull] EventArgs e)
@@ -60,7 +91,7 @@ namespace KOTORModSync.Dialogs
 			UpdateInfoText();
 		}
 		private void OKButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => Close();
-		private void UpdateInfoText() => Dispatcher.UIThread.InvokeAsync(() => InfoTextBlock.Text = InfoText);
+		private void UpdateInfoText() => Dispatcher.UIThread.InvokeAsync(() => _markdownService.RenderMarkdownToTextBlock(InfoTextBlock, InfoText));
 
 		private void InputElement_OnPointerMoved([NotNull] object sender, [NotNull] PointerEventArgs e)
 		{

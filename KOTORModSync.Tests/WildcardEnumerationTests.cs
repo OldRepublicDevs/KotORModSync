@@ -61,10 +61,10 @@ namespace KOTORModSync.Tests
 				];
 				List<string> files = PathHelper.EnumerateFilesWithWildcards(paths, new Core.Services.FileSystem.RealFileSystemProvider());
 
-				Console.WriteLine($"Files found for path: {wildcardPath}");
+				TestContext.Progress.WriteLine($"Files found for path: {wildcardPath}");
 				foreach ( string? file in files )
 				{
-					Console.WriteLine(file);
+					TestContext.Progress.WriteLine(file);
 				}
 
 				Assert.That(files, Is.Not.Empty, $"No files found for path: {wildcardPath}");

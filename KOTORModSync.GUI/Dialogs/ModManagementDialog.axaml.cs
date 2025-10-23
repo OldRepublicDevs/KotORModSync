@@ -366,7 +366,7 @@ namespace KOTORModSync.Dialogs
 			{
 				await PerformExportOperationAsync(async () =>
 				{
-					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.toml");
+					string filePath = await _dialogService.ShowSaveFileDialogAsync("exported_mods.toml");
 					if ( filePath != null )
 					{
 						bool success = await ModManagementService.ExportMods(_originalComponents, filePath);
@@ -386,7 +386,7 @@ namespace KOTORModSync.Dialogs
 			{
 				await PerformExportOperationAsync(async () =>
 				{
-					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.json");
+					string filePath = await _dialogService.ShowSaveFileDialogAsync("exported_mods.json");
 					if ( filePath != null )
 					{
 						bool success = await ModManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Json);
@@ -406,7 +406,7 @@ namespace KOTORModSync.Dialogs
 			{
 				await PerformExportOperationAsync(async () =>
 				{
-					string filePath = await _dialogService.ShowSaveFileDialog("exported_mods.xml");
+					string filePath = await _dialogService.ShowSaveFileDialogAsync("exported_mods.xml");
 					if ( filePath != null )
 					{
 						bool success = await ModManagementService.ExportMods(_originalComponents, filePath, ModManagementService.ExportFormat.Xml);

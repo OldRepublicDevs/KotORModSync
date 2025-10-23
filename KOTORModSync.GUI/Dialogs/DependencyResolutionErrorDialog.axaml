@@ -1,0 +1,118 @@
+<!-- Copyright 2021-2025 KOTORModSync -->
+<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
+<!-- See LICENSE.txt file in the project root for full license information. -->
+<Window
+    x:Class="KOTORModSync.Dialogs.DependencyResolutionErrorDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Dependency Resolution Errors"
+    Width="800"
+    Height="600"
+    CanResize="True"
+    WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto,Auto">
+        <TextBlock
+            Grid.Row="0"
+            FontSize="16"
+            FontWeight="SemiBold"
+            Text="⚠️ Dependency Resolution Errors"
+            TextWrapping="Wrap" />
+
+        <TextBlock
+            Grid.Row="1"
+            Margin="0,12,0,16"
+            Text="The following dependency resolution errors were found. Please review and fix them before continuing."
+            TextWrapping="Wrap" />
+
+        <ScrollViewer
+            Grid.Row="2"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Auto">
+            <ItemsRepeater x:Name="ErrorsRepeater">
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="12"
+                            Background="#2D2D2D"
+                            CornerRadius="4">
+                            <StackPanel Spacing="8">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        FontWeight="SemiBold"
+                                        Foreground="#FF6B6B"
+                                        Text="❌ Error" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Margin="8,0,0,0"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding ErrorType}" />
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Classes="secondary-text"
+                                        Text="{Binding ComponentName}" />
+                                </Grid>
+
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    Text="{Binding Message}"
+                                    TextWrapping="Wrap" />
+
+                                <ItemsControl ItemsSource="{Binding AffectedComponents}" IsVisible="{Binding AffectedComponents.Count}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock
+                                                Margin="16,2,0,0"
+                                                Classes="secondary-text"
+                                                FontSize="11"
+                                                Text="{Binding}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+        </ScrollViewer>
+
+        <StackPanel
+            Grid.Row="3"
+            Margin="0,16,0,0"
+            Orientation="Horizontal"
+            Spacing="12">
+            <Button
+                Name="AutoFixButton"
+                Click="AutoFix_Click"
+                Content="🔧 Auto-Fix Dependencies"
+                ToolTip.Tip="Automatically generate dependencies based on current component order" />
+
+            <Button
+                Name="ClearAllButton"
+                Click="ClearAll_Click"
+                Content="🗑️ Remove All Dependencies"
+                ToolTip.Tip="Remove all InstallBefore/InstallAfter dependencies" />
+        </StackPanel>
+
+        <StackPanel
+            Grid.Row="4"
+            Margin="0,16,0,0"
+            Orientation="Horizontal"
+            Spacing="12">
+            <Button
+                Name="LoadBestPossibleButton"
+                Click="LoadBestPossible_Click"
+                Content="⚡ Load Best Possible Order"
+                Classes="primary-button"
+                ToolTip.Tip="Ignore errors and attempt to load components in the best possible order" />
+
+            <Button
+                Name="CancelButton"
+                Click="Cancel_Click"
+                Content="Cancel"
+                ToolTip.Tip="Cancel loading and return to previous state" />
+        </StackPanel>
+    </Grid>
+</Window>

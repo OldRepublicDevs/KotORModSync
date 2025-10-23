@@ -47,7 +47,7 @@ namespace KOTORModSync.Services
 
 				if ( !noPrompt )
 				{
-					var result = await ConfirmationDialog.ShowConfirmationDialogWithDiscard(
+					var result = await ConfirmationDialog.ShowConfirmationDialogAsync(
 						_parentWindow,
 						confirmText: "Are you sure you want to save?",
 						yesButtonText: "Save",
@@ -56,14 +56,14 @@ namespace KOTORModSync.Services
 
 					switch ( result )
 					{
-						case ConfirmationDialog.ConfirmationResult.Save:
+						case true:
 
 							break;
-						case ConfirmationDialog.ConfirmationResult.Discard:
+						case false:
 
 							await Logger.LogVerboseAsync("User chose to discard changes in ComponentEditorService.");
 							return true;
-						case ConfirmationDialog.ConfirmationResult.Cancel:
+							case null:
 
 							return false;
 					}
@@ -76,7 +76,9 @@ namespace KOTORModSync.Services
 								   "Please report this issue to a developer, this should never happen.";
 
 					await Logger.LogErrorAsync(output);
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow, output);
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						output);
 					return false;
 				}
 
@@ -88,7 +90,7 @@ namespace KOTORModSync.Services
 				try
 				{
 					await Logger.LogVerboseAsync("Attempting YAML deserialization...");
-					newComponent = ModComponentSerializationService.DeserializeYAMLComponent(rawEditText);
+					newComponent = ModComponentSerializationService.DeserializeYamlComponent(rawEditText);
 				}
 				catch ( Exception ex )
 				{
@@ -112,11 +114,16 @@ namespace KOTORModSync.Services
 				{
 					bool? confirmResult = await ConfirmationDialog.ShowConfirmationDialogAsync(
 						_parentWindow,
-						"Could not deserialize your raw config text into a ModComponent instance in memory." +
+						confirmText: "Could not deserialize your raw config text into a ModComponent instance in memory." +
 						" There may be syntax errors, check the output window for details." +
 						Environment.NewLine +
 						Environment.NewLine +
-						"Would you like to discard your changes and continue with your last attempted action?"
+						"Would you like to discard your changes and continue with your last attempted action?",
+						yesButtonText: "Discard",
+						noButtonText: "Continue",
+						yesButtonTooltip: "Discard your changes and continue with your last attempted action.",
+						noButtonTooltip: "Continue with your last attempted action.",
+						closeButtonTooltip: "Cancel"
 					);
 
 					return confirmResult == true;
@@ -132,7 +139,9 @@ namespace KOTORModSync.Services
 								   " Ensure you single-clicked on a component on the left before pressing save." +
 								   " Please back up your work and try again.";
 					await Logger.LogErrorAsync(output);
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow, output);
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						output);
 
 					return false;
 				}
@@ -147,7 +156,9 @@ namespace KOTORModSync.Services
 			{
 				string output = "An unexpected exception was thrown. Please refer to the output window for details and report this issue to a developer.";
 				await Logger.LogExceptionAsync(ex);
-				await InformationDialog.ShowInformationDialogAsync(_parentWindow, output + Environment.NewLine + ex.Message);
+				await InformationDialog.ShowInformationDialogAsync(
+					_parentWindow,
+					$"{output} {Environment.NewLine} {Environment.NewLine} Error saving component changes: {ex.Message}");
 				return false;
 			}
 		}

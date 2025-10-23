@@ -81,6 +81,41 @@
         <Setter Property="Opacity" Value="0.5" />
     </Style>
 
+    <Style Selector="DropDownButton">
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="#0d5945" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="MinWidth" Value="100" />
+        <Setter Property="Background" Value="#02110d" />
+        <Setter Property="Foreground" Value="#18ae88" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="DropDownButton:pointerover">
+        <Setter Property="Foreground" Value="#F2F2F2" />
+    </Style>
+    <Style Selector="DropDownButton:pointerover /template/ContentPresenter">
+        <Setter Property="BorderBrush" Value="#E0F2F1" />
+        <Setter Property="Background" Value="#02110d" />
+        <Setter Property="TextBlock.Foreground" Value="#F2F2F2" />
+    </Style>
+    <Style Selector="DropDownButton /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#02110d" />
+        <Setter Property="BorderBrush" Value="#0d5945" />
+    </Style>
+    <Style Selector="DropDownButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#02110d" />
+        <Setter Property="BorderBrush" Value="#E0F2F1" />
+    </Style>
+    <Style Selector="DropDownButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#02110d" />
+        <Setter Property="BorderBrush" Value="#3FE6C0" />
+    </Style>
+    <Style Selector="DropDownButton:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#02110d" />
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+
     <Style Selector="Expander">
         <Setter Property="Background" Value="#0a2a22" />
         <Setter Property="Foreground" Value="#18ae88" />

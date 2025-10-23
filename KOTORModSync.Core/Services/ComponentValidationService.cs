@@ -22,9 +22,41 @@ namespace KOTORModSync.Core.Services
 	{
 		private VirtualFileSystemProvider _virtualFileSystem;
 
+		// Cache validation results to avoid redundant VFS operations
+		private static readonly Dictionary<string, (List<string> urls, bool simulationFailed, DateTime timestamp)> _validationCache
+			= new Dictionary<string, (List<string>, bool, DateTime)>();
+		private static readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(5);
+		private static readonly object _cacheLock = new object();
+
 		public ComponentValidationService()
 		{
 			_virtualFileSystem = new VirtualFileSystemProvider();
+		}
+
+		/// <summary>
+		/// Clears the validation cache. Call this after file operations that might affect validation results.
+		/// </summary>
+		public static void ClearValidationCache()
+		{
+			lock ( _cacheLock )
+			{
+				_validationCache.Clear();
+			}
+		}
+
+		/// <summary>
+		/// Clears the validation cache for a specific component. Call this after modifying that component's instructions.
+		/// </summary>
+		public static void ClearValidationCacheForComponent(string componentGuid)
+		{
+			lock ( _cacheLock )
+			{
+				var keysToRemove = _validationCache.Keys.Where(k => k.StartsWith(componentGuid + "_")).ToList();
+				foreach ( var key in keysToRemove )
+				{
+					_ = _validationCache.Remove(key);
+				}
+			}
 		}
 
 		/// <summary>
@@ -36,17 +68,42 @@ namespace KOTORModSync.Core.Services
 			bool simulationFailed)>
 		AnalyzeDownloadNecessityAsync(
 			[NotNull] ModComponent component,
-			[NotNull] string modArchiveDirectory)
+			[NotNull] string modArchiveDirectory,
+			CancellationToken cancellationToken = default)
 		{
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
 
+			// Check cache first to avoid redundant VFS operations
+			string cacheKey = $"{component.Guid}_{modArchiveDirectory}_{component.Instructions.Count}";
+			lock ( _cacheLock )
+			{
+				if ( _validationCache.TryGetValue(cacheKey, out var cachedResult) )
+				{
+					if ( DateTime.UtcNow - cachedResult.timestamp < _cacheExpiration )
+					{
+						Logger.LogVerbose($"[ComponentValidationService] Using cached validation result for component: {component.Name}");
+						return (cachedResult.urls, cachedResult.simulationFailed);
+					}
+					else
+					{
+						// Cache expired, remove it
+						_ = _validationCache.Remove(cacheKey);
+					}
+				}
+			}
+
 			await Logger.LogVerboseAsync($"[ComponentValidationService] Analyzing download necessity for component: {component.Name}");
 			await Logger.LogVerboseAsync($"[ComponentValidationService] Mod archive directory: {modArchiveDirectory}");
+			await Logger.LogVerboseAsync($"[ComponentValidationService] MainConfig.SourcePath: {MainConfig.SourcePath?.FullName ?? "NULL"}");
+			await Logger.LogVerboseAsync($"[ComponentValidationService] MainConfig.DestinationPath: {MainConfig.DestinationPath?.FullName ?? "NULL"}");
 
-			// Initialize VFS with existing files
+			// Initialize VFS with existing files - optimized for single component
 			_virtualFileSystem = new VirtualFileSystemProvider();
-			await _virtualFileSystem.InitializeFromRealFileSystemAsync(modArchiveDirectory);
+			await _virtualFileSystem.InitializeFromRealFileSystemForComponentAsync(modArchiveDirectory, component);
+
+			// Track if we need to try fallback
+			bool shouldTryFallback = false;
 
 			var vfsFiles = _virtualFileSystem.GetFilesInDirectory(modArchiveDirectory, "*", SearchOption.AllDirectories);
 			await Logger.LogVerboseAsync($"[ComponentValidationService] VFS has {vfsFiles.Count} files loaded from: {modArchiveDirectory}");
@@ -54,17 +111,20 @@ namespace KOTORModSync.Core.Services
 			var urlsNeedingDownload = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 			bool initialSimulationFailed = false;
 
-			await Logger.LogVerboseAsync($"[ComponentValidationService] Simulating component installation to determine file availability...");
+			await Logger.LogVerboseAsync("[ComponentValidationService] Simulating component installation to determine file availability...");
+			await Logger.LogVerboseAsync($"[ComponentValidationService] Component has {component.Instructions.Count} instructions");
 
 			try
 			{
+				await Logger.LogVerboseAsync("[ComponentValidationService] Starting ExecuteInstructionsAsync...");
 				var exitCode = await component.ExecuteInstructionsAsync(
 					component.Instructions,
 					new List<ModComponent>(),
-					CancellationToken.None,
+					cancellationToken,
 					_virtualFileSystem,
 					skipDependencyCheck: true
 				);
+				await Logger.LogVerboseAsync($"[ComponentValidationService] ExecuteInstructionsAsync completed with exit code: {exitCode}");
 
 				var issues = _virtualFileSystem.GetValidationIssues();
 				var missingFileIssues = issues.Where(i =>
@@ -109,14 +169,14 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogAsync($"[ComponentValidationService] Auto-fixed {fixCount} duplicate folder path(s), retrying simulation...");
 
 					_virtualFileSystem = new VirtualFileSystemProvider();
-					await _virtualFileSystem.InitializeFromRealFileSystemAsync(modArchiveDirectory);
+					await _virtualFileSystem.InitializeFromRealFileSystemForComponentAsync(modArchiveDirectory, component);
 
 					try
 					{
 						var retryExitCode = await component.ExecuteInstructionsAsync(
 							component.Instructions,
 							new List<ModComponent>(),
-							CancellationToken.None,
+							cancellationToken,
 							_virtualFileSystem,
 							skipDependencyCheck: true
 						);
@@ -157,14 +217,14 @@ namespace KOTORModSync.Core.Services
 
 							// Reinitialize VFS and retry
 							_virtualFileSystem = new VirtualFileSystemProvider();
-							await _virtualFileSystem.InitializeFromRealFileSystemAsync(modArchiveDirectory);
+							await _virtualFileSystem.InitializeFromRealFileSystemForComponentAsync(modArchiveDirectory, component);
 
 							try
 							{
 								var secondRetryExitCode = await component.ExecuteInstructionsAsync(
 									component.Instructions,
 									new List<ModComponent>(),
-									CancellationToken.None,
+									cancellationToken,
 									_virtualFileSystem,
 									skipDependencyCheck: true
 								);
@@ -200,20 +260,20 @@ namespace KOTORModSync.Core.Services
 						}
 						else
 						{
-							await Logger.LogWarningAsync($"[ComponentValidationService] Could not auto-fix wildcard pattern errors - files may be missing. Marking URLs for download.");
+							await Logger.LogWarningAsync("[ComponentValidationService] Could not auto-fix wildcard pattern errors - files may be missing. Marking URLs for download.");
 							await Logger.LogVerboseAsync($"[ComponentValidationService] Failed patterns: {string.Join(", ", wildcardRetryEx.Patterns)}");
 							urlsNeedingDownload.UnionWith(component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
 						}
 					}
 					catch ( Exception retryEx )
 					{
-						await Logger.LogExceptionAsync(retryEx, $"[ComponentValidationService] Retry simulation failed after auto-fix");
+						await Logger.LogExceptionAsync(retryEx, "[ComponentValidationService] Retry simulation failed after auto-fix");
 						urlsNeedingDownload.UnionWith(component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
 					}
 				}
 				else
 				{
-					await Logger.LogWarningAsync($"[ComponentValidationService] Could not auto-fix wildcard pattern errors - files may be missing. Marking URLs for download.");
+					await Logger.LogWarningAsync("[ComponentValidationService] Could not auto-fix wildcard pattern errors - files may be missing. Marking URLs for download.");
 					await Logger.LogVerboseAsync($"[ComponentValidationService] Failed patterns: {string.Join(", ", wildcardEx.Patterns)}");
 					urlsNeedingDownload.UnionWith(component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
 				}
@@ -221,6 +281,10 @@ namespace KOTORModSync.Core.Services
 			catch ( FileNotFoundException fnfEx )
 			{
 				var urls = string.Join($",{Environment.NewLine}", component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
+				await Logger.LogVerboseAsync("[ComponentValidationService] Caught FileNotFoundException during simulation");
+				await Logger.LogVerboseAsync($"[ComponentValidationService] Exception Type: {fnfEx.GetType().FullName}");
+				await Logger.LogVerboseAsync($"[ComponentValidationService] Exception Message: {fnfEx.Message}");
+				await Logger.LogVerboseAsync($"[ComponentValidationService] FileName property: {fnfEx.FileName ?? "NULL"}");
 				await Logger.LogExceptionAsync(fnfEx, $"[ComponentValidationService] Simulation failed. URLs: {urls}");
 				urlsNeedingDownload.UnionWith(component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
 				initialSimulationFailed = true;
@@ -228,6 +292,14 @@ namespace KOTORModSync.Core.Services
 			catch ( Exception ex )
 			{
 				var urls = string.Join($",{Environment.NewLine}", component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
+				await Logger.LogVerboseAsync("[ComponentValidationService] Caught Exception during simulation");
+				await Logger.LogVerboseAsync($"[ComponentValidationService] Exception Type: {ex.GetType().FullName}");
+				await Logger.LogVerboseAsync($"[ComponentValidationService] Exception Message: {ex.Message}");
+				if ( ex.InnerException != null )
+				{
+					await Logger.LogVerboseAsync($"[ComponentValidationService] Inner Exception Type: {ex.InnerException.GetType().FullName}");
+					await Logger.LogVerboseAsync($"[ComponentValidationService] Inner Exception Message: {ex.InnerException.Message}");
+				}
 				await Logger.LogExceptionAsync(ex, $"[ComponentValidationService] Simulation failed. URLs: {urls}");
 				urlsNeedingDownload.UnionWith(component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
 				initialSimulationFailed = true;
@@ -239,21 +311,21 @@ namespace KOTORModSync.Core.Services
 			{
 				// Reinitialize VFS for third attempt
 				_virtualFileSystem = new VirtualFileSystemProvider();
-				await _virtualFileSystem.InitializeFromRealFileSystemAsync(modArchiveDirectory);
+				await _virtualFileSystem.InitializeFromRealFileSystemForComponentAsync(modArchiveDirectory, component);
 
 				try
 				{
 					var thirdRetryExitCode = await component.ExecuteInstructionsAsync(
 						component.Instructions,
 						new List<ModComponent>(),
-						CancellationToken.None,
+						cancellationToken,
 						_virtualFileSystem,
 						skipDependencyCheck: true
 					);
 
 					if ( thirdRetryExitCode == ModComponent.InstallExitCode.Success )
 					{
-						await Logger.LogAsync($"[ComponentValidationService] ✓ Third simulation successful (archive name mismatch scenario resolved)");
+						await Logger.LogAsync("[ComponentValidationService] ✓ Third simulation successful (archive name mismatch scenario resolved)");
 						initialSimulationFailed = false;
 						urlsNeedingDownload.Clear();
 						return (new List<string>(), false);
@@ -261,37 +333,37 @@ namespace KOTORModSync.Core.Services
 				}
 				catch ( Exceptions.WildcardPatternNotFoundException thirdEx )
 				{
-					await Logger.LogVerboseAsync($"[ComponentValidationService] Third simulation failed, attempting archive name mismatch fix...");
+					await Logger.LogVerboseAsync("[ComponentValidationService] Third simulation failed, attempting archive name mismatch fix...");
 
 					// Attempt to fix archive name mismatches
-					bool fixApplied = await TryFixArchiveNameMismatchesAsync(component, thirdEx.Patterns, _virtualFileSystem, modArchiveDirectory);
+					bool fixApplied = await ComponentValidationService.TryFixArchiveNameMismatchesAsync(component, thirdEx.Patterns, _virtualFileSystem, modArchiveDirectory, cancellationToken);
 
 					if ( fixApplied )
 					{
 						// Reinitialize VFS and try final simulation
 						_virtualFileSystem = new VirtualFileSystemProvider();
-						await _virtualFileSystem.InitializeFromRealFileSystemAsync(modArchiveDirectory);
+						await _virtualFileSystem.InitializeFromRealFileSystemForComponentAsync(modArchiveDirectory, component);
 
 						try
 						{
 							var finalExitCode = await component.ExecuteInstructionsAsync(
 								component.Instructions,
 								new List<ModComponent>(),
-								CancellationToken.None,
+								cancellationToken,
 								_virtualFileSystem,
 								skipDependencyCheck: true
 							);
 
 							if ( finalExitCode == ModComponent.InstallExitCode.Success )
 							{
-								await Logger.LogAsync($"[ComponentValidationService] ✓ Final simulation successful after archive name fix");
+								await Logger.LogAsync("[ComponentValidationService] ✓ Final simulation successful after archive name fix");
 								initialSimulationFailed = false;
 								urlsNeedingDownload.Clear();
 								return (new List<string>(), false);
 							}
 							else
 							{
-								await Logger.LogWarningAsync($"[ComponentValidationService] Final simulation failed after fix attempt");
+								await Logger.LogWarningAsync("[ComponentValidationService] Final simulation failed after fix attempt");
 								urlsNeedingDownload.UnionWith(component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
 							}
 						}
@@ -310,21 +382,153 @@ namespace KOTORModSync.Core.Services
 			}
 
 			bool simulationFailed = urlsNeedingDownload.Count > 0;
-			return (urlsNeedingDownload.ToList(), simulationFailed);
+
+			// If single-component validation failed, try fallback with all components
+			if (
+				simulationFailed &&
+				MainConfig.AllComponents != null &&
+				MainConfig.AllComponents.Count > 1 &&
+				shouldTryFallback )
+			{
+				await Logger.LogVerboseAsync($"[ComponentValidationService] Single-component validation failed, attempting fallback with all {MainConfig.AllComponents.Count} components...");
+
+				// Try with all components
+				var fallbackVfs = new VirtualFileSystemProvider();
+				await fallbackVfs.InitializeFromRealFileSystemForComponentsAsync(modArchiveDirectory, MainConfig.AllComponents);
+
+				try
+				{
+					var fallbackExitCode = await component.ExecuteInstructionsAsync(
+						component.Instructions,
+						new List<ModComponent>(),
+						cancellationToken,
+						fallbackVfs,
+						skipDependencyCheck: true
+					);
+
+					var fallbackIssues = fallbackVfs.GetValidationIssues();
+					var fallbackMissingFileIssues = fallbackIssues.Where(i =>
+						(i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical) &&
+						(i.Category == "ExtractArchive" || i.Category == "MoveFile" || i.Category == "CopyFile" || i.Message.Contains("does not exist"))
+					).ToList();
+
+					if ( fallbackMissingFileIssues.Count == 0 && fallbackExitCode == ModComponent.InstallExitCode.Success )
+					{
+						await Logger.LogAsync("[ComponentValidationService] ✓ Fallback validation succeeded! Determining which component(s) provided the missing files...");
+
+						// Determine which component(s) provided the missing files
+						var missingDependencies = await FindMissingDependenciesAsync(component, modArchiveDirectory, MainConfig.AllComponents, cancellationToken);
+
+						if ( missingDependencies.Count > 0 )
+						{
+							await Logger.LogAsync($"[ComponentValidationService] Found {missingDependencies.Count} missing dependencies:");
+							foreach ( var dep in missingDependencies )
+							{
+								await Logger.LogAsync($"  • {dep.Name} (GUID: {dep.Guid})");
+
+								// Add to component's dependencies if not already present
+								if ( !component.Dependencies.Contains(dep.Guid) )
+								{
+									component.Dependencies.Add(dep.Guid);
+									await Logger.LogAsync($"[ComponentValidationService] ✓ Added '{dep.Name}' as dependency to '{component.Name}'");
+								}
+							}
+
+							// Clear the URLs needing download since we found the dependencies
+							urlsNeedingDownload.Clear();
+							simulationFailed = false;
+						}
+					}
+					else
+					{
+						await Logger.LogVerboseAsync("[ComponentValidationService] Fallback validation also failed");
+					}
+				}
+				catch ( Exception fallbackEx )
+				{
+					await Logger.LogVerboseAsync($"[ComponentValidationService] Fallback validation threw exception: {fallbackEx.Message}");
+				}
+			}
+
+			// Cache the result before returning
+			var result = (urlsNeedingDownload.ToList(), simulationFailed);
+			lock ( _cacheLock )
+			{
+				_validationCache[cacheKey] = (result.Item1, result.Item2, DateTime.UtcNow);
+			}
+
+			return result;
+		}
+
+		/// <summary>
+		/// Finds which components from the available component list provide files needed by the target component.
+		/// This is used to automatically detect missing dependencies.
+		/// </summary>
+		private async Task<List<ModComponent>> FindMissingDependenciesAsync(
+			[NotNull] ModComponent targetComponent,
+			[NotNull] string modArchiveDirectory,
+			[NotNull] List<ModComponent> allComponents,
+			CancellationToken cancellationToken)
+		{
+			var missingDependencies = new List<ModComponent>();
+
+			// Test each component individually to see if it makes the target component's validation pass
+			foreach ( var candidateComponent in allComponents )
+			{
+				// Skip self and already declared dependencies
+				if ( candidateComponent.Guid == targetComponent.Guid ||
+					 targetComponent.Dependencies.Contains(candidateComponent.Guid) )
+					continue;
+
+				// Try validation with target component + candidate component
+				var testVfs = new VirtualFileSystemProvider();
+				await testVfs.InitializeFromRealFileSystemForComponentsAsync(modArchiveDirectory,
+					new List<ModComponent> { targetComponent, candidateComponent });
+
+				try
+				{
+					var testExitCode = await targetComponent.ExecuteInstructionsAsync(
+						targetComponent.Instructions,
+						new List<ModComponent>(),
+						cancellationToken,
+						testVfs,
+						skipDependencyCheck: true
+					);
+
+					var testIssues = testVfs.GetValidationIssues();
+					var testMissingFileIssues = testIssues.Where(i =>
+						(i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical) &&
+						(i.Category == "ExtractArchive" || i.Category == "MoveFile" || i.Category == "CopyFile" || i.Message.Contains("does not exist"))
+					).ToList();
+
+					// If validation now passes with this candidate, it's a dependency
+					if ( testMissingFileIssues.Count == 0 && testExitCode == ModComponent.InstallExitCode.Success )
+					{
+						await Logger.LogVerboseAsync($"[ComponentValidationService] Detected dependency: '{candidateComponent.Name}' provides files for '{targetComponent.Name}'");
+						missingDependencies.Add(candidateComponent);
+					}
+				}
+				catch ( Exception ex )
+				{
+					await Logger.LogVerboseAsync($"[ComponentValidationService] Error testing candidate '{candidateComponent.Name}': {ex.Message}");
+				}
+			}
+
+			return missingDependencies;
 		}
 
 		/// <summary>
 		/// Fixes instruction Source patterns to account for nested archive folders.
 		/// When an archive contains a root folder matching the archive name, the extracted structure is:
 		/// workspace\ArchiveName\ArchiveName\files (double nesting)
-		/// This fixes patterns like: <<modDirectory>>\ArchiveName*\Override\*
-		/// To: <<modDirectory>>\ArchiveName*\ArchiveName*\Override\*
+		/// This fixes patterns like: modDirectory\ArchiveName*\Override\*
+		/// To: modDirectory\ArchiveName*\ArchiveName*\Override\*
 		/// </summary>
 		public static int FixNestedArchiveFolderInstructions(ModComponent component, VirtualFileSystemProvider virtualFileSystem)
 		{
 			int fixCount = 0;
 
-			if ( component == null || component.Instructions == null || virtualFileSystem == null )
+			if ( component == null || virtualFileSystem == null )
 				return 0;
 
 			// Get all extracted archives and check which have nested folders
@@ -357,7 +561,7 @@ namespace KOTORModSync.Core.Services
 			// Fix instructions that reference these archives
 			foreach ( var instruction in component.Instructions )
 			{
-				if ( instruction.Source == null || instruction.Source.Count == 0 )
+				if ( instruction.Source.Count == 0 )
 					continue;
 
 				bool instructionModified = false;
@@ -386,9 +590,6 @@ namespace KOTORModSync.Core.Services
 
 							if ( firstSeparatorIndex > afterArchiveNameIndex )
 							{
-								// Check what's between the archive name and the separator
-								string betweenText = modifiedSource.Substring(afterArchiveNameIndex, firstSeparatorIndex - afterArchiveNameIndex);
-
 								// If it's just "*" or empty, we need to look at the next segment
 								// Find the second separator to see what folder comes after
 								int secondSeparatorIndex = modifiedSource.IndexOf(Path.DirectorySeparatorChar, firstSeparatorIndex + 1);
@@ -400,6 +601,7 @@ namespace KOTORModSync.Core.Services
 
 									// Check if this folder segment is NOT the archive name (meaning we need to add it)
 									if ( !nextFolderSegment.Equals(archiveName, StringComparison.OrdinalIgnoreCase) &&
+										 !(archiveName is null) &&
 										 !nextFolderSegment.StartsWith(archiveName, StringComparison.OrdinalIgnoreCase) )
 									{
 										// Insert the archive name pattern after the first separator
@@ -408,7 +610,7 @@ namespace KOTORModSync.Core.Services
 										modifiedSource = beforeInsert + archiveName + "*" + Path.DirectorySeparatorChar + afterInsert;
 										wasModified = true;
 
-										Logger.LogVerbose($"[ComponentValidationService] Fixed instruction source:");
+										Logger.LogVerbose("[ComponentValidationService] Fixed instruction source:");
 										Logger.LogVerbose($"  From: {source}");
 										Logger.LogVerbose($"  To:   {modifiedSource}");
 									}
@@ -452,28 +654,27 @@ namespace KOTORModSync.Core.Services
 
 				foreach ( Instruction instruction in component.Instructions )
 				{
-					if ( instruction.Source == null || instruction.Source.Count == 0 )
+					if ( instruction.Source.Count == 0 )
 						continue;
 
-					List<string> resolvedPaths = instruction.Source
+					List<string> sourcePaths = instruction.Source
 						.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
-						.Select(sourcePath => ResolvePath(sourcePath))
 						.ToList();
 
-					if ( resolvedPaths.Count == 0 )
+					if ( sourcePaths.Count == 0 )
 						continue;
 
-					await Logger.LogVerboseAsync($"[ComponentValidationService] Checking {resolvedPaths.Count} source paths for instruction");
+					await Logger.LogVerboseAsync($"[ComponentValidationService] Checking {sourcePaths.Count} source paths for instruction");
 
 					List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
-						resolvedPaths,
+						sourcePaths,
 						validationProvider,
 						includeSubFolders: true
 					);
 
 					if ( foundFiles == null || foundFiles.Count == 0 )
 					{
-						await Logger.LogVerboseAsync($"[ComponentValidationService] No files found for paths: {string.Join(", ", resolvedPaths)}");
+						await Logger.LogVerboseAsync($"[ComponentValidationService] No files found for paths: {string.Join(", ", sourcePaths)}");
 						return false;
 					}
 
@@ -527,25 +728,24 @@ namespace KOTORModSync.Core.Services
 												if ( optionInstruction.Source == null || optionInstruction.Source.Count == 0 )
 													continue;
 
-												List<string> optionResolvedPaths = optionInstruction.Source
+												List<string> optionSourcePaths = optionInstruction.Source
 													.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
-													.Select(sourcePath => ResolvePath(sourcePath))
 													.ToList();
 
-												if ( optionResolvedPaths.Count == 0 )
+												if ( optionSourcePaths.Count == 0 )
 													continue;
 
 												List<string> foundOptionFiles = PathHelper.EnumerateFilesWithWildcards(
-													optionResolvedPaths,
+													optionSourcePaths,
 													validationProvider,
 													includeSubFolders: true
 												);
 
 												if ( foundOptionFiles == null || foundOptionFiles.Count == 0 )
 												{
-													foreach ( string resolvedPath in optionResolvedPaths )
+													foreach ( string sourcePath in optionSourcePaths )
 													{
-														string fileName = Path.GetFileName(resolvedPath);
+														string fileName = Path.GetFileName(sourcePath);
 														if ( !string.IsNullOrEmpty(fileName) && !missingFiles.Contains(fileName) )
 														{
 															missingFiles.Add(fileName);
@@ -565,27 +765,26 @@ namespace KOTORModSync.Core.Services
 					if ( instruction.Source == null || instruction.Source.Count == 0 )
 						continue;
 
-					List<string> resolvedPaths = instruction.Source
+					List<string> sourcePaths = instruction.Source
 						.Where(sourcePath => !string.IsNullOrWhiteSpace(sourcePath))
-						.Select(sourcePath => ResolvePath(sourcePath))
 						.ToList();
 
-					if ( resolvedPaths.Count == 0 )
+					if ( sourcePaths.Count == 0 )
 						continue;
 
-					await Logger.LogVerboseAsync($"[ComponentValidationService] Checking {resolvedPaths.Count} source paths for instruction");
+					await Logger.LogVerboseAsync($"[ComponentValidationService] Checking {sourcePaths.Count} source paths for instruction");
 
 					List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
-						resolvedPaths,
+						sourcePaths,
 						validationProvider,
 						includeSubFolders: true
 					);
 
 					if ( foundFiles == null || foundFiles.Count == 0 )
 					{
-						foreach ( string resolvedPath in resolvedPaths )
+						foreach ( string sourcePath in sourcePaths )
 						{
-							string fileName = Path.GetFileName(resolvedPath);
+							string fileName = Path.GetFileName(sourcePath);
 							if ( !string.IsNullOrEmpty(fileName) && !missingFiles.Contains(fileName) )
 							{
 								missingFiles.Add(fileName);
@@ -623,13 +822,12 @@ namespace KOTORModSync.Core.Services
 				for ( int i = 0; i < targetIndex; i++ )
 				{
 					Instruction prevInstruction = component.Instructions[i];
-					if ( prevInstruction.Action == Instruction.ActionType.Extract && prevInstruction.Source != null )
+					if ( prevInstruction.Action == Instruction.ActionType.Extract )
 					{
 						foreach ( string sourcePath in prevInstruction.Source )
 						{
-							string resolvedSource = ResolvePath(sourcePath);
 							List<string> archiveFiles = PathHelper.EnumerateFilesWithWildcards(
-								new List<string> { resolvedSource },
+								new List<string> { sourcePath },
 								virtualProvider,
 								includeSubFolders: true
 							);
@@ -638,7 +836,7 @@ namespace KOTORModSync.Core.Services
 							{
 								string destination = !string.IsNullOrWhiteSpace(prevInstruction.Destination)
 									? ResolvePath(prevInstruction.Destination)
-									: MainConfig.SourcePath.FullName;
+									: MainConfig.SourcePath?.FullName;
 
 								_ = virtualProvider.ExtractArchiveAsync(archiveFile, destination).GetAwaiter().GetResult();
 							}
@@ -649,62 +847,6 @@ namespace KOTORModSync.Core.Services
 			catch ( Exception ex )
 			{
 				Logger.LogException(ex, "Error simulating previous instructions");
-			}
-		}
-
-		/// <summary>
-		/// Validates an instruction path and returns a status string.
-		/// </summary>
-		public static string ValidateInstructionPath(string path, Instruction instruction, ModComponent component)
-		{
-			try
-			{
-				if ( string.IsNullOrWhiteSpace(path) )
-					return "❓ Empty";
-
-				if ( instruction != null && instruction.Action == Instruction.ActionType.Patcher
-					&& path.Equals("<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase) )
-				{
-					return "✅ Valid (Patcher destination)";
-				}
-
-				if ( path.Contains("<<modDirectory>>") && MainConfig.SourcePath == null )
-					return "⚠️ Mod directory not configured";
-
-				if ( path.Contains("<<kotorDirectory>>") && MainConfig.DestinationPath == null )
-					return "⚠️ KOTOR directory not configured";
-
-				if ( MainConfig.SourcePath == null )
-					return "⚠️ Paths not configured";
-
-				string resolvedPath = ResolvePath(path);
-
-				var virtualProvider = new VirtualFileSystemProvider();
-				virtualProvider.InitializeFromRealFileSystem(MainConfig.SourcePath.FullName);
-
-				if ( component != null && instruction != null )
-				{
-					SimulatePreviousInstructions(virtualProvider, component, instruction);
-				}
-
-				List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
-					new List<string> { resolvedPath },
-					virtualProvider,
-					includeSubFolders: true
-				);
-
-				if ( foundFiles != null && foundFiles.Count > 0 )
-					return $"✅ Found ({foundFiles.Count} file{(foundFiles.Count != 1 ? "s" : "")})";
-
-				if ( virtualProvider.DirectoryExists(resolvedPath) )
-					return "✅ Directory exists";
-
-				return "❌ Not found";
-			}
-			catch ( Exception ex )
-			{
-				Logger.LogException(ex, $"Error validating path: {path}");
-				return "⚠️ Validation error";
 			}
 		}
 
@@ -788,202 +930,6 @@ namespace KOTORModSync.Core.Services
 
 			return "Valid URL";
 		}
-		private static List<string> FilterFilenamesByInstructionPatterns(ModComponent component, List<string> filenames)
-		{
-			if ( component == null || filenames == null || filenames.Count == 0 )
-				return new List<string>();
-
-			string modArchiveDirectory = MainConfig.SourcePath?.FullName;
-			if ( string.IsNullOrEmpty(modArchiveDirectory) )
-			{
-				Logger.LogWarning($"[DownloadCacheService] MainConfig.SourcePath not set, cannot filter by instruction patterns");
-				return filenames; // Fallback: download all
-			}
-
-			// Initialize VFS with existing files
-			var vfs = new FileSystem.VirtualFileSystemProvider();
-			vfs.InitializeFromRealFileSystem(modArchiveDirectory);
-
-			// Collect all Extract instructions (component + options)
-			var extractInstructions = new List<Instruction>();
-			foreach ( var instruction in component.Instructions )
-			{
-				if ( instruction.Action == Instruction.ActionType.Extract )
-					extractInstructions.Add(instruction);
-			}
-			foreach ( var option in component.Options )
-			{
-				foreach ( var instruction in option.Instructions )
-				{
-					if ( instruction.Action == Instruction.ActionType.Extract )
-						extractInstructions.Add(instruction);
-				}
-			}
-
-			if ( extractInstructions.Count == 0 )
-			{
-				Logger.LogVerbose($"[DownloadCacheService] No Extract instructions found, downloading all files");
-				return filenames;
-			}
-
-			// Find which Extract patterns are currently unsatisfied
-			var unsatisfiedPatterns = new List<string>();
-
-			foreach ( var instruction in extractInstructions )
-			{
-				if ( instruction.Source == null || instruction.Source.Count == 0 )
-					continue;
-
-				foreach ( string sourcePath in instruction.Source )
-				{
-					if ( string.IsNullOrWhiteSpace(sourcePath) )
-						continue;
-
-					string resolvedPath = ComponentValidationService.ResolvePath(sourcePath);
-
-					try
-					{
-						List<string> foundFiles = FileSystemUtils.PathHelper.EnumerateFilesWithWildcards(
-							new List<string> { resolvedPath },
-							vfs,
-							includeSubFolders: true
-						);
-
-						if ( foundFiles == null || foundFiles.Count == 0 )
-						{
-							// Pattern is unsatisfied - need to download something for it
-							unsatisfiedPatterns.Add(sourcePath);
-							Logger.LogVerbose($"[DownloadCacheService] Unsatisfied Extract pattern: {sourcePath}");
-						}
-					}
-					catch
-					{
-						// Pattern failed to resolve - need to download something for it
-						unsatisfiedPatterns.Add(sourcePath);
-						Logger.LogVerbose($"[DownloadCacheService] Failed to resolve Extract pattern: {sourcePath}");
-					}
-				}
-			}
-
-			if ( unsatisfiedPatterns.Count == 0 )
-			{
-				Logger.LogVerbose($"[DownloadCacheService] All Extract patterns already satisfied, no downloads needed");
-				return new List<string>();
-			}
-
-			Logger.LogVerbose($"[DownloadCacheService] Found {unsatisfiedPatterns.Count} unsatisfied Extract pattern(s), testing {filenames.Count} filenames...");
-
-			// Test each filename to see if it satisfies any unsatisfied patterns
-			var neededFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-			foreach ( string filename in filenames )
-			{
-				if ( string.IsNullOrWhiteSpace(filename) )
-					continue;
-
-				// Add file to VFS temporarily
-				string tempFilePath = Path.Combine(modArchiveDirectory, filename);
-				vfs.WriteFileAsync(tempFilePath, "").Wait();
-
-				// Re-check unsatisfied patterns with this file present
-				foreach ( string sourcePath in unsatisfiedPatterns )
-				{
-					string resolvedPath = ComponentValidationService.ResolvePath(sourcePath);
-
-					try
-					{
-						List<string> foundFiles = FileSystemUtils.PathHelper.EnumerateFilesWithWildcards(
-							new List<string> { resolvedPath },
-							vfs,
-							includeSubFolders: true
-						);
-
-						if ( foundFiles != null && foundFiles.Count > 0 )
-						{
-							// This file satisfies a previously unsatisfied pattern!
-							neededFiles.Add(filename);
-							Logger.LogVerbose($"[DownloadCacheService] ✓ File '{filename}' satisfies Extract pattern '{sourcePath}'");
-							break; // No need to check other patterns for this file
-						}
-					}
-					catch
-					{
-						// Pattern still fails
-					}
-				}
-
-				// Remove file from VFS after testing
-				vfs.DeleteFileAsync(tempFilePath).Wait();
-			}
-
-			if ( neededFiles.Count == 0 )
-			{
-				Logger.LogWarning($"[DownloadCacheService] No filenames matched unsatisfied Extract patterns. Available files:");
-				foreach ( string fn in filenames )
-				{
-					Logger.LogWarning($"  • {fn}");
-				}
-			}
-
-			return neededFiles.ToList();
-		}
-
-		private static bool FileMatchesAnyInstructionPattern(ModComponent component, string filename)
-		{
-			if ( component == null || string.IsNullOrWhiteSpace(filename) )
-				return false;
-
-			// ONLY check Extract instructions - they reference archive files before extraction
-			foreach ( var instruction in component.Instructions )
-			{
-				if ( instruction.Action != Instruction.ActionType.Extract )
-					continue;
-
-				if ( instruction.Source == null || instruction.Source.Count == 0 )
-					continue;
-
-				foreach ( string sourcePath in instruction.Source )
-				{
-					if ( string.IsNullOrWhiteSpace(sourcePath) )
-						continue;
-
-					string pattern = sourcePath.Replace("<<modDirectory>>\\", "").Replace("<<modDirectory>>/", "");
-
-					if ( FileMatchesPattern(filename, pattern) )
-					{
-						return true;
-					}
-				}
-			}
-
-			// Check option Extract instructions
-			foreach ( var option in component.Options )
-			{
-				foreach ( var instruction in option.Instructions )
-				{
-					if ( instruction.Action != Instruction.ActionType.Extract )
-						continue;
-
-					if ( instruction.Source == null || instruction.Source.Count == 0 )
-						continue;
-
-					foreach ( string sourcePath in instruction.Source )
-					{
-						if ( string.IsNullOrWhiteSpace(sourcePath) )
-							continue;
-
-						string pattern = sourcePath.Replace("<<modDirectory>>\\", "").Replace("<<modDirectory>>/", "");
-
-						if ( FileMatchesPattern(filename, pattern) )
-						{
-							return true;
-						}
-					}
-				}
-			}
-
-			return false;
-		}
 		/// <summary>
 		/// Gets the current VirtualFileSystemProvider instance.
 		/// </summary>
@@ -1045,12 +991,10 @@ namespace KOTORModSync.Core.Services
 					if ( string.IsNullOrWhiteSpace(sourcePath) )
 						continue;
 
-					string resolvedPath = ResolvePath(sourcePath);
-
 					try
 					{
 						List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
-							new List<string> { resolvedPath },
+							new List<string> { sourcePath },
 							_virtualFileSystem,
 							includeSubFolders: true
 						);
@@ -1094,12 +1038,10 @@ namespace KOTORModSync.Core.Services
 				// Re-check unsatisfied patterns with this file present
 				foreach ( string sourcePath in unsatisfiedPatterns )
 				{
-					string resolvedPath = ResolvePath(sourcePath);
-
 					try
 					{
 						List<string> foundFiles = PathHelper.EnumerateFilesWithWildcards(
-							new List<string> { resolvedPath },
+							new List<string> { sourcePath },
 							_virtualFileSystem,
 							includeSubFolders: true
 						);
@@ -1215,17 +1157,17 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		private async Task<bool> TryFixArchiveNameMismatchesAsync(
+		private static async Task<bool> TryFixArchiveNameMismatchesAsync(
 			ModComponent component,
 			IReadOnlyList<string> failedPatterns,
 			VirtualFileSystemProvider vfs,
-			string modArchiveDirectory)
+			string modArchiveDirectory,
+			CancellationToken cancellationToken)
 		{
 			await Logger.LogVerboseAsync("[ComponentValidationService] Scanning for archive name mismatches...");
 
 			// Get all cached download entries
-			var cache = new DownloadCacheService();
-			var cachedEntries = cache.GetCachedEntries().Where(e => e.IsArchiveFile).ToList();
+			var cachedEntries = DownloadCacheService.GetCachedEntries().Where(e => e.IsArchiveFile).ToList();
 
 			if ( cachedEntries.Count == 0 )
 			{
@@ -1241,7 +1183,7 @@ namespace KOTORModSync.Core.Services
 			{
 				originalInstructions[instruction.Guid] = (
 					instruction.Action,
-					new List<string>(instruction.Source ?? new List<string>()),
+					new List<string>(instruction.Source),
 					instruction.Destination
 				);
 			}
@@ -1251,7 +1193,7 @@ namespace KOTORModSync.Core.Services
 				{
 					originalInstructions[instruction.Guid] = (
 						instruction.Action,
-						new List<string>(instruction.Source ?? new List<string>()),
+						new List<string>(instruction.Source),
 						instruction.Destination
 					);
 				}
@@ -1276,8 +1218,8 @@ namespace KOTORModSync.Core.Services
 						string normalizedEntry = NormalizeModName(entryBase);
 
 						if ( normalizedExpected.Equals(normalizedEntry, StringComparison.OrdinalIgnoreCase) ||
-							 expectedBase.IndexOf(entryBase, StringComparison.OrdinalIgnoreCase) >= 0 ||
-							 entryBase.IndexOf(expectedBase, StringComparison.OrdinalIgnoreCase) >= 0 )
+							 (!(entryBase is null) && expectedBase.IndexOf(entryBase, StringComparison.OrdinalIgnoreCase) >= 0) ||
+							 (!(entryBase is null) && entryBase.IndexOf(expectedBase, StringComparison.OrdinalIgnoreCase) >= 0) )
 						{
 							matchingEntry = entry;
 							break;
@@ -1293,7 +1235,7 @@ namespace KOTORModSync.Core.Services
 					// Find the Extract instruction with this pattern
 					Instruction extractInstruction = component.Instructions
 						.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract &&
-											 i.Source?.Any(s => FileMatchesPattern(expectedArchive,
+											 i.Source.Any(s => FileMatchesPattern(expectedArchive,
 									 ExtractFilenameFromSource(s))) == true);
 
 					if ( extractInstruction == null )
@@ -1303,7 +1245,7 @@ namespace KOTORModSync.Core.Services
 						{
 							extractInstruction = option.Instructions
 								.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract &&
-													 i.Source?.Any(s => FileMatchesPattern(expectedArchive,
+													 i.Source.Any(s => FileMatchesPattern(expectedArchive,
 											 ExtractFilenameFromSource(s))) == true);
 							if ( extractInstruction != null )
 								break;
@@ -1317,7 +1259,7 @@ namespace KOTORModSync.Core.Services
 					}
 
 					// Apply fix
-					bool fixSuccess = await ComponentValidationService.TryFixSingleMismatchAsync(component, extractInstruction, matchingEntry, vfs, modArchiveDirectory);
+					bool fixSuccess = await TryFixSingleMismatchAsync(component, extractInstruction, matchingEntry, vfs, modArchiveDirectory, cancellationToken);
 
 					if ( fixSuccess )
 					{
@@ -1341,7 +1283,8 @@ namespace KOTORModSync.Core.Services
 			Instruction extractInstruction,
 			DownloadCacheService.DownloadCacheEntry entry,
 			VirtualFileSystemProvider vfs,
-			string modArchiveDirectory)
+			string modArchiveDirectory,
+			CancellationToken cancellationToken)
 		{
 			string oldArchiveName = ExtractFilenameFromSource(extractInstruction.Source[0]);
 			string newArchiveName = entry.FileName;
@@ -1356,15 +1299,10 @@ namespace KOTORModSync.Core.Services
 				extractInstruction.Source[sourceIndex] = $@"<<modDirectory>>\{newArchiveName}";
 			}
 
-			// Update subsequent sources
-			int updatedCount = 0;
-
 			void UpdateSources(IEnumerable<Instruction> instructions)
 			{
 				foreach ( var instr in instructions )
 				{
-					if ( instr.Source == null ) continue;
-
 					for ( int i = 0; i < instr.Source.Count; i++ )
 					{
 						string src = instr.Source[i];
@@ -1378,7 +1316,6 @@ namespace KOTORModSync.Core.Services
 								index = src.IndexOf(oldExtractedFolder, index + newExtractedFolder.Length, StringComparison.OrdinalIgnoreCase);
 							}
 							instr.Source[i] = src;
-							updatedCount++;
 						}
 					}
 				}
@@ -1397,7 +1334,7 @@ namespace KOTORModSync.Core.Services
 				var exitCode = await component.ExecuteInstructionsAsync(
 					component.Instructions,
 					new List<ModComponent>(),
-					CancellationToken.None,
+					cancellationToken,
 					tempVfs,
 					skipDependencyCheck: true
 				);

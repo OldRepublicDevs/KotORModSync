@@ -22,17 +22,7 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-
-				var httpClient = new HttpClient();
-				var handlers = new List<IDownloadHandler>
-			{
-				new DeadlyStreamDownloadHandler(httpClient),
-				new MegaDownloadHandler(),
-				new NexusModsDownloadHandler(httpClient, ""),
-				new GameFrontDownloadHandler(httpClient),
-				new DirectDownloadHandler(httpClient)
-			};
-				_downloadCacheService.SetDownloadManager(new DownloadManager(handlers));
+				_downloadCacheService.SetDownloadManager(Download.DownloadHandlerFactory.CreateDownloadManager());
 			}
 			catch ( Exception ex )
 			{

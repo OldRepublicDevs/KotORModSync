@@ -82,7 +82,8 @@ namespace KOTORModSync
 		public void ResetCancellationToken()
 		{
 			_cancellationTokenSource?.Dispose();
-			_cancellationTokenSource = new CancellationTokenSource();
+			int timeoutMinutes = DownloadTimeoutMinutes;
+			_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(timeoutMinutes));
 		}
 
 		public int DownloadTimeoutMinutes
@@ -94,14 +95,14 @@ namespace KOTORModSync
 				{
 					return (int)timeoutControl.Value.Value;
 				}
-				return 10;
+				return 180;
 			}
 		}
 
 		public DownloadProgressWindow()
 		{
 			InitializeComponent();
-			_cancellationTokenSource = new CancellationTokenSource();
+			_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(180));
 
 
 			ItemsControl activeControl = this.FindControl<ItemsControl>("ActiveDownloadsControl");
@@ -408,6 +409,17 @@ namespace KOTORModSync
 
 			if ( _isCompleted )
 			{
+				// Check if there are pending downloads and auto-start them
+				if ( pending > 0 )
+				{
+					Logger.LogVerbose($"Auto-starting {pending} pending downloads after initial completion");
+					StartAllPendingDownloads();
+
+					// Don't show completion message yet - let the pending downloads start first
+					summaryText.Text = $"Starting {pending} remaining downloads...";
+					return;
+				}
+
 				var messageParts = new System.Collections.Generic.List<string>();
 				if ( completedCount > 0 ) messageParts.Add($"{completedCount} downloaded");
 				if ( skippedCount > 0 ) messageParts.Add($"{skippedCount} skipped");
@@ -649,6 +661,30 @@ namespace KOTORModSync
 			catch ( Exception ex )
 			{
 				Logger.LogError($"Failed to handle control button click: {ex.Message}");
+			}
+		}
+
+		private void StartAllPendingButton_Click(object sender, RoutedEventArgs e)
+		{
+			StartAllPendingDownloads();
+		}
+
+		private void StartAllPendingDownloads()
+		{
+			try
+			{
+				Logger.LogVerbose($"Start all pending downloads requested - {_pendingDownloads.Count} items");
+
+				// Start all pending downloads
+				foreach ( var progress in _pendingDownloads.ToList() )
+				{
+					Logger.LogVerbose($"Starting download: {progress.ModName}");
+					DownloadControlRequested?.Invoke(this, new DownloadControlEventArgs(progress, DownloadControlAction.Start));
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogError($"Failed to start all pending downloads: {ex.Message}");
 			}
 		}
 

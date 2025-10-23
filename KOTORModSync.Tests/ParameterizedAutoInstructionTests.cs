@@ -16,34 +16,29 @@ using KOTORModSync.Core.Services.Download;
 namespace KOTORModSync.Tests
 {
 	[TestFixture]
-	public class ParameterizedAutoInstructionTests
+	public class ParameterizedAutoInstructionTests : BaseParameterizedTest
 	{
-		private string? _testDirectory;
-
+		protected override string TestCategory => "AutoInstruction";
+		protected override bool RequiresTempDirectory => true;
+		protected override bool PreserveTestResults => false; // These tests are ignored anyway
 		[SetUp]
-		public void SetUp()
+		public override void SetUp()
 		{
-			_testDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_ParamAutoInstruct_" + Guid.NewGuid());
-			Directory.CreateDirectory(_testDirectory);
+			base.SetUp();
+			// TestTempDirectory is now created in base class
 
 			var mainConfig = new MainConfig();
-			mainConfig.sourcePath = new DirectoryInfo(_testDirectory);
-			mainConfig.destinationPath = new DirectoryInfo(Path.Combine(_testDirectory, "KOTOR"));
+			mainConfig.sourcePath = new DirectoryInfo(TestTempDirectory!);
+			mainConfig.destinationPath = new DirectoryInfo(Path.Combine(TestTempDirectory!, "KOTOR"));
 			Directory.CreateDirectory(mainConfig.destinationPath.FullName);
+			WriteLog($"KOTOR directory created: {mainConfig.destinationPath.FullName}");
 		}
 
 		[TearDown]
-		public void TearDown()
+		public override void TearDown()
 		{
-			try
-			{
-				if ( Directory.Exists(_testDirectory) )
-					Directory.Delete(_testDirectory, recursive: true);
-			}
-			catch
-			{
-
-			}
+			// TestTempDirectory cleanup is handled in base class
+			base.TearDown();
 		}
 
 		private static IEnumerable<TestCaseData> GetAllMarkdownFiles()
@@ -164,28 +159,28 @@ namespace KOTORModSync.Tests
 		}
 
 		[TestCaseSource(nameof(GetAllDeadlystreamComponents))]
-		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void IndividualComponent_HasModSyncInstructions(ModComponent component, string mdFilePath)
 		{
-
-			Console.WriteLine($"========================================");
-			Console.WriteLine($"Testing component: {component.Name}");
-			Console.WriteLine($"From file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"========================================");
+			WriteLogAndConsole($"Testing component: {component.Name}");
+			WriteLogAndConsole($"From file: {Path.GetFileName(mdFilePath)}");
+			WriteLog($"Component GUID: {component.Guid}");
+			WriteLog($"Component Author: {component.Author}");
 
 			var deadlyStreamLinks = component.ModLinkFilenames.Keys
 				.Where(link => !string.IsNullOrWhiteSpace(link) &&
 					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
-			Console.WriteLine($"Deadlystream link(s): {deadlyStreamLinks.Count}");
+			WriteLogAndConsole($"Deadlystream link(s): {deadlyStreamLinks.Count}");
 			foreach ( var link in deadlyStreamLinks )
 			{
-				Console.WriteLine($"  - {link}");
+				WriteLogAndConsole($"  - {link}");
 			}
 
-			Console.WriteLine($"Installation Method: {component.InstallationMethod}");
-			Console.WriteLine($"Instructions count: {component.Instructions.Count}");
-			Console.WriteLine($"Options count: {component.Options.Count}");
+			WriteLogAndConsole($"Installation Method: {component.InstallationMethod}");
+			WriteLogAndConsole($"Instructions count: {component.Instructions.Count}");
+			WriteLogAndConsole($"Options count: {component.Options.Count}");
 
 			Assert.That(component.Instructions, Is.Not.Empty,
 				$"Component '{component.Name}' has Deadlystream link(s) but no ModSync metadata/instructions. " +
@@ -193,31 +188,34 @@ namespace KOTORModSync.Tests
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
-		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void AutoGenerate_DeadlyStreamModsHaveInstructions(string mdFilePath)
 		{
+			WriteLogAndConsole($"\n========================================");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLog($"Input file: {mdFilePath}");
 
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
+			WriteLog($"Markdown length: {markdown.Length} characters");
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
 			MarkdownParserResult parseResult = parser.Parse(markdown);
 
-			Console.WriteLine($"\n========================================");
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"Total components: {parseResult.Components.Count}");
+			WriteLogAndConsole($"Total components: {parseResult.Components.Count}");
 
 			var deadlyStreamComponents = parseResult.Components
 				.Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
 					link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
 				.ToList();
 
-			Console.WriteLine($"Components with Deadlystream links: {deadlyStreamComponents.Count}");
+			WriteLogAndConsole($"Components with Deadlystream links: {deadlyStreamComponents.Count}");
 
 			if ( deadlyStreamComponents.Count == 0 )
 			{
+				WriteLog("No Deadlystream components found - test passed");
 				Assert.Pass($"No components with Deadlystream links in {Path.GetFileName(mdFilePath)}");
 				return;
 			}
@@ -232,7 +230,7 @@ namespace KOTORModSync.Tests
 				if ( hadInstructionsBeforeAutoGen )
 				{
 					componentsAlreadyHaveInstructions++;
-					Console.WriteLine($"\n✓ {component.Name}: Already has {component.Instructions.Count} instruction(s) (ModSync metadata)");
+					WriteLogAndConsole($"\n✓ {component.Name}: Already has {component.Instructions.Count} instruction(s) (ModSync metadata)");
 					continue;
 				}
 
@@ -241,67 +239,74 @@ namespace KOTORModSync.Tests
 						link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
 					.ToList();
 
-				Console.WriteLine($"\n{component.Name}:");
-				Console.WriteLine($"  Deadlystream link(s): {deadlyStreamLinks.Count}");
+				WriteLogAndConsole($"\n{component.Name}:");
+				WriteLogAndConsole($"  Deadlystream link(s): {deadlyStreamLinks.Count}");
 				foreach ( var link in deadlyStreamLinks.Take(2) )
 				{
-					Console.WriteLine($"    - {link}");
+					WriteLogAndConsole($"    - {link}");
 				}
 
-				Console.WriteLine($"  Instructions before: {component.Instructions.Count}");
-				Console.WriteLine($"  Options before: {component.Options.Count}");
+				WriteLogAndConsole($"  Instructions before: {component.Instructions.Count}");
+				WriteLogAndConsole($"  Options before: {component.Options.Count}");
 
 				if ( component.Instructions.Count > 0 )
 				{
 					componentsWithInstructions++;
-					Console.WriteLine($"  ✓ Has {component.Instructions.Count} instruction(s)");
+					WriteLogAndConsole($"  ✓ Has {component.Instructions.Count} instruction(s)");
 				}
 				else
 				{
 					componentsWithoutInstructions.Add(component.Name);
-					Console.WriteLine($"  ✗ No instructions and no ModSync metadata");
+					WriteLogAndConsole($"  ✗ No instructions and no ModSync metadata");
 				}
 			}
 
-			Console.WriteLine($"\n========================================");
-			Console.WriteLine($"Summary for {Path.GetFileName(mdFilePath)}:");
-			Console.WriteLine($"  Total Deadlystream components: {deadlyStreamComponents.Count}");
-			Console.WriteLine($"  Components with ModSync metadata: {componentsAlreadyHaveInstructions}");
-			Console.WriteLine($"  Components needing auto-generation: {deadlyStreamComponents.Count - componentsAlreadyHaveInstructions}");
-			Console.WriteLine($"  Components without instructions: {componentsWithoutInstructions.Count}");
+			WriteLogAndConsole($"\n========================================");
+			WriteLogAndConsole($"Summary for {Path.GetFileName(mdFilePath)}:");
+			WriteLogAndConsole($"  Total Deadlystream components: {deadlyStreamComponents.Count}");
+			WriteLogAndConsole($"  Components with ModSync metadata: {componentsAlreadyHaveInstructions}");
+			WriteLogAndConsole($"  Components needing auto-generation: {deadlyStreamComponents.Count - componentsAlreadyHaveInstructions}");
+			WriteLogAndConsole($"  Components without instructions: {componentsWithoutInstructions.Count}");
 
 			if ( componentsWithoutInstructions.Count > 0 )
 			{
-				Console.WriteLine($"\nComponents without instructions:");
+				WriteLogAndConsole($"\nComponents without instructions:");
 				foreach ( var name in componentsWithoutInstructions.Take(10) )
 				{
-					Console.WriteLine($"  - {name}");
+					WriteLogAndConsole($"  - {name}");
 				}
 
 				if ( componentsWithoutInstructions.Count > 10 )
 				{
-					Console.WriteLine($"  ... and {componentsWithoutInstructions.Count - 10} more");
+					WriteLogAndConsole($"  ... and {componentsWithoutInstructions.Count - 10} more");
 				}
 
+				WriteLog($"FAILURE: {componentsWithoutInstructions.Count} components without instructions");
 				Assert.Fail($"{componentsWithoutInstructions.Count} Deadlystream component(s) in {Path.GetFileName(mdFilePath)} " +
 					$"don't have ModSync metadata/instructions. All mods with Deadlystream links MUST have instructions.");
+			}
+			else
+			{
+				WriteLog("SUCCESS: All Deadlystream components have instructions");
 			}
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
-		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_DeadlyStreamLinksAreValidUrls(string mdFilePath)
 		{
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLog($"Input file: {mdFilePath}");
 
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
+			WriteLog($"Markdown length: {markdown.Length} characters");
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
 			MarkdownParserResult parseResult = parser.Parse(markdown);
-
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLog($"Components parsed: {parseResult.Components.Count}");
 
 			int deadlyStreamLinkCount = 0;
 			int invalidLinks = 0;
@@ -319,41 +324,51 @@ namespace KOTORModSync.Tests
 
 				foreach ( var link in deadlyStreamLinks )
 				{
-
 					if ( !Uri.TryCreate(link, UriKind.Absolute, out Uri? uri) ||
 						(uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) )
 					{
 						invalidLinks++;
-						Console.WriteLine($"  {component.Name}: Invalid URL format: {link}");
+						WriteLogAndConsole($"  {component.Name}: Invalid URL format: {link}");
 					}
 					else if ( !link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase) )
 					{
 						invalidLinks++;
-						Console.WriteLine($"  {component.Name}: Not a Deadlystream URL: {link}");
+						WriteLogAndConsole($"  {component.Name}: Not a Deadlystream URL: {link}");
 					}
 				}
 			}
 
-			Console.WriteLine($"Total Deadlystream links: {deadlyStreamLinkCount}");
-			Console.WriteLine($"Invalid links: {invalidLinks}");
+			WriteLogAndConsole($"Total Deadlystream links: {deadlyStreamLinkCount}");
+			WriteLogAndConsole($"Invalid links: {invalidLinks}");
+
+			if ( invalidLinks == 0 )
+			{
+				WriteLog("SUCCESS: All Deadlystream links are valid URLs");
+			}
+			else
+			{
+				WriteLog($"FAILURE: {invalidLinks} invalid Deadlystream links found");
+			}
 
 			Assert.That(invalidLinks, Is.EqualTo(0), "All Deadlystream links should be valid URLs");
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
-		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_WithModSyncMetadata_HaveValidInstructions(string mdFilePath)
 		{
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLog($"Input file: {mdFilePath}");
 
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
+			WriteLog($"Markdown length: {markdown.Length} characters");
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
 			MarkdownParserResult parseResult = parser.Parse(markdown);
-
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLog($"Components parsed: {parseResult.Components.Count}");
 
 			int componentsWithInstructions = 0;
 			int componentsWithMalformedInstructions = 0;
@@ -373,7 +388,7 @@ namespace KOTORModSync.Tests
 						case Instruction.ActionType.Extract:
 							if ( instruction.Source == null || instruction.Source.Count == 0 )
 							{
-								Console.WriteLine($"  {component.Name}: Extract instruction missing Source");
+								TestContext.Progress.WriteLine($"  {component.Name}: Extract instruction missing Source");
 								hasIssue = true;
 							}
 							break;
@@ -382,12 +397,12 @@ namespace KOTORModSync.Tests
 						case Instruction.ActionType.Copy:
 							if ( instruction.Source == null || instruction.Source.Count == 0 )
 							{
-								Console.WriteLine($"  {component.Name}: {instruction.Action} instruction missing Source");
+								TestContext.Progress.WriteLine($"  {component.Name}: {instruction.Action} instruction missing Source");
 								hasIssue = true;
 							}
 							if ( string.IsNullOrWhiteSpace(instruction.Destination) )
 							{
-								Console.WriteLine($"  {component.Name}: {instruction.Action} instruction missing Destination");
+								TestContext.Progress.WriteLine($"  {component.Name}: {instruction.Action} instruction missing Destination");
 								hasIssue = true;
 							}
 							break;
@@ -395,7 +410,7 @@ namespace KOTORModSync.Tests
 						case Instruction.ActionType.Choose:
 							if ( instruction.Source == null || instruction.Source.Count == 0 )
 							{
-								Console.WriteLine($"  {component.Name}: Choose instruction missing Source (option GUIDs)");
+								TestContext.Progress.WriteLine($"  {component.Name}: Choose instruction missing Source (option GUIDs)");
 								hasIssue = true;
 							}
 							break;
@@ -408,29 +423,40 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			Console.WriteLine($"Components with instructions: {componentsWithInstructions}");
-			Console.WriteLine($"Components with malformed instructions: {componentsWithMalformedInstructions}");
+			WriteLogAndConsole($"Components with instructions: {componentsWithInstructions}");
+			WriteLogAndConsole($"Components with malformed instructions: {componentsWithMalformedInstructions}");
+
+			if ( componentsWithMalformedInstructions == 0 )
+			{
+				WriteLog("SUCCESS: All components with instructions have valid structure");
+			}
+			else
+			{
+				WriteLog($"FAILURE: {componentsWithMalformedInstructions} components have malformed instructions");
+			}
 
 			Assert.That(componentsWithMalformedInstructions, Is.EqualTo(0),
 				"All components with instructions should have valid instruction structure");
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
-		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void ParsedComponents_StatisticsOnInstallationMethods(string mdFilePath)
 		{
+			WriteLogAndConsole($"\n========================================");
+			WriteLogAndConsole($"Installation Method Statistics for {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"========================================");
+			WriteLog($"Input file: {mdFilePath}");
 
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string markdown = File.ReadAllText(mdFilePath);
+			WriteLog($"Markdown length: {markdown.Length} characters");
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
 			MarkdownParserResult parseResult = parser.Parse(markdown);
-
-			Console.WriteLine($"\n========================================");
-			Console.WriteLine($"Installation Method Statistics for {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"========================================");
+			WriteLog($"Components parsed: {parseResult.Components.Count}");
 
 			var methodCounts = new Dictionary<string, int>();
 			var componentsWithDeadlyStream = new Dictionary<string, int>();
@@ -463,21 +489,22 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			Console.WriteLine($"\nTotal components: {parseResult.Components.Count}");
-			Console.WriteLine($"\nInstallation Methods:");
+			WriteLogAndConsole($"\nTotal components: {parseResult.Components.Count}");
+			WriteLogAndConsole($"\nInstallation Methods:");
 			foreach ( var kvp in methodCounts.OrderByDescending(x => x.Value) )
 			{
 				int dsCount = componentsWithDeadlyStream.GetValueOrDefault(kvp.Key, 0);
 				int instrCount = componentsWithInstructions.GetValueOrDefault(kvp.Key, 0);
 
-				Console.WriteLine($"  {kvp.Key}: {kvp.Value} total");
+				WriteLogAndConsole($"  {kvp.Key}: {kvp.Value} total");
 				if ( dsCount > 0 )
 				{
-					Console.WriteLine($"    - {dsCount} with Deadlystream links");
-					Console.WriteLine($"    - {instrCount} with ModSync instructions");
+					WriteLogAndConsole($"    - {dsCount} with Deadlystream links");
+					WriteLogAndConsole($"    - {instrCount} with ModSync instructions");
 				}
 			}
 
+			WriteLog($"Statistics gathered for {Path.GetFileName(mdFilePath)}");
 			Assert.Pass($"Statistics gathered for {Path.GetFileName(mdFilePath)}");
 		}
 	}

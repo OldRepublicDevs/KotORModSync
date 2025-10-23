@@ -58,7 +58,7 @@ namespace KOTORModSync.Tests
 			}
 			catch ( Exception ex )
 			{
-				TestContext.WriteLine($"Warning: Could not delete test directory: {ex.Message}");
+				TestContext.Progress.WriteLine($"Warning: Could not delete test directory: {ex.Message}");
 			}
 
 			_ = new MainConfig
@@ -136,8 +136,8 @@ namespace KOTORModSync.Tests
 		{
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.DelDuplicate,
+			new Instruction {
+				Action = Instruction.ActionType.DelDuplicate,
 					Destination = "<<modDirectory>>",
 					Arguments = fileExtension,
 					Source = compatibleExtensions
@@ -161,8 +161,8 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.DelDuplicate,
+			new Instruction {
+				Action = Instruction.ActionType.DelDuplicate,
 					Destination = "<<modDirectory>>",
 					Arguments = ".txt",
 					Source = [".txt", ".png"]
@@ -192,8 +192,8 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.DelDuplicate,
+			new Instruction {
+				Action = Instruction.ActionType.DelDuplicate,
 					Destination = "<<modDirectory>>",
 					Arguments = ".txt",
 					Source = [".txt", ".png", ".jpg"]
@@ -222,8 +222,8 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.DelDuplicate,
+			new Instruction {
+				Action = Instruction.ActionType.DelDuplicate,
 					Destination = "<<modDirectory>>",
 					Arguments = ".tga",
 					Source = [".tga", ".tpc"]
@@ -251,8 +251,8 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.DelDuplicate,
+			new Instruction {
+				Action = Instruction.ActionType.DelDuplicate,
 					Destination = "<<modDirectory>>",
 					Arguments = ".jpg",
 					Source = [".txt", ".png"]
@@ -275,8 +275,8 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.DelDuplicate,
+			new Instruction {
+				Action = Instruction.ActionType.DelDuplicate,
 					Destination = "<<modDirectory>>",
 					Arguments = ".txt",
 					Source = [".txt"]
@@ -305,8 +305,8 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.DelDuplicate,
+			new Instruction {
+				Action = Instruction.ActionType.DelDuplicate,
 					Destination = "<<modDirectory>>",
 					Arguments = ".txt",
 					Source = [".txt", ".png"]
@@ -328,7 +328,7 @@ namespace KOTORModSync.Tests
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				Console.WriteLine("Test is not possible on Windows.");
+				TestContext.Progress.WriteLine("Test is not possible on Windows.");
 				return;
 			}
 
@@ -343,8 +343,8 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.DelDuplicate,
+			new Instruction {
+				Action = Instruction.ActionType.DelDuplicate,
 					Destination = "<<modDirectory>>",
 					Arguments = ".tpc",
 					Source = [".tpc", ".tga"]

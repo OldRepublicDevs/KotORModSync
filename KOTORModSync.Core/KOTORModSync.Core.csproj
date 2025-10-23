@@ -14,9 +14,9 @@
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
-  <!-- Only use Exe when explicitly building standalone CLI (not when referenced by another project) -->
-  <PropertyGroup Condition="'$(BuildingInsideVisualStudio)' != 'true' AND '$(DesignTimeBuild)' != 'true' AND '$(BuildProjectReferences)' != 'false' AND '$(IsPublishing)' != 'true'">
-    <!-- This allows direct 'dotnet run' on the Core project for CLI usage, but keeps it as Library when referenced -->
+  <!-- Only use Exe when building Core project standalone, not as part of solution/publish -->
+  <!-- This allows 'dotnet run' with the Core project for CLI usage -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'KOTORModSync.Core' AND '$(BuildingProject)' == 'true' AND '$(BuildingInsideVisualStudio)' != 'true' AND '$(DesignTimeBuild)' != 'true' AND '$(IsPublishing)' != 'true' AND '$(BuildProjectReferences)' != 'false'">
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath="" />
+    <None Include="NLog.config" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -67,6 +68,10 @@
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
     <PackageReference Include="Octodiff" Version="1.2.33" />
     <PackageReference Include="$(_NC2)$(_NC3)$(_NC1)" Version="3.0.2" PrivateAssets="all" />
+    <PackageReference Include="NLog" Version="5.3.4" />
+    <PackageReference Include="NLog.Config" Version="4.7.15">
+      <ExcludeAssets>contentFiles</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 

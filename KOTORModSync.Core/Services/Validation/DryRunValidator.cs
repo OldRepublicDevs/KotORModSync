@@ -37,7 +37,7 @@ namespace KOTORModSync.Core.Services.Validation
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex, "Error in simple path validation");
+				await Logger.LogExceptionAsync(ex, "Error in simple path validation");
 				return "⚠️ Validation error";
 			}
 		}
@@ -111,7 +111,7 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 
 				// Execute all previous instructions to update VFS state
-				var allComponents = MainConfig.AllComponents ?? new System.Collections.Generic.List<ModComponent>();
+				var allComponents = MainConfig.AllComponents;
 				for ( int i = 0; i < instructionIndex; i++ )
 				{
 					Instruction prevInstruction = currentComponent.Instructions[i];
@@ -119,7 +119,10 @@ namespace KOTORModSync.Core.Services.Validation
 
 					try
 					{
-						await SimulateInstructionAsync(prevInstruction, i, currentComponent, vfs, allComponents);
+						using ( var cts = new CancellationTokenSource() )
+						{
+							await SimulateInstructionAsync(prevInstruction, i, currentComponent, vfs, allComponents, cts.Token);
+						}
 					}
 					catch ( Exception )
 					{
@@ -212,7 +215,7 @@ namespace KOTORModSync.Core.Services.Validation
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex, "Error in detailed path validation");
+				await Logger.LogExceptionAsync(ex, "Error in detailed path validation");
 				return new PathValidationResult
 				{
 					StatusMessage = "⚠️ Validation error",
@@ -238,7 +241,7 @@ namespace KOTORModSync.Core.Services.Validation
 				{
 					// Look for Extract instructions that might provide this archive
 					// This typically means checking ModLinks
-					if ( component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0 )
+					if ( component.ModLinkFilenames.Count > 0 )
 					{
 						string filename = Path.GetFileName(path.Replace("<<modDirectory>>\\", "").Replace("<<modDirectory>>/", ""));
 
@@ -281,7 +284,8 @@ namespace KOTORModSync.Core.Services.Validation
 			int instructionIndex,
 			ModComponent component,
 			VirtualFileSystemProvider vfs,
-			System.Collections.Generic.List<ModComponent> allComponents)
+			System.Collections.Generic.List<ModComponent> allComponents,
+			CancellationToken cancellationToken = default)
 		{
 			// Use the unified instruction execution pipeline
 			// This ensures dry-run validation matches real execution exactly
@@ -290,13 +294,13 @@ namespace KOTORModSync.Core.Services.Validation
 			try
 			{
 				await component.ExecuteSingleInstructionAsync(
-					instruction,
-					instructionIndex,
-					allComponents,
-					vfs,
-					skipDependencyCheck: true,
-					CancellationToken.None
-				);
+				instruction,
+				instructionIndex,
+				allComponents,
+				vfs,
+				skipDependencyCheck: true,
+				cancellationToken
+			);
 			}
 			catch ( Exception )
 			{
@@ -328,89 +332,120 @@ namespace KOTORModSync.Core.Services.Validation
 		[NotNull]
 		public static async Task<DryRunValidationResult> ValidateInstallationAsync(
 			[NotNull][ItemNotNull] System.Collections.Generic.List<ModComponent> allComponents,
-			[NotNull] bool skipDependencyCheck = true,
-			[NotNull] CancellationToken cancellationToken = default)
+			bool skipDependencyCheck = true,
+			CancellationToken cancellationToken = default)
 		{
+			var sw = System.Diagnostics.Stopwatch.StartNew();
 			var result = new DryRunValidationResult();
-
-			if ( allComponents == null || allComponents.Count == 0 )
-			{
-				result.Issues.Add(new ValidationIssue
-				{
-					Severity = ValidationSeverity.Error,
-					Category = "Validation",
-					Message = "No components to validate"
-				});
-				return result;
-			}
-
-			// Initialize VFS with current file state
-			var vfs = new VirtualFileSystemProvider();
 
 			try
 			{
-				if ( MainConfig.SourcePath != null && MainConfig.SourcePath.Exists )
-				{
-					await Task.Run(() => vfs.InitializeFromRealFileSystem(MainConfig.SourcePath.FullName), cancellationToken);
-				}
-
-				if ( MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists )
-				{
-					await Task.Run(() => vfs.InitializeFromRealFileSystem(MainConfig.DestinationPath.FullName), cancellationToken);
-				}
-			}
-			catch ( Exception ex )
-			{
-				result.Issues.Add(new ValidationIssue
-				{
-					Severity = ValidationSeverity.Warning,
-					Category = "FileSystemInitialization",
-					Message = $"Could not fully initialize file system: {ex.Message}"
-				});
-			}
-
-			// Execute each component in order using ExecuteInstructionsAsync
-			var selectedComponents = allComponents.Where(c => c.IsSelected).ToList();
-
-			foreach ( ModComponent component in selectedComponents )
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-
-				try
-				{
-					// Execute instructions using the component's built-in method with VFS
-					await component.ExecuteInstructionsAsync(
-						component.Instructions,
-						selectedComponents,
-						cancellationToken,
-						vfs,
-						skipDependencyCheck: false
-					);
-
-					// Collect any validation issues from VFS
-					foreach ( ValidationIssue issue in vfs.ValidationIssues )
-					{
-						issue.AffectedComponent = component;
-						result.Issues.Add(issue);
-					}
-				}
-				catch ( OperationCanceledException )
-				{
-					throw;
-				}
-				catch ( Exception ex )
+				if ( allComponents.Count == 0 )
 				{
 					result.Issues.Add(new ValidationIssue
 					{
 						Severity = ValidationSeverity.Error,
 						Category = "Validation",
-						Message = $"Failed to validate component: {ex.Message}",
-						AffectedComponent = component
+						Message = "No components to validate"
+					});
+
+					sw.Stop();
+					Services.TelemetryService.Instance.RecordValidation(
+						validationType: "dry_run",
+						success: false,
+						issueCount: 1,
+						durationMs: sw.Elapsed.TotalMilliseconds
+					);
+					return result;
+				}
+
+				// Initialize VFS with current file state
+				var vfs = new VirtualFileSystemProvider();
+
+				try
+				{
+					if ( MainConfig.SourcePath != null && MainConfig.SourcePath.Exists )
+					{
+						await Task.Run(() => vfs.InitializeFromRealFileSystem(MainConfig.SourcePath.FullName), cancellationToken);
+					}
+
+					if ( MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists )
+					{
+						await Task.Run(() => vfs.InitializeFromRealFileSystem(MainConfig.DestinationPath.FullName), cancellationToken);
+					}
+				}
+				catch ( Exception ex )
+				{
+					result.Issues.Add(new ValidationIssue
+					{
+						Severity = ValidationSeverity.Warning,
+						Category = "FileSystemInitialization",
+						Message = $"Could not fully initialize file system: {ex.Message}"
 					});
 				}
-			}
 
-			return result;
+				// Execute each component in order using ExecuteInstructionsAsync
+				var selectedComponents = allComponents.Where(c => c.IsSelected).ToList();
+
+				foreach ( ModComponent component in selectedComponents )
+				{
+					cancellationToken.ThrowIfCancellationRequested();
+
+					try
+					{
+						// Execute instructions using the component's built-in method with VFS
+						await component.ExecuteInstructionsAsync(
+							component.Instructions,
+							selectedComponents,
+							cancellationToken,
+							vfs,
+							skipDependencyCheck: false
+						);
+
+						// Collect any validation issues from VFS
+						foreach ( ValidationIssue issue in vfs.ValidationIssues )
+						{
+							issue.AffectedComponent = component;
+							result.Issues.Add(issue);
+						}
+					}
+					catch ( OperationCanceledException )
+					{
+						throw;
+					}
+					catch ( Exception ex )
+					{
+						result.Issues.Add(new ValidationIssue
+						{
+							Severity = ValidationSeverity.Error,
+							Category = "Validation",
+							Message = $"Failed to validate component: {ex.Message}",
+							AffectedComponent = component
+						});
+					}
+				}
+
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordValidation(
+					validationType: "dry_run",
+					success: result.Issues.Count(i => i.Severity == ValidationSeverity.Error) == 0,
+					issueCount: result.Issues.Count,
+					durationMs: sw.Elapsed.TotalMilliseconds
+				);
+
+				return result;
+			}
+			catch ( Exception ex )
+			{
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordValidation(
+					validationType: "dry_run",
+					success: false,
+					issueCount: result.Issues.Count,
+					durationMs: sw.Elapsed.TotalMilliseconds
+				);
+				throw;
+			}
 		}
 	}
 }

@@ -280,6 +280,218 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
+		public void RecordDownload(
+			string modName,
+			bool success,
+			double durationMs,
+			long bytesDownloaded,
+			string downloadSource = null,
+			string errorMessage = null)
+		{
+			if ( !IsEnabled || !_config.CollectUsageData )
+				return;
+
+			try
+			{
+				var tags = new Dictionary<string, object>
+				{
+					["mod.name.hash"] = HashString(modName),
+					["success"] = success,
+					["download.source"] = downloadSource ?? "unknown"
+				};
+
+				if ( !success && !string.IsNullOrEmpty(errorMessage) )
+				{
+					tags["error.type"] = HashString(errorMessage);
+				}
+
+				_downloadCounter?.Add(1, CreateTagList("download", tags));
+
+				if ( bytesDownloaded > 0 )
+				{
+					_downloadSize?.Record(bytesDownloaded, CreateTagList("download.size", tags));
+				}
+
+				if ( _config.CollectPerformanceMetrics )
+				{
+					_operationDuration?.Record(durationMs, CreateTagList("download", tags));
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record download");
+			}
+		}
+
+		public void RecordValidation(string validationType, bool success, int issueCount, double durationMs)
+		{
+			if ( !IsEnabled || !_config.CollectUsageData )
+				return;
+
+			try
+			{
+				var tags = new Dictionary<string, object>
+				{
+					["validation.type"] = validationType,
+					["success"] = success,
+					["issue.count"] = issueCount
+				};
+
+				_modValidationCounter?.Add(1, CreateTagList("validation", tags));
+
+				if ( _config.CollectPerformanceMetrics )
+				{
+					_operationDuration?.Record(durationMs, CreateTagList("validation", tags));
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record validation");
+			}
+		}
+
+		public void RecordFileOperation(string operationType, bool success, int fileCount, double durationMs, string errorMessage = null)
+		{
+			if ( !IsEnabled || !_config.CollectUsageData )
+				return;
+
+			try
+			{
+				var tags = new Dictionary<string, object>
+				{
+					["operation.type"] = operationType,
+					["success"] = success,
+					["file.count"] = fileCount
+				};
+
+				if ( !success && !string.IsNullOrEmpty(errorMessage) )
+				{
+					tags["error.type"] = HashString(errorMessage);
+				}
+
+				_eventCounter?.Add(1, CreateTagList("file.operation", tags));
+
+				if ( _config.CollectPerformanceMetrics )
+				{
+					_operationDuration?.Record(durationMs, CreateTagList("file.operation", tags));
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record file operation");
+			}
+		}
+
+		public void RecordComponentExecution(string componentName, bool success, int instructionCount, double durationMs, string errorMessage = null)
+		{
+			if ( !IsEnabled || !_config.CollectUsageData )
+				return;
+
+			try
+			{
+				var tags = new Dictionary<string, object>
+				{
+					["component.name.hash"] = HashString(componentName),
+					["success"] = success,
+					["instruction.count"] = instructionCount
+				};
+
+				if ( !success && !string.IsNullOrEmpty(errorMessage) )
+				{
+					tags["error.type"] = HashString(errorMessage);
+				}
+
+				_eventCounter?.Add(1, CreateTagList("component.execution", tags));
+
+				if ( _config.CollectPerformanceMetrics )
+				{
+					_operationDuration?.Record(durationMs, CreateTagList("component.execution", tags));
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record component execution");
+			}
+		}
+
+		public void RecordParsingOperation(string fileType, bool success, int componentCount, double durationMs, string errorMessage = null)
+		{
+			if ( !IsEnabled || !_config.CollectUsageData )
+				return;
+
+			try
+			{
+				var tags = new Dictionary<string, object>
+				{
+					["file.type"] = fileType,
+					["success"] = success,
+					["component.count"] = componentCount
+				};
+
+				if ( !success && !string.IsNullOrEmpty(errorMessage) )
+				{
+					tags["error.type"] = HashString(errorMessage);
+				}
+
+				_eventCounter?.Add(1, CreateTagList("parsing", tags));
+
+				if ( _config.CollectPerformanceMetrics )
+				{
+					_operationDuration?.Record(durationMs, CreateTagList("parsing", tags));
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record parsing operation");
+			}
+		}
+
+		public void RecordSessionStart(int componentCount, int selectedCount)
+		{
+			if ( !IsEnabled || !_config.CollectUsageData )
+				return;
+
+			try
+			{
+				var tags = new Dictionary<string, object>
+				{
+					["component.total"] = componentCount,
+					["component.selected"] = selectedCount
+				};
+
+				_eventCounter?.Add(1, CreateTagList("session.start", tags));
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record session start");
+			}
+		}
+
+		public void RecordSessionEnd(double durationMs, bool completed)
+		{
+			if ( !IsEnabled || !_config.CollectUsageData )
+				return;
+
+			try
+			{
+				var tags = new Dictionary<string, object>
+				{
+					["completed"] = completed
+				};
+
+				_eventCounter?.Add(1, CreateTagList("session.end", tags));
+
+				if ( _config.CollectPerformanceMetrics )
+				{
+					_operationDuration?.Record(durationMs, CreateTagList("session", tags));
+				}
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record session end");
+			}
+		}
+
 		public void RecordError(string errorType, string errorMessage, string stackTrace = null)
 		{
 			if ( !IsEnabled || !_config.CollectCrashReports )

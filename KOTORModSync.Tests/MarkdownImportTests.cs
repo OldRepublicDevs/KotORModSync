@@ -276,7 +276,6 @@ ___";
 		}
 
 		[Test]
-		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public void FullMarkdownFile_ParsesAllMods()
 		{
 
@@ -289,57 +288,57 @@ ___";
 			MarkdownParserResult result = parser.Parse(fullMarkdown);
 			IList<Core.ModComponent> components = result.Components;
 
-			Console.WriteLine($"Total mods found: {components.Count}");
+			TestContext.Progress.WriteLine($"Total mods found: {components.Count}");
 
 			var modNames = components.Select(c => c.Name).ToList();
 			var modAuthors = components.Select(c => c.Author).ToList();
 			var modCategories = components.Select(c => $"{c.Category} / {c.Tier}").ToList();
 			var modDescriptions = components.Select(c => c.Description).ToList();
 
-			Console.WriteLine($"Mods with authors: {modAuthors.Count(a => !string.IsNullOrWhiteSpace(a))}");
-			Console.WriteLine($"Mods with categories: {modCategories.Count(c => !string.IsNullOrWhiteSpace(c))}");
-			Console.WriteLine($"Mods with descriptions: {modDescriptions.Count(d => !string.IsNullOrWhiteSpace(d))}");
+			TestContext.Progress.WriteLine($"Mods with authors: {modAuthors.Count(a => !string.IsNullOrWhiteSpace(a))}");
+			TestContext.Progress.WriteLine($"Mods with categories: {modCategories.Count(c => !string.IsNullOrWhiteSpace(c))}");
+			TestContext.Progress.WriteLine($"Mods with descriptions: {modDescriptions.Count(d => !string.IsNullOrWhiteSpace(d))}");
 
-			Console.WriteLine("\nFirst 15 mods:");
+			TestContext.Progress.WriteLine("\nFirst 15 mods:");
 			for ( int i = 0; i < Math.Min(15, components.Count); i++ )
 			{
 				Core.ModComponent component = components[i];
-				Console.WriteLine($"{i + 1}. {component.Name}");
+				TestContext.Progress.WriteLine($"{i + 1}. {component.Name}");
 				int linkIndex = 0;
 				foreach ( string modLink in component.ModLinkFilenames.Keys )
 				{
 					linkIndex++;
-					Console.WriteLine($"   ModLinkFilenames {linkIndex}: {modLink}");
+					TestContext.Progress.WriteLine($"   ModLinkFilenames {linkIndex}: {modLink}");
 				}
-				Console.WriteLine($"   Author: {component.Author}");
+				TestContext.Progress.WriteLine($"   Author: {component.Author}");
 				string categoryStr = component.Category.Count > 0
 					? string.Join(", ", component.Category)
 					: "No category";
-				Console.WriteLine($"   Category: {categoryStr} / {component.Tier}");
-				Console.WriteLine($"   Description: {component.Description}");
-				Console.WriteLine($"   Directions: {component.Directions}");
-				Console.WriteLine($"   Installation Method: {component.InstallationMethod}");
+				TestContext.Progress.WriteLine($"   Category: {categoryStr} / {component.Tier}");
+				TestContext.Progress.WriteLine($"   Description: {component.Description}");
+				TestContext.Progress.WriteLine($"   Directions: {component.Directions}");
+				TestContext.Progress.WriteLine($"   Installation Method: {component.InstallationMethod}");
 			}
 
-			Console.WriteLine("\nLast 5 mods:");
+			TestContext.Progress.WriteLine("\nLast 5 mods:");
 			for ( int i = Math.Max(0, components.Count - 5); i < components.Count; i++ )
 			{
 				Core.ModComponent component = components[i];
-				Console.WriteLine($"{i + 1}. {component.Name}");
+				TestContext.Progress.WriteLine($"{i + 1}. {component.Name}");
 				int linkIndex = 0;
 				foreach ( string modLink in component.ModLinkFilenames.Keys )
 				{
 					linkIndex++;
-					Console.WriteLine($"   ModLinkFilenames {linkIndex}: {modLink}");
+					TestContext.Progress.WriteLine($"   ModLinkFilenames {linkIndex}: {modLink}");
 				}
-				Console.WriteLine($"   Author: {component.Author}");
+				TestContext.Progress.WriteLine($"   Author: {component.Author}");
 				string categoryStr = component.Category.Count > 0
 					? string.Join(", ", component.Category)
 					: "No category";
-				Console.WriteLine($"   Category: {categoryStr} / {component.Tier}");
-				Console.WriteLine($"   Description: {component.Description}");
-				Console.WriteLine($"   Directions: {component.Directions}");
-				Console.WriteLine($"   Installation Method: {component.InstallationMethod}");
+				TestContext.Progress.WriteLine($"   Category: {categoryStr} / {component.Tier}");
+				TestContext.Progress.WriteLine($"   Description: {component.Description}");
+				TestContext.Progress.WriteLine($"   Directions: {component.Directions}");
+				TestContext.Progress.WriteLine($"   Installation Method: {component.InstallationMethod}");
 			}
 
 			Assert.That(components, Has.Count.GreaterThan(70), $"Expected to find more than 70 mod entries in full.md, found {components.Count}");
@@ -562,9 +561,9 @@ ___";
 			string generatedDocs = ModComponentSerializationService.GenerateModDocumentation(firstParse.Components.ToList());
 
 			// Debug output to see what was generated
-			Console.WriteLine("=== GENERATED MARKDOWN ===");
-			Console.WriteLine(generatedDocs);
-			Console.WriteLine("=== END GENERATED MARKDOWN ===");
+			TestContext.Progress.WriteLine("=== GENERATED MARKDOWN ===");
+			TestContext.Progress.WriteLine(generatedDocs);
+			TestContext.Progress.WriteLine("=== END GENERATED MARKDOWN ===");
 
 			MarkdownParserResult secondParse = parser.Parse(generatedDocs);
 

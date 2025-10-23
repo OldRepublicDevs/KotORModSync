@@ -193,7 +193,7 @@ namespace KOTORModSync.Tests
 
 			var createdFiles = new ConcurrentBag<string>();
 			int eventCount = 0;
-			object lockObj = new();
+			object lockObj = new object();
 
 			watcher.Created += (_, e) =>
 			{
@@ -310,7 +310,7 @@ namespace KOTORModSync.Tests
 
 			var deletedFiles = new ConcurrentBag<string>();
 			int eventCount = 0;
-			object lockObj = new();
+			object lockObj = new object();
 
 			watcher.Deleted += (_, e) =>
 			{

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -117,6 +118,14 @@ namespace KOTORModSync.Controls
 			var newList = new List<string>(DownloadLinks) { string.Empty };
 			DownloadLinks = newList;
 
+			// Also update ModLinkFilenames on the component
+			var component = GetCurrentComponent();
+			if ( component != null )
+			{
+				// Add empty entry for new URL (will be populated when user enters URL)
+				SyncDownloadLinksToModLinkFilenames(component, newList);
+			}
+
 			Dispatcher.UIThread.Post(() =>
 			{
 				try
@@ -148,11 +157,21 @@ namespace KOTORModSync.Controls
 			if ( index < 0 || index >= DownloadLinks.Count )
 				return;
 
+			// Get the URL being removed
+			string urlToRemove = DownloadLinks[index];
+
 			_isUpdatingFromTextBox = false;
 
 			var newList = new List<string>(DownloadLinks);
 			newList.RemoveAt(index);
 			DownloadLinks = newList;
+
+			// Also remove from ModLinkFilenames
+			var component = GetCurrentComponent();
+			if ( component != null && !string.IsNullOrWhiteSpace(urlToRemove) )
+			{
+				component.ModLinkFilenames.Remove(urlToRemove);
+			}
 		}
 
 		private void OpenLink_Click(object sender, RoutedEventArgs e)
@@ -191,9 +210,10 @@ namespace KOTORModSync.Controls
 			if ( index < 0 || index >= DownloadLinks.Count )
 				return;
 
+			string oldUrl = DownloadLinks[index];
 			string newText = textBox.Text ?? string.Empty;
 
-			if ( DownloadLinks[index] == newText )
+			if ( oldUrl == newText )
 			{
 				UpdateUrlValidation(textBox);
 				return;
@@ -208,6 +228,29 @@ namespace KOTORModSync.Controls
 					[index] = newText
 				};
 				DownloadLinks = newList;
+
+				// Update ModLinkFilenames on component
+				var component = GetCurrentComponent();
+				if ( component != null )
+				{
+					// Remove old URL entry if it existed
+					if ( !string.IsNullOrWhiteSpace(oldUrl) && component.ModLinkFilenames.ContainsKey(oldUrl) )
+					{
+						var oldFilenames = component.ModLinkFilenames[oldUrl];
+						component.ModLinkFilenames.Remove(oldUrl);
+
+						// If new URL is valid, transfer the filenames to it
+						if ( !string.IsNullOrWhiteSpace(newText) )
+						{
+							component.ModLinkFilenames[newText] = oldFilenames;
+						}
+					}
+					else if ( !string.IsNullOrWhiteSpace(newText) && !component.ModLinkFilenames.ContainsKey(newText) )
+					{
+						// New URL without previous entry
+						component.ModLinkFilenames[newText] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+					}
+				}
 			}
 			finally
 			{
@@ -333,58 +376,58 @@ namespace KOTORModSync.Controls
 
 				await Logger.LogAsync($"[DownloadLinksControl] Resolving filenames for URL: {url}");
 
-				var resolved = await DownloadCacheService.DownloadManager.ResolveUrlsToFilenamesAsync(
-					new List<string> { url },
-					System.Threading.CancellationToken.None);
-
-				if ( resolved.TryGetValue(url, out List<string> filenames) && filenames.Count > 0 )
+				using ( var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)) )
 				{
-					await Logger.LogAsync($"[DownloadLinksControl] Resolved {filenames.Count} filename(s) for URL: {url}");
+					var resolved = await DownloadCacheService.DownloadManager.ResolveUrlsToFilenamesAsync(
+						new List<string> { url },
+						cts.Token);
 
-					var component = GetCurrentComponent();
-					if ( component != null )
+					if ( resolved.TryGetValue(url, out List<string> filenames) && filenames.Count > 0 )
 					{
-						if ( component.ModLinkFilenames == null )
-							component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+						await Logger.LogAsync($"[DownloadLinksControl] Resolved {filenames.Count} filename(s) for URL: {url}");
 
-						if ( !component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) )
+						ModComponent component = GetCurrentComponent();
+						if ( component != null )
 						{
-							filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
-							component.ModLinkFilenames[url] = filenameDict;
-						}
-
-						foreach ( string filename in filenames )
-						{
-							if ( !string.IsNullOrWhiteSpace(filename) && !filenameDict.ContainsKey(filename) )
+							if ( !component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) )
 							{
-								filenameDict[filename] = true;
+								filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+								component.ModLinkFilenames[url] = filenameDict;
 							}
-						}
 
-						UpdateFilenamePanelForUrl(url);
+							foreach ( string filename in filenames )
+							{
+								if ( !string.IsNullOrWhiteSpace(filename) && !filenameDict.ContainsKey(filename) )
+								{
+									filenameDict[filename] = true;
+								}
+							}
+
+							UpdateFilenamePanelForUrl(url);
+						}
 					}
-				}
-				else
-				{
-					var component = GetCurrentComponent();
-					string componentInfo = component != null ? $" [Component: '{component.Name}']" : "";
-					var expectedFilenames = component?.ModLinkFilenames?.TryGetValue(url, out var filenameDict) == true
-						? string.Join(", ", filenameDict.Keys)
-						: "none";
-					await Logger.LogWarningAsync($"[DownloadLinksControl] Failed to resolve filenames for URL: {url}{componentInfo} Expected filename(s): {expectedFilenames}");
+					else
+					{
+						var component = GetCurrentComponent();
+						string componentInfo = component != null ? $" [Component: '{component.Name}']" : "";
+						var expectedFilenames = component?.ModLinkFilenames.TryGetValue(url, out var filenameDict) == true
+							? string.Join(", ", filenameDict.Keys)
+							: "none";
+						await Logger.LogWarningAsync($"[DownloadLinksControl] Failed to resolve filenames for URL: {url}{componentInfo} Expected filename(s): {expectedFilenames}");
+					}
 				}
 			}
 			catch ( Exception ex )
 			{
 				var component = GetCurrentComponent();
 				string componentInfo = component != null ? $" [Component: '{component.Name}']" : "";
-				Logger.LogException(ex, $"Error resolving filenames for URL: {button.Tag}{componentInfo}");
+				await Logger.LogExceptionAsync(ex, $"Error resolving filenames for URL: {button.Tag}{componentInfo}");
 			}
 		}
 
 		private ModComponent GetCurrentComponent()
 		{
-			if ( ComponentGuid != Guid.Empty && MainConfig.AllComponents != null )
+			if ( ComponentGuid != Guid.Empty )
 			{
 				return MainConfig.AllComponents.FirstOrDefault(c => c.Guid == ComponentGuid);
 			}
@@ -458,39 +501,87 @@ namespace KOTORModSync.Controls
 			panel.Children.Clear();
 
 			var component = GetCurrentComponent();
-			if ( component == null || component.ModLinkFilenames == null )
+			if ( component == null )
 				return;
 
-			if ( !component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) ||
-				 filenameDict.Count == 0 )
+			if ( !component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) )
+			{
+				// URL exists but no filename dictionary - create an empty one
+				filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+				component.ModLinkFilenames[url] = filenameDict;
+			}
+
+			if ( filenameDict.Count == 0 )
+			{
+				var emptyText = new TextBlock
+				{
+					Text = "No filenames added yet. Click 'Add Filename Manually' or '📥' to resolve from URL.",
+					FontSize = 10,
+					Opacity = 0.6,
+					TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+					Margin = new Thickness(0, 2, 0, 2)
+				};
+				panel.Children.Add(emptyText);
 				return;
+			}
 
 			var headerText = new TextBlock
 			{
-				Text = "Resolved Filenames:",
+				Text = $"Filenames ({filenameDict.Count}):",
 				FontSize = 10,
 				Opacity = 0.7,
 				Margin = new Thickness(0, 4, 0, 2)
 			};
 			panel.Children.Add(headerText);
 
+			var helpText = new TextBlock
+			{
+				Text = "☑ = Download | ☐ = Skip | ▣ = Auto-detect",
+				FontSize = 9,
+				Opacity = 0.5,
+				Margin = new Thickness(0, 0, 0, 4)
+			};
+			panel.Children.Add(helpText);
+
 			foreach ( var filenameEntry in filenameDict )
 			{
 				string filename = filenameEntry.Key;
 				bool? shouldDownload = filenameEntry.Value;
 
+				var fileGrid = new Grid
+				{
+					ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+					Margin = new Thickness(0, 1, 0, 1)
+				};
+
 				var checkBox = new CheckBox
 				{
 					Content = filename,
 					IsChecked = shouldDownload,
+					IsThreeState = true,
 					FontSize = 11,
-					Margin = new Thickness(0, 1, 0, 1),
 					Tag = new Tuple<string, string>(url, filename)
 				};
-
 				checkBox.IsCheckedChanged += FilenameCheckBox_IsCheckedChanged;
 
-				panel.Children.Add(checkBox);
+				var removeButton = new Button
+				{
+					Content = "❌",
+					FontSize = 9,
+					Padding = new Thickness(4, 2),
+					Margin = new Thickness(4, 0, 0, 0),
+					Tag = new Tuple<string, string>(url, filename)
+				};
+				ToolTip.SetTip(removeButton, $"Remove {filename}");
+				removeButton.Click += RemoveFilename_Click;
+
+				Grid.SetColumn(checkBox, 0);
+				Grid.SetColumn(removeButton, 1);
+
+				fileGrid.Children.Add(checkBox);
+				fileGrid.Children.Add(removeButton);
+
+				panel.Children.Add(fileGrid);
 			}
 		}
 
@@ -504,7 +595,7 @@ namespace KOTORModSync.Controls
 			bool shouldDownload = checkBox.IsChecked ?? true;
 
 			var component = GetCurrentComponent();
-			if ( component == null || component.ModLinkFilenames == null )
+			if ( component == null )
 				return;
 
 			if ( component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) &&
@@ -512,6 +603,166 @@ namespace KOTORModSync.Controls
 			{
 				filenameDict[filename] = shouldDownload;
 				Logger.LogVerbose($"[DownloadLinksControl] Updated download flag for '{filename}': {shouldDownload}");
+			}
+		}
+
+		/// <summary>
+		/// Syncs the DownloadLinks list to the component's ModLinkFilenames dictionary.
+		/// Ensures ModLinkFilenames contains all URLs from DownloadLinks.
+		/// </summary>
+		private void SyncDownloadLinksToModLinkFilenames(ModComponent component, List<string> urlList)
+		{
+			if ( component == null || urlList == null )
+				return;
+
+			// Add any new URLs to ModLinkFilenames
+			foreach ( string url in urlList )
+			{
+				if ( !string.IsNullOrWhiteSpace(url) && !component.ModLinkFilenames.ContainsKey(url) )
+				{
+					component.ModLinkFilenames[url] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+					Logger.LogVerbose($"[DownloadLinksControl] Added new URL to ModLinkFilenames: {url}");
+				}
+			}
+
+			// Remove URLs that are no longer in the list
+			var urlsToRemove = component.ModLinkFilenames.Keys
+				.Where(url => !urlList.Contains(url))
+				.ToList();
+
+			foreach ( string url in urlsToRemove )
+			{
+				component.ModLinkFilenames.Remove(url);
+				Logger.LogVerbose($"[DownloadLinksControl] Removed URL from ModLinkFilenames: {url}");
+			}
+		}
+
+		private async void AddFilename_Click(object sender, RoutedEventArgs e)
+		{
+			if ( !(sender is Button button) || !(button.Tag is string url) )
+				return;
+
+			if ( string.IsNullOrWhiteSpace(url) )
+				return;
+
+			var component = GetCurrentComponent();
+			if ( component == null )
+				return;
+
+			// Prompt user for filename
+			try
+			{
+				// Create a simple input dialog
+				var dialog = new Window
+				{
+					Title = "Add Filename",
+					Width = 500,
+					Height = 200,
+					WindowStartupLocation = WindowStartupLocation.CenterOwner,
+					CanResize = false
+				};
+
+				var stackPanel = new StackPanel
+				{
+					Margin = new Thickness(16),
+					Spacing = 12
+				};
+
+				var messageText = new TextBlock
+				{
+					Text = $"Enter filename to add to URL:\n{url}",
+					TextWrapping = Avalonia.Media.TextWrapping.Wrap
+				};
+
+				var inputBox = new TextBox
+				{
+					Watermark = "example_mod_v1.0.zip"
+				};
+
+				var buttonPanel = new StackPanel
+				{
+					Orientation = Avalonia.Layout.Orientation.Horizontal,
+					HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+					Spacing = 8
+				};
+
+				var okButton = new Button { Content = "Add", Width = 80 };
+				var cancelButton = new Button { Content = "Cancel", Width = 80 };
+
+				string result = null;
+
+				okButton.Click += (s, args) =>
+				{
+					result = inputBox.Text;
+					dialog.Close();
+				};
+
+				cancelButton.Click += (s, args) =>
+				{
+					result = null;
+					dialog.Close();
+				};
+
+				buttonPanel.Children.Add(okButton);
+				buttonPanel.Children.Add(cancelButton);
+
+				stackPanel.Children.Add(messageText);
+				stackPanel.Children.Add(inputBox);
+				stackPanel.Children.Add(buttonPanel);
+
+				dialog.Content = stackPanel;
+
+				await dialog.ShowDialog(this.GetVisualRoot() as Window);
+
+				string filename = result;
+
+				if ( string.IsNullOrWhiteSpace(filename) )
+					return;
+
+				if ( !component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) )
+				{
+					filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+					component.ModLinkFilenames[url] = filenameDict;
+				}
+
+				if ( filenameDict.ContainsKey(filename) )
+				{
+					Logger.LogWarning($"[DownloadLinksControl] Filename already exists: {filename}");
+					return;
+				}
+
+				// Add with null (auto-detect) by default
+				filenameDict[filename] = null;
+				Logger.LogVerbose($"[DownloadLinksControl] Added filename '{filename}' to URL '{url}'");
+
+				// Refresh the panel
+				UpdateFilenamePanelForUrl(url);
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, "Error adding filename");
+			}
+		}
+
+		private void RemoveFilename_Click(object sender, RoutedEventArgs e)
+		{
+			if ( !(sender is Button button) || !(button.Tag is Tuple<string, string> tag) )
+				return;
+
+			string url = tag.Item1;
+			string filename = tag.Item2;
+
+			var component = GetCurrentComponent();
+			if ( component == null )
+				return;
+
+			if ( component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict) )
+			{
+				if ( filenameDict.Remove(filename) )
+				{
+					Logger.LogVerbose($"[DownloadLinksControl] Removed filename '{filename}' from URL '{url}'");
+					UpdateFilenamePanelForUrl(url);
+				}
 			}
 		}
 	}

@@ -16,13 +16,14 @@ namespace KOTORModSync.Services
 	public class FileSystemService : IDisposable
 	{
 		private CrossPlatformFileWatcher _modDirectoryWatcher;
-		private Action _onDirectoryChanged;
+		private Action<string> _onDirectoryChanged;
 		private bool _disposed;
 		private Timer _debounceTimer;
 		private readonly object _timerLock = new object();
 		private const int DebounceDelayMs = 2000;
+		private string _lastChangedFile;
 
-		public void SetupModDirectoryWatcher(string path, Action onDirectoryChanged)
+		public void SetupModDirectoryWatcher(string path, Action<string> onDirectoryChanged)
 		{
 			try
 			{
@@ -81,6 +82,8 @@ namespace KOTORModSync.Services
 
 		private void OnModDirectoryChanged(object sender, FileSystemEventArgs e)
 		{
+			// Store the changed file path for the debounced callback
+			_lastChangedFile = e.FullPath;
 
 			lock ( _timerLock )
 			{
@@ -89,16 +92,17 @@ namespace KOTORModSync.Services
 
 				_debounceTimer = new Timer(_ =>
 				{
+					string changedFile = _lastChangedFile;
 
 					Dispatcher.UIThread.Post(() =>
 					{
 						try
 						{
-							Logger.Log($"[File Watcher] Detected changes in mod directory ({e.ChangeType}: {Path.GetFileName(e.FullPath)}), running validation...");
+							Logger.Log($"[File Watcher] Detected changes in mod directory ({e.ChangeType}: {Path.GetFileName(changedFile)}), running validation...");
 
 							NamespacesIniOptionConverter.InvalidateCache();
 
-							_onDirectoryChanged?.Invoke();
+							_onDirectoryChanged?.Invoke(changedFile);
 						}
 						catch ( Exception ex )
 						{

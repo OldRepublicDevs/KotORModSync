@@ -182,16 +182,16 @@ namespace KOTORModSync.Tests
 
 				if ( !File.Exists(fullPath) )
 				{
-					Console.WriteLine($"VERIFY FAILED: Missing file {file.Value.Path}");
+					TestContext.Progress.WriteLine($"VERIFY FAILED: Missing file {file.Value.Path}");
 					return false;
 				}
 
 				string currentHash = await ComputeFileHashAsync(fullPath);
 				if ( currentHash != file.Value.Hash )
 				{
-					Console.WriteLine($"VERIFY FAILED: Hash mismatch for {file.Value.Path}");
-					Console.WriteLine($"  Expected: {file.Value.Hash}");
-					Console.WriteLine($"  Actual: {currentHash}");
+					TestContext.Progress.WriteLine($"VERIFY FAILED: Hash mismatch for {file.Value.Path}");
+					TestContext.Progress.WriteLine($"  Expected: {file.Value.Hash}");
+					TestContext.Progress.WriteLine($"  Actual: {currentHash}");
 					return false;
 				}
 			}
@@ -564,9 +564,9 @@ namespace KOTORModSync.Tests
 			long totalDeltaSize = checkpoints.Sum(c => c.DeltaSize);
 			long totalFileSize = checkpoints.Sum(c => c.TotalSize);
 
-			Console.WriteLine($"Total file size: {totalFileSize:N0} bytes");
-			Console.WriteLine($"Total delta size: {totalDeltaSize:N0} bytes");
-			Console.WriteLine($"Storage efficiency: {(double)totalDeltaSize / totalFileSize * 100:F2}%");
+			TestContext.Progress.WriteLine($"Total file size: {totalFileSize:N0} bytes");
+			TestContext.Progress.WriteLine($"Total delta size: {totalDeltaSize:N0} bytes");
+			TestContext.Progress.WriteLine($"Storage efficiency: {(double)totalDeltaSize / totalFileSize * 100:F2}%");
 
 			Assert.That(totalDeltaSize, Is.LessThan(totalFileSize), "Delta storage should be smaller than full storage");
 		}
@@ -856,8 +856,8 @@ namespace KOTORModSync.Tests
 			double avgSeconds = timings.Average(t => t.TotalSeconds);
 			double maxSeconds = timings.Max(t => t.TotalSeconds);
 
-			Console.WriteLine($"Average checkpoint creation time: {avgSeconds:F2} seconds");
-			Console.WriteLine($"Max checkpoint creation time: {maxSeconds:F2} seconds");
+			TestContext.Progress.WriteLine($"Average checkpoint creation time: {avgSeconds:F2} seconds");
+			TestContext.Progress.WriteLine($"Max checkpoint creation time: {maxSeconds:F2} seconds");
 
 			Assert.Multiple(() =>
 			{
@@ -872,7 +872,7 @@ namespace KOTORModSync.Tests
 			await _checkpointService.RestoreCheckpointAsync(targetCheckpoint.Id);
 			restoreSw.Stop();
 
-			Console.WriteLine($"Restore time (checkpoint 50 → 25): {restoreSw.Elapsed.TotalSeconds:F2} seconds");
+			TestContext.Progress.WriteLine($"Restore time (checkpoint 50 → 25): {restoreSw.Elapsed.TotalSeconds:F2} seconds");
 			Assert.That(restoreSw.Elapsed.TotalSeconds, Is.LessThan(120.0), "Restore should complete within 2 minutes");
 		}
 

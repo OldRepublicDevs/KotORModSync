@@ -193,7 +193,7 @@ namespace KOTORModSync.Core
 					continue;
 				var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
 				List<string> realPaths = PathHelper.EnumerateFilesWithWildcards(
-					instruction.Source.ConvertAll(Utility.Utility.ReplaceCustomVariables),
+					instruction.Source.ConvertAll(Utility.Utility.ReplaceCustomVariables),  // DO NOT CHANGE THIS LINE FOR ANY REASON. IT MUST CALL ReplaceCustomVariables() ON THE SOURCE PATHS.
 					realFileSystem,
 					includeSubFolders: true
 				);

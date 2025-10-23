@@ -20,6 +20,153 @@ namespace KOTORModSync.Core.Services
 
 	public static class AutoInstructionGenerator
 	{
+		/// <summary>
+		/// Attempts to generate instructions from archive with detailed result information
+		/// </summary>
+		public static GenerationResult TryGenerateInstructionsFromArchiveDetailed([NotNull] ModComponent component)
+		{
+			if ( component is null )
+				throw new ArgumentNullException(nameof(component));
+
+			var result = new GenerationResult
+			{
+				ComponentGuid = component.Guid,
+				ComponentName = component.Name,
+				Success = false,
+				InstructionsGenerated = 0,
+				SkipReason = string.Empty
+			};
+
+			try
+			{
+				if ( component.Instructions.Count > 0 )
+				{
+					result.SkipReason = "Component already has instructions";
+					return result;
+				}
+				if ( component.ModLinkFilenames.Count == 0 )
+				{
+					result.SkipReason = "No mod links available";
+					return result;
+				}
+				if ( MainConfig.SourcePath == null || !MainConfig.SourcePath.Exists )
+				{
+					result.SkipReason = "Source path not configured or doesn't exist";
+					return result;
+				}
+
+				string firstModLink = component.ModLinkFilenames.Keys.FirstOrDefault();
+				if ( string.IsNullOrWhiteSpace(firstModLink) )
+				{
+					result.SkipReason = "No valid mod links found";
+					return result;
+				}
+
+				string searchTerm = ExtractSearchTermFromModLink(firstModLink, component.Name);
+				Logger.LogVerbose($"[TryGenerateInstructions] Component '{component.Name}': Searching for archive matching '{searchTerm}'");
+
+				string[] archiveExtensions = { "*.zip", "*.rar", "*.7z", "*.exe" };
+				var allArchives = archiveExtensions
+					.SelectMany(ext => MainConfig.SourcePath.GetFiles(ext, SearchOption.TopDirectoryOnly))
+					.Where(f => f.Exists)
+					.ToList();
+
+				if ( allArchives.Count == 0 )
+				{
+					result.SkipReason = "No archives found in source directory";
+					return result;
+				}
+
+				Logger.LogVerbose($"[TryGenerateInstructions] Component '{component.Name}': Found {allArchives.Count} archives to check");
+
+				string searchTermLower = searchTerm.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
+				FileInfo matchingArchive = allArchives
+					.OrderByDescending(f =>
+					{
+						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
+						string fileNameNormalized = fileWithoutExt.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
+						if ( fileNameNormalized.Equals(searchTermLower) )
+							return 100;
+						if ( fileNameNormalized.Contains(searchTermLower) )
+							return 50;
+						if ( searchTermLower.Contains(fileNameNormalized) )
+							return 25;
+						return 0;
+					})
+					.ThenByDescending(f => f.LastWriteTime)
+					.FirstOrDefault(f =>
+					{
+						string fileWithoutExt = Path.GetFileNameWithoutExtension(f.Name);
+						string fileNameNormalized = fileWithoutExt.ToLowerInvariant().Replace("-", "").Replace("_", "").Replace(" ", "");
+						return fileNameNormalized.Contains(searchTermLower) || searchTermLower.Contains(fileNameNormalized);
+					});
+
+				if ( matchingArchive == null )
+				{
+					result.SkipReason = $"No matching archive found for '{searchTerm}'";
+					return result;
+				}
+
+				Logger.LogVerbose($"[TryGenerateInstructions] Component '{component.Name}': Selected archive '{matchingArchive.Name}'");
+
+				int instructionCountBefore = component.Instructions.Count;
+				bool generated = GenerateInstructions(component, matchingArchive.FullName);
+
+				if ( generated )
+				{
+					component.IsDownloaded = true;
+					result.Success = true;
+					result.InstructionsGenerated = component.Instructions.Count - instructionCountBefore;
+					result.SkipReason = string.Empty;
+				}
+				else
+				{
+					result.SkipReason = "Failed to generate instructions from archive";
+				}
+
+				return result;
+			}
+			catch ( Exception ex )
+			{
+				Logger.LogException(ex, $"Failed to auto-generate instructions for component '{component.Name}'");
+				result.SkipReason = $"Error: {ex.Message}";
+				return result;
+			}
+		}
+
+		private static string ExtractSearchTermFromModLink(string firstModLink, string componentName)
+		{
+			string searchTerm;
+			if ( firstModLink.Contains("://") )
+			{
+				var uri = new Uri(firstModLink);
+				string lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/') ?? string.Empty;
+				if ( !string.IsNullOrEmpty(lastSegment) && lastSegment.Contains('-') )
+				{
+					Match match = Regex.Match(lastSegment, @"^\d+-(.+)$");
+					searchTerm = match.Success ? match.Groups[1].Value : lastSegment;
+				}
+				else
+				{
+					searchTerm = lastSegment;
+				}
+				if ( Path.HasExtension(searchTerm) )
+				{
+					searchTerm = Path.GetFileNameWithoutExtension(searchTerm);
+				}
+			}
+			else
+			{
+				string fileName = Path.GetFileName(firstModLink);
+				searchTerm = Path.HasExtension(fileName) ? Path.GetFileNameWithoutExtension(fileName) : fileName;
+			}
+			if ( string.IsNullOrWhiteSpace(searchTerm) )
+			{
+				searchTerm = componentName;
+			}
+			return searchTerm;
+		}
+
 		public static bool TryGenerateInstructionsFromArchive([NotNull] ModComponent component)
 		{
 			if ( component is null )
@@ -39,11 +186,11 @@ namespace KOTORModSync.Core.Services
 				string searchTerm;
 				if ( firstModLink.Contains("://") )
 				{
-					Uri uri = new Uri(firstModLink);
+					var uri = new Uri(firstModLink);
 					string lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/') ?? string.Empty;
 					if ( !string.IsNullOrEmpty(lastSegment) && lastSegment.Contains('-') )
 					{
-						var match = Regex.Match(lastSegment, @"^\d+-(.+)$");
+						Match match = Regex.Match(lastSegment, @"^\d+-(.+)$");
 						searchTerm = match.Success ? match.Groups[1].Value : lastSegment;
 					}
 					else
@@ -119,8 +266,7 @@ namespace KOTORModSync.Core.Services
 
 		private static bool IsRemoveDuplicateTgaTpcMod([NotNull] ModComponent component)
 		{
-			if ( component.Name != null &&
-				 component.Name.Equals("Remove Duplicate TGA/TPC", StringComparison.OrdinalIgnoreCase) )
+			if ( component.Name.Equals("Remove Duplicate TGA/TPC", StringComparison.OrdinalIgnoreCase) )
 			{
 				return true;
 			}
@@ -134,7 +280,7 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			if ( component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0 )
+			if ( component.ModLinkFilenames.Count > 0 )
 			{
 				foreach ( string link in component.ModLinkFilenames.Keys )
 				{
@@ -168,12 +314,12 @@ namespace KOTORModSync.Core.Services
 			if ( !InstructionAlreadyExists(component, delDuplicateInstruction) )
 			{
 				component.Instructions.Add(delDuplicateInstruction);
-				Logger.LogVerbose($"[AutoInstructionGenerator] Added DelDuplicate instruction for Remove Duplicate TGA/TPC mod");
+				Logger.LogVerbose("[AutoInstructionGenerator] Added DelDuplicate instruction for Remove Duplicate TGA/TPC mod");
 				return true;
 			}
 			else
 			{
-				Logger.LogVerbose($"[AutoInstructionGenerator] DelDuplicate instruction already exists for Remove Duplicate TGA/TPC mod");
+				Logger.LogVerbose("[AutoInstructionGenerator] DelDuplicate instruction already exists for Remove Duplicate TGA/TPC mod");
 				return true;
 			}
 		}
@@ -242,9 +388,6 @@ namespace KOTORModSync.Core.Services
 
 		private static bool AreSourcesEquivalent([NotNull] List<string> existingSources, [NotNull] List<string> potentialSources)
 		{
-			if ( existingSources == null || potentialSources == null )
-				return false;
-
 			if ( existingSources.Count == 0 && potentialSources.Count == 0 )
 				return true;
 
@@ -296,8 +439,9 @@ namespace KOTORModSync.Core.Services
 					if ( PathHelper.WildcardPathMatch(potentialNormalized, existingNormalized) )
 						return true;
 				}
-				catch
+				catch ( Exception ex )
 				{
+					Logger.LogException(ex);
 				}
 			}
 			else if ( potentialHasWildcards )
@@ -307,8 +451,9 @@ namespace KOTORModSync.Core.Services
 					if ( PathHelper.WildcardPathMatch(existingNormalized, potentialNormalized) )
 						return true;
 				}
-				catch
+				catch ( Exception ex )
 				{
+					Logger.LogException(ex);
 				}
 			}
 
@@ -336,8 +481,9 @@ namespace KOTORModSync.Core.Services
 					if ( PathHelper.WildcardPathMatch(potentialFilename, existingFilename) )
 						return true;
 				}
-				catch
+				catch ( Exception ex )
 				{
+					Logger.LogException(ex);
 				}
 			}
 
@@ -348,8 +494,9 @@ namespace KOTORModSync.Core.Services
 					if ( PathHelper.WildcardPathMatch(existingFilename, potentialFilename) )
 						return true;
 				}
-				catch
+				catch ( Exception ex )
 				{
+					Logger.LogException(ex);
 				}
 			}
 
@@ -362,7 +509,6 @@ namespace KOTORModSync.Core.Services
 			string[] parts2 = pattern2.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
 
 			int minParts = Math.Min(parts1.Length, parts2.Length);
-			int maxParts = Math.Max(parts1.Length, parts2.Length);
 
 			for ( int i = 0; i < minParts - 1; i++ )
 			{
@@ -374,7 +520,6 @@ namespace KOTORModSync.Core.Services
 
 				if ( ContainsWildcards(part1) && ContainsWildcards(part2) )
 				{
-					continue;
 				}
 				else if ( ContainsWildcards(part1) )
 				{
@@ -469,8 +614,9 @@ namespace KOTORModSync.Core.Services
 					if ( PathHelper.WildcardPathMatch(potentialNormalized, existingNormalized) )
 						return true;
 				}
-				catch
+				catch ( Exception ex )
 				{
+					Logger.LogException(ex);
 				}
 			}
 
@@ -481,8 +627,9 @@ namespace KOTORModSync.Core.Services
 					if ( PathHelper.WildcardPathMatch(existingNormalized, potentialNormalized) )
 						return true;
 				}
-				catch
+				catch ( Exception ex )
 				{
+					Logger.LogException(ex);
 				}
 			}
 
@@ -696,7 +843,9 @@ namespace KOTORModSync.Core.Services
 			return true;
 		}
 
-		private static bool IsFolderAlreadyCoveredByInstructions([NotNull] ModComponent component, [NotNull] string folderSourcePath)
+		private static bool IsFolderAlreadyCoveredByInstructions(
+			[NotNull] ModComponent component,
+			[NotNull] string folderSourcePath)
 		{
 			foreach ( Instruction existingInstruction in component.Instructions )
 			{
@@ -786,7 +935,7 @@ namespace KOTORModSync.Core.Services
 		{
 			if ( chooseInstruction.Action != Instruction.ActionType.Choose )
 			{
-				Logger.LogWarning($"[AutoInstructionGenerator] Attempted to add option GUID to non-Choose instruction");
+				Logger.LogWarning("[AutoInstructionGenerator] Attempted to add option GUID to non-Choose instruction");
 				return false;
 			}
 
@@ -810,7 +959,7 @@ namespace KOTORModSync.Core.Services
 
 			if ( IsRemoveDuplicateTgaTpcMod(component) )
 			{
-				Logger.LogVerbose($"[AutoInstructionGenerator] Detected Remove Duplicate TGA/TPC mod, generating DelDuplicate instruction only");
+				Logger.LogVerbose("[AutoInstructionGenerator] Detected Remove Duplicate TGA/TPC mod, generating DelDuplicate instruction only");
 				return GenerateDelDuplicateInstruction(component);
 			}
 
@@ -850,13 +999,13 @@ namespace KOTORModSync.Core.Services
 					}
 
 					Logger.LogWarning($"[AutoInstructionGenerator] Detected corrupted archive: {archivePath}");
-					Logger.LogWarning($"[AutoInstructionGenerator] Deleting corrupted archive...");
+					Logger.LogWarning("[AutoInstructionGenerator] Deleting corrupted archive...");
 
 					try
 					{
 						File.Delete(archivePath);
 						Logger.LogVerbose($"[AutoInstructionGenerator] Deleted corrupted archive: {archivePath}");
-						Logger.LogVerbose($"[AutoInstructionGenerator] Will create placeholder Extract instruction instead");
+						Logger.LogVerbose("[AutoInstructionGenerator] Will create placeholder Extract instruction instead");
 					}
 					catch ( Exception deleteEx )
 					{
@@ -876,7 +1025,7 @@ namespace KOTORModSync.Core.Services
 		private static bool IsCorruptedArchiveException(Exception ex)
 		{
 			string exceptionType = ex.GetType().Name;
-			string message = ex.Message?.ToLowerInvariant() ?? string.Empty;
+			string message = ex.Message.ToLowerInvariant();
 
 			if ( exceptionType.Contains("ArchiveException") )
 				return true;
@@ -1013,17 +1162,11 @@ namespace KOTORModSync.Core.Services
 					.ToList();
 
 				if ( overrideFolders.Count > 1 )
-				{
 					AddMultiFolderChooseInstructions(component, archive, archivePath, extractedPath, overrideFolders);
-				}
 				else if ( overrideFolders.Count == 1 )
-				{
 					AddSimpleMoveInstruction(component, archive, archivePath, extractedPath, overrideFolders[0]);
-				}
 				else if ( analysis.HasFlatFiles )
-				{
 					AddSimpleMoveInstruction(component, archive, archivePath, extractedPath, null);
-				}
 			}
 
 			if ( analysis.HasTslPatchData && analysis.HasSimpleOverrideFiles )
@@ -1052,62 +1195,67 @@ namespace KOTORModSync.Core.Services
 			if ( downloadCache is null )
 				throw new ArgumentNullException(nameof(downloadCache));
 
-			if ( component.ModLinkFilenames == null || component.ModLinkFilenames.Count == 0 )
+			if ( component.ModLinkFilenames.Count == 0 )
 			{
-				Logger.LogVerbose($"[AutoInstructionGenerator] Component '{component.Name}' has no URLs to process");
+				await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Component '{component.Name}' has no URLs to process");
 				return false;
 			}
 
 			if ( IsRemoveDuplicateTgaTpcMod(component) )
 			{
-				Logger.LogVerbose($"[AutoInstructionGenerator] Detected Remove Duplicate TGA/TPC mod, generating DelDuplicate instruction only");
+				await Logger.LogVerboseAsync("[AutoInstructionGenerator] Detected Remove Duplicate TGA/TPC mod, generating DelDuplicate instruction only");
 				return GenerateDelDuplicateInstruction(component);
 			}
 
 			try
 			{
-				Logger.LogVerbose($"[AutoInstructionGenerator] Pre-resolving URLs for component: {component.Name}");
+				await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Pre-resolving URLs for component: {component.Name}");
 
-				var resolvedUrls = await downloadCache.PreResolveUrlsAsync(component, null, sequential: true, cancellationToken);
+				Dictionary<string, List<string>> resolvedUrls = await downloadCache.PreResolveUrlsAsync(component, null, sequential: true, cancellationToken);
 
 				if ( resolvedUrls.Count == 0 )
 				{
-					Logger.LogVerbose($"[AutoInstructionGenerator] No URLs resolved for component: {component.Name}");
+					await Logger.LogVerboseAsync($"[AutoInstructionGenerator] No URLs resolved for component: {component.Name}");
 					return false;
 				}
 
-				Logger.LogVerbose($"[AutoInstructionGenerator] Resolved {resolvedUrls.Count} URLs");
+				await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Resolved {resolvedUrls.Count} URLs");
 
 				if ( MainConfig.SourcePath == null || !MainConfig.SourcePath.Exists )
 				{
-					Logger.LogVerbose($"[AutoInstructionGenerator] No source directory configured, creating placeholder instructions");
+					await Logger.LogVerboseAsync("[AutoInstructionGenerator] No source directory configured, creating placeholder instructions");
 
-					foreach ( var kvp in resolvedUrls )
+					foreach ( KeyValuePair<string, List<string>> kvp in resolvedUrls )
 					{
 						List<string> filenames = kvp.Value;
 						if ( filenames.Count == 0 )
 							continue;
 
-						string fileName = filenames[0];
-
-						Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
-
-						if ( potentialInstruction == null )
-							continue;
-
-						if ( !InstructionAlreadyExists(component, potentialInstruction) )
+						// Process ALL files from this URL, not just the first one
+						foreach ( string fileName in filenames )
 						{
-							component.Instructions.Add(potentialInstruction);
-							Logger.LogVerbose($"[AutoInstructionGenerator] Added placeholder instruction for '{fileName}'");
-						}
-						else
-						{
-							Logger.LogVerbose($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
+							Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
+
+							if ( potentialInstruction == null )
+								continue;
+
+							if ( !InstructionAlreadyExists(component, potentialInstruction) )
+							{
+								component.Instructions.Add(potentialInstruction);
+								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Added placeholder instruction for '{fileName}'");
+							}
+							else
+							{
+								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
+							}
 						}
 					}
 
 					return component.Instructions.Count > 0;
 				}
+
+				// Track files that are missing
+				var missingFiles = new List<string>();
 
 				foreach ( var kvp in resolvedUrls )
 				{
@@ -1115,29 +1263,50 @@ namespace KOTORModSync.Core.Services
 					if ( filenames.Count == 0 )
 						continue;
 
-					string fileName = filenames[0];
-					string filePath = Path.Combine(MainConfig.SourcePath.FullName, fileName);
-
-					if ( File.Exists(filePath) )
+					// Process ALL files from this URL, not just the first one
+					foreach ( string fileName in filenames )
 					{
-						Logger.LogVerbose($"[AutoInstructionGenerator] Found '{fileName}' on disk, performing comprehensive analysis");
+						string filePath = Path.Combine(MainConfig.SourcePath.FullName, fileName);
 
-						bool isArchive = Utility.ArchiveHelper.IsArchive(fileName);
-						if ( isArchive )
+						if ( File.Exists(filePath) )
 						{
-							bool generated = GenerateInstructions(component, filePath);
-							if ( !generated )
-							{
-								bool fileStillExists = File.Exists(filePath);
+							await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Found '{fileName}' on disk, performing comprehensive analysis");
 
-								if ( !fileStillExists )
+							bool isArchive = ArchiveHelper.IsArchive(fileName);
+							if ( isArchive )
+							{
+								bool generated = GenerateInstructions(component, filePath);
+								if ( !generated )
 								{
-									Logger.LogVerbose($"[AutoInstructionGenerator] Corrupted file '{fileName}' has been deleted, creating placeholder instruction");
+									bool fileStillExists = File.Exists(filePath);
+
+									if ( !fileStillExists )
+									{
+										await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Corrupted file '{fileName}' has been deleted, creating placeholder instruction");
+									}
+									else
+									{
+										await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Comprehensive analysis failed for '{fileName}', creating placeholder Extract instruction");
+									}
+
+									Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
+									if ( potentialInstruction != null )
+									{
+										if ( !InstructionAlreadyExists(component, potentialInstruction) )
+										{
+											component.Instructions.Add(potentialInstruction);
+											await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Added placeholder Extract instruction for '{fileName}'");
+										}
+										else
+										{
+											await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
+										}
+									}
 								}
-								else
-								{
-									Logger.LogVerbose($"[AutoInstructionGenerator] Comprehensive analysis failed for '{fileName}', creating placeholder Extract instruction");
-								}
+							}
+							else
+							{
+								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] '{fileName}' is not an archive, checking if it's a game file");
 
 								Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
 								if ( potentialInstruction != null )
@@ -1145,18 +1314,19 @@ namespace KOTORModSync.Core.Services
 									if ( !InstructionAlreadyExists(component, potentialInstruction) )
 									{
 										component.Instructions.Add(potentialInstruction);
-										Logger.LogVerbose($"[AutoInstructionGenerator] Added placeholder Extract instruction for '{fileName}'");
+										await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Added Move instruction for '{fileName}'");
 									}
 									else
 									{
-										Logger.LogVerbose($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
+										await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Move instruction for '{fileName}' already exists, skipping");
 									}
 								}
 							}
 						}
 						else
 						{
-							Logger.LogVerbose($"[AutoInstructionGenerator] '{fileName}' is not an archive, checking if it's a game file");
+							await Logger.LogVerboseAsync($"[AutoInstructionGenerator] '{fileName}' not found on disk, creating placeholder instruction");
+							missingFiles.Add(fileName);
 
 							Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
 							if ( potentialInstruction != null )
@@ -1164,49 +1334,264 @@ namespace KOTORModSync.Core.Services
 								if ( !InstructionAlreadyExists(component, potentialInstruction) )
 								{
 									component.Instructions.Add(potentialInstruction);
-									Logger.LogVerbose($"[AutoInstructionGenerator] Added Move instruction for '{fileName}'");
+									await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Added placeholder instruction for '{fileName}'");
 								}
 								else
 								{
-									Logger.LogVerbose($"[AutoInstructionGenerator] Move instruction for '{fileName}' already exists, skipping");
+									await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
 								}
 							}
 						}
 					}
-					else
-					{
-						Logger.LogVerbose($"[AutoInstructionGenerator] '{fileName}' not found on disk, creating placeholder instruction");
+				}
 
-						Instruction potentialInstruction = CreatePlaceholderInstructionObject(component, fileName);
-						if ( potentialInstruction != null )
-						{
-							if ( !InstructionAlreadyExists(component, potentialInstruction) )
-							{
-								component.Instructions.Add(potentialInstruction);
-								Logger.LogVerbose($"[AutoInstructionGenerator] Added placeholder instruction for '{fileName}'");
-							}
-							else
-							{
-								Logger.LogVerbose($"[AutoInstructionGenerator] Placeholder instruction for '{fileName}' already exists, skipping");
-							}
-						}
+				// Warn if files are missing (CLI context - user should have used --download flag)
+				if ( missingFiles.Count > 0 )
+				{
+					await Logger.LogWarningAsync($"[AutoInstructionGenerator] Component '{component.Name}' has {missingFiles.Count} file(s) not found on disk:");
+					foreach ( string fileName in missingFiles.Take(5) )
+					{
+						await Logger.LogWarningAsync($"  • {fileName}");
 					}
+					if ( missingFiles.Count > 5 )
+					{
+						await Logger.LogWarningAsync($"  ... and {missingFiles.Count - 5} more");
+					}
+					await Logger.LogWarningAsync("[AutoInstructionGenerator] To download files automatically, use the --download flag");
+					await Logger.LogWarningAsync("[AutoInstructionGenerator] Example: dotnet run --project KOTORModSync.Core -- convert --input file.toml --auto --download --source-path ./mods");
 				}
 
 				int consolidatedCount = ConsolidateDuplicateOptions(component);
 				if ( consolidatedCount > 0 )
 				{
-					Logger.LogVerbose($"[AutoInstructionGenerator] Consolidated and removed {consolidatedCount} duplicate option(s)");
+					await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Consolidated and removed {consolidatedCount} duplicate option(s)");
 				}
 
-				Logger.LogVerbose($"[AutoInstructionGenerator] Generated {component.Instructions.Count} instructions for component: {component.Name}");
+				await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Generated {component.Instructions.Count} instructions for component: {component.Name}");
 				return component.Instructions.Count > 0;
 			}
 			catch ( Exception ex )
 			{
-				Logger.LogException(ex, $"Failed to generate instructions from URLs for component: {component.Name}");
+				await Logger.LogExceptionAsync(ex, $"Failed to generate instructions from URLs for component: {component.Name}");
 				return false;
 			}
+		}
+
+		/// <summary>
+		/// Result of analyzing component files for auto-generation
+		/// </summary>
+		public class FileAnalysisResult
+		{
+			public List<string> ExistingArchives { get; set; } = new List<string>();
+			public List<string> ExistingNonArchiveFiles { get; set; } = new List<string>();
+			public List<string> MissingUrls { get; set; } = new List<string>();
+			public List<string> InvalidLinks { get; set; } = new List<string>();
+			public Dictionary<string, List<string>> ResolvedUrls { get; set; } = new Dictionary<string, List<string>>();
+		}
+
+		/// <summary>
+		/// Analyzes a component's mod links to determine what files exist and what needs downloading.
+		/// This is cache-first and doesn't download anything.
+		/// </summary>
+		public static async Task<FileAnalysisResult> AnalyzeComponentFilesAsync(
+			[NotNull] ModComponent component,
+			[NotNull] DownloadCacheService downloadCache,
+			[NotNull] string modDirectory,
+			CancellationToken cancellationToken = default)
+		{
+			if ( component == null )
+				throw new ArgumentNullException(nameof(component));
+			if ( downloadCache == null )
+				throw new ArgumentNullException(nameof(downloadCache));
+			if ( string.IsNullOrEmpty(modDirectory) )
+				throw new ArgumentException("Mod directory cannot be null or empty", nameof(modDirectory));
+
+			var result = new FileAnalysisResult();
+
+			await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Analyzing files for component: {component.Name}");
+
+			// Pre-resolve URLs to filenames (uses cache, doesn't download)
+			result.ResolvedUrls = await downloadCache.PreResolveUrlsAsync(
+				component,
+				downloadCache.DownloadManager,
+				sequential: false,
+				cancellationToken);
+
+			await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Resolved {result.ResolvedUrls.Count} URL(s)");
+
+			// Check which files exist on disk
+			var existingFiles = new List<string>();
+
+			foreach ( string modLink in component.ModLinkFilenames.Keys )
+			{
+				if ( string.IsNullOrWhiteSpace(modLink) )
+					continue;
+
+				if ( IsValidUrl(modLink) )
+				{
+					// Check if we have cached filename for this URL
+					string cachedFilename = DownloadCacheService.GetFileName(modLink);
+					if ( !string.IsNullOrEmpty(cachedFilename) )
+					{
+						string filePath = Path.Combine(modDirectory, cachedFilename);
+						if ( File.Exists(filePath) )
+						{
+							existingFiles.Add(filePath);
+							await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File exists on disk: {cachedFilename}");
+						}
+						else
+						{
+							result.MissingUrls.Add(modLink);
+							await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File missing: {cachedFilename}");
+						}
+					}
+					else
+					{
+						// Not in cache, check if any resolved filenames exist
+						if ( result.ResolvedUrls.TryGetValue(modLink, out List<string> filenames) && filenames.Count > 0 )
+						{
+							bool anyFileExists = false;
+							foreach ( string filename in filenames )
+							{
+								string filePath = Path.Combine(modDirectory, filename);
+								if ( File.Exists(filePath) )
+								{
+									existingFiles.Add(filePath);
+									anyFileExists = true;
+									await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File exists: {filename}");
+									// Removed break statement to process ALL files for this URL
+								}
+							}
+
+							if ( !anyFileExists )
+							{
+								result.MissingUrls.Add(modLink);
+								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Files missing for URL: {modLink}");
+							}
+						}
+						else
+						{
+							result.MissingUrls.Add(modLink);
+							await Logger.LogVerboseAsync($"[AutoInstructionGenerator] URL not resolved: {modLink}");
+						}
+					}
+				}
+				else
+				{
+					// This is a local file path, not a URL
+					string fullPath = Path.IsPathRooted(modLink) ? modLink : Path.Combine(modDirectory, modLink);
+
+					if ( File.Exists(fullPath) )
+					{
+						existingFiles.Add(fullPath);
+					}
+					else
+					{
+						result.InvalidLinks.Add(modLink);
+					}
+				}
+			}
+
+			// Categorize existing files
+			foreach ( string filePath in existingFiles )
+			{
+				if ( ArchiveHelper.IsArchive(filePath) )
+					result.ExistingArchives.Add(filePath);
+				else
+					result.ExistingNonArchiveFiles.Add(filePath);
+			}
+
+			await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Analysis complete: {result.ExistingArchives.Count} archives, {result.ExistingNonArchiveFiles.Count} non-archives, {result.MissingUrls.Count} missing URLs");
+
+			return result;
+		}
+
+		/// <summary>
+		/// Generates instructions from analyzed files (archives and non-archive files).
+		/// Call after AnalyzeComponentFilesAsync() to generate from existing files.
+		/// </summary>
+		public static async Task<int> GenerateInstructionsFromAnalyzedFilesAsync(
+			[NotNull] ModComponent component,
+			[NotNull] FileAnalysisResult analysis,
+			[NotNull] string modDirectory)
+		{
+			if ( component == null )
+				throw new ArgumentNullException(nameof(component));
+			if ( analysis == null )
+				throw new ArgumentNullException(nameof(analysis));
+			if ( string.IsNullOrEmpty(modDirectory) )
+				throw new ArgumentException("Mod directory cannot be null or empty", nameof(modDirectory));
+
+			int totalInstructionsGenerated = 0;
+
+			// Generate instructions from archives
+			foreach ( string archivePath in analysis.ExistingArchives )
+			{
+				await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Generating instructions for archive: {archivePath}");
+				bool success = GenerateInstructions(component, archivePath);
+				if ( success )
+				{
+					int newInstructions = component.Instructions.Count - totalInstructionsGenerated;
+					totalInstructionsGenerated = component.Instructions.Count;
+					await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Generated {newInstructions} instruction(s) for: {archivePath}");
+				}
+			}
+
+			// Generate instructions for non-archive files
+			foreach ( string filePath in analysis.ExistingNonArchiveFiles )
+			{
+				string fileName = Path.GetFileName(filePath);
+				string relativePath = GetRelativePathToModDirectory(modDirectory, filePath);
+
+				var moveInstruction = new Instruction
+				{
+					Guid = Guid.NewGuid(),
+					Action = Instruction.ActionType.Move,
+					Source = new List<string> { $@"<<modDirectory>>\{relativePath}" },
+					Destination = @"<<kotorDirectory>>\Override",
+					Overwrite = true
+				};
+				moveInstruction.SetParentComponent(component);
+
+				if ( !InstructionAlreadyExists(component, moveInstruction) )
+				{
+					component.Instructions.Add(moveInstruction);
+					totalInstructionsGenerated++;
+					await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Added Move instruction for: {fileName}");
+				}
+			}
+
+			await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Total instructions generated: {totalInstructionsGenerated}");
+			return totalInstructionsGenerated;
+		}
+
+		private static string GetRelativePathToModDirectory(string modDirectory, string targetPath)
+		{
+			if ( string.IsNullOrEmpty(modDirectory) || string.IsNullOrEmpty(targetPath) )
+				return Path.GetFileName(targetPath);
+
+			string modDirFull = Path.GetFullPath(modDirectory);
+			string targetFull = Path.GetFullPath(targetPath);
+
+			if ( !targetFull.StartsWith(modDirFull, StringComparison.OrdinalIgnoreCase) )
+				return Path.GetFileName(targetPath);
+
+			string relativePath = targetFull.Substring(modDirFull.Length);
+			if ( relativePath.StartsWith(Path.DirectorySeparatorChar.ToString()) )
+				relativePath = relativePath.Substring(1);
+
+			return relativePath;
+		}
+
+		private static bool IsValidUrl(string url)
+		{
+			if ( string.IsNullOrWhiteSpace(url) )
+				return false;
+
+			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri uri) )
+				return false;
+
+			return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
 		}
 
 		[CanBeNull]
@@ -1221,7 +1606,7 @@ namespace KOTORModSync.Core.Services
 				return null;
 			}
 
-			bool isArchive = Utility.ArchiveHelper.IsArchive(fileName);
+			bool isArchive = ArchiveHelper.IsArchive(fileName);
 
 			if ( !isArchive )
 			{
@@ -1246,7 +1631,7 @@ namespace KOTORModSync.Core.Services
 			return instruction;
 		}
 
-		private static readonly char[] pathSeparators = new[] { '/', '\\' };
+		private static readonly char[] s_pathSeparators = new[] { '/', '\\' };
 
 		private static bool IsTslPatcherFolder(string folderName, ArchiveAnalysis analysis)
 		{
@@ -1258,7 +1643,7 @@ namespace KOTORModSync.Core.Services
 
 			if ( string.IsNullOrEmpty(analysis.TslPatcherPath) )
 				return false;
-			string[] pathParts = analysis.TslPatcherPath.Split(pathSeparators, StringSplitOptions.RemoveEmptyEntries);
+			string[] pathParts = analysis.TslPatcherPath.Split(s_pathSeparators, StringSplitOptions.RemoveEmptyEntries);
 			if ( pathParts.Length > 0 && pathParts[0].Equals(folderName, StringComparison.OrdinalIgnoreCase) )
 				return true;
 
@@ -1360,7 +1745,7 @@ namespace KOTORModSync.Core.Services
 					}
 					else
 					{
-						Logger.LogVerbose($"[AutoInstructionGenerator] All namespace option GUIDs already present in existing Choose instruction");
+						Logger.LogVerbose("[AutoInstructionGenerator] All namespace option GUIDs already present in existing Choose instruction");
 					}
 				}
 				else
@@ -1650,7 +2035,7 @@ namespace KOTORModSync.Core.Services
 
 				try
 				{
-					var fileListTask = ArchiveHelper.TryListArchiveWithSevenZipCliAsync(archivePath);
+					Task<List<string>> fileListTask = ArchiveHelper.TryListArchiveWithSevenZipCliAsync(archivePath);
 					fileListTask.Wait();
 					List<string> fileList = fileListTask.Result;
 
@@ -1674,7 +2059,7 @@ namespace KOTORModSync.Core.Services
 				{
 					Logger.LogError($"[AutoInstructionGenerator] 7zip CLI threw exception while reading archive: {archivePath}");
 					Logger.LogError($"[AutoInstructionGenerator] SharpCompress error: {ex.Message}");
-					Logger.LogException(fallbackEx, $"[AutoInstructionGenerator] 7zip CLI error");
+					Logger.LogException(fallbackEx, "[AutoInstructionGenerator] 7zip CLI error");
 					throw new InvalidOperationException(
 						$"Unable to read archive contents with either SharpCompress or 7zip CLI. " +
 						$"Archive may be corrupted or in an unsupported format: {archivePath}. " +
@@ -1690,7 +2075,7 @@ namespace KOTORModSync.Core.Services
 		private static string GetTslPatcherPath(string iniPath)
 		{
 
-			string[] parts = iniPath.Split(pathSeparators, StringSplitOptions.RemoveEmptyEntries);
+			string[] parts = iniPath.Split(s_pathSeparators, StringSplitOptions.RemoveEmptyEntries);
 			for ( int i = 0; i < parts.Length - 1; i++ )
 			{
 				if ( parts[i].Equals("tslpatchdata", StringComparison.OrdinalIgnoreCase) )
@@ -1761,11 +2146,11 @@ namespace KOTORModSync.Core.Services
 			catch ( Exception ex )
 			{
 				Logger.LogWarning($"[AutoInstructionGenerator] SharpCompress failed to enumerate archive entries: {ex.Message}");
-				Logger.LogVerbose($"[AutoInstructionGenerator] Attempting to use 7zip CLI to check folder contents...");
+				Logger.LogVerbose("[AutoInstructionGenerator] Attempting to use 7zip CLI to check folder contents...");
 
 				try
 				{
-					var fileListTask = ArchiveHelper.TryListArchiveWithSevenZipCliAsync(archivePath);
+					Task<List<string>> fileListTask = ArchiveHelper.TryListArchiveWithSevenZipCliAsync(archivePath);
 					fileListTask.Wait();
 					List<string> fileList = fileListTask.Result;
 
@@ -1800,14 +2185,14 @@ namespace KOTORModSync.Core.Services
 					}
 					else
 					{
-						Logger.LogWarning($"[AutoInstructionGenerator] 7zip CLI failed to list archive. Assuming folder contains game files.");
+						Logger.LogWarning("[AutoInstructionGenerator] 7zip CLI failed to list archive. Assuming folder contains game files.");
 						return true;
 					}
 				}
 				catch ( Exception fallbackEx )
 				{
 					Logger.LogWarning($"[AutoInstructionGenerator] 7zip CLI fallback failed: {fallbackEx.Message}");
-					Logger.LogVerbose($"[AutoInstructionGenerator] Assuming folder contains game files since archive cannot be analyzed.");
+					Logger.LogVerbose("[AutoInstructionGenerator] Assuming folder contains game files since archive cannot be analyzed.");
 					return true;
 				}
 			}
@@ -1826,6 +2211,18 @@ namespace KOTORModSync.Core.Services
 			public string TslPatcherPath { get; set; } = string.Empty;
 			public string PatcherExecutable { get; set; } = string.Empty;
 		}
+	}
+
+	/// <summary>
+	/// Represents the result of attempting to generate instructions for a component
+	/// </summary>
+	public class GenerationResult
+	{
+		public Guid ComponentGuid { get; set; }
+		public string ComponentName { get; set; }
+		public bool Success { get; set; }
+		public int InstructionsGenerated { get; set; }
+		public string SkipReason { get; set; }
 	}
 }
 

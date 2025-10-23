@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using KOTORModSync.Core;
@@ -39,127 +40,130 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				await Logger.LogVerboseAsync("[GenerateInstructionsFromModLinks] START");
+				await Logger.LogVerboseAsync("[InstructionGenerationService] START GenerateInstructionsFromModLinks");
 
+				// Validation (GUI-specific)
 				if ( component.ModLinkFilenames == null || component.ModLinkFilenames.Count == 0 )
 				{
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "No mod links available for this component");
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						"No mod link filenames available for this component");
+					return 0;
+				}
+
+				if ( _mainConfig.sourcePath == null || !_mainConfig.sourcePath.Exists )
+				{
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						"Source path is not set. Please configure the mod directory first.");
 					return 0;
 				}
 
 				component.Instructions.Clear();
 				component.Options.Clear();
 
-				var validArchives = new List<string>();
-				var invalidLinks = new List<string>();
-				var nonArchiveFiles = new List<string>();
+				// Step 1: Analyze component files (Core logic)
+				var downloadCacheService = new DownloadCacheService();
+				downloadCacheService.SetDownloadManager();
 
-				if ( _mainConfig.sourcePath == null || !_mainConfig.sourcePath.Exists )
+				using ( var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)) )
 				{
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "Mod directory is not set. Please configure the mod directory first.");
-					return 0;
-				}
+					AutoInstructionGenerator.FileAnalysisResult analysis = await AutoInstructionGenerator.AnalyzeComponentFilesAsync(
+						component,
+						downloadCacheService,
+						_mainConfig.sourcePath.FullName,
+						cts.Token);
 
-				foreach ( string modLink in component.ModLinkFilenames.Keys )
-				{
-					if ( string.IsNullOrWhiteSpace(modLink) )
-						continue;
-
-					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Processing link: {modLink}");
-
-					if ( IsValidUrl(modLink) )
+					// Step 2: Handle missing files (GUI-specific)
+					if ( analysis.MissingUrls.Count > 0 )
 					{
-						string downloadedFilePath = await DownloadOrchestrationService.DownloadModFromUrlAsync(modLink, component);
-						if ( !string.IsNullOrEmpty(downloadedFilePath) && File.Exists(downloadedFilePath) )
+						bool? shouldDownload = await ConfirmationDialog.ShowConfirmationDialogAsync(
+							_parentWindow,
+							confirmText: $"This component has {analysis.MissingUrls.Count} file(s) that aren't downloaded yet.\n\nWould you like to download them now?",
+							yesButtonText: "Download Now",
+							noButtonText: "Skip (Generate Placeholder Instructions)",
+							yesButtonTooltip: "Download the missing files now.",
+							noButtonTooltip: "Skip (Generate Placeholder Instructions).",
+							closeButtonTooltip: "Cancel the download process.");
+
+						if ( shouldDownload is null )
 						{
-							if ( IsArchive(downloadedFilePath) )
-								validArchives.Add(downloadedFilePath);
+							// User cancelled
+							await Logger.LogVerboseAsync("[InstructionGenerationService] User cancelled download confirmation");
+							return 0;
+						}
+
+						if ( shouldDownload is true )
+						{
+							// Download missing files using single-component dialog (GUI-specific)
+							await Logger.LogAsync($"[InstructionGenerationService] Opening download dialog for {analysis.MissingUrls.Count} missing file(s)...");
+
+							var downloadDialog = new SingleModDownloadDialog(component, downloadCacheService);
+							_ = downloadDialog.StartDownloadAsync();
+							await downloadDialog.ShowDialog(_parentWindow);
+
+							// Re-analyze after download to pick up new files
+							if ( downloadDialog.WasSuccessful && downloadDialog.DownloadedFiles.Count > 0 )
+							{
+								await Logger.LogAsync($"[InstructionGenerationService] Download successful, re-analyzing files...");
+
+								analysis = await AutoInstructionGenerator.AnalyzeComponentFilesAsync(
+									component,
+									downloadCacheService,
+									_mainConfig.sourcePath.FullName,
+									cts.Token);
+							}
 							else
-								nonArchiveFiles.Add(downloadedFilePath);
+							{
+								await Logger.LogWarningAsync("[InstructionGenerationService] Download was not successful");
+							}
 						}
 						else
 						{
-							invalidLinks.Add(modLink);
+							await Logger.LogVerboseAsync("[InstructionGenerationService] User chose to skip download");
 						}
+					}
+
+					// Step 3: Generate instructions from analyzed files (Core logic)
+					int totalInstructionsGenerated = await AutoInstructionGenerator.GenerateInstructionsFromAnalyzedFilesAsync(
+						component,
+						analysis,
+						_mainConfig.sourcePath.FullName);
+
+					// Step 4: Update component state and show results (GUI-specific)
+					if ( totalInstructionsGenerated > 0 )
+					{
+						component.IsDownloaded = analysis.MissingUrls.Count == 0;
+
+						string message = $"Successfully generated {totalInstructionsGenerated} instructions";
+						if ( analysis.InvalidLinks.Count > 0 )
+						{
+							message += $"\n\nNote: {analysis.InvalidLinks.Count} mod link(s) could not be processed:\n" +
+									   string.Join("\n", analysis.InvalidLinks.Take(5));
+							if ( analysis.InvalidLinks.Count > 5 )
+								message += $"\n... and {analysis.InvalidLinks.Count - 5} more";
+						}
+
+						await InformationDialog.ShowInformationDialogAsync(
+							_parentWindow,
+							message);
 					}
 					else
 					{
-
-						string fullPath = Path.IsPathRooted(modLink) ? modLink : Path.Combine(_mainConfig.sourcePath.FullName, modLink);
-
-						if ( File.Exists(fullPath) )
-						{
-							if ( IsArchive(fullPath) )
-								validArchives.Add(fullPath);
-							else
-								nonArchiveFiles.Add(fullPath);
-						}
-						else
-						{
-							invalidLinks.Add(modLink);
-						}
-					}
-				}
-
-				int totalInstructionsGenerated = 0;
-				foreach ( string archivePath in validArchives )
-				{
-					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Generating instructions for: {archivePath}");
-					bool success = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
-					if ( success )
-					{
-						totalInstructionsGenerated += component.Instructions.Count;
-						await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Successfully generated instructions for: {archivePath}");
-
-						component.IsDownloaded = true;
-					}
-				}
-
-				foreach ( string filePath in nonArchiveFiles )
-				{
-					string fileName = Path.GetFileName(filePath);
-					string relativePath = GetRelativePath(_mainConfig.sourcePath.FullName, filePath);
-
-					var moveInstruction = new Instruction
-					{
-						Guid = Guid.NewGuid(),
-						Action = Instruction.ActionType.Move,
-						Source = new List<string> { $@"<<modDirectory>>\{relativePath}" },
-						Destination = @"<<kotorDirectory>>\Override",
-						Overwrite = true
-					};
-					moveInstruction.SetParentComponent(component);
-					component.Instructions.Add(moveInstruction);
-					totalInstructionsGenerated++;
-
-					await Logger.LogVerboseAsync($"[GenerateInstructionsFromModLinks] Added Move instruction for file: {fileName}");
-				}
-
-				if ( totalInstructionsGenerated > 0 )
-				{
-
-					component.IsDownloaded = true;
-					string message = $"Successfully generated {totalInstructionsGenerated} instructions";
-					if ( invalidLinks.Count > 0 )
-					{
-						message += $"\n\nNote: {invalidLinks.Count} mod link(s) could not be processed:\n" + string.Join("\n", invalidLinks.Take(5));
-						if ( invalidLinks.Count > 5 )
-							message += $"\n... and {invalidLinks.Count - 5} more";
+						await InformationDialog.ShowInformationDialogAsync(
+							_parentWindow,
+							"Could not generate any instructions from the available mod links. Please check that the files exist and are in the correct format.");
 					}
 
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow, message);
+					return totalInstructionsGenerated;
 				}
-				else
-				{
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "Could not generate any instructions from the available mod links. Please check that the files exist and are in the correct format.");
-				}
-
-				return totalInstructionsGenerated;
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
-				await InformationDialog.ShowInformationDialogAsync(_parentWindow, $"Error processing mod links: {ex.Message}");
+				await InformationDialog.ShowInformationDialogAsync(
+					_parentWindow,
+					$"Error generating instructions from mod links: {ex.Message}");
 				return 0;
 			}
 		}
@@ -168,45 +172,55 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				await Logger.LogVerboseAsync("[GenerateInstructionsFromArchive] START");
+				await Logger.LogVerboseAsync("[InstructionGenerationService] START GenerateInstructionsFromArchive");
 
+				// Show file dialog (GUI-specific)
 				string[] filePaths = await showFileDialog();
 
 				if ( filePaths is null || filePaths.Length == 0 )
 				{
-					await Logger.LogVerboseAsync("[GenerateInstructionsFromArchive] User cancelled file selection");
+					await Logger.LogVerboseAsync("[InstructionGenerationService] User cancelled file selection");
 					return false;
 				}
 
 				string archivePath = filePaths[0];
-				await Logger.LogVerboseAsync($"[GenerateInstructionsFromArchive] Selected archive: {archivePath}");
+				await Logger.LogVerboseAsync($"[InstructionGenerationService] Selected archive: {archivePath}");
 
+				// Validate file (GUI-specific validation with user feedback)
 				if ( !File.Exists(archivePath) )
 				{
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "Selected file does not exist");
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						"The selected file does not exist");
 					return false;
 				}
 
-				if ( !IsArchive(archivePath) )
+				if ( !ArchiveHelper.IsArchive(archivePath) )
 				{
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow, "Please select a supported archive format (.zip, .rar, .7z)");
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						"The selected file is not a supported archive format (.zip, .rar, .7z)");
 					return false;
 				}
 
-				await Logger.LogVerboseAsync("[GenerateInstructionsFromArchive] Calling AutoInstructionGenerator.GenerateInstructions");
+				// Generate instructions (Core logic)
+				await Logger.LogVerboseAsync("[InstructionGenerationService] Calling AutoInstructionGenerator.GenerateInstructions");
 				bool success = AutoInstructionGenerator.GenerateInstructions(component, archivePath);
 
+				// Show results (GUI-specific)
 				if ( success )
 				{
-					await Logger.LogVerboseAsync($"[GenerateInstructionsFromArchive] Successfully generated {component.Instructions.Count} instructions");
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
+					await Logger.LogVerboseAsync($"[InstructionGenerationService] Successfully generated {component.Instructions.Count} instructions");
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
 						$"Successfully generated {component.Instructions.Count} instructions from the archive.\n\nInstallation Method: {component.InstallationMethod}");
 					return true;
 				}
 				else
 				{
-					await Logger.LogVerboseAsync("[GenerateInstructionsFromArchive] AutoInstructionGenerator returned false");
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
+					await Logger.LogVerboseAsync("[InstructionGenerationService] AutoInstructionGenerator returned false");
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
 						"Could not generate instructions from the selected archive. The archive may not contain recognizable game files or TSLPatcher components.");
 					return false;
 				}
@@ -214,7 +228,9 @@ namespace KOTORModSync.Services
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
-				await InformationDialog.ShowInformationDialogAsync(_parentWindow, $"Error processing archive: {ex.Message}");
+				await InformationDialog.ShowInformationDialogAsync(
+					_parentWindow,
+					$"Error generating instructions from archive: {ex.Message}");
 				return false;
 			}
 		}
@@ -258,43 +274,6 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		#region Private Helper Methods
-
-		private static bool IsValidUrl(string url)
-		{
-			if ( string.IsNullOrWhiteSpace(url) )
-				return false;
-
-			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri uri) )
-				return false;
-
-			return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
-		}
-
-		private static bool IsArchive(string filePath)
-		{
-			return ArchiveHelper.IsArchive(filePath);
-		}
-
-		private static string GetRelativePath(string basePath, string targetPath)
-		{
-			if ( string.IsNullOrEmpty(basePath) || string.IsNullOrEmpty(targetPath) )
-				return targetPath;
-
-			basePath = Path.GetFullPath(basePath);
-			targetPath = Path.GetFullPath(targetPath);
-
-			if ( !targetPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase) )
-				return Path.GetFileName(targetPath);
-
-			string relativePath = targetPath.Substring(basePath.Length);
-			if ( relativePath.StartsWith(Path.DirectorySeparatorChar.ToString()) )
-				relativePath = relativePath.Substring(1);
-
-			return relativePath;
-		}
-
-		#endregion
 	}
 }
 

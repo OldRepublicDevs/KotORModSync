@@ -16,6 +16,7 @@ using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Utility;
 using KOTORModSync.Dialogs;
 using static KOTORModSync.Core.Services.DownloadCacheService;
+using static KOTORModSync.Core.Utility.Utility;
 
 namespace KOTORModSync.Services
 {
@@ -74,15 +75,19 @@ namespace KOTORModSync.Services
 
 				if ( _mainConfig.sourcePath == null || !Directory.Exists(_mainConfig.sourcePath.FullName) )
 				{
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
-						"Please set your Mod Directory in Settings before downloading mods.");
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						message: "Please set your Mod Directory in Settings before downloading mods."
+					);
 					return;
 				}
 
 				if ( _mainConfig.allComponents.Count == 0 )
 				{
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
-						"Please load a file (TOML or Markdown) before downloading mods.");
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						message: "Please load a file (TOML or Markdown) before downloading mods."
+					);
 					return;
 				}
 
@@ -92,8 +97,10 @@ namespace KOTORModSync.Services
 
 				if ( selectedComponents.Count == 0 )
 				{
-					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
-						"No selected mods have download links available.");
+					await InformationDialog.ShowInformationDialogAsync(
+						_parentWindow,
+						message: "No selected mods have download links available."
+					);
 					return;
 				}
 
@@ -102,32 +109,27 @@ namespace KOTORModSync.Services
 				IsDownloadInProgress = true;
 				DownloadStateChanged?.Invoke(this, EventArgs.Empty);
 
-				var progressWindow = new DownloadProgressWindow();
-				_currentDownloadWindow = progressWindow;
+				DownloadProgressWindow progressWindow = null;
+				await Dispatcher.UIThread.InvokeAsync(() =>
+				{
+					progressWindow = new DownloadProgressWindow();
+					_currentDownloadWindow = progressWindow;
+				});
 
-				progressWindow.Closed += (sender, e) =>
+				progressWindow.Closed += async (sender, e) =>
 				{
 					_currentDownloadWindow = null;
 					IsDownloadInProgress = false;
-					Logger.LogVerbose("[DownloadOrchestration] Download window closed, clearing reference");
+					await Logger.LogVerboseAsync("[DownloadOrchestration] Download window closed, clearing reference");
 				};
 
 				int timeoutMinutes = progressWindow.DownloadTimeoutMinutes;
 				await Logger.LogVerboseAsync($"[DownloadOrchestration] Using download timeout: {timeoutMinutes} minutes");
 
-				var httpClient = new System.Net.Http.HttpClient();
-				httpClient.Timeout = TimeSpan.FromMinutes(timeoutMinutes);
-
-				var handlers = new List<IDownloadHandler>
-				{
-					new DeadlyStreamDownloadHandler(httpClient),
-					new MegaDownloadHandler(),
-					new NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
-					new GameFrontDownloadHandler(httpClient),
-					new DirectDownloadHandler(httpClient),
-				};
-
-				var downloadManager = new DownloadManager(handlers);
+				var downloadManager = Core.Services.Download.DownloadHandlerFactory.CreateDownloadManager(
+					httpClient: null,
+					nexusModsApiKey: MainConfig.NexusModsApiKey,
+					timeoutMinutes: timeoutMinutes);
 				_cacheService.SetDownloadManager(downloadManager);
 
 				progressWindow.DownloadControlRequested += async (sender, args) =>
@@ -158,9 +160,9 @@ namespace KOTORModSync.Services
 					}
 				};
 
-				progressWindow.Show();
+				await Dispatcher.UIThread.InvokeAsync(() => progressWindow.Show());
 
-				_ = Task.Run(async () =>
+				_ = Task.Run((Func<Task>)(async () =>
 				{
 					try
 					{
@@ -234,18 +236,21 @@ namespace KOTORModSync.Services
 							IsDownloadInProgress = false;
 							DownloadStateChanged?.Invoke(this, EventArgs.Empty);
 							await InformationDialog.ShowInformationDialogAsync(_parentWindow,
-								$"An error occurred while downloading mods:\n\n{ex.Message}");
+								$"An error occurred while downloading mods:{Environment.NewLine}{Environment.NewLine}{ex.Message}");
 						});
 					}
-				});
+				}));
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex, "Error starting download session");
 				IsDownloadInProgress = false;
 				DownloadStateChanged?.Invoke(this, EventArgs.Empty);
-				await InformationDialog.ShowInformationDialogAsync(_parentWindow,
-					$"An error occurred while starting downloads:\n\n{ex.Message}");
+				await Dispatcher.UIThread.InvokeAsync(async () =>
+				{
+					await InformationDialog.ShowInformationDialogAsync(_parentWindow,
+						$"An error occurred while starting downloads:{Environment.NewLine}{Environment.NewLine}{ex.Message}");
+				});
 			}
 		}
 
@@ -392,7 +397,10 @@ namespace KOTORModSync.Services
 									"Click 'Fetch Downloads' to automatically download missing mods.";
 				}
 
-				await InformationDialog.ShowInformationDialogAsync(_parentWindow, statusMessage);
+				await InformationDialog.ShowInformationDialogAsync(
+					_parentWindow,
+					statusMessage
+				);
 			}
 			catch ( Exception ex )
 			{
@@ -451,7 +459,7 @@ namespace KOTORModSync.Services
 
 					string filePath = results[0].FilePath;
 					string fileName = Path.GetFileName(filePath);
-					bool isArchive = Core.Utility.ArchiveHelper.IsArchive(filePath);
+					bool isArchive = ArchiveHelper.IsArchive(filePath);
 
 					var cacheEntry = new DownloadCacheEntry
 					{
@@ -460,7 +468,9 @@ namespace KOTORModSync.Services
 						IsArchiveFile = isArchive
 					};
 
-					_cacheService.AddOrUpdate(progress.Url, cacheEntry);
+
+					DownloadCacheService.AddOrUpdate(progress.Url, cacheEntry);
+					AddOrUpdate(progress.Url, cacheEntry);
 
 					if ( isArchive && matchingComponent.Instructions.Count == 0 )
 					{
@@ -501,16 +511,7 @@ namespace KOTORModSync.Services
 					ProgressPercentage = 0
 				};
 
-				var httpClient = new System.Net.Http.HttpClient();
-				var handlers = new List<IDownloadHandler>
-				{
-					new DeadlyStreamDownloadHandler(httpClient),
-					new DirectDownloadHandler(httpClient),
-					new GameFrontDownloadHandler(httpClient),
-					new NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
-					new MegaDownloadHandler()
-				};
-				var downloadManager = new DownloadManager(handlers);
+				var downloadManager = Core.Services.Download.DownloadHandlerFactory.CreateDownloadManager();
 
 				string guidString = Guid.NewGuid().ToString("N");
 				string shortGuid = guidString.Substring(0, Math.Min(8, guidString.Length));
@@ -534,8 +535,6 @@ namespace KOTORModSync.Services
 				});
 				List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(
 					urlToProgressMap, tempDir, progressReporter, cancellationToken);
-
-				httpClient.Dispose();
 
 				if ( results.Count > 0 && results[0].Success )
 				{
@@ -637,6 +636,105 @@ namespace KOTORModSync.Services
 				await Logger.LogErrorAsync($"[HandleStartDownload] Failed to start download: {ex.Message}");
 				progress.Status = DownloadStatus.Failed;
 				progress.ErrorMessage = $"Failed to start: {ex.Message}";
+			}
+		}
+
+		/// <summary>
+		/// Resolves filenames for a URL using cache, and only downloads if files don't exist on disk.
+		/// This is the preferred method for auto-generate instructions flow.
+		/// </summary>
+		public async Task<List<string>> ResolveAndCacheModFilesAsync(ModComponent component, CancellationToken cancellationToken = default)
+		{
+			try
+			{
+				await Logger.LogVerboseAsync($"[DownloadOrchestration] Resolving and caching files for component: {component.Name}");
+
+				// Step 1: Use PreResolveUrlsAsync to get cached/resolved filenames
+				Dictionary<string, List<string>> resolvedUrls = await _cacheService.PreResolveUrlsAsync(
+					component,
+					_cacheService.DownloadManager,
+					sequential: false,
+					cancellationToken);
+
+				if ( resolvedUrls.Count == 0 )
+				{
+					await Logger.LogWarningAsync($"[DownloadOrchestration] No URLs resolved for component '{component.Name}'");
+					return new List<string>();
+				}
+
+				await Logger.LogVerboseAsync($"[DownloadOrchestration] Resolved {resolvedUrls.Count} URL(s) with filenames");
+
+				// Step 2: Check which files exist on disk
+				var existingFiles = new List<string>();
+				var urlsNeedingDownload = new List<string>();
+
+				foreach ( KeyValuePair<string, List<string>> kvp in resolvedUrls )
+				{
+					string url = kvp.Key;
+					List<string> filenames = kvp.Value;
+
+					if ( filenames == null || filenames.Count == 0 )
+					{
+						await Logger.LogWarningAsync($"[DownloadOrchestration] No filenames resolved for URL: {url}");
+						continue;
+					}
+
+					// Check if any of the files exist
+					bool anyFileExists = false;
+					foreach ( string filename in filenames )
+					{
+						string filePath = Path.Combine(_mainConfig.sourcePath.FullName, filename);
+						if ( File.Exists(filePath) )
+						{
+							existingFiles.Add(filePath);
+							anyFileExists = true;
+							await Logger.LogVerboseAsync($"[DownloadOrchestration] File already exists: {filename}");
+						}
+					}
+
+					if ( !anyFileExists )
+					{
+						urlsNeedingDownload.Add(url);
+						await Logger.LogVerboseAsync($"[DownloadOrchestration] Files missing for URL: {url}");
+					}
+				}
+
+				// Step 3: Download missing files if needed
+				if ( urlsNeedingDownload.Count > 0 )
+				{
+					await Logger.LogAsync($"[DownloadOrchestration] Downloading {urlsNeedingDownload.Count} missing file(s) for '{component.Name}'");
+
+					List<DownloadCacheEntry> downloadedEntries = await _cacheService.ResolveOrDownloadAsync(
+						component,
+						_mainConfig.sourcePath.FullName,
+						progress: null,
+						sequential: false,
+						cancellationToken);
+
+					foreach ( DownloadCacheEntry entry in downloadedEntries )
+					{
+						if ( !string.IsNullOrEmpty(entry.FileName) )
+						{
+							string filePath = Path.Combine(_mainConfig.sourcePath.FullName, entry.FileName);
+							if ( File.Exists(filePath) && !existingFiles.Contains(filePath) )
+							{
+								existingFiles.Add(filePath);
+								await Logger.LogVerboseAsync($"[DownloadOrchestration] Downloaded file: {entry.FileName}");
+							}
+						}
+					}
+				}
+				else
+				{
+					await Logger.LogVerboseAsync($"[DownloadOrchestration] All files already exist on disk for '{component.Name}'");
+				}
+
+				return existingFiles;
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogExceptionAsync(ex, $"[DownloadOrchestration] Failed to resolve/download files for component '{component.Name}'");
+				return new List<string>();
 			}
 		}
 	}

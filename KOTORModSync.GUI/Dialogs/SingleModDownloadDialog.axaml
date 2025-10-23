@@ -1,0 +1,201 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<Window
+    x:Class="KOTORModSync.Dialogs.SingleModDownloadDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:KOTORModSync.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Downloading Mod Files"
+    Width="700"
+    Height="400"
+    MinWidth="600"
+    MinHeight="300"
+    CanResize="True"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+
+    <Window.Resources>
+        <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+    </Window.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!--  Header  -->
+        <Border
+            Grid.Row="0"
+            Padding="20,16"
+            Classes="summary-card">
+            <StackPanel Spacing="8">
+                <TextBlock
+                    x:Name="ModNameText"
+                    FontSize="18"
+                    FontWeight="Bold"
+                    Text="Downloading Mod..." />
+                <TextBlock
+                    x:Name="StatusText"
+                    Classes="secondary-text"
+                    FontSize="13"
+                    Text="Preparing download..." />
+            </StackPanel>
+        </Border>
+
+        <!--  Download Progress  -->
+        <ScrollViewer
+            Grid.Row="1"
+            Padding="20"
+            HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="12">
+                <!--  Overall Progress  -->
+                <Border Padding="12" Classes="summary-card">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Text="Overall Progress" />
+                        <ProgressBar
+                            x:Name="OverallProgressBar"
+                            Height="24"
+                            Classes="download-progress"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="0" />
+                        <TextBlock
+                            x:Name="OverallProgressText"
+                            Classes="secondary-text"
+                            FontSize="12"
+                            Text="0 / 0 files" />
+                    </StackPanel>
+                </Border>
+
+                <!--  File List  -->
+                <Border Padding="12" Classes="summary-card">
+                    <StackPanel Spacing="6">
+                        <TextBlock
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Text="Download Files" />
+                        <ItemsControl x:Name="FilesListControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Margin="0,4"
+                                        Padding="8"
+                                        Classes="summary-card">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                            <!--  Status Icon  -->
+                                            <TextBlock
+                                                Grid.Row="0"
+                                                Grid.Column="0"
+                                                Margin="0,0,8,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="18"
+                                                Text="{Binding StatusIcon}" />
+
+                                            <!--  Filename  -->
+                                            <TextBlock
+                                                Grid.Row="0"
+                                                Grid.Column="1"
+                                                VerticalAlignment="Center"
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                Text="{Binding DisplayName}"
+                                                TextTrimming="CharacterEllipsis" />
+
+                                            <!--  Progress Percentage  -->
+                                            <TextBlock
+                                                Grid.Row="0"
+                                                Grid.Column="2"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                FontWeight="SemiBold"
+                                                Text="{Binding ProgressPercentage, StringFormat={}{0:F0}%}" />
+
+                                            <!--  Progress Bar  -->
+                                            <ProgressBar
+                                                Grid.Row="1"
+                                                Grid.Column="0"
+                                                Grid.ColumnSpan="3"
+                                                Margin="0,6,0,0"
+                                                Classes="download-progress"
+                                                Maximum="100"
+                                                Minimum="0"
+                                                Value="{Binding ProgressPercentage}" />
+
+                                            <!--  Status Message  -->
+                                            <TextBlock
+                                                Grid.Row="2"
+                                                Grid.Column="0"
+                                                Grid.ColumnSpan="3"
+                                                Margin="0,4,0,0"
+                                                Classes="secondary-text"
+                                                FontSize="11"
+                                                IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                                Text="{Binding StatusMessage}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!--  Error Message (if any)  -->
+                <Border
+                    x:Name="ErrorBorder"
+                    Padding="12"
+                    Classes="summary-card"
+                    IsVisible="False">
+                    <StackPanel Spacing="6">
+                        <TextBlock
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Foreground="#FF5252"
+                            Text="⚠️ Errors" />
+                        <TextBlock
+                            x:Name="ErrorMessageText"
+                            Classes="secondary-text"
+                            FontSize="12"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!--  Footer  -->
+        <Border
+            Grid.Row="2"
+            Padding="20,12"
+            Classes="summary-card">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock
+                    x:Name="FooterStatusText"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Classes="secondary-text"
+                    FontSize="12"
+                    Text="Downloading..." />
+
+                <Button
+                    x:Name="CancelButton"
+                    Grid.Column="1"
+                    Width="100"
+                    Margin="0,0,8,0"
+                    Click="CancelButton_Click"
+                    Content="Cancel" />
+
+                <Button
+                    x:Name="CloseButton"
+                    Grid.Column="2"
+                    Width="100"
+                    Click="CloseButton_Click"
+                    Content="Close"
+                    IsEnabled="False" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
+

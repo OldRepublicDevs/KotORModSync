@@ -2,7 +2,6 @@
 <!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
 <!--  See LICENSE.txt file in the project root for full license information.  -->
 <UserControl
-    x:Name="EditorTabRoot"
     x:Class="KOTORModSync.Controls.EditorTab"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -11,6 +10,7 @@
     xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="EditorTabRoot"
     d:DesignHeight="800"
     d:DesignWidth="800"
     mc:Ignorable="d">
@@ -34,6 +34,7 @@
         <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
         <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
         <converters:IsK2GameConverter x:Key="IsK2GameConverter" />
+        <converters:ModLinkFilenamesToUrlListConverter x:Key="ModLinkFilenamesToUrlListConverter" />
     </UserControl.Resources>
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
@@ -124,7 +125,8 @@
                                             Width="80"
                                             Maximum="6"
                                             Minimum="1"
-                                            Value="{Binding HeadingLevel}" />
+                                            Value="1"
+                                            ToolTip.Tip="Heading level for documentation (property not yet implemented)" />
                                     </StackPanel>
                                 </Grid>
 
@@ -141,7 +143,6 @@
                                 <Grid ColumnDefinitions="*,8,*">
                                     <StackPanel Grid.Column="0">
                                         <TextBlock Classes="summary-label" Text="Category" />
-                                        <!--  RE-ENABLED: Testing if CategorySelectionControl causes hang  -->
                                         <controls:CategorySelectionControl x:Name="CategorySelectionControl" SelectedCategories="{Binding Category, Mode=TwoWay}" />
                                     </StackPanel>
 
@@ -159,8 +160,8 @@
                                     <controls:DownloadLinksControl
                                         HorizontalAlignment="Stretch"
                                         ComponentGuid="{Binding Guid}"
-                                        DownloadCacheService="{Binding DownloadCacheService}"
-                                        DownloadLinks="{Binding ModLink, Mode=TwoWay}" />
+                                        DownloadCacheService="{Binding $parent[Window].DownloadCacheService}"
+                                        DownloadLinks="{Binding ModLinkFilenames, Mode=OneWay, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}" />
                                 </StackPanel>
 
                                 <StackPanel>

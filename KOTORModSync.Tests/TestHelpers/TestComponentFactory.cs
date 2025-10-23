@@ -2,6 +2,7 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System.Collections.ObjectModel;
 using KOTORModSync.Core;
 
 namespace KOTORModSync.Tests.TestHelpers
@@ -19,10 +20,10 @@ namespace KOTORModSync.Tests.TestHelpers
 			string extractDestination = Path.Combine(workingDirectory.FullName, "extracted", name);
 			_ = Directory.CreateDirectory(extractDestination);
 
-			Instruction extractInstruction = new()
+			Instruction extractInstruction = new Instruction
 			{
 				Action = Instruction.ActionType.Extract,
-				Source = [fakeArchivePath],
+				Source = new List<string> { fakeArchivePath },
 				Destination = extractDestination,
 			};
 
@@ -31,7 +32,7 @@ namespace KOTORModSync.Tests.TestHelpers
 				Guid = Guid.NewGuid(),
 				Name = name,
 				IsSelected = true,
-				Instructions = [extractInstruction],
+				Instructions = new ObservableCollection<Instruction> { extractInstruction },
 			};
 		}
 

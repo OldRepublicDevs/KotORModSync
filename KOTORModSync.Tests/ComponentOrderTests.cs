@@ -16,23 +16,23 @@ namespace KOTORModSync.Tests
 			var thisGuid = Guid.NewGuid();
 			var componentsListExpectedOrder = new List<ModComponent>
 			{
-				new()
+			new ModComponent
+			{
+				Name = "C1_InstallBefore_C2",
+				Guid = Guid.NewGuid(),
+				InstallBefore = new List<Guid>
 				{
-					Name = "C1_InstallBefore_C2",
-					Guid = Guid.NewGuid(),
-					InstallBefore =
-					[
-						thisGuid,
-					],
+					thisGuid,
 				},
-				new()
-				{
-					Name = "C2", Guid = thisGuid,
-				},
-				new()
-				{
-					Name = "C3", Guid = Guid.NewGuid(),
-				},
+			},
+			new ModComponent
+			{
+				Name = "C2", Guid = thisGuid,
+			},
+			new ModComponent
+			{
+				Name = "C3", Guid = Guid.NewGuid(),
+			},
 			};
 
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
@@ -61,23 +61,23 @@ namespace KOTORModSync.Tests
 			var thisGuid = Guid.NewGuid();
 			var unorderedList = new List<ModComponent>
 			{
-				new()
+			new ModComponent
+			{
+				Name = "C2", Guid = thisGuid,
+			},
+			new ModComponent
+			{
+				Name = "C1_InstallBefore_C2",
+				Guid = Guid.NewGuid(),
+				InstallBefore = new List<Guid>
 				{
-					Name = "C2", Guid = thisGuid,
+					thisGuid,
 				},
-				new()
-				{
-					Name = "C1_InstallBefore_C2",
-					Guid = Guid.NewGuid(),
-					InstallBefore =
-					[
-						thisGuid,
-					],
-				},
-				new()
-				{
-					Name = "C3", Guid = Guid.NewGuid(),
-				},
+			},
+			new ModComponent
+			{
+				Name = "C3", Guid = Guid.NewGuid(),
+			},
 			};
 
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
@@ -109,23 +109,23 @@ namespace KOTORModSync.Tests
 			var thisGuid = Guid.NewGuid();
 			var componentsListExpectedOrder = new List<ModComponent>
 			{
-				new()
+			new ModComponent
+			{
+				Name = "C1", Guid = thisGuid,
+			},
+			new ModComponent
+			{
+				Name = "C2_InstallAfter_C1",
+				Guid = Guid.NewGuid(),
+				InstallAfter = new List<Guid>
 				{
-					Name = "C1", Guid = thisGuid,
+					thisGuid,
 				},
-				new()
-				{
-					Name = "C2_InstallAfter_C1",
-					Guid = Guid.NewGuid(),
-					InstallAfter =
-					[
-						thisGuid,
-					],
-				},
-				new()
-				{
-					Name = "C3", Guid = Guid.NewGuid(),
-				},
+			},
+			new ModComponent
+			{
+				Name = "C3", Guid = Guid.NewGuid(),
+			},
 			};
 
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
@@ -154,23 +154,23 @@ namespace KOTORModSync.Tests
 			var thisGuid = Guid.NewGuid();
 			var unorderedList = new List<ModComponent>
 			{
-				new()
+			new ModComponent
+			{
+				Name = "C1_InstallAfter_C2",
+				Guid = Guid.NewGuid(),
+				InstallAfter = new List<Guid>
 				{
-					Name = "C1_InstallAfter_C2",
-					Guid = Guid.NewGuid(),
-					InstallAfter =
-					[
-						thisGuid,
-					],
+					thisGuid,
 				},
-				new()
-				{
-					Name = "C2", Guid = thisGuid,
-				},
-				new()
-				{
-					Name = "C3", Guid = Guid.NewGuid(),
-				},
+			},
+			new ModComponent
+			{
+				Name = "C2", Guid = thisGuid,
+			},
+			new ModComponent
+			{
+				Name = "C3", Guid = Guid.NewGuid(),
+			},
 			};
 
 			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =

@@ -459,7 +459,7 @@ namespace KOTORModSync.Core.Parsing
 			_logVerbose($"[NLParser] Parsing instructions for component: {parentComponent.Name}");
 
 			// Split into logical units (sentences/clauses)
-			var units = SplitIntoProcessingUnits(installationInstructions);
+			var units = NaturalLanguageInstructionParser.SplitIntoProcessingUnits(installationInstructions);
 			_logVerbose($"[NLParser] Found {units.Count} instruction units to parse");
 
 			foreach ( string unit in units )
@@ -478,7 +478,7 @@ namespace KOTORModSync.Core.Parsing
 			// Parse download instructions for options/recommendations
 			if ( !string.IsNullOrWhiteSpace(downloadInstructions) )
 			{
-				var downloadOptions = ParseDownloadInstructions(downloadInstructions, parentComponent);
+				var downloadOptions = NaturalLanguageInstructionParser.ParseDownloadInstructions(downloadInstructions, parentComponent);
 				foreach ( var option in downloadOptions )
 				{
 					parentComponent.Options.Add(option);
@@ -495,7 +495,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Handles complex multi-clause instructions.
 		/// </summary>
 		[NotNull]
-		private List<string> SplitIntoProcessingUnits([NotNull] string text)
+		private static List<string> SplitIntoProcessingUnits([NotNull] string text)
 		{
 			var units = new List<string>();
 
@@ -541,7 +541,7 @@ namespace KOTORModSync.Core.Parsing
 			var instructions = new List<Instruction>();
 
 			// Skip informational/commentary sentences
-			if ( IsInformationalOnly(unit) )
+			if ( NaturalLanguageInstructionParser.IsInformationalOnly(unit) )
 			{
 				_logVerbose($"[NLParser] Skipping informational unit: {unit.Substring(0, Math.Min(60, unit.Length))}...");
 				return instructions;
@@ -564,7 +564,7 @@ namespace KOTORModSync.Core.Parsing
 			}
 
 			// If no pattern matched but it looks like an action, log it
-			if ( instructions.Count == 0 && ContainsActionVerb(unit) )
+			if ( instructions.Count == 0 && NaturalLanguageInstructionParser.ContainsActionVerb(unit) )
 			{
 				_logVerbose($"[NLParser] No pattern matched for unit with action verb: {unit.Substring(0, Math.Min(80, unit.Length))}...");
 			}
@@ -575,7 +575,7 @@ namespace KOTORModSync.Core.Parsing
 		/// <summary>
 		/// Determines if a unit is purely informational (no actionable instruction).
 		/// </summary>
-		private bool IsInformationalOnly([NotNull] string unit)
+		private static bool IsInformationalOnly([NotNull] string unit)
 		{
 			string lower = unit.ToLowerInvariant();
 
@@ -607,7 +607,7 @@ namespace KOTORModSync.Core.Parsing
 		/// <summary>
 		/// Checks if unit contains an action verb indicating it's an instruction.
 		/// </summary>
-		private bool ContainsActionVerb([NotNull] string unit)
+		private static bool ContainsActionVerb([NotNull] string unit)
 		{
 			string lower = unit.ToLowerInvariant();
 			string[] actionVerbs = { "move", "copy", "delete", "remove", "install", "apply", "run", "execute",
@@ -639,13 +639,13 @@ namespace KOTORModSync.Core.Parsing
 			if ( match.Groups["source"].Success )
 			{
 				string sourceText = match.Groups["source"].Value.Trim();
-				var sources = ExtractSources(sourceText, unit, pattern.ActionType);
+				var sources = NaturalLanguageInstructionParser.ExtractSources(sourceText, unit, pattern.ActionType);
 
 				// Check for second source (e.g., "from both X and Y folders")
 				if ( match.Groups["source2"].Success )
 				{
 					string source2Text = match.Groups["source2"].Value.Trim();
-					var sources2 = ExtractSources(source2Text, unit, pattern.ActionType);
+					var sources2 = NaturalLanguageInstructionParser.ExtractSources(source2Text, unit, pattern.ActionType);
 					sources.AddRange(sources2);
 				}
 
@@ -656,7 +656,7 @@ namespace KOTORModSync.Core.Parsing
 				// Handle file ranges directly in main pattern
 				string start = match.Groups["start"].Value;
 				string end = match.Groups["end"].Value;
-				var rangeSources = GenerateFileRange(start, end);
+				var rangeSources = NaturalLanguageInstructionParser.GenerateFileRange(start, end);
 				instruction.Source = rangeSources;
 			}
 
@@ -664,12 +664,12 @@ namespace KOTORModSync.Core.Parsing
 			if ( match.Groups["destination"].Success )
 			{
 				string destText = match.Groups["destination"].Value.Trim();
-				instruction.Destination = NormalizeDestination(destText, unit);
+				instruction.Destination = NaturalLanguageInstructionParser.NormalizeDestination(destText, unit);
 			}
 			else
 			{
 				// Auto-detect destination from context
-				instruction.Destination = InferDestination(unit, pattern.ActionType);
+				instruction.Destination = NaturalLanguageInstructionParser.InferDestination(unit, pattern.ActionType);
 			}
 
 			// === Extract Option/Arguments ===
@@ -708,7 +708,7 @@ namespace KOTORModSync.Core.Parsing
 			if ( onlyMatch.Success )
 			{
 				string onlyText = onlyMatch.Groups["only"].Value;
-				var onlySources = ExtractSources(onlyText, unit, pattern.ActionType);
+				var onlySources = NaturalLanguageInstructionParser.ExtractSources(onlyText, unit, pattern.ActionType);
 				if ( onlySources.Count > 0 )
 				{
 					instruction.Source = onlySources;
@@ -716,7 +716,7 @@ namespace KOTORModSync.Core.Parsing
 			}
 
 			// === Validate Instruction ===
-			if ( !ValidateInstruction(instruction) )
+			if ( !NaturalLanguageInstructionParser.ValidateInstruction(instruction) )
 			{
 				_logVerbose($"[NLParser] Rejected incomplete instruction: {pattern.ActionType}");
 				return null;
@@ -728,7 +728,7 @@ namespace KOTORModSync.Core.Parsing
 		/// <summary>
 		/// Validates that an instruction has all required fields.
 		/// </summary>
-		private bool ValidateInstruction([NotNull] Instruction instruction)
+		private static bool ValidateInstruction([NotNull] Instruction instruction)
 		{
 			// All instructions need an action type
 			if ( instruction.Action == Instruction.ActionType.Unset )
@@ -761,7 +761,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Extracts source file/folder paths from text.
 		/// </summary>
 		[NotNull]
-		private List<string> ExtractSources([NotNull] string sourceText, [NotNull] string fullUnit, Instruction.ActionType actionType)
+		private static List<string> ExtractSources([NotNull] string sourceText, [NotNull] string fullUnit, Instruction.ActionType actionType)
 		{
 			var sources = new List<string>();
 
@@ -776,7 +776,7 @@ namespace KOTORModSync.Core.Parsing
 			{
 				string start = rangeMatch.Groups["start"].Value;
 				string end = rangeMatch.Groups["end"].Value;
-				var rangeSources = GenerateFileRange(start, end);
+				var rangeSources = NaturalLanguageInstructionParser.GenerateFileRange(start, end);
 				return rangeSources;
 			}
 
@@ -808,7 +808,7 @@ namespace KOTORModSync.Core.Parsing
 			if ( fileListMatch.Success )
 			{
 				string filesText = fileListMatch.Groups["files"].Value;
-				var files = ParseFileList(filesText);
+				var files = NaturalLanguageInstructionParser.ParseFileList(filesText);
 				foreach ( string file in files )
 				{
 					sources.Add($"<<modDirectory>>\\{file}");
@@ -870,7 +870,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Generates a list of file sources from a range specification.
 		/// </summary>
 		[NotNull]
-		private List<string> GenerateFileRange([NotNull] string start, [NotNull] string end)
+		private static List<string> GenerateFileRange([NotNull] string start, [NotNull] string end)
 		{
 			// For file ranges, create a wildcard pattern that covers the range
 			// E.g., "file01.tga" through "file10.tga" becomes "file*.tga"
@@ -908,7 +908,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Parses comma/semicolon-separated file lists.
 		/// </summary>
 		[NotNull]
-		private List<string> ParseFileList([NotNull] string text)
+		private static List<string> ParseFileList([NotNull] string text)
 		{
 			var files = new List<string>();
 
@@ -945,7 +945,7 @@ namespace KOTORModSync.Core.Parsing
 			if ( exceptMatch.Success )
 			{
 				string exceptionsText = exceptMatch.Groups["exceptions"].Value;
-				var excludedFiles = ExtractExcludedFiles(exceptionsText);
+				var excludedFiles = NaturalLanguageInstructionParser.ExtractExcludedFiles(exceptionsText);
 
 				if ( excludedFiles.Count > 0 )
 				{
@@ -962,7 +962,7 @@ namespace KOTORModSync.Core.Parsing
 			if ( ignoreMatch.Success )
 			{
 				string ignoreText = ignoreMatch.Groups["ignore"].Value;
-				var ignoredFiles = ExtractExcludedFiles(ignoreText);
+				var ignoredFiles = NaturalLanguageInstructionParser.ExtractExcludedFiles(ignoreText);
 
 				if ( ignoredFiles.Count > 0 )
 				{
@@ -980,7 +980,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Extracts excluded file names from exception text.
 		/// </summary>
 		[NotNull]
-		private List<string> ExtractExcludedFiles([NotNull] string exceptionText)
+		private static List<string> ExtractExcludedFiles([NotNull] string exceptionText)
 		{
 			var excluded = new List<string>();
 
@@ -992,7 +992,7 @@ namespace KOTORModSync.Core.Parsing
 			}
 
 			// Parse file lists
-			excluded.AddRange(ParseFileList(exceptionText));
+			excluded.AddRange(NaturalLanguageInstructionParser.ParseFileList(exceptionText));
 
 			// Check for folder references
 			var folderMatch = s_entityPatterns["folder_name"].Match(exceptionText);
@@ -1009,7 +1009,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Normalizes destination paths to use placeholders.
 		/// </summary>
 		[NotNull]
-		private string NormalizeDestination([NotNull] string destination, [NotNull] string fullUnit)
+		private static string NormalizeDestination([NotNull] string destination, [NotNull] string fullUnit)
 		{
 			string lower = destination.ToLowerInvariant().Trim();
 
@@ -1047,7 +1047,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Infers destination from context when not explicitly stated.
 		/// </summary>
 		[NotNull]
-		private string InferDestination([NotNull] string fullUnit, Instruction.ActionType actionType)
+		private static string InferDestination([NotNull] string fullUnit, Instruction.ActionType actionType)
 		{
 			string lower = fullUnit.ToLowerInvariant();
 
@@ -1087,7 +1087,7 @@ namespace KOTORModSync.Core.Parsing
 		/// Parses download instructions into Option objects for user selection.
 		/// </summary>
 		[NotNull]
-		private List<Option> ParseDownloadInstructions([NotNull] string downloadText, [NotNull] ModComponent parentComponent)
+		private static List<Option> ParseDownloadInstructions([NotNull] string downloadText, [NotNull] ModComponent parentComponent)
 		{
 			var options = new List<Option>();
 
@@ -1107,7 +1107,7 @@ namespace KOTORModSync.Core.Parsing
 						continue;
 
 					// Skip if it's just a generic phrase
-					if ( IsGenericPhrase(optionName) )
+					if ( NaturalLanguageInstructionParser.IsGenericPhrase(optionName) )
 						continue;
 
 					var option = new Option
@@ -1132,7 +1132,7 @@ namespace KOTORModSync.Core.Parsing
 				if ( options.Any(o => o.Name.Equals(optionName, StringComparison.OrdinalIgnoreCase)) )
 					continue;
 
-				if ( IsGenericPhrase(optionName) )
+				if ( NaturalLanguageInstructionParser.IsGenericPhrase(optionName) )
 					continue;
 
 				var option = new Option
@@ -1151,7 +1151,7 @@ namespace KOTORModSync.Core.Parsing
 		/// <summary>
 		/// Determines if a phrase is too generic to be a meaningful option.
 		/// </summary>
-		private bool IsGenericPhrase([NotNull] string phrase)
+		private static bool IsGenericPhrase([NotNull] string phrase)
 		{
 			string lower = phrase.ToLowerInvariant().Trim();
 

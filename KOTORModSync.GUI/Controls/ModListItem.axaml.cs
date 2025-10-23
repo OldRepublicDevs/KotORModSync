@@ -550,7 +550,7 @@ namespace KOTORModSync.Controls
 						var missingUrls = new List<string>();
 						foreach ( string url in component.ModLinkFilenames.Keys )
 						{
-							if ( !downloadCacheService.IsCached(url) )
+							if ( !Core.Services.DownloadCacheService.IsCached(url) )
 							{
 								missingUrls.Add(url);
 							}

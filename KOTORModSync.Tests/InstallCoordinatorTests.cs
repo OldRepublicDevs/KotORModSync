@@ -48,7 +48,8 @@ namespace KOTORModSync.Tests
 			_mainConfigInstance!.allComponents = [component];
 
 			var coordinator = new InstallCoordinator();
-			ResumeResult resume = await coordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, CancellationToken.None);
+			using var cts = new CancellationTokenSource();
+			ResumeResult resume = await coordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, cts.Token);
 
 			Assert.That(resume.OrderedComponents, Has.Count.EqualTo(1), "Coordinator should return component order");
 			string sessionPath = Path.Combine(MainConfig.DestinationPath.FullName, ModComponent.CheckpointFolderName, "install_session.json");

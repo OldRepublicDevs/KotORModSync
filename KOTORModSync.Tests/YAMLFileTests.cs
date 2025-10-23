@@ -75,12 +75,12 @@ Instructions:
 
 			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
-			string serializedYaml = ModComponentSerializationService.SaveToYamlString(originalComponents);
-			Console.WriteLine("=== SERIALIZED YAML ===");
-			Console.WriteLine(serializedYaml);
-			Console.WriteLine("=== END YAML ===");
-			Console.WriteLine($"\nYAML Length: {serializedYaml.Length}");
-			Console.WriteLine($"First 500 chars: {serializedYaml.Substring(0, Math.Min(500, serializedYaml.Length))}");
+			string serializedYaml = ModComponentSerializationService.SerializeModComponentAsYamlString(originalComponents);
+			TestContext.Progress.WriteLine("=== SERIALIZED YAML ===");
+			TestContext.Progress.WriteLine(serializedYaml);
+			TestContext.Progress.WriteLine("=== END YAML ===");
+			TestContext.Progress.WriteLine($"\nYAML Length: {serializedYaml.Length}");
+			TestContext.Progress.WriteLine($"First 500 chars: {serializedYaml.Substring(0, Math.Min(500, serializedYaml.Length))}");
 
 			FileLoadingService.SaveToFile(originalComponents, modifiedFilePath);
 
@@ -100,14 +100,14 @@ Instructions:
 		[Test]
 		public void SaveAndLoad_DefaultComponent()
 		{
-			List<ModComponent> components = ModComponentSerializationService.LoadFromYamlString(_exampleYaml);
+			List<ModComponent> components = ModComponentSerializationService.DeserializeModComponentFromYamlString(_exampleYaml);
 			ModComponent newComponent = components[0];
 			newComponent.Guid = Guid.NewGuid();
 			newComponent.Name = "test_mod_" + Path.GetRandomFileName();
 
-			string yamlString = ModComponentSerializationService.SaveToYamlString([newComponent]);
+			string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString([newComponent]);
 
-			List<ModComponent> loadedComponents = ModComponentSerializationService.LoadFromYamlString(yamlString);
+			List<ModComponent> loadedComponents = ModComponentSerializationService.DeserializeModComponentFromYamlString(yamlString);
 			ModComponent duplicateComponent = loadedComponents[0];
 
 			AssertComponentEquality(newComponent, duplicateComponent);
@@ -415,7 +415,7 @@ Instructions:
 				}
 			}
 			};
-			string extractYaml = ModComponentSerializationService.SaveToYamlString([extractComponent]);
+			string extractYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([extractComponent]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(extractYaml.Contains("Overwrite"), Is.False, "Extract should not serialize Overwrite");
@@ -439,7 +439,7 @@ Instructions:
 				}
 			}
 			};
-			string moveYaml = ModComponentSerializationService.SaveToYamlString([moveComponent]);
+			string moveYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([moveComponent]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(moveYaml, Does.Contain("Overwrite"), "Move should serialize Overwrite");
@@ -463,7 +463,7 @@ Instructions:
 				}
 			}
 			};
-			string patcherYaml = ModComponentSerializationService.SaveToYamlString([patcherComponent]);
+			string patcherYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([patcherComponent]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(patcherYaml, Does.Not.Contain("Overwrite"), "Patcher should not serialize Overwrite");
@@ -487,7 +487,7 @@ Instructions:
 				}
 			}
 			};
-			string executeYaml = ModComponentSerializationService.SaveToYamlString([executeComponent]);
+			string executeYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([executeComponent]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(executeYaml, Does.Not.Contain("Overwrite"), "Execute should not serialize Overwrite");
@@ -509,7 +509,7 @@ Instructions:
 				IsSelected = true
 			};
 
-			string yamlString = ModComponentSerializationService.SaveToYamlString([component]);
+			string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString([component]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(yamlString, Does.Not.Contain("IsDownloaded"), "YAML should not contain IsDownloaded");

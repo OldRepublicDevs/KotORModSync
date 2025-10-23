@@ -11,6 +11,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using JetBrains.Annotations;
 using KOTORModSync.Core;
+using KOTORModSync.Services;
 
 namespace KOTORModSync.Dialogs
 {
@@ -25,6 +26,15 @@ namespace KOTORModSync.Dialogs
 		private static readonly AvaloniaProperty s_noButtonTextProperty =
 			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonText), "No");
 
+		private static readonly AvaloniaProperty s_yesButtonTooltipProperty =
+			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(YesButtonTooltip));
+
+		private static readonly AvaloniaProperty s_noButtonTooltipProperty =
+			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonTooltip));
+
+		private static readonly AvaloniaProperty s_closeButtonTooltipProperty =
+			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(CloseButtonTooltip));
+
 		private static readonly RoutedEvent<RoutedEventArgs> s_yesButtonClickedEvent =
 			RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
 				nameof(YesButtonClicked),
@@ -38,12 +48,14 @@ namespace KOTORModSync.Dialogs
 			);
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
+		private readonly MarkdownRenderingService _markdownService;
 
 		public ConfirmationDialog()
 		{
 			InitializeComponent();
 
 			ThemeManager.ApplyCurrentToWindow(this);
+			_markdownService = new MarkdownRenderingService();
 
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
@@ -72,6 +84,27 @@ namespace KOTORModSync.Dialogs
 			set => SetValue(s_noButtonTextProperty, value);
 		}
 
+		[CanBeNull]
+		public string YesButtonTooltip
+		{
+			get => GetValue(s_yesButtonTooltipProperty) as string;
+			set => SetValue(s_yesButtonTooltipProperty, value);
+		}
+
+		[CanBeNull]
+		public string NoButtonTooltip
+		{
+			get => GetValue(s_noButtonTooltipProperty) as string;
+			set => SetValue(s_noButtonTooltipProperty, value);
+		}
+
+		[CanBeNull]
+		public string CloseButtonTooltip
+		{
+			get => GetValue(s_closeButtonTooltipProperty) as string;
+			set => SetValue(s_closeButtonTooltipProperty, value);
+		}
+
 		public enum ConfirmationResult
 		{
 			Save,
@@ -83,7 +116,10 @@ namespace KOTORModSync.Dialogs
 			[CanBeNull] Window parentWindow,
 			[CanBeNull] string confirmText,
 			[CanBeNull] string yesButtonText = null,
-			[CanBeNull] string noButtonText = null
+			[CanBeNull] string noButtonText = null,
+			[CanBeNull] string yesButtonTooltip = null,
+			[CanBeNull] string noButtonTooltip = null,
+			[CanBeNull] string closeButtonTooltip = null
 		)
 		{
 			var tcs = new TaskCompletionSource<bool?>();
@@ -98,6 +134,9 @@ namespace KOTORModSync.Dialogs
 							ConfirmText = confirmText,
 							YesButtonText = yesButtonText ?? "Yes",
 							NoButtonText = noButtonText ?? "No",
+							YesButtonTooltip = yesButtonTooltip,
+							NoButtonTooltip = noButtonTooltip,
+							CloseButtonTooltip = closeButtonTooltip,
 							Topmost = true,
 						};
 
@@ -106,7 +145,14 @@ namespace KOTORModSync.Dialogs
 						confirmationDialog.Closed += ClosedHandler;
 						confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-						_ = confirmationDialog.ShowDialog(parentWindow);
+						if ( parentWindow != null )
+						{
+							_ = confirmationDialog.ShowDialog(parentWindow);
+						}
+						else
+						{
+							confirmationDialog.Show();
+						}
 						return;
 
 						void CleanupHandlers()
@@ -150,7 +196,10 @@ namespace KOTORModSync.Dialogs
 			[CanBeNull] Window parentWindow,
 			[CanBeNull] string confirmText,
 			[CanBeNull] string yesButtonText = null,
-			[CanBeNull] string noButtonText = null
+			[CanBeNull] string noButtonText = null,
+			[CanBeNull] string yesButtonTooltip = null,
+			[CanBeNull] string noButtonTooltip = null,
+			[CanBeNull] string closeButtonTooltip = null
 		)
 		{
 			var tcs = new TaskCompletionSource<ConfirmationResult>();
@@ -165,6 +214,9 @@ namespace KOTORModSync.Dialogs
 							ConfirmText = confirmText,
 							YesButtonText = yesButtonText ?? "Yes",
 							NoButtonText = noButtonText ?? "No",
+							YesButtonTooltip = yesButtonTooltip,
+							NoButtonTooltip = noButtonTooltip,
+							CloseButtonTooltip = closeButtonTooltip,
 							Topmost = true,
 						};
 
@@ -173,7 +225,14 @@ namespace KOTORModSync.Dialogs
 						confirmationDialog.Closed += ClosedHandler;
 						confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-						_ = confirmationDialog.ShowDialog(parentWindow);
+						if ( parentWindow != null )
+						{
+							_ = confirmationDialog.ShowDialog(parentWindow);
+						}
+						else
+						{
+							confirmationDialog.Show();
+						}
 						return;
 
 						void CleanupHandlers()
@@ -217,7 +276,10 @@ namespace KOTORModSync.Dialogs
 			[CanBeNull] Window parentWindow,
 			[CanBeNull] string confirmText,
 			[CanBeNull] string firstButtonText,
-			[CanBeNull] string secondButtonText
+			[CanBeNull] string secondButtonText,
+			[CanBeNull] string firstButtonTooltip = null,
+			[CanBeNull] string secondButtonTooltip = null,
+			[CanBeNull] string closeButtonTooltip = null
 		)
 		{
 			var tcs = new TaskCompletionSource<bool?>();
@@ -232,6 +294,9 @@ namespace KOTORModSync.Dialogs
 							ConfirmText = confirmText,
 							YesButtonText = firstButtonText ?? "First Option",
 							NoButtonText = secondButtonText ?? "Second Option",
+							YesButtonTooltip = firstButtonTooltip,
+							NoButtonTooltip = secondButtonTooltip,
+							CloseButtonTooltip = closeButtonTooltip,
 							Topmost = true,
 						};
 
@@ -240,7 +305,14 @@ namespace KOTORModSync.Dialogs
 						confirmationDialog.Closed += ClosedHandler;
 						confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-						_ = confirmationDialog.ShowDialog(parentWindow);
+						if ( parentWindow != null )
+						{
+							_ = confirmationDialog.ShowDialog(parentWindow);
+						}
+						else
+						{
+							confirmationDialog.Show();
+						}
 						return;
 
 						void CleanupHandlers()
@@ -293,7 +365,7 @@ namespace KOTORModSync.Dialogs
 		}
 
 		private void OnOpened([CanBeNull] object sender, [CanBeNull] EventArgs e) =>
-			ConfirmTextBlock.Text = ConfirmText;
+			_markdownService.RenderMarkdownToTextBlock(ConfirmTextBlock, ConfirmText);
 
 		private void YesButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
 			RaiseEvent(new RoutedEventArgs(s_yesButtonClickedEvent));

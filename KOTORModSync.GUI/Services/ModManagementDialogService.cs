@@ -8,9 +8,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Dialogs;
+using KOTORModSync.Services;
 
 namespace KOTORModSync
 {
@@ -20,6 +22,7 @@ namespace KOTORModSync
 		private readonly ModManagementService _modManagementService;
 		private readonly Func<List<ModComponent>> _getComponents;
 		private readonly Action<List<ModComponent>> _updateComponents;
+		private readonly DialogService _dialogService;
 
 		public ModManagementDialogService(
 			Window parentWindow,
@@ -31,6 +34,7 @@ namespace KOTORModSync
 			_modManagementService = modManagementService ?? throw new ArgumentNullException(nameof(modManagementService));
 			_getComponents = getComponents ?? throw new ArgumentNullException(nameof(getComponents));
 			_updateComponents = updateComponents ?? throw new ArgumentNullException(nameof(updateComponents));
+			_dialogService = new DialogService(_parentWindow);
 		}
 
 		public async Task<string[]> ShowFileDialog(bool isFolderDialog, string windowName, bool allowMultiple = false)
@@ -68,33 +72,26 @@ namespace KOTORModSync
 			}
 		}
 
-		public async Task<string> ShowSaveFileDialog(string suggestedFileName)
+		public async Task<string> ShowSaveFileDialogAsync(
+			[CanBeNull] string suggestedFileName = null,
+			[CanBeNull] string defaultExtension = "toml",
+			[CanBeNull][ItemNotNull] List<FilePickerFileType> fileTypeChoices = null,
+			[CanBeNull] string windowName = "Save file as...",
+			[CanBeNull] IStorageFolder startFolder = null)
 		{
-			try
-			{
-				IStorageFile file = await _parentWindow.StorageProvider.SaveFilePickerAsync(
-					new FilePickerSaveOptions
-					{
-						Title = "Save file",
-						DefaultExtension = "toml",
-						SuggestedFileName = suggestedFileName ?? "file.toml",
-						FileTypeChoices = new List<FilePickerFileType> { FilePickerFileTypes.All }
-					}
-				);
-
-				return file?.TryGetLocalPath();
-			}
-			catch ( Exception ex )
-			{
-				await ShowInformationDialog($"Error opening save file dialog: {ex.Message}");
-				return null;
-			}
+			return await _dialogService.ShowSaveFileDialogAsync(
+				suggestedFileName,
+				defaultExtension,
+				fileTypeChoices,
+				windowName,
+				startFolder
+			);
 		}
 
 		public async Task ShowInformationDialog(string message) => await InformationDialog.ShowInformationDialogAsync(_parentWindow, message);
 
 		public async Task<bool?> ShowConfirmationDialog(string message, string yesButtonText = "Yes", string noButtonText = "No")
-			=> await ConfirmationDialog.ShowConfirmationDialogAsync(_parentWindow, message);
+			=> await ConfirmationDialog.ShowConfirmationDialogAsync(_parentWindow, message, yesButtonText, noButtonText);
 
 		public IReadOnlyList<ModComponent> GetComponents()
 			=> _getComponents()?.AsReadOnly() ?? new List<ModComponent>().AsReadOnly();

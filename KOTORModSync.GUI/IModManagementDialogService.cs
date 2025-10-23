@@ -4,6 +4,8 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avalonia.Platform.Storage;
+using JetBrains.Annotations;
 using KOTORModSync.Core;
 
 namespace KOTORModSync
@@ -13,7 +15,12 @@ namespace KOTORModSync
 
 		Task<string[]> ShowFileDialog(bool isFolderDialog, string windowName, bool allowMultiple = false);
 
-		Task<string> ShowSaveFileDialog(string suggestedFileName);
+		Task<string> ShowSaveFileDialogAsync(
+			[CanBeNull] string suggestedFileName = null,
+			[CanBeNull] string defaultExtension = "toml",
+			[CanBeNull][ItemNotNull] List<FilePickerFileType> fileTypeChoices = null,
+			[CanBeNull] string windowName = "Save file as...",
+			[CanBeNull] IStorageFolder startFolder = null);
 
 		Task ShowInformationDialog(string message);
 

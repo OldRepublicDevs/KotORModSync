@@ -14,8 +14,11 @@ using KOTORModSync.Core.Services;
 namespace KOTORModSync.Tests
 {
 	[TestFixture]
-	public class ParameterizedModSyncMetadataTests
+	public class ParameterizedModSyncMetadataTests : BaseParameterizedTest
 	{
+		protected override string TestCategory => "ModSyncMetadata";
+		protected override bool RequiresTempDirectory => false; // These tests don't need temp directories
+		protected override bool PreserveTestResults => true;
 
 		private static IEnumerable<TestCaseData> GetAllMarkdownFiles()
 		{
@@ -74,8 +77,8 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"Components parsed: {result.Components.Count}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Components parsed: {result.Components.Count}");
 
 			int componentsWithMetadata = 0;
 			int componentsWithValidGuids = 0;
@@ -90,17 +93,17 @@ namespace KOTORModSync.Tests
 					if ( component.Guid != Guid.Empty )
 					{
 						componentsWithValidGuids++;
-						Console.WriteLine($"  {component.Name}: GUID = {component.Guid}");
+						WriteLogAndConsole($"  {component.Name}: GUID = {component.Guid}");
 					}
 					else
 					{
-						Console.WriteLine($"  {component.Name}: Missing or empty GUID!");
+						WriteLogAndConsole($"  {component.Name}: Missing or empty GUID!");
 					}
 				}
 			}
 
-			Console.WriteLine($"Components with metadata: {componentsWithMetadata}");
-			Console.WriteLine($"Components with valid GUIDs: {componentsWithValidGuids}");
+			WriteLogAndConsole($"Components with metadata: {componentsWithMetadata}");
+			WriteLogAndConsole($"Components with valid GUIDs: {componentsWithValidGuids}");
 
 			if ( componentsWithMetadata > 0 )
 			{
@@ -121,7 +124,7 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
 
 			int totalInstructions = 0;
 			int invalidGuids = 0;
@@ -134,7 +137,7 @@ namespace KOTORModSync.Tests
 					if ( instruction.Guid == Guid.Empty )
 					{
 						invalidGuids++;
-						Console.WriteLine($"  {component.Name}: Instruction with action {instruction.Action} has empty GUID");
+						WriteLogAndConsole($"  {component.Name}: Instruction with action {instruction.Action} has empty GUID");
 					}
 				}
 
@@ -146,14 +149,14 @@ namespace KOTORModSync.Tests
 						if ( instruction.Guid == Guid.Empty )
 						{
 							invalidGuids++;
-							Console.WriteLine($"  {component.Name} -> {option.Name}: Instruction with action {instruction.Action} has empty GUID");
+							WriteLogAndConsole($"  {component.Name} -> {option.Name}: Instruction with action {instruction.Action} has empty GUID");
 						}
 					}
 				}
 			}
 
-			Console.WriteLine($"Total instructions: {totalInstructions}");
-			Console.WriteLine($"Instructions with invalid GUIDs: {invalidGuids}");
+			WriteLogAndConsole($"Total instructions: {totalInstructions}");
+			WriteLogAndConsole($"Instructions with invalid GUIDs: {invalidGuids}");
 
 			if ( totalInstructions > 0 )
 			{
@@ -173,7 +176,7 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
 
 			int totalOptions = 0;
 			int invalidGuids = 0;
@@ -186,13 +189,13 @@ namespace KOTORModSync.Tests
 					if ( option.Guid == Guid.Empty )
 					{
 						invalidGuids++;
-						Console.WriteLine($"  {component.Name} -> {option.Name}: Option has empty GUID");
+						WriteLogAndConsole($"  {component.Name} -> {option.Name}: Option has empty GUID");
 					}
 				}
 			}
 
-			Console.WriteLine($"Total options: {totalOptions}");
-			Console.WriteLine($"Options with invalid GUIDs: {invalidGuids}");
+			WriteLogAndConsole($"Total options: {totalOptions}");
+			WriteLogAndConsole($"Options with invalid GUIDs: {invalidGuids}");
 
 			if ( totalOptions > 0 )
 			{
@@ -222,8 +225,8 @@ namespace KOTORModSync.Tests
 				return;
 			}
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"Components with metadata: {componentsWithMetadata.Count}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Components with metadata: {componentsWithMetadata.Count}");
 
 			string generated = ModComponentSerializationService.GenerateModDocumentation(componentsWithMetadata);
 
@@ -237,7 +240,7 @@ namespace KOTORModSync.Tests
 				var first = componentsWithMetadata[i];
 				var second = secondParse.Components[i];
 
-				Console.WriteLine($"\nComparing component: {first.Name}");
+				WriteLogAndConsole($"\nComparing component: {first.Name}");
 
 				Assert.Multiple(() =>
 				{
@@ -285,7 +288,7 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
 
 			var validActions = Enum.GetValues(typeof(Instruction.ActionType)).Cast<Instruction.ActionType>().ToList();
 			var actionCounts = new Dictionary<Instruction.ActionType, int>();
@@ -318,10 +321,10 @@ namespace KOTORModSync.Tests
 
 			if ( actionCounts.Count > 0 )
 			{
-				Console.WriteLine("\nAction distribution:");
+				WriteLogAndConsole("\nAction distribution:");
 				foreach ( var kvp in actionCounts.OrderByDescending(x => x.Value) )
 				{
-					Console.WriteLine($"  {kvp.Key}: {kvp.Value}");
+					WriteLogAndConsole($"  {kvp.Key}: {kvp.Value}");
 				}
 			}
 		}
@@ -338,7 +341,7 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult result = parser.Parse(markdown);
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
 
 			foreach ( var component in result.Components )
 			{
@@ -363,7 +366,7 @@ namespace KOTORModSync.Tests
 
 					if ( instruction.Source?.Count > 0 )
 					{
-						Console.WriteLine($"  {component.Name}: {instruction.Action} -> Source: {string.Join(", ", instruction.Source.Take(2))}");
+						WriteLogAndConsole($"  {component.Name}: {instruction.Action} -> Source: {string.Join(", ", instruction.Source.Take(2))}");
 					}
 				}
 			}

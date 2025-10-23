@@ -234,10 +234,7 @@ namespace KOTORModSync.Dialogs
 				{
 					Dispatcher.UIThread.Post(() =>
 					{
-						if ( progressDialog != null )
-						{
-							progressDialog.UpdateProgress(p.Message, p.Current, p.Total);
-						}
+						progressDialog?.UpdateProgress(p.Message, p.Current, p.Total);
 					});
 				});
 
@@ -245,20 +242,24 @@ namespace KOTORModSync.Dialogs
 
 				await Task.Run(async () =>
 				{
-					await InstallationCoordinatorService.RestoreToCheckpointAsync(
-						checkpointVm.Session.Id,
-						checkpointVm.Checkpoint.Id,
-						_destinationPath,
-						progress,
-						CancellationToken.None
-					);
+					using ( var cts = new CancellationTokenSource() )
+					{
+						CancellationToken cancellationToken = cts.Token;
+						await InstallationCoordinatorService.RestoreToCheckpointAsync(
+							checkpointVm.Session.Id,
+							checkpointVm.Checkpoint.Id,
+							_destinationPath,
+							progress,
+							cts.Token
+						);
+					}
 				});
 
 				progressDialog?.Close();
 				progressDialog = null;
 
 				await ShowSuccessDialog(
-					$"Checkpoint restored successfully!\n\n" +
+					"Checkpoint restored successfully!\n\n" +
 					$"Your game directory has been restored to the state after '{checkpointVm.ComponentName}' was installed."
 				);
 
@@ -281,34 +282,26 @@ namespace KOTORModSync.Dialogs
 				"After cleanup, you will no longer be able to rollback completed installations.\n\n" +
 				"The system will also garbage collect orphaned files to free up disk space.\n\n" +
 				"Continue?",
-				"Clean Up",
-				"Cancel"
+				"Clean Up"
 			);
 
-			var result = await confirmDialog.ShowDialog<bool>(this);
-			if ( !result )
+			bool result = await confirmDialog.ShowDialog<bool>(this);
+			if ( result == false )
 				return;
 
 			try
 			{
-				var sessions = await _checkpointService.ListSessionsAsync();
-				var completedSessions = sessions.Where(s => s.IsComplete).ToList();
-
-				if ( completedSessions.Count == 0 )
-				{
-					await ShowSuccessDialog("No completed sessions to clean up.");
-					return;
-				}
+				List<CheckpointSession> sessions = await _checkpointService.ListSessionsAsync();
+				List<CheckpointSession> completedSessions = sessions.Where(s => s.IsComplete).ToList();
 
 				int cleanedCount = 0;
 				long freedSpace = 0;
-
-				foreach ( var session in completedSessions )
+				foreach ( CheckpointSession session in completedSessions )
 				{
 					string sessionPath = Path.Combine(_destinationPath, ".kotor_modsync", "checkpoints", "sessions", session.Id);
 					if ( Directory.Exists(sessionPath) )
 					{
-						var files = Directory.GetFiles(sessionPath, "*", SearchOption.AllDirectories);
+						string[] files = Directory.GetFiles(sessionPath, "*", SearchOption.AllDirectories);
 						freedSpace += files.Sum(f => new FileInfo(f).Length);
 					}
 
@@ -319,7 +312,7 @@ namespace KOTORModSync.Dialogs
 				int orphanedObjects = await _checkpointService.GarbageCollectAsync();
 
 				await ShowSuccessDialog(
-					$"Cleanup complete!\n\n" +
+					"Cleanup complete!\n\n" +
 					$"• Deleted {cleanedCount} completed session(s)\n" +
 					$"• Removed {orphanedObjects} orphaned file(s)\n" +
 					$"• Freed approximately {FormatBytes(freedSpace)} of disk space"

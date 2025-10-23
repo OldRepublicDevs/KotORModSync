@@ -152,6 +152,24 @@ namespace KOTORModSync.Models
 				mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
 
 			theme = Theme ?? "/Styles/KotorStyle.axaml";
+
+			// Set TargetGame from theme (they're the same thing)
+			MainConfig.TargetGame = GetTargetGameFromTheme(theme);
+		}
+
+		/// <summary>
+		/// Converts a theme path to the corresponding TargetGame value.
+		/// TargetGame and Theme are the same thing - this method provides the mapping.
+		/// </summary>
+		private static string GetTargetGameFromTheme(string themePath)
+		{
+			if ( string.IsNullOrEmpty(themePath) )
+				return "K1"; // Default
+
+			if ( themePath.IndexOf("Kotor2", StringComparison.OrdinalIgnoreCase) >= 0 )
+				return "TSL";
+
+			return "K1"; // Default to K1
 		}
 	}
 

@@ -44,12 +44,14 @@
                         MinWidth="100"
                         Click="YesButton_Click"
                         Content="{Binding YesButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Tag="Yes" />
+                        Tag="Yes"
+                        ToolTip.Tip="{Binding YesButtonTooltip, RelativeSource={RelativeSource AncestorType=Window}}" />
                     <Button
                         MinWidth="100"
                         Click="NoButton_Click"
                         Content="{Binding NoButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Tag="No" />
+                        Tag="No"
+                        ToolTip.Tip="{Binding NoButtonTooltip, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -70,7 +72,8 @@
                 HorizontalContentAlignment="Center"
                 Click="CloseButton_Click"
                 Content="X"
-                FontSize="15" />
+                FontSize="15"
+                ToolTip.Tip="{Binding CloseButtonTooltip, RelativeSource={RelativeSource AncestorType=Window}}" />
         </StackPanel>
     </Grid>
 </Window>

@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using JetBrains.Annotations;
 
@@ -86,22 +87,25 @@ namespace KOTORModSync
 			decimal progress
 		)
 		{
-			var progressWindow = new ProgressWindow
+			await Dispatcher.UIThread.InvokeAsync(async () =>
 			{
-				Owner = parentWindow,
-				ProgressTextBlock =
+				var progressWindow = new ProgressWindow
 				{
-					Text = message,
-				},
-				ProgressBar =
-				{
-					Value = (double)progress,
-				},
-				Topmost = true,
-			};
+					Owner = parentWindow,
+					ProgressTextBlock =
+					{
+						Text = message,
+					},
+					ProgressBar =
+					{
+						Value = (double)progress,
+					},
+					Topmost = true,
+				};
 
-			if ( !(parentWindow is null) )
-				_ = await progressWindow.ShowDialog<bool?>(parentWindow);
+				if ( !(parentWindow is null) )
+					_ = await progressWindow.ShowDialog<bool?>(parentWindow);
+			});
 		}
 
 		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)

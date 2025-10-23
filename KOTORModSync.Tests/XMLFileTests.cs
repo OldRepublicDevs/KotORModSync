@@ -126,8 +126,8 @@ namespace KOTORModSync.Tests
 				}
 			};
 
-			string xmlString = ModComponentSerializationService.SaveToXmlString([newComponent]);
-			ModComponent duplicateComponent = ModComponentSerializationService.LoadFromXmlString(xmlString)[0];
+			string xmlString = ModComponentSerializationService.SerializeModComponentAsXmlString([newComponent]);
+			ModComponent duplicateComponent = ModComponentSerializationService.DeserializeModComponentFromXmlString(xmlString)[0];
 
 			Assert.That(duplicateComponent, Is.Not.Null);
 			AssertComponentEquality(newComponent, duplicateComponent);
@@ -306,7 +306,7 @@ namespace KOTORModSync.Tests
 					},
 				}
 			};
-			string extractXml = ModComponentSerializationService.SaveToXmlString([extractComponent]);
+			string extractXml = ModComponentSerializationService.SerializeModComponentAsXmlString([extractComponent]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(extractXml.Contains("Overwrite"), Is.False, "Extract should not serialize Overwrite");
@@ -327,7 +327,7 @@ namespace KOTORModSync.Tests
 				IsSelected = true
 			};
 
-			string xmlString = ModComponentSerializationService.SaveToXmlString([component]);
+			string xmlString = ModComponentSerializationService.SerializeModComponentAsXmlString([component]);
 			Assert.Multiple(() =>
 			{
 				Assert.That(xmlString, Does.Not.Contain("IsDownloaded"), "XML should not contain IsDownloaded");

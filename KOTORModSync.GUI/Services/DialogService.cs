@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using KOTORModSync.Core;
+using KOTORModSync.Dialogs;
+using JetBrains.Annotations;
 
 namespace KOTORModSync.Services
 {
@@ -16,6 +18,15 @@ namespace KOTORModSync.Services
 	public class DialogService
 	{
 		private readonly Window _parentWindow;
+		private static readonly string[] tomlFileExtensions = new[] { "*.toml", "*.tml" };
+
+		private static readonly string[] yamlFileExtensions = new[] { "*.yaml", "*.yml" };
+
+		private static readonly string[] jsonFileExtensions = new[] { "*.json" };
+
+		private static readonly string[] xmlFileExtensions = new[] { "*.xml" };
+
+		private static readonly string[] mdFileExtensions = new[] { "*.md", "*.markdown", "*.mdown", "*.mkdn", "*.mkd", "*.mdtxt", "*.mdtext", "*.text" };
 
 		public DialogService(Window parentWindow)
 		{
@@ -72,33 +83,35 @@ namespace KOTORModSync.Services
 			return null;
 		}
 
-		public async Task<string> ShowSaveFileDialogAsync(string suggestedFileName = null, string defaultExtension = "toml")
+		[NotNull]
+		[ItemCanBeNull]
+		public async Task<string> ShowSaveFileDialogAsync(
+			[CanBeNull] string suggestedFileName = null,
+			[CanBeNull] string defaultExtension = "toml",
+			[CanBeNull][ItemNotNull] List<FilePickerFileType> fileTypeChoices = null,
+			[CanBeNull] string windowName = "Save file as...",
+			[CanBeNull] IStorageFolder startFolder = null)
 		{
 			try
 			{
 				IStorageFile file = await _parentWindow.StorageProvider.SaveFilePickerAsync(
 					new FilePickerSaveOptions
 					{
+						Title = windowName,
 						DefaultExtension = defaultExtension,
-						FileTypeChoices = new List<FilePickerFileType> { FilePickerFileTypes.All },
-						ShowOverwritePrompt = true,
-						SuggestedFileName = suggestedFileName ?? $"my_file.{defaultExtension}",
+						SuggestedFileName = suggestedFileName,
+						FileTypeChoices = fileTypeChoices ?? new List<FilePickerFileType> { FilePickerFileTypes.All }
 					}
 				);
 
-				string filePath = file?.TryGetLocalPath();
-				if ( !string.IsNullOrEmpty(filePath) )
-				{
-					await Logger.LogAsync($"Selected file: {filePath}");
-					return filePath;
-				}
+				return file?.TryGetLocalPath();
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
+				await InformationDialog.ShowInformationDialogAsync(_parentWindow, $"Error opening save file dialog: {ex.Message}.");
+				return null;
 			}
-
-			return null;
 		}
 
 		public async Task<IStorageFolder> GetStorageFolderFromPathAsync(string path)

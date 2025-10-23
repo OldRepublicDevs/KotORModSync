@@ -10,6 +10,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace KOTORModSync.Dialogs
 {
@@ -130,8 +131,11 @@ namespace KOTORModSync.Dialogs
 			List<string> systemIssues = null,
 			Action openOutputCallback = null)
 		{
-			var dialog = new ValidationDialog(success, summaryMessage, modIssues, systemIssues, openOutputCallback);
-			await dialog.ShowDialog(parent);
+			await Dispatcher.UIThread.InvokeAsync(async () =>
+			{
+				var dialog = new ValidationDialog(success, summaryMessage, modIssues, systemIssues, openOutputCallback);
+				await dialog.ShowDialog(parent);
+			});
 			return true;
 		}
 	}

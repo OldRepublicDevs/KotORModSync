@@ -51,10 +51,10 @@ See <https://pastebin.com/7gML3zCJ> for a quick explanation of those fields. See
 
 KOTORModSync is a cross-platform 32-bit and 64-bit .NET application. It is compatible with the following operating systems:
 
-- **Windows 7 and 8:** Compatible if running **.NET Framework 4.6.2** or **higher**. The NET6 version is NOT supported.
-- **Windows 10 and 11:** Compatible with both the **.NET Framework 4.6.2** *and* the **NET6** builds.
+- **Windows 7 and 8:** Compatible if running **.NET Framework 4.8.0** or **higher**. The NET6 version is NOT supported.
+- **Windows 10 and 11:** Compatible with both the **.NET Framework 4.8.0** *and* the **NET6** builds.
 - **Linux and Mac:** Compatible with the **NET6** x64 builds - choose one of the two that match your operating system.
-Users do not need to download any additional runtimes: everything is self-contained within the application. Additionally, **.NET Framework 4.6.2** is preinstalled on Windows 7 and 8 or at least provided by Windows Updates.
+Users do not need to download any additional runtimes: everything is self-contained within the application. Additionally, **.NET Framework 4.8.0** is preinstalled on Windows 7 and 8 or at least provided by Windows Updates.
 
 ### Linux/Mac
 

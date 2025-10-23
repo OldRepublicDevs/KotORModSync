@@ -168,10 +168,11 @@ namespace KOTORModSync.Services
 					setCurrentComponent(component);
 					bool? confirm = await ConfirmationDialog.ShowConfirmationDialogAsync(
 						_parentWindow,
-						$"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
+						confirmText: $"Are you sure you want to delete the mod '{component.Name}'? This action cannot be undone.",
 						yesButtonText: "Delete",
 						noButtonText: "Cancel"
 					);
+
 					if ( confirm == true )
 						onRemoveComponent(null, null);
 				})
@@ -228,7 +229,7 @@ namespace KOTORModSync.Services
 			contextMenu.Items.Add(new MenuItem
 			{
 				Header = "🔍 Validate Mod Files",
-				Command = ReactiveCommand.Create(async () =>
+				Command = ReactiveCommand.Create((Func<Task>)(async () =>
 				{
 					ModValidationResult validation = _modManagementService.ValidateMod(component);
 					if ( !validation.IsValid )
@@ -242,7 +243,7 @@ namespace KOTORModSync.Services
 						await InformationDialog.ShowInformationDialogAsync(_parentWindow,
 							$"✅ '{component.Name}' validation passed!");
 					}
-				})
+				}))
 			});
 		}
 
@@ -258,7 +259,7 @@ namespace KOTORModSync.Services
 			_ = items.Add(new MenuItem
 			{
 				Header = "🔄 Validate All Mods",
-				Command = ReactiveCommand.CreateFromTask(async () =>
+				Command = ReactiveCommand.CreateFromTask((Func<Task>)(async () =>
 				{
 					Dictionary<ModComponent, ModValidationResult> results = _modManagementService.ValidateAllMods();
 					int errorCount = results.Count(r => !r.Value.IsValid);
@@ -269,7 +270,7 @@ namespace KOTORModSync.Services
 						$"Errors: {errorCount}\n" +
 						$"Warnings: {warningCount}\n\n" +
 						$"Valid mods: {results.Count(r => r.Value.IsValid)}/{results.Count}");
-				})
+				}))
 			});
 		}
 
@@ -291,12 +292,11 @@ namespace KOTORModSync.Services
 				Header = "➕ Add New Mod",
 				Command = ReactiveCommand.Create(() =>
 				{
-					ModComponent newMod = onCreate();
-					if ( newMod != null )
-					{
-						setCurrentComponent(newMod);
-						setTab(tabControl, guiEditTab);
-					}
+					var newMod = onCreate();
+					if ( newMod == null )
+						return;
+					setCurrentComponent(newMod);
+					setTab(tabControl, guiEditTab);
 				})
 			});
 
@@ -393,26 +393,6 @@ namespace KOTORModSync.Services
 
 			items.Add(new MenuItem
 			{
-				Header = "🔎 Select by Name",
-				Command = ReactiveCommand.Create(() => _modManagementService.SortMods())
-			});
-
-			items.Add(new MenuItem
-			{
-				Header = "🔎 Select by Category",
-				Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Category))
-			});
-
-			items.Add(new MenuItem
-			{
-				Header = "🔎 Select by Tier",
-				Command = ReactiveCommand.Create(() => _modManagementService.SortMods(ModSortCriteria.Tier))
-			});
-
-			items.Add(new Separator());
-
-			items.Add(new MenuItem
-			{
 				Header = "⚙️ Mod Management Tools",
 				Command = ReactiveCommand.CreateFromTask(onShowModManagement)
 			});
@@ -420,7 +400,7 @@ namespace KOTORModSync.Services
 			items.Add(new MenuItem
 			{
 				Header = "📈 Mod Statistics",
-				Command = ReactiveCommand.CreateFromTask(async () =>
+				Command = ReactiveCommand.CreateFromTask((Func<Task>)(async () =>
 				{
 					ModStatistics stats = _modManagementService.GetModStatistics();
 					string statsText = "📊 Mod Statistics\n\n" +
@@ -433,7 +413,7 @@ namespace KOTORModSync.Services
 									   $"Average Options/Mod: {stats.AverageOptionsPerMod:F1}";
 
 					await InformationDialog.ShowInformationDialogAsync(_parentWindow, statsText);
-				})
+				}))
 			});
 
 			items.Add(new Separator());

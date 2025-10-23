@@ -42,30 +42,54 @@ namespace KOTORModSync.Core.Services.Download
 			string mode = sequential ? "sequential" : "concurrent";
 			await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urlList.Count} URLs to filenames ({mode})");
 
-			var results = new Dictionary<string, List<string>>();
-
-			if ( sequential )
+			var sw = System.Diagnostics.Stopwatch.StartNew();
+			try
 			{
-				// Process URLs sequentially
-				foreach ( string url in urlList )
+				var results = new Dictionary<string, List<string>>();
+
+				if ( sequential )
 				{
-					var (resolvedUrl, filenames) = await ResolveUrlToFilenamesInternalAsync(url, cancellationToken).ConfigureAwait(false);
-					results[resolvedUrl] = filenames;
+					// Process URLs sequentially
+					foreach ( string url in urlList )
+					{
+						var (resolvedUrl, filenames) = await ResolveUrlToFilenamesInternalAsync(url, cancellationToken).ConfigureAwait(false);
+						results[resolvedUrl] = filenames;
+					}
 				}
+				else
+				{
+					// Process URLs concurrently
+					var resolutionTasks = urlList.Select(url => ResolveUrlToFilenamesInternalAsync(url, cancellationToken)).ToList();
+					var resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
+
+					foreach ( var (url, filenames) in resolvedItems )
+					{
+						results[url] = filenames;
+					}
+				}
+
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordFileOperation(
+					operationType: "resolve_urls",
+					success: true,
+					fileCount: urlList.Count,
+					durationMs: sw.Elapsed.TotalMilliseconds
+				);
+
+				return results;
 			}
-			else
+			catch ( Exception ex )
 			{
-				// Process URLs concurrently
-				var resolutionTasks = urlList.Select(url => ResolveUrlToFilenamesInternalAsync(url, cancellationToken)).ToList();
-				var resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
-
-				foreach ( var (url, filenames) in resolvedItems )
-				{
-					results[url] = filenames;
-				}
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordFileOperation(
+					operationType: "resolve_urls",
+					success: false,
+					fileCount: urlList.Count,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: ex.Message
+				);
+				throw;
 			}
-
-			return results;
 		}
 
 		private async Task<(string url, List<string> filenames)> ResolveUrlToFilenamesInternalAsync(
@@ -299,6 +323,17 @@ namespace KOTORModSync.Core.Services.Download
 				{
 					await Logger.LogVerboseAsync($"[DownloadManager] Successfully downloaded: {result.FilePath}");
 					progressItem.AddLog($"Download completed successfully: {result.FilePath}");
+
+					var downloadDuration = (progressItem.EndTime ?? DateTime.Now) - progressItem.StartTime;
+					Services.TelemetryService.Instance.RecordDownload(
+						modName: progressItem.ModName ?? Path.GetFileName(result.FilePath),
+						success: true,
+						durationMs: downloadDuration.TotalMilliseconds,
+						bytesDownloaded: progressItem.BytesDownloaded,
+						downloadSource: handler?.GetType().Name,
+						errorMessage: null
+					);
+
 					if ( result.WasSkipped )
 					{
 						progressItem.AddLog("File was skipped (already exists)");
@@ -331,6 +366,16 @@ namespace KOTORModSync.Core.Services.Download
 				{
 					await Logger.LogErrorAsync($"[DownloadManager] Failed to download URL '{url}': {result.Message}");
 					progressItem.AddLog($"Download failed: {result.Message}");
+
+					var downloadDuration = (progressItem.EndTime ?? DateTime.Now) - progressItem.StartTime;
+					Services.TelemetryService.Instance.RecordDownload(
+						modName: progressItem.ModName ?? url,
+						success: false,
+						durationMs: downloadDuration.TotalMilliseconds,
+						bytesDownloaded: progressItem.BytesDownloaded,
+						downloadSource: handler?.GetType().Name,
+						errorMessage: result.Message
+					);
 
 					progressItem.Status = DownloadStatus.Failed;
 					progressItem.StatusMessage = "Download failed";

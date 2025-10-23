@@ -49,24 +49,7 @@ namespace KOTORModSync.Core.Services
 		{
 			if ( downloadManager is null )
 			{
-				var handler = new System.Net.Http.HttpClientHandler
-				{
-					AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
-					MaxConnectionsPerServer = 128
-				};
-				var httpClient = new System.Net.Http.HttpClient(handler)
-				{
-					Timeout = TimeSpan.FromHours(3)
-				};
-				var handlers = new List<IDownloadHandler>
-			{
-				new DeadlyStreamDownloadHandler(httpClient),
-				new MegaDownloadHandler(),
-				new NexusModsDownloadHandler(httpClient, MainConfig.NexusModsApiKey),
-				new GameFrontDownloadHandler(httpClient),
-				new DirectDownloadHandler(httpClient),
-			};
-				DownloadManager = new DownloadManager(handlers);
+				DownloadManager = Download.DownloadHandlerFactory.CreateDownloadManager();
 			}
 			else
 			{
@@ -80,6 +63,11 @@ namespace KOTORModSync.Core.Services
 			bool sequential = false,
 			CancellationToken cancellationToken = default)
 		{
+			await Logger.LogVerboseAsync("[DownloadCacheService] ===== PreResolveUrlsAsync START =====");
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Component: {component?.Name ?? "NULL"}");
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Sequential: {sequential}");
+			await Logger.LogVerboseAsync($"[DownloadCacheService] CancellationToken: {cancellationToken}");
+
 			if ( component == null )
 				throw new ArgumentNullException(nameof(component));
 
@@ -88,6 +76,22 @@ namespace KOTORModSync.Core.Services
 				throw new InvalidOperationException("DownloadManager is not set. Call SetDownloadManager() first.");
 
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolving URLs for component: {component.Name}");
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Component.ModLinkFilenames count: {component.ModLinkFilenames?.Count ?? 0}");
+			if ( component.ModLinkFilenames.Count > 0 )
+			{
+				foreach ( KeyValuePair<string, Dictionary<string, bool?>> kvp in component.ModLinkFilenames )
+				{
+					await Logger.LogVerboseAsync($"[DownloadCacheService]   URL: {kvp.Key}");
+					await Logger.LogVerboseAsync($"[DownloadCacheService]   Filenames dict: {kvp.Value?.Count ?? 0} entries");
+					if ( kvp.Value != null )
+					{
+						foreach ( KeyValuePair<string, bool?> filenameKvp in kvp.Value )
+						{
+							await Logger.LogVerboseAsync($"[DownloadCacheService]     Filename: {filenameKvp.Key} -> {filenameKvp.Value}");
+						}
+					}
+				}
+			}
 
 			string modArchiveDirectory = MainConfig.SourcePath?.FullName;
 			if ( string.IsNullOrEmpty(modArchiveDirectory) )
@@ -102,6 +106,12 @@ namespace KOTORModSync.Core.Services
 			}
 
 			List<string> urls = component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)).ToList();
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Extracted {urls.Count} URLs from ModLinkFilenames");
+			foreach ( string url in urls )
+			{
+				await Logger.LogVerboseAsync($"[DownloadCacheService]   URL: {url}");
+			}
+
 			if ( urls.Count == 0 )
 			{
 				await Logger.LogVerboseAsync("[DownloadCacheService] No URLs to resolve");
@@ -111,7 +121,7 @@ namespace KOTORModSync.Core.Services
 			if ( !string.IsNullOrEmpty(modArchiveDirectory) )
 			{
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Analyzing download necessity for {urls.Count} URLs");
-				(List<string> urlsNeedingAnalysis, bool _initialSimulationFailed) = await AnalyzeDownloadNecessityWithStatusAsync(component, modArchiveDirectory);
+				(List<string> urlsNeedingAnalysis, bool _initialSimulationFailed) = await AnalyzeDownloadNecessityWithStatusAsync(component, modArchiveDirectory, cancellationToken);
 
 				if ( urlsNeedingAnalysis.Count > 0 )
 				{
@@ -181,10 +191,24 @@ namespace KOTORModSync.Core.Services
 			if ( urlsToResolve.Count > 0 )
 			{
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Resolving {urlsToResolve.Count} uncached URL(s) via network");
+				await Logger.LogVerboseAsync("[DownloadCacheService] URLs to resolve:");
+				foreach ( string url in urlsToResolve )
+				{
+					await Logger.LogVerboseAsync($"[DownloadCacheService]   {url}");
+				}
+
 				Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken, false).ConfigureAwait(false); // FIXME: sequential is so slow it's unusable.
+
+				await Logger.LogVerboseAsync($"[DownloadCacheService] Received {resolvedResults.Count} resolved results from download manager");
+				foreach ( var kvp in resolvedResults )
+				{
+					await Logger.LogVerboseAsync($"[DownloadCacheService]   URL: {kvp.Key}");
+					await Logger.LogVerboseAsync($"[DownloadCacheService]   Filenames: {string.Join(", ", kvp.Value)}");
+				}
 
 				if ( sequential )
 				{
+					await Logger.LogVerboseAsync("[DownloadCacheService] Processing resolved URLs sequentially");
 					foreach ( KeyValuePair<string, List<string>> kvp in resolvedResults )
 					{
 						await ProcessResolvedUrlForPreResolveAsync(component, kvp, results, modArchiveDirectory, missingFiles);
@@ -192,6 +216,7 @@ namespace KOTORModSync.Core.Services
 				}
 				else
 				{
+					await Logger.LogVerboseAsync("[DownloadCacheService] Processing resolved URLs in parallel");
 					var processingTasks = resolvedResults.Select(kvp =>
 						ProcessResolvedUrlForPreResolveAsync(component, kvp, results, modArchiveDirectory, missingFiles)
 					).ToList();
@@ -200,6 +225,13 @@ namespace KOTORModSync.Core.Services
 			}
 
 			Dictionary<string, List<string>> filteredResults = _resolutionFilter.FilterResolvedUrls(results);
+
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Final filtered results count: {filteredResults.Count}");
+			foreach ( var kvp in filteredResults )
+			{
+				await Logger.LogVerboseAsync($"[DownloadCacheService]   Final URL: {kvp.Key}");
+				await Logger.LogVerboseAsync($"[DownloadCacheService]   Final Filenames: {string.Join(", ", kvp.Value)}");
+			}
 
 			if ( missingFiles.Count > 0 )
 			{
@@ -216,6 +248,7 @@ namespace KOTORModSync.Core.Services
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {filteredResults.Count} URLs ({cacheHits} from cache, {urlsToResolve.Count} from network), all files exist on disk");
 			}
 
+			await Logger.LogVerboseAsync("[DownloadCacheService] ===== PreResolveUrlsAsync END =====");
 			return filteredResults;
 		}
 
@@ -387,7 +420,7 @@ namespace KOTORModSync.Core.Services
 			await Logger.LogVerboseAsync($"[DownloadCacheService] VirtualFileSystem initialized for: {rootPath}");
 		}
 
-		public void AddOrUpdate(string url, DownloadCacheEntry entry)
+		public static void AddOrUpdate(string url, DownloadCacheEntry entry)
 		{
 			if ( string.IsNullOrWhiteSpace(url) )
 			{
@@ -404,7 +437,7 @@ namespace KOTORModSync.Core.Services
 			SaveCacheToDisk();
 		}
 
-		public bool TryGetEntry(string url, out DownloadCacheEntry entry)
+		public static bool TryGetEntry(string url, out DownloadCacheEntry entry)
 		{
 			entry = null;
 
@@ -424,7 +457,7 @@ namespace KOTORModSync.Core.Services
 			return false;
 		}
 
-		public bool IsCached(string url)
+		public static bool IsCached(string url)
 		{
 			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
@@ -435,7 +468,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		public string GetFileName(string url)
+		public static string GetFileName(string url)
 		{
 			if ( TryGetEntry(url, out DownloadCacheEntry entry) )
 				return entry.FileName;
@@ -443,7 +476,7 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		public string GetFilePath(string url)
+		public static string GetFilePath(string url)
 		{
 			if ( TryGetEntry(url, out DownloadCacheEntry entry) )
 			{
@@ -459,7 +492,7 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
-		public Guid GetExtractInstructionGuid(string url)
+		public static Guid GetExtractInstructionGuid(string url)
 		{
 			if ( TryGetEntry(url, out DownloadCacheEntry entry) )
 				return entry.ExtractInstructionGuid;
@@ -467,7 +500,7 @@ namespace KOTORModSync.Core.Services
 			return Guid.Empty;
 		}
 
-		public bool Remove(string url)
+		public static bool Remove(string url)
 		{
 			if ( string.IsNullOrWhiteSpace(url) )
 				return false;
@@ -488,7 +521,7 @@ namespace KOTORModSync.Core.Services
 			return removed;
 		}
 
-		public void Clear()
+		public static void Clear()
 		{
 			lock ( s_cacheLock )
 			{
@@ -499,7 +532,7 @@ namespace KOTORModSync.Core.Services
 			SaveCacheToDisk();
 		}
 
-		public int GetTotalEntryCount()
+		public static int GetTotalEntryCount()
 		{
 			lock ( s_cacheLock )
 			{
@@ -507,7 +540,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		public IReadOnlyList<DownloadCacheEntry> GetCachedEntries()
+		public static IReadOnlyList<DownloadCacheEntry> GetCachedEntries()
 		{
 			lock ( s_cacheLock )
 			{
@@ -537,7 +570,7 @@ namespace KOTORModSync.Core.Services
 			await InitializeVirtualFileSystemAsync(modArchiveDirectory);
 
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Analyzing download necessity for {(component.ModLinkFilenames?.Count ?? 0)} URLs");
-			(List<string> urlsNeedingAnalysis, bool initialSimulationFailed) = await AnalyzeDownloadNecessityWithStatusAsync(component, modArchiveDirectory);
+			(List<string> urlsNeedingAnalysis, bool initialSimulationFailed) = await AnalyzeDownloadNecessityWithStatusAsync(component, modArchiveDirectory, cancellationToken);
 
 			var urlsToProcess = new List<string>();
 			foreach ( string url in urlsNeedingAnalysis )
@@ -564,7 +597,7 @@ namespace KOTORModSync.Core.Services
 					}
 					else
 					{
-						Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, CancellationToken.None);
+						Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, cancellationToken);
 						if ( resolved.TryGetValue(url, out List<string> filenames) && filenames.Count > 0 )
 						{
 							var entry = new DownloadCacheEntry
@@ -624,7 +657,7 @@ namespace KOTORModSync.Core.Services
 				}
 				else if ( needsDownload )
 				{
-					if ( DownloadCacheService.ShouldDownloadUrl(component, url) )
+					if ( ShouldDownloadUrl(component, url) )
 					{
 						urlsNeedingDownload.Add(url);
 						await Logger.LogVerboseAsync($"[DownloadCacheService] Marked for download: {url}");
@@ -813,7 +846,7 @@ namespace KOTORModSync.Core.Services
 					ModComponent.InstallExitCode retryExitCode = await component.ExecuteInstructionsAsync(
 						component.Instructions,
 						new List<ModComponent>(),
-						CancellationToken.None,
+						cancellationToken,
 						_validationService.GetVirtualFileSystem(),
 						skipDependencyCheck: true
 					);
@@ -990,13 +1023,14 @@ namespace KOTORModSync.Core.Services
 				await Logger.LogVerboseAsync("[DownloadCacheService] This may indicate instruction path mismatches from merge, which is non-critical if files exist.");
 			}
 
-			await EnsureInstructionsExist(component, cachedResults);
+			await EnsureInstructionsExist(component, cachedResults, cancellationToken);
 			return cachedResults;
 		}
 
 		private async Task EnsureInstructionsExist(
 			ModComponent component,
-			List<DownloadCacheEntry> entries
+			List<DownloadCacheEntry> entries,
+			CancellationToken cancellationToken
 		)
 		{
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Ensuring instructions exist for {entries.Count} cached entries");
@@ -1062,7 +1096,7 @@ namespace KOTORModSync.Core.Services
 				if ( mismatchedInstruction != null && existingInstruction == null )
 				{
 					await Logger.LogAsync($"[DownloadCacheService] Attempting to fix archive name mismatch for component '{component.Name}'");
-					bool fixSuccess = await TryFixArchiveNameMismatchAsync(component, mismatchedInstruction, entry);
+					bool fixSuccess = await TryFixArchiveNameMismatchAsync(component, mismatchedInstruction, entry, cancellationToken);
 
 					if ( fixSuccess )
 					{
@@ -1174,7 +1208,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		private void CreateSimpleInstructionForEntry(ModComponent component, DownloadCacheEntry entry)
+		private static void CreateSimpleInstructionForEntry(ModComponent component, DownloadCacheEntry entry)
 		{
 			var newInstruction = new Instruction
 			{
@@ -1300,9 +1334,10 @@ namespace KOTORModSync.Core.Services
 
 		private async Task<(List<string> urls, bool simulationFailed)> AnalyzeDownloadNecessityWithStatusAsync(
 			ModComponent component,
-			string modArchiveDirectory)
+			string modArchiveDirectory,
+			CancellationToken cancellationToken)
 		{
-			(List<string> urls, bool simulationFailed) = await _validationService.AnalyzeDownloadNecessityAsync(component, modArchiveDirectory);
+			(List<string> urls, bool simulationFailed) = await _validationService.AnalyzeDownloadNecessityAsync(component, modArchiveDirectory, cancellationToken);
 			return (urls, simulationFailed);
 		}
 
@@ -1382,7 +1417,7 @@ namespace KOTORModSync.Core.Services
 
 			// Strategy 5: Levenshtein distance ratio for fuzzy matching
 			int distance = CalculateLevenshteinDistance(normalized1, normalized2);
-			int maxLength = Math.Max(normalized1.Length, normalized2.Length);
+			int maxLength = Math.Max(normalized1?.Length ?? 0, normalized2?.Length ?? 0);
 			if ( maxLength > 0 )
 			{
 				double distanceRatio = 1.0 - ((double)distance / maxLength);
@@ -1468,10 +1503,11 @@ namespace KOTORModSync.Core.Services
 			return maxLength;
 		}
 
-		private async Task<bool> TryFixArchiveNameMismatchAsync(
+		private static async Task<bool> TryFixArchiveNameMismatchAsync(
 			ModComponent component,
 			Instruction extractInstruction,
-			DownloadCacheEntry entry)
+			DownloadCacheEntry entry,
+			CancellationToken cancellationToken)
 		{
 			if ( extractInstruction == null || entry == null || !entry.IsArchiveFile )
 				return false;
@@ -1494,7 +1530,7 @@ namespace KOTORModSync.Core.Services
 				{
 					originalInstructions[instruction.Guid] = (
 						instruction.Action,
-						instruction.Source != null ? new List<string>(instruction.Source) : new List<string>(),
+						new List<string>(instruction.Source),
 						instruction.Destination
 					);
 				}
@@ -1505,7 +1541,7 @@ namespace KOTORModSync.Core.Services
 					{
 						originalInstructions[instruction.Guid] = (
 							instruction.Action,
-							instruction.Source != null ? new List<string>(instruction.Source) : new List<string>(),
+							new List<string>(instruction.Source),
 							instruction.Destination
 						);
 					}
@@ -1527,7 +1563,7 @@ namespace KOTORModSync.Core.Services
 					if ( instruction.Guid == extractInstruction.Guid )
 						continue;
 
-					if ( instruction.Source == null || instruction.Source.Count == 0 )
+					if ( instruction.Source.Count == 0 )
 						continue;
 					bool updated = false;
 					for ( int i = 0; i < instruction.Source.Count; i++ )
@@ -1555,7 +1591,7 @@ namespace KOTORModSync.Core.Services
 				{
 					foreach ( Instruction instruction in option.Instructions )
 					{
-						if ( instruction.Source == null || instruction.Source.Count == 0 )
+						if ( instruction.Source.Count == 0 )
 							continue;
 
 						bool updated = false;
@@ -1588,7 +1624,7 @@ namespace KOTORModSync.Core.Services
 				{
 					await Logger.LogVerboseAsync("[DownloadCacheService] Validating instruction changes via VFS simulation...");
 
-					var vfs = new FileSystem.VirtualFileSystemProvider();
+					var vfs = new VirtualFileSystemProvider();
 					await vfs.InitializeFromRealFileSystemAsync(modArchiveDirectory);
 
 					try
@@ -1596,15 +1632,15 @@ namespace KOTORModSync.Core.Services
 						ModComponent.InstallExitCode exitCode = await component.ExecuteInstructionsAsync(
 							component.Instructions,
 							new List<ModComponent>(),
-							CancellationToken.None,
+							cancellationToken,
 							vfs,
 							skipDependencyCheck: true
 						);
 
-						List<FileSystem.ValidationIssue> issues = vfs.GetValidationIssues();
+						List<ValidationIssue> issues = vfs.GetValidationIssues();
 						var criticalIssues = issues.Where(i =>
-							i.Severity == FileSystem.ValidationSeverity.Error ||
-							i.Severity == FileSystem.ValidationSeverity.Critical
+							i.Severity == ValidationSeverity.Error ||
+							i.Severity == ValidationSeverity.Critical
 						).ToList();
 
 						if ( exitCode == ModComponent.InstallExitCode.Success && criticalIssues.Count == 0 )
@@ -1617,13 +1653,13 @@ namespace KOTORModSync.Core.Services
 							await Logger.LogWarningAsync($"[DownloadCacheService] VFS simulation failed with {criticalIssues.Count} critical issue(s), exit code: {exitCode}");
 
 							// Log a few issues for debugging
-							foreach ( FileSystem.ValidationIssue issue in criticalIssues.Take(3) )
+							foreach ( ValidationIssue issue in criticalIssues.Take(3) )
 							{
 								await Logger.LogVerboseAsync($"  • {issue.Category}: {issue.Message}");
 							}
 
 							// Rollback changes
-							await DownloadCacheService.RollbackInstructionChanges(component, originalInstructions);
+							await RollbackInstructionChanges(component, originalInstructions);
 							return false;
 						}
 					}
@@ -1632,7 +1668,7 @@ namespace KOTORModSync.Core.Services
 						await Logger.LogWarningAsync($"[DownloadCacheService] VFS simulation threw exception: {ex.Message}");
 
 						// Rollback changes
-						await DownloadCacheService.RollbackInstructionChanges(component, originalInstructions);
+						await RollbackInstructionChanges(component, originalInstructions);
 						return false;
 					}
 				}
@@ -1648,7 +1684,7 @@ namespace KOTORModSync.Core.Services
 				await Logger.LogExceptionAsync(ex, "[DownloadCacheService] Error during archive name mismatch fix");
 
 				// Rollback changes
-				await DownloadCacheService.RollbackInstructionChanges(component, originalInstructions);
+				await RollbackInstructionChanges(component, originalInstructions);
 				return false;
 			}
 		}

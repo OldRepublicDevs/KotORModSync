@@ -21,11 +21,13 @@ namespace KOTORModSync.Controls
 		public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
 			AvaloniaProperty.Register<SummaryTab, ModComponent>(nameof(CurrentComponent));
 
-	public static readonly StyledProperty<bool> EditorModeProperty =
-		AvaloniaProperty.Register<SummaryTab, bool>(nameof(EditorMode));
+		public static readonly StyledProperty<bool> EditorModeProperty =
+			AvaloniaProperty.Register<SummaryTab, bool>(nameof(EditorMode));
 
-	public static readonly StyledProperty<bool> SpoilerFreeModeProperty =
-		AvaloniaProperty.Register<SummaryTab, bool>(nameof(SpoilerFreeMode));
+		public static readonly StyledProperty<bool> SpoilerFreeModeProperty =
+			AvaloniaProperty.Register<SummaryTab, bool>(nameof(SpoilerFreeMode));
+
+		private readonly Services.MarkdownRenderingService _markdownRenderingService = new Services.MarkdownRenderingService();
 
 		[CanBeNull]
 		public ModComponent CurrentComponent
@@ -38,17 +40,17 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-	public bool EditorMode
-	{
-		get => GetValue(EditorModeProperty);
-		set => SetValue(EditorModeProperty, value);
-	}
+		public bool EditorMode
+		{
+			get => GetValue(EditorModeProperty);
+			set => SetValue(EditorModeProperty, value);
+		}
 
-	public bool SpoilerFreeMode
-	{
-		get => GetValue(SpoilerFreeModeProperty);
-		set => SetValue(SpoilerFreeModeProperty, value);
-	}
+		public bool SpoilerFreeMode
+		{
+			get => GetValue(SpoilerFreeModeProperty);
+			set => SetValue(SpoilerFreeModeProperty, value);
+		}
 
 		public event EventHandler<TappedEventArgs> OpenLinkRequested;
 		public event EventHandler<RoutedEventArgs> CopyTextToClipboardRequested;
@@ -62,6 +64,94 @@ namespace KOTORModSync.Controls
 			DataContext = this;
 
 			this.PropertyChanged += OnPropertyChanged;
+
+			// Attach loaded event to set up markdown rendering once the control is fully loaded
+			this.Loaded += OnLoaded;
+		}
+
+		private void OnLoaded(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				// Attach markdown rendering to all TextBlocks dynamically
+				AttachMarkdownRenderingToAllTextBlocks();
+			}
+			catch ( Exception ex )
+			{
+				Core.Logger.LogException(ex, "Error in OnLoaded");
+			}
+		}
+
+		private void AttachMarkdownRenderingToAllTextBlocks()
+		{
+			try
+			{
+				// Find ALL TextBlocks in the visual tree
+				var allTextBlocks = this.GetVisualDescendants().OfType<TextBlock>().ToList();
+
+				foreach ( var textBlock in allTextBlocks )
+				{
+					// Skip TextBlocks that are part of headers, labels, or other UI chrome
+					if ( IsUiChromeTextBlock(textBlock) )
+						continue;
+
+					// Attach a watcher to this TextBlock's Text property
+					AttachTextPropertyWatcher(textBlock);
+				}
+			}
+			catch ( Exception ex )
+			{
+				Core.Logger.LogException(ex, "Error attaching markdown rendering to TextBlocks");
+			}
+		}
+
+		private static bool IsUiChromeTextBlock(TextBlock textBlock)
+		{
+			// Skip TextBlocks that are part of the UI structure (headers, labels, etc.)
+			if ( textBlock.Classes.Contains("summary-section-title") )
+				return true;
+			if ( textBlock.Classes.Contains("summary-label") )
+				return true;
+			if ( textBlock.Classes.Contains("secondary-text") )
+				return true;
+			if ( textBlock.Classes.Contains("summary-option-title") )
+				return true;
+			if ( textBlock.Classes.Contains("summary-instruction-action") )
+				return true;
+
+			// Skip TextBlocks with specific names that shouldn't be markdown-rendered
+			if ( textBlock.Name != null && (
+				textBlock.Name.Contains("Label") ||
+				textBlock.Name.Contains("Header") ||
+				textBlock.Name.Contains("Title")
+			) )
+				return true;
+
+			return false;
+		}
+
+		private void AttachTextPropertyWatcher(TextBlock textBlock)
+		{
+			if ( textBlock == null )
+				return;
+
+			textBlock.GetObservable(TextBlock.TextProperty).Subscribe(newText =>
+			{
+				Dispatcher.UIThread.Post(() =>
+				{
+					try
+					{
+						if ( !string.IsNullOrWhiteSpace(newText) )
+						{
+							_markdownRenderingService.RenderMarkdownToTextBlock(textBlock, newText);
+						}
+					}
+					catch ( Exception ex )
+					{
+						Core.Logger.LogException(ex, $"Error rendering markdown for TextBlock: {textBlock.Name ?? "unnamed"}");
+					}
+				}, DispatcherPriority.Background);
+			});
 		}
 
 		private void OnPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
@@ -69,6 +159,11 @@ namespace KOTORModSync.Controls
 			if ( e.Property == CurrentComponentProperty )
 			{
 				UpdateAllFilenamePanels();
+			}
+			else if ( e.Property == SpoilerFreeModeProperty )
+			{
+				// Spoiler-free mode change is handled automatically by the converter
+				// and the TextProperty watchers will re-render markdown
 			}
 		}
 
@@ -97,8 +192,6 @@ namespace KOTORModSync.Controls
 			JumpToInstructionRequested?.Invoke(sender, e);
 		}
 
-		public TextBlock GetDescriptionTextBlock() => DescriptionTextBlock;
-		public TextBlock GetDirectionsTextBlock() => DirectionsTextBlock;
 
 		private void UpdateAllFilenamePanels()
 		{
@@ -170,6 +263,50 @@ namespace KOTORModSync.Controls
 				};
 
 				panel.Children.Add(fileText);
+			}
+		}
+
+		/// <summary>
+		/// Refreshes the markdown content in all TextBlocks within the SummaryTab.
+		/// This method should be called when switching to the summary tab to ensure
+		/// all markdown content is properly rendered.
+		/// </summary>
+		public void RefreshMarkdownContent()
+		{
+			try
+			{
+				Dispatcher.UIThread.Post(() =>
+				{
+					try
+					{
+						// Update filename panels first
+						UpdateAllFilenamePanels();
+
+						// Find all TextBlocks and trigger markdown rendering
+						var allTextBlocks = this.GetVisualDescendants().OfType<TextBlock>().ToList();
+
+						foreach ( var textBlock in allTextBlocks )
+						{
+							// Skip UI chrome TextBlocks
+							if ( IsUiChromeTextBlock(textBlock) )
+								continue;
+
+							// Trigger markdown rendering for content TextBlocks
+							if ( !string.IsNullOrWhiteSpace(textBlock.Text) )
+							{
+								_markdownRenderingService.RenderMarkdownToTextBlock(textBlock, textBlock.Text);
+							}
+						}
+					}
+					catch ( Exception ex )
+					{
+						Core.Logger.LogException(ex, "Error refreshing markdown content in SummaryTab");
+					}
+				}, DispatcherPriority.Background);
+			}
+			catch ( Exception ex )
+			{
+				Core.Logger.LogException(ex, "Error in RefreshMarkdownContent");
 			}
 		}
 	}

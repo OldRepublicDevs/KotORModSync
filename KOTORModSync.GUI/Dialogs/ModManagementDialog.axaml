@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <Window
     x:Class="KOTORModSync.Dialogs.ModManagementDialog"
     xmlns="https://github.com/avaloniaui"
@@ -80,7 +80,10 @@
                             FontWeight="Bold"
                             Text="Batch Operations" />
 
-                        <Expander Header="Selection Operations" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Selection Operations"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="SelectAllMods_Click" Content="Select All Mods" />
                                 <Button Click="DeselectAllMods_Click" Content="Deselect All Mods" />
@@ -88,14 +91,20 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Validation Operations" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Validation Operations"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="ValidateAllMods_Click" Content="Validate All Mods" />
                                 <Button Click="CheckFileAvailability_Click" Content="Check File Availability" />
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Sorting Operations" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Sorting Operations"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="SortByName_Click" Content="Sort by Name (A-Z)" />
                                 <Button Click="SortByNameDesc_Click" Content="Sort by Name (Z-A)" />
@@ -105,7 +114,10 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Metadata Operations" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Metadata Operations"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="SetAllDownloaded_Click" Content="Set All to Downloaded" />
                                 <Button Click="SetAllNotDownloaded_Click" Content="Set All to Not Downloaded" />
@@ -125,7 +137,10 @@
                             FontWeight="Bold"
                             Text="Import and Export Operations" />
 
-                        <Expander Header="Import Operations" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Import Operations"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="ImportFromToml_Click" Content="Import from TOML File" />
                                 <Button Click="ImportFromJson_Click" Content="Import from JSON" />
@@ -133,7 +148,10 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Export Operations" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Export Operations"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="ExportToToml_Click" Content="Export to TOML File" />
                                 <Button Click="ExportToJson_Click" Content="Export to JSON" />
@@ -141,7 +159,10 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Merge Strategies" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Merge Strategies"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <RadioButton
                                     Content="Replace existing components"
@@ -164,7 +185,10 @@
                             FontWeight="Bold"
                             Text="Mod Collection Statistics" />
 
-                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <Grid
+                            ColumnDefinitions="*,*"
+                            DataContext="{Binding .}"
+                            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
                             <TextBlock
                                 Grid.Row="0"
                                 Grid.Column="0"
@@ -220,7 +244,7 @@
                             Margin="0,20,0,10"
                             FontWeight="Bold"
                             Text="Categories:" />
-                        <ItemsRepeater ItemsSource="{Binding Categories}">
+                        <ItemsRepeater ItemsSource="{Binding Category}">
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock>
@@ -285,7 +309,10 @@
                             FontWeight="Bold"
                             Text="Advanced Mod Management Tools" />
 
-                        <Expander Header="Dependency Management" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Dependency Management"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="CheckDependencyChains_Click" Content="Check Dependency Chains" />
                                 <Button Click="ResolveConflicts_Click" Content="Resolve Conflicts" />
@@ -293,7 +320,10 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Performance Tools" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Performance Tools"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="OptimizeInstallationOrder_Click" Content="Optimize Installation Order" />
                                 <Button Click="AnalyzeModSizes_Click" Content="Analyze Mod Sizes" />
@@ -301,7 +331,10 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Security Tools" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Security Tools"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="ScanForMalware_Click" Content="Scan for Malware" />
                                 <Button Click="CheckFileIntegrity_Click" Content="Check File Integrity" />
@@ -309,7 +342,10 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Maintenance Tools" IsExpanded="True" HorizontalAlignment="Stretch">
+                        <Expander
+                            HorizontalAlignment="Stretch"
+                            Header="Maintenance Tools"
+                            IsExpanded="True">
                             <StackPanel Spacing="10">
                                 <Button Click="CleanOrphanedFiles_Click" Content="Clean Orphaned Files" />
                                 <Button Click="UpdateModLinks_Click" Content="Update Mod Links" />

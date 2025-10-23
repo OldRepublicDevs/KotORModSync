@@ -45,7 +45,7 @@ namespace KOTORModSync.Tests
 			}
 			catch ( Exception ex )
 			{
-				TestContext.WriteLine($"Warning: Could not delete test directory: {ex.Message}");
+				TestContext.Progress.WriteLine($"Warning: Could not delete test directory: {ex.Message}");
 			}
 
 			_ = new MainConfig
@@ -118,10 +118,12 @@ namespace KOTORModSync.Tests
 					CreateNoWindow = true
 				};
 
-				using var process = Process.Start(startInfo);
-				if ( process == null )
-					return;
-				process.WaitForExit();
+				using ( var process = Process.Start(startInfo) )
+				{
+					if ( process == null )
+						return;
+					process.WaitForExit();
+				}
 			}
 			finally
 			{
@@ -208,8 +210,8 @@ namespace KOTORModSync.Tests
 
 				_ = await virtualComponent.ExecuteInstructionsAsync(virtualComponent.Instructions, [], CancellationToken.None, virtualProvider);
 
-				TestContext.WriteLine($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
-				TestContext.WriteLine($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
+				TestContext.Progress.WriteLine($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
+				TestContext.Progress.WriteLine($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
 
 				_ = new MainConfig
 				{
@@ -226,7 +228,7 @@ namespace KOTORModSync.Tests
 
 				_ = await realComponent.ExecuteInstructionsAsync(realComponent.Instructions, new List<ModComponent>(), CancellationToken.None, realProvider);
 
-				TestContext.WriteLine("Real Provider - Executed successfully");
+				TestContext.Progress.WriteLine("Real Provider - Executed successfully");
 
 				return (virtualProvider, Path.Combine(realRoot, "dest"));
 			}
@@ -260,28 +262,28 @@ namespace KOTORModSync.Tests
 					.ToHashSet(StringComparer.OrdinalIgnoreCase)
 				: new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-			TestContext.WriteLine($"\n=== Virtual Files ({virtualFiles.Count}) ===");
+			TestContext.Progress.WriteLine($"\n=== Virtual Files ({virtualFiles.Count}) ===");
 			foreach ( string file in virtualFiles.OrderBy(f => f) )
-				TestContext.WriteLine($"  {file}");
+				TestContext.Progress.WriteLine($"  {file}");
 
-			TestContext.WriteLine($"\n=== Real Files ({realFiles.Count}) ===");
+			TestContext.Progress.WriteLine($"\n=== Real Files ({realFiles.Count}) ===");
 			foreach ( string file in realFiles.OrderBy(f => f) )
-				TestContext.WriteLine($"  {file}");
+				TestContext.Progress.WriteLine($"  {file}");
 
 			var missingInReal = virtualFiles.Except(realFiles, StringComparer.OrdinalIgnoreCase).ToList();
 			if ( missingInReal.Count > 0 )
 			{
-				TestContext.WriteLine($"\n=== Files in VIRTUAL but NOT in REAL ({missingInReal.Count}) ===");
+				TestContext.Progress.WriteLine($"\n=== Files in VIRTUAL but NOT in REAL ({missingInReal.Count}) ===");
 				foreach ( string file in missingInReal )
-					TestContext.WriteLine($"  {file}");
+					TestContext.Progress.WriteLine($"  {file}");
 			}
 
 			var missingInVirtual = realFiles.Except(virtualFiles, StringComparer.OrdinalIgnoreCase).ToList();
 			if ( missingInVirtual.Count > 0 )
 			{
-				TestContext.WriteLine($"\n=== Files in REAL but NOT in VIRTUAL ({missingInVirtual.Count}) ===");
+				TestContext.Progress.WriteLine($"\n=== Files in REAL but NOT in VIRTUAL ({missingInVirtual.Count}) ===");
 				foreach ( string file in missingInVirtual )
-					TestContext.WriteLine($"  {file}");
+					TestContext.Progress.WriteLine($"  {file}");
 			}
 			Assert.Multiple(() =>
 			{
@@ -299,7 +301,7 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "test.zip");
-			CreateArchive(archivePath, new()
+			CreateArchive(archivePath, new Dictionary<string, string>
 			{
 				{ "file1.txt", "Content 1" },
 				{ "file2.txt", "Content 2" },
@@ -308,10 +310,10 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new()
+				new Instruction
 				{
 					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\test.zip"],
+					Source = new List<string> { "<<modDirectory>>\\test.zip" },
 					Destination = "<<modDirectory>>"
 				}
 			};
@@ -327,13 +329,13 @@ namespace KOTORModSync.Tests
 		{
 			Debug.Assert(_sourceDir != null);
 			string src = Path.Combine(_sourceDir, "chain_a.zip");
-			CreateArchive(src, new() { { "a.txt", "A" } });
+			CreateArchive(src, new Dictionary<string, string> { { "a.txt", "A" } });
 
 			var instructions = new List<Instruction>
 		{
-			new() { Action = Instruction.ActionType.Rename, Source = ["<<modDirectory>>\\chain_a.zip"], Destination = "chain_b.zip", Overwrite = true },
-			new() { Action = Instruction.ActionType.Rename, Source = ["<<modDirectory>>\\chain_b.zip"], Destination = "chain_final.zip", Overwrite = true },
-			new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\chain_final.zip"], Destination = "<<kotorDirectory>>" }
+			new Instruction { Action = Instruction.ActionType.Rename, Source = new List<string> { "<<modDirectory>>\\chain_a.zip" }, Destination = "chain_b.zip", Overwrite = true },
+			new Instruction { Action = Instruction.ActionType.Rename, Source = new List<string> { "<<modDirectory>>\\chain_b.zip" }, Destination = "chain_final.zip", Overwrite = true },
+			new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\chain_final.zip" }, Destination = "<<kotorDirectory>>" }
 		};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -346,17 +348,17 @@ namespace KOTORModSync.Tests
 		{
 			Debug.Assert(_sourceDir != null);
 			string src = Path.Combine(_sourceDir, "dup.zip");
-			CreateArchive(src, new() { { "d.txt", "D" } });
+			CreateArchive(src, new Dictionary<string, string> { { "d.txt", "D" } });
 
 			var instructions = new List<Instruction>
 		{
 
-			new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\dup.zip"], Destination = "<<modDirectory>>\\copy1", Overwrite = true },
-			new() { Action = Instruction.ActionType.Rename, Source = ["<<modDirectory>>\\copy1\\dup.zip"], Destination = "dup_copy1.zip", Overwrite = true },
-			new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\dup.zip"], Destination = "<<modDirectory>>\\copy2", Overwrite = true },
-			new() { Action = Instruction.ActionType.Rename, Source = ["<<modDirectory>>\\copy2\\dup.zip"], Destination = "dup_copy2.zip", Overwrite = true },
-			new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\copy1\\dup_copy1.zip"], Destination = "<<kotorDirectory>>\\extract1" },
-			new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\copy2\\dup_copy2.zip"], Destination = "<<kotorDirectory>>\\extract2" }
+			new Instruction { Action = Instruction.ActionType.Copy, Source = new List<string> { "<<modDirectory>>\\dup.zip" }, Destination = "<<modDirectory>>\\copy1", Overwrite = true },
+			new Instruction { Action = Instruction.ActionType.Rename, Source = new List<string> { "<<modDirectory>>\\copy1\\dup.zip" }, Destination = "dup_copy1.zip", Overwrite = true },
+			new Instruction { Action = Instruction.ActionType.Copy, Source = new List<string> { "<<modDirectory>>\\dup.zip" }, Destination = "<<modDirectory>>\\copy2", Overwrite = true },
+			new Instruction { Action = Instruction.ActionType.Rename, Source = new List<string> { "<<modDirectory>>\\copy2\\dup.zip" }, Destination = "dup_copy2.zip", Overwrite = true },
+			new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\copy1\\dup_copy1.zip" }, Destination = "<<kotorDirectory>>\\extract1" },
+			new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\copy2\\dup_copy2.zip" }, Destination = "<<kotorDirectory>>\\extract2" }
 		};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -369,13 +371,13 @@ namespace KOTORModSync.Tests
 		{
 			Debug.Assert(_sourceDir != null);
 			string src = Path.Combine(_sourceDir, "sub.zip");
-			CreateArchive(src, new() { { "s.txt", "S" } });
+			CreateArchive(src, new Dictionary<string, string> { { "s.txt", "S" } });
 			string subdir = Path.Combine(_sourceDir, "subdir"); _ = Directory.CreateDirectory(subdir);
 
 			var instructions = new List<Instruction>
 		{
-			new() { Action = Instruction.ActionType.Rename, Source = ["<<modDirectory>>\\sub.zip"], Destination = "subdir\\final.zip", Overwrite = true },
-			new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\subdir\\final.zip"], Destination = "<<kotorDirectory>>" }
+			new Instruction { Action = Instruction.ActionType.Rename, Source = new List<string> { "<<modDirectory>>\\sub.zip" }, Destination = "subdir\\final.zip", Overwrite = true },
+			new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\subdir\\final.zip" }, Destination = "<<kotorDirectory>>" }
 		};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -388,11 +390,11 @@ namespace KOTORModSync.Tests
 		{
 			Debug.Assert(_sourceDir != null);
 			string src = Path.Combine(_sourceDir, "mv_extract.zip");
-			CreateArchive(src, new() { { "inner/x.txt", "X" } });
+			CreateArchive(src, new Dictionary<string, string> { { "inner/x.txt", "X" } });
 			var instructions = new List<Instruction>
 		{
-			new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\mv_extract.zip"], Destination = "<<modDirectory>>" },
-			new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mv_extract\\inner\\x.txt"], Destination = "<<kotorDirectory>>", Overwrite = true }
+			new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\mv_extract.zip" }, Destination = "<<modDirectory>>" },
+			new Instruction { Action = Instruction.ActionType.Move, Source = new List<string> { "<<modDirectory>>\\mv_extract\\inner\\x.txt" }, Destination = "<<kotorDirectory>>", Overwrite = true }
 		};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -405,13 +407,16 @@ namespace KOTORModSync.Tests
 		{
 			Debug.Assert(_sourceDir != null);
 			string src = Path.Combine(_sourceDir, "wc_set.zip");
-			CreateArchive(src, new() { { "pack/a.txt", "A" }, { "pack/b.log", "B" }, { "pack/c.txt", "C" } });
+			CreateArchive(src, new Dictionary<string, string> { { "pack/a.txt", "A" }, { "pack/b.log", "B" }, { "pack/c.txt", "C" } });
 			Debug.Assert(_destinationDir != null);
 			string outDir = Path.Combine(_destinationDir, "txts");
 			var instructions = new List<Instruction>
 			{
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\wc_set.zip"], Destination = "<<modDirectory>>" },
-				new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\wc_set\\pack\\*.txt"], Destination = "<<kotorDirectory>>\\txts", Overwrite = true }
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\wc_set.zip" }, Destination = "<<modDirectory>>" },
+				new Instruction { Action = Instruction.ActionType.Copy, Source = new List<string>
+				{
+					@"<<modDirectory>>\wc_set\pack\*.txt"
+				}, Destination = "<<kotorDirectory>>\\txts", Overwrite = true }
 			};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -424,12 +429,12 @@ namespace KOTORModSync.Tests
 		{
 			Debug.Assert(_sourceDir != null);
 			string src = Path.Combine(_sourceDir, "rn_copy.zip");
-			CreateArchive(src, new() { { "p/q.txt", "Q" } });
+			CreateArchive(src, new Dictionary<string, string> { { "p/q.txt", "Q" } });
 			var instructions = new List<Instruction>
 			{
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\rn_copy.zip"], Destination = "<<modDirectory>>" },
-				new() { Action = Instruction.ActionType.Rename, Source = ["<<modDirectory>>\\rn_copy\\p\\q.txt"], Destination = "qq.txt", Overwrite = true },
-				new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\rn_copy\\p\\qq.txt"], Destination = "<<kotorDirectory>>\\copied", Overwrite = true }
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\rn_copy.zip" }, Destination = "<<modDirectory>>" },
+				new Instruction { Action = Instruction.ActionType.Rename, Source = new List<string> { "<<modDirectory>>\\rn_copy\\p\\q.txt" }, Destination = "qq.txt", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Copy, Source = new List<string> { "<<modDirectory>>\\rn_copy\\p\\qq.txt" }, Destination = "<<kotorDirectory>>\\copied", Overwrite = true }
 			};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -442,11 +447,11 @@ namespace KOTORModSync.Tests
 		{
 			Debug.Assert(_sourceDir != null);
 			string src = Path.Combine(_sourceDir, "del.zip");
-			CreateArchive(src, new() { { "rm.txt", "RM" } });
+			CreateArchive(src, new Dictionary<string, string> { { "rm.txt", "RM" } });
 			var instructions = new List<Instruction>
 			{
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\del.zip"], Destination = "<<modDirectory>>" },
-				new() { Action = Instruction.ActionType.Delete, Source = ["<<modDirectory>>\\del\\rm.txt"], Destination = string.Empty }
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\del.zip" }, Destination = "<<modDirectory>>" },
+				new Instruction { Action = Instruction.ActionType.Delete, Source = new List<string> { "<<modDirectory>>\\del\\rm.txt" }, Destination = string.Empty }
 			};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -465,13 +470,13 @@ namespace KOTORModSync.Tests
 			Debug.Assert(_sourceDir != null);
 			string a1 = Path.Combine(_sourceDir, "a1.zip");
 			string a2 = Path.Combine(_sourceDir, "a2.zip");
-			CreateArchive(a1, new() { { "x.txt", "X" } });
-			CreateArchive(a2, new() { { "y.txt", "Y" } });
+			CreateArchive(a1, new Dictionary<string, string> { { "x.txt", "X" } });
+			CreateArchive(a2, new Dictionary<string, string> { { "y.txt", "Y" } });
 			var instructions = new List<Instruction>
 			{
-				new() { Action = Instruction.ActionType.Rename, Source = ["<<modDirectory>>\\a1.zip"], Destination = "a1_moved.zip", Overwrite = true },
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\a1_moved.zip"], Destination = "<<kotorDirectory>>" },
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\a2.zip"], Destination = "<<kotorDirectory>>" }
+				new Instruction { Action = Instruction.ActionType.Rename, Source = new List<string> { "<<modDirectory>>\\a1.zip" }, Destination = "a1_moved.zip", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\a1_moved.zip" }, Destination = "<<kotorDirectory>>" },
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\a2.zip" }, Destination = "<<kotorDirectory>>" }
 			};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -484,12 +489,12 @@ namespace KOTORModSync.Tests
 		{
 			Debug.Assert(_sourceDir != null);
 			string src = Path.Combine(_sourceDir, "nest.zip");
-			CreateArchive(src, new() { { "n/a.txt", "A" }, { "n/b.txt", "B" } });
+			CreateArchive(src, new Dictionary<string, string> { { "n/a.txt", "A" }, { "n/b.txt", "B" } });
 			var instructions = new List<Instruction>
 			{
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\nest.zip"], Destination = "<<modDirectory>>" },
-				new() { Action = Instruction.ActionType.Copy, Source = ["<<modDirectory>>\\nest\\n\\*.txt"], Destination = "<<kotorDirectory>>\\nested\\deep", Overwrite = true },
-				new() { Action = Instruction.ActionType.Move, Source = ["<<kotorDirectory>>\\nested\\deep\\a.txt"], Destination = "<<kotorDirectory>>\\final", Overwrite = true }
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\nest.zip" }, Destination = "<<modDirectory>>" },
+				new Instruction { Action = Instruction.ActionType.Copy, Source = new List<string> { "<<modDirectory>>\\nest\\n\\*.txt" }, Destination = "<<kotorDirectory>>\\nested\\deep", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Move, Source = new List<string> { "<<kotorDirectory>>\\nested\\deep\\a.txt" }, Destination = "<<kotorDirectory>>\\final", Overwrite = true }
 			};
 
 			(VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -502,9 +507,9 @@ namespace KOTORModSync.Tests
 		{
 			var instructions = new List<Instruction>
 			{
-				new() {
-					Action = Instruction.ActionType.Move,
-					Source = ["<<modDirectory>>\\nope.txt"],
+			new Instruction {
+				Action = Instruction.ActionType.Move,
+					Source = new List<string> { "<<modDirectory>>\\nope.txt" },
 					Destination = "<<kotorDirectory>>\\anywhere.txt",
 					Overwrite = true
 				}
@@ -520,7 +525,7 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string originalArchivePath = Path.Combine(_sourceDir, "original.zip");
-			CreateArchive(originalArchivePath, new()
+			CreateArchive(originalArchivePath, new Dictionary<string, string>()
 			{
 				{ "data.txt", "Important data" },
 				{ "config.ini", "[Settings]\nvalue=123" }
@@ -528,17 +533,17 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Rename,
-					Source = ["<<modDirectory>>\\original.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Rename,
+					Source = new List<string> { "<<modDirectory>>\\original.zip" },
 					Destination = "moved.zip",
 					Overwrite = true
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\moved.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\moved.zip" },
 					Destination = "<<kotorDirectory>>"
 				}
 			};
@@ -555,7 +560,7 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string originalArchivePath = Path.Combine(_sourceDir, "source.zip");
-			CreateArchive(originalArchivePath, new()
+			CreateArchive(originalArchivePath, new Dictionary<string, string>()
 			{
 				{ "shared.txt", "Shared content" }
 			});
@@ -563,33 +568,33 @@ namespace KOTORModSync.Tests
 			var instructions = new List<Instruction>
 			{
 
-				new()
-				{
-					Action = Instruction.ActionType.Copy,
-					Source = ["<<modDirectory>>\\source.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Copy,
+					Source = new List<string> { "<<modDirectory>>\\source.zip" },
 					Destination = "<<modDirectory>>\\archives",
 					Overwrite = true
 				},
 
-				new()
-				{
-					Action = Instruction.ActionType.Rename,
-					Source = ["<<modDirectory>>\\archives\\source.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Rename,
+					Source = new List<string> { "<<modDirectory>>\\archives\\source.zip" },
 					Destination = "copy.zip",
 					Overwrite = true
 				},
 
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\source.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\source.zip" },
 					Destination = "<<kotorDirectory>>\\original_extract"
 				},
 
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\archives\\copy.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\archives\\copy.zip" },
 					Destination = "<<kotorDirectory>>\\copy_extract"
 				}
 			};
@@ -606,24 +611,24 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string originalArchivePath = Path.Combine(_sourceDir, "oldname.zip");
-			CreateArchive(originalArchivePath, new()
+			CreateArchive(originalArchivePath, new Dictionary<string, string>()
 			{
 				{ "readme.txt", "Read me first" }
 			});
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Rename,
-					Source = ["<<modDirectory>>\\oldname.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Rename,
+					Source = new List<string> { "<<modDirectory>>\\oldname.zip" },
 					Destination = "newname.zip",
 					Overwrite = true
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\newname.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\newname.zip" },
 					Destination = "<<kotorDirectory>>"
 				}
 			};
@@ -643,40 +648,40 @@ namespace KOTORModSync.Tests
 			string archive2 = Path.Combine(_sourceDir, "mod2.zip");
 			string archive3 = Path.Combine(_sourceDir, "mod3.zip");
 
-			CreateArchive(archive1, new()
+			CreateArchive(archive1, new Dictionary<string, string>()
 			{
 				{ "mod1/data.txt", "Mod 1 data" }
 			});
 
-			CreateArchive(archive2, new()
+			CreateArchive(archive2, new Dictionary<string, string>()
 			{
 				{ "mod2/config.ini", "Mod 2 config" },
 				{ "mod2/assets/texture.tga", "Texture data" }
 			});
 
-			CreateArchive(archive3, new()
+			CreateArchive(archive3, new Dictionary<string, string>()
 			{
 				{ "mod3/script.ncs", "Script bytecode" }
 			});
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\mod1.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\mod1.zip" },
 					Destination = "<<kotorDirectory>>"
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\mod2.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\mod2.zip" },
 					Destination = "<<kotorDirectory>>"
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\mod3.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\mod3.zip" },
 					Destination = "<<kotorDirectory>>"
 				}
 			};
@@ -697,7 +702,7 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "files.zip");
-			CreateArchive(archivePath, new()
+			CreateArchive(archivePath, new Dictionary<string, string>()
 			{
 				{ "file1.txt", "Content 1" },
 				{ "file2.txt", "Content 2" }
@@ -705,16 +710,16 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\files.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\files.zip" },
 					Destination = "<<modDirectory>>"
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Move,
-					Source = ["<<modDirectory>>\\files\\file1.txt"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Move,
+					Source = new List<string> { "<<modDirectory>>\\files\\file1.txt" },
 					Destination = "<<kotorDirectory>>\\final",
 					Overwrite = true
 				}
@@ -732,23 +737,23 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "source.zip");
-			CreateArchive(archivePath, new()
+			CreateArchive(archivePath, new Dictionary<string, string>()
 			{
 				{ "original.txt", "Original content" }
 			});
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\source.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\source.zip" },
 					Destination = "<<modDirectory>>"
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Copy,
-					Source = ["<<modDirectory>>\\source\\original.txt"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Copy,
+					Source = new List<string> { "<<modDirectory>>\\source\\original.txt" },
 					Destination = "<<kotorDirectory>>\\backup",
 					Overwrite = true
 				}
@@ -766,23 +771,23 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "content.zip");
-			CreateArchive(archivePath, new()
+			CreateArchive(archivePath, new Dictionary<string, string>()
 			{
 				{ "oldname.dat", "Data content" }
 			});
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\content.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\content.zip" },
 					Destination = "<<modDirectory>>"
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Rename,
-					Source = ["<<modDirectory>>\\content\\oldname.dat"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Rename,
+					Source = new List<string> { "<<modDirectory>>\\content\\oldname.dat" },
 					Destination = "newname.dat",
 					Overwrite = true
 				}
@@ -800,7 +805,7 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "cleanup.zip");
-			CreateArchive(archivePath, new()
+			CreateArchive(archivePath, new Dictionary<string, string>()
 			{
 				{ "keep.txt", "Keep this" },
 				{ "delete.txt", "Delete this" },
@@ -809,16 +814,16 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\cleanup.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\cleanup.zip" },
 					Destination = "<<modDirectory>>"
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Delete,
-					Source = ["<<modDirectory>>\\cleanup\\delete.txt"]
+			new Instruction
+			{
+				Action = Instruction.ActionType.Delete,
+					Source = new List<string> { "<<modDirectory>>\\cleanup\\delete.txt" }
 				}
 			};
 
@@ -838,10 +843,10 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\doesnotexist.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\doesnotexist.zip" },
 					Destination = "<<kotorDirectory>>"
 				}
 			};
@@ -856,28 +861,28 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string archivePath = Path.Combine(_sourceDir, "test.zip");
-			CreateArchive(archivePath, new()
+			CreateArchive(archivePath, new Dictionary<string, string>()
 			{
 				{ "file.txt", "content" }
 			});
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\test.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\test.zip" },
 					Destination = "<<modDirectory>>"
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Delete,
-					Source = ["<<modDirectory>>\\test\\file.txt"]
+			new Instruction
+			{
+				Action = Instruction.ActionType.Delete,
+					Source = new List<string> { "<<modDirectory>>\\test\\file.txt" }
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Move,
-					Source = ["<<modDirectory>>\\test\\file.txt"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Move,
+					Source = new List<string> { "<<modDirectory>>\\test\\file.txt" },
 					Destination = "<<kotorDirectory>>\\moved.txt"
 				}
 			};
@@ -892,7 +897,7 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string originalPath = Path.Combine(_sourceDir, "original.zip");
-			CreateArchive(originalPath, new()
+			CreateArchive(originalPath, new Dictionary<string, string>()
 			{
 				{ "data/file.txt", "Important data" }
 			});
@@ -901,17 +906,17 @@ namespace KOTORModSync.Tests
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Rename,
-					Source = ["<<modDirectory>>\\original.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Rename,
+					Source = new List<string> { "<<modDirectory>>\\original.zip" },
 					Destination = "subdir\\moved.zip",
 					Overwrite = true
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\subdir\\moved.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\subdir\\moved.zip" },
 					Destination = "<<kotorDirectory>>"
 				}
 			};
@@ -935,21 +940,21 @@ namespace KOTORModSync.Tests
 			string mod2Archive = Path.Combine(_sourceDir, "mod2.zip");
 			string patchArchive = Path.Combine(_sourceDir, "patch.zip");
 
-			CreateArchive(mod1Archive, new()
+			CreateArchive(mod1Archive, new Dictionary<string, string>()
 			{
 				{ "override/appearance.2da", "Mod1 appearance data" },
 				{ "override/dialog.dlg", "Mod1 dialog" },
 				{ "modules/module1.mod", "Module 1" }
 			});
 
-			CreateArchive(mod2Archive, new()
+			CreateArchive(mod2Archive, new Dictionary<string, string>()
 			{
 				{ "override/appearance.2da", "Mod2 appearance data (conflicts!)" },
 				{ "override/spells.2da", "Mod2 spells" },
 				{ "lips/scene1.lip", "Lip sync data" }
 			});
 
-			CreateArchive(patchArchive, new()
+			CreateArchive(patchArchive, new Dictionary<string, string>()
 			{
 				{ "appearance.2da", "Patched appearance" },
 				{ "compatibility_fix.txt", "Instructions" }
@@ -958,21 +963,21 @@ namespace KOTORModSync.Tests
 			var instructions = new List<Instruction>
 			{
 
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\mod1.zip"], Destination = "<<modDirectory>>" },
-				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mod1\\override\\*"], Destination = "<<kotorDirectory>>\\override", Overwrite = true },
-				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mod1\\modules\\*"], Destination = "<<kotorDirectory>>\\modules", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\mod1.zip" }, Destination = "<<modDirectory>>" },
+				new Instruction { Action = Instruction.ActionType.Move, Source = new List<string> { "<<modDirectory>>\\mod1\\override\\*" }, Destination = "<<kotorDirectory>>\\override", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Move, Source = new List<string> { "<<modDirectory>>\\mod1\\modules\\*" }, Destination = "<<kotorDirectory>>\\modules", Overwrite = true },
 
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\mod2.zip"], Destination = "<<modDirectory>>" },
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\mod2.zip" }, Destination = "<<modDirectory>>" },
 
-				new() { Action = Instruction.ActionType.Copy, Source = ["<<kotorDirectory>>\\override\\appearance.2da"], Destination = "<<kotorDirectory>>\\backup\\appearance.2da.mod1", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Copy, Source = new List<string> { "<<kotorDirectory>>\\override\\appearance.2da" }, Destination = "<<kotorDirectory>>\\backup\\appearance.2da.mod1", Overwrite = true },
 
-				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mod2\\override\\*"], Destination = "<<kotorDirectory>>\\override", Overwrite = true },
-				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\mod2\\lips\\*"], Destination = "<<kotorDirectory>>\\lips", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Move, Source = new List<string> { "<<modDirectory>>\\mod2\\override\\*" }, Destination = "<<kotorDirectory>>\\override", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Move, Source = new List<string> { "<<modDirectory>>\\mod2\\lips\\*" }, Destination = "<<kotorDirectory>>\\lips", Overwrite = true },
 
-				new() { Action = Instruction.ActionType.Extract, Source = ["<<modDirectory>>\\patch.zip"], Destination = "<<modDirectory>>" },
-				new() { Action = Instruction.ActionType.Move, Source = ["<<modDirectory>>\\patch\\appearance.2da"], Destination = "<<kotorDirectory>>\\override", Overwrite = true },
+				new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\patch.zip" }, Destination = "<<modDirectory>>" },
+				new Instruction { Action = Instruction.ActionType.Move, Source = new List<string> { "<<modDirectory>>\\patch\\appearance.2da" }, Destination = "<<kotorDirectory>>\\override", Overwrite = true },
 
-				new() { Action = Instruction.ActionType.Delete, Source = ["<<modDirectory>>\\patch\\compatibility_fix.txt"] }
+				new Instruction { Action = Instruction.ActionType.Delete, Source = new List<string> { "<<modDirectory>>\\patch\\compatibility_fix.txt" } }
 			};
 
 			(VirtualFileSystemProvider virtualProvider, string realDestDir) = await RunBothProviders(instructions, _sourceDir);
@@ -996,51 +1001,51 @@ namespace KOTORModSync.Tests
 
 			Debug.Assert(_sourceDir != null);
 			string originalPath = Path.Combine(_sourceDir, "original.zip");
-			CreateArchive(originalPath, new()
+			CreateArchive(originalPath, new Dictionary<string, string>()
 			{
 				{ "nested/deep/file.txt", "Deep content" }
 			});
 
 			var instructions = new List<Instruction>
 			{
-				new()
-				{
-					Action = Instruction.ActionType.Rename,
-					Source = ["<<modDirectory>>\\original.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Rename,
+					Source = new List<string> { "<<modDirectory>>\\original.zip" },
 					Destination = "temp1.zip",
 					Overwrite = true
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Copy,
-					Source = ["<<modDirectory>>\\temp1.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Copy,
+					Source = new List<string> { "<<modDirectory>>\\temp1.zip" },
 					Destination = "<<modDirectory>>\\backup",
 					Overwrite = true
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Rename,
-					Source = ["<<modDirectory>>\\backup\\temp1.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Rename,
+					Source = new List<string> { "<<modDirectory>>\\backup\\temp1.zip" },
 					Destination = "temp2.zip",
 					Overwrite = true
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Rename,
-					Source = ["<<modDirectory>>\\backup\\temp2.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Rename,
+					Source = new List<string> { "<<modDirectory>>\\backup\\temp2.zip" },
 					Destination = "final.zip",
 					Overwrite = true
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = ["<<modDirectory>>\\backup\\final.zip"],
+			new Instruction
+			{
+				Action = Instruction.ActionType.Extract,
+					Source = new List<string> { "<<modDirectory>>\\backup\\final.zip" },
 					Destination = "<<kotorDirectory>>"
 				},
-				new()
-				{
-					Action = Instruction.ActionType.Delete,
-					Source = ["<<modDirectory>>\\temp1.zip"]
+			new Instruction
+			{
+				Action = Instruction.ActionType.Delete,
+					Source = new List<string> { "<<modDirectory>>\\temp1.zip" }
 				}
 			};
 
@@ -1053,13 +1058,12 @@ namespace KOTORModSync.Tests
 		[Test]
 		[Category("Integration")]
 		[Explicit("Long-running integration test that downloads mods from the internet")]
-		[Ignore("Test requires mod-builds repository which has been removed from the project")]
 		public async Task Test_FullModBuildInstallation_KOTOR1_Mobile_Full()
 		{
 
 			Debug.Assert(_testRootDir != null);
 			string kotorRoot = Path.Combine(_testRootDir, "KOTOR_Install");
-			CreateKOTORDirectoryStructure(kotorRoot);
+			CreateKotorDirectoryStructure(kotorRoot);
 
 			string modDirectory = Path.Combine(_testRootDir, "Mods");
 			_ = Directory.CreateDirectory(modDirectory);
@@ -1095,12 +1099,12 @@ namespace KOTORModSync.Tests
 				return;
 			}
 
-			TestContext.WriteLine($"Loading TOML from: {tomlPath}");
+			TestContext.Progress.WriteLine($"Loading TOML from: {tomlPath}");
 
 			List<ModComponent> components;
 			try
 			{
-				components = FileLoadingService.LoadFromFile(tomlPath);
+				components = await FileLoadingService.LoadFromFileAsync(tomlPath);
 			}
 			catch ( Exception ex )
 			{
@@ -1108,7 +1112,7 @@ namespace KOTORModSync.Tests
 				return;
 			}
 
-			TestContext.WriteLine($"Loaded {components.Count} mods from TOML");
+			TestContext.Progress.WriteLine($"Loaded {components.Count} mods from TOML");
 
 			_ = new MainConfig
 			{
@@ -1116,7 +1120,7 @@ namespace KOTORModSync.Tests
 				destinationPath = new DirectoryInfo(kotorRoot)
 			};
 
-			TestContext.WriteLine("Attempting to download mods...");
+			TestContext.Progress.WriteLine("Attempting to download mods...");
 			int downloadedCount = 0;
 			int failedCount = 0;
 
@@ -1124,7 +1128,7 @@ namespace KOTORModSync.Tests
 			{
 				if ( component.ModLinkFilenames.Count == 0 )
 				{
-					TestContext.WriteLine($"  [{component.Name}] No download links available");
+					TestContext.Progress.WriteLine($"  [{component.Name}] No download links available");
 					component.IsSelected = false;
 					failedCount++;
 					continue;
@@ -1136,25 +1140,25 @@ namespace KOTORModSync.Tests
 					bool downloaded = await TryDownloadModAsync(component, modDirectory);
 					if ( downloaded )
 					{
-						TestContext.WriteLine($"  ✓ [{component.Name}] Downloaded successfully");
+						TestContext.Progress.WriteLine($"  ✓ [{component.Name}] Downloaded successfully");
 						downloadedCount++;
 					}
 					else
 					{
-						TestContext.WriteLine($"  ✗ [{component.Name}] Download failed");
+						TestContext.Progress.WriteLine($"  ✗ [{component.Name}] Download failed");
 						component.IsSelected = false;
 						failedCount++;
 					}
 				}
 				catch ( Exception ex )
 				{
-					TestContext.WriteLine($"  ✗ [{component.Name}] Download error: {ex.Message}");
+					TestContext.Progress.WriteLine($"  ✗ [{component.Name}] Download error: {ex.Message}");
 					component.IsSelected = false;
 					failedCount++;
 				}
 			}
 
-			TestContext.WriteLine($"\nDownload summary: {downloadedCount} successful, {failedCount} failed");
+			TestContext.Progress.WriteLine($"\nDownload summary: {downloadedCount} successful, {failedCount} failed");
 
 			if ( downloadedCount == 0 )
 			{
@@ -1163,7 +1167,7 @@ namespace KOTORModSync.Tests
 			}
 
 			var selectedComponents = components.Where(c => c.IsSelected).ToList();
-			TestContext.WriteLine($"\nInstalling {selectedComponents.Count} mods...");
+			TestContext.Progress.WriteLine($"\nInstalling {selectedComponents.Count} mods...");
 
 			var allInstructions = new List<Instruction>();
 			foreach ( ModComponent component in selectedComponents )
@@ -1177,7 +1181,7 @@ namespace KOTORModSync.Tests
 				return;
 			}
 
-			TestContext.WriteLine($"Total instructions: {allInstructions.Count}");
+			TestContext.Progress.WriteLine($"Total instructions: {allInstructions.Count}");
 
 			try
 			{
@@ -1190,20 +1194,20 @@ namespace KOTORModSync.Tests
 					.Where(i => i.Severity >= ValidationSeverity.Error)
 					.ToList();
 
-				TestContext.WriteLine("\nInstallation complete!");
-				TestContext.WriteLine($"Total validation issues: {virtualProvider.GetValidationIssues().Count}");
-				TestContext.WriteLine($"Critical issues: {criticalIssues.Count}");
+				TestContext.Progress.WriteLine("\nInstallation complete!");
+				TestContext.Progress.WriteLine($"Total validation issues: {virtualProvider.GetValidationIssues().Count}");
+				TestContext.Progress.WriteLine($"Critical issues: {criticalIssues.Count}");
 
 				foreach ( ValidationIssue issue in criticalIssues.Take(10) )
 				{
-					TestContext.WriteLine($"  {issue.Severity}: [{issue.Category}] {issue.Message}");
+					TestContext.Progress.WriteLine($"  {issue.Severity}: [{issue.Category}] {issue.Message}");
 				}
 
 				Assert.That(criticalIssues, Is.Empty, "Installation should complete without critical errors");
 
 				AssertFileSystemsMatch(virtualProvider, realDestDir);
 
-				TestContext.WriteLine("\n✓ Installation test passed!");
+				TestContext.Progress.WriteLine("\n✓ Installation test passed!");
 			}
 			catch ( Exception ex )
 			{
@@ -1211,7 +1215,7 @@ namespace KOTORModSync.Tests
 			}
 		}
 
-		private static void CreateKOTORDirectoryStructure(string rootPath)
+		private static void CreateKotorDirectoryStructure(string rootPath)
 		{
 			_ = Directory.CreateDirectory(rootPath);
 
@@ -1288,7 +1292,7 @@ namespace KOTORModSync.Tests
 				string fullPath = Path.Combine(modDirectory, expectedFile);
 				if ( !File.Exists(fullPath) )
 					continue;
-				TestContext.WriteLine($"    Found existing file: {expectedFile}");
+				TestContext.Progress.WriteLine($"    Found existing file: {expectedFile}");
 				return true;
 			}
 

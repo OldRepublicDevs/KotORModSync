@@ -188,21 +188,33 @@ namespace KOTORModSync.Core
 				throw new InvalidOperationException("File system provider must be set before calling SetRealPaths. Call SetFileSystemProvider() first.");
 			if ( Source is null )
 				throw new NullReferenceException(nameof(Source));
-			List<string> newSourcePaths = Source.ConvertAll(Utility.Utility.ReplaceCustomVariables);
+			Logger.LogVerbose($"[Instruction.SetRealPaths] Action={Action}, Source count={Source.Count}, sourceIsNotFilePath={sourceIsNotFilePath}, skipExistenceCheck={skipExistenceCheck}");
+			Logger.LogVerbose($"[Instruction.SetRealPaths] Raw Source paths: [{string.Join(", ", Source)}]");
+			Logger.LogVerbose($"[Instruction.SetRealPaths] MainConfig.SourcePath: {MainConfig.SourcePath?.FullName ?? "NULL"}");
+			Logger.LogVerbose($"[Instruction.SetRealPaths] MainConfig.DestinationPath: {MainConfig.DestinationPath?.FullName ?? "NULL"}");
+			List<string> newSourcePaths;
 			if ( !sourceIsNotFilePath )
 			{
-				newSourcePaths = PathHelper.EnumerateFilesWithWildcards(newSourcePaths, _fileSystemProvider);
+				Logger.LogVerbose($"[Instruction.SetRealPaths] Calling EnumerateFilesWithWildcards with original paths...");
+				newSourcePaths = PathHelper.EnumerateFilesWithWildcards(Source, _fileSystemProvider);
+				Logger.LogVerbose($"[Instruction.SetRealPaths] After EnumerateFilesWithWildcards: Found {newSourcePaths?.Count ?? 0} files");
+				Logger.LogVerbose($"[Instruction.SetRealPaths] Calling ReplaceCustomVariables on expanded paths...");
+				newSourcePaths = newSourcePaths.ConvertAll(Utility.Utility.ReplaceCustomVariables);
+				Logger.LogVerbose($"[Instruction.SetRealPaths] After ReplaceCustomVariables: [{string.Join(", ", newSourcePaths)}]");
 				if ( !skipExistenceCheck )
 				{
 					if ( newSourcePaths.IsNullOrEmptyOrAllNull() )
 					{
+						Logger.LogVerbose($"[Instruction.SetRealPaths] ERROR: newSourcePaths is null/empty after wildcard expansion");
 						throw new Exceptions.WildcardPatternNotFoundException(
 							Source,
 							_parentComponent?.Name
 						);
 					}
-					if ( newSourcePaths.Any(f => !_fileSystemProvider.FileExists(f)) )
+					var missingFiles = newSourcePaths.Where(f => !_fileSystemProvider.FileExists(f)).ToList();
+					if ( missingFiles.Count > 0 )
 					{
+						Logger.LogVerbose($"[Instruction.SetRealPaths] ERROR: {missingFiles.Count} files do not exist: [{string.Join(", ", missingFiles)}]");
 						throw new FileNotFoundException(
 							$"Could not find all files in the 'Source' path on disk! Got [{string.Join(separator: ", ", Source)}]"
 						);
@@ -214,8 +226,17 @@ namespace KOTORModSync.Core
 						: newSourcePaths.Distinct()
 				).ToList();
 			}
+			else
+			{
+				Logger.LogVerbose($"[Instruction.SetRealPaths] sourceIsNotFilePath=true, calling ReplaceCustomVariables on original paths...");
+				newSourcePaths = Source.ConvertAll(Utility.Utility.ReplaceCustomVariables);
+				Logger.LogVerbose($"[Instruction.SetRealPaths] After ReplaceCustomVariables: [{string.Join(", ", newSourcePaths)}]");
+			}
 			string destinationPath = Utility.Utility.ReplaceCustomVariables(Destination);
+			Logger.LogVerbose($"[Instruction.SetRealPaths] Raw Destination: {Destination ?? "NULL"}");
+			Logger.LogVerbose($"[Instruction.SetRealPaths] After ReplaceCustomVariables on Destination: {destinationPath ?? "NULL"}");
 			DirectoryInfo thisDestination = PathHelper.TryGetValidDirectoryInfo(destinationPath);
+			Logger.LogVerbose($"[Instruction.SetRealPaths] TryGetValidDirectoryInfo result: {thisDestination?.FullName ?? "NULL"}");
 			if ( sourceIsNotFilePath )
 			{
 				RealDestinationPath = thisDestination;
@@ -254,6 +275,8 @@ namespace KOTORModSync.Core
 		{
 			if ( _fileSystemProvider == null )
 				throw new InvalidOperationException("File system provider must be set before calling ExtractFileAsync. Call SetFileSystemProvider() first.");
+
+			var sw = System.Diagnostics.Stopwatch.StartNew();
 			try
 			{
 				if ( argSourcePaths.IsNullOrEmptyCollection() )
@@ -277,19 +300,51 @@ namespace KOTORModSync.Core
 					catch ( Exception ex )
 					{
 						await Logger.LogExceptionAsync(ex);
+						sw.Stop();
+						Services.TelemetryService.Instance.RecordFileOperation(
+							operationType: "extract",
+							success: false,
+							fileCount: RealSourcePaths.Count,
+							durationMs: sw.Elapsed.TotalMilliseconds,
+							errorMessage: ex.Message
+						);
 						return ActionExitCode.InvalidArchive;
 					}
 				}
+
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordFileOperation(
+					operationType: "extract",
+					success: true,
+					fileCount: RealSourcePaths.Count,
+					durationMs: sw.Elapsed.TotalMilliseconds
+				);
 				return ActionExitCode.Success;
 			}
 			catch ( ArgumentNullException ex )
 			{
 				await Logger.LogExceptionAsync(ex);
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordFileOperation(
+					operationType: "extract",
+					success: false,
+					fileCount: RealSourcePaths?.Count ?? 0,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: ex.Message
+				);
 				return ActionExitCode.InvalidArchive;
 			}
 			catch ( Exception ex )
 			{
 				await Logger.LogExceptionAsync(ex);
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordFileOperation(
+					operationType: "extract",
+					success: false,
+					fileCount: RealSourcePaths?.Count ?? 0,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: ex.Message
+				);
 				return ActionExitCode.UnknownError;
 			}
 		}
@@ -401,6 +456,8 @@ namespace KOTORModSync.Core
 				sourcePaths = RealSourcePaths;
 			if ( sourcePaths is null )
 				throw new ArgumentNullException(nameof(sourcePaths));
+
+			var sw = System.Diagnostics.Stopwatch.StartNew();
 			ActionExitCode exitCode = ActionExitCode.Success;
 			try
 			{
@@ -456,6 +513,17 @@ namespace KOTORModSync.Core
 				{
 					exitCode = ActionExitCode.UnknownInnerError;
 				}
+			}
+			finally
+			{
+				sw.Stop();
+				Services.TelemetryService.Instance.RecordFileOperation(
+					operationType: "delete",
+					success: exitCode == ActionExitCode.Success,
+					fileCount: sourcePaths?.Count ?? 0,
+					durationMs: sw.Elapsed.TotalMilliseconds,
+					errorMessage: exitCode != ActionExitCode.Success ? exitCode.ToString() : null
+				);
 			}
 			return exitCode;
 		}
@@ -557,6 +625,8 @@ namespace KOTORModSync.Core
 				destinationPath = RealDestinationPath;
 			if ( destinationPath == null )
 				throw new ArgumentNullException(nameof(destinationPath));
+
+			var sw = System.Diagnostics.Stopwatch.StartNew();
 			int maxCount = MainConfig.UseMultiThreadedIO
 				? 16
 				: 1;
@@ -622,10 +692,25 @@ namespace KOTORModSync.Core
 				try
 				{
 					await Task.WhenAll(tasks);
+					sw.Stop();
+					Services.TelemetryService.Instance.RecordFileOperation(
+						operationType: "copy",
+						success: true,
+						fileCount: sourcePaths?.Count ?? 0,
+						durationMs: sw.Elapsed.TotalMilliseconds
+					);
 					return ActionExitCode.Success;
 				}
-				catch
+				catch ( Exception ex )
 				{
+					sw.Stop();
+					Services.TelemetryService.Instance.RecordFileOperation(
+						operationType: "copy",
+						success: false,
+						fileCount: sourcePaths?.Count ?? 0,
+						durationMs: sw.Elapsed.TotalMilliseconds,
+						errorMessage: ex.Message
+					);
 					return ActionExitCode.UnknownError;
 				}
 			}
@@ -645,6 +730,14 @@ namespace KOTORModSync.Core
 				destinationPath = RealDestinationPath;
 			if ( destinationPath == null )
 				throw new ArgumentNullException(nameof(destinationPath));
+
+			Logger.LogVerbose($"[Instruction.MoveFileAsync] Starting move operation with {sourcePaths.Count} files");
+			Logger.LogVerbose($"[Instruction.MoveFileAsync] Destination: {destinationPath.FullName}");
+			Logger.LogVerbose($"[Instruction.MoveFileAsync] MainConfig.SourcePath: {MainConfig.SourcePath?.FullName ?? "NULL"}");
+			Logger.LogVerbose($"[Instruction.MoveFileAsync] MainConfig.DestinationPath: {MainConfig.DestinationPath?.FullName ?? "NULL"}");
+			Logger.LogVerbose($"[Instruction.MoveFileAsync] IsDryRun: {_fileSystemProvider.IsDryRun}");
+
+			var sw = System.Diagnostics.Stopwatch.StartNew();
 			int maxCount = MainConfig.UseMultiThreadedIO
 				? 16
 				: 1;
@@ -656,27 +749,33 @@ namespace KOTORModSync.Core
 					await localSemaphore.WaitAsync();
 					try
 					{
+						Logger.LogVerbose($"[Instruction.MoveIndividualFileAsync] Processing: {sourcePath}");
 						string sourceRelDirPath = MainConfig.SourcePath is null
 							? sourcePath
 							: PathHelper.GetRelativePath(
 								MainConfig.SourcePath.FullName,
 								sourcePath
 							);
+						Logger.LogVerbose($"[Instruction.MoveIndividualFileAsync] sourceRelDirPath: {sourceRelDirPath}");
 						string fileName = Path.GetFileName(sourcePath);
+						Logger.LogVerbose($"[Instruction.MoveIndividualFileAsync] fileName: {fileName}");
 						string destinationFilePath = MainConfig.CaseInsensitivePathing
 							? PathHelper.GetCaseSensitivePath(
 								Path.Combine(destinationPath.FullName, fileName),
 								isFile: true
 							).Item1
 							: Path.Combine(destinationPath.FullName, fileName);
+						Logger.LogVerbose($"[Instruction.MoveIndividualFileAsync] destinationFilePath: {destinationFilePath}");
 						string destinationRelDirPath = MainConfig.DestinationPath is null
 							? destinationFilePath
 							: PathHelper.GetRelativePath(
 								MainConfig.DestinationPath.FullName,
 								destinationFilePath
 							);
+						Logger.LogVerbose($"[Instruction.MoveIndividualFileAsync] destinationRelDirPath: {destinationRelDirPath}");
 						if ( _fileSystemProvider.FileExists(destinationFilePath) )
 						{
+							Logger.LogVerbose($"[Instruction.MoveIndividualFileAsync] Destination file exists, Overwrite={Overwrite}");
 							if ( !Overwrite )
 							{
 								await Logger.LogWarningAsync(
@@ -692,7 +791,9 @@ namespace KOTORModSync.Core
 							await _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 						}
 						await Logger.LogAsync($"Move '{sourceRelDirPath}' to '{destinationRelDirPath}'");
+						Logger.LogVerbose($"[Instruction.MoveIndividualFileAsync] Calling _fileSystemProvider.MoveFileAsync('{sourcePath}', '{destinationFilePath}', {Overwrite})");
 						await _fileSystemProvider.MoveFileAsync(sourcePath, destinationFilePath, Overwrite);
+						Logger.LogVerbose($"[Instruction.MoveIndividualFileAsync] Move completed successfully");
 					}
 					catch ( Exception ex )
 					{
@@ -710,10 +811,25 @@ namespace KOTORModSync.Core
 				try
 				{
 					await Task.WhenAll(tasks);
+					sw.Stop();
+					Services.TelemetryService.Instance.RecordFileOperation(
+						operationType: "move",
+						success: true,
+						fileCount: sourcePaths?.Count ?? 0,
+						durationMs: sw.Elapsed.TotalMilliseconds
+					);
 					return ActionExitCode.Success;
 				}
-				catch
+				catch ( Exception ex )
 				{
+					sw.Stop();
+					Services.TelemetryService.Instance.RecordFileOperation(
+						operationType: "move",
+						success: false,
+						fileCount: sourcePaths?.Count ?? 0,
+						durationMs: sw.Elapsed.TotalMilliseconds,
+						errorMessage: ex.Message
+					);
 					return ActionExitCode.UnknownError;
 				}
 			}

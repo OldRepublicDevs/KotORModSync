@@ -91,14 +91,12 @@ namespace KOTORModSync.Converters
 
 			var relevantArchives = new List<string>();
 
-			List<string> instructionSourcePaths = instruction.Source.ConvertAll(Utility.ReplaceCustomVariables);
-
 			foreach ( string archivePath in allArchives )
 			{
 				if ( string.IsNullOrEmpty(archivePath) )
 					continue;
 
-				foreach ( string sourcePath in instructionSourcePaths )
+				foreach ( string sourcePath in instruction.Source )
 				{
 					if ( string.IsNullOrEmpty(sourcePath) )
 						continue;
@@ -197,7 +195,7 @@ namespace KOTORModSync.Converters
 					continue;
 
 				List<string> realPaths = PathHelper.EnumerateFilesWithWildcards(
-					instruction.Source.ConvertAll(Utility.ReplaceCustomVariables),
+					instruction.Source,
 					new Core.Services.FileSystem.RealFileSystemProvider(),
 					includeSubFolders: true
 				);

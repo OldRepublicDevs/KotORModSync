@@ -273,7 +273,10 @@ namespace KOTORModSync.Dialogs
 				if ( _retryAction == null )
 				{
 					await Logger.LogErrorAsync("Retry action not provided to dialog");
-					await InformationDialog.ShowInformationDialogAsync(this, "Retry functionality is not available.");
+					await InformationDialog.ShowInformationDialogAsync(
+						this,
+						message: "Retry action not provided to dialog"
+					);
 					return;
 				}
 

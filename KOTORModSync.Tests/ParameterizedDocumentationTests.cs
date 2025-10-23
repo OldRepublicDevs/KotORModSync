@@ -15,8 +15,11 @@ using KOTORModSync.Core.Utility;
 namespace KOTORModSync.Tests
 {
 	[TestFixture]
-	public class ParameterizedDocumentationTests
+	public class ParameterizedDocumentationTests : BaseParameterizedTest
 	{
+		protected override string TestCategory => "Documentation";
+		protected override bool RequiresTempDirectory => false; // These tests don't need temp directories
+		protected override bool PreserveTestResults => true;
 
 		private static IEnumerable<TestCaseData> GetAllMarkdownFiles()
 		{
@@ -66,40 +69,42 @@ namespace KOTORModSync.Tests
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RoundTrip_ParseAndGenerateDocumentation_ProducesEquivalentOutput(string mdFilePath)
 		{
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLog($"Input file: {mdFilePath}");
 
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string originalMarkdown = File.ReadAllText(mdFilePath);
+			WriteLog($"Original markdown length: {originalMarkdown.Length} characters");
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
 			MarkdownParserResult parseResult = parser.Parse(originalMarkdown);
 			IList<ModComponent> components = parseResult.Components;
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"Parsed {components.Count} components");
-			Console.WriteLine($"Warnings: {parseResult.Warnings.Count}");
+			WriteLogAndConsole($"Parsed {components.Count} components");
+			WriteLogAndConsole($"Warnings: {parseResult.Warnings.Count}");
 			foreach ( string warning in parseResult.Warnings )
 			{
-				Console.WriteLine($"  - {warning}");
+				WriteLogAndConsole($"  - {warning}");
 			}
 
 			string generatedDocs = ModComponentSerializationService.GenerateModDocumentation(components.ToList());
+			WriteLog($"Generated documentation length: {generatedDocs.Length} characters");
 
-			string sourceDir = Path.GetDirectoryName(mdFilePath)!;
-			string validatedDir = Path.Combine(sourceDir, "validated");
-			Directory.CreateDirectory(validatedDir);
-
-			string debugOutputPath = Path.Combine(validatedDir, Path.GetFileName(mdFilePath));
+			string debugOutputPath = GetDebugFilePath(Path.GetFileName(mdFilePath));
 
 			try
 			{
 				File.WriteAllText(debugOutputPath, generatedDocs);
-				Console.WriteLine($"Generated documentation written to: {debugOutputPath}");
+				WriteLogAndConsole($"Generated documentation written to: {debugOutputPath}");
+				MarkFileForPreservation(debugOutputPath, "Generated documentation for analysis");
 			}
 			catch ( Exception ex )
 			{
-				Console.WriteLine($"Warning: Could not write debug output: {ex.Message}");
+				WriteLogAndConsole($"Warning: Could not write debug output: {ex.Message}");
+				WriteLogException(ex, "debug output writing");
 			}
 
 			Assert.Multiple(() =>
@@ -114,8 +119,8 @@ namespace KOTORModSync.Tests
 
 			List<string> generatedSections = MarkdownUtilities.ExtractModSections(generatedDocs);
 
-			Console.WriteLine($"Original sections: {originalSections.Count}");
-			Console.WriteLine($"Generated sections: {generatedSections.Count}");
+			WriteLogAndConsole($"Original sections: {originalSections.Count}");
+			WriteLogAndConsole($"Generated sections: {generatedSections.Count}");
 
 			var originalNameFields = originalSections
 				.SelectMany(s => MarkdownUtilities.ExtractAllFieldValues(s, @"\*\*Name:\*\*\s*(?:\[([^\]]+)\]|([^\r\n]+))"))
@@ -127,31 +132,32 @@ namespace KOTORModSync.Tests
 				.Where(n => !string.IsNullOrWhiteSpace(n))
 				.ToList();
 
-			Console.WriteLine($"Original mod names (from **Name:** field): {originalNameFields.Count}");
-			Console.WriteLine($"Generated mod names (from **Name:** field): {generatedNameFields.Count}");
+			WriteLogAndConsole($"Original mod names (from **Name:** field): {originalNameFields.Count}");
+			WriteLogAndConsole($"Generated mod names (from **Name:** field): {generatedNameFields.Count}");
 
 			if ( generatedNameFields.Count != originalNameFields.Count )
 			{
-				Console.WriteLine("\n=== NAME FIELD COUNT MISMATCH ===");
+				WriteLogAndConsole("\n=== NAME FIELD COUNT MISMATCH ===");
+				WriteLog($"MISMATCH: Original={originalNameFields.Count}, Generated={generatedNameFields.Count}");
 
 				var missingInGenerated = originalNameFields.Except(generatedNameFields).ToList();
 				var missingInOriginal = generatedNameFields.Except(originalNameFields).ToList();
 
 				if ( missingInGenerated.Count > 0 )
 				{
-					Console.WriteLine($"\nMissing in generated ({missingInGenerated.Count}):");
+					WriteLogAndConsole($"\nMissing in generated ({missingInGenerated.Count}):");
 					foreach ( string name in missingInGenerated )
 					{
-						Console.WriteLine($"  - {name}");
+						WriteLogAndConsole($"  - {name}");
 					}
 				}
 
 				if ( missingInOriginal.Count > 0 )
 				{
-					Console.WriteLine($"\nExtra in generated ({missingInOriginal.Count}):");
+					WriteLogAndConsole($"\nExtra in generated ({missingInOriginal.Count}):");
 					foreach ( string name in missingInOriginal )
 					{
-						Console.WriteLine($"  - {name}");
+						WriteLogAndConsole($"  - {name}");
 					}
 				}
 			}
@@ -164,21 +170,21 @@ namespace KOTORModSync.Tests
 
 			if ( missingNames.Count > 0 || extraNames.Count > 0 )
 			{
-				Console.WriteLine("\n=== MOD NAME MISMATCH ===");
+				WriteLogAndConsole("\n=== MOD NAME MISMATCH ===");
 				if ( missingNames.Count > 0 )
 				{
-					Console.WriteLine($"Names missing in generated ({missingNames.Count}):");
+					WriteLogAndConsole($"Names missing in generated ({missingNames.Count}):");
 					foreach ( string name in missingNames )
 					{
-						Console.WriteLine($"  - {name}");
+						WriteLogAndConsole($"  - {name}");
 					}
 				}
 				if ( extraNames.Count > 0 )
 				{
-					Console.WriteLine($"Extra names in generated ({extraNames.Count}):");
+					WriteLogAndConsole($"Extra names in generated ({extraNames.Count}):");
 					foreach ( string name in extraNames )
 					{
-						Console.WriteLine($"  - {name}");
+						WriteLogAndConsole($"  - {name}");
 					}
 				}
 			}
@@ -189,42 +195,47 @@ namespace KOTORModSync.Tests
 				Assert.That(extraNames, Is.Empty, "No extra mod names should be in generated output");
 			});
 
-			Console.WriteLine($"\n✓ All {originalNameFields.Count} mod names match between original and generated");
-			Console.WriteLine("✓ Round-trip test successful: Import → Export produces identical mod list");
+			WriteLogAndConsole($"\n✓ All {originalNameFields.Count} mod names match between original and generated");
+			WriteLogAndConsole("✓ Round-trip test successful: Import → Export produces identical mod list");
+			WriteLog("SUCCESS: Round-trip test completed successfully");
 		}
 
 		[TestCaseSource(nameof(GetAllMarkdownFiles))]
 		public void RoundTrip_VerifyFieldPreservation(string mdFilePath)
 		{
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLog($"Input file: {mdFilePath}");
 
 			Assert.That(File.Exists(mdFilePath), Is.True, $"Test file not found: {mdFilePath}");
 
 			string originalMarkdown = File.ReadAllText(mdFilePath);
+			WriteLog($"Original markdown length: {originalMarkdown.Length} characters");
+
 			var profile = MarkdownImportProfile.CreateDefault();
 			var parser = new MarkdownParser(profile);
 
 			MarkdownParserResult parseResult = parser.Parse(originalMarkdown);
 			List<ModComponent> components = parseResult.Components.ToList();
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"Total components: {components.Count}");
+			WriteLogAndConsole($"Total components: {components.Count}");
 
 			foreach ( ModComponent component in components )
 			{
-				Console.WriteLine($"\nVerifying component: {component.Name}");
+				WriteLogAndConsole($"\nVerifying component: {component.Name}");
 
 				Assert.That(component.Name, Is.Not.Null.And.Not.Empty, "Name should not be empty");
-				Console.WriteLine($"  Name: {component.Name}");
-				Console.WriteLine($"  Author: {component.Author}");
-				Console.WriteLine($"  Category: {string.Join(" & ", component.Category)}");
-				Console.WriteLine($"  Tier: {component.Tier}");
-				Console.WriteLine($"  Language: {string.Join(", ", component.Language)}");
-				Console.WriteLine($"  InstallationMethod: {component.InstallationMethod}");
-				Console.WriteLine($"  ModLinks: {component.ModLinkFilenames?.Count ?? 0}");
-				Console.WriteLine($"  Description length: {component.Description?.Length ?? 0}");
-				Console.WriteLine($"  Directions length: {component.Directions?.Length ?? 0}");
+				WriteLogAndConsole($"  Name: {component.Name}");
+				WriteLogAndConsole($"  Author: {component.Author}");
+				WriteLogAndConsole($"  Category: {string.Join(" & ", component.Category)}");
+				WriteLogAndConsole($"  Tier: {component.Tier}");
+				WriteLogAndConsole($"  Language: {string.Join(", ", component.Language)}");
+				WriteLogAndConsole($"  InstallationMethod: {component.InstallationMethod}");
+				WriteLogAndConsole($"  ModLinks: {component.ModLinkFilenames?.Count ?? 0}");
+				WriteLogAndConsole($"  Description length: {component.Description?.Length ?? 0}");
+				WriteLogAndConsole($"  Directions length: {component.Directions?.Length ?? 0}");
 			}
 
+			WriteLog($"SUCCESS: Field preservation verification completed for {components.Count} components");
 			Assert.That(components, Is.Not.Empty, "Should have parsed components");
 		}
 
@@ -241,42 +252,42 @@ namespace KOTORModSync.Tests
 			MarkdownParserResult result = parser.Parse(markdownContent);
 			IList<ModComponent> components = result.Components;
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"Total mods found: {components.Count}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Total mods found: {components.Count}");
 
 			var modNames = components.Select(c => c.Name).ToList();
 			var modAuthors = components.Select(c => c.Author).ToList();
 			var modCategories = components.Select(c => $"{string.Join(", ", c.Category)} / {c.Tier}").ToList();
 			var modDescriptions = components.Select(c => c.Description).ToList();
 
-			Console.WriteLine($"Mods with authors: {modAuthors.Count(a => !string.IsNullOrWhiteSpace(a))}");
-			Console.WriteLine($"Mods with categories: {modCategories.Count(c => !string.IsNullOrWhiteSpace(c))}");
-			Console.WriteLine($"Mods with descriptions: {modDescriptions.Count(d => !string.IsNullOrWhiteSpace(d))}");
+			WriteLogAndConsole($"Mods with authors: {modAuthors.Count(a => !string.IsNullOrWhiteSpace(a))}");
+			WriteLogAndConsole($"Mods with categories: {modCategories.Count(c => !string.IsNullOrWhiteSpace(c))}");
+			WriteLogAndConsole($"Mods with descriptions: {modDescriptions.Count(d => !string.IsNullOrWhiteSpace(d))}");
 
-			Console.WriteLine("\nFirst 5 mods:");
+			WriteLogAndConsole("\nFirst 5 mods:");
 			for ( int i = 0; i < Math.Min(5, components.Count); i++ )
 			{
 				ModComponent component = components[i];
-				Console.WriteLine($"{i + 1}. {component.Name}");
-				Console.WriteLine($"   Author: {component.Author}");
+				WriteLogAndConsole($"{i + 1}. {component.Name}");
+				WriteLogAndConsole($"   Author: {component.Author}");
 				string categoryStr = component.Category.Count > 0
 					? string.Join(", ", component.Category)
 					: "No category";
-				Console.WriteLine($"   Category: {categoryStr} / {component.Tier}");
+				WriteLogAndConsole($"   Category: {categoryStr} / {component.Tier}");
 			}
 
 			if ( components.Count > 5 )
 			{
-				Console.WriteLine("\nLast 5 mods:");
+				WriteLogAndConsole("\nLast 5 mods:");
 				for ( int i = Math.Max(0, components.Count - 5); i < components.Count; i++ )
 				{
 					ModComponent component = components[i];
-					Console.WriteLine($"{i + 1}. {component.Name}");
-					Console.WriteLine($"   Author: {component.Author}");
+					WriteLogAndConsole($"{i + 1}. {component.Name}");
+					WriteLogAndConsole($"   Author: {component.Author}");
 					string categoryStr = component.Category.Count > 0
 						? string.Join(", ", component.Category)
 						: "No category";
-					Console.WriteLine($"   Category: {categoryStr} / {component.Tier}");
+					WriteLogAndConsole($"   Category: {categoryStr} / {component.Tier}");
 				}
 			}
 
@@ -309,8 +320,8 @@ namespace KOTORModSync.Tests
 			MarkdownParserResult result = parser.Parse(markdownContent);
 			IList<ModComponent> components = result.Components;
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"Total components: {components.Count}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Total components: {components.Count}");
 
 			int componentsWithLinks = 0;
 			int totalLinks = 0;
@@ -322,7 +333,7 @@ namespace KOTORModSync.Tests
 					componentsWithLinks++;
 					totalLinks += component.ModLinkFilenames.Count;
 
-					Console.WriteLine($"{component.Name}: {component.ModLinkFilenames.Count} link(s)");
+					WriteLogAndConsole($"{component.Name}: {component.ModLinkFilenames.Count} link(s)");
 					foreach ( string link in component.ModLinkFilenames.Keys )
 					{
 
@@ -337,8 +348,8 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			Console.WriteLine($"\nComponents with links: {componentsWithLinks}");
-			Console.WriteLine($"Total links: {totalLinks}");
+			WriteLogAndConsole($"\nComponents with links: {componentsWithLinks}");
+			WriteLogAndConsole($"Total links: {totalLinks}");
 
 			Assert.That(componentsWithLinks, Is.GreaterThan(0),
 				$"Expected at least some components to have mod links in {Path.GetFileName(mdFilePath)}");
@@ -357,7 +368,7 @@ namespace KOTORModSync.Tests
 			MarkdownParserResult result = parser.Parse(markdownContent);
 			IList<ModComponent> components = result.Components;
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
 
 			var uniqueCategories = new HashSet<string>();
 			var uniqueTiers = new HashSet<string>();
@@ -378,16 +389,16 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			Console.WriteLine($"\nUnique Categories ({uniqueCategories.Count}):");
+			WriteLogAndConsole($"\nUnique Categories ({uniqueCategories.Count}):");
 			foreach ( string category in uniqueCategories.OrderBy(c => c) )
 			{
-				Console.WriteLine($"  - {category}");
+				WriteLogAndConsole($"  - {category}");
 			}
 
-			Console.WriteLine($"\nUnique Tiers ({uniqueTiers.Count}):");
+			WriteLogAndConsole($"\nUnique Tiers ({uniqueTiers.Count}):");
 			foreach ( string tier in uniqueTiers.OrderBy(t => t) )
 			{
-				Console.WriteLine($"  - {tier}");
+				WriteLogAndConsole($"  - {tier}");
 			}
 
 			foreach ( string category in uniqueCategories )
@@ -419,15 +430,15 @@ namespace KOTORModSync.Tests
 
 			MarkdownParserResult result = parser.Parse(markdownContent);
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
-			Console.WriteLine($"Warnings: {result.Warnings.Count}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Warnings: {result.Warnings.Count}");
 
 			if ( result.Warnings.Count > 0 )
 			{
-				Console.WriteLine("\nWarnings found:");
+				WriteLogAndConsole("\nWarnings found:");
 				foreach ( string warning in result.Warnings )
 				{
-					Console.WriteLine($"  - {warning}");
+					WriteLogAndConsole($"  - {warning}");
 				}
 			}
 
@@ -450,7 +461,7 @@ namespace KOTORModSync.Tests
 			MarkdownParserResult result = parser.Parse(markdownContent);
 			IList<ModComponent> components = result.Components;
 
-			Console.WriteLine($"Testing file: {Path.GetFileName(mdFilePath)}");
+			WriteLogAndConsole($"Testing file: {Path.GetFileName(mdFilePath)}");
 
 			var uniqueMethods = new HashSet<string>();
 
@@ -462,11 +473,11 @@ namespace KOTORModSync.Tests
 				}
 			}
 
-			Console.WriteLine($"\nUnique Installation Methods ({uniqueMethods.Count}):");
+			WriteLogAndConsole($"\nUnique Installation Methods ({uniqueMethods.Count}):");
 			foreach ( string method in uniqueMethods.OrderBy(m => m) )
 			{
 				int count = components.Count(c => c.InstallationMethod == method);
-				Console.WriteLine($"  - {method} ({count} mods)");
+				WriteLogAndConsole($"  - {method} ({count} mods)");
 			}
 
 			foreach ( string method in uniqueMethods )

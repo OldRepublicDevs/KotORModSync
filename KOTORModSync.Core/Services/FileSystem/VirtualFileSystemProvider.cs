@@ -142,6 +142,134 @@ namespace KOTORModSync.Core.Services.FileSystem
 			}
 		}
 
+		/// <summary>
+		/// Initializes VFS only with files relevant to the specific component(s), not the entire directory.
+		/// This is much faster than loading all of the potentially thousands of files in the mod directory.
+		/// </summary>
+		public async Task InitializeFromRealFileSystemForComponentAsync(string rootPath, ModComponent component)
+		{
+			if ( component != null )
+			{
+				await InitializeFromRealFileSystemForComponentsAsync(rootPath, new List<ModComponent> { component });
+			}
+		}
+
+		/// <summary>
+		/// Initializes VFS only with files relevant to the specified components, not the entire directory.
+		/// This is much faster than loading all of the potentially thousands of files in the mod directory.
+		/// </summary>
+		public async Task InitializeFromRealFileSystemForComponentsAsync(string rootPath, List<ModComponent> components)
+		{
+			if ( !Directory.Exists(rootPath) || components == null || components.Count == 0 )
+				return;
+
+			try
+			{
+				// Only load files that are referenced by the components' instructions
+				var relevantFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+				foreach ( var component in components )
+				{
+					if ( component == null )
+						continue;
+
+					// Get all source paths from component instructions
+					foreach ( var instruction in component.Instructions )
+					{
+						if ( instruction.Source != null )
+						{
+							foreach ( string sourcePath in instruction.Source )
+							{
+								if ( string.IsNullOrWhiteSpace(sourcePath) )
+									continue;
+
+								string resolvedPath = ResolvePath(sourcePath);
+								if ( File.Exists(resolvedPath) )
+								{
+									relevantFiles.Add(resolvedPath);
+								}
+							}
+						}
+					}
+
+					// Get all source paths from option instructions
+					foreach ( var option in component.Options )
+					{
+						foreach ( var instruction in option.Instructions )
+						{
+							if ( instruction.Source != null )
+							{
+								foreach ( string sourcePath in instruction.Source )
+								{
+									if ( string.IsNullOrWhiteSpace(sourcePath) )
+										continue;
+
+									string resolvedPath = ResolvePath(sourcePath);
+									if ( File.Exists(resolvedPath) )
+									{
+										relevantFiles.Add(resolvedPath);
+									}
+								}
+							}
+						}
+					}
+				}
+
+				// Load only the relevant files into VFS
+				foreach ( string filePath in relevantFiles )
+				{
+					lock ( _lockObject )
+					{
+						_virtualFiles.Add(filePath);
+					}
+
+					// If it's an archive, scan its contents
+					if ( IsArchiveFile(filePath) )
+					{
+						await ScanArchiveContentsAsync(filePath);
+					}
+				}
+
+				// Add directories for the relevant files
+				foreach ( string filePath in relevantFiles )
+				{
+					string directory = Path.GetDirectoryName(filePath);
+					if ( !string.IsNullOrEmpty(directory) )
+					{
+						lock ( _lockObject )
+						{
+							_ = _virtualDirectories.Add(directory);
+						}
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				AddIssue(ValidationSeverity.Warning, "FileSystemInitialization",
+					$"Could not fully initialize virtual file system for components: {ex.Message}", null);
+			}
+		}
+
+		private static string ResolvePath(string path)
+		{
+			if ( string.IsNullOrWhiteSpace(path) )
+				return path ?? string.Empty;
+
+			if ( path.Contains("<<modDirectory>>") )
+			{
+				string modDir = MainConfig.SourcePath?.FullName ?? "";
+				path = path.Replace("<<modDirectory>>", modDir);
+			}
+
+			if ( path.Contains("<<kotorDirectory>>") )
+			{
+				string kotorDir = MainConfig.DestinationPath?.FullName ?? "";
+				path = path.Replace("<<kotorDirectory>>", kotorDir);
+			}
+
+			return path;
+		}
+
 		private async Task ScanArchiveContentsAsync([NotNull] string archivePath)
 		{
 			if ( _archiveContents.ContainsKey(archivePath) )
@@ -232,13 +360,15 @@ namespace KOTORModSync.Core.Services.FileSystem
 			bool onDisk = File.Exists(path);
 			bool result = inVirtual || onDisk;
 
-			if ( !result && _virtualFiles.Count > 0 )
-			{
-				AddIssue(ValidationSeverity.Warning, "FileExists",
-					$"File not found: {path}", path, affectedComponent: null, affectedInstruction: null, instructionIndex: -1);
+		if ( !result && _virtualFiles.Count > 0 )
+		{
+			AddIssue(ValidationSeverity.Warning, "FileExists",
+				$"File not found: {path}", path, affectedComponent: null, affectedInstruction: null, instructionIndex: -1);
+			// Only log in debug mode to avoid performance issues
+			if ( MainConfig.DebugLogging )
 				Logger.LogVerbose($"[VFS] FileExists: File not found: {path}");
-				return false;
-			}
+			return false;
+		}
 
 			return result;
 		}
@@ -286,47 +416,88 @@ namespace KOTORModSync.Core.Services.FileSystem
 			return Task.CompletedTask;
 		}
 
-		public Task MoveFileAsync(string sourcePath, string destinationPath, bool overwrite)
+	public Task MoveFileAsync(string sourcePath, string destinationPath, bool overwrite)
+	{
+		// Only log VFS operations in debug mode to avoid performance issues
+		if ( MainConfig.DebugLogging )
 		{
 			Logger.LogVerbose($"[VFS] MoveFileAsync: source={sourcePath}");
 			Logger.LogVerbose($"[VFS] MoveFileAsync: dest={destinationPath}");
+			Logger.LogVerbose($"[VFS] MoveFileAsync: overwrite={overwrite}");
+		}
 
-			if ( !FileExists(sourcePath) )
+		bool sourceExistsInVirtualFiles = false;
+		bool sourceExistsOnDisk = false;
+		bool sourceInRemovedFiles = false;
+		lock ( _lockObject )
+		{
+			sourceExistsInVirtualFiles = _virtualFiles.Contains(sourcePath);
+			sourceInRemovedFiles = _removedFiles.Contains(sourcePath);
+		}
+		sourceExistsOnDisk = File.Exists(sourcePath);
+
+		if ( MainConfig.DebugLogging )
+		{
+			Logger.LogVerbose($"[VFS] MoveFileAsync: sourceExistsInVirtualFiles={sourceExistsInVirtualFiles}");
+			Logger.LogVerbose($"[VFS] MoveFileAsync: sourceExistsOnDisk={sourceExistsOnDisk}");
+			Logger.LogVerbose($"[VFS] MoveFileAsync: sourceInRemovedFiles={sourceInRemovedFiles}");
+		}
+
+		if ( !FileExists(sourcePath) )
+		{
+			AddIssue(ValidationSeverity.Error, "MoveFile",
+				$"Source file does not exist: {sourcePath}", sourcePath);
+			if ( MainConfig.DebugLogging )
 			{
-				AddIssue(ValidationSeverity.Error, "MoveFile",
-					$"Source file does not exist: {sourcePath}", sourcePath);
 				Logger.LogVerbose($"[VFS] MoveFileAsync: ERROR - source does not exist!");
-				return Task.CompletedTask;
+				Logger.LogVerbose($"[VFS] MoveFileAsync: _virtualFiles count={_virtualFiles.Count}");
+				Logger.LogVerbose($"[VFS] MoveFileAsync: _removedFiles count={_removedFiles.Count}");
 			}
-
-			if ( FileExists(destinationPath) && !overwrite )
-			{
-				AddIssue(ValidationSeverity.Warning, "MoveFile",
-					$"Destination file already exists and overwrite is false: {destinationPath}", destinationPath);
-				return Task.CompletedTask;
-			}
-
-			lock ( _lockObject )
-			{
-				bool removed = _virtualFiles.Remove(sourcePath);
-				_ = _virtualFiles.Add(destinationPath);
-				_ = _removedFiles.Add(sourcePath);
-				_ = _removedFiles.Remove(destinationPath);
-				Logger.LogVerbose($"[VFS] MoveFileAsync: Removed={removed}, total files now={_virtualFiles.Count}");
-
-				if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
-				{
-					_ = _archiveContents.Remove(sourcePath);
-					_archiveContents[destinationPath] = archiveContents;
-				}
-
-				string parentDir = Path.GetDirectoryName(destinationPath);
-				if ( !string.IsNullOrEmpty(parentDir) && !DirectoryExists(parentDir) )
-					_ = _virtualDirectories.Add(parentDir);
-			}
-
 			return Task.CompletedTask;
 		}
+
+		if ( FileExists(destinationPath) && !overwrite )
+		{
+			AddIssue(ValidationSeverity.Warning, "MoveFile",
+				$"Destination file already exists and overwrite is false: {destinationPath}", destinationPath);
+			return Task.CompletedTask;
+		}
+
+		lock ( _lockObject )
+		{
+			bool removed = _virtualFiles.Remove(sourcePath);
+			_ = _virtualFiles.Add(destinationPath);
+			_ = _removedFiles.Add(sourcePath);
+			_ = _removedFiles.Remove(destinationPath);
+
+			if ( MainConfig.DebugLogging )
+			{
+				Logger.LogVerbose($"[VFS] MoveFileAsync: Removed={removed}, total files now={_virtualFiles.Count}");
+				Logger.LogVerbose($"[VFS] MoveFileAsync: Added destination to _virtualFiles, removed source from _virtualFiles");
+				Logger.LogVerbose($"[VFS] MoveFileAsync: Added source to _removedFiles, removed destination from _removedFiles");
+			}
+
+			if ( IsArchiveFile(sourcePath) && _archiveContents.TryGetValue(sourcePath, out HashSet<string> archiveContents) )
+			{
+				_ = _archiveContents.Remove(sourcePath);
+				_archiveContents[destinationPath] = archiveContents;
+				if ( MainConfig.DebugLogging )
+					Logger.LogVerbose($"[VFS] MoveFileAsync: Moved archive contents mapping from source to destination");
+			}
+
+			string parentDir = Path.GetDirectoryName(destinationPath);
+			if ( !string.IsNullOrEmpty(parentDir) && !DirectoryExists(parentDir) )
+			{
+				_ = _virtualDirectories.Add(parentDir);
+				if ( MainConfig.DebugLogging )
+					Logger.LogVerbose($"[VFS] MoveFileAsync: Added parent directory to _virtualDirectories: {parentDir}");
+			}
+		}
+
+		if ( MainConfig.DebugLogging )
+			Logger.LogVerbose($"[VFS] MoveFileAsync: Operation completed successfully");
+		return Task.CompletedTask;
+	}
 
 		public Task DeleteFileAsync(string path)
 		{

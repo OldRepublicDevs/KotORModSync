@@ -37,14 +37,20 @@ namespace KOTORModSync.Core.Services
 				switch ( extension )
 				{
 					case "md":
+					case "markdown":
+					case "mdown":
+					case "mkdn":
+					case "mkd":
+					case "mdtxt":
+					case "mdtext":
+					case "text":
 						format = "markdown";
 						break;
 					case "toml":
+					case "tml":
 						format = "toml";
 						break;
 					case "yaml":
-						format = "yaml";
-						break;
 					case "yml":
 						format = "yaml";
 						break;
@@ -54,16 +60,13 @@ namespace KOTORModSync.Core.Services
 					case "xml":
 						format = "xml";
 						break;
-					case "ini":
-						format = "ini";
-						break;
 					default:
 						format = null;
 						break;
 				}
 			}
 
-			return ModComponentSerializationService.LoadFromString(content, format);
+			return ModComponentSerializationService.DeserializeModComponentFromString(content, format);
 		}
 
 		[NotNull]
@@ -90,6 +93,12 @@ namespace KOTORModSync.Core.Services
 				{
 					case "md":
 					case "markdown":
+					case "mdown":
+					case "mkdn":
+					case "mkd":
+					case "mdtxt":
+					case "mdtext":
+					case "text":
 						format = "markdown";
 						break;
 					case "toml":
@@ -106,16 +115,13 @@ namespace KOTORModSync.Core.Services
 					case "xml":
 						format = "xml";
 						break;
-					case "ini":
-						format = "ini";
-						break;
 					default:
 						format = null;
 						break;
 				}
 			}
 
-			return await ModComponentSerializationService.LoadFromStringAsync(content, format);
+			return await ModComponentSerializationService.DeserializeModComponentFromStringAsync(content, format);
 		}
 
 		public static void SaveToFile([NotNull] List<ModComponent> components, [NotNull] string filePath)
@@ -129,7 +135,7 @@ namespace KOTORModSync.Core.Services
 				filePath = PathHelper.GetCaseSensitivePath(filePath, isFile: true).Item1;
 
 			string extension = Path.GetExtension(filePath)?.TrimStart('.').ToLowerInvariant() ?? "toml";
-			string content = ModComponentSerializationService.SaveToString(components, extension);
+			string content = ModComponentSerializationService.SerializeModComponentAsString(components, extension);
 
 			string outputDir = Path.GetDirectoryName(filePath);
 			if ( !string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir) )
@@ -151,7 +157,7 @@ namespace KOTORModSync.Core.Services
 				filePath = PathHelper.GetCaseSensitivePath(filePath, isFile: true).Item1;
 
 			string extension = Path.GetExtension(filePath)?.TrimStart('.').ToLowerInvariant() ?? "toml";
-			string content = await ModComponentSerializationService.SaveToStringAsync(components, extension);
+			string content = await ModComponentSerializationService.SerializeModComponentAsStringAsync(components, extension);
 
 			string outputDir = Path.GetDirectoryName(filePath);
 			if ( !string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir) )

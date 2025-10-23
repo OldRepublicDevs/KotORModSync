@@ -88,7 +88,7 @@ namespace KOTORModSync.Tests
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				Console.WriteLine("Test is not possible on Windows.");
+				TestContext.Progress.WriteLine("Test is not possible on Windows.");
 				return;
 			}
 
@@ -148,7 +148,7 @@ namespace KOTORModSync.Tests
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				Console.WriteLine("Test is not possible on Windows.");
+				TestContext.Progress.WriteLine("Test is not possible on Windows.");
 				return;
 			}
 
@@ -175,7 +175,7 @@ namespace KOTORModSync.Tests
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				Console.WriteLine("Test is not possible on Windows.");
+				TestContext.Progress.WriteLine("Test is not possible on Windows.");
 				return;
 			}
 
@@ -200,7 +200,7 @@ namespace KOTORModSync.Tests
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				Console.WriteLine("Test is not possible on Windows.");
+				TestContext.Progress.WriteLine("Test is not possible on Windows.");
 				return;
 			}
 
@@ -224,7 +224,7 @@ namespace KOTORModSync.Tests
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				Console.WriteLine("Test is not possible on Windows.");
+				TestContext.Progress.WriteLine("Test is not possible on Windows.");
 				return;
 			}
 
@@ -249,7 +249,7 @@ namespace KOTORModSync.Tests
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				Console.WriteLine("Test is not possible on Windows.");
+				TestContext.Progress.WriteLine("Test is not possible on Windows.");
 				return;
 			}
 
@@ -280,7 +280,7 @@ namespace KOTORModSync.Tests
 		{
 			if ( Utility.GetOperatingSystem() == OSPlatform.Windows )
 			{
-				Console.WriteLine("Test is not possible on Windows.");
+				TestContext.Progress.WriteLine("Test is not possible on Windows.");
 				return;
 			}
 

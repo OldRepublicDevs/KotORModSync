@@ -162,19 +162,10 @@ namespace KOTORModSync.Core.Services
 					}
 					else
 					{
-						results[url] = new List<string> { cachedEntry.FileName };
-						cacheHits++;
-						await Logger.LogVerboseAsync($"[DownloadCacheService] Cache hit for URL: {url} -> {cachedEntry.FileName}");
-
-						if ( !string.IsNullOrEmpty(modArchiveDirectory) )
-						{
-							string filePath = Path.Combine(modArchiveDirectory, cachedEntry.FileName);
-							if ( !File.Exists(filePath) )
-							{
-								missingFiles.Add((url, cachedEntry.FileName));
-								await Logger.LogWarningAsync($"[DownloadCacheService] Cached file does not exist on disk: {cachedEntry.FileName}");
-							}
-						}
+						// For mods with multiple files, force re-resolution to get all files
+						// This ensures we don't miss additional files that weren't cached
+						await Logger.LogVerboseAsync($"[DownloadCacheService] Cache hit for URL: {url} -> {cachedEntry.FileName}, but forcing re-resolution to check for additional files");
+						urlsToResolve.Add(url);
 					}
 				}
 				else
@@ -183,14 +174,12 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			if ( cacheHits > 0 )
-			{
-				await Logger.LogVerboseAsync($"[DownloadCacheService] Retrieved {cacheHits} filename(s) from cache");
-			}
+			// Note: cacheHits is no longer used since we force re-resolution for all URLs
+			// to ensure we get all files, not just the cached one
 
 			if ( urlsToResolve.Count > 0 )
 			{
-				await Logger.LogVerboseAsync($"[DownloadCacheService] Resolving {urlsToResolve.Count} uncached URL(s) via network");
+				await Logger.LogVerboseAsync($"[DownloadCacheService] Resolving {urlsToResolve.Count} URL(s) via network (including cached URLs to get all files)");
 				await Logger.LogVerboseAsync("[DownloadCacheService] URLs to resolve:");
 				foreach ( string url in urlsToResolve )
 				{

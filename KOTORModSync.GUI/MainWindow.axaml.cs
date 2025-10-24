@@ -4067,7 +4067,7 @@ namespace KOTORModSync
 				await Logger.LogExceptionAsync(exception);
 				await InformationDialog.ShowInformationDialogAsync(
 					this,
-					message: "An unexpected error occurred while generating instructions: {exception.Message}"
+					message: $"An unexpected error occurred while generating instructions: {exception.Message}"
 				);
 			}
 		}

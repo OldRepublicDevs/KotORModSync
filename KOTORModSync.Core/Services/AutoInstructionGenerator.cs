@@ -884,11 +884,27 @@ namespace KOTORModSync.Core.Services
 			string parentWithoutWildcard = parentNormalized.TrimEnd('*', '\\');
 			string childWithoutWildcard = childNormalized.TrimEnd('*', '\\');
 
+			// Check if child path starts with parent path
 			if ( childWithoutWildcard.StartsWith(parentWithoutWildcard, StringComparison.OrdinalIgnoreCase) )
 			{
+				// Ensure the parent path ends with a wildcard pattern
 				if ( parentNormalized.EndsWith("\\*") || parentNormalized.EndsWith("\\*\\*") )
 				{
-					return true;
+					// Additional validation: ensure the child is actually within the parent directory
+					// by checking that the next character after the parent path is a path separator
+					if ( childWithoutWildcard.Length > parentWithoutWildcard.Length )
+					{
+						char nextChar = childWithoutWildcard[parentWithoutWildcard.Length];
+						if ( nextChar == '\\' || nextChar == '/' )
+						{
+							return true;
+						}
+					}
+					// If the child path is exactly the same as the parent path (without wildcard), it's covered
+					else if ( childWithoutWildcard.Length == parentWithoutWildcard.Length )
+					{
+						return true;
+					}
 				}
 			}
 
@@ -1429,44 +1445,47 @@ namespace KOTORModSync.Core.Services
 
 				if ( IsValidUrl(modLink) )
 				{
-					// Check if we have cached filename for this URL
-					string cachedFilename = DownloadCacheService.GetFileName(modLink);
-					if ( !string.IsNullOrEmpty(cachedFilename) )
+					// Always check resolved filenames first to get all files for the URL
+					if ( result.ResolvedUrls.TryGetValue(modLink, out List<string> filenames) && filenames.Count > 0 )
 					{
-						string filePath = Path.Combine(modDirectory, cachedFilename);
-						if ( File.Exists(filePath) )
+						bool anyFileExists = false;
+						foreach ( string filename in filenames )
 						{
-							existingFiles.Add(filePath);
-							await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File exists on disk: {cachedFilename}");
+							string filePath = Path.Combine(modDirectory, filename);
+							if ( File.Exists(filePath) )
+							{
+								existingFiles.Add(filePath);
+								anyFileExists = true;
+								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File exists: {filename}");
+							}
+							else
+							{
+								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File missing: {filename}");
+							}
 						}
-						else
+
+						if ( !anyFileExists )
 						{
 							result.MissingUrls.Add(modLink);
-							await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File missing: {cachedFilename}");
+							await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Files missing for URL: {modLink}");
 						}
 					}
 					else
 					{
-						// Not in cache, check if any resolved filenames exist
-						if ( result.ResolvedUrls.TryGetValue(modLink, out List<string> filenames) && filenames.Count > 0 )
+						// Fallback to cached filename if no resolved filenames
+						string cachedFilename = DownloadCacheService.GetFileName(modLink);
+						if ( !string.IsNullOrEmpty(cachedFilename) )
 						{
-							bool anyFileExists = false;
-							foreach ( string filename in filenames )
+							string filePath = Path.Combine(modDirectory, cachedFilename);
+							if ( File.Exists(filePath) )
 							{
-								string filePath = Path.Combine(modDirectory, filename);
-								if ( File.Exists(filePath) )
-								{
-									existingFiles.Add(filePath);
-									anyFileExists = true;
-									await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File exists: {filename}");
-									// Removed break statement to process ALL files for this URL
-								}
+								existingFiles.Add(filePath);
+								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File exists on disk (cached): {cachedFilename}");
 							}
-
-							if ( !anyFileExists )
+							else
 							{
 								result.MissingUrls.Add(modLink);
-								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] Files missing for URL: {modLink}");
+								await Logger.LogVerboseAsync($"[AutoInstructionGenerator] File missing (cached): {cachedFilename}");
 							}
 						}
 						else
@@ -1686,15 +1705,15 @@ namespace KOTORModSync.Core.Services
 					? extractedPath
 					: analysis.TslPatcherPath;
 
-				string executableName = string.IsNullOrEmpty(analysis.PatcherExecutable)
-					? "TSLPatcher.exe"
-					: Path.GetFileName(analysis.PatcherExecutable);
+				// Use the namespace name as the executable name instead of generic TSLPatcher.exe
+				// This ensures each namespace has its own unique executable path
+				string executableName = $"{ns}.exe";
 
 				var patcherInstruction = new Instruction
 				{
 					Guid = Guid.NewGuid(),
 					Action = Instruction.ActionType.Patcher,
-					Source = new List<string> { $@"<<modDirectory>>\{patcherPath}\{executableName}" },
+					Source = new List<string> { $@"<<modDirectory>>\{patcherPath}\{ns}\{executableName}" },
 					Destination = "<<kotorDirectory>>",
 					Arguments = iniName,
 					Overwrite = true

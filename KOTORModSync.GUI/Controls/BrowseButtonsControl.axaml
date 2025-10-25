@@ -7,11 +7,9 @@
     <StackPanel>
         <Button HorizontalAlignment="Stretch"
                 Content="Browse Files"
-                Click="BrowseSourceFiles_Click"
-                Tag="{Binding ElementName=SourceTextBox}" />
+                Click="BrowseSourceFiles_Click" />
         <Button HorizontalAlignment="Stretch"
                 Content="Browse Folder"
-                Click="BrowseSourceFromFolders_Click"
-                Tag="{Binding ElementName=SourceTextBox}" />
+                Click="BrowseSourceFromFolders_Click" />
     </StackPanel>
 </UserControl>

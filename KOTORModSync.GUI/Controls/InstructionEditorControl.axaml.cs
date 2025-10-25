@@ -43,9 +43,17 @@ namespace KOTORModSync.Controls
 
 		private void MoveInstructionDown_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => MoveInstructionDown?.Invoke(sender, e);
 
-		private void BrowseSourceFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseSourceFiles?.Invoke(sender, e);
+		private void BrowseSourceFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			Core.Logger.LogVerbose("InstructionEditorControl.BrowseSourceFiles_Click: Event triggered");
+			BrowseSourceFiles?.Invoke(sender, e);
+		}
 
-		private void BrowseSourceFromFolders_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseSourceFromFolders?.Invoke(sender, e);
+		private void BrowseSourceFromFolders_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		{
+			Core.Logger.LogVerbose("InstructionEditorControl.BrowseSourceFromFolders_Click: Event triggered");
+			BrowseSourceFromFolders?.Invoke(sender, e);
+		}
 
 		private void BrowseDestination_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseDestination?.Invoke(sender, e);
 

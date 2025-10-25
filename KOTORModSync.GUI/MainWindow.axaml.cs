@@ -2141,12 +2141,26 @@ namespace KOTORModSync
 		{
 			try
 			{
+				await Logger.LogVerboseAsync("BrowseSourceFiles_Click: Event triggered");
 				var button = (Button)sender;
 				Instruction thisInstruction = (Instruction)button.DataContext
 											?? throw new NullReferenceException(message: "Could not find instruction instance");
 
-				if ( button.Tag is TextBox sourceTextBox )
+				await Logger.LogVerboseAsync($"BrowseSourceFiles_Click: Instruction found: {thisInstruction.Action}");
+
+				// Find the SourceTextBox in the parent InstructionEditorControl
+				var instructionEditorControl = button.FindAncestorOfType<InstructionEditorControl>();
+				var sourceTextBox = instructionEditorControl?.FindControl<TextBox>("SourceTextBox");
+
+				if ( sourceTextBox != null )
+				{
+					await Logger.LogVerboseAsync("BrowseSourceFiles_Click: Found SourceTextBox, calling BrowseSourceFilesAsync");
 					await _instructionBrowsingService.BrowseSourceFilesAsync(thisInstruction, sourceTextBox);
+				}
+				else
+				{
+					await Logger.LogWarningAsync("BrowseSourceFiles_Click: Could not find SourceTextBox");
+				}
 			}
 			catch ( Exception ex )
 			{
@@ -2157,12 +2171,26 @@ namespace KOTORModSync
 		{
 			try
 			{
+				await Logger.LogVerboseAsync("BrowseSourceFromFolders_Click: Event triggered");
 				var button = (Button)sender;
 				Instruction thisInstruction = (Instruction)button.DataContext
 											?? throw new NullReferenceException(message: "Could not find instruction instance");
 
-				if ( button.Tag is TextBox sourceTextBox )
+				await Logger.LogVerboseAsync($"BrowseSourceFromFolders_Click: Instruction found: {thisInstruction.Action}");
+
+				// Find the SourceTextBox in the parent InstructionEditorControl
+				var instructionEditorControl = button.FindAncestorOfType<InstructionEditorControl>();
+				var sourceTextBox = instructionEditorControl?.FindControl<TextBox>("SourceTextBox");
+
+				if ( sourceTextBox != null )
+				{
+					await Logger.LogVerboseAsync("BrowseSourceFromFolders_Click: Found SourceTextBox, calling BrowseSourceFoldersAsync");
 					await _instructionBrowsingService.BrowseSourceFoldersAsync(thisInstruction, sourceTextBox);
+				}
+				else
+				{
+					await Logger.LogWarningAsync("BrowseSourceFromFolders_Click: Could not find SourceTextBox");
+				}
 			}
 			catch ( Exception ex )
 			{

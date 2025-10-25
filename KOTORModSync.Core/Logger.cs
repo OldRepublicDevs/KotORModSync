@@ -132,10 +132,19 @@ namespace KOTORModSync.Core
 				}
 
 				// Check if we're running under a test runner process
-				var processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLowerInvariant();
-				if ( processName.Contains("test") || processName.Contains("nunit") || processName.Contains("xunit") )
+				// Use a try-catch to prevent stack overflow issues
+				try
 				{
-					return true;
+					var processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLowerInvariant();
+					if ( processName.Contains("test") || processName.Contains("nunit") || processName.Contains("xunit") )
+					{
+						return true;
+					}
+				}
+				catch ( Exception )
+				{
+					// If we can't get the process name, assume we're not in a test
+					// This prevents stack overflow issues
 				}
 
 				return false;

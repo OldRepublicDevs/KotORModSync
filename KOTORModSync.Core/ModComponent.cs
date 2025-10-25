@@ -94,6 +94,7 @@ namespace KOTORModSync.Core
 			get => _guid;
 			set
 			{
+				if (_guid == value) return;
 				_guid = value;
 				OnPropertyChanged();
 			}
@@ -104,6 +105,7 @@ namespace KOTORModSync.Core
 			get => _name;
 			set
 			{
+				if (_name == value) return;
 				_name = value;
 				OnPropertyChanged();
 			}
@@ -116,6 +118,7 @@ namespace KOTORModSync.Core
 			get => _nameFieldContent;
 			set
 			{
+				if (_nameFieldContent == value) return;
 				_nameFieldContent = value;
 				OnPropertyChanged();
 			}
@@ -126,6 +129,7 @@ namespace KOTORModSync.Core
 			get => _heading;
 			set
 			{
+				if (_heading == value) return;
 				_heading = value;
 				OnPropertyChanged();
 			}
@@ -136,6 +140,7 @@ namespace KOTORModSync.Core
 			get => _author;
 			set
 			{
+				if (_author == value) return;
 				_author = value;
 				OnPropertyChanged();
 			}
@@ -146,6 +151,7 @@ namespace KOTORModSync.Core
 			get => _category;
 			set
 			{
+				if (_category == value) return;
 				_category = value;
 				OnPropertyChanged();
 			}
@@ -156,7 +162,9 @@ namespace KOTORModSync.Core
 			get => _tier;
 			set
 			{
-				_tier = CategoryTierDefinitions.NormalizeTier(value);
+				var normalizedValue = CategoryTierDefinitions.NormalizeTier(value);
+				if (_tier == normalizedValue) return;
+				_tier = normalizedValue;
 				OnPropertyChanged();
 			}
 		}
@@ -167,6 +175,7 @@ namespace KOTORModSync.Core
 			get => _language;
 			set
 			{
+				if (_language == value) return;
 				_language = value;
 				OnPropertyChanged();
 			}
@@ -178,6 +187,7 @@ namespace KOTORModSync.Core
 			get => _modLinkFilenames;
 			set
 			{
+				if (_modLinkFilenames == value) return;
 				_modLinkFilenames = value;
 				OnPropertyChanged();
 			}
@@ -189,6 +199,7 @@ namespace KOTORModSync.Core
 			get => _excludedDownloads;
 			set
 			{
+				if (_excludedDownloads == value) return;
 				_excludedDownloads = value;
 				OnPropertyChanged();
 			}
@@ -199,6 +210,7 @@ namespace KOTORModSync.Core
 			get => _description;
 			set
 			{
+				if (_description == value) return;
 				_description = value;
 				OnPropertyChanged();
 			}
@@ -209,6 +221,7 @@ namespace KOTORModSync.Core
 			get => string.IsNullOrWhiteSpace(_descriptionSpoilerFree) ? _description : _descriptionSpoilerFree;
 			set
 			{
+				if (_descriptionSpoilerFree == value) return;
 				_descriptionSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -219,6 +232,7 @@ namespace KOTORModSync.Core
 			get => _installationMethod;
 			set
 			{
+				if (_installationMethod == value) return;
 				_installationMethod = value;
 				OnPropertyChanged();
 			}
@@ -229,6 +243,7 @@ namespace KOTORModSync.Core
 			get => _directions;
 			set
 			{
+				if (_directions == value) return;
 				_directions = value;
 				OnPropertyChanged();
 			}
@@ -239,6 +254,7 @@ namespace KOTORModSync.Core
 			get => string.IsNullOrWhiteSpace(_directionsSpoilerFree) ? _directions : _directionsSpoilerFree;
 			set
 			{
+				if (_directionsSpoilerFree == value) return;
 				_directionsSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -249,6 +265,7 @@ namespace KOTORModSync.Core
 			get => _downloadInstructions;
 			set
 			{
+				if (_downloadInstructions == value) return;
 				_downloadInstructions = value;
 				OnPropertyChanged();
 			}
@@ -259,6 +276,7 @@ namespace KOTORModSync.Core
 			get => string.IsNullOrWhiteSpace(_downloadInstructionsSpoilerFree) ? _downloadInstructions : _downloadInstructionsSpoilerFree;
 			set
 			{
+				if (_downloadInstructionsSpoilerFree == value) return;
 				_downloadInstructionsSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -269,6 +287,7 @@ namespace KOTORModSync.Core
 			get => _usageWarning;
 			set
 			{
+				if (_usageWarning == value) return;
 				_usageWarning = value;
 				OnPropertyChanged();
 			}
@@ -279,6 +298,7 @@ namespace KOTORModSync.Core
 			get => string.IsNullOrWhiteSpace(_usageWarningSpoilerFree) ? _usageWarning : _usageWarningSpoilerFree;
 			set
 			{
+				if (_usageWarningSpoilerFree == value) return;
 				_usageWarningSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -289,6 +309,7 @@ namespace KOTORModSync.Core
 			get => _screenshots;
 			set
 			{
+				if (_screenshots == value) return;
 				_screenshots = value;
 				OnPropertyChanged();
 			}
@@ -299,6 +320,7 @@ namespace KOTORModSync.Core
 			get => string.IsNullOrWhiteSpace(_screenshotsSpoilerFree) ? _screenshots : _screenshotsSpoilerFree;
 			set
 			{
+				if (_screenshotsSpoilerFree == value) return;
 				_screenshotsSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -310,6 +332,7 @@ namespace KOTORModSync.Core
 			get => _knownBugs;
 			set
 			{
+				if (_knownBugs == value) return;
 				_knownBugs = value;
 				OnPropertyChanged();
 			}
@@ -323,6 +346,7 @@ namespace KOTORModSync.Core
 			get => _installationWarning;
 			set
 			{
+				if (_installationWarning == value) return;
 				_installationWarning = value;
 				OnPropertyChanged();
 			}
@@ -333,6 +357,7 @@ namespace KOTORModSync.Core
 			get => _compatibilityWarning;
 			set
 			{
+				if (_compatibilityWarning == value) return;
 				_compatibilityWarning = value;
 				OnPropertyChanged();
 			}
@@ -343,6 +368,7 @@ namespace KOTORModSync.Core
 			get => _steamNotes;
 			set
 			{
+				if (_steamNotes == value) return;
 				_steamNotes = value;
 				OnPropertyChanged();
 			}
@@ -353,6 +379,7 @@ namespace KOTORModSync.Core
 			get => _dependencies;
 			set
 			{
+				if (_dependencies == value) return;
 				_dependencies = value;
 				OnPropertyChanged();
 			}
@@ -363,6 +390,7 @@ namespace KOTORModSync.Core
 			get => _dependencyNames;
 			set
 			{
+				if (_dependencyNames == value) return;
 				_dependencyNames = value;
 				OnPropertyChanged();
 			}
@@ -414,6 +442,7 @@ namespace KOTORModSync.Core
 			get => _isSelected;
 			set
 			{
+				if (_isSelected == value) return;
 				_isSelected = value;
 				OnPropertyChanged();
 			}

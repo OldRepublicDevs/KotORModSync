@@ -126,7 +126,7 @@
                     </TextBlock>
                     <controls:DependencyControl HorizontalAlignment="Stretch">
                         <controls:DependencyControl.ThisGuidList>
-                            <Binding Converter="{StaticResource GuidListConverter}" Path="Source" />
+                            <x:Null />
                         </controls:DependencyControl.ThisGuidList>
                     </controls:DependencyControl>
                 </StackPanel>

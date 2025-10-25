@@ -23,6 +23,7 @@
         <converters:CategoryListDisplayConverter x:Key="CategoryListDisplayConverter" />
         <converters:ChooseActionVisibility x:Key="ChooseActionVisibility" />
         <converters:NotDestinationActionVisibility x:Key="NotDestinationActionVisibility" />
+        <converters:NotChooseActionVisibility x:Key="NotChooseActionVisibility" />
         <converters:GuidToComponentConverter x:Key="GuidToComponentConverter" />
         <converters:GuidListConverter x:Key="GuidListConverter" />
         <converters:CategoryTooltipConverter x:Key="CategoryTooltipConverter" />
@@ -482,7 +483,7 @@
                                                 <TextBlock
                                                     Margin="0,0,8,0"
                                                     VerticalAlignment="Center"
-                                                    IsVisible="{Binding Action, Converter={StaticResource NotDestinationActionVisibility}}"
+                                                    IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}"
                                                     Text="{Binding Source, Converter={StaticResource FirstSourcePathConverter}}"
                                                     TextTrimming="CharacterEllipsis"
                                                     TextWrapping="NoWrap" />
@@ -491,13 +492,14 @@
 
                                         <StackPanel Margin="0,4,0,0">
                                             <!--  Details for non-Choose actions  -->
-                                            <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotDestinationActionVisibility}}" Orientation="Vertical">
+                                            <StackPanel IsVisible="{Binding Action, Converter={StaticResource NotChooseActionVisibility}}" Orientation="Vertical">
                                                 <!--  Source paths with resolved placeholders  -->
                                                 <TextBlock Text="{Binding Source, Converter={StaticResource PathResolverConverter}}" TextWrapping="Wrap" />
                                                 <!--  Destination information  -->
                                                 <TextBlock
                                                     Margin="0,2,0,0"
                                                     FontStyle="Italic"
+                                                    IsVisible="{Binding Action, Converter={StaticResource NotDestinationActionVisibility}}"
                                                     Text="{Binding ., Converter={StaticResource InstructionDestinationConverter}}"
                                                     TextWrapping="Wrap" />
                                                 <!--  Arguments if present  -->

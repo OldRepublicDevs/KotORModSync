@@ -103,6 +103,7 @@ namespace KOTORModSync.Core
 			get => CurrentComponent;
 			set
 			{
+				if (CurrentComponent == value) return;
 				CurrentComponent = value;
 				OnPropertyChanged(nameof(currentComponent));
 			}
@@ -191,6 +192,7 @@ namespace KOTORModSync.Core
 			get => SourcePath;
 			set
 			{
+				if (SourcePath == value) return;
 				SourcePath = value;
 				OnPropertyChanged(nameof(sourcePathFullName));
 			}
@@ -203,6 +205,7 @@ namespace KOTORModSync.Core
 			get => DestinationPath;
 			set
 			{
+				if (DestinationPath == value) return;
 				DestinationPath = value;
 				OnPropertyChanged(nameof(destinationPathFullName));
 			}

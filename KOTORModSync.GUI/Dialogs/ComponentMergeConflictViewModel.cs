@@ -40,20 +40,20 @@ namespace KOTORModSync.Dialogs
 		private FieldSource _modLink = FieldSource.Merge;
 		private FieldSource _language = FieldSource.Merge;
 
-		public FieldSource Name { get => _name; set { _name = value; OnPropertyChanged(); } }
-		public FieldSource Author { get => _author; set { _author = value; OnPropertyChanged(); } }
-		public FieldSource Description { get => _description; set { _description = value; OnPropertyChanged(); } }
-		public FieldSource Directions { get => _directions; set { _directions = value; OnPropertyChanged(); } }
-		public FieldSource Category { get => _category; set { _category = value; OnPropertyChanged(); } }
-		public FieldSource Tier { get => _tier; set { _tier = value; OnPropertyChanged(); } }
-		public FieldSource InstallationMethod { get => _installationMethod; set { _installationMethod = value; OnPropertyChanged(); } }
-		public FieldSource Instructions { get => _instructions; set { _instructions = value; OnPropertyChanged(); } }
-		public FieldSource Dependencies { get => _dependencies; set { _dependencies = value; OnPropertyChanged(); } }
-		public FieldSource Restrictions { get => _restrictions; set { _restrictions = value; OnPropertyChanged(); } }
-		public FieldSource InstallAfter { get => _installAfter; set { _installAfter = value; OnPropertyChanged(); } }
-		public FieldSource Options { get => _options; set { _options = value; OnPropertyChanged(); } }
-		public FieldSource ModLinkFilenames { get => _modLink; set { _modLink = value; OnPropertyChanged(); } }
-		public FieldSource Language { get => _language; set { _language = value; OnPropertyChanged(); } }
+		public FieldSource Name { get => _name; set { if (_name == value) return; _name = value; OnPropertyChanged(); } }
+		public FieldSource Author { get => _author; set { if (_author == value) return; _author = value; OnPropertyChanged(); } }
+		public FieldSource Description { get => _description; set { if (_description == value) return; _description = value; OnPropertyChanged(); } }
+		public FieldSource Directions { get => _directions; set { if (_directions == value) return; _directions = value; OnPropertyChanged(); } }
+		public FieldSource Category { get => _category; set { if (_category == value) return; _category = value; OnPropertyChanged(); } }
+		public FieldSource Tier { get => _tier; set { if (_tier == value) return; _tier = value; OnPropertyChanged(); } }
+		public FieldSource InstallationMethod { get => _installationMethod; set { if (_installationMethod == value) return; _installationMethod = value; OnPropertyChanged(); } }
+		public FieldSource Instructions { get => _instructions; set { if (_instructions == value) return; _instructions = value; OnPropertyChanged(); } }
+		public FieldSource Dependencies { get => _dependencies; set { if (_dependencies == value) return; _dependencies = value; OnPropertyChanged(); } }
+		public FieldSource Restrictions { get => _restrictions; set { if (_restrictions == value) return; _restrictions = value; OnPropertyChanged(); } }
+		public FieldSource InstallAfter { get => _installAfter; set { if (_installAfter == value) return; _installAfter = value; OnPropertyChanged(); } }
+		public FieldSource Options { get => _options; set { if (_options == value) return; _options = value; OnPropertyChanged(); } }
+		public FieldSource ModLinkFilenames { get => _modLink; set { if (_modLink == value) return; _modLink = value; OnPropertyChanged(); } }
+		public FieldSource Language { get => _language; set { if (_language == value) return; _language = value; OnPropertyChanged(); } }
 
 		public event PropertyChangedEventHandler PropertyChanged;
 

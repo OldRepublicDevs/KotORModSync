@@ -126,11 +126,25 @@ namespace KOTORModSync
 			if ( !File.Exists(logFilePath) )
 				_ = File.Create(logFilePath);
 
-			string[] lines = File.ReadAllLines(logFilePath);
-			int startIndex = Math.Max(0, lines.Length - _maxLinesShown);
-			foreach ( string line in lines.Skip(startIndex) )
+			// Try to read existing log file, but handle file access conflicts gracefully
+			try
 			{
-				AppendLog(line);
+				string[] lines = File.ReadAllLines(logFilePath);
+				int startIndex = Math.Max(0, lines.Length - _maxLinesShown);
+				foreach ( string line in lines.Skip(startIndex) )
+				{
+					AppendLog(line);
+				}
+			}
+			catch ( IOException ex ) when ( ex.Message.Contains("being used by another process") )
+			{
+				// Log file is being used by another process, skip loading existing content
+				AppendLog($"[Warning] Could not load existing log file: {ex.Message}");
+			}
+			catch ( Exception ex )
+			{
+				// Handle any other file reading errors
+				AppendLog($"[Error] Failed to load existing log file: {ex.Message}");
 			}
 
 			LogScrollViewer.ScrollToEnd();

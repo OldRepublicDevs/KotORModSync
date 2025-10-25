@@ -107,6 +107,7 @@ namespace KOTORModSync.Controls
 			set => SetValue(SelectedOptionProperty, value);
 		}
 
+
 		[NotNull]
 		[UsedImplicitly]
 #pragma warning disable CA1822
@@ -180,12 +181,11 @@ namespace KOTORModSync.Controls
 						break;
 				}
 			}
-			else
-			{
-
-				ThisGuidList.Add(selectedComponent.Guid);
-				added = true;
-			}
+						else
+						{
+							ThisGuidList.Add(selectedComponent.Guid);
+							added = true;
+						}
 
 			if ( !added )
 				return;
@@ -242,12 +242,11 @@ namespace KOTORModSync.Controls
 						}
 					}
 				}
-				else
-				{
-
-					ThisGuidList.RemoveAt(index);
-					removed = true;
-				}
+								else
+								{
+									ThisGuidList.RemoveAt(index);
+									removed = true;
+								}
 
 				if ( !removed )
 					return;
@@ -278,5 +277,6 @@ namespace KOTORModSync.Controls
 				Logger.LogException(exception);
 			}
 		}
+
 	}
 }

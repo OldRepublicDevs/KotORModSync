@@ -21,217 +21,372 @@ namespace KOTORModSync.Core.Parsing
 		public string RawRegexPattern
 		{
 			get => _rawRegexPattern;
-			set { _rawRegexPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if ( _rawRegexPattern == value ) return;
+				_rawRegexPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private RegexOptions _rawRegexOptions = RegexOptions.Multiline;
 		public RegexOptions RawRegexOptions
 		{
 			get => _rawRegexOptions;
-			set { _rawRegexOptions = value; OnPropertyChanged(); }
+			set
+			{
+				if ( _rawRegexOptions == value ) return;
+				_rawRegexOptions = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private RegexMode _mode = RegexMode.Raw;
 		public RegexMode Mode
 		{
 			get => _mode;
-			set { _mode = value; OnPropertyChanged(); }
+			set
+			{
+				if (_mode == value) return;
+				_mode = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private bool _globalFlag = true;
 		public bool GlobalFlag
 		{
 			get => _globalFlag;
-			set { _globalFlag = value; OnPropertyChanged(); }
+			set
+			{
+				if (_globalFlag == value) return;
+				_globalFlag = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private bool _multilineFlag = true;
 		public bool MultilineFlag
 		{
 			get => _multilineFlag;
-			set { _multilineFlag = value; OnPropertyChanged(); }
+			set
+			{
+				if (_multilineFlag == value) return;
+				_multilineFlag = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private bool _ignoreCaseFlag;
 		public bool IgnoreCaseFlag
 		{
 			get => _ignoreCaseFlag;
-			set { _ignoreCaseFlag = value; OnPropertyChanged(); }
+			set
+			{
+				if (_ignoreCaseFlag == value) return;
+				_ignoreCaseFlag = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private bool _singlelineFlag = true;
 		public bool SinglelineFlag
 		{
 			get => _singlelineFlag;
-			set { _singlelineFlag = value; OnPropertyChanged(); }
+			set
+			{
+				if (_singlelineFlag == value) return;
+				_singlelineFlag = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _headingPattern = string.Empty;
 		public string HeadingPattern
 		{
 			get => _headingPattern;
-			set { _headingPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_headingPattern == value) return;
+				_headingPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _componentSectionPattern = string.Empty;
 		public string ComponentSectionPattern
 		{
 			get => _componentSectionPattern;
-			set { _componentSectionPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_componentSectionPattern == value) return;
+				_componentSectionPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private RegexOptions _componentSectionOptions = RegexOptions.Multiline | RegexOptions.Singleline;
 		public RegexOptions ComponentSectionOptions
 		{
 			get => _componentSectionOptions;
-			set { _componentSectionOptions = value; OnPropertyChanged(); }
+			set
+			{
+				if (_componentSectionOptions == value) return;
+				_componentSectionOptions = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _namePattern = string.Empty;
 		public string NamePattern
 		{
 			get => _namePattern;
-			set { _namePattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_namePattern == value) return;
+				_namePattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _authorPattern = string.Empty;
 		public string AuthorPattern
 		{
 			get => _authorPattern;
-			set { _authorPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_authorPattern == value) return;
+				_authorPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _descriptionPattern = string.Empty;
 		public string DescriptionPattern
 		{
 			get => _descriptionPattern;
-			set { _descriptionPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_descriptionPattern == value) return;
+				_descriptionPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _modLinkPattern = string.Empty;
 		public string ModLinkPattern
 		{
 			get => _modLinkPattern;
-			set { _modLinkPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_modLinkPattern == value) return;
+				_modLinkPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _categoryTierPattern = string.Empty;
 		public string CategoryTierPattern
 		{
 			get => _categoryTierPattern;
-			set { _categoryTierPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_categoryTierPattern == value) return;
+				_categoryTierPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _installationMethodPattern = string.Empty;
 		public string InstallationMethodPattern
 		{
 			get => _installationMethodPattern;
-			set { _installationMethodPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_installationMethodPattern == value) return;
+				_installationMethodPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _downloadInstructionsPattern = string.Empty;
 		public string DownloadInstructionsPattern
 		{
 			get => _downloadInstructionsPattern;
-			set { _downloadInstructionsPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_downloadInstructionsPattern == value) return;
+				_downloadInstructionsPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _installationInstructionsPattern = string.Empty;
 		public string InstallationInstructionsPattern
 		{
 			get => _installationInstructionsPattern;
-			set { _installationInstructionsPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_installationInstructionsPattern == value) return;
+				_installationInstructionsPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _usageWarningPattern = string.Empty;
 		public string UsageWarningPattern
 		{
 			get => _usageWarningPattern;
-			set { _usageWarningPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_usageWarningPattern == value) return;
+				_usageWarningPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _screenshotsPattern = string.Empty;
 		public string ScreenshotsPattern
 		{
 			get => _screenshotsPattern;
-			set { _screenshotsPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_screenshotsPattern == value) return;
+				_screenshotsPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _knownBugsPattern = string.Empty;
 		public string KnownBugsPattern
 		{
 			get => _knownBugsPattern;
-			set { _knownBugsPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_knownBugsPattern == value) return;
+				_knownBugsPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _installationWarningPattern = string.Empty;
 		public string InstallationWarningPattern
 		{
 			get => _installationWarningPattern;
-			set { _installationWarningPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_installationWarningPattern == value) return;
+				_installationWarningPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _compatibilityWarningPattern = string.Empty;
 		public string CompatibilityWarningPattern
 		{
 			get => _compatibilityWarningPattern;
-			set { _compatibilityWarningPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_compatibilityWarningPattern == value) return;
+				_compatibilityWarningPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _steamNotesPattern = string.Empty;
 		public string SteamNotesPattern
 		{
 			get => _steamNotesPattern;
-			set { _steamNotesPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_steamNotesPattern == value) return;
+				_steamNotesPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _nonEnglishPattern = string.Empty;
 		public string NonEnglishPattern
 		{
 			get => _nonEnglishPattern;
-			set { _nonEnglishPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_nonEnglishPattern == value) return;
+				_nonEnglishPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _dependenciesPattern = string.Empty;
 		public string DependenciesPattern
 		{
 			get => _dependenciesPattern;
-			set { _dependenciesPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_dependenciesPattern == value) return;
+				_dependenciesPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _dependenciesSeparatorPattern = string.Empty;
 		public string DependenciesSeparatorPattern
 		{
 			get => _dependenciesSeparatorPattern;
-			set { _dependenciesSeparatorPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_dependenciesSeparatorPattern == value) return;
+				_dependenciesSeparatorPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _restrictionsPattern = string.Empty;
 		public string RestrictionsPattern
 		{
 			get => _restrictionsPattern;
-			set { _restrictionsPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_restrictionsPattern == value) return;
+				_restrictionsPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _optionPattern = string.Empty;
 		public string OptionPattern
 		{
 			get => _optionPattern;
-			set { _optionPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_optionPattern == value) return;
+				_optionPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _instructionPattern = string.Empty;
 		public string InstructionPattern
 		{
 			get => _instructionPattern;
-			set { _instructionPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_instructionPattern == value) return;
+				_instructionPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		private string _instructionsBlockPattern = string.Empty;
 		public string InstructionsBlockPattern
 		{
 			get => _instructionsBlockPattern;
-			set { _instructionsBlockPattern = value; OnPropertyChanged(); }
+			set
+			{
+				if (_instructionsBlockPattern == value) return;
+				_instructionsBlockPattern = value;
+				OnPropertyChanged();
+			}
 		}
 
 		public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>();

@@ -90,6 +90,7 @@ namespace KOTORModSync.Core
 			get => _action;
 			set
 			{
+				if (_action == value) return;
 				_action = value;
 				OnPropertyChanged();
 			}
@@ -107,8 +108,39 @@ namespace KOTORModSync.Core
 			get => _source;
 			set
 			{
+				// CRITICAL: Check for infinite recursion with empty GUID strings
+				if (value != null && value.Count == 1 && value[0] == "00000000-0000-0000-0000-000000000000")
+				{
+					Logger.LogError($"[Instruction.set_Source] INFINITE RECURSION DETECTED! Attempting to set empty GUID string. Current source: [{string.Join(", ", _source ?? new List<string>())}]. Breaking the loop.");
+					return; // Break the infinite loop
+				}
+
+				// Break change-notify loops when the contents are identical
+				if (ReferenceEquals(_source, value))
+				{
+					return;
+				}
+				if (_source != null && value != null && _source.Count == value.Count)
+				{
+					bool same = true;
+					for (int i = 0; i < _source.Count; i++)
+					{
+						if (!string.Equals(_source[i], value[i], StringComparison.Ordinal))
+						{
+							same = false;
+							break;
+						}
+					}
+					if (same)
+					{
+						return;
+					}
+				}
+
+				Logger.LogVerbose($"[Instruction.set_Source] Setting new source and calling OnPropertyChanged");
 				_source = value;
 				OnPropertyChanged();
+				Logger.LogVerbose($"[Instruction.set_Source] OnPropertyChanged completed");
 			}
 		}
 		[NotNull]
@@ -117,6 +149,7 @@ namespace KOTORModSync.Core
 			get => _destination;
 			set
 			{
+				if (_destination == value) return;
 				_destination = value;
 				OnPropertyChanged();
 			}
@@ -126,6 +159,7 @@ namespace KOTORModSync.Core
 			get => _overwrite;
 			set
 			{
+				if (_overwrite == value) return;
 				_overwrite = value;
 				OnPropertyChanged();
 			}
@@ -136,6 +170,7 @@ namespace KOTORModSync.Core
 			get => _arguments;
 			set
 			{
+				if (_arguments == value) return;
 				_arguments = value;
 				OnPropertyChanged();
 			}
@@ -146,6 +181,7 @@ namespace KOTORModSync.Core
 			get => _dependencies;
 			set
 			{
+				if (_dependencies == value) return;
 				_dependencies = value;
 				OnPropertyChanged();
 			}
@@ -156,6 +192,7 @@ namespace KOTORModSync.Core
 			get => _restrictions;
 			set
 			{
+				if (_restrictions == value) return;
 				_restrictions = value;
 				OnPropertyChanged();
 			}
@@ -1013,8 +1050,13 @@ namespace KOTORModSync.Core
 			return new List<string>();
 		}
 		public event PropertyChangedEventHandler PropertyChanged;
-		private void OnPropertyChanged([CallerMemberName][CanBeNull] string propertyName = null) =>
+		private void OnPropertyChanged([CallerMemberName][CanBeNull] string propertyName = null)
+		{
+			Logger.LogVerbose($"[Instruction.OnPropertyChanged] Called for property: {propertyName ?? "unknown"}");
+			Logger.LogVerbose($"[Instruction.OnPropertyChanged] PropertyChanged event has {PropertyChanged?.GetInvocationList().Length ?? 0} subscribers");
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+			Logger.LogVerbose($"[Instruction.OnPropertyChanged] PropertyChanged event invocation completed");
+		}
 		[NotNull]
 		[ItemNotNull]
 		public List<Option> GetChosenOptions() => _parentComponent?.Options.Where(
@@ -1023,3 +1065,5 @@ namespace KOTORModSync.Core
 			?? new List<Option>();
 	}
 }
+
+

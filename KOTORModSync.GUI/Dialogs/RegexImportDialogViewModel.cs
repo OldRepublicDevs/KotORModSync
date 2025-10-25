@@ -34,8 +34,8 @@ namespace KOTORModSync.Dialogs
 
 		public RegexImportDialogViewModel([NotNull] string markdown, [NotNull] MarkdownImportProfile profile)
 		{
-			_markdown = markdown ?? throw new ArgumentNullException(nameof(markdown));
-			Profile = profile ?? throw new ArgumentNullException(nameof(profile));
+			_markdown = markdown;
+			Profile = profile;
 			Profile.PropertyChanged += OnProfilePropertyChanged;
 			Heuristics = MergeHeuristicsOptions.CreateDefault();
 			PreviewMarkdown = _markdown;
@@ -56,13 +56,23 @@ namespace KOTORModSync.Dialogs
 		public string PreviewSummary
 		{
 			get => _previewSummary;
-			private set { _previewSummary = value; OnPropertyChanged(); }
+			private set
+			{
+				if (_previewSummary == value) return;
+				_previewSummary = value;
+				OnPropertyChanged();
+			}
 		}
 
 		public string PreviewMarkdown
 		{
 			get => _previewMarkdown;
-			set { _previewMarkdown = value; OnPropertyChanged(); }
+			set
+			{
+				if ( _previewMarkdown == value ) return;
+				_previewMarkdown = value;
+				OnPropertyChanged();
+			}
 		}
 
 		public ObservableCollection<Inline> HighlightedPreview
@@ -70,6 +80,7 @@ namespace KOTORModSync.Dialogs
 			get => _highlightedPreview;
 			set
 			{
+				if (_highlightedPreview == value) return;
 				_highlightedPreview = value;
 				Logger.LogVerbose($"HighlightedPreview set with {value?.Count ?? 0} inlines");
 				OnPropertyChanged();
@@ -82,6 +93,7 @@ namespace KOTORModSync.Dialogs
 			get => _selectedTabIndex;
 			set
 			{
+				if (_selectedTabIndex == value) return;
 				_selectedTabIndex = value;
 				OnPropertyChanged();
 

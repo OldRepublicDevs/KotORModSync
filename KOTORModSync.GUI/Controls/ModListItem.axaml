@@ -40,8 +40,8 @@
             <Grid RowDefinitions="Auto,Auto">
                 <!--  Main mod info (always visible)  -->
                 <Grid x:Name="MainModInfo" Grid.Row="0" RowDefinitions="Auto,Auto">
-                    <!--  Row 0: main info across 5 columns  -->
-                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                    <!--  Row 0: main info across 6 columns  -->
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
 
                         <!--  Checkbox  -->
                         <CheckBox
@@ -96,6 +96,27 @@
                             IsVisible="False"
                             Text="⋮⋮"
                             ToolTip.Tip="Drag to reorder" />
+
+                        <!--  Download Button  -->
+                        <Button
+                            x:Name="DownloadButton"
+                            Grid.Column="5"
+                            Width="24"
+                            Height="24"
+                            Margin="4,0,0,0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Click="DownloadButton_Click"
+                            Cursor="Hand"
+                            FontSize="12"
+                            IsVisible="{Binding ModLinkFilenames, Converter={StaticResource ListToVisibilityConverter}}"
+                            Tag="{Binding}"
+                            ToolTip.Tip="Download this mod">
+                            <Button.Content>
+                                <TextBlock Text="⬇️" />
+                            </Button.Content>
+                        </Button>
                     </Grid>
 
                     <!--  Row 1: badges area exactly under the name column, split 50/50 and touching in the middle  -->

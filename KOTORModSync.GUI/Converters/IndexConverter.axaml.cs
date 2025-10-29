@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+
 using Avalonia.Data.Converters;
 
 namespace KOTORModSync.Converters
@@ -19,7 +20,7 @@ namespace KOTORModSync.Converters
 			CultureInfo culture
 		) =>
 			values[0] is IList list
-				? $"{list.IndexOf(values[1]) + 1}:"
+				? $"{list.IndexOf( values[1] ) + 1}:"
 				: "-1";
 	}
 }

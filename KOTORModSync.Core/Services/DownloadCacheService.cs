@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,10 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Utility;
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Services
@@ -27,6 +29,12 @@ namespace KOTORModSync.Core.Services
 
 		private readonly Dictionary<string, DownloadFailureInfo> _failedDownloads = new Dictionary<string, DownloadFailureInfo>(StringComparer.OrdinalIgnoreCase);
 		private readonly object _failureLock = new object();
+
+		// Phase 5: Resource Index (dual index structure for content-addressable storage)
+		private static readonly Dictionary<string, ResourceMetadata> s_resourceByMetadataHash = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase);
+		private static readonly Dictionary<string, string> s_metadataHashToContentId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		private static readonly Dictionary<string, ResourceMetadata> s_resourceByContentId = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase);
+		private static readonly object s_resourceIndexLock = new object();
 
 		public DownloadCacheService()
 		{
@@ -145,9 +153,141 @@ namespace KOTORModSync.Core.Services
 				return new Dictionary<string, List<string>>();
 			}
 
-			var results = new Dictionary<string, List<string>>();
-			var urlsToResolve = new List<string>();
-			var missingFiles = new List<(string url, string filename)>();
+			// Extract metadata for each URL and populate ResourceRegistry
+			await Logger.LogVerboseAsync($"[DownloadCacheService] Extracting metadata for {filteredUrls.Count} URL(s)");
+			foreach ( string url in filteredUrls )
+			{
+				try
+				{
+					IDownloadHandler handler = downloadManager.GetHandlerForUrl(url);
+					if ( handler != null )
+					{
+						Dictionary<string, object> metadata = await handler.GetFileMetadataAsync(url, cancellationToken);
+						if ( metadata != null && metadata.Count > 0 )
+						{
+							// Ensure provider is set
+							if ( !metadata.ContainsKey("provider") )
+							{
+								metadata["provider"] = handler.GetProviderKey();
+							}
+
+							// Normalize URL if present
+							if ( metadata.ContainsKey("url") )
+							{
+								metadata["url"] = Utility.UrlNormalizer.Normalize(metadata["url"].ToString());
+							}
+
+							// Compute metadataHash
+							string metadataHash = Utility.CanonicalJson.ComputeHash(metadata);
+							await Logger.LogVerboseAsync($"[Cache] Computed MetadataHash for {url}: {metadataHash.Substring(0, 16)}...");
+
+							// Compute ContentId from metadata (PRE-DOWNLOAD)
+							string contentId = null;
+							try
+							{
+								contentId = DownloadCacheOptimizer.ComputeContentIdFromMetadata(metadata, url);
+								await Logger.LogVerboseAsync($"[Cache] Computed ContentId from metadata: {contentId.Substring(0, 16)}...");
+
+								// Record telemetry
+								TelemetryService.Instance.RecordContentIdGenerated(handler.GetProviderKey(), fromMetadata: true);
+							}
+							catch ( Exception ex )
+							{
+								await Logger.LogWarningAsync($"[Cache] Failed to compute ContentId for {url}: {ex.Message}");
+							}
+
+							// Check if we already have a ContentId mapping
+							string existingContentId = null;
+							string logMessage = null;
+							lock ( s_resourceIndexLock )
+							{
+								if ( s_metadataHashToContentId.TryGetValue(metadataHash, out existingContentId) )
+								{
+									logMessage = $"[Cache] Found existing ContentId mapping: {existingContentId.Substring(0, 16)}...";
+								}
+							}
+
+							if ( logMessage != null )
+							{
+								await Logger.LogVerboseAsync(logMessage);
+								// Record cache hit telemetry
+								TelemetryService.Instance.RecordCacheHit(handler.GetProviderKey(), "metadata");
+							}
+							else
+							{
+								// Record cache miss telemetry
+								TelemetryService.Instance.RecordCacheMiss(handler.GetProviderKey(), "no_existing_mapping");
+							}
+
+							// Create or update ResourceMetadata
+							ResourceMetadata resourceMeta = new ResourceMetadata
+							{
+								ContentKey = contentId ?? metadataHash, // Use ContentId if available, otherwise metadataHash
+								ContentId = contentId, // Store the pre-computed ContentId
+								MetadataHash = metadataHash,
+								PrimaryUrl = url,
+								HandlerMetadata = metadata,
+								FileSize = metadata.ContainsKey("size") ? Convert.ToInt64(metadata["size"]) :
+										   metadata.ContainsKey("contentLength") ? Convert.ToInt64(metadata["contentLength"]) : 0,
+								FirstSeen = DateTime.UtcNow,
+								SchemaVersion = 1,
+								TrustLevel = MappingTrustLevel.Unverified
+							};
+
+							// Update component's ResourceRegistry
+							if ( !component.ResourceRegistry.ContainsKey(metadataHash) )
+							{
+								component.ResourceRegistry[metadataHash] = resourceMeta;
+							}
+
+							// Update global index
+							lock ( s_resourceIndexLock )
+							{
+								if ( !s_resourceByMetadataHash.ContainsKey(metadataHash) )
+								{
+									s_resourceByMetadataHash[metadataHash] = resourceMeta;
+								}
+
+								// Store by ContentId if we computed one
+								if ( contentId != null && !s_resourceByContentId.ContainsKey(contentId) )
+								{
+									s_resourceByContentId[contentId] = resourceMeta;
+									// Also store the mapping
+									if ( !s_metadataHashToContentId.ContainsKey(metadataHash) )
+									{
+										s_metadataHashToContentId[metadataHash] = contentId;
+									}
+								}
+
+								if ( existingContentId != null && !s_resourceByContentId.ContainsKey(existingContentId) )
+								{
+									s_resourceByContentId[existingContentId] = resourceMeta;
+								}
+							}
+
+							await Logger.LogVerboseAsync($"[Cache] Updated ResourceRegistry for URL: {url}");
+						}
+					}
+				}
+				catch ( Exception ex )
+				{
+					await Logger.LogVerboseAsync($"[Cache] Failed to extract metadata for {url}: {ex.Message}");
+				}
+			}
+
+			// Save updated resource index
+			try
+			{
+				await SaveResourceIndexAsync();
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogWarningAsync($"[Cache] Failed to save resource index: {ex.Message}");
+			}
+
+			Dictionary<string, List<string>> results = new Dictionary<string, List<string>>();
+			List<string> urlsToResolve = new List<string>();
+			List<(string url, string filename)> missingFiles = new List<(string url, string filename)>();
 			int cacheHits = 0;
 
 			foreach ( string url in filteredUrls )
@@ -156,7 +296,7 @@ namespace KOTORModSync.Core.Services
 				{
 					if ( string.IsNullOrWhiteSpace(cachedEntry.FileName) )
 					{
-						Logger.LogWarning($"Invalid cache entry for {url} with empty filename, removing and treating as miss");
+await Logger.LogWarningAsync($"Invalid cache entry for {url} with empty filename, removing and treating as miss");
 						Remove(url);
 						urlsToResolve.Add(url);
 					}
@@ -186,10 +326,10 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogVerboseAsync($"[DownloadCacheService]   {url}");
 				}
 
-				Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken, false).ConfigureAwait(false); // FIXME: sequential is so slow it's unusable.
+				Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken, false); // FIXME: sequential is so slow it's unusable.
 
 				await Logger.LogVerboseAsync($"[DownloadCacheService] Received {resolvedResults.Count} resolved results from download manager");
-				foreach ( var kvp in resolvedResults )
+				foreach (KeyValuePair<string, List<string>> kvp in resolvedResults )
 				{
 					await Logger.LogVerboseAsync($"[DownloadCacheService]   URL: {kvp.Key}");
 					await Logger.LogVerboseAsync($"[DownloadCacheService]   Filenames: {string.Join(", ", kvp.Value)}");
@@ -206,7 +346,7 @@ namespace KOTORModSync.Core.Services
 				else
 				{
 					await Logger.LogVerboseAsync("[DownloadCacheService] Processing resolved URLs in parallel");
-					var processingTasks = resolvedResults.Select(kvp =>
+					List<Task> processingTasks = resolvedResults.Select(kvp =>
 						ProcessResolvedUrlForPreResolveAsync(component, kvp, results, modArchiveDirectory, missingFiles)
 					).ToList();
 					await Task.WhenAll(processingTasks);
@@ -216,7 +356,7 @@ namespace KOTORModSync.Core.Services
 			Dictionary<string, List<string>> filteredResults = _resolutionFilter.FilterResolvedUrls(results);
 
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Final filtered results count: {filteredResults.Count}");
-			foreach ( var kvp in filteredResults )
+			foreach (KeyValuePair<string, List<string>> kvp in filteredResults )
 			{
 				await Logger.LogVerboseAsync($"[DownloadCacheService]   Final URL: {kvp.Key}");
 				await Logger.LogVerboseAsync($"[DownloadCacheService]   Final Filenames: {string.Join(", ", kvp.Value)}");
@@ -226,7 +366,7 @@ namespace KOTORModSync.Core.Services
 			{
 				await Logger.LogWarningAsync($"[DownloadCacheService] Pre-resolve summary for '{component.Name}': {filteredResults.Count} URLs resolved, {missingFiles.Count} files missing on disk");
 				await Logger.LogWarningAsync("[DownloadCacheService] Missing files that need to be downloaded:");
-				foreach ( var (url, filename) in missingFiles )
+				foreach ( (string url, string filename) in missingFiles )
 				{
 					await Logger.LogWarningAsync($"  • {filename} (from {url})");
 					RecordFailure(url, component.Name, filename, "File does not exist on disk", DownloadFailureInfo.FailureType.FileNotFound);
@@ -274,7 +414,7 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogAsync($"[DownloadCacheService] ✓ Pattern-matched filename for '{component.Name}': {bestMatchFilename} (from {filteredFilenames.Count} options)");
 				}
 
-				var cacheEntry = new DownloadCacheEntry
+				DownloadCacheEntry cacheEntry = new DownloadCacheEntry
 				{
 					Url = kvp.Key,
 					FileName = bestMatchFilename,
@@ -368,7 +508,7 @@ namespace KOTORModSync.Core.Services
 						}
 
 						bool isArchive = Utility.ArchiveHelper.IsArchive(expectedFilePath);
-						var diskEntry = new DownloadCacheEntry
+						DownloadCacheEntry diskEntry = new DownloadCacheEntry
 						{
 							Url = url,
 							FileName = expectedFileName,
@@ -561,7 +701,7 @@ namespace KOTORModSync.Core.Services
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Analyzing download necessity for {(component.ModLinkFilenames?.Count ?? 0)} URLs");
 			(List<string> urlsNeedingAnalysis, bool initialSimulationFailed) = await AnalyzeDownloadNecessityWithStatusAsync(component, modArchiveDirectory, cancellationToken);
 
-			var urlsToProcess = new List<string>();
+			List<string> urlsToProcess = new List<string>();
 			foreach ( string url in urlsNeedingAnalysis )
 			{
 				if ( !_resolutionFilter.ShouldDownload(url) )
@@ -576,7 +716,7 @@ namespace KOTORModSync.Core.Services
 			{
 				await Logger.LogVerboseAsync("[DownloadCacheService] No URLs need processing after analysis");
 				List<string> allAnalyzedUrls = component.ModLinkFilenames?.Keys.Where(url => !string.IsNullOrWhiteSpace(url)).ToList() ?? new List<string>();
-				var cacheEntries = new List<DownloadCacheEntry>();
+				List<DownloadCacheEntry> cacheEntries = new List<DownloadCacheEntry>();
 
 				foreach ( string url in allAnalyzedUrls )
 				{
@@ -589,11 +729,19 @@ namespace KOTORModSync.Core.Services
 						Dictionary<string, List<string>> resolved = await DownloadManager.ResolveUrlsToFilenamesAsync(new List<string> { url }, cancellationToken);
 						if ( resolved.TryGetValue(url, out List<string> filenames) && filenames.Count > 0 )
 						{
-							var entry = new DownloadCacheEntry
+							string fileName = filenames[0];
+							if ( string.IsNullOrWhiteSpace(fileName) )
+							{
+								await Logger.LogWarningAsync($"[DownloadCacheService] Skipping empty filename from URL: {url}");
+								RecordFailure(url, component.Name, null, "Resolved filename is empty", DownloadFailureInfo.FailureType.ResolutionFailed);
+								continue;
+							}
+
+							DownloadCacheEntry entry = new DownloadCacheEntry
 							{
 								Url = url,
-								FileName = filenames[0],
-								IsArchiveFile = Utility.ArchiveHelper.IsArchive(filenames[0]),
+								FileName = fileName,
+								IsArchiveFile = Utility.ArchiveHelper.IsArchive(fileName),
 								ExtractInstructionGuid = Guid.Empty
 							};
 							AddOrUpdate(url, entry);
@@ -610,8 +758,8 @@ namespace KOTORModSync.Core.Services
 			}
 
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Checking cache and file existence for {urlsToProcess.Count} URL(s)");
-			var cachedResults = new List<DownloadCacheEntry>();
-			var urlsNeedingDownload = new List<string>();
+			List<DownloadCacheEntry> cachedResults = new List<DownloadCacheEntry>();
+			List<string> urlsNeedingDownload = new List<string>();
 
 			List<(string, DownloadCacheEntry, bool)> cacheCheckResults;
 
@@ -626,7 +774,7 @@ namespace KOTORModSync.Core.Services
 			}
 			else
 			{
-				var cacheCheckTasks = urlsToProcess.Select(url =>
+				List<Task<(string url, DownloadCacheEntry entry, bool needsDownload)>> cacheCheckTasks = urlsToProcess.Select(url =>
 					CheckCacheAndFileExistenceAsync(url, component, modArchiveDirectory, destinationDirectory, progress, cancellationToken)
 				).ToList();
 
@@ -664,11 +812,11 @@ namespace KOTORModSync.Core.Services
 			{
 				await Logger.LogAsync($"[DownloadCacheService] Starting download of {urlsNeedingDownload.Count} missing file(s) for component '{component.Name}'...");
 
-				var urlToProgressMap = new Dictionary<string, DownloadProgress>();
+				Dictionary<string, DownloadProgress> urlToProgressMap = new Dictionary<string, DownloadProgress>();
 
 				foreach ( string url in urlsNeedingDownload )
 				{
-					var progressTracker = new DownloadProgress
+					DownloadProgress progressTracker = new DownloadProgress
 					{
 						ModName = component.Name,
 						Url = url,
@@ -717,7 +865,7 @@ namespace KOTORModSync.Core.Services
 					urlToProgressMap[url] = progressTracker;
 				}
 
-				var progressForwarder = new Progress<DownloadProgress>(p =>
+				Progress<DownloadProgress> progressForwarder = new Progress<DownloadProgress>(p =>
 				{
 					if ( urlToProgressMap.TryGetValue(p.Url, out DownloadProgress tracker) )
 					{
@@ -806,7 +954,7 @@ namespace KOTORModSync.Core.Services
 						}
 					}
 
-					var newEntry = new DownloadCacheEntry
+					DownloadCacheEntry newEntry = new DownloadCacheEntry
 					{
 						Url = originalUrl,
 						FileName = fileName,
@@ -817,6 +965,81 @@ namespace KOTORModSync.Core.Services
 					AddOrUpdate(originalUrl, newEntry);
 					cachedResults.Add(newEntry);
 					successCount++;
+
+					// Post-download: Compute INTEGRITY hashes (ContentId already exists from PreResolve!)
+					try
+					{
+						if ( File.Exists(result.FilePath) )
+						{
+							await Logger.LogVerboseAsync($"[Cache] Computing file integrity data for: {result.FilePath}");
+
+							(string contentHashSHA256, int pieceLength, string pieceHashes) =
+								await DownloadCacheOptimizer.ComputeFileIntegrityData(result.FilePath);
+
+							await Logger.LogVerboseAsync($"[Cache] ContentHashSHA256: {contentHashSHA256.Substring(0, 16)}...");
+							await Logger.LogVerboseAsync($"[Cache] PieceLength: {pieceLength}, Pieces: {pieceHashes.Length / 40}");
+
+							// Find existing ResourceMetadata by URL (should already have ContentId from PreResolve)
+							ResourceMetadata resourceMeta = null;
+							string metadataHash = null;
+
+							// Try to find metadata from component's ResourceRegistry
+							foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry )
+							{
+								if ( kvp.Value.PrimaryUrl == originalUrl )
+								{
+									resourceMeta = kvp.Value;
+									metadataHash = kvp.Key;
+									break;
+								}
+							}
+
+							if ( resourceMeta != null && metadataHash != null )
+							{
+								// Update with integrity data (ContentId should already exist!)
+								resourceMeta.ContentHashSHA256 = contentHashSHA256;
+								resourceMeta.PieceLength = pieceLength;
+								resourceMeta.PieceHashes = pieceHashes;
+								resourceMeta.LastVerified = DateTime.UtcNow;
+
+								// Add filename to Files dictionary
+								if ( !resourceMeta.Files.ContainsKey(fileName) )
+								{
+									resourceMeta.Files[fileName] = true;
+								}
+
+								// Log ContentId if available
+								if ( !string.IsNullOrEmpty(resourceMeta.ContentId) )
+								{
+									await Logger.LogVerboseAsync($"[Cache] ContentId: {resourceMeta.ContentId.Substring(0, 16)}...");
+
+									// Update mapping with verification (ContentId should already exist)
+									bool updated = await UpdateMappingWithVerification(metadataHash, resourceMeta.ContentId, resourceMeta);
+
+									if ( updated )
+									{
+										await Logger.LogVerboseAsync($"[Cache] Updated mapping: {metadataHash.Substring(0, 16)}... → {resourceMeta.ContentId.Substring(0, 16)}...");
+
+										// Save updated resource index
+										await SaveResourceIndexAsync();
+										await Logger.LogVerboseAsync("[Cache] Saved updated resource index");
+									}
+								}
+								else
+								{
+									await Logger.LogWarningAsync($"[Cache] ContentId missing for URL (PreResolve may have failed): {originalUrl}");
+								}
+							}
+							else
+							{
+								await Logger.LogVerboseAsync($"[Cache] No ResourceMetadata found for URL: {originalUrl}");
+							}
+						}
+					}
+					catch ( Exception ex )
+					{
+						await Logger.LogWarningAsync($"[Cache] Failed to compute file integrity data: {ex.Message}");
+					}
 
 					await Logger.LogAsync($"[DownloadCacheService] ✓ Downloaded successfully: {fileName}");
 				}
@@ -847,7 +1070,7 @@ namespace KOTORModSync.Core.Services
 					else
 					{
 						List<ValidationIssue> issues = _validationService.GetVirtualFileSystem().GetValidationIssues();
-						var fileIssues = issues.Where(i =>
+						List<ValidationIssue> fileIssues = issues.Where(i =>
 							i.Message.Contains("does not exist") ||
 							i.Message.Contains("not found") ||
 							i.Category == "ExtractArchive" ||
@@ -1032,7 +1255,7 @@ namespace KOTORModSync.Core.Services
 
 				foreach ( Instruction instruction in component.Instructions )
 				{
-					if ( instruction.Source != null && instruction.Source.Any(src =>
+					if ( instruction.Source != null && instruction.Source.Exists(src =>
 						{
 							if ( src.IndexOf(entry.FileName, StringComparison.OrdinalIgnoreCase) >= 0 )
 								return true;
@@ -1154,7 +1377,7 @@ namespace KOTORModSync.Core.Services
 												new List<string> { s },
 												_validationService.GetVirtualFileSystem()
 											);
-											if ( resolvedFiles.Any(f =>
+											if ( resolvedFiles.Exists(f =>
 												 string.Equals(
 													Path.GetFileName(f),
 													entry.FileName,
@@ -1199,7 +1422,7 @@ namespace KOTORModSync.Core.Services
 
 		private static void CreateSimpleInstructionForEntry(ModComponent component, DownloadCacheEntry entry)
 		{
-			var newInstruction = new Instruction
+			Instruction newInstruction = new Instruction
 			{
 				Guid = Guid.NewGuid(),
 				Action = entry.IsArchiveFile
@@ -1383,12 +1606,12 @@ namespace KOTORModSync.Core.Services
 				return 0.90;
 
 			// Strategy 4: Token-based similarity (split on common delimiters)
-			var tokens1 = new HashSet<string>(
+			HashSet<string> tokens1 = new HashSet<string>(
 				System.Text.RegularExpressions.Regex.Split(lower1, @"[\s\-_\.]+")
 					.Where(t => t.Length > 2), // Ignore very short tokens
 				StringComparer.OrdinalIgnoreCase
 			);
-			var tokens2 = new HashSet<string>(
+			HashSet<string> tokens2 = new HashSet<string>(
 				System.Text.RegularExpressions.Regex.Split(lower2, @"[\s\-_\.]+")
 					.Where(t => t.Length > 2),
 				StringComparer.OrdinalIgnoreCase
@@ -1441,7 +1664,7 @@ namespace KOTORModSync.Core.Services
 
 			int len1 = s1.Length;
 			int len2 = s2.Length;
-			var matrix = new int[len1 + 1, len2 + 1];
+			int[,] matrix = new int[len1 + 1, len2 + 1];
 
 			// Initialize first column and row
 			for ( int i = 0; i <= len1; i++ )
@@ -1510,7 +1733,7 @@ namespace KOTORModSync.Core.Services
 			await Logger.LogVerboseAsync($"[DownloadCacheService] Attempting to update archive name from '{oldArchiveName}' to '{newArchiveName}'");
 
 			// Store original instruction state for rollback
-			var originalInstructions = new Dictionary<Guid, (Instruction.ActionType action, List<string> source, string destination)>();
+			Dictionary<Guid, (Instruction.ActionType action, List<string> source, string destination)> originalInstructions = new Dictionary<Guid, (Instruction.ActionType action, List<string> source, string destination)>();
 
 			try
 			{
@@ -1613,7 +1836,7 @@ namespace KOTORModSync.Core.Services
 				{
 					await Logger.LogVerboseAsync("[DownloadCacheService] Validating instruction changes via VFS simulation...");
 
-					var vfs = new VirtualFileSystemProvider();
+					VirtualFileSystemProvider vfs = new VirtualFileSystemProvider();
 					await vfs.InitializeFromRealFileSystemAsync(modArchiveDirectory);
 
 					try
@@ -1627,7 +1850,7 @@ namespace KOTORModSync.Core.Services
 						);
 
 						List<ValidationIssue> issues = vfs.GetValidationIssues();
-						var criticalIssues = issues.Where(i =>
+						List<ValidationIssue> criticalIssues = issues.Where(i =>
 							i.Severity == ValidationSeverity.Error ||
 							i.Severity == ValidationSeverity.Critical
 						).ToList();
@@ -1838,7 +2061,7 @@ namespace KOTORModSync.Core.Services
 						return allFilenames;
 					}
 
-					var validationService2 = new ComponentValidationService();
+					ComponentValidationService validationService2 = new ComponentValidationService();
 					List<string> matchedFiles = validationService2.FilterFilenamesByUnsatisfiedPatterns(component, allFilenames, modArchiveDirectory2);
 
 					if ( matchedFiles.Count > 0 )
@@ -1864,7 +2087,7 @@ namespace KOTORModSync.Core.Services
 								?? throw new InvalidOperationException("MainConfig.SourcePath not set");
 				ComponentValidationService validationSvc = string.IsNullOrEmpty(modDir) ? null : new ComponentValidationService();
 
-				var filesToDownload = allFilenames
+				List<string> filesToDownload = allFilenames
 					.Where(filename =>
 					{
 						if ( filenameDict.TryGetValue(filename, out bool? shouldDownload) )
@@ -1899,7 +2122,7 @@ namespace KOTORModSync.Core.Services
 				return allFilenames;
 			}
 
-			var validationService = new ComponentValidationService();
+			ComponentValidationService validationService = new ComponentValidationService();
 			List<string> filteredFiles = validationService.FilterFilenamesByUnsatisfiedPatterns(component, allFilenames, modArchiveDirectory);
 
 			if ( filteredFiles.Count > 0 )
@@ -1930,5 +2153,667 @@ namespace KOTORModSync.Core.Services
 			return false;
 
 		}
+
+		#region Phase 5: Resource Index Management
+
+		private static string GetResourceIndexPath()
+		{
+			string cacheDir = Path.GetDirectoryName(GetCacheFilePath());
+			return Path.Combine(cacheDir, "resource-index.json");
+		}
+
+		private static string GetResourceIndexLockPath()
+		{
+			return GetResourceIndexPath() + ".lock";
+		}
+
+		/// <summary>
+		/// Saves the resource index atomically with cross-process file locking.
+		/// </summary>
+		private static async Task SaveResourceIndexAsync()
+		{
+			string path = GetResourceIndexPath();
+			string temp = path + ".tmp";
+			string backup = path + ".bak";
+			string lockPath = GetResourceIndexLockPath();
+
+			// Ensure directory exists
+			string directory = Path.GetDirectoryName(path);
+			if ( !Directory.Exists(directory) )
+				Directory.CreateDirectory(directory);
+
+			try
+			{
+				// Cross-process file lock using cross-platform approach
+				using (CrossPlatformFileLock fileLock = new CrossPlatformFileLock(lockPath) )
+				{
+					// Lock the entire file
+					await fileLock.LockAsync();
+
+					try
+					{
+						var indexData = new
+						{
+							schemaVersion = 1,
+							lastSaved = DateTime.UtcNow.ToString("O"),
+							entries = new Dictionary<string, ResourceMetadata>(),
+							mappings = new Dictionary<string, string>()
+						};
+
+						lock ( s_resourceIndexLock )
+						{
+							// Merge all resource metadata
+							foreach (KeyValuePair<string, ResourceMetadata> kvp in s_resourceByMetadataHash )
+								((Dictionary<string, ResourceMetadata>)indexData.entries)[kvp.Key] = kvp.Value;
+
+							foreach (KeyValuePair<string, ResourceMetadata> kvp in s_resourceByContentId )
+							{
+								if ( !((Dictionary<string, ResourceMetadata>)indexData.entries).ContainsKey(kvp.Key) )
+									((Dictionary<string, ResourceMetadata>)indexData.entries)[kvp.Key] = kvp.Value;
+							}
+
+							// Copy mappings
+							foreach (KeyValuePair<string, string> kvp in s_metadataHashToContentId )
+								((Dictionary<string, string>)indexData.mappings)[kvp.Key] = kvp.Value;
+						}
+
+						string json = JsonConvert.SerializeObject(indexData, Formatting.Indented);
+						await Task.Run(() => File.WriteAllText(temp, json));
+
+						// Platform-specific atomic replace
+						if ( Environment.OSVersion.Platform == PlatformID.Win32NT )
+						{
+							if ( File.Exists(path) )
+								File.Replace(temp, path, backup);
+							else
+								File.Move(temp, path);
+
+							if ( File.Exists(backup) )
+								File.Delete(backup);
+						}
+						else
+						{
+							// POSIX: rename is atomic
+							if ( File.Exists(path) )
+								File.Move(path, backup);
+							File.Move(temp, path);
+
+							if ( File.Exists(backup) )
+								File.Delete(backup);
+						}
+
+						await Logger.LogVerboseAsync($"[Cache] Saved resource index: {path}");
+					}
+					finally
+					{
+						await fileLock.UnlockAsync();
+					}
+				}
+
+				// Clean up lock file if empty/stale
+				if ( File.Exists(lockPath) )
+				{
+					FileInfo lockInfo = new FileInfo(lockPath);
+					if ( lockInfo.Length == 0 )
+					{
+						try { File.Delete(lockPath); } catch { }
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogErrorAsync($"[Cache] Failed to save resource index: {ex.Message}");
+
+				// Clean up temp file
+				if ( File.Exists(temp) )
+				{
+					try { File.Delete(temp); } catch { }
+				}
+			}
+		}
+
+		/// <summary>
+		/// Loads the resource index from disk with file locking.
+		/// </summary>
+		public static async Task LoadResourceIndexAsync()
+		{
+			string path = GetResourceIndexPath();
+			string lockPath = GetResourceIndexLockPath();
+
+			if ( !File.Exists(path) )
+			{
+				await Logger.LogVerboseAsync("[Cache] No resource index found, starting fresh");
+				return;
+			}
+
+			try
+			{
+				using (CrossPlatformFileLock fileLock = new CrossPlatformFileLock(lockPath) )
+				{
+					await fileLock.LockAsync();
+
+					try
+					{
+						string json = await Task.Run(() => File.ReadAllText(path));
+						dynamic indexData = JsonConvert.DeserializeObject(json);
+
+						if ( indexData == null )
+						{
+							await Logger.LogWarningAsync("[Cache] Resource index file was empty or invalid");
+							return;
+						}
+
+						lock ( s_resourceIndexLock )
+						{
+							s_resourceByMetadataHash.Clear();
+							s_metadataHashToContentId.Clear();
+							s_resourceByContentId.Clear();
+
+							// Load entries
+							if ( indexData.entries != null )
+							{
+								Newtonsoft.Json.Linq.JObject entries = (Newtonsoft.Json.Linq.JObject)indexData.entries;
+								foreach (KeyValuePair<string, Newtonsoft.Json.Linq.JToken> entry in entries )
+								{
+									string key = entry.Key;
+									Newtonsoft.Json.Linq.JToken metaToken = entry.Value;
+
+									ResourceMetadata meta = new ResourceMetadata
+									{
+										ContentKey = metaToken["ContentKey"]?.ToString(),
+										ContentId = metaToken["ContentId"]?.ToString(),
+										ContentHashSHA256 = metaToken["ContentHashSHA256"]?.ToString(),
+										MetadataHash = metaToken["MetadataHash"]?.ToString(),
+										PrimaryUrl = metaToken["PrimaryUrl"]?.ToString(),
+										FileSize = metaToken["FileSize"]?.ToObject<long>() ?? 0,
+										PieceLength = metaToken["PieceLength"]?.ToObject<int>() ?? 0,
+										PieceHashes = metaToken["PieceHashes"]?.ToString(),
+										SchemaVersion = metaToken["SchemaVersion"]?.ToObject<int>() ?? 1
+									};
+
+									if ( metaToken["HandlerMetadata"] != null )
+										meta.HandlerMetadata = metaToken["HandlerMetadata"].ToObject<Dictionary<string, object>>();
+
+									if ( metaToken["Files"] != null )
+										meta.Files = metaToken["Files"].ToObject<Dictionary<string, bool?>>();
+
+									if ( Enum.TryParse<MappingTrustLevel>(metaToken["TrustLevel"]?.ToString(), out MappingTrustLevel trustLevel ) )
+										meta.TrustLevel = trustLevel;
+
+									if ( DateTime.TryParse(metaToken["FirstSeen"]?.ToString(), out DateTime firstSeen ) )
+										meta.FirstSeen = firstSeen;
+
+									if ( DateTime.TryParse(metaToken["LastVerified"]?.ToString(), out DateTime lastVerified ) )
+										meta.LastVerified = lastVerified;
+
+									// Store in appropriate index
+									if ( !string.IsNullOrEmpty(meta.MetadataHash) )
+										s_resourceByMetadataHash[meta.MetadataHash] = meta;
+
+									if ( !string.IsNullOrEmpty(meta.ContentId) )
+										s_resourceByContentId[meta.ContentId] = meta;
+								}
+							}
+
+							// Load mappings
+							if ( indexData.mappings != null )
+							{
+								Newtonsoft.Json.Linq.JObject mappings = (Newtonsoft.Json.Linq.JObject)indexData.mappings;
+								foreach (KeyValuePair<string, Newtonsoft.Json.Linq.JToken> mapping in mappings )
+								{
+									s_metadataHashToContentId[mapping.Key] = mapping.Value.ToString();
+								}
+							}
+						}
+
+						await Logger.LogVerboseAsync($"[Cache] Loaded resource index: {s_resourceByMetadataHash.Count} metadata entries, {s_resourceByContentId.Count} content entries, {s_metadataHashToContentId.Count} mappings");
+					}
+					finally
+					{
+						await fileLock.UnlockAsync();
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
+				await Logger.LogWarningAsync($"[Cache] Failed to load resource index: {ex.Message}");
+			}
+		}
+
+		/// <summary>
+		/// Updates a MetadataHash → ContentId mapping with trust elevation logic.
+		/// </summary>
+		private static async Task<bool> UpdateMappingWithVerification(string metadataHash, string contentId, ResourceMetadata meta)
+		{
+			bool updated = false;
+			string logMessage = null;
+			bool hasConflict = false;
+			bool keepExisting = false;
+
+			lock ( s_resourceIndexLock )
+			{
+				// Check existing mapping
+				if ( s_metadataHashToContentId.TryGetValue(metadataHash, out string existingContentId) )
+				{
+					if ( existingContentId == contentId )
+					{
+						// Same mapping, elevate trust
+						if ( meta.TrustLevel == MappingTrustLevel.Unverified )
+						{
+							meta.TrustLevel = MappingTrustLevel.ObservedOnce;
+							updated = true;
+							logMessage = $"[Cache] Trust elevated: {metadataHash.Substring(0, 16)}... → ObservedOnce";
+						}
+						else if ( meta.TrustLevel == MappingTrustLevel.ObservedOnce )
+						{
+							meta.TrustLevel = MappingTrustLevel.Verified;
+							updated = true;
+							logMessage = $"[Cache] Trust elevated: {metadataHash.Substring(0, 16)}... → Verified";
+						}
+					}
+					else
+					{
+						// CONFLICT: Different ContentId for same MetadataHash
+						hasConflict = true;
+
+						// Keep existing if Verified
+						if ( s_resourceByContentId.TryGetValue(existingContentId, out ResourceMetadata existingMeta ) &&
+							existingMeta.TrustLevel == MappingTrustLevel.Verified )
+						{
+							keepExisting = true;
+						}
+						else
+						{
+							// Replace with new mapping
+							s_metadataHashToContentId[metadataHash] = contentId;
+							s_resourceByContentId[contentId] = meta;
+							meta.TrustLevel = MappingTrustLevel.ObservedOnce;
+							updated = true;
+						}
+					}
+				}
+				else
+				{
+					// New mapping
+					s_metadataHashToContentId[metadataHash] = contentId;
+					s_resourceByContentId[contentId] = meta;
+					meta.TrustLevel = MappingTrustLevel.ObservedOnce;
+					updated = true;
+					logMessage = $"[Cache] New mapping: {metadataHash.Substring(0, 16)}... → {contentId.Substring(0, 16)}...";
+				}
+
+				// Always update metadata hash index
+				s_resourceByMetadataHash[metadataHash] = meta;
+			}
+
+			// Log outside of lock
+			if ( hasConflict )
+			{
+				await Logger.LogWarningAsync($"[Cache] Mapping conflict detected:");
+				await Logger.LogWarningAsync($"  MetadataHash: {metadataHash.Substring(0, 16)}...");
+				await Logger.LogWarningAsync($"  New ContentId: {contentId.Substring(0, 16)}...");
+
+				if ( keepExisting )
+				{
+					await Logger.LogWarningAsync($"  Keeping existing (Verified)");
+					return false;
+				}
+				else
+				{
+					await Logger.LogWarningAsync($"  Replacing with new mapping");
+				}
+			}
+			else if ( logMessage != null )
+			{
+				if ( updated && meta.TrustLevel == MappingTrustLevel.Verified )
+					await Logger.LogAsync(logMessage);
+				else
+					await Logger.LogVerboseAsync(logMessage);
+			}
+
+			return updated;
+		}
+
+		/// <summary>
+		/// Garbage collects stale entries and downgrades trust levels.
+		/// </summary>
+		public static void GarbageCollectResourceIndex()
+		{
+			DateTime now = DateTime.UtcNow;
+			List<string> toRemove = new List<string>();
+
+			lock ( s_resourceIndexLock )
+			{
+				foreach (KeyValuePair<string, ResourceMetadata> kvp in s_resourceByContentId )
+				{
+					ResourceMetadata meta = kvp.Value;
+
+					// Rule 1: Old and file doesn't exist
+					if ( meta.LastVerified.HasValue && (now - meta.LastVerified.Value).TotalDays > 90 )
+					{
+						string expectedFile = Path.Combine(MainConfig.SourcePath?.FullName ?? "", meta.Files.Keys.FirstOrDefault() ?? "");
+						if ( !File.Exists(expectedFile) )
+						{
+							toRemove.Add(kvp.Key);
+							continue;
+						}
+					}
+
+					// Rule 2: Never used and very old
+					if ( !meta.LastVerified.HasValue && meta.FirstSeen.HasValue && (now - meta.FirstSeen.Value).TotalDays > 365 )
+					{
+						toRemove.Add(kvp.Key);
+					}
+
+					// Rule 3: Downgrade trust if not re-verified
+					if ( meta.LastVerified.HasValue && (now - meta.LastVerified.Value).TotalDays > 30 )
+					{
+						if ( meta.TrustLevel == MappingTrustLevel.Verified )
+							meta.TrustLevel = MappingTrustLevel.ObservedOnce;
+						else if ( meta.TrustLevel == MappingTrustLevel.ObservedOnce )
+							meta.TrustLevel = MappingTrustLevel.Unverified;
+					}
+				}
+
+				foreach ( string key in toRemove )
+				{
+					s_resourceByContentId.Remove(key);
+					KeyValuePair<string, string> metaMapping = s_metadataHashToContentId.FirstOrDefault(m => m.Value == key);
+					if ( metaMapping.Key != null )
+						s_metadataHashToContentId.Remove(metaMapping.Key);
+				}
+			}
+
+			Logger.LogVerbose($"[Cache] GC removed {toRemove.Count} stale entries");
+		}
+
+		/// <summary>
+		/// Enforces disk quota using LRU eviction.
+		/// </summary>
+		public static void EnforceDiskQuota(long maxSizeBytes)
+		{
+			string cacheDir = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+				"KOTORModSync",
+				"Cache",
+				"Network"
+			);
+
+			if ( !Directory.Exists(cacheDir) )
+				return;
+
+			string[] datFiles = Directory.GetFiles(cacheDir, "*.dat");
+			long totalSize = datFiles.Sum(f => new FileInfo(f).Length);
+
+			if ( totalSize <= maxSizeBytes )
+				return;
+
+			// Sort by LastVerified (oldest first)
+			lock ( s_resourceIndexLock )
+			{
+				List<KeyValuePair<string, ResourceMetadata>> entries = s_resourceByContentId.OrderBy(e => e.Value.LastVerified ?? e.Value.FirstSeen).ToList();
+
+				foreach (KeyValuePair<string, ResourceMetadata> entry in entries )
+				{
+					// This requires access to GetCachePath from DownloadCacheOptimizer
+					// For now, construct path manually
+					string datPath = Path.Combine(cacheDir, $"{entry.Key}.dat");
+
+					if ( File.Exists(datPath) )
+					{
+						long fileSize = new FileInfo(datPath).Length;
+						try
+						{
+							File.Delete(datPath);
+							totalSize -= fileSize;
+
+							s_resourceByContentId.Remove(entry.Key);
+							Logger.LogVerbose($"[Cache] Evicted: {entry.Key.Substring(0, 16)}... ({fileSize / 1024} KB)");
+
+							if ( totalSize <= maxSizeBytes )
+								break;
+						}
+						catch ( Exception ex )
+						{
+							Logger.LogWarning($"[Cache] Failed to delete cache file: {ex.Message}");
+						}
+					}
+				}
+			}
+
+			Logger.LogVerbose($"[Cache] Quota enforcement: pruned to {totalSize / (1024 * 1024)} MB");
+		}
+
+		#endregion
+
+		#region CLI Management Methods
+
+		/// <summary>
+		/// Gets the total number of resources in the cache.
+		/// </summary>
+		public static int GetResourceCount()
+		{
+			lock ( s_resourceIndexLock )
+			{
+				return s_resourceByContentId.Count;
+			}
+		}
+
+		/// <summary>
+		/// Gets the total cache size in bytes.
+		/// </summary>
+		public static long GetTotalCacheSize()
+		{
+			lock ( s_resourceIndexLock )
+			{
+				return s_resourceByContentId.Values.Sum(r => r.FileSize);
+			}
+		}
+
+		/// <summary>
+		/// Gets statistics by provider.
+		/// </summary>
+		public static Dictionary<string, int> GetProviderStats()
+		{
+			lock ( s_resourceIndexLock )
+			{
+				return s_resourceByContentId.Values
+					.GroupBy(r => r.HandlerMetadata?.ContainsKey("provider") == true ? r.HandlerMetadata["provider"].ToString() : "unknown")
+					.ToDictionary(g => g.Key, g => g.Count());
+			}
+		}
+
+		/// <summary>
+		/// Gets the count of blocked ContentIds.
+		/// </summary>
+		public static int GetBlockedContentIdCount()
+		{
+			return DownloadCacheOptimizer.GetBlockedContentIdCount();
+		}
+
+		/// <summary>
+		/// Gets the last index update time.
+		/// </summary>
+		public static DateTime GetLastIndexUpdate()
+		{
+			lock ( s_resourceIndexLock )
+			{
+				return s_resourceByContentId.Values
+					.Where(r => r.LastVerified.HasValue)
+					.DefaultIfEmpty(new ResourceMetadata { LastVerified = DateTime.MinValue })
+					.Max(r => r.LastVerified ?? DateTime.MinValue);
+			}
+		}
+
+		/// <summary>
+		/// Clears the cache, optionally for a specific provider.
+		/// </summary>
+		public static async Task ClearCacheAsync(string provider = null)
+		{
+			lock ( s_resourceIndexLock )
+			{
+				if ( string.IsNullOrEmpty(provider) )
+				{
+					// Clear all
+					s_resourceByContentId.Clear();
+					s_resourceByMetadataHash.Clear();
+					s_metadataHashToContentId.Clear();
+				}
+				else
+				{
+					// Clear specific provider
+					List<KeyValuePair<string, ResourceMetadata>> toRemove = s_resourceByContentId
+						.Where(kvp => kvp.Value.HandlerMetadata?.ContainsKey("provider") == true &&
+									 kvp.Value.HandlerMetadata["provider"].ToString() == provider)
+						.ToList();
+
+					foreach (KeyValuePair<string, ResourceMetadata> kvp in toRemove )
+					{
+						s_resourceByContentId.Remove(kvp.Key);
+						s_resourceByMetadataHash.Remove(kvp.Value.MetadataHash);
+						s_metadataHashToContentId.Remove(kvp.Value.MetadataHash);
+					}
+				}
+			}
+
+			await SaveResourceIndexAsync();
+		}
+
+		#endregion
+	}
+
+	/// <summary>
+	/// Cross-platform file locking implementation that works on Windows, Linux, and macOS.
+	/// </summary>
+	internal sealed class CrossPlatformFileLock : IDisposable
+	{
+		private readonly string _lockPath;
+		private FileStream _fileStream;
+		private bool _isLocked;
+		private bool _disposed;
+
+		public CrossPlatformFileLock(string lockPath)
+		{
+			_lockPath = lockPath ?? throw new ArgumentNullException(nameof(lockPath));
+		}
+
+		public async Task LockAsync()
+		{
+			if ( _disposed )
+				throw new ObjectDisposedException(nameof(CrossPlatformFileLock));
+			if ( _isLocked )
+				return;
+
+			// Ensure directory exists
+			string directory = Path.GetDirectoryName(_lockPath);
+			if ( !string.IsNullOrEmpty(directory) && !Directory.Exists(directory) )
+				Directory.CreateDirectory(directory);
+
+			_fileStream = new FileStream(_lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+
+			if ( KOTORModSync.Core.Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Windows )
+			{
+				// Windows: Use FileStream.Lock/Unlock
+#pragma warning disable CA1416 // This call site is reachable on all platforms. 'FileStream.Lock(long, long)' is unsupported on: 'macOS/OSX'.
+				_fileStream.Lock(0, 0);
+#pragma warning restore CA1416
+			}
+			else
+			{
+				// Unix systems (Linux/macOS): Use flock via P/Invoke
+				await LockUnixFileAsync();
+			}
+
+			_isLocked = true;
+		}
+
+		public async Task UnlockAsync()
+		{
+			if ( _disposed || !_isLocked )
+				return;
+
+			try
+			{
+				if ( KOTORModSync.Core.Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Windows )
+				{
+					// Windows: Use FileStream.Unlock
+#pragma warning disable CA1416 // This call site is reachable on all platforms. 'FileStream.Unlock(long, long)' is unsupported on: 'macOS/OSX'.
+					_fileStream?.Unlock(0, 0);
+#pragma warning restore CA1416
+				}
+				else
+				{
+					// Unix systems: Use flock via P/Invoke
+					await UnlockUnixFileAsync();
+				}
+			}
+			finally
+			{
+				_isLocked = false;
+			}
+		}
+
+		private async Task LockUnixFileAsync()
+		{
+			await Task.Run(() =>
+			{
+				int fd = GetFileDescriptor(_fileStream);
+				if ( fd == -1 )
+					throw new InvalidOperationException("Failed to get file descriptor");
+
+				int result = flock(fd, LOCK_EX | LOCK_NB);
+				if ( result != 0 )
+				{
+					int error = Marshal.GetLastWin32Error();
+					throw new IOException($"Failed to acquire file lock: {error}");
+				}
+			});
+		}
+
+		private async Task UnlockUnixFileAsync()
+		{
+			await Task.Run(() =>
+			{
+				int fd = GetFileDescriptor(_fileStream);
+				if ( fd != -1 )
+				{
+					flock(fd, LOCK_UN);
+				}
+			});
+		}
+
+		private static int GetFileDescriptor(FileStream stream)
+		{
+			// Get the file descriptor from the FileStream's SafeFileHandle
+			return stream.SafeFileHandle.DangerousGetHandle().ToInt32();
+		}
+
+		public void Dispose()
+		{
+			if ( !_disposed )
+			{
+				try
+				{
+					UnlockAsync().GetAwaiter().GetResult();
+				}
+				catch
+				{
+					// Ignore exceptions during disposal
+				}
+				finally
+				{
+					_fileStream?.Dispose();
+					_disposed = true;
+				}
+			}
+		}
+
+		// P/Invoke declarations for Unix file locking
+		private const int LOCK_EX = 2;    // Exclusive lock
+		private const int LOCK_NB = 4;    // Non-blocking
+		private const int LOCK_UN = 8;    // Unlock
+
+		[DllImport("libc", SetLastError = true)]
+		private static extern int flock(int fd, int operation);
 	}
 }

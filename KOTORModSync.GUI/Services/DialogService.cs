@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,11 +6,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+
+using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 using KOTORModSync.Dialogs;
-using JetBrains.Annotations;
 
 namespace KOTORModSync.Services
 {
@@ -18,37 +21,30 @@ namespace KOTORModSync.Services
 	public class DialogService
 	{
 		private readonly Window _parentWindow;
-		private static readonly string[] tomlFileExtensions = new[] { "*.toml", "*.tml" };
 
-		private static readonly string[] yamlFileExtensions = new[] { "*.yaml", "*.yml" };
-
-		private static readonly string[] jsonFileExtensions = new[] { "*.json" };
-
-		private static readonly string[] xmlFileExtensions = new[] { "*.xml" };
-
-		private static readonly string[] mdFileExtensions = new[] { "*.md", "*.markdown", "*.mdown", "*.mkdn", "*.mkd", "*.mdtxt", "*.mdtext", "*.text" };
-
-		public DialogService(Window parentWindow)
+		public DialogService( Window parentWindow )
 		{
 			_parentWindow = parentWindow
-							?? throw new ArgumentNullException(nameof(parentWindow));
+							?? throw new ArgumentNullException( nameof( parentWindow ) );
 		}
 
 		public async Task<string[]> ShowFileDialogAsync(
 			bool isFolderDialog,
 			bool allowMultiple = false,
 			IStorageFolder startFolder = null,
-			string windowName = null)
+			string windowName = null )
 		{
 			try
 			{
-				if ( !(_parentWindow?.StorageProvider != null) )
+				if (_parentWindow?.StorageProvider == null)
+
+
 				{
-					await Logger.LogErrorAsync($"Could not open {(isFolderDialog ? "folder" : "file")} dialog - storage provider not available");
+					await Logger.LogErrorAsync( $"Could not open {(isFolderDialog ? "folder" : "file")} dialog - storage provider not available" ).ConfigureAwait( false );
 					return null;
 				}
 
-				if ( isFolderDialog )
+				if (isFolderDialog)
 				{
 					IReadOnlyList<IStorageFolder> result = await _parentWindow.StorageProvider.OpenFolderPickerAsync(
 						new FolderPickerOpenOptions
@@ -56,9 +52,11 @@ namespace KOTORModSync.Services
 							Title = windowName ?? "Choose the folder",
 							AllowMultiple = allowMultiple,
 							SuggestedStartLocation = startFolder,
+
+
 						}
-					);
-					return result.Select(s => s.TryGetLocalPath()).ToArray();
+					).ConfigureAwait( false );
+					return result.Select( s => s.TryGetLocalPath() ).ToArray();
 				}
 				else
 				{
@@ -68,16 +66,20 @@ namespace KOTORModSync.Services
 							Title = windowName ?? "Choose the file(s)",
 							AllowMultiple = allowMultiple,
 							FileTypeFilter = new[] { FilePickerFileTypes.All, FilePickerFileTypes.TextPlain },
+
+
 						}
-					);
-					string[] files = result.Select(s => s.TryGetLocalPath()).ToArray();
-					if ( files.Length > 0 )
+					).ConfigureAwait( false );
+					string[] files = result.Select( s => s.TryGetLocalPath() ).ToArray();
+					if (files.Length > 0)
 						return files;
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex);
+				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
 			}
 
 			return null;
@@ -90,7 +92,7 @@ namespace KOTORModSync.Services
 			[CanBeNull] string defaultExtension = "toml",
 			[CanBeNull][ItemNotNull] List<FilePickerFileType> fileTypeChoices = null,
 			[CanBeNull] string windowName = "Save file as...",
-			[CanBeNull] IStorageFolder startFolder = null)
+			[CanBeNull] IStorageFolder startFolder = null )
 		{
 			try
 			{
@@ -101,34 +103,37 @@ namespace KOTORModSync.Services
 						DefaultExtension = defaultExtension,
 						SuggestedFileName = suggestedFileName,
 						FileTypeChoices = fileTypeChoices ?? new List<FilePickerFileType> { FilePickerFileTypes.All }
+
+
 					}
-				);
+				).ConfigureAwait( false );
 
 				return file?.TryGetLocalPath();
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex);
-				await InformationDialog.ShowInformationDialogAsync(_parentWindow, $"Error opening save file dialog: {ex.Message}.");
+				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
+				await InformationDialog.ShowInformationDialogAsync( _parentWindow, $"Error opening save file dialog: {ex.Message}." ).ConfigureAwait( false );
 				return null;
 			}
 		}
 
-		public async Task<IStorageFolder> GetStorageFolderFromPathAsync(string path)
+		public async Task<IStorageFolder> GetStorageFolderFromPathAsync( string path )
 		{
 			try
 			{
-				if ( string.IsNullOrEmpty(path) )
+				if (string.IsNullOrEmpty( path ))
 					return null;
 
-				return await _parentWindow.StorageProvider.TryGetFolderFromPathAsync(path);
+				return await _parentWindow.StorageProvider.TryGetFolderFromPathAsync( path ).ConfigureAwait( false );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogVerbose($"Error getting storage folder from path: {ex.Message}");
+				Logger.LogVerbose( $"Error getting storage folder from path: {ex.Message}" );
 				return null;
 			}
 		}
 	}
 }
-

@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
 using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
@@ -16,45 +17,45 @@ namespace KOTORModSync.Core.Utility
 			new Dictionary<Type, ConstructorInfo[]>();
 
 		[CanBeNull]
-		public static T CreateInstance<T>([CanBeNull] params object[] constructorParameters)
+		public static T CreateInstance<T>( [CanBeNull] params object[] constructorParameters )
 		{
-			Type type = typeof(T);
+			Type type = typeof( T );
 
-			if ( type.IsGenericType && type.GetGenericTypeDefinition().GetConstructor(Type.EmptyTypes) != null )
+			if (type.IsGenericType && type.GetGenericTypeDefinition().GetConstructor( Type.EmptyTypes ) != null)
 			{
 				Type[] genericArguments = type.GetGenericArguments();
 				Type genericTypeDefinition = type.GetGenericTypeDefinition();
-				Type genericType = genericTypeDefinition.MakeGenericType(genericArguments);
+				Type genericType = genericTypeDefinition.MakeGenericType( genericArguments );
 
-				return (T)Activator.CreateInstance(genericType);
+				return (T)Activator.CreateInstance( genericType );
 			}
 
-			if ( type.GetConstructor(Type.EmptyTypes) != null )
+			if (type.GetConstructor( Type.EmptyTypes ) != null)
 			{
-				return (T)Activator.CreateInstance(type);
+				return (T)Activator.CreateInstance( type );
 			}
 
-			if ( !s_cachedConstructors.TryGetValue(type, out ConstructorInfo[] constructors) )
+			if (!s_cachedConstructors.TryGetValue( type, out ConstructorInfo[] constructors ))
 			{
 				constructors = type.GetConstructors();
 				s_cachedConstructors[type] = constructors;
 			}
 
-			if ( constructorParameters is null )
-				throw new NullReferenceException(nameof(constructorParameters));
+			if (constructorParameters is null)
+				throw new NullReferenceException( nameof( constructorParameters ) );
 
 			int parameterCount = constructorParameters.Length;
-			foreach ( ConstructorInfo constructor in from constructor in constructors
-													 let parameters = constructor.GetParameters()
-													 where parameters.Length == parameterCount
-													 let match = AreParametersCompatible(parameters, constructorParameters)
-													 where match
-													 select constructor )
+			foreach (ConstructorInfo constructor in from constructor in constructors
+													let parameters = constructor.GetParameters()
+													where parameters.Length == parameterCount
+													let match = AreParametersCompatible( parameters, constructorParameters )
+													where match
+													select constructor)
 			{
-				return (T)constructor.Invoke(constructorParameters);
+				return (T)constructor.Invoke( constructorParameters );
 			}
 
-			Logger.Log($"No suitable constructor found for type '{type.Name}' with the provided parameters.");
+			Logger.Log( $"No suitable constructor found for type '{type.Name}' with the provided parameters." );
 			return default;
 		}
 
@@ -63,22 +64,22 @@ namespace KOTORModSync.Core.Utility
 			[NotNull] object[] constructorParameters
 		)
 		{
-			if ( parameters == null )
-				throw new ArgumentNullException(nameof(parameters));
-			if ( constructorParameters == null )
-				throw new ArgumentNullException(nameof(constructorParameters));
+			if (parameters == null)
+				throw new ArgumentNullException( nameof( parameters ) );
+			if (constructorParameters == null)
+				throw new ArgumentNullException( nameof( constructorParameters ) );
 
-			for ( int i = 0; i < parameters.Length; i++ )
+			for (int i = 0; i < parameters.Length; i++)
 			{
 				ParameterInfo parameter = parameters[i];
 				object constructorParameter = constructorParameters[i];
 
-				if ( parameter.ParameterType.IsAssignableFrom(constructorParameter?.GetType()) )
+				if (parameter.ParameterType.IsAssignableFrom( constructorParameter?.GetType() ))
 				{
 					continue;
 				}
 
-				if ( parameter.HasDefaultValue && constructorParameter is null )
+				if (parameter.HasDefaultValue && constructorParameter is null)
 				{
 					continue;
 				}

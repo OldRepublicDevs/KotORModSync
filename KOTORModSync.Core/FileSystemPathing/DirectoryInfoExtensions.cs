@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -11,33 +11,33 @@ namespace KOTORModSync.Core.FileSystemUtils
 {
 	public static class DirectoryInfoExtensions
 	{
-		private static IEnumerable<T> SafeEnumerate<T>(IEnumerator<T> enumerator)
+		private static IEnumerable<T> SafeEnumerate<T>( IEnumerator<T> enumerator )
 		{
-			while ( true )
+			while (true)
 			{
 				T thisEntry;
 				try
 				{
-					if ( !enumerator.MoveNext() )
+					if (!enumerator.MoveNext())
 						break;
 
 					thisEntry = enumerator.Current;
 				}
-				catch ( UnauthorizedAccessException permEx )
+				catch (UnauthorizedAccessException permEx)
 				{
 					Logger.LogVerbose(
 						$"Permission denied while enumerating file/folder wildcards: {permEx.Message} Skipping..."
 					);
 					continue;
 				}
-				catch ( IOException ioEx )
+				catch (IOException ioEx)
 				{
 					Logger.LogError(
 						$"IO exception enumerating file/folder wildcards: {ioEx.Message} Skipping file/folder..."
 					);
 					continue;
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
 				{
 					Logger.LogError(
 						$"Unhandled exception enumerating file/folder wildcards: {ex.Message}. Attempting to skip file/folder item..."
@@ -45,7 +45,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 					continue;
 				}
 
-				if ( thisEntry == null )
+				if (object.Equals( thisEntry, default( T ) ))
 					continue;
 
 				yield return thisEntry;
@@ -60,11 +60,11 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			try
 			{
-				return SafeEnumerate(dirInfo.EnumerateFiles(searchPattern, searchOption).GetEnumerator());
+				return SafeEnumerate( dirInfo.EnumerateFiles( searchPattern, searchOption ).GetEnumerator() );
 			}
-			catch ( Exception e )
+			catch (Exception e)
 			{
-				Logger.LogException(e);
+				Logger.LogException( e );
 				return null;
 			}
 		}
@@ -77,11 +77,11 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			try
 			{
-				return SafeEnumerate(dirInfo.EnumerateDirectories(searchPattern, searchOption).GetEnumerator());
+				return SafeEnumerate( dirInfo.EnumerateDirectories( searchPattern, searchOption ).GetEnumerator() );
 			}
-			catch ( Exception e )
+			catch (Exception e)
 			{
-				Logger.LogException(e);
+				Logger.LogException( e );
 				return null;
 			}
 		}
@@ -94,11 +94,11 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			try
 			{
-				return SafeEnumerate(dirInfo.EnumerateFileSystemInfos(searchPattern, searchOption).GetEnumerator());
+				return SafeEnumerate( dirInfo.EnumerateFileSystemInfos( searchPattern, searchOption ).GetEnumerator() );
 			}
-			catch ( Exception e )
+			catch (Exception e)
 			{
-				Logger.LogException(e);
+				Logger.LogException( e );
 				return null;
 			}
 		}
@@ -111,11 +111,11 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			try
 			{
-				return dirInfo.EnumerateDirectoriesSafely(searchPattern, searchOption).ToArray();
+				return dirInfo.EnumerateDirectoriesSafely( searchPattern, searchOption ).ToArray();
 			}
-			catch ( Exception e )
+			catch (Exception e)
 			{
-				Logger.LogException(e);
+				Logger.LogException( e );
 				return Array.Empty<DirectoryInfo>();
 			}
 		}
@@ -128,11 +128,11 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			try
 			{
-				return dirInfo.EnumerateFilesSafely(searchPattern, searchOption).ToArray();
+				return dirInfo.EnumerateFilesSafely( searchPattern, searchOption ).ToArray();
 			}
-			catch ( Exception e )
+			catch (Exception e)
 			{
-				Logger.LogException(e);
+				Logger.LogException( e );
 				return Array.Empty<FileInfo>();
 			}
 		}
@@ -145,11 +145,11 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			try
 			{
-				return dirInfo.EnumerateFileSystemInfosSafely(searchPattern, searchOption).ToArray();
+				return dirInfo.EnumerateFileSystemInfosSafely( searchPattern, searchOption ).ToArray();
 			}
-			catch ( Exception e )
+			catch (Exception e)
 			{
-				Logger.LogException(e);
+				Logger.LogException( e );
 				return Array.Empty<FileSystemInfo>();
 			}
 		}

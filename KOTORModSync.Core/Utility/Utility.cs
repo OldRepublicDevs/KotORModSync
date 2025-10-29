@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,18 +7,20 @@ using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core.FileSystemUtils;
 
 namespace KOTORModSync.Core.Utility
 {
-	public static class Utility
+	public static class UtilityHelper
 	{
 		[NotNull]
-		public static string ReplaceCustomVariables([NotNull] string path)
+		public static string ReplaceCustomVariables( [NotNull] string path )
 		{
-			if ( path is null )
-				throw new ArgumentNullException(nameof(path));
+			if (path is null)
+				throw new ArgumentNullException( nameof( path ) );
 
 			return path.Replace(
 				oldValue: "<<modDirectory>>",
@@ -30,10 +32,10 @@ namespace KOTORModSync.Core.Utility
 		}
 
 		[NotNull]
-		public static string RestoreCustomVariables([NotNull] string fullPath)
+		public static string RestoreCustomVariables( [NotNull] string fullPath )
 		{
-			if ( fullPath is null )
-				throw new ArgumentNullException(nameof(fullPath));
+			if (fullPath is null)
+				throw new ArgumentNullException( nameof( fullPath ) );
 
 			return fullPath.Replace(
 				oldValue: MainConfig.SourcePath?.FullName ?? string.Empty,
@@ -44,10 +46,10 @@ namespace KOTORModSync.Core.Utility
 			);
 		}
 
-		public static bool IsRunningInsideAppBundle(string baseDirectory = null)
+		public static bool IsRunningInsideAppBundle( string baseDirectory = null )
 		{
 			baseDirectory = baseDirectory ?? GetBaseDirectory();
-			return baseDirectory.IndexOf(value: ".app/Contents/MacOS", StringComparison.OrdinalIgnoreCase) >= 0;
+			return baseDirectory.IndexOf( value: ".app/Contents/MacOS", StringComparison.OrdinalIgnoreCase ) >= 0;
 		}
 
 		[NotNull]
@@ -56,22 +58,22 @@ namespace KOTORModSync.Core.Utility
 			string baseDirectory = Assembly.GetEntryAssembly()?.Location;
 			return (
 				!(baseDirectory is null)
-					? Path.GetDirectoryName(baseDirectory)
-					: Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+					? Path.GetDirectoryName( baseDirectory )
+					: Path.GetDirectoryName( Assembly.GetExecutingAssembly().Location )
 			) ?? AppDomain.CurrentDomain.BaseDirectory;
 		}
 
 		[NotNull]
 		public static OSPlatform GetOperatingSystem()
 		{
-			if ( RuntimeInformation.IsOSPlatform(OSPlatform.OSX) )
+			if (RuntimeInformation.IsOSPlatform( OSPlatform.OSX ))
 				return OSPlatform.OSX;
-			if ( RuntimeInformation.IsOSPlatform(OSPlatform.Windows) )
+			if (RuntimeInformation.IsOSPlatform( OSPlatform.Windows ))
 				return OSPlatform.Windows;
-			if ( RuntimeInformation.IsOSPlatform(OSPlatform.Linux) )
+			if (RuntimeInformation.IsOSPlatform( OSPlatform.Linux ))
 				return OSPlatform.Linux;
 
-			switch ( Environment.OSVersion.Platform )
+			switch (Environment.OSVersion.Platform)
 			{
 				case PlatformID.Win32NT:
 				case PlatformID.Win32S:
@@ -84,16 +86,16 @@ namespace KOTORModSync.Core.Utility
 				case PlatformID.Unix:
 					return OSPlatform.Linux;
 				default:
-					throw new Exception("Unknown/unsupported operating system, cannot continue");
+					throw new Exception( "Unknown/unsupported operating system, cannot continue" );
 			}
 		}
 
 		[NotNull]
-		public static string GetResourcesDirectory(string baseDirectory = null)
+		public static string GetResourcesDirectory( string baseDirectory = null )
 		{
 			baseDirectory = baseDirectory ?? GetBaseDirectory();
 
-			if ( !IsRunningInsideAppBundle(baseDirectory) )
+			if (!IsRunningInsideAppBundle( baseDirectory ))
 			{
 				return Path.Combine(
 					baseDirectory,
@@ -101,8 +103,8 @@ namespace KOTORModSync.Core.Utility
 				);
 			}
 
-			var directoryInfo = new DirectoryInfo(baseDirectory);
-			if ( !(directoryInfo.Parent?.Parent is null) )
+			DirectoryInfo directoryInfo = new DirectoryInfo( baseDirectory );
+			if (!(directoryInfo.Parent?.Parent is null))
 				baseDirectory = directoryInfo.Parent.Parent.FullName;
 
 			return Path.Combine(
@@ -113,57 +115,57 @@ namespace KOTORModSync.Core.Utility
 		}
 
 		[CanBeNull]
-		public static object GetEnumDescription([NotNull] Enum value)
+		public static object GetEnumDescription( [NotNull] Enum value )
 		{
-			if ( value is null )
-				throw new ArgumentNullException(nameof(value));
+			if (value is null)
+				throw new ArgumentNullException( nameof( value ) );
 
 			Type type = value.GetType();
-			string name = Enum.GetName(type, value);
-			if ( name is null )
+			string name = Enum.GetName( type, value );
+			if (name is null)
 				return null;
 
-			FieldInfo field = type.GetField(name);
+			FieldInfo field = type.GetField( name );
 
 			DescriptionAttribute attribute = field?.GetCustomAttribute<DescriptionAttribute>();
 			return attribute?.Description ?? name;
 		}
 
-		public static bool IsDirectoryWritable([NotNull] DirectoryInfo dirPath)
+		public static bool IsDirectoryWritable( [NotNull] DirectoryInfo dirPath )
 		{
-			if ( dirPath is null )
-				throw new ArgumentNullException(nameof(dirPath));
+			if (dirPath is null)
+				throw new ArgumentNullException( nameof( dirPath ) );
 
 			try
 			{
 				string testFile = Path.Combine(
-					PathHelper.GetCaseSensitivePath(dirPath).FullName,
+					PathHelper.GetCaseSensitivePath( dirPath ).FullName,
 					Path.GetRandomFileName()
 				);
-				using ( File.Create(
+				using (File.Create(
 						testFile,
 						bufferSize: 1,
 						FileOptions.DeleteOnClose
-					) ) { }
+					)) { }
 
 				return true;
 			}
-			catch ( UnauthorizedAccessException ex )
+			catch (UnauthorizedAccessException ex)
 			{
-				Logger.LogError($"Failed to access files in the destination directory: {ex.Message}");
+				Logger.LogError( $"Failed to access files in the destination directory: {ex.Message}" );
 			}
-			catch ( PathTooLongException ex )
+			catch (PathTooLongException ex)
 			{
-				Logger.LogException(ex);
-				Logger.LogError($"The pathname is too long: '{dirPath.FullName}'");
+				Logger.LogException( ex );
+				Logger.LogError( $"The pathname is too long: '{dirPath.FullName}'" );
 				Logger.LogError(
 					"Please utilize the registry patch that increases the Windows legacy path limit higher than 260 characters"
 					+ " or move your folder/file above to a shorter directory path."
 				);
 			}
-			catch ( IOException ex )
+			catch (IOException ex)
 			{
-				Logger.LogError($"Failed to access files in the destination directory: {ex.Message}");
+				Logger.LogError( $"Failed to access files in the destination directory: {ex.Message}" );
 			}
 
 			return false;
@@ -172,17 +174,17 @@ namespace KOTORModSync.Core.Utility
 		[CanBeNull]
 		public static DirectoryInfo ChooseDirectory()
 		{
-			Console.Write("Enter the path: ");
+			Console.Write( "Enter the path: " );
 			string thisPath = Console.ReadLine();
-			if ( string.IsNullOrEmpty(thisPath) )
+			if (string.IsNullOrEmpty( thisPath ))
 				return default;
 
 			thisPath = thisPath.Trim();
 
-			if ( Directory.Exists(thisPath) )
-				return new DirectoryInfo(thisPath);
+			if (Directory.Exists( thisPath ))
+				return new DirectoryInfo( thisPath );
 
-			Console.Write($"Directory '{thisPath}' does not exist.");
+			Console.Write( $"Directory '{thisPath}' does not exist." );
 			return default;
 		}
 	}

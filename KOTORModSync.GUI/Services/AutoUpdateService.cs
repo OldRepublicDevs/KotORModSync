@@ -1,10 +1,12 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Threading.Tasks;
+
 using KOTORModSync.Core;
+
 using NetSparkleUpdater;
 using NetSparkleUpdater.Enums;
 using NetSparkleUpdater.SignatureVerifiers;
@@ -33,9 +35,9 @@ namespace KOTORModSync.Services
 		/// </summary>
 		public void Initialize()
 		{
-			if ( _isInitialized )
+			if (_isInitialized)
 			{
-				Logger.Log("AutoUpdateService already initialized.");
+				Logger.Log( "AutoUpdateService already initialized." );
 				return;
 			}
 
@@ -47,7 +49,7 @@ namespace KOTORModSync.Services
 				// Initialize NetSparkle with Ed25519 signature verification
 				_sparkle = new SparkleUpdater(
 					appcastUrl: AppCastUrl,
-					signatureVerifier: new Ed25519Checker(SecurityMode.Strict, "jZSQV+2C1HL2Ufek3ekC7gtgOk5ctuDQzngh86OEdlA=")
+					signatureVerifier: new Ed25519Checker( SecurityMode.Strict, "jZSQV+2C1HL2Ufek3ekC7gtgOk5ctuDQzngh86OEdlA=" )
 				)
 				{
 					UIFactory = uiFactory,
@@ -55,11 +57,11 @@ namespace KOTORModSync.Services
 				};
 
 				_isInitialized = true;
-				Logger.Log("AutoUpdateService initialized successfully.");
+				Logger.Log( "AutoUpdateService initialized successfully." );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to initialize AutoUpdateService");
+				Logger.LogException( ex, "Failed to initialize AutoUpdateService" );
 			}
 		}
 
@@ -68,21 +70,21 @@ namespace KOTORModSync.Services
 		/// </summary>
 		public void StartUpdateCheckLoop()
 		{
-			if ( !_isInitialized )
+			if (!_isInitialized)
 			{
-				Logger.Log("Cannot start update check loop: AutoUpdateService not initialized.");
+				Logger.Log( "Cannot start update check loop: AutoUpdateService not initialized." );
 				return;
 			}
 
 			try
 			{
 				// Check for updates once per day
-				_sparkle.StartLoop(doInitialCheck: true, checkFrequency: TimeSpan.FromHours(24));
-				Logger.Log("Started automatic update check loop.");
+				_sparkle.StartLoop( doInitialCheck: true, checkFrequency: TimeSpan.FromHours( 24 ) );
+				Logger.Log( "Started automatic update check loop." );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to start update check loop");
+				Logger.LogException( ex, "Failed to start update check loop" );
 			}
 		}
 
@@ -92,30 +94,34 @@ namespace KOTORModSync.Services
 		/// <returns>True if updates are available, false otherwise.</returns>
 		public async Task<bool> CheckForUpdatesAsync()
 		{
-			if ( !_isInitialized )
+			if (!_isInitialized)
 			{
-				Logger.Log("Cannot check for updates: AutoUpdateService not initialized.");
+				Logger.Log( "Cannot check for updates: AutoUpdateService not initialized." );
 				return false;
 			}
 
 			try
 			{
-				Logger.Log("Manually checking for updates...");
-				var updateInfo = await _sparkle.CheckForUpdatesQuietly();
+				Logger.Log( "Manually checking for updates..." );
 
-				if ( updateInfo.Status == UpdateStatus.UpdateAvailable )
+
+				var updateInfo = await _sparkle.CheckForUpdatesQuietly().ConfigureAwait( false );
+
+				if (updateInfo.Status == UpdateStatus.UpdateAvailable)
+
+
 				{
 					// Show update UI to user
-					await _sparkle.CheckForUpdatesAtUserRequest();
+					await _sparkle.CheckForUpdatesAtUserRequest().ConfigureAwait( false );
 					return true;
 				}
 
-				Logger.Log($"No updates available. Status: {updateInfo.Status}");
+				Logger.Log( $"No updates available. Status: {updateInfo.Status}" );
 				return false;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to check for updates");
+				Logger.LogException( ex, "Failed to check for updates" );
 				return false;
 			}
 		}
@@ -125,10 +131,10 @@ namespace KOTORModSync.Services
 		/// </summary>
 		public void StopUpdateCheckLoop()
 		{
-			if ( _sparkle != null )
+			if (_sparkle != null)
 			{
 				_sparkle.StopLoop();
-				Logger.Log("Stopped automatic update check loop.");
+				Logger.Log( "Stopped automatic update check loop." );
 			}
 		}
 
@@ -137,12 +143,12 @@ namespace KOTORModSync.Services
 
 		public void Dispose()
 		{
-			if ( _disposed )
+			if (_disposed)
 				return;
 
 			try
 			{
-				if ( _sparkle != null )
+				if (_sparkle != null)
 				{
 					StopUpdateCheckLoop();
 					_sparkle.Dispose();
@@ -150,15 +156,14 @@ namespace KOTORModSync.Services
 				}
 
 				_disposed = true;
-				Logger.Log("AutoUpdateService disposed.");
+				Logger.Log( "AutoUpdateService disposed." );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error disposing AutoUpdateService");
+				Logger.LogException( ex, "Error disposing AutoUpdateService" );
 			}
 		}
 
 		#endregion
 	}
 }
-

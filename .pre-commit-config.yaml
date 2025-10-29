@@ -1,0 +1,9 @@
+repos:
+- repo: local
+  hooks:
+  - id: dotnet-format
+    name: dotnet format
+    entry: dotnet format
+    language: system
+    types: [c#]
+    args: [--include, "${staged}"]

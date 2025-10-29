@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,7 +9,7 @@ namespace KOTORModSync.Core.Installation
 {
 	public readonly struct ResumeResult
 	{
-		public ResumeResult(Guid sessionId, IReadOnlyList<ModComponent> orderedComponents)
+		public ResumeResult( Guid sessionId, IReadOnlyList<ModComponent> orderedComponents )
 		{
 			SessionId = sessionId;
 			OrderedComponents = orderedComponents;
@@ -19,4 +19,3 @@ namespace KOTORModSync.Core.Installation
 		public IReadOnlyList<ModComponent> OrderedComponents { get; }
 	}
 }
-

@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -15,41 +15,40 @@ namespace KOTORModSync.Dialogs
 			InitializeComponent();
 		}
 
-		public ProgressDialog(string title, string message) : this()
+		public ProgressDialog( string title, string message ) : this()
 		{
-			var titleText = this.FindControl<TextBlock>("TitleText");
-			var messageText = this.FindControl<TextBlock>("MessageText");
+			var titleText = this.FindControl<TextBlock>( "TitleText" );
+			var messageText = this.FindControl<TextBlock>( "MessageText" );
 
-			if ( titleText != null )
+			if (titleText != null)
 				titleText.Text = title;
 
-			if ( messageText != null )
+			if (messageText != null)
 				messageText.Text = message;
 		}
 
 		private void InitializeComponent()
 		{
-			AvaloniaXamlLoader.Load(this);
+			AvaloniaXamlLoader.Load( this );
 		}
 
-		public void UpdateProgress(string message, int current, int total)
+		public void UpdateProgress( string message, int current, int total )
 		{
-			Dispatcher.UIThread.Post(() =>
+			Dispatcher.UIThread.Post( () =>
 			{
-				var messageText = this.FindControl<TextBlock>("MessageText");
-				var progressBar = this.FindControl<ProgressBar>("ProgressBar");
+				var messageText = this.FindControl<TextBlock>( "MessageText" );
+				var progressBar = this.FindControl<ProgressBar>( "ProgressBar" );
 
-				if ( messageText != null )
+				if (messageText != null)
 					messageText.Text = message;
 
-				if ( progressBar != null && total > 0 )
+				if (progressBar != null && total > 0)
 				{
 					progressBar.IsIndeterminate = false;
 					progressBar.Maximum = total;
 					progressBar.Value = current;
 				}
-			});
+			} );
 		}
 	}
 }
-

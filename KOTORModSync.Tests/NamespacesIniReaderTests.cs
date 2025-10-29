@@ -1,8 +1,9 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System.Text;
+
 using KOTORModSync.Core.TSLPatcher;
 
 namespace KOTORModSync.Tests
@@ -10,20 +11,20 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class NamespacesIniReaderTests
 	{
-		private static Stream CreateNamespacesIniStream(string content)
+		private static Stream CreateNamespacesIniStream( string content )
 		{
-			byte[] byteArray = Encoding.UTF8.GetBytes(content);
-			return new MemoryStream(byteArray);
+			byte[] byteArray = Encoding.UTF8.GetBytes( content );
+			return new MemoryStream( byteArray );
 		}
 
-		private static Stream CreateNamespacesIniArchive(string content)
+		private static Stream CreateNamespacesIniArchive( string content )
 		{
 			var memoryStream = new MemoryStream();
-			using ( SharpCompress.Writers.IWriter archive = SharpCompress.Writers.WriterFactory.Open(memoryStream, SharpCompress.Common.ArchiveType.Zip, new SharpCompress.Writers.WriterOptions(SharpCompress.Common.CompressionType.Deflate) { LeaveStreamOpen = true }) )
+			using (SharpCompress.Writers.IWriter archive = SharpCompress.Writers.WriterFactory.Open( memoryStream, SharpCompress.Common.ArchiveType.Zip, new SharpCompress.Writers.WriterOptions( SharpCompress.Common.CompressionType.Deflate ) { LeaveStreamOpen = true } ))
 			{
-				byte[] contentBytes = Encoding.UTF8.GetBytes(content);
-				using ( var contentStream = new MemoryStream(contentBytes) )
-					archive.Write("tslpatchdata/namespaces.ini", contentStream, DateTime.Now);
+				byte[] contentBytes = Encoding.UTF8.GetBytes( content );
+				using (var contentStream = new MemoryStream( contentBytes ))
+					archive.Write( "tslpatchdata/namespaces.ini", contentStream, DateTime.Now );
 			}
 			memoryStream.Position = 0;
 			return memoryStream;
@@ -52,24 +53,24 @@ Name=standard hk47 with tslrcm
 [hk50TSLRCM]
 Name=hk50 with tslrcm
 ";
-			Stream stream = CreateNamespacesIniArchive(content);
+			Stream stream = CreateNamespacesIniArchive( content );
 
-			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(stream);
+			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive( stream );
 
-			Assert.That(result, Is.Not.Null);
-			Assert.That(result, Has.Count.EqualTo(5));
+			Assert.That( result, Is.Not.Null );
+			Assert.That( result, Has.Count.EqualTo( 5 ) );
 
 			Assert.Multiple(
 				() =>
 				{
-					Assert.That(result["Namespaces"]["Namespace1"], Is.EqualTo("standard"));
-					Assert.That(result["Namespaces"]["Namespace2"], Is.EqualTo("hk50"));
-					Assert.That(result["Namespaces"]["Namespace3"], Is.EqualTo("standardTSLRCM"));
-					Assert.That(result["Namespaces"]["Namespace4"], Is.EqualTo("hk50TSLRCM"));
-					Assert.That(result["standard"]["Name"], Is.EqualTo("standard hk47 no tslrcm"));
-					Assert.That(result["hk50"]["Name"], Is.EqualTo("hk50 no tslrcm"));
-					Assert.That(result["standardTSLRCM"]["Name"], Is.EqualTo("standard hk47 with tslrcm"));
-					Assert.That(result["hk50TSLRCM"]["Name"], Is.EqualTo("hk50 with tslrcm"));
+					Assert.That( result["Namespaces"]["Namespace1"], Is.EqualTo( "standard" ) );
+					Assert.That( result["Namespaces"]["Namespace2"], Is.EqualTo( "hk50" ) );
+					Assert.That( result["Namespaces"]["Namespace3"], Is.EqualTo( "standardTSLRCM" ) );
+					Assert.That( result["Namespaces"]["Namespace4"], Is.EqualTo( "hk50TSLRCM" ) );
+					Assert.That( result["standard"]["Name"], Is.EqualTo( "standard hk47 no tslrcm" ) );
+					Assert.That( result["hk50"]["Name"], Is.EqualTo( "hk50 no tslrcm" ) );
+					Assert.That( result["standardTSLRCM"]["Name"], Is.EqualTo( "standard hk47 with tslrcm" ) );
+					Assert.That( result["hk50TSLRCM"]["Name"], Is.EqualTo( "hk50 with tslrcm" ) );
 				}
 			);
 		}
@@ -79,7 +80,7 @@ Name=hk50 with tslrcm
 		{
 
 			var memoryStream = new MemoryStream();
-			using ( SharpCompress.Writers.IWriter archive = SharpCompress.Writers.WriterFactory.Open(memoryStream, SharpCompress.Common.ArchiveType.Zip, new SharpCompress.Writers.WriterOptions(SharpCompress.Common.CompressionType.Deflate) { LeaveStreamOpen = true }) )
+			using (SharpCompress.Writers.IWriter archive = SharpCompress.Writers.WriterFactory.Open( memoryStream, SharpCompress.Common.ArchiveType.Zip, new SharpCompress.Writers.WriterOptions( SharpCompress.Common.CompressionType.Deflate ) { LeaveStreamOpen = true } ))
 			{
 				const string content = @"
 [Namespaces]
@@ -88,18 +89,18 @@ Namespace2=hk50
 Namespace3=standardTSLRCM
 Namespace4=hk50TSLRCM
 ";
-				byte[] contentBytes = Encoding.UTF8.GetBytes(content);
-				using ( var contentStream = new MemoryStream(contentBytes) )
+				byte[] contentBytes = Encoding.UTF8.GetBytes( content );
+				using (var contentStream = new MemoryStream( contentBytes ))
 				{
 
-					archive.Write("namespaces.ini", contentStream, DateTime.Now);
+					archive.Write( "namespaces.ini", contentStream, DateTime.Now );
 				}
 			}
 			memoryStream.Position = 0;
 
-			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(memoryStream);
+			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive( memoryStream );
 
-			Assert.That(result, Is.Null);
+			Assert.That( result, Is.Null );
 		}
 
 		[Test]
@@ -107,11 +108,11 @@ Namespace4=hk50TSLRCM
 		{
 
 			const string content = "Invalid Content";
-			Stream stream = CreateNamespacesIniStream(content);
+			Stream stream = CreateNamespacesIniStream( content );
 
-			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive(stream);
+			Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive( stream );
 
-			Assert.That(result, Is.Null);
+			Assert.That( result, Is.Null );
 		}
 
 		[Test]
@@ -138,19 +139,19 @@ Name=standard hk47 with tslrcm
 Name=hk50 with tslrcm
 ";
 
-			using ( var reader = new StreamReader(CreateNamespacesIniStream(content)) )
+			using (var reader = new StreamReader( CreateNamespacesIniStream( content ) ))
 			{
-				Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni(reader);
+				Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni( reader );
 
-				Assert.That(result, Is.Not.Null);
-				Assert.That(result, Has.Count.EqualTo(5));
+				Assert.That( result, Is.Not.Null );
+				Assert.That( result, Has.Count.EqualTo( 5 ) );
 				Assert.Multiple(
 					() =>
 					{
-						Assert.That(result["standard"]["Name"], Is.EqualTo("standard hk47 no tslrcm"));
-						Assert.That(result["hk50"]["Name"], Is.EqualTo("hk50 no tslrcm"));
-						Assert.That(result["standardTSLRCM"]["Name"], Is.EqualTo("standard hk47 with tslrcm"));
-						Assert.That(result["hk50TSLRCM"]["Name"], Is.EqualTo("hk50 with tslrcm"));
+						Assert.That( result["standard"]["Name"], Is.EqualTo( "standard hk47 no tslrcm" ) );
+						Assert.That( result["hk50"]["Name"], Is.EqualTo( "hk50 no tslrcm" ) );
+						Assert.That( result["standardTSLRCM"]["Name"], Is.EqualTo( "standard hk47 with tslrcm" ) );
+						Assert.That( result["hk50TSLRCM"]["Name"], Is.EqualTo( "hk50 with tslrcm" ) );
 					}
 				);
 			}
@@ -162,7 +163,7 @@ Name=hk50 with tslrcm
 
 			StreamReader? reader = null;
 
-			_ = Assert.Throws<ArgumentNullException>(() => IniHelper.ParseNamespacesIni(reader));
+			_ = Assert.Throws<ArgumentNullException>( () => IniHelper.ParseNamespacesIni( reader ) );
 		}
 
 		[Test]
@@ -170,13 +171,13 @@ Name=hk50 with tslrcm
 		{
 
 			string content = "Invalid Content";
-			using ( var reader = new StreamReader(CreateNamespacesIniStream(content)) )
+			using (var reader = new StreamReader( CreateNamespacesIniStream( content ) ))
 			{
 
-				Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni(reader);
+				Dictionary<string, Dictionary<string, string>> result = IniHelper.ParseNamespacesIni( reader );
 
-				Assert.That(result, Is.Not.Null);
-				Assert.That(result, Is.Empty);
+				Assert.That( result, Is.Not.Null );
+				Assert.That( result, Is.Empty );
 			}
 		}
 	}

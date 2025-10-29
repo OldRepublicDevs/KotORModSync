@@ -1,19 +1,24 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
+
 using static KOTORModSync.Dialogs.ComponentMergeConflictViewModel;
+
 using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Dialogs
@@ -44,7 +49,7 @@ namespace KOTORModSync.Dialogs
 			[NotNull] List<ModComponent> incomingComponents,
 			[NotNull] string existingSource,
 			[NotNull] string incomingSource,
-			[NotNull] Func<ModComponent, ModComponent, bool> matchFunc)
+			[NotNull] Func<ModComponent, ModComponent, bool> matchFunc )
 		{
 			InitializeComponent();
 #if DEBUG
@@ -56,7 +61,7 @@ namespace KOTORModSync.Dialogs
 				incomingComponents,
 				existingSource,
 				incomingSource,
-				matchFunc);
+				matchFunc );
 
 			DataContext = ViewModel;
 
@@ -69,16 +74,16 @@ namespace KOTORModSync.Dialogs
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+		private void InitializeComponent() => AvaloniaXamlLoader.Load( this );
 
-		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+		private void MinimizeButton_Click( object sender, RoutedEventArgs e ) => WindowState = WindowState.Minimized;
 
-		private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+		private void MaximizeButton_Click( object sender, RoutedEventArgs e )
 		{
-			if ( !(sender is Button maximizeButton) )
+			if (!(sender is Button maximizeButton))
 				return;
 
-			if ( WindowState == WindowState.Maximized )
+			if (WindowState == WindowState.Maximized)
 			{
 				WindowState = WindowState.Normal;
 				maximizeButton.Content = "▢";
@@ -90,13 +95,13 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private void CloseButton_Click(object sender, RoutedEventArgs e)
+		private void CloseButton_Click( object sender, RoutedEventArgs e )
 		{
 			UserConfirmed = false;
 			Close();
 		}
 
-		private void Continue_Click(object sender, RoutedEventArgs e)
+		private void Continue_Click( object sender, RoutedEventArgs e )
 		{
 			try
 			{
@@ -104,24 +109,24 @@ namespace KOTORModSync.Dialogs
 				UserConfirmed = true;
 				Close();
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error merging components");
+				Logger.LogException( ex, "Error merging components" );
 			}
 		}
 
-		private void Cancel_Click(object sender, RoutedEventArgs e)
+		private void Cancel_Click( object sender, RoutedEventArgs e )
 		{
 			UserConfirmed = false;
 			Close();
 		}
 
-		private void OnItemClicked(object sender, PointerPressedEventArgs e)
+		private void OnItemClicked( object sender, PointerPressedEventArgs e )
 		{
-			if ( !(sender is Border border) || !(border.DataContext is ComponentConflictItem item) )
+			if (!(sender is Border border) || !(border.DataContext is ComponentConflictItem item))
 				return;
 
-			if ( item.IsFromExisting )
+			if (item.IsFromExisting)
 				ViewModel.SelectedExistingItem = item;
 			else
 				ViewModel.SelectedIncomingItem = item;
@@ -129,212 +134,212 @@ namespace KOTORModSync.Dialogs
 			e.Handled = true;
 		}
 
-		private void OnItemContextRequested(object sender, RoutedEventArgs e)
+		private void OnItemContextRequested( object sender, RoutedEventArgs e )
 		{
 
-			if ( !(sender is Border border) || !(border.DataContext is ComponentConflictItem item) )
+			if (!(sender is Border border) || !(border.DataContext is ComponentConflictItem item))
 				return;
-			if ( item.IsFromExisting )
+			if (item.IsFromExisting)
 				ViewModel.SelectedExistingItem = item;
 			else
 				ViewModel.SelectedIncomingItem = item;
 		}
 
-		private void LinkSelectedMenuItem_Click(object sender, RoutedEventArgs e)
+		private void LinkSelectedMenuItem_Click( object sender, RoutedEventArgs e )
 		{
 			try
 			{
-				if ( ViewModel?.LinkSelectedCommand?.CanExecute(null) == true )
-					ViewModel.LinkSelectedCommand.Execute(null);
+				if (ViewModel?.LinkSelectedCommand?.CanExecute( null ) == true)
+					ViewModel.LinkSelectedCommand.Execute( null );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error linking selected components");
+				Logger.LogException( ex, "Error linking selected components" );
 			}
 		}
 
-		private void UnlinkMenuItem_Click(object sender, RoutedEventArgs e)
+		private void UnlinkMenuItem_Click( object sender, RoutedEventArgs e )
 		{
 			try
 			{
-				if ( ViewModel?.UnlinkSelectedCommand?.CanExecute(null) == true )
-					ViewModel.UnlinkSelectedCommand.Execute(null);
+				if (ViewModel?.UnlinkSelectedCommand?.CanExecute( null ) == true)
+					ViewModel.UnlinkSelectedCommand.Execute( null );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error unlinking component");
+				Logger.LogException( ex, "Error unlinking component" );
 			}
 		}
 
-		private void UseThisGuid_Click(object sender, RoutedEventArgs e)
+		private void UseThisGuid_Click( object sender, RoutedEventArgs e )
 		{
 			try
 			{
-				if ( !(sender is MenuItem menuItem) || !(menuItem.Parent is ContextMenu contextMenu) || !(contextMenu.Parent is Border border) )
+				if (!(sender is MenuItem menuItem) || !(menuItem.Parent is ContextMenu contextMenu) || !(contextMenu.Parent is Border border))
 					return;
 
-				if ( !(border.DataContext is ComponentConflictItem item) )
+				if (!(border.DataContext is ComponentConflictItem item))
 					return;
 
-				ViewModel.ChooseGuidForItem(item);
+				ViewModel.ChooseGuidForItem( item );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error choosing GUID");
+				Logger.LogException( ex, "Error choosing GUID" );
 			}
 		}
 
-		private void ExistingTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		private void ExistingTabControl_SelectionChanged( object sender, SelectionChangedEventArgs e )
 		{
 			try
 			{
-				if ( !(sender is TabControl tabControl) )
+				if (!(sender is TabControl tabControl))
 					return;
 
-				if ( tabControl.SelectedIndex == 1 )
+				if (tabControl.SelectedIndex == 1)
 					ViewModel?.UpdateExistingTomlView();
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error updating existing TOML view");
+				Logger.LogException( ex, "Error updating existing TOML view" );
 			}
 		}
 
-		private void IncomingTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		private void IncomingTabControl_SelectionChanged( object sender, SelectionChangedEventArgs e )
 		{
 			try
 			{
-				if ( !(sender is TabControl tabControl) )
+				if (!(sender is TabControl tabControl))
 					return;
 
-				if ( tabControl.SelectedIndex == 1 )
+				if (tabControl.SelectedIndex == 1)
 					ViewModel?.UpdateIncomingTomlView();
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error updating incoming TOML view");
+				Logger.LogException( ex, "Error updating incoming TOML view" );
 			}
 		}
 
-		private void MergedTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		private void MergedTabControl_SelectionChanged( object sender, SelectionChangedEventArgs e )
 		{
 			try
 			{
-				if ( !(sender is TabControl tabControl) )
+				if (!(sender is TabControl tabControl))
 					return;
 
-				if ( tabControl.SelectedIndex == 1 )
+				if (tabControl.SelectedIndex == 1)
 					ViewModel?.UpdateMergedTomlView();
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error updating merged TOML view");
+				Logger.LogException( ex, "Error updating merged TOML view" );
 			}
 		}
 
-		private void OnJumpToRawViewRequested(object sender, JumpToRawViewEventArgs e)
+		private void OnJumpToRawViewRequested( object sender, JumpToRawViewEventArgs e )
 		{
 			try
 			{
-				if ( e.Item == null ) return;
+				if (e.Item == null) return;
 
-				if ( e.Item.IsFromExisting )
+				if (e.Item.IsFromExisting)
 				{
 
-					TabControl existingTabControl = this.FindControl<TabControl>("ExistingTabControl");
-					if ( existingTabControl == null )
+					TabControl existingTabControl = this.FindControl<TabControl>( "ExistingTabControl" );
+					if (existingTabControl == null)
 						return;
 					existingTabControl.SelectedIndex = 1;
 
 					ViewModel?.UpdateExistingTomlView();
 
-					if ( ViewModel == null )
+					if (ViewModel == null)
 						return;
-					int lineNumber = ViewModel.GetComponentLineNumber(e.Item);
-					if ( lineNumber > 0 )
+					int lineNumber = ViewModel.GetComponentLineNumber( e.Item );
+					if (lineNumber > 0)
 					{
 
-						Avalonia.Threading.Dispatcher.UIThread.Post(() => ComponentMergeConflictDialog.ScrollToLineInTomlView(existingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
+						Avalonia.Threading.Dispatcher.UIThread.Post( () => ComponentMergeConflictDialog.ScrollToLineInTomlView( existingTabControl, lineNumber ), Avalonia.Threading.DispatcherPriority.Loaded );
 					}
 				}
 				else
 				{
 
-					TabControl incomingTabControl = this.FindControl<TabControl>("IncomingTabControl");
-					if ( incomingTabControl == null )
+					TabControl incomingTabControl = this.FindControl<TabControl>( "IncomingTabControl" );
+					if (incomingTabControl == null)
 						return;
 					incomingTabControl.SelectedIndex = 1;
 
 					ViewModel?.UpdateIncomingTomlView();
 
-					if ( ViewModel == null )
+					if (ViewModel == null)
 						return;
-					int lineNumber = ViewModel.GetComponentLineNumber(e.Item);
-					if ( lineNumber > 0 )
+					int lineNumber = ViewModel.GetComponentLineNumber( e.Item );
+					if (lineNumber > 0)
 					{
 
-						Avalonia.Threading.Dispatcher.UIThread.Post(() => ComponentMergeConflictDialog.ScrollToLineInTomlView(incomingTabControl, lineNumber), Avalonia.Threading.DispatcherPriority.Loaded);
+						Avalonia.Threading.Dispatcher.UIThread.Post( () => ComponentMergeConflictDialog.ScrollToLineInTomlView( incomingTabControl, lineNumber ), Avalonia.Threading.DispatcherPriority.Loaded );
 					}
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error jumping to raw view");
+				Logger.LogException( ex, "Error jumping to raw view" );
 			}
 		}
 
-		private static void ScrollToLineInTomlView(TabControl tabControl, int lineNumber)
+		private static void ScrollToLineInTomlView( TabControl tabControl, int lineNumber )
 		{
 			try
 			{
 
-				if ( tabControl.SelectedIndex != 1 ) return;
+				if (tabControl.SelectedIndex != 1) return;
 
-				ScrollViewer scrollViewer = ComponentMergeConflictDialog.FindScrollViewerInTab(tabControl);
-				if ( scrollViewer == null ) return;
+				ScrollViewer scrollViewer = ComponentMergeConflictDialog.FindScrollViewerInTab( tabControl );
+				if (scrollViewer == null) return;
 
-				ListBox listBox = FindDescendant<ListBox>(scrollViewer);
-				if ( listBox == null || listBox.ItemCount == 0 ) return;
+				ListBox listBox = FindDescendant<ListBox>( scrollViewer );
+				if (listBox == null || listBox.ItemCount == 0) return;
 
-				Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+				Avalonia.Threading.Dispatcher.UIThread.Post( () =>
 				{
 					try
 					{
 
-						int targetIndex = Math.Max(0, Math.Min(lineNumber - 1, listBox.ItemCount - 1));
+						int targetIndex = Math.Max( 0, Math.Min( lineNumber - 1, listBox.ItemCount - 1 ) );
 
-						if ( listBox.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
+						if (listBox.ContainerFromIndex( 0 ) is Control firstItem && firstItem.Bounds.Height > 0)
 						{
 							double itemHeight = firstItem.Bounds.Height;
-							double targetOffset = Math.Max(0, (targetIndex - 2) * itemHeight);
-							scrollViewer.Offset = new Vector(0, targetOffset);
+							double targetOffset = Math.Max( 0, (targetIndex - 2) * itemHeight );
+							scrollViewer.Offset = new Vector( 0, targetOffset );
 						}
 						else
 						{
 
-							if ( listBox.ContainerFromIndex(targetIndex) is Control targetItem )
+							if (listBox.ContainerFromIndex( targetIndex ) is Control targetItem)
 								targetItem.BringIntoView();
 						}
 					}
-					catch ( Exception innerEx )
+					catch (Exception innerEx)
 					{
-						Logger.LogException(innerEx, "Error in scroll dispatcher action");
+						Logger.LogException( innerEx, "Error in scroll dispatcher action" );
 					}
-				}, Avalonia.Threading.DispatcherPriority.Background);
+				}, Avalonia.Threading.DispatcherPriority.Background );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error scrolling to line");
+				Logger.LogException( ex, "Error scrolling to line" );
 			}
 		}
 
-		private static ScrollViewer FindScrollViewerInTab(TabControl tabControl)
+		private static ScrollViewer FindScrollViewerInTab( TabControl tabControl )
 		{
 			try
 			{
 				return !(tabControl.SelectedItem is TabItem selectedTab)
 					   ? null
-					   : FindDescendant<ScrollViewer>(selectedTab);
+					   : FindDescendant<ScrollViewer>( selectedTab );
 			}
 			catch
 			{
@@ -342,186 +347,186 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private static T FindDescendant<T>(Control control) where T : Control
+		private static T FindDescendant<T>( Control control ) where T : Control
 		{
-			if ( control == null ) return null;
+			if (control == null) return null;
 
-			if ( control is T result )
+			if (control is T result)
 				return result;
 
 			IEnumerable<Visual> visualChildren = control.GetVisualChildren();
-			foreach ( Visual child in visualChildren )
+			foreach (Visual child in visualChildren)
 			{
-				if ( !(child is Control childControl) )
+				if (!(child is Control childControl))
 					continue;
-				T descendant = FindDescendant<T>(childControl);
-				if ( descendant != null )
+				T descendant = FindDescendant<T>( childControl );
+				if (descendant != null)
 					return descendant;
 			}
 
 			return null;
 		}
 
-		private void OnSyncSelectionRequested(object sender, SyncSelectionEventArgs e)
+		private void OnSyncSelectionRequested( object sender, SyncSelectionEventArgs e )
 		{
 			try
 			{
-				if ( e.MatchedItem == null ) return;
+				if (e.MatchedItem == null) return;
 
-				Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+				Avalonia.Threading.Dispatcher.UIThread.Post( () =>
 				{
 
 					string scrollViewerName = e.MatchedItem.IsFromExisting ? "ExistingListScrollViewer" : "IncomingListScrollViewer";
-					ScrollToItemInList(scrollViewerName, e.MatchedItem);
+					ScrollToItemInList( scrollViewerName, e.MatchedItem );
 
-					ScrollToMatchedItemInPreview(e.SelectedItem);
-				}, Avalonia.Threading.DispatcherPriority.Loaded);
+					ScrollToMatchedItemInPreview( e.SelectedItem );
+				}, Avalonia.Threading.DispatcherPriority.Loaded );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error syncing selection");
+				Logger.LogException( ex, "Error syncing selection" );
 			}
 		}
 
-		private void ScrollToMatchedItemInPreview(ComponentConflictItem selectedItem)
+		private void ScrollToMatchedItemInPreview( ComponentConflictItem selectedItem )
 		{
 			try
 			{
-				if ( selectedItem == null || ViewModel == null ) return;
+				if (selectedItem == null || ViewModel == null) return;
 
-				PreviewItem previewItem = ViewModel.PreviewComponents.FirstOrDefault(p =>
+				PreviewItem previewItem = ViewModel.PreviewComponents.FirstOrDefault( p =>
 					p.ModComponent == selectedItem.ModComponent ||
-					p.Name == selectedItem.Name);
+string.Equals( p.Name, selectedItem.Name, StringComparison.Ordinal ) );
 
-				if ( previewItem == null ) return;
+				if (previewItem == null) return;
 
-				ScrollViewer previewScrollViewer = this.FindControl<ScrollViewer>("PreviewScrollViewer");
-				if ( previewScrollViewer == null ) return;
+				ScrollViewer previewScrollViewer = this.FindControl<ScrollViewer>( "PreviewScrollViewer" );
+				if (previewScrollViewer == null) return;
 
-				int index = ViewModel.PreviewComponents.IndexOf(previewItem);
-				if ( index < 0 ) return;
+				int index = ViewModel.PreviewComponents.IndexOf( previewItem );
+				if (index < 0) return;
 
-				Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+				Avalonia.Threading.Dispatcher.UIThread.Post( () =>
 				{
 					try
 					{
 
-						ItemsControl itemsControl = FindDescendant<ItemsControl>(previewScrollViewer);
-						if ( itemsControl == null || itemsControl.ItemCount == 0 ) return;
+						ItemsControl itemsControl = FindDescendant<ItemsControl>( previewScrollViewer );
+						if (itemsControl == null || itemsControl.ItemCount == 0) return;
 
-						if ( itemsControl.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
+						if (itemsControl.ContainerFromIndex( 0 ) is Control firstItem && firstItem.Bounds.Height > 0)
 						{
 							double itemHeight = firstItem.Bounds.Height;
-							double targetOffset = Math.Max(0, (index - 1) * itemHeight);
-							previewScrollViewer.Offset = new Vector(0, targetOffset);
+							double targetOffset = Math.Max( 0, (index - 1) * itemHeight );
+							previewScrollViewer.Offset = new Vector( 0, targetOffset );
 						}
-						else if ( itemsControl.ContainerFromIndex(index) is Control targetItem )
+						else if (itemsControl.ContainerFromIndex( index ) is Control targetItem)
 						{
 
 							targetItem.BringIntoView();
 						}
 					}
-					catch ( Exception innerEx )
+					catch (Exception innerEx)
 					{
-						Logger.LogException(innerEx, "Error in preview scroll action");
+						Logger.LogException( innerEx, "Error in preview scroll action" );
 					}
-				}, Avalonia.Threading.DispatcherPriority.Background);
+				}, Avalonia.Threading.DispatcherPriority.Background );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Error scrolling preview");
+				Logger.LogException( ex, "Error scrolling preview" );
 			}
 		}
 
-		private void ScrollToItemInList(string scrollViewerName, ComponentConflictItem item)
+		private void ScrollToItemInList( string scrollViewerName, ComponentConflictItem item )
 		{
 			try
 			{
-				ScrollViewer scrollViewer = this.FindControl<ScrollViewer>(scrollViewerName);
-				if ( scrollViewer == null ) return;
+				ScrollViewer scrollViewer = this.FindControl<ScrollViewer>( scrollViewerName );
+				if (scrollViewer == null) return;
 
-				ItemsControl itemsControl = FindDescendant<ItemsControl>(scrollViewer);
+				ItemsControl itemsControl = FindDescendant<ItemsControl>( scrollViewer );
 
-				if ( !(itemsControl?.Items is System.Collections.IEnumerable source) )
+				if (!(itemsControl?.Items is System.Collections.IEnumerable source))
 					return;
 
 				int index = 0;
-				foreach ( object listItem in source )
+				foreach (object listItem in source)
 				{
-					if ( listItem == item )
+					if (listItem == item)
 					{
-						Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+						Avalonia.Threading.Dispatcher.UIThread.Post( () =>
 						{
 							try
 							{
 
-								if ( itemsControl.ContainerFromIndex(0) is Control firstItem && firstItem.Bounds.Height > 0 )
+								if (itemsControl.ContainerFromIndex( 0 ) is Control firstItem && firstItem.Bounds.Height > 0)
 								{
 									double itemHeight = firstItem.Bounds.Height;
 
-									double targetOffset = Math.Max(0, index * itemHeight);
-									scrollViewer.Offset = new Vector(0, targetOffset);
+									double targetOffset = Math.Max( 0, index * itemHeight );
+									scrollViewer.Offset = new Vector( 0, targetOffset );
 								}
-								else if ( itemsControl.ContainerFromIndex(index) is Control targetItem )
+								else if (itemsControl.ContainerFromIndex( index ) is Control targetItem)
 								{
 
 									targetItem.BringIntoView();
 								}
 							}
-							catch ( Exception innerEx )
+							catch (Exception innerEx)
 							{
-								Logger.LogException(innerEx, $"Error in scroll action for {scrollViewerName}");
+								Logger.LogException( innerEx, $"Error in scroll action for {scrollViewerName}" );
 							}
-						}, Avalonia.Threading.DispatcherPriority.Background);
+						}, Avalonia.Threading.DispatcherPriority.Background );
 						break;
 					}
 					index++;
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, $"Error scrolling to item in {scrollViewerName}");
+				Logger.LogException( ex, $"Error scrolling to item in {scrollViewerName}" );
 			}
 		}
 
-		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )
 		{
-			if ( !_mouseDownForWindowMoving )
+			if (!_mouseDownForWindowMoving)
 				return;
 
-			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			PointerPoint currentPoint = e.GetCurrentPoint( this );
 			Position = new PixelPoint(
 				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
 				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
 			);
 		}
 
-		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
+		private void InputElement_OnPointerPressed( object sender, PointerPressedEventArgs e )
 		{
-			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
 
-			if ( ShouldIgnorePointerForWindowDrag(e) )
+			if (ShouldIgnorePointerForWindowDrag( e ))
 				return;
 
 			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint(this);
+			_originalPoint = e.GetCurrentPoint( this );
 		}
 
-		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+		private void InputElement_OnPointerReleased( object sender, PointerEventArgs e ) =>
 			_mouseDownForWindowMoving = false;
 
-		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		private bool ShouldIgnorePointerForWindowDrag( PointerEventArgs e )
 		{
 
-			if ( !(e.Source is Visual source) )
+			if (!(e.Source is Visual source))
 				return false;
 
 			Visual current = source;
-			while ( current != null && current != this )
+			while (current != null && current != this)
 			{
 
-				if ( current is Button ||
+				if (current is Button ||
 					 current is TextBox ||
 					 current is ComboBox ||
 					 current is ListBox ||
@@ -532,16 +537,16 @@ namespace KOTORModSync.Dialogs
 					 current is TabControl ||
 					 current is TabItem ||
 					 current is ProgressBar ||
-					 current is ScrollViewer )
+					 current is ScrollViewer)
 				{
 					return true;
 				}
 
-				if ( current is Control control )
+				if (current is Control control)
 				{
-					if ( control.ContextMenu?.IsOpen == true )
+					if (control.ContextMenu?.IsOpen == true)
 						return true;
-					if ( control.ContextFlyout?.IsOpen == true )
+					if (control.ContextFlyout?.IsOpen == true)
 						return true;
 				}
 
@@ -552,4 +557,3 @@ namespace KOTORModSync.Dialogs
 		}
 	}
 }
-

@@ -240,7 +240,6 @@
                             x:Name="StartAllPendingButton"
                             Grid.Column="1"
                             Width="100"
-                            Height="32"
                             Margin="8,0,0,0"
                             Click="StartAllPendingButton_Click"
                             Content="Start All"

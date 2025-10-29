@@ -1,8 +1,9 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+
 using JetBrains.Annotations;
 
 namespace KOTORModSync.Core
@@ -16,26 +17,26 @@ namespace KOTORModSync.Core
 			bool isError
 		)
 		{
-			if ( validator == null )
-				throw new ArgumentNullException(nameof(validator));
-			if ( string.IsNullOrWhiteSpace(message) )
-				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(message));
+			if (validator == null)
+				throw new ArgumentNullException( nameof( validator ) );
+			if (string.IsNullOrWhiteSpace( message ))
+				throw new ArgumentException( message: "Value cannot be null or whitespace.", nameof( message ) );
 
 			ModComponent = validator.ComponentToValidate;
-			Instruction = instruction ?? throw new ArgumentNullException(nameof(instruction));
-			InstructionIndex = ModComponent.Instructions.IndexOf(instruction);
+			Instruction = instruction ?? throw new ArgumentNullException( nameof( instruction ) );
+			InstructionIndex = ModComponent.Instructions.IndexOf( instruction );
 			Message = message;
 			IsError = isError;
 
 			string where = $"{Environment.NewLine}Name: {ModComponent.Name}{Environment.NewLine}Instruction #{InstructionIndex + 1}: '{instruction.Action}'";
-			if ( IsError )
+			if (IsError)
 			{
-				Logger.LogError(where + Environment.NewLine + "Issue: " + message);
+				Logger.LogError( where + Environment.NewLine + "Issue: " + message );
 			}
 			else
 			{
-				Logger.LogWarning(where);
-				Logger.LogWarning(message);
+				Logger.LogWarning( where );
+				Logger.LogWarning( message );
 			}
 		}
 

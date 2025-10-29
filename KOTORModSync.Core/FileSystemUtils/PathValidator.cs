@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+
 using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.FileSystemUtils
@@ -34,13 +35,13 @@ namespace KOTORModSync.Core.FileSystemUtils
 		{
 			try
 			{
-				if ( string.IsNullOrWhiteSpace(path) )
+				if (string.IsNullOrWhiteSpace( path ))
 					return false;
 
-				if ( HasMixedSlashes(path) )
+				if (HasMixedSlashes( path ))
 					return false;
 
-				if ( HasRepeatedSlashes(path) )
+				if (HasRepeatedSlashes( path ))
 					return false;
 
 				char[] invalidChars = enforceAllPlatforms
@@ -48,44 +49,44 @@ namespace KOTORModSync.Core.FileSystemUtils
 					: GetInvalidCharsForPlatform();
 
 				invalidChars = ignoreWildcards
-					? invalidChars.Where(c => c != '*' && c != '?').ToArray()
+					? invalidChars.Where( c => c != '*' && c != '?' ).ToArray()
 					: invalidChars;
 
-				if ( path.IndexOfAny(invalidChars) >= 0 )
+				if (path.IndexOfAny( invalidChars ) >= 0)
 					return false;
 
-				if ( ContainsNonPrintableChars(path) )
+				if (ContainsNonPrintableChars( path ))
 					return false;
 
-				if ( enforceAllPlatforms || Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
+				if (enforceAllPlatforms || Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
 				{
-					if ( HasColonOutsideOfPathRoot(path) )
+					if (HasColonOutsideOfPathRoot( path ))
 						return false;
 
-					if ( IsReservedFileNameWindows(path) )
+					if (IsReservedFileNameWindows( path ))
 						return false;
 
-					if ( HasInvalidWindowsFileNameParts(path) )
+					if (HasInvalidWindowsFileNameParts( path ))
 						return false;
 				}
 
 				return true;
 			}
-			catch ( Exception e )
+			catch (Exception e)
 			{
-				Logger.LogException(e);
+				Logger.LogException( e );
 				return false;
 			}
 		}
 
-		public static bool HasColonOutsideOfPathRoot([CanBeNull] string path)
+		public static bool HasColonOutsideOfPathRoot( [CanBeNull] string path )
 		{
-			if ( string.IsNullOrWhiteSpace(path) ) return false;
+			if (string.IsNullOrWhiteSpace( path )) return false;
 
-			string[] parts = path.Split('/', '\\');
-			for ( int i = 1; i < parts.Length; i++ )
+			string[] parts = path.Split( '/', '\\' );
+			for (int i = 1; i < parts.Length; i++)
 			{
-				if ( !parts[i].Contains(":") )
+				if (!parts[i].Contains( ":" ))
 					continue;
 
 				return true;
@@ -94,13 +95,13 @@ namespace KOTORModSync.Core.FileSystemUtils
 			return false;
 		}
 
-		public static bool HasRepeatedSlashes([CanBeNull] string input)
+		public static bool HasRepeatedSlashes( [CanBeNull] string input )
 		{
-			if ( string.IsNullOrWhiteSpace(input) ) return false;
+			if (string.IsNullOrWhiteSpace( input )) return false;
 
-			for ( int i = 0; i < input.Length - 1; i++ )
+			for (int i = 0; i < input.Length - 1; i++)
 			{
-				if ( (input[i] == '\\' || input[i] == '/') && (input[i + 1] == '\\' || input[i + 1] == '/') )
+				if ((input[i] == '\\' || input[i] == '/') && (input[i + 1] == '\\' || input[i + 1] == '/'))
 					return true;
 			}
 
@@ -108,48 +109,48 @@ namespace KOTORModSync.Core.FileSystemUtils
 		}
 
 		public static char[] GetInvalidCharsForPlatform() =>
-			Utility.Utility.GetOperatingSystem() == OSPlatform.Linux
+			Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Linux
 				? s_invalidPathCharsUnix
 				: s_invalidPathCharsWindows;
 
-		public static bool HasMixedSlashes([CanBeNull] string input) =>
-			(input?.Contains('/') ?? false) && input.Contains('\\');
+		public static bool HasMixedSlashes( [CanBeNull] string input ) =>
+			(input?.Contains( '/' ) ?? false) && input.Contains( '\\' );
 
-		public static bool ContainsNonPrintableChars([CanBeNull] string path) => path?.Any(c => c < ' ') ?? false;
+		public static bool ContainsNonPrintableChars( [CanBeNull] string path ) => path?.Any( c => c < ' ' ) ?? false;
 
-		public static bool IsReservedFileNameWindows([CanBeNull] string path)
+		public static bool IsReservedFileNameWindows( [CanBeNull] string path )
 		{
-			if ( string.IsNullOrWhiteSpace(path) ) return false;
+			if (string.IsNullOrWhiteSpace( path )) return false;
 
 			string[] pathParts = path.Split(
 				new[] { '\\', '/', Path.DirectorySeparatorChar },
 				StringSplitOptions.RemoveEmptyEntries
 			);
 
-			return pathParts.Select(Path.GetFileNameWithoutExtension).Any(
+			return pathParts.Select( Path.GetFileNameWithoutExtension ).Any(
 				fileName => s_reservedFileNamesWindows.Any(
-					reservedName => string.Equals(reservedName, fileName, StringComparison.OrdinalIgnoreCase)
+					reservedName => string.Equals( reservedName, fileName, StringComparison.OrdinalIgnoreCase )
 				)
 			);
 		}
 
-		public static bool HasInvalidWindowsFileNameParts([CanBeNull] string path)
+		public static bool HasInvalidWindowsFileNameParts( [CanBeNull] string path )
 		{
-			if ( string.IsNullOrEmpty(path) ) return false;
+			if (string.IsNullOrEmpty( path )) return false;
 
 			string[] pathParts = path.Split(
 				new[] { '\\', '/', Path.DirectorySeparatorChar },
 				StringSplitOptions.RemoveEmptyEntries
 			);
-			foreach ( string part in pathParts )
+			foreach (string part in pathParts)
 			{
 
-				if ( part.EndsWith(" ") || part.EndsWith(".") )
+				if (part.EndsWith( " ", StringComparison.Ordinal ) || part.EndsWith( ".", StringComparison.Ordinal ))
 					return true;
 
-				for ( int i = 0; i < part.Length - 1; i++ )
+				for (int i = 0; i < part.Length - 1; i++)
 				{
-					if ( part[i] == '.' && part[i + 1] == '.' )
+					if (part[i] == '.' && part[i + 1] == '.')
 						return true;
 				}
 			}

@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -40,7 +40,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 		public string PreviousAnchorId { get; set; }
 
-		public Dictionary<string, FileState> Files { get; set; } = new Dictionary<string, FileState>(StringComparer.OrdinalIgnoreCase);
+		public Dictionary<string, FileState> Files { get; set; } = new Dictionary<string, FileState>( StringComparer.OrdinalIgnoreCase );
 
 		public List<string> Added { get; set; } = new List<string>();
 

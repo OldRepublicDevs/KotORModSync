@@ -1,9 +1,10 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Diagnostics;
+
 using NUnit.Framework;
 
 namespace KOTORModSync.Tests
@@ -19,15 +20,15 @@ namespace KOTORModSync.Tests
 		/// This is the recommended method for real-time test output in NUnit.
 		/// </summary>
 		/// <param name="message">The message to output</param>
-		public static void WriteLine(string message)
+		public static void WriteLine( string message )
 		{
-			if (string.IsNullOrEmpty(message))
+			if (string.IsNullOrEmpty( message ))
 				return;
 
 			try
 			{
 				// Method 1: TestContext.Progress (should work but often doesn't due to buffering)
-				TestContext.Progress.WriteLine(message);
+				TestContext.Progress.WriteLine( message );
 			}
 			catch
 			{
@@ -37,7 +38,7 @@ namespace KOTORModSync.Tests
 			try
 			{
 				// Method 2: TestContext.Error (often more reliable than Progress)
-				TestContext.Error.WriteLine(message);
+				TestContext.Error.WriteLine( message );
 			}
 			catch
 			{
@@ -47,7 +48,7 @@ namespace KOTORModSync.Tests
 			try
 			{
 				// Method 3: Debug.WriteLine (works with proper trace listeners)
-				Debug.WriteLine(message);
+				Debug.WriteLine( message );
 			}
 			catch
 			{
@@ -57,7 +58,7 @@ namespace KOTORModSync.Tests
 			try
 			{
 				// Method 4: Console.Error (often more reliable than Console.Out)
-				Console.Error.WriteLine(message);
+				Console.Error.WriteLine( message );
 			}
 			catch
 			{
@@ -67,7 +68,7 @@ namespace KOTORModSync.Tests
 			try
 			{
 				// Method 5: Console.Out (last resort, often buffered)
-				Console.Out.WriteLine(message);
+				Console.Out.WriteLine( message );
 			}
 			catch
 			{
@@ -80,47 +81,47 @@ namespace KOTORModSync.Tests
 		/// </summary>
 		/// <param name="format">The format string</param>
 		/// <param name="args">The format arguments</param>
-		public static void WriteLine(string format, params object[] args)
+		public static void WriteLine( string format, params object[] args )
 		{
-			WriteLine(string.Format(format, args));
+			WriteLine( string.Format( format, args ) );
 		}
 
 		/// <summary>
 		/// Writes a message without a newline to multiple output streams.
 		/// </summary>
 		/// <param name="message">The message to output</param>
-		public static void Write(string message)
+		public static void Write( string message )
 		{
-			if (string.IsNullOrEmpty(message))
+			if (string.IsNullOrEmpty( message ))
 				return;
 
 			try
 			{
-				TestContext.Progress.Write(message);
+				TestContext.Progress.Write( message );
 			}
 			catch { }
 
 			try
 			{
-				TestContext.Error.Write(message);
+				TestContext.Error.Write( message );
 			}
 			catch { }
 
 			try
 			{
-				Debug.Write(message);
+				Debug.Write( message );
 			}
 			catch { }
 
 			try
 			{
-				Console.Error.Write(message);
+				Console.Error.Write( message );
 			}
 			catch { }
 
 			try
 			{
-				Console.Out.Write(message);
+				Console.Out.Write( message );
 			}
 			catch { }
 		}

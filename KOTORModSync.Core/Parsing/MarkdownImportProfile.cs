@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -21,9 +21,11 @@ namespace KOTORModSync.Core.Parsing
 		public string RawRegexPattern
 		{
 			get => _rawRegexPattern;
+
+
 			set
 			{
-				if ( _rawRegexPattern == value ) return;
+				if (string.Equals( _rawRegexPattern, value, System.StringComparison.Ordinal )) return;
 				_rawRegexPattern = value;
 				OnPropertyChanged();
 			}
@@ -35,7 +37,7 @@ namespace KOTORModSync.Core.Parsing
 			get => _rawRegexOptions;
 			set
 			{
-				if ( _rawRegexOptions == value ) return;
+				if (_rawRegexOptions == value) return;
 				_rawRegexOptions = value;
 				OnPropertyChanged();
 			}
@@ -105,9 +107,11 @@ namespace KOTORModSync.Core.Parsing
 		public string HeadingPattern
 		{
 			get => _headingPattern;
+
+
 			set
 			{
-				if (_headingPattern == value) return;
+				if (string.Equals( _headingPattern, value, System.StringComparison.Ordinal )) return;
 				_headingPattern = value;
 				OnPropertyChanged();
 			}
@@ -117,9 +121,11 @@ namespace KOTORModSync.Core.Parsing
 		public string ComponentSectionPattern
 		{
 			get => _componentSectionPattern;
+
+
 			set
 			{
-				if (_componentSectionPattern == value) return;
+				if (string.Equals( _componentSectionPattern, value, System.StringComparison.Ordinal )) return;
 				_componentSectionPattern = value;
 				OnPropertyChanged();
 			}
@@ -141,9 +147,11 @@ namespace KOTORModSync.Core.Parsing
 		public string NamePattern
 		{
 			get => _namePattern;
+
+
 			set
 			{
-				if (_namePattern == value) return;
+				if (string.Equals( _namePattern, value, System.StringComparison.Ordinal )) return;
 				_namePattern = value;
 				OnPropertyChanged();
 			}
@@ -153,9 +161,11 @@ namespace KOTORModSync.Core.Parsing
 		public string AuthorPattern
 		{
 			get => _authorPattern;
+
+
 			set
 			{
-				if (_authorPattern == value) return;
+				if (string.Equals( _authorPattern, value, System.StringComparison.Ordinal )) return;
 				_authorPattern = value;
 				OnPropertyChanged();
 			}
@@ -165,9 +175,11 @@ namespace KOTORModSync.Core.Parsing
 		public string DescriptionPattern
 		{
 			get => _descriptionPattern;
+
+
 			set
 			{
-				if (_descriptionPattern == value) return;
+				if (string.Equals( _descriptionPattern, value, System.StringComparison.Ordinal )) return;
 				_descriptionPattern = value;
 				OnPropertyChanged();
 			}
@@ -177,9 +189,11 @@ namespace KOTORModSync.Core.Parsing
 		public string ModLinkPattern
 		{
 			get => _modLinkPattern;
+
+
 			set
 			{
-				if (_modLinkPattern == value) return;
+				if (string.Equals( _modLinkPattern, value, System.StringComparison.Ordinal )) return;
 				_modLinkPattern = value;
 				OnPropertyChanged();
 			}
@@ -189,9 +203,11 @@ namespace KOTORModSync.Core.Parsing
 		public string CategoryTierPattern
 		{
 			get => _categoryTierPattern;
+
+
 			set
 			{
-				if (_categoryTierPattern == value) return;
+				if (string.Equals( _categoryTierPattern, value, System.StringComparison.Ordinal )) return;
 				_categoryTierPattern = value;
 				OnPropertyChanged();
 			}
@@ -201,9 +217,11 @@ namespace KOTORModSync.Core.Parsing
 		public string InstallationMethodPattern
 		{
 			get => _installationMethodPattern;
+
+
 			set
 			{
-				if (_installationMethodPattern == value) return;
+				if (string.Equals( _installationMethodPattern, value, System.StringComparison.Ordinal )) return;
 				_installationMethodPattern = value;
 				OnPropertyChanged();
 			}
@@ -213,9 +231,11 @@ namespace KOTORModSync.Core.Parsing
 		public string DownloadInstructionsPattern
 		{
 			get => _downloadInstructionsPattern;
+
+
 			set
 			{
-				if (_downloadInstructionsPattern == value) return;
+				if (string.Equals( _downloadInstructionsPattern, value, System.StringComparison.Ordinal )) return;
 				_downloadInstructionsPattern = value;
 				OnPropertyChanged();
 			}
@@ -225,9 +245,11 @@ namespace KOTORModSync.Core.Parsing
 		public string InstallationInstructionsPattern
 		{
 			get => _installationInstructionsPattern;
+
+
 			set
 			{
-				if (_installationInstructionsPattern == value) return;
+				if (string.Equals( _installationInstructionsPattern, value, System.StringComparison.Ordinal )) return;
 				_installationInstructionsPattern = value;
 				OnPropertyChanged();
 			}
@@ -237,9 +259,11 @@ namespace KOTORModSync.Core.Parsing
 		public string UsageWarningPattern
 		{
 			get => _usageWarningPattern;
+
+
 			set
 			{
-				if (_usageWarningPattern == value) return;
+				if (string.Equals( _usageWarningPattern, value, System.StringComparison.Ordinal )) return;
 				_usageWarningPattern = value;
 				OnPropertyChanged();
 			}
@@ -249,9 +273,11 @@ namespace KOTORModSync.Core.Parsing
 		public string ScreenshotsPattern
 		{
 			get => _screenshotsPattern;
+
+
 			set
 			{
-				if (_screenshotsPattern == value) return;
+				if (string.Equals( _screenshotsPattern, value, System.StringComparison.Ordinal )) return;
 				_screenshotsPattern = value;
 				OnPropertyChanged();
 			}
@@ -261,9 +287,11 @@ namespace KOTORModSync.Core.Parsing
 		public string KnownBugsPattern
 		{
 			get => _knownBugsPattern;
+
+
 			set
 			{
-				if (_knownBugsPattern == value) return;
+				if (string.Equals( _knownBugsPattern, value, System.StringComparison.Ordinal )) return;
 				_knownBugsPattern = value;
 				OnPropertyChanged();
 			}
@@ -273,9 +301,11 @@ namespace KOTORModSync.Core.Parsing
 		public string InstallationWarningPattern
 		{
 			get => _installationWarningPattern;
+
+
 			set
 			{
-				if (_installationWarningPattern == value) return;
+				if (string.Equals( _installationWarningPattern, value, System.StringComparison.Ordinal )) return;
 				_installationWarningPattern = value;
 				OnPropertyChanged();
 			}
@@ -285,9 +315,11 @@ namespace KOTORModSync.Core.Parsing
 		public string CompatibilityWarningPattern
 		{
 			get => _compatibilityWarningPattern;
+
+
 			set
 			{
-				if (_compatibilityWarningPattern == value) return;
+				if (string.Equals( _compatibilityWarningPattern, value, System.StringComparison.Ordinal )) return;
 				_compatibilityWarningPattern = value;
 				OnPropertyChanged();
 			}
@@ -297,9 +329,11 @@ namespace KOTORModSync.Core.Parsing
 		public string SteamNotesPattern
 		{
 			get => _steamNotesPattern;
+
+
 			set
 			{
-				if (_steamNotesPattern == value) return;
+				if (string.Equals( _steamNotesPattern, value, System.StringComparison.Ordinal )) return;
 				_steamNotesPattern = value;
 				OnPropertyChanged();
 			}
@@ -309,9 +343,11 @@ namespace KOTORModSync.Core.Parsing
 		public string NonEnglishPattern
 		{
 			get => _nonEnglishPattern;
+
+
 			set
 			{
-				if (_nonEnglishPattern == value) return;
+				if (string.Equals( _nonEnglishPattern, value, System.StringComparison.Ordinal )) return;
 				_nonEnglishPattern = value;
 				OnPropertyChanged();
 			}
@@ -321,9 +357,11 @@ namespace KOTORModSync.Core.Parsing
 		public string DependenciesPattern
 		{
 			get => _dependenciesPattern;
+
+
 			set
 			{
-				if (_dependenciesPattern == value) return;
+				if (string.Equals( _dependenciesPattern, value, System.StringComparison.Ordinal )) return;
 				_dependenciesPattern = value;
 				OnPropertyChanged();
 			}
@@ -333,9 +371,11 @@ namespace KOTORModSync.Core.Parsing
 		public string DependenciesSeparatorPattern
 		{
 			get => _dependenciesSeparatorPattern;
+
+
 			set
 			{
-				if (_dependenciesSeparatorPattern == value) return;
+				if (string.Equals( _dependenciesSeparatorPattern, value, System.StringComparison.Ordinal )) return;
 				_dependenciesSeparatorPattern = value;
 				OnPropertyChanged();
 			}
@@ -345,9 +385,11 @@ namespace KOTORModSync.Core.Parsing
 		public string RestrictionsPattern
 		{
 			get => _restrictionsPattern;
+
+
 			set
 			{
-				if (_restrictionsPattern == value) return;
+				if (string.Equals( _restrictionsPattern, value, System.StringComparison.Ordinal )) return;
 				_restrictionsPattern = value;
 				OnPropertyChanged();
 			}
@@ -357,9 +399,11 @@ namespace KOTORModSync.Core.Parsing
 		public string OptionPattern
 		{
 			get => _optionPattern;
+
+
 			set
 			{
-				if (_optionPattern == value) return;
+				if (string.Equals( _optionPattern, value, System.StringComparison.Ordinal )) return;
 				_optionPattern = value;
 				OnPropertyChanged();
 			}
@@ -369,9 +413,11 @@ namespace KOTORModSync.Core.Parsing
 		public string InstructionPattern
 		{
 			get => _instructionPattern;
+
+
 			set
 			{
-				if (_instructionPattern == value) return;
+				if (string.Equals( _instructionPattern, value, System.StringComparison.Ordinal )) return;
 				_instructionPattern = value;
 				OnPropertyChanged();
 			}
@@ -381,23 +427,25 @@ namespace KOTORModSync.Core.Parsing
 		public string InstructionsBlockPattern
 		{
 			get => _instructionsBlockPattern;
+
+
 			set
 			{
-				if (_instructionsBlockPattern == value) return;
+				if (string.Equals( _instructionsBlockPattern, value, System.StringComparison.Ordinal )) return;
 				_instructionsBlockPattern = value;
 				OnPropertyChanged();
 			}
 		}
 
-		public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>();
+		public IDictionary<string, object> Metadata { get; } = new Dictionary<string, object>( System.StringComparer.Ordinal );
 
 		public RegexOptions GetRegexOptions()
 		{
 			RegexOptions options = RegexOptions.Compiled;
 
-			if ( MultilineFlag ) options |= RegexOptions.Multiline;
-			if ( SinglelineFlag ) options |= RegexOptions.Singleline;
-			if ( IgnoreCaseFlag ) options |= RegexOptions.IgnoreCase;
+			if (MultilineFlag) options |= RegexOptions.Multiline;
+			if (SinglelineFlag) options |= RegexOptions.Singleline;
+			if (IgnoreCaseFlag) options |= RegexOptions.IgnoreCase;
 
 
 			return options;
@@ -405,14 +453,14 @@ namespace KOTORModSync.Core.Parsing
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		private void OnPropertyChanged([CallerMemberName] string propertyName = null)
-			=> PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		private void OnPropertyChanged( [CallerMemberName] string propertyName = null )
+			=> PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
 
 		public MarkdownImportProfile Clone()
 		{
-			var clone = (MarkdownImportProfile)MemberwiseClone();
+			MarkdownImportProfile clone = (MarkdownImportProfile)MemberwiseClone();
 			clone.Metadata.Clear();
-			foreach ( KeyValuePair<string, object> pair in Metadata )
+			foreach (KeyValuePair<string, object> pair in Metadata)
 			{
 				clone.Metadata[pair.Key] = pair.Value;
 			}
@@ -467,4 +515,3 @@ namespace KOTORModSync.Core.Parsing
 		}
 	}
 }
-

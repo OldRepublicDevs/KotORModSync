@@ -1,11 +1,13 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System.Text;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Utility;
+
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Tests
@@ -24,7 +26,7 @@ namespace KOTORModSync.Tests
 		public void TearDown()
 		{
 			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
-			if ( File.Exists(_filePath) )
+			if (File.Exists(_filePath))
 				File.Delete(_filePath);
 		}
 
@@ -32,54 +34,54 @@ namespace KOTORModSync.Tests
 
 		private readonly string _exampleJson = @"{
   ""components"": [
-    {
-      ""name"": ""Ultimate Dantooine"",
-      ""guid"": ""{B3525945-BDBD-45D8-A324-AAF328A5E13E}"",
-      ""dependencies"": [
-        ""{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"",
-        ""{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}""
-      ],
-      ""installOrder"": 3,
-      ""instructions"": [
-        {
-          ""action"": ""extract"",
-          ""source"": ""Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar"",
-          ""destination"": ""%temp%\\mod_files\\Dantooine HR"",
-          ""overwrite"": true
-        },
-        {
-          ""action"": ""delete"",
-          ""paths"": [
-            ""%temp%\\mod_files\\Dantooine HR\\DAN_wall03.tpc"",
-            ""%temp%\\mod_files\\Dantooine HR\\DAN_NEW1.tpc"",
-            ""%temp%\\mod_files\\Dantooine HR\\DAN_MWFl.tpc""
-          ]
-        },
-        {
-          ""action"": ""move"",
-          ""source"": ""%temp%\\mod_files\\Dantooine HR\\"",
-          ""destination"": ""%temp%\\Override""
-        }
-      ]
-    },
-    {
-      ""name"": ""TSLRCM Tweak Pack"",
-      ""guid"": ""{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"",
-      ""installOrder"": 1,
-      ""dependencies"": [],
-      ""instructions"": [
-        {
-          ""action"": ""extract"",
-          ""source"": ""URCMTP 1.3.rar"",
-          ""destination"": ""%temp%\\mod_files\\TSLRCM Tweak Pack"",
-          ""overwrite"": true
-        },
-        {
-          ""action"": ""run"",
-          ""path"": ""%temp%\\mod_files\\TSLPatcher.exe""
-        }
-      ]
-    }
+{
+  ""name"": ""Ultimate Dantooine"",
+  ""guid"": ""{B3525945-BDBD-45D8-A324-AAF328A5E13E}"",
+  ""dependencies"": [
+""{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"",
+""{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}""
+  ],
+  ""installOrder"": 3,
+  ""instructions"": [
+{
+  ""action"": ""extract"",
+  ""source"": ""Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar"",
+  ""destination"": ""%temp%\\mod_files\\Dantooine HR"",
+  ""overwrite"": true
+},
+{
+  ""action"": ""delete"",
+  ""paths"": [
+""%temp%\\mod_files\\Dantooine HR\\DAN_wall03.tpc"",
+""%temp%\\mod_files\\Dantooine HR\\DAN_NEW1.tpc"",
+""%temp%\\mod_files\\Dantooine HR\\DAN_MWFl.tpc""
+  ]
+},
+{
+  ""action"": ""move"",
+  ""source"": ""%temp%\\mod_files\\Dantooine HR\\"",
+  ""destination"": ""%temp%\\Override""
+}
+  ]
+},
+{
+  ""name"": ""TSLRCM Tweak Pack"",
+  ""guid"": ""{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"",
+  ""installOrder"": 1,
+  ""dependencies"": [],
+  ""instructions"": [
+{
+  ""action"": ""extract"",
+  ""source"": ""URCMTP 1.3.rar"",
+  ""destination"": ""%temp%\\mod_files\\TSLRCM Tweak Pack"",
+  ""overwrite"": true
+},
+{
+  ""action"": ""run"",
+  ""path"": ""%temp%\\mod_files\\TSLPatcher.exe""
+}
+  ]
+}
   ]
 }";
 
@@ -97,7 +99,7 @@ namespace KOTORModSync.Tests
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
-			for ( int i = 0; i < originalComponents.Count; i++ )
+			for (int i = 0; i < originalComponents.Count; i++)
 			{
 				ModComponent originalComponent = originalComponents[i];
 				ModComponent loadedComponent = loadedComponents[i];
@@ -105,7 +107,7 @@ namespace KOTORModSync.Tests
 				AssertComponentEquality(loadedComponent, originalComponent);
 			}
 
-			if ( File.Exists(modifiedFilePath) )
+			if (File.Exists(modifiedFilePath))
 				File.Delete(modifiedFilePath);
 		}
 
@@ -151,7 +153,7 @@ namespace KOTORModSync.Tests
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
-			for ( int i = 0; i < originalComponents.Count; i++ )
+			for (int i = 0; i < originalComponents.Count; i++)
 			{
 				ModComponent originalComponent = originalComponents[i];
 				ModComponent loadedComponent = loadedComponents[i];
@@ -159,7 +161,7 @@ namespace KOTORModSync.Tests
 				AssertComponentEquality(originalComponent, loadedComponent);
 			}
 
-			if ( File.Exists(modifiedFilePath) )
+			if (File.Exists(modifiedFilePath))
 				File.Delete(modifiedFilePath);
 		}
 
@@ -175,7 +177,7 @@ namespace KOTORModSync.Tests
 				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
 				Assert.That(loadedComponents, Is.Null.Or.Empty);
 			}
-			catch ( InvalidDataException ) { }
+			catch (InvalidDataException) { }
 		}
 
 		[Test]
@@ -205,7 +207,7 @@ namespace KOTORModSync.Tests
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
-			for ( int i = 0; i < originalComponents.Count; i++ )
+			for (int i = 0; i < originalComponents.Count; i++)
 			{
 				ModComponent originalComponent = originalComponents[i];
 				ModComponent loadedComponent = loadedComponents[i];
@@ -226,7 +228,7 @@ namespace KOTORModSync.Tests
 
 			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
-			for ( int i = 0; i < originalComponents.Count; i++ )
+			for (int i = 0; i < originalComponents.Count; i++)
 			{
 				ModComponent originalComponent = originalComponents[i];
 				ModComponent loadedComponent = loadedComponents[i];
@@ -245,11 +247,13 @@ namespace KOTORModSync.Tests
 					{
 						Name = "ModComponent 1",
 						Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
+						IsSelected = true,
 					},
 					new ModComponent
 					{
 						Name = "ModComponent 2",
 						Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
+						IsSelected = true,
 					},
 				],
 				[
@@ -257,28 +261,31 @@ namespace KOTORModSync.Tests
 					{
 						Name = "ModComponent 3",
 						Guid = Guid.Parse("{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}"),
+						IsSelected = true,
 					},
 					new ModComponent
 					{
 						Name = "ModComponent 4",
 						Guid = Guid.Parse("{E7B27A19-9A81-4A20-B062-7D00F2603D5C}"),
+						IsSelected = true,
 					},
 					new ModComponent
 					{
 						Name = "ModComponent 5",
 						Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
+						IsSelected = true,
 					},
 				]
 			];
 
-			foreach ( List<ModComponent> components in rounds )
+			foreach (List<ModComponent> components in rounds)
 			{
 				FileLoadingService.SaveToFile(components, _filePath);
 				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
 
 				Assert.That(loadedComponents, Has.Count.EqualTo(components.Count));
 
-				for ( int i = 0; i < components.Count; i++ )
+				for (int i = 0; i < components.Count; i++)
 				{
 					ModComponent originalComponent = components[i];
 					ModComponent loadedComponent = loadedComponents[i];
@@ -478,14 +485,14 @@ namespace KOTORModSync.Tests
 
 		private static void AssertComponentEquality(object? obj, object? another)
 		{
-			if ( ReferenceEquals(obj, another) )
+			if (ReferenceEquals(obj, another))
 				return;
-			if ( obj is null || another is null )
+			if (obj is null || another is null)
 				return;
-			if ( obj.GetType() != another.GetType() )
+			if (obj.GetType() != another.GetType())
 				return;
 
-			if ( obj is ModComponent comp1 && another is ModComponent comp2 )
+			if (obj is ModComponent comp1 && another is ModComponent comp2)
 			{
 				string json1 = JsonConvert.SerializeObject(comp1);
 				string json2 = JsonConvert.SerializeObject(comp2);
@@ -494,11 +501,11 @@ namespace KOTORModSync.Tests
 				ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
 
 				var fixedGuid = Guid.Parse("00000000-0000-0000-0000-000000000001");
-				foreach ( Instruction instruction in copy1.Instructions )
+				foreach (Instruction instruction in copy1.Instructions)
 				{
 					instruction.Guid = fixedGuid;
 				}
-				foreach ( Instruction instruction in copy2.Instructions )
+				foreach (Instruction instruction in copy2.Instructions)
 				{
 					instruction.Guid = fixedGuid;
 				}
@@ -518,4 +525,3 @@ namespace KOTORModSync.Tests
 		}
 	}
 }
-

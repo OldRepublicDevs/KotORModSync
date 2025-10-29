@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,12 +7,15 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 
 namespace KOTORModSync.Dialogs
@@ -20,24 +23,24 @@ namespace KOTORModSync.Dialogs
 	public partial class AutoGenerationResultsDialog : Window
 	{
 		public static readonly AvaloniaProperty<AutoGenerationResults> ResultsProperty =
-			AvaloniaProperty.Register<AutoGenerationResultsDialog, AutoGenerationResults>(nameof(Results));
+			AvaloniaProperty.Register<AutoGenerationResultsDialog, AutoGenerationResults>( nameof( Results ) );
 
 		public static readonly AvaloniaProperty<Action<Guid>> JumpToComponentActionProperty =
-			AvaloniaProperty.Register<AutoGenerationResultsDialog, Action<Guid>>(nameof(JumpToComponentAction));
+			AvaloniaProperty.Register<AutoGenerationResultsDialog, Action<Guid>>( nameof( JumpToComponentAction ) );
 
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
 
 		public AutoGenerationResults Results
 		{
-			get => (AutoGenerationResults)GetValue(ResultsProperty);
-			set => SetValue(ResultsProperty, value);
+			get => (AutoGenerationResults)GetValue( ResultsProperty );
+			set => SetValue( ResultsProperty, value );
 		}
 
 		public Action<Guid> JumpToComponentAction
 		{
-			get => (Action<Guid>)GetValue(JumpToComponentActionProperty);
-			set => SetValue(JumpToComponentActionProperty, value);
+			get => (Action<Guid>)GetValue( JumpToComponentActionProperty );
+			set => SetValue( JumpToComponentActionProperty, value );
 		}
 
 		public ObservableCollection<ComponentResult> GeneratedComponents { get; } = new ObservableCollection<ComponentResult>();
@@ -46,7 +49,7 @@ namespace KOTORModSync.Dialogs
 		public AutoGenerationResultsDialog()
 		{
 			InitializeComponent();
-			ThemeManager.ApplyCurrentToWindow(this);
+			ThemeManager.ApplyCurrentToWindow( this );
 
 			PointerPressed += InputElement_OnPointerPressed;
 			PointerMoved += InputElement_OnPointerMoved;
@@ -58,15 +61,15 @@ namespace KOTORModSync.Dialogs
 			SkippedListBox.ItemsSource = SkippedComponents;
 		}
 
-		protected override void OnOpened(EventArgs e)
+		protected override void OnOpened( EventArgs e )
 		{
-			base.OnOpened(e);
+			base.OnOpened( e );
 			UpdateDialogContent();
 		}
 
 		private void UpdateDialogContent()
 		{
-			if ( Results == null ) return;
+			if (Results == null) return;
 
 			// Update summary
 			SummaryTextBlock.Text = $"Auto-generation complete! Processed {Results.TotalProcessed} components.";
@@ -82,15 +85,15 @@ namespace KOTORModSync.Dialogs
 
 			// Populate collections
 			GeneratedComponents.Clear();
-			foreach ( var result in Results.ComponentResults.Where(r => r.Success) )
+			foreach (var result in Results.ComponentResults.Where( r => r.Success ))
 			{
-				GeneratedComponents.Add(result);
+				GeneratedComponents.Add( result );
 			}
 
 			SkippedComponents.Clear();
-			foreach ( var result in Results.ComponentResults.Where(r => !r.Success) )
+			foreach (var result in Results.ComponentResults.Where( r => !r.Success ))
 			{
-				SkippedComponents.Add(result);
+				SkippedComponents.Add( result );
 			}
 
 			// Hide expanders if they have no content
@@ -98,41 +101,41 @@ namespace KOTORModSync.Dialogs
 			SkippedExpander.IsVisible = SkippedComponents.Count > 0;
 		}
 
-		private void JumpToComponent_Click(object sender, RoutedEventArgs e)
+		private void JumpToComponent_Click( object sender, RoutedEventArgs e )
 		{
-			if ( sender is Button button && button.Tag is Guid componentGuid )
+			if (sender is Button button && button.Tag is Guid componentGuid)
 			{
-				JumpToComponentAction?.Invoke(componentGuid);
+				JumpToComponentAction?.Invoke( componentGuid );
 				// Don't close the dialog - let the user continue reviewing results
 				// Close();
 			}
 		}
 
-		private void OKButton_Click(object sender, RoutedEventArgs e) => Close();
-		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+		private void OKButton_Click( object sender, RoutedEventArgs e ) => Close();
+		private void CloseButton_Click( object sender, RoutedEventArgs e ) => Close();
 
-		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )
 		{
-			if ( !_mouseDownForWindowMoving )
+			if (!_mouseDownForWindowMoving)
 				return;
 
-			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			PointerPoint currentPoint = e.GetCurrentPoint( this );
 			Position = new PixelPoint(
 				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
 				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
 			);
 		}
 
-		private void InputElement_OnPointerPressed(object sender, PointerEventArgs e)
+		private void InputElement_OnPointerPressed( object sender, PointerEventArgs e )
 		{
-			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
 
 			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint(this);
+			_originalPoint = e.GetCurrentPoint( this );
 		}
 
-		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+		private void InputElement_OnPointerReleased( object sender, PointerEventArgs e ) =>
 			_mouseDownForWindowMoving = false;
 
 		public static void ShowResultsDialog(
@@ -147,7 +150,7 @@ namespace KOTORModSync.Dialogs
 				JumpToComponentAction = jumpToComponentAction,
 				Topmost = true,
 			};
-			dialog.Show(parentWindow);
+			dialog.Show( parentWindow );
 		}
 
 	}

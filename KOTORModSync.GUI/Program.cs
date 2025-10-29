@@ -1,8 +1,9 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+
 using Avalonia;
 using Avalonia.ReactiveUI;
 
@@ -14,7 +15,7 @@ namespace KOTORModSync
 
 
 		[STAThread]
-		public static void Main(string[] args)
+		public static void Main( string[] args )
 		{
 			try
 			{
@@ -30,7 +31,7 @@ namespace KOTORModSync
 				);
 
 				var startTime = System.Diagnostics.Stopwatch.StartNew();
-				_ = BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+				_ = BuildAvaloniaApp().StartWithClassicDesktopLifetime( args );
 				startTime.Stop();
 
 				// Record session end on exit
@@ -40,9 +41,9 @@ namespace KOTORModSync
 				);
 				Core.Services.TelemetryService.Instance.Flush();
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Core.Logger.LogException(ex);
+				Core.Logger.LogException( ex );
 				Core.Services.TelemetryService.Instance.RecordSessionEnd(
 					durationMs: 0,
 					completed: false

@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -18,115 +18,134 @@ namespace KOTORModSync.Core.Services.Download
 		private static readonly object _lock = new object();
 		private static bool _initialized;
 		private static dynamic _client;
-		private static readonly Dictionary<string, string> _urlHashes = new Dictionary<string, string>();
+		private static readonly Dictionary<string, string> _urlHashes = new Dictionary<string, string>( StringComparer.Ordinal );
 		private static int _listenPort;
 
 		private const int MaxSendKbps = 100;
 
-		private static string D(string s) => Encoding.UTF8.GetString(Convert.FromBase64String(s));
+		// Phase 4 additions
+		private static readonly HashSet<string> s_blockedContentIds = new HashSet<string>( StringComparer.Ordinal );
+		private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> s_contentKeyLocks
+			= new System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim>( StringComparer.Ordinal );
+
+		private static string D( string s ) => Encoding.UTF8.GetString( Convert.FromBase64String( s ) );
 
 		public static async Task<DownloadResult> TryOptimizedDownload(
 			string url,
 			string destinationDirectory,
 			Func<Task<DownloadResult>> traditionalDownloadFunc,
 			IProgress<DownloadProgress> progress,
-			CancellationToken cancellationToken)
+			CancellationToken cancellationToken )
+
+
 		{
-			await EnsureInitializedAsync().ConfigureAwait(false);
+			await EnsureInitializedAsync()
 
-			if ( _client == null )
-				return await traditionalDownloadFunc().ConfigureAwait(false);
+.ConfigureAwait( false );
 
-			string hash = GetUrlHash(url);
-			string cachePath = GetCachePath(hash);
+			if (_client == null)
+				return await traditionalDownloadFunc().ConfigureAwait( false );
 
-			if ( !File.Exists(cachePath) )
+			string hash = GetUrlHash( url );
+			string cachePath = GetCachePath( hash );
+
+			if (!File.Exists( cachePath ))
+
+
 			{
-				var result = await traditionalDownloadFunc().ConfigureAwait(false);
-				if ( result != null && result.Success && !string.IsNullOrEmpty(result.FilePath) )
+				DownloadResult result = await traditionalDownloadFunc().ConfigureAwait( false );
+				if (result != null && result.Success && !string.IsNullOrEmpty( result.FilePath ))
 				{
-					_ = Task.Run(() => StartBackgroundSharingAsync(url, result.FilePath), cancellationToken);
+					_ = Task.Run( () => StartBackgroundSharingAsync( url, result.FilePath ), cancellationToken );
 				}
 				return result;
 			}
 
-			await Logger.LogVerboseAsync("[Cache] Starting hybrid download (traditional + distributed)");
+			await Logger.LogVerboseAsync( "[Cache] Starting hybrid download (traditional + distributed)" ).ConfigureAwait( false );
 
-			using ( var cts = new CancellationTokenSource() )
-			using ( var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cts.Token) )
+			using (CancellationTokenSource cts = new CancellationTokenSource())
+			using (CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource( cancellationToken, cts.Token ))
 			{
-				var distributedTask = TryDistributedDownloadAsync(url, destinationDirectory, progress, linkedCts.Token);
-				var traditionalTask = traditionalDownloadFunc();
+				Task<DownloadResult> distributedTask = TryDistributedDownloadAsync( url, destinationDirectory, progress, linkedCts.Token );
+				Task<DownloadResult> traditionalTask = traditionalDownloadFunc();
 
-				while ( !linkedCts.Token.IsCancellationRequested )
+				while (!linkedCts.Token.IsCancellationRequested)
+
+
 				{
-					var completed = await Task.WhenAny(distributedTask, traditionalTask).ConfigureAwait(false);
+					Task<DownloadResult> completed = await Task.WhenAny( distributedTask, traditionalTask ).ConfigureAwait( false );
 
 					try
 					{
-						var result = await completed.ConfigureAwait(false);
-						if ( result != null && result.Success )
+						DownloadResult result = await completed.ConfigureAwait( false );
+						if (result != null && result.Success)
 						{
-							if ( !string.IsNullOrEmpty(result.FilePath) && File.Exists(result.FilePath) )
+							if (!string.IsNullOrEmpty( result.FilePath ) && File.Exists( result.FilePath ))
 							{
-								_ = Task.Run(() => StartBackgroundSharingAsync(url, result.FilePath), cancellationToken);
+								_ = Task.Run( () => StartBackgroundSharingAsync( url, result.FilePath ), cancellationToken );
 							}
 
 							return result;
 						}
 					}
-					catch ( Exception ex )
+					catch (Exception ex)
+
+
 					{
-						await Logger.LogVerboseAsync($"[Cache] One download failed: {ex.Message}");
+						await Logger.LogVerboseAsync( $"[Cache] One download failed: {ex.Message}" ).ConfigureAwait( false );
 					}
 
-					if ( completed == distributedTask && !traditionalTask.IsCompleted )
+					if (completed == distributedTask && !traditionalTask.IsCompleted)
 					{
 						try
 						{
-							return await traditionalTask.ConfigureAwait(false);
+							return await traditionalTask.ConfigureAwait( false );
+
+
 						}
 						catch
 						{
-							return await traditionalDownloadFunc().ConfigureAwait(false);
+							return await traditionalDownloadFunc().ConfigureAwait( false );
 						}
 					}
-					else if ( completed == traditionalTask && !distributedTask.IsCompleted )
+					else if (completed == traditionalTask && !distributedTask.IsCompleted)
+
+
 					{
-						await Task.Delay(500, linkedCts.Token).ConfigureAwait(false);
+						await Task.Delay( 500, linkedCts.Token ).ConfigureAwait( false );
 						continue;
 					}
 
 					break;
 				}
 
-				return await traditionalDownloadFunc().ConfigureAwait(false);
+				return await traditionalDownloadFunc().ConfigureAwait( false );
 			}
 		}
 
 		private static Task EnsureInitializedAsync()
 		{
-			if ( _initialized )
+			if (_initialized)
 				return Task.CompletedTask;
 
-			lock ( _lock )
+			lock (_lock)
 			{
-				if ( _initialized )
+				if (_initialized)
 					return Task.CompletedTask;
 
 				try
 				{
-					var engineSettingsType = Type.GetType(D("TW9ub1RvcnJlbnQuQ2xpZW50LkVuZ2luZVNldHRpbmdzLCBNb25vVG9ycmVudA=="));
-					if ( engineSettingsType == null )
+					Type engineSettingsType = Type.GetType( D( "TW9ub1RvcnJlbnQuQ2xpZW50LkVuZ2luZVNldHRpbmdzLCBNb25vVG9ycmVudA==" ) );
+					if (engineSettingsType == null)
 					{
 						_initialized = true;
 						return Task.CompletedTask;
 					}
 
 					_listenPort = FindAvailablePort();
-					Logger.LogVerbose($"[Cache] Using port {_listenPort} for distributed cache");
+					Logger.LogVerbose( $"[Cache] Using port {_listenPort} for distributed cache" );
 
-					dynamic settings = Activator.CreateInstance(engineSettingsType);
+					dynamic settings = Activator.CreateInstance( engineSettingsType );
 					settings.ListenPort = _listenPort;
 					settings.MaximumUploadSpeed = MaxSendKbps * 1024;
 
@@ -134,40 +153,40 @@ namespace KOTORModSync.Core.Services.Download
 
 					settings.AllowPortForwarding = true;
 
-					var clientEngineType = Type.GetType(D("TW9ub1RvcnJlbnQuQ2xpZW50LkNsaWVudEVuZ2luZSwgTW9ub1RvcnJlbnQ="));
-					_client = Activator.CreateInstance(clientEngineType, settings);
+					Type clientEngineType = Type.GetType( D( "TW9ub1RvcnJlbnQuQ2xpZW50LkNsaWVudEVuZ2luZSwgTW9ub1RvcnJlbnQ=" ) );
+					_client = Activator.CreateInstance( clientEngineType, settings );
 
 					try
 					{
-						var dhtEngineType = Type.GetType(D("TW9ub1RvcnJlbnQuRGh0LkRodEVuZ2luZSwgTW9ub1RvcnJlbnQ="));
-						if ( dhtEngineType != null )
+						Type dhtEngineType = Type.GetType( D( "TW9ub1RvcnJlbnQuRGh0LkRodEVuZ2luZSwgTW9ub1RvcnJlbnQ=" ) );
+						if (dhtEngineType != null)
 						{
-							dynamic dhtEngine = Activator.CreateInstance(dhtEngineType);
-							var registerDhtMethod = _client.GetType().GetMethod(D("UmVnaXN0ZXJEaHQ="));
-							if ( registerDhtMethod != null )
+							dynamic dhtEngine = Activator.CreateInstance( dhtEngineType );
+							dynamic registerDhtMethod = _client.GetType().GetMethod( D( "UmVnaXN0ZXJEaHQ=" ) );
+							if (registerDhtMethod != null)
 							{
-								registerDhtMethod.Invoke(_client, new object[] { dhtEngine });
+								registerDhtMethod.Invoke( _client, new object[] { dhtEngine } );
 
-								var startDhtMethod = dhtEngine.GetType().GetMethod(D("U3RhcnQ="));
-								if ( startDhtMethod != null )
+								dynamic startDhtMethod = dhtEngine.GetType().GetMethod( D( "U3RhcnQ=" ) );
+								if (startDhtMethod != null)
 								{
-									startDhtMethod.Invoke(dhtEngine, null);
-									Logger.LogVerbose("[Cache] DHT enabled for node discovery");
+									startDhtMethod.Invoke( dhtEngine, null );
+									Logger.LogVerbose( "[Cache] DHT enabled for node discovery" );
 								}
 							}
 						}
 					}
-					catch ( Exception dhtEx )
+					catch (Exception dhtEx)
 					{
-						Logger.LogVerbose($"[Cache] DHT initialization skipped: {dhtEx.Message}");
+						Logger.LogVerbose( $"[Cache] DHT initialization skipped: {dhtEx.Message}" );
 					}
 
 					_initialized = true;
-					Logger.LogVerbose($"[Cache] Distributed cache initialized (port {_listenPort}, UPnP enabled)");
+					Logger.LogVerbose( $"[Cache] Distributed cache initialized (port {_listenPort}, UPnP enabled)" );
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
 				{
-					Logger.LogVerbose($"[Cache] Optimization not available: {ex.Message}");
+					Logger.LogVerbose( $"[Cache] Optimization not available: {ex.Message}" );
 					_initialized = true;
 				}
 
@@ -177,22 +196,22 @@ namespace KOTORModSync.Core.Services.Download
 
 		private static int FindAvailablePort()
 		{
-			var random = new Random();
-			var ports = Enumerable.Range(1024, 65534 - 1024 + 1).OrderBy(x => random.Next()).ToList();
+			Random random = new Random();
+			List<int> ports = Enumerable.Range( 1024, 65534 - 1024 + 1 ).OrderBy( x => random.Next() ).ToList();
 
-			foreach ( int port in ports )
+			foreach (int port in ports)
 			{
 				System.Net.Sockets.TcpListener listener = null;
 				try
 				{
-					listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port);
+					listener = new System.Net.Sockets.TcpListener( System.Net.IPAddress.Any, port );
 					listener.Start();
 					listener.Stop();
 					return port;
 				}
-				catch ( System.Net.Sockets.SocketException )
+				catch (System.Net.Sockets.SocketException)
 				{
-					if ( listener != null )
+					if (listener != null)
 					{
 						try { listener.Stop(); } catch { }
 					}
@@ -207,154 +226,176 @@ namespace KOTORModSync.Core.Services.Download
 			string url,
 			string destinationDirectory,
 			IProgress<DownloadProgress> progress,
-			CancellationToken cancellationToken)
+			CancellationToken cancellationToken )
 		{
 			try
 			{
-				if ( _client == null )
+				if (_client == null)
 					return null;
 
-				string hash = GetUrlHash(url);
-				string cachePath = GetCachePath(hash);
+				string hash = GetUrlHash( url );
+				string cachePath = GetCachePath( hash );
 
-				if ( !File.Exists(cachePath) )
+				if (!File.Exists( cachePath ))
+
+
 				{
-					await Logger.LogVerboseAsync($"[Cache] No cached metadata for URL");
+					await Logger.LogVerboseAsync( $"[Cache] No cached metadata for URL" ).ConfigureAwait( false );
 					return null;
+
+
 				}
 
-				await Logger.LogVerboseAsync($"[Cache] Attempting optimized download");
+				await Logger.LogVerboseAsync( $"[Cache] Attempting optimized download" )
 
-				var metadataType = Type.GetType(D("TW9ub1RvcnJlbnQuVG9ycmVudCwgTW9ub1RvcnJlbnQ="));
-				dynamic metadata = await Task.Run(() =>
+.ConfigureAwait( false );
+
+				Type metadataType = Type.GetType( D( "TW9ub1RvcnJlbnQuVG9ycmVudCwgTW9ub1RvcnJlbnQ=" ) );
+				dynamic metadata =
+
+
+
+await Task.Run( () =>
 				{
-					var loadMethod = metadataType.GetMethod(D("TG9hZA=="), new[] { typeof(string) });
-					return loadMethod.Invoke(null, new object[] { cachePath });
-				}).ConfigureAwait(false);
+					System.Reflection.MethodInfo loadMethod = metadataType.GetMethod( D( "TG9hZA==" ), new[] { typeof( string ) } );
+					return loadMethod.Invoke( null, new object[] { cachePath } );
+				} ).ConfigureAwait( false );
 
-				var managerType = Type.GetType(D("TW9ub1RvcnJlbnQuQ2xpZW50LlRvcnJlbnRNYW5hZ2VyLCBNb25vVG9ycmVudA=="));
-				dynamic manager = Activator.CreateInstance(managerType, metadata, destinationDirectory);
+				Type managerType = Type.GetType( D( "TW9ub1RvcnJlbnQuQ2xpZW50LlRvcnJlbnRNYW5hZ2VyLCBNb25vVG9ycmVudA==" ) );
+				dynamic manager = Activator.CreateInstance( managerType, metadata, destinationDirectory );
 
-				await _client.Register(manager).ConfigureAwait(false);
+				await _client.Register( manager );
 
-				await manager.StartAsync().ConfigureAwait(false);
+				await manager.StartAsync();
 
-				var startTime = DateTime.Now;
-				var timeout = TimeSpan.FromMinutes(5);
+				DateTime startTime = DateTime.Now;
+				TimeSpan timeout = TimeSpan.FromMinutes( 5 );
 
-				while ( !cancellationToken.IsCancellationRequested && DateTime.Now - startTime < timeout )
+				while (!cancellationToken.IsCancellationRequested && DateTime.Now - startTime < timeout)
 				{
-					if ( manager.State.ToString() == D("U2VlZGluZw==") || manager.Complete )
+					if (manager.State.ToString() == D( "U2VlZGluZw==" ) || manager.Complete)
 					{
-						string fileName = Path.GetFileName(metadata.Name.ToString());
-						string filePath = Path.Combine(destinationDirectory, fileName);
+						string fileName = Path.GetFileName( metadata.Name.ToString() );
+						string filePath = Path.Combine( destinationDirectory, fileName );
 
-						await Logger.LogVerboseAsync($"[Cache] ✓ Optimized download complete: {fileName}");
+						await Logger.LogVerboseAsync( $"[Cache] ✓ Optimized download complete: {fileName}" ).ConfigureAwait( false );
 
-						progress?.Report(new DownloadProgress
+						progress?.Report( new DownloadProgress
 						{
 							Status = DownloadStatus.Completed,
 							StatusMessage = "Download complete",
 							ProgressPercentage = 100,
 							FilePath = filePath,
 							EndTime = DateTime.Now
-						});
+						} );
 
-						return DownloadResult.Succeeded(filePath, "Downloaded via optimized cache");
+						return DownloadResult.Succeeded( filePath, "Downloaded via optimized cache" );
 					}
 
 					double progressPct = manager.Progress * 100.0;
-					progress?.Report(new DownloadProgress
+					progress?.Report( new DownloadProgress
 					{
 						Status = DownloadStatus.InProgress,
 						StatusMessage = $"Downloading... ({(int)progressPct}%)",
 						ProgressPercentage = progressPct
-					});
+					} );
 
-					await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+					await Task.Delay( 500, cancellationToken ).ConfigureAwait( false );
 				}
 
-				await manager.StopAsync().ConfigureAwait(false);
-				await _client.Unregister(manager).ConfigureAwait(false);
+				await manager.StopAsync();
+				await _client.Unregister( manager );
 
 				return null;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogVerboseAsync($"[Cache] Optimization attempt failed: {ex.Message}");
+				await Logger.LogVerboseAsync( $"[Cache] Optimization attempt failed: {ex.Message}" ).ConfigureAwait( false );
 				return null;
 			}
 		}
 
-		private static async Task StartBackgroundSharingAsync(string url, string filePath)
+		private static async Task StartBackgroundSharingAsync( string url, string filePath )
 		{
 			try
 			{
-				if ( _client == null || !File.Exists(filePath) )
+				if (_client == null || !File.Exists( filePath ))
 					return;
 
-				string hash = GetUrlHash(url);
-				string metadataPath = GetCachePath(hash);
+				string hash = GetUrlHash( url );
+				string metadataPath = GetCachePath( hash );
 
-				if ( !File.Exists(metadataPath) )
+				if (!File.Exists( metadataPath ))
+
+
 				{
-					await CreateCacheFileAsync(filePath, metadataPath).ConfigureAwait(false);
+					await CreateCacheFileAsync( filePath, metadataPath ).ConfigureAwait( false );
 				}
 
-				var metadataType = Type.GetType(D("TW9ub1RvcnJlbnQuVG9ycmVudCwgTW9ub1RvcnJlbnQ="));
-				dynamic metadata = await Task.Run(() =>
+				Type metadataType = Type.GetType( D( "TW9ub1RvcnJlbnQuVG9ycmVudCwgTW9ub1RvcnJlbnQ=" ) );
+				dynamic metadata = await Task.Run( () =>
 				{
-					var loadMethod = metadataType.GetMethod(D("TG9hZA=="), new[] { typeof(string) });
-					return loadMethod.Invoke(null, new object[] { metadataPath });
-				}).ConfigureAwait(false);
+					System.Reflection.MethodInfo loadMethod = metadataType.GetMethod( D( "TG9hZA==" ), new[] { typeof( string ) } );
+					return loadMethod.Invoke( null, new object[] { metadataPath } );
 
-				var managerType = Type.GetType(D("TW9ub1RvcnJlbnQuQ2xpZW50LlRvcnJlbnRNYW5hZ2VyLCBNb25vVG9ycmVudA=="));
-				dynamic manager = Activator.CreateInstance(managerType, metadata, Path.GetDirectoryName(filePath));
 
-				await _client.Register(manager).ConfigureAwait(false);
-				await manager.StartAsync().ConfigureAwait(false);
+				} ).ConfigureAwait( false );
 
-				await Logger.LogVerboseAsync($"[Cache] Background sharing started: {Path.GetFileName(filePath)}");
+				Type managerType = Type.GetType( D( "TW9ub1RvcnJlbnQuQ2xpZW50LlRvcnJlbnRNYW5hZ2VyLCBNb25vVG9ycmVudA==" ) );
+
+
+				dynamic manager = Activator.CreateInstance( managerType, metadata, Path.GetDirectoryName( filePath ) );
+
+				await _client.Register(
+
+manager );
+				await manager.StartAsync();
+
+				await Logger.LogVerboseAsync( $"[Cache] Background sharing started: {Path.GetFileName( filePath )}" ).ConfigureAwait( false );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogVerboseAsync($"[Cache] Sharing setup failed: {ex.Message}");
+				await Logger.LogVerboseAsync( $"[Cache] Sharing setup failed: {ex.Message}" ).ConfigureAwait( false );
 			}
 		}
 
-		private static async Task CreateCacheFileAsync(string filePath, string metadataPath)
+		private static async Task CreateCacheFileAsync( string filePath, string metadataPath )
 		{
 			try
 			{
-				var creatorType = Type.GetType(D("TW9ub1RvcnJlbnQuVG9ycmVudENyZWF0b3IsIE1vbm9Ub3JyZW50"));
-				dynamic creator = Activator.CreateInstance(creatorType);
+				Type creatorType = Type.GetType( D( "TW9ub1RvcnJlbnQuVG9ycmVudENyZWF0b3IsIE1vbm9Ub3JyZW50" ) );
+				dynamic creator = Activator.CreateInstance( creatorType );
 
-				creator.Announces.Add(new List<string>
+				creator.Announces.Add( new List<string>
 				{
 					"udp://tracker.opentrackr.org:1337/announce",
 					"udp://open.stealth.si:80/announce"
-				});
+				} );
 
-				dynamic metadata = await creator.CreateAsync(filePath).ConfigureAwait(false);
+				dynamic metadata = await creator.CreateAsync( filePath );
 
-				await Task.Run(() => File.WriteAllBytes(metadataPath, metadata.ToBytes())).ConfigureAwait(false);
 
-				await Logger.LogVerboseAsync($"[Cache] Created metadata: {metadataPath}");
+
+				await Task.Run( () => File.WriteAllBytes( metadataPath, metadata.ToBytes() ) ).ConfigureAwait( false );
+
+				await Logger.LogVerboseAsync( $"[Cache] Created metadata: {metadataPath}" ).ConfigureAwait( false );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogVerboseAsync($"[Cache] Metadata creation failed: {ex.Message}");
+				await Logger.LogVerboseAsync( $"[Cache] Metadata creation failed: {ex.Message}" ).ConfigureAwait( false );
 			}
 		}
 
-		private static string GetUrlHash(string url)
+		private static string GetUrlHash( string url )
 		{
-			lock ( _lock )
+			lock (_lock)
 			{
-				if ( _urlHashes.TryGetValue(url, out string existing) )
+				if (_urlHashes.TryGetValue( url, out string existing ))
 					return existing;
 
-				string normalized = NormalizeUrl(url);
+				string normalized = NormalizeUrl( url );
 				byte[] hashBytes;
 #if NET48
 				using ( var sha1 = SHA1.Create() )
@@ -362,38 +403,38 @@ namespace KOTORModSync.Core.Services.Download
 					hashBytes = sha1.ComputeHash(Encoding.UTF8.GetBytes(normalized));
 				}
 #else
-				hashBytes = SHA1.HashData(Encoding.UTF8.GetBytes(normalized));
+				hashBytes = SHA1.HashData( Encoding.UTF8.GetBytes( normalized ) );
 #endif
-				string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+				string hash = BitConverter.ToString( hashBytes ).Replace( "-", "" ).ToLowerInvariant();
 				_urlHashes[url] = hash;
 				return hash;
 			}
 		}
 
-		private static string NormalizeUrl(string url)
+		private static string NormalizeUrl( string url )
 		{
 			try
 			{
-				if ( url.Contains("nexusmods.com") )
+				if (url.Contains( "nexusmods.com" ))
 				{
-					var match = System.Text.RegularExpressions.Regex.Match(url, @"nexusmods\.com/([^/]+)/mods/(\d+)");
-					if ( match.Success )
+					System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match( url, @"nexusmods\.com/([^/]+)/mods/(\d+)" );
+					if (match.Success)
 						return $"nexusmods:{match.Groups[1].Value}:{match.Groups[2].Value}";
 				}
-				else if ( url.Contains("deadlystream.com") )
+				else if (url.Contains( "deadlystream.com" ))
 				{
-					var match = System.Text.RegularExpressions.Regex.Match(url, @"deadlystream\.com/files/file/(\d+)");
-					if ( match.Success )
+					System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match( url, @"deadlystream\.com/files/file/(\d+)" );
+					if (match.Success)
 						return $"deadlystream:{match.Groups[1].Value}";
 				}
-				else if ( url.Contains("mega.nz") )
+				else if (url.Contains( "mega.nz" ))
 				{
-					var match = System.Text.RegularExpressions.Regex.Match(url, @"mega\.nz/(file|folder)/([A-Za-z0-9_-]+)");
-					if ( match.Success )
+					System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match( url, @"mega\.nz/(file|folder)/([A-Za-z0-9_-]+)" );
+					if (match.Success)
 						return $"mega:{match.Groups[1].Value}:{match.Groups[2].Value}";
 				}
 
-				var uri = new Uri(url);
+				Uri uri = new Uri( url );
 				return $"{uri.Host}{uri.AbsolutePath}";
 			}
 			catch
@@ -402,20 +443,550 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		private static string GetCachePath(string hash)
+		private static string GetCachePath( string hash )
 		{
 			string cacheDir = Path.Combine(
-				Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+				Environment.GetFolderPath( Environment.SpecialFolder.ApplicationData ),
 				"KOTORModSync",
 				"Cache",
 				"Network"
 			);
 
-			if ( !Directory.Exists(cacheDir) )
-				Directory.CreateDirectory(cacheDir);
+			if (!Directory.Exists( cacheDir ))
+				Directory.CreateDirectory( cacheDir );
 
-			return Path.Combine(cacheDir, $"{hash}.dat");
+			return Path.Combine( cacheDir, $"{hash}.dat" );
 		}
+
+		#region Phase 4: Content Identification & Integrity Verification
+
+		/// <summary>
+		/// CRITICAL: Computes ContentId from provider metadata BEFORE file download.
+		/// This allows P2P peer discovery before downloading from the original URL.
+		/// MUST be deterministic across all clients globally!
+		/// </summary>
+		public static string ComputeContentIdFromMetadata(
+			Dictionary<string, object> normalizedMetadata,
+			string primaryUrl )
+		{
+			// Build deterministic info dict from metadata ONLY
+			SortedDictionary<string, object> infoDict = new SortedDictionary<string, object>
+
+
+( StringComparer.Ordinal )
+			{
+				["provider"] = normalizedMetadata["provider"],
+				["url_canonical"] = Utility.UrlNormalizer.Normalize( primaryUrl, stripQueryParameters: true )
+			};
+
+			// Add provider-specific fields (these MUST match the whitelist from Phase 2.2)
+			string provider = normalizedMetadata["provider"].ToString();
+
+			switch (provider)
+			{
+				case "deadlystream":
+					infoDict["filePageId"] = normalizedMetadata.ContainsKey( "filePageId" ) ? normalizedMetadata["filePageId"] : "";
+					infoDict["changelogId"] = normalizedMetadata.ContainsKey( "changelogId" ) ? normalizedMetadata["changelogId"] : "";
+					infoDict["fileId"] = normalizedMetadata.ContainsKey( "fileId" ) ? normalizedMetadata["fileId"] : "";
+					infoDict["version"] = normalizedMetadata.ContainsKey( "version" ) ? normalizedMetadata["version"] : "";
+					infoDict["updated"] = normalizedMetadata.ContainsKey( "updated" ) ? normalizedMetadata["updated"] : "";
+					infoDict["size"] = normalizedMetadata.ContainsKey( "size" ) ? normalizedMetadata["size"] : 0L;
+					break;
+
+				case "mega":
+					infoDict["nodeId"] = normalizedMetadata.ContainsKey( "nodeId" ) ? normalizedMetadata["nodeId"] : "";
+					infoDict["hash"] = normalizedMetadata.ContainsKey( "hash" ) ? normalizedMetadata["hash"] : "";
+					infoDict["size"] = normalizedMetadata.ContainsKey( "size" ) ? normalizedMetadata["size"] : 0L;
+					infoDict["mtime"] = normalizedMetadata.ContainsKey( "mtime" ) ? normalizedMetadata["mtime"] : 0L;
+					infoDict["name"] = normalizedMetadata.ContainsKey( "name" ) ? normalizedMetadata["name"] : "";
+					break;
+
+				case "nexus":
+					infoDict["fileId"] = normalizedMetadata.ContainsKey( "fileId" ) ? normalizedMetadata["fileId"] : "";
+					infoDict["fileName"] = normalizedMetadata.ContainsKey( "fileName" ) ? normalizedMetadata["fileName"] : "";
+					infoDict["size"] = normalizedMetadata.ContainsKey( "size" ) ? normalizedMetadata["size"] : 0L;
+					infoDict["uploadedTimestamp"] = normalizedMetadata.ContainsKey( "uploadedTimestamp" ) ? normalizedMetadata["uploadedTimestamp"] : 0L;
+					infoDict["md5Hash"] = normalizedMetadata.ContainsKey( "md5Hash" ) ? normalizedMetadata["md5Hash"] : "";
+					break;
+
+				case "direct":
+					infoDict["url"] = normalizedMetadata.ContainsKey( "url" ) ? normalizedMetadata["url"] : "";
+					infoDict["contentLength"] = normalizedMetadata.ContainsKey( "contentLength" ) ? normalizedMetadata["contentLength"] : 0L;
+					infoDict["lastModified"] = normalizedMetadata.ContainsKey( "lastModified" ) ? normalizedMetadata["lastModified"] : "";
+					infoDict["etag"] = normalizedMetadata.ContainsKey( "etag" ) ? normalizedMetadata["etag"] : "";
+					infoDict["fileName"] = normalizedMetadata.ContainsKey( "fileName" ) ? normalizedMetadata["fileName"] : "";
+					break;
+			}
+
+			// Bencode and hash to create infohash
+			byte[] bencodedInfo = Utility.CanonicalBencoding.BencodeCanonical( infoDict );
+#if NET48
+			byte[] infohash;
+			using ( var sha1 = SHA1.Create() )
+			{
+				infohash = sha1.ComputeHash(bencodedInfo);
+			}
+#else
+			byte[] infohash = SHA1.HashData( bencodedInfo );
+#endif
+			string contentId = BitConverter.ToString( infohash ).Replace( "-", "" ).ToLowerInvariant();
+
+			return contentId;
+		}
+
+		/// <summary>
+		/// Determines the optimal piece size for a given file size.
+		/// Ensures total pieces <= 2^20 (1,048,576 pieces max).
+		/// </summary>
+		public static int DeterminePieceSize( long fileSize )
+		{
+			int[] candidates = { 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304 }; // 64KB-4MB
+
+			foreach (int size in candidates)
+			{
+				long pieceCount = (fileSize + size - 1) / size;
+				if (pieceCount <= 1048576)
+					return size;
+			}
+
+			return 4194304; // Max 4MB pieces
+		}
+
+		/// <summary>
+		/// Computes file integrity data AFTER download.
+		/// Used to verify the file matches expected content and enable P2P sharing.
+		/// Returns: (ContentHashSHA256, pieceLength, pieceHashes)
+		/// </summary>
+		public static async Task<(string contentHashSHA256, int pieceLength, string pieceHashes)> ComputeFileIntegrityData( string filePath )
+		{
+			FileInfo fileInfo = new FileInfo( filePath );
+			long fileSize = fileInfo.Length;
+
+			// 1. Determine canonical piece size
+			int pieceLength = DeterminePieceSize( fileSize );
+
+			// 2. Compute piece hashes (SHA-1, 20 bytes each) for P2P transfer verification
+			List<byte[]> pieceHashList = new List<byte[]>();
+			using (FileStream fs = File.OpenRead( filePath ))
+			{
+				byte[] buffer = new byte[pieceLength];
+				while (true)
+
+
+				{
+#if NET48
+					int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength).ConfigureAwait(false);
+#else
+					int bytesRead = await fs.ReadAsync( buffer.AsMemory( 0, pieceLength ) ).ConfigureAwait( false );
+#endif
+					if (bytesRead == 0) break;
+
+					byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take( bytesRead ).ToArray();
+#if NET48
+					using ( var sha1 = SHA1.Create() )
+					{
+						byte[] pieceHash = sha1.ComputeHash(pieceData);
+						pieceHashList.Add(pieceHash);
+					}
+#else
+					byte[] pieceHash = SHA1.HashData( pieceData );
+					pieceHashList.Add( pieceHash );
+#endif
+				}
+			}
+
+			// Concatenate piece hashes as hex
+			string pieceHashes = string.Concat( pieceHashList.Select( h =>
+				BitConverter.ToString( h ).Replace( "-", "" ).ToLowerInvariant() ) );
+
+			// 3. Compute SHA-256 of entire file (CANONICAL integrity check)
+			byte[] sha256;
+			using (FileStream fs = File.OpenRead( filePath ))
+			{
+#if NET48
+				using ( var sha = SHA256.Create() )
+				{
+					sha256 = sha.ComputeHash(fs);
+				}
+#else
+				sha256 = await SHA256.HashDataAsync( fs ).ConfigureAwait( false );
+#endif
+			}
+			string contentHashSHA256 = BitConverter.ToString( sha256 ).Replace( "-", "" ).ToLowerInvariant();
+
+			return (contentHashSHA256, pieceLength, pieceHashes);
+		}
+
+		/// <summary>
+		/// DEPRECATED: Use ComputeContentIdFromMetadata() for pre-download ContentId, then ComputeFileIntegrityData() post-download.
+		/// This function computes ContentId from file bytes (wrong approach for P2P discovery).
+		/// Kept for backward compatibility only.
+		/// </summary>
+		[Obsolete( "Use ComputeContentIdFromMetadata() before download, then ComputeFileIntegrityData() after download" )]
+		public static async Task<(string contentId, string contentHashSHA256, int pieceLength, string pieceHashes)> ComputeContentIdentifiers( string filePath )
+		{
+			FileInfo fileInfo = new FileInfo( filePath );
+			long fileSize = fileInfo.Length;
+
+			// 1. Determine canonical piece size
+			int pieceLength = DeterminePieceSize( fileSize );
+
+			// 2. Compute piece hashes (SHA-1, 20 bytes each)
+			List<byte[]> pieceHashList = new List<byte[]>();
+			using (FileStream fs = File.OpenRead( filePath ))
+			{
+				byte[] buffer = new byte[pieceLength];
+				while (true)
+
+
+				{
+#if NET48
+					int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength).ConfigureAwait(false);
+#else
+					int bytesRead = await fs.ReadAsync( buffer.AsMemory( 0, pieceLength ) ).ConfigureAwait( false );
+#endif
+					if (bytesRead == 0) break;
+
+					byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take( bytesRead ).ToArray();
+#if NET48
+					using ( var sha1 = SHA1.Create() )
+					{
+						byte[] pieceHash = sha1.ComputeHash(pieceData);
+						pieceHashList.Add(pieceHash);
+					}
+#else
+					byte[] pieceHash = SHA1.HashData( pieceData );
+					pieceHashList.Add( pieceHash );
+#endif
+				}
+			}
+
+			// Concatenate piece hashes as hex
+			string pieceHashes = string.Concat( pieceHashList.Select( h => BitConverter.ToString( h ).Replace( "-", "" ).ToLowerInvariant() ) );
+
+			// 3. Build canonical bencoded info dict (BitTorrent spec)
+			string sanitizedName = SanitizeFilename( Path.GetFileName( filePath ) );
+			byte[] piecesRaw = pieceHashList.SelectMany( h => h ).ToArray(); // Raw SHA-1 bytes concatenated
+
+			SortedDictionary<string, object> infoDict = new SortedDictionary<string, object>
+
+
+( StringComparer.Ordinal )
+			{
+				["length"] = fileSize,
+				["name"] = sanitizedName,
+				["piece length"] = (long)pieceLength,
+				["pieces"] = piecesRaw,
+				["private"] = (long)0
+			};
+
+			byte[] bencodedInfo = Utility.CanonicalBencoding.BencodeCanonical( infoDict );
+#if NET48
+			byte[] infohash;
+			using ( var sha1 = SHA1.Create() )
+			{
+				infohash = sha1.ComputeHash(bencodedInfo);
+			}
+#else
+			byte[] infohash = SHA1.HashData( bencodedInfo );
+#endif
+			string contentId = BitConverter.ToString( infohash ).Replace( "-", "" ).ToLowerInvariant();
+
+			// 4. Compute SHA-256 of entire file (CANONICAL integrity check)
+			byte[] sha256;
+			using (FileStream fs = File.OpenRead( filePath ))
+			{
+#if NET48
+				using ( var sha = SHA256.Create() )
+				{
+					sha256 = sha.ComputeHash(fs);
+				}
+#else
+				sha256 = await SHA256.HashDataAsync( fs ).ConfigureAwait( false );
+#endif
+			}
+			string contentHashSHA256 = BitConverter.ToString( sha256 ).Replace( "-", "" ).ToLowerInvariant();
+
+			return (contentId, contentHashSHA256, pieceLength, pieceHashes);
+		}
+
+		/// <summary>
+		/// Sanitizes a filename for canonical content identification.
+		/// </summary>
+		public static string SanitizeFilename( string name )
+		{
+			if (string.IsNullOrEmpty( name ))
+				return name;
+
+			// Normalize to Unicode NFC
+			name = name.Normalize( NormalizationForm.FormC );
+
+			// Replace backslashes with forward slashes
+			name = name.Replace( '\\', '/' );
+
+			// Remove any path components (keep filename only)
+			if (name.Contains( '/' ))
+				name = name.Substring( name.LastIndexOf( '/' ) + 1 );
+
+			return name;
+		}
+
+		/// <summary>
+		/// Verifies content integrity using SHA-256 hash and piece-level verification.
+		/// </summary>
+		public static async Task<bool> VerifyContentIntegrity( string filePath, ResourceMetadata meta )
+		{
+			try
+			{
+				// 1. CANONICAL CHECK: SHA-256 of file bytes
+				byte[] sha256Hash;
+				using (FileStream fs = File.OpenRead( filePath ))
+				{
+#if NET48
+					using ( var sha = SHA256.Create() )
+					{
+						sha256Hash = sha.ComputeHash(fs);
+					}
+#else
+					sha256Hash = await SHA256.HashDataAsync( fs )
+
+
+
+
+
+
+
+.ConfigureAwait( false );
+#endif
+				}
+				string computedSHA256 = BitConverter.ToString( sha256Hash ).Replace( "-", "" ).ToLowerInvariant();
+
+				if (meta.ContentHashSHA256 != null && !string.Equals( computedSHA256, meta.ContentHashSHA256, StringComparison.Ordinal ))
+
+
+				{
+					await Logger.LogErrorAsync( $"[Cache] INTEGRITY FAILURE: SHA-256 mismatch" ).ConfigureAwait( false );
+					await Logger.LogErrorAsync( $"  Expected: {meta.ContentHashSHA256}" ).ConfigureAwait( false );
+					await Logger.LogErrorAsync( $"  Computed: {computedSHA256}" ).ConfigureAwait( false );
+					return false;
+				}
+
+				// 2. Piece-level verification (if piece data available)
+				if (meta.PieceHashes != null && meta.PieceLength > 0)
+				{
+					bool piecesValid = await VerifyPieceHashesFromStored( filePath, meta.PieceLength, meta.PieceHashes ).ConfigureAwait( false );
+					if (!piecesValid)
+					{
+						await Logger.LogErrorAsync( $"[Cache] INTEGRITY FAILURE: Piece hash mismatch" ).ConfigureAwait( false );
+						return false;
+					}
+				}
+
+				// 3. Verify file size matches
+				FileInfo fileInfo = new FileInfo( filePath );
+				if (meta.FileSize > 0 && fileInfo.Length != meta.FileSize)
+				{
+					await Logger.LogErrorAsync( $"[Cache] INTEGRITY FAILURE: File size mismatch" ).ConfigureAwait( false );
+					await Logger.LogErrorAsync( $"  Expected: {meta.FileSize} bytes" ).ConfigureAwait( false );
+					await Logger.LogErrorAsync( $"  Actual: {fileInfo.Length} bytes" ).ConfigureAwait( false );
+					return false;
+				}
+
+				return true;
+			}
+			catch (Exception ex)
+
+
+			{
+				await Logger.LogErrorAsync( $"[Cache] Integrity verification failed: {ex.Message}" ).ConfigureAwait( false );
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Verifies piece hashes from stored hex-encoded concatenated SHA-1 hashes.
+		/// </summary>
+		public static async Task<bool> VerifyPieceHashesFromStored( string filePath, int pieceLength, string pieceHashesHex )
+		{
+			try
+			{
+				// Parse stored piece hashes (hex-encoded concatenated SHA-1 hashes, 40 hex chars per piece)
+				List<byte[]> expectedHashes = new List<byte[]>();
+				for (int i = 0; i < pieceHashesHex.Length; i += 40)
+				{
+					if (i + 40 > pieceHashesHex.Length) break;
+					string hexPiece = pieceHashesHex.Substring( i, 40 );
+#if NET48
+					expectedHashes.Add(HexStringToByteArray(hexPiece));
+#else
+					expectedHashes.Add( Convert.FromHexString( hexPiece ) );
+#endif
+				}
+
+				// Compute actual piece hashes from file
+				using (FileStream fs = File.OpenRead( filePath ))
+				{
+					byte[] buffer = new byte[pieceLength];
+					int pieceIndex = 0;
+
+					while (true)
+
+
+					{
+#if NET48
+						int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength).ConfigureAwait(false);
+#else
+						int bytesRead = await fs.ReadAsync( buffer.AsMemory( 0, pieceLength ) ).ConfigureAwait( false );
+#endif
+						if (bytesRead == 0) break;
+
+						byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take( bytesRead ).ToArray();
+#if NET48
+						byte[] computedHash;
+						using ( var sha1 = SHA1.Create() )
+						{
+							computedHash = sha1.ComputeHash(pieceData);
+						}
+#else
+						byte[] computedHash = SHA1.HashData( pieceData );
+#endif
+
+						if (pieceIndex >= expectedHashes.Count || !computedHash.SequenceEqual( expectedHashes[pieceIndex] ))
+
+
+						{
+							await Logger.LogErrorAsync( $"[Cache] Piece {pieceIndex} hash mismatch" ).ConfigureAwait( false );
+							return false;
+						}
+
+						pieceIndex++;
+					}
+
+					if (pieceIndex != expectedHashes.Count)
+
+
+					{
+						await Logger.LogErrorAsync( $"[Cache] Piece count mismatch: expected {expectedHashes.Count}, got {pieceIndex}" ).ConfigureAwait( false );
+						return false;
+					}
+				}
+
+				return true;
+			}
+			catch (Exception ex)
+
+
+			{
+				await Logger.LogErrorAsync( $"[Cache] Piece verification failed: {ex.Message}" ).ConfigureAwait( false );
+				return false;
+			}
+		}
+
+#if NET48
+		private static byte[] HexStringToByteArray(string hex)
+		{
+			byte[] bytes = new byte[hex.Length / 2];
+			for ( int i = 0; i < bytes.Length; i++ )
+			{
+				bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+			}
+			return bytes;
+		}
+#endif
+
+		/// <summary>
+		/// Gets the path for a partial download file.
+		/// </summary>
+		public static string GetPartialFilePath( string contentKey, string destinationDirectory )
+		{
+			string partialDir = Path.Combine( destinationDirectory, ".partial" );
+			if (!Directory.Exists( partialDir ))
+				Directory.CreateDirectory( partialDir );
+
+			return Path.Combine( partialDir, $"{contentKey.Substring( 0, Math.Min( 32, contentKey.Length ) )}.part" );
+		}
+
+		/// <summary>
+		/// Acquires a per-content lock to prevent concurrent downloads of the same content.
+		/// </summary>
+		public static async Task<IDisposable> AcquireContentKeyLock( string contentKey )
+		{
+			SemaphoreSlim sem = s_contentKeyLocks.GetOrAdd( contentKey, _ => new SemaphoreSlim( 1, 1 ) );
+
+
+			await sem.WaitAsync().ConfigureAwait( false );
+			return new LockReleaser( () =>
+			{
+				sem.Release();
+				// Clean up if no waiters
+				if (sem.CurrentCount == 1)
+					s_contentKeyLocks.TryRemove( contentKey, out _ );
+			} );
+		}
+
+		private class LockReleaser : IDisposable
+		{
+			private readonly Action _release;
+			public LockReleaser( Action release ) => _release = release;
+			public void Dispose() => _release();
+		}
+
+		/// <summary>
+		/// Blocks a ContentId from being used in network cache (for DMCA/takedown compliance).
+		/// </summary>
+		public static void BlockContentId( string contentId, string reason = null )
+		{
+			lock (_lock)
+			{
+				s_blockedContentIds.Add( contentId );
+
+				// Log with audit trail
+				try
+				{
+					string cacheDir = Path.Combine(
+						Environment.GetFolderPath( Environment.SpecialFolder.ApplicationData ),
+						"KOTORModSync",
+						"Cache"
+					);
+					if (!Directory.Exists( cacheDir ))
+						Directory.CreateDirectory( cacheDir );
+
+					string auditLog = Path.Combine( cacheDir, "block-audit.log" );
+					File.AppendAllText( auditLog, $"{DateTime.UtcNow:O}|BLOCK|{contentId}|{reason ?? "manual"}\n" );
+				}
+				catch (Exception ex)
+				{
+					Logger.LogWarning( $"[Cache] Failed to write audit log: {ex.Message}" );
+				}
+			}
+		}
+
+		/// <summary>
+		/// Checks if a ContentId is blocked.
+		/// </summary>
+		public static bool IsContentIdBlocked( string contentId )
+		{
+			lock (_lock)
+			{
+				return s_blockedContentIds.Contains( contentId );
+			}
+		}
+
+		#endregion
+
+		#region CLI Management Methods
+
+		/// <summary>
+		/// Gets the count of blocked ContentIds.
+		/// </summary>
+		public static int GetBlockedContentIdCount()
+		{
+			lock (s_blockedContentIds)
+			{
+				return s_blockedContentIds.Count;
+			}
+		}
+
+		#endregion
 	}
 }
-

@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,8 +9,11 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+
 using Avalonia.Media;
+
 using JetBrains.Annotations;
+
 using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Dialogs
@@ -31,38 +34,38 @@ namespace KOTORModSync.Dialogs
 			get => _statusText;
 			set
 			{
-				if ( _statusText == value ) return;
+				if (string.Equals( _statusText, value, StringComparison.Ordinal )) return;
 				_statusText = value;
 				OnPropertyChanged();
 			}
 		}
 
-		public DependencyUnlinkViewModel(ModComponent componentToDelete, List<ModComponent> dependentComponents)
+		public DependencyUnlinkViewModel( ModComponent componentToDelete, List<ModComponent> dependentComponents )
 		{
 			ComponentToDelete = componentToDelete;
 			DependentComponents = new ObservableCollection<DependentComponentItem>();
 			QuickActions = new ObservableCollection<QuickActionItem>();
-			ApplyQuickActionCommand = new RelayCommand(ApplyQuickAction);
+			ApplyQuickActionCommand = new RelayCommand( ApplyQuickAction );
 
 			int dependentCount = dependentComponents.Count;
 			SummaryText = $"Cannot delete '{componentToDelete.Name}' because {dependentCount} component{(dependentCount > 1 ? "s" : "")} depend on it. " +
 						  "You must first unlink these dependencies by unchecking the dependent components below.";
 
-			DetailedDependencyInfo = DependencyUnlinkViewModel.BuildDetailedDependencyInfo(componentToDelete, dependentComponents);
+			DetailedDependencyInfo = DependencyUnlinkViewModel.BuildDetailedDependencyInfo( componentToDelete, dependentComponents );
 
-			foreach ( ModComponent component in dependentComponents )
+			foreach (ModComponent component in dependentComponents)
 			{
-				var item = new DependentComponentItem(component, componentToDelete);
+				var item = new DependentComponentItem( component, componentToDelete );
 				item.PropertyChanged += OnComponentSelectionChanged;
-				DependentComponents.Add(item);
+				DependentComponents.Add( item );
 			}
 
-			BuildQuickActions(dependentComponents);
+			BuildQuickActions( dependentComponents );
 
 			UpdateStatus();
 		}
 
-		private static string BuildDetailedDependencyInfo(ModComponent componentToDelete, List<ModComponent> dependentComponents)
+		private static string BuildDetailedDependencyInfo( ModComponent componentToDelete, List<ModComponent> dependentComponents )
 		{
 			var info = new List<string>
 			{
@@ -70,61 +73,61 @@ namespace KOTORModSync.Dialogs
 				"Dependent components:"
 			};
 
-			foreach ( ModComponent dependent in dependentComponents )
+			foreach (ModComponent dependent in dependentComponents)
 			{
 				var dependencyTypes = new List<string>();
 
-				if ( dependent.Dependencies.Contains(componentToDelete.Guid) )
-					dependencyTypes.Add("Dependency");
-				if ( dependent.Restrictions.Contains(componentToDelete.Guid) )
-					dependencyTypes.Add("Restriction");
-				if ( dependent.InstallBefore.Contains(componentToDelete.Guid) )
-					dependencyTypes.Add("InstallBefore");
-				if ( dependent.InstallAfter.Contains(componentToDelete.Guid) )
-					dependencyTypes.Add("InstallAfter");
+				if (dependent.Dependencies.Contains( componentToDelete.Guid ))
+					dependencyTypes.Add( "Dependency" );
+				if (dependent.Restrictions.Contains( componentToDelete.Guid ))
+					dependencyTypes.Add( "Restriction" );
+				if (dependent.InstallBefore.Contains( componentToDelete.Guid ))
+					dependencyTypes.Add( "InstallBefore" );
+				if (dependent.InstallAfter.Contains( componentToDelete.Guid ))
+					dependencyTypes.Add( "InstallAfter" );
 
-				info.Add($"  • {dependent.Name} (GUID: {dependent.Guid})");
-				info.Add($"    Dependency types: {string.Join(", ", dependencyTypes)}");
+				info.Add( $"  • {dependent.Name} (GUID: {dependent.Guid})" );
+				info.Add( $"    Dependency types: {string.Join( ", ", dependencyTypes )}" );
 			}
 
-			return string.Join(Environment.NewLine, info);
+			return string.Join( Environment.NewLine, info );
 		}
 
-		private void BuildQuickActions(List<ModComponent> dependentComponents)
+		private void BuildQuickActions( List<ModComponent> dependentComponents )
 		{
 
-			QuickActions.Add(new QuickActionItem
+			QuickActions.Add( new QuickActionItem
 			{
 				ActionType = QuickActionType.UncheckAll,
 				Text = "❌ Uncheck All Dependencies"
-			});
+			} );
 
-			QuickActions.Add(new QuickActionItem
+			QuickActions.Add( new QuickActionItem
 			{
 				ActionType = QuickActionType.UncheckSelectedOnly,
 				Text = "☑️ Uncheck Only Selected Dependencies"
-			});
+			} );
 
-			foreach ( ModComponent component in dependentComponents.Take(5) )
+			foreach (ModComponent component in dependentComponents.Take( 5 ))
 			{
-				QuickActions.Add(new QuickActionItem
+				QuickActions.Add( new QuickActionItem
 				{
 					ActionType = QuickActionType.UncheckSpecific,
 					ModComponent = component,
 					Text = $"❌ Uncheck: {component.Name}"
-				});
+				} );
 			}
 		}
 
-		private void OnComponentSelectionChanged(object sender, PropertyChangedEventArgs e)
+		private void OnComponentSelectionChanged( object sender, PropertyChangedEventArgs e )
 		{
-			if ( e.PropertyName == nameof(DependentComponentItem.IsSelected) )
+			if (string.Equals( e.PropertyName, nameof( DependentComponentItem.IsSelected ), StringComparison.Ordinal ))
 				UpdateStatus();
 		}
 
 		private void UpdateStatus()
 		{
-			int selectedCount = DependentComponents.Count(c => c.IsSelected);
+			int selectedCount = DependentComponents.Count( c => c.IsSelected );
 			int totalCount = DependentComponents.Count;
 			int uncheckedCount = totalCount - selectedCount;
 
@@ -133,31 +136,31 @@ namespace KOTORModSync.Dialogs
 						 : $"⚠️ {totalCount}/{totalCount} dependencies still linked. Uncheck at least one dependent component to proceed.";
 		}
 
-		private void ApplyQuickAction(object parameter)
+		private void ApplyQuickAction( object parameter )
 		{
-			if ( !(parameter is QuickActionItem action) )
+			if (!(parameter is QuickActionItem action))
 				return;
 
-			switch ( action.ActionType )
+			switch (action.ActionType)
 			{
 				case QuickActionType.UncheckAll:
-					foreach ( DependentComponentItem item in DependentComponents )
+					foreach (DependentComponentItem item in DependentComponents)
 						item.IsSelected = false;
 					break;
 
 				case QuickActionType.UncheckSelectedOnly:
 
-					foreach ( DependentComponentItem item in DependentComponents.Where(c => c.ModComponent.IsSelected) )
+					foreach (DependentComponentItem item in DependentComponents.Where( c => c.ModComponent.IsSelected ))
 					{
 						item.IsSelected = false;
 					}
 					break;
 
 				case QuickActionType.UncheckSpecific:
-					if ( action.ModComponent != null )
+					if (action.ModComponent != null)
 					{
-						DependentComponentItem componentItem = DependentComponents.FirstOrDefault(c => c.ModComponent == action.ModComponent);
-						if ( componentItem != null )
+						DependentComponentItem componentItem = DependentComponents.FirstOrDefault( c => c.ModComponent == action.ModComponent );
+						if (componentItem != null)
 						{
 							componentItem.IsSelected = false;
 						}
@@ -171,7 +174,7 @@ namespace KOTORModSync.Dialogs
 		public event PropertyChangedEventHandler PropertyChanged;
 
 		[NotifyPropertyChangedInvocator]
-		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null ) => PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
 	}
 
 	public class DependentComponentItem : INotifyPropertyChanged
@@ -193,28 +196,28 @@ namespace KOTORModSync.Dialogs
 			get => _isSelected;
 			set
 			{
-				if ( _isSelected == value ) return;
+				if (_isSelected == value) return;
 				_isSelected = value;
 				OnPropertyChanged();
 			}
 		}
 
-		public DependentComponentItem(ModComponent component, ModComponent componentToDelete)
+		public DependentComponentItem( ModComponent component, ModComponent componentToDelete )
 		{
 			ModComponent = component;
 			_isSelected = true;
 
 			var dependencyTypes = new List<string>();
-			if ( component.Dependencies.Contains(componentToDelete.Guid) )
-				dependencyTypes.Add("Dependency");
-			if ( component.Restrictions.Contains(componentToDelete.Guid) )
-				dependencyTypes.Add("Restriction");
-			if ( component.InstallBefore.Contains(componentToDelete.Guid) )
-				dependencyTypes.Add("InstallBefore");
-			if ( component.InstallAfter.Contains(componentToDelete.Guid) )
-				dependencyTypes.Add("InstallAfter");
+			if (component.Dependencies.Contains( componentToDelete.Guid ))
+				dependencyTypes.Add( "Dependency" );
+			if (component.Restrictions.Contains( componentToDelete.Guid ))
+				dependencyTypes.Add( "Restriction" );
+			if (component.InstallBefore.Contains( componentToDelete.Guid ))
+				dependencyTypes.Add( "InstallBefore" );
+			if (component.InstallAfter.Contains( componentToDelete.Guid ))
+				dependencyTypes.Add( "InstallAfter" );
 
-			DependencyInfo = $"🔗 Depends on: {string.Join(", ", dependencyTypes)}";
+			DependencyInfo = $"🔗 Depends on: {string.Join( ", ", dependencyTypes )}";
 			DependencyInfoColor = ThemeResourceHelper.DependencyWarningForeground;
 			StatusIcon = "🔗";
 			StatusTooltip = "This component depends on the component you want to delete. Uncheck to unlink the dependency.";
@@ -224,7 +227,7 @@ namespace KOTORModSync.Dialogs
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null ) => PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
 	}
 
 	public class QuickActionItem

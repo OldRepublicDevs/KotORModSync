@@ -1,8 +1,9 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+
 using KOTORModSync.Core;
 
 namespace KOTORModSync
@@ -21,10 +22,10 @@ namespace KOTORModSync
 		}
 
 
-		public static GuidResolution ResolveGuidConflict(ModComponent existing, ModComponent incoming)
+		public static GuidResolution ResolveGuidConflict( ModComponent existing, ModComponent incoming )
 		{
 
-			if ( existing.Guid == incoming.Guid )
+			if (existing.Guid == incoming.Guid)
 				return null;
 
 			var resolution = new GuidResolution
@@ -33,11 +34,11 @@ namespace KOTORModSync
 				IncomingComponent = incoming
 			};
 
-			bool existingHasGuidUsage = HasIntricateGuidUsage(existing);
+			bool existingHasGuidUsage = HasIntricateGuidUsage( existing );
 
-			bool incomingHasGuidUsage = HasIntricateGuidUsage(incoming);
+			bool incomingHasGuidUsage = HasIntricateGuidUsage( incoming );
 
-			if ( existingHasGuidUsage && incomingHasGuidUsage )
+			if (existingHasGuidUsage && incomingHasGuidUsage)
 			{
 				resolution.RequiresManualResolution = true;
 				resolution.ConflictReason = $"⚠️ GUID CONFLICT REQUIRES MANUAL RESOLUTION\n\n" +
@@ -62,7 +63,7 @@ namespace KOTORModSync
 				return resolution;
 			}
 
-			if ( existingHasGuidUsage )
+			if (existingHasGuidUsage)
 			{
 				resolution.ChosenGuid = existing.Guid;
 				resolution.RejectedGuid = incoming.Guid;
@@ -71,7 +72,7 @@ namespace KOTORModSync
 				return resolution;
 			}
 
-			if ( incomingHasGuidUsage )
+			if (incomingHasGuidUsage)
 			{
 				resolution.ChosenGuid = incoming.Guid;
 				resolution.RejectedGuid = existing.Guid;
@@ -87,35 +88,34 @@ namespace KOTORModSync
 			return resolution;
 		}
 
-		private static bool HasIntricateGuidUsage(ModComponent component)
+		private static bool HasIntricateGuidUsage( ModComponent component )
 		{
 
-			if ( component.Dependencies.Count > 0 )
+			if (component.Dependencies.Count > 0)
 				return true;
-			if ( component.Restrictions.Count > 0 )
+			if (component.Restrictions.Count > 0)
 				return true;
-			if ( component.InstallAfter.Count > 0 )
+			if (component.InstallAfter.Count > 0)
 				return true;
 
-			if ( component.Options.Count > 0 )
+			if (component.Options.Count > 0)
 				return true;
 
 			return false;
 		}
 
-		public static bool IsGuidReferencedByOthers(Guid guid, System.Collections.Generic.List<ModComponent> allComponents)
+		public static bool IsGuidReferencedByOthers( Guid guid, System.Collections.Generic.List<ModComponent> allComponents )
 		{
-			foreach ( ModComponent comp in allComponents )
+			foreach (ModComponent comp in allComponents)
 			{
-				if ( comp.Dependencies.Contains(guid) )
+				if (comp.Dependencies.Contains( guid ))
 					return true;
-				if ( comp.Restrictions.Contains(guid) )
+				if (comp.Restrictions.Contains( guid ))
 					return true;
-				if ( comp.InstallAfter.Contains(guid) )
+				if (comp.InstallAfter.Contains( guid ))
 					return true;
 			}
 			return false;
 		}
 	}
 }
-

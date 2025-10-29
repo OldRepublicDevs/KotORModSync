@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,8 +6,11 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+
 using Avalonia.Data.Converters;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Utility;
 
@@ -22,9 +25,9 @@ namespace KOTORModSync.Converters
 			CultureInfo culture
 		)
 		{
-			if ( value is string url )
+			if (value is string url)
 			{
-				OpenLink(url);
+				OpenLink( url );
 			}
 
 			return null;
@@ -37,18 +40,18 @@ namespace KOTORModSync.Converters
 			CultureInfo culture
 		) => throw new NotImplementedException();
 
-		private static void OpenLink([NotNull] string url)
+		private static void OpenLink( [NotNull] string url )
 		{
 			try
 			{
-				if ( url is null )
-					throw new ArgumentNullException(nameof(url));
+				if (url is null)
+					throw new ArgumentNullException( nameof( url ) );
 
-				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri _) )
-					throw new ArgumentException("Invalid URL");
+				if (!Uri.TryCreate( url, UriKind.Absolute, out Uri _ ))
+					throw new ArgumentException( "Invalid URL" );
 
-				OSPlatform runningOs = Utility.GetOperatingSystem();
-				if ( runningOs == OSPlatform.Windows )
+				OSPlatform runningOs = UtilityHelper.GetOperatingSystem();
+				if (runningOs == OSPlatform.Windows)
 				{
 					_ = Process.Start(
 						new ProcessStartInfo
@@ -58,22 +61,22 @@ namespace KOTORModSync.Converters
 						}
 					);
 				}
-				else if ( runningOs == OSPlatform.OSX )
+				else if (runningOs == OSPlatform.OSX)
 				{
-					_ = Process.Start(fileName: "open", url);
+					_ = Process.Start( fileName: "open", url );
 				}
-				else if ( runningOs == OSPlatform.Linux )
+				else if (runningOs == OSPlatform.Linux)
 				{
-					_ = Process.Start(fileName: "xdg-open", url);
+					_ = Process.Start( fileName: "xdg-open", url );
 				}
 				else
 				{
-					Logger.LogError("Unsupported platform, cannot open link.");
+					Logger.LogError( "Unsupported platform, cannot open link." );
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, $"Failed to open URL: {ex.Message}");
+				Logger.LogException( ex, $"Failed to open URL: {ex.Message}" );
 			}
 		}
 	}

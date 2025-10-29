@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
 using JetBrains.Annotations;
 namespace KOTORModSync.Core
 {
@@ -21,10 +22,10 @@ namespace KOTORModSync.Core
 		checkId: "IDE0079:Remove unnecessary suppression",
 		Justification = "<Pending>"
 	)]
-	[SuppressMessage(category: "ReSharper", checkId: "MemberCanBeMadeStatic.Global")]
-	[SuppressMessage(category: "ReSharper", checkId: "InconsistentNaming")]
-	[SuppressMessage(category: "ReSharper", checkId: "MemberCanBePrivate.Global")]
-	[SuppressMessage(category: "ReSharper", checkId: "UnusedMember.Global")]
+	[SuppressMessage( category: "ReSharper", checkId: "MemberCanBeMadeStatic.Global" )]
+	[SuppressMessage( category: "ReSharper", checkId: "InconsistentNaming" )]
+	[SuppressMessage( category: "ReSharper", checkId: "MemberCanBePrivate.Global" )]
+	[SuppressMessage( category: "ReSharper", checkId: "UnusedMember.Global" )]
 	public sealed class MainConfig : INotifyPropertyChanged
 	{
 		public MainConfig()
@@ -63,7 +64,7 @@ namespace KOTORModSync.Core
 		public bool caseInsensitivePathing
 		{
 			get => CaseInsensitivePathing;
-			set => CaseInsensitivePathing = Utility.Utility.GetOperatingSystem() != OSPlatform.Windows;
+			set => CaseInsensitivePathing = Utility.UtilityHelper.GetOperatingSystem() != OSPlatform.Windows;
 		}
 		public static bool DebugLogging { get; private set; }
 		public bool debugLogging { get => DebugLogging; set => DebugLogging = value; }
@@ -94,7 +95,7 @@ namespace KOTORModSync.Core
 		public List<ModComponent> allComponents
 		{
 			get => AllComponents;
-			set => AllComponents = value ?? throw new ArgumentNullException(nameof(value));
+			set => AllComponents = value ?? throw new ArgumentNullException( nameof( value ) );
 		}
 		[CanBeNull] public static ModComponent CurrentComponent { get; set; }
 		[CanBeNull]
@@ -105,7 +106,7 @@ namespace KOTORModSync.Core
 			{
 				if (CurrentComponent == value) return;
 				CurrentComponent = value;
-				OnPropertyChanged(nameof(currentComponent));
+				OnPropertyChanged( nameof( currentComponent ) );
 			}
 		}
 		public static string BeforeModListContent { get; set; } = string.Empty;
@@ -138,21 +139,21 @@ namespace KOTORModSync.Core
 			get => TargetGame;
 			set
 			{
-				if ( !string.IsNullOrWhiteSpace(value) && !MainConfig.IsValidTargetGame(value) )
+				if (!string.IsNullOrWhiteSpace( value ) && !MainConfig.IsValidTargetGame( value ))
 				{
-					Logger.LogWarning($"Invalid target game '{value}'. Valid values are 'K1' or 'TSL'. Value will be stored as-is but may cause issues.");
+					Logger.LogWarning( $"Invalid target game '{value}'. Valid values are 'K1' or 'TSL'. Value will be stored as-is but may cause issues." );
 				}
 				TargetGame = value ?? string.Empty;
 			}
 		}
-		public static bool IsValidTargetGame(string game)
+		public static bool IsValidTargetGame( string game )
 		{
-			if ( string.IsNullOrWhiteSpace(game) )
+			if (string.IsNullOrWhiteSpace( game ))
 				return false;
-			return game.Equals(ValidTargetGames.K1, StringComparison.OrdinalIgnoreCase)
-				|| game.Equals(ValidTargetGames.TSL, StringComparison.OrdinalIgnoreCase)
-				|| game.Equals(ValidTargetGames.KOTOR1, StringComparison.OrdinalIgnoreCase)
-				|| game.Equals(ValidTargetGames.KOTOR2, StringComparison.OrdinalIgnoreCase);
+			return game.Equals( ValidTargetGames.K1, StringComparison.OrdinalIgnoreCase )
+				|| game.Equals( ValidTargetGames.TSL, StringComparison.OrdinalIgnoreCase )
+				|| game.Equals( ValidTargetGames.KOTOR1, StringComparison.OrdinalIgnoreCase )
+				|| game.Equals( ValidTargetGames.KOTOR2, StringComparison.OrdinalIgnoreCase );
 		}
 		public static string FileFormatVersion { get; set; } = "2.0";
 		public string fileFormatVersion
@@ -194,7 +195,7 @@ namespace KOTORModSync.Core
 			{
 				if (SourcePath == value) return;
 				SourcePath = value;
-				OnPropertyChanged(nameof(sourcePathFullName));
+				OnPropertyChanged( nameof( sourcePathFullName ) );
 			}
 		}
 		[CanBeNull] public string sourcePathFullName => SourcePath?.FullName;
@@ -207,12 +208,22 @@ namespace KOTORModSync.Core
 			{
 				if (DestinationPath == value) return;
 				DestinationPath = value;
-				OnPropertyChanged(nameof(destinationPathFullName));
+				OnPropertyChanged( nameof( destinationPathFullName ) );
 			}
 		}
 		[CanBeNull] public string destinationPathFullName => DestinationPath?.FullName;
+
+		/// <summary>Maximum cache size in megabytes for distributed cache storage (default 10GB)</summary>
+		public static long MaxCacheSizeMB { get; set; } = 10240;
+
+		public long maxCacheSizeMB
+		{
+			get => MaxCacheSizeMB;
+			set => MaxCacheSizeMB = value;
+		}
+
 		public event PropertyChangedEventHandler PropertyChanged;
-		private void OnPropertyChanged([CallerMemberName][CanBeNull] string propertyName = null) =>
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		private void OnPropertyChanged( [CallerMemberName][CanBeNull] string propertyName = null ) =>
+			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
 	}
 }

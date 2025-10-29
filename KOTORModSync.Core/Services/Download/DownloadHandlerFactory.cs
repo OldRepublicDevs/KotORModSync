@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -25,21 +25,21 @@ namespace KOTORModSync.Core.Services.Download
 		public static List<IDownloadHandler> CreateHandlers(
 			HttpClient httpClient = null,
 			string nexusModsApiKey = null,
-			int timeoutMinutes = 180)
+			int timeoutMinutes = 180 )
 		{
 			// Create HttpClient if not provided
-			if ( httpClient == null )
+			if (httpClient == null)
 			{
-				var handler = new HttpClientHandler
+				HttpClientHandler handler = new HttpClientHandler
 				{
 					AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
 					MaxConnectionsPerServer = 128
 				};
-				httpClient = new HttpClient(handler)
+				httpClient = new HttpClient( handler )
 				{
-					Timeout = TimeSpan.FromMinutes(timeoutMinutes)
+					Timeout = TimeSpan.FromMinutes( timeoutMinutes )
 				};
-				Logger.LogVerbose($"[DownloadHandlerFactory] Created new HttpClient with {timeoutMinutes} minute timeout");
+				Logger.LogVerbose( $"[DownloadHandlerFactory] Created new HttpClient with {timeoutMinutes} minute timeout" );
 			}
 
 			// Use the API key from parameter, or fall back to MainConfig if not provided
@@ -48,7 +48,7 @@ namespace KOTORModSync.Core.Services.Download
 			// Handler order is CRITICAL:
 			// 1. Most specific handlers first (DeadlyStream, Mega, NexusMods, GameFront)
 			// 2. Generic fallback handler last (DirectDownload - catches ANY http/https)
-			var handlers = new List<IDownloadHandler>
+			List<IDownloadHandler> handlers = new List<IDownloadHandler>
 			{
 				new DeadlyStreamDownloadHandler(httpClient),
 				new MegaDownloadHandler(),
@@ -57,7 +57,7 @@ namespace KOTORModSync.Core.Services.Download
 				new DirectDownloadHandler(httpClient),  // MUST be last - fallback for any HTTP/HTTPS
 			};
 
-			Logger.LogVerbose($"[DownloadHandlerFactory] Created {handlers.Count} download handlers in priority order");
+			Logger.LogVerbose( $"[DownloadHandlerFactory] Created {handlers.Count} download handlers in priority order" );
 			return handlers;
 		}
 
@@ -71,11 +71,10 @@ namespace KOTORModSync.Core.Services.Download
 		public static DownloadManager CreateDownloadManager(
 			HttpClient httpClient = null,
 			string nexusModsApiKey = null,
-			int timeoutMinutes = 180)
+			int timeoutMinutes = 180 )
 		{
-			List<IDownloadHandler> handlers = CreateHandlers(httpClient, nexusModsApiKey, timeoutMinutes);
-			return new DownloadManager(handlers);
+			List<IDownloadHandler> handlers = CreateHandlers( httpClient, nexusModsApiKey, timeoutMinutes );
+			return new DownloadManager( handlers );
 		}
 	}
 }
-

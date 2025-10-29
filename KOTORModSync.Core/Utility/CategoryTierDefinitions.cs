@@ -1,8 +1,9 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System.Collections.Generic;
+
 using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
@@ -13,6 +14,9 @@ namespace KOTORModSync.Core.Utility
 
 		[NotNull]
 		public static readonly Dictionary<string, string> CategoryDefinitions = new Dictionary<string, string>
+
+
+( System.StringComparer.Ordinal )
 		{
 
 			["Patch"] = "Official or community patches that fix bugs and issues in the base game.",
@@ -63,6 +67,9 @@ namespace KOTORModSync.Core.Utility
 
 		[NotNull]
 		public static readonly Dictionary<string, string> TierDefinitions = new Dictionary<string, string>
+
+
+( System.StringComparer.Ordinal )
 		{
 			["1 - Essential"] = "Critical mods that fix major bugs or provide essential improvements.",
 			["2 - Recommended"] = "High-quality mods that significantly improve the game experience. Strongly recommended for most players.",
@@ -73,12 +80,12 @@ namespace KOTORModSync.Core.Utility
 
 
 		[NotNull]
-		public static string GetCategoryDescription([CanBeNull] string category)
+		public static string GetCategoryDescription( [CanBeNull] string category )
 		{
-			if ( string.IsNullOrEmpty(category) )
+			if (string.IsNullOrEmpty( category ))
 				return "No category specified.";
 
-			return CategoryDefinitions.TryGetValue(category, out string description)
+			return CategoryDefinitions.TryGetValue( category, out string description )
 				? description
 				: $"Custom category: {category}";
 		}
@@ -86,28 +93,28 @@ namespace KOTORModSync.Core.Utility
 
 
 		[NotNull]
-		public static string GetTierDescription([CanBeNull] string tier)
+		public static string GetTierDescription( [CanBeNull] string tier )
 		{
-			if ( string.IsNullOrEmpty(tier) )
+			if (string.IsNullOrEmpty( tier ))
 				return "No tier specified.";
 
-			string normalizedTier = NormalizeTier(tier);
+			string normalizedTier = NormalizeTier( tier );
 
-			return TierDefinitions.TryGetValue(normalizedTier, out string description)
+			return TierDefinitions.TryGetValue( normalizedTier, out string description )
 				? description
 				: $"Custom tier: {tier}";
 		}
 
 
 		[NotNull]
-		public static string NormalizeTier([CanBeNull] string tier)
+		public static string NormalizeTier( [CanBeNull] string tier )
 		{
-			if ( string.IsNullOrWhiteSpace(tier) )
+			if (string.IsNullOrWhiteSpace( tier ))
 				return string.Empty;
 
 			string trimmedTier = tier.Trim();
 
-			if ( TierDefinitions.ContainsKey(trimmedTier) )
+			if (TierDefinitions.ContainsKey( trimmedTier ))
 				return trimmedTier;
 
 
@@ -122,16 +129,16 @@ namespace KOTORModSync.Core.Utility
 			).Trim();
 
 
-			if ( tierName.Contains("essential") )
+			if (tierName.Contains( "essential" ))
 				return "1 - Essential";
 
-			if ( tierName.Contains("recommend") )
+			if (tierName.Contains( "recommend" ))
 				return "2 - Recommended";
 
-			if ( tierName.Contains("suggest") )
+			if (tierName.Contains( "suggest" ))
 				return "3 - Suggested";
 
-			if ( tierName.Contains("option") )
+			if (tierName.Contains( "option" ))
 				return "4 - Optional";
 
 

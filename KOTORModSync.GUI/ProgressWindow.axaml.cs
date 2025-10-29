@@ -1,15 +1,18 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+
 using JetBrains.Annotations;
 
 namespace KOTORModSync
@@ -30,15 +33,15 @@ namespace KOTORModSync
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) => _mouseDownForWindowMoving = false;
+		private void InputElement_OnPointerReleased( object sender, PointerEventArgs e ) => _mouseDownForWindowMoving = false;
 		public void Dispose() => Close();
 
-		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+		private void MinimizeButton_Click( object sender, RoutedEventArgs e ) => WindowState = WindowState.Minimized;
 
-		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
+		private void ToggleMaximizeButton_Click( object sender, RoutedEventArgs e ) =>
 			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
-		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+		private void CloseButton_Click( object sender, RoutedEventArgs e ) => Close();
 
 		public void UpdateMetrics(
 			double percentComplete,
@@ -50,18 +53,18 @@ namespace KOTORModSync
 			[CanBeNull] string currentComponentName
 		)
 		{
-			PercentCompleted.Text = $"{Math.Round(percentComplete * 100)}%";
+			PercentCompleted.Text = $"{Math.Round( percentComplete * 100 )}%";
 			InstalledRemaining.Text = $"{installedCount}/{totalCount} Total Installed";
 			ProgressBar.Value = percentComplete;
 			TimeSpan elapsed = DateTime.UtcNow - installStartUtc;
-			ElapsedText.Text = elapsed.ToString("hh\\:mm\\:ss");
-			int remainingCount = Math.Max(0, totalCount - installedCount);
-			if ( installedCount > 0 )
+			ElapsedText.Text = elapsed.ToString( "hh\\:mm\\:ss", CultureInfo.InvariantCulture );
+			int remainingCount = Math.Max( 0, totalCount - installedCount );
+			if (installedCount > 0)
 			{
-				var avgPerMod = TimeSpan.FromTicks(elapsed.Ticks / installedCount);
-				var eta = TimeSpan.FromTicks(avgPerMod.Ticks * remainingCount);
-				RemainingText.Text = eta.ToString("hh\\:mm\\:ss");
-				double perMinute = installedCount / Math.Max(0.001, elapsed.TotalMinutes);
+				var avgPerMod = TimeSpan.FromTicks( elapsed.Ticks / installedCount );
+				var eta = TimeSpan.FromTicks( avgPerMod.Ticks * remainingCount );
+				RemainingText.Text = eta.ToString( "hh\\:mm\\:ss", CultureInfo.InvariantCulture );
+				double perMinute = installedCount / Math.Max( 0.001, elapsed.TotalMinutes );
 				RateText.Text = $"{perMinute:0.0} mods/min";
 			}
 			else
@@ -70,16 +73,16 @@ namespace KOTORModSync
 				RateText.Text = "0.0 mods/min";
 			}
 			ComponentsSummaryText.Text = $"{installedCount} of {totalCount}";
-			WarningsText.Text = warningCount.ToString();
-			ErrorsText.Text = errorCount.ToString();
+			WarningsText.Text = warningCount.ToString( CultureInfo.InvariantCulture );
+			ErrorsText.Text = errorCount.ToString( CultureInfo.InvariantCulture );
 			StageText.Text = "Installing";
-			CurrentOperationText.Text = string.IsNullOrWhiteSpace(currentComponentName)
+			CurrentOperationText.Text = string.IsNullOrWhiteSpace( currentComponentName )
 				? "Preparing..."
 				: $"Installing: {currentComponentName}";
 			CurrentStepProgress.IsIndeterminate = true;
 		}
 
-		private void OnCancelClick([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) => CancelRequested?.Invoke(this, EventArgs.Empty);
+		private void OnCancelClick( [CanBeNull] object sender, [CanBeNull] RoutedEventArgs e ) => CancelRequested?.Invoke( this, EventArgs.Empty );
 
 		public static async Task ShowProgressWindow(
 			[CanBeNull] Window parentWindow,
@@ -87,7 +90,7 @@ namespace KOTORModSync
 			decimal progress
 		)
 		{
-			await Dispatcher.UIThread.InvokeAsync(async () =>
+			await Dispatcher.UIThread.InvokeAsync( async () =>
 			{
 				var progressWindow = new ProgressWindow
 				{
@@ -103,45 +106,45 @@ namespace KOTORModSync
 					Topmost = true,
 				};
 
-				if ( !(parentWindow is null) )
-					_ = await progressWindow.ShowDialog<bool?>(parentWindow);
-			});
+				if (!(parentWindow is null))
+					_ = await progressWindow.ShowDialog<bool?>( parentWindow ).ConfigureAwait( false );
+			} ).ConfigureAwait( false );
 		}
 
-		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )
 		{
-			if ( !_mouseDownForWindowMoving )
+			if (!_mouseDownForWindowMoving)
 				return;
 
-			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			PointerPoint currentPoint = e.GetCurrentPoint( this );
 			Position = new PixelPoint(
 				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
 				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
 			);
 		}
 
-		private void InputElement_OnPointerPressed(object sender, PointerEventArgs e)
+		private void InputElement_OnPointerPressed( object sender, PointerEventArgs e )
 		{
-			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
 
-			if ( ShouldIgnorePointerForWindowDrag(e) )
+			if (ShouldIgnorePointerForWindowDrag( e ))
 				return;
 
 			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint(this);
+			_originalPoint = e.GetCurrentPoint( this );
 		}
 
-		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		private bool ShouldIgnorePointerForWindowDrag( PointerEventArgs e )
 		{
 
-			if ( !(e.Source is Visual source) )
+			if (!(e.Source is Visual source))
 				return false;
 
 			Visual current = source;
-			while ( current != null && current != this )
+			while (current != null && current != this)
 			{
-				switch ( current )
+				switch (current)
 				{
 
 					case Button _:

@@ -541,7 +541,6 @@
                                                 BrowseSourceFiles="BrowseSourceFiles_Click"
                                                 BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
                                                 DeleteInstruction="DeleteInstruction_Click"
-                                                JumpToBlockingInstruction="JumpToBlockingInstruction_Handler"
                                                 MoveInstructionDown="MoveInstructionDown_Click"
                                                 MoveInstructionUp="MoveInstructionUp_Click" />
                                         </DataTemplate>

@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,13 +9,14 @@ namespace KOTORModSync.Tests
 	[TestFixture]
 	public class WildcardEnumerationTests
 	{
-		private readonly string _basePath = Path.Combine(Path.GetTempPath(), path2: "tsl mods");
+		private readonly string _basePath = Path.Combine( Path.GetTempPath(), path2: "tsl mods" );
 
 		[Test]
 		public void EnumerateFilesWithWildcards_Should_ReturnMatchingFiles()
 		{
 
 			var pathsToTest = new Dictionary<string, string>
+( StringComparer.Ordinal )
 			{
 				{
 					@"Ultimate Korriban High Resolution-TPC Version-1\Korriban HR\Override\file1.txt",
@@ -40,34 +41,34 @@ namespace KOTORModSync.Tests
 
 			};
 
-			foreach ( KeyValuePair<string, string> kvp in pathsToTest )
+			foreach (KeyValuePair<string, string> kvp in pathsToTest)
 			{
-				string realPath = Path.Combine(_basePath, kvp.Key);
-				string? directoryPath = Path.GetDirectoryName(realPath);
-				if ( !Directory.Exists(directoryPath) )
+				string realPath = Path.Combine( _basePath, kvp.Key );
+				string? directoryPath = Path.GetDirectoryName( realPath );
+				if (!Directory.Exists( directoryPath ))
 				{
-					_ = Directory.CreateDirectory(directoryPath!);
+					_ = Directory.CreateDirectory( directoryPath! );
 				}
 
-				File.WriteAllText(realPath, contents: "Arbitrary content for testing.");
+				File.WriteAllText( realPath, contents: "Arbitrary content for testing." );
 			}
 
-			foreach ( KeyValuePair<string, string> kvp in pathsToTest )
+			foreach (KeyValuePair<string, string> kvp in pathsToTest)
 			{
-				string wildcardPath = Path.Combine(_basePath, kvp.Value);
+				string wildcardPath = Path.Combine( _basePath, kvp.Value );
 				List<string> paths =
 				[
 					wildcardPath,
 				];
-				List<string> files = PathHelper.EnumerateFilesWithWildcards(paths, new Core.Services.FileSystem.RealFileSystemProvider());
+				List<string> files = PathHelper.EnumerateFilesWithWildcards( paths, new Core.Services.FileSystem.RealFileSystemProvider() );
 
-				TestContext.Progress.WriteLine($"Files found for path: {wildcardPath}");
-				foreach ( string? file in files )
+				TestContext.Progress.WriteLine( $"Files found for path: {wildcardPath}" );
+				foreach (string? file in files)
 				{
-					TestContext.Progress.WriteLine(file);
+					TestContext.Progress.WriteLine( file );
 				}
 
-				Assert.That(files, Is.Not.Empty, $"No files found for path: {wildcardPath}");
+				Assert.That( files, Is.Not.Empty, $"No files found for path: {wildcardPath}" );
 			}
 		}
 
@@ -191,7 +192,7 @@ namespace KOTORModSync.Tests
 				),
 			};
 
-			foreach ( string path in pathsToTest )
+			foreach (string path in pathsToTest)
 			{
 				List<string> files = PathHelper.EnumerateFilesWithWildcards(
 					new List<string>
@@ -200,7 +201,7 @@ namespace KOTORModSync.Tests
 					},
 					new Core.Services.FileSystem.RealFileSystemProvider()
 				);
-				Assert.That(files, Is.Empty, $"Files found for path: {path}");
+				Assert.That( files, Is.Empty, $"Files found for path: {path}" );
 			}
 		}
 	}

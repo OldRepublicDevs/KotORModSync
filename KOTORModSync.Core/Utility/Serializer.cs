@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -8,8 +8,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core.FileSystemUtils;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -17,18 +20,18 @@ namespace KOTORModSync.Core.Utility
 {
 	public static class Serializer
 	{
-		public static string ToOrdinal(object numberObj)
+		public static string ToOrdinal( object numberObj )
 		{
-			if ( !(numberObj is int number) )
-				throw new ArgumentException(message: "Not a valid number", nameof(numberObj));
+			if (!(numberObj is int number))
+				throw new ArgumentException( message: "Not a valid number", nameof( numberObj ) );
 
-			if ( number < 0 )
-				return "-" + ToOrdinal(-number);
+			if (number < 0)
+				return "-" + ToOrdinal( -number );
 
 			int lastDigit = number % 10;
 			int lastTwoDigits = number % 100;
 
-			switch ( lastTwoDigits )
+			switch (lastTwoDigits)
 			{
 
 				case 11:
@@ -37,7 +40,7 @@ namespace KOTORModSync.Core.Utility
 					return number + "th";
 				default:
 
-					switch ( lastDigit )
+					switch (lastDigit)
 					{
 						case 1:
 							return number + "st";
@@ -52,16 +55,16 @@ namespace KOTORModSync.Core.Utility
 		}
 
 		[NotNull]
-		public static string FixGuidString([NotNull] string guidString)
+		public static string FixGuidString( [NotNull] string guidString )
 		{
-			if ( string.IsNullOrWhiteSpace(guidString) )
-				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(guidString));
+			if (string.IsNullOrWhiteSpace( guidString ))
+				throw new ArgumentException( message: "Value cannot be null or whitespace.", nameof( guidString ) );
 
-			guidString = Regex.Replace(guidString, pattern: @"\s", replacement: "");
+			guidString = Regex.Replace( guidString, pattern: @"\s", replacement: "" );
 
-			guidString = Regex.Replace(guidString, pattern: "[^0-9A-Fa-f]", replacement: "");
+			guidString = Regex.Replace( guidString, pattern: "[^0-9A-Fa-f]", replacement: "" );
 
-			if ( guidString.Length != 32 )
+			if (guidString.Length != 32)
 				return Guid.Empty.ToString();
 
 			guidString = Regex.Replace(
@@ -70,31 +73,31 @@ namespace KOTORModSync.Core.Utility
 				replacement: "$1-$2-$3-$4-$5"
 			);
 
-			if ( !guidString.StartsWith(value: "{", StringComparison.Ordinal) )
+			if (!guidString.StartsWith( value: "{", StringComparison.Ordinal ))
 			{
 				guidString = "{" + guidString;
 			}
 
-			if ( !guidString.EndsWith(value: "}", StringComparison.Ordinal) ) guidString += "}";
+			if (!guidString.EndsWith( value: "}", StringComparison.Ordinal )) guidString += "}";
 
 			return guidString;
 		}
 
-		public static void DeserializePathInDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
+		public static void DeserializePathInDictionary( [NotNull] IDictionary<string, object> dict, [NotNull] string key )
 		{
-			if ( dict.Count == 0 )
-				throw new ArgumentException(message: "Value cannot be null or empty.", nameof(dict));
-			if ( string.IsNullOrEmpty(key) )
-				throw new ArgumentException(message: "Value cannot be null or empty.", nameof(key));
+			if (dict.Count == 0)
+				throw new ArgumentException( message: "Value cannot be null or empty.", nameof( dict ) );
+			if (string.IsNullOrEmpty( key ))
+				throw new ArgumentException( message: "Value cannot be null or empty.", nameof( key ) );
 
-			if ( !dict.TryGetValue(key, out object pathValue) )
+			if (!dict.TryGetValue( key, out object pathValue ))
 				return;
 
-			switch ( pathValue )
+			switch (pathValue)
 			{
 				case string path:
 					{
-						string formattedPath = PathHelper.FixPathFormatting(path);
+						string formattedPath = PathHelper.FixPathFormatting( path );
 						dict[key] = new List<string>
 						{
 							PrefixPath(formattedPath),
@@ -103,11 +106,11 @@ namespace KOTORModSync.Core.Utility
 					}
 				case IList<string> paths:
 					{
-						for ( int index = 0; index < paths.Count; index++ )
+						for (int index = 0; index < paths.Count; index++)
 						{
 							string currentPath = paths[index];
-							string formattedPath = PathHelper.FixPathFormatting(currentPath);
-							paths[index] = PrefixPath(formattedPath);
+							string formattedPath = PathHelper.FixPathFormatting( currentPath );
+							paths[index] = PrefixPath( formattedPath );
 						}
 
 						break;
@@ -115,29 +118,29 @@ namespace KOTORModSync.Core.Utility
 			}
 		}
 
-		public static void DeserializeGuidDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
+		public static void DeserializeGuidDictionary( [NotNull] IDictionary<string, object> dict, [NotNull] string key )
 		{
-			if ( !dict.TryGetValue(key, out object value) )
+			if (!dict.TryGetValue( key, out object value ))
 				return;
 
-			switch ( value )
+			switch (value)
 			{
 				case string stringValue:
 					{
 
-						var stringList = new List<string>
+						List<string> stringList = new List<string>
 						{
 							stringValue,
 						};
 
 						dict[key] = stringList;
 
-						for ( int i = 0; i < stringList.Count; i++ )
+						for (int i = 0; i < stringList.Count; i++)
 						{
-							if ( Guid.TryParse(stringList[i], out Guid guid) )
+							if (Guid.TryParse( stringList[i], out Guid guid ))
 								continue;
 
-							string fixedGuid = FixGuidString(guid.ToString());
+							string fixedGuid = FixGuidString( guid.ToString() );
 
 							stringList[i] = fixedGuid;
 						}
@@ -147,12 +150,12 @@ namespace KOTORModSync.Core.Utility
 				case List<string> stringList:
 					{
 
-						for ( int i = 0; i < stringList.Count; i++ )
+						for (int i = 0; i < stringList.Count; i++)
 						{
-							if ( Guid.TryParse(stringList[i], out Guid guid) )
+							if (Guid.TryParse( stringList[i], out Guid guid ))
 								continue;
 
-							string fixedGuid = FixGuidString(guid.ToString());
+							string fixedGuid = FixGuidString( guid.ToString() );
 
 							stringList[i] = fixedGuid;
 						}
@@ -163,30 +166,30 @@ namespace KOTORModSync.Core.Utility
 		}
 
 		[NotNull]
-		public static string PrefixPath([NotNull] string path) =>
-			string.IsNullOrWhiteSpace(path)
-				? throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(path))
-				: !path.StartsWith(value: "<<modDirectory>>", StringComparison.OrdinalIgnoreCase)
-				&& !path.StartsWith(value: "<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase)
-					? PathHelper.FixPathFormatting("<<modDirectory>>" + Path.DirectorySeparatorChar + path)
+		public static string PrefixPath( [NotNull] string path ) =>
+			string.IsNullOrWhiteSpace( path )
+				? throw new ArgumentException( message: "Value cannot be null or whitespace.", nameof( path ) )
+				: !path.StartsWith( value: "<<modDirectory>>", StringComparison.OrdinalIgnoreCase )
+				&& !path.StartsWith( value: "<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase )
+					? PathHelper.FixPathFormatting( "<<modDirectory>>" + Path.DirectorySeparatorChar + path )
 					: path;
 
 		[NotNull]
-		public static string FixWhitespaceIssues([NotNull] string strContents)
+		public static string FixWhitespaceIssues( [NotNull] string strContents )
 		{
-			strContents = strContents.Replace(oldValue: "\r\n", newValue: "\n")
-				.Replace(oldValue: "\r", Environment.NewLine).Replace(oldValue: "\n", Environment.NewLine);
+			strContents = strContents.Replace( oldValue: "\r\n", newValue: "\n" )
+				.Replace( oldValue: "\r", Environment.NewLine ).Replace( oldValue: "\n", Environment.NewLine );
 
-			string[] lines = Regex.Split(strContents, $"(?<!\r){Regex.Escape(Environment.NewLine)}")
-				.Select(line => line?.Trim()).ToArray();
+			string[] lines = Regex.Split( strContents, $"(?<!\r){Regex.Escape( Environment.NewLine )}" )
+				.Select( line => line?.Trim() ).ToArray();
 
-			return string.Join(Environment.NewLine, lines);
+			return string.Join( Environment.NewLine, lines );
 		}
 
 		[CanBeNull]
-		public static object SerializeObject([CanBeNull] object obj)
+		public static object SerializeObject( [CanBeNull] object obj )
 		{
-			switch ( obj )
+			switch (obj)
 			{
 				case null:
 					return null;
@@ -195,65 +198,65 @@ namespace KOTORModSync.Core.Utility
 				case IComparable _:
 					return obj.ToString();
 				case IList objList:
-					return SerializeIntoList(objList);
+					return SerializeIntoList( objList );
 				case IDictionary _:
 				case var _ when obj.GetType().IsClass:
-					return SerializeIntoDictionary(obj);
+					return SerializeIntoDictionary( obj );
 				default:
 					return obj.ToString();
 			}
 		}
 
 		[NotNull]
-		internal static Dictionary<string, object> SerializeIntoDictionary([CanBeNull] object obj)
+		internal static Dictionary<string, object> SerializeIntoDictionary( [CanBeNull] object obj )
 		{
-			var settings = new JsonSerializerSettings
+			JsonSerializerSettings settings = new JsonSerializerSettings
 			{
 				TypeNameHandling = TypeNameHandling.None,
 				NullValueHandling = NullValueHandling.Ignore,
 			};
 
-			string jsonString = JsonConvert.SerializeObject(obj, settings);
-			var jsonObject = JObject.Parse(jsonString);
+			string jsonString = JsonConvert.SerializeObject( obj, settings );
+			JObject jsonObject = JObject.Parse( jsonString );
 
-			return ConvertJObjectToDictionary(jsonObject);
+			return ConvertJObjectToDictionary( jsonObject );
 		}
 
 		[CanBeNull]
-		private static object ConvertJTokenToObject([CanBeNull] JToken token)
+		private static object ConvertJTokenToObject( [CanBeNull] JToken token )
 		{
-			switch ( token )
+			switch (token)
 			{
 				case JObject jObject:
-					return ConvertJObjectToDictionary(jObject);
+					return ConvertJObjectToDictionary( jObject );
 				case JArray jArray:
-					return ConvertJArrayToList(jArray);
+					return ConvertJArrayToList( jArray );
 				default:
 					return ((JValue)token)?.Value;
 			}
 		}
 
 		[NotNull]
-		private static List<object> ConvertJArrayToList([NotNull] JArray jArray) =>
+		private static List<object> ConvertJArrayToList( [NotNull] JArray jArray ) =>
 			jArray is null
-				? throw new ArgumentNullException(nameof(jArray))
-				: jArray.Select(ConvertJTokenToObject).ToList();
+				? throw new ArgumentNullException( nameof( jArray ) )
+				: jArray.Select( ConvertJTokenToObject ).ToList();
 
 		[NotNull]
-		private static Dictionary<string, object> ConvertJObjectToDictionary([NotNull] JObject jObject) =>
+		private static Dictionary<string, object> ConvertJObjectToDictionary( [NotNull] JObject jObject ) =>
 			jObject is null
-				? throw new ArgumentNullException(nameof(jObject))
+				? throw new ArgumentNullException( nameof( jObject ) )
 				: jObject.Properties().ToDictionary(
 					property => property.Name,
-					property => ConvertJTokenToObject(property.Value)
-				);
+					property => ConvertJTokenToObject( property.Value )
+, StringComparer.Ordinal );
 
 		[CanBeNull]
-		public static List<object> SerializeIntoList([CanBeNull] object obj)
+		public static List<object> SerializeIntoList( [CanBeNull] object obj )
 		{
 
-			string jsonString = JsonConvert.SerializeObject(obj);
-			return JsonConvert.DeserializeObject<List<object>>(jsonString);
+			string jsonString = JsonConvert.SerializeObject( obj );
+			return JsonConvert.DeserializeObject<List<object>>( jsonString );
 		}
 	}
 }

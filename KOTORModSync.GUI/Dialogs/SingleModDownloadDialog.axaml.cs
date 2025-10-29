@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -8,9 +8,11 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
@@ -20,7 +22,7 @@ namespace KOTORModSync.Dialogs
 	public partial class SingleModDownloadDialog : Window
 	{
 		private readonly ObservableCollection<DownloadProgress> _fileDownloads = new ObservableCollection<DownloadProgress>();
-		private CancellationTokenSource _cancellationTokenSource;
+		private readonly CancellationTokenSource _cancellationTokenSource;
 		private bool _isCompleted;
 		private readonly ModComponent _component;
 		private readonly DownloadCacheService _downloadCacheService;
@@ -33,43 +35,45 @@ namespace KOTORModSync.Dialogs
 			InitializeComponent();
 		}
 
-		public SingleModDownloadDialog(ModComponent component, DownloadCacheService downloadCacheService)
+		public SingleModDownloadDialog( ModComponent component, DownloadCacheService downloadCacheService )
 		{
-			_component = component ?? throw new ArgumentNullException(nameof(component));
-			_downloadCacheService = downloadCacheService ?? throw new ArgumentNullException(nameof(downloadCacheService));
-			_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromHours(24 * 7));
+			_component = component ?? throw new ArgumentNullException( nameof( component ) );
+			_downloadCacheService = downloadCacheService ?? throw new ArgumentNullException( nameof( downloadCacheService ) );
+			_cancellationTokenSource = new CancellationTokenSource( TimeSpan.FromHours( 24 * 7 ) );
 
 			InitializeComponent();
 
-			var modNameText = this.FindControl<TextBlock>("ModNameText");
-			if ( modNameText != null )
+			var modNameText = this.FindControl<TextBlock>( "ModNameText" );
+			if (modNameText != null)
 				modNameText.Text = $"Downloading: {component.Name}";
 
-			var filesListControl = this.FindControl<ItemsControl>("FilesListControl");
-			if ( filesListControl != null )
+			var filesListControl = this.FindControl<ItemsControl>( "FilesListControl" );
+			if (filesListControl != null)
 				filesListControl.ItemsSource = _fileDownloads;
 		}
 
-		private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+		private void InitializeComponent() => AvaloniaXamlLoader.Load( this );
 
 		public async Task StartDownloadAsync()
+
+
 		{
 			try
 			{
-				await Logger.LogVerboseAsync($"[SingleModDownloadDialog] Starting download for component: {_component.Name}");
+				await Logger.LogVerboseAsync( $"[SingleModDownloadDialog] Starting download for component: {_component.Name}" ).ConfigureAwait( false );
 
-				var statusText = this.FindControl<TextBlock>("StatusText");
-				if ( statusText != null )
+				var statusText = this.FindControl<TextBlock>( "StatusText" );
+				if (statusText != null)
 					statusText.Text = "Resolving download URLs...";
 
 				// Setup progress reporting
-				var progressReporter = new Progress<DownloadProgress>(progress =>
+				var progressReporter = new Progress<DownloadProgress>( progress =>
 				{
-					Dispatcher.UIThread.Post(() =>
+					Dispatcher.UIThread.Post( () =>
 					{
-						UpdateFileProgress(progress);
-					});
-				});
+						UpdateFileProgress( progress );
+					} );
+				} );
 
 				// Start download
 				List<DownloadCacheService.DownloadCacheEntry> results = await _downloadCacheService.ResolveOrDownloadAsync(
@@ -77,23 +81,27 @@ namespace KOTORModSync.Dialogs
 					MainConfig.SourcePath.FullName,
 					progressReporter,
 					sequential: false,
-					_cancellationTokenSource.Token);
 
-				await Logger.LogVerboseAsync($"[SingleModDownloadDialog] Download completed, {results.Count} entries returned");
+
+					_cancellationTokenSource.Token )
+
+.ConfigureAwait( false );
+
+				await Logger.LogVerboseAsync( $"[SingleModDownloadDialog] Download completed, {results.Count} entries returned" ).ConfigureAwait( false );
 
 				// Collect downloaded files
 				DownloadedFiles.Clear();
 				int successCount = 0;
 				int failedCount = 0;
 
-				foreach ( var entry in results )
+				foreach (var entry in results)
 				{
-					if ( !string.IsNullOrEmpty(entry.FileName) )
+					if (!string.IsNullOrEmpty( entry.FileName ))
 					{
-						string filePath = System.IO.Path.Combine(MainConfig.SourcePath.FullName, entry.FileName);
-						if ( System.IO.File.Exists(filePath) )
+						string filePath = System.IO.Path.Combine( MainConfig.SourcePath.FullName, entry.FileName );
+						if (System.IO.File.Exists( filePath ))
 						{
-							DownloadedFiles.Add(filePath);
+							DownloadedFiles.Add( filePath );
 							successCount++;
 						}
 						else
@@ -105,35 +113,37 @@ namespace KOTORModSync.Dialogs
 
 				WasSuccessful = failedCount == 0 && successCount > 0;
 
-				Dispatcher.UIThread.Post(() =>
+				Dispatcher.UIThread.Post( () =>
 				{
-					MarkCompleted(successCount, failedCount);
-				});
+					MarkCompleted( successCount, failedCount );
+				} );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex, "[SingleModDownloadDialog] Download failed");
+				await Logger.LogExceptionAsync( ex, "[SingleModDownloadDialog] Download failed" ).ConfigureAwait( false );
 
-				Dispatcher.UIThread.Post(() =>
+				Dispatcher.UIThread.Post( () =>
 				{
-					var errorBorder = this.FindControl<Border>("ErrorBorder");
-					var errorMessageText = this.FindControl<TextBlock>("ErrorMessageText");
+					var errorBorder = this.FindControl<Border>( "ErrorBorder" );
+					var errorMessageText = this.FindControl<TextBlock>( "ErrorMessageText" );
 
-					if ( errorBorder != null )
+					if (errorBorder != null)
 						errorBorder.IsVisible = true;
 
-					if ( errorMessageText != null )
+					if (errorMessageText != null)
 						errorMessageText.Text = $"Download failed: {ex.Message}";
 
-					MarkCompleted(0, 1);
-				});
+					MarkCompleted( 0, 1 );
+				} );
 			}
 		}
 
-		private void UpdateFileProgress(DownloadProgress progress)
+		private void UpdateFileProgress( DownloadProgress progress )
 		{
-			var existing = _fileDownloads.FirstOrDefault(p => p.Url == progress.Url);
-			if ( existing != null )
+			var existing = _fileDownloads.FirstOrDefault( p => string.Equals( p.Url, progress.Url, StringComparison.Ordinal ) );
+			if (existing != null)
 			{
 				// Update existing entry
 				existing.Status = progress.Status;
@@ -147,7 +157,7 @@ namespace KOTORModSync.Dialogs
 			else
 			{
 				// Add new entry
-				_fileDownloads.Add(progress);
+				_fileDownloads.Add( progress );
 			}
 
 			UpdateOverallProgress();
@@ -155,69 +165,69 @@ namespace KOTORModSync.Dialogs
 
 		private void UpdateOverallProgress()
 		{
-			var overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
-			var overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
-			var statusText = this.FindControl<TextBlock>("StatusText");
-			var footerStatusText = this.FindControl<TextBlock>("FooterStatusText");
+			var overallProgressBar = this.FindControl<ProgressBar>( "OverallProgressBar" );
+			var overallProgressText = this.FindControl<TextBlock>( "OverallProgressText" );
+			var statusText = this.FindControl<TextBlock>( "StatusText" );
+			var footerStatusText = this.FindControl<TextBlock>( "FooterStatusText" );
 
-			if ( _fileDownloads.Count == 0 )
+			if (_fileDownloads.Count == 0)
 				return;
 
-			int completed = _fileDownloads.Count(f => f.Status == DownloadStatus.Completed || f.Status == DownloadStatus.Skipped);
-			int failed = _fileDownloads.Count(f => f.Status == DownloadStatus.Failed);
-			int inProgress = _fileDownloads.Count(f => f.Status == DownloadStatus.InProgress);
-			double avgProgress = _fileDownloads.Average(f => f.ProgressPercentage);
+			int completed = _fileDownloads.Count( f => f.Status == DownloadStatus.Completed || f.Status == DownloadStatus.Skipped );
+			int failed = _fileDownloads.Count( f => f.Status == DownloadStatus.Failed );
+			int inProgress = _fileDownloads.Count( f => f.Status == DownloadStatus.InProgress );
+			double avgProgress = _fileDownloads.Average( f => f.ProgressPercentage );
 
-			if ( overallProgressBar != null )
+			if (overallProgressBar != null)
 				overallProgressBar.Value = avgProgress;
 
-			if ( overallProgressText != null )
+			if (overallProgressText != null)
 				overallProgressText.Text = $"{completed + failed} / {_fileDownloads.Count} files";
 
-			if ( statusText != null )
+			if (statusText != null)
 			{
-				if ( inProgress > 0 )
+				if (inProgress > 0)
 					statusText.Text = $"Downloading {inProgress} file(s)...";
-				else if ( completed + failed == _fileDownloads.Count )
+				else if (completed + failed == _fileDownloads.Count)
 					statusText.Text = "Download complete";
 				else
 					statusText.Text = "Preparing download...";
 			}
 
-			if ( footerStatusText != null )
+			if (footerStatusText != null)
 			{
-				if ( inProgress > 0 )
+				if (inProgress > 0)
 					footerStatusText.Text = $"Downloading... {completed}/{_fileDownloads.Count} complete";
 				else
 					footerStatusText.Text = $"{completed} completed, {failed} failed";
 			}
 		}
 
-		private void MarkCompleted(int successCount, int failedCount)
+		private void MarkCompleted( int successCount, int failedCount )
 		{
 			_isCompleted = true;
 
-			var closeButton = this.FindControl<Button>("CloseButton");
-			var cancelButton = this.FindControl<Button>("CancelButton");
-			var statusText = this.FindControl<TextBlock>("StatusText");
-			var footerStatusText = this.FindControl<TextBlock>("FooterStatusText");
+			var closeButton = this.FindControl<Button>( "CloseButton" );
+			var cancelButton = this.FindControl<Button>( "CancelButton" );
+			var statusText = this.FindControl<TextBlock>( "StatusText" );
+			var footerStatusText = this.FindControl<TextBlock>( "FooterStatusText" );
 
-			if ( closeButton != null )
+			if (closeButton != null)
 				closeButton.IsEnabled = true;
 
-			if ( cancelButton != null )
+			if (cancelButton != null)
 				cancelButton.IsEnabled = false;
 
 			string statusMessage;
-			if ( failedCount == 0 && successCount > 0 )
+			if (failedCount == 0 && successCount > 0)
 			{
 				statusMessage = $"✓ Successfully downloaded {successCount} file(s)";
 			}
-			else if ( failedCount > 0 && successCount > 0 )
+			else if (failedCount > 0 && successCount > 0)
 			{
 				statusMessage = $"⚠ Partially complete: {successCount} succeeded, {failedCount} failed";
 			}
-			else if ( failedCount > 0 )
+			else if (failedCount > 0)
 			{
 				statusMessage = $"✗ Download failed for {failedCount} file(s)";
 			}
@@ -226,55 +236,54 @@ namespace KOTORModSync.Dialogs
 				statusMessage = "No files to download";
 			}
 
-			if ( statusText != null )
+			if (statusText != null)
 				statusText.Text = statusMessage;
 
-			if ( footerStatusText != null )
+			if (footerStatusText != null)
 				footerStatusText.Text = statusMessage;
 		}
 
-		private void CancelButton_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+		private void CancelButton_Click( object sender, Avalonia.Interactivity.RoutedEventArgs e )
 		{
 			try
 			{
 				_cancellationTokenSource?.Cancel();
 
-				var cancelButton = this.FindControl<Button>("CancelButton");
-				if ( cancelButton != null )
+				var cancelButton = this.FindControl<Button>( "CancelButton" );
+				if (cancelButton != null)
 				{
 					cancelButton.IsEnabled = false;
 					cancelButton.Content = "Cancelling...";
 				}
 
-				foreach ( var download in _fileDownloads.Where(d => d.Status == DownloadStatus.InProgress) )
+				foreach (var download in _fileDownloads.Where( d => d.Status == DownloadStatus.InProgress ))
 				{
 					download.Status = DownloadStatus.Failed;
 					download.StatusMessage = "Cancelled by user";
 					download.ErrorMessage = "Download was cancelled";
 				}
 
-				Logger.LogVerbose("[SingleModDownloadDialog] Download cancelled by user");
+				Logger.LogVerbose( "[SingleModDownloadDialog] Download cancelled by user" );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogError($"[SingleModDownloadDialog] Failed to cancel downloads: {ex.Message}");
+				Logger.LogError( $"[SingleModDownloadDialog] Failed to cancel downloads: {ex.Message}" );
 			}
 		}
 
-		private void CloseButton_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+		private void CloseButton_Click( object sender, Avalonia.Interactivity.RoutedEventArgs e )
 		{
 			Close();
 		}
 
-		protected override void OnClosing(WindowClosingEventArgs e)
+		protected override void OnClosing( WindowClosingEventArgs e )
 		{
-			if ( !_isCompleted && _fileDownloads.Any(x => x.Status == DownloadStatus.InProgress || x.Status == DownloadStatus.Pending) )
+			if (!_isCompleted && _fileDownloads.Any( x => x.Status == DownloadStatus.InProgress || x.Status == DownloadStatus.Pending ))
 			{
 				_cancellationTokenSource?.Cancel();
 			}
 
-			base.OnClosing(e);
+			base.OnClosing( e );
 		}
 	}
 }
-

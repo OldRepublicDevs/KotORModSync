@@ -46,8 +46,6 @@
     </Window.Resources>
 
     <Window.Styles>
-        <StyleInclude Source="/Styles/ContentPresenterFix.axaml" />
-        <StyleInclude Source="/Styles/KotorStyle.axaml" />
     </Window.Styles>
 
     <Panel>
@@ -158,18 +156,6 @@
                                 ToolTip.Tip="Launches the built-in HoloPatcher." />
                         </StackPanel>
                     </StackPanel>
-                    <ComboBox
-                        x:Name="ThemeComboBox"
-                        Width="120"
-                        Margin="0,0,20,0"
-                        VerticalAlignment="Center"
-                        HorizontalContentAlignment="Center"
-                        SelectedIndex="0"
-                        SelectionChanged="ThemeComboBox_SelectionChanged"
-                        ToolTip.Tip="Select target game for this instruction file (K1 or TSL)">
-                        <ComboBoxItem Content="K1" Tag="/Styles/KotorStyle.axaml" />
-                        <ComboBoxItem Content="TSL" Tag="/Styles/Kotor2Style.axaml" />
-                    </ComboBox>
                     <Button
                         x:Name="HomeButton"
                         Click="HomeButton_Click"

@@ -183,7 +183,21 @@
             <Border Classes="summary-card" IsVisible="{Binding ModLinkFilenames, Converter={StaticResource DictionaryToVisibilityConverter}}">
                 <StackPanel>
                     <Border Classes="summary-header">
-                        <TextBlock Classes="summary-section-title" Text="🔗 Download Links" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock 
+                                Grid.Column="0"
+                                Classes="summary-section-title" 
+                                Text="🔗 Download Links" />
+                            <Button
+                                Grid.Column="1"
+                                Width="120"
+                                Height="28"
+                                Margin="8,0,0,0"
+                                Click="DownloadModButton_Click"
+                                Content="⬇️ Download Mod"
+                                Tag="{Binding}"
+                                ToolTip.Tip="Download this mod using the single mod download window" />
+                        </Grid>
                     </Border>
                     <TextBlock
                         Margin="0,0,0,4"

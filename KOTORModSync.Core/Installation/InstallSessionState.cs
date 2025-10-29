@@ -1,14 +1,15 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Collections.Generic;
+
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Installation
 {
-	[JsonObject(MemberSerialization.OptIn)]
+	[JsonObject( MemberSerialization.OptIn )]
 	public sealed class InstallSessionState
 	{
 		[JsonProperty]
@@ -36,7 +37,7 @@ namespace KOTORModSync.Core.Installation
 		public int CurrentRevision { get; set; }
 	}
 
-	[JsonObject(MemberSerialization.OptIn)]
+	[JsonObject( MemberSerialization.OptIn )]
 	public sealed class ComponentSessionEntry
 	{
 		[JsonProperty]
@@ -53,4 +54,3 @@ namespace KOTORModSync.Core.Installation
 
 	}
 }
-

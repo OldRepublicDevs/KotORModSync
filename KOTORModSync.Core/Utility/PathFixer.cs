@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -10,50 +10,50 @@ namespace KOTORModSync.Core.Utility
 {
 	public static class PathFixer
 	{
-		public static int FixDuplicateFolderPathsInComponent(ModComponent component)
+		public static int FixDuplicateFolderPathsInComponent( ModComponent component )
 		{
-			if ( component == null )
+			if (component == null)
 				return 0;
 
 			int fixCount = 0;
 
-			fixCount += FixInstructionPathsList(component.Instructions);
+			fixCount += FixInstructionPathsList( component.Instructions );
 
-			foreach ( Option option in component.Options )
+			foreach (Option option in component.Options)
 			{
-				fixCount += FixInstructionPathsList(option.Instructions);
+				fixCount += FixInstructionPathsList( option.Instructions );
 			}
 
 			return fixCount;
 		}
 
-		public static int FixInstructionPathsList(System.Collections.ObjectModel.ObservableCollection<Instruction> instructions)
+		public static int FixInstructionPathsList( System.Collections.ObjectModel.ObservableCollection<Instruction> instructions )
 		{
 			int fixCount = 0;
 
-			foreach ( Instruction instruction in instructions )
+			foreach (Instruction instruction in instructions)
 			{
-				if ( instruction.Source.Count == 0 )
+				if (instruction.Source.Count == 0)
 					continue;
 
-				for ( int i = 0; i < instruction.Source.Count; i++ )
+				for (int i = 0; i < instruction.Source.Count; i++)
 				{
 					string sourcePath = instruction.Source[i];
-					if ( string.IsNullOrWhiteSpace(sourcePath) )
+					if (string.IsNullOrWhiteSpace( sourcePath ))
 						continue;
 
-					string fixedPath = TryFixDuplicateFolderPath(sourcePath);
-					if ( !string.IsNullOrEmpty(fixedPath) && !string.Equals(fixedPath, sourcePath, StringComparison.OrdinalIgnoreCase) )
+					string fixedPath = TryFixDuplicateFolderPath( sourcePath );
+					if (!string.IsNullOrEmpty( fixedPath ) && !string.Equals( fixedPath, sourcePath, StringComparison.OrdinalIgnoreCase ))
 					{
 						instruction.Source[i] = fixedPath;
 						fixCount++;
 					}
 				}
 
-				if ( !string.IsNullOrWhiteSpace(instruction.Destination) )
+				if (!string.IsNullOrWhiteSpace( instruction.Destination ))
 				{
-					string fixedDest = TryFixDuplicateFolderPath(instruction.Destination);
-					if ( !string.IsNullOrEmpty(fixedDest) && !string.Equals(fixedDest, instruction.Destination, StringComparison.OrdinalIgnoreCase) )
+					string fixedDest = TryFixDuplicateFolderPath( instruction.Destination );
+					if (!string.IsNullOrEmpty( fixedDest ) && !string.Equals( fixedDest, instruction.Destination, StringComparison.OrdinalIgnoreCase ))
 					{
 						instruction.Destination = fixedDest;
 						fixCount++;
@@ -64,48 +64,47 @@ namespace KOTORModSync.Core.Utility
 			return fixCount;
 		}
 
-		public static string TryFixDuplicateFolderPath(string path)
+		public static string TryFixDuplicateFolderPath( string path )
 		{
-			if ( string.IsNullOrWhiteSpace(path) )
+			if (string.IsNullOrWhiteSpace( path ))
 				return null;
 
 			try
 			{
-				string resolvedPath = Utility.ReplaceCustomVariables(path);
+				string resolvedPath = UtilityHelper.ReplaceCustomVariables( path );
 
-				if ( File.Exists(resolvedPath) || Directory.Exists(resolvedPath) )
+				if (File.Exists( resolvedPath ) || Directory.Exists( resolvedPath ))
 					return null;
 
-				string[] pathParts = path.Replace('/', Path.DirectorySeparatorChar).Split(Path.DirectorySeparatorChar);
-				if ( pathParts.Length < 3 )
+				string[] pathParts = path.Replace( '/', Path.DirectorySeparatorChar ).Split( Path.DirectorySeparatorChar );
+				if (pathParts.Length < 3)
 					return null;
 
-				for ( int i = 0; i < pathParts.Length - 1; i++ )
+				for (int i = 0; i < pathParts.Length - 1; i++)
 				{
-					if ( string.Equals(pathParts[i], pathParts[i + 1], StringComparison.OrdinalIgnoreCase) )
+					if (string.Equals( pathParts[i], pathParts[i + 1], StringComparison.OrdinalIgnoreCase ))
 					{
-						var fixedParts = new List<string>();
-						for ( int j = 0; j < pathParts.Length; j++ )
+						List<string> fixedParts = new List<string>();
+						for (int j = 0; j < pathParts.Length; j++)
 						{
-							if ( j == i + 1 )
+							if (j == i + 1)
 								continue;
 
-							fixedParts.Add(pathParts[j]);
+							fixedParts.Add( pathParts[j] );
 						}
 
-						string fixedPath = string.Join(Path.DirectorySeparatorChar.ToString(), fixedParts);
+						string fixedPath = string.Join( Path.DirectorySeparatorChar.ToString(), fixedParts );
 
 						return fixedPath;
 					}
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogVerbose($"[PathFixer] Error checking duplicate folder path '{path}': {ex.Message}");
+				Logger.LogVerbose( $"[PathFixer] Error checking duplicate folder path '{path}': {ex.Message}" );
 			}
 
 			return null;
 		}
 	}
 }
-

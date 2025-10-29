@@ -1,14 +1,16 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+
 using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Controls
@@ -16,12 +18,12 @@ namespace KOTORModSync.Controls
 	public partial class ScreenshotDisplayControl : UserControl
 	{
 		public static readonly StyledProperty<string> ScreenshotDataProperty =
-			AvaloniaProperty.Register<ScreenshotDisplayControl, string>(nameof(ScreenshotData));
+			AvaloniaProperty.Register<ScreenshotDisplayControl, string>( nameof( ScreenshotData ) );
 
 		public string ScreenshotData
 		{
-			get => GetValue(ScreenshotDataProperty);
-			set => SetValue(ScreenshotDataProperty, value);
+			get => GetValue( ScreenshotDataProperty );
+			set => SetValue( ScreenshotDataProperty, value );
 		}
 
 		public ScreenshotDisplayControl()
@@ -31,14 +33,14 @@ namespace KOTORModSync.Controls
 
 		private void InitializeComponent()
 		{
-			AvaloniaXamlLoader.Load(this);
+			AvaloniaXamlLoader.Load( this );
 		}
 
-		protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+		protected override void OnPropertyChanged( AvaloniaPropertyChangedEventArgs change )
 		{
-			base.OnPropertyChanged(change);
+			base.OnPropertyChanged( change );
 
-			if ( change.Property == ScreenshotDataProperty )
+			if (change.Property == ScreenshotDataProperty)
 			{
 				UpdateScreenshotDisplay();
 			}
@@ -46,13 +48,13 @@ namespace KOTORModSync.Controls
 
 		private void UpdateScreenshotDisplay()
 		{
-			var imageItemsControl = this.FindControl<ItemsControl>("ImageItemsControl");
-			var fallbackTextBlock = this.FindControl<TextBlock>("FallbackTextBlock");
+			var imageItemsControl = this.FindControl<ItemsControl>( "ImageItemsControl" );
+			var fallbackTextBlock = this.FindControl<TextBlock>( "FallbackTextBlock" );
 
-			if ( imageItemsControl == null || fallbackTextBlock == null )
+			if (imageItemsControl == null || fallbackTextBlock == null)
 				return;
 
-			if ( string.IsNullOrWhiteSpace(ScreenshotData) )
+			if (string.IsNullOrWhiteSpace( ScreenshotData ))
 			{
 				imageItemsControl.ItemsSource = null;
 				imageItemsControl.IsVisible = false;
@@ -61,27 +63,27 @@ namespace KOTORModSync.Controls
 			}
 
 			var lines = ScreenshotData
-				.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)
-				.Select(line => line.Trim())
-				.Where(line => !string.IsNullOrWhiteSpace(line))
+				.Split( new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries )
+				.Select( line => line.Trim() )
+				.Where( line => !string.IsNullOrWhiteSpace( line ) )
 				.ToList();
 
 			var imageUrls = new List<string>();
 			var nonImageContent = new List<string>();
 
-			foreach ( var line in lines )
+			foreach (var line in lines)
 			{
-				if ( IsImageUrl(line) )
+				if (IsImageUrl( line ))
 				{
-					imageUrls.Add(line);
+					imageUrls.Add( line );
 				}
 				else
 				{
-					nonImageContent.Add(line);
+					nonImageContent.Add( line );
 				}
 			}
 
-			if ( imageUrls.Count > 0 )
+			if (imageUrls.Count > 0)
 			{
 				imageItemsControl.ItemsSource = imageUrls;
 				imageItemsControl.IsVisible = true;
@@ -92,9 +94,9 @@ namespace KOTORModSync.Controls
 				imageItemsControl.IsVisible = false;
 			}
 
-			if ( nonImageContent.Count > 0 )
+			if (nonImageContent.Count > 0)
 			{
-				fallbackTextBlock.Text = string.Join(Environment.NewLine, nonImageContent);
+				fallbackTextBlock.Text = string.Join( Environment.NewLine, nonImageContent );
 				fallbackTextBlock.IsVisible = true;
 			}
 			else
@@ -104,40 +106,39 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		private static bool IsImageUrl(string text)
+		private static bool IsImageUrl( string text )
 		{
-			if ( string.IsNullOrWhiteSpace(text) )
+			if (string.IsNullOrWhiteSpace( text ))
 				return false;
 
-			if ( !Uri.TryCreate(text, UriKind.Absolute, out Uri uri) )
+			if (!Uri.TryCreate( text, UriKind.Absolute, out Uri uri ))
 				return false;
 
-			if ( uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps )
+			if (!string.Equals( uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal ) && !string.Equals( uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal ))
 				return false;
 
 			var path = uri.AbsolutePath.ToLowerInvariant();
-			return path.EndsWith(".jpg") ||
-				   path.EndsWith(".jpeg") ||
-				   path.EndsWith(".png") ||
-				   path.EndsWith(".gif") ||
-				   path.EndsWith(".bmp") ||
-				   path.EndsWith(".webp");
+			return path.EndsWith( ".jpg", StringComparison.OrdinalIgnoreCase ) ||
+				   path.EndsWith( ".jpeg", StringComparison.OrdinalIgnoreCase ) ||
+				   path.EndsWith( ".png", StringComparison.OrdinalIgnoreCase ) ||
+				   path.EndsWith( ".gif", StringComparison.OrdinalIgnoreCase ) ||
+				   path.EndsWith( ".bmp", StringComparison.OrdinalIgnoreCase ) ||
+				   path.EndsWith( ".webp", StringComparison.OrdinalIgnoreCase );
 		}
 
-		private void ImageUrl_Tapped(object sender, TappedEventArgs e)
+		private void ImageUrl_Tapped( object sender, TappedEventArgs e )
 		{
 			try
 			{
-				if ( sender is TextBlock textBlock && !string.IsNullOrEmpty(textBlock.Text) )
+				if (sender is TextBlock textBlock && !string.IsNullOrEmpty( textBlock.Text ))
 				{
-					UrlUtilities.OpenUrl(textBlock.Text);
+					UrlUtilities.OpenUrl( textBlock.Text );
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Core.Logger.LogException(ex, "Failed to open screenshot URL");
+				Core.Logger.LogException( ex, "Failed to open screenshot URL" );
 			}
 		}
 	}
 }
-

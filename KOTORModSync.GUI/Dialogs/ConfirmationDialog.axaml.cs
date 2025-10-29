@@ -1,15 +1,18 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Threading.Tasks;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 using KOTORModSync.Services;
 
@@ -18,32 +21,32 @@ namespace KOTORModSync.Dialogs
 	public partial class ConfirmationDialog : Window
 	{
 		private static readonly AvaloniaProperty s_confirmTextProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(ConfirmText));
+			AvaloniaProperty.Register<ConfirmationDialog, string>( nameof( ConfirmText ) );
 
 		private static readonly AvaloniaProperty s_yesButtonTextProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(YesButtonText), "Yes");
+			AvaloniaProperty.Register<ConfirmationDialog, string>( nameof( YesButtonText ), "Yes" );
 
 		private static readonly AvaloniaProperty s_noButtonTextProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonText), "No");
+			AvaloniaProperty.Register<ConfirmationDialog, string>( nameof( NoButtonText ), "No" );
 
 		private static readonly AvaloniaProperty s_yesButtonTooltipProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(YesButtonTooltip));
+			AvaloniaProperty.Register<ConfirmationDialog, string>( nameof( YesButtonTooltip ) );
 
 		private static readonly AvaloniaProperty s_noButtonTooltipProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonTooltip));
+			AvaloniaProperty.Register<ConfirmationDialog, string>( nameof( NoButtonTooltip ) );
 
 		private static readonly AvaloniaProperty s_closeButtonTooltipProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(CloseButtonTooltip));
+			AvaloniaProperty.Register<ConfirmationDialog, string>( nameof( CloseButtonTooltip ) );
 
 		private static readonly RoutedEvent<RoutedEventArgs> s_yesButtonClickedEvent =
 			RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
-				nameof(YesButtonClicked),
+				nameof( YesButtonClicked ),
 				RoutingStrategies.Bubble
 			);
 
 		private static readonly RoutedEvent<RoutedEventArgs> s_noButtonClickedEvent =
 			RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
-				nameof(NoButtonClicked),
+				nameof( NoButtonClicked ),
 				RoutingStrategies.Bubble
 			);
 		private bool _mouseDownForWindowMoving;
@@ -54,7 +57,7 @@ namespace KOTORModSync.Dialogs
 		{
 			InitializeComponent();
 
-			ThemeManager.ApplyCurrentToWindow(this);
+			ThemeManager.ApplyCurrentToWindow( this );
 			_markdownService = new MarkdownRenderingService();
 
 			PointerPressed += InputElement_OnPointerPressed;
@@ -66,43 +69,43 @@ namespace KOTORModSync.Dialogs
 		[CanBeNull]
 		public string ConfirmText
 		{
-			get => GetValue(s_confirmTextProperty) as string;
-			set => SetValue(s_confirmTextProperty, value);
+			get => GetValue( s_confirmTextProperty ) as string;
+			set => SetValue( s_confirmTextProperty, value );
 		}
 
 		[CanBeNull]
 		public string YesButtonText
 		{
-			get => GetValue(s_yesButtonTextProperty) as string;
-			set => SetValue(s_yesButtonTextProperty, value);
+			get => GetValue( s_yesButtonTextProperty ) as string;
+			set => SetValue( s_yesButtonTextProperty, value );
 		}
 
 		[CanBeNull]
 		public string NoButtonText
 		{
-			get => GetValue(s_noButtonTextProperty) as string;
-			set => SetValue(s_noButtonTextProperty, value);
+			get => GetValue( s_noButtonTextProperty ) as string;
+			set => SetValue( s_noButtonTextProperty, value );
 		}
 
 		[CanBeNull]
 		public string YesButtonTooltip
 		{
-			get => GetValue(s_yesButtonTooltipProperty) as string;
-			set => SetValue(s_yesButtonTooltipProperty, value);
+			get => GetValue( s_yesButtonTooltipProperty ) as string;
+			set => SetValue( s_yesButtonTooltipProperty, value );
 		}
 
 		[CanBeNull]
 		public string NoButtonTooltip
 		{
-			get => GetValue(s_noButtonTooltipProperty) as string;
-			set => SetValue(s_noButtonTooltipProperty, value);
+			get => GetValue( s_noButtonTooltipProperty ) as string;
+			set => SetValue( s_noButtonTooltipProperty, value );
 		}
 
 		[CanBeNull]
 		public string CloseButtonTooltip
 		{
-			get => GetValue(s_closeButtonTooltipProperty) as string;
-			set => SetValue(s_closeButtonTooltipProperty, value);
+			get => GetValue( s_closeButtonTooltipProperty ) as string;
+			set => SetValue( s_closeButtonTooltipProperty, value );
 		}
 
 		public enum ConfirmationResult
@@ -145,9 +148,9 @@ namespace KOTORModSync.Dialogs
 						confirmationDialog.Closed += ClosedHandler;
 						confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-						if ( parentWindow != null )
+						if (parentWindow != null)
 						{
-							_ = confirmationDialog.ShowDialog(parentWindow);
+							_ = confirmationDialog.ShowDialog( parentWindow );
 						}
 						else
 						{
@@ -162,34 +165,36 @@ namespace KOTORModSync.Dialogs
 							confirmationDialog.Closed -= ClosedHandler;
 						}
 
-						void YesClickedHandler(object sender, RoutedEventArgs e)
+						void YesClickedHandler( object sender, RoutedEventArgs e )
 						{
 							CleanupHandlers();
 							confirmationDialog.Close();
-							tcs.SetResult(true);
+							tcs.SetResult( true );
 						}
 
-						void NoClickedHandler(object sender, RoutedEventArgs e)
+						void NoClickedHandler( object sender, RoutedEventArgs e )
 						{
 							CleanupHandlers();
 							confirmationDialog.Close();
-							tcs.SetResult(false);
+							tcs.SetResult( false );
 						}
 
-						void ClosedHandler(object sender, EventArgs e)
+						void ClosedHandler( object sender, EventArgs e )
 						{
 							CleanupHandlers();
-							tcs.SetResult(null);
+							tcs.SetResult( null );
 						}
 					}
-					catch ( Exception e )
+					catch (Exception e)
 					{
-						Logger.LogException(e);
+						Logger.LogException( e );
 					}
 				}
 			);
 
-			return await tcs.Task;
+
+
+			return await tcs.Task.ConfigureAwait( false );
 		}
 
 		public static async Task<ConfirmationResult> ShowConfirmationDialogWithDiscard(
@@ -225,9 +230,9 @@ namespace KOTORModSync.Dialogs
 						confirmationDialog.Closed += ClosedHandler;
 						confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-						if ( parentWindow != null )
+						if (parentWindow != null)
 						{
-							_ = confirmationDialog.ShowDialog(parentWindow);
+							_ = confirmationDialog.ShowDialog( parentWindow );
 						}
 						else
 						{
@@ -242,34 +247,36 @@ namespace KOTORModSync.Dialogs
 							confirmationDialog.Closed -= ClosedHandler;
 						}
 
-						void YesClickedHandler(object sender, RoutedEventArgs e)
+						void YesClickedHandler( object sender, RoutedEventArgs e )
 						{
 							CleanupHandlers();
 							confirmationDialog.Close();
-							tcs.SetResult(ConfirmationResult.Save);
+							tcs.SetResult( ConfirmationResult.Save );
 						}
 
-						void NoClickedHandler(object sender, RoutedEventArgs e)
+						void NoClickedHandler( object sender, RoutedEventArgs e )
 						{
 							CleanupHandlers();
 							confirmationDialog.Close();
-							tcs.SetResult(ConfirmationResult.Discard);
+							tcs.SetResult( ConfirmationResult.Discard );
 						}
 
-						void ClosedHandler(object sender, EventArgs e)
+						void ClosedHandler( object sender, EventArgs e )
 						{
 							CleanupHandlers();
-							tcs.SetResult(ConfirmationResult.Cancel);
+							tcs.SetResult( ConfirmationResult.Cancel );
 						}
 					}
-					catch ( Exception e )
+					catch (Exception e)
 					{
-						Logger.LogException(e);
+						Logger.LogException( e );
 					}
 				}
 			);
 
-			return await tcs.Task;
+
+
+			return await tcs.Task.ConfigureAwait( false );
 		}
 
 		public static async Task<bool?> ShowTwoOptionDialogAsync(
@@ -305,9 +312,9 @@ namespace KOTORModSync.Dialogs
 						confirmationDialog.Closed += ClosedHandler;
 						confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-						if ( parentWindow != null )
+						if (parentWindow != null)
 						{
-							_ = confirmationDialog.ShowDialog(parentWindow);
+							_ = confirmationDialog.ShowDialog( parentWindow );
 						}
 						else
 						{
@@ -322,82 +329,84 @@ namespace KOTORModSync.Dialogs
 							confirmationDialog.Closed -= ClosedHandler;
 						}
 
-						void YesClickedHandler(object sender, RoutedEventArgs e)
+						void YesClickedHandler( object sender, RoutedEventArgs e )
 						{
 							CleanupHandlers();
 							confirmationDialog.Close();
-							tcs.SetResult(true);
+							tcs.SetResult( true );
 						}
 
-						void NoClickedHandler(object sender, RoutedEventArgs e)
+						void NoClickedHandler( object sender, RoutedEventArgs e )
 						{
 							CleanupHandlers();
 							confirmationDialog.Close();
-							tcs.SetResult(false);
+							tcs.SetResult( false );
 						}
 
-						void ClosedHandler(object sender, EventArgs e)
+						void ClosedHandler( object sender, EventArgs e )
 						{
 							CleanupHandlers();
-							tcs.SetResult(null);
+							tcs.SetResult( null );
 						}
 					}
-					catch ( Exception e )
+					catch (Exception e)
 					{
-						Logger.LogException(e);
+						Logger.LogException( e );
 					}
 				}
 			);
 
-			return await tcs.Task;
+
+
+			return await tcs.Task.ConfigureAwait( false );
 		}
 
 		public event EventHandler<RoutedEventArgs> YesButtonClicked
 		{
-			add => AddHandler(s_yesButtonClickedEvent, value);
-			remove => RemoveHandler(s_yesButtonClickedEvent, value);
+			add => AddHandler( s_yesButtonClickedEvent, value );
+			remove => RemoveHandler( s_yesButtonClickedEvent, value );
 		}
 
 		public event EventHandler<RoutedEventArgs> NoButtonClicked
 		{
-			add => AddHandler(s_noButtonClickedEvent, value);
-			remove => RemoveHandler(s_noButtonClickedEvent, value);
+			add => AddHandler( s_noButtonClickedEvent, value );
+			remove => RemoveHandler( s_noButtonClickedEvent, value );
 		}
 
-		private void OnOpened([CanBeNull] object sender, [CanBeNull] EventArgs e) =>
-			_markdownService.RenderMarkdownToTextBlock(ConfirmTextBlock, ConfirmText);
+		private void OnOpened( [CanBeNull] object sender, [CanBeNull] EventArgs e ) =>
+			_markdownService.RenderMarkdownToTextBlock( ConfirmTextBlock, ConfirmText );
 
-		private void YesButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
-			RaiseEvent(new RoutedEventArgs(s_yesButtonClickedEvent));
+		private void YesButton_Click( [CanBeNull] object sender, [CanBeNull] RoutedEventArgs e ) =>
+			RaiseEvent( new RoutedEventArgs( s_yesButtonClickedEvent ) );
 
-		private void NoButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
-			RaiseEvent(new RoutedEventArgs(s_noButtonClickedEvent));
+		private void NoButton_Click( [CanBeNull] object sender, [CanBeNull] RoutedEventArgs e ) =>
+			RaiseEvent( new RoutedEventArgs( s_noButtonClickedEvent ) );
 
-		private void CloseButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+		private void CloseButton_Click( [CanBeNull] object sender, [CanBeNull] RoutedEventArgs e ) =>
 			Close();
 
-		private void InputElement_OnPointerMoved([NotNull] object sender, [NotNull] PointerEventArgs e)
+		private void InputElement_OnPointerMoved( [NotNull] object sender, [NotNull] PointerEventArgs e )
 		{
-			if ( !_mouseDownForWindowMoving )
+			if (!_mouseDownForWindowMoving)
 				return;
 
-			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			PointerPoint currentPoint = e.GetCurrentPoint( this );
 			Position = new PixelPoint(
 				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
 				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
 			);
 		}
 
-		private void InputElement_OnPointerPressed([NotNull] object sender, [NotNull] PointerEventArgs e)
+		private void InputElement_OnPointerPressed( [NotNull] object sender, [NotNull] PointerEventArgs e )
 		{
-			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
 
 			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint(this);
+			_originalPoint = e.GetCurrentPoint( this );
 		}
 
-		private void InputElement_OnPointerReleased([NotNull] object sender, [NotNull] PointerEventArgs e) =>
+		private void InputElement_OnPointerReleased( [NotNull] object sender, [NotNull] PointerEventArgs e ) =>
 			_mouseDownForWindowMoving = false;
 	}
 }

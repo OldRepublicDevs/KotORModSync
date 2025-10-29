@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,11 +9,13 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.ImmutableCheckpoint;
@@ -26,24 +28,24 @@ namespace KOTORModSync.Dialogs
 		private readonly ObservableCollection<CheckpointViewModel> _checkpoints = new ObservableCollection<CheckpointViewModel>();
 		private readonly string _destinationPath;
 		private SessionViewModel _selectedSession;
-		private CheckpointService _checkpointService;
+		private readonly CheckpointService _checkpointService;
 
 		public CheckpointManagementDialog()
 		{
 			InitializeComponent();
 		}
 
-		public CheckpointManagementDialog(string destinationPath) : this()
+		public CheckpointManagementDialog( string destinationPath ) : this()
 		{
 			_destinationPath = destinationPath;
-			_checkpointService = new CheckpointService(destinationPath);
+			_checkpointService = new CheckpointService( destinationPath );
 
-			var sessionsControl = this.FindControl<ItemsControl>("SessionsListControl");
-			if ( sessionsControl != null )
+			var sessionsControl = this.FindControl<ItemsControl>( "SessionsListControl" );
+			if (sessionsControl != null)
 				sessionsControl.ItemsSource = _sessions;
 
-			var checkpointsControl = this.FindControl<ItemsControl>("CheckpointsListControl");
-			if ( checkpointsControl != null )
+			var checkpointsControl = this.FindControl<ItemsControl>( "CheckpointsListControl" );
+			if (checkpointsControl != null)
 				checkpointsControl.ItemsSource = _checkpoints;
 
 			_ = LoadSessionsAsync();
@@ -51,43 +53,45 @@ namespace KOTORModSync.Dialogs
 
 		private void InitializeComponent()
 		{
-			AvaloniaXamlLoader.Load(this);
+			AvaloniaXamlLoader.Load( this );
 		}
 
 		private async Task LoadSessionsAsync()
+
+
 		{
 			try
 			{
-				var sessions = await _checkpointService.ListSessionsAsync();
+				var sessions = await _checkpointService.ListSessionsAsync().ConfigureAwait( false );
 
-				await Dispatcher.UIThread.InvokeAsync(() =>
+				await Dispatcher.UIThread.InvokeAsync( () =>
 				{
 					_sessions.Clear();
-					foreach ( var session in sessions )
+					foreach (var session in sessions)
 					{
-						_sessions.Add(new SessionViewModel(session));
+						_sessions.Add( new SessionViewModel( session ) );
 					}
 
-					UpdateStorageInfo(sessions);
-				});
+					UpdateStorageInfo( sessions );
+				} );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogErrorAsync($"Failed to load sessions: {ex.Message}");
+				await Logger.LogErrorAsync( $"Failed to load sessions: {ex.Message}" ).ConfigureAwait( false );
 			}
 		}
 
-		private void UpdateStorageInfo(List<CheckpointSession> sessions)
+		private void UpdateStorageInfo( List<CheckpointSession> sessions )
 		{
-			var storageText = this.FindControl<TextBlock>("StorageInfoText");
-			if ( storageText == null )
+			var storageText = this.FindControl<TextBlock>( "StorageInfoText" );
+			if (storageText == null)
 				return;
 
 			try
 			{
-				string checkpointBaseDir = Path.Combine(_destinationPath, ".kotor_modsync", "checkpoints");
+				string checkpointBaseDir = Path.Combine( _destinationPath, ".kotor_modsync", "checkpoints" );
 
-				if ( !Directory.Exists(checkpointBaseDir) )
+				if (!Directory.Exists( checkpointBaseDir ))
 				{
 					storageText.Text = "Total storage: 0 B";
 					return;
@@ -95,39 +99,39 @@ namespace KOTORModSync.Dialogs
 
 				long totalSize = 0;
 
-				string objectsDir = Path.Combine(checkpointBaseDir, "objects");
-				if ( Directory.Exists(objectsDir) )
+				string objectsDir = Path.Combine( checkpointBaseDir, "objects" );
+				if (Directory.Exists( objectsDir ))
 				{
-					var objectFiles = Directory.GetFiles(objectsDir, "*", SearchOption.AllDirectories);
-					totalSize += objectFiles.Sum(f => new FileInfo(f).Length);
+					var objectFiles = Directory.GetFiles( objectsDir, "*", SearchOption.AllDirectories );
+					totalSize += objectFiles.Sum( f => new FileInfo( f ).Length );
 				}
 
-				string sessionsDir = Path.Combine(checkpointBaseDir, "sessions");
-				if ( Directory.Exists(sessionsDir) )
+				string sessionsDir = Path.Combine( checkpointBaseDir, "sessions" );
+				if (Directory.Exists( sessionsDir ))
 				{
-					var sessionFiles = Directory.GetFiles(sessionsDir, "*", SearchOption.AllDirectories);
-					totalSize += sessionFiles.Sum(f => new FileInfo(f).Length);
+					var sessionFiles = Directory.GetFiles( sessionsDir, "*", SearchOption.AllDirectories );
+					totalSize += sessionFiles.Sum( f => new FileInfo( f ).Length );
 				}
 
-				string sizeText = FormatBytes(totalSize);
+				string sizeText = FormatBytes( totalSize );
 				int sessionCount = sessions.Count;
-				int totalCheckpoints = sessions.Sum(s => s.CheckpointIds.Count);
+				int totalCheckpoints = sessions.Sum( s => s.CheckpointIds.Count );
 
 				storageText.Text = $"💾 {sessionCount} session(s), {totalCheckpoints} checkpoint(s), {sizeText} total storage";
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogError($"Failed to calculate storage: {ex.Message}");
+				Logger.LogError( $"Failed to calculate storage: {ex.Message}" );
 				storageText.Text = "Storage info unavailable";
 			}
 		}
 
-		private static string FormatBytes(long bytes)
+		private static string FormatBytes( long bytes )
 		{
 			string[] sizes = { "B", "KB", "MB", "GB", "TB" };
 			double len = bytes;
 			int order = 0;
-			while ( len >= 1024 && order < sizes.Length - 1 )
+			while (len >= 1024 && order < sizes.Length - 1)
 			{
 				order++;
 				len = len / 1024;
@@ -135,55 +139,57 @@ namespace KOTORModSync.Dialogs
 			return $"{len:0.##} {sizes[order]}";
 		}
 
-		private void SessionItem_PointerPressed(object sender, PointerPressedEventArgs e)
+		private void SessionItem_PointerPressed( object sender, PointerPressedEventArgs e )
 		{
-			if ( sender is Border border && border.DataContext is SessionViewModel session )
+			if (sender is Border border && border.DataContext is SessionViewModel session)
 			{
 				_selectedSession = session;
-				_ = LoadCheckpointsAsync(session);
+				_ = LoadCheckpointsAsync( session );
 			}
 		}
 
-		private async Task LoadCheckpointsAsync(SessionViewModel session)
+		private async Task LoadCheckpointsAsync( SessionViewModel session )
 		{
 			try
 			{
-				var titleText = this.FindControl<TextBlock>("SelectedSessionTitle");
-				var infoText = this.FindControl<TextBlock>("SelectedSessionInfo");
+				var titleText = this.FindControl<TextBlock>( "SelectedSessionTitle" );
+				var infoText = this.FindControl<TextBlock>( "SelectedSessionInfo" );
 
-				if ( titleText != null )
+				if (titleText != null)
 					titleText.Text = session.SessionName;
 
-				var checkpoints = await _checkpointService.ListCheckpointsAsync(session.Session.Id);
 
-				await Dispatcher.UIThread.InvokeAsync(() =>
+
+				var checkpoints = await _checkpointService.ListCheckpointsAsync( session.Session.Id ).ConfigureAwait( false );
+
+				await Dispatcher.UIThread.InvokeAsync( () =>
 				{
-					if ( infoText != null )
+					if (infoText != null)
 					{
 						string status = session.Session.IsComplete ? "✅ Completed" : "⏳ In Progress";
-						string storageInfo = $"Storage: {FormatBytes(checkpoints.Sum(c => c.DeltaSize))} deltas";
+						string storageInfo = $"Storage: {FormatBytes( checkpoints.Sum( c => c.DeltaSize ) )} deltas";
 						infoText.Text = $"{status} | Started: {session.Session.StartTime:g} | {storageInfo}";
-						if ( session.Session.EndTime.HasValue )
+						if (session.Session.EndTime.HasValue)
 							infoText.Text += $" | Ended: {session.Session.EndTime.Value:g}";
 					}
 
 					_checkpoints.Clear();
 
-					foreach ( var checkpoint in checkpoints.OrderBy(c => c.Sequence) )
+					foreach (var checkpoint in checkpoints.OrderBy( c => c.Sequence ))
 					{
-						_checkpoints.Add(new CheckpointViewModel(checkpoint, session.Session));
+						_checkpoints.Add( new CheckpointViewModel( checkpoint, session.Session ) );
 					}
-				});
+				} );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogErrorAsync($"Failed to load checkpoints: {ex.Message}");
+				await Logger.LogErrorAsync( $"Failed to load checkpoints: {ex.Message}" ).ConfigureAwait( false );
 			}
 		}
 
-		private async void RollbackButton_Click(object sender, RoutedEventArgs e)
+		private async void RollbackButton_Click( object sender, RoutedEventArgs e )
 		{
-			if ( !(sender is Button button) || !(button.Tag is CheckpointViewModel checkpointVm) )
+			if (!(sender is Button button) || !(button.Tag is CheckpointViewModel checkpointVm))
 				return;
 
 			int totalCheckpoints = _checkpoints.Count;
@@ -192,7 +198,7 @@ namespace KOTORModSync.Dialogs
 			string confirmMessage = $"Are you sure you want to restore to checkpoint #{checkpointVm.Checkpoint.Sequence} ('{checkpointVm.ComponentName}')?";
 			confirmMessage += $"\n\nThis will restore your game directory to the state after this mod was installed.";
 
-			if ( checkpointsToUndo > 0 )
+			if (checkpointsToUndo > 0)
 			{
 				confirmMessage += $"\n\n⚠️ This will undo {checkpointsToUndo} subsequent mod installation(s).";
 			}
@@ -202,7 +208,7 @@ namespace KOTORModSync.Dialogs
 			confirmMessage += $"\n  • {checkpointVm.Checkpoint.Modified.Count} file(s) were modified";
 			confirmMessage += $"\n  • {checkpointVm.Checkpoint.Deleted.Count} file(s) were deleted";
 
-			if ( checkpointVm.IsAnchor )
+			if (checkpointVm.IsAnchor)
 			{
 				confirmMessage += $"\n\n📍 This is an anchor checkpoint (optimized for fast restoration).";
 			}
@@ -214,35 +220,35 @@ namespace KOTORModSync.Dialogs
 				"Cancel"
 			);
 
-			var result = await confirmDialog.ShowDialog<bool>(this);
-			if ( !result )
+			var result = await confirmDialog.ShowDialog<bool>( this ).ConfigureAwait( false );
+			if (!result)
 				return;
 
-			await PerformRollbackAsync(checkpointVm);
+			await PerformRollbackAsync( checkpointVm ).ConfigureAwait( false );
 		}
 
-		private async Task PerformRollbackAsync(CheckpointViewModel checkpointVm)
+		private async Task PerformRollbackAsync( CheckpointViewModel checkpointVm )
 		{
 			ProgressDialog progressDialog = null;
 
 			try
 			{
-				progressDialog = new ProgressDialog("Restoring Checkpoint", "Preparing restoration...");
-				progressDialog.Show(this);
+				progressDialog = new ProgressDialog( "Restoring Checkpoint", "Preparing restoration..." );
+				progressDialog.Show( this );
 
-				var progress = new Progress<InstallProgress>(p =>
+				var progress = new Progress<InstallProgress>( p =>
 				{
-					Dispatcher.UIThread.Post(() =>
+					Dispatcher.UIThread.Post( () =>
 					{
-						progressDialog?.UpdateProgress(p.Message, p.Current, p.Total);
-					});
-				});
+						progressDialog?.UpdateProgress( p.Message, p.Current, p.Total );
+					} );
+				} );
 
 				var coordinatorService = new InstallationCoordinatorService();
 
-				await Task.Run(async () =>
+				await Task.Run( async () =>
 				{
-					using ( var cts = new CancellationTokenSource() )
+					using (var cts = new CancellationTokenSource())
 					{
 						CancellationToken cancellationToken = cts.Token;
 						await InstallationCoordinatorService.RestoreToCheckpointAsync(
@@ -251,9 +257,15 @@ namespace KOTORModSync.Dialogs
 							_destinationPath,
 							progress,
 							cts.Token
-						);
+
+
+
+
+						).ConfigureAwait( false );
 					}
-				});
+				} )
+
+.ConfigureAwait( false );
 
 				progressDialog?.Close();
 				progressDialog = null;
@@ -261,19 +273,21 @@ namespace KOTORModSync.Dialogs
 				await ShowSuccessDialog(
 					"Checkpoint restored successfully!\n\n" +
 					$"Your game directory has been restored to the state after '{checkpointVm.ComponentName}' was installed."
-				);
+				).ConfigureAwait( false );
 
-				await LoadSessionsAsync();
+				await LoadSessionsAsync().ConfigureAwait( false );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				progressDialog?.Close();
-				await Logger.LogErrorAsync($"Checkpoint restoration failed: {ex.Message}");
-				await ShowErrorDialog($"Checkpoint restoration failed:\n\n{ex.Message}");
+
+
+				await Logger.LogErrorAsync( $"Checkpoint restoration failed: {ex.Message}" ).ConfigureAwait( false );
+				await ShowErrorDialog( $"Checkpoint restoration failed:\n\n{ex.Message}" ).ConfigureAwait( false );
 			}
 		}
 
-		private async void CleanupButton_Click(object sender, RoutedEventArgs e)
+		private async void CleanupButton_Click( object sender, RoutedEventArgs e )
 		{
 			var confirmDialog = new ConfirmDialog(
 				"Clean Up Checkpoint Storage",
@@ -285,73 +299,83 @@ namespace KOTORModSync.Dialogs
 				"Clean Up"
 			);
 
-			bool result = await confirmDialog.ShowDialog<bool>(this);
-			if ( result == false )
+			bool result = await confirmDialog.ShowDialog<bool>( this ).ConfigureAwait( false );
+			if (!result)
 				return;
+
+
 
 			try
 			{
-				List<CheckpointSession> sessions = await _checkpointService.ListSessionsAsync();
-				List<CheckpointSession> completedSessions = sessions.Where(s => s.IsComplete).ToList();
+				List<CheckpointSession> sessions = await _checkpointService.ListSessionsAsync().ConfigureAwait( false );
+				List<CheckpointSession> completedSessions = sessions.Where( s => s.IsComplete ).ToList();
 
 				int cleanedCount = 0;
 				long freedSpace = 0;
-				foreach ( CheckpointSession session in completedSessions )
+				foreach (CheckpointSession session in completedSessions)
 				{
-					string sessionPath = Path.Combine(_destinationPath, ".kotor_modsync", "checkpoints", "sessions", session.Id);
-					if ( Directory.Exists(sessionPath) )
+					string sessionPath = Path.Combine( _destinationPath, ".kotor_modsync", "checkpoints", "sessions", session.Id );
+					if (Directory.Exists( sessionPath ))
 					{
-						string[] files = Directory.GetFiles(sessionPath, "*", SearchOption.AllDirectories);
-						freedSpace += files.Sum(f => new FileInfo(f).Length);
+						string[] files = Directory.GetFiles( sessionPath, "*", SearchOption.AllDirectories );
+						freedSpace += files.Sum( f => new FileInfo( f ).Length );
+
+
 					}
 
-					await _checkpointService.DeleteSessionAsync(session.Id);
+					await _checkpointService.DeleteSessionAsync( session.Id )
+
+.ConfigureAwait( false );
 					cleanedCount++;
 				}
 
-				int orphanedObjects = await _checkpointService.GarbageCollectAsync();
+				int orphanedObjects = await _checkpointService.GarbageCollectAsync()
+
+.ConfigureAwait( false );
 
 				await ShowSuccessDialog(
 					"Cleanup complete!\n\n" +
 					$"• Deleted {cleanedCount} completed session(s)\n" +
 					$"• Removed {orphanedObjects} orphaned file(s)\n" +
-					$"• Freed approximately {FormatBytes(freedSpace)} of disk space"
-				);
+					$"• Freed approximately {FormatBytes( freedSpace )} of disk space"
+				).ConfigureAwait( false );
 
-				await LoadSessionsAsync();
+				await LoadSessionsAsync().ConfigureAwait( false );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogErrorAsync($"Cleanup failed: {ex.Message}");
-				await ShowErrorDialog($"Cleanup failed:\n\n{ex.Message}");
+				await Logger.LogErrorAsync( $"Cleanup failed: {ex.Message}" ).ConfigureAwait( false );
+				await ShowErrorDialog( $"Cleanup failed:\n\n{ex.Message}" ).ConfigureAwait( false );
 			}
 		}
 
-		private async void RefreshButton_Click(object sender, RoutedEventArgs e)
+		private async void RefreshButton_Click( object sender, RoutedEventArgs e )
 		{
-			await LoadSessionsAsync();
+			await LoadSessionsAsync().ConfigureAwait( false );
 
-			if ( _selectedSession != null )
+			if (_selectedSession != null)
 			{
-				await LoadCheckpointsAsync(_selectedSession);
+				await LoadCheckpointsAsync( _selectedSession ).ConfigureAwait( false );
 			}
 		}
 
-		private void CloseButton_Click(object sender, RoutedEventArgs e)
+		private void CloseButton_Click( object sender, RoutedEventArgs e )
 		{
 			Close();
 		}
 
-		private async Task ShowSuccessDialog(string message)
+		private async Task ShowSuccessDialog( string message )
 		{
-			var dialog = new MessageDialog("Success", message, "OK");
-			await dialog.ShowDialog(this);
+			var dialog = new MessageDialog( "Success", message, "OK" );
+			await dialog.ShowDialog( this ).ConfigureAwait( false );
 		}
 
-		private async Task ShowErrorDialog(string message)
+		private async Task ShowErrorDialog( string message )
 		{
-			var dialog = new MessageDialog("Error", message, "OK");
-			await dialog.ShowDialog(this);
+			var dialog = new MessageDialog( "Error", message, "OK" );
+			await dialog.ShowDialog( this ).ConfigureAwait( false );
 		}
 	}
 
@@ -361,14 +385,14 @@ namespace KOTORModSync.Dialogs
 	{
 		public CheckpointSession Session { get; }
 
-		public SessionViewModel(CheckpointSession session)
+		public SessionViewModel( CheckpointSession session )
 		{
 			Session = session;
 		}
 
 		public string SessionName => Session.Name;
 
-		public string StartTime => Session.StartTime.ToString("g");
+		public string StartTime => Session.StartTime.ToString( "g" );
 
 		public string CheckpointCountText
 		{
@@ -386,7 +410,7 @@ namespace KOTORModSync.Dialogs
 		public Checkpoint Checkpoint { get; }
 		public CheckpointSession Session { get; }
 
-		public CheckpointViewModel(Checkpoint checkpoint, CheckpointSession session)
+		public CheckpointViewModel( Checkpoint checkpoint, CheckpointSession session )
 		{
 			Checkpoint = checkpoint;
 			Session = session;
@@ -394,7 +418,7 @@ namespace KOTORModSync.Dialogs
 
 		public string ComponentName => Checkpoint.ComponentName;
 
-		public string Timestamp => Checkpoint.Timestamp.ToString("g");
+		public string Timestamp => Checkpoint.Timestamp.ToString( "g" );
 
 		public bool IsAnchor => Checkpoint.IsAnchor;
 
@@ -404,35 +428,35 @@ namespace KOTORModSync.Dialogs
 			{
 				var parts = new List<string>();
 
-				if ( Checkpoint.Added.Count > 0 )
-					parts.Add($"✚ {Checkpoint.Added.Count} added");
+				if (Checkpoint.Added.Count > 0)
+					parts.Add( $"✚ {Checkpoint.Added.Count} added" );
 
-				if ( Checkpoint.Modified.Count > 0 )
-					parts.Add($"✎ {Checkpoint.Modified.Count} modified");
+				if (Checkpoint.Modified.Count > 0)
+					parts.Add( $"✎ {Checkpoint.Modified.Count} modified" );
 
-				if ( Checkpoint.Deleted.Count > 0 )
-					parts.Add($"✖ {Checkpoint.Deleted.Count} deleted");
+				if (Checkpoint.Deleted.Count > 0)
+					parts.Add( $"✖ {Checkpoint.Deleted.Count} deleted" );
 
-				string result = parts.Any() ? string.Join(" | ", parts) : "No changes";
+				string result = parts.Any() ? string.Join( " | ", parts ) : "No changes";
 
-				if ( Checkpoint.IsAnchor )
+				if (Checkpoint.IsAnchor)
 					result += " | 📍 Anchor";
 
-				if ( Checkpoint.DeltaSize > 0 )
+				if (Checkpoint.DeltaSize > 0)
 				{
-					result += $" | {FormatBytes(Checkpoint.DeltaSize)} delta";
+					result += $" | {FormatBytes( Checkpoint.DeltaSize )} delta";
 				}
 
 				return result;
 			}
 		}
 
-		private static string FormatBytes(long bytes)
+		private static string FormatBytes( long bytes )
 		{
 			string[] sizes = { "B", "KB", "MB", "GB", "TB" };
 			double len = bytes;
 			int order = 0;
-			while ( len >= 1024 && order < sizes.Length - 1 )
+			while (len >= 1024 && order < sizes.Length - 1)
 			{
 				order++;
 				len = len / 1024;

@@ -1,22 +1,24 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Globalization;
+
 using Avalonia.Data.Converters;
+
 using KOTORModSync.Core;
 
 namespace KOTORModSync.Converters
 {
 	public partial class ArgumentsDescriptionConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if ( !(value is Instruction.ActionType action) )
+			if (!(value is Instruction.ActionType action))
 				return "• Execute: Command-line arguments\n• DelDuplicate: File extension (e.g., .mdl)\n• Patcher: Use options above";
 
-			switch ( action )
+			switch (action)
 			{
 				case Instruction.ActionType.DelDuplicate:
 					return "File extensions to delete when filenames duplicate (e.g., .mdl, .tpc, .wav)";
@@ -29,7 +31,7 @@ namespace KOTORModSync.Converters
 			}
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture ) =>
 			throw new NotImplementedException();
 	}
 }

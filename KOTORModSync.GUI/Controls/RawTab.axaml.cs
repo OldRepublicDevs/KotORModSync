@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
@@ -60,7 +60,7 @@ namespace KOTORModSync.Controls
 		public TextBox GetRawEditTextBox()
 		{
 			// Return the currently active format textbox using FindControl for safety
-			return _currentFormat == "toml" ? this.FindControl<TextBox>("TomlTextBox") :
+			return string.Equals(_currentFormat, "toml", StringComparison.Ordinal) ? this.FindControl<TextBox>("TomlTextBox") :
 				_currentFormat == "markdown" ? this.FindControl<TextBox>("MarkdownTextBox") :
 				_currentFormat == "yaml" ? this.FindControl<TextBox>("YamlTextBox") :
 				_currentFormat == "json" ? this.FindControl<TextBox>("JsonTextBox") :
@@ -141,10 +141,7 @@ namespace KOTORModSync.Controls
 			if ( textBox == null ) return null;
 
 			// Compare by name to avoid reference issues with FindControl
-			return textBox.Name == "TomlTextBox" ? "toml" :
-				textBox.Name == "MarkdownTextBox" ? "markdown" :
-				textBox.Name == "YamlTextBox" ? "yaml" :
-				textBox.Name == "JsonTextBox" ? "json" :
+			return string.Equals(textBox.Name, "TomlTextBox", StringComparison.Ordinal) ? "toml" : string.Equals(textBox.Name, "MarkdownTextBox", StringComparison.Ordinal) ? "markdown" : string.Equals(textBox.Name, "YamlTextBox", StringComparison.Ordinal) ? "yaml" : string.Equals(textBox.Name, "JsonTextBox", StringComparison.Ordinal) ? "json" :
 				null;
 		}
 

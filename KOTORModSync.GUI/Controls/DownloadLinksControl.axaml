@@ -45,8 +45,8 @@
     </UserControl.Resources>
 
     <StackPanel Spacing="8">
-        <!--  Header with Add Button  -->
-        <Grid ColumnDefinitions="*,Auto">
+        <!--  Header with Add and Download Buttons  -->
+        <Grid ColumnDefinitions="*,Auto,Auto">
             <TextBlock
                 Grid.Column="0"
                 VerticalAlignment="Center"
@@ -58,6 +58,12 @@
                 Click="AddLink_Click"
                 Content="➕ Add Link"
                 ToolTip.Tip="Add a new download link" />
+            <Button
+                Grid.Column="2"
+                Classes="action-button"
+                Click="DownloadMod_Click"
+                Content="⬇️ Download Mod"
+                ToolTip.Tip="Download this mod using the single mod download window" />
         </Grid>
 
         <!--  Help Text  -->

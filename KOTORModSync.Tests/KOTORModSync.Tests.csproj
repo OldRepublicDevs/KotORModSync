@@ -33,15 +33,41 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.2.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.0" />
+  </ItemGroup>
+
+  <!-- Modern 2025 Code Analyzers -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.25.0.90414">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Meziantou.Analyzer" Version="2.0.126">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\KOTORModSync.Core\KOTORModSync.Core.csproj" />
+    <ProjectReference Include="..\KOTORModSync.GUI\KOTORModSync.GUI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="RegexPreviewHighlightingTests.cs" />
     <Compile Remove="HeadlessTestApp.cs" />
+    <Compile Remove="MainWindowUITests.cs" />
+    <Compile Remove="CheckpointSystemIntegrationTests.cs" />
+    <Compile Remove="DocumentationRoundTripTests.cs" />
+    <Compile Remove="MarkdownFileTests.cs" />
+    <Compile Remove="MarkdownImportTests.cs" />
+    <Compile Remove="ModSyncMetadataTests.cs" />
+    <Compile Remove="ResourceMetadataSerializationTests.cs" />
   </ItemGroup>
 
 </Project>

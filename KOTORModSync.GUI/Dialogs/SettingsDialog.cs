@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -8,17 +8,18 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
+
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Controls;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
@@ -32,11 +33,11 @@ namespace KOTORModSync.Dialogs
 		[CanBeNull] private MainConfig _mainConfigInstance;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
-		private List<GitHubRelease> _holopatcherReleases = new List<GitHubRelease>();
+		private readonly List<GitHubRelease> _holopatcherReleases = new List<GitHubRelease>();
 		private bool _isDownloading = false;
 		private string _selectedHolopatcherVersion;
 
-		private class GitHubRelease
+		private sealed class GitHubRelease
 		{
 			public string TagName { get; set; }
 			public string Name { get; set; }
@@ -46,7 +47,7 @@ namespace KOTORModSync.Dialogs
 			public string Body { get; set; }
 		}
 
-		private class GitHubAsset
+		private sealed class GitHubAsset
 		{
 			public string Name { get; set; }
 			public string BrowserDownloadUrl { get; set; }
@@ -72,7 +73,9 @@ namespace KOTORModSync.Dialogs
 			PointerMoved += InputElement_OnPointerMoved;
 			PointerReleased += InputElement_OnPointerReleased;
 			PointerExited += InputElement_OnPointerReleased;
-			Opened += async (s, e) => await InitializeHolopatcherVersionsAsync();
+
+			Opened += async (s, e) => await InitializeHolopatcherVersionsAsync().ConfigureAwait(false);
+			Closing += OnClosing;
 		}
 
 		private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
@@ -80,16 +83,20 @@ namespace KOTORModSync.Dialogs
 		public void InitializeFromMainWindow(Window mainWindow)
 		{
 
-			if ( mainWindow is MainWindow mw )
+			if (mainWindow is MainWindow mw)
 			{
 				MainConfigInstance = mw.MainConfigInstance;
 				ParentWindow = mw;
 			}
 
-			ThemeManager.ApplyCurrentToWindow(this);
-
 			Logger.LogVerbose("SettingsDialog.InitializeFromMainWindow start");
 			Logger.LogVerbose($"SettingsDialog: Source='{MainConfigInstance?.sourcePathFullName}', Dest='{MainConfigInstance?.destinationPathFullName}'");
+
+			// CRITICAL: Load theme settings FIRST before applying any theme changes
+			LoadThemeSettings();
+
+			// Now apply the current theme to the dialog
+			ThemeManager.ApplyCurrentToWindow(this);
 
 			LoadDirectorySettings();
 			LoadTelemetrySettings();
@@ -112,28 +119,28 @@ namespace KOTORModSync.Dialogs
 				string kotorPath = MainConfigInstance?.destinationPathFullName ?? string.Empty;
 
 				// If MainConfig doesn't have paths, try loading from AppSettings
-				if ( string.IsNullOrEmpty(modPath) || string.IsNullOrEmpty(kotorPath) )
+				if (string.IsNullOrEmpty(modPath) || string.IsNullOrEmpty(kotorPath))
 				{
 					var appSettings = Models.SettingsManager.LoadSettings();
-					if ( string.IsNullOrEmpty(modPath) && !string.IsNullOrEmpty(appSettings.SourcePath) )
+					if (string.IsNullOrEmpty(modPath) && !string.IsNullOrEmpty(appSettings.SourcePath))
 						modPath = appSettings.SourcePath;
-					if ( string.IsNullOrEmpty(kotorPath) && !string.IsNullOrEmpty(appSettings.DestinationPath) )
+					if (string.IsNullOrEmpty(kotorPath) && !string.IsNullOrEmpty(appSettings.DestinationPath))
 						kotorPath = appSettings.DestinationPath;
 				}
 
-				if ( modDirectoryPicker != null && !string.IsNullOrEmpty(modPath) )
+				if (modDirectoryPicker != null && !string.IsNullOrEmpty(modPath))
 				{
 					Logger.LogVerbose($"SettingsDialog: Applying mod dir -> '{modPath}'");
 					UpdateDirectoryPickerWithPath(modDirectoryPicker, modPath);
 				}
 
-				if ( kotorDirectoryPicker != null && !string.IsNullOrEmpty(kotorPath) )
+				if (kotorDirectoryPicker != null && !string.IsNullOrEmpty(kotorPath))
 				{
 					Logger.LogVerbose($"SettingsDialog: Applying kotor dir -> '{kotorPath}'");
 					UpdateDirectoryPickerWithPath(kotorDirectoryPicker, kotorPath);
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Failed to load directory settings");
 			}
@@ -141,7 +148,7 @@ namespace KOTORModSync.Dialogs
 
 		private static void UpdateDirectoryPickerWithPath(DirectoryPickerControl picker, string path)
 		{
-			if ( picker == null || string.IsNullOrEmpty(path) )
+			if (picker == null || string.IsNullOrEmpty(path))
 				return;
 
 			try
@@ -151,15 +158,15 @@ namespace KOTORModSync.Dialogs
 
 				// Then explicitly set the ComboBox SelectedItem to match
 				ComboBox comboBox = picker.FindControl<ComboBox>("PathSuggestions");
-				if ( comboBox != null )
+				if (comboBox != null)
 				{
 					// Ensure the path is in the ItemsSource
 					List<string> currentItems = (comboBox.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
-					if ( !currentItems.Contains(path) )
+					if (!currentItems.Contains(path, StringComparer.Ordinal))
 					{
 						currentItems.Insert(0, path);
 
-						if ( currentItems.Count > 20 )
+						if (currentItems.Count > 20)
 							currentItems = currentItems.Take(20).ToList();
 						comboBox.ItemsSource = currentItems;
 					}
@@ -168,7 +175,7 @@ namespace KOTORModSync.Dialogs
 					comboBox.SelectedItem = path;
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, $"Failed to update directory picker with path: {path}");
 			}
@@ -181,7 +188,7 @@ namespace KOTORModSync.Dialogs
 				// Get the selected version from MainConfig or AppSettings
 				string selectedVersion = MainConfigInstance?.selectedHolopatcherVersion;
 
-				if ( string.IsNullOrEmpty(selectedVersion) )
+				if (string.IsNullOrEmpty(selectedVersion))
 				{
 					var appSettings = Models.SettingsManager.LoadSettings();
 					selectedVersion = appSettings.SelectedHolopatcherVersion;
@@ -190,7 +197,7 @@ namespace KOTORModSync.Dialogs
 				// Store the selected version for later use when ComboBox is populated
 				_selectedHolopatcherVersion = selectedVersion;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Failed to load HoloPatcher version settings");
 			}
@@ -201,7 +208,7 @@ namespace KOTORModSync.Dialogs
 			try
 			{
 				ComboBox fileEncodingComboBox = this.FindControl<ComboBox>("FileEncodingComboBox");
-				if ( fileEncodingComboBox != null && MainConfigInstance != null )
+				if (fileEncodingComboBox != null && MainConfigInstance != null)
 				{
 					string encoding = MainConfigInstance.fileEncoding ?? "utf-8";
 					fileEncodingComboBox.SelectedIndex = encoding.Equals("windows-1252", StringComparison.OrdinalIgnoreCase) ||
@@ -212,7 +219,7 @@ namespace KOTORModSync.Dialogs
 					Logger.LogVerbose($"SettingsDialog: File encoding set to '{encoding}' (index {fileEncodingComboBox.SelectedIndex})");
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Failed to load file encoding settings");
 			}
@@ -227,12 +234,12 @@ namespace KOTORModSync.Dialogs
 
 				CheckBox enableTelemetryCheckBox = this.FindControl<CheckBox>("EnableTelemetryCheckBox");
 
-				if ( enableTelemetryCheckBox != null )
+				if (enableTelemetryCheckBox != null)
 					enableTelemetryCheckBox.IsChecked = telemetryConfig.IsEnabled;
 
 				Logger.LogVerbose($"[Telemetry] Loaded telemetry settings: Enabled={telemetryConfig.IsEnabled}");
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "[Telemetry] Failed to load telemetry settings");
 			}
@@ -246,22 +253,77 @@ namespace KOTORModSync.Dialogs
 				string apiKey = MainConfigInstance?.nexusModsApiKey;
 
 				// If MainConfig doesn't have the API key, try loading from AppSettings
-				if ( string.IsNullOrEmpty(apiKey) )
+				if (string.IsNullOrEmpty(apiKey))
 				{
 					var appSettings = Models.SettingsManager.LoadSettings();
 					apiKey = appSettings.NexusModsApiKey;
 				}
 
 				// Update MainConfig with the loaded API key if it's not already set
-				if ( MainConfigInstance != null && !string.IsNullOrEmpty(apiKey) && string.IsNullOrEmpty(MainConfigInstance.nexusModsApiKey) )
+				if (MainConfigInstance != null && !string.IsNullOrEmpty(apiKey) && string.IsNullOrEmpty(MainConfigInstance.nexusModsApiKey))
 				{
 					MainConfigInstance.nexusModsApiKey = apiKey;
 					Logger.LogVerbose($"SettingsDialog: Loaded Nexus Mods API key from settings");
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Failed to load Nexus Mods API key settings");
+			}
+		}
+
+		private void LoadThemeSettings()
+		{
+			try
+			{
+				ComboBox themeComboBox = this.FindControl<ComboBox>("ThemeComboBox");
+				if (themeComboBox != null)
+				{
+					// CRITICAL: Temporarily detach the SelectionChanged event to prevent theme changes during loading
+					themeComboBox.SelectionChanged -= ThemeComboBox_SelectionChanged;
+					
+					string currentThemePath = ThemeService.GetCurrentTheme();
+					ThemeType currentTheme = ThemeService.GetCurrentThemeType();
+					
+					Logger.LogVerbose($"[LoadThemeSettings] Current theme path from ThemeService: '{currentThemePath}'");
+					Logger.LogVerbose($"[LoadThemeSettings] Current theme type: {currentTheme}");
+					
+					int selectedIndex = (int)currentTheme;
+					if (selectedIndex >= 0 && selectedIndex < themeComboBox.Items.Count)
+					{
+						themeComboBox.SelectedIndex = selectedIndex;
+						Logger.LogVerbose($"SettingsDialog: Theme set to {currentTheme} (index {selectedIndex})");
+					}
+					
+					// Re-attach the event handler after loading is complete
+					themeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Failed to load theme settings");
+			}
+		}
+
+		private void SaveThemeToSettings()
+		{
+			try
+			{
+				// Load existing settings
+				var settings = Models.SettingsManager.LoadSettings();
+				
+				// Update only the theme
+				string currentTheme = ThemeService.GetCurrentTheme();
+				settings.Theme = currentTheme;
+				
+				// Save immediately
+				Models.SettingsManager.SaveSettings(settings);
+				
+				Logger.LogVerbose($"[SaveThemeToSettings] Saved theme to settings: '{currentTheme}'");
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Failed to save theme to settings");
 			}
 		}
 
@@ -282,16 +344,16 @@ namespace KOTORModSync.Dialogs
 
 				Logger.Log($"[Telemetry] Telemetry settings saved: Enabled={isNowEnabled}");
 
-				if ( !wasEnabled && isNowEnabled )
+				if (!wasEnabled && isNowEnabled)
 				{
 					Logger.Log("[Telemetry] Telemetry has been enabled");
 				}
-				else if ( wasEnabled && !isNowEnabled )
+				else if (wasEnabled && !isNowEnabled)
 				{
 					Logger.Log("[Telemetry] Telemetry has been disabled");
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "[Telemetry] Failed to save telemetry settings");
 			}
@@ -303,7 +365,7 @@ namespace KOTORModSync.Dialogs
 			{
 				Logger.LogVerbose("[SettingsDialog.SaveAppSettings] === STARTING SAVE ===");
 
-				if ( MainConfigInstance == null )
+				if (MainConfigInstance == null)
 				{
 					Logger.LogWarning("Cannot save settings: MainConfigInstance is null");
 					return;
@@ -322,14 +384,17 @@ namespace KOTORModSync.Dialogs
 				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
 				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   MainConfigInstance.debugLogging: '{MainConfigInstance.debugLogging}'");
 
-				string currentTheme = ThemeManager.GetCurrentStylePath();
-				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings] Current theme from ThemeManager: '{currentTheme}'");
+				string currentThemePath = ThemeManager.GetCurrentStylePath();
+				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings] Current theme from ThemeManager: '{currentThemePath}'");
 
-				var settings = Models.AppSettings.FromCurrentState(MainConfigInstance, currentTheme);
+				var settings = Models.AppSettings.FromCurrentState(MainConfigInstance, currentThemePath);
 
 				// Update the selected HoloPatcher version
 				MainConfigInstance.selectedHolopatcherVersion = _selectedHolopatcherVersion;
 				settings.SelectedHolopatcherVersion = _selectedHolopatcherVersion;
+
+				// Update the selected theme
+				settings.Theme = ThemeService.GetCurrentTheme();
 
 				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings] AppSettings created from MainConfig:");
 				Logger.LogVerbose($"[SettingsDialog.SaveAppSettings]   settings.SourcePath: '{settings.SourcePath}'");
@@ -342,7 +407,7 @@ namespace KOTORModSync.Dialogs
 
 				Logger.Log("[SettingsDialog.SaveAppSettings] === Application settings saved successfully ===");
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Failed to save application settings");
 			}
@@ -355,27 +420,27 @@ namespace KOTORModSync.Dialogs
 				DirectoryPickerControl modDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "ModDirectoryPicker");
 				DirectoryPickerControl kotorDirectoryPicker = this.FindControl<DirectoryPickerControl>(name: "KotorDirectoryPicker");
 
-				if ( modDirectoryPicker != null )
+				if (modDirectoryPicker != null)
 				{
 					string modPath = modDirectoryPicker.GetCurrentPathForSettings();
-					if ( !string.IsNullOrEmpty(modPath) && Directory.Exists(modPath) )
+					if (!string.IsNullOrEmpty(modPath) && Directory.Exists(modPath))
 					{
 						MainConfigInstance.sourcePath = new DirectoryInfo(modPath);
 						Logger.LogVerbose($"SettingsDialog: Updated MainConfig.sourcePath from picker -> '{modPath}'");
 					}
 				}
 
-				if ( kotorDirectoryPicker != null )
+				if (kotorDirectoryPicker != null)
 				{
 					string kotorPath = kotorDirectoryPicker.GetCurrentPathForSettings();
-					if ( !string.IsNullOrEmpty(kotorPath) && Directory.Exists(kotorPath) )
+					if (!string.IsNullOrEmpty(kotorPath) && Directory.Exists(kotorPath))
 					{
 						MainConfigInstance.destinationPath = new DirectoryInfo(kotorPath);
 						Logger.LogVerbose($"SettingsDialog: Updated MainConfig.destinationPath from picker -> '{kotorPath}'");
 					}
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Failed to update MainConfig from directory pickers");
 			}
@@ -385,12 +450,12 @@ namespace KOTORModSync.Dialogs
 		private void OnDirectoryChanged(object sender, DirectoryChangedEventArgs e)
 		{
 
-			if ( MainConfigInstance == null ) return;
+			if (MainConfigInstance == null) return;
 
 			try
 			{
 				Logger.LogVerbose($"SettingsDialog.OnDirectoryChanged type={e.PickerType} path='{e.Path}'");
-				switch ( e.PickerType )
+				switch (e.PickerType)
 				{
 					case DirectoryPickerType.ModDirectory:
 						{
@@ -408,12 +473,12 @@ namespace KOTORModSync.Dialogs
 						}
 				}
 
-				if ( ParentWindow == null )
+				if (ParentWindow == null)
 					return;
 				Logger.LogVerbose("SettingsDialog: Triggering parent window directory synchronization");
 				ParentWindow.SyncDirectoryPickers(e.PickerType, e.Path);
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex);
 			}
@@ -426,25 +491,55 @@ namespace KOTORModSync.Dialogs
 			try
 			{
 				var comboBox = sender as ComboBox;
-				if ( comboBox?.SelectedItem is GitHubRelease selectedRelease )
+				if (comboBox?.SelectedItem is GitHubRelease selectedRelease)
 				{
 					_selectedHolopatcherVersion = selectedRelease.TagName;
 					Logger.LogVerbose($"HoloPatcher version selection changed to: {selectedRelease.TagName}");
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Failed to handle HoloPatcher version selection change");
 			}
 		}
 
 		[UsedImplicitly]
+		private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			try
+			{
+				if (!(sender is ComboBox comboBox) || !(comboBox.SelectedItem is ComboBoxItem selectedItem))
+					return;
+
+				string themeTag = selectedItem.Tag?.ToString();
+				if (string.IsNullOrEmpty(themeTag))
+					return;
+
+				if (Enum.TryParse(themeTag, out Services.ThemeType themeType))
+				{
+					// CRITICAL: Close the dropdown before applying theme to prevent UI rebuild conflicts
+					comboBox.IsDropDownOpen = false;
+					
+					ThemeService.ApplyTheme(themeType);
+					Logger.LogVerbose($"Theme changed to: {themeType}");
+					
+					// CRITICAL: Save the theme immediately to settings file so it persists
+					SaveThemeToSettings();
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Failed to change theme");
+			}
+		}
+
+		[UsedImplicitly]
 		private void FileEncodingComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-			if ( !(sender is ComboBox comboBox && comboBox.SelectedItem is ComboBoxItem selectedItem) )
+			if (!(sender is ComboBox comboBox && comboBox.SelectedItem is ComboBoxItem selectedItem))
 				return;
 
-			if ( MainConfigInstance == null )
+			if (MainConfigInstance == null)
 				return;
 
 			string encodingTag = selectedItem.Tag?.ToString() ?? "utf-8";
@@ -452,18 +547,30 @@ namespace KOTORModSync.Dialogs
 			Logger.LogVerbose($"File encoding changed to: {encodingTag}");
 		}
 
+		private void OnClosing(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			try
+			{
+				// Save all settings when the dialog closes
+				SaveTelemetrySettings();
+				SaveAppSettings();
+
+				// Notify parent window that settings have been updated
+				if (ParentWindow != null)
+				{
+					ParentWindow.RefreshFromSettings();
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Failed to save settings on dialog close");
+			}
+		}
+
 		[UsedImplicitly]
 		private void OK_Click(object sender, RoutedEventArgs e)
 		{
-			SaveTelemetrySettings();
-			SaveAppSettings();
-
-			// Notify parent window that settings have been updated
-			if ( ParentWindow != null )
-			{
-				ParentWindow.RefreshFromSettings();
-			}
-
+			// Settings are saved automatically on close via OnClosing event
 			Close(dialogResult: true);
 		}
 
@@ -481,11 +588,15 @@ namespace KOTORModSync.Dialogs
 				await InformationDialog.ShowInformationDialogAsync(
 					null,
 					message: privacySummary
-				);
+
+
+				).ConfigureAwait(false);
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex, "[Telemetry] Failed to show privacy details");
+				await Logger.LogExceptionAsync(ex, "[Telemetry] Failed to show privacy details").ConfigureAwait(false);
 			}
 		}
 
@@ -495,9 +606,9 @@ namespace KOTORModSync.Dialogs
 		[UsedImplicitly]
 		private void ToggleMaximizeButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
 		{
-			if ( !(sender is Button maximizeButton) )
+			if (!(sender is Button maximizeButton))
 				return;
-			if ( WindowState == WindowState.Maximized )
+			if (WindowState == WindowState.Maximized)
 			{
 				WindowState = WindowState.Normal;
 				maximizeButton.Content = "▢";
@@ -510,12 +621,16 @@ namespace KOTORModSync.Dialogs
 		}
 
 		[UsedImplicitly]
-		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+		private void CloseButton_Click(object sender, RoutedEventArgs e)
+		{
+			// Settings are saved automatically on close via OnClosing event
+			Close();
+		}
 
 
 		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
 		{
-			if ( !_mouseDownForWindowMoving )
+			if (!_mouseDownForWindowMoving)
 				return;
 			PointerPoint currentPoint = e.GetCurrentPoint(this);
 			var newPoint = new PixelPoint(Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X), Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y));
@@ -524,9 +639,9 @@ namespace KOTORModSync.Dialogs
 
 		private void InputElement_OnPointerPressed(object sender, PointerEventArgs e)
 		{
-			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
-			if ( ShouldIgnorePointerForWindowDrag(e) )
+			if (ShouldIgnorePointerForWindowDrag(e))
 				return;
 			_mouseDownForWindowMoving = true;
 			_originalPoint = e.GetCurrentPoint(this);
@@ -536,12 +651,12 @@ namespace KOTORModSync.Dialogs
 
 		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
-			if ( !(e.Source is Visual source) )
+			if (!(e.Source is Visual source))
 				return false;
 			Visual current = source;
-			while ( current != null && current != this )
+			while (current != null && current != this)
 			{
-				switch ( current )
+				switch (current)
 				{
 					case Button _:
 					case TextBox _:
@@ -564,15 +679,17 @@ namespace KOTORModSync.Dialogs
 		}
 
 		private async Task InitializeHolopatcherVersionsAsync()
+
+
 		{
 			try
 			{
-				await FetchHolopatcherReleasesAsync();
-				UpdateCurrentVersionLabel();
+				await FetchHolopatcherReleasesAsync().ConfigureAwait(false);
+				await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => UpdateCurrentVersionLabel());
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex, "Failed to initialize HoloPatcher versions");
+				await Logger.LogExceptionAsync(ex, "Failed to initialize HoloPatcher versions").ConfigureAwait(false);
 			}
 		}
 
@@ -580,33 +697,42 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				if ( _isDownloading )
+				if (_isDownloading)
 					return;
 
 				var button = this.FindControl<Button>("RefreshVersionsButton");
-				if ( button != null )
+				if (button != null)
 				{
 					button.IsEnabled = false;
 					button.Content = "Refreshing...";
 				}
 
-				await FetchHolopatcherReleasesAsync();
+				await FetchHolopatcherReleasesAsync().ConfigureAwait(false);
 
-				if ( button != null )
+				// Update UI on main thread
+				await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
 				{
-					button.IsEnabled = true;
-					button.Content = "Refresh Versions";
-				}
+					if (button != null)
+					{
+						button.IsEnabled = true;
+						button.Content = "Refresh Versions";
+					}
+				});
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex, "Failed to refresh HoloPatcher versions");
-				var button = this.FindControl<Button>("RefreshVersionsButton");
-				if ( button != null )
+				await Logger.LogExceptionAsync(ex, "Failed to refresh HoloPatcher versions").ConfigureAwait(false);
+				await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
 				{
-					button.IsEnabled = true;
-					button.Content = "Refresh Versions";
-				}
+					var button = this.FindControl<Button>("RefreshVersionsButton");
+					if (button != null)
+					{
+						button.IsEnabled = true;
+						button.Content = "Refresh Versions";
+					}
+				});
 			}
 		}
 
@@ -614,34 +740,36 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				if ( _isDownloading )
+				if (_isDownloading)
 					return;
 
 				var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
-				if ( comboBox?.SelectedItem == null )
+				if (comboBox?.SelectedItem == null)
 				{
 					var dialog = new MessageDialog("No Version Selected", "Please select a HoloPatcher version to download.", "OK");
-					await dialog.ShowDialog(this);
+
+
+					await dialog.ShowDialog(this).ConfigureAwait(false);
 					return;
 				}
 
 				var selectedRelease = comboBox.SelectedItem as GitHubRelease;
-				if ( selectedRelease == null )
+				if (selectedRelease == null)
 					return;
 
 				_isDownloading = true;
-				SetDownloadUI(true, $"Downloading {selectedRelease.TagName}...");
+				await SetDownloadUI(true, $"Downloading {selectedRelease.TagName}...");
 
-				await DownloadAndInstallHolopatcherAsync(selectedRelease);
+				await DownloadAndInstallHolopatcherAsync(selectedRelease).ConfigureAwait(false);
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex, "Failed to download HoloPatcher");
+				await Logger.LogExceptionAsync(ex, "Failed to download HoloPatcher").ConfigureAwait(false);
 			}
 			finally
 			{
 				_isDownloading = false;
-				SetDownloadUI(false, "");
+				await SetDownloadUI(false, "");
 			}
 		}
 
@@ -649,29 +777,31 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				await Logger.LogAsync("Fetching HoloPatcher releases from GitHub...");
+				await Logger.LogAsync("Fetching HoloPatcher releases from GitHub...").ConfigureAwait(false);
 
-				using ( var client = new HttpClient() )
+				using (var client = new HttpClient())
 				{
 					client.DefaultRequestHeaders.UserAgent.ParseAdd("KOTORModSync/1.0");
 					client.Timeout = TimeSpan.FromSeconds(30);
 
 					string url = "https://api.github.com/repos/NickHugi/PyKotor/releases";
+
+
 					var response = await client.GetAsync(url);
 					response.EnsureSuccessStatusCode();
 
-					string json = await response.Content.ReadAsStringAsync();
-					using ( JsonDocument doc = JsonDocument.Parse(json) )
+					string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+					using (JsonDocument doc = JsonDocument.Parse(json))
 					{
 						_holopatcherReleases.Clear();
 
-						foreach ( JsonElement releaseElement in doc.RootElement.EnumerateArray() )
+						foreach (JsonElement releaseElement in doc.RootElement.EnumerateArray())
 						{
 							string tagName = releaseElement.GetProperty("tag_name").GetString();
 
 							// Filter for patcher releases (tags ending with "-patcher")
 							// Format: vx.y.z-patcher or vx.y-patcher
-							if ( string.IsNullOrEmpty(tagName) || !tagName.ToLowerInvariant().EndsWith("-patcher") )
+							if (string.IsNullOrEmpty(tagName) || !tagName.ToLowerInvariant().EndsWith("-patcher", StringComparison.Ordinal))
 								continue;
 
 							var release = new GitHubRelease
@@ -684,9 +814,9 @@ namespace KOTORModSync.Dialogs
 								Assets = new List<GitHubAsset>()
 							};
 
-							if ( releaseElement.TryGetProperty("assets", out JsonElement assetsElement) )
+							if (releaseElement.TryGetProperty("assets", out JsonElement assetsElement))
 							{
-								foreach ( JsonElement assetElement in assetsElement.EnumerateArray() )
+								foreach (JsonElement assetElement in assetsElement.EnumerateArray())
 								{
 									release.Assets.Add(new GitHubAsset
 									{
@@ -696,51 +826,54 @@ namespace KOTORModSync.Dialogs
 								}
 							}
 
-							if ( !release.Draft )
+							if (!release.Draft)
 								_holopatcherReleases.Add(release);
 						}
 					}
 				}
 
-				// Update ComboBox
-				var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
-				if ( comboBox != null )
+				// Update ComboBox on UI thread
+				await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
 				{
-					comboBox.ItemsSource = _holopatcherReleases;
-					comboBox.DisplayMemberBinding = new Avalonia.Data.Binding("TagName");
-
-					// Select the saved version if available, otherwise default to v1.52-patcher, otherwise first item
-					if ( _holopatcherReleases.Count > 0 )
+					var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
+					if (comboBox != null)
 					{
-						int selectedIndex = -1;
+						comboBox.ItemsSource = _holopatcherReleases;
+						comboBox.DisplayMemberBinding = new Avalonia.Data.Binding("TagName");
 
-						// Try to select the saved version first
-						if ( !string.IsNullOrEmpty(_selectedHolopatcherVersion) )
+						// Select the saved version if available, otherwise default to v1.52-patcher, otherwise first item
+						if (_holopatcherReleases.Count > 0)
 						{
-							selectedIndex = _holopatcherReleases.FindIndex(r => r.TagName.Equals(_selectedHolopatcherVersion, StringComparison.OrdinalIgnoreCase));
-						}
+							int selectedIndex = -1;
 
-						// Fallback to v1.52-patcher if saved version not found
-						if ( selectedIndex < 0 )
-						{
-							selectedIndex = _holopatcherReleases.FindIndex(r => r.TagName.Equals("v1.52-patcher", StringComparison.OrdinalIgnoreCase));
-						}
+							// Try to select the saved version first
+							if (!string.IsNullOrEmpty(_selectedHolopatcherVersion))
+							{
+								selectedIndex = _holopatcherReleases.FindIndex(r => r.TagName.Equals(_selectedHolopatcherVersion, StringComparison.OrdinalIgnoreCase));
+							}
 
-						// Final fallback to first item
-						if ( selectedIndex < 0 )
-						{
-							selectedIndex = 0;
-						}
+							// Fallback to v1.52-patcher if saved version not found
+							if (selectedIndex < 0)
+							{
+								selectedIndex = _holopatcherReleases.FindIndex(r => r.TagName.Equals("v1.52-patcher", StringComparison.OrdinalIgnoreCase));
+							}
 
-						comboBox.SelectedIndex = selectedIndex;
+							// Final fallback to first item
+							if (selectedIndex < 0)
+							{
+								selectedIndex = 0;
+							}
+
+							comboBox.SelectedIndex = selectedIndex;
+						}
 					}
-				}
+				});
 
-				await Logger.LogAsync($"Found {_holopatcherReleases.Count} HoloPatcher releases");
+				await Logger.LogAsync($"Found {_holopatcherReleases.Count} HoloPatcher releases").ConfigureAwait(false);
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex, "Failed to fetch HoloPatcher releases from GitHub");
+				await Logger.LogExceptionAsync(ex, "Failed to fetch HoloPatcher releases from GitHub").ConfigureAwait(false);
 			}
 		}
 
@@ -752,35 +885,41 @@ namespace KOTORModSync.Dialogs
 				string versionNumber = ExtractVersionFromTag(release.TagName);
 				string displayVersion = !string.IsNullOrEmpty(versionNumber) ? $"v{versionNumber}" : release.TagName;
 
-				SetDownloadUI(true, $"Downloading PyKotor {displayVersion}...");
-				await Logger.LogAsync($"Downloading PyKotor source code {release.TagName} (version {displayVersion})...");
+				await SetDownloadUI(true, $"Downloading PyKotor {displayVersion}...");
 
-				string baseDir = Utility.GetBaseDirectory();
-				string resourcesDir = Utility.GetResourcesDirectory(baseDir);
+
+				await Logger.LogAsync($"Downloading PyKotor source code {release.TagName} (version {displayVersion})...").ConfigureAwait(false);
+
+				string baseDir = UtilityHelper.GetBaseDirectory();
+				string resourcesDir = UtilityHelper.GetResourcesDirectory(baseDir);
 
 				// Download the PyKotor source code from GitHub
 				// Tag format: vx.y.z-patcher or vx.y-patcher
 				string downloadUrl = $"https://github.com/NickHugi/PyKotor/archive/refs/tags/{release.TagName}.zip";
 				string tempFile = Path.Combine(Path.GetTempPath(), $"PyKotor-{release.TagName}.zip");
 
-				await Logger.LogAsync($"Download URL: {downloadUrl}");
+				await Logger.LogAsync($"Download URL: {downloadUrl}").ConfigureAwait(false);
 
-				using ( var client = new HttpClient() )
+				using (var client = new HttpClient())
 				{
 					client.Timeout = TimeSpan.FromMinutes(10);
 					client.DefaultRequestHeaders.UserAgent.ParseAdd("KOTORModSync/1.0");
 
-					var response = await client.GetAsync(downloadUrl);
+
+
+					var response = await client.GetAsync(downloadUrl).ConfigureAwait(false);
 					response.EnsureSuccessStatusCode();
 
-					using ( var fs = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None) )
+					using (var fs = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None))
+
+
 					{
-						await response.Content.CopyToAsync(fs);
+						await response.Content.CopyToAsync(fs).ConfigureAwait(false);
 					}
 				}
 
-				SetDownloadUI(true, "Extracting PyKotor...");
-				await Logger.LogAsync("Download complete. Extracting...");
+				await SetDownloadUI(true, "Extracting PyKotor...");
+				await Logger.LogAsync("Download complete. Extracting...").ConfigureAwait(false);
 
 				// Extract to temp directory
 				var tempDir = Path.Combine(Path.GetTempPath(), "pykotor_extract_" + Guid.NewGuid().ToString());
@@ -792,47 +931,51 @@ namespace KOTORModSync.Dialogs
 
 					// Find the extracted PyKotor directory (GitHub adds a folder like PyKotor-{tag})
 					var extractedDirs = Directory.GetDirectories(tempDir, "PyKotor-*");
-					if ( extractedDirs.Length == 0 )
+					if (extractedDirs.Length == 0)
 					{
 						throw new DirectoryNotFoundException("Could not find PyKotor directory in extracted archive.");
 					}
 
-					SetDownloadUI(true, "Installing PyKotor...");
+					await SetDownloadUI(true, "Installing PyKotor...");
 					string pyKotorExtracted = extractedDirs[0];
 					string pyKotorDest = Path.Combine(resourcesDir, "PyKotor");
 
 					// Remove old PyKotor if it exists
-					if ( Directory.Exists(pyKotorDest) )
+					if (Directory.Exists(pyKotorDest))
+
+
 					{
-						await Logger.LogAsync($"Removing existing PyKotor at '{pyKotorDest}'...");
+						await Logger.LogAsync($"Removing existing PyKotor at '{pyKotorDest}'...")
+
+.ConfigureAwait(false);
 						Directory.Delete(pyKotorDest, recursive: true);
 					}
 
 					// Copy the new PyKotor (entire directory structure)
-					await Logger.LogAsync($"Copying PyKotor from '{pyKotorExtracted}' to '{pyKotorDest}'...");
+					await Logger.LogAsync($"Copying PyKotor from '{pyKotorExtracted}' to '{pyKotorDest}'...").ConfigureAwait(false);
 					CopyDirectoryRecursive(pyKotorExtracted, pyKotorDest);
 
-					await Logger.LogAsync($"PyKotor {release.TagName} installed successfully to '{pyKotorDest}'");
+					await Logger.LogAsync($"PyKotor {release.TagName} installed successfully to '{pyKotorDest}'").ConfigureAwait(false);
 
 					// Log directory structure for debugging
-					await LogDirectoryStructureAsync(pyKotorDest);
+					await LogDirectoryStructureAsync(pyKotorDest).ConfigureAwait(false);
 
-					SetDownloadUI(false, "");
+					await SetDownloadUI(false, "");
 
 					// Wait a moment for file system to fully update
-					await Task.Delay(500);
+					await Task.Delay(500).ConfigureAwait(false);
 
 					// Update the current version label with retry mechanism
-					await UpdateCurrentVersionLabelWithRetryAsync();
+					await UpdateCurrentVersionLabelWithRetryAsync().ConfigureAwait(false);
 
 					// Update the parent MainWindow version display if available
-					if ( ParentWindow != null )
+					if (ParentWindow != null)
 					{
 						try
 						{
-							await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => ParentWindow.UpdateHolopatcherVersionDisplayWithRetryAsync());
+							await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => ParentWindow.UpdateHolopatcherVersionDisplayWithRetryAsync()).ConfigureAwait(false);
 						}
-						catch ( Exception ex )
+						catch (Exception ex)
 						{
 							Logger.LogException(ex, "Failed to update MainWindow version display");
 						}
@@ -843,35 +986,36 @@ namespace KOTORModSync.Dialogs
 						$"PyKotor {displayVersion} source code has been installed.\n\nHoloPatcher will use this version.",
 						"OK"
 					);
-					await successDialog.ShowDialog(this);
+					await successDialog.ShowDialog(this).ConfigureAwait(false);
 
 					// Ensure the combobox still shows the selected version after installation
 					var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
-					if ( comboBox != null && comboBox.SelectedItem == null )
+					if (comboBox != null && comboBox.SelectedItem == null)
 					{
 						// Re-fetch releases to ensure combobox is properly populated
-						await FetchHolopatcherReleasesAsync();
+						await FetchHolopatcherReleasesAsync().ConfigureAwait(false);
 					}
 				}
 				finally
 				{
 					// Cleanup
-					if ( Directory.Exists(tempDir) )
+					if (Directory.Exists(tempDir))
 						Directory.Delete(tempDir, recursive: true);
-					if ( File.Exists(tempFile) )
+					if (File.Exists(tempFile))
 						File.Delete(tempFile);
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				SetDownloadUI(false, "");
-				await Logger.LogExceptionAsync(ex, "Failed to download and install PyKotor");
+				await SetDownloadUI(false, "");
+
+				await Logger.LogExceptionAsync(ex, "Failed to download and install PyKotor").ConfigureAwait(false);
 				var errorDialog = new MessageDialog(
 					"Installation Failed",
 					$"Failed to install PyKotor:\n\n{ex.Message}",
 					"OK"
 				);
-				await errorDialog.ShowDialog(this);
+				await errorDialog.ShowDialog(this).ConfigureAwait(false);
 			}
 		}
 
@@ -881,7 +1025,7 @@ namespace KOTORModSync.Dialogs
 			Directory.CreateDirectory(destDir);
 
 			// Copy all files in the current directory
-			foreach ( string file in Directory.GetFiles(sourceDir) )
+			foreach (string file in Directory.GetFiles(sourceDir))
 			{
 				string fileName = Path.GetFileName(file);
 				string destFile = Path.Combine(destDir, fileName);
@@ -889,7 +1033,7 @@ namespace KOTORModSync.Dialogs
 			}
 
 			// Recursively copy all subdirectories
-			foreach ( string dir in Directory.GetDirectories(sourceDir) )
+			foreach (string dir in Directory.GetDirectories(sourceDir))
 			{
 				string dirName = Path.GetFileName(dir);
 				string destSubDir = Path.Combine(destDir, dirName);
@@ -898,147 +1042,119 @@ namespace KOTORModSync.Dialogs
 		}
 
 		private static async Task LogDirectoryStructureAsync(string pyKotorPath)
+
 		{
 			try
 			{
-				await Logger.LogAsync($"[DirectoryStructure] Logging structure of: {pyKotorPath}");
+				await Logger.LogAsync($"[DirectoryStructure] Logging structure of: {pyKotorPath}").ConfigureAwait(false);
 
-				if ( !Directory.Exists(pyKotorPath) )
+				if (!Directory.Exists(pyKotorPath))
 				{
-					await Logger.LogAsync("[DirectoryStructure] PyKotor directory does not exist!");
+					await Logger.LogAsync("[DirectoryStructure] PyKotor directory does not exist!").ConfigureAwait(false);
 					return;
 				}
 
 				// Log root level directories
 				var rootDirs = Directory.GetDirectories(pyKotorPath);
-				await Logger.LogAsync($"[DirectoryStructure] Root directories ({rootDirs.Length}): {string.Join(", ", rootDirs.Select(Path.GetFileName))}");
+				await Logger.LogAsync($"[DirectoryStructure] Root directories ({rootDirs.Length}): {string.Join(", ", rootDirs.Select(Path.GetFileName))}").ConfigureAwait(false);
 
 				// Check Tools directory
 				string toolsPath = Path.Combine(pyKotorPath, "Tools");
-				if ( Directory.Exists(toolsPath) )
+				if (Directory.Exists(toolsPath))
 				{
 					var toolDirs = Directory.GetDirectories(toolsPath);
-					await Logger.LogAsync($"[DirectoryStructure] Tools directories ({toolDirs.Length}): {string.Join(", ", toolDirs.Select(Path.GetFileName))}");
+
+
+					await Logger.LogAsync($"[DirectoryStructure] Tools directories ({toolDirs.Length}): {string.Join(", ", toolDirs.Select(Path.GetFileName))}").ConfigureAwait(false);
 
 					// Check HoloPatcher specifically
 					string holopatcherPath = Path.Combine(toolsPath, "HoloPatcher");
-					if ( Directory.Exists(holopatcherPath) )
+					if (Directory.Exists(holopatcherPath))
 					{
 						var holopatcherDirs = Directory.GetDirectories(holopatcherPath);
-						await Logger.LogAsync($"[DirectoryStructure] HoloPatcher directories ({holopatcherDirs.Length}): {string.Join(", ", holopatcherDirs.Select(Path.GetFileName))}");
+
+
+						await Logger.LogAsync($"[DirectoryStructure] HoloPatcher directories ({holopatcherDirs.Length}): {string.Join(", ", holopatcherDirs.Select(Path.GetFileName))}").ConfigureAwait(false);
 
 						// Check src directory
 						string srcPath = Path.Combine(holopatcherPath, "src");
-						if ( Directory.Exists(srcPath) )
+						if (Directory.Exists(srcPath))
 						{
 							var srcDirs = Directory.GetDirectories(srcPath);
-							await Logger.LogAsync($"[DirectoryStructure] HoloPatcher/src directories ({srcDirs.Length}): {string.Join(", ", srcDirs.Select(Path.GetFileName))}");
+
+
+							await Logger.LogAsync($"[DirectoryStructure] HoloPatcher/src directories ({srcDirs.Length}): {string.Join(", ", srcDirs.Select(Path.GetFileName))}").ConfigureAwait(false);
 
 							// Check final holopatcher directory
 							string finalHolopatcherPath = Path.Combine(srcPath, "holopatcher");
-							if ( Directory.Exists(finalHolopatcherPath) )
+							if (Directory.Exists(finalHolopatcherPath))
 							{
 								var finalDirs = Directory.GetDirectories(finalHolopatcherPath);
 								var finalFiles = Directory.GetFiles(finalHolopatcherPath);
-								await Logger.LogAsync($"[DirectoryStructure] Final holopatcher directory exists with {finalDirs.Length} subdirs and {finalFiles.Length} files");
-								await Logger.LogAsync($"[DirectoryStructure] Files: {string.Join(", ", finalFiles.Select(Path.GetFileName))}");
+
+
+								await Logger.LogAsync($"[DirectoryStructure] Final holopatcher directory exists with {finalDirs.Length} subdirs and {finalFiles.Length} files").ConfigureAwait(false);
+								await Logger.LogAsync($"[DirectoryStructure] Files: {string.Join(", ", finalFiles.Select(Path.GetFileName))}").ConfigureAwait(false);
 							}
 							else
 							{
-								await Logger.LogAsync("[DirectoryStructure] Final holopatcher directory does not exist!");
+								await Logger.LogAsync("[DirectoryStructure] Final holopatcher directory does not exist!").ConfigureAwait(false);
 							}
 						}
 						else
 						{
-							await Logger.LogAsync("[DirectoryStructure] HoloPatcher/src directory does not exist!");
+							await Logger.LogAsync("[DirectoryStructure] HoloPatcher/src directory does not exist!").ConfigureAwait(false);
 						}
 					}
 					else
 					{
-						await Logger.LogAsync("[DirectoryStructure] HoloPatcher directory does not exist!");
+						await Logger.LogAsync("[DirectoryStructure] HoloPatcher directory does not exist!").ConfigureAwait(false);
 					}
 				}
 				else
 				{
-					await Logger.LogAsync("[DirectoryStructure] Tools directory does not exist!");
+					await Logger.LogAsync("[DirectoryStructure] Tools directory does not exist!").ConfigureAwait(false);
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to log directory structure");
+				await Logger.LogExceptionAsync(ex, "Failed to log directory structure");
 			}
 		}
 
-		/// <summary>
-		/// Gets the relative path from one path to another. Compatible with .NET Framework 4.8.
-		/// </summary>
-		private static string GetRelativePath(string relativeTo, string path)
-		{
-#if NET48
-			// .NET Framework 4.8 doesn't have Path.GetRelativePath, so implement it
-			if ( string.IsNullOrEmpty(relativeTo) )
-				throw new ArgumentNullException(nameof(relativeTo));
-			if ( string.IsNullOrEmpty(path) )
-				throw new ArgumentNullException(nameof(path));
-
-			// Ensure paths are absolute and normalized
-			string fromPath = Path.GetFullPath(relativeTo);
-			string toPath = Path.GetFullPath(path);
-
-			// Ensure trailing directory separator for directory comparison
-			if ( !fromPath.EndsWith(Path.DirectorySeparatorChar.ToString()) )
-				fromPath += Path.DirectorySeparatorChar;
-
-			Uri fromUri = new Uri(fromPath);
-			Uri toUri = new Uri(toPath);
-
-			if ( fromUri.Scheme != toUri.Scheme )
-				return toPath; // Different schemes, return absolute path
-
-			Uri relativeUri = fromUri.MakeRelativeUri(toUri);
-			string relativePath = Uri.UnescapeDataString(relativeUri.ToString());
-
-			// Convert forward slashes to backslashes on Windows
-			if ( Path.DirectorySeparatorChar == '\\' )
-				relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-
-			return relativePath;
-#else
-			// .NET Core/5+/8+ has Path.GetRelativePath built-in
-			return Path.GetRelativePath(relativeTo, path);
-#endif
-		}
-
-		private void SetDownloadUI(bool isDownloading, string statusText)
+		private async Task SetDownloadUI(bool isDownloading, string statusText)
 		{
 			try
 			{
-				var progressBar = this.FindControl<ProgressBar>("DownloadProgressBar");
-				var statusTextBlock = this.FindControl<TextBlock>("DownloadStatusText");
-				var refreshButton = this.FindControl<Button>("RefreshVersionsButton");
-				var downloadButton = this.FindControl<Button>("DownloadVersionButton");
-
-				if ( progressBar != null )
-					progressBar.IsVisible = isDownloading;
-
-				if ( statusTextBlock != null )
+				await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
 				{
-					statusTextBlock.IsVisible = isDownloading;
-					statusTextBlock.Text = statusText;
-				}
+					var progressBar = this.FindControl<ProgressBar>("DownloadProgressBar");
+					var statusTextBlock = this.FindControl<TextBlock>("DownloadStatusText");
+					var refreshButton = this.FindControl<Button>("RefreshVersionsButton");
+					var downloadButton = this.FindControl<Button>("DownloadVersionButton");
 
-				if ( refreshButton != null )
-					refreshButton.IsEnabled = !isDownloading;
+					if (progressBar != null)
+						progressBar.IsVisible = isDownloading;
 
-				if ( downloadButton != null )
-				{
-					downloadButton.IsEnabled = !isDownloading;
-					downloadButton.Content = isDownloading ? "Downloading..." : "Download Selected";
-				}
+					if (statusTextBlock != null)
+					{
+						statusTextBlock.IsVisible = isDownloading;
+						statusTextBlock.Text = statusText;
+					}
+
+					if (refreshButton != null)
+						refreshButton.IsEnabled = !isDownloading;
+
+					if (downloadButton != null)
+					{
+						downloadButton.IsEnabled = !isDownloading;
+						downloadButton.Content = isDownloading ? "Downloading..." : "Download Selected";
+					}
+				});
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to set download UI state");
+				await Logger.LogExceptionAsync(ex, "Failed to set download UI state");
 			}
 		}
 
@@ -1047,13 +1163,13 @@ namespace KOTORModSync.Dialogs
 			try
 			{
 				var label = this.FindControl<TextBlock>("CurrentVersionLabel");
-				if ( label == null )
+				if (label == null)
 					return;
 
 				string versionInfo = GetInstalledPyKotorVersion();
 				label.Text = versionInfo;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Failed to update current version label");
 			}
@@ -1061,37 +1177,42 @@ namespace KOTORModSync.Dialogs
 
 		private async Task UpdateCurrentVersionLabelWithRetryAsync(int maxRetries = 3)
 		{
-			for ( int i = 0; i < maxRetries; i++ )
+			for (int i = 0; i < maxRetries; i++)
 			{
 				try
 				{
-					var label = this.FindControl<TextBlock>("CurrentVersionLabel");
-					if ( label == null )
-						return;
-
 					string versionInfo = GetInstalledPyKotorVersion();
-					label.Text = versionInfo;
+
+					// Update UI on main thread
+					await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+					{
+						var label = this.FindControl<TextBlock>("CurrentVersionLabel");
+						if (label == null)
+							return;
+
+						label.Text = versionInfo;
+					});
 
 					// If we got a successful version (not missing/incomplete), we're done
-					if ( !versionInfo.Contains("missing") && !versionInfo.Contains("incomplete") )
+					if (!versionInfo.Contains("missing") && !versionInfo.Contains("incomplete"))
 					{
-						Logger.LogVerbose($"[UpdateCurrentVersionLabelWithRetryAsync] Success on attempt {i + 1}: {versionInfo}");
+						await Logger.LogVerboseAsync($"[UpdateCurrentVersionLabelWithRetryAsync] Success on attempt {i + 1}: {versionInfo}");
 						return;
 					}
 
 					// If this isn't the last attempt, wait and try again
-					if ( i < maxRetries - 1 )
+					if (i < maxRetries - 1)
 					{
-						Logger.LogVerbose($"[UpdateCurrentVersionLabelWithRetryAsync] Attempt {i + 1} failed with: {versionInfo}, retrying in 1 second...");
-						await Task.Delay(1000);
+						await Logger.LogVerboseAsync($"[UpdateCurrentVersionLabelWithRetryAsync] Attempt {i + 1} failed with: {versionInfo}, retrying in 1 second...");
+						await Task.Delay(1000).ConfigureAwait(false);
 					}
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
 				{
-					Logger.LogException(ex, $"Failed to update current version label on attempt {i + 1}");
-					if ( i < maxRetries - 1 )
+					await Logger.LogExceptionAsync(ex, $"Failed to update current version label on attempt {i + 1}");
+					if (i < maxRetries - 1)
 					{
-						await Task.Delay(1000);
+						await Task.Delay(1000).ConfigureAwait(false);
 					}
 				}
 			}
@@ -1103,29 +1224,58 @@ namespace KOTORModSync.Dialogs
 		/// </summary>
 		internal static string ExtractVersionFromTag(string tagName)
 		{
-			if ( string.IsNullOrEmpty(tagName) )
+			if (string.IsNullOrEmpty(tagName))
 				return null;
 
-			// Match patterns like "v1.5.2-patcher", "v1.5-patcher", "v1.5.2-alpha-patcher", "v1.5-rc1-patcher"
-			// Format: [v]<version>[-<anything>]-patcher
-			var match = System.Text.RegularExpressions.Regex.Match(
-				tagName,
-				@"^v?(\d+\.\d+(?:\.\d+)?).*-patcher$",
-				System.Text.RegularExpressions.RegexOptions.IgnoreCase
-			);
+			// Use safe string parsing instead of regex to avoid ReDoS attacks
+			// Handle patterns like "v1.5.2-patcher", "v1.5-patcher", "v1.5.2-alpha-patcher", "v1.5-rc1-patcher"
+			string lowerTag = tagName.ToLowerInvariant();
 
-			if ( match.Success )
-				return match.Groups[1].Value;
+			// Must end with "-patcher"
+			if (!lowerTag.EndsWith("-patcher", StringComparison.Ordinal))
+				return null;
 
-			return null;
+			// Remove the "-patcher" suffix
+			string versionPart = lowerTag.Substring(0, lowerTag.Length - 8); // Remove "-patcher"
+
+			// Remove optional "v" prefix
+			if (versionPart.StartsWith("v", StringComparison.Ordinal))
+				versionPart = versionPart.Substring(1);
+
+			// Remove optional suffix like "-alpha", "-beta", "-rc1", etc.
+			int dashIndex = versionPart.LastIndexOf('-');
+			if (dashIndex > 0)
+			{
+				string suffix = versionPart.Substring(dashIndex + 1);
+				// Check if it's a valid version suffix
+				if (suffix.StartsWith("alpha", StringComparison.Ordinal) || suffix.StartsWith("beta", StringComparison.Ordinal) || suffix.StartsWith("rc", StringComparison.Ordinal) ||
+					suffix.StartsWith("dev", StringComparison.Ordinal) || suffix.StartsWith("snapshot", StringComparison.Ordinal) || suffix.StartsWith("preview", StringComparison.Ordinal))
+				{
+					versionPart = versionPart.Substring(0, dashIndex);
+				}
+			}
+
+			// Validate the version format (x.y or x.y.z)
+			string[] parts = versionPart.Split('.');
+			if (parts.Length < 2 || parts.Length > 3)
+				return null;
+
+			// Ensure all parts are numeric
+			foreach (string part in parts)
+			{
+				if (!int.TryParse(part, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out _))
+					return null;
+			}
+
+			return versionPart;
 		}
 
 		private static string GetInstalledPyKotorVersion()
 		{
 			try
 			{
-				string baseDir = Utility.GetBaseDirectory();
-				string resourcesDir = Utility.GetResourcesDirectory(baseDir);
+				string baseDir = UtilityHelper.GetBaseDirectory();
+				string resourcesDir = UtilityHelper.GetResourcesDirectory(baseDir);
 
 				// Check for PyKotor source directory
 				string pyKotorPath = Path.Combine(resourcesDir, "PyKotor");
@@ -1134,7 +1284,7 @@ namespace KOTORModSync.Dialogs
 				Logger.LogVerbose($"[GetInstalledPyKotorVersion] Checking PyKotor at: {pyKotorPath}");
 				Logger.LogVerbose($"[GetInstalledPyKotorVersion] Checking HoloPatcher at: {holopatcherPath}");
 
-				if ( !Directory.Exists(pyKotorPath) )
+				if (!Directory.Exists(pyKotorPath))
 				{
 					Logger.LogVerbose("[GetInstalledPyKotorVersion] PyKotor directory not found");
 					return "Current: PyKotor not found";
@@ -1142,7 +1292,7 @@ namespace KOTORModSync.Dialogs
 
 				// Check if Tools directory exists
 				string toolsPath = Path.Combine(pyKotorPath, "Tools");
-				if ( !Directory.Exists(toolsPath) )
+				if (!Directory.Exists(toolsPath))
 				{
 					Logger.LogVerbose("[GetInstalledPyKotorVersion] Tools directory not found");
 					return "Current: PyKotor found but Tools missing";
@@ -1150,7 +1300,7 @@ namespace KOTORModSync.Dialogs
 
 				// Check if HoloPatcher directory exists
 				string holopatcherDir = Path.Combine(toolsPath, "HoloPatcher");
-				if ( !Directory.Exists(holopatcherDir) )
+				if (!Directory.Exists(holopatcherDir))
 				{
 					Logger.LogVerbose("[GetInstalledPyKotorVersion] HoloPatcher directory not found");
 					return "Current: PyKotor found but HoloPatcher missing";
@@ -1158,13 +1308,13 @@ namespace KOTORModSync.Dialogs
 
 				// Check if src directory exists
 				string srcPath = Path.Combine(holopatcherDir, "src");
-				if ( !Directory.Exists(srcPath) )
+				if (!Directory.Exists(srcPath))
 				{
 					Logger.LogVerbose("[GetInstalledPyKotorVersion] HoloPatcher src directory not found");
 					return "Current: PyKotor found but HoloPatcher incomplete";
 				}
 
-				if ( !Directory.Exists(holopatcherPath) )
+				if (!Directory.Exists(holopatcherPath))
 				{
 					Logger.LogVerbose("[GetInstalledPyKotorVersion] HoloPatcher source directory not found");
 					return "Current: PyKotor found but HoloPatcher incomplete";
@@ -1174,27 +1324,31 @@ namespace KOTORModSync.Dialogs
 				string configPath = Path.Combine(holopatcherPath, "config.py");
 				Logger.LogVerbose($"[GetInstalledPyKotorVersion] Looking for config.py at: {configPath}");
 
-				if ( File.Exists(configPath) )
+				if (File.Exists(configPath))
 				{
 					try
 					{
 						string configContent = File.ReadAllText(configPath);
-						var versionMatch = System.Text.RegularExpressions.Regex.Match(
-							configContent,
-							@"""currentVersion"":\s*""([^""]+)"""
-						);
-						if ( versionMatch.Success )
+						// Look for the version in a safer way to avoid regex ReDoS
+						int versionIndex = configContent.IndexOf("\"currentVersion\":", StringComparison.Ordinal);
+						if (versionIndex >= 0)
 						{
-							string version = versionMatch.Groups[1].Value;
-							Logger.LogVerbose($"[GetInstalledPyKotorVersion] Found version in config.py: {version}");
-							return $"Current: PyKotor v{version} (Python source)";
+							int valueStart = configContent.IndexOf('"', versionIndex + 17); // Skip "currentVersion":
+							if (valueStart >= 0)
+							{
+								valueStart++; // Skip the opening quote
+								int valueEnd = configContent.IndexOf('"', valueStart);
+								if (valueEnd > valueStart)
+								{
+									string version = configContent.Substring(valueStart, valueEnd - valueStart);
+									Logger.LogVerbose($"[GetInstalledPyKotorVersion] Found version in config.py: {version}");
+									return $"Current: PyKotor v{version} (Python source)";
+								}
+							}
 						}
-						else
-						{
-							Logger.LogVerbose("[GetInstalledPyKotorVersion] Version not found in config.py");
-						}
+						Logger.LogVerbose("[GetInstalledPyKotorVersion] Version not found in config.py");
 					}
-					catch ( Exception ex )
+					catch (Exception ex)
 					{
 						Logger.LogException(ex, "Error reading config.py");
 					}
@@ -1207,68 +1361,79 @@ namespace KOTORModSync.Dialogs
 				// If we got here, PyKotor exists but we couldn't determine version
 				return "Current: PyKotor source installed (version unknown)";
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, "Error getting installed PyKotor version");
 				return "Current: Error checking version";
 			}
 		}
 
-		private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "MA0004:Use Task.ConfigureAwait(false)", Justification = "<Pending>")]
+        private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
 				var button = this.FindControl<Button>("CheckForUpdatesButton");
 				var statusText = this.FindControl<TextBlock>("UpdateStatusText");
 
-				if ( button != null )
+				if (button != null)
 				{
 					button.IsEnabled = false;
 					button.Content = "Checking...";
 				}
 
-				if ( statusText != null )
+				if (statusText != null)
 					statusText.Text = "Checking for updates...";
 
 				// Get the auto-update service from the application
 				var app = Avalonia.Application.Current as App;
-				if ( app == null )
+				if (app == null)
 				{
-					if ( statusText != null )
+					if (statusText != null)
 						statusText.Text = "Error: Unable to access update service.";
 					Logger.Log("Unable to access App instance for update check");
 					return;
 				}
 
 				// Create and use AutoUpdateService
-				using ( var updateService = new AutoUpdateService() )
+				using (var updateService = new AutoUpdateService())
 				{
 					updateService.Initialize();
-					bool updatesAvailable = await updateService.CheckForUpdatesAsync();
+					bool updatesAvailable = await updateService.CheckForUpdatesAsync().ConfigureAwait(false);
 
-					if ( statusText != null )
+					// Update UI on main thread
+					await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
 					{
-						statusText.Text = updatesAvailable
-							? "Updates found! Check the update dialog."
-							: "You are running the latest version.";
-					}
+						if (statusText != null)
+						{
+							statusText.Text = updatesAvailable
+								? "Updates found! Check the update dialog."
+								: "You are running the latest version.";
+						}
+					});
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to check for updates");
-				var statusText = this.FindControl<TextBlock>("UpdateStatusText");
-				if ( statusText != null )
-					statusText.Text = $"Error checking for updates: {ex.Message}";
+				await Logger.LogExceptionAsync(ex, "Failed to check for updates");
+				await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+				{
+					var statusText = this.FindControl<TextBlock>("UpdateStatusText");
+					if (statusText != null)
+						statusText.Text = $"Error checking for updates: {ex.Message}";
+				});
 			}
 			finally
 			{
-				var button = this.FindControl<Button>("CheckForUpdatesButton");
-				if ( button != null )
+				await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
 				{
-					button.IsEnabled = true;
-					button.Content = "Check for Updates";
-				}
+					var button = this.FindControl<Button>("CheckForUpdatesButton");
+					if (button != null)
+					{
+						button.IsEnabled = true;
+						button.Content = "Check for Updates";
+					}
+				});
 			}
 		}
 	}

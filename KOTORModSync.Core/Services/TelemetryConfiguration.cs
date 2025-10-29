@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -13,7 +13,7 @@ namespace KOTORModSync.Core.Services
 	public class TelemetryConfiguration
 	{
 		private static readonly string ConfigFilePath = Path.Combine(
-			System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+			System.Environment.GetFolderPath( System.Environment.SpecialFolder.ApplicationData ),
 			"KOTORModSync",
 			"telemetry_config.json"
 		);
@@ -24,73 +24,73 @@ namespace KOTORModSync.Core.Services
 			DefaultIgnoreCondition = JsonIgnoreCondition.Never,
 		};
 
-		[JsonPropertyName("enabled")]
+		[JsonPropertyName( "enabled" )]
 		public bool IsEnabled { get; set; } = true;
 
-		[JsonPropertyName("user_consented")]
+		[JsonPropertyName( "user_consented" )]
 		public bool UserConsented { get; set; } = true;
 
-		[JsonPropertyName("consent_date")]
+		[JsonPropertyName( "consent_date" )]
 		public DateTime? ConsentDate { get; set; }
 
-		[JsonPropertyName("anonymous_user_id")]
+		[JsonPropertyName( "anonymous_user_id" )]
 		public string AnonymousUserId { get; set; }
 
-		[JsonPropertyName("session_id")]
+		[JsonPropertyName( "session_id" )]
 		public string SessionId { get; set; }
 
-		[JsonPropertyName("environment")]
+		[JsonPropertyName( "environment" )]
 		public string Environment { get; set; } = "production";
 
-		[JsonPropertyName("collect_usage_data")]
+		[JsonPropertyName( "collect_usage_data" )]
 		public bool CollectUsageData { get; set; } = true;
 
-		[JsonPropertyName("collect_performance_metrics")]
+		[JsonPropertyName( "collect_performance_metrics" )]
 		public bool CollectPerformanceMetrics { get; set; } = true;
 
-		[JsonPropertyName("collect_crash_reports")]
+		[JsonPropertyName( "collect_crash_reports" )]
 		public bool CollectCrashReports { get; set; } = true;
 
-		[JsonPropertyName("collect_machine_info")]
+		[JsonPropertyName( "collect_machine_info" )]
 		public bool CollectMachineInfo { get; set; } = false;
 
-		[JsonPropertyName("enable_console_exporter")]
+		[JsonPropertyName( "enable_console_exporter" )]
 		public bool EnableConsoleExporter { get; set; } = false;
 
-		[JsonPropertyName("enable_file_exporter")]
+		[JsonPropertyName( "enable_file_exporter" )]
 		public bool EnableFileExporter { get; set; } = false;
 
-		[JsonPropertyName("enable_otlp_exporter")]
+		[JsonPropertyName( "enable_otlp_exporter" )]
 		public bool EnableOtlpExporter { get; set; } = true;
 
-		[JsonPropertyName("enable_prometheus_exporter")]
+		[JsonPropertyName( "enable_prometheus_exporter" )]
 		public bool EnablePrometheusExporter { get; set; } = false;
 
-		[JsonPropertyName("prometheus_pushgateway_endpoint")]
+		[JsonPropertyName( "prometheus_pushgateway_endpoint" )]
 		public string PrometheusPushgatewayEndpoint { get; set; } = "https://prometheus.bolabaden.org/metrics";
 
-		[JsonPropertyName("otlp_endpoint")]
+		[JsonPropertyName( "otlp_endpoint" )]
 		public string OtlpEndpoint { get; set; } = "https://otlp.bolabaden.org";
 
-		[JsonPropertyName("prometheus_port")]
+		[JsonPropertyName( "prometheus_port" )]
 		public int PrometheusPort { get; set; } = 9464;
 
-		[JsonPropertyName("api_key")]
+		[JsonPropertyName( "api_key" )]
 		public string ApiKey { get; set; }
 
-		[JsonPropertyName("is_first_run")]
+		[JsonPropertyName( "is_first_run" )]
 		public bool IsFirstRun { get; set; } = true;
 
-		[JsonPropertyName("last_send_time")]
+		[JsonPropertyName( "last_send_time" )]
 		public DateTime? LastSendTime { get; set; }
 
-		[JsonPropertyName("local_log_path")]
+		[JsonPropertyName( "local_log_path" )]
 		public string LocalLogPath { get; set; }
 
-		[JsonPropertyName("max_log_file_size_mb")]
+		[JsonPropertyName( "max_log_file_size_mb" )]
 		public int MaxLogFileSizeMB { get; set; } = 50;
 
-		[JsonPropertyName("retention_days")]
+		[JsonPropertyName( "retention_days" )]
 		public int RetentionDays { get; set; } = 30;
 
 		[JsonIgnore]
@@ -103,7 +103,7 @@ namespace KOTORModSync.Core.Services
 			SessionId = Guid.NewGuid().ToString();
 
 			LocalLogPath = Path.Combine(
-				System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+				System.Environment.GetFolderPath( System.Environment.SpecialFolder.ApplicationData ),
 				"KOTORModSync",
 				"telemetry",
 				"telemetry.log"
@@ -114,10 +114,10 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				if ( File.Exists(ConfigFilePath) )
+				if (File.Exists( ConfigFilePath ))
 				{
-					string json = File.ReadAllText(ConfigFilePath);
-					var config = JsonSerializer.Deserialize<TelemetryConfiguration>(json);
+					string json = File.ReadAllText( ConfigFilePath );
+					TelemetryConfiguration config = JsonSerializer.Deserialize<TelemetryConfiguration>( json );
 
 					config.SessionId = Guid.NewGuid().ToString();
 					config.IsFirstRun = false;
@@ -126,12 +126,12 @@ namespace KOTORModSync.Core.Services
 					return config;
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "[Telemetry] Failed to load configuration");
+				Logger.LogException( ex, "[Telemetry] Failed to load configuration" );
 			}
 
-			var newConfig = new TelemetryConfiguration
+			TelemetryConfiguration newConfig = new TelemetryConfiguration
 			{
 				IsEnabled = true,
 				UserConsented = true,
@@ -152,33 +152,33 @@ namespace KOTORModSync.Core.Services
 
 		private static string LoadSigningSecret()
 		{
-			string secret = System.Environment.GetEnvironmentVariable("KOTORMODSYNC_SIGNING_SECRET");
-			if ( !string.IsNullOrEmpty(secret) )
+			string secret = System.Environment.GetEnvironmentVariable( "KOTORMODSYNC_SIGNING_SECRET" );
+			if (!string.IsNullOrEmpty( secret ))
 			{
-				Logger.LogVerbose("[Telemetry] Signing secret loaded from environment variable");
+				Logger.LogVerbose( "[Telemetry] Signing secret loaded from environment variable" );
 				return secret.Trim();
 			}
 
 			string configPath = Path.Combine(
-				System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+				System.Environment.GetFolderPath( System.Environment.SpecialFolder.ApplicationData ),
 				"KOTORModSync",
 				"telemetry.key"
 			);
 
-			if ( File.Exists(configPath) )
+			if (File.Exists( configPath ))
 			{
 				try
 				{
-					secret = File.ReadAllText(configPath).Trim();
-					if ( !string.IsNullOrEmpty(secret) )
+					secret = File.ReadAllText( configPath ).Trim();
+					if (!string.IsNullOrEmpty( secret ))
 					{
-						Logger.LogVerbose("[Telemetry] Signing secret loaded from config file");
+						Logger.LogVerbose( "[Telemetry] Signing secret loaded from config file" );
 						return secret;
 					}
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
 				{
-					Logger.LogWarning($"[Telemetry] Could not read signing secret from {configPath}: {ex.Message}");
+					Logger.LogWarning( $"[Telemetry] Could not read signing secret from {configPath}: {ex.Message}" );
 				}
 			}
 
@@ -190,7 +190,7 @@ namespace KOTORModSync.Core.Services
 		}
 #endif
 
-			Logger.LogWarning("[Telemetry] No signing secret found - telemetry will be disabled");
+			Logger.LogWarning( "[Telemetry] No signing secret found - telemetry will be disabled" );
 			return null;
 		}
 
@@ -198,24 +198,24 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				string directory = Path.GetDirectoryName(ConfigFilePath);
-				if ( !Directory.Exists(directory) )
+				string directory = Path.GetDirectoryName( ConfigFilePath );
+				if (!Directory.Exists( directory ))
 				{
-					Directory.CreateDirectory(directory);
+					Directory.CreateDirectory( directory );
 				}
 
-				string json = JsonSerializer.Serialize(this, SerializerOptions);
-				File.WriteAllText(ConfigFilePath, json);
+				string json = JsonSerializer.Serialize( this, SerializerOptions );
+				File.WriteAllText( ConfigFilePath, json );
 
-				Logger.LogVerbose("[Telemetry] Configuration saved");
+				Logger.LogVerbose( "[Telemetry] Configuration saved" );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "[Telemetry] Failed to save configuration");
+				Logger.LogException( ex, "[Telemetry] Failed to save configuration" );
 			}
 		}
 
-		public void SetUserConsent(bool enabled)
+		public void SetUserConsent( bool enabled )
 		{
 			UserConsented = enabled;
 			IsEnabled = enabled;
@@ -224,24 +224,24 @@ namespace KOTORModSync.Core.Services
 
 		public string GetPrivacySummary()
 		{
-			if ( !IsEnabled )
+			if (!IsEnabled)
 			{
 				return "Telemetry is disabled. No data is being collected.";
 			}
 
-			var summary = "Telemetry is enabled (opt-out). The following data is being collected:\n\n";
+			string summary = "Telemetry is enabled (opt-out). The following data is being collected:\n\n";
 
-			if ( CollectUsageData )
+			if (CollectUsageData)
 			{
 				summary += "✓ Usage data (which features you use)\n";
 			}
 
-			if ( CollectPerformanceMetrics )
+			if (CollectPerformanceMetrics)
 			{
 				summary += "✓ Performance metrics (app speed and responsiveness)\n";
 			}
 
-			if ( CollectCrashReports )
+			if (CollectCrashReports)
 			{
 				summary += "✓ Crash and error reports\n";
 			}
@@ -251,7 +251,7 @@ namespace KOTORModSync.Core.Services
 			summary += "✗ File contents or mod names\n";
 			summary += "✗ Passwords or authentication tokens\n";
 
-			if ( !CollectMachineInfo )
+			if (!CollectMachineInfo)
 			{
 				summary += "✗ Machine name or hostname\n";
 			}
@@ -260,17 +260,17 @@ namespace KOTORModSync.Core.Services
 			summary += $"Session ID: {SessionId}\n";
 			summary += "\nNote: You can disable telemetry at any time in Settings.\n";
 
-			if ( EnableOtlpExporter && !string.IsNullOrEmpty(OtlpEndpoint) )
+			if (EnableOtlpExporter && !string.IsNullOrEmpty( OtlpEndpoint ))
 			{
 				summary += $"\nData is sent via OTLP to: {OtlpEndpoint}\n";
 			}
 
-			if ( EnablePrometheusExporter )
+			if (EnablePrometheusExporter)
 			{
 				summary += $"Prometheus metrics exposed on port: {PrometheusPort}\n";
 			}
 
-			if ( EnableFileExporter )
+			if (EnableFileExporter)
 			{
 				summary += $"Data is stored locally at: {LocalLogPath}\n";
 			}
@@ -282,30 +282,29 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				if ( string.IsNullOrEmpty(LocalLogPath) )
+				if (string.IsNullOrEmpty( LocalLogPath ))
 					return;
 
-				string directory = Path.GetDirectoryName(LocalLogPath);
-				if ( !Directory.Exists(directory) )
+				string directory = Path.GetDirectoryName( LocalLogPath );
+				if (!Directory.Exists( directory ))
 					return;
 
-				var cutoffDate = DateTime.UtcNow.AddDays(-RetentionDays);
+				DateTime cutoffDate = DateTime.UtcNow.AddDays( -RetentionDays );
 
-				foreach ( string file in Directory.GetFiles(directory, "*.log") )
+				foreach (string file in Directory.GetFiles( directory, "*.log" ))
 				{
-					var fileInfo = new FileInfo(file);
-					if ( fileInfo.LastWriteTimeUtc < cutoffDate )
+					FileInfo fileInfo = new FileInfo( file );
+					if (fileInfo.LastWriteTimeUtc < cutoffDate)
 					{
 						fileInfo.Delete();
-						Logger.LogVerbose($"[Telemetry] Deleted old telemetry file: {fileInfo.Name}");
+						Logger.LogVerbose( $"[Telemetry] Deleted old telemetry file: {fileInfo.Name}" );
 					}
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "[Telemetry] Failed to cleanup old telemetry data");
+				Logger.LogException( ex, "[Telemetry] Failed to cleanup old telemetry data" );
 			}
 		}
 	}
 }
-

@@ -1,11 +1,14 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Globalization;
+
 using Avalonia.Data.Converters;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Utility;
 
@@ -14,12 +17,12 @@ namespace KOTORModSync.Converters
 
 	public partial class InstructionDestinationConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if ( !(value is Instruction instruction) )
+			if (!(value is Instruction instruction))
 				return string.Empty;
 
-			switch ( instruction.Action )
+			switch (instruction.Action)
 			{
 				case Instruction.ActionType.Extract:
 
@@ -28,16 +31,16 @@ namespace KOTORModSync.Converters
 				case Instruction.ActionType.Move:
 				case Instruction.ActionType.Copy:
 
-					if ( !string.IsNullOrEmpty(instruction.Destination) )
+					if (!string.IsNullOrEmpty( instruction.Destination ))
 					{
-						string resolvedDestination = ResolvePath(instruction.Destination);
+						string resolvedDestination = ResolvePath( instruction.Destination );
 						return $"→ {resolvedDestination}";
 					}
 					return "→ (no destination specified)";
 
 				case Instruction.ActionType.Rename:
 
-					if ( !string.IsNullOrEmpty(instruction.Destination) )
+					if (!string.IsNullOrEmpty( instruction.Destination ))
 					{
 						return $"→ rename to: {instruction.Destination}";
 					}
@@ -49,7 +52,7 @@ namespace KOTORModSync.Converters
 
 				case Instruction.ActionType.Patcher:
 
-					if ( MainConfig.DestinationPath != null )
+					if (MainConfig.DestinationPath != null)
 					{
 						return $"→ {MainConfig.DestinationPath.FullName}";
 					}
@@ -57,7 +60,7 @@ namespace KOTORModSync.Converters
 
 				case Instruction.ActionType.Execute:
 
-					if ( !string.IsNullOrEmpty(instruction.Arguments) )
+					if (!string.IsNullOrEmpty( instruction.Arguments ))
 					{
 						return $"→ execute with args: {instruction.Arguments}";
 					}
@@ -65,7 +68,7 @@ namespace KOTORModSync.Converters
 
 				case Instruction.ActionType.DelDuplicate:
 
-					if ( !string.IsNullOrEmpty(instruction.Arguments) )
+					if (!string.IsNullOrEmpty( instruction.Arguments ))
 					{
 						return $"→ remove duplicate .{instruction.Arguments} files";
 					}
@@ -84,27 +87,27 @@ namespace KOTORModSync.Converters
 			}
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
 
 		[NotNull]
-		private static string ResolvePath([CanBeNull] string path)
+		private static string ResolvePath( [CanBeNull] string path )
 		{
-			if ( string.IsNullOrEmpty(path) )
+			if (string.IsNullOrEmpty( path ))
 				return string.Empty;
 
-			if ( MainConfig.SourcePath == null && MainConfig.DestinationPath == null )
+			if (MainConfig.SourcePath == null && MainConfig.DestinationPath == null)
 			{
 				return path;
 			}
 
 			try
 			{
-				return Utility.ReplaceCustomVariables(path);
+				return UtilityHelper.ReplaceCustomVariables( path );
 			}
-			catch ( Exception )
+			catch (Exception)
 			{
 
 				return path;

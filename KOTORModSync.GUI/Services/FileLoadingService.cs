@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,8 +7,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Avalonia.Controls;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Dialogs;
@@ -22,10 +25,10 @@ namespace KOTORModSync.Services
 
 		public string LastLoadedFileName { get; set; }
 
-		public FileLoadingService(MainConfig mainConfig, Window parentWindow)
+		public FileLoadingService( MainConfig mainConfig, Window parentWindow )
 		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
-			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
+			_mainConfig = mainConfig ?? throw new ArgumentNullException( nameof( mainConfig ) );
+			_parentWindow = parentWindow ?? throw new ArgumentNullException( nameof( parentWindow ) );
 		}
 
 		/// <summary>
@@ -36,36 +39,44 @@ namespace KOTORModSync.Services
 			[NotNull] string filePath,
 			bool editorMode,
 			[NotNull] Func<Task> onComponentsLoaded,
-			[NotNull] string fileType = "instruction file")
+			[NotNull] string fileType = "instruction file" )
 		{
 			try
 			{
 
-				var fileInfo = new FileInfo(filePath);
+				var fileInfo = new FileInfo( filePath );
 				const int maxInstructionSize = 524288000;
-				if ( fileInfo.Length > maxInstructionSize )
+				if (fileInfo.Length > maxInstructionSize)
+
+
 				{
-					await Logger.LogAsync($"Invalid {fileType} selected: '{fileInfo.Name}' - file too large");
+					await Logger.LogAsync( $"Invalid {fileType} selected: '{fileInfo.Name}' - file too large" ).ConfigureAwait( false );
 					return false;
+
+
 				}
 
 				// Auto-detect format (TOML/JSON/YAML/embedded-Markdown)
-				List<ModComponent> newComponents = await Core.Services.FileLoadingService.LoadFromFileAsync(filePath);
+				List<ModComponent> newComponents = await Core.Services.FileLoadingService.LoadFromFileAsync( filePath ).ConfigureAwait( false );
 
-				ProcessModLinks(newComponents);
+				ProcessModLinks( newComponents );
 
-				if ( _mainConfig.allComponents.Count == 0 )
+				if (_mainConfig.allComponents.Count == 0)
 				{
 					_mainConfig.allComponents = newComponents;
-					LastLoadedFileName = Path.GetFileName(filePath);
-					await Logger.LogAsync($"Loaded {newComponents.Count} components from {fileType}.");
-					await onComponentsLoaded();
+					LastLoadedFileName = Path.GetFileName( filePath );
+
+
+					await Logger.LogAsync( $"Loaded {newComponents.Count} components from {fileType}." )
+
+.ConfigureAwait( false );
+					await onComponentsLoaded().ConfigureAwait( false );
 					return true;
 				}
 
-				bool? result = await ShowConfigLoadConfirmationAsync(fileType, editorMode);
+				bool? result = await ShowConfigLoadConfirmationAsync( fileType, editorMode ).ConfigureAwait( false );
 
-				switch ( result )
+				switch (result)
 				{
 					case true:
 						{
@@ -74,46 +85,56 @@ namespace KOTORModSync.Services
 								newComponents,
 								"Currently Loaded Components",
 								fileType,
-								(existing, incoming) =>
+								( existing, incoming ) =>
 								{
-									if ( existing.Guid == incoming.Guid )
+									if (existing.Guid == incoming.Guid)
 										return true;
-									return FuzzyMatcher.FuzzyMatchComponents(existing, incoming);
-								});
+									return FuzzyMatcher.FuzzyMatchComponents( existing, incoming );
+								} );
 
-							await conflictDialog.ShowDialog(_parentWindow);
 
-							if ( conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null )
+
+							await conflictDialog.ShowDialog( _parentWindow ).ConfigureAwait( false );
+
+							if (conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null)
 							{
 								int originalCount = _mainConfig.allComponents.Count;
 								_mainConfig.allComponents = conflictDialog.MergedComponents;
 								int newCount = _mainConfig.allComponents.Count;
-								LastLoadedFileName = Path.GetFileName(filePath);
+								LastLoadedFileName = Path.GetFileName( filePath );
 
-								await Logger.LogAsync($"Merged {newComponents.Count} components from {fileType} with existing {originalCount} components using hybrid matching (GUID then Name/Author). Total components now: {newCount}");
+
+
+								await Logger.LogAsync( $"Merged {newComponents.Count} components from {fileType} with existing {originalCount} components using hybrid matching (GUID then Name/Author). Total components now: {newCount}" )
+
+.ConfigureAwait( false );
 							}
 							else
 							{
-								await Logger.LogAsync("Merge cancelled by user.");
+								await Logger.LogAsync( "Merge cancelled by user." )
+
+.ConfigureAwait( false );
 								return false;
 							}
 							break;
 						}
 					case false:
 						_mainConfig.allComponents = newComponents;
-						LastLoadedFileName = Path.GetFileName(filePath);
-						await Logger.LogAsync($"Overwrote existing config with {newComponents.Count} components from {fileType}.");
+						LastLoadedFileName = Path.GetFileName( filePath );
+						await Logger.LogAsync( $"Overwrote existing config with {newComponents.Count} components from {fileType}." ).ConfigureAwait( false );
 						break;
 					default:
 						return false;
 				}
 
-				await onComponentsLoaded();
+				await onComponentsLoaded().ConfigureAwait( false );
 				return true;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex);
+				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
 				return false;
 			}
 		}
@@ -122,14 +143,14 @@ namespace KOTORModSync.Services
 		/// Legacy compatibility wrapper for LoadConfigFileAsync.
 		/// Use LoadConfigFileAsync instead - this handles all formats (TOML, JSON, YAML, embedded Markdown).
 		/// </summary>
-		[Obsolete("Use LoadConfigFileAsync instead - it handles all formats with auto-detection")]
+		[Obsolete( "Use LoadConfigFileAsync instead - it handles all formats with auto-detection" )]
 		public async Task<bool> LoadTomlFileAsync(
 			[NotNull] string filePath,
 			bool editorMode,
 			[NotNull] Func<Task> onComponentsLoaded,
-			[NotNull] string fileType = "instruction file")
+			[NotNull] string fileType = "instruction file" )
 		{
-			return await LoadInstructionFileAsync(filePath, editorMode, onComponentsLoaded, fileType);
+			return await LoadInstructionFileAsync( filePath, editorMode, onComponentsLoaded, fileType ).ConfigureAwait( false );
 		}
 
 		/// <summary>
@@ -141,70 +162,98 @@ namespace KOTORModSync.Services
 			bool editorMode,
 			[NotNull] Func<Task> onComponentsLoaded,
 			[NotNull] Func<List<ModComponent>, Task> tryAutoGenerate,
-			[CanBeNull] MarkdownImportProfile profile = null)
+			[CanBeNull] MarkdownImportProfile profile = null )
 		{
 			try
 			{
-				if ( string.IsNullOrEmpty(filePath) )
+				if (string.IsNullOrEmpty( filePath ))
 					return false;
 
-				using ( var reader = new StreamReader(filePath) )
+				using (var reader = new StreamReader( filePath ))
+
+
 				{
-					string fileContents = await reader.ReadToEndAsync();
+					string fileContents = await reader.ReadToEndAsync()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.ConfigureAwait( false );
 
 					MarkdownParserResult parseResult = null;
 					MarkdownImportProfile configuredProfile;
 
-					if ( editorMode )
+					if (editorMode)
+
+
+
+
 					{
 
-						var dialog = new RegexImportDialog(fileContents, profile ?? MarkdownImportProfile.CreateDefault());
+						var dialog = new RegexImportDialog( fileContents, profile ?? MarkdownImportProfile.CreateDefault() );
 
-						dialog.Closed += async (_, __) =>
+						dialog.Closed += async ( _, __ ) =>
 						{
-							if ( !dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm) )
+							if (!dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm))
 								return;
 
 							configuredProfile = vm.ConfiguredProfile;
 
 							parseResult = vm.ConfirmLoad();
 
-							ProcessModLinks(parseResult.Components);
+							ProcessModLinks( parseResult.Components );
 
-							await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
-							await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLinkFilenames.Count) ?? 0} total links.");
+							await Logger.LogAsync( $"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode." ).ConfigureAwait( false );
+							await Logger.LogAsync( $"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum( c => c.ModLinkFilenames.Count ) ?? 0} total links." ).ConfigureAwait( false );
 
-							if ( !(parseResult.Warnings?.Count > 0) )
+							if (!(parseResult.Warnings?.Count > 0))
 								return;
-							await Logger.LogWarningAsync($"Markdown parsing completed with {parseResult.Warnings.Count} warnings.");
-							foreach ( string warning in parseResult.Warnings )
-								await Logger.LogWarningAsync($"  - {warning}");
+							await Logger.LogWarningAsync( $"Markdown parsing completed with {parseResult.Warnings.Count} warnings." ).ConfigureAwait( false );
+							foreach (string warning in parseResult.Warnings)
+								await Logger.LogWarningAsync( $"  - {warning}" ).ConfigureAwait( false );
 						};
 
-						await dialog.ShowDialog(_parentWindow);
+						await dialog.ShowDialog( _parentWindow ).ConfigureAwait( false );
 
-						if ( parseResult is null )
+						if (parseResult is null)
 							return false;
 					}
 					else
 					{
 
 						configuredProfile = profile ?? MarkdownImportProfile.CreateDefault();
-						var parser = new MarkdownParser(configuredProfile,
-							logInfo => Logger.Log(logInfo),
-							Logger.LogVerbose);
-						parseResult = parser.Parse(fileContents);
+						var parser = new MarkdownParser( configuredProfile,
+							logInfo => Logger.Log( logInfo ),
+							Logger.LogVerbose );
+						parseResult = parser.Parse( fileContents );
 
-						ProcessModLinks(parseResult.Components);
+						ProcessModLinks( parseResult.Components );
 
-						await Logger.LogAsync("Markdown parsing completed using default profile.");
-						await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLinkFilenames.Count) ?? 0} total links.");
+						await Logger.LogAsync( "Markdown parsing completed using default profile." ).ConfigureAwait( false );
+						await Logger.LogAsync( $"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum( c => c.ModLinkFilenames.Count ) ?? 0} total links." ).ConfigureAwait( false );
 
-						if ( parseResult.Warnings?.Count > 0 )
+						if (parseResult.Warnings?.Count > 0)
+
+
 						{
-							await Logger.LogWarningAsync($"Markdown parsing completed with {parseResult.Warnings.Count} warnings.");
-							foreach ( string warning in parseResult.Warnings )
-								await Logger.LogWarningAsync($"  - {warning}");
+							await Logger.LogWarningAsync( $"Markdown parsing completed with {parseResult.Warnings.Count} warnings." ).ConfigureAwait( false );
+							foreach (string warning in parseResult.Warnings)
+								await Logger.LogWarningAsync( $"  - {warning}" ).ConfigureAwait( false );
+
+
+
+
 						}
 					}
 
@@ -213,57 +262,61 @@ namespace KOTORModSync.Services
 					_mainConfig.afterModListContent = parseResult.AfterModListContent ?? string.Empty;
 					_mainConfig.widescreenSectionContent = parseResult.WidescreenSectionContent ?? string.Empty;
 					_mainConfig.aspyrSectionContent = parseResult.AspyrSectionContent ?? string.Empty;
-					await Logger.LogAsync($"Stored {_mainConfig.beforeModListContent.Length} characters before mod list and {_mainConfig.afterModListContent.Length} characters after.");
+					await Logger.LogAsync( $"Stored {_mainConfig.beforeModListContent.Length} characters before mod list and {_mainConfig.afterModListContent.Length} characters after." ).ConfigureAwait( false );
 
-					if ( _mainConfig.allComponents.Count == 0 )
+					if (_mainConfig.allComponents.Count == 0)
 					{
 						_mainConfig.allComponents = new List<ModComponent>(
 							parseResult.Components
-							?? throw new InvalidOperationException("[LoadMarkdownFileAsync] parseResult.Components is null")
+							?? throw new InvalidOperationException( "[LoadMarkdownFileAsync] parseResult.Components is null" )
 						);
-						await Logger.LogAsync($"Loaded {parseResult.Components.Count} components from markdown.");
-						await tryAutoGenerate(parseResult.Components.ToList());
+						await Logger.LogAsync( $"Loaded {parseResult.Components.Count} components from markdown." ).ConfigureAwait( false );
+						await tryAutoGenerate( parseResult.Components.ToList() ).ConfigureAwait( false );
 					}
 					else
 					{
-						bool? confirmResult = await ShowConfigLoadConfirmationAsync("markdown file", editorMode);
+						bool? confirmResult = await ShowConfigLoadConfirmationAsync( "markdown file", editorMode ).ConfigureAwait( false );
 
-						if ( confirmResult == true )
+						if (confirmResult ==
+
+
+
+true)
 						{
 							var conflictDialog = new ComponentMergeConflictDialog(
 								_mainConfig.allComponents,
 								new List<ModComponent>(
 									parseResult.Components
-									?? throw new InvalidOperationException("[LoadMarkdownFileAsync] parseResult.Components is null")
+									?? throw new InvalidOperationException( "[LoadMarkdownFileAsync] parseResult.Components is null" )
 								),
 								"Currently Loaded Components",
 								"Markdown File",
-								FuzzyMatcher.FuzzyMatchComponents);
+								FuzzyMatcher.FuzzyMatchComponents );
 
-							await conflictDialog.ShowDialog(_parentWindow);
+							await conflictDialog.ShowDialog( _parentWindow ).ConfigureAwait( false );
 
-							if ( conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null )
+							if (conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null)
 							{
 								int originalCount = _mainConfig.allComponents.Count;
 								_mainConfig.allComponents = conflictDialog.MergedComponents;
 								int newCount = _mainConfig.allComponents.Count;
-								await Logger.LogAsync($"Merged {parseResult.Components.Count} parsed components with existing {originalCount} components. Total components now: {newCount}");
-								await tryAutoGenerate(_mainConfig.allComponents);
+								await Logger.LogAsync( $"Merged {parseResult.Components.Count} parsed components with existing {originalCount} components. Total components now: {newCount}" ).ConfigureAwait( false );
+								await tryAutoGenerate( _mainConfig.allComponents ).ConfigureAwait( false );
 							}
 							else
 							{
-								await Logger.LogAsync("Merge cancelled by user.");
+								await Logger.LogAsync( "Merge cancelled by user." ).ConfigureAwait( false );
 								return false;
 							}
 						}
-						else if ( confirmResult == false )
+						else if (confirmResult == false)
 						{
 							_mainConfig.allComponents = new List<ModComponent>(
 								parseResult.Components
-								?? throw new InvalidOperationException("[LoadMarkdownFileAsync] parseResult.Components is null")
+								?? throw new InvalidOperationException( "[LoadMarkdownFileAsync] parseResult.Components is null" )
 							);
-							await Logger.LogAsync($"Overwrote existing config with {parseResult.Components.Count} components from markdown.");
-							await tryAutoGenerate(parseResult.Components.ToList());
+							await Logger.LogAsync( $"Overwrote existing config with {parseResult.Components.Count} components from markdown." ).ConfigureAwait( false );
+							await tryAutoGenerate( parseResult.Components.ToList() ).ConfigureAwait( false );
 						}
 						else
 						{
@@ -271,69 +324,77 @@ namespace KOTORModSync.Services
 						}
 					}
 
-					await onComponentsLoaded();
+					await onComponentsLoaded().ConfigureAwait( false );
 					return true;
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex);
+				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
 				return false;
 			}
 		}
 
-		public async Task<bool> SaveTomlFileAsync(string filePath, List<ModComponent> components)
+		public async Task<bool> SaveTomlFileAsync( string filePath, List<ModComponent> components )
 		{
 			try
 			{
-				if ( string.IsNullOrEmpty(filePath) )
+				if (string.IsNullOrEmpty( filePath ))
 					return false;
 
-				await Logger.LogVerboseAsync($"Saving TOML config to {filePath}");
 
-				await Core.Services.FileLoadingService.SaveToFileAsync(components, filePath);
 
-				LastLoadedFileName = Path.GetFileName(filePath);
+				await Logger.LogVerboseAsync( $"Saving TOML config to {filePath}" )
+
+.ConfigureAwait( false );
+
+				await Core.Services.FileLoadingService.SaveToFileAsync( components, filePath ).ConfigureAwait( false );
+
+				LastLoadedFileName = Path.GetFileName( filePath );
 				return true;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex);
+				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
 				return false;
 			}
 		}
 
 		#region Private Helper Methods
 
-		private static void ProcessModLinks(IList<ModComponent> components)
+		private static void ProcessModLinks( IList<ModComponent> components )
 		{
-			if ( components == null )
+			if (components == null)
 				return;
 
 			const string baseUrl = "";
 
-			foreach ( ModComponent component in components )
+			foreach (ModComponent component in components)
 			{
 				var urlsToFix = component.ModLinkFilenames.Keys
-					.Where(url => !string.IsNullOrEmpty(url) && url[0] == '/')
+					.Where( url => !string.IsNullOrEmpty( url ) && url[0] == '/' )
 					.ToList();
 
-				foreach ( string relativeUrl in urlsToFix )
+				foreach (string relativeUrl in urlsToFix)
 				{
 					string fixedUrl = baseUrl + relativeUrl;
 					Dictionary<string, bool?> filenameDict = component.ModLinkFilenames[relativeUrl];
-					component.ModLinkFilenames.Remove(relativeUrl);
+					component.ModLinkFilenames.Remove( relativeUrl );
 					component.ModLinkFilenames[fixedUrl] = filenameDict;
 				}
 			}
 		}
 
-		private async Task<bool?> ShowConfigLoadConfirmationAsync(string fileType, bool editorMode)
+		private async Task<bool?> ShowConfigLoadConfirmationAsync( string fileType, bool editorMode )
 		{
-			if ( _mainConfig.allComponents.Count == 0 )
+			if (_mainConfig.allComponents.Count == 0)
 				return true;
 
-			if ( !editorMode )
+			if (!editorMode)
 				return false;
 
 			string confirmText = $"You already have a config loaded. Do you want to merge the {fileType} with existing components or load it as a new config?";
@@ -342,10 +403,9 @@ namespace KOTORModSync.Services
 				confirmText: confirmText,
 				yesButtonText: "Merge",
 				noButtonText: "Load as New"
-			);
+			).ConfigureAwait( false );
 		}
 
 		#endregion
 	}
 }
-

@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,46 +9,49 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+
 using Avalonia.Data;
 using Avalonia.Data.Converters;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Converters
 {
 	public partial class ListToStringConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if ( !(value is IEnumerable list) )
+			if (!(value is IEnumerable list))
 			{
 				return string.Empty;
 			}
 
 			var serializedList = new StringBuilder();
-			foreach ( object item in list )
+			foreach (object item in list)
 			{
-				if ( item is null )
+				if (item is null)
 				{
 					continue;
 				}
 
-				_ = serializedList.AppendLine(item.ToString());
+				_ = serializedList.AppendLine( item.ToString() );
 			}
 
 			return serializedList.ToString();
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			try
 			{
-				if ( !(value is string text) )
+				if (!(value is string text))
 				{
 					return null;
 				}
 
-				if ( targetType != typeof(List<Guid>) )
+				if (targetType != typeof( List<Guid> ))
 				{
 					return text.Split(
 						new[]
@@ -59,7 +62,7 @@ namespace KOTORModSync.Converters
 					).ToList();
 				}
 
-				string[] lines = RemoveSpacesExceptNewLine(text).Split(
+				string[] lines = RemoveSpacesExceptNewLine( text ).Split(
 					new[]
 					{
 						Environment.NewLine,
@@ -68,16 +71,16 @@ namespace KOTORModSync.Converters
 				);
 
 				var guids = new List<Guid>();
-				foreach ( string line in lines )
+				foreach (string line in lines)
 				{
 					try
 					{
-						guids.Add(Guid.Parse(Serializer.FixGuidString(line)));
+						guids.Add( Guid.Parse( Serializer.FixGuidString( line ) ) );
 					}
-					catch ( FormatException e )
+					catch (FormatException e)
 					{
 						return new BindingNotification(
-							new FormatException(e.Message),
+							new FormatException( e.Message ),
 							BindingErrorType.DataValidationError
 						);
 					}
@@ -85,22 +88,22 @@ namespace KOTORModSync.Converters
 
 				return guids;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				return new BindingNotification(new FormatException(ex.Message), BindingErrorType.Error);
+				return new BindingNotification( new FormatException( ex.Message ), BindingErrorType.Error );
 			}
 		}
 
 		[NotNull]
-		public static string RemoveSpacesExceptNewLine([NotNull] string input)
+		public static string RemoveSpacesExceptNewLine( [NotNull] string input )
 		{
-			if ( input is null )
+			if (input is null)
 			{
-				throw new ArgumentNullException(nameof(input));
+				throw new ArgumentNullException( nameof( input ) );
 			}
 
 			string pattern = $@"(?:(?!{Environment.NewLine})[^\S{Environment.NewLine}])+";
-			string result = Regex.Replace(input, pattern, replacement: "");
+			string result = Regex.Replace( input, pattern, replacement: "" );
 
 			return result;
 		}

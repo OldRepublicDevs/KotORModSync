@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -25,7 +25,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 		private CancellationTokenSource _cancellationTokenSource;
 		private bool _disposed;
 		private DateTime _lastPollTime;
-		private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(1);
+		private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds( 1 );
 
 		public event FileSystemEventHandler Created;
 		public event FileSystemEventHandler Deleted;
@@ -42,7 +42,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 			bool includeSubdirectories = false
 		)
 		{
-			_path = path ?? throw new ArgumentNullException(nameof(path));
+			_path = path ?? throw new ArgumentNullException( nameof( path ) );
 			_filter = filter ?? "*.*";
 			_notifyFilters = notifyFilters;
 			_includeSubdirectories = includeSubdirectories;
@@ -51,17 +51,17 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		public void StartWatching()
 		{
-			lock ( _lockObject )
+			lock (_lockObject)
 			{
-				if ( _disposed )
-					throw new ObjectDisposedException(nameof(CrossPlatformFileWatcher));
+				if (_disposed)
+					throw new ObjectDisposedException( nameof( CrossPlatformFileWatcher ) );
 
-				if ( EnableRaisingEvents )
+				if (EnableRaisingEvents)
 					return;
 
 				EnableRaisingEvents = true;
 
-				if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
+				if (Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
 					StartWindowsWatcher();
 				else
 					StartPollingWatcher();
@@ -70,14 +70,14 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		public void StopWatching()
 		{
-			lock ( _lockObject )
+			lock (_lockObject)
 			{
-				if ( _disposed )
+				if (_disposed)
 					return;
 
 				EnableRaisingEvents = false;
 
-				if ( _windowsWatcher != null )
+				if (_windowsWatcher != null)
 				{
 					_windowsWatcher.EnableRaisingEvents = false;
 					_windowsWatcher.Dispose();
@@ -85,7 +85,7 @@ namespace KOTORModSync.Core.FileSystemUtils
 				}
 
 				_cancellationTokenSource?.Cancel();
-				_pollingTask?.Wait(TimeSpan.FromSeconds(5));
+				_pollingTask?.Wait( TimeSpan.FromSeconds( 5 ) );
 				_cancellationTokenSource?.Dispose();
 				_cancellationTokenSource = null;
 				_pollingTask = null;
@@ -112,11 +112,11 @@ namespace KOTORModSync.Core.FileSystemUtils
 				_windowsWatcher.Renamed += OnWindowsWatcherRenamed;
 				_windowsWatcher.Error += OnWindowsWatcherError;
 
-				Logger.LogVerbose($"Cross-platform file watcher started for Windows: {_path}");
+				Logger.LogVerbose( $"Cross-platform file watcher started for Windows: {_path}" );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to start Windows file watcher, falling back to polling");
+				Logger.LogException( ex, "Failed to start Windows file watcher, falling back to polling" );
 				StartPollingWatcher();
 			}
 		}
@@ -126,92 +126,108 @@ namespace KOTORModSync.Core.FileSystemUtils
 			try
 			{
 				_cancellationTokenSource = new CancellationTokenSource();
-				_pollingTask = Task.Run(() => PollingLoop(_cancellationTokenSource.Token));
+				_pollingTask = Task.Run( () => PollingLoop( _cancellationTokenSource.Token ) );
 
-				Logger.LogVerbose($"Cross-platform file watcher started with polling: {_path}");
+				Logger.LogVerbose( $"Cross-platform file watcher started with polling: {_path}" );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to start polling file watcher");
+				Logger.LogException( ex, "Failed to start polling file watcher" );
 				throw;
 			}
 		}
 
-		private async Task PollingLoop(CancellationToken cancellationToken)
+		private async Task PollingLoop( CancellationToken cancellationToken )
+
+
 		{
-			var previousFiles = new HashSet<string>();
-			var currentFiles = new HashSet<string>();
+			HashSet<string> previousFiles = new HashSet<string>( StringComparer.Ordinal );
+			HashSet<string> currentFiles = new HashSet<string>(
+
+StringComparer.Ordinal );
 
 			try
 			{
-				await ScanDirectory(previousFiles, cancellationToken);
+				await ScanDirectory( previousFiles, cancellationToken ).ConfigureAwait( false );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex, "Error during initial directory scan");
-				OnError(new ErrorEventArgs(ex));
+				await Logger.LogExceptionAsync( ex, "Error during initial directory scan" ).ConfigureAwait( false );
+				OnError( new ErrorEventArgs( ex ) );
 				return;
 			}
 
-			while ( !cancellationToken.IsCancellationRequested && EnableRaisingEvents )
+			while (!cancellationToken.IsCancellationRequested && EnableRaisingEvents)
+
+
 			{
 				try
 				{
-					await Task.Delay(_pollingInterval, cancellationToken);
+					await Task.Delay( _pollingInterval, cancellationToken )
+
+
+
+.ConfigureAwait( false );
 
 					currentFiles.Clear();
-					await ScanDirectory(currentFiles, cancellationToken);
+					await ScanDirectory( currentFiles, cancellationToken ).ConfigureAwait( false );
 
-					foreach ( string file in previousFiles )
+					foreach (string file in previousFiles)
 					{
-						if ( !currentFiles.Contains(file) )
-							OnDeleted(new FileSystemEventArgs(WatcherChangeTypes.Deleted, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
+						if (!currentFiles.Contains( file ))
+							OnDeleted( new FileSystemEventArgs( WatcherChangeTypes.Deleted, Path.GetDirectoryName( file ) ?? string.Empty, Path.GetFileName( file ) ) );
 					}
 
-					foreach ( string file in currentFiles )
+					foreach (string file in currentFiles)
 					{
-						if ( !previousFiles.Contains(file) )
-							OnCreated(new FileSystemEventArgs(WatcherChangeTypes.Created, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
+						if (!previousFiles.Contains( file ))
+							OnCreated( new FileSystemEventArgs( WatcherChangeTypes.Created, Path.GetDirectoryName( file ) ?? string.Empty, Path.GetFileName( file ) ) );
 					}
 
-					foreach ( string file in currentFiles )
+					foreach (string file in currentFiles)
 					{
-						if ( !previousFiles.Contains(file) )
+						if (!previousFiles.Contains( file ))
 							continue;
 						try
 						{
-							var fileInfo = new FileInfo(file);
-							if ( fileInfo.LastWriteTime > _lastPollTime )
-								OnChanged(new FileSystemEventArgs(WatcherChangeTypes.Changed, Path.GetDirectoryName(file) ?? string.Empty, Path.GetFileName(file)));
+							FileInfo fileInfo = new FileInfo( file );
+							if (fileInfo.LastWriteTime > _lastPollTime)
+								OnChanged( new FileSystemEventArgs( WatcherChangeTypes.Changed, Path.GetDirectoryName( file ) ?? string.Empty, Path.GetFileName( file ) ) );
 						}
-						catch ( Exception ex )
+						catch (Exception ex)
 						{
-							await Logger.LogVerboseAsync($"Error checking file modification time for {file}: {ex.Message}");
+							await Logger.LogVerboseAsync( $"Error checking file modification time for {file}: {ex.Message}" ).ConfigureAwait( false );
 						}
 					}
 
 					previousFiles.Clear();
-					foreach ( string file in currentFiles )
+					foreach (string file in currentFiles)
 					{
-						_ = previousFiles.Add(file);
+						_ = previousFiles.Add( file );
 					}
 
 					_lastPollTime = DateTime.Now;
 				}
-				catch ( OperationCanceledException )
+				catch (OperationCanceledException)
 				{
 					break;
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
+
+
 				{
-					await Logger.LogExceptionAsync(ex, "Error in polling loop");
-					OnError(new ErrorEventArgs(ex));
+					await Logger.LogExceptionAsync( ex, "Error in polling loop" ).ConfigureAwait( false );
+					OnError( new ErrorEventArgs( ex ) );
+
+
 
 					try
 					{
-						await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+						await Task.Delay( TimeSpan.FromSeconds( 5 ), cancellationToken ).ConfigureAwait( false );
 					}
-					catch ( OperationCanceledException )
+					catch (OperationCanceledException)
 					{
 						break;
 					}
@@ -219,68 +235,72 @@ namespace KOTORModSync.Core.FileSystemUtils
 			}
 		}
 
-		private async Task ScanDirectory(HashSet<string> fileSet, CancellationToken cancellationToken)
+		private async Task ScanDirectory( HashSet<string> fileSet, CancellationToken cancellationToken )
 		{
-			if ( !Directory.Exists(_path) )
+			if (!Directory.Exists( _path ))
 				return;
 
 			try
 			{
 				SearchOption searchOption = _includeSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-				string[] files = Directory.GetFiles(_path, _filter, searchOption);
+				string[] files = Directory.GetFiles( _path, _filter, searchOption );
 
-				foreach ( string file in files )
+				foreach (string file in files)
 				{
 					cancellationToken.ThrowIfCancellationRequested();
-					_ = fileSet.Add(file);
+					_ = fileSet.Add( file );
+
+
 				}
 
-				await Task.CompletedTask;
+				await Task.CompletedTask.ConfigureAwait( false );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogVerboseAsync($"Error scanning directory {_path}: {ex.Message}");
+				await Logger.LogVerboseAsync( $"Error scanning directory {_path}: {ex.Message}" ).ConfigureAwait( false );
 				throw;
 			}
 		}
 
 		#region Windows Watcher Event Handlers
 
-		private void OnWindowsWatcherCreated(object sender, FileSystemEventArgs e) => OnCreated(e);
-		private void OnWindowsWatcherDeleted(object sender, FileSystemEventArgs e) => OnDeleted(e);
-		private void OnWindowsWatcherChanged(object sender, FileSystemEventArgs e) => OnChanged(e);
-		private void OnWindowsWatcherRenamed(object sender, RenamedEventArgs e) => OnRenamed(e);
-		private void OnWindowsWatcherError(object sender, ErrorEventArgs e) => OnError(e);
+		private void OnWindowsWatcherCreated( object sender, FileSystemEventArgs e ) => OnCreated( e );
+		private void OnWindowsWatcherDeleted( object sender, FileSystemEventArgs e ) => OnDeleted( e );
+		private void OnWindowsWatcherChanged( object sender, FileSystemEventArgs e ) => OnChanged( e );
+		private void OnWindowsWatcherRenamed( object sender, RenamedEventArgs e ) => OnRenamed( e );
+		private void OnWindowsWatcherError( object sender, ErrorEventArgs e ) => OnError( e );
 
 		#endregion
 
 		#region Event Invokers
 
-		private void OnCreated(FileSystemEventArgs e)
+		private void OnCreated( FileSystemEventArgs e )
 		{
-			if ( EnableRaisingEvents )
-				Created?.Invoke(this, e);
+			if (EnableRaisingEvents)
+				Created?.Invoke( this, e );
 		}
 
-		private void OnDeleted(FileSystemEventArgs e)
+		private void OnDeleted( FileSystemEventArgs e )
 		{
-			if ( EnableRaisingEvents )
-				Deleted?.Invoke(this, e);
+			if (EnableRaisingEvents)
+				Deleted?.Invoke( this, e );
 		}
 
-		private void OnChanged(FileSystemEventArgs e)
+		private void OnChanged( FileSystemEventArgs e )
 		{
-			if ( EnableRaisingEvents )
-				Changed?.Invoke(this, e);
+			if (EnableRaisingEvents)
+				Changed?.Invoke( this, e );
 		}
 
-		private void OnRenamed(RenamedEventArgs e)
+		private void OnRenamed( RenamedEventArgs e )
 		{
-			if ( EnableRaisingEvents )
-				Renamed?.Invoke(this, e);
+			if (EnableRaisingEvents)
+				Renamed?.Invoke( this, e );
 		}
 
-		private void OnError(ErrorEventArgs e) => Error?.Invoke(this, e);
+		private void OnError( ErrorEventArgs e ) => Error?.Invoke( this, e );
 
 		#endregion
 
@@ -288,27 +308,27 @@ namespace KOTORModSync.Core.FileSystemUtils
 
 		public void Dispose()
 		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
+			Dispose( true );
+			GC.SuppressFinalize( this );
 		}
 
-		protected virtual void Dispose(bool disposing)
+		protected virtual void Dispose( bool disposing )
 		{
-			lock ( _lockObject )
+			lock (_lockObject)
 			{
-				if ( _disposed )
+				if (_disposed)
 					return;
 
 				_disposed = true;
 
-				if ( !disposing )
+				if (!disposing)
 					return;
 				EnableRaisingEvents = false;
 				StopWatching();
 			}
 		}
 
-		~CrossPlatformFileWatcher() => Dispose(false);
+		~CrossPlatformFileWatcher() => Dispose( false );
 
 		#endregion
 	}

@@ -17,7 +17,7 @@
     WindowStartupLocation="CenterOwner">
 
     <Window.Styles>
-        <StyleInclude Source="/Styles/KotorStyle.axaml" />
+        <!-- <StyleInclude Source="/Styles/KotorStyle.axaml" /> -->
     </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto">

@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,15 +6,16 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+
 using Avalonia.Data.Converters;
 
 namespace KOTORModSync.Converters
 {
 	public partial class FirstSourcePathConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if ( value is IList<string> sourceList && sourceList.Count > 0 )
+			if (value is IList<string> sourceList && sourceList.Count > 0)
 			{
 				return sourceList.First();
 			}
@@ -22,6 +23,6 @@ namespace KOTORModSync.Converters
 			return string.Empty;
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture ) => throw new NotImplementedException();
 	}
 }

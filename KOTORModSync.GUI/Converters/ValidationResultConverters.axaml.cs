@@ -1,24 +1,26 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Globalization;
+
 using Avalonia.Data.Converters;
+
 using KOTORModSync.Core.Services.Validation;
 
 namespace KOTORModSync.Converters
 {
 	public partial class ValidationStatusMessageConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if ( value is PathValidationResult result )
+			if (value is PathValidationResult result)
 				return result.StatusMessage ?? "❓ Empty";
 			return "❓ Empty";
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -26,14 +28,14 @@ namespace KOTORModSync.Converters
 
 	public partial class ValidationDetailedMessageConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if ( value is PathValidationResult result && !string.IsNullOrWhiteSpace(result.DetailedMessage) )
+			if (value is PathValidationResult result && !string.IsNullOrWhiteSpace( result.DetailedMessage ))
 				return result.DetailedMessage;
 			return null;
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -41,14 +43,14 @@ namespace KOTORModSync.Converters
 
 	public partial class ValidationHasBlockingInstructionConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if ( value is PathValidationResult result )
+			if (value is PathValidationResult result)
 				return result.BlockingInstructionIndex.HasValue || result.NeedsModLinkAdded;
 			return false;
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -56,22 +58,21 @@ namespace KOTORModSync.Converters
 
 	public partial class ValidationBlockingInstructionTextConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if ( value is PathValidationResult result )
+			if (value is PathValidationResult result)
 			{
-				if ( result.NeedsModLinkAdded )
+				if (result.NeedsModLinkAdded)
 					return "📥 Jump to ModLinks";
-				if ( result.BlockingInstructionIndex.HasValue )
+				if (result.BlockingInstructionIndex.HasValue)
 					return $"⚠️ Jump to Instruction #{result.BlockingInstructionIndex.Value + 1}";
 			}
 			return "Jump to Error";
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
 	}
 }
-

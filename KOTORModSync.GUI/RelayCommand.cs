@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -12,19 +12,18 @@ namespace KOTORModSync
 		private readonly Action<object> _execute;
 		private readonly Func<object, bool> _canExecute;
 
-		public RelayCommand(Action<object> execute, Func<object, bool> canExecute = null)
+		public RelayCommand( Action<object> execute, Func<object, bool> canExecute = null )
 		{
-			_execute = execute ?? throw new ArgumentNullException(nameof(execute));
+			_execute = execute ?? throw new ArgumentNullException( nameof( execute ) );
 			_canExecute = canExecute;
 		}
 
 		public event EventHandler CanExecuteChanged;
 
-		public bool CanExecute(object parameter) => _canExecute == null || _canExecute(parameter);
+		public bool CanExecute( object parameter ) => _canExecute == null || _canExecute( parameter );
 
-		public void Execute(object parameter) => _execute(parameter);
+		public void Execute( object parameter ) => _execute( parameter );
 
-		public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+		public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke( this, EventArgs.Empty );
 	}
 }
-

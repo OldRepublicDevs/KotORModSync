@@ -1,16 +1,19 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System.Collections.Generic;
 using System.Linq;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 
@@ -21,8 +24,8 @@ namespace KOTORModSync.Dialogs
 		public CircularDependencyResolutionViewModel ViewModel { get; }
 		public bool UserRetried { get; private set; }
 		public List<ModComponent> ResolvedComponents => ViewModel?.Components
-			.Where(c => c.IsSelected)
-			.Select(c => c.ModComponent)
+			.Where( c => c.IsSelected )
+			.Select( c => c.ModComponent )
 			.ToList();
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
@@ -37,10 +40,10 @@ namespace KOTORModSync.Dialogs
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		public CircularDependencyResolutionDialog(List<ModComponent> components, CircularDependencyDetector.CircularDependencyResult cycleInfo)
+		public CircularDependencyResolutionDialog( List<ModComponent> components, CircularDependencyDetector.CircularDependencyResult cycleInfo )
 		{
 			InitializeComponent();
-			ViewModel = new CircularDependencyResolutionViewModel(components, cycleInfo);
+			ViewModel = new CircularDependencyResolutionViewModel( components, cycleInfo );
 			DataContext = ViewModel;
 
 			PointerPressed += InputElement_OnPointerPressed;
@@ -51,16 +54,16 @@ namespace KOTORModSync.Dialogs
 
 		private void InitializeComponent()
 		{
-			AvaloniaXamlLoader.Load(this);
+			AvaloniaXamlLoader.Load( this );
 		}
 
-		private void Retry_Click(object sender, RoutedEventArgs e)
+		private void Retry_Click( object sender, RoutedEventArgs e )
 		{
 			UserRetried = true;
 			Close();
 		}
 
-		private void Cancel_Click(object sender, RoutedEventArgs e)
+		private void Cancel_Click( object sender, RoutedEventArgs e )
 		{
 			UserRetried = false;
 			Close();
@@ -69,26 +72,28 @@ namespace KOTORModSync.Dialogs
 		public static async System.Threading.Tasks.Task<(bool retry, List<ModComponent> components)> ShowResolutionDialog(
 			Window owner,
 			List<ModComponent> components,
-			CircularDependencyDetector.CircularDependencyResult cycleInfo)
+			CircularDependencyDetector.CircularDependencyResult cycleInfo )
 		{
 
-			if ( !cycleInfo.HasCircularDependencies || cycleInfo.Cycles.Count == 0 )
+			if (!cycleInfo.HasCircularDependencies || cycleInfo.Cycles.Count == 0)
 				return (false, components);
 
-			var dialog = new CircularDependencyResolutionDialog(components, cycleInfo);
-			await dialog.ShowDialog(owner);
+			var dialog = new CircularDependencyResolutionDialog( components, cycleInfo );
+
+
+			await dialog.ShowDialog( owner ).ConfigureAwait( false );
 			return (dialog.UserRetried, dialog.ResolvedComponents);
 		}
 
 		[UsedImplicitly]
-		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+		private void MinimizeButton_Click( object sender, RoutedEventArgs e ) => WindowState = WindowState.Minimized;
 
 		[UsedImplicitly]
-		private void ToggleMaximizeButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		private void ToggleMaximizeButton_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e )
 		{
-			if ( !(sender is Button maximizeButton) )
+			if (!(sender is Button maximizeButton))
 				return;
-			if ( WindowState == WindowState.Maximized )
+			if (WindowState == WindowState.Maximized)
 			{
 				WindowState = WindowState.Normal;
 				maximizeButton.Content = "▢";
@@ -101,45 +106,45 @@ namespace KOTORModSync.Dialogs
 		}
 
 		[UsedImplicitly]
-		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+		private void CloseButton_Click( object sender, RoutedEventArgs e ) => Close();
 
-		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )
 		{
-			if ( !_mouseDownForWindowMoving )
+			if (!_mouseDownForWindowMoving)
 				return;
 
-			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			PointerPoint currentPoint = e.GetCurrentPoint( this );
 			Position = new PixelPoint(
 				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
 				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
 			);
 		}
 
-		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
+		private void InputElement_OnPointerPressed( object sender, PointerPressedEventArgs e )
 		{
-			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
 
-			if ( ShouldIgnorePointerForWindowDrag(e) )
+			if (ShouldIgnorePointerForWindowDrag( e ))
 				return;
 
 			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint(this);
+			_originalPoint = e.GetCurrentPoint( this );
 		}
 
-		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+		private void InputElement_OnPointerReleased( object sender, PointerEventArgs e ) =>
 			_mouseDownForWindowMoving = false;
 
-		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		private bool ShouldIgnorePointerForWindowDrag( PointerEventArgs e )
 		{
 
-			if ( !(e.Source is Visual source) )
+			if (!(e.Source is Visual source))
 				return false;
 
 			Visual current = source;
-			while ( current != null && current != this )
+			while (current != null && current != this)
 			{
-				switch ( current )
+				switch (current)
 				{
 
 					case Button _:
@@ -169,4 +174,3 @@ namespace KOTORModSync.Dialogs
 		}
 	}
 }
-

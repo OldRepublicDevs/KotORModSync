@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,10 +9,13 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Installation;
 using KOTORModSync.Core.Utility;
+
 using Python.Included;
 using Python.Runtime;
 
@@ -21,98 +24,224 @@ namespace KOTORModSync.Core.Services
 
 	public class InstallationService
 	{
-		private readonly ComponentManagerService _componentManager = new ComponentManagerService();
-		private readonly FileOperationService _fileOperation = new FileOperationService();
 		private static bool _pythonInitialized = false;
-		private static readonly SemaphoreSlim _pythonSemaphore = new SemaphoreSlim(1, 1);
+		private static readonly SemaphoreSlim _pythonSemaphore = new SemaphoreSlim( 1, 1 );
 
 		/// <summary>
 		/// Initializes the embedded Python environment if not already initialized.
 		/// </summary>
 		private static async Task EnsurePythonInitializedAsync()
 		{
-			if ( _pythonInitialized )
+			if (_pythonInitialized)
 				return;
 
-			await _pythonSemaphore.WaitAsync();
+			await _pythonSemaphore.WaitAsync().ConfigureAwait( false );
 			try
 			{
-				if ( _pythonInitialized )
+				if (_pythonInitialized)
 					return;
 
 				// Disable keyring to prevent pip from hanging waiting for authentication
 				// This is a known issue with pip - it tries to use keyring for authentication
 				// which can hang indefinitely waiting for user input
-				Environment.SetEnvironmentVariable("PYTHON_KEYRING_BACKEND", "keyring.backends.null.Keyring");
+				Environment.SetEnvironmentVariable( "PYTHON_KEYRING_BACKEND", "keyring.backends.null.Keyring" );
 
-				await Logger.LogVerboseAsync("Initializing embedded Python environment...");
-				var startTime = DateTime.Now;
 
-				await Installer.SetupPython();
+
+				await Logger.LogVerboseAsync( "Initializing embedded Python environment..." )
+
+
+
+.ConfigureAwait( false );
+				DateTime startTime = DateTime.Now;
+
+				await Installer.SetupPython().ConfigureAwait( false );
 				PythonEngine.Initialize();
 
 				// Check if dependencies are already installed (from build time)
-				bool dependenciesInstalled = await CheckPythonDependenciesAsync();
+				bool dependenciesInstalled = await CheckPythonDependenciesAsync().ConfigureAwait( false );
 
-				if ( !dependenciesInstalled )
+				if (!dependenciesInstalled)
+
+
 				{
-					await Logger.LogVerboseAsync("Python dependencies not found, installing HoloPatcher Python dependencies...");
-					await Logger.LogVerboseAsync("This may take several minutes on first run...");
+					await Logger.LogVerboseAsync( "Python dependencies not found, installing HoloPatcher Python dependencies..." ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync( "This may take several minutes on first run..." ).ConfigureAwait( false );
 
 					// Use Python.NET to call pip._internal.main() directly to avoid Python.Included's buggy RunCommand
-					using ( Py.GIL() )
+					using (Py.GIL())
 					{
 						try
 						{
 							// Set up stdout/stderr to prevent NoneType write errors
-							dynamic sys = Py.Import("sys");
-							dynamic io = Py.Import("io");
+							dynamic sys = Py.Import( "sys" );
+							dynamic io = Py.Import( "io" );
 							dynamic StringIO = io.StringIO;
 							sys.stdout = StringIO();
 							sys.stderr = StringIO();
 
-							await Logger.LogVerboseAsync("Set up StringIO for stdout/stderr to prevent NoneType write errors");
+
+
+							await Logger.LogVerboseAsync( "Set up StringIO for stdout/stderr to prevent NoneType write errors" )
+
+
+
+.ConfigureAwait( false );
 
 							// Install loggerplus
-							await Logger.LogVerboseAsync("Installing loggerplus...");
-							dynamic pip = Py.Import("pip._internal");
+							await Logger.LogVerboseAsync( "Installing loggerplus..." )
+
+.ConfigureAwait( false );
+							dynamic pip =
+
+
+
+
+
+
+
+Py.Import( "pip._internal" );
 							dynamic pipMain = pip.main;
-							var args = new Python.Runtime.PyList();
-							args.Append(new Python.Runtime.PyString("install"));
-							args.Append(new Python.Runtime.PyString("loggerplus"));
-							pipMain(args);
-							await Logger.LogVerboseAsync("✓ loggerplus installed");
+
+
+							PyList args = new Python.Runtime.PyList();
+							args.Append( new Python.Runtime.PyString( "install" ) );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							args.Append( new Python.Runtime.PyString( "loggerplus" ) );
+							pipMain( args );
+							await Logger.LogVerboseAsync( "✓ loggerplus installed" ).ConfigureAwait( false );
 
 							// Install ply
-							await Logger.LogVerboseAsync("Installing ply...");
-							var argsply = new Python.Runtime.PyList();
-							argsply.Append(new Python.Runtime.PyString("install"));
-							argsply.Append(new Python.Runtime.PyString("ply"));
-							pipMain(argsply);
-							await Logger.LogVerboseAsync("✓ ply installed");
+							await Logger.LogVerboseAsync( "Installing ply..." ).ConfigureAwait( false );
+							PyList argsply = new Python.Runtime.PyList();
+							argsply.Append( new Python.Runtime.PyString( "install" ) );
+							argsply.Append( new Python.Runtime.PyString( "ply" ) );
+							pipMain( argsply );
+							await Logger.LogVerboseAsync( "✓ ply installed" ).ConfigureAwait( false );
 						}
-						catch ( PythonException ex )
+						catch (PythonException ex)
 						{
-							await Logger.LogExceptionAsync(ex, "Failed to install Python dependencies via pip._internal");
+							await Logger.LogExceptionAsync( ex, "Failed to install Python dependencies via pip._internal" ).ConfigureAwait( false );
 							throw;
 						}
 					}
 
-					await Logger.LogVerboseAsync("Python dependencies installation completed.");
+					await Logger.LogVerboseAsync( "Python dependencies installation completed." ).ConfigureAwait( false );
 				}
 				else
 				{
-					await Logger.LogVerboseAsync("Python dependencies already installed (from build time).");
+					await Logger.LogVerboseAsync( "Python dependencies already installed (from build time)." ).ConfigureAwait( false );
 				}
 
-				var elapsed = DateTime.Now - startTime;
-				await Logger.LogVerboseAsync($"Python environment initialization completed in {elapsed.TotalSeconds:F1} seconds.");
+				TimeSpan elapsed = DateTime.Now - startTime;
+				await Logger.LogVerboseAsync( $"Python environment initialization completed in {elapsed.TotalSeconds:F1} seconds." ).ConfigureAwait( false );
 
 				_pythonInitialized = true;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex, "Failed to initialize Python environment");
+				await Logger.LogExceptionAsync( ex, "Failed to initialize Python environment" ).ConfigureAwait( false );
 				throw;
 			}
 			finally
@@ -128,24 +257,24 @@ namespace KOTORModSync.Core.Services
 		{
 			try
 			{
-				using ( Py.GIL() )
+				using (Py.GIL())
 				{
 					// Try to import the required modules
 					try
 					{
-						Py.Import("loggerplus");
-						Py.Import("ply");
+						Py.Import( "loggerplus" );
+						Py.Import( "ply" );
 						return true;
 					}
-					catch ( PythonException )
+					catch (PythonException)
 					{
 						return false;
 					}
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				await Logger.LogVerboseAsync($"Error checking Python dependencies: {ex.Message}");
+				await Logger.LogVerboseAsync( $"Error checking Python dependencies: {ex.Message}" ).ConfigureAwait( false );
 				return false;
 			}
 		}
@@ -158,14 +287,14 @@ namespace KOTORModSync.Core.Services
 		/// <returns>Tuple of (holopatcherPath, usePythonVersion, found)</returns>
 		public static async Task<(string holopatcherPath, bool usePythonVersion, bool found)> FindHolopatcherAsync(
 			string resourcesDir,
-			string baseDir)
+			string baseDir )
 		{
 			FileSystemInfo patcherCliPath = null;
 
 			// Try to find platform-specific holopatcher executable first
-			if ( Utility.Utility.GetOperatingSystem() == OSPlatform.Windows )
+			if (Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
 			{
-				patcherCliPath = new FileInfo(Path.Combine(resourcesDir, "holopatcher.exe"));
+				patcherCliPath = new FileInfo( Path.Combine( resourcesDir, "holopatcher.exe" ) );
 			}
 			else
 			{
@@ -175,34 +304,34 @@ namespace KOTORModSync.Core.Services
 					Path.Combine(baseDir, "Resources", "HoloPatcher.app", "Contents", "MacOS", "holopatcher"),
 					Path.Combine(baseDir, "Resources", "holopatcher")
 				};
-				OSPlatform thisOperatingSystem = Utility.Utility.GetOperatingSystem();
-				foreach ( string path in possibleOsxPaths )
+				OSPlatform thisOperatingSystem = Utility.UtilityHelper.GetOperatingSystem();
+				foreach (string path in possibleOsxPaths)
 				{
-					patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith(".app")
-						? PathHelper.GetCaseSensitivePath(new DirectoryInfo(path))
-						: (FileSystemInfo)PathHelper.GetCaseSensitivePath(new FileInfo(path));
-					if ( patcherCliPath.Exists )
+					patcherCliPath = thisOperatingSystem == OSPlatform.OSX && path.ToLowerInvariant().EndsWith( ".app", StringComparison.Ordinal )
+						? PathHelper.GetCaseSensitivePath( new DirectoryInfo( path ) )
+						: (FileSystemInfo)PathHelper.GetCaseSensitivePath( new FileInfo( path ) );
+					if (patcherCliPath.Exists)
 					{
-						await Logger.LogVerboseAsync($"Found holopatcher executable at '{patcherCliPath.FullName}'...");
+						await Logger.LogVerboseAsync( $"Found holopatcher executable at '{patcherCliPath.FullName}'..." ).ConfigureAwait( false );
 						break;
 					}
-					await Logger.LogVerboseAsync($"Holopatcher executable not found at '{patcherCliPath.FullName}'...");
+					await Logger.LogVerboseAsync( $"Holopatcher executable not found at '{patcherCliPath.FullName}'..." ).ConfigureAwait( false );
 				}
 			}
 
 			// If executable found, return it
-			if ( patcherCliPath != null && patcherCliPath.Exists )
+			if (patcherCliPath != null && patcherCliPath.Exists)
 			{
 				return (patcherCliPath.FullName, false, true);
 			}
 
 			// Fall back to Python version
-			await Logger.LogVerboseAsync("Platform-specific holopatcher not found, using embedded Python version...");
-			string holopatcherPyPath = Path.Combine(resourcesDir, "PyKotor", "Tools", "HoloPatcher", "src", "holopatcher");
+			await Logger.LogVerboseAsync( "Platform-specific holopatcher not found, using embedded Python version..." ).ConfigureAwait( false );
+			string holopatcherPyPath = Path.Combine( resourcesDir, "PyKotor", "Tools", "HoloPatcher", "src", "holopatcher" );
 
-			if ( Directory.Exists(holopatcherPyPath) )
+			if (Directory.Exists( holopatcherPyPath ))
 			{
-				await Logger.LogVerboseAsync($"Found holopatcher Python source at '{holopatcherPyPath}'");
+				await Logger.LogVerboseAsync( $"Found holopatcher Python source at '{holopatcherPyPath}'" ).ConfigureAwait( false );
 				return (holopatcherPyPath, true, true);
 			}
 
@@ -216,84 +345,84 @@ namespace KOTORModSync.Core.Services
 		/// <param name="holopatcherPath">Path to the holopatcher Python source directory</param>
 		/// <param name="args">Arguments to pass to holopatcher</param>
 		/// <returns>Tuple of (exit code, stdout, stderr)</returns>
-		public static async Task<(int exitCode, string stdout, string stderr)> RunHolopatcherPyAsync(string holopatcherPath, string args)
+		public static async Task<(int exitCode, string stdout, string stderr)> RunHolopatcherPyAsync( string holopatcherPath, string args )
 		{
-			await EnsurePythonInitializedAsync();
+			await EnsurePythonInitializedAsync().ConfigureAwait( false );
 
-			return await Task.Run(() =>
+			return await Task.Run( () =>
 			{
 				try
 				{
-					Logger.LogVerbose($"[RunHolopatcherPyAsync] Starting HoloPatcher from path: {holopatcherPath}");
+					Logger.LogVerbose( $"[RunHolopatcherPyAsync] Starting HoloPatcher from path: {holopatcherPath}" );
 
 					// Run Python code to execute holopatcher's __main__.py file directly
 					// This lets HoloPatcher's own code handle all the path setup
-					using ( Py.GIL() )
+					using (Py.GIL())
 					{
-						dynamic sys = Py.Import("sys");
+						dynamic sys = Py.Import( "sys" );
 
 						// Set up stdout/stderr to prevent NoneType write errors
-						dynamic io = Py.Import("io");
+						dynamic io = Py.Import( "io" );
 						dynamic StringIO = io.StringIO;
 						sys.stdout = StringIO();
 						sys.stderr = StringIO();
 
-						Logger.LogVerbose($"[RunHolopatcherPyAsync] Set up StringIO for stdout/stderr");
+						Logger.LogVerbose( $"[RunHolopatcherPyAsync] Set up StringIO for stdout/stderr" );
 
 						// Set sys.argv with the arguments
 						dynamic sysArgv = new PyList();
-						sysArgv.append("holopatcher");
-						if (!string.IsNullOrEmpty(args))
+						sysArgv.append( "holopatcher" );
+						if (!string.IsNullOrEmpty( args ))
 						{
-							foreach ( string arg in args.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries) )
+							foreach (string arg in args.Split( new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries ))
 							{
-								sysArgv.append(arg.Trim('"'));
+								sysArgv.append( arg.Trim( '"' ) );
 							}
 						}
 						sys.argv = sysArgv;
 
-						Logger.LogVerbose($"[RunHolopatcherPyAsync] sys.argv set to: holopatcher {args}");
+						Logger.LogVerbose( $"[RunHolopatcherPyAsync] sys.argv set to: holopatcher {args}" );
 
 						// Find the __main__.py file path
-						string mainPyFile = Path.Combine(holopatcherPath, "__main__.py");
-						Logger.LogVerbose($"[RunHolopatcherPyAsync] Looking for __main__.py at: {mainPyFile}");
+						string mainPyFile = Path.Combine( holopatcherPath, "__main__.py" );
+						Logger.LogVerbose( $"[RunHolopatcherPyAsync] Looking for __main__.py at: {mainPyFile}" );
 
-						if (!File.Exists(mainPyFile))
+						if (!File.Exists( mainPyFile ))
 						{
 							string errorMsg = $"__main__.py not found at: {mainPyFile}";
-							Logger.LogError(errorMsg);
+							Logger.LogError( errorMsg );
 							return (1, "", errorMsg);
 						}
 
-						Logger.LogVerbose($"[RunHolopatcherPyAsync] Found __main__.py, reading file...");
-						string pythonCode = File.ReadAllText(mainPyFile);
+						Logger.LogVerbose( $"[RunHolopatcherPyAsync] Found __main__.py, reading file..." );
+						string pythonCode = File.ReadAllText( mainPyFile );
 
 						// Set __file__ so HoloPatcher's path detection works
-						Logger.LogVerbose($"[RunHolopatcherPyAsync] Executing __main__.py with __file__ = {mainPyFile}");
+						Logger.LogVerbose( $"[RunHolopatcherPyAsync] Executing __main__.py with __file__ = {mainPyFile}" );
 
 						// Create a module-like namespace with __file__ set
-						dynamic builtins = Py.Import("builtins");
-						dynamic globals = new Python.Runtime.PyDict();
+						dynamic builtins = Py.Import( "builtins" );
+						dynamic globals = new PyDict();
 						globals["__file__"] = mainPyFile.ToPython();
 						globals["__name__"] = "__main__".ToPython();
 						globals["__builtins__"] = builtins;
 
 						// Execute the Python code in this namespace
 						// This is equivalent to running: python __main__.py
-						Python.Runtime.PythonEngine.Exec(pythonCode, globals.Handle, globals.Handle);
+						PythonEngine.Exec( pythonCode, globals.Handle, globals.Handle );
 
 						// Capture any output from stdout/stderr
 						string stdout = sys.stdout.getvalue();
 						string stderr = sys.stderr.getvalue();
 
-						Logger.LogVerbose($"[RunHolopatcherPyAsync] HoloPatcher launched successfully");
-						Logger.LogVerbose($"[RunHolopatcherPyAsync] stdout: {stdout}");
-						Logger.LogVerbose($"[RunHolopatcherPyAsync] stderr: {stderr}");
+						Logger.LogVerbose( $"[RunHolopatcherPyAsync] HoloPatcher launched successfully" );
+						Logger.LogVerbose( $"[RunHolopatcherPyAsync] stdout: {stdout}" );
+						Logger.LogVerbose( $"[RunHolopatcherPyAsync] stderr: {stderr}" );
 
 						return (0, stdout, stderr);
 					}
 				}
-				catch ( PythonException ex )
+				catch (PythonException ex)
 				{
 					string fullStackTrace = $@"=== PYTHON ERROR RUNNING HOLOPATCHER ===
 Error: {ex.Message}
@@ -303,11 +432,11 @@ Full Stack Trace:
 
 Exception Type: {ex.GetType().FullName}";
 
-					Logger.LogError($"Python error running HoloPatcher: {ex.Message}");
-					Logger.LogVerbose(fullStackTrace);
+					Logger.LogError( $"Python error running HoloPatcher: {ex.Message}" );
+					Logger.LogVerbose( fullStackTrace );
 					return (1, "", fullStackTrace);
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
 				{
 					string fullStackTrace = $@"=== ERROR RUNNING HOLOPATCHER ===
 Error: {ex.Message}
@@ -317,70 +446,70 @@ Full Stack Trace:
 
 Exception Type: {ex.GetType().FullName}";
 
-					Logger.LogError($"Error running HoloPatcher: {ex.Message}");
-					Logger.LogVerbose(fullStackTrace);
+					Logger.LogError( $"Error running HoloPatcher: {ex.Message}" );
+					Logger.LogVerbose( fullStackTrace );
 					return (1, "", fullStackTrace);
 				}
-			});
+			} ).ConfigureAwait( false );
 		}
 
 
 		public static async Task<(bool success, string informationMessage)> ValidateInstallationEnvironmentAsync(
 			[NotNull] MainConfig mainConfig,
-			[CanBeNull] Func<string, Task<bool?>> confirmationCallback = null)
+			[CanBeNull] Func<string, Task<bool?>> confirmationCallback = null )
 		{
-			if ( mainConfig == null )
-				throw new ArgumentNullException(nameof(mainConfig));
+			if (mainConfig == null)
+				throw new ArgumentNullException( nameof( mainConfig ) );
 
 			try
 			{
-				if ( MainConfig.DestinationPath is null || MainConfig.SourcePath is null )
+				if (MainConfig.DestinationPath is null || MainConfig.SourcePath is null)
 					return (false, "Please set your directories first");
 
 				bool holopatcherIsExecutable = true;
 				bool holopatcherTestExecute = false;
-				string baseDir = Utility.Utility.GetBaseDirectory();
-				string resourcesDir = Utility.Utility.GetResourcesDirectory(baseDir);
+				string baseDir = Utility.UtilityHelper.GetBaseDirectory();
+				string resourcesDir = Utility.UtilityHelper.GetResourcesDirectory( baseDir );
 
 				// Use helper method to find holopatcher
-				(string holopatcherPath, bool usePythonVersion, bool found) = await FindHolopatcherAsync(resourcesDir, baseDir);
+				(string holopatcherPath, bool usePythonVersion, bool found) = await FindHolopatcherAsync( resourcesDir, baseDir ).ConfigureAwait( false );
 
-				if ( !found )
+				if (!found)
 				{
 					return (false,
 						"HoloPatcher could not be found in the Resources directory. Please ensure your AV isn't quarantining it and the files exist.");
 				}
 
-				if ( usePythonVersion )
+				if (usePythonVersion)
 				{
 					// Initialize Python environment and test holopatcher
-					await Logger.LogVerboseAsync("Initializing embedded Python environment...");
+					await Logger.LogVerboseAsync( "Initializing embedded Python environment..." ).ConfigureAwait( false );
 					try
 					{
-						await EnsurePythonInitializedAsync();
+						await EnsurePythonInitializedAsync().ConfigureAwait( false );
 					}
-					catch ( Exception e )
+					catch (Exception e)
 					{
-						await Logger.LogExceptionAsync(e);
+						await Logger.LogExceptionAsync( e ).ConfigureAwait( false );
 						holopatcherIsExecutable = false;
 					}
 
 					// Test holopatcher execution with Python
-					(int, string, string) result = await RunHolopatcherPyAsync(holopatcherPath, "--install");
-					if ( result.Item1 == 2 )
+					(int, string, string) result = await RunHolopatcherPyAsync( holopatcherPath, "--install" ).ConfigureAwait( false );
+					if (result.Item1 == 2)
 						holopatcherTestExecute = true;
 				}
 				else
 				{
 					// Use platform-specific executable
-					await Logger.LogVerboseAsync("Ensuring the holopatcher binary has executable permissions...");
+					await Logger.LogVerboseAsync( "Ensuring the holopatcher binary has executable permissions..." ).ConfigureAwait( false );
 					try
 					{
-						await PlatformAgnosticMethods.MakeExecutableAsync(new FileInfo(holopatcherPath));
+						await PlatformAgnosticMethods.MakeExecutableAsync( new FileInfo( holopatcherPath ) ).ConfigureAwait( false );
 					}
-					catch ( Exception e )
+					catch (Exception e)
 					{
-						await Logger.LogExceptionAsync(e);
+						await Logger.LogExceptionAsync( e ).ConfigureAwait( false );
 						holopatcherIsExecutable = false;
 					}
 
@@ -388,153 +517,153 @@ Exception Type: {ex.GetType().FullName}";
 					(int, string, string) result = await PlatformAgnosticMethods.ExecuteProcessAsync(
 						holopatcherPath,
 						args: "--install"
-					);
-					if ( result.Item1 == 2 )
+					).ConfigureAwait( false );
+					if (result.Item1 == 2)
 						holopatcherTestExecute = true;
 				}
 
-				if ( MainConfig.AllComponents.IsNullOrEmptyCollection() )
+				if (MainConfig.AllComponents.IsNullOrEmptyCollection())
 					return (false, "No instructions loaded! Press 'Load Instructions File' or create some instructions first.");
-				if ( !MainConfig.AllComponents.Any(component => component.IsSelected) )
+				if (!MainConfig.AllComponents.Exists( component => component.IsSelected ))
 					return (false, "Select at least one mod in the left list to be installed first.");
 
-				await Logger.LogAsync("Finding duplicate case-insensitive folders/files in the install destination...");
-				IEnumerable<FileSystemInfo> duplicates = PathHelper.FindCaseInsensitiveDuplicates(MainConfig.DestinationPath.FullName);
-				var fileSystemInfos = duplicates.ToList();
-				foreach ( FileSystemInfo duplicate in fileSystemInfos )
+				await Logger.LogAsync( "Finding duplicate case-insensitive folders/files in the install destination..." ).ConfigureAwait( false );
+				IEnumerable<FileSystemInfo> duplicates = PathHelper.FindCaseInsensitiveDuplicates( MainConfig.DestinationPath.FullName );
+				List<FileSystemInfo> fileSystemInfos = duplicates.ToList();
+				foreach (FileSystemInfo duplicate in fileSystemInfos)
 				{
-					await Logger.LogErrorAsync(duplicate?.FullName + " has a duplicate, please resolve before attempting an install.");
+					await Logger.LogErrorAsync( duplicate?.FullName + " has a duplicate, please resolve before attempting an install." ).ConfigureAwait( false );
 				}
 
-				await Logger.LogAsync("Checking for duplicate components...");
-				bool noDuplicateComponents = await ComponentManagerService.FindDuplicateComponentsAsync(MainConfig.AllComponents);
+				await Logger.LogAsync( "Checking for duplicate components..." ).ConfigureAwait( false );
+				bool noDuplicateComponents = await ComponentManagerService.FindDuplicateComponentsAsync( MainConfig.AllComponents ).ConfigureAwait( false );
 
-				await Logger.LogAsync("Ensuring both the mod directory and the install directory are writable...");
-				bool isInstallDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.DestinationPath);
-				bool isModDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.SourcePath);
-				if ( !isInstallDirectoryWritable )
+				await Logger.LogAsync( "Ensuring both the mod directory and the install directory are writable..." ).ConfigureAwait( false );
+				bool isInstallDirectoryWritable = Utility.UtilityHelper.IsDirectoryWritable( MainConfig.DestinationPath );
+				bool isModDirectoryWritable = Utility.UtilityHelper.IsDirectoryWritable( MainConfig.SourcePath );
+				if (!isInstallDirectoryWritable)
 				{
-					if ( confirmationCallback != null && await confirmationCallback("The Install directory is not writable! Would you like to attempt to gain access now?") == true )
+					if (confirmationCallback != null && await confirmationCallback( "The Install directory is not writable! Would you like to attempt to gain access now?" ).ConfigureAwait( false ) == true)
 					{
-						await FilePermissionHelper.FixPermissionsAsync(MainConfig.DestinationPath);
-						isInstallDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.DestinationPath);
+						await FilePermissionHelper.FixPermissionsAsync( MainConfig.DestinationPath ).ConfigureAwait( false );
+						isInstallDirectoryWritable = Utility.UtilityHelper.IsDirectoryWritable( MainConfig.DestinationPath );
 					}
 				}
-				if ( !isModDirectoryWritable )
+				if (!isModDirectoryWritable)
 				{
-					if ( confirmationCallback != null && await confirmationCallback("Your mod directory is not writable! Would you like to attempt to gain access now?") == true )
+					if (confirmationCallback != null && await confirmationCallback( "Your mod directory is not writable! Would you like to attempt to gain access now?" ).ConfigureAwait( false ) == true)
 					{
-						await FilePermissionHelper.FixPermissionsAsync(MainConfig.SourcePath);
-						isModDirectoryWritable = Utility.Utility.IsDirectoryWritable(MainConfig.SourcePath);
+						await FilePermissionHelper.FixPermissionsAsync( MainConfig.SourcePath ).ConfigureAwait( false );
+						isModDirectoryWritable = Utility.UtilityHelper.IsDirectoryWritable( MainConfig.SourcePath );
 					}
 				}
 
-				await Logger.LogAsync("Validating individual components, this might take a while...");
+				await Logger.LogAsync( "Validating individual components, this might take a while..." ).ConfigureAwait( false );
 				bool individuallyValidated = true;
-				foreach ( ModComponent component in MainConfig.AllComponents )
+				foreach (ModComponent component in MainConfig.AllComponents)
 				{
-					if ( !component.IsSelected )
+					if (!component.IsSelected)
 						continue;
 
-					if ( component.Restrictions.Count > 0 && component.IsSelected )
+					if (component.Restrictions.Count > 0 && component.IsSelected)
 					{
 						List<ModComponent> restrictedComponentsList = ModComponent.FindComponentsFromGuidList(
 							component.Restrictions,
 							MainConfig.AllComponents
 						);
-						foreach ( ModComponent restrictedComponent in restrictedComponentsList )
+						foreach (ModComponent restrictedComponent in restrictedComponentsList)
 						{
 
-							if ( restrictedComponent?.IsSelected == true )
+							if (restrictedComponent?.IsSelected == true)
 							{
-								await Logger.LogErrorAsync($"Cannot install '{component.Name}' due to '{restrictedComponent.Name}' being selected for install.");
+								await Logger.LogErrorAsync( $"Cannot install '{component.Name}' due to '{restrictedComponent.Name}' being selected for install." ).ConfigureAwait( false );
 								individuallyValidated = false;
 							}
 						}
 					}
 
-					if ( component.Dependencies.Count > 0 && component.IsSelected )
+					if (component.Dependencies.Count > 0 && component.IsSelected)
 					{
-						List<ModComponent> dependencyComponentsList = ModComponent.FindComponentsFromGuidList(component.Dependencies, MainConfig.AllComponents);
-						foreach ( ModComponent dependencyComponent in dependencyComponentsList )
+						List<ModComponent> dependencyComponentsList = ModComponent.FindComponentsFromGuidList( component.Dependencies, MainConfig.AllComponents );
+						foreach (ModComponent dependencyComponent in dependencyComponentsList)
 						{
 
-							if ( dependencyComponent?.IsSelected != true )
+							if (dependencyComponent?.IsSelected != true)
 							{
-								await Logger.LogErrorAsync($"Cannot install '{component.Name}' due to '{dependencyComponent?.Name}' not being selected for install.");
+								await Logger.LogErrorAsync( $"Cannot install '{component.Name}' due to '{dependencyComponent?.Name}' not being selected for install." ).ConfigureAwait( false );
 								individuallyValidated = false;
 							}
 						}
 					}
 
-					var validator = new ComponentValidation(component, MainConfig.AllComponents);
-					await Logger.LogVerboseAsync($" == Validating '{component.Name}' == ");
+					ComponentValidation validator = new ComponentValidation( component, MainConfig.AllComponents );
+					await Logger.LogVerboseAsync( $" == Validating '{component.Name}' == " ).ConfigureAwait( false );
 					individuallyValidated &= validator.Run();
 				}
 
-				await Logger.LogVerboseAsync("Finished validating all components.");
+				await Logger.LogVerboseAsync( "Finished validating all components." ).ConfigureAwait( false );
 
 				string informationMessage = string.Empty;
 
-				if ( !holopatcherIsExecutable )
+				if (!holopatcherIsExecutable)
 				{
 					informationMessage = "The HoloPatcher binary does not seem to be executable, please see the logs in the output window for more information.";
-					await Logger.LogErrorAsync(informationMessage);
+					await Logger.LogErrorAsync( informationMessage ).ConfigureAwait( false );
 				}
 
-				if ( !holopatcherTestExecute )
+				if (!holopatcherTestExecute)
 				{
 					informationMessage = "The holopatcher test execution did not pass, this may mean the"
 					+ " binary is corrupted or has unresolved dependency problems.";
-					await Logger.LogErrorAsync(informationMessage);
+					await Logger.LogErrorAsync( informationMessage ).ConfigureAwait( false );
 				}
 
-				if ( !isInstallDirectoryWritable )
+				if (!isInstallDirectoryWritable)
 				{
 					informationMessage = "The Install directory is not writable!"
 						+ " Please ensure administrative privileges or reinstall KOTOR"
 						+ " to a directory with write access.";
-					await Logger.LogErrorAsync(informationMessage);
+					await Logger.LogErrorAsync( informationMessage ).ConfigureAwait( false );
 				}
 
-				if ( !isModDirectoryWritable )
+				if (!isModDirectoryWritable)
 				{
 					informationMessage = "The Mod directory is not writable!"
 						+ " Please ensure administrative privileges or choose a new mod directory.";
-					await Logger.LogErrorAsync(informationMessage);
+					await Logger.LogErrorAsync( informationMessage ).ConfigureAwait( false );
 				}
 
-				if ( !noDuplicateComponents )
+				if (!noDuplicateComponents)
 				{
 					informationMessage = "There were several duplicate components found."
 						+ " Please ensure all components are unique and none have conflicting GUIDs.";
-					await Logger.LogErrorAsync(informationMessage);
+					await Logger.LogErrorAsync( informationMessage ).ConfigureAwait( false );
 				}
 
-				if ( !individuallyValidated )
+				if (!individuallyValidated)
 				{
 					informationMessage =
 						$"Some components failed to validate. Check the output/console window for details.{Environment.NewLine}If you are seeing this as an end user you most"
 						+ " likely need to whitelist KOTORModSync and HoloPatcher in your antivirus, or download the missing mods.";
-					await Logger.LogErrorAsync(informationMessage);
+					await Logger.LogErrorAsync( informationMessage ).ConfigureAwait( false );
 				}
 
-				if ( fileSystemInfos.Count != 0 )
+				if (fileSystemInfos.Count != 0)
 				{
 					informationMessage =
 						"You have duplicate files/folders in your installation directory in a case-insensitive environment."
 						+ "Please resolve these before continuing. Check the output window for the specific files to resolve.";
-					await Logger.LogErrorAsync(informationMessage);
+					await Logger.LogErrorAsync( informationMessage ).ConfigureAwait( false );
 				}
 
-				return !informationMessage.Equals(string.Empty)
+				return !informationMessage.Equals( string.Empty )
 					? ((bool success, string informationMessage))(false, informationMessage)
 					: ((bool success, string informationMessage))(true,
 						"No issues found. If you encounter any problems during the installation, please submit a bug report.");
 			}
-			catch ( Exception e )
+			catch (Exception e)
 			{
-				await Logger.LogExceptionAsync(e);
+				await Logger.LogExceptionAsync( e ).ConfigureAwait( false );
 				return (false, "Unknown error, check the output window for more information.");
 			}
 		}
@@ -544,19 +673,19 @@ Exception Type: {ex.GetType().FullName}";
 		public static async Task<ModComponent.InstallExitCode> InstallSingleComponentAsync(
 			[NotNull] ModComponent component,
 			[NotNull][ItemNotNull] List<ModComponent> allComponents,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default )
 		{
-			if ( component == null )
-				throw new ArgumentNullException(nameof(component));
-			if ( allComponents == null )
-				throw new ArgumentNullException(nameof(allComponents));
+			if (component == null)
+				throw new ArgumentNullException( nameof( component ) );
+			if (allComponents == null)
+				throw new ArgumentNullException( nameof( allComponents ) );
 
-			var validator = new ComponentValidation(component, allComponents);
-			await Logger.LogVerboseAsync($" == Validating '{component.Name}' == ");
-			if ( !validator.Run() )
+			ComponentValidation validator = new ComponentValidation( component, allComponents );
+			await Logger.LogVerboseAsync( $" == Validating '{component.Name}' == " ).ConfigureAwait( false );
+			if (!validator.Run())
 				return ModComponent.InstallExitCode.InvalidOperation;
 
-			return await component.InstallAsync(allComponents, cancellationToken);
+			return await component.InstallAsync( allComponents, cancellationToken ).ConfigureAwait( false );
 		}
 
 
@@ -564,60 +693,60 @@ Exception Type: {ex.GetType().FullName}";
 		public static async Task<ModComponent.InstallExitCode> InstallAllSelectedComponentsAsync(
 			[NotNull][ItemNotNull] List<ModComponent> allComponents,
 			[CanBeNull] Action<int, int, string> progressCallback = null,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default )
 		{
-			if ( allComponents == null )
-				throw new ArgumentNullException(nameof(allComponents));
+			if (allComponents == null)
+				throw new ArgumentNullException( nameof( allComponents ) );
 
-			var coordinator = new InstallCoordinator();
+			InstallCoordinator coordinator = new InstallCoordinator();
 			DirectoryInfo destination = MainConfig.DestinationPath
-										?? throw new InvalidOperationException("DestinationPath must be set before installing.");
-			ResumeResult resume = await coordinator.InitializeAsync(allComponents, destination, cancellationToken);
-			var orderedComponents = resume.OrderedComponents.Where(component => component.IsSelected).ToList();
+										?? throw new InvalidOperationException( "DestinationPath must be set before installing." );
+			ResumeResult resume = await coordinator.InitializeAsync( allComponents, destination, cancellationToken ).ConfigureAwait( false );
+			List<ModComponent> orderedComponents = resume.OrderedComponents.Where( component => component.IsSelected ).ToList();
 			int total = orderedComponents.Count;
 			ModComponent.InstallExitCode exitCode = ModComponent.InstallExitCode.Success;
 
-			for ( int index = 0; index < orderedComponents.Count; index++ )
+			for (int index = 0; index < orderedComponents.Count; index++)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 				ModComponent component = orderedComponents[index];
 
-				progressCallback?.Invoke(index, total, component.Name);
+				progressCallback?.Invoke( index, total, component.Name );
 
-				switch ( component.InstallState )
+				switch (component.InstallState)
 				{
 					case ModComponent.ComponentInstallState.Completed:
-						await Logger.LogAsync($"Skipping '{component.Name}' (already completed).");
-						coordinator.SessionManager.UpdateComponentState(component);
-						await coordinator.SessionManager.SaveAsync();
+						await Logger.LogAsync( $"Skipping '{component.Name}' (already completed)." ).ConfigureAwait( false );
+						coordinator.SessionManager.UpdateComponentState( component );
+						await coordinator.SessionManager.SaveAsync().ConfigureAwait( false );
 						continue;
 					case ModComponent.ComponentInstallState.Skipped:
 					case ModComponent.ComponentInstallState.Blocked:
-						await Logger.LogAsync($"Skipping '{component.Name}' (blocked by dependency).");
-						coordinator.SessionManager.UpdateComponentState(component);
-						await coordinator.SessionManager.SaveAsync();
+						await Logger.LogAsync( $"Skipping '{component.Name}' (blocked by dependency)." ).ConfigureAwait( false );
+						coordinator.SessionManager.UpdateComponentState( component );
+						await coordinator.SessionManager.SaveAsync().ConfigureAwait( false );
 						continue;
 				}
 
-				await Logger.LogAsync($"Start install of '{component.Name}'...");
-				exitCode = await component.InstallAsync(allComponents, cancellationToken);
-				coordinator.SessionManager.UpdateComponentState(component);
-				await coordinator.SessionManager.SaveAsync();
+				await Logger.LogAsync( $"Start install of '{component.Name}'..." ).ConfigureAwait( false );
+				exitCode = await component.InstallAsync( allComponents, cancellationToken ).ConfigureAwait( false );
+				coordinator.SessionManager.UpdateComponentState( component );
+				await coordinator.SessionManager.SaveAsync().ConfigureAwait( false );
 
-				if ( exitCode == ModComponent.InstallExitCode.Success )
+				if (exitCode == ModComponent.InstallExitCode.Success)
 				{
-					await Logger.LogAsync($"Install of '{component.Name}' succeeded.");
-					await coordinator.BackupManager.PromoteSnapshotAsync(destination, cancellationToken);
+					await Logger.LogAsync( $"Install of '{component.Name}' succeeded." ).ConfigureAwait( false );
+					await coordinator.BackupManager.PromoteSnapshotAsync( destination, cancellationToken ).ConfigureAwait( false );
 				}
 				else
 				{
-					await Logger.LogErrorAsync($"Install of '{component.Name}' failed with exit code {exitCode}");
-					InstallCoordinator.MarkBlockedDescendants(orderedComponents, component.Guid);
-					foreach ( ModComponent blocked in orderedComponents.Where(c => c.InstallState == ModComponent.ComponentInstallState.Blocked) )
+					await Logger.LogErrorAsync( $"Install of '{component.Name}' failed with exit code {exitCode}" ).ConfigureAwait( false );
+					InstallCoordinator.MarkBlockedDescendants( orderedComponents, component.Guid );
+					foreach (ModComponent blocked in orderedComponents.Where( c => c.InstallState == ModComponent.ComponentInstallState.Blocked ))
 					{
-						coordinator.SessionManager.UpdateComponentState(blocked);
+						coordinator.SessionManager.UpdateComponentState( blocked );
 					}
-					await coordinator.SessionManager.SaveAsync();
+					await coordinator.SessionManager.SaveAsync().ConfigureAwait( false );
 					break;
 				}
 			}

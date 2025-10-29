@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
@@ -11,9 +11,13 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core.Utility;
+
 using Newtonsoft.Json;
+
 using Tomlyn;
 using Tomlyn.Model;
 using Tomlyn.Syntax;
@@ -23,13 +27,13 @@ namespace KOTORModSync.Core
 	{
 		public enum InstallExitCode
 		{
-			[Description("Completed Successfully")]
+			[Description( "Completed Successfully" )]
 			Success,
-			[Description("A dependency or restriction violation between components has occurred.")]
+			[Description( "A dependency or restriction violation between components has occurred." )]
 			DependencyViolation,
-			[Description("User cancelled the installation.")]
+			[Description( "User cancelled the installation." )]
 			UserCancelledInstall,
-			[Description("An invalid operation was attempted.")]
+			[Description( "An invalid operation was attempted." )]
 			InvalidOperation,
 			UnknownError,
 		}
@@ -78,7 +82,8 @@ namespace KOTORModSync.Core
 
 		public const string CheckpointFolderName = ".kotor_modsync";
 		[NotNull][ItemNotNull] private List<string> _language = new List<string>();
-		[NotNull] private Dictionary<string, Dictionary<string, bool?>> _modLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+		[NotNull] private Dictionary<string, Dictionary<string, bool?>> _modLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase );
+		[NotNull] private Dictionary<string, ResourceMetadata> _resourceRegistry = new Dictionary<string, ResourceMetadata>( StringComparer.OrdinalIgnoreCase );
 		[NotNull] private List<string> _excludedDownloads = new List<string>();
 		[NotNull] private string _name = string.Empty;
 		[NotNull] private string _nameFieldContent = string.Empty;
@@ -105,7 +110,7 @@ namespace KOTORModSync.Core
 			get => _name;
 			set
 			{
-				if (_name == value) return;
+				if (string.Equals( _name, value, StringComparison.Ordinal )) return;
 				_name = value;
 				OnPropertyChanged();
 			}
@@ -116,9 +121,11 @@ namespace KOTORModSync.Core
 		public string NameFieldContent
 		{
 			get => _nameFieldContent;
+
+
 			set
 			{
-				if (_nameFieldContent == value) return;
+				if (string.Equals( _nameFieldContent, value, StringComparison.Ordinal )) return;
 				_nameFieldContent = value;
 				OnPropertyChanged();
 			}
@@ -127,9 +134,11 @@ namespace KOTORModSync.Core
 		public string Heading
 		{
 			get => _heading;
+
+
 			set
 			{
-				if (_heading == value) return;
+				if (string.Equals( _heading, value, StringComparison.Ordinal )) return;
 				_heading = value;
 				OnPropertyChanged();
 			}
@@ -138,9 +147,11 @@ namespace KOTORModSync.Core
 		public string Author
 		{
 			get => _author;
+
+
 			set
 			{
-				if (_author == value) return;
+				if (string.Equals( _author, value, StringComparison.Ordinal )) return;
 				_author = value;
 				OnPropertyChanged();
 			}
@@ -162,8 +173,10 @@ namespace KOTORModSync.Core
 			get => _tier;
 			set
 			{
-				var normalizedValue = CategoryTierDefinitions.NormalizeTier(value);
-				if (_tier == normalizedValue) return;
+				string normalizedValue = CategoryTierDefinitions.NormalizeTier( value );
+
+
+				if (string.Equals( _tier, normalizedValue, StringComparison.Ordinal )) return;
 				_tier = normalizedValue;
 				OnPropertyChanged();
 			}
@@ -194,6 +207,18 @@ namespace KOTORModSync.Core
 		}
 
 		[NotNull]
+		public Dictionary<string, ResourceMetadata> ResourceRegistry
+		{
+			get => _resourceRegistry;
+			set
+			{
+				if (_resourceRegistry == value) return;
+				_resourceRegistry = value;
+				OnPropertyChanged();
+			}
+		}
+
+		[NotNull]
 		public List<string> ExcludedDownloads
 		{
 			get => _excludedDownloads;
@@ -208,9 +233,11 @@ namespace KOTORModSync.Core
 		public string Description
 		{
 			get => _description;
+
+
 			set
 			{
-				if (_description == value) return;
+				if (string.Equals( _description, value, StringComparison.Ordinal )) return;
 				_description = value;
 				OnPropertyChanged();
 			}
@@ -218,10 +245,12 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string DescriptionSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_descriptionSpoilerFree) ? _description : _descriptionSpoilerFree;
+			get => string.IsNullOrWhiteSpace( _descriptionSpoilerFree ) ? _description : _descriptionSpoilerFree;
+
+
 			set
 			{
-				if (_descriptionSpoilerFree == value) return;
+				if (string.Equals( _descriptionSpoilerFree, value, StringComparison.Ordinal )) return;
 				_descriptionSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -230,9 +259,11 @@ namespace KOTORModSync.Core
 		public string InstallationMethod
 		{
 			get => _installationMethod;
+
+
 			set
 			{
-				if (_installationMethod == value) return;
+				if (string.Equals( _installationMethod, value, StringComparison.Ordinal )) return;
 				_installationMethod = value;
 				OnPropertyChanged();
 			}
@@ -241,9 +272,11 @@ namespace KOTORModSync.Core
 		public string Directions
 		{
 			get => _directions;
+
+
 			set
 			{
-				if (_directions == value) return;
+				if (string.Equals( _directions, value, StringComparison.Ordinal )) return;
 				_directions = value;
 				OnPropertyChanged();
 			}
@@ -251,10 +284,12 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string DirectionsSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_directionsSpoilerFree) ? _directions : _directionsSpoilerFree;
+			get => string.IsNullOrWhiteSpace( _directionsSpoilerFree ) ? _directions : _directionsSpoilerFree;
+
+
 			set
 			{
-				if (_directionsSpoilerFree == value) return;
+				if (string.Equals( _directionsSpoilerFree, value, StringComparison.Ordinal )) return;
 				_directionsSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -263,9 +298,11 @@ namespace KOTORModSync.Core
 		public string DownloadInstructions
 		{
 			get => _downloadInstructions;
+
+
 			set
 			{
-				if (_downloadInstructions == value) return;
+				if (string.Equals( _downloadInstructions, value, StringComparison.Ordinal )) return;
 				_downloadInstructions = value;
 				OnPropertyChanged();
 			}
@@ -273,10 +310,12 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string DownloadInstructionsSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_downloadInstructionsSpoilerFree) ? _downloadInstructions : _downloadInstructionsSpoilerFree;
+			get => string.IsNullOrWhiteSpace( _downloadInstructionsSpoilerFree ) ? _downloadInstructions : _downloadInstructionsSpoilerFree;
+
+
 			set
 			{
-				if (_downloadInstructionsSpoilerFree == value) return;
+				if (string.Equals( _downloadInstructionsSpoilerFree, value, StringComparison.Ordinal )) return;
 				_downloadInstructionsSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -285,9 +324,11 @@ namespace KOTORModSync.Core
 		public string UsageWarning
 		{
 			get => _usageWarning;
+
+
 			set
 			{
-				if (_usageWarning == value) return;
+				if (string.Equals( _usageWarning, value, StringComparison.Ordinal )) return;
 				_usageWarning = value;
 				OnPropertyChanged();
 			}
@@ -295,10 +336,12 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string UsageWarningSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_usageWarningSpoilerFree) ? _usageWarning : _usageWarningSpoilerFree;
+			get => string.IsNullOrWhiteSpace( _usageWarningSpoilerFree ) ? _usageWarning : _usageWarningSpoilerFree;
+
+
 			set
 			{
-				if (_usageWarningSpoilerFree == value) return;
+				if (string.Equals( _usageWarningSpoilerFree, value, StringComparison.Ordinal )) return;
 				_usageWarningSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -307,9 +350,11 @@ namespace KOTORModSync.Core
 		public string Screenshots
 		{
 			get => _screenshots;
+
+
 			set
 			{
-				if (_screenshots == value) return;
+				if (string.Equals( _screenshots, value, StringComparison.Ordinal )) return;
 				_screenshots = value;
 				OnPropertyChanged();
 			}
@@ -317,10 +362,12 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string ScreenshotsSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_screenshotsSpoilerFree) ? _screenshots : _screenshotsSpoilerFree;
+			get => string.IsNullOrWhiteSpace( _screenshotsSpoilerFree ) ? _screenshots : _screenshotsSpoilerFree;
+
+
 			set
 			{
-				if (_screenshotsSpoilerFree == value) return;
+				if (string.Equals( _screenshotsSpoilerFree, value, StringComparison.Ordinal )) return;
 				_screenshotsSpoilerFree = value;
 				OnPropertyChanged();
 			}
@@ -330,9 +377,11 @@ namespace KOTORModSync.Core
 		public string KnownBugs
 		{
 			get => _knownBugs;
+
+
 			set
 			{
-				if (_knownBugs == value) return;
+				if (string.Equals( _knownBugs, value, StringComparison.Ordinal )) return;
 				_knownBugs = value;
 				OnPropertyChanged();
 			}
@@ -344,9 +393,11 @@ namespace KOTORModSync.Core
 		public string InstallationWarning
 		{
 			get => _installationWarning;
+
+
 			set
 			{
-				if (_installationWarning == value) return;
+				if (string.Equals( _installationWarning, value, StringComparison.Ordinal )) return;
 				_installationWarning = value;
 				OnPropertyChanged();
 			}
@@ -355,9 +406,11 @@ namespace KOTORModSync.Core
 		public string CompatibilityWarning
 		{
 			get => _compatibilityWarning;
+
+
 			set
 			{
-				if (_compatibilityWarning == value) return;
+				if (string.Equals( _compatibilityWarning, value, StringComparison.Ordinal )) return;
 				_compatibilityWarning = value;
 				OnPropertyChanged();
 			}
@@ -366,9 +419,11 @@ namespace KOTORModSync.Core
 		public string SteamNotes
 		{
 			get => _steamNotes;
+
+
 			set
 			{
-				if (_steamNotes == value) return;
+				if (string.Equals( _steamNotes, value, StringComparison.Ordinal )) return;
 				_steamNotes = value;
 				OnPropertyChanged();
 			}
@@ -454,7 +509,7 @@ namespace KOTORModSync.Core
 			get => _instructions;
 			set
 			{
-				if ( _instructions != value )
+				if (_instructions != value)
 				{
 					_instructions = value;
 					OnPropertyChanged();
@@ -467,7 +522,7 @@ namespace KOTORModSync.Core
 			get => _installState;
 			set
 			{
-				if ( _installState == value )
+				if (_installState == value)
 					return;
 				_installState = value;
 				OnPropertyChanged();
@@ -480,7 +535,7 @@ namespace KOTORModSync.Core
 			get => _lastStartedUtc;
 			set
 			{
-				if ( _lastStartedUtc == value )
+				if (_lastStartedUtc == value)
 					return;
 				_lastStartedUtc = value;
 				OnPropertyChanged();
@@ -493,7 +548,7 @@ namespace KOTORModSync.Core
 			get => _lastCompletedUtc;
 			set
 			{
-				if ( _lastCompletedUtc == value )
+				if (_lastCompletedUtc == value)
 					return;
 				_lastCompletedUtc = value;
 				OnPropertyChanged();
@@ -505,7 +560,7 @@ namespace KOTORModSync.Core
 			get => _options;
 			set
 			{
-				if ( _options == value )
+				if (_options == value)
 					return;
 				_options.CollectionChanged -= OptionsCollectionChanged;
 				_options = value;
@@ -519,7 +574,7 @@ namespace KOTORModSync.Core
 			get => _isDownloaded;
 			set
 			{
-				if ( _isDownloaded == value )
+				if (_isDownloaded == value)
 					return;
 				_isDownloaded = value;
 				OnPropertyChanged();
@@ -531,7 +586,7 @@ namespace KOTORModSync.Core
 			get => _isValidating;
 			set
 			{
-				if ( _isValidating == value )
+				if (_isValidating == value)
 					return;
 				_isValidating = value;
 				OnPropertyChanged();
@@ -542,7 +597,7 @@ namespace KOTORModSync.Core
 			get => _widescreenOnly;
 			set
 			{
-				if ( _widescreenOnly == value )
+				if (_widescreenOnly == value)
 					return;
 				_widescreenOnly = value;
 				OnPropertyChanged();
@@ -555,59 +610,59 @@ namespace KOTORModSync.Core
 			get => _aspyrExclusive;
 			set
 			{
-				if ( _aspyrExclusive == value )
+				if (_aspyrExclusive == value)
 					return;
 				_aspyrExclusive = value;
 				OnPropertyChanged();
 			}
 		}
-		private static readonly string[] s_separator = { "\r\n", "\n" };
-		private static readonly string[] s_categorySeparator = { ",", ";" };
 		public event PropertyChangedEventHandler PropertyChanged;
-		private void OptionsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		private void OptionsCollectionChanged( object sender, NotifyCollectionChangedEventArgs e )
 		{
-			OnPropertyChanged(nameof(Options));
+			OnPropertyChanged( nameof( Options ) );
 		}
-		private void OnPropertyChanged([CallerMemberName][CanBeNull] string propertyName = null) =>
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		private void OnPropertyChanged( [CallerMemberName][CanBeNull] string propertyName = null ) =>
+			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
 		[NotNull]
 		public string SerializeComponent()
 		{
-			return Services.ModComponentSerializationService.SerializeSingleComponentAsTomlString(this);
+			return Services.ModComponentSerializationService.SerializeSingleComponentAsTomlString( this );
 		}
 
 		[CanBeNull]
-		public static ModComponent DeserializeTomlComponent([NotNull] string tomlString)
+		public static ModComponent DeserializeTomlComponent( [NotNull] string tomlString )
 		{
-			if ( tomlString is null )
-				throw new ArgumentNullException(nameof(tomlString));
+			if (tomlString is null)
+				throw new ArgumentNullException( nameof( tomlString ) );
 
 			// Use the unified deserialization service
-			var components = Services.ModComponentSerializationService.DeserializeModComponentFromTomlString(tomlString);
+			List<ModComponent> components = Services.ModComponentSerializationService.DeserializeModComponentFromTomlString( tomlString );
 			return components?.FirstOrDefault();
 		}
 		public async Task<InstallExitCode> InstallAsync(
 			[NotNull] List<ModComponent> componentsList,
-			CancellationToken cancellationToken)
+			CancellationToken cancellationToken )
 		{
-			if ( componentsList is null )
-				throw new ArgumentNullException(nameof(componentsList));
+			if (componentsList is null)
+				throw new ArgumentNullException( nameof( componentsList ) );
 			cancellationToken.ThrowIfCancellationRequested();
 
 			InstallState = ComponentInstallState.Running;
 			LastStartedUtc = DateTimeOffset.UtcNow;
-			var sw = System.Diagnostics.Stopwatch.StartNew();
+			System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
 
 			try
 			{
-				var realFileSystem = new Services.FileSystem.RealFileSystemProvider();
+				Services.FileSystem.RealFileSystemProvider realFileSystem = new Services.FileSystem.RealFileSystemProvider();
 				InstallExitCode exitCode = await ExecuteInstructionsAsync(
 					Instructions,
 					componentsList,
 					cancellationToken,
+
+
 					realFileSystem
-				);
-				await Logger.LogAsync((string)Utility.Utility.GetEnumDescription(exitCode));
+				).ConfigureAwait( false );
+				await Logger.LogAsync( (string)UtilityHelper.GetEnumDescription( exitCode ) ).ConfigureAwait( false );
 
 				sw.Stop();
 				bool success = exitCode == InstallExitCode.Success;
@@ -618,12 +673,12 @@ namespace KOTORModSync.Core
 					errorMessage: success ? null : exitCode.ToString()
 				);
 
-				if ( exitCode == InstallExitCode.Success )
+				if (exitCode == InstallExitCode.Success)
 				{
 					InstallState = ComponentInstallState.Completed;
 					LastCompletedUtc = DateTimeOffset.UtcNow;
 				}
-				else if ( exitCode == InstallExitCode.DependencyViolation )
+				else if (exitCode == InstallExitCode.DependencyViolation)
 				{
 					InstallState = ComponentInstallState.Blocked;
 					LastCompletedUtc = DateTimeOffset.UtcNow;
@@ -635,9 +690,11 @@ namespace KOTORModSync.Core
 				}
 				return exitCode;
 			}
-			catch ( InvalidOperationException ex )
+			catch (InvalidOperationException ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex);
+				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
 				sw.Stop();
 				Services.TelemetryService.Instance.RecordModInstallation(
 					modName: Name,
@@ -648,7 +705,7 @@ namespace KOTORModSync.Core
 				InstallState = ComponentInstallState.Failed;
 				LastCompletedUtc = DateTimeOffset.UtcNow;
 			}
-			catch ( OperationCanceledException )
+			catch (OperationCanceledException)
 			{
 				sw.Stop();
 				Services.TelemetryService.Instance.RecordModInstallation(
@@ -660,13 +717,17 @@ namespace KOTORModSync.Core
 				InstallState = ComponentInstallState.Failed;
 				throw;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex);
+				await Logger.LogExceptionAsync( ex )
+
+.ConfigureAwait( false );
 				await Logger.LogErrorAsync(
 					"The above exception is not planned and has not been experienced."
 					+ " Please report this to the developer."
-				);
+				).ConfigureAwait( false );
 				sw.Stop();
 				Services.TelemetryService.Instance.RecordModInstallation(
 					modName: Name,
@@ -692,54 +753,78 @@ namespace KOTORModSync.Core
 			CancellationToken cancellationToken = default
 		)
 		{
-			if ( instruction is null )
-				throw new ArgumentNullException(nameof(instruction));
-			if ( componentsList is null )
-				throw new ArgumentNullException(nameof(componentsList));
-			if ( fileSystemProvider is null )
-				throw new ArgumentNullException(nameof(fileSystemProvider));
+			if (instruction is null)
+				throw new ArgumentNullException( nameof( instruction ) );
+			if (componentsList is null)
+				throw new ArgumentNullException( nameof( componentsList ) );
+			if (fileSystemProvider is null)
+				throw new ArgumentNullException( nameof( fileSystemProvider ) );
 
 			Instruction.ActionExitCode exitCode = Instruction.ActionExitCode.Success;
-			switch ( instruction.Action )
+			switch (instruction.Action)
 			{
 				case Instruction.ActionType.Extract:
 					instruction.SetRealPaths();
-					exitCode = await instruction.ExtractFileAsync();
+
+
+					exitCode = await instruction.ExtractFileAsync()
+
+
+
+
+
+
+
+
+
+
+
+
+
+.ConfigureAwait( false );
+
+
+
+
+
+
+
+
 					break;
 				case Instruction.ActionType.Delete:
-					instruction.SetRealPaths(skipExistenceCheck: true);
+					instruction.SetRealPaths( skipExistenceCheck: true );
 					exitCode = instruction.DeleteFile();
 					break;
 				case Instruction.ActionType.DelDuplicate:
-					instruction.SetRealPaths(sourceIsNotFilePath: true);
-					instruction.DeleteDuplicateFile(caseInsensitive: true);
+					instruction.SetRealPaths( sourceIsNotFilePath: true );
+					instruction.DeleteDuplicateFile( caseInsensitive: true );
 					exitCode = Instruction.ActionExitCode.Success;
 					break;
 				case Instruction.ActionType.Copy:
 					instruction.SetRealPaths();
-					exitCode = await instruction.CopyFileAsync();
+					exitCode = await instruction.CopyFileAsync().ConfigureAwait( false );
 					break;
 				case Instruction.ActionType.Move:
 					instruction.SetRealPaths();
-					exitCode = await instruction.MoveFileAsync();
+					exitCode = await instruction.MoveFileAsync().ConfigureAwait( false );
 					break;
 				case Instruction.ActionType.Rename:
-					instruction.SetRealPaths(skipExistenceCheck: true);
+					instruction.SetRealPaths( skipExistenceCheck: true );
 					exitCode = instruction.RenameFile();
 					break;
 				case Instruction.ActionType.Patcher:
 					instruction.SetRealPaths();
-					exitCode = await instruction.ExecuteTSLPatcherAsync();
+					exitCode = await instruction.ExecuteTSLPatcherAsync().ConfigureAwait( false );
 					break;
 				case Instruction.ActionType.Execute:
 				case Instruction.ActionType.Run:
-					instruction.SetRealPaths(skipExistenceCheck: true);
-					exitCode = await instruction.ExecuteProgramAsync();
+					instruction.SetRealPaths( skipExistenceCheck: true );
+					exitCode = await instruction.ExecuteProgramAsync().ConfigureAwait( false );
 					break;
 				case Instruction.ActionType.Choose:
-					instruction.SetRealPaths(sourceIsNotFilePath: true);
+					instruction.SetRealPaths( sourceIsNotFilePath: true );
 					List<Option> list = instruction.GetChosenOptions();
-					for ( int i = 0; i < list.Count; i++ )
+					for (int i = 0; i < list.Count; i++)
 					{
 						Option thisOption = list[i];
 						InstallExitCode optionExitCode = await ExecuteInstructionsAsync(
@@ -748,18 +833,17 @@ namespace KOTORModSync.Core
 							cancellationToken,
 							fileSystemProvider,
 							skipDependencyCheck
-						);
-						if ( optionExitCode != InstallExitCode.Success )
+						).ConfigureAwait( false );
+						if (optionExitCode != InstallExitCode.Success)
 						{
-							await Logger.LogErrorAsync($"Failed to install chosen option {i + 1} in main instruction index {instructionIndex}");
+							await Logger.LogErrorAsync( $"Failed to install chosen option {i + 1} in main instruction index {instructionIndex}" ).ConfigureAwait( false );
 							exitCode = Instruction.ActionExitCode.OptionalInstallFailed;
 							break;
 						}
 					}
 					break;
-				case Instruction.ActionType.Unset:
 				default:
-					await Logger.LogWarningAsync($"Unknown instruction '{instruction.ActionString}'");
+					await Logger.LogWarningAsync( $"Unknown instruction '{instruction.ActionString}'" ).ConfigureAwait( false );
 					exitCode = Instruction.ActionExitCode.UnknownInstruction;
 					break;
 			}
@@ -774,30 +858,30 @@ namespace KOTORModSync.Core
 			bool skipDependencyCheck = false
 		)
 		{
-			if ( theseInstructions is null )
-				throw new ArgumentNullException(nameof(theseInstructions));
-			if ( componentsList is null )
-				throw new ArgumentNullException(nameof(componentsList));
-			if ( fileSystemProvider is null )
-				throw new ArgumentNullException(nameof(fileSystemProvider));
+			if (theseInstructions is null)
+				throw new ArgumentNullException( nameof( theseInstructions ) );
+			if (componentsList is null)
+				throw new ArgumentNullException( nameof( componentsList ) );
+			if (fileSystemProvider is null)
+				throw new ArgumentNullException( nameof( fileSystemProvider ) );
 
-			var sw = System.Diagnostics.Stopwatch.StartNew();
+			System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
 			try
 			{
-				if ( !skipDependencyCheck )
+				if (!skipDependencyCheck)
 				{
-					bool shouldInstall = ShouldInstallComponent(componentsList);
-					if ( !shouldInstall )
+					bool shouldInstall = ShouldInstallComponent( componentsList );
+					if (!shouldInstall)
 						return InstallExitCode.DependencyViolation;
 				}
 
 				InstallExitCode installExitCode = InstallExitCode.Success;
-				for ( int instructionIndex = 1; instructionIndex <= theseInstructions.Count; instructionIndex++ )
+				for (int instructionIndex = 1; instructionIndex <= theseInstructions.Count; instructionIndex++)
 				{
 					cancellationToken.ThrowIfCancellationRequested();
 					Instruction instruction = theseInstructions[instructionIndex - 1];
-					instruction.SetFileSystemProvider(fileSystemProvider);
-					if ( !ShouldRunInstruction(instruction, componentsList) )
+					instruction.SetFileSystemProvider( fileSystemProvider );
+					if (!ShouldRunInstruction( instruction, componentsList ))
 						continue;
 
 					Instruction.ActionExitCode exitCode = await ExecuteSingleInstructionAsync(
@@ -807,21 +891,21 @@ namespace KOTORModSync.Core
 						fileSystemProvider,
 						skipDependencyCheck,
 						cancellationToken
-					);
+					).ConfigureAwait( false );
 
 					_ = Logger.LogVerboseAsync(
 						$"Instruction #{instructionIndex} '{instruction.ActionString}' exited with code {exitCode}"
 					);
-					if ( exitCode != Instruction.ActionExitCode.Success )
+					if (exitCode != Instruction.ActionExitCode.Success)
 					{
 						await Logger.LogErrorAsync(
 							$"FAILED Instruction #{instructionIndex} Action '{instruction.ActionString}'"
-						);
-						if ( exitCode == Instruction.ActionExitCode.OptionalInstallFailed )
+						).ConfigureAwait( false );
+						if (exitCode == Instruction.ActionExitCode.OptionalInstallFailed)
 							return InstallExitCode.UserCancelledInstall;
 						return InstallExitCode.UnknownError;
 					}
-					_ = Logger.LogVerboseAsync($"Successfully completed instruction #{instructionIndex} '{instruction.Action}'");
+					_ = Logger.LogVerboseAsync( $"Successfully completed instruction #{instructionIndex} '{instruction.Action}'" );
 				}
 
 				sw.Stop();
@@ -834,7 +918,7 @@ namespace KOTORModSync.Core
 
 				return installExitCode;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				sw.Stop();
 				Services.TelemetryService.Instance.RecordComponentExecution(
@@ -854,51 +938,51 @@ namespace KOTORModSync.Core
 			[NotNull][ItemNotNull] List<ModComponent> componentsList
 		)
 		{
-			if ( dependencyGuids is null )
-				throw new ArgumentNullException(nameof(dependencyGuids));
-			if ( restrictionGuids is null )
-				throw new ArgumentNullException(nameof(restrictionGuids));
-			if ( componentsList == null )
-				throw new ArgumentNullException(nameof(componentsList));
-			var conflicts = new Dictionary<string, List<ModComponent>>();
-			if ( dependencyGuids.Count > 0 )
+			if (dependencyGuids is null)
+				throw new ArgumentNullException( nameof( dependencyGuids ) );
+			if (restrictionGuids is null)
+				throw new ArgumentNullException( nameof( restrictionGuids ) );
+			if (componentsList == null)
+				throw new ArgumentNullException( nameof( componentsList ) );
+			Dictionary<string, List<ModComponent>> conflicts = new Dictionary<string, List<ModComponent>>( StringComparer.Ordinal );
+			if (dependencyGuids.Count > 0)
 			{
-				var dependencyConflicts = new List<ModComponent>();
-				foreach ( Guid requiredGuid in dependencyGuids )
+				List<ModComponent> dependencyConflicts = new List<ModComponent>();
+				foreach (Guid requiredGuid in dependencyGuids)
 				{
-					ModComponent checkComponent = FindComponentFromGuid(requiredGuid, componentsList);
-					if ( checkComponent == null )
+					ModComponent checkComponent = FindComponentFromGuid( requiredGuid, componentsList );
+					if (checkComponent == null)
 					{
-						var componentGuidNotFound = new ModComponent
+						ModComponent componentGuidNotFound = new ModComponent
 						{
 							Name = "ModComponent Undefined with GUID.",
 							Guid = requiredGuid,
 						};
-						dependencyConflicts.Add(componentGuidNotFound);
+						dependencyConflicts.Add( componentGuidNotFound );
 					}
-					else if ( !checkComponent.IsSelected )
+					else if (!checkComponent.IsSelected)
 					{
-						dependencyConflicts.Add(checkComponent);
+						dependencyConflicts.Add( checkComponent );
 					}
 				}
-				if ( dependencyConflicts.Count > 0 )
+				if (dependencyConflicts.Count > 0)
 					conflicts["Dependency"] = dependencyConflicts;
 			}
-			if ( restrictionGuids.Count > 0 )
+			if (restrictionGuids.Count > 0)
 			{
-				var restrictionConflicts = restrictionGuids
-					.Select(requiredGuid => FindComponentFromGuid(requiredGuid, componentsList)).Where(
+				List<ModComponent> restrictionConflicts = restrictionGuids
+					.Select( requiredGuid => FindComponentFromGuid( requiredGuid, componentsList ) ).Where(
 						checkComponent => checkComponent?.IsSelected ?? false
 					).ToList();
-				if ( restrictionConflicts.Count > 0 )
+				if (restrictionConflicts.Count > 0)
 					conflicts["Restriction"] = restrictionConflicts;
 			}
 			return conflicts;
 		}
-		public bool ShouldInstallComponent([NotNull][ItemNotNull] List<ModComponent> componentsList)
+		public bool ShouldInstallComponent( [NotNull][ItemNotNull] List<ModComponent> componentsList )
 		{
-			if ( componentsList is null )
-				throw new ArgumentNullException(nameof(componentsList));
+			if (componentsList is null)
+				throw new ArgumentNullException( nameof( componentsList ) );
 			Dictionary<string, List<ModComponent>> conflicts = GetConflictingComponents(
 				Dependencies,
 				Restrictions,
@@ -911,10 +995,10 @@ namespace KOTORModSync.Core
 			[NotNull] List<ModComponent> componentsList
 		)
 		{
-			if ( instruction is null )
-				throw new ArgumentNullException(nameof(instruction));
-			if ( componentsList is null )
-				throw new ArgumentNullException(nameof(componentsList));
+			if (instruction is null)
+				throw new ArgumentNullException( nameof( instruction ) );
+			if (componentsList is null)
+				throw new ArgumentNullException( nameof( componentsList ) );
 			Dictionary<string, List<ModComponent>> conflicts = GetConflictingComponents(
 				instruction.Dependencies,
 				instruction.Restrictions,
@@ -928,25 +1012,25 @@ namespace KOTORModSync.Core
 			[NotNull][ItemNotNull] List<ModComponent> componentsList
 		)
 		{
-			if ( componentsList is null )
-				throw new ArgumentNullException(nameof(componentsList));
+			if (componentsList is null)
+				throw new ArgumentNullException( nameof( componentsList ) );
 			ModComponent foundComponent = null;
-			foreach ( ModComponent component in componentsList )
+			foreach (ModComponent component in componentsList)
 			{
-				if ( component.Guid == guidToFind )
+				if (component.Guid == guidToFind)
 				{
 					foundComponent = component;
 					break;
 				}
-				foreach ( Option thisOption in component.Options )
+				foreach (Option thisOption in component.Options)
 				{
-					if ( thisOption.Guid == guidToFind )
+					if (thisOption.Guid == guidToFind)
 					{
 						foundComponent = thisOption;
 						break;
 					}
 				}
-				if ( foundComponent != null )
+				if (foundComponent != null)
 					break;
 			}
 			return foundComponent;
@@ -957,17 +1041,17 @@ namespace KOTORModSync.Core
 			[NotNull] List<ModComponent> componentsList
 		)
 		{
-			if ( guidsToFind is null )
-				throw new ArgumentNullException(nameof(guidsToFind));
-			if ( componentsList is null )
-				throw new ArgumentNullException(nameof(componentsList));
-			var foundComponents = new List<ModComponent>();
-			foreach ( Guid guidToFind in guidsToFind )
+			if (guidsToFind is null)
+				throw new ArgumentNullException( nameof( guidsToFind ) );
+			if (componentsList is null)
+				throw new ArgumentNullException( nameof( componentsList ) );
+			List<ModComponent> foundComponents = new List<ModComponent>();
+			foreach (Guid guidToFind in guidsToFind)
 			{
-				ModComponent foundComponent = FindComponentFromGuid(guidToFind, componentsList);
-				if ( foundComponent is null )
+				ModComponent foundComponent = FindComponentFromGuid( guidToFind, componentsList );
+				if (foundComponent is null)
 					continue;
-				foundComponents.Add(foundComponent);
+				foundComponents.Add( foundComponent );
 			}
 			return foundComponents;
 		}
@@ -975,20 +1059,20 @@ namespace KOTORModSync.Core
 			[NotNull][ItemNotNull] List<ModComponent> components
 		)
 		{
-			if ( components is null )
-				throw new ArgumentNullException(nameof(components));
-			Dictionary<Guid, GraphNode> nodeMap = CreateDependencyGraph(components);
-			var permanentMark = new HashSet<GraphNode>();
-			var temporaryMark = new HashSet<GraphNode>();
-			if ( nodeMap.Values.Where(node => !permanentMark.Contains(node)).Any(node => HasCycle(node, permanentMark, temporaryMark)) )
-				throw new KeyNotFoundException("Circular dependency detected in component ordering");
-			var visitedNodes = new HashSet<GraphNode>();
-			var orderedComponents = new List<ModComponent>();
-			foreach ( GraphNode node in nodeMap.Values.Where(node => !visitedNodes.Contains(node)) )
+			if (components is null)
+				throw new ArgumentNullException( nameof( components ) );
+			Dictionary<Guid, GraphNode> nodeMap = CreateDependencyGraph( components );
+			HashSet<GraphNode> permanentMark = new HashSet<GraphNode>();
+			HashSet<GraphNode> temporaryMark = new HashSet<GraphNode>();
+			if (nodeMap.Values.Where( node => !permanentMark.Contains( node ) ).Any( node => HasCycle( node, permanentMark, temporaryMark ) ))
+				throw new KeyNotFoundException( "Circular dependency detected in component ordering" );
+			HashSet<GraphNode> visitedNodes = new HashSet<GraphNode>();
+			List<ModComponent> orderedComponents = new List<ModComponent>();
+			foreach (GraphNode node in nodeMap.Values.Where( node => !visitedNodes.Contains( node ) ))
 			{
-				DepthFirstSearch(node, visitedNodes, orderedComponents);
+				DepthFirstSearch( node, visitedNodes, orderedComponents );
 			}
-			bool isCorrectOrder = orderedComponents.SequenceEqual(components);
+			bool isCorrectOrder = orderedComponents.SequenceEqual( components );
 			return (isCorrectOrder, orderedComponents);
 		}
 		private static bool HasCycle(
@@ -997,18 +1081,18 @@ namespace KOTORModSync.Core
 			[NotNull] ISet<GraphNode> temporaryMark
 		)
 		{
-			if ( permanentMark.Contains(node) )
+			if (permanentMark.Contains( node ))
 				return false;
-			if ( temporaryMark.Contains(node) )
+			if (temporaryMark.Contains( node ))
 				return true;
-			_ = temporaryMark.Add(node);
-			foreach ( GraphNode dependency in node.Dependencies )
+			_ = temporaryMark.Add( node );
+			foreach (GraphNode dependency in node.Dependencies)
 			{
-				if ( HasCycle(dependency, permanentMark, temporaryMark) )
+				if (HasCycle( dependency, permanentMark, temporaryMark ))
 					return true;
 			}
-			_ = temporaryMark.Remove(node);
-			_ = permanentMark.Add(node);
+			_ = temporaryMark.Remove( node );
+			_ = permanentMark.Add( node );
 			return false;
 		}
 		private static void DepthFirstSearch(
@@ -1017,135 +1101,135 @@ namespace KOTORModSync.Core
 			[NotNull] ICollection<ModComponent> orderedComponents
 		)
 		{
-			if ( node is null )
-				throw new ArgumentNullException(nameof(node));
-			if ( visitedNodes is null )
-				throw new ArgumentNullException(nameof(visitedNodes));
-			if ( orderedComponents is null )
-				throw new ArgumentNullException(nameof(orderedComponents));
-			_ = visitedNodes.Add(node);
-			foreach ( var dependency in node.Dependencies.Where(dependency => !visitedNodes.Contains(dependency)) )
+			if (node is null)
+				throw new ArgumentNullException( nameof( node ) );
+			if (visitedNodes is null)
+				throw new ArgumentNullException( nameof( visitedNodes ) );
+			if (orderedComponents is null)
+				throw new ArgumentNullException( nameof( orderedComponents ) );
+			_ = visitedNodes.Add( node );
+			foreach (GraphNode dependency in node.Dependencies.Where( dependency => !visitedNodes.Contains( dependency ) ))
 			{
-				DepthFirstSearch(dependency, visitedNodes, orderedComponents);
+				DepthFirstSearch( dependency, visitedNodes, orderedComponents );
 			}
-			orderedComponents.Add(node.ModComponent);
+			orderedComponents.Add( node.ModComponent );
 		}
 		private static Dictionary<Guid, GraphNode> CreateDependencyGraph(
 			[NotNull][ItemNotNull] List<ModComponent> components
 		)
 		{
-			if ( components is null )
-				throw new ArgumentNullException(nameof(components));
-			var nodeMap = new Dictionary<Guid, GraphNode>();
-			foreach ( ModComponent component in components )
+			if (components is null)
+				throw new ArgumentNullException( nameof( components ) );
+			Dictionary<Guid, GraphNode> nodeMap = new Dictionary<Guid, GraphNode>();
+			foreach (ModComponent component in components)
 			{
-				var node = new GraphNode(component);
+				GraphNode node = new GraphNode( component );
 				nodeMap[component.Guid] = node;
 			}
-			foreach ( ModComponent component in components )
+			foreach (ModComponent component in components)
 			{
 				GraphNode node = nodeMap[component.Guid];
-				foreach ( Guid dependencyGuid in component.InstallAfter )
+				foreach (Guid dependencyGuid in component.InstallAfter)
 				{
-					if ( !nodeMap.TryGetValue(dependencyGuid, out GraphNode dependencyNode) )
+					if (!nodeMap.TryGetValue( dependencyGuid, out GraphNode dependencyNode ))
 					{
-						Logger.LogWarning($"ModComponent '{component.Name}' references InstallAfter GUID {dependencyGuid} which is not in the current component list");
+						Logger.LogWarning( $"ModComponent '{component.Name}' references InstallAfter GUID {dependencyGuid} which is not in the current component list" );
 						continue;
 					}
-					_ = node?.Dependencies?.Add(dependencyNode);
+					_ = node?.Dependencies?.Add( dependencyNode );
 				}
-				foreach ( Guid dependentGuid in component.InstallBefore )
+				foreach (Guid dependentGuid in component.InstallBefore)
 				{
-					if ( !nodeMap.TryGetValue(dependentGuid, out GraphNode dependentNode) )
+					if (!nodeMap.TryGetValue( dependentGuid, out GraphNode dependentNode ))
 					{
-						Logger.LogWarning($"ModComponent '{component.Name}' references InstallBefore GUID {dependentGuid} which is not in the current component list");
+						Logger.LogWarning( $"ModComponent '{component.Name}' references InstallBefore GUID {dependentGuid} which is not in the current component list" );
 						continue;
 					}
-					_ = dependentNode?.Dependencies?.Add(node);
+					_ = dependentNode?.Dependencies?.Add( node );
 				}
 			}
 			return nodeMap;
 		}
-		public void CreateInstruction(int index = 0)
+		public void CreateInstruction( int index = 0 )
 		{
-			var instruction = new Instruction();
-			if ( Instructions.IsNullOrEmptyOrAllNull() )
+			Instruction instruction = new Instruction();
+			if (Instructions.IsNullOrEmptyOrAllNull())
 			{
-				if ( index != 0 )
+				if (index != 0)
 				{
-					Logger.LogError("Cannot create instruction at index when list is empty.");
+					Logger.LogError( "Cannot create instruction at index when list is empty." );
 					return;
 				}
-				Instructions.Add(instruction);
+				Instructions.Add( instruction );
 			}
 			else
 			{
-				Instructions.Insert(index, instruction);
+				Instructions.Insert( index, instruction );
 			}
-			instruction.SetParentComponent(this);
+			instruction.SetParentComponent( this );
 		}
-		public void DeleteInstruction(int index) => Instructions.RemoveAt(index);
-		public void DeleteOption(int index) => Options.RemoveAt(index);
-		public void MoveInstructionToIndex([NotNull] Instruction thisInstruction, int index)
+		public void DeleteInstruction( int index ) => Instructions.RemoveAt( index );
+		public void DeleteOption( int index ) => Options.RemoveAt( index );
+		public void MoveInstructionToIndex( [NotNull] Instruction thisInstruction, int index )
 		{
-			if ( thisInstruction is null || index < 0 || index >= Instructions.Count )
-				throw new ArgumentException("Invalid instruction or index.");
-			int currentIndex = Instructions.IndexOf(thisInstruction);
-			if ( currentIndex < 0 )
-				throw new ArgumentException("Instruction does not exist in the list.");
-			if ( index == currentIndex )
+			if (thisInstruction is null || index < 0 || index >= Instructions.Count)
+				throw new ArgumentException( "Invalid instruction or index." );
+			int currentIndex = Instructions.IndexOf( thisInstruction );
+			if (currentIndex < 0)
+				throw new ArgumentException( "Instruction does not exist in the list." );
+			if (index == currentIndex)
 			{
 				_ = Logger.LogAsync(
 					$"Cannot move Instruction '{thisInstruction.Action}' from {currentIndex} to {index}. Reason: Indices are the same."
 				);
 				return;
 			}
-			Instructions.RemoveAt(currentIndex);
-			Instructions.Insert(index, thisInstruction);
-			_ = Logger.LogVerboseAsync($"Instruction '{thisInstruction.Action}' moved from {currentIndex} to {index}");
+			Instructions.RemoveAt( currentIndex );
+			Instructions.Insert( index, thisInstruction );
+			_ = Logger.LogVerboseAsync( $"Instruction '{thisInstruction.Action}' moved from {currentIndex} to {index}" );
 		}
-		public void CreateOption(int index = 0)
+		public void CreateOption( int index = 0 )
 		{
-			var option = new Option
+			Option option = new Option
 			{
-				Name = Path.GetFileNameWithoutExtension(Path.GetTempFileName()),
+				Name = Path.GetFileNameWithoutExtension( Path.GetTempFileName() ),
 				Guid = Guid.NewGuid(),
 			};
-			if ( Instructions.IsNullOrEmptyOrAllNull() )
+			if (Instructions.IsNullOrEmptyOrAllNull())
 			{
-				if ( index != 0 )
+				if (index != 0)
 				{
-					Logger.LogError("Cannot create option at index when list is empty.");
+					Logger.LogError( "Cannot create option at index when list is empty." );
 					return;
 				}
-				Options.Add(option);
+				Options.Add( option );
 			}
 			else
 			{
-				Options.Insert(index, option);
+				Options.Insert( index, option );
 			}
 		}
-		public void MoveOptionToIndex([NotNull] Option thisOption, int index)
+		public void MoveOptionToIndex( [NotNull] Option thisOption, int index )
 		{
-			if ( thisOption is null || index < 0 || index >= Options.Count )
-				throw new ArgumentException("Invalid option or index.");
-			int currentIndex = Options.IndexOf(thisOption);
-			if ( currentIndex < 0 )
-				throw new ArgumentException("Option does not exist in the list.");
-			if ( index == currentIndex )
+			if (thisOption is null || index < 0 || index >= Options.Count)
+				throw new ArgumentException( "Invalid option or index." );
+			int currentIndex = Options.IndexOf( thisOption );
+			if (currentIndex < 0)
+				throw new ArgumentException( "Option does not exist in the list." );
+			if (index == currentIndex)
 			{
 				_ = Logger.LogAsync(
 					$"Cannot move Option '{thisOption.Name}' from {currentIndex} to {index}. Reason: Indices are the same."
 				);
 				return;
 			}
-			Options.RemoveAt(currentIndex);
-			Options.Insert(index, thisOption);
-			_ = Logger.LogVerboseAsync($"Option '{thisOption.Name}' moved from {currentIndex} to {index}");
+			Options.RemoveAt( currentIndex );
+			Options.Insert( index, thisOption );
+			_ = Logger.LogVerboseAsync( $"Option '{thisOption.Name}' moved from {currentIndex} to {index}" );
 		}
 		public class GraphNode
 		{
-			public GraphNode([CanBeNull] ModComponent component)
+			public GraphNode( [CanBeNull] ModComponent component )
 			{
 				ModComponent = component;
 				Dependencies = new HashSet<GraphNode>();
@@ -1154,8 +1238,71 @@ namespace KOTORModSync.Core
 			public HashSet<GraphNode> Dependencies { get; }
 		}
 	}
+
+	/// <summary>
+	/// Metadata for content-addressable resource tracking.
+	/// Supports dual-key lookup (MetadataHash before download, ContentId after).
+	/// </summary>
+	public class ResourceMetadata
+	{
+		/// <summary>Current lookup key (MetadataHash initially, ContentId after download)</summary>
+		public string ContentKey { get; set; }
+
+		/// <summary>SHA-1 of bencoded info dict (BitTorrent infohash) - null pre-download</summary>
+		public string ContentId { get; set; }
+
+		/// <summary>SHA-256 of file bytes - CANONICAL for integrity (null pre-download)</summary>
+		public string ContentHashSHA256 { get; set; }
+
+		/// <summary>SHA-256 of canonical provider metadata</summary>
+		public string MetadataHash { get; set; }
+
+		/// <summary>Primary download URL</summary>
+		public string PrimaryUrl { get; set; }
+
+		/// <summary>Provider-specific metadata (normalized)</summary>
+		[NotNull]
+		public Dictionary<string, object> HandlerMetadata { get; set; } = new Dictionary<string, object>( StringComparer.Ordinal );
+
+		/// <summary>Files contained in this resource (filename -> exists in archive)</summary>
+		[NotNull]
+		public Dictionary<string, bool?> Files { get; set; } = new Dictionary<string, bool?>( StringComparer.OrdinalIgnoreCase );
+
+		/// <summary>File size in bytes</summary>
+		public long FileSize { get; set; }
+
+		/// <summary>Bytes per piece (from DeterminePieceSize)</summary>
+		public int PieceLength { get; set; }
+
+		/// <summary>Hex-encoded concatenated SHA-1 hashes (20 bytes per piece)</summary>
+		public string PieceHashes { get; set; }
+
+		/// <summary>First time this resource was observed</summary>
+		public DateTime? FirstSeen { get; set; }
+
+		/// <summary>Last time integrity was verified</summary>
+		public DateTime? LastVerified { get; set; }
+
+		/// <summary>Schema version for migration</summary>
+		public int SchemaVersion { get; set; } = 1;
+
+		/// <summary>Trust level for mapping verification</summary>
+		public MappingTrustLevel TrustLevel { get; set; } = MappingTrustLevel.Unverified;
+	}
+
+	/// <summary>
+	/// Trust level for MetadataHash → ContentId mappings.
+	/// Elevated through independent verification.
+	/// </summary>
+	public enum MappingTrustLevel
+	{
+		/// <summary>Initial state - not yet verified</summary>
+		Unverified = 0,
+
+		/// <summary>Seen from one source</summary>
+		ObservedOnce = 1,
+
+		/// <summary>Verified from 2+ independent sources</summary>
+		Verified = 2
+	}
 }
-
-
-
-

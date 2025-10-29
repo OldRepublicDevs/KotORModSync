@@ -1,9 +1,10 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System.Security.Cryptography;
 using System.Text;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.FileSystem;
@@ -46,7 +47,7 @@ namespace KOTORModSync.Tests
 		{
 			try
 			{
-				if ( _gameDirectory?.Parent != null && _gameDirectory.Parent.Exists )
+				if (_gameDirectory?.Parent != null && _gameDirectory.Parent.Exists)
 				{
 					Directory.Delete(_gameDirectory.Parent.FullName, recursive: true);
 				}
@@ -64,31 +65,31 @@ namespace KOTORModSync.Tests
 			Directory.CreateDirectory(Path.Combine(_gameDirectory.FullName, "Modules"));
 			Directory.CreateDirectory(Path.Combine(_gameDirectory.FullName, "StreamVoice"));
 
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "chitin.key"), "ORIGINAL_CHITIN_KEY", 1024);
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "dialog.tlk"), "ORIGINAL_DIALOG_TLK", 5 * 1024 * 1024);
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "Override", "appearance.2da"), "ORIGINAL_APPEARANCE", 10 * 1024);
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "Modules", "danm13.mod"), "ORIGINAL_DANM13_MODULE", 2 * 1024 * 1024);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "chitin.key"), "ORIGINAL_CHITIN_KEY", 1024).ConfigureAwait(false);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "dialog.tlk"), "ORIGINAL_DIALOG_TLK", 5 * 1024 * 1024).ConfigureAwait(false);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "Override", "appearance.2da"), "ORIGINAL_APPEARANCE", 10 * 1024).ConfigureAwait(false);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "Modules", "danm13.mod"), "ORIGINAL_DANM13_MODULE", 2 * 1024 * 1024).ConfigureAwait(false);
 
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "StreamVoice", "large_audio.wav"), "ORIGINAL_LARGE_AUDIO", 50 * 1024 * 1024);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "StreamVoice", "large_audio.wav"), "ORIGINAL_LARGE_AUDIO", 50 * 1024 * 1024).ConfigureAwait(false);
 		}
 
 		private async Task CreateTestFileAsync(string path, string contentPattern, int sizeBytes)
 		{
 			string? directoryName = Path.GetDirectoryName(path);
-			if ( !string.IsNullOrEmpty(directoryName) )
+			if (!string.IsNullOrEmpty(directoryName))
 			{
 				Directory.CreateDirectory(directoryName);
 			}
 
-			using ( var stream = File.Create(path) )
+			using (var stream = File.Create(path))
 			{
 				byte[] pattern = Encoding.UTF8.GetBytes(contentPattern);
 				int written = 0;
 
-				while ( written < sizeBytes )
+				while (written < sizeBytes)
 				{
 					int toWrite = Math.Min(pattern.Length, sizeBytes - written);
-					await stream.WriteAsync(pattern, 0, toWrite);
+					await stream.WriteAsync(pattern, 0, toWrite).ConfigureAwait(false);
 					written += toWrite;
 				}
 			}
@@ -116,15 +117,15 @@ namespace KOTORModSync.Tests
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Copy,
-				Source = new List<string> { newTexture },
-				Destination = Path.Combine(_gameDirectory.FullName, "Override", Path.GetFileName(newTexture))
+				Source = new List<string> { "<<modDirectory>>/" + Path.GetFileName(newTexture) },
+				Destination = "<<kotorDirectory>>/Override/" + Path.GetFileName(newTexture)
 			});
 
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Copy,
-				Source = new List<string> { modified2DA },
-				Destination = Path.Combine(_gameDirectory.FullName, "Override", "appearance.2da")
+				Source = new List<string> { "<<modDirectory>>/appearance.2da" },
+				Destination = "<<kotorDirectory>>/Override/appearance.2da"
 			});
 
 			return component;
@@ -147,18 +148,18 @@ namespace KOTORModSync.Tests
 			string originalAudio = Path.Combine(_gameDirectory.FullName, "StreamVoice", "large_audio.wav");
 
 			File.Copy(originalAudio, modifiedAudio, true);
-			using ( var stream = File.OpenWrite(modifiedAudio) )
+			using (var stream = File.OpenWrite(modifiedAudio))
 			{
 				stream.Seek(1024 * 1024, SeekOrigin.Begin);
 				byte[] modification = Encoding.UTF8.GetBytes("MODIFIED_SECTION_OF_LARGE_FILE");
-				await stream.WriteAsync(modification, 0, modification.Length);
+				await stream.WriteAsync(modification, 0, modification.Length).ConfigureAwait(false);
 			}
 
 			component.Instructions.Add(new Instruction
 			{
 				Action = Instruction.ActionType.Copy,
-				Source = new List<string> { modifiedAudio },
-				Destination = originalAudio
+				Source = new List<string> { "<<modDirectory>>/large_audio.wav" },
+				Destination = "<<kotorDirectory>>/StreamVoice/large_audio.wav"
 			});
 
 			return component;
@@ -166,28 +167,28 @@ namespace KOTORModSync.Tests
 
 		private async Task<string> ComputeFileHashAsync(string filePath)
 		{
-			using ( var sha256 = SHA256.Create() )
-			using ( var stream = File.OpenRead(filePath) )
+			using (var sha256 = SHA256.Create())
+			using (var stream = File.OpenRead(filePath))
 			{
-				byte[] hash = await sha256.ComputeHashAsync(stream);
+				byte[] hash = await sha256.ComputeHashAsync(stream).ConfigureAwait(false);
 				return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
 			}
 		}
 
 		private async Task<bool> VerifyGameStateAsync(Checkpoint checkpoint)
 		{
-			foreach ( var file in checkpoint.Files )
+			foreach (var file in checkpoint.Files)
 			{
 				string fullPath = Path.Combine(_gameDirectory.FullName, file.Value.Path);
 
-				if ( !File.Exists(fullPath) )
+				if (!File.Exists(fullPath))
 				{
 					TestContext.Progress.WriteLine($"VERIFY FAILED: Missing file {file.Value.Path}");
 					return false;
 				}
 
-				string currentHash = await ComputeFileHashAsync(fullPath);
-				if ( currentHash != file.Value.Hash )
+				string currentHash = await ComputeFileHashAsync(fullPath).ConfigureAwait(false);
+				if (!string.Equals(currentHash, file.Value.Hash, StringComparison.Ordinal))
 				{
 					TestContext.Progress.WriteLine($"VERIFY FAILED: Hash mismatch for {file.Value.Path}");
 					TestContext.Progress.WriteLine($"  Expected: {file.Value.Hash}");
@@ -234,7 +235,7 @@ namespace KOTORModSync.Tests
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
 			Assert.That(checkpoints, Has.Count.EqualTo(2), "Should have baseline + 1 mod checkpoint");
 
-			var checkpoint = checkpoints.FirstOrDefault(c => c.Id == checkpointId);
+			var checkpoint = checkpoints.FirstOrDefault(c => string.Equals(c.Id, checkpointId, StringComparison.Ordinal));
 			Assert.That(checkpoint, Is.Not.Null, "Checkpoint should exist");
 			Assert.Multiple(() =>
 			{
@@ -256,7 +257,7 @@ namespace KOTORModSync.Tests
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 
 			var checkpoint = (await _checkpointService.ListCheckpointsAsync(_currentSessionId))
-				.First(c => c.Id == checkpointId);
+				.First(c => string.Equals(c.Id, checkpointId, StringComparison.Ordinal));
 
 			Assert.Multiple(() =>
 			{
@@ -279,7 +280,7 @@ namespace KOTORModSync.Tests
 			var fileSystemProvider = new RealFileSystemProvider();
 			int modCount = 5;
 
-			for ( int i = 1; i <= modCount; i++ )
+			for (int i = 1; i <= modCount; i++)
 			{
 				var mod = CreateTestModComponent($"Test Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -290,7 +291,7 @@ namespace KOTORModSync.Tests
 			Assert.That(checkpoints, Has.Count.EqualTo(modCount + 1), $"Should have baseline + {modCount} mod checkpoints");
 
 			var ordered = checkpoints.OrderBy(c => c.Sequence).ToList();
-			for ( int i = 0; i < ordered.Count; i++ )
+			for (int i = 0; i < ordered.Count; i++)
 			{
 				Assert.That(ordered[i].Sequence, Is.EqualTo(i), $"Checkpoint {i} should have sequence {i}");
 			}
@@ -303,7 +304,7 @@ namespace KOTORModSync.Tests
 			var fileSystemProvider = new RealFileSystemProvider();
 			int modCount = 25;
 
-			for ( int i = 1; i <= modCount; i++ )
+			for (int i = 1; i <= modCount; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -333,7 +334,7 @@ namespace KOTORModSync.Tests
 			var fileSystemProvider = new RealFileSystemProvider();
 			var checkpointIds = new List<string>();
 
-			for ( int i = 1; i <= 5; i++ )
+			for (int i = 1; i <= 5; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -346,7 +347,7 @@ namespace KOTORModSync.Tests
 
 			await _checkpointService.RestoreCheckpointAsync(targetCheckpoint.Id);
 
-			var restoredCheckpoint = checkpoints.First(c => c.Id == targetCheckpoint.Id);
+			var restoredCheckpoint = checkpoints.First(c => string.Equals(c.Id, targetCheckpoint.Id, StringComparison.Ordinal));
 			bool stateMatches = await VerifyGameStateAsync(restoredCheckpoint);
 			Assert.That(stateMatches, Is.True, "Game state should match checkpoint 3");
 
@@ -365,7 +366,7 @@ namespace KOTORModSync.Tests
 			_currentSessionId = await _checkpointService.StartInstallationSessionAsync();
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			for ( int i = 1; i <= 25; i++ )
+			for (int i = 1; i <= 25; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -377,11 +378,11 @@ namespace KOTORModSync.Tests
 
 			await _checkpointService.RestoreCheckpointAsync(targetCheckpoint.Id);
 
-			var restoredCheckpoint = checkpoints.First(c => c.Id == targetCheckpoint.Id);
+			var restoredCheckpoint = checkpoints.First(c => string.Equals(c.Id, targetCheckpoint.Id, StringComparison.Ordinal));
 			bool stateMatches = await VerifyGameStateAsync(restoredCheckpoint);
 			Assert.That(stateMatches, Is.True, "Game state should match checkpoint 5");
 
-			for ( int i = 6; i <= 25; i++ )
+			for (int i = 6; i <= 25; i++)
 			{
 				string modFile = Path.Combine(_gameDirectory.FullName, "Override", $"texture_{i}.tga");
 				Assert.That(File.Exists(modFile), Is.False, $"Mod {i} file should be removed");
@@ -397,7 +398,7 @@ namespace KOTORModSync.Tests
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
 			var baselineCheckpoint = checkpoints.First(c => c.Sequence == 0);
 
-			for ( int i = 1; i <= 10; i++ )
+			for (int i = 1; i <= 10; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -422,7 +423,7 @@ namespace KOTORModSync.Tests
 			_currentSessionId = await _checkpointService.StartInstallationSessionAsync();
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			for ( int i = 1; i <= 15; i++ )
+			for (int i = 1; i <= 15; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -437,13 +438,13 @@ namespace KOTORModSync.Tests
 			bool stateMatches = await VerifyGameStateAsync(anchorCheckpoint);
 			Assert.That(stateMatches, Is.True, "Game state should match anchor checkpoint 10");
 
-			for ( int i = 11; i <= 15; i++ )
+			for (int i = 11; i <= 15; i++)
 			{
 				string modFile = Path.Combine(_gameDirectory.FullName, "Override", $"texture_{i}.tga");
 				Assert.That(File.Exists(modFile), Is.False, $"Mod {i} file should be removed");
 			}
 
-			for ( int i = 1; i <= 10; i++ )
+			for (int i = 1; i <= 10; i++)
 			{
 				string modFile = Path.Combine(_gameDirectory.FullName, "Override", $"texture_{i}.tga");
 				Assert.That(File.Exists(modFile), Is.True, $"Mod {i} file should exist");
@@ -473,7 +474,7 @@ namespace KOTORModSync.Tests
 			Assert.That(modifiedHash, Is.Not.EqualTo(originalHash), "Large file should be modified");
 
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
-			var checkpoint = checkpoints.First(c => c.Id == checkpointId);
+			var checkpoint = checkpoints.First(c => string.Equals(c.Id, checkpointId, StringComparison.Ordinal));
 
 			var modifiedFile = checkpoint.Modified.FirstOrDefault(m => m.Path.Contains("large_audio.wav"));
 			Assert.That(modifiedFile, Is.Not.Null, "Should track large file modification");
@@ -509,8 +510,8 @@ namespace KOTORModSync.Tests
 					new Instruction
 					{
 						Action = Instruction.ActionType.Copy,
-						Source = new List<string> { sharedFilePath },
-						Destination = Path.Combine(_gameDirectory.FullName, "Override", "file1.txt")
+						Source = new List<string> { "<<modDirectory>>/shared_file.txt" },
+						Destination = "<<kotorDirectory>>/Override/file1.txt"
 					}
 				}
 			};
@@ -525,8 +526,8 @@ namespace KOTORModSync.Tests
 					new Instruction
 					{
 						Action = Instruction.ActionType.Copy,
-						Source = new List<string> { sharedFilePath },
-						Destination = Path.Combine(_gameDirectory.FullName, "Override", "file2.txt")
+						Source = new List<string> { "<<modDirectory>>/shared_file.txt" },
+						Destination = "<<kotorDirectory>>/Override/file2.txt"
 					}
 				}
 			};
@@ -538,8 +539,8 @@ namespace KOTORModSync.Tests
 			await _checkpointService.CreateCheckpointAsync(mod2.Name, mod2.Guid.ToString());
 
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
-			var cp1 = checkpoints.First(c => c.ComponentName == "Mod 1");
-			var cp2 = checkpoints.First(c => c.ComponentName == "Mod 2");
+			var cp1 = checkpoints.First(c => string.Equals(c.ComponentName, "Mod 1", StringComparison.Ordinal));
+			var cp2 = checkpoints.First(c => string.Equals(c.ComponentName, "Mod 2", StringComparison.Ordinal));
 
 			string file1CASHash = cp1.Files.First(f => f.Key.Contains("file1.txt")).Value.CASHash;
 			string file2CASHash = cp2.Files.First(f => f.Key.Contains("file2.txt")).Value.CASHash;
@@ -553,7 +554,7 @@ namespace KOTORModSync.Tests
 			_currentSessionId = await _checkpointService.StartInstallationSessionAsync();
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			for ( int i = 1; i <= 20; i++ )
+			for (int i = 1; i <= 20; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -563,10 +564,9 @@ namespace KOTORModSync.Tests
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
 			long totalDeltaSize = checkpoints.Sum(c => c.DeltaSize);
 			long totalFileSize = checkpoints.Sum(c => c.TotalSize);
-
-			TestContext.Progress.WriteLine($"Total file size: {totalFileSize:N0} bytes");
-			TestContext.Progress.WriteLine($"Total delta size: {totalDeltaSize:N0} bytes");
-			TestContext.Progress.WriteLine($"Storage efficiency: {(double)totalDeltaSize / totalFileSize * 100:F2}%");
+            await TestContext.Progress.WriteLineAsync($"Total file size: {totalFileSize:N0} bytes");
+			await TestContext.Progress.WriteLineAsync($"Total delta size: {totalDeltaSize:N0} bytes");
+			await TestContext.Progress.WriteLineAsync($"Storage efficiency: {(double)totalDeltaSize / totalFileSize * 100:F2}%");
 
 			Assert.That(totalDeltaSize, Is.LessThan(totalFileSize), "Delta storage should be smaller than full storage");
 		}
@@ -605,7 +605,7 @@ namespace KOTORModSync.Tests
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(mod.Name, mod.Guid.ToString());
 
 			string casObjectsDir = Path.Combine(_gameDirectory.FullName, ".kotor_modsync", "checkpoints", "objects");
-			if ( Directory.Exists(casObjectsDir) )
+			if (Directory.Exists(casObjectsDir))
 			{
 				Directory.Delete(casObjectsDir, true);
 			}
@@ -626,7 +626,7 @@ namespace KOTORModSync.Tests
 			_currentSessionId = await _checkpointService.StartInstallationSessionAsync();
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			for ( int i = 1; i <= 5; i++ )
+			for (int i = 1; i <= 5; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -652,7 +652,7 @@ namespace KOTORModSync.Tests
 			_currentSessionId = await _checkpointService.StartInstallationSessionAsync();
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			for ( int i = 1; i <= 5; i++ )
+			for (int i = 1; i <= 5; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -666,7 +666,7 @@ namespace KOTORModSync.Tests
 			Assert.That(orphanedCount, Is.GreaterThan(0), "Should have collected orphaned objects");
 
 			string casDir = Path.Combine(_gameDirectory.FullName, ".kotor_modsync", "checkpoints", "objects");
-			if ( Directory.Exists(casDir) )
+			if (Directory.Exists(casDir))
 			{
 				int remainingObjects = Directory.GetFiles(casDir, "*", SearchOption.AllDirectories).Length;
 				Assert.That(remainingObjects, Is.EqualTo(0), "All orphaned objects should be removed");
@@ -696,8 +696,8 @@ namespace KOTORModSync.Tests
 			Assert.That(sessions, Has.Count.EqualTo(2), "Should have two sessions");
 			Assert.Multiple(() =>
 			{
-				Assert.That(sessions.Any(s => s.Id == session1Id), Is.True, "Should contain session 1");
-				Assert.That(sessions.Any(s => s.Id == session2Id), Is.True, "Should contain session 2");
+				Assert.That(sessions.Any(s => string.Equals(s.Id, session1Id, StringComparison.Ordinal)), Is.True, "Should contain session 1");
+				Assert.That(sessions.Any(s => string.Equals(s.Id, session2Id, StringComparison.Ordinal)), Is.True, "Should contain session 2");
 			});
 		}
 
@@ -742,7 +742,7 @@ namespace KOTORModSync.Tests
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(emptyMod.Name, emptyMod.Guid.ToString());
 
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
-			var checkpoint = checkpoints.First(c => c.Id == checkpointId);
+			var checkpoint = checkpoints.First(c => string.Equals(c.Id, checkpointId, StringComparison.Ordinal));
 
 			Assert.That(checkpoint, Is.Not.Null, "Should create checkpoint even for empty mod");
 			Assert.Multiple(() =>
@@ -783,7 +783,7 @@ namespace KOTORModSync.Tests
 			string checkpointId = await _checkpointService.CreateCheckpointAsync(deleteMod.Name, deleteMod.Guid.ToString());
 
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
-			var checkpoint = checkpoints.First(c => c.Id == checkpointId);
+			var checkpoint = checkpoints.First(c => string.Equals(c.Id, checkpointId, StringComparison.Ordinal));
 
 			Assert.Multiple(() =>
 			{
@@ -791,7 +791,7 @@ namespace KOTORModSync.Tests
 				Assert.That(File.Exists(fileToDelete), Is.False, "File should be deleted");
 			});
 
-			var mod1Checkpoint = checkpoints.First(c => c.ComponentName == "Add Files Mod");
+			var mod1Checkpoint = checkpoints.First(c => string.Equals(c.ComponentName, "Add Files Mod", StringComparison.Ordinal));
 			await _checkpointService.RestoreCheckpointAsync(mod1Checkpoint.Id);
 
 			Assert.That(File.Exists(fileToDelete), Is.True, "File should be restored");
@@ -803,7 +803,7 @@ namespace KOTORModSync.Tests
 			_currentSessionId = await _checkpointService.StartInstallationSessionAsync();
 			var fileSystemProvider = new RealFileSystemProvider();
 
-			for ( int i = 1; i <= 5; i++ )
+			for (int i = 1; i <= 5; i++)
 			{
 				var mod = CreateTestModComponent($"Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -813,13 +813,13 @@ namespace KOTORModSync.Tests
 			var checkpoints = await _checkpointService.ListCheckpointsAsync(_currentSessionId);
 			var modCheckpoints = checkpoints.Where(c => c.Sequence > 0).ToList();
 
-			foreach ( var checkpoint in modCheckpoints )
+			foreach (var checkpoint in modCheckpoints)
 			{
 				var appearance2daChange = checkpoint.Modified.FirstOrDefault(m => m.Path.Contains("appearance.2da"));
 				Assert.That(appearance2daChange, Is.Not.Null, $"Checkpoint {checkpoint.Sequence} should track appearance.2da modification");
 			}
 
-			for ( int i = modCheckpoints.Count - 1; i >= 1; i-- )
+			for (int i = modCheckpoints.Count - 1; i >= 1; i--)
 			{
 				await _checkpointService.RestoreCheckpointAsync(modCheckpoints[i - 1].Id);
 				bool stateMatches = await VerifyGameStateAsync(modCheckpoints[i - 1]);
@@ -841,7 +841,7 @@ namespace KOTORModSync.Tests
 			int modCount = 50;
 			var timings = new List<TimeSpan>();
 
-			for ( int i = 1; i <= modCount; i++ )
+			for (int i = 1; i <= modCount; i++)
 			{
 				var mod = CreateTestModComponent($"Performance Mod {i}", i);
 				await mod.ExecuteInstructionsAsync(mod.Instructions, new List<ModComponent> { mod }, default, fileSystemProvider);
@@ -879,4 +879,3 @@ namespace KOTORModSync.Tests
 		#endregion
 	}
 }
-

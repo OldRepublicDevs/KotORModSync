@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,7 +9,9 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using KOTORModSync.Core.FileSystemUtils;
+
 using Newtonsoft.Json;
 
 namespace KOTORModSync.Core.Services.ImmutableCheckpoint
@@ -21,7 +23,6 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 		private readonly string _gameDirectory;
 		private readonly ContentAddressableStore _casStore;
 		private readonly BinaryDiffService _diffService;
-		private readonly object _sessionLock = new object();
 
 		private CheckpointSession _currentSession;
 		private Dictionary<string, FileState> _baselineFiles;
@@ -32,26 +33,38 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 		public event EventHandler<CheckpointEventArgs> CheckpointRestored;
 		public event EventHandler<CheckpointProgressEventArgs> Progress;
 
-		public CheckpointService(string gameDirectory)
+		public CheckpointService( string gameDirectory )
 		{
-			if ( string.IsNullOrWhiteSpace(gameDirectory) )
-				throw new ArgumentNullException(nameof(gameDirectory));
+			if (string.IsNullOrWhiteSpace( gameDirectory ))
+				throw new ArgumentNullException( nameof( gameDirectory ) );
 
 			_gameDirectory = gameDirectory;
-			_checkpointDirectory = Path.Combine(gameDirectory, ".kotor_modsync", "checkpoints");
+			_checkpointDirectory = Path.Combine( gameDirectory, ".kotor_modsync", "checkpoints" );
 
-			Directory.CreateDirectory(_checkpointDirectory);
+			Directory.CreateDirectory( _checkpointDirectory );
 
-			_casStore = new ContentAddressableStore(_checkpointDirectory);
-			_diffService = new BinaryDiffService(_casStore);
+			_casStore = new ContentAddressableStore( _checkpointDirectory );
+			_diffService = new BinaryDiffService( _casStore );
 		}
 
-		public async Task<string> StartInstallationSessionAsync(CancellationToken cancellationToken = default)
-		{
-			await Logger.LogAsync("[Checkpoint] Starting installation session...");
+		public async Task<string> StartInstallationSessionAsync( CancellationToken cancellationToken = default )
 
-			string sessionId = Guid.NewGuid().ToString();
-			string sessionName = $"Installation_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
+
+		{
+			await Logger.LogAsync( "[Checkpoint] Starting installation session..." ).ConfigureAwait( false );
+
+			string sessionId =
+
+
+
+
+
+Guid.NewGuid().ToString();
+			string sessionName =
+
+
+
+$"Installation_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
 
 			_currentSession = new CheckpointSession
 			{
@@ -64,19 +77,19 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 			_checkpointCounter = 0;
 
-			ReportProgress("Scanning baseline directory...", 0, 1);
-			_baselineFiles = await CheckpointService.ScanDirectoryAsync(_gameDirectory, cancellationToken);
-			_currentFiles = new Dictionary<string, FileState>(_baselineFiles, StringComparer.OrdinalIgnoreCase);
+			ReportProgress( "Scanning baseline directory...", 0, 1 );
+			_baselineFiles = await ScanDirectoryAsync( _gameDirectory, cancellationToken ).ConfigureAwait( false );
+			_currentFiles = new Dictionary<string, FileState>( _baselineFiles, StringComparer.OrdinalIgnoreCase );
 
-			await Logger.LogAsync($"[Checkpoint] Baseline captured: {_baselineFiles.Count} files, " +
-				$"{_baselineFiles.Sum(f => f.Value.Size):N0} bytes");
+			await Logger.LogAsync( $"[Checkpoint] Baseline captured: {_baselineFiles.Count} files, " +
+				$"{_baselineFiles.Sum( f => f.Value.Size ):N0} bytes" ).ConfigureAwait( false );
 
-			await SaveSessionAsync();
+			await SaveSessionAsync().ConfigureAwait( false );
 
-			string baselinePath = GetBaselinePath(sessionId);
-			await CheckpointService.SaveBaselineAsync(baselinePath, _baselineFiles);
+			string baselinePath = GetBaselinePath( sessionId );
+			await SaveBaselineAsync( baselinePath, _baselineFiles ).ConfigureAwait( false );
 
-			await Logger.LogAsync($"[Checkpoint] Session started: {sessionName} (ID: {sessionId})");
+			await Logger.LogAsync( $"[Checkpoint] Session started: {sessionName} (ID: {sessionId})" ).ConfigureAwait( false );
 
 			return sessionId;
 		}
@@ -84,30 +97,42 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 		public async Task<string> CreateCheckpointAsync(
 			string componentName,
 			string componentGuid,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default )
 		{
-			if ( _currentSession == null )
-				throw new InvalidOperationException("No active session. Call StartInstallationSessionAsync first.");
+			if (_currentSession == null)
+				throw new InvalidOperationException( "No active session. Call StartInstallationSessionAsync first." );
 
 			_checkpointCounter++;
 			bool isAnchor = (_checkpointCounter % ANCHOR_FREQUENCY) == 0;
 
-			await Logger.LogAsync($"[Checkpoint] Creating checkpoint #{_checkpointCounter} for '{componentName}' " +
-				$"(Anchor: {isAnchor})...");
+			await Logger.LogAsync( $"[Checkpoint] Creating checkpoint #{_checkpointCounter} for '{componentName}' " +
 
-			ReportProgress($"Creating checkpoint for {componentName}...", _checkpointCounter - 1, _currentSession.TotalComponents);
 
-			var newFiles = await CheckpointService.ScanDirectoryAsync(_gameDirectory, cancellationToken);
+				$"(Anchor: {isAnchor})..." )
 
-			var changes = CheckpointService.ComputeFileChanges(_currentFiles, newFiles);
 
-			await Logger.LogAsync($"[Checkpoint] Detected changes: +{changes.Added.Count} ~{changes.Modified.Count} -{changes.Deleted.Count}");
+
+.ConfigureAwait( false );
+
+			ReportProgress( $"Creating checkpoint for {componentName}...", _checkpointCounter - 1, _currentSession.TotalComponents );
+
+			Dictionary<string, FileState> newFiles = await ScanDirectoryAsync( _gameDirectory, cancellationToken ).ConfigureAwait( false );
+
+			FileChanges changes = CheckpointService.ComputeFileChanges( _currentFiles, newFiles );
+
+			await Logger.LogAsync( $"[Checkpoint] Detected changes: +{changes.Added.Count} ~{changes.Modified.Count} -{changes.Deleted.Count}" )
+
+
+
+
+
+.ConfigureAwait( false );
 
 			string checkpointId = Guid.NewGuid().ToString();
 			string previousCheckpointId = _currentSession.CheckpointIds.LastOrDefault();
 			string previousAnchorId = GetPreviousAnchorId();
 
-			var checkpoint = new Checkpoint
+			Checkpoint checkpoint = new Checkpoint
 			{
 				Id = checkpointId,
 				SessionId = _currentSession.Id,
@@ -120,38 +145,38 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				PreviousAnchorId = previousAnchorId
 			};
 
-			foreach ( string addedPath in changes.Added )
+			foreach (string addedPath in changes.Added)
 			{
-				string fullPath = Path.Combine(_gameDirectory, addedPath);
-				string casHash = await _casStore.StoreFileAsync(fullPath);
+				string fullPath = Path.Combine( _gameDirectory, addedPath );
+				string casHash = await _casStore.StoreFileAsync( fullPath ).ConfigureAwait( false );
 
-				var fileState = newFiles[addedPath];
+				FileState fileState = newFiles[addedPath];
 				fileState.CASHash = casHash;
 
-				checkpoint.Added.Add(addedPath);
+				checkpoint.Added.Add( addedPath );
 				checkpoint.Files[addedPath] = fileState;
 			}
 
-			foreach ( string modifiedPath in changes.Modified )
+			foreach (string modifiedPath in changes.Modified)
 			{
-				string fullPath = Path.Combine(_gameDirectory, modifiedPath);
-				string oldFullPath = Path.Combine(_gameDirectory, modifiedPath);
+				string fullPath = Path.Combine( _gameDirectory, modifiedPath );
+				string oldFullPath = Path.Combine( _gameDirectory, modifiedPath );
 
 				string tempOldFile = Path.GetTempFileName();
 				try
 				{
 					string oldCASHash = _currentFiles[modifiedPath].CASHash;
-					await _casStore.RetrieveFileAsync(oldCASHash, tempOldFile);
+					await _casStore.RetrieveFileAsync( oldCASHash, tempOldFile ).ConfigureAwait( false );
 
-					var delta = await _diffService.CreateBidirectionalDeltaAsync(
+					FileDelta delta = await _diffService.CreateBidirectionalDeltaAsync(
 						tempOldFile,
 						fullPath,
 						modifiedPath,
-						cancellationToken);
+						cancellationToken ).ConfigureAwait( false );
 
-					if ( delta != null )
+					if (delta != null)
 					{
-						checkpoint.Modified.Add(delta);
+						checkpoint.Modified.Add( delta );
 						checkpoint.Files[modifiedPath] = newFiles[modifiedPath];
 						checkpoint.Files[modifiedPath].CASHash = delta.TargetCASHash;
 						checkpoint.DeltaSize += delta.ForwardDeltaSize + delta.ReverseDeltaSize;
@@ -159,121 +184,149 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				}
 				finally
 				{
-					if ( File.Exists(tempOldFile) )
-						File.Delete(tempOldFile);
+					if (File.Exists( tempOldFile ))
+						File.Delete( tempOldFile );
 				}
 			}
 
-			foreach ( string deletedPath in changes.Deleted )
+			foreach (string deletedPath in changes.Deleted)
 			{
-				checkpoint.Deleted.Add(deletedPath);
+				checkpoint.Deleted.Add( deletedPath );
 			}
 
-			if ( isAnchor )
+			if (isAnchor)
+
+
 			{
-				await Logger.LogAsync($"[Checkpoint] Storing anchor snapshot with {newFiles.Count} files");
-				checkpoint.Files = new Dictionary<string, FileState>(newFiles, StringComparer.OrdinalIgnoreCase);
+				await Logger.LogAsync( $"[Checkpoint] Storing anchor snapshot with {newFiles.Count} files" ).ConfigureAwait( false );
+				checkpoint.Files = new Dictionary<string, FileState>( newFiles, StringComparer.OrdinalIgnoreCase );
 			}
 
 			checkpoint.FileCount = newFiles.Count;
-			checkpoint.TotalSize = newFiles.Sum(f => f.Value.Size);
+			checkpoint.TotalSize = newFiles.Sum( f => f.Value.Size );
 
-			await SaveCheckpointAsync(checkpoint);
 
-			_currentSession.CheckpointIds.Add(checkpointId);
+
+			await SaveCheckpointAsync( checkpoint )
+
+
+
+.ConfigureAwait( false );
+
+			_currentSession.CheckpointIds.Add( checkpointId );
 			_currentSession.CompletedComponents = _checkpointCounter;
-			await SaveSessionAsync();
+			await SaveSessionAsync().ConfigureAwait( false );
 
 			_currentFiles = newFiles;
 
-			await Logger.LogAsync($"[Checkpoint] Checkpoint created: {checkpointId} " +
-				$"(Delta: {checkpoint.DeltaSize:N0} bytes, Total: {checkpoint.TotalSize:N0} bytes)");
+			await Logger.LogAsync( $"[Checkpoint] Checkpoint created: {checkpointId} " +
+				$"(Delta: {checkpoint.DeltaSize:N0} bytes, Total: {checkpoint.TotalSize:N0} bytes)" ).ConfigureAwait( false );
 
-			CheckpointCreated?.Invoke(this, new CheckpointEventArgs { Checkpoint = checkpoint });
+			CheckpointCreated?.Invoke( this, new CheckpointEventArgs { Checkpoint = checkpoint } );
 
 			return checkpointId;
 		}
 
 		public async Task RestoreCheckpointAsync(
 			string checkpointId,
-			CancellationToken cancellationToken = default)
-		{
-			await Logger.LogAsync($"[Checkpoint] Restoring to checkpoint {checkpointId}...");
+			CancellationToken cancellationToken = default )
 
-			var targetCheckpoint = await LoadCheckpointAsync(checkpointId);
-			if ( targetCheckpoint == null )
-				throw new InvalidOperationException($"Checkpoint not found: {checkpointId}");
+
+		{
+			await Logger.LogAsync( $"[Checkpoint] Restoring to checkpoint {checkpointId}..." )
+
+
+
+
+
+.ConfigureAwait( false );
+
+			Checkpoint targetCheckpoint = await LoadCheckpointAsync( checkpointId ).ConfigureAwait( false );
+			if (targetCheckpoint == null)
+				throw new InvalidOperationException( $"Checkpoint not found: {checkpointId}" );
 
 			int targetSequence = targetCheckpoint.Sequence;
 			int currentSequence = _checkpointCounter;
-			int distance = Math.Abs(targetSequence - currentSequence);
+			int distance = Math.Abs( targetSequence - currentSequence );
 
-			await Logger.LogAsync($"[Checkpoint] Distance: {distance} checkpoints " +
-				$"(Current: #{currentSequence}, Target: #{targetSequence})");
+			await Logger.LogAsync( $"[Checkpoint] Distance: {distance} checkpoints " +
+				$"(Current: #{currentSequence}, Target: #{targetSequence})" ).ConfigureAwait( false );
 
-			var checkpoints = await LoadSessionCheckpointsAsync(_currentSession.Id);
+			List<Checkpoint> checkpoints = await LoadSessionCheckpointsAsync( _currentSession.Id ).ConfigureAwait( false );
 
-			if ( targetSequence < currentSequence )
+			if (targetSequence < currentSequence)
+
+
 			{
-				await RestoreBackwardsAsync(checkpoints, currentSequence, targetSequence, cancellationToken);
+				await RestoreBackwardsAsync( checkpoints, currentSequence, targetSequence, cancellationToken )
+
+.ConfigureAwait( false );
 			}
 			else
 			{
-				await RestoreForwardsAsync(checkpoints, currentSequence, targetSequence, cancellationToken);
+				await RestoreForwardsAsync( checkpoints, currentSequence, targetSequence, cancellationToken )
+
+
+
+.ConfigureAwait( false );
 			}
 
 			_checkpointCounter = targetCheckpoint.Sequence;
-			_currentFiles = await CheckpointService.ScanDirectoryAsync(_gameDirectory, cancellationToken);
+			_currentFiles = await ScanDirectoryAsync( _gameDirectory, cancellationToken ).ConfigureAwait( false );
 
-			await Logger.LogAsync($"[Checkpoint] Restoration complete: {checkpointId}");
+			await Logger.LogAsync( $"[Checkpoint] Restoration complete: {checkpointId}" ).ConfigureAwait( false );
 
-			CheckpointRestored?.Invoke(this, new CheckpointEventArgs { Checkpoint = targetCheckpoint });
+			CheckpointRestored?.Invoke( this, new CheckpointEventArgs { Checkpoint = targetCheckpoint } );
 		}
 
 		private async Task RestoreBackwardsAsync(
 			List<Checkpoint> checkpoints,
 			int fromSequence,
 			int toSequence,
-			CancellationToken cancellationToken)
+			CancellationToken cancellationToken )
 		{
-			await Logger.LogAsync($"[Checkpoint] Restoring backwards from #{fromSequence} to #{toSequence}");
+			await Logger.LogAsync( $"[Checkpoint] Restoring backwards from #{fromSequence} to #{toSequence}" ).ConfigureAwait( false );
 
-			for ( int seq = fromSequence; seq > toSequence; seq-- )
+			for (int seq = fromSequence; seq > toSequence; seq--)
 			{
-				var checkpoint = checkpoints.FirstOrDefault(c => c.Sequence == seq);
-				if ( checkpoint == null )
+				Checkpoint checkpoint = checkpoints.Find( c => c.Sequence == seq );
+				if (checkpoint == null)
 					continue;
 
-				ReportProgress($"Restoring backwards: checkpoint #{seq}...", fromSequence - seq, fromSequence - toSequence);
+				ReportProgress( $"Restoring backwards: checkpoint #{seq}...", fromSequence - seq, fromSequence - toSequence );
 
-				foreach ( var delta in checkpoint.Modified )
+				foreach (FileDelta delta in checkpoint.Modified)
 				{
-					string fullPath = Path.Combine(_gameDirectory, delta.Path);
-					await _diffService.ApplyReverseDeltaAsync(delta, fullPath, cancellationToken);
-					await Logger.LogVerboseAsync($"[Checkpoint] Reverted: {delta.Path}");
+					string fullPath = Path.Combine( _gameDirectory, delta.Path );
+
+
+					await _diffService.ApplyReverseDeltaAsync( delta, fullPath, cancellationToken ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync( $"[Checkpoint] Reverted: {delta.Path}" ).ConfigureAwait( false );
 				}
 
-				foreach ( string addedPath in checkpoint.Added )
+				foreach (string addedPath in checkpoint.Added)
 				{
-					string fullPath = Path.Combine(_gameDirectory, addedPath);
-					if ( File.Exists(fullPath) )
+					string fullPath = Path.Combine( _gameDirectory, addedPath );
+					if (File.Exists( fullPath ))
 					{
-						File.Delete(fullPath);
-						await Logger.LogVerboseAsync($"[Checkpoint] Deleted: {addedPath}");
+						File.Delete( fullPath );
+						await Logger.LogVerboseAsync( $"[Checkpoint] Deleted: {addedPath}" ).ConfigureAwait( false );
 					}
 				}
 
-				foreach ( string deletedPath in checkpoint.Deleted )
+				foreach (string deletedPath in checkpoint.Deleted)
 				{
-					string fullPath = Path.Combine(_gameDirectory, deletedPath);
+					string fullPath = Path.Combine( _gameDirectory, deletedPath );
 
-					if ( seq > 1 )
+					if (seq > 1)
 					{
-						var prevCheckpoint = checkpoints.FirstOrDefault(c => c.Sequence == seq - 1);
-						if ( prevCheckpoint != null && prevCheckpoint.Files.TryGetValue(deletedPath, out var fileState) )
+						Checkpoint prevCheckpoint = checkpoints.Find( c => c.Sequence == seq - 1 );
+						if (prevCheckpoint != null && prevCheckpoint.Files.TryGetValue( deletedPath, out FileState fileState ))
+
+
 						{
-							await _casStore.RetrieveFileAsync(fileState.CASHash, fullPath);
-							await Logger.LogVerboseAsync($"[Checkpoint] Restored deleted: {deletedPath}");
+							await _casStore.RetrieveFileAsync( fileState.CASHash, fullPath ).ConfigureAwait( false );
+							await Logger.LogVerboseAsync( $"[Checkpoint] Restored deleted: {deletedPath}" ).ConfigureAwait( false );
 						}
 					}
 				}
@@ -284,61 +337,71 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			List<Checkpoint> checkpoints,
 			int fromSequence,
 			int toSequence,
-			CancellationToken cancellationToken)
+			CancellationToken cancellationToken )
 		{
-			await Logger.LogAsync($"[Checkpoint] Restoring forwards from #{fromSequence} to #{toSequence}");
+			await Logger.LogAsync( $"[Checkpoint] Restoring forwards from #{fromSequence} to #{toSequence}" ).ConfigureAwait( false );
 
-			for ( int seq = fromSequence + 1; seq <= toSequence; seq++ )
+			for (int seq = fromSequence + 1; seq <= toSequence; seq++)
 			{
-				var checkpoint = checkpoints.FirstOrDefault(c => c.Sequence == seq);
-				if ( checkpoint == null )
+				Checkpoint checkpoint = checkpoints.Find( c => c.Sequence == seq );
+				if (checkpoint == null)
 					continue;
 
-				ReportProgress($"Restoring forwards: checkpoint #{seq}...", seq - fromSequence, toSequence - fromSequence);
+				ReportProgress( $"Restoring forwards: checkpoint #{seq}...", seq - fromSequence, toSequence - fromSequence );
 
-				foreach ( var delta in checkpoint.Modified )
+				foreach (FileDelta delta in checkpoint.Modified)
 				{
-					string fullPath = Path.Combine(_gameDirectory, delta.Path);
-					await _diffService.ApplyForwardDeltaAsync(delta, fullPath, cancellationToken);
-					await Logger.LogVerboseAsync($"[Checkpoint] Applied: {delta.Path}");
+					string fullPath = Path.Combine( _gameDirectory, delta.Path );
+
+
+					await _diffService.ApplyForwardDeltaAsync( delta, fullPath, cancellationToken ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync( $"[Checkpoint] Applied: {delta.Path}" ).ConfigureAwait( false );
 				}
 
-				foreach ( string addedPath in checkpoint.Added )
+				foreach (string addedPath in checkpoint.Added)
 				{
-					string fullPath = Path.Combine(_gameDirectory, addedPath);
-					var fileState = checkpoint.Files[addedPath];
-					await _casStore.RetrieveFileAsync(fileState.CASHash, fullPath);
-					await Logger.LogVerboseAsync($"[Checkpoint] Added: {addedPath}");
+					string fullPath = Path.Combine( _gameDirectory, addedPath );
+					FileState fileState = checkpoint.Files[addedPath];
+
+
+					await _casStore.RetrieveFileAsync( fileState.CASHash, fullPath ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync( $"[Checkpoint] Added: {addedPath}" ).ConfigureAwait( false );
 				}
 
-				foreach ( string deletedPath in checkpoint.Deleted )
+				foreach (string deletedPath in checkpoint.Deleted)
 				{
-					string fullPath = Path.Combine(_gameDirectory, deletedPath);
-					if ( File.Exists(fullPath) )
+					string fullPath = Path.Combine( _gameDirectory, deletedPath );
+					if (File.Exists( fullPath ))
 					{
-						File.Delete(fullPath);
-						await Logger.LogVerboseAsync($"[Checkpoint] Deleted: {deletedPath}");
+						File.Delete( fullPath );
+						await Logger.LogVerboseAsync( $"[Checkpoint] Deleted: {deletedPath}" ).ConfigureAwait( false );
 					}
 				}
 			}
 		}
 
-		public async Task CompleteSessionAsync(bool keepCheckpoints = true)
+		public async Task CompleteSessionAsync( bool keepCheckpoints = true )
 		{
-			if ( _currentSession == null )
+			if (_currentSession == null)
 				return;
 
 			_currentSession.EndTime = DateTime.UtcNow;
 			_currentSession.IsComplete = true;
 
-			await SaveSessionAsync();
 
-			await Logger.LogAsync($"[Checkpoint] Session completed: {_currentSession.Name} " +
-				$"({_currentSession.CompletedComponents}/{_currentSession.TotalComponents} components)");
 
-			if ( !keepCheckpoints )
+			await SaveSessionAsync()
+
+.ConfigureAwait( false );
+
+			await Logger.LogAsync( $"[Checkpoint] Session completed: {_currentSession.Name} " +
+				$"({_currentSession.CompletedComponents}/{_currentSession.TotalComponents} components)" ).ConfigureAwait( false );
+
+			if (!keepCheckpoints)
+
+
 			{
-				await DeleteSessionAsync(_currentSession.Id);
+				await DeleteSessionAsync( _currentSession.Id ).ConfigureAwait( false );
 			}
 
 			_currentSession = null;
@@ -346,89 +409,105 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			_currentFiles = null;
 		}
 
-		public async Task<List<Checkpoint>> ListCheckpointsAsync(string sessionId)
+		public async Task<List<Checkpoint>> ListCheckpointsAsync( string sessionId )
 		{
-			return await LoadSessionCheckpointsAsync(sessionId);
+			return await LoadSessionCheckpointsAsync( sessionId ).ConfigureAwait( false );
 		}
 
 		public async Task<List<CheckpointSession>> ListSessionsAsync()
 		{
-			var sessions = new List<CheckpointSession>();
-			string sessionsDir = Path.Combine(_checkpointDirectory, "sessions");
+			List<CheckpointSession> sessions = new List<CheckpointSession>();
+			string sessionsDir = Path.Combine( _checkpointDirectory, "sessions" );
 
-			if ( !Directory.Exists(sessionsDir) )
+			if (!Directory.Exists( sessionsDir ))
 				return sessions;
 
-			foreach ( string sessionDir in Directory.GetDirectories(sessionsDir) )
+			foreach (string sessionDir in Directory.GetDirectories( sessionsDir ))
 			{
-				string sessionFile = Path.Combine(sessionDir, "session.json");
-				if ( File.Exists(sessionFile) )
+				string sessionFile = Path.Combine( sessionDir, "session.json" );
+				if (File.Exists( sessionFile ))
+
+
 				{
 					try
 					{
-						string json = await ReadAllTextAsync(sessionFile);
-						var session = JsonConvert.DeserializeObject<CheckpointSession>(json);
-						if ( session != null )
-							sessions.Add(session);
+						string json = await ReadAllTextAsync( sessionFile ).ConfigureAwait( false );
+						CheckpointSession session = JsonConvert.DeserializeObject<CheckpointSession>( json );
+						if (session != null)
+							sessions.Add( session );
 					}
-					catch ( Exception ex )
+					catch (Exception ex)
+
+
 					{
-						await Logger.LogWarningAsync($"[Checkpoint] Failed to load session from {sessionFile}: {ex.Message}");
+						await Logger.LogWarningAsync( $"[Checkpoint] Failed to load session from {sessionFile}: {ex.Message}" ).ConfigureAwait( false );
 					}
 				}
 			}
 
-			return sessions.OrderByDescending(s => s.StartTime).ToList();
+			return sessions.OrderByDescending( s => s.StartTime ).ToList();
 		}
 
-		public async Task DeleteSessionAsync(string sessionId)
+		public async Task DeleteSessionAsync( string sessionId )
+
+
 		{
-			await Logger.LogAsync($"[Checkpoint] Deleting session {sessionId}...");
+			await Logger.LogAsync( $"[Checkpoint] Deleting session {sessionId}..." ).ConfigureAwait( false );
 
-			string sessionDir = Path.Combine(_checkpointDirectory, "sessions", sessionId);
+			string sessionDir = Path.Combine( _checkpointDirectory, "sessions", sessionId );
 
-			if ( Directory.Exists(sessionDir) )
+			if (Directory.Exists( sessionDir ))
 			{
-				Directory.Delete(sessionDir, recursive: true);
-				await Logger.LogAsync($"[Checkpoint] Session deleted: {sessionId}");
+				Directory.Delete( sessionDir, recursive: true );
+
+
+				await Logger.LogAsync( $"[Checkpoint] Session deleted: {sessionId}" ).ConfigureAwait( false );
 			}
 
-			await GarbageCollectAsync();
+			await GarbageCollectAsync().ConfigureAwait( false );
 		}
 
 		public async Task<int> GarbageCollectAsync()
+
+
 		{
-			await Logger.LogAsync("[Checkpoint] Starting garbage collection...");
+			await Logger.LogAsync( "[Checkpoint] Starting garbage collection..." )
 
-			var referencedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-			var sessions = await ListSessionsAsync();
+.ConfigureAwait( false );
 
-			foreach ( var session in sessions )
+			HashSet<string> referencedHashes = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+			List<CheckpointSession> sessions = await ListSessionsAsync().ConfigureAwait( false );
+
+			foreach (CheckpointSession session in sessions)
+
+
 			{
-				var checkpoints = await LoadSessionCheckpointsAsync(session.Id);
-				foreach ( var checkpoint in checkpoints )
+				List<Checkpoint> checkpoints = await LoadSessionCheckpointsAsync( session.Id ).ConfigureAwait( false );
+				foreach (Checkpoint checkpoint in checkpoints)
 				{
-					foreach ( var fileState in checkpoint.Files.Values )
+					foreach (FileState fileState in checkpoint.Files.Values)
 					{
-						if ( !string.IsNullOrEmpty(fileState.CASHash) )
-							referencedHashes.Add(fileState.CASHash);
+						if (!string.IsNullOrEmpty( fileState.CASHash ))
+							referencedHashes.Add( fileState.CASHash );
 					}
 
-					foreach ( var delta in checkpoint.Modified )
+					foreach (FileDelta delta in checkpoint.Modified)
 					{
-						if ( !string.IsNullOrEmpty(delta.SourceCASHash) )
-							referencedHashes.Add(delta.SourceCASHash);
-						if ( !string.IsNullOrEmpty(delta.TargetCASHash) )
-							referencedHashes.Add(delta.TargetCASHash);
-						if ( !string.IsNullOrEmpty(delta.ForwardDeltaCASHash) )
-							referencedHashes.Add(delta.ForwardDeltaCASHash);
-						if ( !string.IsNullOrEmpty(delta.ReverseDeltaCASHash) )
-							referencedHashes.Add(delta.ReverseDeltaCASHash);
+						if (!string.IsNullOrEmpty( delta.SourceCASHash ))
+							referencedHashes.Add( delta.SourceCASHash );
+						if (!string.IsNullOrEmpty( delta.TargetCASHash ))
+							referencedHashes.Add( delta.TargetCASHash );
+						if (!string.IsNullOrEmpty( delta.ForwardDeltaCASHash ))
+							referencedHashes.Add( delta.ForwardDeltaCASHash );
+						if (!string.IsNullOrEmpty( delta.ReverseDeltaCASHash ))
+							referencedHashes.Add( delta.ReverseDeltaCASHash );
+
+
 					}
 				}
 			}
 
-			int deleted = await _casStore.GarbageCollectAsync(referencedHashes);
+			int deleted = await _casStore.GarbageCollectAsync( referencedHashes ).ConfigureAwait( false );
 			return deleted;
 		}
 
@@ -436,23 +515,25 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 		private static async Task<Dictionary<string, FileState>> ScanDirectoryAsync(
 			string directory,
-			CancellationToken cancellationToken)
+			CancellationToken cancellationToken )
 		{
-			var files = new Dictionary<string, FileState>(StringComparer.OrdinalIgnoreCase);
+			Dictionary<string, FileState> files = new Dictionary<string, FileState>( StringComparer.OrdinalIgnoreCase );
 
-			var allFiles = Directory.GetFiles(directory, "*", SearchOption.AllDirectories);
+			string[] allFiles = Directory.GetFiles( directory, "*", SearchOption.AllDirectories );
 
-			foreach ( string fullPath in allFiles )
+			foreach (string fullPath in allFiles)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
-				if ( fullPath.Contains(".kotor_modsync") )
+				if (fullPath.Contains( ".kotor_modsync" ))
 					continue;
 
-				string relativePath = PathHelper.GetRelativePath(directory, fullPath);
-				var fileInfo = new FileInfo(fullPath);
+				string relativePath = PathHelper.GetRelativePath( directory, fullPath );
+				FileInfo fileInfo = new FileInfo( fullPath );
 
-				string hash = await ContentAddressableStore.ComputeFileHashAsync(fullPath);
+
+
+				string hash = await ContentAddressableStore.ComputeFileHashAsync( fullPath ).ConfigureAwait( false );
 
 				files[relativePath] = new FileState
 				{
@@ -468,30 +549,30 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 		private static FileChanges ComputeFileChanges(
 			Dictionary<string, FileState> oldFiles,
-			Dictionary<string, FileState> newFiles)
+			Dictionary<string, FileState> newFiles )
 		{
-			var changes = new FileChanges();
+			FileChanges changes = new FileChanges();
 
-			foreach ( var kvp in newFiles )
+			foreach (KeyValuePair<string, FileState> kvp in newFiles)
 			{
 				string path = kvp.Key;
-				var newState = kvp.Value;
+				FileState newState = kvp.Value;
 
-				if ( !oldFiles.TryGetValue(path, out var oldState) )
+				if (!oldFiles.TryGetValue( path, out FileState oldState ))
 				{
-					changes.Added.Add(path);
+					changes.Added.Add( path );
 				}
-				else if ( oldState.Hash != newState.Hash )
+				else if (!string.Equals( oldState.Hash, newState.Hash, StringComparison.Ordinal ))
 				{
-					changes.Modified.Add(path);
+					changes.Modified.Add( path );
 				}
 			}
 
-			foreach ( string path in oldFiles.Keys )
+			foreach (string path in oldFiles.Keys)
 			{
-				if ( !newFiles.ContainsKey(path) )
+				if (!newFiles.ContainsKey( path ))
 				{
-					changes.Deleted.Add(path);
+					changes.Deleted.Add( path );
 				}
 			}
 
@@ -500,13 +581,13 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 		private string GetPreviousAnchorId()
 		{
-			if ( _currentSession == null || _currentSession.CheckpointIds.Count == 0 )
+			if (_currentSession == null || _currentSession.CheckpointIds.Count == 0)
 				return null;
 
-			for ( int i = _currentSession.CheckpointIds.Count - 1; i >= 0; i-- )
+			for (int i = _currentSession.CheckpointIds.Count - 1; i >= 0; i--)
 			{
 				int sequence = i + 1;
-				if ( (sequence % ANCHOR_FREQUENCY) == 0 )
+				if ((sequence % ANCHOR_FREQUENCY) == 0)
 				{
 					return _currentSession.CheckpointIds[i];
 				}
@@ -515,185 +596,197 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return null;
 		}
 
-		private string GetSessionPath(string sessionId)
+		private string GetSessionPath( string sessionId )
 		{
-			return Path.Combine(_checkpointDirectory, "sessions", sessionId);
+			return Path.Combine( _checkpointDirectory, "sessions", sessionId );
 		}
 
-		private string GetBaselinePath(string sessionId)
+		private string GetBaselinePath( string sessionId )
 		{
-			return Path.Combine(GetSessionPath(sessionId), "baseline.json");
+			return Path.Combine( GetSessionPath( sessionId ), "baseline.json" );
 		}
 
-		private string GetCheckpointPath(string sessionId, string checkpointId)
+		private string GetCheckpointPath( string sessionId, string checkpointId )
 		{
-			return Path.Combine(GetSessionPath(sessionId), "checkpoints", $"{checkpointId}.json");
+			return Path.Combine( GetSessionPath( sessionId ), "checkpoints", $"{checkpointId}.json" );
 		}
 
 		private async Task SaveSessionAsync()
 		{
-			if ( _currentSession == null )
+			if (_currentSession == null)
 				return;
 
-			string sessionPath = GetSessionPath(_currentSession.Id);
-			Directory.CreateDirectory(sessionPath);
+			string sessionPath = GetSessionPath( _currentSession.Id );
+			Directory.CreateDirectory( sessionPath );
 
-			string sessionFile = Path.Combine(sessionPath, "session.json");
-			string json = JsonConvert.SerializeObject(_currentSession, Formatting.Indented);
-			await WriteAllTextAsync(sessionFile, json);
+			string sessionFile = Path.Combine( sessionPath, "session.json" );
+			string json = JsonConvert.SerializeObject( _currentSession, Formatting.Indented );
+			await WriteAllTextAsync( sessionFile, json ).ConfigureAwait( false );
 		}
 
-		private static async Task SaveBaselineAsync(string path, Dictionary<string, FileState> baseline)
+		private static async Task SaveBaselineAsync( string path, Dictionary<string, FileState> baseline )
 		{
-			string directory = Path.GetDirectoryName(path);
-			Directory.CreateDirectory(directory);
+			string directory = Path.GetDirectoryName( path );
+			Directory.CreateDirectory( directory );
 
-			string json = JsonConvert.SerializeObject(baseline, Formatting.Indented);
-			await WriteAllTextAsync(path, json);
+			string json = JsonConvert.SerializeObject( baseline, Formatting.Indented );
+			await WriteAllTextAsync( path, json ).ConfigureAwait( false );
 		}
 
-		private async Task SaveCheckpointAsync(Checkpoint checkpoint)
+		private async Task SaveCheckpointAsync( Checkpoint checkpoint )
 		{
-			string checkpointPath = GetCheckpointPath(checkpoint.SessionId, checkpoint.Id);
-			string directory = Path.GetDirectoryName(checkpointPath);
-			Directory.CreateDirectory(directory);
+			string checkpointPath = GetCheckpointPath( checkpoint.SessionId, checkpoint.Id );
+			string directory = Path.GetDirectoryName( checkpointPath );
+			Directory.CreateDirectory( directory );
 
-			string json = JsonConvert.SerializeObject(checkpoint, Formatting.Indented);
-			await WriteAllTextAsync(checkpointPath, json);
+			string json = JsonConvert.SerializeObject( checkpoint, Formatting.Indented );
+			await WriteAllTextAsync( checkpointPath, json ).ConfigureAwait( false );
 		}
 
-		private static async Task<string> ReadAllTextAsync(string path)
+		private static async Task<string> ReadAllTextAsync( string path )
 		{
-			using ( var reader = new StreamReader(path, Encoding.UTF8) )
+			using (StreamReader reader = new StreamReader( path, Encoding.UTF8 ))
 			{
-				return await reader.ReadToEndAsync();
+				return await reader.ReadToEndAsync().ConfigureAwait( false );
 			}
 		}
 
-		private static async Task WriteAllTextAsync(string path, string contents)
+		private static async Task WriteAllTextAsync( string path, string contents )
 		{
-			using ( var writer = new StreamWriter(path, false, Encoding.UTF8) )
+			using (StreamWriter writer = new StreamWriter( path, false, Encoding.UTF8 ))
 			{
-				await writer.WriteAsync(contents);
+				await writer.WriteAsync( contents ).ConfigureAwait( false );
 			}
 		}
 
-		private async Task<Checkpoint> LoadCheckpointAsync(string checkpointId)
+		private async Task<Checkpoint> LoadCheckpointAsync( string checkpointId )
 		{
-			if ( _currentSession == null )
+			if (_currentSession == null)
 				return null;
 
-			string checkpointPath = GetCheckpointPath(_currentSession.Id, checkpointId);
+			string checkpointPath = GetCheckpointPath( _currentSession.Id, checkpointId );
 
-			if ( !File.Exists(checkpointPath) )
+			if (!File.Exists( checkpointPath ))
 				return null;
 
-			string json = await ReadAllTextAsync(checkpointPath);
-			return JsonConvert.DeserializeObject<Checkpoint>(json);
+
+
+			string json = await ReadAllTextAsync( checkpointPath ).ConfigureAwait( false );
+			return JsonConvert.DeserializeObject<Checkpoint>( json );
 		}
 
-		private async Task<List<Checkpoint>> LoadSessionCheckpointsAsync(string sessionId)
+		private async Task<List<Checkpoint>> LoadSessionCheckpointsAsync( string sessionId )
 		{
-			var checkpoints = new List<Checkpoint>();
-			string checkpointsDir = Path.Combine(GetSessionPath(sessionId), "checkpoints");
+			List<Checkpoint> checkpoints = new List<Checkpoint>();
+			string checkpointsDir = Path.Combine( GetSessionPath( sessionId ), "checkpoints" );
 
-			if ( !Directory.Exists(checkpointsDir) )
+			if (!Directory.Exists( checkpointsDir ))
 				return checkpoints;
 
-			foreach ( string checkpointFile in Directory.GetFiles(checkpointsDir, "*.json") )
+			foreach (string checkpointFile in Directory.GetFiles( checkpointsDir, "*.json" ))
+
+
 			{
 				try
 				{
-					string json = await ReadAllTextAsync(checkpointFile);
-					var checkpoint = JsonConvert.DeserializeObject<Checkpoint>(json);
-					if ( checkpoint != null )
-						checkpoints.Add(checkpoint);
+					string json = await ReadAllTextAsync( checkpointFile ).ConfigureAwait( false );
+					Checkpoint checkpoint = JsonConvert.DeserializeObject<Checkpoint>( json );
+					if (checkpoint != null)
+						checkpoints.Add( checkpoint );
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
+
+
 				{
-					await Logger.LogWarningAsync($"[Checkpoint] Failed to load checkpoint from {checkpointFile}: {ex.Message}");
+					await Logger.LogWarningAsync( $"[Checkpoint] Failed to load checkpoint from {checkpointFile}: {ex.Message}" ).ConfigureAwait( false );
 				}
 			}
 
-			return checkpoints.OrderBy(c => c.Sequence).ToList();
+			return checkpoints.OrderBy( c => c.Sequence ).ToList();
 		}
 
-		private void ReportProgress(string message, int current, int total)
+		private void ReportProgress( string message, int current, int total )
 		{
-			Progress?.Invoke(this, new CheckpointProgressEventArgs
+			Progress?.Invoke( this, new CheckpointProgressEventArgs
 			{
 				Message = message,
 				Current = current,
 				Total = total
-			});
+			} );
 		}
 
 		#endregion
 
 		#region Validation and Corruption Detection
 
-		public async Task<(bool isValid, List<string> errors)> ValidateCheckpointAsync(string checkpointId)
+		public async Task<(bool isValid, List<string> errors)> ValidateCheckpointAsync( string checkpointId )
 		{
-			var errors = new List<string>();
+			List<string> errors = new List<string>();
+
+
 
 			try
 			{
-				var checkpoint = await LoadCheckpointAsync(checkpointId);
-				if ( checkpoint == null )
+				Checkpoint checkpoint = await LoadCheckpointAsync( checkpointId ).ConfigureAwait( false );
+				if (checkpoint == null)
 				{
-					errors.Add($"Checkpoint metadata not found: {checkpointId}");
+					errors.Add( $"Checkpoint metadata not found: {checkpointId}" );
 					return (false, errors);
 				}
 
-				foreach ( var file in checkpoint.Files.Values )
+				foreach (FileState file in checkpoint.Files.Values)
 				{
-					if ( !string.IsNullOrEmpty(file.CASHash) && !_casStore.HasObject(file.CASHash) )
+					if (!string.IsNullOrEmpty( file.CASHash ) && !_casStore.HasObject( file.CASHash ))
 					{
-						errors.Add($"Missing CAS object for file '{file.Path}': {file.CASHash}");
+						errors.Add( $"Missing CAS object for file '{file.Path}': {file.CASHash}" );
 					}
 				}
 
-				foreach ( var delta in checkpoint.Modified )
+				foreach (FileDelta delta in checkpoint.Modified)
 				{
-					if ( !string.IsNullOrEmpty(delta.ForwardDeltaCASHash) && !_casStore.HasObject(delta.ForwardDeltaCASHash) )
+					if (!string.IsNullOrEmpty( delta.ForwardDeltaCASHash ) && !_casStore.HasObject( delta.ForwardDeltaCASHash ))
 					{
-						errors.Add($"Missing forward delta CAS object for '{delta.Path}': {delta.ForwardDeltaCASHash}");
+						errors.Add( $"Missing forward delta CAS object for '{delta.Path}': {delta.ForwardDeltaCASHash}" );
 					}
 
-					if ( !string.IsNullOrEmpty(delta.ReverseDeltaCASHash) && !_casStore.HasObject(delta.ReverseDeltaCASHash) )
+					if (!string.IsNullOrEmpty( delta.ReverseDeltaCASHash ) && !_casStore.HasObject( delta.ReverseDeltaCASHash ))
 					{
-						errors.Add($"Missing reverse delta CAS object for '{delta.Path}': {delta.ReverseDeltaCASHash}");
+						errors.Add( $"Missing reverse delta CAS object for '{delta.Path}': {delta.ReverseDeltaCASHash}" );
 					}
 
-					if ( !string.IsNullOrEmpty(delta.SourceCASHash) && !_casStore.HasObject(delta.SourceCASHash) )
+					if (!string.IsNullOrEmpty( delta.SourceCASHash ) && !_casStore.HasObject( delta.SourceCASHash ))
 					{
-						errors.Add($"Missing source CAS object for '{delta.Path}': {delta.SourceCASHash}");
+						errors.Add( $"Missing source CAS object for '{delta.Path}': {delta.SourceCASHash}" );
 					}
 
-					if ( !string.IsNullOrEmpty(delta.TargetCASHash) && !_casStore.HasObject(delta.TargetCASHash) )
+					if (!string.IsNullOrEmpty( delta.TargetCASHash ) && !_casStore.HasObject( delta.TargetCASHash ))
 					{
-						errors.Add($"Missing target CAS object for '{delta.Path}': {delta.TargetCASHash}");
+						errors.Add( $"Missing target CAS object for '{delta.Path}': {delta.TargetCASHash}" );
 					}
 				}
 
 				return (errors.Count == 0, errors);
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				errors.Add($"Validation failed: {ex.Message}");
+				errors.Add( $"Validation failed: {ex.Message}" );
 				return (false, errors);
 			}
 		}
 
-		public async Task<(bool isValid, Dictionary<string, List<string>> errorsByCheckpoint)> ValidateSessionAsync(string sessionId)
-		{
-			var errorsByCheckpoint = new Dictionary<string, List<string>>();
-			var checkpoints = await ListCheckpointsAsync(sessionId);
+		public async Task<(bool isValid, Dictionary<string, List<string>> errorsByCheckpoint)> ValidateSessionAsync( string sessionId )
 
-			foreach ( var checkpoint in checkpoints )
+
+		{
+			Dictionary<string, List<string>> errorsByCheckpoint = new Dictionary<string, List<string>>( StringComparer.Ordinal );
+			List<Checkpoint> checkpoints = await ListCheckpointsAsync( sessionId ).ConfigureAwait( false );
+
+			foreach (Checkpoint checkpoint in checkpoints)
+
+
 			{
-				var (isValid, errors) = await ValidateCheckpointAsync(checkpoint.Id);
-				if ( !isValid )
+				(bool isValid, List<string> errors) = await ValidateCheckpointAsync( checkpoint.Id ).ConfigureAwait( false );
+				if (!isValid)
 				{
 					errorsByCheckpoint[checkpoint.Id] = errors;
 				}
@@ -702,49 +795,65 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			return (errorsByCheckpoint.Count == 0, errorsByCheckpoint);
 		}
 
-		public async Task<bool> TryRepairCheckpointAsync(string checkpointId, CancellationToken cancellationToken = default)
+		public async Task<bool> TryRepairCheckpointAsync( string checkpointId, CancellationToken cancellationToken = default )
+
+
 		{
 			try
 			{
-				var checkpoint = await LoadCheckpointAsync(checkpointId);
-				if ( checkpoint == null )
+				Checkpoint checkpoint = await LoadCheckpointAsync( checkpointId )
+
+
+
+.ConfigureAwait( false );
+				if (checkpoint == null)
 					return false;
 
-				var (isValid, errors) = await ValidateCheckpointAsync(checkpointId);
-				if ( isValid )
+				(bool isValid, List<string> errors) = await ValidateCheckpointAsync( checkpointId ).ConfigureAwait( false );
+				if (isValid)
 					return true;
 
-				await Logger.LogAsync($"Attempting to repair checkpoint {checkpointId}...");
+				await Logger.LogAsync( $"Attempting to repair checkpoint {checkpointId}..." ).ConfigureAwait( false );
 
-				foreach ( var file in checkpoint.Files.Values )
+				foreach (FileState file in checkpoint.Files.Values)
 				{
-					if ( string.IsNullOrEmpty(file.CASHash) )
+					if (string.IsNullOrEmpty( file.CASHash ))
 						continue;
 
-					if ( !_casStore.HasObject(file.CASHash) )
+					if (!_casStore.HasObject( file.CASHash ))
 					{
-						string gamePath = Path.Combine(_gameDirectory, file.Path);
-						if ( File.Exists(gamePath) )
+						string gamePath = Path.Combine( _gameDirectory, file.Path );
+						if (File.Exists( gamePath ))
+
+
 						{
-							string hash = await _casStore.StoreFileAsync(gamePath);
-							if ( hash == file.CASHash )
+							string hash = await _casStore.StoreFileAsync( gamePath ).ConfigureAwait( false );
+							if (string.Equals( hash, file.CASHash, StringComparison.Ordinal ))
+
+
 							{
-								await Logger.LogAsync($"Restored CAS object for: {file.Path}");
+								await Logger.LogAsync( $"Restored CAS object for: {file.Path}" )
+
+.ConfigureAwait( false );
 							}
 							else
 							{
-								await Logger.LogWarningAsync($"Hash mismatch while repairing: {file.Path}");
+								await Logger.LogWarningAsync( $"Hash mismatch while repairing: {file.Path}" )
+
+.ConfigureAwait( false );
 							}
 						}
 					}
 				}
 
-				var (isNowValid, _) = await ValidateCheckpointAsync(checkpointId);
+				(bool isNowValid, List<string> _) = await ValidateCheckpointAsync( checkpointId ).ConfigureAwait( false );
 				return isNowValid;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogErrorAsync($"Failed to repair checkpoint: {ex.Message}");
+				await Logger.LogErrorAsync( $"Failed to repair checkpoint: {ex.Message}" ).ConfigureAwait( false );
 				return false;
 			}
 		}
@@ -779,4 +888,3 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 	#endregion
 }
-

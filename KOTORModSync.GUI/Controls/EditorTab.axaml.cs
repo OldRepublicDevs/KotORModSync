@@ -1,32 +1,35 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 
 namespace KOTORModSync.Controls
 {
-	[SuppressMessage("ReSharper", "UnusedParameter.Local")]
+	[SuppressMessage( "ReSharper", "UnusedParameter.Local" )]
 	public partial class EditorTab : UserControl
 	{
 		public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
-			AvaloniaProperty.Register<EditorTab, ModComponent>(nameof(CurrentComponent));
+			AvaloniaProperty.Register<EditorTab, ModComponent>( nameof( CurrentComponent ) );
 
 		public static readonly StyledProperty<List<string>> TierOptionsProperty =
-			AvaloniaProperty.Register<EditorTab, List<string>>(nameof(TierOptions));
+			AvaloniaProperty.Register<EditorTab, List<string>>( nameof( TierOptions ) );
 
 		public static readonly StyledProperty<DownloadCacheService> DownloadCacheServiceProperty =
-			AvaloniaProperty.Register<EditorTab, DownloadCacheService>(nameof(DownloadCacheService));
+			AvaloniaProperty.Register<EditorTab, DownloadCacheService>( nameof( DownloadCacheService ) );
 
 		public static readonly StyledProperty<ModManagementService> ModManagementServiceProperty =
-			AvaloniaProperty.Register<EditorTab, ModManagementService>(nameof(ModManagementService));
+			AvaloniaProperty.Register<EditorTab, ModManagementService>( nameof( ModManagementService ) );
 
 		[CanBeNull]
 		public ModComponent CurrentComponent
@@ -35,29 +38,29 @@ namespace KOTORModSync.Controls
 			set
 			{
 				MainConfig.CurrentComponent = value;
-				SetValue(CurrentComponentProperty, value);
+				SetValue( CurrentComponentProperty, value );
 			}
 		}
 
 		[CanBeNull]
 		public List<string> TierOptions
 		{
-			get => GetValue(TierOptionsProperty);
-			set => SetValue(TierOptionsProperty, value);
+			get => GetValue( TierOptionsProperty );
+			set => SetValue( TierOptionsProperty, value );
 		}
 
 		[CanBeNull]
 		public DownloadCacheService DownloadCacheService
 		{
-			get => GetValue(DownloadCacheServiceProperty);
-			set => SetValue(DownloadCacheServiceProperty, value);
+			get => GetValue( DownloadCacheServiceProperty );
+			set => SetValue( DownloadCacheServiceProperty, value );
 		}
 
 		[CanBeNull]
 		public ModManagementService ModManagementService
 		{
-			get => GetValue(ModManagementServiceProperty);
-			set => SetValue(ModManagementServiceProperty, value);
+			get => GetValue( ModManagementServiceProperty );
+			set => SetValue( ModManagementServiceProperty, value );
 		}
 
 		public event EventHandler<RoutedEventArgs> ExpandAllSectionsRequested;
@@ -69,7 +72,7 @@ namespace KOTORModSync.Controls
 		public event EventHandler<RoutedEventArgs> BrowseSourceFilesRequested;
 		public event EventHandler<RoutedEventArgs> BrowseSourceFromFoldersRequested;
 
-		private Button _autoGenerateButton;
+		private readonly Button _autoGenerateButton;
 		public event EventHandler<RoutedEventArgs> MoveInstructionUpRequested;
 		public event EventHandler<RoutedEventArgs> MoveInstructionDownRequested;
 		public event EventHandler<RoutedEventArgs> AddNewOptionRequested;
@@ -82,10 +85,10 @@ namespace KOTORModSync.Controls
 		{
 			InitializeComponent();
 			DataContext = this;
-			_autoGenerateButton = this.FindControl<Button>("AutoGenerateButton");
+			_autoGenerateButton = this.FindControl<Button>( "AutoGenerateButton" );
 		}
 
-		private void ExpandAllSections_Click(object sender, RoutedEventArgs e)
+		private void ExpandAllSections_Click( object sender, RoutedEventArgs e )
 		{
 			try
 			{
@@ -94,15 +97,15 @@ namespace KOTORModSync.Controls
 				DependenciesExpander.IsExpanded = true;
 				InstructionsExpander.IsExpanded = true;
 				OptionsExpander.IsExpanded = true;
-				ExpandAllSectionsRequested?.Invoke(sender, e);
+				ExpandAllSectionsRequested?.Invoke( this, e );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Core.Logger.LogException(ex, "Error expanding all sections");
+				Core.Logger.LogException( ex, "Error expanding all sections" );
 			}
 		}
 
-		private void CollapseAllSections_Click(object sender, RoutedEventArgs e)
+		private void CollapseAllSections_Click( object sender, RoutedEventArgs e )
 		{
 			try
 			{
@@ -111,78 +114,77 @@ namespace KOTORModSync.Controls
 				DependenciesExpander.IsExpanded = false;
 				InstructionsExpander.IsExpanded = false;
 				OptionsExpander.IsExpanded = false;
-				CollapseAllSectionsRequested?.Invoke(sender, e);
+				CollapseAllSectionsRequested?.Invoke( this, e );
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
-				Core.Logger.LogException(ex, "Error collapsing all sections");
+				Core.Logger.LogException( ex, "Error collapsing all sections" );
 			}
 		}
 
-		private void AutoGenerateInstructions_Click(object sender, RoutedEventArgs e)
+		private void AutoGenerateInstructions_Click( object sender, RoutedEventArgs e )
 		{
-			AutoGenerateInstructionsRequested?.Invoke(sender, e);
+			AutoGenerateInstructionsRequested?.Invoke( this, e );
 		}
 
-		private void AddNewInstruction_Click(object sender, RoutedEventArgs e)
+		private void AddNewInstruction_Click( object sender, RoutedEventArgs e )
 		{
-			AddNewInstructionRequested?.Invoke(sender, e);
+			AddNewInstructionRequested?.Invoke( this, e );
 		}
 
-		private void DeleteInstruction_Click(object sender, RoutedEventArgs e)
+		private void DeleteInstruction_Click( object sender, RoutedEventArgs e )
 		{
-			DeleteInstructionRequested?.Invoke(sender, e);
+			DeleteInstructionRequested?.Invoke( this, e );
 		}
 
-		private void BrowseDestination_Click(object sender, RoutedEventArgs e)
+		private void BrowseDestination_Click( object sender, RoutedEventArgs e )
 		{
-			BrowseDestinationRequested?.Invoke(sender, e);
+			BrowseDestinationRequested?.Invoke( this, e );
 		}
 
-		private void BrowseSourceFiles_Click(object sender, RoutedEventArgs e)
+		private void BrowseSourceFiles_Click( object sender, RoutedEventArgs e )
 		{
-			BrowseSourceFilesRequested?.Invoke(sender, e);
+			BrowseSourceFilesRequested?.Invoke( this, e );
 		}
 
-		private void BrowseSourceFromFolders_Click(object sender, RoutedEventArgs e)
+		private void BrowseSourceFromFolders_Click( object sender, RoutedEventArgs e )
 		{
-			BrowseSourceFromFoldersRequested?.Invoke(sender, e);
+			BrowseSourceFromFoldersRequested?.Invoke( this, e );
 		}
 
-		private void MoveInstructionUp_Click(object sender, RoutedEventArgs e)
+		private void MoveInstructionUp_Click( object sender, RoutedEventArgs e )
 		{
-			MoveInstructionUpRequested?.Invoke(sender, e);
+			MoveInstructionUpRequested?.Invoke( this, e );
 		}
 
-		private void MoveInstructionDown_Click(object sender, RoutedEventArgs e)
+		private void MoveInstructionDown_Click( object sender, RoutedEventArgs e )
 		{
-			MoveInstructionDownRequested?.Invoke(sender, e);
+			MoveInstructionDownRequested?.Invoke( this, e );
 		}
 
-		private void AddNewOption_Click(object sender, RoutedEventArgs e)
+		private void AddNewOption_Click( object sender, RoutedEventArgs e )
 		{
-			AddNewOptionRequested?.Invoke(sender, e);
+			AddNewOptionRequested?.Invoke( this, e );
 		}
 
-		private void DeleteOption_Click(object sender, RoutedEventArgs e)
+		private void DeleteOption_Click( object sender, RoutedEventArgs e )
 		{
-			DeleteOptionRequested?.Invoke(sender, e);
+			DeleteOptionRequested?.Invoke( this, e );
 		}
 
-		private void MoveOptionUp_Click(object sender, RoutedEventArgs e)
+		private void MoveOptionUp_Click( object sender, RoutedEventArgs e )
 		{
-			MoveOptionUpRequested?.Invoke(sender, e);
+			MoveOptionUpRequested?.Invoke( this, e );
 		}
 
-		private void MoveOptionDown_Click(object sender, RoutedEventArgs e)
+		private void MoveOptionDown_Click( object sender, RoutedEventArgs e )
 		{
-			MoveOptionDownRequested?.Invoke(sender, e);
+			MoveOptionDownRequested?.Invoke( this, e );
 		}
 
-		private void JumpToBlockingInstruction_Handler(object sender, Core.Services.Validation.PathValidationResult e)
+		private void JumpToBlockingInstruction_Handler( object sender, Core.Services.Validation.PathValidationResult validationResult )
 		{
-			JumpToBlockingInstructionRequested?.Invoke(sender, e);
+			JumpToBlockingInstructionRequested?.Invoke( this, validationResult );
 		}
 	}
 }
-

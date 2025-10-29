@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,48 +6,49 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+
 using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Utility
 {
 	public static class CollectionUtils
 	{
-		public static void RemoveEmptyCollections([NotNull] IDictionary<string, object> thisTable)
+		public static void RemoveEmptyCollections( [NotNull] IDictionary<string, object> thisTable )
 		{
-			if ( thisTable is null )
-				throw new ArgumentNullException(nameof(thisTable));
+			if (thisTable is null)
+				throw new ArgumentNullException( nameof( thisTable ) );
 
-			var itemsToRemove = new List<string>();
+			List<string> itemsToRemove = new List<string>();
 
-			foreach ( KeyValuePair<string, object> kvp in thisTable )
+			foreach (KeyValuePair<string, object> kvp in thisTable)
 			{
-				if ( kvp.Key == null )
+				if (kvp.Key == null)
 					continue;
 
-				switch ( kvp.Value )
+				switch (kvp.Value)
 				{
 					case null:
-						itemsToRemove.Add(kvp.Key);
+						itemsToRemove.Add( kvp.Key );
 						continue;
 					case IEnumerable enumerable when !enumerable.GetEnumerator().MoveNext():
-						itemsToRemove.Add(kvp.Key);
+						itemsToRemove.Add( kvp.Key );
 						continue;
 					case IDictionary<string, object> table:
 						{
-							var emptyKeys = table.Keys.Where(
+							List<string> emptyKeys = table.Keys.Where(
 								key =>
 								{
-									if ( key is null )
+									if (key is null)
 										return default;
 
 									object value = table[key];
-									switch ( value )
+									switch (value)
 									{
 										case IList<object> list:
-											RemoveEmptyCollections(list);
+											RemoveEmptyCollections( list );
 											return list.IsNullOrEmptyOrAllNull();
 										case IDictionary<string, object> dict:
-											RemoveEmptyCollections(dict);
+											RemoveEmptyCollections( dict );
 											return dict.IsNullOrEmptyOrAllNull();
 										default:
 											return false;
@@ -55,60 +56,60 @@ namespace KOTORModSync.Core.Utility
 								}
 							).ToList();
 
-							foreach ( string key in emptyKeys )
+							foreach (string key in emptyKeys)
 							{
-								if ( key is null )
+								if (key is null)
 									continue;
 
-								_ = table.Remove(key);
+								_ = table.Remove( key );
 							}
 
-							if ( table.Count == 0 )
-								itemsToRemove.Add(table.GetHashCode().ToString());
+							if (table.Count == 0)
+								itemsToRemove.Add( table.GetHashCode().ToString() );
 
 							break;
 						}
 					case IList<object> list:
-						RemoveEmptyCollections(list);
+						RemoveEmptyCollections( list );
 						break;
 				}
 			}
 
-			foreach ( string item in itemsToRemove )
+			foreach (string item in itemsToRemove)
 			{
-				if ( item is null )
+				if (item is null)
 					continue;
 
-				_ = thisTable.Remove(item);
+				_ = thisTable.Remove( item );
 			}
 		}
 
-		public static void RemoveEmptyCollections([NotNull][ItemCanBeNull] IList<object> list)
+		public static void RemoveEmptyCollections( [NotNull][ItemCanBeNull] IList<object> list )
 		{
-			if ( list is null )
-				throw new ArgumentNullException(nameof(list));
+			if (list is null)
+				throw new ArgumentNullException( nameof( list ) );
 
-			for ( int i = list.Count - 1; i >= 0; i-- )
+			for (int i = list.Count - 1; i >= 0; i--)
 			{
 				object item = list[i];
-				switch ( item )
+				switch (item)
 				{
 					case null:
-						list.RemoveAt(i);
+						list.RemoveAt( i );
 						continue;
 					case IDictionary<string, object> dict:
 						{
-							RemoveEmptyCollections(dict);
-							if ( dict.IsNullOrEmptyCollection() )
-								list.RemoveAt(i);
+							RemoveEmptyCollections( dict );
+							if (dict.IsNullOrEmptyCollection())
+								list.RemoveAt( i );
 
 							break;
 						}
 					case IList<object> subList:
 						{
-							RemoveEmptyCollections(subList);
-							if ( subList.IsNullOrEmptyCollection() )
-								list.RemoveAt(i);
+							RemoveEmptyCollections( subList );
+							if (subList.IsNullOrEmptyCollection())
+								list.RemoveAt( i );
 
 							break;
 						}

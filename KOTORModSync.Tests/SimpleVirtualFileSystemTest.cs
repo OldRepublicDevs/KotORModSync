@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -16,8 +16,8 @@ namespace KOTORModSync.Tests
 
 			var provider = new VirtualFileSystemProvider();
 
-			Assert.That(provider, Is.Not.Null);
-			Assert.That(provider.IsDryRun, Is.True);
+			Assert.That( provider, Is.Not.Null );
+			Assert.That( provider.IsDryRun, Is.True );
 		}
 
 		[Test]
@@ -26,8 +26,8 @@ namespace KOTORModSync.Tests
 
 			var provider = new RealFileSystemProvider();
 
-			Assert.That(provider, Is.Not.Null);
-			Assert.That(provider.IsDryRun, Is.False);
+			Assert.That( provider, Is.Not.Null );
+			Assert.That( provider.IsDryRun, Is.False );
 		}
 
 		[Test]
@@ -36,13 +36,13 @@ namespace KOTORModSync.Tests
 
 			var provider = new VirtualFileSystemProvider();
 
-			provider.WriteFileAsync("test.txt", "content").Wait();
+			provider.WriteFileAsync( "test.txt", "content" ).Wait();
 
-			Assert.Multiple(() =>
+			Assert.Multiple( () =>
 			{
-				Assert.That(provider.FileExists("test.txt"), Is.True);
-				Assert.That(provider.FileExists("nonexistent.txt"), Is.False);
-			});
+				Assert.That( provider.FileExists( "test.txt" ), Is.True );
+				Assert.That( provider.FileExists( "nonexistent.txt" ), Is.False );
+			} );
 		}
 
 		[Test]
@@ -51,11 +51,11 @@ namespace KOTORModSync.Tests
 
 			var config = new MainConfig();
 
-			Assert.Multiple(() =>
+			Assert.Multiple( () =>
 			{
-				Assert.That(config.caseInsensitivePathing, Is.TypeOf<bool>());
-				Assert.That(config.useMultiThreadedIO, Is.False);
-			});
+				Assert.That( config.caseInsensitivePathing, Is.TypeOf<bool>() );
+				Assert.That( config.useMultiThreadedIO, Is.False );
+			} );
 		}
 	}
 }

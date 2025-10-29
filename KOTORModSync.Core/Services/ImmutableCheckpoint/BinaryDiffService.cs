@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -37,8 +37,8 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 			await Logger.LogVerboseAsync($"[BinaryDiff] Creating bidirectional delta for {relativePath}");
 
-			string sourceHash = await BinaryDiffService.ComputeFileHashAsync(sourceFilePath, cancellationToken);
-			string targetHash = await BinaryDiffService.ComputeFileHashAsync(targetFilePath, cancellationToken);
+			string sourceHash = await ComputeFileHashAsync(sourceFilePath, cancellationToken);
+			string targetHash = await ComputeFileHashAsync(targetFilePath, cancellationToken);
 
 			if ( sourceHash == targetHash )
 			{
@@ -71,7 +71,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			long forwardDeltaSize;
 			using ( var forwardDeltaStream = new MemoryStream() )
 			{
-				forwardDeltaSize = await BinaryDiffService.CreateOctodiffDeltaAsync(
+				forwardDeltaSize = await CreateOctodiffDeltaAsync(
 					sourceFilePath,
 					targetFilePath,
 					forwardDeltaStream,
@@ -84,7 +84,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			long reverseDeltaSize;
 			using ( var reverseDeltaStream = new MemoryStream() )
 			{
-				reverseDeltaSize = await BinaryDiffService.CreateOctodiffDeltaAsync(
+				reverseDeltaSize = await CreateOctodiffDeltaAsync(
 					targetFilePath,
 					sourceFilePath,
 					reverseDeltaStream,
@@ -135,7 +135,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			using ( var sourceStream = _casStore.OpenReadStream(delta.SourceCASHash) )
 			using ( var deltaStream = _casStore.OpenReadStream(delta.ForwardDeltaCASHash) )
 			{
-				await BinaryDiffService.ApplyOctodiffDeltaAsync(sourceStream, deltaStream, outputFilePath, cancellationToken);
+				await ApplyOctodiffDeltaAsync(sourceStream, deltaStream, outputFilePath, cancellationToken);
 			}
 		}
 
@@ -158,7 +158,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			using ( var targetStream = _casStore.OpenReadStream(delta.TargetCASHash) )
 			using ( var reverseDeltaStream = _casStore.OpenReadStream(delta.ReverseDeltaCASHash) )
 			{
-				await BinaryDiffService.ApplyOctodiffDeltaAsync(targetStream, reverseDeltaStream, outputFilePath, cancellationToken);
+				await ApplyOctodiffDeltaAsync(targetStream, reverseDeltaStream, outputFilePath, cancellationToken);
 			}
 		}
 

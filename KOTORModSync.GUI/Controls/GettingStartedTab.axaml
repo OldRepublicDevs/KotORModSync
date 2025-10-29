@@ -67,25 +67,59 @@
                     </Grid>
                     <TextBlock
                         Margin="30,10,0,10"
-                        Text="Configure your mod directory and KOTOR installation directory"
+                        Text="Configure your mod workspace and KOTOR installation directory"
                         TextWrapping="Wrap" />
+                    
+                    <!--  Detailed Directory Explanations  -->
+                    <StackPanel Margin="30,5,0,10" Spacing="8">
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Text="📁 Mod Directory (Workspace):" />
+                        <TextBlock
+                            Margin="15,0,0,0"
+                            Text="Choose any folder on your computer to use as your mod workspace. This is where:"
+                            TextWrapping="Wrap" />
+                        <StackPanel Margin="15,5,0,0" Spacing="2">
+                            <TextBlock Text="• Mod files will be downloaded from the internet" />
+                            <TextBlock Text="• Mod archives will be extracted and processed" />
+                            <TextBlock Text="• Temporary files will be stored during installation" />
+                        </StackPanel>
+                        <TextBlock
+                            Margin="15,5,0,0"
+                            FontStyle="Italic"
+                            Text="Tip: Create a dedicated folder like 'C:\KOTORMods' or use your Documents folder"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
 
                     <!--  Directory Controls  -->
                     <StackPanel Margin="30,10,0,10">
                         <controls:DirectoryPickerControl
                             x:Name="Step1ModDirectoryPicker"
-                            Title="Mod Location:"
+                            Title="Mod Workspace Directory:"
                             Margin="0,0,0,10"
                             DirectoryChanged="OnDirectoryChanged"
                             PickerType="ModDirectory"
-                            Watermark="Enter mod directory path" />
+                            Watermark="Choose a folder for your mod workspace (e.g., C:\KOTORMods)"
+                            ToolTip.Tip="Select any folder on your computer to use as your mod workspace. This is where mod files will be downloaded and processed." />
+
+                        <!--  KOTOR Directory Explanation  -->
+                        <StackPanel Margin="0,10,0,10" Spacing="8">
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Text="🎮 KOTOR Directory:" />
+                            <TextBlock
+                                Margin="15,0,0,0"
+                                Text="Point to your KOTOR game installation folder (where the game is installed)"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
 
                         <controls:DirectoryPickerControl
                             x:Name="Step1KotorDirectoryPicker"
-                            Title="Kotor Directory:"
+                            Title="KOTOR Game Directory:"
                             DirectoryChanged="OnDirectoryChanged"
                             PickerType="KotorDirectory"
-                            Watermark="Enter KOTOR installation directory" />
+                            Watermark="Enter your KOTOR game installation folder"
+                            ToolTip.Tip="Point to the folder where KOTOR is installed (usually contains swkotor.exe or swkotor2.exe)" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -197,7 +231,7 @@
                         Text="📥 Download Mods" />
                     <TextBlock
                         Margin="30,5,0,10"
-                        Text="Make sure each selected mod is downloaded into your Mod Directory before installing."
+                        Text="Make sure each selected mod is downloaded into your Mod Workspace before installing."
                         TextWrapping="Wrap" />
                     <TextBlock
                         Margin="30,0,0,10"
@@ -215,8 +249,8 @@
                         <Button
                             x:Name="OpenModDirectoryButton"
                             Click="OpenModDirectoryButton_Click"
-                            Content="Open Mod Directory"
-                            ToolTip.Tip="Open your configured Mod Directory in the file explorer" />
+                            Content="Open Mod Workspace"
+                            ToolTip.Tip="Open your configured Mod Workspace folder in the file explorer" />
                     </StackPanel>
 
                     <!--  Download Status and Progress Indicator  -->

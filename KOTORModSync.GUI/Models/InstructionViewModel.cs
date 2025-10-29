@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,8 +7,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
+
 using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Models
@@ -27,7 +30,7 @@ namespace KOTORModSync.Models
 			get => _willExecute;
 			set
 			{
-				if ( _willExecute == value ) return;
+				if (_willExecute == value) return;
 				_willExecute = value;
 				UpdateVisualState();
 				OnPropertyChanged();
@@ -39,7 +42,7 @@ namespace KOTORModSync.Models
 			get => _opacity;
 			set
 			{
-				if ( Math.Abs(_opacity - value) < 0.01 ) return;
+				if (Math.Abs( _opacity - value ) < 0.01) return;
 				_opacity = value;
 				OnPropertyChanged();
 			}
@@ -53,15 +56,15 @@ namespace KOTORModSync.Models
 
 		public bool ShowDependencyInfo { get; set; }
 
-		public InstructionViewModel([NotNull] Instruction instruction, [NotNull] ModComponent parentComponent, bool willExecute, bool showDependencyInfo = false)
+		public InstructionViewModel( [NotNull] Instruction instruction, [NotNull] ModComponent parentComponent, bool willExecute, bool showDependencyInfo = false )
 		{
-			Instruction = instruction ?? throw new ArgumentNullException(nameof(instruction));
-			ParentComponent = parentComponent ?? throw new ArgumentNullException(nameof(parentComponent));
+			Instruction = instruction ?? throw new ArgumentNullException( nameof( instruction ) );
+			ParentComponent = parentComponent ?? throw new ArgumentNullException( nameof( parentComponent ) );
 			_willExecute = willExecute;
 			ShowDependencyInfo = showDependencyInfo;
 
-			DependencyNames = InstructionViewModel.ResolveGuidNames(instruction.Dependencies);
-			RestrictionNames = InstructionViewModel.ResolveGuidNames(instruction.Restrictions);
+			DependencyNames = InstructionViewModel.ResolveGuidNames( instruction.Dependencies );
+			RestrictionNames = InstructionViewModel.ResolveGuidNames( instruction.Restrictions );
 
 			UpdateVisualState();
 		}
@@ -70,31 +73,31 @@ namespace KOTORModSync.Models
 		{
 
 			Opacity = WillExecute ? 1.0 : 0.5;
-			OnPropertyChanged(nameof(FontWeight));
+			OnPropertyChanged( nameof( FontWeight ) );
 		}
 
-		private static List<string> ResolveGuidNames(List<Guid> guids)
+		private static List<string> ResolveGuidNames( List<Guid> guids )
 		{
 			var names = new List<string>();
-			if ( guids == null || guids.Count == 0 )
+			if (guids == null || guids.Count == 0)
 				return names;
 
-			foreach ( Guid guid in guids )
+			foreach (Guid guid in guids)
 			{
 
-				ModComponent component = MainConfig.AllComponents.FirstOrDefault(c => c.Guid == guid);
-				if ( component != null )
+				ModComponent component = MainConfig.AllComponents.FirstOrDefault( c => c.Guid == guid );
+				if (component != null)
 				{
-					names.Add($"[ModComponent] {component.Name}");
+					names.Add( $"[ModComponent] {component.Name}" );
 					continue;
 				}
 
-				foreach ( ModComponent comp in MainConfig.AllComponents )
+				foreach (ModComponent comp in MainConfig.AllComponents)
 				{
-					Option option = comp.Options.FirstOrDefault(o => o.Guid == guid);
-					if ( option == null )
+					Option option = comp.Options.FirstOrDefault( o => o.Guid == guid );
+					if (option == null)
 						continue;
-					names.Add($"[Option] {comp.Name} → {option.Name}");
+					names.Add( $"[Option] {comp.Name} → {option.Name}" );
 					break;
 				}
 			}
@@ -104,10 +107,9 @@ namespace KOTORModSync.Models
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+		private void OnPropertyChanged( [CallerMemberName] string propertyName = null )
 		{
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
 		}
 	}
 }
-

@@ -23,7 +23,6 @@
     </Window.Resources>
 
     <Window.Styles>
-        <StyleInclude Source="/Styles/ContentPresenterFix.axaml" />
     </Window.Styles>
 
     <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
@@ -122,6 +121,21 @@
                                     <Binding Converter="{StaticResource IsUnixConverter}" />
                                 </CheckBox.IsVisible>
                             </CheckBox>
+
+                            <TextBlock
+                                Margin="0,15,0,5"
+                                FontWeight="Bold"
+                                Text="Theme:" />
+                            <ComboBox
+                                x:Name="ThemeComboBox"
+                                Margin="0,5,0,0"
+                                HorizontalAlignment="Stretch"
+                                SelectionChanged="ThemeComboBox_SelectionChanged"
+                                ToolTip.Tip="Select the application theme">
+                                <ComboBoxItem Content="Fluent Light" Tag="FluentLight" />
+                                <ComboBoxItem Content="KOTOR Theme" Tag="KOTOR" />
+                                <ComboBoxItem Content="KOTOR 2 Theme" Tag="KOTOR2" />
+                            </ComboBox>
 
                             <TextBlock
                                 Margin="0,15,0,5"
@@ -316,20 +330,53 @@
                                 FontWeight="Bold"
                                 Text="📁 Directory Settings" />
 
-                            <controls:DirectoryPickerControl
-                                x:Name="ModDirectoryPicker"
-                                Title="Mod Location:"
-                                Margin="0,0,0,10"
-                                DirectoryChanged="OnDirectoryChanged"
-                                PickerType="ModDirectory"
-                                Watermark="Enter mod directory path" />
+                            <!--  Detailed Directory Explanations  -->
+                            <StackPanel Margin="0,5,0,10" Spacing="8">
+                                <TextBlock FontWeight="SemiBold" Text="📁 Mod Directory (Workspace):" />
+                                <TextBlock
+                                    Margin="15,0,0,0"
+                                    Text="Choose any folder on your computer to use as your mod workspace. This is where:"
+                                    TextWrapping="Wrap" />
+                                <StackPanel Margin="15,5,0,0" Spacing="2">
+                                    <TextBlock Text="• Mod files will be downloaded from the internet" />
+                                    <TextBlock Text="• Mod archives will be extracted and processed" />
+                                    <TextBlock Text="• Temporary files will be stored during installation" />
+                                </StackPanel>
+                                <TextBlock
+                                    Margin="15,5,0,0"
+                                    FontStyle="Italic"
+                                    Text="Tip: Create a dedicated folder like 'C:\KOTORMods' or use your Documents folder"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
 
-                            <controls:DirectoryPickerControl
-                                x:Name="KotorDirectoryPicker"
-                                Title="Kotor Directory:"
-                                DirectoryChanged="OnDirectoryChanged"
-                                PickerType="KotorDirectory"
-                                Watermark="Enter KOTOR installation directory" />
+                            <!--  Directory Controls  -->
+                            <StackPanel Margin="0,10,0,10">
+                                <controls:DirectoryPickerControl
+                                    x:Name="ModDirectoryPicker"
+                                    Title="Mod Workspace Directory:"
+                                    Margin="0,0,0,10"
+                                    DirectoryChanged="OnDirectoryChanged"
+                                    PickerType="ModDirectory"
+                                    ToolTip.Tip="Select any folder on your computer to use as your mod workspace. This is where mod files will be downloaded and processed."
+                                    Watermark="Choose a folder for your mod workspace (e.g., C:\KOTORMods)" />
+
+                                <!--  KOTOR Directory Explanation  -->
+                                <StackPanel Margin="0,10,0,10" Spacing="8">
+                                    <TextBlock FontWeight="SemiBold" Text="🎮 KOTOR Directory:" />
+                                    <TextBlock
+                                        Margin="15,0,0,0"
+                                        Text="Point to your KOTOR game installation folder (where the game is installed)"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <controls:DirectoryPickerControl
+                                    x:Name="KotorDirectoryPicker"
+                                    Title="KOTOR Game Directory:"
+                                    DirectoryChanged="OnDirectoryChanged"
+                                    PickerType="KotorDirectory"
+                                    ToolTip.Tip="Point to the folder where KOTOR is installed (usually contains swkotor.exe or swkotor2.exe)"
+                                    Watermark="Enter your KOTOR game installation folder" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

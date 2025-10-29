@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -13,32 +13,32 @@ namespace KOTORModSync.Tests
 		public void TestSerializeString()
 		{
 			const string str = "Hello, world!";
-			object? serialized = Serializer.SerializeObject(str);
+			object? serialized = Serializer.SerializeObject( str );
 
-			Assert.That(serialized, Is.EqualTo(str));
+			Assert.That( serialized, Is.EqualTo( str ) );
 		}
 
 		[Test]
 		public void TestSerializeInt()
 		{
-			int thisInt = new Random().Next(minValue: 1, maxValue: 65535);
-			object? serialized = Serializer.SerializeObject(thisInt);
+			int thisInt = new Random().Next( minValue: 1, maxValue: 65535 );
+			object? serialized = Serializer.SerializeObject( thisInt );
 
-			Assert.That(serialized, Is.EqualTo(thisInt.ToString()));
+			Assert.That( serialized, Is.EqualTo( thisInt.ToString() ) );
 		}
 
 		[Test]
 		public void TestSerializeGuid()
 		{
 			var guid = Guid.NewGuid();
-			object? serialized = Serializer.SerializeObject(guid);
+			object? serialized = Serializer.SerializeObject( guid );
 
-			if ( serialized is null )
-				throw new NullReferenceException(nameof(serialized));
+			if (serialized is null)
+				throw new NullReferenceException( nameof( serialized ) );
 
 			Assert.That(
 				serialized,
-				Is.EqualTo(guid.ToString()),
+				Is.EqualTo( guid.ToString() ),
 				"Serialized value should be equal to the string representation"
 				+ $" of the Guid,{Environment.NewLine}but was {serialized.GetType()}"
 			);
@@ -51,13 +51,13 @@ namespace KOTORModSync.Tests
 			[
 				Guid.NewGuid(), Guid.NewGuid(),
 			];
-			object? serialized = Serializer.SerializeObject(list);
+			object? serialized = Serializer.SerializeObject( list );
 
-			Assert.Multiple(() =>
+			Assert.Multiple( () =>
 			{
-				Assert.That(serialized, Is.InstanceOf<IEnumerable<object>>());
-				Assert.That((IEnumerable<object>)serialized, Is.All.InstanceOf<string>());
-			});
+				Assert.That( serialized, Is.InstanceOf<IEnumerable<object>>() );
+				Assert.That( (IEnumerable<object>)serialized, Is.All.InstanceOf<string>() );
+			} );
 		}
 
 		[Test]
@@ -65,7 +65,7 @@ namespace KOTORModSync.Tests
 		{
 
 			var instance1 = new MyClass();
-			instance1.NestedInstance = new MyNestedClass(instance1);
+			instance1.NestedInstance = new MyNestedClass( instance1 );
 			instance1.GuidNestedClassDict = new Dictionary<Guid, List<MyNestedClass>>
 			{
 				{
@@ -77,7 +77,7 @@ namespace KOTORModSync.Tests
 			};
 
 			var instance2 = new MyClass();
-			instance2.NestedInstance = new MyNestedClass(instance2);
+			instance2.NestedInstance = new MyNestedClass( instance2 );
 			instance2.GuidNestedClassDict = new Dictionary<Guid, List<MyNestedClass>>
 			{
 				{
@@ -92,7 +92,7 @@ namespace KOTORModSync.Tests
 				() =>
 				{
 					Assert.That(
-						HasStackOverflow(() => Serializer.SerializeObject(instance1)),
+						HasStackOverflow( () => Serializer.SerializeObject( instance1 ) ),
 						Is.False,
 						message: "Serialization should not cause a stack overflow"
 					);
@@ -114,7 +114,7 @@ namespace KOTORModSync.Tests
 
 		private const int MaxRecursionDepth = 1000;
 
-		private static bool HasStackOverflow(Action action)
+		private static bool HasStackOverflow( Action action )
 		{
 			int recursionDepth = 0;
 			bool stackOverflow = false;
@@ -122,9 +122,9 @@ namespace KOTORModSync.Tests
 			try
 			{
 
-				AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+				AppDomain.CurrentDomain.UnhandledException += ( sender, args ) =>
 				{
-					if ( args.ExceptionObject is StackOverflowException )
+					if (args.ExceptionObject is StackOverflowException)
 					{
 						stackOverflow = true;
 					}
@@ -136,7 +136,7 @@ namespace KOTORModSync.Tests
 						try
 						{
 
-							RecursiveMethod(action, ref recursionDepth);
+							RecursiveMethod( action, ref recursionDepth );
 						}
 						catch
 						{
@@ -145,9 +145,9 @@ namespace KOTORModSync.Tests
 					}
 				);
 
-				Thread.Sleep(TimeSpan.FromSeconds(5));
+				Thread.Sleep( TimeSpan.FromSeconds( 5 ) );
 
-				if ( recursionDepth > MaxRecursionDepth )
+				if (recursionDepth > MaxRecursionDepth)
 				{
 					stackOverflow = true;
 				}
@@ -160,13 +160,13 @@ namespace KOTORModSync.Tests
 			return stackOverflow;
 		}
 
-		private static void RecursiveMethod(Action action, ref int recursionDepth)
+		private static void RecursiveMethod( Action action, ref int recursionDepth )
 		{
 			recursionDepth++;
 
-			if ( recursionDepth > MaxRecursionDepth )
+			if (recursionDepth > MaxRecursionDepth)
 			{
-				throw new StackOverflowException("Recursion depth exceeded the limit.");
+				throw new StackOverflowException( "Recursion depth exceeded the limit." );
 			}
 
 			action.Invoke();
@@ -174,39 +174,39 @@ namespace KOTORModSync.Tests
 			recursionDepth--;
 		}
 
-		private static void VerifyUniqueSerialization(object serialized, ISet<object> serializedObjects)
+		private static void VerifyUniqueSerialization( object serialized, ISet<object> serializedObjects )
 		{
-			if ( serialized is not Dictionary<string, object> serializedDict )
+			if (serialized is not Dictionary<string, object> serializedDict)
 			{
-				if ( serialized is not List<object> serializedList )
+				if (serialized is not List<object> serializedList)
 				{
 					return;
 				}
 
-				foreach ( object serializedItem in serializedList )
+				foreach (object serializedItem in serializedList)
 				{
-					VerifyUniqueSerialization(serializedItem, serializedObjects);
+					VerifyUniqueSerialization( serializedItem, serializedObjects );
 				}
 
 				return;
 			}
 
-			foreach ( object serializedValue in serializedDict.Values )
+			foreach (object serializedValue in serializedDict.Values)
 			{
-				switch ( serializedValue )
+				switch (serializedValue)
 				{
 					case Dictionary<string, object> nestedDict:
-						VerifyUniqueSerialization(nestedDict, serializedObjects);
+						VerifyUniqueSerialization( nestedDict, serializedObjects );
 						return;
 
 					case List<object> serializedList:
-						VerifyUniqueSerialization(serializedList, serializedObjects);
+						VerifyUniqueSerialization( serializedList, serializedObjects );
 						return;
 				}
 
-				if ( !serializedObjects.Add(serializedValue) )
+				if (!serializedObjects.Add( serializedValue ))
 				{
-					Assert.Fail($"Duplicate object found during serialization: {serializedValue.GetType().Name}");
+					Assert.Fail( $"Duplicate object found during serialization: {serializedValue.GetType().Name}" );
 				}
 			}
 		}
@@ -221,7 +221,7 @@ namespace KOTORModSync.Tests
 
 	public class MyNestedClass
 	{
-		public MyNestedClass(MyClass parentInstance) => ParentInstance = parentInstance;
+		public MyNestedClass( MyClass parentInstance ) => ParentInstance = parentInstance;
 
 		public MyClass ParentInstance { get; set; }
 	}

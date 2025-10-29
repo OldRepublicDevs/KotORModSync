@@ -1,15 +1,18 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 
 namespace KOTORModSync.Controls
@@ -19,9 +22,9 @@ namespace KOTORModSync.Controls
 		public InstructionEditorControl()
 		{
 
-			AvaloniaXamlLoader.Load(this);
+			AvaloniaXamlLoader.Load( this );
 
-			this.Loaded += (sender, e) => UpdateFileExtensionsControl();
+			this.Loaded += ( sender, e ) => UpdateFileExtensionsControl();
 		}
 
 		private static readonly char[] separator = new[] { ' ', ',', ';', '\n', '\r' };
@@ -35,71 +38,71 @@ namespace KOTORModSync.Controls
 		public event EventHandler<RoutedEventArgs> BrowseDestination;
 		public event EventHandler<Core.Services.Validation.PathValidationResult> JumpToBlockingInstruction;
 
-		private void AddNewInstruction_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => AddNewInstruction?.Invoke(sender, e);
+		private void AddNewInstruction_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e ) => AddNewInstruction?.Invoke( this, e );
 
-		private void DeleteInstruction_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => DeleteInstruction?.Invoke(sender, e);
+		private void DeleteInstruction_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e ) => DeleteInstruction?.Invoke( this, e );
 
-		private void MoveInstructionUp_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => MoveInstructionUp?.Invoke(sender, e);
+		private void MoveInstructionUp_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e ) => MoveInstructionUp?.Invoke( this, e );
 
-		private void MoveInstructionDown_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => MoveInstructionDown?.Invoke(sender, e);
+		private void MoveInstructionDown_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e ) => MoveInstructionDown?.Invoke( this, e );
 
-		private void BrowseSourceFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		private void BrowseSourceFiles_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e )
 		{
-			Core.Logger.LogVerbose("InstructionEditorControl.BrowseSourceFiles_Click: Event triggered");
-			BrowseSourceFiles?.Invoke(sender, e);
+			Core.Logger.LogVerbose( "InstructionEditorControl.BrowseSourceFiles_Click: Event triggered" );
+			BrowseSourceFiles?.Invoke( this, e );
 		}
 
-		private void BrowseSourceFromFolders_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		private void BrowseSourceFromFolders_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e )
 		{
-			Core.Logger.LogVerbose("InstructionEditorControl.BrowseSourceFromFolders_Click: Event triggered");
-			BrowseSourceFromFolders?.Invoke(sender, e);
+			Core.Logger.LogVerbose( "InstructionEditorControl.BrowseSourceFromFolders_Click: Event triggered" );
+			BrowseSourceFromFolders?.Invoke( this, e );
 		}
 
-		private void BrowseDestination_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseDestination?.Invoke(sender, e);
+		private void BrowseDestination_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e ) => BrowseDestination?.Invoke( this, e );
 
-		private void JumpToBlockingInstruction_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+		private void JumpToBlockingInstruction_Click( [NotNull] object sender, [NotNull] RoutedEventArgs e )
 		{
-			if ( sender is Button button && button.Tag is Core.Services.Validation.PathValidationResult validationResult )
+			if (sender is Button button && button.Tag is Core.Services.Validation.PathValidationResult validationResult)
 			{
-				JumpToBlockingInstruction?.Invoke(this, validationResult);
+				JumpToBlockingInstruction?.Invoke( this, validationResult );
 			}
 		}
 
-		protected override void OnDataContextChanged(EventArgs e)
+		protected override void OnDataContextChanged( EventArgs e )
 		{
-			base.OnDataContextChanged(e);
+			base.OnDataContextChanged( e );
 
-			Dispatcher.UIThread.Post(() => UpdateFileExtensionsControl(), DispatcherPriority.Loaded);
+			Dispatcher.UIThread.Post( () => UpdateFileExtensionsControl(), DispatcherPriority.Loaded );
 		}
 
 		private void UpdateFileExtensionsControl()
 		{
-			if ( DataContext is Instruction instruction && instruction.Action == Instruction.ActionType.DelDuplicate )
+			if (DataContext is Instruction instruction && instruction.Action == Instruction.ActionType.DelDuplicate)
 			{
 
-				List<string> extensions = ParseExtensionsFromArguments(instruction.Arguments);
-				Logger.LogVerbose($"InstructionEditorControl.UpdateFileExtensionsControl: Arguments='{instruction.Arguments}', Parsed extensions: [{string.Join(", ", extensions)}]");
-				var fileExtensionsControl = this.FindControl<FileExtensionsControl>("FileExtensionsControl");
-				if ( fileExtensionsControl != null )
+				List<string> extensions = ParseExtensionsFromArguments( instruction.Arguments );
+				Logger.LogVerbose( $"InstructionEditorControl.UpdateFileExtensionsControl: Arguments='{instruction.Arguments}', Parsed extensions: [{string.Join( ", ", extensions )}]" );
+				var fileExtensionsControl = this.FindControl<FileExtensionsControl>( "FileExtensionsControl" );
+				if (fileExtensionsControl != null)
 				{
-					Logger.LogVerbose("Found FileExtensionsControl, calling SetExtensions");
-					fileExtensionsControl.SetExtensions(extensions);
+					Logger.LogVerbose( "Found FileExtensionsControl, calling SetExtensions" );
+					fileExtensionsControl.SetExtensions( extensions );
 				}
 				else
 				{
-					Logger.LogVerbose("FileExtensionsControl not found!");
+					Logger.LogVerbose( "FileExtensionsControl not found!" );
 				}
 			}
 		}
 
-		private static List<string> ParseExtensionsFromArguments([NotNull] string arguments)
+		private static List<string> ParseExtensionsFromArguments( [NotNull] string arguments )
 		{
-			if ( string.IsNullOrWhiteSpace(arguments) )
+			if (string.IsNullOrWhiteSpace( arguments ))
 				return new List<string>();
 
-			var extensions = arguments.Split(separator, StringSplitOptions.RemoveEmptyEntries)
-				.Where(ext => !string.IsNullOrWhiteSpace(ext))
-				.Select(ext => ext.Trim())
+			var extensions = arguments.Split( separator, StringSplitOptions.RemoveEmptyEntries )
+				.Where( ext => !string.IsNullOrWhiteSpace( ext ) )
+				.Select( ext => ext.Trim() )
 				.ToList();
 
 			return extensions;
@@ -107,18 +110,12 @@ namespace KOTORModSync.Controls
 
 		public void SyncExtensionsToArguments()
 		{
-			if ( DataContext is Instruction instruction && instruction.Action == Instruction.ActionType.DelDuplicate )
+			if (DataContext is Instruction instruction && instruction.Action == Instruction.ActionType.DelDuplicate)
 			{
-				var fileExtensionsControl = this.FindControl<FileExtensionsControl>("FileExtensionsControl");
+				var fileExtensionsControl = this.FindControl<FileExtensionsControl>( "FileExtensionsControl" );
 				var extensions = fileExtensionsControl?.GetValidExtensions() ?? new List<string>();
-				instruction.Arguments = string.Join(" ", extensions.Where(ext => !string.IsNullOrWhiteSpace(ext)));
+				instruction.Arguments = string.Join( " ", extensions.Where( ext => !string.IsNullOrWhiteSpace( ext ) ) );
 			}
-		}
-
-		private void OnInstructionArgumentsChanged()
-		{
-
-			Dispatcher.UIThread.Post(() => UpdateFileExtensionsControl(), DispatcherPriority.Loaded);
 		}
 	}
 }

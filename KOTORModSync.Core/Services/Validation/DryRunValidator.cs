@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,7 +7,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Core.Services.Validation
@@ -25,19 +27,23 @@ namespace KOTORModSync.Core.Services.Validation
 		public static async Task<string> ValidateInstructionPathAsync(
 			[CanBeNull] string path,
 			[CanBeNull] Instruction instruction,
-			[CanBeNull] ModComponent currentComponent)
+			[CanBeNull] ModComponent currentComponent )
 		{
-			if ( string.IsNullOrWhiteSpace(path) )
+			if (string.IsNullOrWhiteSpace( path ))
 				return "❓ Empty";
+
+
 
 			try
 			{
-				PathValidationResult result = await ValidateInstructionPathDetailedAsync(path, instruction, currentComponent);
+				PathValidationResult result = await ValidateInstructionPathDetailedAsync( path, instruction, currentComponent ).ConfigureAwait( false );
 				return result.StatusMessage ?? "❓ Unknown";
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex, "Error in simple path validation");
+				await Logger.LogExceptionAsync( ex, "Error in simple path validation" ).ConfigureAwait( false );
 				return "⚠️ Validation error";
 			}
 		}
@@ -50,9 +56,9 @@ namespace KOTORModSync.Core.Services.Validation
 		public static async Task<PathValidationResult> ValidateInstructionPathDetailedAsync(
 			[CanBeNull] string path,
 			[CanBeNull] Instruction instruction,
-			[CanBeNull] ModComponent currentComponent)
+			[CanBeNull] ModComponent currentComponent )
 		{
-			if ( string.IsNullOrWhiteSpace(path) )
+			if (string.IsNullOrWhiteSpace( path ))
 			{
 				return new PathValidationResult
 				{
@@ -61,7 +67,7 @@ namespace KOTORModSync.Core.Services.Validation
 				};
 			}
 
-			if ( instruction == null || currentComponent == null )
+			if (instruction == null || currentComponent == null)
 			{
 				return new PathValidationResult
 				{
@@ -74,7 +80,7 @@ namespace KOTORModSync.Core.Services.Validation
 			try
 			{
 				// Check if path uses required placeholders
-				if ( !path.StartsWith("<<modDirectory>>") && !path.StartsWith("<<kotorDirectory>>") && instruction.Action != Instruction.ActionType.Choose )
+				if (!path.StartsWith( "<<modDirectory>>", StringComparison.Ordinal ) && !path.StartsWith( "<<kotorDirectory>>", StringComparison.Ordinal ) && instruction.Action != Instruction.ActionType.Choose)
 				{
 					return new PathValidationResult
 					{
@@ -85,22 +91,26 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 
 				// Initialize virtual file system with current state
-				var vfs = new VirtualFileSystemProvider();
+				VirtualFileSystemProvider vfs = new VirtualFileSystemProvider();
 
 				// Load existing files from disk
-				if ( MainConfig.SourcePath != null && MainConfig.SourcePath.Exists )
+				if (MainConfig.SourcePath != null && MainConfig.SourcePath.Exists)
+
+
 				{
-					await Task.Run(() => vfs.InitializeFromRealFileSystem(MainConfig.SourcePath.FullName));
+					await Task.Run( async () => await vfs.InitializeFromRealFileSystemAsync( MainConfig.SourcePath.FullName ).ConfigureAwait( false ) ).ConfigureAwait( false );
 				}
 
-				if ( MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists )
+				if (MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists)
+
+
 				{
-					await Task.Run(() => vfs.InitializeFromRealFileSystem(MainConfig.DestinationPath.FullName));
+					await Task.Run( async () => await vfs.InitializeFromRealFileSystemAsync( MainConfig.DestinationPath.FullName ).ConfigureAwait( false ) ).ConfigureAwait( false );
 				}
 
 				// Find the instruction index
-				int instructionIndex = currentComponent.Instructions.IndexOf(instruction);
-				if ( instructionIndex < 0 )
+				int instructionIndex = currentComponent.Instructions.IndexOf( instruction );
+				if (instructionIndex < 0)
 				{
 					return new PathValidationResult
 					{
@@ -111,36 +121,38 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 
 				// Execute all previous instructions to update VFS state
-				var allComponents = MainConfig.AllComponents;
-				for ( int i = 0; i < instructionIndex; i++ )
+				System.Collections.Generic.List<ModComponent> allComponents = MainConfig.AllComponents;
+				for (int i = 0; i < instructionIndex; i++)
 				{
 					Instruction prevInstruction = currentComponent.Instructions[i];
-					prevInstruction.SetFileSystemProvider(vfs);
+					prevInstruction.SetFileSystemProvider( vfs );
 
 					try
 					{
-						using ( var cts = new CancellationTokenSource() )
+						using (CancellationTokenSource cts = new CancellationTokenSource())
+
+
 						{
-							await SimulateInstructionAsync(prevInstruction, i, currentComponent, vfs, allComponents, cts.Token);
+							await SimulateInstructionAsync( prevInstruction, i, currentComponent, vfs, allComponents, cts.Token ).ConfigureAwait( false );
 						}
 					}
-					catch ( Exception )
+					catch (Exception)
 					{
 						// Continue even if previous instructions fail
 					}
 				}
 
 				// Now validate the current path against the VFS state
-				string resolvedPath = ResolvePlaceholderPath(path);
+				string resolvedPath = ResolvePlaceholderPath( path );
 
 				// Check based on instruction type
-				switch ( instruction.Action )
+				switch (instruction.Action)
 				{
 					case Instruction.ActionType.Extract:
 						// Archive must exist
-						if ( !vfs.FileExists(resolvedPath) )
+						if (!vfs.FileExists( resolvedPath ))
 						{
-							return CheckForBlockingInstruction(path, instructionIndex, currentComponent, vfs, isExtract: true);
+							return CheckForBlockingInstruction( path, instructionIndex, currentComponent, isExtract: true );
 						}
 						return new PathValidationResult
 						{
@@ -152,9 +164,9 @@ namespace KOTORModSync.Core.Services.Validation
 					case Instruction.ActionType.Copy:
 					case Instruction.ActionType.Rename:
 						// Source file must exist
-						if ( !vfs.FileExists(resolvedPath) )
+						if (!vfs.FileExists( resolvedPath ))
 						{
-							return CheckForBlockingInstruction(path, instructionIndex, currentComponent, vfs, isExtract: false);
+							return CheckForBlockingInstruction( path, instructionIndex, currentComponent, isExtract: false );
 						}
 						return new PathValidationResult
 						{
@@ -164,7 +176,7 @@ namespace KOTORModSync.Core.Services.Validation
 
 					case Instruction.ActionType.Delete:
 						// File should exist to delete (but not critical)
-						if ( !vfs.FileExists(resolvedPath) )
+						if (!vfs.FileExists( resolvedPath ))
 						{
 							return new PathValidationResult
 							{
@@ -182,7 +194,7 @@ namespace KOTORModSync.Core.Services.Validation
 					case Instruction.ActionType.Execute:
 					case Instruction.ActionType.Run:
 						// Executable should exist
-						if ( !vfs.FileExists(resolvedPath) )
+						if (!vfs.FileExists( resolvedPath ))
 						{
 							return new PathValidationResult
 							{
@@ -213,9 +225,11 @@ namespace KOTORModSync.Core.Services.Validation
 						};
 				}
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
+
+
 			{
-				await Logger.LogExceptionAsync(ex, "Error in detailed path validation");
+				await Logger.LogExceptionAsync( ex, "Error in detailed path validation" ).ConfigureAwait( false );
 				return new PathValidationResult
 				{
 					StatusMessage = "⚠️ Validation error",
@@ -229,21 +243,20 @@ namespace KOTORModSync.Core.Services.Validation
 			string path,
 			int currentInstructionIndex,
 			ModComponent component,
-			VirtualFileSystemProvider vfs,
-			bool isExtract)
+			bool isExtract )
 		{
 			// Check if this file would be created by a later Extract instruction
-			for ( int i = currentInstructionIndex + 1; i < component.Instructions.Count; i++ )
+			for (int i = currentInstructionIndex + 1; i < component.Instructions.Count; i++)
 			{
 				Instruction laterInstruction = component.Instructions[i];
 
-				if ( isExtract )
+				if (isExtract)
 				{
 					// Look for Extract instructions that might provide this archive
 					// This typically means checking ModLinks
-					if ( component.ModLinkFilenames.Count > 0 )
+					if (component.ModLinkFilenames.Count > 0)
 					{
-						string filename = Path.GetFileName(path.Replace("<<modDirectory>>\\", "").Replace("<<modDirectory>>/", ""));
+						string filename = Path.GetFileName( path.Replace( "<<modDirectory>>\\", "" ).Replace( "<<modDirectory>>/", "" ) );
 
 						return new PathValidationResult
 						{
@@ -254,10 +267,10 @@ namespace KOTORModSync.Core.Services.Validation
 						};
 					}
 				}
-				else if ( laterInstruction.Action == Instruction.ActionType.Extract )
+				else if (laterInstruction.Action == Instruction.ActionType.Extract)
 				{
 					// Check if an Extract instruction would create this file
-					string filename = Path.GetFileName(path.Replace("<<modDirectory>>\\", "").Replace("<<modDirectory>>/", ""));
+					string filename = Path.GetFileName( path.Replace( "<<modDirectory>>\\", "" ).Replace( "<<modDirectory>>/", "" ) );
 
 					return new PathValidationResult
 					{
@@ -270,7 +283,7 @@ namespace KOTORModSync.Core.Services.Validation
 			}
 
 			// File truly doesn't exist and won't be created
-			string fname = Path.GetFileName(path.Replace("<<modDirectory>>\\", "").Replace("<<modDirectory>>/", ""));
+			string fname = Path.GetFileName( path.Replace( "<<modDirectory>>\\", "" ).Replace( "<<modDirectory>>/", "" ) );
 			return new PathValidationResult
 			{
 				StatusMessage = "✗ Not found",
@@ -285,11 +298,11 @@ namespace KOTORModSync.Core.Services.Validation
 			ModComponent component,
 			VirtualFileSystemProvider vfs,
 			System.Collections.Generic.List<ModComponent> allComponents,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default )
 		{
 			// Use the unified instruction execution pipeline
 			// This ensures dry-run validation matches real execution exactly
-			instruction.SetFileSystemProvider(vfs);
+			instruction.SetFileSystemProvider( vfs );
 
 			try
 			{
@@ -300,29 +313,29 @@ namespace KOTORModSync.Core.Services.Validation
 				vfs,
 				skipDependencyCheck: true,
 				cancellationToken
-			);
+			).ConfigureAwait( false );
 			}
-			catch ( Exception )
+			catch (Exception)
 			{
 				// Silently continue - this is just for VFS state tracking
 			}
 		}
 
-		private static string ResolvePlaceholderPath(string path)
+		private static string ResolvePlaceholderPath( string path )
 		{
-			if ( string.IsNullOrEmpty(path) )
+			if (string.IsNullOrEmpty( path ))
 				return path;
 
 			string modDir = MainConfig.SourcePath?.FullName ?? string.Empty;
 			string kotorDir = MainConfig.DestinationPath?.FullName ?? string.Empty;
 
 			string resolved = path
-				.Replace("<<modDirectory>>\\", modDir + "\\")
-				.Replace("<<modDirectory>>/", modDir + "/")
-				.Replace("<<kotorDirectory>>\\", kotorDir + "\\")
-				.Replace("<<kotorDirectory>>/", kotorDir + "/");
+				.Replace( "<<modDirectory>>\\", modDir + "\\" )
+				.Replace( "<<modDirectory>>/", modDir + "/" )
+				.Replace( "<<kotorDirectory>>\\", kotorDir + "\\" )
+				.Replace( "<<kotorDirectory>>/", kotorDir + "/" );
 
-			return Path.GetFullPath(resolved);
+			return Path.GetFullPath( resolved );
 		}
 
 		/// <summary>
@@ -333,21 +346,21 @@ namespace KOTORModSync.Core.Services.Validation
 		public static async Task<DryRunValidationResult> ValidateInstallationAsync(
 			[NotNull][ItemNotNull] System.Collections.Generic.List<ModComponent> allComponents,
 			bool skipDependencyCheck = true,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default )
 		{
-			var sw = System.Diagnostics.Stopwatch.StartNew();
-			var result = new DryRunValidationResult();
+			System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
+			DryRunValidationResult result = new DryRunValidationResult();
 
 			try
 			{
-				if ( allComponents.Count == 0 )
+				if (allComponents.Count == 0)
 				{
-					result.Issues.Add(new ValidationIssue
+					result.Issues.Add( new ValidationIssue
 					{
 						Severity = ValidationSeverity.Error,
 						Category = "Validation",
 						Message = "No components to validate"
-					});
+					} );
 
 					sw.Stop();
 					Services.TelemetryService.Instance.RecordValidation(
@@ -360,34 +373,38 @@ namespace KOTORModSync.Core.Services.Validation
 				}
 
 				// Initialize VFS with current file state
-				var vfs = new VirtualFileSystemProvider();
+				VirtualFileSystemProvider vfs = new VirtualFileSystemProvider();
 
 				try
 				{
-					if ( MainConfig.SourcePath != null && MainConfig.SourcePath.Exists )
+					if (MainConfig.SourcePath != null && MainConfig.SourcePath.Exists)
+
+
 					{
-						await Task.Run(() => vfs.InitializeFromRealFileSystem(MainConfig.SourcePath.FullName), cancellationToken);
+						await Task.Run( async () => await vfs.InitializeFromRealFileSystemAsync( MainConfig.SourcePath.FullName ).ConfigureAwait( false ), cancellationToken ).ConfigureAwait( false );
 					}
 
-					if ( MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists )
+					if (MainConfig.DestinationPath != null && MainConfig.DestinationPath.Exists)
+
+
 					{
-						await Task.Run(() => vfs.InitializeFromRealFileSystem(MainConfig.DestinationPath.FullName), cancellationToken);
+						await Task.Run( async () => await vfs.InitializeFromRealFileSystemAsync( MainConfig.DestinationPath.FullName ).ConfigureAwait( false ), cancellationToken ).ConfigureAwait( false );
 					}
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
 				{
-					result.Issues.Add(new ValidationIssue
+					result.Issues.Add( new ValidationIssue
 					{
 						Severity = ValidationSeverity.Warning,
 						Category = "FileSystemInitialization",
 						Message = $"Could not fully initialize file system: {ex.Message}"
-					});
+					} );
 				}
 
 				// Execute each component in order using ExecuteInstructionsAsync
-				var selectedComponents = allComponents.Where(c => c.IsSelected).ToList();
+				System.Collections.Generic.List<ModComponent> selectedComponents = allComponents.Where( c => c.IsSelected ).ToList();
 
-				foreach ( ModComponent component in selectedComponents )
+				foreach (ModComponent component in selectedComponents)
 				{
 					cancellationToken.ThrowIfCancellationRequested();
 
@@ -400,42 +417,44 @@ namespace KOTORModSync.Core.Services.Validation
 							cancellationToken,
 							vfs,
 							skipDependencyCheck: false
-						);
+
+
+						).ConfigureAwait( false );
 
 						// Collect any validation issues from VFS
-						foreach ( ValidationIssue issue in vfs.ValidationIssues )
+						foreach (ValidationIssue issue in vfs.ValidationIssues)
 						{
 							issue.AffectedComponent = component;
-							result.Issues.Add(issue);
+							result.Issues.Add( issue );
 						}
 					}
-					catch ( OperationCanceledException )
+					catch (OperationCanceledException)
 					{
 						throw;
 					}
-					catch ( Exception ex )
+					catch (Exception ex)
 					{
-						result.Issues.Add(new ValidationIssue
+						result.Issues.Add( new ValidationIssue
 						{
 							Severity = ValidationSeverity.Error,
 							Category = "Validation",
 							Message = $"Failed to validate component: {ex.Message}",
 							AffectedComponent = component
-						});
+						} );
 					}
 				}
 
 				sw.Stop();
 				Services.TelemetryService.Instance.RecordValidation(
 					validationType: "dry_run",
-					success: result.Issues.Count(i => i.Severity == ValidationSeverity.Error) == 0,
+					success: !result.Issues.Any( i => i.Severity == ValidationSeverity.Error ),
 					issueCount: result.Issues.Count,
 					durationMs: sw.Elapsed.TotalMilliseconds
 				);
 
 				return result;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				sw.Stop();
 				Services.TelemetryService.Instance.RecordValidation(
@@ -449,4 +468,3 @@ namespace KOTORModSync.Core.Services.Validation
 		}
 	}
 }
-

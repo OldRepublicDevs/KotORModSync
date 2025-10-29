@@ -1,15 +1,17 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System.Collections.Generic;
 using System.Linq;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
+
 using KOTORModSync.Core;
 
 namespace KOTORModSync.Dialogs
@@ -19,8 +21,8 @@ namespace KOTORModSync.Dialogs
 		public DependencyUnlinkViewModel ViewModel { get; }
 		public bool UserConfirmed { get; private set; }
 		public List<ModComponent> ComponentsToUnlink => ViewModel?.DependentComponents
-			.Where(c => c.IsSelected)
-			.Select(c => c.ModComponent)
+			.Where( c => c.IsSelected )
+			.Select( c => c.ModComponent )
 			.ToList();
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
@@ -35,10 +37,10 @@ namespace KOTORModSync.Dialogs
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		public DependencyUnlinkDialog(ModComponent componentToDelete, List<ModComponent> dependentComponents)
+		public DependencyUnlinkDialog( ModComponent componentToDelete, List<ModComponent> dependentComponents )
 		{
 			InitializeComponent();
-			ViewModel = new DependencyUnlinkViewModel(componentToDelete, dependentComponents);
+			ViewModel = new DependencyUnlinkViewModel( componentToDelete, dependentComponents );
 			DataContext = ViewModel;
 
 			PointerPressed += InputElement_OnPointerPressed;
@@ -49,16 +51,16 @@ namespace KOTORModSync.Dialogs
 
 		private void InitializeComponent()
 		{
-			AvaloniaXamlLoader.Load(this);
+			AvaloniaXamlLoader.Load( this );
 		}
 
-		private void UnlinkAndDelete_Click(object sender, RoutedEventArgs e)
+		private void UnlinkAndDelete_Click( object sender, RoutedEventArgs e )
 		{
 			UserConfirmed = true;
 			Close();
 		}
 
-		private void Cancel_Click(object sender, RoutedEventArgs e)
+		private void Cancel_Click( object sender, RoutedEventArgs e )
 		{
 			UserConfirmed = false;
 			Close();
@@ -67,56 +69,58 @@ namespace KOTORModSync.Dialogs
 		public static async System.Threading.Tasks.Task<(bool confirmed, List<ModComponent> componentsToUnlink)> ShowUnlinkDialog(
 			Window owner,
 			ModComponent componentToDelete,
-			List<ModComponent> dependentComponents)
+			List<ModComponent> dependentComponents )
 		{
 
-			if ( dependentComponents == null || !dependentComponents.Any() )
+			if (dependentComponents == null || !dependentComponents.Any())
 				return (true, new List<ModComponent>());
 
-			var dialog = new DependencyUnlinkDialog(componentToDelete, dependentComponents);
-			await dialog.ShowDialog(owner);
+			var dialog = new DependencyUnlinkDialog( componentToDelete, dependentComponents );
+
+
+			await dialog.ShowDialog( owner ).ConfigureAwait( false );
 			return (dialog.UserConfirmed, dialog.ComponentsToUnlink);
 		}
 
-		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+		private void CloseButton_Click( object sender, RoutedEventArgs e ) => Close();
 
-		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )
 		{
-			if ( !_mouseDownForWindowMoving )
+			if (!_mouseDownForWindowMoving)
 				return;
 
-			PointerPoint currentPoint = e.GetCurrentPoint(this);
+			PointerPoint currentPoint = e.GetCurrentPoint( this );
 			Position = new PixelPoint(
 				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
 				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
 			);
 		}
 
-		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
+		private void InputElement_OnPointerPressed( object sender, PointerPressedEventArgs e )
 		{
-			if ( WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen )
+			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
 
-			if ( ShouldIgnorePointerForWindowDrag(e) )
+			if (ShouldIgnorePointerForWindowDrag( e ))
 				return;
 
 			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint(this);
+			_originalPoint = e.GetCurrentPoint( this );
 		}
 
-		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+		private void InputElement_OnPointerReleased( object sender, PointerEventArgs e ) =>
 			_mouseDownForWindowMoving = false;
 
-		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+		private bool ShouldIgnorePointerForWindowDrag( PointerEventArgs e )
 		{
 
-			if ( !(e.Source is Visual source) )
+			if (!(e.Source is Visual source))
 				return false;
 
 			Visual current = source;
-			while ( current != null && current != this )
+			while (current != null && current != this)
 			{
-				switch ( current )
+				switch (current)
 				{
 
 					case Button _:

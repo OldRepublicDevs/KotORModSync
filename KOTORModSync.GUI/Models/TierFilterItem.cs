@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -20,7 +20,7 @@ namespace KOTORModSync.Models
 			get => _name;
 			set
 			{
-				if ( _name != value )
+				if (!string.Equals( _name, value, System.StringComparison.Ordinal ))
 				{
 					_name = value;
 					OnPropertyChanged();
@@ -33,11 +33,11 @@ namespace KOTORModSync.Models
 			get => _count;
 			set
 			{
-				if ( _count != value )
+				if (_count != value)
 				{
 					_count = value;
 					OnPropertyChanged();
-					OnPropertyChanged(nameof(DisplayText));
+					OnPropertyChanged( nameof( DisplayText ) );
 				}
 			}
 		}
@@ -47,7 +47,7 @@ namespace KOTORModSync.Models
 			get => _priority;
 			set
 			{
-				if ( _priority != value )
+				if (_priority != value)
 				{
 					_priority = value;
 					OnPropertyChanged();
@@ -60,11 +60,11 @@ namespace KOTORModSync.Models
 			get => _isSelected;
 			set
 			{
-				if ( _isSelected != value )
+				if (_isSelected != value)
 				{
 					_isSelected = value;
 					OnPropertyChanged();
-					OnPropertyChanged(nameof(EffectiveSelection));
+					OnPropertyChanged( nameof( EffectiveSelection ) );
 				}
 			}
 		}
@@ -74,11 +74,11 @@ namespace KOTORModSync.Models
 			get => _isIncluded;
 			set
 			{
-				if ( _isIncluded != value )
+				if (_isIncluded != value)
 				{
 					_isIncluded = value;
 					OnPropertyChanged();
-					OnPropertyChanged(nameof(EffectiveSelection));
+					OnPropertyChanged( nameof( EffectiveSelection ) );
 				}
 			}
 		}
@@ -89,10 +89,9 @@ namespace KOTORModSync.Models
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+		protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null )
 		{
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
 		}
 	}
 }
-

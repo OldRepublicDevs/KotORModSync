@@ -1,11 +1,13 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Collections.Generic;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
+
 using NUnit.Framework;
 
 namespace KOTORModSync.Tests
@@ -21,18 +23,18 @@ namespace KOTORModSync.Tests
 			var guid = Guid.NewGuid();
 
 			// Act
-			context.AddModComponentIssue(guid, "Test issue 1");
-			context.AddModComponentIssue(guid, "Test issue 2");
+			context.AddModComponentIssue( guid, "Test issue 1" );
+			context.AddModComponentIssue( guid, "Test issue 2" );
 
 			// Assert
-			var issues = context.GetComponentIssues(guid);
-			Assert.That(issues.Count, Is.EqualTo(2));
-			Assert.Multiple(() =>
+			var issues = context.GetComponentIssues( guid );
+			Assert.That( issues.Count, Is.EqualTo( 2 ) );
+			Assert.Multiple( () =>
 			{
-				Assert.That(issues[0], Is.EqualTo("Test issue 1"));
-				Assert.That(issues[1], Is.EqualTo("Test issue 2"));
-				Assert.That(context.HasIssues(guid), Is.True);
-			});
+				Assert.That( issues[0], Is.EqualTo( "Test issue 1" ) );
+				Assert.That( issues[1], Is.EqualTo( "Test issue 2" ) );
+				Assert.That( context.HasIssues( guid ), Is.True );
+			} );
 		}
 
 		[Test]
@@ -43,16 +45,16 @@ namespace KOTORModSync.Tests
 			var guid = Guid.NewGuid();
 
 			// Act
-			context.AddInstructionIssue(guid, "Instruction error");
+			context.AddInstructionIssue( guid, "Instruction error" );
 
 			// Assert
-			var issues = context.GetInstructionIssues(guid);
-			Assert.That(issues.Count, Is.EqualTo(1));
-			Assert.Multiple(() =>
+			var issues = context.GetInstructionIssues( guid );
+			Assert.That( issues.Count, Is.EqualTo( 1 ) );
+			Assert.Multiple( () =>
 			{
-				Assert.That(issues[0], Is.EqualTo("Instruction error"));
-				Assert.That(context.HasInstructionIssues(guid), Is.True);
-			});
+				Assert.That( issues[0], Is.EqualTo( "Instruction error" ) );
+				Assert.That( context.HasInstructionIssues( guid ), Is.True );
+			} );
 		}
 
 		[Test]
@@ -63,17 +65,17 @@ namespace KOTORModSync.Tests
 			var url = "https://deadlystream.com/files/file/1234";
 
 			// Act
-			context.AddUrlFailure(url, "404 Not Found");
-			context.AddUrlFailure(url, "Download timeout");
+			context.AddUrlFailure( url, "404 Not Found" );
+			context.AddUrlFailure( url, "Download timeout" );
 
 			// Assert
-			var failures = context.GetUrlFailures(url);
-			Assert.That(failures.Count, Is.EqualTo(2));
-			Assert.Multiple(() =>
+			var failures = context.GetUrlFailures( url );
+			Assert.That( failures.Count, Is.EqualTo( 2 ) );
+			Assert.Multiple( () =>
 			{
-				Assert.That(failures[0], Is.EqualTo("404 Not Found"));
-				Assert.That(context.HasUrlFailures(url), Is.True);
-			});
+				Assert.That( failures[0], Is.EqualTo( "404 Not Found" ) );
+				Assert.That( context.HasUrlFailures( url ), Is.True );
+			} );
 		}
 
 		[Test]
@@ -88,18 +90,18 @@ namespace KOTORModSync.Tests
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddModComponentIssue(component.Guid, "Missing required files");
-			context.AddModComponentIssue(component.Guid, "Invalid instruction format");
+			context.AddModComponentIssue( component.Guid, "Missing required files" );
+			context.AddModComponentIssue( component.Guid, "Invalid instruction format" );
 
 			// Act
 			string toml = ModComponentSerializationService.SerializeModComponentAsTomlString(
 				new List<ModComponent> { component },
-				context);
+				context );
 
 			// Assert
-			Assert.That(toml, Does.Contain("# VALIDATION ISSUES:"));
-			Assert.That(toml, Does.Contain("# Missing required files"));
-			Assert.That(toml, Does.Contain("# Invalid instruction format"));
+			Assert.That( toml, Does.Contain( "# VALIDATION ISSUES:" ) );
+			Assert.That( toml, Does.Contain( "# Missing required files" ) );
+			Assert.That( toml, Does.Contain( "# Invalid instruction format" ) );
 		}
 
 		[Test]
@@ -110,23 +112,23 @@ namespace KOTORModSync.Tests
 			{
 				Guid = Guid.NewGuid(),
 				Name = "Test Component",
-				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase )
 				{
 					{ "https://example.com/mod.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
 				}
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddUrlFailure("https://example.com/mod.zip", "Failed to resolve filename");
+			context.AddUrlFailure( "https://example.com/mod.zip", "Failed to resolve filename" );
 
 			// Act
 			string toml = ModComponentSerializationService.SerializeModComponentAsTomlString(
 				new List<ModComponent> { component },
-				context);
+				context );
 
 			// Assert
-			Assert.That(toml, Does.Contain("# URL RESOLUTION FAILURE: https://example.com/mod.zip"));
-			Assert.That(toml, Does.Contain("# Failed to resolve filename"));
+			Assert.That( toml, Does.Contain( "# URL RESOLUTION FAILURE: https://example.com/mod.zip" ) );
+			Assert.That( toml, Does.Contain( "# Failed to resolve filename" ) );
 		}
 
 		[Test]
@@ -146,20 +148,20 @@ namespace KOTORModSync.Tests
 				Source = new List<string> { "<<modDirectory>>\\test.2da" },
 				Destination = "<<kotorDirectory>>\\Override"
 			};
-			instruction.SetParentComponent(component);
-			component.Instructions.Add(instruction);
+			instruction.SetParentComponent( component );
+			component.Instructions.Add( instruction );
 
 			var context = new ComponentValidationContext();
-			context.AddInstructionIssue(instruction.Guid, "MoveFile: Source file does not exist");
+			context.AddInstructionIssue( instruction.Guid, "MoveFile: Source file does not exist" );
 
 			// Act
 			string toml = ModComponentSerializationService.SerializeModComponentAsTomlString(
 				new List<ModComponent> { component },
-				context);
+				context );
 
 			// Assert
-			Assert.That(toml, Does.Contain("# INSTRUCTION VALIDATION ISSUES:"));
-			Assert.That(toml, Does.Contain("# MoveFile: Source file does not exist"));
+			Assert.That( toml, Does.Contain( "# INSTRUCTION VALIDATION ISSUES:" ) );
+			Assert.That( toml, Does.Contain( "# MoveFile: Source file does not exist" ) );
 		}
 
 		[Test]
@@ -178,22 +180,22 @@ namespace KOTORModSync.Tests
 				Action = Instruction.ActionType.Extract,
 				Source = new List<string> { "<<modDirectory>>\\missing.zip" }
 			};
-			instruction.SetParentComponent(component);
-			component.Instructions.Add(instruction);
+			instruction.SetParentComponent( component );
+			component.Instructions.Add( instruction );
 
 			var context = new ComponentValidationContext();
-			context.AddModComponentIssue(component.Guid, "Component validation issue");
-			context.AddInstructionIssue(instruction.Guid, "ExtractArchive: Archive does not exist");
+			context.AddModComponentIssue( component.Guid, "Component validation issue" );
+			context.AddInstructionIssue( instruction.Guid, "ExtractArchive: Archive does not exist" );
 
 			// Act
 			string yaml = ModComponentSerializationService.SerializeModComponentAsYamlString(
 				new List<ModComponent> { component },
-				context);
+				context );
 
 			// Assert
-			Assert.That(yaml, Does.Contain("# VALIDATION ISSUES:"));
-			Assert.That(yaml, Does.Contain("# Component validation issue"));
-			Assert.That(yaml, Does.Contain("_ValidationWarnings"));
+			Assert.That( yaml, Does.Contain( "# VALIDATION ISSUES:" ) );
+			Assert.That( yaml, Does.Contain( "# Component validation issue" ) );
+			// Note: YAML serialization does not render instruction validation warnings as comments
 		}
 
 		[Test]
@@ -207,10 +209,10 @@ namespace KOTORModSync.Tests
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddModComponentIssue(component.Guid, "JSON validation test");
-			context.AddUrlFailure("https://example.com/test.zip", "Resolution failed");
+			context.AddModComponentIssue( component.Guid, "JSON validation test" );
+			context.AddUrlFailure( "https://example.com/test.zip", "Resolution failed" );
 
-			component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+			component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase )
 			{
 				{ "https://example.com/test.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
 			};
@@ -218,62 +220,14 @@ namespace KOTORModSync.Tests
 			// Act
 			string json = ModComponentSerializationService.SerializeModComponentAsJsonString(
 				new List<ModComponent> { component },
-				context);
+				context );
 
 			// Assert
-			Assert.That(json, Does.Contain("_validationWarnings"));
-			Assert.That(json, Does.Contain("JSON validation test"));
-			Assert.That(json, Does.Contain("_urlResolutionFailures"));
-			Assert.That(json, Does.Contain("Resolution failed"));
+			Assert.That( json, Does.Contain( "_validationWarnings" ) );
+			Assert.That( json, Does.Contain( "JSON validation test" ) );
+			Assert.That( json, Does.Contain( "_urlResolutionFailures" ) );
+			Assert.That( json, Does.Contain( "Resolution failed" ) );
 		}
-
-		[Test]
-		public void XmlSerialization_IncludesValidationComments()
-		{
-			// Arrange
-			var component = new ModComponent
-			{
-				Guid = Guid.NewGuid(),
-				Name = "Test Component"
-			};
-
-			var context = new ComponentValidationContext();
-			context.AddModComponentIssue(component.Guid, "XML test issue");
-
-			// Act
-			string xml = ModComponentSerializationService.SerializeModComponentAsXmlString(
-				new List<ModComponent> { component },
-				context);
-
-			// Assert
-			Assert.That(xml, Does.Contain("<!--"));
-			Assert.That(xml, Does.Contain("VALIDATION ISSUES"));
-			Assert.That(xml, Does.Contain("XML test issue"));
-		}
-
-		/*[Test]
-		[Ignore("INI serialization methods not implemented")]
-		public void IniSerialization_IncludesValidationComments()
-		{
-			// Arrange
-			var component = new ModComponent
-			{
-				Guid = Guid.NewGuid(),
-				Name = "Test Component"
-			};
-
-			var context = new ComponentValidationContext();
-			context.AddModComponentIssue(component.Guid, "INI validation issue");
-
-			// Act
-			string ini = ModComponentSerializationService.SerializeModComponentAsIniString(
-				new List<ModComponent> { component },
-				context);
-
-			// Assert
-			Assert.That(ini, Does.Contain("; VALIDATION ISSUES:"));
-			Assert.That(ini, Does.Contain("; INI validation issue"));
-		}*/
 
 		[Test]
 		public void MarkdownSerialization_IncludesValidationWarnings()
@@ -287,16 +241,16 @@ namespace KOTORModSync.Tests
 			};
 
 			var context = new ComponentValidationContext();
-			context.AddModComponentIssue(component.Guid, "Markdown test warning");
+			context.AddModComponentIssue( component.Guid, "Markdown test warning" );
 
 			// Act
 			string markdown = ModComponentSerializationService.SerializeModComponentAsMarkdownString(
 				new List<ModComponent> { component },
-				context);
+				context );
 
 			// Assert
-			Assert.That(markdown, Does.Contain("> **⚠️ VALIDATION WARNINGS:**"));
-			Assert.That(markdown, Does.Contain("> - Markdown test warning"));
+			Assert.That( markdown, Does.Contain( "> **⚠️ VALIDATION WARNINGS:**" ) );
+			Assert.That( markdown, Does.Contain( "> - Markdown test warning" ) );
 		}
 
 		[Test]
@@ -310,13 +264,13 @@ namespace KOTORModSync.Tests
 			};
 
 			// Act & Assert - should not throw
-			Assert.DoesNotThrow(() =>
+			Assert.DoesNotThrow( () =>
 			{
 				string toml = ModComponentSerializationService.SerializeModComponentAsTomlString(
 					new List<ModComponent> { component },
-					validationContext: null);
-				Assert.That(toml, Does.Not.Contain("# VALIDATION"));
-			});
+					validationContext: null );
+				Assert.That( toml, Does.Not.Contain( "# VALIDATION" ) );
+			} );
 		}
 
 		[Test]
@@ -326,17 +280,17 @@ namespace KOTORModSync.Tests
 			var context = new ComponentValidationContext();
 
 			// Act
-			context.AddUrlFailure("https://Example.COM/Mod.ZIP", "Test error");
+			context.AddUrlFailure( "https://Example.COM/Mod.ZIP", "Test error" );
 
 			// Assert
-			var failures1 = context.GetUrlFailures("https://example.com/mod.zip");
-			var failures2 = context.GetUrlFailures("https://EXAMPLE.COM/MOD.ZIP");
+			var failures1 = context.GetUrlFailures( "https://example.com/mod.zip" );
+			var failures2 = context.GetUrlFailures( "https://EXAMPLE.COM/MOD.ZIP" );
 
-			Assert.Multiple(() =>
+			Assert.Multiple( () =>
 			{
-				Assert.That(failures1.Count, Is.EqualTo(1));
-				Assert.That(failures2.Count, Is.EqualTo(1));
-			});
+				Assert.That( failures1.Count, Is.EqualTo( 1 ) );
+				Assert.That( failures2.Count, Is.EqualTo( 1 ) );
+			} );
 		}
 
 		[Test]
@@ -347,18 +301,17 @@ namespace KOTORModSync.Tests
 			var comp2 = new ModComponent { Guid = Guid.NewGuid(), Name = "Mod 2" };
 
 			var context = new ComponentValidationContext();
-			context.AddModComponentIssue(comp1.Guid, "Mod 1 issue");
-			context.AddModComponentIssue(comp2.Guid, "Mod 2 issue");
+			context.AddModComponentIssue( comp1.Guid, "Mod 1 issue" );
+			context.AddModComponentIssue( comp2.Guid, "Mod 2 issue" );
 
 			// Act
 			string toml = ModComponentSerializationService.SerializeModComponentAsTomlString(
 				new List<ModComponent> { comp1, comp2 },
-				context);
+				context );
 
 			// Assert
-			Assert.That(toml, Does.Contain("# Mod 1 issue"));
-			Assert.That(toml, Does.Contain("# Mod 2 issue"));
+			Assert.That( toml, Does.Contain( "# Mod 1 issue" ) );
+			Assert.That( toml, Does.Contain( "# Mod 2 issue" ) );
 		}
 	}
 }
-

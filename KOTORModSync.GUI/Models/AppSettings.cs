@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,7 +6,9 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 
 namespace KOTORModSync.Models
@@ -17,7 +19,7 @@ namespace KOTORModSync.Models
 
 		[JsonPropertyName("theme")]
 		[CanBeNull]
-		public string Theme { get; set; } = "/Styles/KotorStyle.axaml";
+		public string Theme { get; set; } = "Fluent.Light";
 
 		[JsonPropertyName("sourcePath")]
 		[CanBeNull]
@@ -76,7 +78,7 @@ namespace KOTORModSync.Models
 
 		public static AppSettings FromCurrentState([NotNull] MainConfig mainConfig, [CanBeNull] string currentTheme)
 		{
-			if ( mainConfig is null )
+			if (mainConfig is null)
 				throw new ArgumentNullException(nameof(mainConfig));
 
 			Logger.LogVerbose($"[AppSettings.FromCurrentState] Creating settings from MainConfig:");
@@ -86,7 +88,8 @@ namespace KOTORModSync.Models
 
 			return new AppSettings
 			{
-				Theme = currentTheme ?? "/Styles/KotorStyle.axaml",
+				// KOTOR Themes DISABLED - Force Fluent Light. To re-enable: change to "/Styles/KotorStyle.axaml"
+				Theme = currentTheme ?? "Fluent.Light",
 				SourcePath = mainConfig.sourcePathFullName,
 				DestinationPath = mainConfig.destinationPathFullName,
 				DebugLogging = mainConfig.debugLogging,
@@ -107,14 +110,14 @@ namespace KOTORModSync.Models
 
 		public void ApplyToMainConfig([NotNull] MainConfig mainConfig, [NotNull] out string theme)
 		{
-			if ( mainConfig is null )
+			if (mainConfig is null)
 				throw new ArgumentNullException(nameof(mainConfig));
 
 			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applying settings to MainConfig:");
 			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SourcePath from settings: '{SourcePath}'");
 			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] DestinationPath from settings: '{DestinationPath}'");
 
-			if ( !string.IsNullOrEmpty(SourcePath) )
+			if (!string.IsNullOrEmpty(SourcePath))
 			{
 				mainConfig.sourcePath = new DirectoryInfo(SourcePath);
 				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applied SourcePath: '{mainConfig.sourcePathFullName}'");
@@ -124,7 +127,7 @@ namespace KOTORModSync.Models
 				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SourcePath is empty, not applying");
 			}
 
-			if ( !string.IsNullOrEmpty(DestinationPath) )
+			if (!string.IsNullOrEmpty(DestinationPath))
 			{
 				mainConfig.destinationPath = new DirectoryInfo(DestinationPath);
 				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applied DestinationPath: '{mainConfig.destinationPathFullName}'");
@@ -148,10 +151,10 @@ namespace KOTORModSync.Models
 									  ?? "utf-8";
 			mainConfig.selectedHolopatcherVersion = SelectedHolopatcherVersion;
 
-			if ( !string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory) )
+			if (!string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory))
 				mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
 
-			theme = Theme ?? "/Styles/KotorStyle.axaml";
+			theme = Theme ?? "Fluent.Light"; // Default to Fluent Light theme
 
 			// Set TargetGame from theme (they're the same thing)
 			MainConfig.TargetGame = GetTargetGameFromTheme(theme);
@@ -163,13 +166,20 @@ namespace KOTORModSync.Models
 		/// </summary>
 		private static string GetTargetGameFromTheme(string themePath)
 		{
-			if ( string.IsNullOrEmpty(themePath) )
-				return "K1"; // Default
+			if (string.IsNullOrEmpty(themePath))
+				return null; // No game-specific theme
 
-			if ( themePath.IndexOf("Kotor2", StringComparison.OrdinalIgnoreCase) >= 0 )
+			// Handle Fluent theme (not game-specific)
+			if (themePath.Equals("Fluent.Light", StringComparison.OrdinalIgnoreCase))
+				return null;
+
+			if (themePath.IndexOf("Kotor2", StringComparison.OrdinalIgnoreCase) >= 0)
 				return "TSL";
 
-			return "K1"; // Default to K1
+			if (themePath.IndexOf("Kotor", StringComparison.OrdinalIgnoreCase) >= 0)
+				return "K1";
+
+			return null; // No game-specific theme
 		}
 	}
 
@@ -195,7 +205,7 @@ namespace KOTORModSync.Models
 			{
 				Logger.LogVerbose($"[SettingsManager.LoadSettings] Loading settings from: '{SettingsFilePath}'");
 
-				if ( !File.Exists(SettingsFilePath) )
+				if (!File.Exists(SettingsFilePath))
 				{
 					Logger.LogVerbose($"[SettingsManager.LoadSettings] No settings file found, using defaults");
 					return new AppSettings();
@@ -206,7 +216,7 @@ namespace KOTORModSync.Models
 
 				AppSettings settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
 
-				if ( settings is null )
+				if (settings is null)
 				{
 					Logger.LogWarning("[SettingsManager.LoadSettings] Failed to deserialize settings, using defaults");
 					return new AppSettings();
@@ -219,7 +229,7 @@ namespace KOTORModSync.Models
 
 				return settings;
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, customMessage: "Failed to load settings, using defaults");
 				return new AppSettings();
@@ -228,7 +238,7 @@ namespace KOTORModSync.Models
 
 		public static void SaveSettings([NotNull] AppSettings settings)
 		{
-			if ( settings is null )
+			if (settings is null)
 				throw new ArgumentNullException(nameof(settings));
 
 			try
@@ -238,7 +248,7 @@ namespace KOTORModSync.Models
 				Logger.LogVerbose($"[SettingsManager.SaveSettings] DestinationPath: '{settings.DestinationPath}'");
 				Logger.LogVerbose($"[SettingsManager.SaveSettings] Theme: '{settings.Theme}'");
 
-				if ( !Directory.Exists(SettingsDirectory) )
+				if (!Directory.Exists(SettingsDirectory))
 					_ = Directory.CreateDirectory(SettingsDirectory);
 
 				string json = JsonSerializer.Serialize(settings, JsonOptions);
@@ -248,11 +258,10 @@ namespace KOTORModSync.Models
 
 				Logger.LogVerbose($"[SettingsManager.SaveSettings] Successfully saved settings to '{SettingsFilePath}'");
 			}
-			catch ( Exception ex )
+			catch (Exception ex)
 			{
 				Logger.LogException(ex, customMessage: "Failed to save settings");
 			}
 		}
 	}
 }
-

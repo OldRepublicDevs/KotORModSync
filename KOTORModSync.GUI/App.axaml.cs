@@ -1,13 +1,16 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
 using System.Threading.Tasks;
+
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+
 using JetBrains.Annotations;
+
 using KOTORModSync.Core;
 using KOTORModSync.Services;
 
@@ -21,10 +24,12 @@ namespace KOTORModSync
 
 		public override void OnFrameworkInitializationCompleted()
 		{
-			if ( ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop )
+			if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
 			{
 				try
 				{
+					// Load default theme BEFORE creating MainWindow to ensure control templates are available
+					ThemeManager.UpdateStyle("Fluent.Light");
 
 					TaskScheduler.UnobservedTaskException += HandleUnobservedTaskException;
 
@@ -34,7 +39,7 @@ namespace KOTORModSync
 					// Initialize auto-update service
 					InitializeAutoUpdates();
 				}
-				catch ( Exception ex )
+				catch (Exception ex)
 				{
 					Logger.LogException(ex);
 				}

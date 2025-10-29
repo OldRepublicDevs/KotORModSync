@@ -1,4 +1,4 @@
-// Copyright 2021-2025 KOTORModSync
+﻿// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -20,9 +20,9 @@ namespace KOTORModSync.Tests
 
 			const string url = "https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
 
-			bool? canHandle = _megaHandler?.CanHandle(url);
+			bool? canHandle = _megaHandler?.CanHandle( url );
 
-			Assert.That(canHandle, Is.True);
+			Assert.That( canHandle, Is.True );
 		}
 
 		[Test]
@@ -31,9 +31,9 @@ namespace KOTORModSync.Tests
 
 			const string url = "https://www.nexusmods.com/kotor2/mods/1100";
 
-			bool? canHandle = _megaHandler?.CanHandle(url);
+			bool? canHandle = _megaHandler?.CanHandle( url );
 
-			Assert.That(canHandle, Is.False);
+			Assert.That( canHandle, Is.False );
 		}
 
 		[Test]
@@ -42,9 +42,9 @@ namespace KOTORModSync.Tests
 
 			string? url = null;
 
-			bool? canHandle = _megaHandler?.CanHandle(url);
+			bool? canHandle = _megaHandler?.CanHandle( url );
 
-			Assert.That(canHandle, Is.False);
+			Assert.That( canHandle, Is.False );
 		}
 
 		[Test]
@@ -53,10 +53,10 @@ namespace KOTORModSync.Tests
 
 			const string oldUrl = "https://mega.nz/#!1A4RCLha!Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
 
-			string? convertedUrl = _megaHandler?.ConvertMegaUrl(oldUrl);
+			string? convertedUrl = _megaHandler?.ConvertMegaUrl( oldUrl );
 
 			string expectedUrl = "https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
-			Assert.That(convertedUrl, Is.EqualTo(expectedUrl));
+			Assert.That( convertedUrl, Is.EqualTo( expectedUrl ) );
 		}
 
 		[Test]
@@ -65,10 +65,10 @@ namespace KOTORModSync.Tests
 
 			const string oldFolderUrl = "https://mega.nz/#F!folderId!folderKey";
 
-			string? convertedUrl = _megaHandler?.ConvertMegaUrl(oldFolderUrl);
+			string? convertedUrl = _megaHandler?.ConvertMegaUrl( oldFolderUrl );
 
 			const string expectedUrl = "https://mega.nz/folder/folderId#folderKey";
-			Assert.That(convertedUrl, Is.EqualTo(expectedUrl));
+			Assert.That( convertedUrl, Is.EqualTo( expectedUrl ) );
 		}
 
 		[Test]
@@ -77,9 +77,9 @@ namespace KOTORModSync.Tests
 
 			const string newUrl = "https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
 
-			string? convertedUrl = _megaHandler?.ConvertMegaUrl(newUrl);
+			string? convertedUrl = _megaHandler?.ConvertMegaUrl( newUrl );
 
-			Assert.That(convertedUrl, Is.EqualTo(newUrl));
+			Assert.That( convertedUrl, Is.EqualTo( newUrl ) );
 		}
 
 		[Test]
@@ -89,12 +89,12 @@ namespace KOTORModSync.Tests
 			const string emptyUrl = "";
 			string? nullUrl = null;
 
-			Assert.Multiple(() =>
+			Assert.Multiple( () =>
 			{
 
-				Assert.That(_megaHandler?.ConvertMegaUrl(emptyUrl), Is.EqualTo(emptyUrl));
-				Assert.That(_megaHandler?.ConvertMegaUrl(nullUrl), Is.EqualTo(nullUrl));
-			});
+				Assert.That( _megaHandler?.ConvertMegaUrl( emptyUrl ), Is.EqualTo( emptyUrl ) );
+				Assert.That( _megaHandler?.ConvertMegaUrl( nullUrl ), Is.EqualTo( nullUrl ) );
+			} );
 		}
 
 		[Test]
@@ -103,9 +103,9 @@ namespace KOTORModSync.Tests
 
 			const string malformedUrl = "https://mega.nz/#!invalid";
 
-			string? convertedUrl = _megaHandler?.ConvertMegaUrl(malformedUrl);
+			string? convertedUrl = _megaHandler?.ConvertMegaUrl( malformedUrl );
 
-			Assert.That(convertedUrl, Is.EqualTo(malformedUrl));
+			Assert.That( convertedUrl, Is.EqualTo( malformedUrl ) );
 		}
 
 		[Test]
@@ -114,25 +114,25 @@ namespace KOTORModSync.Tests
 
 			const string complexUrl = "https://mega.nz/#!1A4RCLha!Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
 
-			string? convertedUrl = _megaHandler?.ConvertMegaUrl(complexUrl);
+			string? convertedUrl = _megaHandler?.ConvertMegaUrl( complexUrl );
 
 			const string expectedUrl = "https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
-			Assert.That(convertedUrl, Is.EqualTo(expectedUrl));
+			Assert.That( convertedUrl, Is.EqualTo( expectedUrl ) );
 
-			Assert.That(convertedUrl, Does.Contain("Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4"));
+			Assert.That( convertedUrl, Does.Contain( "Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4" ) );
 		}
 
 	}
 
 	public static class MegaDownloadHandlerExtensions
 	{
-		public static string? ConvertMegaUrl(this MegaDownloadHandler handler, string? url)
+		public static string? ConvertMegaUrl( this MegaDownloadHandler handler, string? url )
 		{
 
-			System.Reflection.MethodInfo? method = typeof(MegaDownloadHandler).GetMethod("ConvertMegaUrl",
-				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+			System.Reflection.MethodInfo? method = typeof( MegaDownloadHandler ).GetMethod( "ConvertMegaUrl",
+				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static );
 
-			return method is not null ? (string?)method.Invoke(null, [url]) : url;
+			return method is not null ? (string?)method.Invoke( null, [url] ) : url;
 		}
 	}
 }

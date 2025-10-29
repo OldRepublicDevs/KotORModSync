@@ -29,7 +29,7 @@ namespace KOTORModSync
 				try
 				{
 					// Load default theme BEFORE creating MainWindow to ensure control templates are available
-					ThemeManager.UpdateStyle("Fluent.Light");
+					ThemeManager.UpdateStyle("/Styles/FluentLightStyle.axaml");
 
 					TaskScheduler.UnobservedTaskException += HandleUnobservedTaskException;
 

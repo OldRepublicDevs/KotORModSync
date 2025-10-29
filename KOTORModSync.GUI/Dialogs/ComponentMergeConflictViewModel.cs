@@ -2510,6 +2510,35 @@ namespace KOTORModSync.Dialogs
 			public string StatusIcon { get; set; }
 			public string PositionChange { get; set; }
 			public IBrush PositionChangeColor { get; set; }
+
+			public string RichTooltip
+			{
+				get
+				{
+					if (ModComponent == null)
+						return Name ?? "Unknown Component";
+
+					var sb = new System.Text.StringBuilder();
+					_ = sb.AppendLine($"📦 {ModComponent.Name}");
+					_ = sb.AppendLine();
+
+					if (!string.IsNullOrEmpty(ModComponent.Author))
+						_ = sb.AppendLine($"👤 Author: {ModComponent.Author}");
+
+					if (ModComponent.Category.Count > 0)
+						_ = sb.AppendLine($"📁 Category: {string.Join(", ", ModComponent.Category)}");
+
+					if (!string.IsNullOrEmpty(ModComponent.Tier))
+						_ = sb.AppendLine($"⭐ Tier: {ModComponent.Tier}");
+
+					_ = sb.AppendLine($"📋 Source: {Source}");
+
+					if (!string.IsNullOrEmpty(PositionChange))
+						_ = sb.AppendLine($"🔄 Position: {PositionChange}");
+
+					return sb.ToString();
+				}
+			}
 		}
 	}
 

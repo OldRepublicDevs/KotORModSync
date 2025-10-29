@@ -61,7 +61,7 @@ namespace KOTORModSync.Services
 			if (string.IsNullOrEmpty(currentTheme))
 				return ThemeType.FluentLight; // Default
 
-			if (currentTheme.Equals("Fluent.Light", StringComparison.OrdinalIgnoreCase))
+			if (currentTheme.Contains("FluentLightStyle"))
 				return ThemeType.FluentLight;
 			if (currentTheme.Contains("Kotor2Style"))
 				return ThemeType.KOTOR2;
@@ -76,13 +76,13 @@ namespace KOTORModSync.Services
 			switch (themeType)
 			{
 				case ThemeType.FluentLight:
-					return "Fluent.Light";
+					return "/Styles/FluentLightStyle.axaml";
 				case ThemeType.KOTOR:
 					return "/Styles/KotorStyle.axaml";
 				case ThemeType.KOTOR2:
 					return "/Styles/Kotor2Style.axaml";
 				default:
-					return "Fluent.Light";
+					return "/Styles/FluentLightStyle.axaml";
 			}
 		}
 	}

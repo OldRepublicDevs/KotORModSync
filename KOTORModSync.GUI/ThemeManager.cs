@@ -9,6 +9,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Media;
 using Avalonia.Styling;
 
 namespace KOTORModSync
@@ -16,16 +17,16 @@ namespace KOTORModSync
 	internal static class ThemeManager
 	{
 		private static Uri s_currentStyleUri;
-		private static string s_currentTheme = "Fluent.Light"; // Track current theme
+		private static string s_currentTheme = "/Styles/FluentLightStyle.axaml"; // Track current theme
 
 		public static event Action<Uri> StyleChanged;
 
-		public static void UpdateStyle([JetBrains.Annotations.CanBeNull] string stylePath)
+		public static void UpdateStyle([JetBrains.Annotations.CanBeNull] string stylePath = null)
 		{
 			// Default to Fluent Light if null or empty
-			if (string.IsNullOrEmpty(stylePath))
+			if (string.IsNullOrWhiteSpace(stylePath))
 			{
-				stylePath = "Fluent.Light";
+				stylePath = "/Styles/FluentLightStyle.axaml";
 			}
 
 			// Clear ALL existing styles
@@ -34,22 +35,13 @@ namespace KOTORModSync
 			// Handle Fluent Light theme
 			if (string.Equals(stylePath, "Fluent.Light", StringComparison.OrdinalIgnoreCase))
 			{
-				s_currentStyleUri = null;
-				s_currentTheme = "Fluent.Light";
-
-				Application.Current.RequestedThemeVariant = ThemeVariant.Light;
-
-				// Add Fluent theme
-				var fluentUri = new Uri("avares://Avalonia.Themes.Fluent/FluentTheme.xaml");
-				Application.Current.Styles.Add(new StyleInclude(fluentUri) { Source = fluentUri });
-
-				ApplyToAllOpenWindows();
-				StyleChanged?.Invoke(s_currentStyleUri);
+				// Redirect to custom FluentLightStyle.axaml
+				UpdateStyle("/Styles/FluentLightStyle.axaml");
 				return;
 			}
 
-			// Handle KOTOR themes (dynamically loaded)
-			if (stylePath.Contains("KotorStyle") || stylePath.Contains("Kotor2Style"))
+			// Handle custom themes (dynamically loaded)
+			if (stylePath.EndsWith("KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) || stylePath.EndsWith("Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) || stylePath.EndsWith("FluentLightStyle.axaml", StringComparison.OrdinalIgnoreCase))
 			{
 				Uri newUri = new Uri("avares://KOTORModSync" + stylePath);
 				s_currentStyleUri = newUri;
@@ -61,7 +53,7 @@ namespace KOTORModSync
 				var fluentUri = new Uri("avares://Avalonia.Themes.Fluent/FluentTheme.xaml");
 				Application.Current.Styles.Add(new StyleInclude(fluentUri) { Source = fluentUri });
 
-				// Then add KOTOR style overrides on top
+				// Then add custom style overrides on top
 				var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
 				Application.Current.Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
 
@@ -71,7 +63,7 @@ namespace KOTORModSync
 			}
 
 			// Fallback to Fluent Light for unknown themes
-			UpdateStyle("Fluent.Light");
+			UpdateStyle("/Styles/FluentLightStyle.axaml");
 		}
 
 		public static void ApplyCurrentToWindow(Window window) => ApplyToWindow(window, s_currentStyleUri);
@@ -82,7 +74,7 @@ namespace KOTORModSync
 				return s_currentTheme;
 
 			if (s_currentStyleUri == null)
-				return "Fluent.Light"; // Default to Fluent Light
+				return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
 
 			string path = s_currentStyleUri.ToString();
 
@@ -90,7 +82,7 @@ namespace KOTORModSync
 			{
 				return path.Substring("avares://KOTORModSync".Length);
 			}
-			return "Fluent.Light"; // Default to Fluent Light
+			return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
 		}
 
 		private static void ApplyToAllOpenWindows()
@@ -112,25 +104,27 @@ namespace KOTORModSync
 			if (window is null)
 				return;
 
-			// Set the window's RequestedThemeVariant to match Application's
-			window.RequestedThemeVariant = Application.Current.RequestedThemeVariant;
+			// CRITICAL: Always set Light theme variant for FluentLightStyle
+			window.RequestedThemeVariant = ThemeVariant.Light;
 
-			// Clear all window styles
+			// Clear all window styles to prevent conflicts
 			window.Styles.Clear();
 
-			// Apply window-level styles based on current theme
-			if (s_currentTheme.Contains("KotorStyle") || s_currentTheme.Contains("Kotor2Style"))
-			{
-				// KOTOR themes: Add Fluent base + KOTOR overrides
-				var fluentUri = new Uri("avares://Avalonia.Themes.Fluent/FluentTheme.xaml");
-				window.Styles.Add(new StyleInclude(fluentUri) { Source = fluentUri });
+			// ALWAYS apply Fluent base theme + custom style overrides to ensure consistent theming
+			var fluentUri = new Uri("avares://Avalonia.Themes.Fluent/FluentTheme.xaml");
+			window.Styles.Add(new StyleInclude(fluentUri) { Source = fluentUri });
 
-				if (styleUri != null)
-				{
-					window.Styles.Add(new StyleInclude(styleUri) { Source = styleUri });
-				}
+			// Apply custom style overrides if available
+			if (styleUri != null)
+			{
+				window.Styles.Add(new StyleInclude(styleUri) { Source = styleUri });
 			}
-			// Fluent theme is already added at Application.Current.Styles level, window inherits it
+			else if (!string.IsNullOrEmpty(s_currentTheme))
+			{
+				// Fallback to current theme path if styleUri is null
+				var currentUri = new Uri("avares://KOTORModSync" + s_currentTheme);
+				window.Styles.Add(new StyleInclude(currentUri) { Source = currentUri });
+			}
 		}
 	}
 }

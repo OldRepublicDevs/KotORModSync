@@ -134,6 +134,43 @@ namespace KOTORModSync.Dialogs
 			e.Handled = true;
 		}
 
+		private void OnPreviewItemClicked( object sender, PointerPressedEventArgs e )
+		{
+			try
+			{
+				if (!(sender is Border border) || !(border.DataContext is PreviewItem previewItem) || ViewModel == null)
+					return;
+
+				// Find corresponding items in Existing and Incoming lists
+				var existingItem = ViewModel.ExistingComponents.FirstOrDefault(item =>
+					item.ModComponent == previewItem.ModComponent ||
+					string.Equals(item.Name, previewItem.Name, StringComparison.Ordinal));
+
+				var incomingItem = ViewModel.IncomingComponents.FirstOrDefault(item =>
+					item.ModComponent == previewItem.ModComponent ||
+					string.Equals(item.Name, previewItem.Name, StringComparison.Ordinal));
+
+				// Select and scroll to the items
+				if (existingItem != null)
+				{
+					ViewModel.SelectedExistingItem = existingItem;
+					ScrollToItemInList("ExistingListScrollViewer", existingItem);
+				}
+
+				if (incomingItem != null)
+				{
+					ViewModel.SelectedIncomingItem = incomingItem;
+					ScrollToItemInList("IncomingListScrollViewer", incomingItem);
+				}
+
+				e.Handled = true;
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Error handling preview item click");
+			}
+		}
+
 		private void OnItemContextRequested( object sender, RoutedEventArgs e )
 		{
 

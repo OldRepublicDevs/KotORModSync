@@ -65,12 +65,12 @@ namespace KOTORModSync.Tests
 			Directory.CreateDirectory(Path.Combine(_gameDirectory.FullName, "Modules"));
 			Directory.CreateDirectory(Path.Combine(_gameDirectory.FullName, "StreamVoice"));
 
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "chitin.key"), "ORIGINAL_CHITIN_KEY", 1024).ConfigureAwait(false);
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "dialog.tlk"), "ORIGINAL_DIALOG_TLK", 5 * 1024 * 1024).ConfigureAwait(false);
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "Override", "appearance.2da"), "ORIGINAL_APPEARANCE", 10 * 1024).ConfigureAwait(false);
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "Modules", "danm13.mod"), "ORIGINAL_DANM13_MODULE", 2 * 1024 * 1024).ConfigureAwait(false);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "chitin.key"), "ORIGINAL_CHITIN_KEY", 1024);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "dialog.tlk"), "ORIGINAL_DIALOG_TLK", 5 * 1024 * 1024);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "Override", "appearance.2da"), "ORIGINAL_APPEARANCE", 10 * 1024);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "Modules", "danm13.mod"), "ORIGINAL_DANM13_MODULE", 2 * 1024 * 1024);
 
-			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "StreamVoice", "large_audio.wav"), "ORIGINAL_LARGE_AUDIO", 50 * 1024 * 1024).ConfigureAwait(false);
+			await CreateTestFileAsync(Path.Combine(_gameDirectory.FullName, "StreamVoice", "large_audio.wav"), "ORIGINAL_LARGE_AUDIO", 50 * 1024 * 1024);
 		}
 
 		private async Task CreateTestFileAsync(string path, string contentPattern, int sizeBytes)
@@ -89,7 +89,7 @@ namespace KOTORModSync.Tests
 				while (written < sizeBytes)
 				{
 					int toWrite = Math.Min(pattern.Length, sizeBytes - written);
-					await stream.WriteAsync(pattern, 0, toWrite).ConfigureAwait(false);
+					await stream.WriteAsync(pattern, 0, toWrite);
 					written += toWrite;
 				}
 			}
@@ -152,7 +152,7 @@ namespace KOTORModSync.Tests
 			{
 				stream.Seek(1024 * 1024, SeekOrigin.Begin);
 				byte[] modification = Encoding.UTF8.GetBytes("MODIFIED_SECTION_OF_LARGE_FILE");
-				await stream.WriteAsync(modification, 0, modification.Length).ConfigureAwait(false);
+				await stream.WriteAsync(modification, 0, modification.Length);
 			}
 
 			component.Instructions.Add(new Instruction
@@ -170,7 +170,7 @@ namespace KOTORModSync.Tests
 			using (var sha256 = SHA256.Create())
 			using (var stream = File.OpenRead(filePath))
 			{
-				byte[] hash = await sha256.ComputeHashAsync(stream).ConfigureAwait(false);
+				byte[] hash = await sha256.ComputeHashAsync(stream);
 				return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
 			}
 		}
@@ -187,7 +187,7 @@ namespace KOTORModSync.Tests
 					return false;
 				}
 
-				string currentHash = await ComputeFileHashAsync(fullPath).ConfigureAwait(false);
+				string currentHash = await ComputeFileHashAsync(fullPath);
 				if (!string.Equals(currentHash, file.Value.Hash, StringComparison.Ordinal))
 				{
 					TestContext.Progress.WriteLine($"VERIFY FAILED: Hash mismatch for {file.Value.Path}");

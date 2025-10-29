@@ -122,14 +122,14 @@ CancellationToken cancellationToken = default)
 		{
 			try
 			{
-				await Logger.LogVerboseAsync($"[DeadlyStream] Resolving filenames for URL: {url}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Resolving filenames for URL: {url}");
 
 				url = NormalizeDeadlyStreamUrl(url);
-				await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL: {url}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL: {url}");
 
 				if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 				{
-					await Logger.LogWarningAsync($"[DeadlyStream] Invalid URL format: {url}").ConfigureAwait(false);
+					await Logger.LogWarningAsync($"[DeadlyStream] Invalid URL format: {url}");
 					return new List<string>();
 				}
 
@@ -143,12 +143,12 @@ CancellationToken cancellationToken = default)
 await Logger.LogVerboseAsync($"[DeadlyStream] Requesting page: {url}");
 				HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
 				ApplyCookiesToRequest(request, validatedUri);
-				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+				HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 				_ = pageResponse.EnsureSuccessStatusCode();
 				ExtractAndStoreCookies(pageResponse, validatedUri);
 await Logger.LogVerboseAsync($"[DeadlyStream] Page response received (StatusCode: {pageResponse.StatusCode})");
 
-				string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+				string html = await pageResponse.Content.ReadAsStringAsync();
 				pageResponse.Dispose();
 
 
@@ -161,14 +161,14 @@ await Logger.LogVerboseAsync($"[DeadlyStream] Page response received (StatusCode
 await Logger.LogVerboseAsync($"[DeadlyStream] Requesting download page: {downloadPageUrl}");
 				HttpRequestMessage downloadPageRequest = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
 				ApplyCookiesToRequest(downloadPageRequest, validatedUri);
-				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 await Logger.LogVerboseAsync($"[DeadlyStream] Download page response received (StatusCode: {downloadPageResponse.StatusCode})");
 
 				List<string> filenames = new List<string>();
 
 				if ( downloadPageResponse.IsSuccessStatusCode )
 				{
-					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync();
 					ExtractAndStoreCookies(downloadPageResponse, validatedUri);
 
 
@@ -177,7 +177,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] Download page response received (S
 						List<string> confirmedLinks = ExtractConfirmedDownloadLinks(downloadPageHtml, url);
 						foreach ( string downloadLink in confirmedLinks )
 						{
-							string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken).ConfigureAwait(false);
+							string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken);
 							if ( !string.IsNullOrEmpty(filename) )
 								filenames.Add(filename);
 						}
@@ -192,18 +192,18 @@ await Logger.LogVerboseAsync($"[DeadlyStream] Download page response received (S
 					List<string> downloadLinks = ExtractAllDownloadLinks(html, url);
 					foreach ( string downloadLink in downloadLinks )
 					{
-						string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken).ConfigureAwait(false);
+						string filename = await ResolveFilenameFromLink(downloadLink, cancellationToken);
 						if ( !string.IsNullOrEmpty(filename) )
 							filenames.Add(filename);
 					}
 				}
 
-				await Logger.LogVerboseAsync($"[DeadlyStream] Resolved {filenames.Count} filename(s)").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Resolved {filenames.Count} filename(s)");
 				return filenames;
 			}
 			catch ( Exception ex )
 			{
-				await Logger.LogExceptionAsync(ex, $"[DeadlyStream] Failed to resolve filenames").ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex, $"[DeadlyStream] Failed to resolve filenames");
 				return new List<string>();
 			}
 		}
@@ -217,7 +217,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] Resolving filename from link (HEAD
 				HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Head, downloadLink);
 				ApplyCookiesToRequest(request, downloadUri);
 
-				HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+				HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
 await Logger.LogVerboseAsync($"[DeadlyStream] HEAD response received (StatusCode: {response.StatusCode})");
 
 				if ( !response.IsSuccessStatusCode )
@@ -226,7 +226,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] HEAD response received (StatusCode
 await Logger.LogVerboseAsync($"[DeadlyStream] HEAD failed, trying GET request for filename resolution");
 					HttpRequestMessage getReq = new HttpRequestMessage(HttpMethod.Get, downloadLink);
 					ApplyCookiesToRequest(getReq, downloadUri);
-					HttpResponseMessage getResp = await _httpClient.SendAsync(getReq, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+					HttpResponseMessage getResp = await _httpClient.SendAsync(getReq, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode: {getResp.StatusCode})");
 					if ( !getResp.IsSuccessStatusCode )
 					{
@@ -273,7 +273,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 			}
 			catch ( Exception ex )
 			{
-				await Logger.LogVerboseAsync($"[DeadlyStream] Could not resolve filename from link {downloadLink}: {ex.Message}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Could not resolve filename from link {downloadLink}: {ex.Message}");
 				return null;
 			}
 		}
@@ -337,16 +337,16 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 			CancellationToken cancellationToken = default
 		)
 		{
-			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}").ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}").ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[DeadlyStream] Starting download from URL: {url}");
+			await Logger.LogVerboseAsync($"[DeadlyStream] Destination directory: {destinationDirectory}");
 
 			url = NormalizeDeadlyStreamUrl(url);
-			await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL: {url}").ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL: {url}");
 
 			if ( !Uri.TryCreate(url, UriKind.Absolute, out Uri validatedUri) )
 			{
 				string errorMsg = $"Invalid URL format: {url}";
-				await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}").ConfigureAwait(false);
+				await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}");
 				progress?.Report(new DownloadProgress
 				{
 					Status = DownloadStatus.Failed,
@@ -367,40 +367,40 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 			try
 			{
 
-				await Logger.LogVerboseAsync($"[DeadlyStream] Fetching page to establish session: {url}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Fetching page to establish session: {url}");
 
 				if ( validatedUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) )
 				{
 					validatedUri = new UriBuilder(validatedUri) { Scheme = "https", Port = -1 }.Uri;
 					url = validatedUri.ToString();
-					await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL to HTTPS: {url}").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[DeadlyStream] Normalized URL to HTTPS: {url}");
 				}
 
-			await Logger.LogVerboseAsync($"[DeadlyStream] Requesting page: {url}").ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[DeadlyStream] Requesting page: {url}");
 				HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
 
 
 			ApplyCookiesToRequest(request, validatedUri);
 
-			HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+			HttpResponseMessage pageResponse = await _httpClient.SendAsync(request, cancellationToken);
 			_ = pageResponse.EnsureSuccessStatusCode();
-			await Logger.LogVerboseAsync($"[DeadlyStream] Page response received (StatusCode: {pageResponse.StatusCode})").ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[DeadlyStream] Page response received (StatusCode: {pageResponse.StatusCode})");
 
 
 			ExtractAndStoreCookies(pageResponse, validatedUri);
 
-			string html = await pageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[DeadlyStream] Downloaded HTML content, length: {html.Length} characters").ConfigureAwait(false);
+			string html = await pageResponse.Content.ReadAsStringAsync();
+			await Logger.LogVerboseAsync($"[DeadlyStream] Downloaded HTML content, length: {html.Length} characters");
 
 
 				string csrfKey = ExtractCsrfKey(html);
 				if ( string.IsNullOrEmpty(csrfKey) )
 				{
-					await Logger.LogWarningAsync("[DeadlyStream] Could not extract csrfKey from page, downloads may fail").ConfigureAwait(false);
+					await Logger.LogWarningAsync("[DeadlyStream] Could not extract csrfKey from page, downloads may fail");
 				}
 				else
 				{
-					await Logger.LogVerboseAsync($"[DeadlyStream] Extracted csrfKey: {csrfKey.Substring(0, Math.Min(8, csrfKey.Length))}...").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[DeadlyStream] Extracted csrfKey: {csrfKey.Substring(0, Math.Min(8, csrfKey.Length))}...");
 				}
 
 
@@ -408,27 +408,27 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 					? $"{url}?do=download&csrfKey={csrfKey}"
 					: $"{url}?do=download";
 
-				await Logger.LogVerboseAsync($"[DeadlyStream] Checking for multi-file download at: {downloadPageUrl}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Checking for multi-file download at: {downloadPageUrl}");
 				HttpRequestMessage downloadPageRequest = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
 				ApplyCookiesToRequest(downloadPageRequest, validatedUri);
 
-				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, cancellationToken).ConfigureAwait(false);
-				await Logger.LogVerboseAsync($"[DeadlyStream] Download page response received (StatusCode: {downloadPageResponse.StatusCode})").ConfigureAwait(false);
+				HttpResponseMessage downloadPageResponse = await _httpClient.SendAsync(downloadPageRequest, cancellationToken);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Download page response received (StatusCode: {downloadPageResponse.StatusCode})");
 
 				if ( downloadPageResponse.IsSuccessStatusCode )
 				{
-					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync();
 					ExtractAndStoreCookies(downloadPageResponse, validatedUri);
 
 
 					if ( downloadPageHtml.Contains("Download your files") || downloadPageHtml.Contains("data-action=\"download\"") )
 					{
-						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page");
 						List<string> confirmedLinks = ExtractConfirmedDownloadLinks(downloadPageHtml, url);
 
 						if ( confirmedLinks != null && confirmedLinks.Count > 0 )
 						{
-							await Logger.LogVerboseAsync($"[DeadlyStream] Found {confirmedLinks.Count} files to download").ConfigureAwait(false);
+							await Logger.LogVerboseAsync($"[DeadlyStream] Found {confirmedLinks.Count} files to download");
 							downloadPageResponse.Dispose();
 							pageResponse.Dispose();
 
@@ -449,7 +449,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 									ProgressPercentage = multiFileBaseProgress
 								});
 
-								string filePath = await DownloadSingleFile(downloadLink, destinationDirectory, progress, multiFileBaseProgress, multiFileProgressRange, cancellationToken).ConfigureAwait(false);
+								string filePath = await DownloadSingleFile(downloadLink, destinationDirectory, progress, multiFileBaseProgress, multiFileProgressRange, cancellationToken);
 								if ( !string.IsNullOrEmpty(filePath) )
 								{
 									multiFileDownloads.Add(filePath);
@@ -491,7 +491,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 				}
 				else
 				{
-					await Logger.LogVerboseAsync($"[DeadlyStream] Download page request returned {downloadPageResponse.StatusCode}, trying direct download").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[DeadlyStream] Download page request returned {downloadPageResponse.StatusCode}, trying direct download");
 					downloadPageResponse.Dispose();
 				}
 
@@ -507,11 +507,11 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 					{
 						Directory.CreateDirectory(destinationDirectory);
 						File.WriteAllText(debugPath, html);
-						await Logger.LogVerboseAsync($"[DeadlyStream] Debug HTML saved to: {debugPath}").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[DeadlyStream] Debug HTML saved to: {debugPath}");
 					}
 					catch ( Exception debugEx )
 					{
-						await Logger.LogWarningAsync($"[DeadlyStream] Failed to save debug HTML: {debugEx.Message}").ConfigureAwait(false);
+						await Logger.LogWarningAsync($"[DeadlyStream] Failed to save debug HTML: {debugEx.Message}");
 					}
 
 					string userMessage = "DeadlyStream download link could not be extracted.\n\n" +
@@ -553,7 +553,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 						ProgressPercentage = baseProgress
 					});
 
-					string filePath = await DownloadSingleFile(downloadLink, destinationDirectory, progress, baseProgress, fileProgressRange, cancellationToken).ConfigureAwait(false);
+					string filePath = await DownloadSingleFile(downloadLink, destinationDirectory, progress, baseProgress, fileProgressRange, cancellationToken);
 					if ( !string.IsNullOrEmpty(filePath) )
 					{
 						downloadedFiles.Add(filePath);
@@ -591,8 +591,8 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 			}
 			catch ( HttpRequestException httpEx )
 			{
-				await Logger.LogErrorAsync($"[DeadlyStream] HTTP request failed for URL '{url}': {httpEx.Message}").ConfigureAwait(false);
-				await Logger.LogExceptionAsync(httpEx).ConfigureAwait(false);
+				await Logger.LogErrorAsync($"[DeadlyStream] HTTP request failed for URL '{url}': {httpEx.Message}");
+				await Logger.LogExceptionAsync(httpEx);
 
 				string userMessage = "DeadlyStream download failed. This can happen when:\n\n" +
 									 "• The download page has changed its layout\n" +
@@ -613,8 +613,8 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 			}
 			catch ( TaskCanceledException tcEx )
 			{
-				await Logger.LogErrorAsync($"[DeadlyStream] Request timeout for URL '{url}': {tcEx.Message}").ConfigureAwait(false);
-				await Logger.LogExceptionAsync(tcEx).ConfigureAwait(false);
+				await Logger.LogErrorAsync($"[DeadlyStream] Request timeout for URL '{url}': {tcEx.Message}");
+				await Logger.LogExceptionAsync(tcEx);
 
 				string userMessage = "DeadlyStream download timed out. This can happen when:\n\n" +
 									 "• The site is slow or experiencing high traffic\n" +
@@ -635,8 +635,8 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 			}
 			catch ( Exception ex )
 			{
-				await Logger.LogErrorAsync($"[DeadlyStream] Download failed for URL '{url}': {ex.Message}").ConfigureAwait(false);
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogErrorAsync($"[DeadlyStream] Download failed for URL '{url}': {ex.Message}");
+				await Logger.LogExceptionAsync(ex);
 
 				string userMessage = "DeadlyStream download failed unexpectedly.\n\n" +
 									 $"Please try downloading manually from: {url}\n\n" +
@@ -670,17 +670,17 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 
 				cancellationToken.ThrowIfCancellationRequested();
 
-				await Logger.LogVerboseAsync($"[DeadlyStream] Downloading from: {downloadLink}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] Downloading from: {downloadLink}");
 
 
 				Uri downloadUri = new Uri(downloadLink);
 				HttpRequestMessage fileRequest = new HttpRequestMessage(HttpMethod.Get, downloadLink);
 				ApplyCookiesToRequest(fileRequest, downloadUri);
-				HttpResponseMessage fileResponse = await _httpClient.SendAsync(fileRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+				HttpResponseMessage fileResponse = await _httpClient.SendAsync(fileRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
 
 				if ( !fileResponse.IsSuccessStatusCode )
-					await Logger.LogErrorAsync($"[DeadlyStream] File response status: {fileResponse.StatusCode}").ConfigureAwait(false);
+					await Logger.LogErrorAsync($"[DeadlyStream] File response status: {fileResponse.StatusCode}");
 
 				_ = fileResponse.EnsureSuccessStatusCode();
 
@@ -688,19 +688,19 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 				string contentType = fileResponse.Content.Headers.ContentType?.MediaType ?? string.Empty;
 				if ( contentType.Contains("text/html") )
 				{
-					await Logger.LogVerboseAsync("[DeadlyStream] Received HTML response - this appears to be a file selection page").ConfigureAwait(false);
-					string html = await fileResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+					await Logger.LogVerboseAsync("[DeadlyStream] Received HTML response - this appears to be a file selection page");
+					string html = await fileResponse.Content.ReadAsStringAsync();
 					fileResponse.Dispose();
 
 
 					if ( html.Contains("Download your files") || html.Contains("data-action=\"download\"") )
 					{
-						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page, extracting actual download links").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page, extracting actual download links");
 						List<string> actualDownloadLinks = ExtractConfirmedDownloadLinks(html, downloadLink);
 
 						if ( actualDownloadLinks.Count > 0 )
 						{
-							await Logger.LogVerboseAsync($"[DeadlyStream] Found {actualDownloadLinks.Count} confirmed download link(s) on selection page").ConfigureAwait(false);
+							await Logger.LogVerboseAsync($"[DeadlyStream] Found {actualDownloadLinks.Count} confirmed download link(s) on selection page");
 
 
 							string lastDownloadedFile = null;
@@ -716,7 +716,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 									ProgressPercentage = fileBaseProgress
 								});
 
-								string downloadedFile = await DownloadSingleFile(actualDownloadLinks[i], destinationDirectory, progress, fileBaseProgress, fileProgressRange, cancellationToken).ConfigureAwait(false);
+								string downloadedFile = await DownloadSingleFile(actualDownloadLinks[i], destinationDirectory, progress, fileBaseProgress, fileProgressRange, cancellationToken);
 								if ( !string.IsNullOrEmpty(downloadedFile) )
 								{
 									lastDownloadedFile = downloadedFile;
@@ -727,13 +727,13 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 						}
 						else
 						{
-							await Logger.LogWarningAsync("[DeadlyStream] Multi-file selection page detected but no download links found").ConfigureAwait(false);
+							await Logger.LogWarningAsync("[DeadlyStream] Multi-file selection page detected but no download links found");
 						}
 					}
 
 
 					string errorMsg = "Received HTML instead of file - download link may be invalid or require authentication";
-					await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}").ConfigureAwait(false);
+					await Logger.LogErrorAsync($"[DeadlyStream] {errorMsg}");
 					fileResponse.Dispose();
 					return null;
 				}
@@ -748,11 +748,11 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 					{
 						fileName = $"deadlystream_download_{Guid.NewGuid():N}.zip";
 					}
-					await Logger.LogWarningAsync($"[DeadlyStream] Could not determine filename, using: {fileName}").ConfigureAwait(false);
+					await Logger.LogWarningAsync($"[DeadlyStream] Could not determine filename, using: {fileName}");
 				}
 				else
 				{
-					await Logger.LogVerboseAsync($"[DeadlyStream] Filename: {fileName}").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[DeadlyStream] Filename: {fileName}");
 				}
 
 
@@ -769,7 +769,7 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 				});
 
 
-				using ( Stream contentStream = await fileResponse.Content.ReadAsStreamAsync().ConfigureAwait(false) )
+				using ( Stream contentStream = await fileResponse.Content.ReadAsStreamAsync() )
 				using ( ThrottledStream throttledStream = new ThrottledStream(contentStream, MaxBytesPerSecond) )
 				{
 
@@ -780,19 +780,19 @@ await Logger.LogVerboseAsync($"[DeadlyStream] GET response received (StatusCode:
 						fileName,
 						downloadLink,
 						progress,
-						cancellationToken: cancellationToken).ConfigureAwait(false);
+						cancellationToken: cancellationToken);
 				}
 
 				long fileSize = new FileInfo(filePath).Length;
-				await Logger.LogVerboseAsync($"[DeadlyStream] File downloaded successfully: {filePath} ({fileSize} bytes)").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DeadlyStream] File downloaded successfully: {filePath} ({fileSize} bytes)");
 
 				fileResponse.Dispose();
 				return filePath;
 			}
 			catch ( Exception ex )
 			{
-				await Logger.LogErrorAsync($"[DeadlyStream] Failed to download file from {downloadLink}: {ex.Message}").ConfigureAwait(false);
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogErrorAsync($"[DeadlyStream] Failed to download file from {downloadLink}: {ex.Message}");
+				await Logger.LogExceptionAsync(ex);
 				return null;
 			}
 		}
@@ -1040,14 +1040,14 @@ await Logger.LogWarningAsync($"[DeadlyStream] Could not parse file page ID from 
 				metadata["changelogId"] = changelogId;
 
 				// Fetch the page to extract additional metadata
-				HttpResponseMessage response = await _httpClient.GetAsync(normalizedUrl, cancellationToken).ConfigureAwait(false);
+				HttpResponseMessage response = await _httpClient.GetAsync(normalizedUrl, cancellationToken);
 				if (!response.IsSuccessStatusCode)
 				{
 await Logger.LogWarningAsync($"[DeadlyStream] Failed to fetch page for metadata: {response.StatusCode}");
 					return metadata;
 				}
 
-				string htmlContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+				string htmlContent = await response.Content.ReadAsStringAsync();
 				HtmlDocument doc = new HtmlDocument();
 				doc.LoadHtml(htmlContent);
 

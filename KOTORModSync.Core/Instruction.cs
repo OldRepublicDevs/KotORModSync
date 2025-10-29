@@ -325,17 +325,17 @@ namespace KOTORModSync.Core
 					string destinationPath = argDestinationPath?.FullName ?? Path.GetDirectoryName(sourcePath);
 					if (string.IsNullOrEmpty(destinationPath))
 					{
-						await Logger.LogErrorAsync($"Could not determine destination path for archive: {sourcePath}").ConfigureAwait(false);
+						await Logger.LogErrorAsync($"Could not determine destination path for archive: {sourcePath}");
 						return ActionExitCode.InvalidArchive;
 					}
 					try
 					{
-						List<string> extractedFiles = await _fileSystemProvider.ExtractArchiveAsync(sourcePath, destinationPath).ConfigureAwait(false);
-						await Logger.LogAsync($"Extracted {extractedFiles.Count} file(s) from '{Path.GetFileName(sourcePath)}' to '{destinationPath}'").ConfigureAwait(false);
+						List<string> extractedFiles = await _fileSystemProvider.ExtractArchiveAsync(sourcePath, destinationPath);
+						await Logger.LogAsync($"Extracted {extractedFiles.Count} file(s) from '{Path.GetFileName(sourcePath)}' to '{destinationPath}'");
 					}
 					catch (Exception ex)
 					{
-						await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+						await Logger.LogExceptionAsync(ex);
 						sw.Stop();
 						Services.TelemetryService.Instance.RecordFileOperation(
 							operationType: "extract",
@@ -359,7 +359,7 @@ namespace KOTORModSync.Core
 			}
 			catch (ArgumentNullException ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex);
 				sw.Stop();
 				Services.TelemetryService.Instance.RecordFileOperation(
 					operationType: "extract",
@@ -372,7 +372,7 @@ namespace KOTORModSync.Core
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex);
 				sw.Stop();
 				Services.TelemetryService.Instance.RecordFileOperation(
 					operationType: "extract",
@@ -671,7 +671,7 @@ namespace KOTORModSync.Core
 				SemaphoreSlim localSemaphore = semaphore;
 				async Task CopyIndividualFileAsync(string sourcePath)
 				{
-					await localSemaphore.WaitAsync().ConfigureAwait(false);
+					await localSemaphore.WaitAsync();
 					try
 					{
 						string sourceRelDirPath = MainConfig.SourcePath is null
@@ -700,21 +700,21 @@ namespace KOTORModSync.Core
 								await Logger.LogWarningAsync(
 									$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
 									+ " skipping file. Reason: Overwrite set to False )"
-								).ConfigureAwait(false);
+								);
 								return;
 							}
 							await Logger.LogAsync(
 								$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
 								+ $" deleting pre-existing file '{destinationRelDirPath}' Reason: Overwrite set to True"
-							).ConfigureAwait(false);
-							await _fileSystemProvider.DeleteFileAsync(destinationFilePath).ConfigureAwait(false);
+							);
+							await _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 						}
-						await Logger.LogAsync($"Copy '{sourceRelDirPath}' to '{destinationRelDirPath}'").ConfigureAwait(false);
-						await _fileSystemProvider.CopyFileAsync(sourcePath, destinationFilePath, Overwrite).ConfigureAwait(false);
+						await Logger.LogAsync($"Copy '{sourceRelDirPath}' to '{destinationRelDirPath}'");
+						await _fileSystemProvider.CopyFileAsync(sourcePath, destinationFilePath, Overwrite);
 					}
 					catch (Exception ex)
 					{
-						await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+						await Logger.LogExceptionAsync(ex);
 						throw;
 					}
 					finally
@@ -727,7 +727,7 @@ namespace KOTORModSync.Core
 				List<Task> tasks = sourcePaths.Select(CopyIndividualFileAsync).ToList();
 				try
 				{
-					await Task.WhenAll(tasks).ConfigureAwait(false);
+					await Task.WhenAll(tasks);
 					sw.Stop();
 					Services.TelemetryService.Instance.RecordFileOperation(
 						operationType: "copy",
@@ -766,11 +766,11 @@ namespace KOTORModSync.Core
 				destinationPath = RealDestinationPath;
 			if (destinationPath == null)
 				throw new ArgumentNullException(nameof(destinationPath));
-			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] Starting move operation with {sourcePaths.Count} files").ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] Destination: {destinationPath.FullName}").ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] MainConfig.SourcePath: {MainConfig.SourcePath?.FullName ?? "NULL"}").ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] MainConfig.DestinationPath: {MainConfig.DestinationPath?.FullName ?? "NULL"}").ConfigureAwait(false);
-			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] IsDryRun: {_fileSystemProvider.IsDryRun}").ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] Starting move operation with {sourcePaths.Count} files");
+			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] Destination: {destinationPath.FullName}");
+			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] MainConfig.SourcePath: {MainConfig.SourcePath?.FullName ?? "NULL"}");
+			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] MainConfig.DestinationPath: {MainConfig.DestinationPath?.FullName ?? "NULL"}");
+			await Logger.LogVerboseAsync($"[Instruction.MoveFileAsync] IsDryRun: {_fileSystemProvider.IsDryRun}");
 
 			System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
 			int maxCount = MainConfig.UseMultiThreadedIO
@@ -781,58 +781,58 @@ namespace KOTORModSync.Core
 				SemaphoreSlim localSemaphore = semaphore;
 				async Task MoveIndividualFileAsync(string sourcePath)
 				{
-					await localSemaphore.WaitAsync().ConfigureAwait(false);
+					await localSemaphore.WaitAsync();
 					try
 					{
-						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] Processing: {sourcePath}").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] Processing: {sourcePath}");
 						string sourceRelDirPath = MainConfig.SourcePath is null
 							? sourcePath
 							: PathHelper.GetRelativePath(
 								MainConfig.SourcePath.FullName,
 								sourcePath
 							);
-						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] sourceRelDirPath: {sourceRelDirPath}").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] sourceRelDirPath: {sourceRelDirPath}");
 						string fileName = Path.GetFileName(sourcePath);
-						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] fileName: {fileName}").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] fileName: {fileName}");
 						string destinationFilePath = MainConfig.CaseInsensitivePathing
 							? PathHelper.GetCaseSensitivePath(
 								Path.Combine(destinationPath.FullName, fileName),
 								isFile: true
 							).Item1
 							: Path.Combine(destinationPath.FullName, fileName);
-						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] destinationFilePath: {destinationFilePath}").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] destinationFilePath: {destinationFilePath}");
 						string destinationRelDirPath = MainConfig.DestinationPath is null
 							? destinationFilePath
 							: PathHelper.GetRelativePath(
 								MainConfig.DestinationPath.FullName,
 								destinationFilePath
 							);
-						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] destinationRelDirPath: {destinationRelDirPath}").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] destinationRelDirPath: {destinationRelDirPath}");
 						if (_fileSystemProvider.FileExists(destinationFilePath))
 						{
-							await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] Destination file exists, Overwrite={Overwrite}").ConfigureAwait(false);
+							await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] Destination file exists, Overwrite={Overwrite}");
 							if (!Overwrite)
 							{
 								await Logger.LogWarningAsync(
 									$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
 									+ " skipping file. Reason: Overwrite set to False )"
-								).ConfigureAwait(false);
+								);
 								return;
 							}
 							await Logger.LogAsync(
 								$"File '{fileName}' already exists in {Path.GetDirectoryName(destinationRelDirPath)},"
 								+ $" deleting pre-existing file '{destinationRelDirPath}' Reason: Overwrite set to True"
-							).ConfigureAwait(false);
-							await _fileSystemProvider.DeleteFileAsync(destinationFilePath).ConfigureAwait(false);
+							);
+							await _fileSystemProvider.DeleteFileAsync(destinationFilePath);
 						}
-						await Logger.LogAsync($"Move '{sourceRelDirPath}' to '{destinationRelDirPath}'").ConfigureAwait(false);
-						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] Calling _fileSystemProvider.MoveFileAsync('{sourcePath}', '{destinationFilePath}', {Overwrite})").ConfigureAwait(false);
-						await _fileSystemProvider.MoveFileAsync(sourcePath, destinationFilePath, Overwrite).ConfigureAwait(false);
-						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] Move completed successfully").ConfigureAwait(false);
+						await Logger.LogAsync($"Move '{sourceRelDirPath}' to '{destinationRelDirPath}'");
+						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] Calling _fileSystemProvider.MoveFileAsync('{sourcePath}', '{destinationFilePath}', {Overwrite})");
+						await _fileSystemProvider.MoveFileAsync(sourcePath, destinationFilePath, Overwrite);
+						await Logger.LogVerboseAsync($"[Instruction.MoveIndividualFileAsync] Move completed successfully");
 					}
 					catch (Exception ex)
 					{
-						await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+						await Logger.LogExceptionAsync(ex);
 						throw;
 					}
 					finally
@@ -845,7 +845,7 @@ namespace KOTORModSync.Core
 				List<Task> tasks = sourcePaths.Select(MoveIndividualFileAsync).ToList();
 				try
 				{
-					await Task.WhenAll(tasks).ConfigureAwait(false);
+					await Task.WhenAll(tasks);
 					sw.Stop();
 					Services.TelemetryService.Instance.RecordFileOperation(
 						operationType: "move",
@@ -885,16 +885,16 @@ namespace KOTORModSync.Core
 
 					if (_fileSystemProvider is Services.FileSystem.VirtualFileSystemProvider)
 					{
-						await Logger.LogAsync($"[Simulation] Skipping TSLPatcher execution for simulation mode").ConfigureAwait(false);
+						await Logger.LogAsync($"[Simulation] Skipping TSLPatcher execution for simulation mode");
 						continue;
 					}
 
 					string fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.rtf");
 					if (_fileSystemProvider.FileExists(fullInstallLogFile))
-						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile).ConfigureAwait(false);
+						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
 					fullInstallLogFile = Path.Combine(tslPatcherDirectory.FullName, path2: "installlog.txt");
 					if (_fileSystemProvider.FileExists(fullInstallLogFile))
-						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile).ConfigureAwait(false);
+						await _fileSystemProvider.DeleteFileAsync(fullInstallLogFile);
 					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern: @"^\s*PlaintextLog\s*=\s*0\s*$", replacement: "PlaintextLog=1");
 					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern: @"^\s*LookupGameFolder\s*=\s*1\s*$", replacement: "LookupGameFolder=0");
 					IniHelper.ReplaceIniPattern(tslPatcherDirectory, pattern: @"^\s*ConfirmMessage\s*=\s*.*$", replacement: "ConfirmMessage=N/A");
@@ -910,7 +910,7 @@ namespace KOTORModSync.Core
 					string resourcesDir = UtilityHelper.GetResourcesDirectory(baseDir);
 
 					// Use helper method to find holopatcher
-					(string holopatcherPath, bool usePythonVersion, bool found) = await Services.InstallationService.FindHolopatcherAsync(resourcesDir, baseDir).ConfigureAwait(false);
+					(string holopatcherPath, bool usePythonVersion, bool found) = await Services.InstallationService.FindHolopatcherAsync(resourcesDir, baseDir);
 
 					if (!found)
 						throw new FileNotFoundException($"Could not load HoloPatcher from the '{resourcesDir}' directory!");
@@ -918,10 +918,10 @@ namespace KOTORModSync.Core
 					{
 						string message = $"If asked to pick an option, select the {Serializer.ToOrdinal(namespaceId + 1)} from the top.";
 						_ = CallbackObjects.InformationCallback.ShowInformationDialog(message);
-						await Logger.LogWarningAsync(message).ConfigureAwait(false);
+						await Logger.LogWarningAsync(message);
 					}
 
-					await Logger.LogAsync($"Using CLI to run command: '{holopatcherPath}' {args}").ConfigureAwait(false);
+					await Logger.LogAsync($"Using CLI to run command: '{holopatcherPath}' {args}");
 
 					int exitCode;
 					string output;
@@ -932,7 +932,7 @@ namespace KOTORModSync.Core
 						(exitCode, output, error) = await Services.InstallationService.RunHolopatcherPyAsync(
 								holopatcherPath,
 								args
-							).ConfigureAwait(false);
+							);
 					}
 					else
 					{
@@ -940,18 +940,18 @@ namespace KOTORModSync.Core
 						(exitCode, output, error) = await _fileSystemProvider.ExecuteProcessAsync(
 							holopatcherPath,
 							args
-						).ConfigureAwait(false);
+						);
 					}
 
-					await Logger.LogAsync($"'holopatcher' exited with exit code {exitCode}").ConfigureAwait(false);
+					await Logger.LogAsync($"'holopatcher' exited with exit code {exitCode}");
 					if (exitCode != 0)
 						return ActionExitCode.PatcherError;
 					try
 					{
-						List<string> installErrors = await VerifyInstall().ConfigureAwait(false);
+						List<string> installErrors = await VerifyInstall();
 						if (installErrors.Count <= 0)
 							continue;
-						await Logger.LogAsync(string.Join(Environment.NewLine, installErrors)).ConfigureAwait(false);
+						await Logger.LogAsync(string.Join(Environment.NewLine, installErrors));
 						return ActionExitCode.TSLPatcherError;
 					}
 					catch (Exception)
@@ -963,7 +963,7 @@ namespace KOTORModSync.Core
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex);
 				throw;
 			}
 		}
@@ -988,7 +988,7 @@ namespace KOTORModSync.Core
 							await _fileSystemProvider.ExecuteProcessAsync(
 								sourcePath,
 								UtilityHelper.ReplaceCustomVariables(Arguments)
-							).ConfigureAwait(false);
+							);
 						_ = Logger.LogAsync(output + Environment.NewLine + error);
 						if (childExitCode == 0)
 							continue;
@@ -997,12 +997,12 @@ namespace KOTORModSync.Core
 					}
 					catch (FileNotFoundException ex)
 					{
-						await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+						await Logger.LogExceptionAsync(ex);
 						return ActionExitCode.FileNotFoundPost;
 					}
 					catch (Exception ex)
 					{
-						await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+						await Logger.LogExceptionAsync(ex);
 						return ActionExitCode.UnknownInnerError;
 					}
 				}
@@ -1010,7 +1010,7 @@ namespace KOTORModSync.Core
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex);
 				return ActionExitCode.UnknownError;
 			}
 		}
@@ -1025,7 +1025,7 @@ namespace KOTORModSync.Core
 				throw new ArgumentNullException(nameof(sourcePaths));
 			if (_fileSystemProvider.IsDryRun)
 			{
-				await Logger.LogVerboseAsync("Skipping install log verification for dry-run").ConfigureAwait(false);
+				await Logger.LogVerboseAsync("Skipping install log verification for dry-run");
 				return new List<string>();
 			}
 			foreach (string sourcePath in sourcePaths)
@@ -1039,13 +1039,13 @@ namespace KOTORModSync.Core
 					if (!_fileSystemProvider.FileExists(fullInstallLogFile))
 						throw new FileNotFoundException(message: "Install log file not found.", fullInstallLogFile);
 				}
-				string installLogContent = await _fileSystemProvider.ReadFileAsync(fullInstallLogFile).ConfigureAwait(false);
+				string installLogContent = await _fileSystemProvider.ReadFileAsync(fullInstallLogFile);
 				return installLogContent.Split(Environment.NewLine.ToCharArray()).Where(
 					thisLine => thisLine.Contains("Error: ") || thisLine.Contains("[Error]")
 				).ToList();
 			}
 
-			await Logger.LogVerboseAsync("No errors found in TSLPatcher installation log file").ConfigureAwait(false);
+			await Logger.LogVerboseAsync("No errors found in TSLPatcher installation log file");
 			return new List<string>();
 		}
 		public event PropertyChangedEventHandler PropertyChanged;

@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -108,17 +107,48 @@ namespace KOTORModSync.Dialogs
 
 		private void RecomputePreview()
 		{
-			var parser = new MarkdownParser( Profile,
-				logInfo => Logger.Log( logInfo ),
-				Logger.LogVerbose );
-			MarkdownParserResult result = parser.Parse( _markdown );
-			int comp = result.Components?.Count ?? 0;
-			Debug.Assert( result.Components != null, "result.Components != null" );
-			int links = result.Components.Sum( c => c.ModLinkFilenames.Count );
-			PreviewSummary = $"Components: {comp} | Links: {links}";
-
+			// Preview should only show regex matches, not parse components
+			// Actual component parsing only happens when user clicks "Load"
+			
+			// Count regex matches for preview summary without actually parsing
+			int componentMatches = 0;
+			int linkMatches = 0;
+			
+			try
+			{
+				if (Profile.Mode == RegexMode.Raw)
+				{
+					// Count component sections in raw mode
+					if (!string.IsNullOrWhiteSpace(Profile.RawRegexPattern))
+					{
+						var regex = new Regex(Profile.RawRegexPattern, Profile.RawRegexOptions);
+						componentMatches = regex.Matches(_markdown).Count;
+					}
+				}
+				else
+				{
+					// Count component sections in individual mode
+					if (!string.IsNullOrWhiteSpace(Profile.ComponentSectionPattern))
+					{
+						var regex = new Regex(Profile.ComponentSectionPattern, Profile.ComponentSectionOptions);
+						componentMatches = regex.Matches(_markdown).Count;
+					}
+				}
+				
+				// Count ModLink matches
+				if (!string.IsNullOrWhiteSpace(Profile.ModLinkPattern))
+				{
+					var linkRegex = new Regex(Profile.ModLinkPattern, Profile.GetRegexOptions());
+					linkMatches = linkRegex.Matches(_markdown).Count;
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogVerbose($"Preview regex error: {ex.Message}");
+			}
+			
+			PreviewSummary = $"Component Matches: {componentMatches} | Link Matches: {linkMatches}";
 			GenerateHighlightedPreview();
-			UpdateCounts();
 		}
 
 		private void GenerateHighlightedPreview()
@@ -127,38 +157,42 @@ namespace KOTORModSync.Dialogs
 
 			try
 			{
+				// Helper function to get theme resources
+				IBrush GetResource( string key, IBrush fallback ) =>
+					Application.Current?.TryGetResource( key, Application.Current?.ActualThemeVariant, out object value ) == true && value is IBrush b ? b : fallback;
+
 				string patternToUse = Profile.Mode == RegexMode.Raw
 					? Profile.RawRegexPattern
 					: Profile.ComponentSectionPattern;
 
 				if (string.IsNullOrWhiteSpace( patternToUse ))
 				{
-					inlines.Add( new Run( _markdown ) { Foreground = Brushes.White } );
+					// Use theme resource for default text color
+					inlines.Add( new Run( _markdown ) { Foreground = GetResource( "RegexHighlight.Default", Brushes.Black ) } );
 					HighlightedPreview = inlines;
 					return;
 				}
-
-				IBrush GetResource( string key, IBrush fallback ) =>
-					Application.Current?.TryGetResource( key, Application.Current?.ActualThemeVariant, out object value ) == true && value is IBrush b ? b : fallback;
-				var groupColors = new Dictionary<string, IBrush>
-
-
-( StringComparer.Ordinal )
+				// Get all theme resource colors - GetResource will use theme-specific colors if available, 
+				// or fallback to FluentLightStyle colors if not (which happen to match standard syntax highlighting)
+				var groupColors = new Dictionary<string, IBrush>( StringComparer.Ordinal )
 				{
-					["heading"] = GetResource( "RegexHighlight.Heading", Brushes.LightBlue ),
-					["name"] = GetResource( "RegexHighlight.Name", Brushes.LightGreen ),
-					["name_link"] = GetResource( "RegexHighlight.Name", Brushes.LightGreen ),
-					["name_plain"] = GetResource( "RegexHighlight.Name", Brushes.LightGreen ),
-					["author"] = GetResource( "RegexHighlight.Author", Brushes.LightCoral ),
-					["description"] = GetResource( "RegexHighlight.Description", Brushes.LightYellow ),
-					["masters"] = GetResource( "RegexHighlight.Masters", Brushes.LightPink ),
-					["category_tier"] = GetResource( "RegexHighlight.CategoryTier", Brushes.LightCyan ),
-					["non_english"] = GetResource( "RegexHighlight.NonEnglish", Brushes.LightGray ),
-					["installation_method"] = GetResource( "RegexHighlight.InstallationMethod", Brushes.LightSalmon ),
-					["installation_instructions"] = GetResource( "RegexHighlight.InstallationInstructions", Brushes.LightSeaGreen )
+					["heading"] = GetResource( "RegexHighlight.Heading", new SolidColorBrush( Color.FromRgb( 0x00, 0x78, 0xD4 ) ) ),
+					["name"] = GetResource( "RegexHighlight.Name", new SolidColorBrush( Color.FromRgb( 0x00, 0x78, 0xD4 ) ) ),
+					["name_link"] = GetResource( "RegexHighlight.Name", new SolidColorBrush( Color.FromRgb( 0x00, 0x78, 0xD4 ) ) ),
+					["name_plain"] = GetResource( "RegexHighlight.Name", new SolidColorBrush( Color.FromRgb( 0x00, 0x78, 0xD4 ) ) ),
+					["author"] = GetResource( "RegexHighlight.Author", new SolidColorBrush( Color.FromRgb( 0x00, 0x5A, 0x9E ) ) ),
+					["description"] = GetResource( "RegexHighlight.Description", new SolidColorBrush( Color.FromRgb( 0xCA, 0x50, 0x10 ) ) ),
+					["masters"] = GetResource( "RegexHighlight.Masters", new SolidColorBrush( Color.FromRgb( 0xF7, 0x63, 0x0C ) ) ),
+					["category_tier"] = GetResource( "RegexHighlight.CategoryTier", new SolidColorBrush( Color.FromRgb( 0x7B, 0x2E, 0xBF ) ) ),
+					["non_english"] = GetResource( "RegexHighlight.NonEnglish", new SolidColorBrush( Color.FromRgb( 0x60, 0x5E, 0x5C ) ) ),
+					["installation_method"] = GetResource( "RegexHighlight.InstallationMethod", new SolidColorBrush( Color.FromRgb( 0x10, 0x7C, 0x10 ) ) ),
+					["installation_instructions"] = GetResource( "RegexHighlight.InstallationInstructions", new SolidColorBrush( Color.FromRgb( 0xD8, 0x3B, 0x01 ) ) )
 				};
 
 				Logger.LogVerbose( $"GenerateHighlightedPreview: Mode={Profile.Mode}" );
+
+				// Get default text color from theme
+				IBrush defaultTextColor = GetResource( "RegexHighlight.Default", Brushes.Black );
 
 				if (Profile.Mode == RegexMode.Raw)
 				{
@@ -172,7 +206,7 @@ namespace KOTORModSync.Dialogs
 						if (match.Index > lastIndex)
 						{
 							string beforeText = _markdown.Substring( lastIndex, match.Index - lastIndex );
-							inlines.Add( new Run( beforeText ) { Foreground = Brushes.White } );
+							inlines.Add( new Run( beforeText ) { Foreground = defaultTextColor } );
 						}
 
 						var processedRanges = new List<(int start, int end)>();
@@ -182,27 +216,27 @@ namespace KOTORModSync.Dialogs
 							if (!group.Success || group.Length <= 0)
 								continue;
 							Logger.LogVerbose( $"RAW group '{groupName}': '{group.Value}'" );
-							bool overlaps = processedRanges.Any( range => !(group.Index >= range.end || group.Index + group.Length <= range.start) );
+							bool overlaps = processedRanges.Exists( range => !(group.Index >= range.end || group.Index + group.Length <= range.start) );
 							if (overlaps)
 								continue;
 							int relativeStart = group.Index - match.Index;
 							if (relativeStart > 0)
 							{
 								string beforeGroup = match.Value.Substring( 0, relativeStart );
-								if (!string.IsNullOrEmpty( beforeGroup )) inlines.Add( new Run( beforeGroup ) { Foreground = Brushes.White } );
+								if (!string.IsNullOrEmpty( beforeGroup )) inlines.Add( new Run( beforeGroup ) { Foreground = defaultTextColor } );
 							}
 							inlines.Add( new Run( group.Value ) { Foreground = groupColors[groupName], FontWeight = FontWeight.Bold } );
 							processedRanges.Add( (group.Index, group.Index + group.Length) );
 						}
 
-						if (processedRanges.Count == 0) inlines.Add( new Run( match.Value ) { Foreground = Brushes.White } );
+						if (processedRanges.Count == 0) inlines.Add( new Run( match.Value ) { Foreground = defaultTextColor } );
 						lastIndex = match.Index + match.Length;
 					}
 
 					if (lastIndex < _markdown.Length)
 					{
 						string remainingText = _markdown.Substring( lastIndex );
-						inlines.Add( new Run( remainingText ) { Foreground = Brushes.White } );
+						inlines.Add( new Run( remainingText ) { Foreground = defaultTextColor } );
 					}
 				}
 				else
@@ -216,7 +250,7 @@ namespace KOTORModSync.Dialogs
 					foreach (Match section in sections)
 					{
 						if (section.Index > cursor)
-							inlines.Add( new Run( _markdown.Substring( cursor, section.Index - cursor ) ) { Foreground = Brushes.White } );
+							inlines.Add( new Run( _markdown.Substring( cursor, section.Index - cursor ) ) { Foreground = defaultTextColor } );
 
 						string sectionText;
 						int sectionTextStartInDoc;
@@ -270,43 +304,33 @@ namespace KOTORModSync.Dialogs
 						{
 							if (start < pos) continue;
 							if (start > pos)
-								inlines.Add( new Run( _markdown.Substring( pos, start - pos ) ) { Foreground = Brushes.White } );
+								inlines.Add( new Run( _markdown.Substring( pos, start - pos ) ) { Foreground = defaultTextColor } );
 							inlines.Add( new Run( _markdown.Substring( start, end - start ) ) { Foreground = brush, FontWeight = FontWeight.Bold } );
 							pos = end;
 						}
 
 						int sectionEnd = section.Index + section.Length;
 						if (pos < sectionEnd)
-							inlines.Add( new Run( _markdown.Substring( pos, sectionEnd - pos ) ) { Foreground = Brushes.White } );
+							inlines.Add( new Run( _markdown.Substring( pos, sectionEnd - pos ) ) { Foreground = defaultTextColor } );
 
 						cursor = section.Index + section.Length;
 					}
 
 					if (cursor < _markdown.Length)
-						inlines.Add( new Run( _markdown.Substring( cursor ) ) { Foreground = Brushes.White } );
+						inlines.Add( new Run( _markdown.Substring( cursor ) ) { Foreground = defaultTextColor } );
 				}
 			}
 			catch (Exception ex)
 			{
-
 				inlines.Clear();
-				inlines.Add( new Run( _markdown ) { Foreground = Brushes.White } );
+				IBrush GetResource( string key, IBrush fallback ) =>
+					Application.Current?.TryGetResource( key, Application.Current?.ActualThemeVariant, out object value ) == true && value is IBrush b ? b : fallback;
+				IBrush defaultTextColor = GetResource( "RegexHighlight.Default", Brushes.Black );
+				inlines.Add( new Run( _markdown ) { Foreground = defaultTextColor } );
 				inlines.Add( new Run( $"\n\n[Regex Error: {ex.Message}]" ) { Foreground = Brushes.Red } );
 			}
 
 			HighlightedPreview = inlines;
-		}
-
-		private void UpdateCounts()
-		{
-
-			var parser = new MarkdownParser( Profile,
-				logInfo => Logger.Log( logInfo ),
-				Logger.LogVerbose );
-			MarkdownParserResult result = parser.Parse( _markdown );
-			int comp = result.Components.Count;
-			int links = result.Components.Sum( c => c.ModLinkFilenames.Count );
-			PreviewSummary = $"Components: {comp} | Links: {links}";
 		}
 
 		public void OnProfileChanged() => RecomputePreview();
@@ -315,6 +339,8 @@ namespace KOTORModSync.Dialogs
 
 		public MarkdownParserResult ConfirmLoad()
 		{
+			// Parse the markdown with the configured profile when user clicks "Load"
+			// This is the ONLY time we actually parse into ModComponent objects
 			var parser = new MarkdownParser( Profile,
 				logInfo => Logger.Log( logInfo ),
 				Logger.LogVerbose );

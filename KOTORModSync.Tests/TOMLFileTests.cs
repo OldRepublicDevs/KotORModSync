@@ -547,6 +547,145 @@ path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 		}
 
 		[Test]
+		public void SaveAndLoadTOMLFile_LegacySyntaxWithInlineOptionInstructions()
+		{
+			// Test the legacy syntax where Options have Instructions inline (not as separate [[thisMod.Options.Instructions]])
+			var legacyToml = @"[[thisMod]]
+Guid = ""a9aa5bf5-b4ac-4aa3-acbb-402337235e54""
+Name = ""KOTOR Dialogue Fixes""
+Author = ""Salk & Kainzorus Prime""
+Category = ""Immersion""
+Tier = ""Essential""
+Description = ""In addition to fixing several typos, this mod takes the PC's dialogue--which is written in such a way as to make the PC sound constantly shocked, stupid, or needlessly and overtly evil--and replaces it with more moderate and reasonable responses, even for DS choices.""
+Directions = ""Move the dialogue.tlk file from the \""PC Response Moderation\"" folder into the main KOTOR directory (where the executable file is).""
+IsSelected = true
+ModLink = [""https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/""]
+[[thisMod.Instructions]]
+Action = ""Extract""
+Overwrite = true
+Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z""]
+
+[[thisMod.Instructions]]
+Action = ""Choose""
+Overwrite = true
+Source = [
+    ""cf2a12ec-3932-42f8-996d-b1b1bdfdbb48"",
+    ""6d593186-e356-4994-b6a8-f71445869937"",
+]
+
+[[thisMod.Options]]
+Guid = ""cf2a12ec-3932-42f8-996d-b1b1bdfdbb48""
+Name = ""Standard""
+Description = ""Straight fixes to spelling errors/punctuation/grammar""
+IsSelected = false
+Restrictions = [""6d593186-e356-4994-b6a8-f71445869937""]
+Instructions = [
+    { Action = ""Move"", Destination = ""<<kotorDirectory>>"", Overwrite = true, Source = [
+        ""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"",
+    ] },
+]
+
+[[thisMod.Options]]
+Guid = ""6d593186-e356-4994-b6a8-f71445869937""
+Name = ""Revised""
+Description = ""Everything in Straight Fixes, but also has changes from the PC Moderation changes.""
+IsSelected = true
+Restrictions = [""cf2a12ec-3932-42f8-996d-b1b1bdfdbb48""]
+Instructions = [
+    { Action = ""Move"", Destination = ""<<kotorDirectory>>"", Overwrite = true, Source = [
+        ""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"",
+    ] },
+]";
+
+			// Write the legacy TOML to a temporary file
+			string tempFilePath = Path.Combine( Path.GetTempPath(), Path.GetRandomFileName() + ".toml" );
+			File.WriteAllText( tempFilePath, legacyToml );
+
+			try
+			{
+				// Load the components from the legacy TOML
+				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile( tempFilePath );
+
+				// Verify we loaded exactly one component
+				Assert.That( loadedComponents, Has.Count.EqualTo( 1 ) );
+
+				ModComponent component = loadedComponents[0];
+
+				// Verify basic properties
+				Assert.That( component.Guid.ToString(), Is.EqualTo( "a9aa5bf5-b4ac-4aa3-acbb-402337235e54" ) );
+				Assert.That( component.Name, Is.EqualTo( "KOTOR Dialogue Fixes" ) );
+				Assert.That( component.Author, Is.EqualTo( "Salk & Kainzorus Prime" ) );
+				// Tier might be serialized with a prefix like "1 - Essential", so just check it contains "Essential"
+				Assert.That( component.Tier, Does.Contain( "Essential" ) );
+				Assert.That( component.IsSelected, Is.True );
+				Assert.That( component.Category, Contains.Item( "Immersion" ) );
+
+				// Verify ModLink was converted to ModLinkFilenames
+				Assert.That( component.ModLinkFilenames, Is.Not.Null );
+				Assert.That( component.ModLinkFilenames.Count, Is.EqualTo( 1 ) );
+				Assert.That( component.ModLinkFilenames.ContainsKey( "https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/" ), Is.True );
+
+				// Verify Instructions - should have Extract and Choose
+				Assert.That( component.Instructions, Has.Count.EqualTo( 2 ) );
+
+				var extractInstruction = component.Instructions.FirstOrDefault( i => i.Action == Instruction.ActionType.Extract );
+				Assert.That( extractInstruction, Is.Not.Null, "Extract instruction should be present" );
+				Assert.That( extractInstruction.Source, Contains.Item( "<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z" ) );
+
+				var chooseInstruction = component.Instructions.FirstOrDefault( i => i.Action == Instruction.ActionType.Choose );
+				Assert.That( chooseInstruction, Is.Not.Null, "Choose instruction should be present" );
+				Assert.That( chooseInstruction.Source, Has.Count.EqualTo( 2 ) );
+				Assert.That( chooseInstruction.Source, Contains.Item( "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48" ) );
+				Assert.That( chooseInstruction.Source, Contains.Item( "6d593186-e356-4994-b6a8-f71445869937" ) );
+
+				// Verify Options
+				Assert.That( component.Options, Has.Count.EqualTo( 2 ) );
+
+				var standardOption = component.Options.FirstOrDefault( o => string.Equals( o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal ) );
+				Assert.That( standardOption, Is.Not.Null );
+				Assert.That( standardOption.Name, Is.EqualTo( "Standard" ) );
+				Assert.That( standardOption.IsSelected, Is.False );
+				Assert.That( standardOption.Restrictions, Contains.Item( Guid.Parse( "6d593186-e356-4994-b6a8-f71445869937" ) ) );
+				Assert.That( standardOption.Instructions, Has.Count.EqualTo( 1 ), "Standard option should have 1 instruction" );
+				if (standardOption.Instructions.Count > 0)
+				{
+					var standardInstruction = standardOption.Instructions[0];
+					Assert.That( standardInstruction.Action, Is.EqualTo( Instruction.ActionType.Move ) );
+					Assert.That( standardInstruction.Destination, Is.EqualTo( "<<kotorDirectory>>" ) );
+					Assert.That( standardInstruction.Source, Contains.Item( "<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk" ) );
+				}
+
+				var revisedOption = component.Options.FirstOrDefault( o => string.Equals( o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal ) );
+				Assert.That( revisedOption, Is.Not.Null );
+				Assert.That( revisedOption.Name, Is.EqualTo( "Revised" ) );
+				Assert.That( revisedOption.IsSelected, Is.True );
+				Assert.That( revisedOption.Restrictions, Contains.Item( Guid.Parse( "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48" ) ) );
+				Assert.That( revisedOption.Instructions, Has.Count.EqualTo( 1 ), "Revised option should have 1 instruction" );
+				if (revisedOption.Instructions.Count > 0)
+				{
+					var revisedInstruction = revisedOption.Instructions[0];
+					Assert.That( revisedInstruction.Action, Is.EqualTo( Instruction.ActionType.Move ) );
+					Assert.That( revisedInstruction.Destination, Is.EqualTo( "<<kotorDirectory>>" ) );
+					Assert.That( revisedInstruction.Source, Contains.Item( "<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk" ) );
+				}
+
+				// Now test round-trip: save and reload
+				FileLoadingService.SaveToFile( loadedComponents, tempFilePath );
+				List<ModComponent> reloadedComponents = FileLoadingService.LoadFromFile( tempFilePath );
+
+				// Verify round-trip worked
+				Assert.That( reloadedComponents, Has.Count.EqualTo( 1 ) );
+				AssertComponentEquality( loadedComponents[0], reloadedComponents[0] );
+			}
+			finally
+			{
+				// Clean up
+				if (File.Exists( tempFilePath ))
+					File.Delete( tempFilePath );
+			}
+		}
+
+		[Test]
 		public void SaveAndLoadTOMLFile_ComplexComponentWithOptionsAndInstructions()
 		{
 			// Test the complex scenario with ModLinkFilenames, Options, and Instructions

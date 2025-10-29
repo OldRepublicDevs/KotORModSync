@@ -231,7 +231,7 @@
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem
-                                                            Command="{Binding $parent[Window].JumpToRawViewCommand}"
+                                                            Command="{Binding JumpToRawViewCommand}"
                                                             CommandParameter="{Binding}"
                                                             Header="📄 Jump to Raw TOML" />
                                                         <Separator />
@@ -334,11 +334,11 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border DataContext="{Binding .}" Padding="2" Background="{Binding DiffColor}">
-                                            <TextBlock
+                                            <SelectableTextBlock
                                                 FontFamily="Consolas"
                                                 FontSize="11"
                                                 Text="{Binding Text}"
-                                                TextWrapping="NoWrap" />
+                                                TextWrapping="Wrap" />
                                         </Border>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -419,7 +419,7 @@
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem
-                                                            Command="{Binding $parent[Window].JumpToRawViewCommand}"
+                                                            Command="{Binding JumpToRawViewCommand}"
                                                             CommandParameter="{Binding}"
                                                             Header="📄 Jump to Raw TOML" />
                                                         <Separator />
@@ -522,11 +522,11 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border DataContext="{Binding .}" Padding="2" Background="{Binding DiffColor}">
-                                            <TextBlock
+                                            <SelectableTextBlock
                                                 FontFamily="Consolas"
                                                 FontSize="11"
                                                 Text="{Binding Text}"
-                                                TextWrapping="NoWrap" />
+                                                TextWrapping="Wrap" />
                                         </Border>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -801,7 +801,9 @@
                                                     Background="Transparent"
                                                     BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                                                     BorderThickness="0,0,0,1"
-                                                    Cursor="Hand">
+                                                    Cursor="Hand"
+                                                    ToolTip.Tip="{Binding RichTooltip}"
+                                                    PointerPressed="OnPreviewItemClicked">
                                                     <Border.Styles>
                                                         <Style Selector="Border:pointerover">
                                                             <Setter Property="Background" Value="{DynamicResource ThemeControlHighlightLowBrush}" />

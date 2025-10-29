@@ -19,7 +19,7 @@ namespace KOTORModSync.Models
 
 		[JsonPropertyName("theme")]
 		[CanBeNull]
-		public string Theme { get; set; } = "Fluent.Light";
+		public string Theme { get; set; } = "/Styles/FluentLightStyle.axaml";
 
 		[JsonPropertyName("sourcePath")]
 		[CanBeNull]
@@ -88,8 +88,7 @@ namespace KOTORModSync.Models
 
 			return new AppSettings
 			{
-				// KOTOR Themes DISABLED - Force Fluent Light. To re-enable: change to "/Styles/KotorStyle.axaml"
-				Theme = currentTheme ?? "Fluent.Light",
+				Theme = currentTheme ?? "/Styles/FluentLightStyle.axaml",
 				SourcePath = mainConfig.sourcePathFullName,
 				DestinationPath = mainConfig.destinationPathFullName,
 				DebugLogging = mainConfig.debugLogging,
@@ -154,7 +153,7 @@ namespace KOTORModSync.Models
 			if (!string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory))
 				mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
 
-			theme = Theme ?? "Fluent.Light"; // Default to Fluent Light theme
+			theme = Theme ?? "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light theme
 
 			// Set TargetGame from theme (they're the same thing)
 			MainConfig.TargetGame = GetTargetGameFromTheme(theme);
@@ -170,7 +169,7 @@ namespace KOTORModSync.Models
 				return null; // No game-specific theme
 
 			// Handle Fluent theme (not game-specific)
-			if (themePath.Equals("Fluent.Light", StringComparison.OrdinalIgnoreCase))
+			if (themePath.Contains("FluentLightStyle"))
 				return null;
 
 			if (themePath.IndexOf("Kotor2", StringComparison.OrdinalIgnoreCase) >= 0)

@@ -9,14 +9,14 @@
     <_NC2>Mon</_NC2>
   </PropertyGroup>
 
-  <!-- Default to Library (so it can be referenced by GUI) -->
-  <PropertyGroup>
+  <!-- Default to Library (so it can be referenced by GUI) unless building the Core project standalone -->
+  <PropertyGroup Condition="!('$(MSBuildProjectName)' == 'KOTORModSync.Core' AND '$(BuildingProject)' == 'true' AND '$(BuildingInsideVisualStudio)' != 'true' AND '$(DesignTimeBuild)' != 'true' AND '$(IsPublishing)' != 'true' AND '$(BuildProjectReferences)' != 'false')">
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <!-- Only use Exe when building Core project standalone, not as part of solution/publish -->
   <!-- This allows 'dotnet run' with the Core project for CLI usage -->
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'KOTORModSync.Core' AND '$(BuildingProject)' == 'true' AND '$(BuildingInsideVisualStudio)' != 'true' AND '$(DesignTimeBuild)' != 'true' AND '$(IsPublishing)' != 'true' AND '$(BuildProjectReferences)' != 'false'">
+  <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 

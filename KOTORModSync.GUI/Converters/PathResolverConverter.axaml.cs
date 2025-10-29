@@ -37,7 +37,22 @@ namespace KOTORModSync.Converters
 			}
 
 			Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - Value type: {value?.GetType().Name ?? "null"}, TargetType: {targetType?.Name ?? "null"}" );
-			Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - Value: '{value}'" );
+			
+			// Expand IEnumerable<string> to show actual items instead of type name
+			string valueDisplay;
+			if (value is IEnumerable<string> enumerablePaths)
+			{
+				valueDisplay = $"[{string.Join(", ", enumerablePaths.Select(p => $"'{p}'"))}]";
+			}
+			else if (value == null)
+			{
+				valueDisplay = "null";
+			}
+			else
+			{
+				valueDisplay = value.ToString();
+			}
+			Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - Value: {valueDisplay}" );
 
 			if (value is null)
 			{

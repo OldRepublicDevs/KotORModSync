@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Avalonia.Controls;
+using Avalonia.Threading;
 
 using JetBrains.Annotations;
 
@@ -25,10 +26,10 @@ namespace KOTORModSync.Services
 
 		public string LastLoadedFileName { get; set; }
 
-		public FileLoadingService( MainConfig mainConfig, Window parentWindow )
+		public FileLoadingService(MainConfig mainConfig, Window parentWindow)
 		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException( nameof( mainConfig ) );
-			_parentWindow = parentWindow ?? throw new ArgumentNullException( nameof( parentWindow ) );
+			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
+			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
 		/// <summary>
@@ -39,42 +40,50 @@ namespace KOTORModSync.Services
 			[NotNull] string filePath,
 			bool editorMode,
 			[NotNull] Func<Task> onComponentsLoaded,
-			[NotNull] string fileType = "instruction file" )
+			[NotNull] string fileType = "instruction file")
 		{
 			try
 			{
 
-				var fileInfo = new FileInfo( filePath );
+				var fileInfo = new FileInfo(filePath);
 				const int maxInstructionSize = 524288000;
 				if (fileInfo.Length > maxInstructionSize)
 
 
 				{
-					await Logger.LogAsync( $"Invalid {fileType} selected: '{fileInfo.Name}' - file too large" ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+					await Logger.LogAsync($"Invalid {fileType} selected: '{fileInfo.Name}' - file too large");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 					return false;
 
 
 				}
 
 				// Auto-detect format (TOML/JSON/YAML/embedded-Markdown)
-				List<ModComponent> newComponents = await Core.Services.FileLoadingService.LoadFromFileAsync( filePath ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+				List<ModComponent> newComponents = await Core.Services.FileLoadingService.LoadFromFileAsync(filePath);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
-				ProcessModLinks( newComponents );
+				ProcessModLinks(newComponents);
 
 				if (_mainConfig.allComponents.Count == 0)
 				{
 					_mainConfig.allComponents = newComponents;
-					LastLoadedFileName = Path.GetFileName( filePath );
+					LastLoadedFileName = Path.GetFileName(filePath);
 
 
-					await Logger.LogAsync( $"Loaded {newComponents.Count} components from {fileType}." )
-
-.ConfigureAwait( false );
-					await onComponentsLoaded().ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+					await Logger.LogAsync($"Loaded {newComponents.Count} components from {fileType}.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+					await onComponentsLoaded();
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 					return true;
 				}
 
-				bool? result = await ShowConfigLoadConfirmationAsync( fileType, editorMode ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+				bool? result = await ShowConfigLoadConfirmationAsync(fileType, editorMode);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
 				switch (result)
 				{
@@ -85,72 +94,66 @@ namespace KOTORModSync.Services
 								newComponents,
 								"Currently Loaded Components",
 								fileType,
-								( existing, incoming ) =>
+								(existing, incoming) =>
 								{
 									if (existing.Guid == incoming.Guid)
 										return true;
-									return FuzzyMatcher.FuzzyMatchComponents( existing, incoming );
-								} );
+									return FuzzyMatcher.FuzzyMatchComponents(existing, incoming);
+								});
 
 
 
-							await conflictDialog.ShowDialog( _parentWindow ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+							await conflictDialog.ShowDialog(_parentWindow);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
 							if (conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null)
 							{
 								int originalCount = _mainConfig.allComponents.Count;
 								_mainConfig.allComponents = conflictDialog.MergedComponents;
 								int newCount = _mainConfig.allComponents.Count;
-								LastLoadedFileName = Path.GetFileName( filePath );
+								LastLoadedFileName = Path.GetFileName(filePath);
 
 
 
-								await Logger.LogAsync( $"Merged {newComponents.Count} components from {fileType} with existing {originalCount} components using hybrid matching (GUID then Name/Author). Total components now: {newCount}" )
-
-.ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+								await Logger.LogAsync($"Merged {newComponents.Count} components from {fileType} with existing {originalCount} components using hybrid matching (GUID then Name/Author). Total components now: {newCount}");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 							}
 							else
 							{
-								await Logger.LogAsync( "Merge cancelled by user." )
-
-.ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+								await Logger.LogAsync("Merge cancelled by user.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 								return false;
 							}
 							break;
 						}
 					case false:
 						_mainConfig.allComponents = newComponents;
-						LastLoadedFileName = Path.GetFileName( filePath );
-						await Logger.LogAsync( $"Overwrote existing config with {newComponents.Count} components from {fileType}." ).ConfigureAwait( false );
+						LastLoadedFileName = Path.GetFileName(filePath);
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+						await Logger.LogAsync($"Overwrote existing config with {newComponents.Count} components from {fileType}.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 						break;
 					default:
 						return false;
 				}
 
-				await onComponentsLoaded().ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+				await onComponentsLoaded();
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 				return true;
 			}
 			catch (Exception ex)
 
 
 			{
-				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+				await Logger.LogExceptionAsync(ex);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 				return false;
 			}
-		}
-
-		/// <summary>
-		/// Legacy compatibility wrapper for LoadConfigFileAsync.
-		/// Use LoadConfigFileAsync instead - this handles all formats (TOML, JSON, YAML, embedded Markdown).
-		/// </summary>
-		[Obsolete( "Use LoadConfigFileAsync instead - it handles all formats with auto-detection" )]
-		public async Task<bool> LoadTomlFileAsync(
-			[NotNull] string filePath,
-			bool editorMode,
-			[NotNull] Func<Task> onComponentsLoaded,
-			[NotNull] string fileType = "instruction file" )
-		{
-			return await LoadInstructionFileAsync( filePath, editorMode, onComponentsLoaded, fileType ).ConfigureAwait( false );
 		}
 
 		/// <summary>
@@ -162,98 +165,98 @@ namespace KOTORModSync.Services
 			bool editorMode,
 			[NotNull] Func<Task> onComponentsLoaded,
 			[NotNull] Func<List<ModComponent>, Task> tryAutoGenerate,
-			[CanBeNull] MarkdownImportProfile profile = null )
+			[CanBeNull] MarkdownImportProfile profile = null)
 		{
 			try
 			{
-				if (string.IsNullOrEmpty( filePath ))
+				if (string.IsNullOrEmpty(filePath))
 					return false;
 
-				using (var reader = new StreamReader( filePath ))
+				using (var reader = new StreamReader(filePath))
 
 
 				{
-					string fileContents = await reader.ReadToEndAsync()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-.ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+					string fileContents = await reader.ReadToEndAsync();
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
 					MarkdownParserResult parseResult = null;
 					MarkdownImportProfile configuredProfile;
 
 					if (editorMode)
-
-
-
-
 					{
-
-						var dialog = new RegexImportDialog( fileContents, profile ?? MarkdownImportProfile.CreateDefault() );
-
-						dialog.Closed += async ( _, __ ) =>
+						// UI elements must be created and shown on the UI thread
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+						await Dispatcher.UIThread.InvokeAsync(async () =>
 						{
-							if (!dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm))
-								return;
+							var dialog = new RegexImportDialog(fileContents, profile ?? MarkdownImportProfile.CreateDefault());
 
-							configuredProfile = vm.ConfiguredProfile;
+							dialog.Closed += (_, __) =>
+							{
+								if (!dialog.LoadSuccessful || !(dialog.DataContext is RegexImportDialogViewModel vm))
+									return;
 
-							parseResult = vm.ConfirmLoad();
+								configuredProfile = vm.ConfiguredProfile;
+								parseResult = vm.ConfirmLoad();
+								ProcessModLinks(parseResult.Components);
 
-							ProcessModLinks( parseResult.Components );
+								// Log asynchronously without blocking the UI
+								_ = Task.Run(async () =>
+								{
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+									await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+									await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLinkFilenames.Count) ?? 0} total links.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
-							await Logger.LogAsync( $"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode." ).ConfigureAwait( false );
-							await Logger.LogAsync( $"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum( c => c.ModLinkFilenames.Count ) ?? 0} total links." ).ConfigureAwait( false );
+									if (parseResult.Warnings?.Count > 0)
+									{
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+										await Logger.LogWarningAsync($"Markdown parsing completed with {parseResult.Warnings.Count} warnings.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+										foreach (string warning in parseResult.Warnings)
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+											await Logger.LogWarningAsync($"  - {warning}");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+									}
+								});
+							};
 
-							if (!(parseResult.Warnings?.Count > 0))
-								return;
-							await Logger.LogWarningAsync( $"Markdown parsing completed with {parseResult.Warnings.Count} warnings." ).ConfigureAwait( false );
-							foreach (string warning in parseResult.Warnings)
-								await Logger.LogWarningAsync( $"  - {warning}" ).ConfigureAwait( false );
-						};
-
-						await dialog.ShowDialog( _parentWindow ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+							await dialog.ShowDialog(_parentWindow);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+						});
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
 						if (parseResult is null)
 							return false;
 					}
 					else
 					{
-
 						configuredProfile = profile ?? MarkdownImportProfile.CreateDefault();
-						var parser = new MarkdownParser( configuredProfile,
-							logInfo => Logger.Log( logInfo ),
-							Logger.LogVerbose );
-						parseResult = parser.Parse( fileContents );
+						var parser = new MarkdownParser(configuredProfile,
+							logInfo => Logger.Log(logInfo),
+							Logger.LogVerbose);
+						parseResult = parser.Parse(fileContents);
 
-						ProcessModLinks( parseResult.Components );
+						ProcessModLinks(parseResult.Components);
 
-						await Logger.LogAsync( "Markdown parsing completed using default profile." ).ConfigureAwait( false );
-						await Logger.LogAsync( $"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum( c => c.ModLinkFilenames.Count ) ?? 0} total links." ).ConfigureAwait( false );
-
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+						await Logger.LogAsync("Markdown parsing completed using default profile.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+						await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLinkFilenames.Count) ?? 0} total links.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 						if (parseResult.Warnings?.Count > 0)
-
-
 						{
-							await Logger.LogWarningAsync( $"Markdown parsing completed with {parseResult.Warnings.Count} warnings." ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+							await Logger.LogWarningAsync($"Markdown parsing completed with {parseResult.Warnings.Count} warnings.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 							foreach (string warning in parseResult.Warnings)
-								await Logger.LogWarningAsync( $"  - {warning}" ).ConfigureAwait( false );
-
-
-
-
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+								await Logger.LogWarningAsync($"  - {warning}");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 						}
 					}
 
@@ -262,50 +265,62 @@ namespace KOTORModSync.Services
 					_mainConfig.afterModListContent = parseResult.AfterModListContent ?? string.Empty;
 					_mainConfig.widescreenSectionContent = parseResult.WidescreenSectionContent ?? string.Empty;
 					_mainConfig.aspyrSectionContent = parseResult.AspyrSectionContent ?? string.Empty;
-					await Logger.LogAsync( $"Stored {_mainConfig.beforeModListContent.Length} characters before mod list and {_mainConfig.afterModListContent.Length} characters after." ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+					await Logger.LogAsync($"Stored {_mainConfig.beforeModListContent.Length} characters before mod list and {_mainConfig.afterModListContent.Length} characters after.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
 					if (_mainConfig.allComponents.Count == 0)
 					{
 						_mainConfig.allComponents = new List<ModComponent>(
 							parseResult.Components
-							?? throw new InvalidOperationException( "[LoadMarkdownFileAsync] parseResult.Components is null" )
+							?? throw new InvalidOperationException("[LoadMarkdownFileAsync] parseResult.Components is null")
 						);
-						await Logger.LogAsync( $"Loaded {parseResult.Components.Count} components from markdown." ).ConfigureAwait( false );
-						await tryAutoGenerate( parseResult.Components.ToList() ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+						await Logger.LogAsync($"Loaded {parseResult.Components.Count} components from markdown.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+						await tryAutoGenerate(parseResult.Components.ToList());
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 					}
 					else
 					{
-						bool? confirmResult = await ShowConfigLoadConfirmationAsync( "markdown file", editorMode ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+						bool? confirmResult = await ShowConfigLoadConfirmationAsync("markdown file", editorMode);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
-						if (confirmResult ==
-
-
-
-true)
+						if (confirmResult == true)
 						{
 							var conflictDialog = new ComponentMergeConflictDialog(
 								_mainConfig.allComponents,
 								new List<ModComponent>(
 									parseResult.Components
-									?? throw new InvalidOperationException( "[LoadMarkdownFileAsync] parseResult.Components is null" )
+									?? throw new InvalidOperationException("[LoadMarkdownFileAsync] parseResult.Components is null")
 								),
 								"Currently Loaded Components",
 								"Markdown File",
-								FuzzyMatcher.FuzzyMatchComponents );
+								FuzzyMatcher.FuzzyMatchComponents);
 
-							await conflictDialog.ShowDialog( _parentWindow ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+							await conflictDialog.ShowDialog(_parentWindow);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
 							if (conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null)
 							{
 								int originalCount = _mainConfig.allComponents.Count;
 								_mainConfig.allComponents = conflictDialog.MergedComponents;
 								int newCount = _mainConfig.allComponents.Count;
-								await Logger.LogAsync( $"Merged {parseResult.Components.Count} parsed components with existing {originalCount} components. Total components now: {newCount}" ).ConfigureAwait( false );
-								await tryAutoGenerate( _mainConfig.allComponents ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+								await Logger.LogAsync($"Merged {parseResult.Components.Count} parsed components with existing {originalCount} components. Total components now: {newCount}");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+								await tryAutoGenerate(_mainConfig.allComponents);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 							}
 							else
 							{
-								await Logger.LogAsync( "Merge cancelled by user." ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+								await Logger.LogAsync("Merge cancelled by user.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 								return false;
 							}
 						}
@@ -313,10 +328,14 @@ true)
 						{
 							_mainConfig.allComponents = new List<ModComponent>(
 								parseResult.Components
-								?? throw new InvalidOperationException( "[LoadMarkdownFileAsync] parseResult.Components is null" )
+								?? throw new InvalidOperationException("[LoadMarkdownFileAsync] parseResult.Components is null")
 							);
-							await Logger.LogAsync( $"Overwrote existing config with {parseResult.Components.Count} components from markdown." ).ConfigureAwait( false );
-							await tryAutoGenerate( parseResult.Components.ToList() ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+							await Logger.LogAsync($"Overwrote existing config with {parseResult.Components.Count} components from markdown.");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+							await tryAutoGenerate(parseResult.Components.ToList());
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 						}
 						else
 						{
@@ -324,7 +343,9 @@ true)
 						}
 					}
 
-					await onComponentsLoaded().ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+					await onComponentsLoaded();
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 					return true;
 				}
 			}
@@ -332,41 +353,47 @@ true)
 
 
 			{
-				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+				await Logger.LogExceptionAsync(ex);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 				return false;
 			}
 		}
 
-		public async Task<bool> SaveTomlFileAsync( string filePath, List<ModComponent> components )
+		public async Task<bool> SaveTomlFileAsync(string filePath, List<ModComponent> components)
 		{
 			try
 			{
-				if (string.IsNullOrEmpty( filePath ))
+				if (string.IsNullOrEmpty(filePath))
 					return false;
 
 
 
-				await Logger.LogVerboseAsync( $"Saving TOML config to {filePath}" )
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+				await Logger.LogVerboseAsync($"Saving TOML config to {filePath}");
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
-.ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+				await Core.Services.FileLoadingService.SaveToFileAsync(components, filePath);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 
-				await Core.Services.FileLoadingService.SaveToFileAsync( components, filePath ).ConfigureAwait( false );
-
-				LastLoadedFileName = Path.GetFileName( filePath );
+				LastLoadedFileName = Path.GetFileName(filePath);
 				return true;
 			}
 			catch (Exception ex)
 
 
 			{
-				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+				await Logger.LogExceptionAsync(ex);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 				return false;
 			}
 		}
 
 		#region Private Helper Methods
 
-		private static void ProcessModLinks( IList<ModComponent> components )
+		private static void ProcessModLinks(IList<ModComponent> components)
 		{
 			if (components == null)
 				return;
@@ -376,20 +403,20 @@ true)
 			foreach (ModComponent component in components)
 			{
 				var urlsToFix = component.ModLinkFilenames.Keys
-					.Where( url => !string.IsNullOrEmpty( url ) && url[0] == '/' )
+					.Where(url => !string.IsNullOrEmpty(url) && url[0] == '/')
 					.ToList();
 
 				foreach (string relativeUrl in urlsToFix)
 				{
 					string fixedUrl = baseUrl + relativeUrl;
 					Dictionary<string, bool?> filenameDict = component.ModLinkFilenames[relativeUrl];
-					component.ModLinkFilenames.Remove( relativeUrl );
+					component.ModLinkFilenames.Remove(relativeUrl);
 					component.ModLinkFilenames[fixedUrl] = filenameDict;
 				}
 			}
 		}
 
-		private async Task<bool?> ShowConfigLoadConfirmationAsync( string fileType, bool editorMode )
+		private async Task<bool?> ShowConfigLoadConfirmationAsync(string fileType, bool editorMode)
 		{
 			if (_mainConfig.allComponents.Count == 0)
 				return true;
@@ -398,12 +425,14 @@ true)
 				return false;
 
 			string confirmText = $"You already have a config loaded. Do you want to merge the {fileType} with existing components or load it as a new config?";
+#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
 			return await ConfirmationDialog.ShowConfirmationDialogAsync(
 				_parentWindow,
 				confirmText: confirmText,
 				yesButtonText: "Merge",
 				noButtonText: "Load as New"
-			).ConfigureAwait( false );
+			);
+#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
 		}
 
 		#endregion

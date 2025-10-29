@@ -137,7 +137,7 @@
                                 Padding="4,2"
                                 Background="#4000BFFF"
                                 CornerRadius="3"
-                                IsVisible="{Binding AspyrExclusive, FallbackValue=False}">
+                                IsVisible="{Binding AspyrExclusive, FallbackValue=False, TargetNullValue=False}">
                                 <TextBlock Text="🎮 Aspyr Only" />
                             </Border>
                         </StackPanel>

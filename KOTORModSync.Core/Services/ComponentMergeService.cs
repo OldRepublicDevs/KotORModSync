@@ -610,36 +610,64 @@ component.ModLinkFilenames.Keys)
 			}
 
 			// Merge ModLinkFilenames with heuristicsOptions-based filtering
-			if (source.ModLinkFilenames.Count > 0)
+			if (source.ModLinkFilenames.Count > 0 && !mergeOptions.PreferExistingModLinkFilenames)
 			{
-				HashSet<string> urlSet = new HashSet<string>( target.ModLinkFilenames.Keys, StringComparer.OrdinalIgnoreCase );
+				// Build a set of URLs to merge from source
+				HashSet<string> sourceUrlsToMerge = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
 				foreach (string link in source.ModLinkFilenames.Keys)
 				{
-					if (string.IsNullOrWhiteSpace( link ))
-						continue;
-					urlSet.Add( link );
+					if (!string.IsNullOrWhiteSpace( link ))
+						sourceUrlsToMerge.Add( link );
 				}
 
+				// Filter URLs if validation is enabled
 				if (heuristicsOptions.ValidateExistingLinksBeforeReplace)
 				{
-					urlSet = new HashSet<string>( urlSet.Where( IsLikelyAccessibleUrl ), StringComparer.OrdinalIgnoreCase );
+					sourceUrlsToMerge = new HashSet<string>( sourceUrlsToMerge.Where( IsLikelyAccessibleUrl ), StringComparer.OrdinalIgnoreCase );
 
-					// Remove invalid URLs that were filtered out
-					List<string> urlsToRemove = target.ModLinkFilenames.Keys.Where( url => !urlSet.Contains( url ) ).ToList();
-					foreach (string invalidUrl in urlsToRemove)
+					// Also remove invalid URLs from target
+					List<string> targetUrlsToRemove = target.ModLinkFilenames.Keys.Where( url => !IsLikelyAccessibleUrl( url ) ).ToList();
+					foreach (string invalidUrl in targetUrlsToRemove)
 					{
 						target.ModLinkFilenames.Remove( invalidUrl );
 					}
 				}
 
-				// Merge ModLinkFilenames with new URLs from urlSet, don't overwrite existing entries
-				foreach (string url in urlSet)
+				// Merge URLs from source into target, copying the actual filename dictionaries
+				foreach (string url in sourceUrlsToMerge)
 				{
 					if (!target.ModLinkFilenames.ContainsKey( url ))
 					{
-						target.ModLinkFilenames[url] = new Dictionary<string, bool?>( StringComparer.Ordinal );
+						// Copy the filename dictionary from source
+						if (source.ModLinkFilenames.TryGetValue( url, out Dictionary<string, bool?> sourceFilenames ) && sourceFilenames != null)
+						{
+							// Deep copy the dictionary to avoid shared references
+							Dictionary<string, bool?> copiedFilenames = new Dictionary<string, bool?>( sourceFilenames, StringComparer.Ordinal );
+							target.ModLinkFilenames[url] = copiedFilenames;
+						}
+						else
+						{
+							target.ModLinkFilenames[url] = new Dictionary<string, bool?>( StringComparer.Ordinal );
+						}
 					}
-					// else: keep the existing dictionary for this url
+					else
+					{
+						// URL exists in target - merge filenames from source into target's dictionary
+						if (source.ModLinkFilenames.TryGetValue( url, out Dictionary<string, bool?> sourceFilenames ) && sourceFilenames != null)
+						{
+							Dictionary<string, bool?> targetFilenames = target.ModLinkFilenames[url];
+							if (targetFilenames != null)
+							{
+								foreach (KeyValuePair<string, bool?> filenameEntry in sourceFilenames)
+								{
+									if (!targetFilenames.ContainsKey( filenameEntry.Key ))
+									{
+										targetFilenames[filenameEntry.Key] = filenameEntry.Value;
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 
@@ -680,19 +708,23 @@ component.ModLinkFilenames.Keys)
 			{
 				if (target.Instructions.Count == 0)
 				{
+					// Copy all instructions from source (deep copy to avoid shared references)
 					foreach (Instruction instr in source.Instructions)
 					{
-						target.Instructions.Add( instr );
+						target.Instructions.Add( CloneInstruction( instr ) );
 					}
 				}
 				else
 				{
+					// Merge instructions, avoiding duplicates based on Action+Destination key
 					HashSet<string> existingKeys = new HashSet<string>( target.Instructions.Select( i => (i.ActionString + "|" + i.Destination).ToLowerInvariant() ), StringComparer.Ordinal );
 					foreach (Instruction instr in source.Instructions)
 					{
 						string key = (instr.ActionString + "|" + (instr.Destination)).ToLowerInvariant();
 						if (!existingKeys.Contains( key ))
-							target.Instructions.Add( instr );
+						{
+							target.Instructions.Add( CloneInstruction( instr ) );
+						}
 					}
 				}
 			}
@@ -706,21 +738,28 @@ component.ModLinkFilenames.Keys)
 					string oname = srcOpt.Name.Trim().ToLowerInvariant();
 					if (optMap.TryGetValue( oname, out Option trgOpt ))
 					{
-						if (!string.IsNullOrWhiteSpace( srcOpt.Description )) trgOpt.Description = srcOpt.Description;
+						// Merge description if source has one
+						if (!string.IsNullOrWhiteSpace( srcOpt.Description )) 
+							trgOpt.Description = srcOpt.Description;
 
+						// Merge instructions (deep copy to avoid shared references)
 						if (srcOpt.Instructions.Count > 0)
 						{
 							HashSet<string> keys = new HashSet<string>( trgOpt.Instructions.Select( i => (i.ActionString + "|" + i.Destination).ToLowerInvariant() ), StringComparer.Ordinal );
 							foreach (Instruction instr in srcOpt.Instructions)
 							{
 								string key = (instr.ActionString + "|" + instr.Destination).ToLowerInvariant();
-								if (!keys.Contains( key )) trgOpt.Instructions.Add( instr );
+								if (!keys.Contains( key ))
+								{
+									trgOpt.Instructions.Add( CloneInstruction( instr ) );
+								}
 							}
 						}
 					}
 					else
 					{
-						target.Options.Add( srcOpt );
+						// Option doesn't exist in target, add a deep copy
+						target.Options.Add( CloneOption( srcOpt ) );
 					}
 				}
 			}
@@ -1041,6 +1080,47 @@ component.ModLinkFilenames.Keys)
 			{
 				return false;
 			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of an Instruction to avoid shared references between components.
+		/// </summary>
+		[NotNull]
+		private static Instruction CloneInstruction( [NotNull] Instruction source )
+		{
+			return new Instruction
+			{
+				Guid = source.Guid,
+				Action = source.Action,
+				Source = new List<string>( source.Source ),
+				Destination = source.Destination,
+				Overwrite = source.Overwrite,
+				Arguments = source.Arguments,
+				Dependencies = new List<Guid>( source.Dependencies ),
+				Restrictions = new List<Guid>( source.Restrictions )
+			};
+		}
+
+		/// <summary>
+		/// Creates a deep copy of an Option to avoid shared references between components.
+		/// </summary>
+		[NotNull]
+		private static Option CloneOption( [NotNull] Option source )
+		{
+			Option cloned = new Option
+			{
+				Name = source.Name,
+				Description = source.Description,
+				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>()
+			};
+
+			// Deep copy all instructions
+			foreach (Instruction instr in source.Instructions)
+			{
+				cloned.Instructions.Add( CloneInstruction( instr ) );
+			}
+
+			return cloned;
 		}
 	}
 }

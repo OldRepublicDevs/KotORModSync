@@ -575,7 +575,7 @@ manager );
 
 				{
 #if NET48
-					int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength).ConfigureAwait(false);
+					int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength);
 #else
 					int bytesRead = await fs.ReadAsync( buffer.AsMemory( 0, pieceLength ) ).ConfigureAwait( false );
 #endif
@@ -641,7 +641,7 @@ manager );
 
 				{
 #if NET48
-					int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength).ConfigureAwait(false);
+					int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength);
 #else
 					int bytesRead = await fs.ReadAsync( buffer.AsMemory( 0, pieceLength ) ).ConfigureAwait( false );
 #endif
@@ -834,7 +834,7 @@ manager );
 
 					{
 #if NET48
-						int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength).ConfigureAwait(false);
+						int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength);
 #else
 						int bytesRead = await fs.ReadAsync( buffer.AsMemory( 0, pieceLength ) ).ConfigureAwait( false );
 #endif

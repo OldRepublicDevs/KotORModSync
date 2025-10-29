@@ -351,7 +351,7 @@ namespace KOTORModSync
 				EditorMode = false;
 
 				// Apply theme (defaults to Fluent Light if not specified)
-				string themeToApply = string.IsNullOrEmpty(theme) ? "Fluent.Light" : theme;
+				string themeToApply = string.IsNullOrEmpty(theme) ? "/Styles/FluentLightStyle.axaml" : theme;
 				ApplyTheme(themeToApply);
 
 				// Set TargetGame from theme (they're the same thing)
@@ -447,7 +447,7 @@ namespace KOTORModSync
 				// Get theme from TargetGame (they're the same thing)
 				string themeToSave = !string.IsNullOrEmpty(MainConfig.TargetGame)
 					? ThemeManager.GetCurrentStylePath()
-					: "Fluent.Light";
+					: "/Styles/FluentLightStyle.axaml";
 
 				Logger.LogVerbose($"[MainWindow.SaveSettings] Theme to save: '{themeToSave}'");
 
@@ -749,6 +749,11 @@ namespace KOTORModSync
 				{
 					Header = "Manage Checkpoints",
 					Command = ReactiveCommand.Create( () => OpenCheckpointManagement_Click(new object(), new RoutedEventArgs()) ),
+				},
+				new MenuItem
+				{
+					Header = "Run HoloPatcher",
+					Command = ReactiveCommand.Create( () => RunHolopatcherButton_Click(new object(), new RoutedEventArgs()) ),
 				},
 				new MenuItem
 				{
@@ -4629,7 +4634,7 @@ namespace KOTORModSync
 			if (string.IsNullOrEmpty(themePath))
 				return null; // No game-specific theme
 
-			if (themePath.Equals("Fluent.Light", StringComparison.OrdinalIgnoreCase))
+			if (themePath.Contains("FluentLightStyle"))
 				return null;
 
 			if (themePath.IndexOf("Kotor2", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -4778,7 +4783,7 @@ namespace KOTORModSync
 				var thisOption = (Option)((Button)sender).Tag;
 				int index = CurrentComponent.Options.IndexOf(thisOption);
 				if (thisOption is null)
-					throw new NullReferenceException($"Could not get option instance from button's tag: {((Button)sender).Content}");
+					throw new InvalidOperationException($"Could not get option instance from button's tag: {((Button)sender).Content}");
 				InstructionManagementService.MoveOption(CurrentComponent, thisOption, index - 1);
 				LoadComponentDetails(CurrentComponent);
 			}

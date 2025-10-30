@@ -33,10 +33,9 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			lock (_logLock)
 			{
-				return new List<string>( _logs );
+				return new List<string>(_logs);
 			}
 		}
-
 
 		private readonly List<DownloadProgress> _childDownloads = new List<DownloadProgress>();
 		private bool _isGrouped;
@@ -44,7 +43,6 @@ namespace KOTORModSync.Core.Services.Download
 		public string ModName
 		{
 			get => _modName;
-
 
 			set
 			{
@@ -54,13 +52,11 @@ namespace KOTORModSync.Core.Services.Download
 
 
 
-
-
-string.Equals( _modName, value, StringComparison.Ordinal ))
+string.Equals(_modName, value, StringComparison.Ordinal))
 					return;
 				_modName = value;
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( DisplayName ) );
+				OnPropertyChanged(nameof(DisplayName));
 			}
 		}
 
@@ -71,11 +67,11 @@ Url
 			get => _url;
 			set
 			{
-				if (string.Equals( _url, value, StringComparison.Ordinal ))
+				if (string.Equals(_url, value, StringComparison.Ordinal))
 					return;
 				_url = value;
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( DisplayName ) );
+				OnPropertyChanged(nameof(DisplayName));
 			}
 		}
 
@@ -87,22 +83,21 @@ Url
 				if (_status == value)
 					return;
 
-
 				if (_status != DownloadStatus.Pending || value != DownloadStatus.Pending)
 				{
-					AddLog( $"Status changed: {_status} → {value}" );
+					AddLog($"Status changed: {_status} → {value}");
 				}
 
 				_status = value;
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( IsCompleted ) );
-				OnPropertyChanged( nameof( IsFailed ) );
-				OnPropertyChanged( nameof( IsInProgress ) );
-				OnPropertyChanged( nameof( StatusIcon ) );
-				OnPropertyChanged( nameof( ControlButtonIcon ) );
-				OnPropertyChanged( nameof( ControlButtonTooltip ) );
+				OnPropertyChanged(nameof(IsCompleted));
+				OnPropertyChanged(nameof(IsFailed));
+				OnPropertyChanged(nameof(IsInProgress));
+				OnPropertyChanged(nameof(StatusIcon));
+				OnPropertyChanged(nameof(ControlButtonIcon));
+				OnPropertyChanged(nameof(ControlButtonTooltip));
 
-				OnPropertyChanged( nameof( GroupStatusMessage ) );
+				OnPropertyChanged(nameof(GroupStatusMessage));
 			}
 		}
 
@@ -111,12 +106,12 @@ Url
 			get => _progressPercentage;
 			set
 			{
-				if (Math.Abs( _progressPercentage - value ) < 0.01)
+				if (Math.Abs(_progressPercentage - value) < 0.01)
 					return;
 				_progressPercentage = value;
 				OnPropertyChanged();
 
-				OnPropertyChanged( nameof( GroupProgressPercentage ) );
+				OnPropertyChanged(nameof(GroupProgressPercentage));
 			}
 		}
 
@@ -129,8 +124,8 @@ Url
 					return;
 				_bytesDownloaded = value;
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( DownloadedSize ) );
-				OnPropertyChanged( nameof( DownloadSpeed ) );
+				OnPropertyChanged(nameof(DownloadedSize));
+				OnPropertyChanged(nameof(DownloadSpeed));
 			}
 		}
 
@@ -143,7 +138,7 @@ Url
 					return;
 				_totalBytes = value;
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( TotalSize ) );
+				OnPropertyChanged(nameof(TotalSize));
 			}
 		}
 
@@ -152,12 +147,12 @@ Url
 			get => _statusMessage;
 			set
 			{
-				if (string.Equals( _statusMessage, value, StringComparison.Ordinal ))
+				if (string.Equals(_statusMessage, value, StringComparison.Ordinal))
 					return;
 				_statusMessage = value;
 				OnPropertyChanged();
 
-				OnPropertyChanged( nameof( GroupStatusMessage ) );
+				OnPropertyChanged(nameof(GroupStatusMessage));
 			}
 		}
 
@@ -166,7 +161,7 @@ Url
 			get => _errorMessage;
 			set
 			{
-				if (string.Equals( _errorMessage, value, StringComparison.Ordinal ))
+				if (string.Equals(_errorMessage, value, StringComparison.Ordinal))
 					return;
 				_errorMessage = value;
 				OnPropertyChanged();
@@ -178,11 +173,11 @@ Url
 			get => _filePath;
 			set
 			{
-				if (string.Equals( _filePath, value, StringComparison.Ordinal ))
+				if (string.Equals(_filePath, value, StringComparison.Ordinal))
 					return;
 				_filePath = value;
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( DisplayName ) );
+				OnPropertyChanged(nameof(DisplayName));
 			}
 		}
 
@@ -207,8 +202,8 @@ Url
 					return;
 				_endTime = value;
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( Duration ) );
-				OnPropertyChanged( nameof( DownloadSpeed ) );
+				OnPropertyChanged(nameof(Duration));
+				OnPropertyChanged(nameof(DownloadSpeed));
 			}
 		}
 
@@ -224,7 +219,6 @@ Url
 			}
 		}
 
-
 		public bool IsGrouped
 		{
 			get => _isGrouped;
@@ -234,8 +228,8 @@ Url
 					return;
 				_isGrouped = value;
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( GroupStatusMessage ) );
-				OnPropertyChanged( nameof( GroupProgressPercentage ) );
+				OnPropertyChanged(nameof(GroupStatusMessage));
+				OnPropertyChanged(nameof(GroupProgressPercentage));
 			}
 		}
 
@@ -248,11 +242,11 @@ Url
 				if (!IsGrouped || _childDownloads.Count == 0)
 					return StatusMessage;
 
-				int completed = _childDownloads.Count( c => c.Status == DownloadStatus.Completed );
-				int failed = _childDownloads.Count( c => c.Status == DownloadStatus.Failed );
-				int skipped = _childDownloads.Count( c => c.Status == DownloadStatus.Skipped );
-				int inProgress = _childDownloads.Count( c => c.Status == DownloadStatus.InProgress );
-				int pending = _childDownloads.Count( c => c.Status == DownloadStatus.Pending );
+				int completed = _childDownloads.Count(c => c.Status == DownloadStatus.Completed);
+				int failed = _childDownloads.Count(c => c.Status == DownloadStatus.Failed);
+				int skipped = _childDownloads.Count(c => c.Status == DownloadStatus.Skipped);
+				int inProgress = _childDownloads.Count(c => c.Status == DownloadStatus.InProgress);
+				int pending = _childDownloads.Count(c => c.Status == DownloadStatus.Pending);
 
 				if (completed == _childDownloads.Count)
 					return $"All {_childDownloads.Count} files downloaded successfully";
@@ -265,14 +259,13 @@ Url
 				if (pending > 0)
 					return $"Waiting to start {pending} of {_childDownloads.Count} files...";
 
-
 				int totalFinished = completed + skipped + failed;
 				List<string> parts = new List<string>();
-				if (completed > 0) parts.Add( $"{completed} downloaded" );
-				if (skipped > 0) parts.Add( $"{skipped} skipped" );
-				if (failed > 0) parts.Add( $"{failed} failed" );
+				if (completed > 0) parts.Add($"{completed} downloaded");
+				if (skipped > 0) parts.Add($"{skipped} skipped");
+				if (failed > 0) parts.Add($"{failed} failed");
 
-				return $"{totalFinished}/{_childDownloads.Count} files completed ({string.Join( ", ", parts )})";
+				return $"{totalFinished}/{_childDownloads.Count} files completed ({string.Join(", ", parts)})";
 			}
 		}
 
@@ -283,31 +276,28 @@ Url
 				if (!IsGrouped || _childDownloads.Count == 0)
 					return ProgressPercentage;
 
-				return _childDownloads.Average( c => c.ProgressPercentage );
+				return _childDownloads.Average(c => c.ProgressPercentage);
 			}
 		}
 
+		public bool IsCompleted => IsGrouped ? _childDownloads.TrueForAll(c => c.Status == DownloadStatus.Completed || c.Status == DownloadStatus.Skipped) : (Status == DownloadStatus.Completed || Status == DownloadStatus.Skipped);
+		public bool IsFailed => IsGrouped ? _childDownloads.TrueForAll(c => c.Status == DownloadStatus.Failed) : Status == DownloadStatus.Failed;
+		public bool IsInProgress => IsGrouped ? _childDownloads.Exists(c => c.Status == DownloadStatus.InProgress) : Status == DownloadStatus.InProgress;
 
-		public bool IsCompleted => IsGrouped ? _childDownloads.TrueForAll( c => c.Status == DownloadStatus.Completed || c.Status == DownloadStatus.Skipped ) : (Status == DownloadStatus.Completed || Status == DownloadStatus.Skipped);
-		public bool IsFailed => IsGrouped ? _childDownloads.TrueForAll( c => c.Status == DownloadStatus.Failed ) : Status == DownloadStatus.Failed;
-		public bool IsInProgress => IsGrouped ? _childDownloads.Exists( c => c.Status == DownloadStatus.InProgress ) : Status == DownloadStatus.InProgress;
-
-		public string DownloadedSize => FormatBytes( BytesDownloaded );
-		public string TotalSize => FormatBytes( TotalBytes );
+		public string DownloadedSize => FormatBytes(BytesDownloaded);
+		public string TotalSize => FormatBytes(TotalBytes);
 
 		public string DisplayName
 		{
 			get
 			{
-				string fileName = string.IsNullOrEmpty( FilePath ) ? "" : System.IO.Path.GetFileName( FilePath );
-				string url = string.IsNullOrEmpty( Url ) ? "" : Url;
-
+				string fileName = string.IsNullOrEmpty(FilePath) ? "" : System.IO.Path.GetFileName(FilePath);
+				string url = string.IsNullOrEmpty(Url) ? "" : Url;
 
 				if (IsGrouped)
 					return ModName;
 
-
-				if (string.IsNullOrEmpty( fileName ))
+				if (string.IsNullOrEmpty(fileName))
 					return $"{ModName} - {url}";
 
 				return $"{ModName} - {url} - {fileName}";
@@ -324,7 +314,7 @@ Url
 					return "0 B/s";
 
 				double bytesPerSecond = BytesDownloaded / Duration.TotalSeconds;
-				return $"{FormatBytes( (long)bytesPerSecond )}/s";
+				return $"{FormatBytes((long)bytesPerSecond)}/s";
 			}
 		}
 
@@ -341,12 +331,10 @@ Url
 					if (IsInProgress)
 						return "⬇️";
 
-
 					if (_childDownloads.Count > 0)
 					{
-						int completed = _childDownloads.Count( c => c.Status == DownloadStatus.Completed || c.Status == DownloadStatus.Skipped );
-						int failed = _childDownloads.Count( c => c.Status == DownloadStatus.Failed );
-
+						int completed = _childDownloads.Count(c => c.Status == DownloadStatus.Completed || c.Status == DownloadStatus.Skipped);
+						int failed = _childDownloads.Count(c => c.Status == DownloadStatus.Failed);
 
 						if (completed > 0 && failed > 0)
 							return "❌";
@@ -416,7 +404,7 @@ Url
 			}
 		}
 
-		private static string FormatBytes( long bytes )
+		private static string FormatBytes(long bytes)
 		{
 			string[] sizes = { "B", "KB", "MB", "GB", "TB" };
 			double len = bytes;
@@ -429,19 +417,19 @@ Url
 			return $"{len:0.##} {sizes[order]}";
 		}
 
-		public void AddLog( string logMessage )
+		public void AddLog(string logMessage)
 		{
-			if (string.IsNullOrEmpty( logMessage ))
+			if (string.IsNullOrEmpty(logMessage))
 				return;
 
 			lock (_logLock)
 			{
-				string timestamp = DateTime.Now.ToString( "HH:mm:ss.fff" );
-				_logs.Add( $"[{timestamp}] {logMessage}" );
+				string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+				_logs.Add($"[{timestamp}] {logMessage}");
 			}
 		}
 
-		public static DownloadProgress CreateGrouped( string modName, IEnumerable<string> urls )
+		public static DownloadProgress CreateGrouped(string modName, IEnumerable<string> urls)
 		{
 			DownloadProgress groupedProgress = new DownloadProgress
 			{
@@ -449,13 +437,12 @@ Url
 				IsGrouped = true,
 				Status = DownloadStatus.Pending,
 				StatusMessage = "Preparing downloads...",
-				ProgressPercentage = 0
+				ProgressPercentage = 0,
 			};
-
 
 			List<string> urlList = urls.ToList();
 
-			groupedProgress.AddLog( $"Preparing to download {urlList.Count} files for mod: {modName}" );
+			groupedProgress.AddLog($"Preparing to download {urlList.Count} files for mod: {modName}");
 
 			foreach (string url in urlList)
 			{
@@ -465,54 +452,48 @@ Url
 					Url = url,
 					Status = DownloadStatus.Pending,
 					StatusMessage = "Waiting to start...",
-					ProgressPercentage = 0
+					ProgressPercentage = 0,
 				};
 
+				childProgress.AddLog($"Queued for download: {url}");
 
-				childProgress.AddLog( $"Queued for download: {url}" );
-
-
-				childProgress.PropertyChanged += ( sender, e ) =>
+				childProgress.PropertyChanged += (sender, e) =>
 				{
-					groupedProgress.OnPropertyChanged( nameof( GroupStatusMessage ) );
-					groupedProgress.OnPropertyChanged( nameof( GroupProgressPercentage ) );
+					groupedProgress.OnPropertyChanged(nameof(GroupStatusMessage));
+					groupedProgress.OnPropertyChanged(nameof(GroupProgressPercentage));
 
 
 
 
-
-
-					if (string.Equals( e.PropertyName, nameof( Status ), StringComparison.Ordinal ))
+					if (string.Equals(e.PropertyName, nameof(Status), StringComparison.Ordinal))
 					{
 
 						if (sender is DownloadProgress child)
 						{
 							string fileName = "Unknown";
-							if (!string.IsNullOrEmpty( child.Url ))
+							if (!string.IsNullOrEmpty(child.Url))
 							{
 								try
 								{
-									fileName = System.IO.Path.GetFileName( new Uri( child.Url ).AbsolutePath );
+									fileName = System.IO.Path.GetFileName(new Uri(child.Url).AbsolutePath);
 								}
 								catch (UriFormatException)
 								{
 
-									fileName = System.IO.Path.GetFileName( child.Url );
+									fileName = System.IO.Path.GetFileName(child.Url);
 								}
 							}
-							groupedProgress.AddLog( $"[File {groupedProgress._childDownloads.IndexOf( child ) + 1}/{groupedProgress._childDownloads.Count}] {fileName}: {child.Status}" );
+							groupedProgress.AddLog($"[File {groupedProgress._childDownloads.IndexOf(child) + 1}/{groupedProgress._childDownloads.Count}] {fileName}: {child.Status}");
 
-							if (!string.IsNullOrEmpty( child.StatusMessage ))
-								groupedProgress.AddLog( $"  → {child.StatusMessage}" );
+							if (!string.IsNullOrEmpty(child.StatusMessage))
+								groupedProgress.AddLog($"  → {child.StatusMessage}");
 
-							if (!string.IsNullOrEmpty( child.ErrorMessage ))
-								groupedProgress.AddLog( $"  ✗ ERROR: {child.ErrorMessage}" );
+							if (!string.IsNullOrEmpty(child.ErrorMessage))
+								groupedProgress.AddLog($"  ✗ ERROR: {child.ErrorMessage}");
 						}
 
-
-						bool anyPending = groupedProgress._childDownloads.Exists( c => c.Status == DownloadStatus.Pending );
-						bool anyInProgress = groupedProgress._childDownloads.Exists( c => c.Status == DownloadStatus.InProgress );
-
+						bool anyPending = groupedProgress._childDownloads.Exists(c => c.Status == DownloadStatus.Pending);
+						bool anyInProgress = groupedProgress._childDownloads.Exists(c => c.Status == DownloadStatus.InProgress);
 
 						if (anyInProgress)
 						{
@@ -522,10 +503,9 @@ Url
 						else if (!anyPending)
 						{
 
-							int completed = groupedProgress._childDownloads.Count( c => c.Status == DownloadStatus.Completed );
-							int skipped = groupedProgress._childDownloads.Count( c => c.Status == DownloadStatus.Skipped );
-							int failed = groupedProgress._childDownloads.Count( c => c.Status == DownloadStatus.Failed );
-
+							int completed = groupedProgress._childDownloads.Count(c => c.Status == DownloadStatus.Completed);
+							int skipped = groupedProgress._childDownloads.Count(c => c.Status == DownloadStatus.Skipped);
+							int failed = groupedProgress._childDownloads.Count(c => c.Status == DownloadStatus.Failed);
 
 							if (failed > 0 && completed == 0 && skipped == 0)
 							{
@@ -541,33 +521,32 @@ Url
 								groupedProgress.StatusMessage = $"Partially completed ({completed} downloaded, {skipped} skipped, {failed} failed)";
 								groupedProgress.ProgressPercentage = 100;
 
-
-								List<DownloadProgress> failedChildren = groupedProgress._childDownloads.Where( c => c.Status == DownloadStatus.Failed ).ToList();
+								List<DownloadProgress> failedChildren = groupedProgress._childDownloads.Where(c => c.Status == DownloadStatus.Failed).ToList();
 								if (failedChildren.Any())
 								{
 									List<string> errorMessages = failedChildren
-										.Where( c => !string.IsNullOrEmpty( c.ErrorMessage ) )
-										.Select( c =>
+										.Where(c => !string.IsNullOrEmpty(c.ErrorMessage))
+										.Select(c =>
 										{
 											string fileName = "Unknown";
-											if (!string.IsNullOrEmpty( c.Url ))
+											if (!string.IsNullOrEmpty(c.Url))
 											{
 												try
 												{
-													fileName = System.IO.Path.GetFileName( new Uri( c.Url ).AbsolutePath );
+													fileName = System.IO.Path.GetFileName(new Uri(c.Url).AbsolutePath);
 												}
 												catch (UriFormatException)
 												{
-													fileName = System.IO.Path.GetFileName( c.Url );
+													fileName = System.IO.Path.GetFileName(c.Url);
 												}
 											}
 											return $"• {fileName}: {c.ErrorMessage}";
-										} )
+										})
 										.ToList();
 
 									if (errorMessages.Any())
 									{
-										groupedProgress.ErrorMessage = $"Some files failed to download:\n{string.Join( "\n", errorMessages )}";
+										groupedProgress.ErrorMessage = $"Some files failed to download:\n{string.Join("\n", errorMessages)}";
 									}
 									else
 									{
@@ -587,7 +566,7 @@ Url
 					}
 				};
 
-				groupedProgress._childDownloads.Add( childProgress );
+				groupedProgress._childDownloads.Add(childProgress);
 			}
 
 			return groupedProgress;
@@ -595,8 +574,8 @@ Url
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		private void OnPropertyChanged( [CallerMemberName] string propertyName = null ) =>
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+		private void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 	}
 
 	public enum DownloadStatus
@@ -605,6 +584,6 @@ Url
 		InProgress,
 		Completed,
 		Failed,
-		Skipped
+		Skipped,
 	}
 }

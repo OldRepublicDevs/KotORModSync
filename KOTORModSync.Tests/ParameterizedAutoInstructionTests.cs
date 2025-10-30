@@ -310,7 +310,7 @@ namespace KOTORModSync.Tests
 
 			foreach (var component in parseResult.Components)
 			{
-				if (component.ModLinkFilenames == null) continue;
+				if (component.ModLinkFilenames is null) continue;
 
 				var deadlyStreamLinks = component.ModLinkFilenames
 					.Keys.Where( link => !string.IsNullOrWhiteSpace( link ) &&
@@ -383,7 +383,7 @@ namespace KOTORModSync.Tests
 					switch (instruction.Action)
 					{
 						case Instruction.ActionType.Extract:
-							if (instruction.Source == null || instruction.Source.Count == 0)
+							if (instruction.Source is null || instruction.Source.Count == 0)
 							{
 								TestContext.Progress.WriteLine( $"  {component.Name}: Extract instruction missing Source" );
 								hasIssue = true;
@@ -392,7 +392,7 @@ namespace KOTORModSync.Tests
 
 						case Instruction.ActionType.Move:
 						case Instruction.ActionType.Copy:
-							if (instruction.Source == null || instruction.Source.Count == 0)
+							if (instruction.Source is null || instruction.Source.Count == 0)
 							{
 								TestContext.Progress.WriteLine( $"  {component.Name}: {instruction.Action} instruction missing Source" );
 								hasIssue = true;
@@ -405,7 +405,7 @@ namespace KOTORModSync.Tests
 							break;
 
 						case Instruction.ActionType.Choose:
-							if (instruction.Source == null || instruction.Source.Count == 0)
+							if (instruction.Source is null || instruction.Source.Count == 0)
 							{
 								TestContext.Progress.WriteLine( $"  {component.Name}: Choose instruction missing Source (option GUIDs)" );
 								hasIssue = true;

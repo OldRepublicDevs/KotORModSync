@@ -14,65 +14,61 @@ namespace KOTORModSync.Core.Services.Download
 	public sealed class DownloadManager
 	{
 		private readonly List<IDownloadHandler> _handlers;
-		private readonly Dictionary<string, DateTime> _lastProgressLogTime = new Dictionary<string, DateTime>( StringComparer.Ordinal );
-		private readonly Dictionary<string, DownloadStatus> _lastLoggedStatus = new Dictionary<string, DownloadStatus>( StringComparer.Ordinal );
+		private readonly Dictionary<string, DateTime> _lastProgressLogTime = new Dictionary<string, DateTime>(StringComparer.Ordinal);
+		private readonly Dictionary<string, DownloadStatus> _lastLoggedStatus = new Dictionary<string, DownloadStatus>(StringComparer.Ordinal);
 		private readonly object _logThrottleLock = new object();
 		private const int LogThrottleSeconds = 30;
 
 		private readonly CancellationTokenSource _globalCancellationTokenSource;
 
-		public DownloadManager( IEnumerable<IDownloadHandler> handlers )
+		public DownloadManager(IEnumerable<IDownloadHandler> handlers)
 		{
-			_handlers = new List<IDownloadHandler>( handlers );
+			_handlers = new List<IDownloadHandler>(handlers);
 			_globalCancellationTokenSource = new CancellationTokenSource();
-			Logger.LogVerbose( $"[DownloadManager] Initialized with {_handlers.Count} download handlers" );
+			Logger.LogVerbose($"[DownloadManager] Initialized with {_handlers.Count} download handlers");
 			for (int i = 0; i < _handlers.Count; i++)
 			{
-				Logger.LogVerbose( $"[DownloadManager] Handler {i + 1}: {_handlers[i].GetType().Name}" );
+				Logger.LogVerbose($"[DownloadManager] Handler {i + 1}: {_handlers[i].GetType().Name}");
 			}
 		}
 
-		public IDownloadHandler GetHandlerForUrl( string url )
+		public IDownloadHandler GetHandlerForUrl(string url)
 		{
-			return _handlers.Find( h => h.CanHandle( url ) );
+			return _handlers.Find(h => h.CanHandle(url));
 		}
 
 		public async Task<Dictionary<string, List<string>>> ResolveUrlsToFilenamesAsync(
 			IEnumerable<string> urls,
 			CancellationToken cancellationToken = default,
-			bool sequential = false )
+			bool sequential = false)
 		{
 			List<string> urlList = urls.ToList();
 			string mode = sequential ? "sequential" : "concurrent";
 
-
-			await Logger.LogVerboseAsync( $"[DownloadManager] Resolving {urlList.Count} URLs to filenames ({mode})" ).ConfigureAwait( false );
+			await Logger.LogVerboseAsync($"[DownloadManager] Resolving {urlList.Count} URLs to filenames ({mode})").ConfigureAwait(false);
 
 			System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
 
-
 			try
 			{
-				Dictionary<string, List<string>> results = new Dictionary<string, List<string>>( StringComparer.Ordinal );
+				Dictionary<string, List<string>> results = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
 				if (sequential)
 				{
 					// Process URLs sequentially
 					foreach (string url in urlList)
 
-
 					{
-						(string resolvedUrl, List<string> filenames) = await ResolveUrlToFilenamesInternalAsync( url, cancellationToken ).ConfigureAwait( false );
+						(string resolvedUrl, List<string> filenames) = await ResolveUrlToFilenamesInternalAsync(url, cancellationToken).ConfigureAwait(false);
 						results[resolvedUrl] = filenames;
 					}
 				}
 				else
 				{
 					// Process URLs concurrently
-					List<Task<(string url, List<string> filenames)>> resolutionTasks = urlList.Select( url => ResolveUrlToFilenamesInternalAsync( url, cancellationToken ) ).ToList();
+					List<Task<(string url, List<string> filenames)>> resolutionTasks = urlList.Select(url => ResolveUrlToFilenamesInternalAsync(url, cancellationToken)).ToList();
 
-
-					(string url, List<string> filenames)[] resolvedItems = await Task.WhenAll( resolutionTasks ).ConfigureAwait( false );
+					(string url, List<string> filenames)[] resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
 
 					foreach ((string url, List<string> filenames) in resolvedItems)
 					{
@@ -106,48 +102,43 @@ namespace KOTORModSync.Core.Services.Download
 
 		private async Task<(string url, List<string> filenames)> ResolveUrlToFilenamesInternalAsync(
 			string url,
-			CancellationToken cancellationToken )
+			CancellationToken cancellationToken)
 		{
-			IDownloadHandler handler = _handlers.Find( h => h.CanHandle( url ) );
-			if (handler == null)
-
+			IDownloadHandler handler = _handlers.Find(h => h.CanHandle(url));
+			if (handler is null)
 
 			{
-				await Logger.LogWarningAsync( $"[DownloadManager] No handler for URL: {url}" ).ConfigureAwait( false );
+				await Logger.LogWarningAsync($"[DownloadManager] No handler for URL: {url}").ConfigureAwait(false);
 				return (url, filenames: new List<string>());
-
 
 			}
 
 			try
 			{
-				await Logger.LogVerboseAsync( $"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}" ).ConfigureAwait( false );
-				List<string> filenames = await handler.ResolveFilenamesAsync( url, cancellationToken ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync($"[DownloadManager] Resolving URL with {handler.GetType().Name}: {url}").ConfigureAwait(false);
+				List<string> filenames = await handler.ResolveFilenamesAsync(url, cancellationToken).ConfigureAwait(false);
 
-				if (filenames == null || filenames.Count == 0)
-
+				if (filenames is null || filenames.Count == 0)
 
 				{
-					await Logger.LogWarningAsync( $"[DownloadManager] No filenames resolved for URL: {url} (Handler: {handler.GetType().Name}). The URL may be incorrect, the page structure may have changed, or the file may no longer be available." )
+					await Logger.LogWarningAsync($"[DownloadManager] No filenames resolved for URL: {url} (Handler: {handler.GetType().Name}). The URL may be incorrect, the page structure may have changed, or the file may no longer be available.")
 
-.ConfigureAwait( false );
+.ConfigureAwait(false);
 				}
 				else
 				{
-					await Logger.LogVerboseAsync( $"[DownloadManager] Resolved {filenames.Count} filename(s) for URL: {url}" ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync($"[DownloadManager] Resolved {filenames.Count} filename(s) for URL: {url}").ConfigureAwait(false);
 				}
 
 				return (url, filenames: filenames ?? new List<string>());
 			}
 			catch (Exception ex)
 
-
 			{
-				await Logger.LogExceptionAsync( ex, $"[DownloadManager] Failed to resolve URL: {url}" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync(ex, $"[DownloadManager] Failed to resolve URL: {url}").ConfigureAwait(false);
 				return (url, filenames: new List<string>());
 			}
 		}
-
 
 
 
@@ -155,17 +146,16 @@ namespace KOTORModSync.Core.Services.Download
 		{
 			try
 			{
-				Logger.LogVerbose( "[DownloadManager] CancelAll() called - using cooperative cancellation" );
-
+				Logger.LogVerbose("[DownloadManager] CancelAll() called - using cooperative cancellation");
 
 
 				_globalCancellationTokenSource?.Cancel();
 
-				Logger.LogVerbose( "[DownloadManager] Cooperative cancellation signal sent - downloads will stop gracefully" );
+				Logger.LogVerbose("[DownloadManager] Cooperative cancellation signal sent - downloads will stop gracefully");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogError( $"[DownloadManager] Failed to cancel downloads: {ex.Message}" );
+				Logger.LogError($"[DownloadManager] Failed to cancel downloads: {ex.Message}");
 			}
 		}
 
@@ -173,38 +163,34 @@ namespace KOTORModSync.Core.Services.Download
 				Dictionary<string, DownloadProgress> urlToProgressMap,
 				string destinationDirectory,
 				IProgress<DownloadProgress> progressReporter = null,
-				CancellationToken cancellationToken = default )
+				CancellationToken cancellationToken = default)
 		{
 
 			CancellationToken combinedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
 				_globalCancellationTokenSource.Token,
-				cancellationToken ).Token;
+				cancellationToken).Token;
 
 			List<string> urlList = urlToProgressMap.Keys.ToList();
 
-
-			await Logger.LogVerboseAsync( $"[DownloadManager] Starting concurrent batch download with progress reporting for {urlList.Count} URLs" ).ConfigureAwait( false );
-			await Logger.LogVerboseAsync( $"[DownloadManager] Destination directory: {destinationDirectory}" ).ConfigureAwait( false );
+			await Logger.LogVerboseAsync($"[DownloadManager] Starting concurrent batch download with progress reporting for {urlList.Count} URLs").ConfigureAwait(false);
+			await Logger.LogVerboseAsync($"[DownloadManager] Destination directory: {destinationDirectory}").ConfigureAwait(false);
 
 			List<DownloadResult> results = new List<DownloadResult>();
 			List<Task<DownloadResult>> tasks = new List<Task<DownloadResult>>();
-
 
 			foreach (string url in urlList)
 			{
 				DownloadProgress progressItem = urlToProgressMap[url];
 
+				await Logger.LogVerboseAsync($"[DownloadManager] Creating download task for URL: {url}, Mod: {progressItem.ModName}")
 
-				await Logger.LogVerboseAsync( $"[DownloadManager] Creating download task for URL: {url}, Mod: {progressItem.ModName}" )
-
-.ConfigureAwait( false );
-				tasks.Add( DownloadSingleWithConcurrencyLimit( url, progressItem, destinationDirectory, progressReporter, combinedCancellationToken ) );
+.ConfigureAwait(false);
+				tasks.Add(DownloadSingleWithConcurrencyLimit(url, progressItem, destinationDirectory, progressReporter, combinedCancellationToken));
 			}
-
 
 			DownloadResult[] downloadResults =
 
-await Task.WhenAll( tasks ).ConfigureAwait( false );
+await Task.WhenAll(tasks).ConfigureAwait(false);
 
 
 
@@ -220,19 +206,12 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 
 
 
+			results.AddRange(downloadResults);
 
+			int successCount = results.Count(r => r.Success);
+			int failCount = results.Count(r => !r.Success);
 
-
-
-
-
-
-			results.AddRange( downloadResults );
-
-			int successCount = results.Count( r => r.Success );
-			int failCount = results.Count( r => !r.Success );
-
-			await Logger.LogVerboseAsync( $"[DownloadManager] Concurrent batch download completed. Success: {successCount}, Failed: {failCount}" ).ConfigureAwait( false );
+			await Logger.LogVerboseAsync($"[DownloadManager] Concurrent batch download completed. Success: {successCount}, Failed: {failCount}").ConfigureAwait(false);
 			return results;
 		}
 
@@ -241,39 +220,38 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 			DownloadProgress progressItem,
 			string destinationDirectory,
 			IProgress<DownloadProgress> progressReporter,
-			CancellationToken combinedCancellationToken )
+			CancellationToken combinedCancellationToken)
 		{
 
 			if (combinedCancellationToken.IsCancellationRequested)
 			{
-				await Logger.LogVerboseAsync( "[DownloadManager] Download cancelled by user" ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync("[DownloadManager] Download cancelled by user").ConfigureAwait(false);
 				progressItem.Status = DownloadStatus.Failed;
 				progressItem.ErrorMessage = "Download cancelled by user";
-				return DownloadResult.Failed( "Download cancelled by user" );
+				return DownloadResult.Failed("Download cancelled by user");
 			}
 
-			IDownloadHandler handler = _handlers.Find( h => h.CanHandle( url ) );
-			if (handler == null)
+			IDownloadHandler handler = _handlers.Find(h => h.CanHandle(url));
+			if (handler is null)
 			{
-				await Logger.LogErrorAsync( $"[DownloadManager] No handler configured for URL: {url}" ).ConfigureAwait( false );
+				await Logger.LogErrorAsync($"[DownloadManager] No handler configured for URL: {url}").ConfigureAwait(false);
 				progressItem.Status = DownloadStatus.Failed;
 				progressItem.ErrorMessage = "No handler configured for this URL";
-				return DownloadResult.Failed( "No handler configured for URL: " + url );
+				return DownloadResult.Failed("No handler configured for URL: " + url);
 			}
 
-			await Logger.LogVerboseAsync( $"[DownloadManager] Using handler: {handler.GetType().Name} for URL: {url}" ).ConfigureAwait( false );
-			progressItem.AddLog( $"Using handler: {handler.GetType().Name}" );
+			await Logger.LogVerboseAsync($"[DownloadManager] Using handler: {handler.GetType().Name} for URL: {url}").ConfigureAwait(false);
+			progressItem.AddLog($"Using handler: {handler.GetType().Name}");
 
 			try
 			{
-				await Logger.LogVerboseAsync( $"[DownloadManager] Starting download: {url}" ).ConfigureAwait( false );
-
+				await Logger.LogVerboseAsync($"[DownloadManager] Starting download: {url}").ConfigureAwait(false);
 
 				progressItem.Status = DownloadStatus.InProgress;
 				progressItem.StatusMessage = "Starting download...";
 				progressItem.StartTime = DateTime.Now;
 
-				Progress<DownloadProgress> internalProgressReporter = new Progress<DownloadProgress>( update =>
+				Progress<DownloadProgress> internalProgressReporter = new Progress<DownloadProgress>(update =>
 				{
 					progressItem.Status = update.Status;
 					progressItem.ProgressPercentage = update.ProgressPercentage;
@@ -294,14 +272,14 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 
 					lock (_logThrottleLock)
 					{
-						bool isFirstLog = !_lastProgressLogTime.ContainsKey( url );
-						bool statusChanged = !_lastLoggedStatus.ContainsKey( url ) || _lastLoggedStatus[url] != update.Status;
+						bool isFirstLog = !_lastProgressLogTime.ContainsKey(url);
+						bool statusChanged = !_lastLoggedStatus.ContainsKey(url) || _lastLoggedStatus[url] != update.Status;
 						bool isTerminalStatus = update.Status == DownloadStatus.Completed ||
 												update.Status == DownloadStatus.Failed ||
 												update.Status == DownloadStatus.Skipped;
-						bool hasError = !string.IsNullOrEmpty( update.ErrorMessage );
+						bool hasError = !string.IsNullOrEmpty(update.ErrorMessage);
 						DateTime lastLogTime;
-						_lastProgressLogTime.TryGetValue( url, out lastLogTime );
+						_lastProgressLogTime.TryGetValue(url, out lastLogTime);
 						bool throttleExpired = !isFirstLog &&
 											   (now - lastLogTime).TotalSeconds >= LogThrottleSeconds;
 
@@ -316,7 +294,7 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 
 					if (shouldLog)
 					{
-						_ = Task.Run( () =>
+						_ = Task.Run(() =>
 						{
 							try
 							{
@@ -325,17 +303,17 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 									 update.Status == DownloadStatus.Skipped ||
 									 update.Status == DownloadStatus.Failed)
 								{
-									Logger.Log( $"[Download] {update.Status}: {Path.GetFileName( update.FilePath ?? url )}" );
-									if (!string.IsNullOrEmpty( update.StatusMessage ) && update.Status != DownloadStatus.InProgress)
-										Logger.LogVerbose( $"  {update.StatusMessage}" );
+									Logger.Log($"[Download] {update.Status}: {Path.GetFileName(update.FilePath ?? url)}");
+									if (!string.IsNullOrEmpty(update.StatusMessage) && update.Status != DownloadStatus.InProgress)
+										Logger.LogVerbose($"  {update.StatusMessage}");
 								}
 							}
 							catch { }
-						}, combinedCancellationToken );
+						}, combinedCancellationToken);
 					}
 
-					progressReporter?.Report( progressItem );
-				} );
+					progressReporter?.Report(progressItem);
+				});
 
 				DownloadResult result;
 				try
@@ -343,16 +321,16 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 					result = await DownloadCacheOptimizer.TryOptimizedDownload(
 						url,
 						destinationDirectory,
-						() => handler.DownloadAsync( url, destinationDirectory, internalProgressReporter, progressItem.TargetFilenames, combinedCancellationToken ),
+						() => handler.DownloadAsync(url, destinationDirectory, internalProgressReporter, progressItem.TargetFilenames, combinedCancellationToken),
 						internalProgressReporter,
-						combinedCancellationToken ).ConfigureAwait( false );
+						combinedCancellationToken).ConfigureAwait(false);
 				}
 				catch (OperationCanceledException)
 				{
-					await Logger.LogAsync( $"[DownloadManager] Download cancelled by user: {url}" ).ConfigureAwait( false );
-					progressItem.AddLog( "[CANCELLED] Download cancelled by user" );
+					await Logger.LogAsync($"[DownloadManager] Download cancelled by user: {url}").ConfigureAwait(false);
+					progressItem.AddLog("[CANCELLED] Download cancelled by user");
 
-					result = DownloadResult.Failed( "Download cancelled by user" );
+					result = DownloadResult.Failed("Download cancelled by user");
 					progressItem.Status = DownloadStatus.Failed;
 					progressItem.StatusMessage = "Cancelled";
 					progressItem.ErrorMessage = "Download cancelled by user";
@@ -360,10 +338,10 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 				}
 				catch (Exception ex)
 				{
-					await Logger.LogErrorAsync( $"[DownloadManager] Unexpected exception during download of '{url}': {ex.Message}" ).ConfigureAwait( false );
-					progressItem.AddLog( $"[UNEXPECTED EXCEPTION] {ex.GetType().Name}: {ex.Message}" );
+					await Logger.LogErrorAsync($"[DownloadManager] Unexpected exception during download of '{url}': {ex.Message}").ConfigureAwait(false);
+					progressItem.AddLog($"[UNEXPECTED EXCEPTION] {ex.GetType().Name}: {ex.Message}");
 
-					result = DownloadResult.Failed( $"Unexpected error: {ex.Message}" );
+					result = DownloadResult.Failed($"Unexpected error: {ex.Message}");
 					progressItem.Status = DownloadStatus.Failed;
 					progressItem.StatusMessage = "Download failed due to unexpected error";
 					progressItem.ErrorMessage = ex.Message;
@@ -373,12 +351,12 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 
 				if (result.Success)
 				{
-					await Logger.LogVerboseAsync( $"[DownloadManager] Successfully downloaded: {result.FilePath}" ).ConfigureAwait( false );
-					progressItem.AddLog( $"Download completed successfully: {result.FilePath}" );
+					await Logger.LogVerboseAsync($"[DownloadManager] Successfully downloaded: {result.FilePath}").ConfigureAwait(false);
+					progressItem.AddLog($"Download completed successfully: {result.FilePath}");
 
 					TimeSpan downloadDuration = (progressItem.EndTime ?? DateTime.Now) - progressItem.StartTime;
 					Services.TelemetryService.Instance.RecordDownload(
-						modName: progressItem.ModName ?? Path.GetFileName( result.FilePath ),
+						modName: progressItem.ModName ?? Path.GetFileName(result.FilePath),
 						success: true,
 						durationMs: downloadDuration.TotalMilliseconds,
 						bytesDownloaded: progressItem.BytesDownloaded,
@@ -388,7 +366,7 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 
 					if (result.WasSkipped)
 					{
-						progressItem.AddLog( "File was skipped (already exists)" );
+						progressItem.AddLog("File was skipped (already exists)");
 
 						progressItem.Status = DownloadStatus.Skipped;
 						progressItem.StatusMessage = "File already exists";
@@ -398,26 +376,26 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 						if (progressItem.StartTime == default)
 							progressItem.StartTime = DateTime.Now;
 
-						if (!string.IsNullOrEmpty( result.FilePath ) && File.Exists( result.FilePath ))
+						if (!string.IsNullOrEmpty(result.FilePath) && File.Exists(result.FilePath))
 						{
 							try
 							{
-								long fileSize = new FileInfo( result.FilePath ).Length;
+								long fileSize = new FileInfo(result.FilePath).Length;
 								progressItem.BytesDownloaded = fileSize;
 								progressItem.TotalBytes = fileSize;
-								await Logger.LogVerboseAsync( $"[DownloadManager] File already exists ({fileSize} bytes): {result.FilePath}" ).ConfigureAwait( false );
+								await Logger.LogVerboseAsync($"[DownloadManager] File already exists ({fileSize} bytes): {result.FilePath}").ConfigureAwait(false);
 							}
 							catch (Exception ex)
 							{
-								await Logger.LogWarningAsync( $"[DownloadManager] Could not get file size for skipped file: {ex.Message}" ).ConfigureAwait( false );
+								await Logger.LogWarningAsync($"[DownloadManager] Could not get file size for skipped file: {ex.Message}").ConfigureAwait(false);
 							}
 						}
 					}
 				}
 				else
 				{
-					await Logger.LogErrorAsync( $"[DownloadManager] Failed to download URL '{url}': {result.Message}" ).ConfigureAwait( false );
-					progressItem.AddLog( $"Download failed: {result.Message}" );
+					await Logger.LogErrorAsync($"[DownloadManager] Failed to download URL '{url}': {result.Message}").ConfigureAwait(false);
+					progressItem.AddLog($"Download failed: {result.Message}");
 
 					TimeSpan downloadDuration = (progressItem.EndTime ?? DateTime.Now) - progressItem.StartTime;
 					Services.TelemetryService.Instance.RecordDownload(
@@ -442,8 +420,8 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 
 				lock (_logThrottleLock)
 				{
-					_lastProgressLogTime.Remove( url );
-					_lastLoggedStatus.Remove( url );
+					_lastProgressLogTime.Remove(url);
+					_lastLoggedStatus.Remove(url);
 				}
 			}
 		}
@@ -455,18 +433,18 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 		/// <param name="progress">Progress object to update</param>
 		/// <param name="cancellationToken">Cancellation token</param>
 		/// <returns>Task representing the download operation</returns>
-		public async Task DownloadFileAsync( string url, DownloadProgress progress, CancellationToken cancellationToken = default )
+		public async Task DownloadFileAsync(string url, DownloadProgress progress, CancellationToken cancellationToken = default)
 		{
 			try
 			{
-				await Logger.LogVerboseAsync( $"[DownloadManager] Starting single file download: {url}" ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync($"[DownloadManager] Starting single file download: {url}").ConfigureAwait(false);
 
-				var urlToProgressMap = new Dictionary<string, DownloadProgress>( StringComparer.Ordinal )
+				var urlToProgressMap = new Dictionary<string, DownloadProgress>(StringComparer.Ordinal)
 				{
-					{ url, progress }
+					{ url, progress },
 				};
 
-				var progressReporter = new Progress<DownloadProgress>( update =>
+				var progressReporter = new Progress<DownloadProgress>(update =>
 				{
 					// Update the original progress object
 					progress.Status = update.Status;
@@ -479,22 +457,22 @@ await Task.WhenAll( tasks ).ConfigureAwait( false );
 					progress.EndTime = update.EndTime;
 					progress.ErrorMessage = update.ErrorMessage;
 					progress.Exception = update.Exception;
-				} );
+				});
 
 				List<DownloadResult> results = await DownloadAllWithProgressAsync(
 					urlToProgressMap,
 					"", // No specific destination directory for single file
 					progressReporter,
-					cancellationToken ).ConfigureAwait( false );
+					cancellationToken).ConfigureAwait(false);
 
 				if (results.Count > 0 && !results[0].Success)
 				{
-					await Logger.LogErrorAsync( $"[DownloadManager] Single file download failed: {results[0].Message}" ).ConfigureAwait( false );
+					await Logger.LogErrorAsync($"[DownloadManager] Single file download failed: {results[0].Message}").ConfigureAwait(false);
 				}
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, $"[DownloadManager] Exception during single file download: {url}" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync(ex, $"[DownloadManager] Exception during single file download: {url}").ConfigureAwait(false);
 				progress.Status = DownloadStatus.Failed;
 				progress.ErrorMessage = ex.Message;
 				progress.Exception = ex;

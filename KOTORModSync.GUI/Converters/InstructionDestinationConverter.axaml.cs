@@ -98,7 +98,7 @@ namespace KOTORModSync.Converters
 			if (string.IsNullOrEmpty( path ))
 				return string.Empty;
 
-			if (MainConfig.SourcePath == null && MainConfig.DestinationPath == null)
+			if (MainConfig.SourcePath is null && MainConfig.DestinationPath is null)
 			{
 				return path;
 			}

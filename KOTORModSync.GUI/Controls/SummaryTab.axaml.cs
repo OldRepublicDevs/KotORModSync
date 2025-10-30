@@ -9,6 +9,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -19,17 +20,17 @@ using KOTORModSync.Services;
 
 namespace KOTORModSync.Controls
 {
-	[SuppressMessage( "ReSharper", "UnusedParameter.Local" )]
+	[SuppressMessage("ReSharper", "UnusedParameter.Local")]
 	public partial class SummaryTab : UserControl
 	{
 		public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
-			AvaloniaProperty.Register<SummaryTab, ModComponent>( nameof( CurrentComponent ) );
+			AvaloniaProperty.Register<SummaryTab, ModComponent>(nameof(CurrentComponent));
 
 		public static readonly StyledProperty<bool> EditorModeProperty =
-			AvaloniaProperty.Register<SummaryTab, bool>( nameof( EditorMode ) );
+			AvaloniaProperty.Register<SummaryTab, bool>(nameof(EditorMode));
 
 		public static readonly StyledProperty<bool> SpoilerFreeModeProperty =
-			AvaloniaProperty.Register<SummaryTab, bool>( nameof( SpoilerFreeMode ) );
+			AvaloniaProperty.Register<SummaryTab, bool>(nameof(SpoilerFreeMode));
 
 		private readonly Services.MarkdownRenderingService _markdownRenderingService = new Services.MarkdownRenderingService();
 
@@ -40,20 +41,20 @@ namespace KOTORModSync.Controls
 			set
 			{
 				MainConfig.CurrentComponent = value;
-				SetValue( CurrentComponentProperty, value );
+				SetValue(CurrentComponentProperty, value);
 			}
 		}
 
 		public bool EditorMode
 		{
-			get => GetValue( EditorModeProperty );
-			set => SetValue( EditorModeProperty, value );
+			get => GetValue(EditorModeProperty);
+			set => SetValue(EditorModeProperty, value);
 		}
 
 		public bool SpoilerFreeMode
 		{
-			get => GetValue( SpoilerFreeModeProperty );
-			set => SetValue( SpoilerFreeModeProperty, value );
+			get => GetValue(SpoilerFreeModeProperty);
+			set => SetValue(SpoilerFreeModeProperty, value);
 		}
 
 		public event EventHandler<TappedEventArgs> OpenLinkRequested;
@@ -73,7 +74,7 @@ namespace KOTORModSync.Controls
 			this.Loaded += OnLoaded;
 		}
 
-		private void OnLoaded( object sender, RoutedEventArgs e )
+		private void OnLoaded(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -82,7 +83,7 @@ namespace KOTORModSync.Controls
 			}
 			catch (Exception ex)
 			{
-				Core.Logger.LogException( ex, "Error in OnLoaded" );
+				Core.Logger.LogException(ex, "Error in OnLoaded");
 			}
 		}
 
@@ -96,69 +97,78 @@ namespace KOTORModSync.Controls
 				foreach (var textBlock in allTextBlocks)
 				{
 					// Skip TextBlocks that are part of headers, labels, or other UI chrome
-					if (IsUiChromeTextBlock( textBlock ))
+					if (IsUiChromeTextBlock(textBlock))
 						continue;
 
 					// Attach a watcher to this TextBlock's Text property
-					AttachTextPropertyWatcher( textBlock );
+					AttachTextPropertyWatcher(textBlock);
 				}
 			}
 			catch (Exception ex)
 			{
-				Core.Logger.LogException( ex, "Error attaching markdown rendering to TextBlocks" );
+				Core.Logger.LogException(ex, "Error attaching markdown rendering to TextBlocks");
 			}
 		}
 
-		private static bool IsUiChromeTextBlock( TextBlock textBlock )
+		private static bool IsUiChromeTextBlock(TextBlock textBlock)
 		{
 			// Skip TextBlocks that are part of the UI structure (headers, labels, etc.)
-			if (textBlock.Classes.Contains( "summary-section-title", StringComparer.Ordinal ))
+			if (textBlock.Classes.Contains("summary-section-title", StringComparer.Ordinal))
 				return true;
-			if (textBlock.Classes.Contains( "summary-label", StringComparer.Ordinal ))
+			if (textBlock.Classes.Contains("summary-label", StringComparer.Ordinal))
 				return true;
-			if (textBlock.Classes.Contains( "secondary-text", StringComparer.Ordinal ))
+			if (textBlock.Classes.Contains("secondary-text", StringComparer.Ordinal))
 				return true;
-			if (textBlock.Classes.Contains( "summary-option-title", StringComparer.Ordinal ))
+			if (textBlock.Classes.Contains("summary-option-title", StringComparer.Ordinal))
 				return true;
-			if (textBlock.Classes.Contains( "summary-instruction-action", StringComparer.Ordinal ))
+			if (textBlock.Classes.Contains("summary-instruction-action", StringComparer.Ordinal))
 				return true;
 
 			// Skip TextBlocks with specific names that shouldn't be markdown-rendered
 			if (textBlock.Name != null && (
-				textBlock.Name.Contains( "Label" ) ||
-				textBlock.Name.Contains( "Header" ) ||
-				textBlock.Name.Contains( "Title" )
+				textBlock.Name.Contains("Label") ||
+				textBlock.Name.Contains("Header") ||
+				textBlock.Name.Contains("Title")
 			))
 				return true;
 
 			return false;
 		}
 
-		private void AttachTextPropertyWatcher( TextBlock textBlock )
+		private void AttachTextPropertyWatcher(TextBlock textBlock)
 		{
-			if (textBlock == null)
+			if (textBlock is null)
 				return;
 
-			textBlock.GetObservable( TextBlock.TextProperty ).Subscribe( newText =>
+			textBlock.GetObservable(TextBlock.TextProperty).Subscribe(newText =>
 			{
-				Dispatcher.UIThread.Post( () =>
+				Dispatcher.UIThread.Post(() =>
 				{
 					try
 					{
-						if (!string.IsNullOrWhiteSpace( newText ))
+						if (!string.IsNullOrWhiteSpace(newText))
 						{
-							_markdownRenderingService.RenderMarkdownToTextBlock( textBlock, newText );
+							_markdownRenderingService.RenderMarkdownToTextBlock(textBlock, newText);
+
+							// Ensure the TextBlock has the proper foreground color for the current theme
+							string currentTheme = ThemeManager.GetCurrentStylePath();
+							if (currentTheme.Contains("FluentLightStyle"))
+								textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
+							else if (currentTheme.Contains("Kotor2Style"))
+								textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x18, 0xae, 0x88)); // #18ae88
+							else if (currentTheme.Contains("KotorStyle"))
+								textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // #3AAAFF
 						}
 					}
 					catch (Exception ex)
 					{
-						Core.Logger.LogException( ex, $"Error rendering markdown for TextBlock: {textBlock.Name ?? "unnamed"}" );
+						Core.Logger.LogException(ex, $"Error rendering markdown for TextBlock: {textBlock.Name ?? "unnamed"}");
 					}
-				}, DispatcherPriority.Background );
-			} );
+				}, DispatcherPriority.Background);
+			});
 		}
 
-		private void OnPropertyChanged( object sender, AvaloniaPropertyChangedEventArgs e )
+		private void OnPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
 		{
 			if (e.Property == CurrentComponentProperty)
 			{
@@ -171,60 +181,59 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		private void OpenLink_Tapped( object sender, TappedEventArgs e )
+		private void OpenLink_Tapped(object sender, TappedEventArgs e)
 		{
-			OpenLinkRequested?.Invoke( this, e );
+			OpenLinkRequested?.Invoke(this, e);
 		}
 
-		private void CopyTextToClipboard_Click( object sender, RoutedEventArgs e )
+		private void CopyTextToClipboard_Click(object sender, RoutedEventArgs e)
 		{
-			CopyTextToClipboardRequested?.Invoke( this, e );
+			CopyTextToClipboardRequested?.Invoke(this, e);
 		}
 
-		private void SummaryOptionBorder_PointerPressed( object sender, PointerPressedEventArgs e )
+		private void SummaryOptionBorder_PointerPressed(object sender, PointerPressedEventArgs e)
 		{
-			SummaryOptionPointerPressedRequested?.Invoke( this, e );
+			SummaryOptionPointerPressedRequested?.Invoke(this, e);
 		}
 
-		private void OnCheckBoxChanged( object sender, RoutedEventArgs e )
+		private void OnCheckBoxChanged(object sender, RoutedEventArgs e)
 		{
-			CheckBoxChangedRequested?.Invoke( this, e );
+			CheckBoxChangedRequested?.Invoke(this, e);
 		}
 
-		private void JumpToInstruction_Click( object sender, RoutedEventArgs e )
+		private void JumpToInstruction_Click(object sender, RoutedEventArgs e)
 		{
-			JumpToInstructionRequested?.Invoke( this, e );
+			JumpToInstructionRequested?.Invoke(this, e);
 		}
 
-		private async void DownloadModButton_Click( object sender, RoutedEventArgs e )
+		private async void DownloadModButton_Click(object sender, RoutedEventArgs e)
 		{
 			if (!(sender is Button button) || !(button.Tag is ModComponent component))
 				return;
 
 			try
 			{
-				Logger.LogVerbose( $"[SummaryTab] Download button clicked for: {component.Name}" );
+				await Logger.LogVerboseAsync($"[SummaryTab] Download button clicked for: {component.Name}").ConfigureAwait(false);
 
-				await DownloadOrchestrationService.DownloadModFromUrlAsync( component.ModLinkFilenames.First().Key, component );
+				await DownloadOrchestrationService.DownloadModFromUrlAsync(component.ModLinkFilenames.First().Key, component).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, $"Error downloading mod from SummaryTab: {component.Name}" );
+				await Logger.LogExceptionAsync(ex, $"Error downloading mod from SummaryTab: {component.Name}").ConfigureAwait(false);
 			}
 		}
 
-
 		private void UpdateAllFilenamePanels()
 		{
-			if (CurrentComponent == null || ModLinkRepeater == null)
+			if (CurrentComponent is null || ModLinkRepeater is null)
 				return;
 
-			Dispatcher.UIThread.Post( () =>
+			Dispatcher.UIThread.Post(() =>
 			{
 				try
 				{
 					var panels = this.GetVisualDescendants().OfType<StackPanel>()
-						.Where( sp => string.Equals( sp.Name, "SummaryFilenamesPanel", StringComparison.Ordinal ) ).ToList();
+						.Where(sp => string.Equals(sp.Name, "SummaryFilenamesPanel", StringComparison.Ordinal)).ToList();
 
 					int urlIndex = 0;
 					foreach (var panel in panels)
@@ -233,29 +242,30 @@ namespace KOTORModSync.Controls
 						if (urlIndex < urls.Count)
 						{
 							string url = urls[urlIndex];
-							PopulateFilenamesPanel( panel, url );
+							PopulateFilenamesPanel(panel, url);
 							urlIndex++;
 						}
 					}
 				}
 				catch (Exception ex)
 				{
-					Core.Logger.LogException( ex, "Error updating filename panels in SummaryTab" );
+					Core.Logger.LogException(ex, "Error updating filename panels in SummaryTab");
 				}
-			}, DispatcherPriority.Background );
+			}, DispatcherPriority.Background);
 		}
 
-		private void PopulateFilenamesPanel( StackPanel panel, string url )
+		[SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private void PopulateFilenamesPanel(StackPanel panel, string url)
 		{
-			if (panel == null || string.IsNullOrWhiteSpace( url ))
+			if (panel is null || string.IsNullOrWhiteSpace(url))
 				return;
 
 			panel.Children.Clear();
 
-			if (CurrentComponent == null || CurrentComponent.ModLinkFilenames == null)
+			if (CurrentComponent is null || CurrentComponent.ModLinkFilenames is null)
 				return;
 
-			if (!CurrentComponent.ModLinkFilenames.TryGetValue( url, out var filenameDict ) || filenameDict.Count == 0)
+			if (!CurrentComponent.ModLinkFilenames.TryGetValue(url, out var filenameDict) || filenameDict.Count == 0)
 				return;
 
 			var headerText = new TextBlock
@@ -263,27 +273,52 @@ namespace KOTORModSync.Controls
 				Text = "Files:",
 				FontSize = 10,
 				Opacity = 0.6,
-				Margin = new Thickness( 0, 2, 0, 2 )
+				Margin = new Thickness(0, 2, 0, 2),
 			};
-			panel.Children.Add( headerText );
+			panel.Children.Add(headerText);
 
 			foreach (var filenameEntry in filenameDict)
 			{
 				string filename = filenameEntry.Key;
 				bool? shouldDownload = filenameEntry.Value;
 
-				string statusIcon = shouldDownload == true ? "✓" : shouldDownload == false ? "✗" : "?";
-				double opacity = shouldDownload == true ? 1.0 : shouldDownload == false ? 0.5 : 0.7;
+				string statusIcon;
+				if (shouldDownload == true)
+				{
+					statusIcon = "✓";
+				}
+				else if (shouldDownload == false)
+				{
+					statusIcon = "✗";
+				}
+				else
+				{
+					statusIcon = "?";
+				}
+
+				double opacity;
+				if (shouldDownload == true)
+				{
+					opacity = 1.0;
+				}
+				else if (shouldDownload == false)
+				{
+					opacity = 0.5;
+				}
+				else
+				{
+					opacity = 0.7;
+				}
 
 				var fileText = new TextBlock
 				{
 					Text = $"{statusIcon} {filename}",
 					FontSize = 11,
 					Opacity = opacity,
-					Margin = new Thickness( 0, 1, 0, 1 )
+					Margin = new Thickness(0, 1, 0, 1),
 				};
 
-				panel.Children.Add( fileText );
+				panel.Children.Add(fileText);
 			}
 		}
 
@@ -296,7 +331,7 @@ namespace KOTORModSync.Controls
 		{
 			try
 			{
-				Dispatcher.UIThread.Post( () =>
+				Dispatcher.UIThread.Post(() =>
 				{
 					try
 					{
@@ -309,25 +344,34 @@ namespace KOTORModSync.Controls
 						foreach (var textBlock in allTextBlocks)
 						{
 							// Skip UI chrome TextBlocks
-							if (IsUiChromeTextBlock( textBlock ))
+							if (IsUiChromeTextBlock(textBlock))
 								continue;
 
 							// Trigger markdown rendering for content TextBlocks
-							if (!string.IsNullOrWhiteSpace( textBlock.Text ))
+							if (!string.IsNullOrWhiteSpace(textBlock.Text))
 							{
-								_markdownRenderingService.RenderMarkdownToTextBlock( textBlock, textBlock.Text );
+								_markdownRenderingService.RenderMarkdownToTextBlock(textBlock, textBlock.Text);
+
+								// Ensure the TextBlock has the proper foreground color for the current theme
+								string currentTheme = ThemeManager.GetCurrentStylePath();
+								if (currentTheme.Contains("FluentLightStyle"))
+									textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
+								else if (currentTheme.Contains("Kotor2Style"))
+									textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x18, 0xae, 0x88)); // #18ae88
+								else if (currentTheme.Contains("KotorStyle"))
+									textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // #3AAAFF
 							}
 						}
 					}
 					catch (Exception ex)
 					{
-						Core.Logger.LogException( ex, "Error refreshing markdown content in SummaryTab" );
+						Core.Logger.LogException(ex, "Error refreshing markdown content in SummaryTab");
 					}
-				}, DispatcherPriority.Background );
+				}, DispatcherPriority.Background);
 			}
 			catch (Exception ex)
 			{
-				Core.Logger.LogException( ex, "Error in RefreshMarkdownContent" );
+				Core.Logger.LogException(ex, "Error in RefreshMarkdownContent");
 			}
 		}
 	}

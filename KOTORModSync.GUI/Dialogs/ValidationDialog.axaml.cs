@@ -15,14 +15,15 @@ using Avalonia.Threading;
 
 namespace KOTORModSync.Dialogs
 {
-	public class ValidationIssue
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
+    public class ValidationIssue
 	{
 		public string Icon { get; set; }
 		public string ModName { get; set; }
 		public string IssueType { get; set; }
 		public string Description { get; set; }
 		public string Solution { get; set; }
-		public bool HasSolution => !string.IsNullOrEmpty( Solution );
+		public bool HasSolution => !string.IsNullOrEmpty(Solution);
 	}
 
 	public partial class ValidationDialog : Window
@@ -31,33 +32,34 @@ namespace KOTORModSync.Dialogs
 
 		public ValidationDialog()
 		{
-			AvaloniaXamlLoader.Load( this );
+			AvaloniaXamlLoader.Load(this);
 		}
 
-		public ValidationDialog( bool success, string summaryMessage, List<ValidationIssue> modIssues = null,
-							   List<string> systemIssues = null, Action openOutputCallback = null )
+		public ValidationDialog(bool success, string summaryMessage, List<ValidationIssue> modIssues = null,
+							   List<string> systemIssues = null, Action openOutputCallback = null)
 		{
-			AvaloniaXamlLoader.Load( this );
+			AvaloniaXamlLoader.Load(this);
 			_openOutputCallback = openOutputCallback;
 
-			InitializeDialog( success, summaryMessage, modIssues, systemIssues );
+			InitializeDialog(success, summaryMessage, modIssues, systemIssues);
 		}
 
-		private void InitializeDialog( bool success, string summaryMessage, List<ValidationIssue> modIssues, List<string> systemIssues )
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        private void InitializeDialog(bool success, string summaryMessage, List<ValidationIssue> modIssues, List<string> systemIssues)
 		{
 
-			Border summaryBorder = this.FindControl<Border>( "SummaryBorder" );
-			TextBlock summaryIcon = this.FindControl<TextBlock>( "SummaryIcon" );
-			TextBlock summaryText = this.FindControl<TextBlock>( "SummaryText" );
-			TextBlock summaryDetails = this.FindControl<TextBlock>( "SummaryDetails" );
-			StackPanel issuesPanel = this.FindControl<StackPanel>( "IssuesPanel" );
-			StackPanel systemIssuesPanel = this.FindControl<StackPanel>( "SystemIssuesPanel" );
-			ItemsControl systemIssuesList = this.FindControl<ItemsControl>( "SystemIssuesList" );
-			StackPanel modIssuesPanel = this.FindControl<StackPanel>( "ModIssuesPanel" );
-			ItemsControl modIssuesList = this.FindControl<ItemsControl>( "ModIssuesList" );
-			Button openOutputButton = this.FindControl<Button>( "OpenOutputButton" );
+			Border summaryBorder = this.FindControl<Border>("SummaryBorder");
+			TextBlock summaryIcon = this.FindControl<TextBlock>("SummaryIcon");
+			TextBlock summaryText = this.FindControl<TextBlock>("SummaryText");
+			TextBlock summaryDetails = this.FindControl<TextBlock>("SummaryDetails");
+			StackPanel issuesPanel = this.FindControl<StackPanel>("IssuesPanel");
+			StackPanel systemIssuesPanel = this.FindControl<StackPanel>("SystemIssuesPanel");
+			ItemsControl systemIssuesList = this.FindControl<ItemsControl>("SystemIssuesList");
+			StackPanel modIssuesPanel = this.FindControl<StackPanel>("ModIssuesPanel");
+			ItemsControl modIssuesList = this.FindControl<ItemsControl>("ModIssuesList");
+			Button openOutputButton = this.FindControl<Button>("OpenOutputButton");
 
-			if (summaryIcon == null || summaryText == null || summaryDetails == null || summaryBorder == null)
+			if (summaryIcon is null || summaryText is null || summaryDetails is null || summaryBorder is null)
 				return;
 
 			if (success)
@@ -65,14 +67,14 @@ namespace KOTORModSync.Dialogs
 				summaryIcon.Text = "✅";
 				summaryText.Text = "Validation Successful!";
 				summaryDetails.Text = summaryMessage;
-				summaryBorder.Background = new SolidColorBrush( Color.Parse( "#1B4D3E" ) );
+				summaryBorder.Background = new SolidColorBrush(Color.Parse("#1B4D3E"));
 			}
 			else
 			{
 				summaryIcon.Text = "❌";
 				summaryText.Text = "Validation Failed";
 				summaryDetails.Text = summaryMessage;
-				summaryBorder.Background = new SolidColorBrush( Color.Parse( "#4D1B1B" ) );
+				summaryBorder.Background = new SolidColorBrush(Color.Parse("#4D1B1B"));
 				if (issuesPanel != null)
 					issuesPanel.IsVisible = true;
 				if (openOutputButton != null)
@@ -84,18 +86,18 @@ namespace KOTORModSync.Dialogs
 					var systemIssuesChildren = new List<Control>();
 					foreach (string issue in systemIssues)
 					{
-						systemIssuesChildren.Add( new Border
+						systemIssuesChildren.Add(new Border
 						{
 							Classes = { "summary-card" },
-							Padding = new Avalonia.Thickness( 12 ),
-							Margin = new Avalonia.Thickness( 0, 4 ),
-							CornerRadius = new Avalonia.CornerRadius( 6 ),
+							Padding = new Avalonia.Thickness(12),
+							Margin = new Avalonia.Thickness(0, 4),
+							CornerRadius = new Avalonia.CornerRadius(6),
 							Child = new TextBlock
 							{
 								Text = issue,
 								TextWrapping = Avalonia.Media.TextWrapping.Wrap
-							}
-						} );
+							},
+						});
 					}
 					systemIssuesList.ItemsSource = systemIssuesChildren;
 				}
@@ -103,22 +105,22 @@ namespace KOTORModSync.Dialogs
 				if (modIssues != null && modIssues.Count > 0 && modIssuesPanel != null && modIssuesList != null)
 				{
 					modIssuesPanel.IsVisible = true;
-					modIssuesList.ItemsSource = new ObservableCollection<ValidationIssue>( modIssues );
+					modIssuesList.ItemsSource = new ObservableCollection<ValidationIssue>(modIssues);
 				}
 			}
 		}
 
-		private void CloseButton_Click( object sender, RoutedEventArgs e )
+		private void CloseButton_Click(object sender, RoutedEventArgs e)
 		{
 			Close();
 		}
 
-		private void Ok_Click( object sender, RoutedEventArgs e )
+		private void Ok_Click(object sender, RoutedEventArgs e)
 		{
 			Close();
 		}
 
-		private void OpenOutput_Click( object sender, RoutedEventArgs e )
+		private void OpenOutput_Click(object sender, RoutedEventArgs e)
 		{
 			_openOutputCallback?.Invoke();
 			Close();
@@ -130,15 +132,15 @@ namespace KOTORModSync.Dialogs
 			string summaryMessage,
 			List<ValidationIssue> modIssues = null,
 			List<string> systemIssues = null,
-			Action openOutputCallback = null )
+			Action openOutputCallback = null)
 		{
-			await Dispatcher.UIThread.InvokeAsync( async () =>
+			await Dispatcher.UIThread.InvokeAsync(async () =>
 			{
-				var dialog = new ValidationDialog( success, summaryMessage, modIssues, systemIssues, openOutputCallback );
+				var dialog = new ValidationDialog(success, summaryMessage, modIssues, systemIssues, openOutputCallback);
 
 
-				await dialog.ShowDialog( parent ).ConfigureAwait( false );
-			} ).ConfigureAwait( false );
+				await dialog.ShowDialog(parent).ConfigureAwait(true);
+			}).ConfigureAwait(true);
 			return true;
 		}
 	}

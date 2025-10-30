@@ -36,10 +36,9 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-
 		public List<string> FilterByResolution( List<string> urlsOrFilenames )
 		{
-			if (!_filterEnabled || _systemResolution == null || urlsOrFilenames == null || urlsOrFilenames.Count == 0)
+			if (!_filterEnabled || _systemResolution is null || urlsOrFilenames is null || urlsOrFilenames.Count == 0)
 				return urlsOrFilenames ?? new List<string>();
 
 			List<string> filtered = new List<string>();
@@ -49,7 +48,7 @@ namespace KOTORModSync.Core.Services
 			{
 				Resolution detectedResolution = ExtractResolution( item );
 
-				if (detectedResolution == null)
+				if (detectedResolution is null)
 				{
 
 					filtered.Add( item );
@@ -81,8 +80,7 @@ namespace KOTORModSync.Core.Services
 
 		public Dictionary<string, List<string>> FilterResolvedUrls( Dictionary<string, List<string>> urlToFilenames )
 		{
-			if (!_filterEnabled || _systemResolution == null || urlToFilenames == null)
-
+			if (!_filterEnabled || _systemResolution is null || urlToFilenames is null)
 
 				return urlToFilenames ?? new Dictionary<string, List<string>>(
 
@@ -112,12 +110,12 @@ StringComparer.Ordinal );
 
 		public bool ShouldDownload( string urlOrFilename )
 		{
-			if (!_filterEnabled || _systemResolution == null)
+			if (!_filterEnabled || _systemResolution is null)
 				return true;
 
 			Resolution detectedResolution = ExtractResolution( urlOrFilename );
 
-			if (detectedResolution == null)
+			if (detectedResolution is null)
 				return true;
 
 			return MatchesSystemResolution( detectedResolution );
@@ -143,7 +141,7 @@ StringComparer.Ordinal );
 
 		private bool MatchesSystemResolution( Resolution resolution )
 		{
-			if (_systemResolution == null || resolution == null)
+			if (_systemResolution is null || resolution is null)
 				return false;
 
 			return resolution.Width == _systemResolution.Width && resolution.Height == _systemResolution.Height;

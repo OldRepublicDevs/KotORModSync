@@ -14,11 +14,10 @@ namespace KOTORModSync.Core.Parsing
 	public static class MarkdownUtilities
 	{
 
-
 		[NotNull]
 		public static string ExtractModListSection( [NotNull] string markdown )
 		{
-			if (markdown == null)
+			if (markdown is null)
 				throw new ArgumentNullException( nameof( markdown ) );
 
 			int modListIndex = markdown.IndexOf( "## Mod List", StringComparison.Ordinal );
@@ -34,7 +33,7 @@ namespace KOTORModSync.Core.Parsing
 		[ItemNotNull]
 		public static List<string> ExtractModSections( [NotNull] string markdown )
 		{
-			if (markdown == null)
+			if (markdown is null)
 				throw new ArgumentNullException( nameof( markdown ) );
 
 			List<string> sections = new List<string>();
@@ -42,7 +41,6 @@ namespace KOTORModSync.Core.Parsing
 			List<string> currentSection = new List<string>();
 
 			foreach (string line in lines)
-
 
 			{
 				if (string.Equals( line.Trim(), "___", StringComparison.Ordinal ))
@@ -81,13 +79,12 @@ namespace KOTORModSync.Core.Parsing
 			return sections;
 		}
 
-
 		[NotNull]
 		public static string ExtractFieldValue( [NotNull] string text, [NotNull] string pattern )
 		{
-			if (text == null)
+			if (text is null)
 				throw new ArgumentNullException( nameof( text ) );
-			if (pattern == null)
+			if (pattern is null)
 				throw new ArgumentNullException( nameof( pattern ) );
 
 			Match match = Regex.Match( text, pattern, RegexOptions.Multiline );
@@ -98,14 +95,13 @@ namespace KOTORModSync.Core.Parsing
 			return string.Empty;
 		}
 
-
 		[NotNull]
 		[ItemNotNull]
 		public static List<string> ExtractAllFieldValues( [NotNull] string text, [NotNull] string pattern )
 		{
-			if (text == null)
+			if (text is null)
 				throw new ArgumentNullException( nameof( text ) );
-			if (pattern == null)
+			if (pattern is null)
 				throw new ArgumentNullException( nameof( pattern ) );
 
 			MatchCollection matches = Regex.Matches( text, pattern, RegexOptions.Multiline );

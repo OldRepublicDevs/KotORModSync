@@ -14,7 +14,7 @@ namespace KOTORModSync.Services
 
 		public static void CreateInstruction( ModComponent component, int index )
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException( nameof( component ) );
 
 			try
@@ -30,7 +30,7 @@ namespace KOTORModSync.Services
 
 		public static void DeleteInstruction( ModComponent component, int index )
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException( nameof( component ) );
 
 			try
@@ -46,9 +46,9 @@ namespace KOTORModSync.Services
 
 		public static void MoveInstruction( ModComponent component, Instruction instruction, int newIndex )
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException( nameof( component ) );
-			if (instruction == null)
+			if (instruction is null)
 				throw new ArgumentNullException( nameof( instruction ) );
 
 			try
@@ -64,7 +64,7 @@ namespace KOTORModSync.Services
 
 		public static void CreateOption( ModComponent component, int index )
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException( nameof( component ) );
 
 			try
@@ -80,7 +80,7 @@ namespace KOTORModSync.Services
 
 		public static void DeleteOption( ModComponent component, int index )
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException( nameof( component ) );
 
 			try
@@ -96,9 +96,9 @@ namespace KOTORModSync.Services
 
 		public static void MoveOption( ModComponent component, Option option, int newIndex )
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException( nameof( component ) );
-			if (option == null)
+			if (option is null)
 				throw new ArgumentNullException( nameof( option ) );
 
 			try

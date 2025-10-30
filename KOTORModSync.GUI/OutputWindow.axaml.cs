@@ -9,22 +9,19 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-
 using JetBrains.Annotations;
-
 using KOTORModSync.Core;
-using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync
 {
-	public sealed class OutputViewModel : INotifyPropertyChanged
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
+    public sealed class OutputViewModel : INotifyPropertyChanged
 	{
 		public readonly Queue<string> _logBuilder = new Queue<string>();
 		public string LogText { get; set; } = string.Empty;
@@ -32,28 +29,29 @@ namespace KOTORModSync
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		public void AppendLog( string message )
+		public void AppendLog(string message)
 		{
-			_logBuilder.Enqueue( message );
-			LogLines.Add( LogLine.FromMessage( message ) );
-			OnPropertyChanged( nameof( LogText ) );
+			_logBuilder.Enqueue(message);
+			LogLines.Add(LogLine.FromMessage(message));
+			OnPropertyChanged(nameof(LogText));
 		}
 
 		public void RemoveOldestLog()
 		{
 			_ = _logBuilder.Dequeue();
 			if (LogLines.Count > 0)
-				LogLines.RemoveAt( 0 );
-			OnPropertyChanged( nameof( LogText ) );
+				LogLines.RemoveAt(0);
+			OnPropertyChanged(nameof(LogText));
 		}
 
-		private void OnPropertyChanged( string propertyName )
+		private void OnPropertyChanged(string propertyName)
 		{
-			LogText = string.Join( Environment.NewLine, _logBuilder );
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+			LogText = string.Join(Environment.NewLine, _logBuilder);
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 	}
 
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public sealed class LogLine
 	{
 		public string Timestamp { get; set; }
@@ -62,16 +60,16 @@ namespace KOTORModSync
 		public string LevelColor { get; set; }
 		public bool IsHighlighted { get; set; }
 
-		public static LogLine FromMessage( string raw )
+		public static LogLine FromMessage(string raw)
 		{
 			string level = "INFO";
 			string color = "#00AA00";
-			if (raw?.IndexOf( "[Error]", StringComparison.OrdinalIgnoreCase ) >= 0)
+			if (raw?.IndexOf("[Error]", StringComparison.OrdinalIgnoreCase) >= 0)
 			{
 				level = "Error";
 				color = "#FF4444";
 			}
-			else if (raw?.IndexOf( "[Warning]", StringComparison.OrdinalIgnoreCase ) >= 0)
+			else if (raw?.IndexOf("[Warning]", StringComparison.OrdinalIgnoreCase) >= 0)
 			{
 				level = "Warning";
 				color = "#FFAA00";
@@ -79,7 +77,7 @@ namespace KOTORModSync
 
 			return new LogLine
 			{
-				Timestamp = DateTime.Now.ToString( "HH:mm:ss" ),
+				Timestamp = DateTime.Now.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
 				Message = raw ?? string.Empty,
 				Level = level,
 				LevelColor = color,
@@ -101,7 +99,7 @@ namespace KOTORModSync
 			_viewModel = new OutputViewModel();
 			DataContext = _viewModel;
 			InitializeControls();
-			ThemeManager.ApplyCurrentToWindow( this );
+			ThemeManager.ApplyCurrentToWindow(this);
 			ThemeManager.StyleChanged += OnGlobalStyleChanged;
 
 			PointerPressed += InputElement_OnPointerPressed;
@@ -117,66 +115,52 @@ namespace KOTORModSync
 			Logger.ExceptionLogged += ex =>
 			{
 				string exceptionLog = $"Exception: {ex.GetType().Name}: {ex.Message}\nStack trace: {ex.StackTrace}";
-				AppendLog( exceptionLog );
+				AppendLog(exceptionLog);
 			};
 
-			string logfileName = $"{Logger.LogFileName}{DateTime.Now:yyyy-MM-dd}";
-			string logDir = Path.Combine( UtilityHelper.GetBaseDirectory(), "Logs" );
-			if (!Directory.Exists( logDir ))
-				_ = Directory.CreateDirectory( logDir );
-
-			string logFilePath = Path.Combine( logDir, logfileName + ".log" );
-			if (!File.Exists( logFilePath ))
-				_ = File.Create( logFilePath );
-
-			// Try to read existing log file, but handle file access conflicts gracefully
+			// Load existing logs from NLog memory target instead of reading file directly
+			// This avoids file access conflicts with NLog's file target
 			try
 			{
-				string[] lines = File.ReadAllLines( logFilePath );
-				int startIndex = Math.Max( 0, lines.Length - _maxLinesShown );
-				foreach (string line in lines.Skip( startIndex ))
+				var recentLogs = Logger.GetRecentLogMessages(_maxLinesShown);
+				foreach (string logMessage in recentLogs)
 				{
-					AppendLog( line );
+					AppendLog(logMessage);
 				}
-			}
-			catch (IOException ex) when (ex.Message.Contains( "being used by another process" ))
-			{
-				// Log file is being used by another process, skip loading existing content
-				AppendLog( $"[Warning] Could not load existing log file: {ex.Message}" );
 			}
 			catch (Exception ex)
 			{
-				// Handle any other file reading errors
-				AppendLog( $"[Error] Failed to load existing log file: {ex.Message}" );
+				// Handle any errors loading from memory target
+				AppendLog($"[Warning] Could not load existing logs from memory: {ex.Message}");
 			}
 
 			LogScrollViewer.ScrollToEnd();
 		}
 
-		private void OnGlobalStyleChanged( Uri _ ) => ThemeManager.ApplyCurrentToWindow( this );
+		private void OnGlobalStyleChanged(Uri _) => ThemeManager.ApplyCurrentToWindow(this);
 
-		private async void CopySelected_Click( object sender, RoutedEventArgs e )
+		private async void CopySelected_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
-				if (Clipboard is null || this.FindControl<ListBox>( "LogListBox" ) is null)
+				if (Clipboard is null || this.FindControl<ListBox>("LogListBox") is null)
 					return;
 
-				ListBox list = this.FindControl<ListBox>( "LogListBox" );
-				var selected = list.SelectedItems?.OfType<LogLine>()?.ToList();
-				if (selected == null || selected.Count == 0)
+				ListBox list = this.FindControl<ListBox>("LogListBox");
+				var selected = list.SelectedItems?.OfType<LogLine>().ToList();
+				if (selected?.Count == 0)
 					return;
 
-				string text = string.Join( Environment.NewLine, selected.Select( l => $"[{l.Timestamp}] {l.Message}" ) );
-				await Clipboard.SetTextAsync( text ).ConfigureAwait( false );
+				string text = string.Join(Environment.NewLine, selected.Select(l => $"[{l.Timestamp}] {l.Message}"));
+				await Clipboard.SetTextAsync(text).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine( $"Failed to copy logs: {ex.Message}" );
+				Console.WriteLine($"Failed to copy logs: {ex.Message}");
 			}
 		}
 
-		private void AppendLog( string message )
+		private void AppendLog(string message)
 		{
 			try
 			{
@@ -187,27 +171,27 @@ namespace KOTORModSync
 						_viewModel.RemoveOldestLog();
 					}
 
-					_viewModel.AppendLog( message );
+					_viewModel.AppendLog(message);
 					LogLine last = _viewModel.LogLines.LastOrDefault();
 					if (last != null)
-						last.IsHighlighted = string.Equals( last.Level, "Error", StringComparison.Ordinal ) || string.Equals( last.Level, "Warning", StringComparison.Ordinal );
+						last.IsHighlighted = string.Equals(last.Level, "Error", StringComparison.Ordinal) || string.Equals(last.Level, "Warning", StringComparison.Ordinal);
 				}
 
-				_ = Dispatcher.UIThread.InvokeAsync( () => LogScrollViewer.ScrollToEnd() );
+				_ = Dispatcher.UIThread.InvokeAsync(() => LogScrollViewer.ScrollToEnd());
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine( $"An error occurred appending the log to the output window: '{ex.Message}'" );
+				Console.WriteLine($"An error occurred appending the log to the output window: '{ex.Message}'");
 			}
 		}
 
-		private void LogListBox_KeyDown( object sender, Avalonia.Input.KeyEventArgs e )
+		private void LogListBox_KeyDown(object sender, KeyEventArgs e)
 		{
 			try
 			{
 				if (!(sender is ListBox list))
 					return;
-				if (e.Key == Avalonia.Input.Key.H)
+				if (e.Key == Key.H)
 				{
 					foreach (LogLine line in list.SelectedItems?.OfType<LogLine>() ?? Enumerable.Empty<LogLine>())
 					{
@@ -215,32 +199,35 @@ namespace KOTORModSync
 					}
 				}
 			}
-			catch { }
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "An error occurred in LogListBox_KeyDown");
+			}
 		}
 
-		private void ClearLog_Click( object sender, RoutedEventArgs e )
+		private void ClearLog_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
 				lock (_logLock)
 				{
 					_viewModel._logBuilder.Clear();
-					_viewModel.AppendLog( string.Empty );
+					_viewModel.AppendLog(string.Empty);
 					_viewModel.LogLines.Clear();
 				}
 
-				_ = Dispatcher.UIThread.InvokeAsync( () =>
+				_ = Dispatcher.UIThread.InvokeAsync(() =>
 				{
-					LogScrollViewer.Offset = new Avalonia.Vector( 0, 0 );
-				} );
+					LogScrollViewer.Offset = new Avalonia.Vector(0, 0);
+				});
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine( $"Failed to clear logs: {ex.Message}" );
+				Console.WriteLine($"Failed to clear logs: {ex.Message}");
 			}
 		}
 
-		private async void SaveLog_Click( object sender, RoutedEventArgs e )
+		private async void SaveLog_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -251,52 +238,48 @@ namespace KOTORModSync
 					FileTypeChoices = new[] { FilePickerFileTypes.All, FilePickerFileTypes.TextPlain },
 				};
 
-
-
-				IStorageFile file = await StorageProvider.SaveFilePickerAsync( saveOptions ).ConfigureAwait( false );
-				string filePath = file?.TryGetLocalPath();
-				if (string.IsNullOrEmpty( filePath ))
+				IStorageFile file = await StorageProvider.SaveFilePickerAsync(saveOptions).ConfigureAwait(true);
+				string filePath = file.TryGetLocalPath();
+				if (string.IsNullOrEmpty(filePath))
 					return;
 
-
-
-				await Task.Run( () => File.WriteAllText( filePath, _viewModel.LogText ?? string.Empty ) ).ConfigureAwait( false );
+				await Task.Run(() => File.WriteAllText(filePath, _viewModel.LogText ?? string.Empty)).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine( $"Failed to save logs: {ex.Message}" );
+				Console.WriteLine($"Failed to save logs: {ex.Message}");
 			}
 		}
 
-		private void InputElement_OnPointerMoved( [NotNull] object sender, [NotNull] PointerEventArgs e )
+		private void InputElement_OnPointerMoved([NotNull] object sender, [NotNull] PointerEventArgs e)
 		{
 			if (!_mouseDownForWindowMoving)
 				return;
 
-			PointerPoint currentPoint = e.GetCurrentPoint( this );
+			PointerPoint currentPoint = e.GetCurrentPoint(this);
 			Position = new PixelPoint(
 				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
 				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
 			);
 		}
 
-		private void InputElement_OnPointerPressed( [NotNull] object sender, [NotNull] PointerEventArgs e )
+		private void InputElement_OnPointerPressed([NotNull] object sender, [NotNull] PointerEventArgs e)
 		{
 			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
 
 			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint( this );
+			_originalPoint = e.GetCurrentPoint(this);
 		}
 
-		private void InputElement_OnPointerReleased( [NotNull] object sender, [NotNull] PointerEventArgs e ) =>
+		private void InputElement_OnPointerReleased([NotNull] object sender, [NotNull] PointerEventArgs e) =>
 			_mouseDownForWindowMoving = false;
 
-		private void MinimizeButton_Click( object sender, RoutedEventArgs e ) => WindowState = WindowState.Minimized;
+		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
-		private void ToggleMaximizeButton_Click( object sender, RoutedEventArgs e ) =>
+		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
 			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
-		private void CloseButton_Click( object sender, RoutedEventArgs e ) => Close();
+		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 	}
 }

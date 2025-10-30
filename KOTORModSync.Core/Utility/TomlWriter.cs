@@ -24,7 +24,7 @@ namespace KOTORModSync.Core.Utility
 
 			foreach (KeyValuePair<string, object> kvp in data)
 			{
-				if (kvp.Key == null)
+				if (kvp.Key is null)
 					continue;
 
 				WriteTomlKey( kvp.Key, kvp.Value, sb, indentLevel: 0 );
@@ -40,12 +40,12 @@ namespace KOTORModSync.Core.Utility
 			int indentLevel
 		)
 		{
-			if (key == null)
+			if (key is null)
 				throw new ArgumentNullException( nameof( key ) );
-			if (sb == null)
+			if (sb is null)
 				throw new ArgumentNullException( nameof( sb ) );
 
-			if (value == null)
+			if (value is null)
 				return;
 
 			string indentation = new string( c: ' ', indentLevel * 4 );

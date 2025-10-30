@@ -82,10 +82,13 @@
                                 VerticalAlignment="Center"
                                 Text="ModComponent Section (Outer)" />
                             <TextBox
+                                Name="ComponentSectionTextBox"
                                 Grid.Row="0"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.ComponentSectionPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.ComponentSectionPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="1"
@@ -94,10 +97,13 @@
                                 VerticalAlignment="Center"
                                 Text="Heading Pattern" />
                             <TextBox
+                                Name="HeadingTextBox"
                                 Grid.Row="1"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.HeadingPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.HeadingPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="2"
@@ -106,10 +112,13 @@
                                 VerticalAlignment="Center"
                                 Text="Name Pattern" />
                             <TextBox
+                                Name="NameTextBox"
                                 Grid.Row="2"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.NamePattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.NamePattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="3"
@@ -118,10 +127,13 @@
                                 VerticalAlignment="Center"
                                 Text="Author Pattern" />
                             <TextBox
+                                Name="AuthorTextBox"
                                 Grid.Row="3"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.AuthorPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.AuthorPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="4"
@@ -130,10 +142,13 @@
                                 VerticalAlignment="Center"
                                 Text="Description Pattern" />
                             <TextBox
+                                Name="DescriptionTextBox"
                                 Grid.Row="4"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.DescriptionPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.DescriptionPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="5"
@@ -142,10 +157,13 @@
                                 VerticalAlignment="Center"
                                 Text="Masters Pattern" />
                             <TextBox
+                                Name="MastersTextBox"
                                 Grid.Row="5"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.DependenciesPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.DependenciesPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="6"
@@ -154,10 +172,13 @@
                                 VerticalAlignment="Center"
                                 Text="Category &amp; Tier Pattern" />
                             <TextBox
+                                Name="CategoryTextBox"
                                 Grid.Row="6"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.CategoryTierPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.CategoryTierPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="7"
@@ -166,10 +187,13 @@
                                 VerticalAlignment="Center"
                                 Text="Non-English Pattern" />
                             <TextBox
+                                Name="NonEnglishTextBox"
                                 Grid.Row="7"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.NonEnglishPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.NonEnglishPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="8"
@@ -178,10 +202,13 @@
                                 VerticalAlignment="Center"
                                 Text="Install Method Pattern" />
                             <TextBox
+                                Name="InstallationMethodTextBox"
                                 Grid.Row="8"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.InstallationMethodPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.InstallationMethodPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="9"
@@ -190,10 +217,13 @@
                                 VerticalAlignment="Center"
                                 Text="Install Instructions Pattern" />
                             <TextBox
+                                Name="InstallationInstructionsTextBox"
                                 Grid.Row="9"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.InstallationInstructionsPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.InstallationInstructionsPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="10"
@@ -202,10 +232,13 @@
                                 VerticalAlignment="Center"
                                 Text="ModLink Pattern" />
                             <TextBox
+                                Name="ModLinkTextBox"
                                 Grid.Row="10"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.ModLinkPattern, Mode=TwoWay}" />
+                                Text="{Binding Profile.ModLinkPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown" />
 
                             <TextBlock
                                 Grid.Row="11"
@@ -262,7 +295,9 @@
                             <TextBox
                                 x:Name="RawRegexTextBox"
                                 AcceptsReturn="True"
-                                Text="{Binding Profile.RawRegexPattern, Mode=TwoWay}"
+                                Text="{Binding Profile.RawRegexPattern}"
+                                LostFocus="OnRegexPatternChanged"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 TextWrapping="Wrap" />
                         </ScrollViewer>
                     </Grid>
@@ -295,17 +330,17 @@
                     Grid.Row="0"
                     Margin="8,8,8,4"
                     Text="Live Preview" />
-                <ScrollViewer
-                    Name="PreviewScrollViewer"
+                <TextBox
+                    Name="PreviewTextBox"
                     Grid.Row="1"
                     Margin="8"
-                    HorizontalScrollBarVisibility="Disabled"
-                    VerticalScrollBarVisibility="Auto">
-                    <TextBlock
-                        Name="PreviewTextBlock"
-                        Padding="8"
-                        TextWrapping="Wrap" />
-                </ScrollViewer>
+                    AcceptsReturn="True"
+                    AcceptsTab="True"
+                    TextWrapping="Wrap"
+                    FontFamily="Consolas,Monaco,monospace"
+                    IsReadOnly="False"
+                    Text="{Binding PreviewMarkdown, Mode=TwoWay}"
+                    KeyDown="OnPreviewTextBox_KeyDown" />
             </Grid>
         </Border>
 

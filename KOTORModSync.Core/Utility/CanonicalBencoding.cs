@@ -46,7 +46,7 @@ namespace KOTORModSync.Core.Utility
 
 		private static void EncodeValue( object value, List<byte> output )
 		{
-			if (value == null)
+			if (value is null)
 			{
 				throw new ArgumentException( "Null values are not allowed in bencoding" );
 			}

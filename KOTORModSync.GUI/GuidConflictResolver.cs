@@ -22,7 +22,7 @@ namespace KOTORModSync
 		}
 
 
-		public static GuidResolution ResolveGuidConflict( ModComponent existing, ModComponent incoming )
+		public static GuidResolution ResolveGuidConflict(ModComponent existing, ModComponent incoming)
 		{
 
 			if (existing.Guid == incoming.Guid)
@@ -31,12 +31,12 @@ namespace KOTORModSync
 			var resolution = new GuidResolution
 			{
 				ExistingComponent = existing,
-				IncomingComponent = incoming
+				IncomingComponent = incoming,
 			};
 
-			bool existingHasGuidUsage = HasIntricateGuidUsage( existing );
+			bool existingHasGuidUsage = HasIntricateGuidUsage(existing);
 
-			bool incomingHasGuidUsage = HasIntricateGuidUsage( incoming );
+			bool incomingHasGuidUsage = HasIntricateGuidUsage(incoming);
 
 			if (existingHasGuidUsage && incomingHasGuidUsage)
 			{
@@ -88,7 +88,7 @@ namespace KOTORModSync
 			return resolution;
 		}
 
-		private static bool HasIntricateGuidUsage( ModComponent component )
+		private static bool HasIntricateGuidUsage(ModComponent component)
 		{
 
 			if (component.Dependencies.Count > 0)
@@ -104,15 +104,15 @@ namespace KOTORModSync
 			return false;
 		}
 
-		public static bool IsGuidReferencedByOthers( Guid guid, System.Collections.Generic.List<ModComponent> allComponents )
+		public static bool IsGuidReferencedByOthers(Guid guid, System.Collections.Generic.List<ModComponent> allComponents)
 		{
 			foreach (ModComponent comp in allComponents)
 			{
-				if (comp.Dependencies.Contains( guid ))
+				if (comp.Dependencies.Contains(guid))
 					return true;
-				if (comp.Restrictions.Contains( guid ))
+				if (comp.Restrictions.Contains(guid))
 					return true;
-				if (comp.InstallAfter.Contains( guid ))
+				if (comp.InstallAfter.Contains(guid))
 					return true;
 			}
 			return false;

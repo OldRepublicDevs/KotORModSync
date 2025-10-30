@@ -27,9 +27,9 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			string relativePath,
 			CancellationToken cancellationToken = default)
 		{
-			if ( !File.Exists(sourceFilePath) )
+			if (!File.Exists(sourceFilePath))
 				throw new FileNotFoundException($"Source file not found: {sourceFilePath}");
-			if ( !File.Exists(targetFilePath) )
+			if (!File.Exists(targetFilePath))
 				throw new FileNotFoundException($"Target file not found: {targetFilePath}");
 
 			var sourceInfo = new FileInfo(sourceFilePath);
@@ -40,7 +40,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			string sourceHash = await ComputeFileHashAsync(sourceFilePath, cancellationToken);
 			string targetHash = await ComputeFileHashAsync(targetFilePath, cancellationToken);
 
-			if ( sourceHash == targetHash )
+			if (sourceHash == targetHash)
 			{
 				await Logger.LogVerboseAsync($"[BinaryDiff] Files identical, skipping delta for {relativePath}");
 				return null;
@@ -49,7 +49,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			string sourceCASHash = await _casStore.StoreFileAsync(sourceFilePath);
 			string targetCASHash = await _casStore.StoreFileAsync(targetFilePath);
 
-			if ( targetInfo.Length < MIN_FILE_SIZE_FOR_DIFF )
+			if (targetInfo.Length < MIN_FILE_SIZE_FOR_DIFF)
 			{
 				await Logger.LogVerboseAsync($"[BinaryDiff] File too small for delta, storing full file: {relativePath}");
 				return new FileDelta
@@ -63,13 +63,13 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 					TargetSize = targetInfo.Length,
 					ForwardDeltaSize = targetInfo.Length,
 					ReverseDeltaSize = sourceInfo.Length,
-					Method = "full_copy"
+					Method = "full_copy",
 				};
 			}
 
 			string forwardDeltaHash;
 			long forwardDeltaSize;
-			using ( var forwardDeltaStream = new MemoryStream() )
+			using (var forwardDeltaStream = new MemoryStream())
 			{
 				forwardDeltaSize = await CreateOctodiffDeltaAsync(
 					sourceFilePath,
@@ -82,7 +82,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 			string reverseDeltaHash;
 			long reverseDeltaSize;
-			using ( var reverseDeltaStream = new MemoryStream() )
+			using (var reverseDeltaStream = new MemoryStream())
 			{
 				reverseDeltaSize = await CreateOctodiffDeltaAsync(
 					targetFilePath,
@@ -112,7 +112,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				TargetSize = targetInfo.Length,
 				ForwardDeltaSize = forwardDeltaSize,
 				ReverseDeltaSize = reverseDeltaSize,
-				Method = "octodiff"
+				Method = "octodiff",
 			};
 		}
 
@@ -121,19 +121,19 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			string outputFilePath,
 			CancellationToken cancellationToken = default)
 		{
-			if ( delta == null )
+			if (delta is null)
 				throw new ArgumentNullException(nameof(delta));
 
 			await Logger.LogVerboseAsync($"[BinaryDiff] Applying forward delta for {delta.Path}");
 
-			if ( delta.Method == "full_copy" )
+			if (delta.Method == "full_copy")
 			{
 				await _casStore.RetrieveFileAsync(delta.TargetCASHash, outputFilePath);
 				return;
 			}
 
-			using ( var sourceStream = _casStore.OpenReadStream(delta.SourceCASHash) )
-			using ( var deltaStream = _casStore.OpenReadStream(delta.ForwardDeltaCASHash) )
+			using (var sourceStream = _casStore.OpenReadStream(delta.SourceCASHash))
+			using (var deltaStream = _casStore.OpenReadStream(delta.ForwardDeltaCASHash))
 			{
 				await ApplyOctodiffDeltaAsync(sourceStream, deltaStream, outputFilePath, cancellationToken);
 			}
@@ -144,19 +144,19 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			string outputFilePath,
 			CancellationToken cancellationToken = default)
 		{
-			if ( delta == null )
+			if (delta is null)
 				throw new ArgumentNullException(nameof(delta));
 
 			await Logger.LogVerboseAsync($"[BinaryDiff] Applying reverse delta for {delta.Path}");
 
-			if ( delta.Method == "full_copy" )
+			if (delta.Method == "full_copy")
 			{
 				await _casStore.RetrieveFileAsync(delta.SourceCASHash, outputFilePath);
 				return;
 			}
 
-			using ( var targetStream = _casStore.OpenReadStream(delta.TargetCASHash) )
-			using ( var reverseDeltaStream = _casStore.OpenReadStream(delta.ReverseDeltaCASHash) )
+			using (var targetStream = _casStore.OpenReadStream(delta.TargetCASHash))
+			using (var reverseDeltaStream = _casStore.OpenReadStream(delta.ReverseDeltaCASHash))
 			{
 				await ApplyOctodiffDeltaAsync(targetStream, reverseDeltaStream, outputFilePath, cancellationToken);
 			}
@@ -172,14 +172,14 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
-				using ( var basisStream = new FileStream(basisFilePath, FileMode.Open, FileAccess.Read, FileShare.Read) )
-				using ( var signatureStream = new MemoryStream() )
+				using (var basisStream = new FileStream(basisFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+				using (var signatureStream = new MemoryStream())
 				{
 					var signatureBuilder = new SignatureBuilder();
 					signatureBuilder.Build(basisStream, new SignatureWriter(signatureStream));
 					signatureStream.Position = 0;
 
-					using ( var newFileStream = new FileStream(newFilePath, FileMode.Open, FileAccess.Read, FileShare.Read) )
+					using (var newFileStream = new FileStream(newFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
 					{
 						var deltaBuilder = new DeltaBuilder();
 						deltaBuilder.BuildDelta(
@@ -205,10 +205,10 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 				cancellationToken.ThrowIfCancellationRequested();
 
 				string outputDir = Path.GetDirectoryName(outputFilePath);
-				if ( !string.IsNullOrEmpty(outputDir) )
+				if (!string.IsNullOrEmpty(outputDir))
 					Directory.CreateDirectory(outputDir);
 
-				using ( var outputStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.None) )
+				using (var outputStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
 				{
 					var deltaApplier = new DeltaApplier();
 					deltaApplier.Apply(

@@ -51,7 +51,7 @@ namespace KOTORModSync.Controls
 			var imageItemsControl = this.FindControl<ItemsControl>( "ImageItemsControl" );
 			var fallbackTextBlock = this.FindControl<TextBlock>( "FallbackTextBlock" );
 
-			if (imageItemsControl == null || fallbackTextBlock == null)
+			if (imageItemsControl is null || fallbackTextBlock is null)
 				return;
 
 			if (string.IsNullOrWhiteSpace( ScreenshotData ))

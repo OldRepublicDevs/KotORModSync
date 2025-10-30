@@ -25,72 +25,72 @@ namespace KOTORModSync.Services
 		private readonly ObservableCollection<TierFilterItem> _tierItems = new ObservableCollection<TierFilterItem>();
 		private readonly ObservableCollection<SelectionFilterItem> _categoryItems = new ObservableCollection<SelectionFilterItem>();
 
-		public FilterUIService( MainConfig mainConfig )
+		public FilterUIService(MainConfig mainConfig)
 		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException( nameof( mainConfig ) );
+			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 		}
 
 		public void InitializeFilters(
 			List<ModComponent> components,
 			ComboBox tierComboBox,
-			ItemsControl categoryItemsControl )
+			ItemsControl categoryItemsControl)
 		{
 			try
 			{
 
 				_tierItems.Clear();
-				var tierCounts = new Dictionary<string, int>( StringComparer.OrdinalIgnoreCase );
-				var tierPriorities = new Dictionary<string, int>( StringComparer.OrdinalIgnoreCase );
+				var tierCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+				var tierPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
 				int priority = 1;
 
-				IOrderedEnumerable<ModComponent> sortedComponents = components.OrderBy( x =>
+				IOrderedEnumerable<ModComponent> sortedComponents = components.OrderBy(x =>
 				{
-					if (string.IsNullOrEmpty( x.Tier ))
+					if (string.IsNullOrEmpty(x.Tier))
 						return (int.MaxValue, string.Empty);
 
 					string tier = x.Tier.Trim();
-					int dashIndex = tier.IndexOf( '-' );
+					int dashIndex = tier.IndexOf('-');
 					if (dashIndex > 0)
 					{
-						string numPart = tier.Substring( 0, dashIndex ).Trim();
-						if (int.TryParse( numPart, out int num ))
+						string numPart = tier.Substring(0, dashIndex).Trim();
+						if (int.TryParse(numPart, out int num))
 							return (num, tier);
 					}
 
 					return (int.MaxValue, tier);
-				} ).ThenBy( x => x.Tier, StringComparer.OrdinalIgnoreCase );
+				}).ThenBy(x => x.Tier, StringComparer.OrdinalIgnoreCase);
 
 				foreach (ModComponent c in sortedComponents)
 				{
-					if (string.IsNullOrEmpty( c.Tier ))
+					if (string.IsNullOrEmpty(c.Tier))
 						continue;
 
-					if (!tierCounts.TryGetValue( c.Tier, out int value ))
+					if (!tierCounts.TryGetValue(c.Tier, out int value))
 					{
 						value = 0;
 						tierCounts[c.Tier] = value;
 						tierPriorities[c.Tier] = priority;
-						Logger.LogVerbose( $"Assigning tier '{c.Tier}' priority {priority}" );
+						Logger.LogVerbose($"Assigning tier '{c.Tier}' priority {priority}");
 						priority++;
 					}
 					tierCounts[c.Tier] = ++value;
 				}
 
-				foreach (KeyValuePair<string, int> kvp in tierCounts.OrderBy( x => tierPriorities[x.Key] ))
+				foreach (KeyValuePair<string, int> kvp in tierCounts.OrderBy(x => tierPriorities[x.Key]))
 				{
 					var item = new TierFilterItem
 					{
 						Name = kvp.Key,
 						Count = kvp.Value,
 						Priority = tierPriorities[kvp.Key],
-						IsSelected = false
+						IsSelected = false,
 					};
-					_tierItems.Add( item );
+					_tierItems.Add(item);
 				}
 
 				_categoryItems.Clear();
-				var categoryCounts = new Dictionary<string, int>( StringComparer.OrdinalIgnoreCase );
+				var categoryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
 				foreach (ModComponent c in components)
 				{
@@ -99,24 +99,24 @@ namespace KOTORModSync.Services
 
 					foreach (string cat in c.Category)
 					{
-						if (string.IsNullOrEmpty( cat ))
+						if (string.IsNullOrEmpty(cat))
 							continue;
 
-						if (!categoryCounts.ContainsKey( cat ))
+						if (!categoryCounts.ContainsKey(cat))
 							categoryCounts[cat] = 0;
 						categoryCounts[cat]++;
 					}
 				}
 
-				foreach (KeyValuePair<string, int> kvp in categoryCounts.OrderBy( x => x.Key, StringComparer.OrdinalIgnoreCase ))
+				foreach (KeyValuePair<string, int> kvp in categoryCounts.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
 				{
 					var item = new SelectionFilterItem
 					{
 						Name = kvp.Key,
 						Count = kvp.Value,
-						IsSelected = false
+						IsSelected = false,
 					};
-					_categoryItems.Add( item );
+					_categoryItems.Add(item);
 				}
 
 				if (tierComboBox != null)
@@ -127,129 +127,129 @@ namespace KOTORModSync.Services
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error initializing filter UI" );
+				Logger.LogException(ex, "Error initializing filter UI");
 			}
 		}
 
 		public void SelectByTier(
 			TierFilterItem selectedTierItem,
 			Action<ModComponent, HashSet<ModComponent>> onComponentChecked,
-			Action onUIRefresh )
+			Action onUIRefresh)
 		{
 			try
 			{
-				if (selectedTierItem == null)
+				if (selectedTierItem is null)
 				{
-					Logger.LogWarning( "No tier selected" );
+					Logger.LogWarning("No tier selected");
 					return;
 				}
 
 				var visitedComponents = new HashSet<ModComponent>();
-				var tiersToInclude = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+				var tiersToInclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
 				foreach (TierFilterItem tierItem in _tierItems)
 				{
 					if (tierItem.Priority <= selectedTierItem.Priority)
 					{
-						_ = tiersToInclude.Add( tierItem.Name );
-						Logger.LogVerbose( $"Including tier: '{tierItem.Name}' (Priority: {tierItem.Priority})" );
+						_ = tiersToInclude.Add(tierItem.Name);
+						Logger.LogVerbose($"Including tier: '{tierItem.Name}' (Priority: {tierItem.Priority})");
 					}
 				}
 
-				Logger.LogVerbose( $"Selected tier: '{selectedTierItem.Name}' (Priority: {selectedTierItem.Priority})" );
+				Logger.LogVerbose($"Selected tier: '{selectedTierItem.Name}' (Priority: {selectedTierItem.Priority})");
 
-				var matchingMods = _mainConfig.allComponents.Where( c =>
-					!string.IsNullOrEmpty( c.Tier ) && tiersToInclude.Contains( c.Tier )
+				var matchingMods = _mainConfig.allComponents.Where(c =>
+					!string.IsNullOrEmpty(c.Tier) && tiersToInclude.Contains(c.Tier)
 				).ToList();
 
-				Logger.LogVerbose( $"Matched {matchingMods.Count} components by tier" );
+				Logger.LogVerbose($"Matched {matchingMods.Count} components by tier");
 
-				Dispatcher.UIThread.Post( () =>
+				Dispatcher.UIThread.Post(() =>
 				{
 					foreach (ModComponent component in matchingMods)
 					{
 						if (!component.IsSelected)
 						{
 							component.IsSelected = true;
-							onComponentChecked?.Invoke( component, visitedComponents );
+							onComponentChecked?.Invoke(component, visitedComponents);
 						}
 					}
 
 					onUIRefresh?.Invoke();
-					Logger.Log( $"Selected {matchingMods.Count} mods in tier '{selectedTierItem.Name}' and higher priority tiers" );
-				}, DispatcherPriority.Normal );
+					Logger.Log($"Selected {matchingMods.Count} mods in tier '{selectedTierItem.Name}' and higher priority tiers");
+				}, DispatcherPriority.Normal);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error selecting by tier" );
+				Logger.LogException(ex, "Error selecting by tier");
 			}
 		}
 
 		public void ApplyCategorySelections(
 			Action<ModComponent, HashSet<ModComponent>> onComponentChecked,
-			Action onUIRefresh )
+			Action onUIRefresh)
 		{
 			try
 			{
 				var selectedCategories = new HashSet<string>(
-					_categoryItems.Where( c => c.IsSelected ).Select( c => c.Name ),
+					_categoryItems.Where(c => c.IsSelected).Select(c => c.Name),
 					StringComparer.OrdinalIgnoreCase
 				);
 
 				if (selectedCategories.Count == 0)
 				{
-					Logger.LogWarning( "No categories selected" );
+					Logger.LogWarning("No categories selected");
 					return;
 				}
 
 				var visitedComponents = new HashSet<ModComponent>();
 
-				var matchingMods = _mainConfig.allComponents.Where( c =>
-					c.Category.Count > 0 && c.Category.Any( cat => selectedCategories.Contains( cat ) )
+				var matchingMods = _mainConfig.allComponents.Where(c =>
+					c.Category.Count > 0 && c.Category.Any(cat => selectedCategories.Contains(cat))
 				).ToList();
 
-				Logger.LogVerbose( $"Categories selected: {string.Join( ", ", selectedCategories )}" );
-				Logger.LogVerbose( $"Matched {matchingMods.Count} components by category" );
+				Logger.LogVerbose($"Categories selected: {string.Join(", ", selectedCategories)}");
+				Logger.LogVerbose($"Matched {matchingMods.Count} components by category");
 
-				Dispatcher.UIThread.Post( () =>
+				Dispatcher.UIThread.Post(() =>
 				{
 					foreach (ModComponent component in matchingMods)
 					{
 						if (!component.IsSelected)
 						{
 							component.IsSelected = true;
-							onComponentChecked?.Invoke( component, visitedComponents );
+							onComponentChecked?.Invoke(component, visitedComponents);
 						}
 					}
 
 					onUIRefresh?.Invoke();
-					Logger.Log( $"Selected {matchingMods.Count} mods in categories: {string.Join( ", ", selectedCategories )}" );
-				}, DispatcherPriority.Normal );
+					Logger.Log($"Selected {matchingMods.Count} mods in categories: {string.Join(", ", selectedCategories)}");
+				}, DispatcherPriority.Normal);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error applying category selections" );
+				Logger.LogException(ex, "Error applying category selections");
 			}
 		}
 
-		public void ClearCategorySelections( Action<SelectionFilterItem, PropertyChangedEventHandler> onPropertyChangedHandler )
+		public void ClearCategorySelections(Action<SelectionFilterItem, PropertyChangedEventHandler> onPropertyChangedHandler)
 		{
 			try
 			{
 				foreach (SelectionFilterItem item in _categoryItems)
 				{
 					if (onPropertyChangedHandler != null)
-						onPropertyChangedHandler( item, ( s, e ) => { } );
+						onPropertyChangedHandler(item, (s, e) => { });
 
 					item.IsSelected = false;
 
 					if (onPropertyChangedHandler != null)
-						onPropertyChangedHandler( item, ( s, e ) => { } );
+						onPropertyChangedHandler(item, (s, e) => { });
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error clearing category selections" );
+				Logger.LogException(ex, "Error clearing category selections");
 			}
 		}
 

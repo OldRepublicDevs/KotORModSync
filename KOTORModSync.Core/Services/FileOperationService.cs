@@ -22,7 +22,6 @@ namespace KOTORModSync.Core.Services
 			DirectoryInfo directory = new DirectoryInfo( folderPath );
 			if (!directory.Exists)
 
-
 			{
 				await Logger.LogErrorAsync( $"Directory not found: '{directory.FullName}', skipping..." ).ConfigureAwait( false );
 				return 0;
@@ -47,7 +46,6 @@ namespace KOTORModSync.Core.Services
 					string lowercasePath = Path.Combine( dirName, lowercaseName );
 					if (!string.Equals( lowercasePath, file.FullName, StringComparison.Ordinal ))
 
-
 					{
 						await Logger.LogAsync( $"Rename file '{file.FullName}' -> '{lowercasePath}'" ).ConfigureAwait( false );
 						File.Move( file.FullName, lowercasePath );
@@ -64,7 +62,6 @@ namespace KOTORModSync.Core.Services
 
 					string lowercasePath = Path.Combine( dirParentPath, lowercaseName );
 					if (!string.Equals( lowercasePath, directory.FullName, StringComparison.Ordinal ))
-
 
 					{
 						await Logger.LogAsync( $"Rename folder '{directory.FullName}' -> '{lowercasePath}'" )
@@ -88,7 +85,6 @@ namespace KOTORModSync.Core.Services
 				return numObjectsRenamed;
 			}
 			catch (Exception exception)
-
 
 			{
 				await Logger.LogExceptionAsync( exception ).ConfigureAwait( false );

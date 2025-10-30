@@ -380,37 +380,37 @@ namespace KOTORModSync.Core.Parsing
 		};
 
 		// File/folder extraction patterns
-		private static readonly Dictionary<string, Regex> s_entityPatterns = new Dictionary<string, Regex>( StringComparer.OrdinalIgnoreCase )
+		private static readonly Dictionary<string, Regex> s_entityPatterns = new Dictionary<string, Regex>(StringComparer.OrdinalIgnoreCase)
 		{
 			// File ranges: "file01.tga through file10.tga"
-			["file_range"] = new Regex( @"[""']?(?<start>[\w\-_]+\.[\w]+)[""']?\s+(?:through|to|-)\s+[""']?(?<end>[\w\-_]+\.[\w]+)[""']?", RegexOptions.IgnoreCase ),
+			["file_range"] = new Regex(@"[""']?(?<start>[\w\-_]+\.[\w]+)[""']?\s+(?:through|to|-)\s+[""']?(?<end>[\w\-_]+\.[\w]+)[""']?", RegexOptions.IgnoreCase),
 			// Numeric ranges: "m36aa_01_lm0 through m36aa_01_lm2.tga"
-			["numeric_range"] = new Regex( @"(?<prefix>[\w\-_]+?)(?<start_num>\d+)(?<suffix>[\w\-_.]*?)\s+through\s+\k<prefix>(?<end_num>\d+)(?:\k<suffix>|\.[\w]+)", RegexOptions.IgnoreCase ),
+			["numeric_range"] = new Regex(@"(?<prefix>[\w\-_]+?)(?<start_num>\d+)(?<suffix>[\w\-_.]*?)\s+through\s+\k<prefix>(?<end_num>\d+)(?:\k<suffix>|\.[\w]+)", RegexOptions.IgnoreCase),
 			// File lists: "file1.ext, file2.ext, and file3.ext"
-			["file_list"] = new Regex( @"(?<files>(?:[\w\-_.]+\.[\w]+(?:\s+&\s+\.[\w]+)?(?:,\s*|\s+and\s+|\s+&\s+))+[\w\-_.]+\.[\w]+)", RegexOptions.IgnoreCase ),
+			["file_list"] = new Regex(@"(?<files>(?:[\w\-_.]+\.[\w]+(?:\s+&\s+\.[\w]+)?(?:,\s*|\s+and\s+|\s+&\s+))+[\w\-_.]+\.[\w]+)", RegexOptions.IgnoreCase),
 			// Single file with extension
-			["single_file"] = new Regex( @"[""']?(?<file>[\w\-_]+\.[\w]{2,4})[""']?", RegexOptions.IgnoreCase ),
+			["single_file"] = new Regex(@"[""']?(?<file>[\w\-_]+\.[\w]{2,4})[""']?", RegexOptions.IgnoreCase),
 			// Folder references
-			["folder_from"] = new Regex( @"from\s+(?:the\s+)?(?:both\s+the\s+)?(?<folder>[\w\s\-_&/\\]+?)\s+(?:and\s+(?<folder2>[\w\s\-_/\\]+?)\s+)?(?:folder|directory)", RegexOptions.IgnoreCase ),
-			["folder_name"] = new Regex( @"(?:the\s+)?[""']?(?<folder>[\w\s\-_/\\]+?)[""']?\s+folder", RegexOptions.IgnoreCase ),
+			["folder_from"] = new Regex(@"from\s+(?:the\s+)?(?:both\s+the\s+)?(?<folder>[\w\s\-_&/\\]+?)\s+(?:and\s+(?<folder2>[\w\s\-_/\\]+?)\s+)?(?:folder|directory)", RegexOptions.IgnoreCase),
+			["folder_name"] = new Regex(@"(?:the\s+)?[""']?(?<folder>[\w\s\-_/\\]+?)[""']?\s+folder", RegexOptions.IgnoreCase),
 			// Destination patterns
-			["override_dest"] = new Regex( @"(?:to\s+)?(?:your\s+)?(?:game'?s?\s+)?override(?:\s+(?:folder|directory))?", RegexOptions.IgnoreCase ),
-			["main_dir_dest"] = new Regex( @"(?:to\s+)?(?:the\s+)?main\s+(?:game\s+)?(?:directory|folder)", RegexOptions.IgnoreCase ),
-			["movies_dest"] = new Regex( @"(?:to\s+)?(?:your\s+)?(?:game'?s?\s+)?movies\s+folder", RegexOptions.IgnoreCase ),
+			["override_dest"] = new Regex(@"(?:to\s+)?(?:your\s+)?(?:game'?s?\s+)?override(?:\s+(?:folder|directory))?", RegexOptions.IgnoreCase),
+			["main_dir_dest"] = new Regex(@"(?:to\s+)?(?:the\s+)?main\s+(?:game\s+)?(?:directory|folder)", RegexOptions.IgnoreCase),
+			["movies_dest"] = new Regex(@"(?:to\s+)?(?:your\s+)?(?:game'?s?\s+)?movies\s+folder", RegexOptions.IgnoreCase),
 			// Wildcards and patterns
-			["wildcard"] = new Regex( @"(?<pattern>[\w\-_*?]+\*[\w\-_*?]*)", RegexOptions.IgnoreCase ),
+			["wildcard"] = new Regex(@"(?<pattern>[\w\-_*?]+\*[\w\-_*?]*)", RegexOptions.IgnoreCase),
 			// Exclusions
-			["except"] = new Regex( @"(?:except|excluding|but\s+not|not\s+including)(?:\s+(?:for|the))?\s+(?:the\s+)?(?<exceptions>.+?)(?:\s*(?:\(|:|;|\.|$))", RegexOptions.IgnoreCase | RegexOptions.Singleline ),
-			["ignore"] = new Regex( @"(?:ignore|skip|don't\s+(?:install|move|use))\s+(?:the\s+)?(?<ignore>.+?)(?:\.|;|,\s+you|\s+unless|$)", RegexOptions.IgnoreCase ),
+			["except"] = new Regex(@"(?:except|excluding|but\s+not|not\s+including)(?:\s+(?:for|the))?\s+(?:the\s+)?(?<exceptions>.+?)(?:\s*(?:\(|:|;|\.|$))", RegexOptions.IgnoreCase | RegexOptions.Singleline),
+			["ignore"] = new Regex(@"(?:ignore|skip|don't\s+(?:install|move|use))\s+(?:the\s+)?(?<ignore>.+?)(?:\.|;|,\s+you|\s+unless|$)", RegexOptions.IgnoreCase),
 			// Overwrite detection
-			["overwrite"] = new Regex( @"(?:overwrite|replace)(?:\s+when\s+prompted|\s+if\s+(?:asked|prompted))?", RegexOptions.IgnoreCase ),
-			["no_overwrite"] = new Regex( @"(?:do\s+not|don't)\s+overwrite", RegexOptions.IgnoreCase ),
+			["overwrite"] = new Regex(@"(?:overwrite|replace)(?:\s+when\s+prompted|\s+if\s+(?:asked|prompted))?", RegexOptions.IgnoreCase),
+			["no_overwrite"] = new Regex(@"(?:do\s+not|don't)\s+overwrite", RegexOptions.IgnoreCase),
 			// Multiple file types
-			["file_types"] = new Regex( @"(?<types>(?:\.[\w]+(?:\s+&\s+|,\s*|\s+and\s+))+\.[\w]+)", RegexOptions.IgnoreCase ),
+			["file_types"] = new Regex(@"(?<types>(?:\.[\w]+(?:\s+&\s+|,\s*|\s+and\s+))+\.[\w]+)", RegexOptions.IgnoreCase),
 		};
 
 		// Destination normalization mappings
-		private static readonly Dictionary<string, string> s_destinationMappings = new Dictionary<string, string>( StringComparer.OrdinalIgnoreCase )
+		private static readonly Dictionary<string, string> s_destinationMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
 		{
 			["override"] = @"<<kotorDirectory>>\Override",
 			["override folder"] = @"<<kotorDirectory>>\Override",
@@ -426,7 +426,7 @@ namespace KOTORModSync.Core.Parsing
 			["your movies folder"] = @"<<kotorDirectory>>\Movies",
 		};
 
-		public NaturalLanguageInstructionParser( [CanBeNull] Action<string> logInfo = null, [CanBeNull] Action<string> logVerbose = null )
+		public NaturalLanguageInstructionParser([CanBeNull] Action<string> logInfo = null, [CanBeNull] Action<string> logVerbose = null)
 		{
 			_logInfo = logInfo ?? (_ => { });
 			_logVerbose = logVerbose ?? (_ => { });
@@ -439,46 +439,46 @@ namespace KOTORModSync.Core.Parsing
 		public ObservableCollection<Instruction> ParseInstructions(
 			[NotNull] string installationInstructions,
 			[CanBeNull] string downloadInstructions,
-			[NotNull] ModComponent parentComponent )
+			[NotNull] ModComponent parentComponent)
 		{
-			if (installationInstructions == null)
-				throw new ArgumentNullException( nameof( installationInstructions ) );
-			if (parentComponent == null)
-				throw new ArgumentNullException( nameof( parentComponent ) );
+			if (installationInstructions is null)
+				throw new ArgumentNullException(nameof(installationInstructions));
+			if (parentComponent is null)
+				throw new ArgumentNullException(nameof(parentComponent));
 
 			ObservableCollection<Instruction> instructions = new ObservableCollection<Instruction>();
 
-			_logVerbose( $"[NLParser] Parsing instructions for component: {parentComponent.Name}" );
+			_logVerbose($"[NLParser] Parsing instructions for component: {parentComponent.Name}");
 
 			// Split into logical units (sentences/clauses)
-			List<string> units = NaturalLanguageInstructionParser.SplitIntoProcessingUnits( installationInstructions );
-			_logVerbose( $"[NLParser] Found {units.Count} instruction units to parse" );
+			List<string> units = SplitIntoProcessingUnits(installationInstructions);
+			_logVerbose($"[NLParser] Found {units.Count} instruction units to parse");
 
 			foreach (string unit in units)
 			{
-				List<Instruction> parsedInstructions = ParseInstructionUnit( unit, parentComponent );
+				List<Instruction> parsedInstructions = ParseInstructionUnit(unit, parentComponent);
 				foreach (Instruction instruction in parsedInstructions)
 				{
-					instructions.Add( instruction );
+					instructions.Add(instruction);
 					string sourcePreview = instruction.Source != null && instruction.Source.Count > 0
-						? string.Join( ", ", instruction.Source.Take( 3 ) )
+						? string.Join(", ", instruction.Source.Take(3))
 						: "(no source)";
-					_logVerbose( $"[NLParser] Created {instruction.Action} instruction: {sourcePreview}" );
+					_logVerbose($"[NLParser] Created {instruction.Action} instruction: {sourcePreview}");
 				}
 			}
 
 			// Parse download instructions for options/recommendations
-			if (!string.IsNullOrWhiteSpace( downloadInstructions ))
+			if (!string.IsNullOrWhiteSpace(downloadInstructions))
 			{
-				List<Option> downloadOptions = NaturalLanguageInstructionParser.ParseDownloadInstructions( downloadInstructions, parentComponent );
+				List<Option> downloadOptions = ParseDownloadInstructions(downloadInstructions, parentComponent);
 				foreach (Option option in downloadOptions)
 				{
-					parentComponent.Options.Add( option );
-					_logVerbose( $"[NLParser] Created option from download instructions: {option.Name}" );
+					parentComponent.Options.Add(option);
+					_logVerbose($"[NLParser] Created option from download instructions: {option.Name}");
 				}
 			}
 
-			_logInfo( $"[NLParser] Generated {instructions.Count} instructions for '{parentComponent.Name}'" );
+			_logInfo($"[NLParser] Generated {instructions.Count} instructions for '{parentComponent.Name}'");
 			return instructions;
 		}
 
@@ -487,38 +487,38 @@ namespace KOTORModSync.Core.Parsing
 		/// Handles complex multi-clause instructions.
 		/// </summary>
 		[NotNull]
-		private static List<string> SplitIntoProcessingUnits( [NotNull] string text )
+		private static List<string> SplitIntoProcessingUnits([NotNull] string text)
 		{
 			List<string> units = new List<string>();
 
 			// First, split on sentence boundaries (periods followed by space or newline)
 			// But be careful not to split on file extensions
-			Regex sentencePattern = new Regex( @"(?<!\w\.\w)(?<=\.)\s+(?=[A-Z])", RegexOptions.Multiline );
-			string[] sentences = sentencePattern.Split( text );
+			Regex sentencePattern = new Regex(@"(?<!\w\.\w)(?<=\.)\s+(?=[A-Z])", RegexOptions.Multiline);
+			string[] sentences = sentencePattern.Split(text);
 
 			foreach (string sentence in sentences)
 			{
-				if (string.IsNullOrWhiteSpace( sentence ))
+				if (string.IsNullOrWhiteSpace(sentence))
 					continue;
 
 				// Further split on semicolons and "then" clauses for multi-step instructions
-				Regex clausePattern = new Regex( @"(?:;|,?\s+then\s+|,\s+and\s+then\s+)", RegexOptions.IgnoreCase );
-				string[] clauses = clausePattern.Split( sentence );
+				Regex clausePattern = new Regex(@"(?:;|,?\s+then\s+|,\s+and\s+then\s+)", RegexOptions.IgnoreCase);
+				string[] clauses = clausePattern.Split(sentence);
 
 				foreach (string clause in clauses)
 				{
-					string cleaned = clause.Trim().TrimEnd( '.' );
+					string cleaned = clause.Trim().TrimEnd('.');
 					if (cleaned.Length > 15) // Ignore very short fragments
 					{
-						units.Add( cleaned );
+						units.Add(cleaned);
 					}
 				}
 			}
 
 			// If no units found, just use the whole text
-			if (units.Count == 0 && !string.IsNullOrWhiteSpace( text ))
+			if (units.Count == 0 && !string.IsNullOrWhiteSpace(text))
 			{
-				units.Add( text.Trim() );
+				units.Add(text.Trim());
 			}
 
 			return units;
@@ -528,37 +528,37 @@ namespace KOTORModSync.Core.Parsing
 		/// Parses a single instruction unit into zero or more Instructions.
 		/// </summary>
 		[NotNull]
-		private List<Instruction> ParseInstructionUnit( [NotNull] string unit, [NotNull] ModComponent parentComponent )
+		private List<Instruction> ParseInstructionUnit([NotNull] string unit, [NotNull] ModComponent parentComponent)
 		{
 			List<Instruction> instructions = new List<Instruction>();
 
 			// Skip informational/commentary sentences
-			if (NaturalLanguageInstructionParser.IsInformationalOnly( unit ))
+			if (IsInformationalOnly(unit))
 			{
-				_logVerbose( $"[NLParser] Skipping informational unit: {unit.Substring( 0, Math.Min( 60, unit.Length ) )}..." );
+				_logVerbose($"[NLParser] Skipping informational unit: {unit.Substring(0, Math.Min(60, unit.Length))}...");
 				return instructions;
 			}
 
 			// Try each instruction pattern
 			foreach (InstructionPattern pattern in s_instructionPatterns)
 			{
-				Match match = pattern.Regex.Match( unit );
+				Match match = pattern.Regex.Match(unit);
 				if (!match.Success)
 					continue;
 
-				Instruction instruction = CreateInstructionFromMatch( match, pattern, unit, parentComponent );
+				Instruction instruction = CreateInstructionFromMatch(match, pattern, unit, parentComponent);
 				if (instruction != null)
 				{
-					instructions.Add( instruction );
+					instructions.Add(instruction);
 					// Only use first matching pattern per unit
 					break;
 				}
 			}
 
 			// If no pattern matched but it looks like an action, log it
-			if (instructions.Count == 0 && NaturalLanguageInstructionParser.ContainsActionVerb( unit ))
+			if (instructions.Count == 0 && ContainsActionVerb(unit))
 			{
-				_logVerbose( $"[NLParser] No pattern matched for unit with action verb: {unit.Substring( 0, Math.Min( 80, unit.Length ) )}..." );
+				_logVerbose($"[NLParser] No pattern matched for unit with action verb: {unit.Substring(0, Math.Min(80, unit.Length))}...");
 			}
 
 			return instructions;
@@ -567,28 +567,28 @@ namespace KOTORModSync.Core.Parsing
 		/// <summary>
 		/// Determines if a unit is purely informational (no actionable instruction).
 		/// </summary>
-		private static bool IsInformationalOnly( [NotNull] string unit )
+		private static bool IsInformationalOnly([NotNull] string unit)
 		{
 			string lower = unit.ToLowerInvariant();
 
 			// Commentary patterns
-			if (lower.StartsWith( "bear in mind", StringComparison.Ordinal ) ||
-				lower.StartsWith( "keep in mind", StringComparison.Ordinal ) ||
-				lower.StartsWith( "note that", StringComparison.Ordinal ) ||
-				lower.StartsWith( "be aware", StringComparison.Ordinal ) ||
-				lower.StartsWith( "remember", StringComparison.Ordinal ) ||
-				lower.Contains( "this is normal" ) ||
-				lower.Contains( "this is intended" ) ||
-				lower.Contains( "is your choice" ) ||
-				lower.Contains( "is your preference" ) ||
-				lower.Contains( "up to you" ) ||
-				lower.Contains( "which of these you choose" ))
+			if (lower.StartsWith("bear in mind", StringComparison.Ordinal) ||
+				lower.StartsWith("keep in mind", StringComparison.Ordinal) ||
+				lower.StartsWith("note that", StringComparison.Ordinal) ||
+				lower.StartsWith("be aware", StringComparison.Ordinal) ||
+				lower.StartsWith("remember", StringComparison.Ordinal) ||
+				lower.Contains("this is normal") ||
+				lower.Contains("this is intended") ||
+				lower.Contains("is your choice") ||
+				lower.Contains("is your preference") ||
+				lower.Contains("up to you") ||
+				lower.Contains("which of these you choose"))
 			{
 				return true;
 			}
 
 			// Questions
-			if (lower.TrimStart().StartsWith( "which ", StringComparison.Ordinal ) || lower.Contains( "?" ))
+			if (lower.TrimStart().StartsWith("which ", StringComparison.Ordinal) || lower.Contains("?"))
 			{
 				return true;
 			}
@@ -599,13 +599,13 @@ namespace KOTORModSync.Core.Parsing
 		/// <summary>
 		/// Checks if unit contains an action verb indicating it's an instruction.
 		/// </summary>
-		private static bool ContainsActionVerb( [NotNull] string unit )
+		private static bool ContainsActionVerb([NotNull] string unit)
 		{
 			string lower = unit.ToLowerInvariant();
 			string[] actionVerbs = { "move", "copy", "delete", "remove", "install", "apply", "run", "execute",
-									 "extract", "unzip", "place", "put", "rename", "download", "use", "select" };
+									 "extract", "unzip", "place", "put", "rename", "download", "use", "select", };
 
-			return actionVerbs.Any( verb => lower.Contains( " " + verb + " " ) || lower.StartsWith( verb + " ", StringComparison.Ordinal ) );
+			return actionVerbs.Any(verb => lower.Contains(" " + verb + " ") || lower.StartsWith(verb + " ", StringComparison.Ordinal));
 		}
 
 		/// <summary>
@@ -616,29 +616,29 @@ namespace KOTORModSync.Core.Parsing
 			[NotNull] Match match,
 			[NotNull] InstructionPattern pattern,
 			[NotNull] string unit,
-			[NotNull] ModComponent parentComponent )
+			[NotNull] ModComponent parentComponent)
 		{
 			Instruction instruction = new Instruction
 			{
 				Guid = Guid.NewGuid(),
 				Action = pattern.ActionType,
 				Source = new List<string>(),
-				Overwrite = true
+				Overwrite = true,
 			};
-			instruction.SetParentComponent( parentComponent );
+			instruction.SetParentComponent(parentComponent);
 
 			// === Extract Source(s) ===
 			if (match.Groups["source"].Success)
 			{
 				string sourceText = match.Groups["source"].Value.Trim();
-				List<string> sources = NaturalLanguageInstructionParser.ExtractSources( sourceText, unit, pattern.ActionType );
+				List<string> sources = ExtractSources(sourceText, unit, pattern.ActionType);
 
 				// Check for second source (e.g., "from both X and Y folders")
 				if (match.Groups["source2"].Success)
 				{
 					string source2Text = match.Groups["source2"].Value.Trim();
-					List<string> sources2 = NaturalLanguageInstructionParser.ExtractSources( source2Text, unit, pattern.ActionType );
-					sources.AddRange( sources2 );
+					List<string> sources2 = ExtractSources(source2Text, unit, pattern.ActionType);
+					sources.AddRange(sources2);
 				}
 
 				instruction.Source = sources;
@@ -648,7 +648,7 @@ namespace KOTORModSync.Core.Parsing
 				// Handle file ranges directly in main pattern
 				string start = match.Groups["start"].Value;
 				string end = match.Groups["end"].Value;
-				List<string> rangeSources = NaturalLanguageInstructionParser.GenerateFileRange( start, end );
+				List<string> rangeSources = GenerateFileRange(start, end);
 				instruction.Source = rangeSources;
 			}
 
@@ -656,12 +656,12 @@ namespace KOTORModSync.Core.Parsing
 			if (match.Groups["destination"].Success)
 			{
 				string destText = match.Groups["destination"].Value.Trim();
-				instruction.Destination = NaturalLanguageInstructionParser.NormalizeDestination( destText, unit );
+				instruction.Destination = NormalizeDestination(destText, unit);
 			}
 			else
 			{
 				// Auto-detect destination from context
-				instruction.Destination = NaturalLanguageInstructionParser.InferDestination( unit, pattern.ActionType );
+				instruction.Destination = InferDestination(unit, pattern.ActionType);
 			}
 
 			// === Extract Option/Arguments ===
@@ -683,24 +683,24 @@ namespace KOTORModSync.Core.Parsing
 			}
 
 			// === Check for Overwrite Instructions ===
-			if (s_entityPatterns["overwrite"].IsMatch( unit ))
+			if (s_entityPatterns["overwrite"].IsMatch(unit))
 			{
 				instruction.Overwrite = true;
 			}
-			else if (s_entityPatterns["no_overwrite"].IsMatch( unit ))
+			else if (s_entityPatterns["no_overwrite"].IsMatch(unit))
 			{
 				instruction.Overwrite = false;
 			}
 
 			// === Handle Exceptions/Exclusions ===
-			instruction.Source = ApplyExclusions( instruction.Source, unit );
+			instruction.Source = ApplyExclusions(instruction.Source, unit);
 
 			// === Handle "Only" Clauses ===
-			Match onlyMatch = Regex.Match( unit, @"(?:only|just)\s+(?:move|use|install)\s+(?:the\s+)?(?<only>.+?)(?:\.|;|,\s+(?:not|ignore)|$)", RegexOptions.IgnoreCase );
+			Match onlyMatch = Regex.Match(unit, @"(?:only|just)\s+(?:move|use|install)\s+(?:the\s+)?(?<only>.+?)(?:\.|;|,\s+(?:not|ignore)|$)", RegexOptions.IgnoreCase);
 			if (onlyMatch.Success)
 			{
 				string onlyText = onlyMatch.Groups["only"].Value;
-				List<string> onlySources = NaturalLanguageInstructionParser.ExtractSources( onlyText, unit, pattern.ActionType );
+				List<string> onlySources = ExtractSources(onlyText, unit, pattern.ActionType);
 				if (onlySources.Count > 0)
 				{
 					instruction.Source = onlySources;
@@ -708,9 +708,9 @@ namespace KOTORModSync.Core.Parsing
 			}
 
 			// === Validate Instruction ===
-			if (!NaturalLanguageInstructionParser.ValidateInstruction( instruction ))
+			if (!ValidateInstruction(instruction))
 			{
-				_logVerbose( $"[NLParser] Rejected incomplete instruction: {pattern.ActionType}" );
+				_logVerbose($"[NLParser] Rejected incomplete instruction: {pattern.ActionType}");
 				return null;
 			}
 
@@ -720,7 +720,7 @@ namespace KOTORModSync.Core.Parsing
 		/// <summary>
 		/// Validates that an instruction has all required fields.
 		/// </summary>
-		private static bool ValidateInstruction( [NotNull] Instruction instruction )
+		private static bool ValidateInstruction([NotNull] Instruction instruction)
 		{
 			// All instructions need an action type
 			if (instruction.Action == Instruction.ActionType.Unset)
@@ -734,7 +734,7 @@ namespace KOTORModSync.Core.Parsing
 				instruction.Action == Instruction.ActionType.Extract ||
 				instruction.Action == Instruction.ActionType.Execute)
 			{
-				if (instruction.Source == null || instruction.Source.Count == 0)
+				if (instruction.Source is null || instruction.Source.Count == 0)
 					return false;
 			}
 
@@ -742,7 +742,7 @@ namespace KOTORModSync.Core.Parsing
 			if (instruction.Action == Instruction.ActionType.Move ||
 				instruction.Action == Instruction.ActionType.Copy)
 			{
-				if (string.IsNullOrWhiteSpace( instruction.Destination ))
+				if (string.IsNullOrWhiteSpace(instruction.Destination))
 					return false;
 			}
 
@@ -753,104 +753,104 @@ namespace KOTORModSync.Core.Parsing
 		/// Extracts source file/folder paths from text.
 		/// </summary>
 		[NotNull]
-		private static List<string> ExtractSources( [NotNull] string sourceText, [NotNull] string fullUnit, Instruction.ActionType actionType )
+		private static List<string> ExtractSources([NotNull] string sourceText, [NotNull] string fullUnit, Instruction.ActionType actionType)
 		{
 			List<string> sources = new List<string>();
 
 			// === Check for file ranges ===
-			Match rangeMatch = s_entityPatterns["file_range"].Match( fullUnit );
+			Match rangeMatch = s_entityPatterns["file_range"].Match(fullUnit);
 			if (!rangeMatch.Success)
 			{
-				rangeMatch = s_entityPatterns["numeric_range"].Match( fullUnit );
+				rangeMatch = s_entityPatterns["numeric_range"].Match(fullUnit);
 			}
 
 			if (rangeMatch.Success)
 			{
 				string start = rangeMatch.Groups["start"].Value;
 				string end = rangeMatch.Groups["end"].Value;
-				List<string> rangeSources = NaturalLanguageInstructionParser.GenerateFileRange( start, end );
+				List<string> rangeSources = GenerateFileRange(start, end);
 				return rangeSources;
 			}
 
 			// === Check for folder references ===
-			Match folderMatch = s_entityPatterns["folder_from"].Match( sourceText );
+			Match folderMatch = s_entityPatterns["folder_from"].Match(sourceText);
 			if (!folderMatch.Success)
 			{
-				folderMatch = s_entityPatterns["folder_name"].Match( sourceText );
+				folderMatch = s_entityPatterns["folder_name"].Match(sourceText);
 			}
 
 			if (folderMatch.Success)
 			{
 				string folder = folderMatch.Groups["folder"].Value.Trim();
 				// Normalize folder name
-				folder = folder.Trim( '"', '\'', ' ' );
-				sources.Add( $"<<modDirectory>>\\{folder}\\*" );
+				folder = folder.Trim('"', '\'', ' ');
+				sources.Add($"<<modDirectory>>\\{folder}\\*");
 
 				// Check for second folder
 				if (folderMatch.Groups["folder2"].Success)
 				{
-					string folder2 = folderMatch.Groups["folder2"].Value.Trim().Trim( '"', '\'', ' ' );
-					sources.Add( $"<<modDirectory>>\\{folder2}\\*" );
+					string folder2 = folderMatch.Groups["folder2"].Value.Trim().Trim('"', '\'', ' ');
+					sources.Add($"<<modDirectory>>\\{folder2}\\*");
 				}
 				return sources;
 			}
 
 			// === Check for file lists ===
-			Match fileListMatch = s_entityPatterns["file_list"].Match( sourceText );
+			Match fileListMatch = s_entityPatterns["file_list"].Match(sourceText);
 			if (fileListMatch.Success)
 			{
 				string filesText = fileListMatch.Groups["files"].Value;
-				List<string> files = NaturalLanguageInstructionParser.ParseFileList( filesText );
+				List<string> files = ParseFileList(filesText);
 				foreach (string file in files)
 				{
-					sources.Add( $"<<modDirectory>>\\{file}" );
+					sources.Add($"<<modDirectory>>\\{file}");
 				}
 				if (sources.Count > 0)
 					return sources;
 			}
 
 			// === Check for wildcards ===
-			Match wildcardMatch = s_entityPatterns["wildcard"].Match( sourceText );
+			Match wildcardMatch = s_entityPatterns["wildcard"].Match(sourceText);
 			if (wildcardMatch.Success)
 			{
 				string pattern = wildcardMatch.Groups["pattern"].Value;
-				sources.Add( $"<<modDirectory>>\\{pattern}" );
+				sources.Add($"<<modDirectory>>\\{pattern}");
 				return sources;
 			}
 
 			// === Check for single file ===
-			Match singleFileMatch = s_entityPatterns["single_file"].Match( sourceText );
+			Match singleFileMatch = s_entityPatterns["single_file"].Match(sourceText);
 			if (singleFileMatch.Success)
 			{
-				string file = singleFileMatch.Groups["file"].Value.Trim( '"', '\'' );
-				sources.Add( $"<<modDirectory>>\\{file}" );
+				string file = singleFileMatch.Groups["file"].Value.Trim('"', '\'');
+				sources.Add($"<<modDirectory>>\\{file}");
 				return sources;
 			}
 
 			// === Fallback: treat as folder or pattern ===
-			if (!string.IsNullOrWhiteSpace( sourceText ))
+			if (!string.IsNullOrWhiteSpace(sourceText))
 			{
-				string cleaned = sourceText.Trim( '"', '\'', ' ', ',', ';' );
+				string cleaned = sourceText.Trim('"', '\'', ' ', ',', ';');
 				if (cleaned.Length > 0)
 				{
 					// Check if it looks like a file (has extension)
-					if (Path.HasExtension( cleaned ))
+					if (Path.HasExtension(cleaned))
 					{
-						sources.Add( $"<<modDirectory>>\\{cleaned}" );
+						sources.Add($"<<modDirectory>>\\{cleaned}");
 					}
 					// Check if it has wildcards
-					else if (cleaned.Contains( "*" ) || cleaned.Contains( "?" ))
+					else if (cleaned.Contains("*") || cleaned.Contains("?"))
 					{
-						sources.Add( $"<<modDirectory>>\\{cleaned}" );
+						sources.Add($"<<modDirectory>>\\{cleaned}");
 					}
 					// Otherwise treat as folder
 					else if (actionType == Instruction.ActionType.Move || actionType == Instruction.ActionType.Copy)
 					{
-						sources.Add( $"<<modDirectory>>\\{cleaned}\\*" );
+						sources.Add($"<<modDirectory>>\\{cleaned}\\*");
 					}
 					else
 					{
-						sources.Add( $"<<modDirectory>>\\{cleaned}" );
+						sources.Add($"<<modDirectory>>\\{cleaned}");
 					}
 				}
 			}
@@ -862,18 +862,18 @@ namespace KOTORModSync.Core.Parsing
 		/// Generates a list of file sources from a range specification.
 		/// </summary>
 		[NotNull]
-		private static List<string> GenerateFileRange( [NotNull] string start, [NotNull] string end )
+		private static List<string> GenerateFileRange([NotNull] string start, [NotNull] string end)
 		{
 			// For file ranges, create a wildcard pattern that covers the range
 			// E.g., "file01.tga" through "file10.tga" becomes "file*.tga"
 
-			string startBase = Path.GetFileNameWithoutExtension( start );
-			string endBase = Path.GetFileNameWithoutExtension( end );
-			string extension = Path.GetExtension( start );
+			string startBase = Path.GetFileNameWithoutExtension(start);
+			string endBase = Path.GetFileNameWithoutExtension(end);
+			string extension = Path.GetExtension(start);
 
 			// Find common prefix
 			int commonPrefixLength = 0;
-			int minLength = Math.Min( startBase.Length, endBase.Length );
+			int minLength = Math.Min(startBase.Length, endBase.Length);
 			for (int i = 0; i < minLength; i++)
 			{
 				if (startBase[i] == endBase[i])
@@ -884,7 +884,7 @@ namespace KOTORModSync.Core.Parsing
 
 			if (commonPrefixLength > 0)
 			{
-				string prefix = startBase.Substring( 0, commonPrefixLength );
+				string prefix = startBase.Substring(0, commonPrefixLength);
 				return new List<string> { $"<<modDirectory>>\\{prefix}*{extension}" };
 			}
 
@@ -892,7 +892,7 @@ namespace KOTORModSync.Core.Parsing
 			return new List<string>
 			{
 				$"<<modDirectory>>\\{start}",
-				$"<<modDirectory>>\\{end}"
+				$"<<modDirectory>>\\{end}",
 			};
 		}
 
@@ -900,25 +900,25 @@ namespace KOTORModSync.Core.Parsing
 		/// Parses comma/semicolon-separated file lists.
 		/// </summary>
 		[NotNull]
-		private static List<string> ParseFileList( [NotNull] string text )
+		private static List<string> ParseFileList([NotNull] string text)
 		{
 			List<string> files = new List<string>();
 
 			// Split on commas, semicolons, and "and"
-			string[] parts = Regex.Split( text, @"\s*(?:,|;|\s+and\s+|\s+&\s+)\s*", RegexOptions.IgnoreCase );
+			string[] parts = Regex.Split(text, @"\s*(?:,|;|\s+and\s+|\s+&\s+)\s*", RegexOptions.IgnoreCase);
 
 			foreach (string part in parts)
 			{
-				string cleaned = part.Trim().Trim( '"', '\'', ' ' );
+				string cleaned = part.Trim().Trim('"', '\'', ' ');
 
 				if (cleaned.Length > 0 &&
-					!cleaned.Equals( "and", StringComparison.OrdinalIgnoreCase ) &&
-					!cleaned.Equals( "the", StringComparison.OrdinalIgnoreCase ))
+					!cleaned.Equals("and", StringComparison.OrdinalIgnoreCase) &&
+					!cleaned.Equals("the", StringComparison.OrdinalIgnoreCase))
 				{
 					// Only add if it looks like a filename (has extension or is a known pattern)
-					if (Path.HasExtension( cleaned ) || cleaned.Contains( "*" ))
+					if (Path.HasExtension(cleaned) || cleaned.Contains("*"))
 					{
-						files.Add( cleaned );
+						files.Add(cleaned);
 					}
 				}
 			}
@@ -930,68 +930,68 @@ namespace KOTORModSync.Core.Parsing
 		/// Applies exclusions (EXCEPT clauses) to source list.
 		/// </summary>
 		[NotNull]
-		private List<string> ApplyExclusions( [NotNull] List<string> sources, [NotNull] string fullUnit )
+		private List<string> ApplyExclusions([NotNull] IReadOnlyList<string> sources, [NotNull] string fullUnit)
 		{
 			// Check for "EXCEPT" clauses
-			Match exceptMatch = s_entityPatterns["except"].Match( fullUnit );
+			Match exceptMatch = s_entityPatterns["except"].Match(fullUnit);
 			if (exceptMatch.Success)
 			{
 				string exceptionsText = exceptMatch.Groups["exceptions"].Value;
-				List<string> excludedFiles = NaturalLanguageInstructionParser.ExtractExcludedFiles( exceptionsText );
+				List<string> excludedFiles = ExtractExcludedFiles(exceptionsText);
 
 				if (excludedFiles.Count > 0)
 				{
-					_logVerbose( $"[NLParser] Found {excludedFiles.Count} exclusions to apply" );
+					_logVerbose($"[NLParser] Found {excludedFiles.Count} exclusions to apply");
 					// Filter out excluded files
-					sources = sources.Where( s =>
-						!excludedFiles.Exists( ex => s.IndexOf( ex, StringComparison.OrdinalIgnoreCase ) >= 0 )
+					sources = sources.Where(s =>
+						!excludedFiles.Exists(ex => s.IndexOf(ex, StringComparison.OrdinalIgnoreCase) >= 0)
 					).ToList();
 				}
 			}
 
 			// Check for "IGNORE" clauses
-			Match ignoreMatch = s_entityPatterns["ignore"].Match( fullUnit );
+			Match ignoreMatch = s_entityPatterns["ignore"].Match(fullUnit);
 			if (ignoreMatch.Success)
 			{
 				string ignoreText = ignoreMatch.Groups["ignore"].Value;
-				List<string> ignoredFiles = NaturalLanguageInstructionParser.ExtractExcludedFiles( ignoreText );
+				List<string> ignoredFiles = ExtractExcludedFiles(ignoreText);
 
 				if (ignoredFiles.Count > 0)
 				{
-					_logVerbose( $"[NLParser] Found {ignoredFiles.Count} items to ignore" );
-					sources = sources.Where( s =>
-						!ignoredFiles.Exists( ig => s.IndexOf( ig, StringComparison.OrdinalIgnoreCase ) >= 0 )
+					_logVerbose($"[NLParser] Found {ignoredFiles.Count} items to ignore");
+					sources = sources.Where(s =>
+						!ignoredFiles.Exists(ig => s.IndexOf(ig, StringComparison.OrdinalIgnoreCase) >= 0)
 					).ToList();
 				}
 			}
 
-			return sources;
+			return sources.ToList();
 		}
 
 		/// <summary>
 		/// Extracts excluded file names from exception text.
 		/// </summary>
 		[NotNull]
-		private static List<string> ExtractExcludedFiles( [NotNull] string exceptionText )
+		private static List<string> ExtractExcludedFiles([NotNull] string exceptionText)
 		{
 			List<string> excluded = new List<string>();
 
 			// Check for file list in parentheses
-			Match parenMatch = Regex.Match( exceptionText, @"\((?<files>[^)]+)\)", RegexOptions.IgnoreCase );
+			Match parenMatch = Regex.Match(exceptionText, @"\((?<files>[^)]+)\)", RegexOptions.IgnoreCase);
 			if (parenMatch.Success)
 			{
 				exceptionText = parenMatch.Groups["files"].Value;
 			}
 
 			// Parse file lists
-			excluded.AddRange( NaturalLanguageInstructionParser.ParseFileList( exceptionText ) );
+			excluded.AddRange(ParseFileList(exceptionText));
 
 			// Check for folder references
-			Match folderMatch = s_entityPatterns["folder_name"].Match( exceptionText );
+			Match folderMatch = s_entityPatterns["folder_name"].Match(exceptionText);
 			if (folderMatch.Success)
 			{
 				string folder = folderMatch.Groups["folder"].Value.Trim();
-				excluded.Add( folder );
+				excluded.Add(folder);
 			}
 
 			return excluded;
@@ -1001,32 +1001,32 @@ namespace KOTORModSync.Core.Parsing
 		/// Normalizes destination paths to use placeholders.
 		/// </summary>
 		[NotNull]
-		private static string NormalizeDestination( [NotNull] string destination, [NotNull] string fullUnit )
+		private static string NormalizeDestination([NotNull] string destination, [NotNull] string fullUnit)
 		{
 			string lower = destination.ToLowerInvariant().Trim();
 
 			// Check for direct mappings
 			foreach (KeyValuePair<string, string> mapping in s_destinationMappings)
 			{
-				if (lower.Contains( mapping.Key ) || lower.Equals( mapping.Key.Replace( " ", "" ), StringComparison.OrdinalIgnoreCase ))
+				if (lower.Contains(mapping.Key) || lower.Equals(mapping.Key.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
 				{
 					return mapping.Value;
 				}
 			}
 
 			// Check full unit for destination clues
-			if (fullUnit.IndexOf( "override", StringComparison.OrdinalIgnoreCase ) >= 0)
+			if (fullUnit.IndexOf("override", StringComparison.OrdinalIgnoreCase) >= 0)
 			{
 				return @"<<kotorDirectory>>\Override";
 			}
 
-			if (fullUnit.IndexOf( "movies", StringComparison.OrdinalIgnoreCase ) >= 0)
+			if (fullUnit.IndexOf("movies", StringComparison.OrdinalIgnoreCase) >= 0)
 			{
 				return @"<<kotorDirectory>>\Movies";
 			}
 
 			// Treat as subdirectory of mod directory if it looks like a path
-			if (destination.Contains( "\\" ) || destination.Contains( "/" ))
+			if (destination.Contains("\\") || destination.Contains("/"))
 			{
 				return $"<<modDirectory>>\\{destination}";
 			}
@@ -1039,22 +1039,22 @@ namespace KOTORModSync.Core.Parsing
 		/// Infers destination from context when not explicitly stated.
 		/// </summary>
 		[NotNull]
-		private static string InferDestination( [NotNull] string fullUnit, Instruction.ActionType actionType )
+		private static string InferDestination([NotNull] string fullUnit, Instruction.ActionType actionType)
 		{
 			string lower = fullUnit.ToLowerInvariant();
 
 			// Check for destination keywords
-			if (lower.Contains( "to override" ) || lower.Contains( "to your override" ) || lower.Contains( "in override" ))
+			if (lower.Contains("to override") || lower.Contains("to your override") || lower.Contains("in override"))
 			{
 				return @"<<kotorDirectory>>\Override";
 			}
 
-			if (lower.Contains( "to movies" ) || lower.Contains( "in your movies" ) || lower.Contains( "movies folder" ))
+			if (lower.Contains("to movies") || lower.Contains("in your movies") || lower.Contains("movies folder"))
 			{
 				return @"<<kotorDirectory>>\Movies";
 			}
 
-			if (lower.Contains( "main game directory" ) || lower.Contains( "main directory" ) || lower.Contains( "game directory" ))
+			if (lower.Contains("main game directory") || lower.Contains("main directory") || lower.Contains("game directory"))
 			{
 				return @"<<kotorDirectory>>";
 			}
@@ -1079,14 +1079,14 @@ namespace KOTORModSync.Core.Parsing
 		/// Parses download instructions into Option objects for user selection.
 		/// </summary>
 		[NotNull]
-		private static List<Option> ParseDownloadInstructions( [NotNull] string downloadText, [NotNull] ModComponent parentComponent )
+		private static List<Option> ParseDownloadInstructions([NotNull] string downloadText, [NotNull] ModComponent parentComponent)
 		{
 			List<Option> options = new List<Option>();
 
 			// Look for recommendations
 			foreach (Regex recommendPattern in s_recommendationPatterns)
 			{
-				MatchCollection matches = recommendPattern.Matches( downloadText );
+				MatchCollection matches = recommendPattern.Matches(downloadText);
 				foreach (Match match in matches)
 				{
 					if (!match.Groups["option"].Success)
@@ -1095,11 +1095,11 @@ namespace KOTORModSync.Core.Parsing
 					string optionName = match.Groups["option"].Value.Trim();
 
 					// Skip if already exists
-					if (options.Exists( o => o.Name.Equals( optionName, StringComparison.OrdinalIgnoreCase ) ))
+					if (options.Exists(o => o.Name.Equals(optionName, StringComparison.OrdinalIgnoreCase)))
 						continue;
 
 					// Skip if it's just a generic phrase
-					if (NaturalLanguageInstructionParser.IsGenericPhrase( optionName ))
+					if (IsGenericPhrase(optionName))
 						continue;
 
 					Option option = new Option
@@ -1107,24 +1107,24 @@ namespace KOTORModSync.Core.Parsing
 						Guid = Guid.NewGuid(),
 						Name = optionName,
 						Description = $"Recommended option: {optionName}",
-						IsSelected = downloadText.IndexOf( "recommend", StringComparison.OrdinalIgnoreCase ) >= 0
+						IsSelected = downloadText.IndexOf("recommend", StringComparison.OrdinalIgnoreCase) >= 0,
 					};
-					options.Add( option );
+					options.Add(option);
 				}
 			}
 
 			// Look for version/variant selections
-			Regex versionPattern = new Regex( @"(?:download|use|choose|install|get|select)\s+(?:the\s+)?(?<option>[^.,;!?\r\n]+?)\s+(?:version|variant|option|file|edition)", RegexOptions.IgnoreCase );
-			MatchCollection versionMatches = versionPattern.Matches( downloadText );
+			Regex versionPattern = new Regex(@"(?:download|use|choose|install|get|select)\s+(?:the\s+)?(?<option>[^.,;!?\r\n]+?)\s+(?:version|variant|option|file|edition)", RegexOptions.IgnoreCase);
+			MatchCollection versionMatches = versionPattern.Matches(downloadText);
 
 			foreach (Match match in versionMatches)
 			{
 				string optionName = match.Groups["option"].Value.Trim();
 
-				if (options.Exists( o => o.Name.Equals( optionName, StringComparison.OrdinalIgnoreCase ) ))
+				if (options.Exists(o => o.Name.Equals(optionName, StringComparison.OrdinalIgnoreCase)))
 					continue;
 
-				if (NaturalLanguageInstructionParser.IsGenericPhrase( optionName ))
+				if (IsGenericPhrase(optionName))
 					continue;
 
 				Option option = new Option
@@ -1132,9 +1132,9 @@ namespace KOTORModSync.Core.Parsing
 					Guid = Guid.NewGuid(),
 					Name = optionName,
 					Description = $"Option: {optionName}",
-					IsSelected = false
+					IsSelected = false,
 				};
-				options.Add( option );
+				options.Add(option);
 			}
 
 			return options;
@@ -1143,17 +1143,17 @@ namespace KOTORModSync.Core.Parsing
 		/// <summary>
 		/// Determines if a phrase is too generic to be a meaningful option.
 		/// </summary>
-		private static bool IsGenericPhrase( [NotNull] string phrase )
+		private static bool IsGenericPhrase([NotNull] string phrase)
 		{
 			string lower = phrase.ToLowerInvariant().Trim();
 
 			string[] genericPhrases = {
 				"this", "that", "these", "those", "it", "them",
 				"the", "a", "an", "all", "both", "either",
-				"you", "your", "my", "our"
+				"you", "your", "my", "our",
 			};
 
-			return genericPhrases.Contains( lower, StringComparer.Ordinal ) || lower.Length < 3;
+			return genericPhrases.Contains(lower, StringComparer.Ordinal) || lower.Length < 3;
 		}
 
 		/// <summary>
@@ -1164,9 +1164,9 @@ namespace KOTORModSync.Core.Parsing
 			public Regex Regex { get; }
 			public Instruction.ActionType ActionType { get; }
 
-			public InstructionPattern( string pattern, Instruction.ActionType actionType, RegexOptions options )
+			public InstructionPattern(string pattern, Instruction.ActionType actionType, RegexOptions options)
 			{
-				Regex = new Regex( pattern, options | RegexOptions.Compiled );
+				Regex = new Regex(pattern, options | RegexOptions.Compiled);
 				ActionType = actionType;
 			}
 		}

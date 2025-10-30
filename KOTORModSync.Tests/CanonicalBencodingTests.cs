@@ -19,55 +19,55 @@ namespace KOTORModSync.Tests
 		public void BencodeCanonical_WithString_ProducesCorrectFormat()
 		{
 			var dict = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
-				["name"] = "test"
+				["name"] = "test",
 			};
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
-			string decoded = Encoding.UTF8.GetString( bencode );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
+			string decoded = Encoding.UTF8.GetString(bencode);
 
 			// Format: d 4:name 4:test e
-			Assert.That( decoded, Is.EqualTo( "d4:name4:teste" ) );
+			Assert.That(decoded, Is.EqualTo("d4:name4:teste"));
 		}
 
 		[Test]
 		public void BencodeCanonical_WithInteger_ProducesCorrectFormat()
 		{
 			var dict = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
-				["number"] = 42L
+				["number"] = 42L,
 			};
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
-			string decoded = Encoding.UTF8.GetString( bencode );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
+			string decoded = Encoding.UTF8.GetString(bencode);
 
 			// Format: d 6:number i42e e
-			Assert.That( decoded, Is.EqualTo( "d6:numberi42ee" ) );
+			Assert.That(decoded, Is.EqualTo("d6:numberi42ee"));
 		}
 
 		[Test]
 		public void BencodeCanonical_WithMultipleKeys_SortsAlphabetically()
 		{
 			var dict = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
 				["z"] = "last",
 				["a"] = "first",
-				["m"] = "middle"
+				["m"] = "middle",
 			};
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
-			string decoded = Encoding.UTF8.GetString( bencode );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
+			string decoded = Encoding.UTF8.GetString(bencode);
 
 			// Keys must appear in alphabetical order
-			int aIndex = decoded.IndexOf( "1:a", StringComparison.Ordinal );
-			int mIndex = decoded.IndexOf( "1:m", StringComparison.Ordinal );
-			int zIndex = decoded.IndexOf( "1:z", StringComparison.Ordinal );
+			int aIndex = decoded.IndexOf("1:a", StringComparison.Ordinal);
+			int mIndex = decoded.IndexOf("1:m", StringComparison.Ordinal);
+			int zIndex = decoded.IndexOf("1:z", StringComparison.Ordinal);
 
-			Assert.That( aIndex, Is.LessThan( mIndex ) );
-			Assert.That( mIndex, Is.LessThan( zIndex ) );
+			Assert.That(aIndex, Is.LessThan(mIndex));
+			Assert.That(mIndex, Is.LessThan(zIndex));
 		}
 
 		[Test]
@@ -75,118 +75,118 @@ namespace KOTORModSync.Tests
 		{
 			var data = new byte[] { 0x01, 0x02, 0x03 };
 			var dict = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
-				["data"] = data
+				["data"] = data,
 			};
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
 
 			// Format: d 4:data 3:<raw bytes> e
-			Assert.That( bencode[0], Is.EqualTo( (byte)'d' ) );
-			Assert.That( bencode[bencode.Length - 1], Is.EqualTo( (byte)'e' ) );
+			Assert.That(bencode[0], Is.EqualTo((byte)'d'));
+			Assert.That(bencode[bencode.Length - 1], Is.EqualTo((byte)'e'));
 		}
 
 		[Test]
 		public void BencodeCanonical_WithEmptyDict_ProducesValidEncoding()
 		{
-			var dict = new SortedDictionary<string, object>( StringComparer.Ordinal );
+			var dict = new SortedDictionary<string, object>(StringComparer.Ordinal);
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
-			string decoded = Encoding.UTF8.GetString( bencode );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
+			string decoded = Encoding.UTF8.GetString(bencode);
 
-			Assert.That( decoded, Is.EqualTo( "de" ) );
+			Assert.That(decoded, Is.EqualTo("de"));
 		}
 
 		[Test]
 		public void BencodeCanonical_WithNestedDict_HandlesRecursively()
 		{
 			var nested = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
-				["inner"] = "value"
+				["inner"] = "value",
 			};
 
 			var dict = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
-				["outer"] = nested
+				["outer"] = nested,
 			};
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
-			string decoded = Encoding.UTF8.GetString( bencode );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
+			string decoded = Encoding.UTF8.GetString(bencode);
 
 			// Format: d 5:outer d 5:inner 5:value e e
-			Assert.That( decoded, Does.Contain( "5:outer" ) );
-			Assert.That( decoded, Does.Contain( "5:inner" ) );
+			Assert.That(decoded, Does.Contain("5:outer"));
+			Assert.That(decoded, Does.Contain("5:inner"));
 		}
 
 		[Test]
 		public void BencodeCanonical_WithZeroInteger_EncodesCorrectly()
 		{
 			var dict = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
-				["zero"] = 0L
+				["zero"] = 0L,
 			};
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
-			string decoded = Encoding.UTF8.GetString( bencode );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
+			string decoded = Encoding.UTF8.GetString(bencode);
 
-			Assert.That( decoded, Does.Contain( "i0e" ) );
+			Assert.That(decoded, Does.Contain("i0e"));
 		}
 
 		[Test]
 		public void BencodeCanonical_WithNegativeInteger_EncodesCorrectly()
 		{
 			var dict = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
-				["negative"] = -42L
+				["negative"] = -42L,
 			};
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
-			string decoded = Encoding.UTF8.GetString( bencode );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
+			string decoded = Encoding.UTF8.GetString(bencode);
 
-			Assert.That( decoded, Does.Contain( "i-42e" ) );
+			Assert.That(decoded, Does.Contain("i-42e"));
 		}
 
 		[Test]
 		public void BencodeCanonical_ProducesDeterministicOutput()
 		{
 			var dict1 = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
 				["b"] = "second",
-				["a"] = "first"
+				["a"] = "first",
 			};
 
 			var dict2 = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
 				["a"] = "first",
-				["b"] = "second"
+				["b"] = "second",
 			};
 
-			byte[] bencode1 = CanonicalBencoding.BencodeCanonical( dict1 );
-			byte[] bencode2 = CanonicalBencoding.BencodeCanonical( dict2 );
+			byte[] bencode1 = CanonicalBencoding.BencodeCanonical(dict1);
+			byte[] bencode2 = CanonicalBencoding.BencodeCanonical(dict2);
 
-			Assert.That( bencode1, Is.EqualTo( bencode2 ) );
+			Assert.That(bencode1, Is.EqualTo(bencode2));
 		}
 
 		[Test]
 		public void BencodeCanonical_WithLargeInteger_HandlesCorrectly()
 		{
 			var dict = new SortedDictionary<string, object>
-( StringComparer.Ordinal )
+(StringComparer.Ordinal)
 			{
-				["large"] = 9876543210L
+				["large"] = 9876543210L,
 			};
 
-			byte[] bencode = CanonicalBencoding.BencodeCanonical( dict );
-			string decoded = Encoding.UTF8.GetString( bencode );
+			byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
+			string decoded = Encoding.UTF8.GetString(bencode);
 
-			Assert.That( decoded, Does.Contain( "i9876543210e" ) );
+			Assert.That(decoded, Does.Contain("i9876543210e"));
 		}
 	}
 }

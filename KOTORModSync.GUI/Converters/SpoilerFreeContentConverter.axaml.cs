@@ -20,7 +20,7 @@ namespace KOTORModSync.Converters
 	{
 		public object Convert( IList<object> values, Type targetType, object parameter, CultureInfo culture )
 		{
-			if (values == null || values.Count < 4)
+			if (values is null || values.Count < 4)
 				return string.Empty;
 
 			// First value should be the regular property name (e.g., "Description")

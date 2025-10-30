@@ -20,7 +20,7 @@ namespace KOTORModSync
 
 		public event EventHandler CanExecuteChanged;
 
-		public bool CanExecute( object parameter ) => _canExecute == null || _canExecute( parameter );
+		public bool CanExecute( object parameter ) => _canExecute is null || _canExecute( parameter );
 
 		public void Execute( object parameter ) => _execute( parameter );
 

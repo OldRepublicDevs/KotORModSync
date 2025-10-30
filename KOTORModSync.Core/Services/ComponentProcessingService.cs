@@ -16,26 +16,25 @@ namespace KOTORModSync.Core.Services
 	public static class ComponentProcessingService
 	{
 
-		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync( List<ModComponent> components )
+		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync(List<ModComponent> components)
 		{
-			if (components == null || components.Count == 0)
+			if (components is null || components.Count == 0)
 				return 0;
 
 			try
 			{
 
-				return await TryGenerateFromLocalArchivesAsync( components ).ConfigureAwait( false );
+				return await TryGenerateFromLocalArchivesAsync(components).ConfigureAwait(false);
 			}
 			catch (Exception ex)
 
-
 			{
-				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
 				return 0;
 			}
 		}
 
-		public static async Task<int> TryGenerateFromLocalArchivesAsync( List<ModComponent> components )
+		public static async Task<int> TryGenerateFromLocalArchivesAsync(List<ModComponent> components)
 		{
 			int generatedCount = 0;
 
@@ -44,7 +43,7 @@ namespace KOTORModSync.Core.Services
 
 				int initialInstructionCount = component.Instructions.Count;
 
-				bool success = AutoInstructionGenerator.TryGenerateInstructionsFromArchive( component );
+				bool success = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
 				if (!success)
 					continue;
 
@@ -53,25 +52,21 @@ namespace KOTORModSync.Core.Services
 					generatedCount++;
 					int newInstructions = component.Instructions.Count - initialInstructionCount;
 
-
-					await Logger.LogAsync( $"Added {newInstructions} instruction(s) from local archive for '{component.Name}': {component.InstallationMethod}" ).ConfigureAwait( false );
+					await Logger.LogAsync($"Added {newInstructions} instruction(s) from local archive for '{component.Name}': {component.InstallationMethod}").ConfigureAwait(false);
 				}
 			}
 
 			if (generatedCount > 0)
 
-
-				await Logger.LogAsync( $"Processed local archives and generated/updated instructions for {generatedCount} component(s)." ).ConfigureAwait( false );
+				await Logger.LogAsync($"Processed local archives and generated/updated instructions for {generatedCount} component(s).").ConfigureAwait(false);
 
 			return generatedCount;
 		}
 
-
-
-		public static async Task<ComponentProcessingResult> ProcessComponentsAsync( [NotNull][ItemNotNull] List<ModComponent> componentsList )
+		public static async Task<ComponentProcessingResult> ProcessComponentsAsync([NotNull][ItemNotNull] List<ModComponent> componentsList)
 		{
-			if (componentsList == null)
-				throw new ArgumentNullException( nameof( componentsList ) );
+			if (componentsList is null)
+				throw new ArgumentNullException(nameof(componentsList));
 
 			try
 			{
@@ -80,27 +75,26 @@ namespace KOTORModSync.Core.Services
 					return new ComponentProcessingResult
 					{
 						IsEmpty = true,
-						Success = true
+						Success = true,
 					};
 				}
 
 				try
 				{
 					(bool isCorrectOrder, List<ModComponent> reorderedList) =
-						ModComponent.ConfirmComponentsInstallOrder( componentsList );
+						ModComponent.ConfirmComponentsInstallOrder(componentsList);
 					if (!isCorrectOrder)
 
-
 					{
-						await Logger.LogAsync( "Reordered list to match dependency structure." )
+						await Logger.LogAsync("Reordered list to match dependency structure.")
 
-.ConfigureAwait( false );
+.ConfigureAwait(false);
 						return new ComponentProcessingResult
 						{
 							IsEmpty = false,
 							Success = true,
 							ReorderedComponents = reorderedList,
-							NeedsReordering = true
+							NeedsReordering = true,
 						};
 					}
 				}
@@ -110,12 +104,12 @@ namespace KOTORModSync.Core.Services
 						"Cannot process order of components. " +
 						"There are circular dependency conflicts that cannot be automatically resolved. " +
 						"Please resolve these before attempting an installation."
-					).ConfigureAwait( false );
+					).ConfigureAwait(false);
 					return new ComponentProcessingResult
 					{
 						IsEmpty = false,
 						Success = false,
-						HasCircularDependencies = true
+						HasCircularDependencies = true,
 					};
 				}
 
@@ -123,58 +117,52 @@ namespace KOTORModSync.Core.Services
 				{
 					IsEmpty = false,
 					Success = true,
-					Components = componentsList
+					Components = componentsList,
 				};
 			}
 			catch (Exception ex)
 
-
 			{
-				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
 				return new ComponentProcessingResult
 				{
 					IsEmpty = false,
 					Success = false,
-					Exception = ex
+					Exception = ex,
 				};
 			}
 		}
 
-
-
-		public static bool CanMoveComponent( [NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex )
+		public static bool CanMoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
-			if (component == null)
-				throw new ArgumentNullException( nameof( component ) );
-			if (components == null)
-				throw new ArgumentNullException( nameof( components ) );
+			if (component is null)
+				throw new ArgumentNullException(nameof(component));
+			if (components is null)
+				throw new ArgumentNullException(nameof(components));
 
-			int index = components.IndexOf( component );
+			int index = components.IndexOf(component);
 			return index != -1 &&
 				   !(index == 0 && relativeIndex < 0) &&
 				   index + relativeIndex < components.Count &&
 				   index + relativeIndex >= 0;
 		}
 
-
-
-		public static bool MoveComponent( [NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex )
+		public static bool MoveComponent([NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex)
 		{
-			if (component == null)
-				throw new ArgumentNullException( nameof( component ) );
-			if (components == null)
-				throw new ArgumentNullException( nameof( components ) );
+			if (component is null)
+				throw new ArgumentNullException(nameof(component));
+			if (components is null)
+				throw new ArgumentNullException(nameof(components));
 
-			if (!CanMoveComponent( component, components, relativeIndex ))
+			if (!CanMoveComponent(component, components, relativeIndex))
 				return false;
 
-			int index = components.IndexOf( component );
-			_ = components.Remove( component );
-			components.Insert( index + relativeIndex, component );
+			int index = components.IndexOf(component);
+			_ = components.Remove(component);
+			components.Insert(index + relativeIndex, component);
 			return true;
 		}
 	}
-
 
 	public class ComponentProcessingResult
 	{

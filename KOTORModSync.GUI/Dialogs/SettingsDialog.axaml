@@ -22,8 +22,7 @@
         <converters:IsUnixConverter x:Key="IsUnixConverter" />
     </Window.Resources>
 
-    <Window.Styles>
-    </Window.Styles>
+    <Window.Styles />
 
     <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
         <!--  Custom Window Controls  -->
@@ -121,6 +120,12 @@
                                     <Binding Converter="{StaticResource IsUnixConverter}" />
                                 </CheckBox.IsVisible>
                             </CheckBox>
+
+                            <CheckBox
+                                Margin="0,5,0,0"
+                                Content="Enable file system watcher"
+                                IsChecked="{Binding enableFileWatcher}"
+                                ToolTip.Tip="When enabled, directory picker controls will automatically refresh their suggestions when files are added, removed, or renamed in the selected directories. This provides real-time updates but may impact performance on slower systems." />
 
                             <TextBlock
                                 Margin="0,15,0,5"

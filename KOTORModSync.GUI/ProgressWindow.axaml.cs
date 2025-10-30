@@ -107,7 +107,7 @@ namespace KOTORModSync
 				};
 
 				if (!(parentWindow is null))
-					_ = await progressWindow.ShowDialog<bool?>( parentWindow ).ConfigureAwait( false );
+					_ = await progressWindow.ShowDialog<bool?>( parentWindow ).ConfigureAwait( true );
 			} ).ConfigureAwait( false );
 		}
 

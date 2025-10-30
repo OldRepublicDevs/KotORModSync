@@ -28,33 +28,33 @@ namespace KOTORModSync.Controls
 		private ModComponent _previousComponent;
 
 		public static readonly StyledProperty<bool> IsBeingDraggedProperty =
-			AvaloniaProperty.Register<ModListItem, bool>( nameof( IsBeingDragged ) );
+			AvaloniaProperty.Register<ModListItem, bool>(nameof(IsBeingDragged));
 
 		public static readonly StyledProperty<bool> IsDropTargetProperty =
-			AvaloniaProperty.Register<ModListItem, bool>( nameof( IsDropTarget ) );
+			AvaloniaProperty.Register<ModListItem, bool>(nameof(IsDropTarget));
 
 		public bool IsBeingDragged
 		{
-			get => GetValue( IsBeingDraggedProperty );
-			set => SetValue( IsBeingDraggedProperty, value );
+			get => GetValue(IsBeingDraggedProperty);
+			set => SetValue(IsBeingDraggedProperty, value);
 		}
 
 		public bool IsDropTarget
 		{
-			get => GetValue( IsDropTargetProperty );
-			set => SetValue( IsDropTargetProperty, value );
+			get => GetValue(IsDropTargetProperty);
+			set => SetValue(IsDropTargetProperty, value);
 		}
 
 		public ModListItem()
 		{
-			AvaloniaXamlLoader.Load( this );
+			AvaloniaXamlLoader.Load(this);
 
 			PointerEntered += OnPointerEntered;
 			PointerExited += OnPointerExited;
 
 			DataContextChanged += OnDataContextChanged;
 
-			CheckBox checkbox = this.FindControl<CheckBox>( "ComponentCheckBox" );
+			CheckBox checkbox = this.FindControl<CheckBox>("ComponentCheckBox");
 			if (checkbox != null)
 				checkbox.IsCheckedChanged += OnCheckBoxChanged;
 
@@ -62,32 +62,32 @@ namespace KOTORModSync.Controls
 
 			DoubleTapped += OnDoubleTapped;
 
-			TextBlock dragHandle = this.FindControl<TextBlock>( "DragHandle" );
+			TextBlock dragHandle = this.FindControl<TextBlock>("DragHandle");
 			if (dragHandle != null)
 				dragHandle.PointerPressed += OnDragHandlePressed;
 
-			Button downloadButton = this.FindControl<Button>( "DownloadButton" );
+			Button downloadButton = this.FindControl<Button>("DownloadButton");
 			if (downloadButton != null)
 				downloadButton.Click += DownloadButton_Click;
 
-			Grid mainModInfo = this.FindControl<Grid>( "MainModInfo" );
-			if (mainModInfo == null)
+			Grid mainModInfo = this.FindControl<Grid>("MainModInfo");
+			if (mainModInfo is null)
 				return;
 			mainModInfo.PointerPressed += OnMainModInfoPointerPressed;
 			mainModInfo.DoubleTapped += OnMainModInfoDoubleTapped;
 		}
 
-		private void OnMainModInfoPointerPressed( object sender, PointerPressedEventArgs e )
+		private void OnMainModInfoPointerPressed(object sender, PointerPressedEventArgs e)
 		{
 
 			if (e.Source is CheckBox)
 				return;
 
 			if (DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow)
-				mainWindow.SetCurrentModComponent( component );
+				mainWindow.SetCurrentModComponent(component);
 		}
 
-		private void OnMainModInfoDoubleTapped( object sender, Avalonia.Interactivity.RoutedEventArgs e )
+		private void OnMainModInfoDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
 
 			if (e.Source is CheckBox)
@@ -100,14 +100,14 @@ namespace KOTORModSync.Controls
 				return;
 			mainWindow.UpdateModCounts();
 			if (component.IsSelected)
-				mainWindow.ComponentCheckboxChecked( component, new HashSet<ModComponent>() );
+				mainWindow.ComponentCheckboxChecked(component, new HashSet<ModComponent>());
 			else
-				mainWindow.ComponentCheckboxUnchecked( component, new HashSet<ModComponent>() );
+				mainWindow.ComponentCheckboxUnchecked(component, new HashSet<ModComponent>());
 
 			e.Handled = true;
 		}
 
-		private void OnDoubleTapped( object sender, Avalonia.Interactivity.RoutedEventArgs e )
+		private void OnDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
 
 			if (!(DataContext is ModComponent component))
@@ -117,62 +117,62 @@ namespace KOTORModSync.Controls
 				return;
 			mainWindow.UpdateModCounts();
 			if (component.IsSelected)
-				mainWindow.ComponentCheckboxChecked( component, new HashSet<ModComponent>() );
+				mainWindow.ComponentCheckboxChecked(component, new HashSet<ModComponent>());
 			else
-				mainWindow.ComponentCheckboxUnchecked( component, new HashSet<ModComponent>() );
+				mainWindow.ComponentCheckboxUnchecked(component, new HashSet<ModComponent>());
 		}
 
-		private void OnDragHandlePressed( object sender, PointerPressedEventArgs e )
+		private void OnDragHandlePressed(object sender, PointerPressedEventArgs e)
 		{
 			if (!(DataContext is ModComponent component) || !(this.FindAncestorOfType<Window>() is MainWindow mainWindow))
 				return;
-			mainWindow.StartDragComponent( component, e );
+			mainWindow.StartDragComponent(component, e);
 			e.Handled = true;
 		}
 
-		private async void DownloadButton_Click( object sender, RoutedEventArgs e )
+		private async void DownloadButton_Click(object sender, RoutedEventArgs e)
 		{
-			if (!(DataContext is ModComponent component) || !(this.FindAncestorOfType<Window>() is MainWindow mainWindow))
+			if (!(DataContext is ModComponent component) || !(this.FindAncestorOfType<Window>() is MainWindow))
 				return;
 
 			try
 			{
-				Logger.LogVerbose( $"[ModListItem] Download button clicked for: {component.Name}" );
-				await DownloadOrchestrationService.DownloadModFromUrlAsync( component.ModLinkFilenames.First().Key, component );
+				await Logger.LogVerboseAsync($"[ModListItem] Download button clicked for: {component.Name}").ConfigureAwait(true);
+				await DownloadOrchestrationService.DownloadModFromUrlAsync(component.ModLinkFilenames.First().Key, component).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, $"Error downloading mod: {component.Name}" );
+				await Logger.LogExceptionAsync(ex, $"Error downloading mod: {component.Name}").ConfigureAwait(true);
 			}
 		}
 
-		private void OnPointerPressed( object sender, PointerPressedEventArgs e )
+		private void OnPointerPressed(object sender, PointerPressedEventArgs e)
 		{
 
-			if (e.Source is TextBlock textBlock && string.Equals( textBlock.Name, "DragHandle", StringComparison.Ordinal ))
+			if (e.Source is TextBlock textBlock && string.Equals(textBlock.Name, "DragHandle", StringComparison.Ordinal))
 				return;
 			if (e.Source is CheckBox)
 				return;
 
 			if (DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow)
-				mainWindow.SetCurrentModComponent( component );
+				mainWindow.SetCurrentModComponent(component);
 		}
 
-		private void OnCheckBoxChanged( object sender, Avalonia.Interactivity.RoutedEventArgs e )
+		private void OnCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
 
 			if (this.FindAncestorOfType<Window>() is MainWindow mainWindow)
-				mainWindow.OnComponentCheckBoxChanged( sender, e );
+				mainWindow.OnComponentCheckBoxChanged(sender, e);
 		}
 
-		private void OnOptionCheckBoxChanged( object sender, Avalonia.Interactivity.RoutedEventArgs e )
+		private void OnOptionCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
 
 			if (this.FindAncestorOfType<Window>() is MainWindow mainWindow)
-				mainWindow.OnComponentCheckBoxChanged( sender, e );
+				mainWindow.OnComponentCheckBoxChanged(sender, e);
 		}
 
-		private void OnDataContextChanged( object sender, EventArgs e )
+		private void OnDataContextChanged(object sender, EventArgs e)
 		{
 			if (!(DataContext is ModComponent component))
 				return;
@@ -186,18 +186,18 @@ namespace KOTORModSync.Controls
 
 			UpdateFromModManagementService();
 
-			UpdateTooltip( component );
+			UpdateTooltip(component);
 
-			SetupOptionSelectionHandlers( component );
+			SetupOptionSelectionHandlers(component);
 		}
 
-		private void OnComponentPropertyChanged( object sender, PropertyChangedEventArgs e )
+		private void OnComponentPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
-			if (string.Equals( e.PropertyName, nameof( ModComponent.IsValidating ), StringComparison.Ordinal ) && sender is ModComponent component)
-				UpdateValidationState( component );
+			if (string.Equals(e.PropertyName, nameof(ModComponent.IsValidating), StringComparison.Ordinal) && sender is ModComponent component)
+				UpdateValidationState(component);
 		}
 
-		private void SetupOptionSelectionHandlers( ModComponent component )
+		private void SetupOptionSelectionHandlers(ModComponent component)
 		{
 			foreach (Option option in component.Options)
 			{
@@ -208,67 +208,68 @@ namespace KOTORModSync.Controls
 			}
 		}
 
-		private void OnOptionSelectionChanged( object sender, PropertyChangedEventArgs e )
+		private void OnOptionSelectionChanged(object sender, PropertyChangedEventArgs e)
 		{
-			if (string.Equals( e.PropertyName, nameof( Option.IsSelected ), StringComparison.Ordinal ) && sender is Option option)
+			if (string.Equals(e.PropertyName, nameof(Option.IsSelected), StringComparison.Ordinal) && sender is Option option)
 			{
 
-				ItemsControl optionsContainer = this.FindControl<ItemsControl>( "OptionsContainer" );
+				ItemsControl optionsContainer = this.FindControl<ItemsControl>("OptionsContainer");
 				if (optionsContainer != null)
 				{
 
-					Control container = optionsContainer.ContainerFromItem( option );
+					Control container = optionsContainer.ContainerFromItem(option);
 					if (container != null)
 					{
 						Border border = container.GetVisualDescendants().OfType<Border>().FirstOrDefault();
 						if (border != null)
-							UpdateOptionBackground( border, option.IsSelected );
+							UpdateOptionBackground(border, option.IsSelected);
 					}
 				}
 			}
 		}
 
-		public void UpdateTooltip( ModComponent component )
+		public void UpdateTooltip(ModComponent component)
 		{
 
-			TextBlock nameTextBlock = this.FindControl<TextBlock>( "NameTextBlock" );
-			if (nameTextBlock == null)
+			TextBlock nameTextBlock = this.FindControl<TextBlock>("NameTextBlock");
+			if (nameTextBlock is null)
 				return;
 
 			if (!(this.FindAncestorOfType<Window>() is MainWindow mainWindow))
 			{
-				string basicTooltip = CreateBasicTooltip( component );
-				ToolTip.SetTip( nameTextBlock, basicTooltip );
+				string basicTooltip = CreateBasicTooltip(component);
+				ToolTip.SetTip(nameTextBlock, basicTooltip);
 				return;
 			}
 
 			bool spoilerFreeMode = mainWindow.SpoilerFreeMode;
-			string tooltip = CreateBasicTooltip( component, spoilerFreeMode );
-			ToolTip.SetTip( nameTextBlock, tooltip );
+			string tooltip = CreateBasicTooltip(component, spoilerFreeMode);
+			ToolTip.SetTip(nameTextBlock, tooltip);
 
-			UpdateEditorModeVisibility( mainWindow.EditorMode );
+			UpdateEditorModeVisibility(mainWindow.EditorMode);
 
 			if (!mainWindow.EditorMode)
 				return;
-			int index = mainWindow.MainConfigInstance?.allComponents.IndexOf( component ) ?? -1;
-			if (index >= 0 && this.FindControl<TextBlock>( "IndexTextBlock" ) is TextBlock indexBlock)
+			int index = mainWindow.MainConfigInstance?.allComponents.IndexOf(component) ?? -1;
+			if (index >= 0 && this.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock)
 				indexBlock.Text = $"#{index + 1}";
 
 			try
 			{
-				string detailedTooltip = CreateRichTooltipAsync( component, spoilerFreeMode );
-				ToolTip.SetTip( nameTextBlock, detailedTooltip );
+				string detailedTooltip = CreateRichTooltipAsync(component, spoilerFreeMode);
+				ToolTip.SetTip(nameTextBlock, detailedTooltip);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, $"Error generating detailed tooltip for {component?.Name}" );
+				Logger.LogException(ex, $"Error generating detailed tooltip for {component?.Name}");
 
 			}
 		}
 
-		public void UpdateValidationState( ModComponent component )
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		public void UpdateValidationState(ModComponent component)
 		{
-			if (!(this.FindControl<Border>( "RootBorder" ) is Border border))
+			if (!(this.FindControl<Border>("RootBorder") is Border border))
 				return;
 
 			if (component.IsValidating)
@@ -286,10 +287,10 @@ namespace KOTORModSync.Controls
 			if (!component.IsSelected)
 			{
 
-				border.ClearValue( Border.BorderBrushProperty );
-				border.ClearValue( Border.BorderThicknessProperty );
+				border.ClearValue(Border.BorderBrushProperty);
+				border.ClearValue(Border.BorderThicknessProperty);
 
-				if (this.FindControl<TextBlock>( "ValidationIcon" ) is TextBlock validationIcon)
+				if (this.FindControl<TextBlock>("ValidationIcon") is TextBlock validationIcon)
 					validationIcon.IsVisible = false;
 				return;
 			}
@@ -298,82 +299,78 @@ namespace KOTORModSync.Controls
 			bool hasErrors = false;
 			var errorReasons = new List<string>();
 
-			if (string.IsNullOrWhiteSpace( component.Name ))
+			if (string.IsNullOrWhiteSpace(component.Name))
 			{
 				hasErrors = true;
-				errorReasons.Add( "Missing mod name" );
+				errorReasons.Add("Missing mod name");
 			}
 
-			if (component.Dependencies.Count > 0)
+			if (component.Dependencies.Count > 0 &&
+				this.FindAncestorOfType<Window>() is MainWindow mw1)
 			{
-				if (this.FindAncestorOfType<Window>() is MainWindow mainWindow)
+				List<ModComponent> dependencyComponents = ModComponent.FindComponentsFromGuidList(
+					component.Dependencies,
+					mw1.MainConfigInstance.allComponents
+				);
+				foreach (ModComponent dep in dependencyComponents)
 				{
-					List<ModComponent> allComponents = mainWindow.MainConfigInstance?.allComponents;
-					if (allComponents != null)
-					{
-						List<ModComponent> dependencyComponents = ModComponent.FindComponentsFromGuidList( component.Dependencies, allComponents );
-						foreach (ModComponent dep in dependencyComponents)
-						{
-							if (dep == null || dep.IsSelected)
-								continue;
-							hasErrors = true;
-							errorReasons.Add( $"Requires '{dep.Name}' to be selected" );
-						}
-					}
+					if (dep is null || dep.IsSelected)
+						continue;
+					hasErrors = true;
+					errorReasons.Add($"Requires '{dep.Name}' to be selected");
 				}
 			}
 
-			if (component.Restrictions.Count > 0)
+			if (
+				component.Restrictions.Count > 0
+				&& this.FindAncestorOfType<Window>() is MainWindow mw2)
 			{
-				if (this.FindAncestorOfType<Window>() is MainWindow mainWindow)
+				List<ModComponent> restrictionComponents = ModComponent.FindComponentsFromGuidList(
+					component.Restrictions,
+					mw2.MainConfigInstance.allComponents
+				);
+				foreach (ModComponent restriction in restrictionComponents)
 				{
-					List<ModComponent> allComponents = mainWindow.MainConfigInstance?.allComponents;
-					if (allComponents != null)
-					{
-						List<ModComponent> restrictionComponents = ModComponent.FindComponentsFromGuidList( component.Restrictions, allComponents );
-						foreach (ModComponent restriction in restrictionComponents)
-						{
-							if (restriction == null || !restriction.IsSelected)
-								continue;
-							hasErrors = true;
-							errorReasons.Add( $"Conflicts with '{restriction.Name}' which is selected" );
-						}
-					}
+					if (restriction is null || !restriction.IsSelected)
+						continue;
+					hasErrors = true;
+					errorReasons.Add($"Conflicts with '{restriction.Name}' which is selected");
 				}
 			}
 
 			if (component.Instructions.Count == 0)
 			{
 				hasErrors = true;
-				errorReasons.Add( "No installation instructions defined" );
+				errorReasons.Add("No installation instructions defined");
 			}
 
-			if (component.ModLinkFilenames.Count > 0)
+			if (
+				component.ModLinkFilenames.Count > 0 &&
+				this.FindAncestorOfType<Window>() is MainWindow mw3 &&
+				mw3.EditorMode
+			)
 			{
-				if (this.FindAncestorOfType<Window>() is MainWindow mainWindow && mainWindow.EditorMode)
+				var invalidUrls = new List<string>();
+				foreach (string link in component.ModLinkFilenames.Keys)
 				{
-					var invalidUrls = new List<string>();
-					foreach (string link in component.ModLinkFilenames.Keys)
-					{
-						if (string.IsNullOrWhiteSpace( link ))
-							continue;
+					if (string.IsNullOrWhiteSpace(link))
+						continue;
 
-						if (!IsValidUrl( link ))
-							invalidUrls.Add( link );
-					}
+					if (!IsValidUrl(link))
+						invalidUrls.Add(link);
+				}
 
-					if (invalidUrls.Count > 0)
-					{
-						hasErrors = true;
-						errorReasons.Add( $"Invalid download URLs: {string.Join( ", ", invalidUrls )}" );
-					}
+				if (invalidUrls.Count > 0)
+				{
+					hasErrors = true;
+					errorReasons.Add($"Invalid download URLs: {string.Join(", ", invalidUrls)}");
 				}
 			}
 
 			if (errorReasons.Count > 0)
-				s_componentErrors[component.Guid] = string.Join( "\n", errorReasons );
+				s_componentErrors[component.Guid] = string.Join("\n", errorReasons);
 			else
-				_ = s_componentErrors.Remove( component.Guid );
+				_ = s_componentErrors.Remove(component.Guid);
 
 			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
 
@@ -381,27 +378,27 @@ namespace KOTORModSync.Controls
 			{
 
 				border.BorderBrush = ThemeResourceHelper.ModListItemErrorBrush;
-				border.BorderThickness = new Thickness( 2 );
+				border.BorderThickness = new Thickness(2);
 			}
 			else if (shouldShowDownloadWarning)
 			{
 
 				border.BorderBrush = ThemeResourceHelper.ModListItemWarningBrush;
-				border.BorderThickness = new Thickness( 1.5 );
+				border.BorderThickness = new Thickness(1.5);
 			}
 			else
 			{
 
-				border.ClearValue( Border.BorderBrushProperty );
-				border.ClearValue( Border.BorderThicknessProperty );
+				border.ClearValue(Border.BorderBrushProperty);
+				border.ClearValue(Border.BorderThicknessProperty);
 			}
 
-			UpdateValidationIcon( this.FindControl<TextBlock>( "ValidationIcon" ), hasErrors, shouldShowDownloadWarning );
+			UpdateValidationIcon(this.FindControl<TextBlock>("ValidationIcon"), hasErrors, shouldShowDownloadWarning);
 		}
 
-		private static void UpdateValidationIcon( TextBlock validationIconControl, bool hasErrors, bool shouldShowDownloadWarning )
+		private static void UpdateValidationIcon(TextBlock validationIconControl, bool hasErrors, bool shouldShowDownloadWarning)
 		{
-			if (validationIconControl == null)
+			if (validationIconControl is null)
 				return;
 
 			if (hasErrors)
@@ -409,14 +406,14 @@ namespace KOTORModSync.Controls
 				validationIconControl.Text = "❌";
 				validationIconControl.Foreground = ThemeResourceHelper.ModListItemErrorBrush;
 				validationIconControl.IsVisible = true;
-				ToolTip.SetTip( validationIconControl, "ModComponent has validation errors" );
+				ToolTip.SetTip(validationIconControl, "ModComponent has validation errors");
 			}
 			else if (shouldShowDownloadWarning)
 			{
 				validationIconControl.Text = "⚠️";
 				validationIconControl.Foreground = ThemeResourceHelper.ModListItemWarningBrush;
 				validationIconControl.IsVisible = true;
-				ToolTip.SetTip( validationIconControl, "Mod archive not downloaded" );
+				ToolTip.SetTip(validationIconControl, "Mod archive not downloaded");
 			}
 			else
 			{
@@ -429,22 +426,23 @@ namespace KOTORModSync.Controls
 			if (!(DataContext is ModComponent component) || !(this.FindAncestorOfType<Window>() is MainWindow mainWindow))
 				return;
 
-			UpdateValidationState( component );
+			UpdateValidationState(component);
 
-			ContextMenu = mainWindow.BuildContextMenuForComponent( component );
+			ContextMenu = mainWindow.BuildContextMenuForComponent(component);
 		}
 
-		private void UpdateEditorModeVisibility( bool isEditorMode )
+		private void UpdateEditorModeVisibility(bool isEditorMode)
 		{
 
-			if (this.FindControl<TextBlock>( "IndexTextBlock" ) is TextBlock indexBlock)
+			if (this.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock)
 				indexBlock.IsVisible = isEditorMode;
 
-			if (this.FindControl<TextBlock>( "DragHandle" ) is TextBlock dragHandle)
+			if (this.FindControl<TextBlock>("DragHandle") is TextBlock dragHandle)
 				dragHandle.IsVisible = isEditorMode;
 		}
 
-		private static string CreateBasicTooltip( ModComponent component, bool spoilerFreeMode = false )
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private static string CreateBasicTooltip(ModComponent component, bool spoilerFreeMode = false)
 		{
 			var sb = new System.Text.StringBuilder();
 			string description = spoilerFreeMode ? component.DescriptionSpoilerFree : component.Description;
@@ -452,66 +450,66 @@ namespace KOTORModSync.Controls
 			if (!component.IsSelected)
 			{
 
-				_ = sb.AppendLine( $"📦 {component.Name}" );
-				if (!string.IsNullOrWhiteSpace( component.Author ))
-					_ = sb.AppendLine( $"👤 Author: {component.Author}" );
+				_ = sb.AppendLine($"📦 {component.Name}");
+				if (!string.IsNullOrWhiteSpace(component.Author))
+					_ = sb.AppendLine($"👤 Author: {component.Author}");
 				if (component.Category.Count > 0)
-					_ = sb.AppendLine( $"🏷️ Category: {string.Join( ", ", component.Category )}" );
-				if (!string.IsNullOrWhiteSpace( component.Tier ))
-					_ = sb.AppendLine( $"⭐ Tier: {component.Tier}" );
-				if (!string.IsNullOrWhiteSpace( description ))
+					_ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
+				if (!string.IsNullOrWhiteSpace(component.Tier))
+					_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
+				if (!string.IsNullOrWhiteSpace(description))
 				{
-					string desc = description.Length > 200 ? description.Substring( 0, 200 ) + "..." : description;
-					_ = sb.AppendLine( $"📝 {desc}" );
+					string desc = description.Length > 200 ? description.Substring(0, 200) + "..." : description;
+					_ = sb.AppendLine($"📝 {desc}");
 				}
 				return sb.ToString();
 			}
 
-			_ = sb.AppendLine( $"📦 {component.Name}" );
-			if (!string.IsNullOrWhiteSpace( component.Author ))
-				_ = sb.AppendLine( $"👤 Author: {component.Author}" );
+			_ = sb.AppendLine($"📦 {component.Name}");
+			if (!string.IsNullOrWhiteSpace(component.Author))
+				_ = sb.AppendLine($"👤 Author: {component.Author}");
 			if (component.Category.Count > 0)
-				_ = sb.AppendLine( $"🏷️ Category: {string.Join( ", ", component.Category )}" );
-			if (!string.IsNullOrWhiteSpace( component.Tier ))
-				_ = sb.AppendLine( $"⭐ Tier: {component.Tier}" );
+				_ = sb.AppendLine($"🏷️ Category: {string.Join(", ", component.Category)}");
+			if (!string.IsNullOrWhiteSpace(component.Tier))
+				_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
 
 			bool isMissingDownload = !component.IsDownloaded;
-			_ = s_componentErrors.TryGetValue( component.Guid, out string errorReasons );
-			bool hasErrors = !string.IsNullOrEmpty( errorReasons );
+			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
+			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
 
 			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
 
 			if (hasErrors || shouldShowDownloadWarning)
 			{
-				_ = sb.AppendLine( "⚠️ ISSUES DETECTED ⚠️" );
-				_ = sb.AppendLine( new string( '─', 40 ) );
+				_ = sb.AppendLine("⚠️ ISSUES DETECTED ⚠️");
+				_ = sb.AppendLine(new string('─', 40));
 
 				if (shouldShowDownloadWarning)
 				{
-					_ = sb.AppendLine( "❗ Missing Download" );
-					_ = sb.AppendLine( "This mod is selected but the archive file is not" );
-					_ = sb.AppendLine( "in your mod directory. Please:" );
-					_ = sb.AppendLine( "  1. Click 'Fetch Downloads' to auto-download" );
-					_ = sb.AppendLine( "  2. Or manually download from the mod links" );
+					_ = sb.AppendLine("❗ Missing Download");
+					_ = sb.AppendLine("This mod is selected but the archive file is not");
+					_ = sb.AppendLine("in your mod directory. Please:");
+					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
+					_ = sb.AppendLine("  2. Or manually download from the mod links");
 					if (component.ModLinkFilenames.Count > 0)
-						_ = sb.AppendLine( $"  3. Download Links: {string.Join( ", ", component.ModLinkFilenames.Keys )}" );
+						_ = sb.AppendLine($"  3. Download Links: {string.Join(", ", component.ModLinkFilenames.Keys)}");
 					_ = sb.AppendLine();
 				}
 
 				if (hasErrors)
 				{
-					_ = sb.AppendLine( "❌ Configuration Errors:" );
-					string[] errors = errorReasons.Split( '\n' );
+					_ = sb.AppendLine("❌ Configuration Errors:");
+					string[] errors = errorReasons.Split('\n');
 					foreach (string error in errors)
 					{
-						_ = sb.AppendLine( $"  • {error}" );
+						_ = sb.AppendLine($"  • {error}");
 					}
 					_ = sb.AppendLine();
-					_ = sb.AppendLine( "How to fix:" );
-					if (errorReasons.Contains( "Requires" ))
-						_ = sb.AppendLine( "  • Enable required dependency mods" );
-					if (errorReasons.Contains( "Conflicts" ))
-						_ = sb.AppendLine( "  • Disable conflicting mods" );
+					_ = sb.AppendLine("How to fix:");
+					if (errorReasons.Contains("Requires"))
+						_ = sb.AppendLine("  • Enable required dependency mods");
+					if (errorReasons.Contains("Conflicts"))
+						_ = sb.AppendLine("  • Disable conflicting mods");
 					_ = sb.AppendLine();
 				}
 			}
@@ -519,7 +517,8 @@ namespace KOTORModSync.Controls
 			return sb.ToString();
 		}
 
-		private static string CreateRichTooltipAsync( ModComponent component, bool spoilerFreeMode = false )
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private static string CreateRichTooltipAsync(ModComponent component, bool spoilerFreeMode = false)
 		{
 			var sb = new System.Text.StringBuilder();
 			string description = spoilerFreeMode ? component.DescriptionSpoilerFree : component.Description;
@@ -527,45 +526,45 @@ namespace KOTORModSync.Controls
 			if (!component.IsSelected)
 			{
 
-				_ = sb.AppendLine( $"📦 {component.Name}" );
-				if (!string.IsNullOrWhiteSpace( component.Author ))
-					_ = sb.AppendLine( $"👤 Author: {component.Author}" );
+				_ = sb.Append("📦 ").Append(component.Name).AppendLine();
+				if (!string.IsNullOrWhiteSpace(component.Author))
+					_ = sb.Append("👤 Author: ").Append(component.Author).AppendLine();
 				if (component.Category.Count > 0)
-					_ = sb.AppendLine( $"🏷️ Category: {string.Join( ", ", component.Category )}" );
-				if (!string.IsNullOrWhiteSpace( component.Tier ))
-					_ = sb.AppendLine( $"⭐ Tier: {component.Tier}" );
-				if (!string.IsNullOrWhiteSpace( description ))
+					_ = sb.Append("🏷️ Category: ").Append(string.Join(", ", component.Category)).AppendLine();
+				if (!string.IsNullOrWhiteSpace(component.Tier))
+					_ = sb.Append("⭐ Tier: ").Append(component.Tier).AppendLine();
+				if (!string.IsNullOrWhiteSpace(description))
 				{
-					string desc = description.Length > 200 ? description.Substring( 0, 200 ) + "..." : description;
-					_ = sb.AppendLine( $"📝 {desc}" );
+					string desc = description.Length > 200 ? description.Substring(0, 200) + "..." : description;
+					_ = sb.Append("📝 ").Append(desc).AppendLine();
 				}
 				return sb.ToString();
 			}
 
-			_ = sb.AppendLine( $"📦 {component.Name}" );
-			if (!string.IsNullOrWhiteSpace( component.Author ))
-				_ = sb.AppendLine( $"👤 Author: {component.Author}" );
+			_ = sb.Append("📦 ").Append(component.Name).AppendLine();
+			if (!string.IsNullOrWhiteSpace(component.Author))
+				_ = sb.Append("👤 Author: ").Append(component.Author).AppendLine();
 			if (component.Category.Count > 0)
-				_ = sb.AppendLine( $"🏷️ Category: {string.Join( ", ", component.Category )}" );
-			if (!string.IsNullOrWhiteSpace( component.Tier ))
-				_ = sb.AppendLine( $"⭐ Tier: {component.Tier}" );
+				_ = sb.Append("🏷️ Category: ").Append(string.Join(", ", component.Category)).AppendLine();
+			if (!string.IsNullOrWhiteSpace(component.Tier))
+				_ = sb.Append("⭐ Tier: ").Append(component.Tier).AppendLine();
 
 			bool isMissingDownload = !component.IsDownloaded;
-			_ = s_componentErrors.TryGetValue( component.Guid, out string errorReasons );
-			bool hasErrors = !string.IsNullOrEmpty( errorReasons );
+			_ = s_componentErrors.TryGetValue(component.Guid, out string errorReasons);
+			bool hasErrors = !string.IsNullOrEmpty(errorReasons);
 
 			bool shouldShowDownloadWarning = isMissingDownload && MainWindow.HasFetchedDownloads && hasErrors;
 
 			if (hasErrors || shouldShowDownloadWarning)
 			{
-				_ = sb.AppendLine( "⚠️ ISSUES DETECTED ⚠️" );
-				_ = sb.AppendLine( new string( '─', 40 ) );
+				_ = sb.Append("⚠️ ISSUES DETECTED ⚠️").AppendLine();
+				_ = sb.Append(new string('─', 40)).AppendLine();
 
 				if (shouldShowDownloadWarning)
 				{
-					_ = sb.AppendLine( "❗ Missing Download" );
+					_ = sb.Append("❗ Missing Download").AppendLine();
 
-					var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+					var mainWindow = Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
 						? desktop.MainWindow as MainWindow
 						: null;
 					var downloadCacheService = mainWindow?.DownloadCacheService;
@@ -574,85 +573,85 @@ namespace KOTORModSync.Controls
 						var missingUrls = new List<string>();
 						foreach (string url in component.ModLinkFilenames.Keys)
 						{
-							if (!Core.Services.DownloadCacheService.IsCached( url ))
+							if (!Core.Services.DownloadCacheService.IsCached(url))
 							{
-								missingUrls.Add( url );
+								missingUrls.Add(url);
 							}
 						}
 
 						if (missingUrls.Count > 0)
 						{
-							_ = sb.AppendLine( "Missing cached downloads:" );
+							_ = sb.AppendLine("Missing cached downloads:");
 							foreach (string url in missingUrls)
 							{
-								_ = sb.AppendLine( $"  • {url}" );
+								_ = sb.Append("  • ").Append(url).AppendLine();
 							}
 							_ = sb.AppendLine();
 						}
 					}
 
-					_ = sb.AppendLine( "This mod is selected but the download is not cached." );
-					_ = sb.AppendLine( "Please:" );
-					_ = sb.AppendLine( "  1. Click 'Fetch Downloads' to auto-download" );
-					_ = sb.AppendLine( "  2. Or manually download from the mod links" );
+					_ = sb.AppendLine("This mod is selected but the download is not cached.");
+					_ = sb.AppendLine("Please:");
+					_ = sb.AppendLine("  1. Click 'Fetch Downloads' to auto-download");
+					_ = sb.AppendLine("  2. Or manually download from the mod links");
 					if (component.ModLinkFilenames.Count > 0)
-						_ = sb.AppendLine( $"  3. Download Links: {string.Join( ", ", component.ModLinkFilenames.Keys )}" );
+						_ = sb.Append("  3. Download Links: ").Append(string.Join(", ", component.ModLinkFilenames.Keys)).AppendLine();
 					_ = sb.AppendLine();
 				}
 
 				if (hasErrors)
 				{
-					_ = sb.AppendLine( "❌ Configuration Errors:" );
-					string[] errors = errorReasons.Split( '\n' );
+					_ = sb.AppendLine("❌ Configuration Errors:");
+					string[] errors = errorReasons.Split('\n');
 					foreach (string error in errors)
 					{
-						_ = sb.AppendLine( $"  • {error}" );
+						_ = sb.AppendLine($"  • {error}");
 					}
 					_ = sb.AppendLine();
-					_ = sb.AppendLine( "How to fix:" );
-					if (errorReasons.Contains( "Requires" ))
-						_ = sb.AppendLine( "  • Enable required dependency mods" );
-					if (errorReasons.Contains( "Conflicts" ))
-						_ = sb.AppendLine( "  • Disable conflicting mods" );
+					_ = sb.AppendLine("How to fix:");
+					if (errorReasons.Contains("Requires"))
+						_ = sb.AppendLine("  • Enable required dependency mods");
+					if (errorReasons.Contains("Conflicts"))
+						_ = sb.AppendLine("  • Disable conflicting mods");
 					_ = sb.AppendLine();
 				}
 			}
 
-			if (!string.IsNullOrWhiteSpace( description ))
+			if (!string.IsNullOrWhiteSpace(description))
 			{
-				_ = sb.AppendLine( $"📝 Description:" );
-				string desc = description.Length > 300 ? description.Substring( 0, 300 ) + "..." : description;
-				_ = sb.AppendLine( desc );
+				_ = sb.AppendLine($"📝 Description:");
+				string desc = description.Length > 300 ? description.Substring(0, 300) + "..." : description;
+				_ = sb.AppendLine(desc);
 				_ = sb.AppendLine();
 			}
 
 			if (component.ModLinkFilenames.Count > 0)
 			{
-				_ = sb.AppendLine( $"🔗 Download Links ({component.ModLinkFilenames.Count}):" );
+				_ = sb.AppendLine($"🔗 Download Links ({component.ModLinkFilenames.Count}):");
 				var linkNames = component.ModLinkFilenames.Keys.ToList();
-				for (int i = 0; i < Math.Min( linkNames.Count, 3 ); i++)
+				for (int i = 0; i < Math.Min(linkNames.Count, 3); i++)
 				{
-					_ = sb.AppendLine( $"  {i + 1}. {linkNames[i]}" );
+					_ = sb.AppendLine($"  {i + 1}. {linkNames[i]}");
 				}
 				if (linkNames.Count > 3)
-					_ = sb.AppendLine( $"  ... and {linkNames.Count - 3} more" );
+					_ = sb.AppendLine($"  ... and {linkNames.Count - 3} more");
 				_ = sb.AppendLine();
 			}
 
 			if (component.Dependencies.Count > 0)
 			{
-				_ = sb.AppendLine( $"🔗 Dependencies ({component.Dependencies.Count}):" );
+				_ = sb.AppendLine($"🔗 Dependencies ({component.Dependencies.Count}):");
 				foreach (Guid depGuid in component.Dependencies)
 				{
-					ModComponent depComponent = MainConfig.AllComponents.FirstOrDefault( c => c.Guid == depGuid );
-					if (depComponent != null)
+					ModComponent depComponent = MainConfig.AllComponents.Find(c => c.Guid == depGuid);
+					if (!(depComponent is null))
 					{
 						string status = depComponent.IsSelected ? "✅" : "❌";
-						_ = sb.AppendLine( $"  {status} {depComponent.Name}" );
+						_ = sb.AppendLine($"  {status} {depComponent.Name}");
 					}
 					else
 					{
-						_ = sb.AppendLine( $"  ❓ Unknown dependency ({depGuid})" );
+						_ = sb.AppendLine($"  ❓ Unknown dependency ({depGuid})");
 					}
 				}
 				_ = sb.AppendLine();
@@ -660,18 +659,18 @@ namespace KOTORModSync.Controls
 
 			if (component.Restrictions.Count > 0)
 			{
-				_ = sb.AppendLine( $"⚠️ Conflicts ({component.Restrictions.Count}):" );
+				_ = sb.AppendLine($"⚠️ Conflicts ({component.Restrictions.Count}):");
 				foreach (Guid restrictGuid in component.Restrictions)
 				{
-					ModComponent restrictComponent = MainConfig.AllComponents.FirstOrDefault( c => c.Guid == restrictGuid );
-					if (restrictComponent != null)
+					ModComponent restrictComponent = MainConfig.AllComponents.Find(c => c.Guid == restrictGuid);
+					if (!(restrictComponent is null))
 					{
 						string status = restrictComponent.IsSelected ? "❌" : "✅";
-						_ = sb.AppendLine( $"  {status} {restrictComponent.Name}" );
+						_ = sb.Append("  ").Append(status).Append(' ').Append(restrictComponent.Name).AppendLine();
 					}
 					else
 					{
-						_ = sb.AppendLine( $"  ❓ Unknown conflict ({restrictGuid})" );
+						_ = sb.Append("  ❓ Unknown conflict (").Append(restrictGuid).Append(')').AppendLine();
 					}
 				}
 				_ = sb.AppendLine();
@@ -680,9 +679,9 @@ namespace KOTORModSync.Controls
 			return sb.ToString();
 		}
 
-		private void OnPointerEntered( object sender, PointerEventArgs e )
+		private void OnPointerEntered(object sender, PointerEventArgs e)
 		{
-			if (!(this.FindControl<Border>( "RootBorder" ) is Border border))
+			if (!(this.FindControl<Border>("RootBorder") is Border border))
 				return;
 
 			IBrush currentBrush = border.BorderBrush;
@@ -713,9 +712,9 @@ namespace KOTORModSync.Controls
 			border.Background = ThemeResourceHelper.ModListItemHoverBackgroundBrush;
 		}
 
-		private void OnPointerExited( object sender, PointerEventArgs e )
+		private void OnPointerExited(object sender, PointerEventArgs e)
 		{
-			if (!(this.FindControl<Border>( "RootBorder" ) is Border border))
+			if (!(this.FindControl<Border>("RootBorder") is Border border))
 				return;
 
 			if (border.Tag is IBrush originalBrush)
@@ -724,45 +723,47 @@ namespace KOTORModSync.Controls
 			{
 
 				if (DataContext is ModComponent component)
-					UpdateValidationState( component );
+					UpdateValidationState(component);
 			}
 
 			border.Background = ThemeResourceHelper.ModListItemDefaultBackgroundBrush;
 		}
 
-		public void SetDraggedState( bool isDragged )
+		public void SetDraggedState(bool isDragged)
 		{
 			IsBeingDragged = isDragged;
-			if (this.FindControl<Border>( "RootBorder" ) is Border border)
+			if (this.FindControl<Border>("RootBorder") is Border border)
 				border.Opacity = isDragged ? 0.5 : 1.0;
 		}
 
-		public void SetDropTargetState( bool isDropTarget )
+		public void SetDropTargetState(bool isDropTarget)
 		{
 			IsDropTarget = isDropTarget;
-			if (this.FindControl<Border>( "DropIndicator" ) is Border indicator)
+			if (this.FindControl<Border>("DropIndicator") is Border indicator)
 				indicator.IsVisible = isDropTarget;
 		}
 
-		private static bool IsValidUrl( string url )
+		private static bool IsValidUrl(string url)
 		{
-			if (string.IsNullOrWhiteSpace( url ))
+			if (string.IsNullOrWhiteSpace(url))
 				return false;
 
-			if (!Uri.TryCreate( url, UriKind.Absolute, out Uri uri ))
+			if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
 				return false;
 
-			if (!string.Equals( uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal ) && !string.Equals( uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal ))
+			if (
+				!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
+				&& !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
+			)
 				return false;
 
-			if (string.IsNullOrWhiteSpace( uri.Host ))
+			if (string.IsNullOrWhiteSpace(uri.Host))
 				return false;
 
 			return true;
 		}
 
-
-		private void OptionBorder_PointerPressed( object sender, PointerPressedEventArgs e )
+		private void OptionBorder_PointerPressed(object sender, PointerPressedEventArgs e)
 		{
 
 			e.Handled = true;
@@ -772,13 +773,13 @@ namespace KOTORModSync.Controls
 
 				option.IsSelected = !option.IsSelected;
 
-				UpdateOptionBackground( border, option.IsSelected );
+				UpdateOptionBackground(border, option.IsSelected);
 			}
 		}
 
-		private static void UpdateOptionBackground( Border border, bool isSelected )
+		private static void UpdateOptionBackground(Border border, bool isSelected)
 		{
-			if (border == null)
+			if (border is null)
 				return;
 
 			border.Background = isSelected

@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <UserControl
     x:Class="KOTORModSync.Controls.DirectoryPickerControl"
     xmlns="https://github.com/avaloniaui"
@@ -17,6 +17,12 @@
             x:Name="TitleTextBlock"
             Margin="0,0,0,5"
             FontWeight="Bold" />
+
+        <!--  Description  -->
+        <TextBlock
+            x:Name="DescriptionTextBlock"
+            Margin="0,0,0,5"
+            TextWrapping="Wrap" />
 
         <!--  Current Path Display  -->
         <TextBlock

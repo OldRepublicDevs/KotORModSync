@@ -15,7 +15,7 @@ namespace KOTORModSync.Converters
 
 		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if (value == null || parameter == null)
+			if (value is null || parameter is null)
 				return false;
 
 			string enumValue = value.ToString();
@@ -26,7 +26,7 @@ namespace KOTORModSync.Converters
 
 		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if (parameter == null)
+			if (parameter is null)
 				return null;
 
 			if (value is bool boolValue && boolValue)

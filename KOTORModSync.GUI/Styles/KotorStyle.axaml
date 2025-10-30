@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <Styles
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -11,7 +11,7 @@
         </Border>
     </Design.PreviewWith>
 
-    <!-- Fluent theme loaded dynamically by ThemeManager before this style -->
+    <!--  Fluent theme loaded dynamically by ThemeManager before this style  -->
 
     <Style Selector="Menu">
         <Setter Property="FontSize" Value="14" />
@@ -597,14 +597,17 @@
     </Style>
     <Style Selector="TextBlock#ConfirmTextBlock">
         <Setter Property="FontSize" Value="16" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
 
     <Style Selector="TextBlock#TitleTextBlock">
         <Setter Property="FontSize" Value="18" />
         <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
     <Style Selector="TextBlock#InfoTextBlock">
         <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
 
     <Style Selector="TextBlock#OptionTextBox">
@@ -617,12 +620,15 @@
 
     <Style Selector="TextBlock#DescriptionTextBlock">
         <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
     <Style Selector="TextBlock#RawTitleTextBlock">
         <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
     <Style Selector="TextBlock#PreviewTitleTextBlock">
         <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#3AAAFF" />
     </Style>
     <Style Selector="TextBox#RawRegexTextBox">
         <Setter Property="FontFamily" Value="Consolas,Courier New,monospace" />
@@ -833,42 +839,42 @@
         <Setter Property="Background" Value="#000116" />
     </Style>
 
-    <!-- Fix for Button ContentPresenter - structural only -->
+    <!--  Fix for Button ContentPresenter - structural only  -->
     <Style Selector="Button /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="BorderThickness" Value="2" />
     </Style>
 
-    <!-- Fix for TextBox ContentPresenter - structural only -->
+    <!--  Fix for TextBox ContentPresenter - structural only  -->
     <Style Selector="TextBox /template/ Border#PART_BorderElement">
         <Setter Property="BorderThickness" Value="2" />
     </Style>
 
-    <!-- Fix for ComboBox ContentPresenter - structural only -->
+    <!--  Fix for ComboBox ContentPresenter - structural only  -->
     <Style Selector="ComboBox /template/ Border#Background">
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Fix for CheckBox ContentPresenter - structural only -->
+    <!--  Fix for CheckBox ContentPresenter - structural only  -->
     <Style Selector="CheckBox /template/ Border#PART_Border">
         <Setter Property="BorderThickness" Value="2" />
     </Style>
 
-    <!-- Fix for TreeView ContentPresenter - structural only -->
+    <!--  Fix for TreeView ContentPresenter - structural only  -->
     <Style Selector="TreeView /template/ Border#PART_Border">
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Fix for ListBox ContentPresenter - structural only -->
+    <!--  Fix for ListBox ContentPresenter - structural only  -->
     <Style Selector="ListBox /template/ Border#PART_Border">
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Fix for ScrollViewer - structural only -->
+    <!--  Fix for ScrollViewer - structural only  -->
     <Style Selector="ScrollViewer /template/ Border#PART_Border">
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 
-    <!-- Fix for Expander - structural only -->
+    <!--  Fix for Expander - structural only  -->
     <Style Selector="Expander /template/ Border#ExpanderContent">
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="0" />
@@ -893,13 +899,29 @@
             <SolidColorBrush x:Key="RegexHighlight.Default" Color="#3AAAFF" />
             <SolidColorBrush x:Key="RegexHighlight.Heading" Color="#A8B348" />
             <SolidColorBrush x:Key="RegexHighlight.Name" Color="#3AAAFF" />
+            <SolidColorBrush x:Key="RegexHighlight.NameLink" Color="#3AAAFF" />
+            <SolidColorBrush x:Key="RegexHighlight.NamePlain" Color="#3AAAFF" />
             <SolidColorBrush x:Key="RegexHighlight.Author" Color="#62C6FF" />
             <SolidColorBrush x:Key="RegexHighlight.Description" Color="#FFC857" />
             <SolidColorBrush x:Key="RegexHighlight.Masters" Color="#FF8C42" />
+            <SolidColorBrush x:Key="RegexHighlight.Category" Color="#9F7AEA" />
+            <SolidColorBrush x:Key="RegexHighlight.Tier" Color="#BBA6FF" />
             <SolidColorBrush x:Key="RegexHighlight.CategoryTier" Color="#9F7AEA" />
             <SolidColorBrush x:Key="RegexHighlight.NonEnglish" Color="#B0BEC5" />
             <SolidColorBrush x:Key="RegexHighlight.InstallationMethod" Color="#50FA7B" />
+            <SolidColorBrush x:Key="RegexHighlight.Method" Color="#50FA7B" />
             <SolidColorBrush x:Key="RegexHighlight.InstallationInstructions" Color="#F78C6C" />
+            <SolidColorBrush x:Key="RegexHighlight.Directions" Color="#F78C6C" />
+            <SolidColorBrush x:Key="RegexHighlight.DownloadInstructions" Color="#FFA07A" />
+            <SolidColorBrush x:Key="RegexHighlight.ModLink" Color="#3AAAFF" />
+            <SolidColorBrush x:Key="RegexHighlight.ModLinkLabel" Color="#62C6FF" />
+            <SolidColorBrush x:Key="RegexHighlight.UsageWarning" Color="#FF6B9D" />
+            <SolidColorBrush x:Key="RegexHighlight.Screenshots" Color="#2FB393" />
+            <SolidColorBrush x:Key="RegexHighlight.KnownBugs" Color="#FF8888" />
+            <SolidColorBrush x:Key="RegexHighlight.InstallationWarning" Color="#FFB84D" />
+            <SolidColorBrush x:Key="RegexHighlight.CompatibilityWarning" Color="#FFD700" />
+            <SolidColorBrush x:Key="RegexHighlight.SteamNotes" Color="#B8860B" />
+            <SolidColorBrush x:Key="RegexHighlight.Value" Color="#B0BEC5" />
 
             <!--  ModComponent Merge Conflict Resources  -->
             <SolidColorBrush x:Key="MergeStatus.NewBrush" Color="#90EE90" />
@@ -979,11 +1001,37 @@
             <SolidColorBrush x:Key="Log.InfoBackgroundBrush" Color="#1A00AA00" />
             <SolidColorBrush x:Key="Log.InfoBadgeBrush" Color="#00AA00" />
 
-            <!-- Expander Colors -->
+            <!--  Expander Colors  -->
             <SolidColorBrush x:Key="Expander.DefaultBackgroundBrush" Color="#062766" />
             <SolidColorBrush x:Key="Expander.DefaultForegroundBrush" Color="#3AAAFF" />
             <SolidColorBrush x:Key="Expander.HoverBackgroundBrush" Color="#083388" />
             <SolidColorBrush x:Key="Expander.HoverForegroundBrush" Color="#A8B348" />
+
+            <!--  Download LED Indicator Colors  -->
+            <SolidColorBrush x:Key="DownloadLed.ActiveBrush" Color="#A8B348" />
+            <!--  Theme accent green for active downloads  -->
+            <SolidColorBrush x:Key="DownloadLed.InactiveBrush" Color="#808080" />
+            <!--  Gray for inactive state  -->
+
+            <!--  DragDrop Overlay Colors  -->
+            <SolidColorBrush x:Key="DragDrop.ErrorForegroundBrush" Color="#FF4444" />
+            <!--  Red for errors  -->
+            <SolidColorBrush x:Key="DragDrop.ErrorBackgroundBrush" Color="#3A1620" />
+            <!--  Dark red background matching theme  -->
+            <SolidColorBrush x:Key="DragDrop.ErrorBorderBrush" Color="#FF6666" />
+            <!--  Light red border  -->
+            <SolidColorBrush x:Key="DragDrop.SuccessForegroundBrush" Color="#A8B348" />
+            <!--  Theme accent green for success  -->
+            <SolidColorBrush x:Key="DragDrop.SuccessBackgroundBrush" Color="#143A1A" />
+            <!--  Dark green background matching theme  -->
+            <SolidColorBrush x:Key="DragDrop.SuccessBorderBrush" Color="#A8B348" />
+            <!--  Theme accent green border  -->
+            <SolidColorBrush x:Key="DragDrop.InfoForegroundBrush" Color="#3AAAFF" />
+            <!--  Theme primary blue for info  -->
+            <SolidColorBrush x:Key="DragDrop.InfoBackgroundBrush" Color="#000F2A" />
+            <!--  Dark blue background matching theme  -->
+            <SolidColorBrush x:Key="DragDrop.InfoBorderBrush" Color="#3AAAFF" />
+            <!--  Theme primary blue border  -->
         </ResourceDictionary>
     </Styles.Resources>
 </Styles>

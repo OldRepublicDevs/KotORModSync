@@ -45,8 +45,7 @@
         <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
     </Window.Resources>
 
-    <Window.Styles>
-    </Window.Styles>
+    <Window.Styles />
 
     <Panel>
 
@@ -125,9 +124,9 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel
-                    Grid.Column="0"
                     Grid.Row="0"
                     Grid.RowSpan="2"
+                    Grid.Column="0"
                     Margin="10,4,10,4"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
@@ -153,14 +152,16 @@
                     Grid.Row="0"
                     Grid.RowSpan="2"
                     Grid.Column="1"
+                    MinWidth="300"
                     Margin="10,4,10,4"
-                    MinWidth="200"
-                    HorizontalAlignment="Center"
+                    Padding="24,12"
+                    HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
-                    VerticalContentAlignment="Center"
                     HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
                     Click="HomeButton_Click"
                     Content="🏠 Home"
+                    FontSize="18"
                     ToolTip.Tip="Return to the getting started guide" />
                 <StackPanel
                     Grid.Column="2"
@@ -171,11 +172,13 @@
                     Spacing="4">
                     <Button
                         x:Name="OutputWindowButton"
+                        HorizontalAlignment="Stretch"
                         Click="OpenOutputWindow_Click"
                         Content="📊 Output Window"
                         ToolTip.Tip="Open the output window to view detailed logs" />
                     <Button
                         x:Name="HeaderSettingsButton"
+                        HorizontalAlignment="Stretch"
                         Click="OpenSettings_Click"
                         Content="⚙️ Settings"
                         ToolTip.Tip="Open settings dialog to configure preferences" />
@@ -302,5 +305,104 @@
             <!--<ContentControl
         Grid.Row="4" Content="{Binding LogViewer}" />-->
         </Grid>
+
+        <!--  Drag & Drop Overlay  -->
+        <Border
+            x:Name="DragDropOverlay"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="#E0000000"
+            IsVisible="False"
+            Opacity="0.9">
+            <Grid
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                RowDefinitions="Auto,Auto,Auto,Auto">
+                <Border
+                    Grid.Row="0"
+                    MinWidth="400"
+                    MaxWidth="600"
+                    Padding="32,24"
+                    Background="#F0F0F0"
+                    BorderBrush="#CCCCCC"
+                    BorderThickness="2"
+                    CornerRadius="12">
+                    <StackPanel Spacing="16">
+                        <TextBlock
+                            x:Name="DragDropTitle"
+                            HorizontalAlignment="Center"
+                            FontSize="24"
+                            FontWeight="Bold"
+                            Text="Drop File Here" />
+                        <TextBlock
+                            x:Name="DragDropFileName"
+                            HorizontalAlignment="Center"
+                            FontSize="18"
+                            Text="No file detected"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            x:Name="DragDropFileInfo"
+                            HorizontalAlignment="Center"
+                            FontSize="14"
+                            Foreground="#666666"
+                            Text="File information will appear here"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap" />
+                        <Border
+                            x:Name="DragDropActionBorder"
+                            Margin="0,8,0,0"
+                            Padding="16,12"
+                            Background="#E8F4FD"
+                            BorderBrush="#2196F3"
+                            BorderThickness="2"
+                            CornerRadius="8">
+                            <TextBlock
+                                x:Name="DragDropActionText"
+                                HorizontalAlignment="Center"
+                                FontSize="16"
+                                Text="What will happen when you drop this file?"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!--  Loading Overlay  -->
+        <Border
+            x:Name="LoadingOverlay"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="#E0000000"
+            IsVisible="False"
+            Opacity="0.9">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border
+                    MinWidth="300"
+                    Padding="48,32"
+                    Background="#F0F0F0"
+                    BorderBrush="#CCCCCC"
+                    BorderThickness="2"
+                    CornerRadius="12">
+                    <StackPanel HorizontalAlignment="Center" Spacing="24">
+                        <ProgressBar
+                            x:Name="LoadingSpinner"
+                            Width="60"
+                            Height="60"
+                            HorizontalAlignment="Center"
+                            IsIndeterminate="True" />
+                        <TextBlock
+                            x:Name="LoadingText"
+                            HorizontalAlignment="Center"
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Text="Loading file..."
+                            TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
     </Panel>
 </Window>

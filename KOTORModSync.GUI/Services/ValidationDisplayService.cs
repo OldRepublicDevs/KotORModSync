@@ -46,7 +46,7 @@ namespace KOTORModSync.Services
 						_validationErrors.Add( component );
 				}
 
-				if (validationResultsArea == null)
+				if (validationResultsArea is null)
 					return;
 
 				validationResultsArea.IsVisible = true;
@@ -208,7 +208,7 @@ namespace KOTORModSync.Services
 		private void AutoFixMissingDependencies( ModComponent component )
 		{
 			List<ModComponent> mainComponents = _getMainComponents();
-			if (component.Dependencies.Count == 0 || mainComponents == null)
+			if (component.Dependencies.Count == 0 || mainComponents is null)
 				return;
 
 			List<ModComponent> dependencyComponents = ModComponent.FindComponentsFromGuidList( component.Dependencies, mainComponents );
@@ -223,7 +223,7 @@ namespace KOTORModSync.Services
 		private void AutoFixConflictingMods( ModComponent component )
 		{
 			List<ModComponent> mainComponents = _getMainComponents();
-			if (component.Restrictions.Count == 0 || mainComponents == null)
+			if (component.Restrictions.Count == 0 || mainComponents is null)
 				return;
 
 			List<ModComponent> restrictionComponents = ModComponent.FindComponentsFromGuidList( component.Restrictions, mainComponents );

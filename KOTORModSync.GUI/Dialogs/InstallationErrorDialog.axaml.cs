@@ -22,21 +22,21 @@ namespace KOTORModSync.Dialogs
 
 		public InstallationErrorDialog() => InitializeComponent();
 
-		public InstallationErrorDialog( InstallationErrorEventArgs errorArgs ) : this() => LoadErrorData( errorArgs );
+		public InstallationErrorDialog(InstallationErrorEventArgs errorArgs) : this() => LoadErrorData(errorArgs);
 
 		private void InitializeComponent()
 		{
-			AvaloniaXamlLoader.Load( this );
+			AvaloniaXamlLoader.Load(this);
 		}
 
-		private void LoadErrorData( InstallationErrorEventArgs errorArgs )
+		private void LoadErrorData(InstallationErrorEventArgs errorArgs)
 		{
-			TextBlock componentNameText = this.FindControl<TextBlock>( "ComponentNameText" );
-			TextBox errorDetailsText = this.FindControl<TextBox>( "ErrorDetailsText" );
-			TextBlock checkpointInfoText = this.FindControl<TextBlock>( "CheckpointInfoText" );
-			Border checkpointInfoPanel = this.FindControl<Border>( "CheckpointInfoPanel" );
-			TextBlock errorTitleText = this.FindControl<TextBlock>( "ErrorTitleText" );
-			RadioButton rollbackRadio = this.FindControl<RadioButton>( "RollbackRadio" );
+			TextBlock componentNameText = this.FindControl<TextBlock>("ComponentNameText");
+			TextBox errorDetailsText = this.FindControl<TextBox>("ErrorDetailsText");
+			TextBlock checkpointInfoText = this.FindControl<TextBlock>("CheckpointInfoText");
+			Border checkpointInfoPanel = this.FindControl<Border>("CheckpointInfoPanel");
+			TextBlock errorTitleText = this.FindControl<TextBlock>("ErrorTitleText");
+			RadioButton rollbackRadio = this.FindControl<RadioButton>("RollbackRadio");
 
 			if (componentNameText != null)
 				componentNameText.Text = errorArgs.Component?.Name ?? "Unknown Component";
@@ -46,7 +46,7 @@ namespace KOTORModSync.Dialogs
 				string errorMessage = errorArgs.Exception?.Message
 					?? $"Installation failed with error code: {errorArgs.ErrorCode}";
 
-				if (errorArgs.Exception != null && !string.IsNullOrEmpty( errorArgs.Exception.StackTrace ))
+				if (errorArgs.Exception != null && !string.IsNullOrEmpty(errorArgs.Exception.StackTrace))
 				{
 					errorMessage += $"\n\nStack Trace:\n{errorArgs.Exception.StackTrace}";
 				}
@@ -57,7 +57,7 @@ namespace KOTORModSync.Dialogs
 			if (checkpointInfoPanel != null)
 				checkpointInfoPanel.IsVisible = errorArgs.CanRollback;
 
-			if (checkpointInfoText != null && !string.IsNullOrEmpty( errorArgs.SessionId ))
+			if (checkpointInfoText != null && !string.IsNullOrEmpty(errorArgs.SessionId))
 			{
 				checkpointInfoText.Text = "Checkpoints are available for this installation session. " +
 					"Rolling back will restore your game to the state before this installation began.";
@@ -72,11 +72,11 @@ namespace KOTORModSync.Dialogs
 				rollbackRadio.IsEnabled = errorArgs.CanRollback;
 		}
 
-		private void ConfirmButton_Click( object sender, RoutedEventArgs e )
+		private void ConfirmButton_Click(object sender, RoutedEventArgs e)
 		{
-			RadioButton rollbackRadio = this.FindControl<RadioButton>( "RollbackRadio" );
-			RadioButton continueRadio = this.FindControl<RadioButton>( "ContinueRadio" );
-			RadioButton abortRadio = this.FindControl<RadioButton>( "AbortRadio" );
+			RadioButton rollbackRadio = this.FindControl<RadioButton>("RollbackRadio");
+			RadioButton continueRadio = this.FindControl<RadioButton>("ContinueRadio");
+			RadioButton abortRadio = this.FindControl<RadioButton>("AbortRadio");
 
 			if (rollbackRadio?.IsChecked == true)
 				SelectedAction = ErrorAction.Rollback;
@@ -85,32 +85,32 @@ namespace KOTORModSync.Dialogs
 			else if (abortRadio?.IsChecked == true)
 				SelectedAction = ErrorAction.Abort;
 
-			Close( SelectedAction );
+			Close(SelectedAction);
 		}
 
-		private void CancelButton_Click( object sender, RoutedEventArgs e )
+		private void CancelButton_Click(object sender, RoutedEventArgs e)
 		{
 			SelectedAction = ErrorAction.Abort;
-			Close( SelectedAction );
+			Close(SelectedAction);
 		}
 
-		private void ViewLogButton_Click( object sender, RoutedEventArgs e )
+		private void ViewLogButton_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
-				if (string.IsNullOrEmpty( Logger.LogFileName ) || !File.Exists( Logger.LogFileName ))
+				if (string.IsNullOrEmpty(Logger.LogFileName) || !File.Exists(Logger.LogFileName))
 					return;
 				var process = new System.Diagnostics.Process();
 				process.StartInfo = new System.Diagnostics.ProcessStartInfo
 				{
 					FileName = Logger.LogFileName,
-					UseShellExecute = true
+					UseShellExecute = true,
 				};
 				process.Start();
 			}
 			catch (Exception ex)
 			{
-				Logger.LogError( $"Failed to open output folder: {ex.Message}" );
+				Logger.LogError($"Failed to open output folder: {ex.Message}");
 			}
 		}
 	}
@@ -119,6 +119,6 @@ namespace KOTORModSync.Dialogs
 	{
 		Rollback,
 		Continue,
-		Abort
+		Abort,
 	}
 }

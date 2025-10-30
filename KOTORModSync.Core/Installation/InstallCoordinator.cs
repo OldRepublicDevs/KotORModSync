@@ -26,7 +26,6 @@ namespace KOTORModSync.Core.Installation
 
 		public async Task<ResumeResult> InitializeAsync( [NotNull] IList<ModComponent> components, [NotNull] DirectoryInfo destinationPath, CancellationToken cancellationToken )
 
-
 		{
 			await SessionManager.InitializeAsync( components, destinationPath )
 
@@ -40,7 +39,7 @@ namespace KOTORModSync.Core.Installation
 
 		public static List<ModComponent> GetOrderedInstallList( [NotNull][ItemNotNull] IList<ModComponent> components )
 		{
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException( nameof( components ) );
 
 			Dictionary<Guid, ModComponent> componentMap = components.ToDictionary( c => c.Guid );
@@ -182,7 +181,7 @@ namespace KOTORModSync.Core.Installation
 
 		public static void ClearSessionForTests( DirectoryInfo directoryInfo )
 		{
-			if (directoryInfo == null)
+			if (directoryInfo is null)
 				return;
 
 			string sessionFolder = Path.Combine( directoryInfo.FullName, ".kotor_modsync" );

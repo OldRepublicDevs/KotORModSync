@@ -15,37 +15,44 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Services
 {
-
-	public class ScrollNavigationService
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S1118:Utility classes should not have public constructors", Justification = "<Pending>")]
+    public class ScrollNavigationService
 	{
 		#region Public Methods
-
-
-
-		public static async Task ScrollToControlAsync( [NotNull] ScrollViewer scrollViewer, [NotNull] Control targetControl, double offsetFromTop = 100 )
+		public static async Task ScrollToControlAsync(
+			[NotNull] ScrollViewer scrollViewer,
+			[NotNull] Control targetControl,
+			double offsetFromTop = 100)
 		{
-			if (scrollViewer == null) throw new ArgumentNullException( nameof( scrollViewer ) );
-			if (targetControl == null) throw new ArgumentNullException( nameof( targetControl ) );
+			if (scrollViewer is null)
+				throw new ArgumentNullException(nameof(scrollViewer));
+			if (targetControl is null)
+				throw new ArgumentNullException(nameof(targetControl));
 
 			try
 			{
-				double targetPosition = CalculateControlScrollPosition( scrollViewer, targetControl, offsetFromTop );
-				await ScrollToPositionSmoothAsync( scrollViewer, targetPosition ).ConfigureAwait( false );
+				double targetPosition = CalculateControlScrollPosition(scrollViewer, targetControl, offsetFromTop);
+				await ScrollToPositionSmoothAsync(scrollViewer, targetPosition).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
-				throw new InvalidOperationException( $"Failed to scroll to control: {ex.Message}", ex );
+				throw new InvalidOperationException($"Failed to scroll to control: {ex.Message}", ex);
 			}
 		}
 
 
 
-		public static async Task ScrollToPositionSmoothAsync( [NotNull] ScrollViewer scrollViewer, double targetOffset, int animationSteps = 20, int stepDelayMs = 16 )
+		public static async Task ScrollToPositionSmoothAsync(
+			[NotNull] ScrollViewer scrollViewer,
+			double targetOffset,
+			int animationSteps = 20,
+			int stepDelayMs = 16)
 		{
-			if (scrollViewer == null) throw new ArgumentNullException( nameof( scrollViewer ) );
+			if (scrollViewer is null)
+				throw new ArgumentNullException(nameof(scrollViewer));
 
-			double maxOffset = Math.Max( 0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height );
-			double clampedOffset = Math.Max( 0, Math.Min( targetOffset, maxOffset ) );
+			double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+			double clampedOffset = Math.Max(0, Math.Min(targetOffset, maxOffset));
 
 			double currentOffset = scrollViewer.Offset.Y;
 			double distance = clampedOffset - currentOffset;
@@ -54,23 +61,23 @@ namespace KOTORModSync.Services
 			for (int i = 0; i < animationSteps; i++)
 			{
 				currentOffset += stepSize;
-				scrollViewer.Offset = new Vector( scrollViewer.Offset.X, currentOffset );
+				scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset);
 
-
-				await Task.Delay( stepDelayMs ).ConfigureAwait( false );
+				// Use ConfigureAwait(true) to keep continuation on UI thread for subsequent UI updates
+				await Task.Delay(stepDelayMs).ConfigureAwait(true);
 			}
 
-			scrollViewer.Offset = new Vector( scrollViewer.Offset.X, clampedOffset );
+			scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedOffset);
 		}
 
 
 
-		public static T FindControlRecursive<T>( [CanBeNull] Control parent, [NotNull] Func<T, bool> predicate ) where T : Control
+		public static T FindControlRecursive<T>([CanBeNull] Control parent, [NotNull] Func<T, bool> predicate) where T : Control
 		{
-			if (parent == null)
+			if (parent is null)
 				return null;
 
-			if (parent is T targetControl && predicate( targetControl ))
+			if (parent is T targetControl && predicate(targetControl))
 			{
 				return targetControl;
 			}
@@ -78,7 +85,7 @@ namespace KOTORModSync.Services
 			IEnumerable<Control> children = parent.GetVisualChildren().OfType<Control>();
 			foreach (Control child in children)
 			{
-				T result = FindControlRecursive( child, predicate );
+				T result = FindControlRecursive(child, predicate);
 				if (result != null) return result;
 			}
 			return null;
@@ -86,28 +93,30 @@ namespace KOTORModSync.Services
 
 
 
-		public static ScrollViewer FindScrollViewer( [CanBeNull] Control parent )
+		public static ScrollViewer FindScrollViewer([CanBeNull] Control parent)
 		{
-			return FindControlRecursive<ScrollViewer>( parent, _ => true );
+			return FindControlRecursive<ScrollViewer>(parent, _ => true);
 		}
 
 
-		public static async Task ExpandAndWaitAsync( [CanBeNull] Expander expander, int waitTimeMs = 200 )
+		public static async Task ExpandAndWaitAsync([CanBeNull] Expander expander, int waitTimeMs = 200)
 		{
 			if (expander != null && !expander.IsExpanded)
 			{
 				expander.IsExpanded = true;
-				await Task.Delay( waitTimeMs ).ConfigureAwait( false );
+				// Use ConfigureAwait(true) to keep continuation on UI thread
+				await Task.Delay(waitTimeMs).ConfigureAwait(true);
 			}
 		}
 
 
-		public static async Task NavigateToTabAsync( [CanBeNull] TabItem tabItem, int waitTimeMs = 100 )
+		public static async Task NavigateToTabAsync([CanBeNull] TabItem tabItem, int waitTimeMs = 100)
 		{
 			if (tabItem != null)
 			{
 				tabItem.IsSelected = true;
-				await Task.Delay( waitTimeMs ).ConfigureAwait( false );
+				// Use ConfigureAwait(true) to keep continuation on UI thread
+				await Task.Delay(waitTimeMs).ConfigureAwait(true);
 			}
 		}
 
@@ -118,36 +127,36 @@ namespace KOTORModSync.Services
 			[CanBeNull] Control targetControl = null,
 			double? targetPosition = null,
 			int expandWaitMs = 200,
-			int navigationWaitMs = 100 )
+			int navigationWaitMs = 100)
 		{
 			try
 			{
 
 				if (tabItem != null)
 				{
-					await NavigateToTabAsync( tabItem, navigationWaitMs ).ConfigureAwait( false );
+					await NavigateToTabAsync(tabItem, navigationWaitMs).ConfigureAwait(true);
 				}
 
 				if (expander != null)
 				{
-					await ExpandAndWaitAsync( expander, expandWaitMs ).ConfigureAwait( false );
+					await ExpandAndWaitAsync(expander, expandWaitMs).ConfigureAwait(true);
 				}
 
 				if (scrollViewer != null)
 				{
 					if (targetControl != null)
 					{
-						await ScrollToControlAsync( scrollViewer, targetControl ).ConfigureAwait( false );
+						await ScrollToControlAsync(scrollViewer, targetControl).ConfigureAwait(true);
 					}
 					else if (targetPosition.HasValue)
 					{
-						await ScrollToPositionSmoothAsync( scrollViewer, targetPosition.Value ).ConfigureAwait( false );
+						await ScrollToPositionSmoothAsync(scrollViewer, targetPosition.Value).ConfigureAwait(true);
 					}
 				}
 			}
 			catch (Exception ex)
 			{
-				throw new InvalidOperationException( $"Navigation failed: {ex.Message}", ex );
+				throw new InvalidOperationException($"Navigation failed: {ex.Message}", ex);
 			}
 		}
 
@@ -161,24 +170,27 @@ namespace KOTORModSync.Services
 		#region Private Methods
 
 
-		private static double CalculateControlScrollPosition( [NotNull] ScrollViewer scrollViewer, [NotNull] Control targetControl, double offsetFromTop )
+		private static double CalculateControlScrollPosition(
+			[NotNull] ScrollViewer scrollViewer,
+			[NotNull] Control targetControl,
+			double offsetFromTop)
 		{
 			try
 			{
 
-				Matrix? transform = targetControl.TransformToVisual( scrollViewer );
-				if (transform == null) return 0;
+				Matrix? transform = targetControl.TransformToVisual(scrollViewer);
+				if (transform is null) return 0;
 
-				Point targetPoint = transform.Value.Transform( new Point( 0, 0 ) );
+				Point targetPoint = transform.Value.Transform(new Point(0, 0));
 				Size targetSize = targetControl.Bounds.Size;
-				var targetBounds = new Rect( targetPoint, targetSize );
+				var targetBounds = new Rect(targetPoint, targetSize);
 
 				double targetY = targetBounds.Y;
 
 				double desiredOffset = targetY - offsetFromTop;
 
-				double maxOffset = Math.Max( 0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height );
-				return Math.Max( 0, Math.Min( desiredOffset, maxOffset ) );
+				double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+				return Math.Max(0, Math.Min(desiredOffset, maxOffset));
 			}
 			catch (Exception)
 			{
@@ -187,12 +199,13 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		public static double CalculateEstimatedScrollPosition(
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public static double CalculateEstimatedScrollPosition(
 			[CanBeNull] Grid parentGrid,
 			[CanBeNull] Expander targetSectionExpander,
 			[CanBeNull] ItemsRepeater itemsRepeater,
 			int itemIndex,
-			[CanBeNull] ScrollViewer scrollViewport = null )
+			[CanBeNull] ScrollViewer scrollViewport = null)
 		{
 			double baseOffset = 0;
 
@@ -223,8 +236,8 @@ namespace KOTORModSync.Services
 					if (targetSectionExpander.IsVisible)
 					{
 
-						Control headerPresenter = FindControlRecursive<Control>( targetSectionExpander,
-							c => string.Equals( c.Name, "PART_Header", StringComparison.Ordinal ) || c.GetType().Name.Contains( "Header" ) );
+						Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
+							c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
 
 						if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
 						{
@@ -247,8 +260,8 @@ namespace KOTORModSync.Services
 					{
 
 						var measuredHeights = existingItems
-							.Where( item => item.Bounds.Height > 0 )
-							.Select( item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom )
+							.Where(item => item.Bounds.Height > 0)
+							.Select(item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom)
 							.ToList();
 
 						if (measuredHeights.Any())
@@ -258,7 +271,7 @@ namespace KOTORModSync.Services
 					}
 				}
 
-				if (itemHeight == 0)
+				if (Math.Abs(itemHeight) < 0.0001)
 				{
 					itemHeight = 100;
 				}
@@ -281,20 +294,21 @@ namespace KOTORModSync.Services
 			catch (Exception)
 			{
 
-				baseOffset = Math.Max( 0, itemIndex * 100 );
+				baseOffset = Math.Max(0, itemIndex * 100);
 			}
 
-			return Math.Max( 0, baseOffset );
+			return Math.Max(0, baseOffset);
 		}
 
-		public static double CalculateEstimatedScrollPositionWithSections(
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public static double CalculateEstimatedScrollPositionWithSections(
 			[CanBeNull] Grid parentGrid,
 			[NotNull] Expander targetSectionExpander,
 			[CanBeNull] ItemsRepeater itemsRepeater,
 			int itemIndex,
-			[CanBeNull] ScrollViewer scrollViewport = null )
+			[CanBeNull] ScrollViewer scrollViewport = null)
 		{
-			if (targetSectionExpander == null) throw new ArgumentNullException( nameof( targetSectionExpander ) );
+			if (targetSectionExpander is null) throw new ArgumentNullException(nameof(targetSectionExpander));
 
 			double baseOffset = 0;
 
@@ -314,8 +328,8 @@ namespace KOTORModSync.Services
 
 							if (targetSectionExpander.IsVisible)
 							{
-								Control headerPresenter = FindControlRecursive<Control>( targetSectionExpander,
-									c => string.Equals( c.Name, "PART_Header", StringComparison.Ordinal ) || c.GetType().Name.Contains( "Header" ) );
+								Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
+									c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
 
 								if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
 								{
@@ -334,8 +348,8 @@ namespace KOTORModSync.Services
 							if (expander.IsVisible)
 							{
 
-								Control headerPresenter = FindControlRecursive<Control>( expander,
-									c => string.Equals( c.Name, "PART_Header", StringComparison.Ordinal ) || c.GetType().Name.Contains( "Header" ) );
+								Control headerPresenter = FindControlRecursive<Control>(expander,
+									c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
 
 								if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
 								{
@@ -348,8 +362,8 @@ namespace KOTORModSync.Services
 
 								if (expander.IsExpanded)
 								{
-									Control contentPresenter = FindControlRecursive<Control>( expander,
-										c => string.Equals( c.Name, "PART_Content", StringComparison.Ordinal ) || c.GetType().Name.Contains( "Content" ) );
+									Control contentPresenter = FindControlRecursive<Control>(expander,
+										c => string.Equals(c.Name, "PART_Content", StringComparison.Ordinal) || c.GetType().Name.Contains("Content"));
 
 									if (contentPresenter != null && contentPresenter.Bounds.Height > 0)
 									{
@@ -360,13 +374,12 @@ namespace KOTORModSync.Services
 								baseOffset += expander.Margin.Top + expander.Margin.Bottom;
 							}
 						}
-						else if (child is Control control && control.IsVisible)
+						else if (
+							child is Control control && 
+							control.IsVisible && 
+							control.Bounds.Height > 0)
 						{
-
-							if (control.Bounds.Height > 0)
-							{
-								baseOffset += control.Bounds.Height + control.Margin.Top + control.Margin.Bottom;
-							}
+							baseOffset += control.Bounds.Height + control.Margin.Top + control.Margin.Bottom;
 						}
 					}
 
@@ -384,8 +397,8 @@ namespace KOTORModSync.Services
 					if (existingItems.Count != 0)
 					{
 						var measuredHeights = existingItems
-							.Where( item => item.Bounds.Height > 0 )
-							.Select( item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom )
+							.Where(item => item.Bounds.Height > 0)
+							.Select(item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom)
 							.ToList();
 
 						if (measuredHeights.Count != 0)
@@ -395,7 +408,7 @@ namespace KOTORModSync.Services
 					}
 				}
 
-				if (itemHeight == 0)
+				if (Math.Abs(itemHeight) < 0.0001)
 				{
 					itemHeight = 100;
 				}
@@ -417,30 +430,28 @@ namespace KOTORModSync.Services
 			catch (Exception)
 			{
 
-				baseOffset = Math.Max( 0, itemIndex * 100 );
+				baseOffset = Math.Max(0, itemIndex * 100);
 			}
 
-			return Math.Max( 0, baseOffset );
+			return Math.Max(0, baseOffset);
 		}
 
 		#endregion
 	}
 
-	public static class ScrollNavigationExtensions
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
+    public static class ScrollNavigationExtensions
 	{
-
-
-
 		public static async Task ScrollToControlAsync<T>(
 			this ScrollViewer scrollViewer,
 			[NotNull] Control parent,
 			[NotNull] Func<T, bool> predicate,
-			double offsetFromTop = 100 ) where T : Control
+			double offsetFromTop = 100) where T : Control
 		{
-			T targetControl = ScrollNavigationService.FindControlRecursive( parent, predicate );
+			T targetControl = ScrollNavigationService.FindControlRecursive(parent, predicate);
 			if (targetControl != null)
 			{
-				await ScrollNavigationService.ScrollToControlAsync( scrollViewer, targetControl, offsetFromTop ).ConfigureAwait( false );
+				await ScrollNavigationService.ScrollToControlAsync(scrollViewer, targetControl, offsetFromTop).ConfigureAwait(true);
 			}
 		}
 
@@ -450,16 +461,16 @@ namespace KOTORModSync.Services
 			this ScrollViewer scrollViewer,
 			[NotNull] Control parent,
 			[NotNull] Func<TDataContext, bool> dataContextMatcher,
-			double offsetFromTop = 100 )
+			double offsetFromTop = 100)
 			where TControl : Control
 			where TDataContext : class
 		{
-			TControl targetControl = ScrollNavigationService.FindControlRecursive<TControl>( parent, control =>
-				control.DataContext is TDataContext dataContext && dataContextMatcher( dataContext ) );
+			TControl targetControl = ScrollNavigationService.FindControlRecursive<TControl>(parent, control =>
+				control.DataContext is TDataContext dataContext && dataContextMatcher(dataContext));
 
 			if (targetControl != null)
 			{
-				await ScrollNavigationService.ScrollToControlAsync( scrollViewer, targetControl, offsetFromTop ).ConfigureAwait( false );
+				await ScrollNavigationService.ScrollToControlAsync(scrollViewer, targetControl, offsetFromTop).ConfigureAwait(true);
 			}
 		}
 	}

@@ -20,7 +20,7 @@ namespace KOTORModSync.Converters
 				return string.Empty;
 
 			var found = ModComponent.FindComponentFromGuid( guid, MainConfig.AllComponents );
-			if (found == null)
+			if (found is null)
 				return guid.ToString();
 
 			if (found is Option opt)

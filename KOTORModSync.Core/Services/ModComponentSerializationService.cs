@@ -143,7 +143,8 @@ namespace KOTORModSync.Core.Services
 					{
 						// If encoding fails, ignore/skip this character
 						int lineNumber = input.Substring(0, input.IndexOf(c)).Count(x => x == '\n') + 1;
-						int columnNumber = input.Substring(0, input.IndexOf(c)).Length - input.Substring(0, input.IndexOf(c)).LastIndexOf('\n') + 1;
+						int substringLength = input.IndexOf(c);
+						int columnNumber = substringLength - input.LastIndexOf('\n', substringLength - 1) + 1;
 						Logger.LogVerbose($"Failed to encode character `{c}` with encoding '{encodingName}' at line {lineNumber} column {columnNumber}, ignoring");
 					}
 				}
@@ -164,7 +165,7 @@ namespace KOTORModSync.Core.Services
 		public static List<ModComponent> DeserializeModComponentFromTomlString([NotNull] string tomlContent)
 		{
 			Logger.LogVerbose("Loading from TOML string");
-			if (tomlContent == null)
+			if (tomlContent is null)
 				throw new ArgumentNullException(nameof(tomlContent));
 			tomlContent = SanitizeUtf8(tomlContent);
 			tomlContent = tomlContent
@@ -204,7 +205,6 @@ namespace KOTORModSync.Core.Services
 			{
 				throw new InvalidDataException($"TOML 'thisMod' is not a valid array type. Got: {thisModObj.GetType().Name}");
 			}
-
 
 			// Collect all [[thisMod.Instructions]] entries from the root level
 			List<object> allInstructions = new List<object>();
@@ -304,12 +304,11 @@ namespace KOTORModSync.Core.Services
 
 			foreach (object tomlComponent in componentTables)
 			{
-				if (tomlComponent == null)
+				if (tomlComponent is null)
 					continue;
 
 				try
 				{
-					ModComponent thisComponent = new ModComponent();
 					IDictionary<string, object> componentDict = tomlComponent as IDictionary<string, object>
 						?? throw new InvalidCastException("Failed to cast TOML component to IDictionary<string, object>");
 
@@ -337,7 +336,7 @@ namespace KOTORModSync.Core.Services
 						Logger.LogVerbose($"TOML component does NOT have Instructions field. Available keys: {string.Join(", ", componentDict.Keys)}");
 					}
 
-					thisComponent = DeserializeComponent(componentDict);
+					ModComponent thisComponent = DeserializeComponent(componentDict);
 
 					// Assign collected instructions to this component
 					// Only if they weren't already deserialized from componentDict
@@ -359,7 +358,6 @@ namespace KOTORModSync.Core.Services
 					if (allOptionsInstructions.Count > 0)
 					{
 						Logger.LogVerbose($"Assigning {allOptionsInstructions.Count} options instructions to component '{thisComponent.Name}'");
-
 
 						Dictionary<string, List<object>> instructionsByParent = new Dictionary<string, List<object>>(StringComparer.Ordinal);
 						foreach (object instrObj in allOptionsInstructions)
@@ -413,7 +411,7 @@ namespace KOTORModSync.Core.Services
 		public static List<ModComponent> DeserializeModComponentFromYamlString([NotNull] string yamlContent)
 		{
 			Logger.LogVerbose("Loading from YAML string");
-			if (yamlContent == null)
+			if (yamlContent is null)
 				throw new ArgumentNullException(nameof(yamlContent));
 			yamlContent = SanitizeUtf8(yamlContent);
 			List<ModComponent> components = new List<ModComponent>();
@@ -470,7 +468,7 @@ namespace KOTORModSync.Core.Services
 					.Build();
 				Dictionary<string, object> metadataDict = deserializer.Deserialize<Dictionary<string, object>>(yamlDoc);
 
-				if (metadataDict == null)
+				if (metadataDict is null)
 					return;
 
 				if (metadataDict.TryGetValue("FileFormatVersion", out object versionObj) || metadataDict.TryGetValue("fileFormatVersion", out versionObj))
@@ -488,14 +486,15 @@ namespace KOTORModSync.Core.Services
 					if (DateTime.TryParse(modifiedObj?.ToString(), out DateTime parsedDate))
 						MainConfig.LastModified = parsedDate;
 				}
-				if (metadataDict.TryGetValue("BeforeModListContent", out object beforeObj) || metadataDict.TryGetValue("beforeModListContent", out beforeObj))
-					MainConfig.BeforeModListContent = beforeObj?.ToString() ?? string.Empty;
-				if (metadataDict.TryGetValue("AfterModListContent", out object afterObj) || metadataDict.TryGetValue("afterModListContent", out afterObj))
-					MainConfig.AfterModListContent = afterObj?.ToString() ?? string.Empty;
-				if (metadataDict.TryGetValue("WidescreenSectionContent", out object widescreenObj) || metadataDict.TryGetValue("widescreenSectionContent", out widescreenObj))
-					MainConfig.WidescreenSectionContent = widescreenObj?.ToString() ?? "Please install manually the widescreen implementations, e.g. uniws, before continuing.";
-				if (metadataDict.TryGetValue("AspyrSectionContent", out object aspyrObj) || metadataDict.TryGetValue("aspyrSectionContent", out aspyrObj))
-					MainConfig.AspyrSectionContent = aspyrObj?.ToString() ?? string.Empty;
+				// Always load content sections if present
+				if (metadataDict.TryGetValue("PreambleContent", out object preambleObj) || metadataDict.TryGetValue("preambleContent", out preambleObj))
+					MainConfig.PreambleContent = preambleObj?.ToString() ?? string.Empty;
+				if (metadataDict.TryGetValue("EpilogueContent", out object epilogueObj) || metadataDict.TryGetValue("epilogueContent", out epilogueObj))
+					MainConfig.EpilogueContent = epilogueObj?.ToString() ?? string.Empty;
+				if (metadataDict.TryGetValue("WidescreenWarningContent", out object widescreenObj) || metadataDict.TryGetValue("widescreenWarningContent", out widescreenObj))
+					MainConfig.WidescreenWarningContent = widescreenObj?.ToString() ?? string.Empty;
+				if (metadataDict.TryGetValue("AspyrExclusiveWarningContent", out object aspyrObj) || metadataDict.TryGetValue("aspyrExclusiveWarningContent", out aspyrObj))
+					MainConfig.AspyrExclusiveWarningContent = aspyrObj?.ToString() ?? string.Empty;
 
 				Logger.LogVerbose($"Loaded YAML metadata: Game={MainConfig.TargetGame}, Version={MainConfig.FileFormatVersion}, Build={MainConfig.BuildName}");
 			}
@@ -510,7 +509,7 @@ namespace KOTORModSync.Core.Services
 		public static List<ModComponent> DeserializeModComponentFromMarkdownString([NotNull] string markdownContent)
 		{
 			Logger.LogVerbose("Loading from Markdown string");
-			if (markdownContent == null)
+			if (markdownContent is null)
 				throw new ArgumentNullException(nameof(markdownContent));
 			markdownContent = SanitizeUtf8(markdownContent);
 			try
@@ -518,8 +517,18 @@ namespace KOTORModSync.Core.Services
 				MarkdownImportProfile profile = MarkdownImportProfile.CreateDefault();
 				MarkdownParser parser = new MarkdownParser(profile);
 				MarkdownParserResult result = parser.Parse(markdownContent);
-				if (result.Components == null || result.Components.Count == 0)
+				if (result.Components is null || result.Components.Count == 0)
 					throw new InvalidDataException("No valid components found in Markdown content.");
+
+				// Update MainConfig with content sections from markdown
+				if (!string.IsNullOrWhiteSpace(result.PreambleContent))
+					MainConfig.PreambleContent = result.PreambleContent;
+				if (!string.IsNullOrWhiteSpace(result.EpilogueContent))
+					MainConfig.EpilogueContent = result.EpilogueContent;
+				if (!string.IsNullOrWhiteSpace(result.WidescreenWarningContent))
+					MainConfig.WidescreenWarningContent = result.WidescreenWarningContent;
+				if (!string.IsNullOrWhiteSpace(result.AspyrExclusiveWarningContent))
+					MainConfig.AspyrExclusiveWarningContent = result.AspyrExclusiveWarningContent;
 
 				return result.Components.ToList();
 			}
@@ -540,7 +549,7 @@ namespace KOTORModSync.Core.Services
 		public static List<ModComponent> DeserializeModComponentFromJsonString([NotNull] string jsonContent)
 		{
 			Logger.LogVerbose("Loading from JSON string");
-			if (jsonContent == null)
+			if (jsonContent is null)
 				throw new ArgumentNullException(nameof(jsonContent));
 			jsonContent = SanitizeUtf8(jsonContent);
 			JObject jsonObject = JObject.Parse(jsonContent);
@@ -553,10 +562,11 @@ namespace KOTORModSync.Core.Services
 				MainConfig.BuildDescription = metadataObj["buildDescription"]?.ToString() ?? string.Empty;
 				if (metadataObj["lastModified"] != null)
 					MainConfig.LastModified = metadataObj["lastModified"].ToObject<DateTime?>();
-				MainConfig.BeforeModListContent = metadataObj["beforeModListContent"]?.ToString() ?? string.Empty;
-				MainConfig.AfterModListContent = metadataObj["afterModListContent"]?.ToString() ?? string.Empty;
-				MainConfig.WidescreenSectionContent = metadataObj["widescreenSectionContent"]?.ToString() ?? "Please install manually the widescreen implementations, e.g. uniws, before continuing.";
-				MainConfig.AspyrSectionContent = metadataObj["aspyrSectionContent"]?.ToString() ?? string.Empty;
+				// Always load content sections if present
+				MainConfig.PreambleContent = metadataObj["preambleContent"]?.ToString() ?? string.Empty;
+				MainConfig.EpilogueContent = metadataObj["epilogueContent"]?.ToString() ?? string.Empty;
+				MainConfig.WidescreenWarningContent = metadataObj["widescreenWarningContent"]?.ToString() ?? string.Empty;
+				MainConfig.AspyrExclusiveWarningContent = metadataObj["aspyrExclusiveWarningContent"]?.ToString() ?? string.Empty;
 			}
 			List<ModComponent> components = new List<ModComponent>();
 			if (jsonObject["components"] is JArray componentsArray)
@@ -595,7 +605,7 @@ namespace KOTORModSync.Core.Services
 			[CanBeNull] string format = null)
 		{
 			Logger.LogVerbose($"Loading from string with format: {format ?? "auto-detect"}");
-			if (content == null)
+			if (content is null)
 				throw new ArgumentNullException(nameof(content));
 
 			List<ModComponent> components;
@@ -732,9 +742,9 @@ namespace KOTORModSync.Core.Services
 		)
 		{
 			Logger.LogVerbose($"Saving to string with format: {format}");
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException(nameof(components));
-			if (format == null)
+			if (format is null)
 				throw new ArgumentNullException(nameof(format));
 			switch (format.ToLowerInvariant())
 			{
@@ -853,7 +863,6 @@ namespace KOTORModSync.Core.Services
 				Logger.LogVerbose($"ProcessInstructionsAndOptions: Found {instructionsList.Count} instruction items");
 
 
-
 				// Check if we have KeyValuePair objects (YAML deserialization issue)
 				List<object> keyValuePairs = instructionsList.Where(item => item.GetType().Name.StartsWith("KeyValuePair", StringComparison.Ordinal)).ToList();
 				bool hasKeyValuePairs = keyValuePairs.Count > 0;
@@ -868,7 +877,6 @@ namespace KOTORModSync.Core.Services
 				{
 					Logger.LogVerbose("ProcessInstructionsAndOptions: No KeyValuePair instruction items, processing individually");
 					List<object> processedInstructions = new List<object>();
-
 
 					Dictionary<string, object> currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
 
@@ -886,7 +894,6 @@ namespace KOTORModSync.Core.Services
 							{
 								if (currentInstruction.Count > 0)
 
-
 								{
 									processedInstructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
 									currentInstruction.Clear();
@@ -897,7 +904,6 @@ namespace KOTORModSync.Core.Services
 						{
 							Logger.LogVerbose($"ProcessInstructionsAndOptions: Dictionary with {dict.Count} keys: {string.Join(", ", dict.Keys)}");
 							if (currentInstruction.Count > 0)
-
 
 							{
 								processedInstructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
@@ -913,7 +919,6 @@ namespace KOTORModSync.Core.Services
 
 					if (currentInstruction.Count > 0)
 
-
 					{
 						processedInstructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
 					}
@@ -927,7 +932,6 @@ namespace KOTORModSync.Core.Services
 			if (processedDict.TryGetValue("Options", out object optionsValue) && optionsValue is List<object> optionsList)
 			{
 				Logger.LogVerbose($"ProcessInstructionsAndOptions: Found {optionsList.Count} option items");
-
 
 
 				// Check if we have KeyValuePair objects (YAML deserialization issue)
@@ -945,7 +949,6 @@ namespace KOTORModSync.Core.Services
 					Logger.LogVerbose("ProcessInstructionsAndOptions: No KeyValuePair option items, processing individually");
 					List<object> processedOptions = new List<object>();
 
-
 					Dictionary<string, object> currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
 
 					foreach (object item in optionsList)
@@ -962,7 +965,6 @@ namespace KOTORModSync.Core.Services
 							{
 								if (currentOption.Count > 0)
 
-
 								{
 									processedOptions.Add(new Dictionary<string, object>(currentOption, StringComparer.Ordinal));
 									currentOption.Clear();
@@ -973,7 +975,6 @@ namespace KOTORModSync.Core.Services
 						{
 							Logger.LogVerbose($"ProcessInstructionsAndOptions: Dictionary with {dict.Count} keys: {string.Join(", ", dict.Keys)}");
 							if (currentOption.Count > 0)
-
 
 							{
 								processedOptions.Add(new Dictionary<string, object>(currentOption, StringComparer.Ordinal));
@@ -988,7 +989,6 @@ namespace KOTORModSync.Core.Services
 					}
 
 					if (currentOption.Count > 0)
-
 
 					{
 						processedOptions.Add(new Dictionary<string, object>(currentOption, StringComparer.Ordinal));
@@ -1075,7 +1075,6 @@ namespace KOTORModSync.Core.Services
 		{
 			List<object> instructions = new List<object>();
 
-
 			Dictionary<string, object> currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
 
 			foreach (object kvp in kvpList)
@@ -1115,7 +1114,6 @@ namespace KOTORModSync.Core.Services
 						// If we have a current instruction, save it before starting a new one
 						if (currentInstruction.Count > 0)
 
-
 						{
 							instructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
 							currentInstruction.Clear();
@@ -1146,7 +1144,6 @@ namespace KOTORModSync.Core.Services
 			// Add the final instruction if it has content
 			if (currentInstruction.Count > 0)
 
-
 			{
 				instructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
 			}
@@ -1161,7 +1158,6 @@ namespace KOTORModSync.Core.Services
 		private static List<object> GroupKeyValuePairsIntoOptions(List<object> kvpList)
 		{
 			List<object> options = new List<object>();
-
 
 			Dictionary<string, object> currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
 
@@ -1198,12 +1194,11 @@ namespace KOTORModSync.Core.Services
 					currentOption[key] = value;
 
 					// Check if this completes an option (has Name field and we've seen a Guid)
-					if (key.Equals("Name", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(value?.ToString()) && currentOption.ContainsKey("Guid"))
+					if (key?.Equals("Name", StringComparison.OrdinalIgnoreCase) == true && !string.IsNullOrEmpty(value?.ToString()) && currentOption.ContainsKey("Guid"))
 					{
 						if (currentOption.Count > 0)
 						{
 							Logger.LogVerbose($"GroupKeyValuePairsIntoOptions: Completed option with {currentOption.Count} fields");
-
 
 							options.Add(new Dictionary<string, object>(currentOption
 
@@ -1282,7 +1277,7 @@ namespace KOTORModSync.Core.Services
 
 			// Load legacy ModLink format first (if present)
 			List<string> legacyModLink = GetValueOrDefault<List<string>>(componentDict, key: "ModLink") ?? new List<string>();
-			if (legacyModLink == null || legacyModLink.Count == 0)
+			if (legacyModLink is null || legacyModLink.Count == 0)
 			{
 				string modLink = GetValueOrDefault<string>(componentDict, key: "ModLink") ?? string.Empty;
 				if (!string.IsNullOrEmpty(modLink))
@@ -1325,7 +1320,7 @@ namespace KOTORModSync.Core.Services
 
 			Logger.LogVerbose($"=== Processing Instructions for component '{component.Name}' ===");
 			Logger.LogVerbose($"componentDict contains 'Instructions' key: {componentDict.ContainsKey("Instructions")}");
-			IList<object>? componentInstructions = null;
+			IList<object> componentInstructions = null;
 			if (componentDict.ContainsKey("Instructions"))
 			{
 				object instructionsObj = componentDict["Instructions"];
@@ -1368,7 +1363,7 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		private static void RemoveDuplicateOptions([NotNull] ModComponent component)
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException(nameof(component));
 
 			if (component.Options.Count <= 1)
@@ -1423,7 +1418,7 @@ namespace KOTORModSync.Core.Services
 			[NotNull][ItemNotNull] System.Collections.ObjectModel.ObservableCollection<Instruction> instructions1,
 			[NotNull][ItemNotNull] System.Collections.ObjectModel.ObservableCollection<Instruction> instructions2)
 		{
-			if (instructions1 == null || instructions2 == null)
+			if (instructions1 is null || instructions2 is null)
 				return false;
 
 			if (instructions1.Count != instructions2.Count)
@@ -1436,7 +1431,6 @@ namespace KOTORModSync.Core.Services
 
 				if (instr1.Action != instr2.Action)
 					return false;
-
 
 				if (
 
@@ -1477,9 +1471,9 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		private static void RemoveGuidsFromChooseInstructions([NotNull] ModComponent component, [NotNull] HashSet<Guid> guidsToRemove)
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException(nameof(component));
-			if (guidsToRemove == null)
+			if (guidsToRemove is null)
 				throw new ArgumentNullException(nameof(guidsToRemove));
 
 			foreach (Instruction instruction in component.Instructions)
@@ -1488,7 +1482,7 @@ namespace KOTORModSync.Core.Services
 				{
 					// Source contains GUIDs as strings
 					List<string> originalSource = instruction.Source.ToList();
-					instruction.Source.Clear();
+					List<string> filteredSource = new List<string>();
 
 					foreach (string guidStr in originalSource)
 					{
@@ -1496,7 +1490,7 @@ namespace KOTORModSync.Core.Services
 						{
 							if (!guidsToRemove.Contains(guid))
 							{
-								instruction.Source.Add(guidStr);
+								filteredSource.Add(guidStr);
 							}
 							else
 							{
@@ -1506,16 +1500,19 @@ namespace KOTORModSync.Core.Services
 						else
 						{
 							// Keep non-GUID strings as-is
-							instruction.Source.Add(guidStr);
+							filteredSource.Add(guidStr);
 						}
 					}
+
+					// Update the Source property with the filtered list
+					instruction.Source = filteredSource;
 				}
 			}
 		}
 
 		public static void ParseMetadataSection(TomlTable tomlTable)
 		{
-			if (tomlTable == null)
+			if (tomlTable is null)
 				return;
 			MainConfig.FileFormatVersion = "2.0";
 			MainConfig.TargetGame = string.Empty;
@@ -1523,10 +1520,10 @@ namespace KOTORModSync.Core.Services
 			MainConfig.BuildAuthor = string.Empty;
 			MainConfig.BuildDescription = string.Empty;
 			MainConfig.LastModified = null;
-			MainConfig.BeforeModListContent = string.Empty;
-			MainConfig.AfterModListContent = string.Empty;
-			MainConfig.WidescreenSectionContent = "Please install manually the widescreen implementations, e.g. uniws, before continuing.";
-			MainConfig.AspyrSectionContent = string.Empty;
+			MainConfig.PreambleContent = string.Empty;
+			MainConfig.EpilogueContent = string.Empty;
+			MainConfig.WidescreenWarningContent = string.Empty;
+			MainConfig.AspyrExclusiveWarningContent = string.Empty;
 			try
 			{
 				if (!tomlTable.TryGetValue("metadata", out object metadataObj) || !(metadataObj is TomlTable metadataTable))
@@ -1543,18 +1540,20 @@ namespace KOTORModSync.Core.Services
 					MainConfig.BuildDescription = descObj.ToString() ?? string.Empty;
 				if (metadataTable.TryGetValue("lastModified", out object modifiedObj))
 				{
-					if (DateTime.TryParse(modifiedObj.ToString(), out DateTime parsedDate))
+					if (DateTime.TryParse(modifiedObj.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
+					{
 						MainConfig.LastModified = parsedDate;
+					}
 				}
-				if (metadataTable.TryGetValue("beforeModListContent", out object beforeObj))
-					MainConfig.BeforeModListContent = beforeObj.ToString() ?? string.Empty;
-				if (metadataTable.TryGetValue("afterModListContent", out object afterObj))
-					MainConfig.AfterModListContent = afterObj.ToString() ?? string.Empty;
-				if (metadataTable.TryGetValue("widescreenSectionContent", out object widescreenObj))
-					MainConfig.WidescreenSectionContent = widescreenObj.ToString()
-														  ?? "Please install manually the widescreen implementations, e.g. uniws, before continuing.";
-				if (metadataTable.TryGetValue("aspyrSectionContent", out object aspyrObj))
-					MainConfig.AspyrSectionContent = aspyrObj.ToString() ?? string.Empty;
+				// Always load content sections if present (check both Pascal and camel case for backward compatibility)
+				if (metadataTable.TryGetValue("preambleContent", out object preambleObj) || metadataTable.TryGetValue("PreambleContent", out preambleObj))
+					MainConfig.PreambleContent = preambleObj?.ToString() ?? string.Empty;
+				if (metadataTable.TryGetValue("epilogueContent", out object epilogueObj) || metadataTable.TryGetValue("EpilogueContent", out epilogueObj))
+					MainConfig.EpilogueContent = epilogueObj?.ToString() ?? string.Empty;
+				if (metadataTable.TryGetValue("widescreenWarningContent", out object widescreenObj) || metadataTable.TryGetValue("WidescreenWarningContent", out widescreenObj))
+					MainConfig.WidescreenWarningContent = widescreenObj?.ToString() ?? string.Empty;
+				if (metadataTable.TryGetValue("aspyrExclusiveWarningContent", out object aspyrObj) || metadataTable.TryGetValue("AspyrExclusiveWarningContent", out aspyrObj))
+					MainConfig.AspyrExclusiveWarningContent = aspyrObj?.ToString() ?? string.Empty;
 				Logger.LogVerbose($"Loaded metadata: Game={MainConfig.TargetGame}, Version={MainConfig.FileFormatVersion}, Build={MainConfig.BuildName}");
 			}
 			catch (Exception ex)
@@ -1565,14 +1564,27 @@ namespace KOTORModSync.Core.Services
 
 		[ItemNotNull]
 		[NotNull]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		internal static System.Collections.ObjectModel.ObservableCollection<Instruction> DeserializeInstructions(
 				[CanBeNull][ItemCanBeNull] IList<object> instructionsSerializedList,
 				object parentComponent
 			)
 		{
-			string componentName = parentComponent is ModComponent mc ? mc.Name : parentComponent is Option opt ? opt.Name : "Unknown";
+			string componentName;
+			if (parentComponent is ModComponent mc)
+			{
+				componentName = mc.Name;
+			}
+			else if (parentComponent is Option opt)
+			{
+				componentName = opt.Name;
+			}
+			else
+			{
+				componentName = "Unknown";
+			}
 
-			if (instructionsSerializedList == null || instructionsSerializedList.Count == 0)
+			if (instructionsSerializedList is null || instructionsSerializedList.Count == 0)
 			{
 				_ = Logger.LogWarningAsync($"No instructions found for component '{componentName}'");
 				return new System.Collections.ObjectModel.ObservableCollection<Instruction>();
@@ -1613,20 +1625,19 @@ namespace KOTORModSync.Core.Services
 				Instruction instruction = new Instruction();
 
 				// Set the GUID from the TOML data
-				if (instructionDict.TryGetValue("Guid", out object guidObj) && guidObj != null)
-				{
-					if (Guid.TryParse(guidObj.ToString(), out Guid guid))
-					{
-						instruction.Guid = guid;
-					}
-				}
-				if (string.Equals(strAction, "TSLPatcher", StringComparison.OrdinalIgnoreCase) ||
-					string.Equals(strAction, "HoloPatcher", StringComparison.OrdinalIgnoreCase))
+				if (
+					instructionDict.TryGetValue("Guid", out object guidObj)
+					&& guidObj != null
+					&& Guid.TryParse(guidObj.ToString(), out Guid guid)
+				)
+					instruction.Guid = guid;
+				if (string.Equals(GetValueOrDefault<string>(instructionDict, key: "Action"), "TSLPatcher", StringComparison.OrdinalIgnoreCase) ||
+					string.Equals(GetValueOrDefault<string>(instructionDict, key: "Action"), "HoloPatcher", StringComparison.OrdinalIgnoreCase))
 				{
 					instruction.Action = ActionType.Patcher;
 					_ = Logger.LogVerboseAsync($" -- Deserialize instruction #{index + 1} action '{strAction}' -> Patcher (backward compatibility)");
 				}
-				else if (Enum.TryParse(strAction, ignoreCase: true, out ActionType action))
+				else if (Enum.TryParse(GetValueOrDefault<string>(instructionDict, key: "Action"), ignoreCase: true, out ActionType action))
 				{
 					instruction.Action = action;
 					_ = Logger.LogVerboseAsync($" -- Deserialize instruction #{index + 1} action '{action}'");
@@ -1634,7 +1645,7 @@ namespace KOTORModSync.Core.Services
 				else
 				{
 					_ = Logger.LogErrorAsync(
-						$"{Environment.NewLine} -- Missing/invalid action for instruction #{index}"
+						$"{Environment.NewLine} -- Missing/invalid action for instruction #{index + 1}"
 					);
 					instruction.Action = ActionType.Unset;
 				}
@@ -1683,7 +1694,6 @@ namespace KOTORModSync.Core.Services
 
 			System.Collections.ObjectModel.ObservableCollection<Instruction> instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>();
 
-
 			Dictionary<string, object> currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
 
 			foreach (object fieldObj in instructionFields)
@@ -1704,8 +1714,6 @@ namespace KOTORModSync.Core.Services
 						// We have a complete instruction, process it
 						Logger.LogVerbose($"Found complete instruction with Guid: {(currentInstruction.ContainsKey("Guid") ? currentInstruction["Guid"] : "unknown")}");
 						ProcessCompleteInstruction(currentInstruction, instructions, parentComponent);
-
-
 						currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
 					}
 
@@ -1729,7 +1737,7 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		private static object ConvertTomlynValue(object value)
 		{
-			if (value == null)
+			if (value is null)
 				return null;
 
 			// Handle TomlTableArray - preserve it for further processing (e.g., Instructions)
@@ -1829,7 +1837,7 @@ namespace KOTORModSync.Core.Services
 			[CanBeNull][ItemCanBeNull] IList<object> optionsSerializedList
 		)
 		{
-			if (optionsSerializedList == null || optionsSerializedList.Count == 0)
+			if (optionsSerializedList is null || optionsSerializedList.Count == 0)
 				return new System.Collections.ObjectModel.ObservableCollection<Option>();
 
 			Logger.LogVerbose($"DeserializeOptions called with {optionsSerializedList.Count} items");
@@ -1898,7 +1906,6 @@ namespace KOTORModSync.Core.Services
 
 			System.Collections.ObjectModel.ObservableCollection<Option> options = new System.Collections.ObjectModel.ObservableCollection<Option>();
 
-
 			Dictionary<string, object> currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
 
 			foreach (object fieldObj in optionFields)
@@ -1948,7 +1955,6 @@ namespace KOTORModSync.Core.Services
 						Logger.LogVerbose($"Found complete option with Guid: {(currentOption.ContainsKey("Guid") ? currentOption["Guid"] : "unknown")}");
 						ProcessCompleteOption(currentOption, options);
 
-
 						currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
 					}
 
@@ -1970,6 +1976,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Processes a complete option dictionary and adds it to the options collection.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static void ProcessCompleteOption(
 			Dictionary<string, object> optionDict,
 			System.Collections.ObjectModel.ObservableCollection<Option> options)
@@ -1993,7 +2000,7 @@ namespace KOTORModSync.Core.Services
 				object instructionsObj = optionDict["Instructions"];
 				Logger.LogVerbose($"Option '{option.Name}' has Instructions field: type={instructionsObj?.GetType().Name ?? "null"}");
 
-				IList<object>? instructionsList = null;
+				IList<object> instructionsList = null;
 
 				// Handle TomlTableArray (from Tomlyn parser)
 				if (instructionsObj is Tomlyn.Model.TomlTableArray optionInstructionsTableArray)
@@ -2072,6 +2079,7 @@ namespace KOTORModSync.Core.Services
 			GetValue<T>(dict, key, required: false);
 
 		[CanBeNull]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		internal static T GetValue<T>(
 			[NotNull] IDictionary<string, object> dict,
 			[NotNull] string key, bool required)
@@ -2084,10 +2092,9 @@ namespace KOTORModSync.Core.Services
 					throw new ArgumentNullException(nameof(key));
 
 				// Handle duplicate keys by consolidating values
-				object value = null;
 
 				// First try exact key match
-				if (dict.TryGetValue(key, out value))
+				if (dict.TryGetValue(key, out object value))
 				{
 					// Check if this is a collection that might contain duplicates
 					if (value is System.Collections.IEnumerable valueEnumerable && !(value is string))
@@ -2118,34 +2125,34 @@ namespace KOTORModSync.Core.Services
 					string caseInsensitiveKey = dict.Keys.FirstOrDefault(
 						k => !(k is null) && k.Equals(key, StringComparison.OrdinalIgnoreCase)
 					);
-					if (caseInsensitiveKey != null && dict.TryGetValue(caseInsensitiveKey, out value))
+					if (
+						caseInsensitiveKey != null
+						&& dict.TryGetValue(caseInsensitiveKey, out value)
+						&& value is System.Collections.IEnumerable caseInsensitiveEnumerable
+						&& !(value is string))
 					{
-						// Check if this is a collection that might contain duplicates
-						if (value is System.Collections.IEnumerable caseInsensitiveEnumerable && !(value is string))
+						// For collections, consolidate duplicates by flattening nested collections
+						List<object> consolidatedList = new List<object>();
+						foreach (object item in caseInsensitiveEnumerable)
 						{
-							// For collections, consolidate duplicates by flattening nested collections
-							List<object> consolidatedList = new List<object>();
-							foreach (object item in caseInsensitiveEnumerable)
+							if (item is System.Collections.IEnumerable nestedEnumerable && !(item is string))
 							{
-								if (item is System.Collections.IEnumerable nestedEnumerable && !(item is string))
+								// Flatten nested collections (handles duplicate Instructions, etc.)
+								foreach (object nestedItem in nestedEnumerable)
 								{
-									// Flatten nested collections (handles duplicate Instructions, etc.)
-									foreach (object nestedItem in nestedEnumerable)
-									{
-										consolidatedList.Add(nestedItem);
-									}
-								}
-								else
-								{
-									consolidatedList.Add(item);
+									consolidatedList.Add(nestedItem);
 								}
 							}
-							value = consolidatedList;
+							else
+							{
+								consolidatedList.Add(item);
+							}
 						}
+						value = consolidatedList;
 					}
 				}
 
-				if (value == null)
+				if (value is null)
 				{
 					if (!required)
 						return default;
@@ -2168,11 +2175,22 @@ namespace KOTORModSync.Core.Services
 						if (targetType == typeof(Guid))
 						{
 							string guidStr = Utility.Serializer.FixGuidString(valueStr);
-							return !string.IsNullOrEmpty(guidStr) && Guid.TryParse(guidStr, out Guid guid)
-								? (T)(object)guid
-								: required
-									? throw new ArgumentException($"'{key}' field is not a valid Guid!")
-									: (T)(object)Guid.Empty;
+							T result;
+							if (!string.IsNullOrEmpty(guidStr) && Guid.TryParse(guidStr, out Guid guid))
+							{
+								result = (T)(object)guid;
+							}
+							else
+							{
+								if (required)
+								{
+									throw new ArgumentException($"'{key}' field is not a valid Guid!", nameof(key));
+								}
+
+								result = (T)(object)Guid.Empty;
+							}
+
+							return result;
 						}
 						if (targetType == typeof(string))
 						{
@@ -2412,7 +2430,7 @@ namespace KOTORModSync.Core.Services
 					.IgnoreUnmatchedProperties()
 					.Build();
 				Dictionary<string, object> yamlDict = deserializer.Deserialize<Dictionary<string, object>>(yamlString);
-				if (yamlDict == null)
+				if (yamlDict is null)
 				{
 					Logger.LogError("Failed to deserialize YAML: result was null");
 					return null;
@@ -2444,6 +2462,8 @@ namespace KOTORModSync.Core.Services
 				return null;
 			}
 		}
+
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static string SerializeModComponentAsTomlString(
 			List<ModComponent> components,
 			ComponentValidationContext validationContext = null)
@@ -2451,64 +2471,38 @@ namespace KOTORModSync.Core.Services
 			Logger.LogVerbose("Saving to TOML string");
 			StringBuilder result = new StringBuilder();
 
-			// Only include metadata section if there's meaningful content beyond the default values
-			bool hasMeaningfulMetadata = !string.IsNullOrWhiteSpace(MainConfig.TargetGame) ||
-										!string.IsNullOrWhiteSpace(MainConfig.BuildName) ||
-										!string.IsNullOrWhiteSpace(MainConfig.BuildAuthor) ||
-										!string.IsNullOrWhiteSpace(MainConfig.BuildDescription) ||
-										MainConfig.LastModified.HasValue ||
-										!string.IsNullOrWhiteSpace(MainConfig.BeforeModListContent) ||
-										!string.IsNullOrWhiteSpace(MainConfig.AfterModListContent) ||
-										(!string.IsNullOrWhiteSpace(MainConfig.WidescreenSectionContent) &&
+			TomlTable metadataTable = new TomlTable();
+			// Only include fileFormatVersion if it's not the default "2.0"
+			if (!string.Equals(MainConfig.FileFormatVersion, "2.0", StringComparison.Ordinal))
+				metadataTable["fileFormatVersion"] = MainConfig.FileFormatVersion ?? "2.0";
+			else if (!string.IsNullOrWhiteSpace(MainConfig.FileFormatVersion))
+				metadataTable["fileFormatVersion"] = MainConfig.FileFormatVersion;
+			if (!string.IsNullOrWhiteSpace(MainConfig.TargetGame))
+				metadataTable["targetGame"] = MainConfig.TargetGame;
+			if (!string.IsNullOrWhiteSpace(MainConfig.BuildName))
+				metadataTable["buildName"] = MainConfig.BuildName;
+			if (!string.IsNullOrWhiteSpace(MainConfig.BuildAuthor))
+				metadataTable["buildAuthor"] = MainConfig.BuildAuthor;
+			if (!string.IsNullOrWhiteSpace(MainConfig.BuildDescription))
+				metadataTable["buildDescription"] = MainConfig.BuildDescription;
+			if (MainConfig.LastModified.HasValue)
+				metadataTable["lastModified"] = MainConfig.LastModified.Value;
+			// Always serialize content sections, even if empty
+			metadataTable["preambleContent"] = MainConfig.PreambleContent ?? string.Empty;
+			metadataTable["epilogueContent"] = MainConfig.EpilogueContent ?? string.Empty;
+			metadataTable["widescreenWarningContent"] = MainConfig.WidescreenWarningContent ?? string.Empty;
+			metadataTable["aspyrExclusiveWarningContent"] = MainConfig.AspyrExclusiveWarningContent ?? string.Empty;
 
-
-!string.Equals(MainConfig.WidescreenSectionContent, "Please install manually the widescreen implementations, e.g. uniws, before continuing.", StringComparison.Ordinal)) ||
-										!string.IsNullOrWhiteSpace(MainConfig.AspyrSectionContent);
-
-			if (hasMeaningfulMetadata)
-			{
-				TomlTable metadataTable = new TomlTable();
-
-
-
-				// Only include fileFormatVersion if it's not the default "2.0"
-				if (!string.Equals(MainConfig.FileFormatVersion, "2.0", StringComparison.Ordinal))
-					metadataTable["fileFormatVersion"] = MainConfig.FileFormatVersion ?? "2.0";
-				else if (!string.IsNullOrWhiteSpace(MainConfig.FileFormatVersion))
-					metadataTable["fileFormatVersion"] = MainConfig.FileFormatVersion;
-
-
-
-				if (!string.IsNullOrWhiteSpace(MainConfig.TargetGame))
-					metadataTable["targetGame"] = MainConfig.TargetGame;
-				if (!string.IsNullOrWhiteSpace(MainConfig.BuildName))
-					metadataTable["buildName"] = MainConfig.BuildName;
-				if (!string.IsNullOrWhiteSpace(MainConfig.BuildAuthor))
-					metadataTable["buildAuthor"] = MainConfig.BuildAuthor;
-				if (!string.IsNullOrWhiteSpace(MainConfig.BuildDescription))
-					metadataTable["buildDescription"] = MainConfig.BuildDescription;
-				if (MainConfig.LastModified.HasValue)
-					metadataTable["lastModified"] = MainConfig.LastModified.Value;
-				if (!string.IsNullOrWhiteSpace(MainConfig.BeforeModListContent))
-					metadataTable["beforeModListContent"] = MainConfig.BeforeModListContent;
-				if (!string.IsNullOrWhiteSpace(MainConfig.AfterModListContent))
-					metadataTable["afterModListContent"] = MainConfig.AfterModListContent;
-				if (!string.IsNullOrWhiteSpace(MainConfig.WidescreenSectionContent))
-					metadataTable["widescreenSectionContent"] = MainConfig.WidescreenSectionContent;
-				if (!string.IsNullOrWhiteSpace(MainConfig.AspyrSectionContent))
-					metadataTable["aspyrSectionContent"] = MainConfig.AspyrSectionContent;
-
-				Dictionary<string, object> metadataRoot = new Dictionary<string, object>(StringComparer.Ordinal) { ["metadata"] = metadataTable };
-				result.AppendLine(Toml.FromModel(metadataRoot));
-			}
+			Dictionary<string, object> metadataRoot = new Dictionary<string, object>(StringComparer.Ordinal) { ["metadata"] = metadataTable };
+			_ = result.AppendLine(Toml.FromModel(metadataRoot));
 
 			bool isFirst = true;
 			foreach (ModComponent component in components)
 			{
 				if (!isFirst)
 				{
-					result.AppendLine();
-					result.AppendLine();
+					_ = result.AppendLine();
+					_ = result.AppendLine();
 				}
 				isFirst = false;
 
@@ -2518,10 +2512,10 @@ namespace KOTORModSync.Core.Services
 					List<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
 					if (componentIssues.Count > 0)
 					{
-						result.AppendLine("# VALIDATION ISSUES:");
+						_ = result.AppendLine("# VALIDATION ISSUES:");
 						foreach (string issue in componentIssues)
 						{
-							result.AppendLine($"# {issue}");
+							_ = result.AppendLine($"# {issue}");
 						}
 					}
 				}
@@ -2534,10 +2528,10 @@ namespace KOTORModSync.Core.Services
 						List<string> urlFailures = validationContext.GetUrlFailures(url);
 						if (urlFailures.Count > 0)
 						{
-							result.AppendLine($"# URL RESOLUTION FAILURE: {url}");
+							_ = result.AppendLine($"# URL RESOLUTION FAILURE: {url}");
 							foreach (string failure in urlFailures)
 							{
-								result.AppendLine($"# {failure}");
+								_ = result.AppendLine($"# {failure}");
 							}
 						}
 					}
@@ -2549,12 +2543,9 @@ namespace KOTORModSync.Core.Services
 				StringBuilder nestedContent = new StringBuilder();
 				Dictionary<string, object> modLinkFilenamesDict = FixSerializedTomlDict(componentDict, nestedContent, validationContext, component);
 
-				Dictionary<string, object> rootTable = new Dictionary<string, object>
-
-
-(StringComparer.Ordinal)
+				Dictionary<string, object> rootTable = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
-					["thisMod"] = componentDict
+					["thisMod"] = componentDict,
 				};
 				string componentToml = Toml.FromModel(rootTable).Replace("[thisMod]", "[[thisMod]]");
 
@@ -2562,19 +2553,19 @@ namespace KOTORModSync.Core.Services
 				if (modLinkFilenamesDict != null && modLinkFilenamesDict.Count > 0)
 				{
 					StringBuilder mlf = new StringBuilder();
-					mlf.Append("ModLinkFilenames = { ");
+					_ = mlf.Append("ModLinkFilenames = { ");
 
 					bool firstUrl = true;
 					foreach (KeyValuePair<string, object> urlEntry in modLinkFilenamesDict)
 					{
 						if (!firstUrl)
-							mlf.Append(", ");
+							_ = mlf.Append(", ");
 						firstUrl = false;
 
 						string url = urlEntry.Key;
-						mlf.Append('"');
-						mlf.Append(url.Replace("\"", "\\\""));
-						mlf.Append("\" = { ");
+						_ = mlf.Append('"');
+						_ = mlf.Append(url.Replace("\"", "\\\""));
+						_ = mlf.Append("\" = { ");
 
 						if (urlEntry.Value is Dictionary<string, object> filenamesDict && filenamesDict.Count > 0)
 						{
@@ -2582,29 +2573,32 @@ namespace KOTORModSync.Core.Services
 							foreach (KeyValuePair<string, object> fileEntry in filenamesDict)
 							{
 								if (!firstFile)
-									mlf.Append(", ");
+									_ = mlf.Append(", ");
 								firstFile = false;
 
 								string filename = fileEntry.Key;
-								mlf.Append('"');
-								mlf.Append(filename.Replace("\"", "\\\""));
-								mlf.Append("\" = ");
+								_ = mlf.Append('"');
+								_ = mlf.Append(filename.Replace("\"", "\\\""));
+								_ = mlf.Append("\" = ");
 
 								if (fileEntry.Value is bool boolVal)
-									mlf.Append(boolVal ? "true" : "false");
-
+									_ = mlf.Append(boolVal ? "true" : "false");
 
 								else if (fileEntry.Value is string strVal && string.Equals(strVal, "null", StringComparison.Ordinal))
-									mlf.Append("\"null\"");
+								{
+									_ = mlf.Append("\"null\"");
+								}
 								else
-									mlf.Append("\"null\"");
+								{
+									_ = mlf.Append("\"null\"");
+								}
 							}
 						}
 
-						mlf.Append(" }");
+						_ = mlf.Append(" }");
 					}
 
-					mlf.AppendLine(" }");
+					_ = mlf.AppendLine(" }");
 
 					// Insert after the [[thisMod]] line
 					int insertPos = componentToml.IndexOf('\n');
@@ -2612,12 +2606,12 @@ namespace KOTORModSync.Core.Services
 						componentToml = componentToml.Insert(insertPos + 1, mlf.ToString());
 				}
 
-				result.Append(componentToml.TrimEnd());
+				_ = result.Append(componentToml.TrimEnd());
 
 				if (nestedContent.Length <= 0)
 					continue;
-				result.AppendLine();
-				result.Append(nestedContent.ToString());
+				_ = result.AppendLine();
+				_ = result.Append(nestedContent.ToString());
 			}
 
 			return SanitizeUtf8(Utility.Serializer.FixWhitespaceIssues(result.ToString()));
@@ -2630,9 +2624,9 @@ namespace KOTORModSync.Core.Services
 			ModComponent component = null
 		)
 		{
-			if (serializedComponentDict == null)
+			if (serializedComponentDict is null)
 				throw new ArgumentNullException(nameof(serializedComponentDict));
-			if (tomlString == null)
+			if (tomlString is null)
 				throw new ArgumentNullException(nameof(tomlString));
 
 			// Remove metadata fields that were added by unified serialization (they're for format-specific use only)
@@ -2654,7 +2648,7 @@ namespace KOTORModSync.Core.Services
 					int instructionIndex = 0;
 					foreach (Dictionary<string, object> item in instructionsList)
 					{
-						if (item == null || item.Count == 0)
+						if (item is null || item.Count == 0)
 							continue;
 
 						// Add validation comments for instruction issues
@@ -2673,19 +2667,15 @@ namespace KOTORModSync.Core.Services
 							}
 						}
 
-						Dictionary<string, object> model = new Dictionary<string, object>
-
-
-(StringComparer.Ordinal)
+						Dictionary<string, object> model = new Dictionary<string, object>(StringComparer.Ordinal)
 						{
 							{
 								"thisMod", new Dictionary<string, object>
 
-
 (StringComparer.Ordinal) {
 									{ "Instructions", item }
 								}
-							}
+							},
 						};
 						tomlString.AppendLine();
 						tomlString.Append(Toml.FromModel(model).Replace("thisMod.Instructions", $"[thisMod.Instructions]"));
@@ -2720,7 +2710,6 @@ namespace KOTORModSync.Core.Services
 					Dictionary<string, List<Dictionary<string, object>>> instructionsByParent = optionsInstructionsList
 						.Where(instr => instr != null && instr.ContainsKey("Parent"))
 
-
 						.GroupBy(instr => instr["Parent"]?.ToString(), StringComparer.Ordinal)
 						.ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
 
@@ -2737,17 +2726,15 @@ namespace KOTORModSync.Core.Services
 
 						Dictionary<string, object> optionModel = new Dictionary<string, object>
 
-
 (StringComparer.Ordinal)
 						{
 							{
 								"thisMod", new Dictionary<string, object>
 
-
 (StringComparer.Ordinal) {
 									{ "Options", optionDict }
 								}
-							}
+							},
 						};
 						tomlString.AppendLine();
 						tomlString.Append(Toml.FromModel(optionModel).Replace("thisMod.Options", "[thisMod.Options]"));
@@ -2783,17 +2770,15 @@ namespace KOTORModSync.Core.Services
 
 							Dictionary<string, object> instrModel = new Dictionary<string, object>
 
-
 (StringComparer.Ordinal)
 							{
 								{
 									"thisMod", new Dictionary<string, object>
 
-
 (StringComparer.Ordinal) {
 										{ "OptionsInstructions", instruction }
 									}
-								}
+								},
 							};
 							tomlString.Append(Toml.FromModel(instrModel).Replace(
 								"thisMod.OptionsInstructions",
@@ -2818,24 +2803,22 @@ namespace KOTORModSync.Core.Services
 					listItems = list;
 				else if (value is IEnumerable<Dictionary<string, object>> enumerable) listItems = enumerable.ToList();
 
-				if (listItems == null || listItems.Count == 0)
+				if (listItems is null || listItems.Count == 0)
 					continue;
 
 				foreach (Dictionary<string, object> item in listItems.Where(item => item != null && item.Count != 0))
 				{
 					Dictionary<string, object> model = new Dictionary<string, object>
 
-
 (StringComparer.Ordinal)
 					{
 					{
 						"thisMod", new Dictionary<string, object>
 
-
 (StringComparer.Ordinal) {
 							{ key, item }
 						}
-					}
+					},
 				};
 					tomlString.AppendLine();
 					tomlString.Append(Toml.FromModel(model).Replace($"thisMod.{key}", $"[thisMod.{key}]"));
@@ -2943,12 +2926,11 @@ namespace KOTORModSync.Core.Services
 				|| !string.IsNullOrWhiteSpace(MainConfig.BuildName)
 				|| !string.IsNullOrWhiteSpace(MainConfig.BuildAuthor)
 				|| !string.IsNullOrWhiteSpace(MainConfig.BuildDescription)
-				|| !string.IsNullOrWhiteSpace(MainConfig.BeforeModListContent)
-				|| !string.IsNullOrWhiteSpace(MainConfig.AfterModListContent)
-				|| !string.IsNullOrWhiteSpace(MainConfig.WidescreenSectionContent)
-				|| !string.IsNullOrWhiteSpace(MainConfig.AspyrSectionContent)
+				|| !string.IsNullOrWhiteSpace(MainConfig.PreambleContent)
+				|| !string.IsNullOrWhiteSpace(MainConfig.EpilogueContent)
+				|| !string.IsNullOrWhiteSpace(MainConfig.WidescreenWarningContent)
+				|| !string.IsNullOrWhiteSpace(MainConfig.AspyrExclusiveWarningContent)
 				|| MainConfig.LastModified.HasValue;
-
 
 
 			if (!hasAnyMetadata && string.Equals(MainConfig.FileFormatVersion, "2.0", StringComparison.Ordinal))
@@ -2981,29 +2963,18 @@ namespace KOTORModSync.Core.Services
 			if (MainConfig.LastModified.HasValue)
 				sb.AppendLine($"lastModified: \"{MainConfig.LastModified.Value:O}\"");
 
-			if (!string.IsNullOrWhiteSpace(MainConfig.BeforeModListContent))
-			{
-				string escapedBefore = EscapeYamlString(MainConfig.BeforeModListContent);
-				sb.AppendLine($"beforeModListContent: \"{escapedBefore}\"");
-			}
+			// Always serialize content sections, even if empty
+			string escapedBefore = EscapeYamlString(MainConfig.PreambleContent ?? string.Empty);
+			sb.AppendLine($"preambleContent: \"{escapedBefore}\"");
 
-			if (!string.IsNullOrWhiteSpace(MainConfig.AfterModListContent))
-			{
-				string escapedAfter = EscapeYamlString(MainConfig.AfterModListContent);
-				sb.AppendLine($"afterModListContent: \"{escapedAfter}\"");
-			}
+			string escapedAfter = EscapeYamlString(MainConfig.EpilogueContent ?? string.Empty);
+			sb.AppendLine($"epilogueContent: \"{escapedAfter}\"");
 
-			if (!string.IsNullOrWhiteSpace(MainConfig.WidescreenSectionContent))
-			{
-				string escapedWidescreen = EscapeYamlString(MainConfig.WidescreenSectionContent);
-				sb.AppendLine($"widescreenSectionContent: \"{escapedWidescreen}\"");
-			}
+			string escapedWidescreen = EscapeYamlString(MainConfig.WidescreenWarningContent ?? string.Empty);
+			sb.AppendLine($"widescreenWarningContent: \"{escapedWidescreen}\"");
 
-			if (!string.IsNullOrWhiteSpace(MainConfig.AspyrSectionContent))
-			{
-				string escapedAspyr = EscapeYamlString(MainConfig.AspyrSectionContent);
-				sb.AppendLine($"aspyrSectionContent: \"{escapedAspyr}\"");
-			}
+			string escapedAspyr = EscapeYamlString(MainConfig.AspyrExclusiveWarningContent ?? string.Empty);
+			sb.AppendLine($"aspyrExclusiveWarningContent: \"{escapedAspyr}\"");
 
 			sb.AppendLine();
 		}
@@ -3028,10 +2999,10 @@ namespace KOTORModSync.Core.Services
 			Logger.LogVerbose("Saving to Markdown string");
 			return GenerateModDocumentation(
 				components,
-				MainConfig.BeforeModListContent,
-				MainConfig.AfterModListContent,
-				MainConfig.WidescreenSectionContent,
-				MainConfig.AspyrSectionContent,
+				MainConfig.PreambleContent,
+				MainConfig.EpilogueContent,
+				MainConfig.WidescreenWarningContent,
+				MainConfig.AspyrExclusiveWarningContent,
 				validationContext);
 		}
 		public static string SerializeModComponentAsJsonString(
@@ -3043,7 +3014,7 @@ namespace KOTORModSync.Core.Services
 
 			JObject metadata = new JObject
 			{
-				["fileFormatVersion"] = MainConfig.FileFormatVersion ?? "2.0"
+				["fileFormatVersion"] = MainConfig.FileFormatVersion ?? "2.0",
 			};
 			if (!string.IsNullOrWhiteSpace(MainConfig.TargetGame))
 				metadata["targetGame"] = MainConfig.TargetGame;
@@ -3055,14 +3026,11 @@ namespace KOTORModSync.Core.Services
 				metadata["buildDescription"] = MainConfig.BuildDescription;
 			if (MainConfig.LastModified.HasValue)
 				metadata["lastModified"] = MainConfig.LastModified.Value;
-			if (!string.IsNullOrWhiteSpace(MainConfig.BeforeModListContent))
-				metadata["beforeModListContent"] = MainConfig.BeforeModListContent;
-			if (!string.IsNullOrWhiteSpace(MainConfig.AfterModListContent))
-				metadata["afterModListContent"] = MainConfig.AfterModListContent;
-			if (!string.IsNullOrWhiteSpace(MainConfig.WidescreenSectionContent))
-				metadata["widescreenSectionContent"] = MainConfig.WidescreenSectionContent;
-			if (!string.IsNullOrWhiteSpace(MainConfig.AspyrSectionContent))
-				metadata["aspyrSectionContent"] = MainConfig.AspyrSectionContent;
+			// Always serialize content sections, even if empty
+			metadata["preambleContent"] = MainConfig.PreambleContent ?? string.Empty;
+			metadata["epilogueContent"] = MainConfig.EpilogueContent ?? string.Empty;
+			metadata["widescreenWarningContent"] = MainConfig.WidescreenWarningContent ?? string.Empty;
+			metadata["aspyrExclusiveWarningContent"] = MainConfig.AspyrExclusiveWarningContent ?? string.Empty;
 			jsonRoot["metadata"] = metadata;
 
 			JArray componentsArray = new JArray();
@@ -3127,35 +3095,32 @@ namespace KOTORModSync.Core.Services
 				throw;
 			}
 		}
-
-
-
 		public static async Task<string> GenerateModDocumentationAsync(
 			[NotNull] string filePath,
 			[NotNull][ItemNotNull] List<ModComponent> componentsList,
-			[CanBeNull] string beforeModListContent = null,
-			[CanBeNull] string afterModListContent = null,
-			[CanBeNull] string widescreenSectionContent = null,
-			[CanBeNull] string aspyrSectionContent = null,
+			[CanBeNull] string preambleContent = null,
+			[CanBeNull] string epilogueContent = null,
+			[CanBeNull] string widescreenWarningContent = null,
+			[CanBeNull] string aspyrExclusiveWarningContent = null,
 			[CanBeNull] ComponentValidationContext validationContext = null)
 		{
 			return await Task.Run(() => GenerateModDocumentation(
 				componentsList,
-				beforeModListContent,
-				afterModListContent,
-				widescreenSectionContent,
-				aspyrSectionContent,
+				preambleContent,
+				epilogueContent,
+				widescreenWarningContent,
+				aspyrExclusiveWarningContent,
 				validationContext
-			)).ConfigureAwait(false);
+			));
 		}
 
 		[NotNull]
 		public static string GenerateModDocumentation(
 			[NotNull][ItemNotNull] List<ModComponent> componentsList,
-			[CanBeNull] string beforeModListContent = null,
-			[CanBeNull] string afterModListContent = null,
-			[CanBeNull] string widescreenSectionContent = null,
-			[CanBeNull] string aspyrSectionContent = null,
+			[CanBeNull] string preambleContent = null,
+			[CanBeNull] string epilogueContent = null,
+			[CanBeNull] string widescreenWarningContent = null,
+			[CanBeNull] string aspyrExclusiveWarningContent = null,
 			[CanBeNull] ComponentValidationContext validationContext = null)
 		{
 			if (componentsList is null)
@@ -3163,10 +3128,10 @@ namespace KOTORModSync.Core.Services
 
 			StringBuilder sb = new StringBuilder();
 
-			if (!string.IsNullOrWhiteSpace(beforeModListContent))
+			if (!string.IsNullOrWhiteSpace(preambleContent))
 			{
-				_ = sb.Append(beforeModListContent);
-				if (!beforeModListContent.EndsWith("\n", StringComparison.Ordinal))
+				_ = sb.Append(preambleContent);
+				if (!preambleContent.EndsWith("\n", StringComparison.Ordinal))
 				{
 					_ = sb.AppendLine();
 				}
@@ -3184,18 +3149,23 @@ namespace KOTORModSync.Core.Services
 			{
 				ModComponent component = componentsList[i];
 
-				if (component.AspyrExclusive == true && !aspyrHeaderWritten && !string.IsNullOrWhiteSpace(aspyrSectionContent))
+				if (component.AspyrExclusive == true && !aspyrHeaderWritten && !string.IsNullOrWhiteSpace(aspyrExclusiveWarningContent))
 				{
 					_ = sb.AppendLine();
-					_ = sb.AppendLine(aspyrSectionContent.TrimEnd());
+					_ = sb.AppendLine(aspyrExclusiveWarningContent.TrimEnd());
 					_ = sb.AppendLine();
 					aspyrHeaderWritten = true;
 				}
 
-				if (component.WidescreenOnly && !widescreenHeaderWritten && !string.IsNullOrWhiteSpace(widescreenSectionContent))
+				if (
+					component.WidescreenOnly &&
+					!widescreenHeaderWritten &&
+					!string.IsNullOrWhiteSpace(widescreenWarningContent) &&
+					!string.Equals(widescreenWarningContent, "Please install manually the widescreen implementations, e.g. uniws, before continuing.", StringComparison.Ordinal)
+				)
 				{
 					_ = sb.AppendLine();
-					_ = sb.AppendLine(widescreenSectionContent.TrimEnd());
+					_ = sb.AppendLine(widescreenWarningContent.TrimEnd());
 					_ = sb.AppendLine();
 					widescreenHeaderWritten = true;
 				}
@@ -3323,7 +3293,6 @@ namespace KOTORModSync.Core.Services
 
 				string languageSupport = GetNonEnglishFunctionalityText(component.Language);
 
-
 				if (!string.Equals(languageSupport, "UNKNOWN", StringComparison.Ordinal))
 				{
 					_ = sb.Append("**Non-English Functionality:** ").AppendLine(languageSupport);
@@ -3339,16 +3308,6 @@ namespace KOTORModSync.Core.Services
 				{
 					_ = sb.AppendLine();
 					_ = sb.Append("**Known Bugs:** ").AppendLine(component.KnownBugs);
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3434,10 +3393,14 @@ namespace KOTORModSync.Core.Services
 					GenerateModSyncMetadata(sb, component);
 			}
 
-			if (string.IsNullOrWhiteSpace(afterModListContent))
+			if (string.IsNullOrWhiteSpace(epilogueContent))
 				return sb.ToString();
 			_ = sb.AppendLine();
-			_ = sb.Append(afterModListContent);
+			_ = sb.Append(epilogueContent);
+			if (!epilogueContent.EndsWith("\n", StringComparison.Ordinal))
+			{
+				_ = sb.AppendLine();
+			}
 
 			return SanitizeUtf8(sb.ToString());
 		}
@@ -3525,7 +3488,7 @@ namespace KOTORModSync.Core.Services
 		[NotNull]
 		private static string GetNonEnglishFunctionalityText([CanBeNull][ItemCanBeNull] List<string> languages)
 		{
-			if (languages == null || languages.Count == 0)
+			if (languages is null || languages.Count == 0)
 				return "UNKNOWN";
 
 			if (languages.Count == 1 && languages.Exists(lang =>
@@ -3687,8 +3650,9 @@ namespace KOTORModSync.Core.Services
 		{
 			Dictionary<string, object> optDict = new Dictionary<string, object>(StringComparer.Ordinal);
 
-			if (opt.Guid != Guid.Empty)
-				optDict["Guid"] = opt.Guid.ToString();
+			// Always serialize Guid for Options (required field)
+			optDict["Guid"] = opt.Guid.ToString();
+
 			if (!string.IsNullOrWhiteSpace(opt.Name))
 				optDict["Name"] = opt.Name;
 			if (!string.IsNullOrWhiteSpace(opt.Description))
@@ -3770,9 +3734,12 @@ namespace KOTORModSync.Core.Services
 			if (component.ModLinkFilenames.Count > 0)
 				componentDict["ModLinkFilenames"] = SerializeModLinkFilenames(component.ModLinkFilenames);
 
-			// Serialize ResourceRegistry
-			if (component.ResourceRegistry.Count > 0)
+			// Serialize ResourceRegistry (always serialize if it has entries, contains ContentId/MetadataHash/etc.)
+			if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
+			{
 				componentDict["ResourceRegistry"] = SerializeResourceRegistry(component.ResourceRegistry);
+				Logger.LogVerbose($"Serialized ResourceRegistry for component '{component.Name}': {component.ResourceRegistry.Count} entry(ies)");
+			}
 
 			if (component.ExcludedDownloads.Count > 0)
 				componentDict["ExcludedDownloads"] = component.ExcludedDownloads;
@@ -3860,7 +3827,7 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		private static Dictionary<string, object> JTokenToDictionary(JToken token)
 		{
-			if (token == null || token.Type == JTokenType.Null)
+			if (token is null || token.Type == JTokenType.Null)
 				return new Dictionary<string, object>(StringComparer.Ordinal);
 
 			if (!(token is JObject jobj))
@@ -3944,7 +3911,7 @@ namespace KOTORModSync.Core.Services
 
 				object value = kvp.Value;
 
-				if (value == null)
+				if (value is null)
 				{
 					jobj[key] = null;
 				}
@@ -3995,7 +3962,7 @@ namespace KOTORModSync.Core.Services
 		{
 			Dictionary<string, object> result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
-			if (modLinkFilenames == null || modLinkFilenames.Count == 0)
+			if (modLinkFilenames is null || modLinkFilenames.Count == 0)
 				return result;
 
 			foreach (KeyValuePair<string, Dictionary<string, bool?>> kvp in modLinkFilenames)
@@ -4003,7 +3970,7 @@ namespace KOTORModSync.Core.Services
 				string url = kvp.Key;
 				Dictionary<string, bool?> filenamesDict = kvp.Value;
 
-				if (filenamesDict == null || filenamesDict.Count == 0)
+				if (filenamesDict is null || filenamesDict.Count == 0)
 				{
 					// Empty dictionary means auto-discover files
 					result[url] = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -4034,7 +4001,7 @@ namespace KOTORModSync.Core.Services
 			try
 			{
 				if ((!componentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesObj) &&
-					  !componentDict.TryGetValue("modLinkFilenames", out modLinkFilenamesObj)) || modLinkFilenamesObj == null)
+					  !componentDict.TryGetValue("modLinkFilenames", out modLinkFilenamesObj)) || modLinkFilenamesObj is null)
 				{
 					Logger.LogVerbose($"DeserializeModLinkFilenames: No ModLinkFilenames field found in componentDict");
 					return result;
@@ -4150,7 +4117,7 @@ namespace KOTORModSync.Core.Services
 					["Files"] = kvp.Value.Files,
 					["FileSize"] = kvp.Value.FileSize,
 					["SchemaVersion"] = kvp.Value.SchemaVersion,
-					["TrustLevel"] = kvp.Value.TrustLevel.ToString()
+					["TrustLevel"] = kvp.Value.TrustLevel.ToString(),
 				};
 
 				// Only serialize post-download fields if present
@@ -4179,7 +4146,7 @@ namespace KOTORModSync.Core.Services
 			try
 			{
 				if ((!componentDict.TryGetValue("ResourceRegistry", out object registryObj) &&
-					!componentDict.TryGetValue("resourceRegistry", out registryObj)) || registryObj == null)
+					!componentDict.TryGetValue("resourceRegistry", out registryObj)) || registryObj is null)
 				{
 					Logger.LogVerbose("DeserializeResourceRegistry: No ResourceRegistry field found in componentDict");
 					return result;
@@ -4207,15 +4174,15 @@ namespace KOTORModSync.Core.Services
 							FileSize = GetValueOrDefault<long>(metaDict, "FileSize"),
 							PieceLength = GetValueOrDefault<int>(metaDict, "PieceLength"),
 							PieceHashes = GetValueOrDefault<string>(metaDict, "PieceHashes"),
-							SchemaVersion = metaDict.ContainsKey("SchemaVersion") ? GetValueOrDefault<int>(metaDict, "SchemaVersion") : 1
+							SchemaVersion = metaDict.ContainsKey("SchemaVersion") ? GetValueOrDefault<int>(metaDict, "SchemaVersion") : 1,
 						};
 
 						if (Enum.TryParse<MappingTrustLevel>(GetValueOrDefault<string>(metaDict, "TrustLevel"), out MappingTrustLevel trustLevel))
 							meta.TrustLevel = trustLevel;
 
-						if (DateTime.TryParse(GetValueOrDefault<string>(metaDict, "FirstSeen"), out DateTime firstSeen))
+						if (DateTime.TryParse(GetValueOrDefault<string>(metaDict, "FirstSeen"), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime firstSeen))
 							meta.FirstSeen = firstSeen;
-						if (DateTime.TryParse(GetValueOrDefault<string>(metaDict, "LastVerified"), out DateTime lastVerified))
+						if (DateTime.TryParse(GetValueOrDefault<string>(metaDict, "LastVerified"), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime lastVerified))
 							meta.LastVerified = lastVerified;
 
 						result[kvp.Key] = meta;
@@ -4254,15 +4221,15 @@ namespace KOTORModSync.Core.Services
 							FileSize = GetValueOrDefault<long>(metaDict, "FileSize"),
 							PieceLength = GetValueOrDefault<int>(metaDict, "PieceLength"),
 							PieceHashes = GetValueOrDefault<string>(metaDict, "PieceHashes"),
-							SchemaVersion = metaDict.ContainsKey("SchemaVersion") ? GetValueOrDefault<int>(metaDict, "SchemaVersion") : 1
+							SchemaVersion = metaDict.ContainsKey("SchemaVersion") ? GetValueOrDefault<int>(metaDict, "SchemaVersion") : 1,
 						};
 
 						if (Enum.TryParse<MappingTrustLevel>(GetValueOrDefault<string>(metaDict, "TrustLevel"), out MappingTrustLevel trustLevel))
 							meta.TrustLevel = trustLevel;
 
-						if (DateTime.TryParse(GetValueOrDefault<string>(metaDict, "FirstSeen"), out DateTime firstSeen))
+						if (DateTime.TryParse(GetValueOrDefault<string>(metaDict, "FirstSeen"), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime firstSeen))
 							meta.FirstSeen = firstSeen;
-						if (DateTime.TryParse(GetValueOrDefault<string>(metaDict, "LastVerified"), out DateTime lastVerified))
+						if (DateTime.TryParse(GetValueOrDefault<string>(metaDict, "LastVerified"), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime lastVerified))
 							meta.LastVerified = lastVerified;
 
 						result[key] = meta;

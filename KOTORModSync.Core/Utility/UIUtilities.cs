@@ -20,7 +20,7 @@ namespace KOTORModSync.Core.Utility
 
 		public static async Task<int> FixIOSCaseSensitivity( [NotNull] DirectoryInfo gameDirectory )
 		{
-			if (gameDirectory == null)
+			if (gameDirectory is null)
 				throw new ArgumentNullException( nameof( gameDirectory ) );
 
 			FileOperationService fileOperationService = new FileOperationService();

@@ -17,10 +17,9 @@ namespace KOTORModSync.Core.Services
 	{
 
 
-
 		public static async Task<bool> FindDuplicateComponentsAsync( [NotNull][ItemNotNull] List<ModComponent> components, bool promptUser = true )
 		{
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException( nameof( components ) );
 
 			bool duplicatesFixed = true;
@@ -37,8 +36,6 @@ namespace KOTORModSync.Core.Services
 				{
 					await Logger.LogWarningAsync(
 						$"Invalid GUID for component '{component.Name}'. Got '{component.Guid}'"
-
-
 
 
 
@@ -75,7 +72,6 @@ namespace KOTORModSync.Core.Services
 					case true:
 						duplicateComponent.Guid = Guid.NewGuid();
 
-
 						await Logger.LogAsync( $"Replaced GUID of component '{duplicateComponent.Name}'" )
 
 .ConfigureAwait( false );
@@ -94,12 +90,10 @@ namespace KOTORModSync.Core.Services
 		}
 
 
-
 		public static async Task<bool> ValidateComponentsForInstallationAsync( [NotNull][ItemNotNull] List<ModComponent> components )
 		{
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException( nameof( components ) );
-
 
 
 			await Logger.LogAsync( "Validating individual components, this might take a while..." ).ConfigureAwait( false );
@@ -120,7 +114,6 @@ namespace KOTORModSync.Core.Services
 					{
 						if (restrictedComponent?.IsSelected == true)
 
-
 						{
 							await Logger.LogErrorAsync( $"Cannot install '{component.Name}' due to '{restrictedComponent.Name}' being selected for install." ).ConfigureAwait( false );
 							individuallyValidated = false;
@@ -135,7 +128,6 @@ namespace KOTORModSync.Core.Services
 					{
 						if (dependencyComponent?.IsSelected != true)
 
-
 						{
 							await Logger.LogErrorAsync( $"Cannot install '{component.Name}' due to '{dependencyComponent?.Name}' not being selected for install." ).ConfigureAwait( false );
 							individuallyValidated = false;
@@ -144,7 +136,6 @@ namespace KOTORModSync.Core.Services
 				}
 
 				ComponentValidation validator = new ComponentValidation( component, components );
-
 
 				await Logger.LogVerboseAsync( $" == Validating '{component.Name}' == " )
 
@@ -156,30 +147,27 @@ namespace KOTORModSync.Core.Services
 			return individuallyValidated;
 		}
 
-
 		public static ModComponent CreateNewComponent() => new ModComponent
 		{
 			Guid = Guid.NewGuid(),
 			Name = "new mod_" + Path.GetFileNameWithoutExtension( Path.GetRandomFileName() ),
 		};
 
-
 		public static bool CanRemoveComponent( [NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components )
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException( nameof( component ) );
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException( nameof( components ) );
 
 			return !components.Exists( c => c.Dependencies.Exists( g => g == component.Guid ) );
 		}
 
-
 		public static void MoveComponent( [NotNull] ModComponent component, [NotNull][ItemNotNull] List<ModComponent> components, int relativeIndex )
 		{
-			if (component == null)
+			if (component is null)
 				throw new ArgumentNullException( nameof( component ) );
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException( nameof( components ) );
 
 			int index = components.IndexOf( component );

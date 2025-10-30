@@ -22,12 +22,12 @@ namespace KOTORModSync.Services
 	public class GuiPathService
 	{
 		private readonly MainConfig _mainConfig;
-		private readonly FileSystemService _fileSystemService;
+		private readonly ComponentSelectionService _componentSelectionService;
 
-		public GuiPathService( MainConfig mainConfig, FileSystemService fileSystemService )
+		public GuiPathService( MainConfig mainConfig, ComponentSelectionService componentSelectionService = null )
 		{
 			_mainConfig = mainConfig ?? throw new ArgumentNullException( nameof( mainConfig ) );
-			_fileSystemService = fileSystemService;
+			_componentSelectionService = componentSelectionService;
 		}
 
 		public bool TryApplySourcePath( string text, Action<string> onPathSet = null )
@@ -41,7 +41,7 @@ namespace KOTORModSync.Services
 				_mainConfig.sourcePath = new DirectoryInfo( p );
 
 				Action callback = onPathSet != null ? (Action)(() => onPathSet( p )) : null;
-				_fileSystemService.SetupModDirectoryWatcher( p, ( changedFile ) => callback?.Invoke() );
+                FileSystemService.SetupModDirectoryWatcher( p, ( changedFile ) => callback?.Invoke() );
 
 				return true;
 			}
@@ -52,25 +52,30 @@ namespace KOTORModSync.Services
 			}
 		}
 
-		public bool TryApplyDestinationPath( string text )
+	public bool TryApplyDestinationPath( string text )
+	{
+		try
 		{
-			try
-			{
-				string p = PathUtilities.ExpandPath( text );
-				if (string.IsNullOrWhiteSpace( p ) || !Directory.Exists( p ))
-					return false;
-
-				_mainConfig.destinationPath = new DirectoryInfo( p );
-				return true;
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex );
+			string p = PathUtilities.ExpandPath( text );
+			if (string.IsNullOrWhiteSpace( p ) || !Directory.Exists( p ))
 				return false;
-			}
-		}
 
-		public static void UpdatePathSuggestions( TextBox input, ComboBox combo, ref CancellationTokenSource cts )
+			_mainConfig.destinationPath = new DirectoryInfo( p );
+			
+			// Detect game version after setting destination path
+			_componentSelectionService?.DetectGameVersion();
+			
+			return true;
+		}
+		catch (Exception ex)
+		{
+			Logger.LogException( ex );
+			return false;
+		}
+	}
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public static void UpdatePathSuggestions( TextBox input, ComboBox combo, ref CancellationTokenSource cts )
 		{
 			try
 			{
@@ -196,7 +201,7 @@ namespace KOTORModSync.Services
 			}
 			catch (Exception ex)
 			{
-				Logger.LogVerbose( $"Error loading recent mod directories: {ex.Message}" );
+				await Logger.LogVerboseAsync( $"Error loading recent mod directories: {ex.Message}" ).ConfigureAwait( false );
 			}
 
 			return result;
@@ -211,7 +216,7 @@ namespace KOTORModSync.Services
 			}
 			catch (Exception ex)
 			{
-				Logger.LogVerbose( $"Error saving recent mod directories: {ex.Message}" );
+				await Logger.LogVerboseAsync( $"Error saving recent mod directories: {ex.Message}" ).ConfigureAwait( false );
 			}
 		}
 

@@ -17,7 +17,7 @@ namespace KOTORModSync.Core
 			bool isError
 		)
 		{
-			if (validator == null)
+			if (validator is null)
 				throw new ArgumentNullException( nameof( validator ) );
 			if (string.IsNullOrWhiteSpace( message ))
 				throw new ArgumentException( message: "Value cannot be null or whitespace.", nameof( message ) );

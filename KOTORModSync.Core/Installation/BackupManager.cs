@@ -23,7 +23,7 @@ namespace KOTORModSync.Core.Installation
 
 		public async Task EnsureSnapshotAsync( [NotNull] DirectoryInfo source, CancellationToken cancellationToken )
 		{
-			if (source == null)
+			if (source is null)
 				throw new ArgumentNullException( nameof( source ) );
 
 			BackupPath = GetBackupPath( source );
@@ -35,7 +35,7 @@ namespace KOTORModSync.Core.Installation
 
 		public async Task PromoteSnapshotAsync( [NotNull] DirectoryInfo source, CancellationToken cancellationToken )
 		{
-			if (source == null)
+			if (source is null)
 				throw new ArgumentNullException( nameof( source ) );
 
 			BackupPath = GetBackupPath( source );
@@ -44,7 +44,7 @@ namespace KOTORModSync.Core.Installation
 
 		public async Task RestoreSnapshotAsync( [NotNull] DirectoryInfo destination, CancellationToken cancellationToken )
 		{
-			if (destination == null)
+			if (destination is null)
 				throw new ArgumentNullException( nameof( destination ) );
 
 			BackupPath = GetBackupPath( destination );
@@ -57,7 +57,6 @@ namespace KOTORModSync.Core.Installation
 			try
 			{
 				Directory.Delete( tempExtract, recursive: true );
-
 
 				await Task.Run( () => ZipFile.ExtractToDirectory( BackupPath, tempExtract, System.Text.Encoding.UTF8 ), cancellationToken ).ConfigureAwait( false );
 

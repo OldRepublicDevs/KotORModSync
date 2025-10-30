@@ -25,7 +25,7 @@ namespace KOTORModSync.Converters
 			foreach (object value in values)
 			{
 
-				if (value == null || value == AvaloniaProperty.UnsetValue)
+				if (value is null || value == AvaloniaProperty.UnsetValue)
 					return false;
 
 

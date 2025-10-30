@@ -15,51 +15,51 @@ namespace KOTORModSync.Converters
 {
 	public partial class PathStatusDetailedConverter : IValueConverter
 	{
-		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
+		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			Instruction instruction = parameter as Instruction;
 
 			if (value is string singlePath)
 			{
-				return ValidateSinglePath( singlePath, instruction );
+				return ValidateSinglePath(singlePath, instruction);
 			}
 
 			if (value is System.Collections.Generic.List<string> pathList)
 			{
-				if (pathList == null || pathList.Count == 0)
+				if (pathList is null || pathList.Count == 0)
 					return new PathValidationResult { StatusMessage = "❓ Empty", IsValid = false };
 
-				return ValidateSinglePath( pathList.FirstOrDefault(), instruction );
+				return ValidateSinglePath(pathList.FirstOrDefault(), instruction);
 			}
 
 			return new PathValidationResult { StatusMessage = "❓ Empty", IsValid = false };
 		}
 
-		private static PathValidationResult ValidateSinglePath( string path, Instruction instruction )
+		private static PathValidationResult ValidateSinglePath(string path, Instruction instruction)
 		{
-			if (string.IsNullOrWhiteSpace( path ))
+			if (string.IsNullOrWhiteSpace(path))
 				return new PathValidationResult { StatusMessage = "❓ Empty", IsValid = false };
 
 			ModComponent currentComponent = MainConfig.CurrentComponent;
 
 			try
 			{
-				return DryRunValidator.ValidateInstructionPathDetailedAsync( path, instruction, currentComponent )
+				return DryRunValidator.ValidateInstructionPathDetailedAsync(path, instruction, currentComponent)
 					.GetAwaiter().GetResult();
 			}
 			catch (Exception ex)
 			{
-				Core.Logger.LogException( ex, "Error in detailed path validation converter" );
+				Core.Logger.LogException(ex, "Error in detailed path validation converter");
 				return new PathValidationResult
 				{
 					StatusMessage = "⚠️ Validation error",
 					DetailedMessage = $"Error: {ex.Message}",
-					IsValid = false
+					IsValid = false,
 				};
 			}
 		}
 
-		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
+		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			throw new NotImplementedException();
 		}

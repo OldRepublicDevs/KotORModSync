@@ -84,7 +84,7 @@ namespace KOTORModSync.Dialogs
 		private void UpdateStorageInfo( List<CheckpointSession> sessions )
 		{
 			var storageText = this.FindControl<TextBlock>( "StorageInfoText" );
-			if (storageText == null)
+			if (storageText is null)
 				return;
 
 			try

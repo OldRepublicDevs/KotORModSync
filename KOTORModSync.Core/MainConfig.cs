@@ -8,8 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using JetBrains.Annotations;
+using ItemNotNullAttribute = JetBrains.Annotations.ItemNotNullAttribute;
+using NotNullAttribute = JetBrains.Annotations.NotNullAttribute;
 namespace KOTORModSync.Core
 {
 	[SuppressMessage(
@@ -22,10 +23,10 @@ namespace KOTORModSync.Core
 		checkId: "IDE0079:Remove unnecessary suppression",
 		Justification = "<Pending>"
 	)]
-	[SuppressMessage( category: "ReSharper", checkId: "MemberCanBeMadeStatic.Global" )]
-	[SuppressMessage( category: "ReSharper", checkId: "InconsistentNaming" )]
-	[SuppressMessage( category: "ReSharper", checkId: "MemberCanBePrivate.Global" )]
-	[SuppressMessage( category: "ReSharper", checkId: "UnusedMember.Global" )]
+	[SuppressMessage(category: "ReSharper", checkId: "MemberCanBeMadeStatic.Global")]
+	[SuppressMessage(category: "ReSharper", checkId: "InconsistentNaming")]
+	[SuppressMessage(category: "ReSharper", checkId: "MemberCanBePrivate.Global")]
+	[SuppressMessage(category: "ReSharper", checkId: "UnusedMember.Global")]
 	public sealed class MainConfig : INotifyPropertyChanged
 	{
 		public MainConfig()
@@ -89,13 +90,15 @@ namespace KOTORModSync.Core
 		public string fileEncoding { get => FileEncoding; set => FileEncoding = value ?? "utf-8"; }
 		public static string SelectedHolopatcherVersion { get; private set; }
 		public string selectedHolopatcherVersion { get => SelectedHolopatcherVersion; set => SelectedHolopatcherVersion = value; }
-		[JetBrains.Annotations.NotNull][JetBrains.Annotations.ItemNotNull] public static List<ModComponent> AllComponents { get; set; } = new List<ModComponent>();
-		[JetBrains.Annotations.NotNull]
-		[JetBrains.Annotations.ItemNotNull]
+		public static bool EnableFileWatcher { get; private set; }
+		public bool enableFileWatcher { get => EnableFileWatcher; set => EnableFileWatcher = value; }
+		[NotNull][ItemNotNull] public static List<ModComponent> AllComponents { get; set; } = new List<ModComponent>();
+		[NotNull]
+		[ItemNotNull]
 		public List<ModComponent> allComponents
 		{
 			get => AllComponents;
-			set => AllComponents = value ?? throw new ArgumentNullException( nameof( value ) );
+			set => AllComponents = value ?? throw new ArgumentNullException(nameof(value));
 		}
 		[CanBeNull] public static ModComponent CurrentComponent { get; set; }
 		[CanBeNull]
@@ -106,32 +109,32 @@ namespace KOTORModSync.Core
 			{
 				if (CurrentComponent == value) return;
 				CurrentComponent = value;
-				OnPropertyChanged( nameof( currentComponent ) );
+				OnPropertyChanged(nameof(currentComponent));
 			}
 		}
-		public static string BeforeModListContent { get; set; } = string.Empty;
-		public string beforeModListContent
+		public static string PreambleContent { get; set; } = "# Installation Guide\n\nWelcome to the KOTOR Mod Installation Guide. This guide will help you install this mod build for Knights of the Old Republic.\n\n:::warning\nImportant\n:   Please read through these instructions carefully before beginning the installation process.\n:::\n\n### Prerequisites\n\n- A fresh installation of Knights of the Old Republic\n- KOTORModSync - an automated installer that handles TSLPatcher and HoloPatcher installations\n- Approximately 7GB free disk space for mod archives (before extraction)\n\n### Installation Process\n\nKOTORModSync will automatically handle extraction and installation of mods. You just need to:\n\n1. Ensure your game directory is not read-only\n2. Configure your source (mod archives) and destination (game directory) paths\n3. Select the mods you want to install\n4. Let the installer handle the rest\n\n:::warning\nZeroing Step\n:   If you have previously installed mods, it's recommended to perform a fresh install. Uninstall the game, delete all remaining files in the game directory, and reinstall before proceeding.\n:::\n\n### Known Issues\n\n- Some users may experience rare crashes when entering new areas. If this occurs, temporarily disable 'Frame Buffer Effects' and 'Soft Shadows' in Advanced Graphics Options.";
+		public string preambleContent
 		{
-			get => BeforeModListContent;
-			set => BeforeModListContent = value ?? string.Empty;
+			get => PreambleContent;
+			set => PreambleContent = value ?? string.Empty;
 		}
-		public static string AfterModListContent { get; set; } = string.Empty;
-		public string afterModListContent
+		public static string EpilogueContent { get; set; } = "## Post-Installation Notes\n\n### Launch Options\n\nAfter installation, launch the game directly from the executable, not through the Steam interface (if using widescreen support).\n\n### Troubleshooting\n\nIf you encounter issues:\n\n- **Crash on load**: Try disabling 'Frame Buffer Effects' in Advanced Graphics Options\n- **Character stuck after combat**: Enable v-sync or set your monitor to 60hz\n- **Rare crashes**: Update your graphics drivers\n\nFor additional support, please consult the troubleshooting section in the main documentation.";
+		public string epilogueContent
 		{
-			get => AfterModListContent;
-			set => AfterModListContent = value ?? string.Empty;
+			get => EpilogueContent;
+			set => EpilogueContent = value ?? string.Empty;
 		}
-		public static string WidescreenSectionContent { get; set; } = "Please install manually the widescreen implementations, e.g. uniws, before continuing.";
-		public string widescreenSectionContent
+		public static string WidescreenWarningContent { get; set; } = ":::note\nWidescreen Support\n:   This build includes optional widescreen support. Widescreen mods must be installed before applying the 4GB patcher. Please see the widescreen section below for details.\n:::";
+		public string widescreenWarningContent
 		{
-			get => WidescreenSectionContent;
-			set => WidescreenSectionContent = value ?? string.Empty;
+			get => WidescreenWarningContent;
+			set => WidescreenWarningContent = value ?? string.Empty;
 		}
-		public static string AspyrSectionContent { get; set; } = string.Empty;
-		public string aspyrSectionContent
+		public static string AspyrExclusiveWarningContent { get; set; } = ":::warning\nAspyr Version Required\n:   The following mods require the Aspyr patch version of KOTOR 2. If you are using the legacy version, these mods should be skipped.\n:::";
+		public string aspyrExclusiveWarningContent
 		{
-			get => AspyrSectionContent;
-			set => AspyrSectionContent = value ?? string.Empty;
+			get => AspyrExclusiveWarningContent;
+			set => AspyrExclusiveWarningContent = value ?? string.Empty;
 		}
 		public static string TargetGame { get; set; } = string.Empty;
 		public string targetGame
@@ -139,21 +142,21 @@ namespace KOTORModSync.Core
 			get => TargetGame;
 			set
 			{
-				if (!string.IsNullOrWhiteSpace( value ) && !MainConfig.IsValidTargetGame( value ))
+				if (!string.IsNullOrWhiteSpace(value) && !MainConfig.IsValidTargetGame(value))
 				{
-					Logger.LogWarning( $"Invalid target game '{value}'. Valid values are 'K1' or 'TSL'. Value will be stored as-is but may cause issues." );
+					Logger.LogWarning($"Invalid target game '{value}'. Valid values are 'K1' or 'TSL'. Value will be stored as-is but may cause issues.");
 				}
 				TargetGame = value ?? string.Empty;
 			}
 		}
-		public static bool IsValidTargetGame( string game )
+		public static bool IsValidTargetGame(string game)
 		{
-			if (string.IsNullOrWhiteSpace( game ))
+			if (string.IsNullOrWhiteSpace(game))
 				return false;
-			return game.Equals( ValidTargetGames.K1, StringComparison.OrdinalIgnoreCase )
-				|| game.Equals( ValidTargetGames.TSL, StringComparison.OrdinalIgnoreCase )
-				|| game.Equals( ValidTargetGames.KOTOR1, StringComparison.OrdinalIgnoreCase )
-				|| game.Equals( ValidTargetGames.KOTOR2, StringComparison.OrdinalIgnoreCase );
+			return game.Equals(ValidTargetGames.K1, StringComparison.OrdinalIgnoreCase)
+				|| game.Equals(ValidTargetGames.TSL, StringComparison.OrdinalIgnoreCase)
+				|| game.Equals(ValidTargetGames.KOTOR1, StringComparison.OrdinalIgnoreCase)
+				|| game.Equals(ValidTargetGames.KOTOR2, StringComparison.OrdinalIgnoreCase);
 		}
 		public static string FileFormatVersion { get; set; } = "2.0";
 		public string fileFormatVersion
@@ -195,7 +198,7 @@ namespace KOTORModSync.Core
 			{
 				if (SourcePath == value) return;
 				SourcePath = value;
-				OnPropertyChanged( nameof( sourcePathFullName ) );
+				OnPropertyChanged(nameof(sourcePathFullName));
 			}
 		}
 		[CanBeNull] public string sourcePathFullName => SourcePath?.FullName;
@@ -208,7 +211,7 @@ namespace KOTORModSync.Core
 			{
 				if (DestinationPath == value) return;
 				DestinationPath = value;
-				OnPropertyChanged( nameof( destinationPathFullName ) );
+				OnPropertyChanged(nameof(destinationPathFullName));
 			}
 		}
 		[CanBeNull] public string destinationPathFullName => DestinationPath?.FullName;
@@ -223,7 +226,7 @@ namespace KOTORModSync.Core
 		}
 
 		public event PropertyChangedEventHandler PropertyChanged;
-		private void OnPropertyChanged( [CallerMemberName][CanBeNull] string propertyName = null ) =>
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+		private void OnPropertyChanged([CallerMemberName][CanBeNull] string propertyName = null) =>
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 	}
 }

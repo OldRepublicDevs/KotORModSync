@@ -148,8 +148,6 @@ namespace KOTORModSync.Core.Services
 
 
 
-
-
 		private static string LoadSigningSecret()
 		{
 			string secret = System.Environment.GetEnvironmentVariable( "KOTORMODSYNC_SIGNING_SECRET" );

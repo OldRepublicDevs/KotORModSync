@@ -98,8 +98,7 @@ namespace KOTORModSync.Tests
 		[Test]
 		public void DeserializeResourceRegistry_WithEmptyDict_ReturnsEmptyRegistry()
 		{
-			var emptyDict = new Dictionary<string, object>
-( StringComparer.Ordinal )
+			var emptyDict = new Dictionary<string, object>( StringComparer.Ordinal )
 			{
 				["resources"] = new List<object>()
 			};
@@ -189,8 +188,7 @@ namespace KOTORModSync.Tests
 				{
 					ContentId = "id1",
 					MetadataHash = "hash1",
-					HandlerMetadata = new Dictionary<string, object>
-( StringComparer.Ordinal )
+					HandlerMetadata = new Dictionary<string, object>( StringComparer.Ordinal )
 					{
 						["provider"] = "deadlystream",
 						["fileId"] = "1234",

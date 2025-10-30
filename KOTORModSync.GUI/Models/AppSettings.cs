@@ -72,6 +72,9 @@ namespace KOTORModSync.Models
 		[CanBeNull]
 		public string SelectedHolopatcherVersion { get; set; }
 
+		[JsonPropertyName("enableFileWatcher")]
+		public bool EnableFileWatcher { get; set; } = true;
+
 		public AppSettings()
 		{
 		}
@@ -103,7 +106,8 @@ namespace KOTORModSync.Models
 				FilterDownloadsByResolution = mainConfig.filterDownloadsByResolution,
 				NexusModsApiKey = mainConfig.nexusModsApiKey,
 				FileEncoding = mainConfig.fileEncoding,
-				SelectedHolopatcherVersion = mainConfig.selectedHolopatcherVersion
+				SelectedHolopatcherVersion = mainConfig.selectedHolopatcherVersion,
+				EnableFileWatcher = mainConfig.enableFileWatcher,
 			};
 		}
 
@@ -149,6 +153,7 @@ namespace KOTORModSync.Models
 			mainConfig.fileEncoding = FileEncoding
 									  ?? "utf-8";
 			mainConfig.selectedHolopatcherVersion = SelectedHolopatcherVersion;
+			mainConfig.enableFileWatcher = EnableFileWatcher;
 
 			if (!string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory))
 				mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
@@ -194,7 +199,7 @@ namespace KOTORModSync.Models
 		private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
 		{
 			WriteIndented = true,
-			PropertyNameCaseInsensitive = true
+			PropertyNameCaseInsensitive = true,
 		};
 
 		[NotNull]

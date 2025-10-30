@@ -69,7 +69,7 @@ namespace KOTORModSync.Dialogs
 
 		private void UpdateDialogContent()
 		{
-			if (Results == null) return;
+			if (Results is null) return;
 
 			// Update summary
 			SummaryTextBlock.Text = $"Auto-generation complete! Processed {Results.TotalProcessed} components.";

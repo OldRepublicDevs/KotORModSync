@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -22,7 +23,7 @@ namespace KOTORModSync.Core.Utility
 {
 	public static class PlatformAgnosticMethods
 	{
-		[StructLayout( LayoutKind.Sequential )]
+		[StructLayout(LayoutKind.Sequential)]
 		private struct MemoryStatusEx
 		{
 			public uint dwLength;
@@ -36,9 +37,9 @@ namespace KOTORModSync.Core.Utility
 			public ulong ullAvailExtendedVirtual;
 		}
 
-		[DllImport( "kernel32.dll", SetLastError = true )]
-		[return: MarshalAs( UnmanagedType.Bool )]
-		private static extern bool GlobalMemoryStatusEx( ref MemoryStatusEx lpBuffer );
+		[DllImport("kernel32.dll", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool GlobalMemoryStatusEx(ref MemoryStatusEx lpBuffer);
 
 		public static long GetAvailableMemory()
 		{
@@ -49,47 +50,47 @@ namespace KOTORModSync.Core.Utility
 				{
 					MemoryStatusEx memStatus = new MemoryStatusEx
 					{
-						dwLength = (uint)Marshal.SizeOf( typeof( MemoryStatusEx ) )
+						dwLength = (uint)Marshal.SizeOf(typeof(MemoryStatusEx)),
 					};
-					if (GlobalMemoryStatusEx( ref memStatus )) return (long)memStatus.ullAvailPhys;
+					if (GlobalMemoryStatusEx(ref memStatus)) return (long)memStatus.ullAvailPhys;
 				}
-				catch (Exception)
+				catch (Exception ex)
 				{
-
+					Logger.LogException(ex, "Failed to get available memory using GlobalMemoryStatusEx");
 				}
 			}
 
-			(int ExitCode, string Output, string Error) result = TryExecuteCommand( "sysctl -n hw.memsize" );
+			(int ExitCode, string Output, string Error) result = TryExecuteCommand("sysctl -n hw.memsize");
 			string command = "sysctl";
 
 			if (result.ExitCode == 0)
-				return ParseAvailableMemory( result.Output, command );
+				return ParseAvailableMemory(result.Output, command);
 
-			result = TryExecuteCommand( "grep MemAvailable /proc/meminfo | awk '{print $2*1024}'\r\n" );
-			if (long.TryParse( result.Output.TrimEnd( Environment.NewLine.ToCharArray() ), out long longValue ))
+			result = TryExecuteCommand("grep MemAvailable /proc/meminfo | awk '{print $2*1024}'\r\n");
+			if (long.TryParse(result.Output.TrimEnd(Environment.NewLine.ToCharArray()), NumberStyles.Any, CultureInfo.InvariantCulture, out long longValue))
 				return longValue;
 
-			result = TryExecuteCommand( "free -b" );
+			result = TryExecuteCommand("free -b");
 			command = "free";
 
 			if (result.ExitCode == 0)
-				return ParseAvailableMemory( result.Output, command );
+				return ParseAvailableMemory(result.Output, command);
 
-			result = TryExecuteCommand( "wmic OS get FreePhysicalMemory" );
+			result = TryExecuteCommand("wmic OS get FreePhysicalMemory");
 			command = "wmic";
 
 			return result.ExitCode == 0
-				? ParseAvailableMemory( result.Output, command )
+				? ParseAvailableMemory(result.Output, command)
 				: 0;
 		}
 
-		private static long ParseAvailableMemory( [NotNull] string output, [NotNull] string command )
+		private static long ParseAvailableMemory([NotNull] string output, [NotNull] string command)
 		{
-			if (string.IsNullOrWhiteSpace( output ))
-				throw new ArgumentException( message: "Value cannot be null or whitespace.", nameof( output ) );
+			if (string.IsNullOrWhiteSpace(output))
+				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(output));
 
-			if (string.IsNullOrWhiteSpace( command ))
-				throw new ArgumentException( message: "Value cannot be null or whitespace.", nameof( command ) );
+			if (string.IsNullOrWhiteSpace(command))
+				throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(command));
 
 			string pattern = string.Empty;
 			switch (command.ToLowerInvariant())
@@ -105,16 +106,16 @@ namespace KOTORModSync.Core.Utility
 					break;
 			}
 
-			Match match = Regex.Match( output, pattern );
-			return match.Success && long.TryParse( match.Value, out long memory )
+			Match match = Regex.Match(output, pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
+			return match.Success && long.TryParse(match.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out long memory)
 				? memory
 				: 0;
 		}
 
-		public static (int ExitCode, string Output, string Error) TryExecuteCommand( [CanBeNull] string command )
+		public static (int ExitCode, string Output, string Error) TryExecuteCommand([CanBeNull] string command)
 		{
 			string shellPath = GetShellExecutable();
-			if (string.IsNullOrEmpty( shellPath ))
+			if (string.IsNullOrEmpty(shellPath))
 				return (-1, string.Empty, "Unable to retrieve shell executable path.");
 
 			try
@@ -124,7 +125,7 @@ namespace KOTORModSync.Core.Utility
 					string args = UtilityHelper.GetOperatingSystem() == OSPlatform.Windows
 						? $"/c \"{command}\""
 						: $"-c \"{command}\"";
-					Task<(int, string, string)> executeProcessTask = ExecuteProcessAsync( shellPath, args );
+					Task<(int, string, string)> executeProcessTask = ExecuteProcessAsync(shellPath, args);
 					executeProcessTask.Wait();
 					return executeProcessTask.Result;
 				}
@@ -146,11 +147,11 @@ namespace KOTORModSync.Core.Utility
 
 			foreach (string executable in shellExecutables)
 			{
-				if (File.Exists( executable ))
+				if (File.Exists(executable))
 					return executable;
 
-				string fullExecutablePath = Path.Combine( Environment.SystemDirectory, executable );
-				if (File.Exists( fullExecutablePath ))
+				string fullExecutablePath = Path.Combine(Environment.SystemDirectory, executable);
+				if (File.Exists(fullExecutablePath))
 					return fullExecutablePath;
 			}
 
@@ -163,8 +164,8 @@ namespace KOTORModSync.Core.Utility
 			{
 #pragma warning disable CA1416
 				WindowsIdentity windowsIdentity = WindowsIdentity.GetCurrent();
-				WindowsPrincipal windowsPrincipal = new WindowsPrincipal( windowsIdentity );
-				return windowsPrincipal.IsInRole( WindowsBuiltInRole.Administrator );
+				WindowsPrincipal windowsPrincipal = new WindowsPrincipal(windowsIdentity);
+				return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
 #pragma warning restore CA1416
 			}
 
@@ -185,7 +186,7 @@ namespace KOTORModSync.Core.Utility
 						Arguments = "-n true",
 						UseShellExecute = false,
 						RedirectStandardOutput = true,
-						CreateNoWindow = true
+						CreateNoWindow = true,
 					},
 				};
 
@@ -203,23 +204,23 @@ namespace KOTORModSync.Core.Utility
 			}
 		}
 
-		public static async Task MakeExecutableAsync( [NotNull] FileSystemInfo fileOrApp )
+		public static async Task MakeExecutableAsync([NotNull] FileSystemInfo fileOrApp)
 		{
 			if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
 
 
 			{
-				await FilePermissionHelper.FixPermissionsAsync( fileOrApp ).ConfigureAwait( false );
+				await FilePermissionHelper.FixPermissionsAsync(fileOrApp).ConfigureAwait(false);
 				return;
 			}
 
 			if (fileOrApp is null)
-				throw new ArgumentNullException( nameof( fileOrApp ) );
+				throw new ArgumentNullException(nameof(fileOrApp));
 
 			if (!fileOrApp.Exists && MainConfig.CaseInsensitivePathing)
-				fileOrApp = PathHelper.GetCaseSensitivePath( fileOrApp );
+				fileOrApp = PathHelper.GetCaseSensitivePath(fileOrApp);
 			if (!fileOrApp.Exists)
-				throw new FileNotFoundException( $"The file/app '{fileOrApp}' does not exist." );
+				throw new FileNotFoundException($"The file/app '{fileOrApp}' does not exist.");
 
 			await Task.Run(
 				() =>
@@ -231,13 +232,13 @@ namespace KOTORModSync.Core.Utility
 						RedirectStandardOutput = true,
 						RedirectStandardError = true,
 						UseShellExecute = false,
-						CreateNoWindow = true
+						CreateNoWindow = true,
 					};
 
-					using (Process process = Process.Start( startInfo ))
+					using (Process process = Process.Start(startInfo))
 					{
-						if (process == null)
-							throw new InvalidOperationException( "Failed to start chmod process." );
+						if (process is null)
+							throw new InvalidOperationException("Failed to start chmod process.");
 
 						process.WaitForExit();
 
@@ -250,7 +251,7 @@ namespace KOTORModSync.Core.Utility
 						}
 					}
 				}
-			).ConfigureAwait( false );
+			).ConfigureAwait(false);
 		}
 
 		private static List<ProcessStartInfo> GetProcessStartInfo(
@@ -262,7 +263,7 @@ namespace KOTORModSync.Core.Utility
 		)
 		{
 			if (programFile is null)
-				throw new ArgumentNullException( nameof( programFile ) );
+				throw new ArgumentNullException(nameof(programFile));
 			string verb = null;
 			string actualProgramFile = programFile;
 			string actualArgs = args;
@@ -278,7 +279,7 @@ namespace KOTORModSync.Core.Utility
 				else
 				{
 					actualProgramFile = "sudo";
-					string tempFile = programFile.Trim( '"' ).Trim( '\'' );
+					string tempFile = programFile.Trim('"').Trim('\'');
 					actualArgs = $"\"{tempFile}\" {args}";
 					if (MainConfig.NoAdmin)
 						actualArgs = $"-n true {actualArgs}";
@@ -312,7 +313,7 @@ namespace KOTORModSync.Core.Utility
 				CreateNoWindow = createNoWindow,
 				ErrorDialog = false,
 				WindowStyle = windowStyle,
-				Verb = verb
+				Verb = verb,
 			};
 
 			return useShellExecute is true || askAdmin
@@ -320,6 +321,7 @@ namespace KOTORModSync.Core.Utility
 				: new List<ProcessStartInfo> { sameShellStartInfo, shellExecuteStartInfo };
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static async Task<(int, string, string)> ExecuteProcessAsync(
 			[NotNull] string programFile,
 			string args = "",
@@ -331,7 +333,7 @@ namespace KOTORModSync.Core.Utility
 		)
 		{
 			if (programFile is null)
-				throw new ArgumentNullException( nameof( programFile ) );
+				throw new ArgumentNullException(nameof(programFile));
 
 			List<ProcessStartInfo> processStartInfos = GetProcessStartInfo(
 				programFile: programFile,
@@ -343,16 +345,18 @@ namespace KOTORModSync.Core.Utility
 
 			Exception ex = null;
 			bool? isAdmin = IsExecutorAdmin();
-			for (int index = 0; index < processStartInfos.Count; index++)
+			int index = 0;
+			while (index < processStartInfos.Count)
 			{
 				ProcessStartInfo startInfo = processStartInfos[index];
+				bool retry = false;
 				try
 				{
 					TimeSpan? thisTimeout = timeout != 0
-						? TimeSpan.FromMilliseconds( timeout )
-						: (TimeSpan?)null;
+						? TimeSpan.FromMilliseconds(timeout)
+						: null;
 					CancellationTokenSource cancellationTokenSource = thisTimeout.HasValue
-						? new CancellationTokenSource( thisTimeout.Value )
+						? new CancellationTokenSource(thisTimeout.Value)
 						: new CancellationTokenSource();
 					using (cancellationTokenSource)
 					using (Process process = new Process())
@@ -378,20 +382,20 @@ namespace KOTORModSync.Core.Utility
 								}
 								catch (Exception cancellationException)
 								{
-									Logger.LogException( cancellationException );
+									Logger.LogException(cancellationException);
 								}
 							}
 
-							_ = cancellationTokenSource.Token.Register( Callback );
+							_ = cancellationTokenSource.Token.Register(Callback);
 						}
 
 						StringBuilder output = new StringBuilder();
 						StringBuilder error = new StringBuilder();
 
-						using (AutoResetEvent outputWaitHandle = new AutoResetEvent( initialState: false ))
-						using (AutoResetEvent errorWaitHandle = new AutoResetEvent( initialState: false ))
+						using (AutoResetEvent outputWaitHandle = new AutoResetEvent(initialState: false))
+						using (AutoResetEvent errorWaitHandle = new AutoResetEvent(initialState: false))
 						{
-							process.OutputDataReceived += ( sender, e ) =>
+							process.OutputDataReceived += (sender, e) =>
 							{
 								try
 								{
@@ -399,27 +403,26 @@ namespace KOTORModSync.Core.Utility
 									{
 										try
 										{
-
 											_ = outputWaitHandle.Set();
 										}
 										catch (ObjectDisposedException)
 										{
-											Logger.LogVerbose( "outputWaitHandle is already disposed, nothing to set." );
+											Logger.LogVerbose("outputWaitHandle is already disposed, nothing to set.");
 										}
 
 										return;
 									}
 
-									_ = output.AppendLine( e.Data );
+									_ = output.AppendLine(e.Data);
 									if (!noLogging)
-										_ = Logger.LogAsync( e.Data );
+										_ = Logger.LogAsync(e.Data);
 								}
 								catch (Exception exception)
 								{
-									_ = Logger.LogExceptionAsync( exception, $"Exception while gathering the output from '{programFile}'" );
+									_ = Logger.LogExceptionAsync(exception, $"Exception while gathering the output from '{programFile}'");
 								}
 							};
-							process.ErrorDataReceived += ( sender, e ) =>
+							process.ErrorDataReceived += (sender, e) =>
 							{
 								try
 								{
@@ -427,28 +430,27 @@ namespace KOTORModSync.Core.Utility
 									{
 										try
 										{
-
 											_ = errorWaitHandle.Set();
 										}
 										catch (ObjectDisposedException)
 										{
-											Logger.LogVerbose( "errorWaitHandle is already disposed, nothing to set." );
+											Logger.LogVerbose("errorWaitHandle is already disposed, nothing to set.");
 										}
 
 										return;
 									}
 
-									_ = error.AppendLine( e.Data );
-									_ = Logger.LogErrorAsync( e.Data );
+									_ = error.AppendLine(e.Data);
+									_ = Logger.LogErrorAsync(e.Data);
 								}
 								catch (Exception exception)
 								{
-									_ = Logger.LogExceptionAsync( exception, $"Exception while gathering the error output from '{programFile}'" );
+									_ = Logger.LogExceptionAsync(exception, $"Exception while gathering the error output from '{programFile}'");
 								}
 							};
 
 							if (!process.Start())
-								throw new InvalidOperationException( "Failed to start the process." );
+								throw new InvalidOperationException("Failed to start the process.");
 
 							if (process.StartInfo.RedirectStandardOutput)
 								process.BeginOutputReadLine();
@@ -465,18 +467,16 @@ namespace KOTORModSync.Core.Utility
 									}
 									catch (Exception exception)
 									{
-										Logger.LogException( exception, customMessage: "Exception while running the process." );
+										Logger.LogException(exception, customMessage: "Exception while running the process.");
 										return (-3, null, null);
 									}
 								},
 								cancellationTokenSource.Token
-
-
-							).ConfigureAwait( false );
+							).ConfigureAwait(false);
 						}
 
 						return timeout > 0 && cancellationTokenSource.Token.IsCancellationRequested
-							? throw new TimeoutException( "Process timed out" )
+							? throw new TimeoutException("Process timed out")
 							: ((int, string, string))(process.ExitCode, output.ToString(), error.ToString());
 					}
 				}
@@ -484,53 +484,58 @@ namespace KOTORModSync.Core.Utility
 				{
 					await Logger.LogVerboseAsync(
 						$"Exception occurred for startInfo: '{startInfo}', attempting to use different parameters"
+					).ConfigureAwait(false);
 
-
-					).ConfigureAwait( false );
 					if (!MainConfig.NoAdmin && isAdmin is true)
 					{
-						if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows && startInfo.UseShellExecute && !startInfo.Verb.Equals( "runas", StringComparison.InvariantCultureIgnoreCase ))
+						if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows && startInfo.UseShellExecute && !startInfo.Verb.Equals("runas", StringComparison.InvariantCultureIgnoreCase))
 						{
 							startInfo.Verb = "runas";
-							index--;
+							retry = true;
 						}
-						else if (UtilityHelper.GetOperatingSystem() != OSPlatform.Windows && !startInfo.FileName.Equals( "sudo", StringComparison.InvariantCultureIgnoreCase ))
+						else if (UtilityHelper.GetOperatingSystem() != OSPlatform.Windows && !startInfo.FileName.Equals("sudo", StringComparison.InvariantCultureIgnoreCase))
 						{
 							startInfo.FileName = "sudo";
-							string tempFile = programFile.Trim( '"' ).Trim( '\'' );
+							string tempFile = programFile.Trim('"').Trim('\'');
 							startInfo.Arguments = $"\"{tempFile}\" {args}";
-							index--;
+							retry = true;
 						}
 					}
 
 					if (!MainConfig.DebugLogging)
-						continue;
+					{
+						if (retry)
+							continue;
+						else
+						{
+							index++;
+							continue;
+						}
+					}
 
-
-
-					await Logger.LogExceptionAsync( localException ).ConfigureAwait( false );
+					await Logger.LogExceptionAsync(localException).ConfigureAwait(false);
 					ex = localException;
+
+					if (retry)
+						continue;
 				}
 				catch (Exception startinfoException)
-
-
 				{
-					await Logger.LogAsync( $"An unplanned error has occurred trying to run '{programFile}'" )
-
-.ConfigureAwait( false );
-					await Logger.LogExceptionAsync( startinfoException ).ConfigureAwait( false );
+					await Logger.LogAsync($"An unplanned error has occurred trying to run '{programFile}'").ConfigureAwait(false);
+					await Logger.LogExceptionAsync(startinfoException).ConfigureAwait(false);
 					return (-2, string.Empty, string.Empty);
 				}
+				index++;
 			}
 
-			await Logger.LogAsync( "Process failed to start with all possible combinations of arguments." ).ConfigureAwait( false );
-			await Logger.LogExceptionAsync( ex ?? new InvalidOperationException() ).ConfigureAwait( false );
+			await Logger.LogAsync("Process failed to start with all possible combinations of arguments.").ConfigureAwait(false);
+			await Logger.LogExceptionAsync(ex ?? new InvalidOperationException()).ConfigureAwait(false);
 			return (-1, string.Empty, string.Empty);
 		}
 
 		private static class Interop
 		{
-			[DllImport( dllName: "libc" )]
+			[DllImport(dllName: "libc")]
 			public static extern uint geteuid();
 		}
 	}

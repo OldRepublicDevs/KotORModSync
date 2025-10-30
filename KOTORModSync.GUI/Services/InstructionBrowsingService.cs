@@ -33,7 +33,7 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				if (instruction == null)
+				if (instruction is null)
 					throw new ArgumentNullException( nameof( instruction ) );
 
 				var startFolder = _mainConfig.sourcePath != null
@@ -107,7 +107,7 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				if (instruction == null)
+				if (instruction is null)
 					throw new ArgumentNullException( nameof( instruction ) );
 
 				var startFolder = _mainConfig.sourcePath != null
@@ -161,7 +161,7 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				if (instruction == null)
+				if (instruction is null)
 					throw new ArgumentNullException( nameof( instruction ) );
 
 				var startFolder = _mainConfig.destinationPath != null

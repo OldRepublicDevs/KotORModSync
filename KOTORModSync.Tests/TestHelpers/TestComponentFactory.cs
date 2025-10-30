@@ -10,16 +10,16 @@ namespace KOTORModSync.Tests.TestHelpers
 {
 	internal static class TestComponentFactory
 	{
-		public static ModComponent CreateComponent( string name, DirectoryInfo workingDirectory )
+		public static ModComponent CreateComponent(string name, DirectoryInfo workingDirectory)
 		{
 			if (workingDirectory is null)
-				throw new ArgumentNullException( nameof( workingDirectory ) );
+				throw new ArgumentNullException(nameof(workingDirectory));
 
-			string fakeArchivePath = Path.Combine( workingDirectory.FullName, name + ".zip" );
-			CreateMinimalZip( fakeArchivePath );
+			string fakeArchivePath = Path.Combine(workingDirectory.FullName, name + ".zip");
+			CreateMinimalZip(fakeArchivePath);
 
-			string extractDestination = Path.Combine( workingDirectory.FullName, "extracted", name );
-			_ = Directory.CreateDirectory( extractDestination );
+			string extractDestination = Path.Combine(workingDirectory.FullName, "extracted", name);
+			_ = Directory.CreateDirectory(extractDestination);
 
 			Instruction extractInstruction = new Instruction
 			{
@@ -37,18 +37,18 @@ namespace KOTORModSync.Tests.TestHelpers
 			};
 		}
 
-		private static void CreateMinimalZip( string path )
+		private static void CreateMinimalZip(string path)
 		{
-			_ = Directory.CreateDirectory( Path.GetDirectoryName( path )! );
+			_ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 			byte[] emptyZip = [
 				0x50, 0x4B, 0x05, 0x06,
 				0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00,
-				0x00, 0x00
+				0x00, 0x00,
 			];
-			File.WriteAllBytes( path, emptyZip );
+			File.WriteAllBytes(path, emptyZip);
 		}
 	}
 }

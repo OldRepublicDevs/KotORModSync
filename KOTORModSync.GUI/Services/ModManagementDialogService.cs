@@ -31,16 +31,16 @@ namespace KOTORModSync
 			Window parentWindow,
 			ModManagementService modManagementService,
 			Func<List<ModComponent>> getComponents,
-			Action<List<ModComponent>> updateComponents )
+			Action<List<ModComponent>> updateComponents)
 		{
-			_parentWindow = parentWindow ?? throw new ArgumentNullException( nameof( parentWindow ) );
-			_modManagementService = modManagementService ?? throw new ArgumentNullException( nameof( modManagementService ) );
-			_getComponents = getComponents ?? throw new ArgumentNullException( nameof( getComponents ) );
-			_updateComponents = updateComponents ?? throw new ArgumentNullException( nameof( updateComponents ) );
-			_dialogService = new DialogService( _parentWindow );
+			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
+			_modManagementService = modManagementService ?? throw new ArgumentNullException(nameof(modManagementService));
+			_getComponents = getComponents ?? throw new ArgumentNullException(nameof(getComponents));
+			_updateComponents = updateComponents ?? throw new ArgumentNullException(nameof(updateComponents));
+			_dialogService = new DialogService(_parentWindow);
 		}
 
-		public async Task<string[]> ShowFileDialog( bool isFolderDialog, string windowName, bool allowMultiple = false )
+		public async Task<string[]> ShowFileDialog(bool isFolderDialog, string windowName, bool allowMultiple = false)
 		{
 			try
 			{
@@ -50,12 +50,12 @@ namespace KOTORModSync
 						new FolderPickerOpenOptions
 						{
 							Title = windowName ?? "Choose folder",
-							AllowMultiple = allowMultiple
+							AllowMultiple = allowMultiple,
 
 
 						}
-					).ConfigureAwait( false );
-					return folders.Select( f => f.TryGetLocalPath() ).ToArray();
+					).ConfigureAwait(true);
+					return folders.Select(f => f.TryGetLocalPath()).ToArray();
 				}
 				else
 				{
@@ -64,19 +64,19 @@ namespace KOTORModSync
 						{
 							Title = windowName ?? "Choose file(s)",
 							AllowMultiple = allowMultiple,
-							FileTypeFilter = new[] { FilePickerFileTypes.All }
+							FileTypeFilter = new[] { FilePickerFileTypes.All },
 
 
 						}
-					).ConfigureAwait( false );
-					return files.Select( f => f.TryGetLocalPath() ).ToArray();
+					).ConfigureAwait(true);
+					return files.Select(f => f.TryGetLocalPath()).ToArray();
 				}
 			}
 			catch (Exception ex)
 
 
 			{
-				await ShowInformationDialog( $"Error opening file dialog: {ex.Message}" ).ConfigureAwait( false );
+				await ShowInformationDialog($"Error opening file dialog: {ex.Message}").ConfigureAwait(true);
 				return null;
 			}
 		}
@@ -86,7 +86,7 @@ namespace KOTORModSync
 			[CanBeNull] string defaultExtension = "toml",
 			[CanBeNull][ItemNotNull] List<FilePickerFileType> fileTypeChoices = null,
 			[CanBeNull] string windowName = "Save file as...",
-			[CanBeNull] IStorageFolder startFolder = null )
+			[CanBeNull] IStorageFolder startFolder = null)
 		{
 			return await _dialogService.ShowSaveFileDialogAsync(
 				suggestedFileName,
@@ -98,21 +98,21 @@ namespace KOTORModSync
 
 
 				startFolder
-			).ConfigureAwait( false );
+			).ConfigureAwait(true);
 		}
 
-		public async Task ShowInformationDialog( string message ) => await InformationDialog.ShowInformationDialogAsync( _parentWindow, message ).ConfigureAwait( false );
+	public async Task ShowInformationDialog(string message) => await InformationDialog.ShowInformationDialogAsync(_parentWindow, message).ConfigureAwait(true);
 
-		public async Task<bool?> ShowConfirmationDialog( string message, string yesButtonText = "Yes", string noButtonText = "No" )
+	public async Task<bool?> ShowConfirmationDialog(string message, string yesButtonText = "Yes", string noButtonText = "No")
 
 
-			=> await ConfirmationDialog.ShowConfirmationDialogAsync( _parentWindow, message, yesButtonText, noButtonText ).ConfigureAwait( false );
+		=> await ConfirmationDialog.ShowConfirmationDialogAsync(_parentWindow, message, yesButtonText, noButtonText).ConfigureAwait(true);
 
 		public IReadOnlyList<ModComponent> GetComponents()
 			=> _getComponents()?.AsReadOnly() ?? new List<ModComponent>().AsReadOnly();
 
-		public void UpdateComponents( List<ModComponent> components )
-			=> _updateComponents( components );
+		public void UpdateComponents(List<ModComponent> components)
+			=> _updateComponents(components);
 
 		public void RefreshStatistics()
 		{

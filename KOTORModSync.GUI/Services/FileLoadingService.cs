@@ -51,18 +51,18 @@ namespace KOTORModSync.Services
 
 
 				{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 					await Logger.LogAsync($"Invalid {fileType} selected: '{fileInfo.Name}' - file too large");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 					return false;
 
 
 				}
 
 				// Auto-detect format (TOML/JSON/YAML/embedded-Markdown)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 				List<ModComponent> newComponents = await Core.Services.FileLoadingService.LoadFromFileAsync(filePath);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 				ProcessModLinks(newComponents);
 
@@ -72,18 +72,18 @@ namespace KOTORModSync.Services
 					LastLoadedFileName = Path.GetFileName(filePath);
 
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 					await Logger.LogAsync($"Loaded {newComponents.Count} components from {fileType}.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
+#pragma warning disable MA0004 // Use Task.
 					await onComponentsLoaded();
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 					return true;
 				}
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 				bool? result = await ShowConfigLoadConfirmationAsync(fileType, editorMode);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 				switch (result)
 				{
@@ -103,9 +103,9 @@ namespace KOTORModSync.Services
 
 
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 							await conflictDialog.ShowDialog(_parentWindow);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 							if (conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null)
 							{
@@ -116,15 +116,15 @@ namespace KOTORModSync.Services
 
 
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 								await Logger.LogAsync($"Merged {newComponents.Count} components from {fileType} with existing {originalCount} components using hybrid matching (GUID then Name/Author). Total components now: {newCount}");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 							}
 							else
 							{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 								await Logger.LogAsync("Merge cancelled by user.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 								return false;
 							}
 							break;
@@ -132,26 +132,26 @@ namespace KOTORModSync.Services
 					case false:
 						_mainConfig.allComponents = newComponents;
 						LastLoadedFileName = Path.GetFileName(filePath);
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 						await Logger.LogAsync($"Overwrote existing config with {newComponents.Count} components from {fileType}.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 						break;
 					default:
 						return false;
 				}
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 				await onComponentsLoaded();
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 				return true;
 			}
 			catch (Exception ex)
 
 
 			{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 				await Logger.LogExceptionAsync(ex);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 				return false;
 			}
 		}
@@ -176,9 +176,9 @@ namespace KOTORModSync.Services
 
 
 				{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 					string fileContents = await reader.ReadToEndAsync();
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 					MarkdownParserResult parseResult = null;
 					MarkdownImportProfile configuredProfile;
@@ -186,7 +186,7 @@ namespace KOTORModSync.Services
 					if (editorMode)
 					{
 						// UI elements must be created and shown on the UI thread
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 						await Dispatcher.UIThread.InvokeAsync(async () =>
 						{
 							var dialog = new RegexImportDialog(fileContents, profile ?? MarkdownImportProfile.CreateDefault());
@@ -203,31 +203,31 @@ namespace KOTORModSync.Services
 								// Log asynchronously without blocking the UI
 								_ = Task.Run(async () =>
 								{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 									await Logger.LogAsync($"Markdown parsing completed using {(configuredProfile.Mode == RegexMode.Raw ? "raw" : "individual")} regex mode.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
+#pragma warning disable MA0004 // Use Task.
 									await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLinkFilenames.Count) ?? 0} total links.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 									if (parseResult.Warnings?.Count > 0)
 									{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 										await Logger.LogWarningAsync($"Markdown parsing completed with {parseResult.Warnings.Count} warnings.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 										foreach (string warning in parseResult.Warnings)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 											await Logger.LogWarningAsync($"  - {warning}");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 									}
 								});
 							};
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 							await dialog.ShowDialog(_parentWindow);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 						});
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 						if (parseResult is null)
 							return false;
@@ -242,32 +242,32 @@ namespace KOTORModSync.Services
 
 						ProcessModLinks(parseResult.Components);
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 						await Logger.LogAsync("Markdown parsing completed using default profile.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
+#pragma warning disable MA0004 // Use Task.
 						await Logger.LogAsync($"Found {parseResult.Components?.Count ?? 0} components with {parseResult.Components?.Sum(c => c.ModLinkFilenames.Count) ?? 0} total links.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 						if (parseResult.Warnings?.Count > 0)
 						{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 							await Logger.LogWarningAsync($"Markdown parsing completed with {parseResult.Warnings.Count} warnings.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 							foreach (string warning in parseResult.Warnings)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 								await Logger.LogWarningAsync($"  - {warning}");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 						}
 					}
 
 
-					_mainConfig.beforeModListContent = parseResult.BeforeModListContent ?? string.Empty;
-					_mainConfig.afterModListContent = parseResult.AfterModListContent ?? string.Empty;
-					_mainConfig.widescreenSectionContent = parseResult.WidescreenSectionContent ?? string.Empty;
-					_mainConfig.aspyrSectionContent = parseResult.AspyrSectionContent ?? string.Empty;
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
-					await Logger.LogAsync($"Stored {_mainConfig.beforeModListContent.Length} characters before mod list and {_mainConfig.afterModListContent.Length} characters after.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+					_mainConfig.preambleContent = parseResult.PreambleContent ?? string.Empty;
+					_mainConfig.epilogueContent = parseResult.EpilogueContent ?? string.Empty;
+					_mainConfig.widescreenWarningContent = parseResult.WidescreenWarningContent ?? string.Empty;
+					_mainConfig.aspyrExclusiveWarningContent = parseResult.AspyrExclusiveWarningContent ?? string.Empty;
+#pragma warning disable MA0004 // Use Task.
+					await Logger.LogAsync($"Stored {_mainConfig.preambleContent.Length} characters in preamble and {_mainConfig.epilogueContent.Length} characters in epilogue.");
+#pragma warning restore MA0004 // Use Task.
 
 					if (_mainConfig.allComponents.Count == 0)
 					{
@@ -275,18 +275,18 @@ namespace KOTORModSync.Services
 							parseResult.Components
 							?? throw new InvalidOperationException("[LoadMarkdownFileAsync] parseResult.Components is null")
 						);
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 						await Logger.LogAsync($"Loaded {parseResult.Components.Count} components from markdown.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
+#pragma warning disable MA0004 // Use Task.
 						await tryAutoGenerate(parseResult.Components.ToList());
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 					}
 					else
 					{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 						bool? confirmResult = await ShowConfigLoadConfirmationAsync("markdown file", editorMode);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 						if (confirmResult == true)
 						{
@@ -300,27 +300,27 @@ namespace KOTORModSync.Services
 								"Markdown File",
 								FuzzyMatcher.FuzzyMatchComponents);
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 							await conflictDialog.ShowDialog(_parentWindow);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 							if (conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null)
 							{
 								int originalCount = _mainConfig.allComponents.Count;
 								_mainConfig.allComponents = conflictDialog.MergedComponents;
 								int newCount = _mainConfig.allComponents.Count;
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 								await Logger.LogAsync($"Merged {parseResult.Components.Count} parsed components with existing {originalCount} components. Total components now: {newCount}");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
+#pragma warning disable MA0004 // Use Task.
 								await tryAutoGenerate(_mainConfig.allComponents);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 							}
 							else
 							{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 								await Logger.LogAsync("Merge cancelled by user.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 								return false;
 							}
 						}
@@ -330,12 +330,12 @@ namespace KOTORModSync.Services
 								parseResult.Components
 								?? throw new InvalidOperationException("[LoadMarkdownFileAsync] parseResult.Components is null")
 							);
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 							await Logger.LogAsync($"Overwrote existing config with {parseResult.Components.Count} components from markdown.");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
+#pragma warning disable MA0004 // Use Task.
 							await tryAutoGenerate(parseResult.Components.ToList());
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 						}
 						else
 						{
@@ -343,9 +343,9 @@ namespace KOTORModSync.Services
 						}
 					}
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 					await onComponentsLoaded();
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 					return true;
 				}
 			}
@@ -353,9 +353,9 @@ namespace KOTORModSync.Services
 
 
 			{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 				await Logger.LogExceptionAsync(ex);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 				return false;
 			}
 		}
@@ -369,13 +369,13 @@ namespace KOTORModSync.Services
 
 
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 				await Logger.LogVerboseAsync($"Saving TOML config to {filePath}");
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 				await Core.Services.FileLoadingService.SaveToFileAsync(components, filePath);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 
 				LastLoadedFileName = Path.GetFileName(filePath);
 				return true;
@@ -384,9 +384,9 @@ namespace KOTORModSync.Services
 
 
 			{
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 				await Logger.LogExceptionAsync(ex);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 				return false;
 			}
 		}
@@ -395,7 +395,7 @@ namespace KOTORModSync.Services
 
 		private static void ProcessModLinks(IList<ModComponent> components)
 		{
-			if (components == null)
+			if (components is null)
 				return;
 
 			const string baseUrl = "";
@@ -425,14 +425,14 @@ namespace KOTORModSync.Services
 				return false;
 
 			string confirmText = $"You already have a config loaded. Do you want to merge the {fileType} with existing components or load it as a new config?";
-#pragma warning disable MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning disable MA0004 // Use Task.
 			return await ConfirmationDialog.ShowConfirmationDialogAsync(
 				_parentWindow,
 				confirmText: confirmText,
 				yesButtonText: "Merge",
 				noButtonText: "Load as New"
 			);
-#pragma warning restore MA0004 // Use Task.ConfigureAwait(false)
+#pragma warning restore MA0004 // Use Task.
 		}
 
 		#endregion

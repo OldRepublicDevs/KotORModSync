@@ -35,49 +35,49 @@ namespace KOTORModSync.Core.Utility
 			PreserveFileTime = true,
 		};
 
-		public static bool IsArchive( [NotNull] string filePath ) => IsArchive(
-			new FileInfo( filePath ?? throw new ArgumentNullException( nameof( filePath ) ) )
+		public static bool IsArchive([NotNull] string filePath) => IsArchive(
+			new FileInfo(filePath ?? throw new ArgumentNullException(nameof(filePath)))
 		);
 
-		public static bool IsArchive( [NotNull] FileInfo thisFile ) =>
-			thisFile.Extension.Equals( value: ".zip", StringComparison.OrdinalIgnoreCase )
-			|| thisFile.Extension.Equals( value: ".7z", StringComparison.OrdinalIgnoreCase )
-			|| thisFile.Extension.Equals( value: ".rar", StringComparison.OrdinalIgnoreCase )
-			|| thisFile.Extension.Equals( value: ".exe", StringComparison.OrdinalIgnoreCase );
+		public static bool IsArchive([NotNull] FileInfo thisFile) =>
+			thisFile.Extension.Equals(value: ".zip", StringComparison.OrdinalIgnoreCase)
+			|| thisFile.Extension.Equals(value: ".7z", StringComparison.OrdinalIgnoreCase)
+			|| thisFile.Extension.Equals(value: ".rar", StringComparison.OrdinalIgnoreCase)
+			|| thisFile.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase);
 
-		public static (IArchive, FileStream) OpenArchive( string archivePath )
+		public static (IArchive, FileStream) OpenArchive(string archivePath)
 		{
-			if (archivePath is null || !File.Exists( archivePath ))
-				throw new ArgumentException( message: "Path must be a valid file on disk.", nameof( archivePath ) );
+			if (archivePath is null || !File.Exists(archivePath))
+				throw new ArgumentException(message: "Path must be a valid file on disk.", nameof(archivePath));
 
 			try
 			{
-				FileStream stream = File.OpenRead( archivePath );
+				FileStream stream = File.OpenRead(archivePath);
 				IArchive archive = null;
 
-				if (archivePath.EndsWith( value: ".zip", StringComparison.OrdinalIgnoreCase ))
+				if (archivePath.EndsWith(value: ".zip", StringComparison.OrdinalIgnoreCase))
 				{
-					archive = ZipArchive.Open( stream );
+					archive = ZipArchive.Open(stream);
 				}
-				else if (archivePath.EndsWith( value: ".rar", StringComparison.OrdinalIgnoreCase ))
+				else if (archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase))
 				{
-					archive = RarArchive.Open( stream );
+					archive = RarArchive.Open(stream);
 				}
-				else if (archivePath.EndsWith( value: ".7z", StringComparison.OrdinalIgnoreCase ))
+				else if (archivePath.EndsWith(value: ".7z", StringComparison.OrdinalIgnoreCase))
 				{
-					archive = SevenZipArchive.Open( stream );
+					archive = SevenZipArchive.Open(stream);
 				}
 
 				return (archive, stream);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex );
+				Logger.LogException(ex);
 				return (null, null);
 			}
 		}
 
-		public static bool IsPotentialSevenZipSFX( [NotNull] string filePath )
+		public static bool IsPotentialSevenZipSFX([NotNull] string filePath)
 		{
 			byte[] sfxSignature =
 			{
@@ -86,24 +86,24 @@ namespace KOTORModSync.Core.Utility
 
 			byte[] fileHeader = new byte[sfxSignature.Length];
 
-			using (FileStream fs = new FileStream( filePath, FileMode.Open, FileAccess.Read ))
+			using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
 			{
-				_ = fs.Read( fileHeader, offset: 0, sfxSignature.Length );
+				_ = fs.Read(fileHeader, offset: 0, sfxSignature.Length);
 			}
 
-			return sfxSignature.SequenceEqual( fileHeader );
+			return sfxSignature.SequenceEqual(fileHeader);
 		}
 
-		public static bool TryExtractSevenZipSfx( [NotNull] string sfxPath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles )
+		public static bool TryExtractSevenZipSfx([NotNull] string sfxPath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
 		{
 			if (sfxPath is null)
-				throw new ArgumentNullException( nameof( sfxPath ) );
+				throw new ArgumentNullException(nameof(sfxPath));
 			if (destinationPath is null)
-				throw new ArgumentNullException( nameof( destinationPath ) );
+				throw new ArgumentNullException(nameof(destinationPath));
 			if (extractedFiles is null)
-				throw new ArgumentNullException( nameof( extractedFiles ) );
+				throw new ArgumentNullException(nameof(extractedFiles));
 
-			if (!File.Exists( sfxPath ))
+			if (!File.Exists(sfxPath))
 				return false;
 
 			byte[] sevenZipSignature = { 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C };
@@ -111,13 +111,13 @@ namespace KOTORModSync.Core.Utility
 
 			try
 			{
-				using (FileStream fs = new FileStream( sfxPath, FileMode.Open, FileAccess.Read ))
+				using (FileStream fs = new FileStream(sfxPath, FileMode.Open, FileAccess.Read))
 				{
 					byte[] buffer = new byte[8192];
 					long position = 0;
 					int bytesRead;
 
-					while ((bytesRead = fs.Read( buffer, 0, buffer.Length )) > 0)
+					while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
 					{
 						for (int i = 0; i < bytesRead - sevenZipSignature.Length + 1; i++)
 						{
@@ -144,7 +144,7 @@ namespace KOTORModSync.Core.Utility
 						position += bytesRead;
 						if (bytesRead == buffer.Length)
 						{
-							fs.Seek( -sevenZipSignature.Length, SeekOrigin.Current );
+							fs.Seek(-sevenZipSignature.Length, SeekOrigin.Current);
 							position -= sevenZipSignature.Length;
 						}
 					}
@@ -152,28 +152,28 @@ namespace KOTORModSync.Core.Utility
 
 				if (signatureOffset == -1)
 				{
-					Logger.LogVerbose( $"No 7z signature found in SFX file: {sfxPath}" );
+					Logger.LogVerbose($"No 7z signature found in SFX file: {sfxPath}");
 					return false;
 				}
 
-				Logger.LogVerbose( $"Found 7z signature at offset {signatureOffset} in {sfxPath}" );
+				Logger.LogVerbose($"Found 7z signature at offset {signatureOffset} in {sfxPath}");
 
-				string tempSevenZipPath = Path.Combine( Path.GetTempPath(), $"sfx_extract_{Guid.NewGuid()}.7z" );
+				string tempSevenZipPath = Path.Combine(Path.GetTempPath(), $"sfx_extract_{Guid.NewGuid()}.7z");
 
 				try
 				{
-					using (FileStream sourceStream = new FileStream( sfxPath, FileMode.Open, FileAccess.Read ))
-					using (FileStream destStream = new FileStream( tempSevenZipPath, FileMode.Create, FileAccess.Write ))
+					using (FileStream sourceStream = new FileStream(sfxPath, FileMode.Open, FileAccess.Read))
+					using (FileStream destStream = new FileStream(tempSevenZipPath, FileMode.Create, FileAccess.Write))
 					{
-						sourceStream.Seek( signatureOffset, SeekOrigin.Begin );
-						sourceStream.CopyTo( destStream );
+						sourceStream.Seek(signatureOffset, SeekOrigin.Begin);
+						sourceStream.CopyTo(destStream);
 					}
 
-					string extractFolderName = Path.GetFileNameWithoutExtension( sfxPath );
-					string extractPath = Path.Combine( destinationPath, extractFolderName );
+					string extractFolderName = Path.GetFileNameWithoutExtension(sfxPath);
+					string extractPath = Path.Combine(destinationPath, extractFolderName);
 
-					using (FileStream stream = File.OpenRead( tempSevenZipPath ))
-					using (SevenZipArchive archive = SevenZipArchive.Open( stream ))
+					using (FileStream stream = File.OpenRead(tempSevenZipPath))
+					using (SevenZipArchive archive = SevenZipArchive.Open(stream))
 					using (IReader reader = archive.ExtractAllEntries())
 					{
 						while (reader.MoveToNextEntry())
@@ -181,52 +181,52 @@ namespace KOTORModSync.Core.Utility
 							if (reader.Entry.IsDirectory)
 								continue;
 
-							string destinationItemPath = Path.Combine( extractPath, reader.Entry.Key );
-							string destinationDirectory = Path.GetDirectoryName( destinationItemPath );
+							string destinationItemPath = Path.Combine(extractPath, reader.Entry.Key);
+							string destinationDirectory = Path.GetDirectoryName(destinationItemPath);
 
-							if (MainConfig.CaseInsensitivePathing && !Directory.Exists( destinationDirectory ))
+							if (MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory))
 							{
-								destinationDirectory = PathHelper.GetCaseSensitivePath( destinationDirectory, isFile: false ).Item1;
+								destinationDirectory = PathHelper.GetCaseSensitivePath(destinationDirectory, isFile: false).Item1;
 							}
 
-							if (!Directory.Exists( destinationDirectory ))
+							if (!Directory.Exists(destinationDirectory))
 							{
-								_ = Directory.CreateDirectory( destinationDirectory );
-								Logger.LogVerbose( $"Create directory '{destinationDirectory}'" );
+								_ = Directory.CreateDirectory(destinationDirectory);
+								Logger.LogVerbose($"Create directory '{destinationDirectory}'");
 							}
 
-							Logger.LogVerbose( $"Extract '{reader.Entry.Key}' to '{destinationDirectory}'" );
-							reader.WriteEntryToDirectory( destinationDirectory, DefaultExtractionOptions );
-							extractedFiles.Add( destinationItemPath );
+							Logger.LogVerbose($"Extract '{reader.Entry.Key}' to '{destinationDirectory}'");
+							reader.WriteEntryToDirectory(destinationDirectory, DefaultExtractionOptions);
+							extractedFiles.Add(destinationItemPath);
 						}
 					}
 
-					Logger.Log( $"Successfully extracted 7z SFX archive: {sfxPath}" );
+					Logger.Log($"Successfully extracted 7z SFX archive: {sfxPath}");
 					return true;
 				}
 				finally
 				{
-					if (File.Exists( tempSevenZipPath ))
+					if (File.Exists(tempSevenZipPath))
 					{
 						try
 						{
-							File.Delete( tempSevenZipPath );
+							File.Delete(tempSevenZipPath);
 						}
 						catch (Exception ex)
 						{
-							Logger.LogVerbose( $"Failed to delete temporary 7z file: {ex.Message}" );
+							Logger.LogVerbose($"Failed to delete temporary 7z file: {ex.Message}");
 						}
 					}
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, $"Failed to extract 7z SFX: {sfxPath}" );
+				Logger.LogException(ex, $"Failed to extract 7z SFX: {sfxPath}");
 				return false;
 			}
 		}
 
-		public static string AnalyzeArchiveForExe( FileStream fileStream, IArchive archive )
+		public static string AnalyzeArchiveForExe(FileStream fileStream, IArchive archive)
 		{
 			string exePath = null;
 			bool tslPatchDataFolderExists = false;
@@ -240,10 +240,10 @@ namespace KOTORModSync.Core.Utility
 						if (reader.Entry.IsDirectory)
 							continue;
 
-						string fileName = Path.GetFileName( reader.Entry.Key );
-						string directory = Path.GetDirectoryName( reader.Entry.Key );
+						string fileName = Path.GetFileName(reader.Entry.Key);
+						string directory = Path.GetDirectoryName(reader.Entry.Key);
 
-						if (fileName.EndsWith( value: ".exe", StringComparison.OrdinalIgnoreCase ))
+						if (fileName.EndsWith(value: ".exe", StringComparison.OrdinalIgnoreCase))
 						{
 							if (exePath != null)
 								return null;
@@ -251,7 +251,7 @@ namespace KOTORModSync.Core.Utility
 							exePath = reader.Entry.Key;
 						}
 
-						if (!(directory is null) && directory.Contains( "tslpatchdata" ))
+						if (!(directory is null) && directory.Contains("tslpatchdata"))
 						{
 							tslPatchDataFolderExists = true;
 						}
@@ -260,15 +260,15 @@ namespace KOTORModSync.Core.Utility
 			}
 			catch (Exception ex)
 			{
-				Logger.LogWarning( $"SharpCompress failed to analyze archive: {ex.Message}" );
-				Logger.LogVerbose( "Archive may require 7zip for extraction." );
+				Logger.LogWarning($"SharpCompress failed to analyze archive: {ex.Message}");
+				Logger.LogVerbose("Archive may require 7zip for extraction.");
 				return null;
 			}
 
 			if (
 				exePath != null
 				&& tslPatchDataFolderExists
-				&& Path.GetDirectoryName( exePath ).Contains( "tslpatchdata" )
+				&& Path.GetDirectoryName(exePath).Contains("tslpatchdata")
 			)
 			{
 				return exePath;
@@ -277,10 +277,10 @@ namespace KOTORModSync.Core.Utility
 			return null;
 		}
 
-		public static async System.Threading.Tasks.Task<List<string>> TryListArchiveWithSevenZipCliAsync( [NotNull] string archivePath )
+		public static async System.Threading.Tasks.Task<List<string>> TryListArchiveWithSevenZipCliAsync([NotNull] string archivePath)
 		{
 			if (archivePath is null)
-				throw new ArgumentNullException( nameof( archivePath ) );
+				throw new ArgumentNullException(nameof(archivePath));
 
 			List<string> fileList = new List<string>();
 			string sevenZipPath = null;
@@ -340,7 +340,7 @@ namespace KOTORModSync.Core.Utility
 
 				// Cross-platform - Home directory installations
 				"~/bin/7z",
-				"~/.local/bin/7z"
+				"~/.local/bin/7z",
 			};
 
 			foreach (string path in possiblePaths)
@@ -353,14 +353,14 @@ namespace KOTORModSync.Core.Utility
 						timeout: 2000,
 						hideProcess: true,
 						noLogging: true
-					).ConfigureAwait( false );
+					).ConfigureAwait(false);
 
 					if (exitCode == 0)
 					{
 						sevenZipPath = path;
 
 
-						await Logger.LogVerboseAsync( $"Found 7z CLI at: {sevenZipPath}" ).ConfigureAwait( false );
+						await Logger.LogVerboseAsync($"Found 7z CLI at: {sevenZipPath}").ConfigureAwait(false);
 						break;
 					}
 				}
@@ -371,10 +371,10 @@ namespace KOTORModSync.Core.Utility
 
 			if (sevenZipPath is null)
 			{
-				await Logger.LogWarningAsync( "7z CLI not found in any standard location. Install 7-Zip to improve archive compatibility." ).ConfigureAwait( false );
+				await Logger.LogWarningAsync("7z CLI not found in any standard location. Install 7-Zip to improve archive compatibility.").ConfigureAwait(false);
 
 
-				await Logger.LogVerboseAsync( $"Searched {possiblePaths.Length} possible 7z locations without success." ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync($"Searched {possiblePaths.Length} possible 7z locations without success.").ConfigureAwait(false);
 				return fileList;
 			}
 
@@ -387,11 +387,11 @@ namespace KOTORModSync.Core.Utility
 					timeout: 30000,
 					hideProcess: true,
 					noLogging: true
-				).ConfigureAwait( false );
+				).ConfigureAwait(false);
 
 				if (exitCode != 0)
 				{
-					await Logger.LogVerboseAsync( $"7z CLI list failed with exit code {exitCode}" ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync($"7z CLI list failed with exit code {exitCode}").ConfigureAwait(false);
 					return fileList;
 				}
 
@@ -399,30 +399,30 @@ namespace KOTORModSync.Core.Utility
 				string currentPath = null;
 				bool isDirectory = false;
 
-				foreach (string line in output.Split( new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries ))
+				foreach (string line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
 				{
 					string trimmedLine = line.Trim();
 
-					if (trimmedLine.StartsWith( "Path = ", StringComparison.Ordinal ))
+					if (trimmedLine.StartsWith("Path = ", StringComparison.Ordinal))
 					{
 						if (currentPath != null && !isDirectory)
 						{
-							fileList.Add( currentPath );
+							fileList.Add(currentPath);
 						}
-						currentPath = trimmedLine.Substring( "Path = ".Length );
+						currentPath = trimmedLine.Substring("Path = ".Length);
 						isDirectory = false;
 						inFileSection = true;
 					}
-					else if (inFileSection && trimmedLine.StartsWith( "Folder = ", StringComparison.Ordinal ))
+					else if (inFileSection && trimmedLine.StartsWith("Folder = ", StringComparison.Ordinal))
 					{
-						string folderValue = trimmedLine.Substring( "Folder = ".Length );
-						isDirectory = folderValue.Equals( "+", StringComparison.OrdinalIgnoreCase );
+						string folderValue = trimmedLine.Substring("Folder = ".Length);
+						isDirectory = folderValue.Equals("+", StringComparison.OrdinalIgnoreCase);
 					}
-					else if (string.Equals( trimmedLine, "----------", StringComparison.Ordinal ))
+					else if (string.Equals(trimmedLine, "----------", StringComparison.Ordinal))
 					{
 						if (currentPath != null && !isDirectory)
 						{
-							fileList.Add( currentPath );
+							fileList.Add(currentPath);
 						}
 						currentPath = null;
 						isDirectory = false;
@@ -432,12 +432,12 @@ namespace KOTORModSync.Core.Utility
 
 				if (currentPath != null && !isDirectory)
 				{
-					fileList.Add( currentPath );
+					fileList.Add(currentPath);
 
 
 				}
 
-				if (fileList.Count > 0 && string.Equals( fileList
+				if (fileList.Count > 0 && string.Equals(fileList
 
 
 
@@ -457,29 +457,29 @@ namespace KOTORModSync.Core.Utility
 
 
 
-[0], Path.GetFileName( archivePath ), StringComparison.Ordinal ))
+[0], Path.GetFileName(archivePath), StringComparison.Ordinal))
 				{
-					fileList.RemoveAt( 0 );
+					fileList.RemoveAt(0);
 				}
 
-				await Logger.LogVerboseAsync( $"7z CLI listed {fileList.Count} files in archive" ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync($"7z CLI listed {fileList.Count} files in archive").ConfigureAwait(false);
 				return fileList;
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, $"Failed to list archive with 7z CLI: {archivePath}" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync(ex, $"Failed to list archive with 7z CLI: {archivePath}").ConfigureAwait(false);
 				return fileList;
 			}
 		}
 
-		public static async System.Threading.Tasks.Task<bool> TryExtractWithSevenZipCliAsync( [NotNull] string archivePath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles )
+		public static async System.Threading.Tasks.Task<bool> TryExtractWithSevenZipCliAsync([NotNull] string archivePath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
 		{
 			if (archivePath is null)
-				throw new ArgumentNullException( nameof( archivePath ) );
+				throw new ArgumentNullException(nameof(archivePath));
 			if (destinationPath is null)
-				throw new ArgumentNullException( nameof( destinationPath ) );
+				throw new ArgumentNullException(nameof(destinationPath));
 			if (extractedFiles is null)
-				throw new ArgumentNullException( nameof( extractedFiles ) );
+				throw new ArgumentNullException(nameof(extractedFiles));
 
 			string sevenZipPath = null;
 			string[] possiblePaths = { "7z", "7za", "/usr/bin/7z", "/usr/local/bin/7z" };
@@ -494,7 +494,7 @@ namespace KOTORModSync.Core.Utility
 						timeout: 2000,
 						hideProcess: true,
 						noLogging: true
-					).ConfigureAwait( false );
+					).ConfigureAwait(false);
 
 					if (exitCode == 0)
 					{
@@ -509,19 +509,19 @@ namespace KOTORModSync.Core.Utility
 
 			if (sevenZipPath is null)
 			{
-				await Logger.LogVerboseAsync( "7z CLI not found on PATH" ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync("7z CLI not found on PATH").ConfigureAwait(false);
 				return false;
 			}
 
-			await Logger.LogVerboseAsync( $"Found 7z CLI at: {sevenZipPath}" ).ConfigureAwait( false );
+			await Logger.LogVerboseAsync($"Found 7z CLI at: {sevenZipPath}").ConfigureAwait(false);
 
 			try
 			{
-				string extractFolderName = Path.GetFileNameWithoutExtension( archivePath );
-				string extractPath = Path.Combine( destinationPath, extractFolderName );
+				string extractFolderName = Path.GetFileNameWithoutExtension(archivePath);
+				string extractPath = Path.Combine(destinationPath, extractFolderName);
 
-				if (!Directory.Exists( extractPath ))
-					_ = Directory.CreateDirectory( extractPath );
+				if (!Directory.Exists(extractPath))
+					_ = Directory.CreateDirectory(extractPath);
 
 				string args = $"x \"-o{extractPath}\" -y \"{archivePath}\"";
 				(int exitCode, string output, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
@@ -530,19 +530,19 @@ namespace KOTORModSync.Core.Utility
 					timeout: 120000,
 					hideProcess: true,
 					noLogging: false
-				).ConfigureAwait( false );
+				).ConfigureAwait(false);
 
 				if (exitCode != 0)
 				{
-					await Logger.LogErrorAsync( $"7z CLI extraction failed with exit code {exitCode}" ).ConfigureAwait( false );
+					await Logger.LogErrorAsync($"7z CLI extraction failed with exit code {exitCode}").ConfigureAwait(false);
 					return false;
 				}
 
-				if (Directory.Exists( extractPath ))
+				if (Directory.Exists(extractPath))
 				{
-					string[] files = Directory.GetFiles( extractPath, "*", SearchOption.AllDirectories );
-					extractedFiles.AddRange( files );
-					Logger.Log( $"Successfully extracted archive using 7z CLI: {archivePath}" );
+					string[] files = Directory.GetFiles(extractPath, "*", SearchOption.AllDirectories);
+					extractedFiles.AddRange(files);
+					Logger.Log($"Successfully extracted archive using 7z CLI: {archivePath}");
 					return true;
 				}
 
@@ -550,29 +550,29 @@ namespace KOTORModSync.Core.Utility
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, $"Failed to extract with 7z CLI: {archivePath}" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync(ex, $"Failed to extract with 7z CLI: {archivePath}").ConfigureAwait(false);
 				return false;
 			}
 		}
 
-		public static void ExtractWith7Zip( FileStream stream, string destinationDirectory )
+		public static void ExtractWith7Zip(FileStream stream, string destinationDirectory)
 		{
 			if (UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
-				throw new NotImplementedException( "Non-windows OS's are not currently supported" );
+				throw new NotImplementedException("Non-windows OS's are not currently supported");
 
-			SevenZipBase.SetLibraryPath( Path.Combine( UtilityHelper.GetResourcesDirectory(), "7z.dll" ) );
-			SevenZipExtractor extractor = new SevenZipExtractor( stream );
-			extractor.ExtractArchive( destinationDirectory );
+			SevenZipBase.SetLibraryPath(Path.Combine(UtilityHelper.GetResourcesDirectory(), "7z.dll"));
+			SevenZipExtractor extractor = new SevenZipExtractor(stream);
+			extractor.ExtractArchive(destinationDirectory);
 		}
 
-		public static void OutputModTree( [NotNull] DirectoryInfo directory, [NotNull] string outputPath )
+		public static void OutputModTree([NotNull] DirectoryInfo directory, [NotNull] string outputPath)
 		{
-			if (directory == null)
-				throw new ArgumentNullException( nameof( directory ) );
-			if (outputPath == null)
-				throw new ArgumentNullException( nameof( outputPath ) );
+			if (directory is null)
+				throw new ArgumentNullException(nameof(directory));
+			if (outputPath is null)
+				throw new ArgumentNullException(nameof(outputPath));
 
-			Dictionary<string, object> root = GenerateArchiveTreeJson( directory );
+			Dictionary<string, object> root = GenerateArchiveTreeJson(directory);
 			try
 			{
 				string json = JsonConvert.SerializeObject(
@@ -584,22 +584,21 @@ namespace KOTORModSync.Core.Utility
 					}
 				);
 
-				File.WriteAllText( outputPath, json );
+				File.WriteAllText(outputPath, json);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, $"Error writing output file '{outputPath}': {ex.Message}" );
+				Logger.LogException(ex, $"Error writing output file '{outputPath}': {ex.Message}");
 			}
 		}
 
 		[CanBeNull]
-		public static Dictionary<string, object> GenerateArchiveTreeJson( [NotNull] DirectoryInfo directory )
+		public static Dictionary<string, object> GenerateArchiveTreeJson([NotNull] DirectoryInfo directory)
 		{
-			if (directory == null)
-				throw new ArgumentNullException( nameof( directory ) );
+			if (directory is null)
+				throw new ArgumentNullException(nameof(directory));
 
-			Dictionary<string, object> root = new Dictionary<string, object>
-( StringComparer.Ordinal )
+			Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.Ordinal)
 			{
 				{
 					"Name", directory.Name
@@ -614,13 +613,12 @@ namespace KOTORModSync.Core.Utility
 
 			try
 			{
-				foreach (FileInfo file in directory.EnumerateFilesSafely( searchPattern: "*.*" ))
+				foreach (FileInfo file in directory.EnumerateFilesSafely(searchPattern: "*.*"))
 				{
-					if (file == null || !IsArchive( file.Extension ))
+					if (file is null || !IsArchive(file.Extension))
 						continue;
 
-					Dictionary<string, object> fileInfo = new Dictionary<string, object>
-( StringComparer.Ordinal )
+					Dictionary<string, object> fileInfo = new Dictionary<string, object>(StringComparer.Ordinal)
 					{
 						{
 							"Name", file.Name
@@ -629,9 +627,8 @@ namespace KOTORModSync.Core.Utility
 							"Type", "file"
 						},
 					};
-					List<ModDirectory.ArchiveEntry> archiveEntries = TraverseArchiveEntries( file.FullName );
-					Dictionary<string, object> archiveRoot = new Dictionary<string, object>
-( StringComparer.Ordinal )
+					List<ModDirectory.ArchiveEntry> archiveEntries = TraverseArchiveEntries(file.FullName);
+					Dictionary<string, object> archiveRoot = new Dictionary<string, object>(StringComparer.Ordinal)
 					{
 						{
 							"Name", file.Name
@@ -646,13 +643,13 @@ namespace KOTORModSync.Core.Utility
 
 					fileInfo["Contents"] = archiveRoot["Contents"];
 
-					(root["Contents"] as List<object>)?.Add( fileInfo );
+					(root["Contents"] as List<object>)?.Add(fileInfo);
 				}
 
 			}
 			catch (Exception ex)
 			{
-				Logger.Log( $"Error generating archive tree for '{directory.FullName}': {ex.Message}" );
+				Logger.Log($"Error generating archive tree for '{directory.FullName}': {ex.Message}");
 				return null;
 			}
 
@@ -660,19 +657,19 @@ namespace KOTORModSync.Core.Utility
 		}
 
 		[NotNull]
-		private static List<ModDirectory.ArchiveEntry> TraverseArchiveEntries( [NotNull] string archivePath )
+		private static List<ModDirectory.ArchiveEntry> TraverseArchiveEntries([NotNull] string archivePath)
 		{
-			if (archivePath == null)
-				throw new ArgumentNullException( nameof( archivePath ) );
+			if (archivePath is null)
+				throw new ArgumentNullException(nameof(archivePath));
 
 			List<ModDirectory.ArchiveEntry> archiveEntries = new List<ModDirectory.ArchiveEntry>();
 
 			try
 			{
-				(IArchive archive, FileStream stream) = OpenArchive( archivePath );
+				(IArchive archive, FileStream stream) = OpenArchive(archivePath);
 				if (archive is null || stream is null)
 				{
-					Logger.Log( $"Unsupported archive format: '{Path.GetExtension( archivePath )}'" );
+					Logger.Log($"Unsupported archive format: '{Path.GetExtension(archivePath)}'");
 					stream?.Dispose();
 					return archiveEntries;
 				}
@@ -680,9 +677,9 @@ namespace KOTORModSync.Core.Utility
 				try
 				{
 					archiveEntries.AddRange(
-						from entry in archive.Entries.Where( e => !e.IsDirectory )
+						from entry in archive.Entries.Where(e => !e.IsDirectory)
 						let pathParts = entry.Key.Split(
-							archivePath.EndsWith( value: ".rar", StringComparison.OrdinalIgnoreCase )
+							archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase)
 								? '\\'
 								: '/'
 						)
@@ -695,15 +692,15 @@ namespace KOTORModSync.Core.Utility
 				}
 				catch (Exception enumEx)
 				{
-					Logger.LogWarning( $"SharpCompress failed to enumerate archive entries for '{Path.GetFileName( archivePath )}': {enumEx.Message}" );
-					Logger.LogVerbose( "This archive may require 7zip for extraction." );
+					Logger.LogWarning($"SharpCompress failed to enumerate archive entries for '{Path.GetFileName(archivePath)}': {enumEx.Message}");
+					Logger.LogVerbose("This archive may require 7zip for extraction.");
 				}
 
 				stream.Dispose();
 			}
 			catch (Exception ex)
 			{
-				Logger.Log( $"Error reading archive '{archivePath}': {ex.Message}" );
+				Logger.Log($"Error reading archive '{archivePath}': {ex.Message}");
 			}
 
 			return archiveEntries;
@@ -714,12 +711,12 @@ namespace KOTORModSync.Core.Utility
 			[NotNull] Dictionary<string, object> currentDirectory
 		)
 		{
-			if (entry == null)
-				throw new ArgumentNullException( nameof( entry ) );
-			if (currentDirectory == null)
-				throw new ArgumentNullException( nameof( currentDirectory ) );
+			if (entry is null)
+				throw new ArgumentNullException(nameof(entry));
+			if (currentDirectory is null)
+				throw new ArgumentNullException(nameof(currentDirectory));
 
-			string[] pathParts = entry.Key.Split( '/' );
+			string[] pathParts = entry.Key.Split('/');
 			bool isFile = !entry.IsDirectory;
 
 			foreach (string name in pathParts)
@@ -731,9 +728,9 @@ namespace KOTORModSync.Core.Utility
 
 				object existingChild = existingDirectory.Find(
 					c => c is Dictionary<string, object> dict
-						&& dict.ContainsKey( "Name" )
+						&& dict.ContainsKey("Name")
 						&& dict["Name"] is string directoryName
-						&& directoryName.Equals( name, StringComparison.OrdinalIgnoreCase )
+						&& directoryName.Equals(name, StringComparison.OrdinalIgnoreCase)
 				);
 
 				if (existingChild != null)
@@ -745,10 +742,7 @@ namespace KOTORModSync.Core.Utility
 				}
 				else
 				{
-					Dictionary<string, object> child = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+					Dictionary<string, object> child = new Dictionary<string, object>(StringComparer.Ordinal)
 					{
 						{
 							"Name", name
@@ -762,7 +756,7 @@ namespace KOTORModSync.Core.Utility
 							"Contents", new List<object>()
 						},
 					};
-					existingDirectory.Add( child );
+					existingDirectory.Add(child);
 					currentDirectory = child;
 				}
 			}

@@ -20,7 +20,7 @@ namespace KOTORModSync.Core.Services
 		[ItemNotNull]
 		public static List<ModComponent> LoadFromFile( [NotNull] string filePath )
 		{
-			if (filePath == null)
+			if (filePath is null)
 				throw new ArgumentNullException( nameof( filePath ) );
 
 			if (!File.Exists( filePath ))
@@ -75,7 +75,7 @@ namespace KOTORModSync.Core.Services
 		[ItemNotNull]
 		public static async Task<List<ModComponent>> LoadFromFileAsync( [NotNull] string filePath )
 		{
-			if (filePath == null)
+			if (filePath is null)
 				throw new ArgumentNullException( nameof( filePath ) );
 
 			if (!File.Exists( filePath ))
@@ -83,7 +83,6 @@ namespace KOTORModSync.Core.Services
 
 			if (MainConfig.CaseInsensitivePathing)
 				filePath = PathHelper.GetCaseSensitivePath( filePath, isFile: true ).Item1;
-
 
 
 			string content = await Task.Run( () => ReadFileWithEncodingFallback( filePath ) ).ConfigureAwait( false );
@@ -130,9 +129,9 @@ namespace KOTORModSync.Core.Services
 
 		public static void SaveToFile( [NotNull] List<ModComponent> components, [NotNull] string filePath )
 		{
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException( nameof( components ) );
-			if (filePath == null)
+			if (filePath is null)
 				throw new ArgumentNullException( nameof( filePath ) );
 
 			if (MainConfig.CaseInsensitivePathing)
@@ -152,16 +151,15 @@ namespace KOTORModSync.Core.Services
 
 		public static async Task SaveToFileAsync( [NotNull] List<ModComponent> components, [NotNull] string filePath )
 		{
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException( nameof( components ) );
-			if (filePath == null)
+			if (filePath is null)
 				throw new ArgumentNullException( nameof( filePath ) );
 
 			if (MainConfig.CaseInsensitivePathing)
 				filePath = PathHelper.GetCaseSensitivePath( filePath, isFile: true ).Item1;
 
 			string extension = Path.GetExtension( filePath )?.TrimStart( '.' ).ToLowerInvariant() ?? "toml";
-
 
 			string content = await ModComponentSerializationService.SerializeModComponentAsStringAsync( components, extension ).ConfigureAwait( false );
 

@@ -15,9 +15,9 @@ namespace KOTORModSync.Core.Utility
 		[NotNull]
 		public static IniData MergeIniFiles( [NotNull] IniData iniData1, [NotNull] IniData iniData2 )
 		{
-			if (iniData1 == null)
+			if (iniData1 is null)
 				throw new ArgumentNullException( nameof( iniData1 ) );
-			if (iniData2 == null)
+			if (iniData2 is null)
 				throw new ArgumentNullException( nameof( iniData2 ) );
 
 			IniData mergedIniData = new IniData();

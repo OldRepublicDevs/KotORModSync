@@ -9,10 +9,6 @@ using System.Threading;
 namespace KOTORModSync.Core.Services.Download
 {
 
-
-
-
-
 	public sealed class ThrottledStream : Stream
 	{
 		private readonly Stream _baseStream;
@@ -57,9 +53,7 @@ namespace KOTORModSync.Core.Services.Download
 
 			Throttle( count );
 
-
 			int bytesRead = _baseStream.Read( buffer, offset, count );
-
 
 			_byteCount += bytesRead;
 
@@ -71,19 +65,15 @@ namespace KOTORModSync.Core.Services.Download
 
 			Throttle( count );
 
-
 			_baseStream.Write( buffer, offset, count );
-
 
 			_byteCount += count;
 		}
-
 
 		private void Throttle( int count = 0 )
 		{
 			if (_maximumBytesPerSecond <= 0)
 				return;
-
 
 			long elapsedMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - _start;
 
@@ -91,7 +81,6 @@ namespace KOTORModSync.Core.Services.Download
 			{
 
 				long expectedByteCount = (elapsedMilliseconds * _maximumBytesPerSecond) / 1000;
-
 
 				if (_byteCount > expectedByteCount)
 				{
@@ -111,7 +100,6 @@ namespace KOTORModSync.Core.Services.Download
 					}
 				}
 			}
-
 
 			long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 			if (currentTime - _start > 1000)

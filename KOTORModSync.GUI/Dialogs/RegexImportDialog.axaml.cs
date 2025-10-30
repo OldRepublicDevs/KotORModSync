@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Avalonia;
@@ -12,6 +13,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -26,38 +28,11 @@ namespace KOTORModSync.Dialogs
 	{
 		public RegexImportDialogViewModel ViewModel { get; private set; }
 		public bool LoadSuccessful { get; private set; }
-		private readonly TextBlock _previewTextBlock;
+		private readonly TextBox _previewTextBox;
 		private readonly Func<Task<bool>> _confirmationCallback;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
-
-		public RegexImportDialog( [NotNull] string markdown, [CanBeNull] MarkdownImportProfile initialProfile = null, [CanBeNull] Func<Task<bool>> confirmationCallback = null )
-		{
-			InitializeComponent();
-			ViewModel = new RegexImportDialogViewModel( markdown, initialProfile ?? MarkdownImportProfile.CreateDefault() );
-			DataContext = ViewModel;
-			LoadSuccessful = false;
-			_confirmationCallback = confirmationCallback;
-
-			_previewTextBlock = this.FindControl<TextBlock>( "PreviewTextBlock" );
-			if (_previewTextBlock != null)
-			{
-				ViewModel.PropertyChanged += ( _, e ) =>
-				{
-					if (string.Equals( e.PropertyName, nameof( RegexImportDialogViewModel.HighlightedPreview ), StringComparison.Ordinal ))
-					{
-						UpdatePreviewInlines();
-					}
-				};
-
-				UpdatePreviewInlines();
-			}
-
-			PointerPressed += InputElement_OnPointerPressed;
-			PointerMoved += InputElement_OnPointerMoved;
-			PointerReleased += InputElement_OnPointerReleased;
-			PointerExited += InputElement_OnPointerReleased;
-		}
+		private Control _currentlyHighlightedTextBox;
 
 		public RegexImportDialog()
 		{
@@ -71,27 +46,66 @@ namespace KOTORModSync.Dialogs
 			PointerExited += InputElement_OnPointerReleased;
 		}
 
-		private void InitializeComponent() => AvaloniaXamlLoader.Load( this );
+		public RegexImportDialog(
+			[NotNull] string markdown,
+			[CanBeNull] MarkdownImportProfile initialProfile = null,
+			[CanBeNull] Func<Task<bool>> confirmationCallback = null
+		) : this()
+		{
+			InitializeComponent();
+			ViewModel = new RegexImportDialogViewModel(markdown, initialProfile ?? MarkdownImportProfile.CreateDefault());
+			DataContext = ViewModel;
+			LoadSuccessful = false;
+			_confirmationCallback = confirmationCallback;
 
-		private void OnResetDefaults( object sender, RoutedEventArgs e ) => ViewModel?.ResetDefaults();
+			_previewTextBox = this.FindControl<TextBox>("PreviewTextBox");
+			if (_previewTextBox != null)
+			{
+				_previewTextBox.PointerMoved += PreviewTextBox_PointerMoved;
+				_previewTextBox.PointerExited += PreviewTextBox_PointerExited;
+			}
 
-		private void OnCancel( object sender, RoutedEventArgs e ) => Close();
+			// Subscribe to ViewModel events
+			ViewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-		private void MinimizeButton_Click( object sender, RoutedEventArgs e ) => WindowState = WindowState.Minimized;
+			// Add Ctrl+F shortcut
+			AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
-		private void ToggleMaximizeButton_Click( object sender, RoutedEventArgs e ) =>
+			PointerPressed += InputElement_OnPointerPressed;
+			PointerMoved += InputElement_OnPointerMoved;
+			PointerReleased += InputElement_OnPointerReleased;
+			PointerExited += InputElement_OnPointerReleased;
+		}
+
+		private void OnViewModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+		{
+			if (string.Equals(e.PropertyName, "ShowFindDialog", StringComparison.Ordinal))
+			{
+				ShowFindDialog();
+			}
+		}
+
+		private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+
+		private void OnResetDefaults(object sender, RoutedEventArgs e) => ViewModel?.ResetDefaults();
+
+		private void OnCancel(object sender, RoutedEventArgs e) => Close();
+
+		private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+		private void ToggleMaximizeButton_Click(object sender, RoutedEventArgs e) =>
 			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
-		private void CloseButton_Click( object sender, RoutedEventArgs e ) => Close();
+		private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
-		private async void OnLoad( object sender, RoutedEventArgs e )
+		private async void OnLoad(object sender, RoutedEventArgs e)
 		{
 
 			if (_confirmationCallback != null)
 
 
 			{
-				bool confirmed = await _confirmationCallback().ConfigureAwait( false );
+				bool confirmed = await _confirmationCallback().ConfigureAwait(false);
 				if (!confirmed)
 					return;
 			}
@@ -100,56 +114,35 @@ namespace KOTORModSync.Dialogs
 			Close();
 		}
 
-		private void UpdatePreviewInlines()
-		{
-			if (_previewTextBlock == null)
-			{
-				Logger.LogVerbose( "UpdatePreviewInlines: _previewTextBlock is null" );
-				return;
-			}
-			ObservableCollection<Inline> inlines = ViewModel?.HighlightedPreview;
-			Logger.LogVerbose( $"UpdatePreviewInlines: Updating with {inlines?.Count ?? 0} inlines" );
-			Dispatcher.UIThread.Post( () =>
-			{
-				_previewTextBlock.Inlines?.Clear();
-				if (inlines != null)
-				{
-					foreach (Inline inline in inlines)
-					{
-						_previewTextBlock.Inlines?.Add( inline );
-					}
-				}
-			} );
-		}
 
-		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )
+		private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
 		{
 			if (!_mouseDownForWindowMoving)
 				return;
 
-			PointerPoint currentPoint = e.GetCurrentPoint( this );
+			PointerPoint currentPoint = e.GetCurrentPoint(this);
 			Position = new PixelPoint(
 				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
 				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
 			);
 		}
 
-		private void InputElement_OnPointerPressed( object sender, PointerPressedEventArgs e )
+		private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
 		{
 			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
 				return;
 
-			if (ShouldIgnorePointerForWindowDrag( e ))
+			if (ShouldIgnorePointerForWindowDrag(e))
 				return;
 
 			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint( this );
+			_originalPoint = e.GetCurrentPoint(this);
 		}
 
-		private void InputElement_OnPointerReleased( object sender, PointerEventArgs e ) =>
+		private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
 			_mouseDownForWindowMoving = false;
 
-		private bool ShouldIgnorePointerForWindowDrag( PointerEventArgs e )
+		private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
 		{
 
 			if (!(e.Source is Visual source))
@@ -185,6 +178,267 @@ namespace KOTORModSync.Dialogs
 			}
 
 			return false;
+		}
+
+		private void OnRegexPatternChanged(object sender, RoutedEventArgs e)
+		{
+			if (sender is TextBox textBox)
+			{
+				ViewModel.UpdatePreviewFromTextBox(textBox);
+			}
+		}
+
+		private void OnRegexTextBox_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (
+				(e.Key == Key.Enter || e.Key == Key.Tab)
+				&& sender is TextBox textBox)
+			{
+				ViewModel.UpdatePreviewFromTextBox(textBox);
+			}
+		}
+
+
+		private void OnWindowKeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.Key == Key.F && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+			{
+				e.Handled = true;
+				ViewModel?.FindCommand.Execute(null);
+			}
+		}
+
+		private void PreviewTextBox_PointerMoved(object sender, PointerEventArgs e)
+		{
+			if (_previewTextBox == null || ViewModel == null) return;
+
+			var position = e.GetPosition(_previewTextBox);
+			int caretPosition = RegexImportDialog.GetCharacterIndexFromPoint(_previewTextBox, position);
+
+			if (caretPosition >= 0)
+			{
+				string groupName = ViewModel.GetGroupNameForPosition(caretPosition);
+				if (!string.IsNullOrEmpty(groupName))
+				{
+					HighlightTextBoxForGroup(groupName);
+					return;
+				}
+			}
+
+			ClearTextBoxHighlight();
+		}
+
+		private void PreviewTextBox_PointerExited(object sender, PointerEventArgs e)
+		{
+			ClearTextBoxHighlight();
+		}
+
+		private static int GetCharacterIndexFromPoint(TextBox textBox, Avalonia.Point point)
+		{
+			// Approximate character position based on font metrics
+			// This is a simplified version - exact hit testing would require TextPointer API
+			try
+			{
+				string text = textBox.Text ?? "";
+				if (string.IsNullOrEmpty(text)) return -1;
+
+				// Get approximate character based on scroll position and click location
+				int scrollOffset = (int)textBox.GetValue(ScrollViewer.OffsetProperty).Y;
+				double lineHeight = textBox.FontSize * 1.2; // Approximate line height
+				int lineIndex = Math.Max(0, (int)((point.Y + scrollOffset) / lineHeight));
+
+				string[] lines = text.Split('\n');
+				if (lineIndex >= lines.Length) return text.Length - 1;
+
+				int charIndex = 0;
+				for (int i = 0; i < lineIndex && i < lines.Length; i++)
+				{
+					charIndex += lines[i].Length + 1; // +1 for newline
+				}
+
+				// Approximate character within line based on X position
+				if (lineIndex < lines.Length)
+				{
+					double charWidth = textBox.FontSize * 0.6; // Approximate monospace char width
+					int charInLine = Math.Max(0, (int)(point.X / charWidth));
+					charIndex += Math.Min(charInLine, lines[lineIndex].Length);
+				}
+
+				return Math.Min(charIndex, text.Length - 1);
+			}
+			catch
+			{
+				return -1;
+			}
+		}
+
+		private void HighlightTextBoxForGroup(string groupName)
+		{
+			// Use the type name as required by the compiler error.
+			string textBoxName = RegexImportDialogViewModel.GetTextBoxNameForGroupName(groupName);
+			if (string.IsNullOrEmpty(textBoxName)) return;
+
+			// Find the Simple tab
+			var simpleTab = this.FindControl<TabItem>("SimpleTab");
+			if (simpleTab == null) return;
+
+			// Find all TextBoxes in the Simple tab
+			var textBoxes = simpleTab.GetVisualDescendants().OfType<TextBox>()
+				.Where(tb => tb.Name != null && tb.Name.IndexOf(textBoxName, StringComparison.OrdinalIgnoreCase) >= 0);
+
+			var textBox = textBoxes.FirstOrDefault();
+			if (textBox != null && _currentlyHighlightedTextBox != textBox)
+			{
+				ClearTextBoxHighlight();
+				_currentlyHighlightedTextBox = textBox;
+				textBox.BorderBrush = Brushes.Yellow;
+				textBox.BorderThickness = new Thickness(2);
+			}
+		}
+
+		private void ClearTextBoxHighlight()
+		{
+			if (_currentlyHighlightedTextBox is TextBox textBox)
+			{
+				textBox.BorderBrush = null;
+				textBox.BorderThickness = new Thickness(1);
+				_currentlyHighlightedTextBox = null;
+			}
+		}
+
+		private void ShowFindDialog()
+		{
+			if (_previewTextBox == null) return;
+
+			// Simple Ctrl+F implementation - use browser-style find
+			_previewTextBox.Focus();
+
+			// Create a simple find panel at the top of the preview area
+			var findPanel = CreateFindPanel();
+			var previewBorder = this.FindControl<Border>("PreviewBorder");
+			if (previewBorder?.Child is Grid previewGrid)
+			{
+				// Check if find panel already exists
+				var existingPanel = previewGrid.Children.OfType<Border>().FirstOrDefault(b => string.Equals(b.Name, "FindPanel", StringComparison.Ordinal));
+				if (existingPanel != null)
+				{
+					var findTextBox = existingPanel.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
+					findTextBox?.Focus();
+					findTextBox?.SelectAll();
+					return;
+				}
+
+				// Insert find panel at the top
+				findPanel.Name = "FindPanel";
+				Grid.SetRow(findPanel, 0);
+				Grid.SetRowSpan(previewGrid.Children[previewGrid.Children.Count - 1], 1); // Adjust preview textbox row span
+				previewGrid.Children.Insert(0, findPanel);
+
+				var findTextBox2 = findPanel.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
+				findTextBox2?.Focus();
+			}
+		}
+
+		private Border CreateFindPanel()
+		{
+			var findTextBox = new TextBox
+			{
+				Watermark = "Find in preview...",
+				MinWidth = 200
+			};
+
+			var findNextButton = new Button
+			{
+				Content = "Next",
+				Margin = new Thickness(4, 0, 0, 0)
+			};
+
+			var findPrevButton = new Button
+			{
+				Content = "Prev",
+				Margin = new Thickness(4, 0, 0, 0)
+			};
+
+			var closeButton = new Button
+			{
+				Content = "X",
+				Margin = new Thickness(4, 0, 0, 0),
+				Width = 30
+			};
+
+			findTextBox.TextChanged += (s, e) => PerformFind(findTextBox.Text, forward: true);
+			findNextButton.Click += (s, e) => PerformFind(findTextBox.Text, forward: true);
+			findPrevButton.Click += (s, e) => PerformFind(findTextBox.Text, forward: false);
+			closeButton.Click += (s, e) => CloseFindPanel();
+
+			var panel = new StackPanel
+			{
+				Orientation = Avalonia.Layout.Orientation.Horizontal,
+				Margin = new Thickness(8, 4, 8, 4),
+				Children =
+				{
+					new TextBlock { Text = "Find:", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) },
+					findTextBox,
+					findNextButton,
+					findPrevButton,
+					closeButton
+				}
+			};
+
+			return new Border
+			{
+				Child = panel,
+				BorderThickness = new Thickness(0, 0, 0, 1)
+			};
+		}
+
+		private void PerformFind(string searchText, bool forward)
+		{
+			if (_previewTextBox == null || string.IsNullOrEmpty(searchText)) return;
+
+			string text = _previewTextBox.Text ?? "";
+			int startIndex = forward ? _previewTextBox.CaretIndex : Math.Max(0, _previewTextBox.CaretIndex - 1);
+
+			int foundIndex = forward
+				? text.IndexOf(searchText, startIndex, StringComparison.OrdinalIgnoreCase)
+				: text.LastIndexOf(searchText, startIndex, StringComparison.OrdinalIgnoreCase);
+
+			if (foundIndex < 0 && startIndex > 0)
+			{
+				// Wrap around
+				foundIndex = forward
+					? text.IndexOf(searchText, 0, StringComparison.OrdinalIgnoreCase)
+					: text.LastIndexOf(searchText, text.Length - 1, StringComparison.OrdinalIgnoreCase);
+			}
+
+			if (foundIndex >= 0)
+			{
+				_previewTextBox.CaretIndex = foundIndex;
+				_previewTextBox.SelectionStart = foundIndex;
+				_previewTextBox.SelectionEnd = foundIndex + searchText.Length;
+				_previewTextBox.Focus();
+			}
+		}
+
+		private void CloseFindPanel()
+		{
+			var previewBorder = this.FindControl<Border>("PreviewBorder");
+			if (previewBorder?.Child is Grid previewGrid)
+			{
+				var findPanel = previewGrid.Children.OfType<Border>().FirstOrDefault(b => string.Equals(b.Name, "FindPanel", StringComparison.Ordinal));
+				if (findPanel != null)
+				{
+					previewGrid.Children.Remove(findPanel);
+				}
+			}
+		}
+
+		private void OnPreviewTextBox_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.Key == Key.Escape)
+			{
+				CloseFindPanel();
+			}
 		}
 	}
 }

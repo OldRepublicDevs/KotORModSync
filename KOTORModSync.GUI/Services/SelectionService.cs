@@ -15,12 +15,12 @@ namespace KOTORModSync.Services
 	{
 		private readonly MainConfig _mainConfig;
 
-		public SelectionService( MainConfig mainConfig )
+		public SelectionService(MainConfig mainConfig)
 		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException( nameof( mainConfig ) );
+			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 		}
 
-		public void SelectAll( Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked )
+		public void SelectAll(Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked)
 		{
 			try
 			{
@@ -31,18 +31,18 @@ namespace KOTORModSync.Services
 					if (component.IsSelected)
 						continue;
 					component.IsSelected = true;
-					componentCheckboxChecked?.Invoke( component, visitedComponents );
+					componentCheckboxChecked?.Invoke(component, visitedComponents);
 				}
 
-				Logger.LogVerbose( $"Selected all {_mainConfig.allComponents.Count} mods" );
+				Logger.LogVerbose($"Selected all {_mainConfig.allComponents.Count} mods");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error selecting all mods" );
+				Logger.LogException(ex, "Error selecting all mods");
 			}
 		}
 
-		public void DeselectAll( Action<ModComponent, HashSet<ModComponent>> componentCheckboxUnchecked )
+		public void DeselectAll(Action<ModComponent, HashSet<ModComponent>> componentCheckboxUnchecked)
 		{
 			try
 			{
@@ -52,34 +52,34 @@ namespace KOTORModSync.Services
 					component.IsSelected = false;
 				}
 
-				Logger.LogVerbose( $"Deselected all {_mainConfig.allComponents.Count} mods" );
+				Logger.LogVerbose($"Deselected all {_mainConfig.allComponents.Count} mods");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error deselecting all mods" );
+				Logger.LogException(ex, "Error deselecting all mods");
 			}
 		}
 
-		public void SelectByTier( string selectedTier, int selectedPriority, List<string> allTierNames, List<int> allTierPriorities, Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked )
+		public void SelectByTier(string selectedTier, int selectedPriority, List<string> allTierNames, List<int> allTierPriorities, Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked)
 		{
 			try
 			{
 				var visitedComponents = new HashSet<ModComponent>();
-				var tiersToInclude = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+				var tiersToInclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
 				for (int i = 0; i < allTierNames.Count; i++)
 				{
 					if (allTierPriorities[i] <= selectedPriority)
 					{
-						_ = tiersToInclude.Add( allTierNames[i] );
+						_ = tiersToInclude.Add(allTierNames[i]);
 					}
 				}
 
-				Logger.LogVerbose( $"Selecting tier '{selectedTier}' (Priority: {selectedPriority})" );
-				Logger.LogVerbose( $"Including tiers: {string.Join( ", ", tiersToInclude )}" );
+				Logger.LogVerbose($"Selecting tier '{selectedTier}' (Priority: {selectedPriority})");
+				Logger.LogVerbose($"Including tiers: {string.Join(", ", tiersToInclude)}");
 
-				var matchingMods = _mainConfig.allComponents.Where( c =>
-					!string.IsNullOrEmpty( c.Tier ) && tiersToInclude.Contains( c.Tier )
+				var matchingMods = _mainConfig.allComponents.Where(c =>
+					!string.IsNullOrEmpty(c.Tier) && tiersToInclude.Contains(c.Tier)
 				).ToList();
 
 				foreach (ModComponent component in matchingMods)
@@ -87,49 +87,49 @@ namespace KOTORModSync.Services
 					if (component.IsSelected)
 						continue;
 					component.IsSelected = true;
-					componentCheckboxChecked?.Invoke( component, visitedComponents );
+					componentCheckboxChecked?.Invoke(component, visitedComponents);
 				}
 
-				Logger.Log( $"Selected {matchingMods.Count} mods in tier '{selectedTier}' and higher priority tiers" );
+				Logger.Log($"Selected {matchingMods.Count} mods in tier '{selectedTier}' and higher priority tiers");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error selecting by tier" );
+				Logger.LogException(ex, "Error selecting by tier");
 			}
 		}
 
-		public void SelectByCategories( List<string> selectedCategories, Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked )
+		public void SelectByCategories(List<string> selectedCategories, Action<ModComponent, HashSet<ModComponent>> componentCheckboxChecked)
 		{
 			try
 			{
-				if (selectedCategories == null || selectedCategories.Count == 0)
+				if (selectedCategories is null || selectedCategories.Count == 0)
 				{
-					Logger.LogWarning( "No categories selected" );
+					Logger.LogWarning("No categories selected");
 					return;
 				}
 
 				var visitedComponents = new HashSet<ModComponent>();
 
-				var matchingMods = _mainConfig.allComponents.Where( c =>
-					c.Category.Count > 0 && c.Category.Any( cat => selectedCategories.Contains( cat, StringComparer.Ordinal ) )
+				var matchingMods = _mainConfig.allComponents.Where(c =>
+					c.Category.Count > 0 && c.Category.Any(cat => selectedCategories.Contains(cat, StringComparer.Ordinal))
 				).ToList();
 
-				Logger.LogVerbose( $"Categories selected: {string.Join( ", ", selectedCategories )}" );
-				Logger.LogVerbose( $"Matched {matchingMods.Count} components by category" );
+				Logger.LogVerbose($"Categories selected: {string.Join(", ", selectedCategories)}");
+				Logger.LogVerbose($"Matched {matchingMods.Count} components by category");
 
 				foreach (ModComponent component in matchingMods)
 				{
 					if (component.IsSelected)
 						continue;
 					component.IsSelected = true;
-					componentCheckboxChecked?.Invoke( component, visitedComponents );
+					componentCheckboxChecked?.Invoke(component, visitedComponents);
 				}
 
-				Logger.Log( $"Selected {matchingMods.Count} mods in categories: {string.Join( ", ", selectedCategories )}" );
+				Logger.Log($"Selected {matchingMods.Count} mods in categories: {string.Join(", ", selectedCategories)}");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error selecting by categories" );
+				Logger.LogException(ex, "Error selecting by categories");
 			}
 		}
 	}

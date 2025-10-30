@@ -2,6 +2,7 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
@@ -15,10 +16,10 @@ namespace KOTORModSync.Dialogs
 			InitializeComponent();
 		}
 
-		public ProgressDialog( string title, string message ) : this()
+		public ProgressDialog(string title, string message) : this()
 		{
-			var titleText = this.FindControl<TextBlock>( "TitleText" );
-			var messageText = this.FindControl<TextBlock>( "MessageText" );
+			var titleText = this.FindControl<TextBlock>("TitleText");
+			var messageText = this.FindControl<TextBlock>("MessageText");
 
 			if (titleText != null)
 				titleText.Text = title;
@@ -29,15 +30,15 @@ namespace KOTORModSync.Dialogs
 
 		private void InitializeComponent()
 		{
-			AvaloniaXamlLoader.Load( this );
+			AvaloniaXamlLoader.Load(this);
 		}
 
-		public void UpdateProgress( string message, int current, int total )
+		public void UpdateProgress(string message, int current, int total)
 		{
-			Dispatcher.UIThread.Post( () =>
+			Dispatcher.UIThread.Post(() =>
 			{
-				var messageText = this.FindControl<TextBlock>( "MessageText" );
-				var progressBar = this.FindControl<ProgressBar>( "ProgressBar" );
+				var messageText = this.FindControl<TextBlock>("MessageText");
+				var progressBar = this.FindControl<ProgressBar>("ProgressBar");
 
 				if (messageText != null)
 					messageText.Text = message;
@@ -48,7 +49,26 @@ namespace KOTORModSync.Dialogs
 					progressBar.Maximum = total;
 					progressBar.Value = current;
 				}
-			} );
+			});
+		}
+
+		public async Task UpdateProgressAsync(string message, int current, int total)
+		{
+			await Dispatcher.UIThread.InvokeAsync(() =>
+			{
+				var messageText = this.FindControl<TextBlock>("MessageText");
+				var progressBar = this.FindControl<ProgressBar>("ProgressBar");
+
+				if (messageText != null)
+					messageText.Text = message;
+
+				if (progressBar != null && total > 0)
+				{
+					progressBar.IsIndeterminate = false;
+					progressBar.Maximum = total;
+					progressBar.Value = current;
+				}
+			});
 		}
 	}
 }

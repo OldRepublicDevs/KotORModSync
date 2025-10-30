@@ -30,15 +30,15 @@ namespace KOTORModSync.Tests
 		[SetUp]
 		public void SetUp()
 		{
-			_testDirectory = Path.Combine( Path.GetTempPath(), "KOTORModSync_PipelineTests_" + Guid.NewGuid() );
-			_downloadDirectory = Path.Combine( _testDirectory, "Downloads" );
-			Directory.CreateDirectory( _testDirectory );
-			Directory.CreateDirectory( _downloadDirectory );
+			_testDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_PipelineTests_" + Guid.NewGuid());
+			_downloadDirectory = Path.Combine(_testDirectory, "Downloads");
+			Directory.CreateDirectory(_testDirectory);
+			Directory.CreateDirectory(_downloadDirectory);
 
 			var mainConfig = new MainConfig();
-			mainConfig.sourcePath = new DirectoryInfo( _downloadDirectory );
-			mainConfig.destinationPath = new DirectoryInfo( Path.Combine( _testDirectory, "KOTOR" ) );
-			Directory.CreateDirectory( mainConfig.destinationPath.FullName );
+			mainConfig.sourcePath = new DirectoryInfo(_downloadDirectory);
+			mainConfig.destinationPath = new DirectoryInfo(Path.Combine(_testDirectory, "KOTOR"));
+			Directory.CreateDirectory(mainConfig.destinationPath.FullName);
 		}
 
 		[TearDown]
@@ -46,8 +46,8 @@ namespace KOTORModSync.Tests
 		{
 			try
 			{
-				if (Directory.Exists( _testDirectory ))
-					Directory.Delete( _testDirectory, recursive: true );
+				if (Directory.Exists(_testDirectory))
+					Directory.Delete(_testDirectory, recursive: true);
 			}
 			catch
 			{
@@ -59,115 +59,115 @@ namespace KOTORModSync.Tests
 		public void UnifiedPipeline_LocalArchive_GeneratesInstructions()
 		{
 
-			string archivePath = CreateTestArchive( "test_mod.zip", archive =>
+			string archivePath = CreateTestArchive("test_mod.zip", archive =>
 			{
-				AddTextFileToArchive( archive, "Override/appearance.2da", "2DA" );
-				AddTextFileToArchive( archive, "Override/dialog.dlg", "DLG" );
-			} );
+				AddTextFileToArchive(archive, "Override/appearance.2da", "2DA");
+				AddTextFileToArchive(archive, "Override/dialog.dlg", "DLG");
+			});
 
 			var component = new ModComponent
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase )
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
 				{
 					{ "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-				}
+				},
 			};
 
 			var downloadCacheService = new DownloadCacheService();
 			var httpClient = new System.Net.Http.HttpClient();
 			var handlers = new List<IDownloadHandler>
 			{
-				new DirectDownloadHandler(httpClient)
+				new DirectDownloadHandler(httpClient),
 			};
-			var downloadManager = new DownloadManager( handlers );
-			downloadCacheService.SetDownloadManager( downloadManager );
-			var modLinkProcessor = new ModLinkProcessingService( downloadCacheService );
+			var downloadManager = new DownloadManager(handlers);
+			downloadCacheService.SetDownloadManager(downloadManager);
+			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
 			int result = modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
-				CancellationToken.None );
+				CancellationToken.None);
 
-			Assert.Multiple( () =>
+			Assert.Multiple(() =>
 			{
-				Assert.That( result, Is.GreaterThan( 0 ), "Should process at least one component" );
-				Assert.That( component.Instructions, Is.Not.Empty, "Should have instructions" );
-			} );
-			Assert.That( component.Instructions[0].Action, Is.EqualTo( Instruction.ActionType.Extract ), "First instruction should be Extract" );
+				Assert.That(result, Is.GreaterThan(0), "Should process at least one component");
+				Assert.That(component.Instructions, Is.Not.Empty, "Should have instructions");
+			});
+			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract), "First instruction should be Extract");
 		}
 
 		[Test]
 		public void UnifiedPipeline_MultipleModLinks_CreatesInstructionsForEach()
 		{
 
-			string archive1 = CreateTestArchive( "mod1.zip", archive =>
+			string archive1 = CreateTestArchive("mod1.zip", archive =>
 			{
-				AddTextFileToArchive( archive, "file1.2da", "2DA" );
-			} );
+				AddTextFileToArchive(archive, "file1.2da", "2DA");
+			});
 
-			string archive2 = CreateTestArchive( "mod2.zip", archive =>
+			string archive2 = CreateTestArchive("mod2.zip", archive =>
 			{
-				AddTextFileToArchive( archive, "file2.dlg", "DLG" );
-			} );
+				AddTextFileToArchive(archive, "file2.dlg", "DLG");
+			});
 
 			var component = new ModComponent
 			{
 				Name = "Multi Link Mod",
 				Guid = Guid.NewGuid(),
-				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase )
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
 				{
 					{ "file:///" + archive1.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) },
 					{ "file:///" + archive2.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-				}
+				},
 			};
 
 			var downloadCacheService = new DownloadCacheService();
 			var httpClient = new System.Net.Http.HttpClient();
-			var handlers = new List<IDownloadHandler> { new DirectDownloadHandler( httpClient ) };
-			var downloadManager = new DownloadManager( handlers );
-			downloadCacheService.SetDownloadManager( downloadManager );
-			var modLinkProcessor = new ModLinkProcessingService( downloadCacheService );
+			var handlers = new List<IDownloadHandler> { new DirectDownloadHandler(httpClient) };
+			var downloadManager = new DownloadManager(handlers);
+			downloadCacheService.SetDownloadManager(downloadManager);
+			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
 			modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
-				CancellationToken.None );
+				CancellationToken.None);
 
-			Assert.That( component.Instructions, Has.Count.EqualTo( 4 ), "Should have 2 Extract + 2 Move instructions" );
+			Assert.That(component.Instructions, Has.Count.EqualTo(4), "Should have 2 Extract + 2 Move instructions");
 
-			var mod1Instructions = component.Instructions.Where( i =>
-				i.Source != null && i.Source.Any( s => s.Contains( "mod1" ) ) ).ToList();
-			var mod2Instructions = component.Instructions.Where( i =>
-				i.Source != null && i.Source.Any( s => s.Contains( "mod2" ) ) ).ToList();
+			var mod1Instructions = component.Instructions.Where(i =>
+				i.Source != null && i.Source.Any(s => s.Contains("mod1"))).ToList();
+			var mod2Instructions = component.Instructions.Where(i =>
+				i.Source != null && i.Source.Any(s => s.Contains("mod2"))).ToList();
 
-			Assert.Multiple( () =>
+			Assert.Multiple(() =>
 			{
-				Assert.That( mod1Instructions, Has.Count.EqualTo( 2 ), "Should have Extract + Move for mod1" );
-				Assert.That( mod2Instructions, Has.Count.EqualTo( 2 ), "Should have Extract + Move for mod2" );
-			} );
+				Assert.That(mod1Instructions, Has.Count.EqualTo(2), "Should have Extract + Move for mod1");
+				Assert.That(mod2Instructions, Has.Count.EqualTo(2), "Should have Extract + Move for mod2");
+			});
 		}
 
 		[Test]
 		public void UnifiedPipeline_ComponentWithExistingInstructions_AddsNewOnes()
 		{
 
-			string archivePath = CreateTestArchive( "new_mod.zip", archive =>
+			string archivePath = CreateTestArchive("new_mod.zip", archive =>
 			{
-				AddTextFileToArchive( archive, "file.2da", "2DA" );
-			} );
+				AddTextFileToArchive(archive, "file.2da", "2DA");
+			});
 
 			var component = new ModComponent
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase )
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
 				{
 					{ "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-				}
+				},
 			};
 
 			var existingInstruction = new Instruction
@@ -175,59 +175,59 @@ namespace KOTORModSync.Tests
 				Guid = Guid.NewGuid(),
 				Action = Instruction.ActionType.Copy,
 				Source = new List<string> { "existing_file.txt" },
-				Destination = "some_path"
+				Destination = "some_path",
 			};
-			existingInstruction.SetParentComponent( component );
-			component.Instructions.Add( existingInstruction );
+			existingInstruction.SetParentComponent(component);
+			component.Instructions.Add(existingInstruction);
 
 			var downloadCacheService = new DownloadCacheService();
 			var httpClient = new System.Net.Http.HttpClient();
-			var handlers = new List<IDownloadHandler> { new DirectDownloadHandler( httpClient ) };
-			var downloadManager = new DownloadManager( handlers );
-			downloadCacheService.SetDownloadManager( downloadManager );
-			var modLinkProcessor = new ModLinkProcessingService( downloadCacheService );
+			var handlers = new List<IDownloadHandler> { new DirectDownloadHandler(httpClient) };
+			var downloadManager = new DownloadManager(handlers);
+			downloadCacheService.SetDownloadManager(downloadManager);
+			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
 			modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
-				CancellationToken.None );
+				CancellationToken.None);
 
-			Assert.That( component.Instructions, Has.Count.EqualTo( 3 ), "Should have existing + Extract + Move" );
-			Assert.That( component.Instructions[0].Action, Is.EqualTo( Instruction.ActionType.Copy ), "Existing instruction should remain" );
+			Assert.That(component.Instructions, Has.Count.EqualTo(3), "Should have existing + Extract + Move");
+			Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Copy), "Existing instruction should remain");
 		}
 
 		[Test]
 		public void UnifiedPipeline_ProcessSameArchiveTwice_DoesNotDuplicate()
 		{
 
-			string archivePath = CreateTestArchive( "same_mod.zip", archive =>
+			string archivePath = CreateTestArchive("same_mod.zip", archive =>
 			{
-				AddTextFileToArchive( archive, "file.2da", "2DA" );
-			} );
+				AddTextFileToArchive(archive, "file.2da", "2DA");
+			});
 
 			var component = new ModComponent
 			{
 				Name = "Test Mod",
 				Guid = Guid.NewGuid(),
-				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase )
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
 				{
 					{ "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-				}
+				},
 			};
 
 			var downloadCacheService = new DownloadCacheService();
 			var httpClient = new System.Net.Http.HttpClient();
-			var handlers = new List<IDownloadHandler> { new DirectDownloadHandler( httpClient ) };
-			var downloadManager = new DownloadManager( handlers );
-			downloadCacheService.SetDownloadManager( downloadManager );
-			var modLinkProcessor = new ModLinkProcessingService( downloadCacheService );
+			var handlers = new List<IDownloadHandler> { new DirectDownloadHandler(httpClient) };
+			var downloadManager = new DownloadManager(handlers);
+			downloadCacheService.SetDownloadManager(downloadManager);
+			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
 			modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
-				CancellationToken.None );
+				CancellationToken.None);
 
 			int instructionsAfterFirst = component.Instructions.Count;
 
@@ -235,78 +235,78 @@ namespace KOTORModSync.Tests
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
-				CancellationToken.None );
+				CancellationToken.None);
 
 			int instructionsAfterSecond = component.Instructions.Count;
 
-			Assert.That( instructionsAfterFirst, Is.EqualTo( instructionsAfterSecond ),
-				"Processing same archive twice should not duplicate instructions" );
+			Assert.That(instructionsAfterFirst, Is.EqualTo(instructionsAfterSecond),
+				"Processing same archive twice should not duplicate instructions");
 		}
 
 		[Test]
 		public void UnifiedPipeline_TSLPatcherArchive_CreatesPatcherInstructionBeforeMove()
 		{
 
-			string archivePath = CreateTestArchive( "hybrid.zip", archive =>
+			string archivePath = CreateTestArchive("hybrid.zip", archive =>
 			{
-				AddTextFileToArchive( archive, "tslpatchdata/changes.ini", "[Settings]\nLookupGameFolder=1" );
-				AddTextFileToArchive( archive, "TSLPatcher.exe", "fake" );
-				AddTextFileToArchive( archive, "ExtraFolder/file.2da", "2DA" );
-			} );
+				AddTextFileToArchive(archive, "tslpatchdata/changes.ini", "[Settings]\nLookupGameFolder=1");
+				AddTextFileToArchive(archive, "TSLPatcher.exe", "fake");
+				AddTextFileToArchive(archive, "ExtraFolder/file.2da", "2DA");
+			});
 
 			var component = new ModComponent
 			{
 				Name = "Hybrid Mod",
 				Guid = Guid.NewGuid(),
-				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase )
+				ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
 				{
 					{ "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-				}
+				},
 			};
 
 			var downloadCacheService = new DownloadCacheService();
 			var httpClient = new System.Net.Http.HttpClient();
-			var handlers = new List<IDownloadHandler> { new DirectDownloadHandler( httpClient ) };
-			var downloadManager = new DownloadManager( handlers );
-			downloadCacheService.SetDownloadManager( downloadManager );
-			var modLinkProcessor = new ModLinkProcessingService( downloadCacheService );
+			var handlers = new List<IDownloadHandler> { new DirectDownloadHandler(httpClient) };
+			var downloadManager = new DownloadManager(handlers);
+			downloadCacheService.SetDownloadManager(downloadManager);
+			var modLinkProcessor = new ModLinkProcessingService(downloadCacheService);
 
 			modLinkProcessor.ProcessComponentModLinksSync(
 				new List<ModComponent> { component },
 				_downloadDirectory,
 				null,
-				CancellationToken.None );
+				CancellationToken.None);
 
-			Assert.That( component.Instructions, Has.Count.GreaterThanOrEqualTo( 3 ), "Should have Extract + Patcher + Move" );
-			Assert.Multiple( () =>
+			Assert.That(component.Instructions, Has.Count.GreaterThanOrEqualTo(3), "Should have Extract + Patcher + Move");
+			Assert.Multiple(() =>
 			{
-				Assert.That( component.Instructions[0].Action, Is.EqualTo( Instruction.ActionType.Extract ) );
-				Assert.That( component.Instructions[1].Action, Is.EqualTo( Instruction.ActionType.Patcher ),
-					"TSLPatcher instruction should come before Move" );
-				Assert.That( component.Instructions[2].Action, Is.EqualTo( Instruction.ActionType.Move ) );
-			} );
+				Assert.That(component.Instructions[0].Action, Is.EqualTo(Instruction.ActionType.Extract));
+				Assert.That(component.Instructions[1].Action, Is.EqualTo(Instruction.ActionType.Patcher),
+					"TSLPatcher instruction should come before Move");
+				Assert.That(component.Instructions[2].Action, Is.EqualTo(Instruction.ActionType.Move));
+			});
 		}
 
 		#region Helper Methods
 
-		private string CreateTestArchive( string fileName, Action<ZipArchive> populateArchive )
+		private string CreateTestArchive(string fileName, Action<ZipArchive> populateArchive)
 		{
-			System.Diagnostics.Debug.Assert( _downloadDirectory is not null, "Download directory is null" );
-			string archivePath = Path.Combine( _downloadDirectory, fileName );
+			System.Diagnostics.Debug.Assert(_downloadDirectory is not null, "Download directory is null");
+			string archivePath = Path.Combine(_downloadDirectory, fileName);
 
 			using (var archive = ZipArchive.Create())
 			{
-				populateArchive( archive );
-				archive.SaveTo( archivePath, CompressionType.Deflate );
+				populateArchive(archive);
+				archive.SaveTo(archivePath, CompressionType.Deflate);
 			}
 
 			return archivePath;
 		}
 
-		private static void AddTextFileToArchive( ZipArchive archive, string path, string content )
+		private static void AddTextFileToArchive(ZipArchive archive, string path, string content)
 		{
-			var memoryStream = new MemoryStream( System.Text.Encoding.UTF8.GetBytes( content ) );
-			archive.AddEntry( path, memoryStream, closeStream: true );
+			var memoryStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content));
+			archive.AddEntry(path, memoryStream, closeStream: true);
 		}
 
 		#endregion

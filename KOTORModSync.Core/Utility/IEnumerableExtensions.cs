@@ -25,9 +25,9 @@ namespace KOTORModSync.Core.Utility
 			IsNullOrEmptyOrAllNullInternal( collection );
 
 		private static bool IsNullOrEmptyCollectionInternal( IEnumerable collection ) =>
-			collection == null || !collection.Cast<object>().Any();
+			collection is null || !collection.Cast<object>().Any();
 
 		private static bool IsNullOrEmptyOrAllNullInternal( IEnumerable collection ) =>
-			collection == null || collection.Cast<object>().All( item => item == null );
+			collection is null || collection.Cast<object>().All( item => item is null );
 	}
 }

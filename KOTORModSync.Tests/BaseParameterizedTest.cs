@@ -280,7 +280,7 @@ namespace KOTORModSync.Tests
 		/// <returns>Full path to the debug file</returns>
 		protected string GetDebugFilePath( string fileName )
 		{
-			if (TestFileDirectory == null)
+			if (TestFileDirectory is null)
 				throw new InvalidOperationException( "TestFileDirectory is not initialized" );
 
 			var timestamp = DateTime.Now.ToString( "yyyy-MM-dd_HH-mm-ss-fff", CultureInfo.InvariantCulture );
@@ -298,7 +298,7 @@ namespace KOTORModSync.Tests
 		/// <returns>Full path to the debug file</returns>
 		protected string GetTempDebugFilePath( string fileName )
 		{
-			if (TestTempDirectory == null)
+			if (TestTempDirectory is null)
 				throw new InvalidOperationException( "TestTempDirectory is not initialized" );
 
 			var timestamp = DateTime.Now.ToString( "yyyy-MM-dd_HH-mm-ss-fff", CultureInfo.InvariantCulture );

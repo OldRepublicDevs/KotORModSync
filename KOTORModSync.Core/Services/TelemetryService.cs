@@ -22,7 +22,7 @@ namespace KOTORModSync.Core.Services
 
 	public sealed class TelemetryService : IDisposable
 	{
-		private static readonly Lazy<TelemetryService> s_instance = new Lazy<TelemetryService>( () => new TelemetryService() );
+		private static readonly Lazy<TelemetryService> s_instance = new Lazy<TelemetryService>(() => new TelemetryService());
 
 		private TelemetryConfiguration _config;
 		private TelemetryAuthenticator _authenticator;
@@ -63,11 +63,11 @@ namespace KOTORModSync.Core.Services
 
 			try
 			{
-				_authenticator = new TelemetryAuthenticator( _config.SigningSecret, _config.SessionId );
+				_authenticator = new TelemetryAuthenticator(_config.SigningSecret, _config.SessionId);
 
 				if (!_authenticator.HasValidSecret())
 				{
-					Logger.LogWarning( "[Telemetry] No signing secret available - telemetry will be disabled" );
+					Logger.LogWarning("[Telemetry] No signing secret available - telemetry will be disabled");
 					_config.IsEnabled = false;
 					return;
 				}
@@ -75,83 +75,80 @@ namespace KOTORModSync.Core.Services
 				ResourceBuilder resourceBuilder = ResourceBuilder.CreateDefault()
 					.AddService(
 						serviceName: "KOTORModSync",
-						serviceVersion: typeof( TelemetryService ).Assembly.GetName().Version?.ToString() ?? "1.0.0",
-						serviceInstanceId: _config.SessionId )
-					.AddAttributes( new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+						serviceVersion: typeof(TelemetryService).Assembly.GetName().Version?.ToString() ?? "1.0.0",
+						serviceInstanceId: _config.SessionId)
+					.AddAttributes(new Dictionary<string, object>(StringComparer.Ordinal)
 					{
 						["user.id"] = _config.AnonymousUserId,
 						["session.id"] = _config.SessionId,
 						["environment"] = _config.Environment,
-						["platform"] = Environment.OSVersion.Platform.ToString()
-					} );
+						["platform"] = Environment.OSVersion.Platform.ToString(),
+					});
 
-				_activitySource = new ActivitySource( "KOTORModSync", "1.0.0" );
+				_activitySource = new ActivitySource("KOTORModSync", "1.0.0");
 
-				_meter = new Meter( "KOTORModSync", "1.0.0" );
+				_meter = new Meter("KOTORModSync", "1.0.0");
 
-				_eventCounter = _meter.CreateCounter<long>( "kotormodsync.events", "events", "Number of events recorded" );
-				_errorCounter = _meter.CreateCounter<long>( "kotormodsync.errors", "errors", "Number of errors recorded" );
-				_operationDuration = _meter.CreateHistogram<double>( "kotormodsync.operation.duration", "ms", "Duration of operations" );
-				_modInstallCounter = _meter.CreateCounter<long>( "kotormodsync.mods.installed", "mods", "Number of mods installed" );
-				_modValidationCounter = _meter.CreateCounter<long>( "kotormodsync.mods.validated", "mods", "Number of mods validated" );
-				_downloadCounter = _meter.CreateCounter<long>( "kotormodsync.downloads", "downloads", "Number of downloads" );
-				_downloadSize = _meter.CreateHistogram<long>( "kotormodsync.download.size", "bytes", "Size of downloads" );
+				_eventCounter = _meter.CreateCounter<long>("kotormodsync.events", "events", "Number of events recorded");
+				_errorCounter = _meter.CreateCounter<long>("kotormodsync.errors", "errors", "Number of errors recorded");
+				_operationDuration = _meter.CreateHistogram<double>("kotormodsync.operation.duration", "ms", "Duration of operations");
+				_modInstallCounter = _meter.CreateCounter<long>("kotormodsync.mods.installed", "mods", "Number of mods installed");
+				_modValidationCounter = _meter.CreateCounter<long>("kotormodsync.mods.validated", "mods", "Number of mods validated");
+				_downloadCounter = _meter.CreateCounter<long>("kotormodsync.downloads", "downloads", "Number of downloads");
+				_downloadSize = _meter.CreateHistogram<long>("kotormodsync.download.size", "bytes", "Size of downloads");
 
 				// Initialize cache telemetry metrics
-				_cacheHitCounter = _meter.CreateCounter<long>( "kotormodsync.cache.hits", "hits", "Number of cache hits" );
-				_cacheMissCounter = _meter.CreateCounter<long>( "kotormodsync.cache.misses", "misses", "Number of cache misses" );
-				_cacheSizeCounter = _meter.CreateCounter<long>( "kotormodsync.cache.size", "bytes", "Total cache size in bytes" );
-				_contentIdGeneratedCounter = _meter.CreateCounter<long>( "kotormodsync.cache.contentid.generated", "ids", "Number of ContentIds generated" );
-				_integrityVerificationCounter = _meter.CreateCounter<long>( "kotormodsync.cache.integrity.verified", "verifications", "Number of integrity verifications" );
-				_cacheOperationDuration = _meter.CreateHistogram<double>( "kotormodsync.cache.operation.duration", "ms", "Duration of cache operations" );
+				_cacheHitCounter = _meter.CreateCounter<long>("kotormodsync.cache.hits", "hits", "Number of cache hits");
+				_cacheMissCounter = _meter.CreateCounter<long>("kotormodsync.cache.misses", "misses", "Number of cache misses");
+				_cacheSizeCounter = _meter.CreateCounter<long>("kotormodsync.cache.size", "bytes", "Total cache size in bytes");
+				_contentIdGeneratedCounter = _meter.CreateCounter<long>("kotormodsync.cache.contentid.generated", "ids", "Number of ContentIds generated");
+				_integrityVerificationCounter = _meter.CreateCounter<long>("kotormodsync.cache.integrity.verified", "verifications", "Number of integrity verifications");
+				_cacheOperationDuration = _meter.CreateHistogram<double>("kotormodsync.cache.operation.duration", "ms", "Duration of cache operations");
 
 				TracerProviderBuilder tracerProviderBuilder = Sdk.CreateTracerProviderBuilder()
-					.SetResourceBuilder( resourceBuilder )
-					.AddSource( "KOTORModSync" );
+					.SetResourceBuilder(resourceBuilder)
+					.AddSource("KOTORModSync");
 
 				if (_config.EnableConsoleExporter)
 				{
 					tracerProviderBuilder.AddConsoleExporter();
 				}
 
-				if (_config.EnableFileExporter && !string.IsNullOrEmpty( _config.LocalLogPath ))
+				if (_config.EnableFileExporter && !string.IsNullOrEmpty(_config.LocalLogPath))
 				{
 
-					Logger.LogVerbose( "[Telemetry] File exporter requested but not yet implemented" );
+					Logger.LogVerbose("[Telemetry] File exporter requested but not yet implemented");
 				}
 
-				if (_config.EnableOtlpExporter && !string.IsNullOrEmpty( _config.OtlpEndpoint ))
+				if (_config.EnableOtlpExporter && !string.IsNullOrEmpty(_config.OtlpEndpoint))
 				{
-					tracerProviderBuilder.AddOtlpExporter( options =>
+					tracerProviderBuilder.AddOtlpExporter(options =>
 					{
-						options.Endpoint = new Uri( _config.OtlpEndpoint );
+						options.Endpoint = new Uri(_config.OtlpEndpoint);
 						options.Protocol = OtlpExportProtocol.HttpProtobuf;
-						options.Headers = GetAuthHeaders( "/v1/traces" );
-					} );
+						options.Headers = GetAuthHeaders("/v1/traces");
+					});
 				}
 
 				_tracerProvider = tracerProviderBuilder.Build();
 
 				MeterProviderBuilder meterProviderBuilder = Sdk.CreateMeterProviderBuilder()
-					.SetResourceBuilder( resourceBuilder )
-					.AddMeter( "KOTORModSync" );
+					.SetResourceBuilder(resourceBuilder)
+					.AddMeter("KOTORModSync");
 
 				if (_config.EnableConsoleExporter)
 				{
 					meterProviderBuilder.AddConsoleExporter();
 				}
 
-				if (_config.EnableOtlpExporter && !string.IsNullOrEmpty( _config.OtlpEndpoint ))
+				if (_config.EnableOtlpExporter && !string.IsNullOrEmpty(_config.OtlpEndpoint))
 				{
-					meterProviderBuilder.AddOtlpExporter( options =>
+					meterProviderBuilder.AddOtlpExporter(options =>
 					{
-						options.Endpoint = new Uri( _config.OtlpEndpoint );
+						options.Endpoint = new Uri(_config.OtlpEndpoint);
 						options.Protocol = OtlpExportProtocol.HttpProtobuf;
-						options.Headers = GetAuthHeaders( "/v1/metrics" );
-					} );
+						options.Headers = GetAuthHeaders("/v1/metrics");
+					});
 				}
 
 				if (_config.EnablePrometheusExporter)
@@ -161,34 +158,34 @@ namespace KOTORModSync.Core.Services
 #if NETSTANDARD2_0
 						Logger.LogWarning("[Telemetry] Prometheus HTTP listener requires .NET Core 3.1+ or .NET 5+. Use OTLP exporter for authenticated remote telemetry.");
 #else
-						meterProviderBuilder.AddPrometheusHttpListener( options =>
+						meterProviderBuilder.AddPrometheusHttpListener(options =>
 						{
 							options.UriPrefixes = new[] { $"http://localhost:{_config.PrometheusPort}/" };
-						} );
-						Logger.Log( $"[Telemetry] Prometheus HTTP listener started on http://localhost:{_config.PrometheusPort}/metrics (LOCAL ONLY - for development/testing)" );
-						Logger.Log( "[Telemetry] Note: For authenticated remote telemetry, use OTLP exporter (enabled by default)" );
+						});
+						Logger.Log($"[Telemetry] Prometheus HTTP listener started on http://localhost:{_config.PrometheusPort}/metrics (LOCAL ONLY - for development/testing)");
+						Logger.Log("[Telemetry] Note: For authenticated remote telemetry, use OTLP exporter (enabled by default)");
 #endif
 					}
 					catch (Exception ex)
 					{
-						Logger.LogException( ex, "[Telemetry] Failed to start Prometheus HTTP listener" );
+						Logger.LogException(ex, "[Telemetry] Failed to start Prometheus HTTP listener");
 					}
 				}
 
 				_meterProvider = meterProviderBuilder.Build();
 
 				_isInitialized = true;
-				Logger.Log( "[Telemetry] Telemetry service initialized successfully" );
+				Logger.Log("[Telemetry] Telemetry service initialized successfully");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to initialize telemetry service" );
+				Logger.LogException(ex, "[Telemetry] Failed to initialize telemetry service");
 			}
 		}
 
-		public void UpdateConfiguration( TelemetryConfiguration newConfig )
+		public void UpdateConfiguration(TelemetryConfiguration newConfig)
 		{
-			if (newConfig == null)
+			if (newConfig is null)
 				return;
 
 			bool wasEnabled = _config?.IsEnabled ?? false;
@@ -206,102 +203,95 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		public void RecordEvent( string eventName, Dictionary<string, object> tags = null )
+		public void RecordEvent(string eventName, Dictionary<string, object> tags = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				_eventCounter?.Add( 1, CreateTagList( eventName, tags ) );
-				Logger.LogVerbose( $"[Telemetry] Event: {eventName}" );
+				_eventCounter?.Add(1, CreateTagList(eventName, tags));
+				Logger.LogVerbose($"[Telemetry] Event: {eventName}");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, $"[Telemetry] Failed to record event: {eventName}" );
+				Logger.LogException(ex, $"[Telemetry] Failed to record event: {eventName}");
 			}
 		}
 
-		public Activity StartActivity( string activityName, Dictionary<string, object> tags = null )
+		public Activity StartActivity(string activityName, IReadOnlyDictionary<string, object> tags = null)
 		{
 			if (!IsEnabled || !_config.CollectPerformanceMetrics)
 				return null;
 
 			try
 			{
-				Activity activity = _activitySource?.StartActivity( activityName );
+				Activity activity = _activitySource?.StartActivity(activityName);
 				if (activity != null && tags != null)
 				{
 					foreach (KeyValuePair<string, object> tag in tags)
 					{
-						activity.SetTag( tag.Key, tag.Value );
+						activity.SetTag(tag.Key, tag.Value);
 					}
 				}
 				return activity;
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, $"[Telemetry] Failed to start activity: {activityName}" );
+				Logger.LogException(ex, $"[Telemetry] Failed to start activity: {activityName}");
 				return null;
 			}
 		}
 
-		public void RecordModInstallation( string modName, bool success, double durationMs, string errorMessage = null )
+		public void RecordModInstallation(string modName, bool success, double durationMs, string errorMessage = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
-					["mod.name.hash"] = HashString( modName ),
-					["success"] = success
+					["mod.name.hash"] = HashString(modName),
+					["success"] = success,
 				};
 
-				if (!success && !string.IsNullOrEmpty( errorMessage ))
+				if (!success && !string.IsNullOrEmpty(errorMessage))
 				{
-					tags["error.type"] = HashString( errorMessage );
+					tags["error.type"] = HashString(errorMessage);
 				}
 
-				_modInstallCounter?.Add( 1, CreateTagList( "mod.install", tags ) );
+				_modInstallCounter?.Add(1, CreateTagList("mod.install", tags));
 
 				if (_config.CollectPerformanceMetrics)
 				{
-					_operationDuration?.Record( durationMs, CreateTagList( "mod.install", tags ) );
+					_operationDuration?.Record(durationMs, CreateTagList("mod.install", tags));
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record mod installation" );
+				Logger.LogException(ex, "[Telemetry] Failed to record mod installation");
 			}
 		}
 
-
-		public void RecordUiInteraction( string elementName, string action )
+		public void RecordUiInteraction(string elementName, string action)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["element"] = elementName,
-					["action"] = action
+					["action"] = action,
 				};
 
-				_eventCounter?.Add( 1, CreateTagList( "ui.interaction", tags ) );
+				_eventCounter?.Add(1, CreateTagList("ui.interaction", tags));
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record UI interaction" );
+				Logger.LogException(ex, "[Telemetry] Failed to record UI interaction");
 			}
 		}
 
@@ -311,414 +301,374 @@ namespace KOTORModSync.Core.Services
 			double durationMs,
 			long bytesDownloaded,
 			string downloadSource = null,
-			string errorMessage = null )
+			string errorMessage = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
-					["mod.name.hash"] = HashString( modName ),
+					["mod.name.hash"] = HashString(modName),
 					["success"] = success,
-					["download.source"] = downloadSource ?? "unknown"
+					["download.source"] = downloadSource ?? "unknown",
 				};
 
-				if (!success && !string.IsNullOrEmpty( errorMessage ))
+				if (!success && !string.IsNullOrEmpty(errorMessage))
 				{
-					tags["error.type"] = HashString( errorMessage );
+					tags["error.type"] = HashString(errorMessage);
 				}
 
-				_downloadCounter?.Add( 1, CreateTagList( "download", tags ) );
+				_downloadCounter?.Add(1, CreateTagList("download", tags));
 
 				if (bytesDownloaded > 0)
 				{
-					_downloadSize?.Record( bytesDownloaded, CreateTagList( "download.size", tags ) );
+					_downloadSize?.Record(bytesDownloaded, CreateTagList("download.size", tags));
 				}
 
 				if (_config.CollectPerformanceMetrics)
 				{
-					_operationDuration?.Record( durationMs, CreateTagList( "download", tags ) );
+					_operationDuration?.Record(durationMs, CreateTagList("download", tags));
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record download" );
+				Logger.LogException(ex, "[Telemetry] Failed to record download");
 			}
 		}
 
-		public void RecordValidation( string validationType, bool success, int issueCount, double durationMs )
+		public void RecordValidation(string validationType, bool success, int issueCount, double durationMs)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["validation.type"] = validationType,
 					["success"] = success,
-					["issue.count"] = issueCount
+					["issue.count"] = issueCount,
 				};
 
-				_modValidationCounter?.Add( 1, CreateTagList( "validation", tags ) );
+				_modValidationCounter?.Add(1, CreateTagList("validation", tags));
 
 				if (_config.CollectPerformanceMetrics)
 				{
-					_operationDuration?.Record( durationMs, CreateTagList( "validation", tags ) );
+					_operationDuration?.Record(durationMs, CreateTagList("validation", tags));
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record validation" );
+				Logger.LogException(ex, "[Telemetry] Failed to record validation");
 			}
 		}
 
-		public void RecordFileOperation( string operationType, bool success, int fileCount, double durationMs, string errorMessage = null )
+		public void RecordFileOperation(string operationType, bool success, int fileCount, double durationMs, string errorMessage = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["operation.type"] = operationType,
 					["success"] = success,
-					["file.count"] = fileCount
+					["file.count"] = fileCount,
 				};
 
-				if (!success && !string.IsNullOrEmpty( errorMessage ))
+				if (!success && !string.IsNullOrEmpty(errorMessage))
 				{
-					tags["error.type"] = HashString( errorMessage );
+					tags["error.type"] = HashString(errorMessage);
 				}
 
-				_eventCounter?.Add( 1, CreateTagList( "file.operation", tags ) );
+				_eventCounter?.Add(1, CreateTagList("file.operation", tags));
 
 				if (_config.CollectPerformanceMetrics)
 				{
-					_operationDuration?.Record( durationMs, CreateTagList( "file.operation", tags ) );
+					_operationDuration?.Record(durationMs, CreateTagList("file.operation", tags));
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record file operation" );
+				Logger.LogException(ex, "[Telemetry] Failed to record file operation");
 			}
 		}
 
-		public void RecordComponentExecution( string componentName, bool success, int instructionCount, double durationMs, string errorMessage = null )
+		public void RecordComponentExecution(string componentName, bool success, int instructionCount, double durationMs, string errorMessage = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
-					["component.name.hash"] = HashString( componentName ),
+					["component.name.hash"] = HashString(componentName),
 					["success"] = success,
-					["instruction.count"] = instructionCount
+					["instruction.count"] = instructionCount,
 				};
 
-				if (!success && !string.IsNullOrEmpty( errorMessage ))
+				if (!success && !string.IsNullOrEmpty(errorMessage))
 				{
-					tags["error.type"] = HashString( errorMessage );
+					tags["error.type"] = HashString(errorMessage);
 				}
 
-				_eventCounter?.Add( 1, CreateTagList( "component.execution", tags ) );
+				_eventCounter?.Add(1, CreateTagList("component.execution", tags));
 
 				if (_config.CollectPerformanceMetrics)
 				{
-					_operationDuration?.Record( durationMs, CreateTagList( "component.execution", tags ) );
+					_operationDuration?.Record(durationMs, CreateTagList("component.execution", tags));
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record component execution" );
+				Logger.LogException(ex, "[Telemetry] Failed to record component execution");
 			}
 		}
 
-		public void RecordParsingOperation( string fileType, bool success, int componentCount, double durationMs, string errorMessage = null )
+		public void RecordParsingOperation(string fileType, bool success, int componentCount, double durationMs, string errorMessage = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["file.type"] = fileType,
 					["success"] = success,
-					["component.count"] = componentCount
+					["component.count"] = componentCount,
 				};
 
-				if (!success && !string.IsNullOrEmpty( errorMessage ))
+				if (!success && !string.IsNullOrEmpty(errorMessage))
 				{
-					tags["error.type"] = HashString( errorMessage );
+					tags["error.type"] = HashString(errorMessage);
 				}
 
-				_eventCounter?.Add( 1, CreateTagList( "parsing", tags ) );
+				_eventCounter?.Add(1, CreateTagList("parsing", tags));
 
 				if (_config.CollectPerformanceMetrics)
 				{
-					_operationDuration?.Record( durationMs, CreateTagList( "parsing", tags ) );
+					_operationDuration?.Record(durationMs, CreateTagList("parsing", tags));
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record parsing operation" );
+				Logger.LogException(ex, "[Telemetry] Failed to record parsing operation");
 			}
 		}
 
-		public void RecordSessionStart( int componentCount, int selectedCount )
+		public void RecordSessionStart(int componentCount, int selectedCount)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["component.total"] = componentCount,
-					["component.selected"] = selectedCount
+					["component.selected"] = selectedCount,
 				};
 
-				_eventCounter?.Add( 1, CreateTagList( "session.start", tags ) );
+				_eventCounter?.Add(1, CreateTagList("session.start", tags));
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record session start" );
+				Logger.LogException(ex, "[Telemetry] Failed to record session start");
 			}
 		}
 
-		public void RecordSessionEnd( double durationMs, bool completed )
+		public void RecordSessionEnd(double durationMs, bool completed)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
-					["completed"] = completed
+					["completed"] = completed,
 				};
 
-				_eventCounter?.Add( 1, CreateTagList( "session.end", tags ) );
+				_eventCounter?.Add(1, CreateTagList("session.end", tags));
 
 				if (_config.CollectPerformanceMetrics)
 				{
-					_operationDuration?.Record( durationMs, CreateTagList( "session", tags ) );
+					_operationDuration?.Record(durationMs, CreateTagList("session", tags));
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record session end" );
+				Logger.LogException(ex, "[Telemetry] Failed to record session end");
 			}
 		}
 
-		public void RecordError( string errorType, string errorMessage, string stackTrace = null )
+		public void RecordError(string errorType, string errorMessage, string stackTrace = null)
 		{
 			if (!IsEnabled || !_config.CollectCrashReports)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["error.type"] = errorType,
-					["error.message.hash"] = HashString( errorMessage )
+					["error.message.hash"] = HashString(errorMessage),
 				};
 
-				if (!string.IsNullOrEmpty( stackTrace ))
+				if (!string.IsNullOrEmpty(stackTrace))
 				{
-					tags["error.stacktrace.hash"] = HashString( stackTrace );
+					tags["error.stacktrace.hash"] = HashString(stackTrace);
 				}
 
-				_errorCounter?.Add( 1, CreateTagList( "error", tags ) );
+				_errorCounter?.Add(1, CreateTagList("error", tags));
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record error" );
+				Logger.LogException(ex, "[Telemetry] Failed to record error");
 			}
 		}
 
 		#region Cache Telemetry
 
-		public void RecordCacheHit( string provider, string contentType = null )
+		public void RecordCacheHit(string provider, string contentType = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
-				{
-					["provider"] = provider ?? "unknown"
-				};
-
-				if (!string.IsNullOrEmpty( contentType ))
-					tags["content.type"] = contentType;
-
-				_cacheHitCounter.Add( 1, CreateTagList( "cache.hit", tags ) );
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex, "[Telemetry] Failed to record cache hit" );
-			}
-		}
-
-		public void RecordCacheMiss( string provider, string reason = null )
-		{
-			if (!IsEnabled || !_config.CollectUsageData)
-				return;
-
-			try
-			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
-				{
-					["provider"] = provider ?? "unknown"
-				};
-
-				if (!string.IsNullOrEmpty( reason ))
-					tags["reason"] = reason;
-
-				_cacheMissCounter.Add( 1, CreateTagList( "cache.miss", tags ) );
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex, "[Telemetry] Failed to record cache miss" );
-			}
-		}
-
-		public void RecordCacheSize( long sizeBytes, string provider = null )
-		{
-			if (!IsEnabled || !_config.CollectUsageData)
-				return;
-
-
-
-			try
-			{
-				Dictionary<string, object> tags = new Dictionary<string, object>( StringComparer.Ordinal );
-				if (!string.IsNullOrEmpty( provider ))
-					tags["provider"] = provider;
-
-				_cacheSizeCounter.Add( sizeBytes, CreateTagList( "cache.size", tags ) );
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex, "[Telemetry] Failed to record cache size" );
-			}
-		}
-
-		public void RecordContentIdGenerated( string provider, bool fromMetadata = true )
-		{
-			if (!IsEnabled || !_config.CollectUsageData)
-				return;
-
-			try
-			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["provider"] = provider ?? "unknown",
-					["source"] = fromMetadata ? "metadata" : "file"
 				};
 
-				_contentIdGeneratedCounter.Add( 1, CreateTagList( "contentid.generated", tags ) );
+				if (!string.IsNullOrEmpty(contentType))
+					tags["content.type"] = contentType;
+
+				_cacheHitCounter?.Add(1, CreateTagList("cache.hit", tags));
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record ContentId generation" );
+				Logger.LogException(ex, "[Telemetry] Failed to record cache hit");
 			}
 		}
 
-		public void RecordIntegrityVerification( bool success, string verificationType = null )
+		public void RecordCacheMiss(string provider, string reason = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
-					["success"] = success
+					["provider"] = provider ?? "unknown",
 				};
 
-				if (!string.IsNullOrEmpty( verificationType ))
-					tags["type"] = verificationType;
+				if (!string.IsNullOrEmpty(reason))
+					tags["reason"] = reason;
 
-				_integrityVerificationCounter.Add( 1, CreateTagList( "integrity.verification", tags ) );
+				_cacheMissCounter?.Add(1, CreateTagList("cache.miss", tags));
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record integrity verification" );
+				Logger.LogException(ex, "[Telemetry] Failed to record cache miss");
 			}
 		}
 
-		public void RecordCacheOperation( string operationType, bool success, double durationMs, string provider = null, string errorMessage = null )
+		public void RecordCacheSize(long sizeBytes, string provider = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
 
+
 			try
 			{
-				Dictionary<string, object> tags = new Dictionary<string, object>
-
-
-( StringComparer.Ordinal )
-				{
-					["operation.type"] = operationType,
-					["success"] = success
-				};
-
-				if (!string.IsNullOrEmpty( provider ))
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal);
+				if (!string.IsNullOrEmpty(provider))
 					tags["provider"] = provider;
 
-				if (!string.IsNullOrEmpty( errorMessage ))
-					tags["error"] = errorMessage;
-
-				_cacheOperationDuration.Record( durationMs, CreateTagList( "cache.operation", tags ) );
+				_cacheSizeCounter?.Add(sizeBytes, CreateTagList("cache.size", tags));
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to record cache operation" );
+				Logger.LogException(ex, "[Telemetry] Failed to record cache size");
+			}
+		}
+
+		public void RecordContentIdGenerated(string provider, bool fromMetadata = true)
+		{
+			if (!IsEnabled || !_config.CollectUsageData)
+				return;
+
+			try
+			{
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
+				{
+					["provider"] = provider ?? "unknown",
+					["source"] = fromMetadata ? "metadata" : "file",
+				};
+
+				_contentIdGeneratedCounter?.Add(1, CreateTagList("contentid.generated", tags));
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record ContentId generation");
+			}
+		}
+
+		public void RecordIntegrityVerification(bool success, string verificationType = null)
+		{
+			if (!IsEnabled || !_config.CollectUsageData)
+				return;
+
+			try
+			{
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
+				{
+					["success"] = success,
+				};
+
+				if (!string.IsNullOrEmpty(verificationType))
+					tags["type"] = verificationType;
+
+				_integrityVerificationCounter?.Add(1, CreateTagList("integrity.verification", tags));
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record integrity verification");
+			}
+		}
+
+		public void RecordCacheOperation(string operationType, bool success, double durationMs, string provider = null, string errorMessage = null)
+		{
+			if (!IsEnabled || !_config.CollectUsageData)
+				return;
+
+			try
+			{
+				Dictionary<string, object> tags = new Dictionary<string, object>(StringComparer.Ordinal)
+				{
+					["operation.type"] = operationType,
+					["success"] = success,
+				};
+
+				if (!string.IsNullOrEmpty(provider))
+					tags["provider"] = provider;
+
+				if (!string.IsNullOrEmpty(errorMessage))
+					tags["error"] = errorMessage;
+
+				_cacheOperationDuration?.Record(durationMs, CreateTagList("cache.operation", tags));
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "[Telemetry] Failed to record cache operation");
 			}
 		}
 
@@ -730,42 +680,42 @@ namespace KOTORModSync.Core.Services
 			{
 				_tracerProvider?.ForceFlush();
 				_meterProvider?.ForceFlush();
-				Logger.LogVerbose( "[Telemetry] Telemetry data flushed" );
+				Logger.LogVerbose("[Telemetry] Telemetry data flushed");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to flush telemetry data" );
+				Logger.LogException(ex, "[Telemetry] Failed to flush telemetry data");
 			}
 		}
 
-		private static KeyValuePair<string, object>[] CreateTagList( string eventName, Dictionary<string, object> tags )
+		private static KeyValuePair<string, object>[] CreateTagList(string eventName, Dictionary<string, object> tags)
 		{
 			List<KeyValuePair<string, object>> tagList = new List<KeyValuePair<string, object>>
 			{
-				new KeyValuePair<string, object>("event.name", eventName)
+				new KeyValuePair<string, object>("event.name", eventName),
 			};
 
 			if (tags != null)
 			{
 				foreach (KeyValuePair<string, object> tag in tags)
 				{
-					tagList.Add( new KeyValuePair<string, object>( tag.Key, tag.Value ) );
+					tagList.Add(new KeyValuePair<string, object>(tag.Key, tag.Value));
 				}
 			}
 
 			return tagList.ToArray();
 		}
 
-		private static string HashString( string input )
+		private static string HashString(string input)
 		{
-			if (string.IsNullOrEmpty( input ))
+			if (string.IsNullOrEmpty(input))
 				return "empty";
 
 			try
 			{
 #if NET8_0_OR_GREATER
-				byte[] hashBytes = SHA256.HashData( Encoding.UTF8.GetBytes( input ) );
-				return Convert.ToHexString( hashBytes ).Substring( 0, 16 );
+				byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+				return Convert.ToHexString(hashBytes).Substring(0, 16);
 #else
 				using ( var sha256 = SHA256.Create() )
 				{
@@ -783,10 +733,9 @@ namespace KOTORModSync.Core.Services
 
 
 
-
-		private string GetAuthHeaders( string requestPath )
+		private string GetAuthHeaders(string requestPath)
 		{
-			if (_authenticator == null || !_authenticator.HasValidSecret())
+			if (_authenticator is null || !_authenticator.HasValidSecret())
 			{
 				return string.Empty;
 			}
@@ -794,14 +743,14 @@ namespace KOTORModSync.Core.Services
 			try
 			{
 				long timestamp = TelemetryAuthenticator.GetUnixTimestamp();
-				string signature = _authenticator.ComputeSignature( requestPath, timestamp );
+				string signature = _authenticator.ComputeSignature(requestPath, timestamp);
 
-				if (string.IsNullOrEmpty( signature ))
+				if (string.IsNullOrEmpty(signature))
 				{
 					return string.Empty;
 				}
 
-				string version = typeof( TelemetryService ).Assembly.GetName().Version?.ToString() ?? "1.0.0";
+				string version = typeof(TelemetryService).Assembly.GetName().Version?.ToString() ?? "1.0.0";
 
 				return $"X-KMS-Signature={signature}," +
 					   $"X-KMS-Timestamp={timestamp}," +
@@ -810,7 +759,7 @@ namespace KOTORModSync.Core.Services
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to generate authentication headers" );
+				Logger.LogException(ex, "[Telemetry] Failed to generate authentication headers");
 				return string.Empty;
 			}
 		}
@@ -829,11 +778,11 @@ namespace KOTORModSync.Core.Services
 				_meter?.Dispose();
 				_isInitialized = false;
 				_disposed = true;
-				Logger.LogVerbose( "[Telemetry] Telemetry service disposed" );
+				Logger.LogVerbose("[Telemetry] Telemetry service disposed");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "[Telemetry] Failed to dispose telemetry service" );
+				Logger.LogException(ex, "[Telemetry] Failed to dispose telemetry service");
 			}
 		}
 	}

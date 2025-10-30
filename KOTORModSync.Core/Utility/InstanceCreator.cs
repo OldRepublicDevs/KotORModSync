@@ -64,9 +64,9 @@ namespace KOTORModSync.Core.Utility
 			[NotNull] object[] constructorParameters
 		)
 		{
-			if (parameters == null)
+			if (parameters is null)
 				throw new ArgumentNullException( nameof( parameters ) );
-			if (constructorParameters == null)
+			if (constructorParameters is null)
 				throw new ArgumentNullException( nameof( constructorParameters ) );
 
 			for (int i = 0; i < parameters.Length; i++)

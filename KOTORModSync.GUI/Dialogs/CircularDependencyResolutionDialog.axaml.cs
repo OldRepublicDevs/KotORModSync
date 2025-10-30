@@ -81,7 +81,7 @@ namespace KOTORModSync.Dialogs
 			var dialog = new CircularDependencyResolutionDialog( components, cycleInfo );
 
 
-			await dialog.ShowDialog( owner ).ConfigureAwait( false );
+			await dialog.ShowDialog( owner ).ConfigureAwait( true );
 			return (dialog.UserRetried, dialog.ResolvedComponents);
 		}
 

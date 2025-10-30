@@ -15,9 +15,9 @@ namespace KOTORModSync.Core.Utility
 
 		public static bool MatchesSearch( [NotNull] string itemName, [NotNull] string searchText )
 		{
-			if (itemName == null)
+			if (itemName is null)
 				throw new ArgumentNullException( nameof( itemName ) );
-			if (searchText == null)
+			if (searchText is null)
 				throw new ArgumentNullException( nameof( searchText ) );
 
 			return itemName.IndexOf( searchText, StringComparison.OrdinalIgnoreCase ) >= 0;

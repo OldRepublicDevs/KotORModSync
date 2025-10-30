@@ -15,10 +15,10 @@ namespace KOTORModSync.Core.Services.Validation
 	public static class ValidationResultPresenter
 	{
 		[NotNull]
-		public static string GetDialogTitle( [NotNull] DryRunValidationResult result )
+		public static string GetDialogTitle([NotNull] DryRunValidationResult result)
 		{
-			if (result == null)
-				throw new ArgumentNullException( nameof( result ) );
+			if (result is null)
+				throw new ArgumentNullException(nameof(result));
 
 			if (result.IsValid && !result.HasWarnings)
 			{
@@ -34,10 +34,10 @@ namespace KOTORModSync.Core.Services.Validation
 		}
 
 		[NotNull]
-		public static string GetMainMessage( [NotNull] DryRunValidationResult result, bool isEditorMode )
+		public static string GetMainMessage([NotNull] DryRunValidationResult result, bool isEditorMode)
 		{
-			if (result == null)
-				throw new ArgumentNullException( nameof( result ) );
+			if (result is null)
+				throw new ArgumentNullException(nameof(result));
 
 			return isEditorMode
 				? result.GetEditorMessage()
@@ -46,10 +46,10 @@ namespace KOTORModSync.Core.Services.Validation
 
 		[NotNull]
 		[ItemNotNull]
-		public static List<ActionableStep> GetActionableSteps( [NotNull] DryRunValidationResult result, bool isEditorMode )
+		public static List<ActionableStep> GetActionableSteps([NotNull] DryRunValidationResult result, bool isEditorMode)
 		{
-			if (result == null)
-				throw new ArgumentNullException( nameof( result ) );
+			if (result is null)
+				throw new ArgumentNullException(nameof(result));
 
 			List<ActionableStep> steps = new List<ActionableStep>();
 
@@ -60,9 +60,9 @@ namespace KOTORModSync.Core.Services.Validation
 
 
 			List<IGrouping<ModComponent, ValidationIssue>> componentIssues = result.Issues
-				.Where( i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical )
-				.Where( i => i.AffectedComponent != null )
-				.GroupBy( i => i.AffectedComponent )
+				.Where(i => i.Severity == ValidationSeverity.Error || i.Severity == ValidationSeverity.Critical)
+				.Where(i => i.AffectedComponent != null)
+				.GroupBy(i => i.AffectedComponent)
 				.ToList();
 
 			foreach (IGrouping<ModComponent, ValidationIssue> group in componentIssues)
@@ -71,13 +71,13 @@ namespace KOTORModSync.Core.Services.Validation
 				List<ValidationIssue> issues = group.ToList();
 
 
-				bool hasArchiveIssues = issues.Exists( i => string.Equals( i.Category, "ArchiveValidation", StringComparison.Ordinal ) || string.Equals( i.Category, "ExtractArchive", StringComparison.Ordinal ) );
-				bool hasOrderIssues = issues.Exists( i => i.Message.Contains( "does not exist" ) && !hasArchiveIssues );
+				bool hasArchiveIssues = issues.Exists(i => string.Equals(i.Category, "ArchiveValidation", StringComparison.Ordinal) || string.Equals(i.Category, "ExtractArchive", StringComparison.Ordinal));
+				bool hasOrderIssues = issues.Exists(i => i.Message.Contains("does not exist") && !hasArchiveIssues);
 
 				if (hasArchiveIssues && !isEditorMode)
 				{
 
-					steps.Add( new ActionableStep
+					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.DownloadMod,
 						ModComponent = component,
@@ -88,15 +88,15 @@ namespace KOTORModSync.Core.Services.Validation
 							"1. Check if the mod file exists in your mod directory",
 							"2. If missing, download it from the mod link",
 							"3. Place it in your mod directory",
-							"4. Run validation again"
+							"4. Run validation again",
 						},
-						CanAutoResolve = false
-					} );
+						CanAutoResolve = false,
+					});
 				}
 				else if (hasOrderIssues && isEditorMode)
 				{
 
-					steps.Add( new ActionableStep
+					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.ReorderInstructions,
 						ModComponent = component,
@@ -107,20 +107,20 @@ namespace KOTORModSync.Core.Services.Validation
 							"1. Review the instruction order for this component",
 							"2. Ensure Extract instructions come before Move/Copy instructions",
 							"3. Check that files are created before they are used",
-							"4. Add Dependencies if this component relies on files from another component"
+							"4. Add Dependencies if this component relies on files from another component",
 						},
-						CanAutoResolve = false
-					} );
+						CanAutoResolve = false,
+					});
 				}
 				else if (!isEditorMode)
 				{
 
 					bool isRequiredDependency = MainConfig.AllComponents
-						.Exists( c => c != component && c.IsSelected && c.Dependencies.Contains( component.Guid ) );
+						.Exists(c => c != component && c.IsSelected && c.Dependencies.Contains(component.Guid));
 
 					if (!isRequiredDependency)
 					{
-						steps.Add( new ActionableStep
+						steps.Add(new ActionableStep
 						{
 							ActionType = ActionType.DisableComponent,
 							ModComponent = component,
@@ -129,14 +129,14 @@ namespace KOTORModSync.Core.Services.Validation
 							Instructions = new List<string>
 							{
 								"Click the button below to automatically deselect this mod",
-								"Then run validation again"
+								"Then run validation again",
 							},
-							CanAutoResolve = true
-						} );
+							CanAutoResolve = true,
+						});
 					}
 					else
 					{
-						steps.Add( new ActionableStep
+						steps.Add(new ActionableStep
 						{
 							ActionType = ActionType.ContactSupport,
 							ModComponent = component,
@@ -146,16 +146,16 @@ namespace KOTORModSync.Core.Services.Validation
 							{
 								"This mod cannot be disabled as other mods depend on it",
 								"Please report this issue to the mod build creator",
-								"Include the validation log from the Output window"
+								"Include the validation log from the Output window",
 							},
-							CanAutoResolve = false
-						} );
+							CanAutoResolve = false,
+						});
 					}
 				}
 				else
 				{
 
-					steps.Add( new ActionableStep
+					steps.Add(new ActionableStep
 					{
 						ActionType = ActionType.EditInstructions,
 						ModComponent = component,
@@ -166,10 +166,10 @@ namespace KOTORModSync.Core.Services.Validation
 							"1. Select the component in the left list",
 							"2. Review the instructions in the editor",
 							"3. Fix the issues based on the error messages",
-							"4. Save and run validation again"
+							"4. Save and run validation again",
 						},
-						CanAutoResolve = false
-					} );
+						CanAutoResolve = false,
+					});
 				}
 			}
 
@@ -179,10 +179,10 @@ namespace KOTORModSync.Core.Services.Validation
 
 
 
-		public static bool CanAutoResolve( [NotNull] DryRunValidationResult result )
+		public static bool CanAutoResolve([NotNull] DryRunValidationResult result)
 		{
-			if (result == null)
-				throw new ArgumentNullException( nameof( result ) );
+			if (result is null)
+				throw new ArgumentNullException(nameof(result));
 
 			List<ModComponent> componentsToDisable = result.GetSuggestedComponentsToDisable();
 			return componentsToDisable.Count > 0;
@@ -192,10 +192,10 @@ namespace KOTORModSync.Core.Services.Validation
 
 
 
-		public static int AutoResolveIssues( [NotNull] DryRunValidationResult result )
+		public static int AutoResolveIssues([NotNull] DryRunValidationResult result)
 		{
-			if (result == null)
-				throw new ArgumentNullException( nameof( result ) );
+			if (result is null)
+				throw new ArgumentNullException(nameof(result));
 
 			List<ModComponent> componentsToDisable = result.GetSuggestedComponentsToDisable();
 
@@ -212,10 +212,10 @@ namespace KOTORModSync.Core.Services.Validation
 
 		[NotNull]
 		[ItemNotNull]
-		public static List<ModComponent> GetComponentsToHighlight( [NotNull] DryRunValidationResult result )
+		public static List<ModComponent> GetComponentsToHighlight([NotNull] DryRunValidationResult result)
 		{
-			if (result == null)
-				throw new ArgumentNullException( nameof( result ) );
+			if (result is null)
+				throw new ArgumentNullException(nameof(result));
 
 			return result.GetAffectedComponents();
 		}
@@ -251,6 +251,6 @@ namespace KOTORModSync.Core.Services.Validation
 		DisableComponent,
 		ReorderInstructions,
 		EditInstructions,
-		ContactSupport
+		ContactSupport,
 	}
 }

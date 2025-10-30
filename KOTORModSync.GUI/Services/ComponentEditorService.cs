@@ -6,9 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
@@ -36,7 +34,7 @@ namespace KOTORModSync.Services
 			string currentFormat = "toml"
 		)
 		{
-			if (currentComponent == null || string.IsNullOrWhiteSpace( rawEditText ))
+			if (currentComponent is null || string.IsNullOrWhiteSpace( rawEditText ))
 				return false;
 
 			// Serialize the component in the same format as the textbox
@@ -59,13 +57,12 @@ namespace KOTORModSync.Services
 			return hasChanges;
 		}
 
-		public async Task<bool> SaveChangesAsync( ModComponent currentComponent, string rawEditText, string currentFormat = "toml", bool noPrompt = false )
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public async Task<bool> SaveChangesAsync( ModComponent currentComponent, string rawEditText, string currentFormat = "toml", bool noPrompt = false )
 		{
 			try
 			{
-				if (!ComponentEditorService.HasUnsavedChanges( currentComponent, rawEditText, currentFormat ))
-
-
+				if (!HasUnsavedChanges( currentComponent, rawEditText, currentFormat ))
 				{
 					await Logger.LogVerboseAsync( "No changes detected, nothing to save." ).ConfigureAwait( false );
 					return true;
@@ -78,19 +75,13 @@ namespace KOTORModSync.Services
 						confirmText: "Are you sure you want to save?",
 						yesButtonText: "Save",
 						noButtonText: "Discard"
-
-
-					).ConfigureAwait( false );
+					).ConfigureAwait( true );
 
 					switch (result)
 					{
 						case true:
-
 							break;
 						case false:
-
-
-
 							await Logger.LogVerboseAsync( "User chose to discard changes in ComponentEditorService." ).ConfigureAwait( false );
 							return true;
 						case null:
@@ -104,15 +95,10 @@ namespace KOTORModSync.Services
 					string output = "CurrentComponent is null which shouldn't ever happen in this context." +
 								   Environment.NewLine +
 								   "Please report this issue to a developer, this should never happen.";
-
-
-
 					await Logger.LogErrorAsync( output ).ConfigureAwait( false );
 					await InformationDialog.ShowInformationDialogAsync(
 						_parentWindow,
-
-
-						output ).ConfigureAwait( false );
+						output ).ConfigureAwait( true );
 					return false;
 				}
 
@@ -120,24 +106,17 @@ namespace KOTORModSync.Services
 					return true;
 
 				ModComponent newComponent = null;
-
-
-
 				try
 				{
 					await Logger.LogVerboseAsync( "Attempting YAML deserialization..." ).ConfigureAwait( false );
 					newComponent = ModComponentSerializationService.DeserializeYamlComponent( rawEditText );
 				}
 				catch (Exception ex)
-
-
 				{
 					await Logger.LogVerboseAsync( $"YAML deserialization failed: {ex.Message}" ).ConfigureAwait( false );
 				}
 
-				if (newComponent == null)
-
-
+				if (newComponent is null)
 				{
 					try
 					{
@@ -145,12 +124,8 @@ namespace KOTORModSync.Services
 						newComponent = ModComponent.DeserializeTomlComponent( rawEditText );
 					}
 					catch (Exception ex)
-
-
 					{
-						await Logger.LogVerboseAsync( $"TOML deserialization failed: {ex.Message}" )
-
-.ConfigureAwait( false );
+						await Logger.LogVerboseAsync( $"TOML deserialization failed: {ex.Message}" ).ConfigureAwait( false );
 					}
 				}
 
@@ -168,7 +143,7 @@ namespace KOTORModSync.Services
 						yesButtonTooltip: "Discard your changes and continue with your last attempted action.",
 						noButtonTooltip: "Continue with your last attempted action.",
 						closeButtonTooltip: "Cancel"
-					).ConfigureAwait( false );
+					).ConfigureAwait( true );
 
 					return confirmResult == true;
 				}
@@ -184,12 +159,10 @@ namespace KOTORModSync.Services
 								   " Please back up your work and try again.";
 
 
-					await Logger.LogErrorAsync( output )
-
-.ConfigureAwait( false );
+					await Logger.LogErrorAsync( output ).ConfigureAwait( false );
 					await InformationDialog.ShowInformationDialogAsync(
 						_parentWindow,
-						output ).ConfigureAwait( false );
+						output ).ConfigureAwait( true );
 
 					return false;
 				}
@@ -212,7 +185,7 @@ namespace KOTORModSync.Services
 					_parentWindow,
 
 
-					$"{output} {Environment.NewLine} {Environment.NewLine} Error saving component changes: {ex.Message}" ).ConfigureAwait( false );
+					$"{output} {Environment.NewLine} {Environment.NewLine} Error saving component changes: {ex.Message}" ).ConfigureAwait( true );
 				return false;
 			}
 		}
@@ -244,13 +217,14 @@ namespace KOTORModSync.Services
 			return newComponent;
 		}
 
-		public async Task<bool> RemoveComponentAsync( ModComponent component )
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public async Task<bool> RemoveComponentAsync( ModComponent component )
 		{
 			try
 			{
 				if (component is null)
 				{
-					Logger.Log( "No component provided for removal." );
+					await Logger.LogAsync( "No component provided for removal." ).ConfigureAwait( false );
 					return false;
 				}
 
@@ -269,7 +243,7 @@ namespace KOTORModSync.Services
 				if (dependentComponents.Count != 0)
 				{
 
-					Logger.Log( $"Cannot remove '{component.Name}' - {dependentComponents.Count} components depend on it:" );
+					await Logger.LogAsync( $"Cannot remove '{component.Name}' - {dependentComponents.Count} components depend on it:" ).ConfigureAwait( false );
 					foreach (ModComponent dependent in dependentComponents)
 					{
 						var dependencyTypes = new System.Collections.Generic.List<string>();
@@ -282,13 +256,14 @@ namespace KOTORModSync.Services
 						if (dependent.InstallAfter.Contains( component.Guid ))
 							dependencyTypes.Add( "InstallAfter" );
 
-						Logger.Log( $"  - {dependent.Name} ({string.Join( ", ", dependencyTypes )})" );
+						await Logger.LogAsync( $"  - {dependent.Name} ({string.Join( ", ", dependencyTypes )})" ).ConfigureAwait( false );
 					}
 
-					(bool confirmed, System.Collections.Generic.List<ModComponent> componentsToUnlink) = await DependencyUnlinkDialog.ShowUnlinkDialog(
-
-
-						_parentWindow, component, dependentComponents ).ConfigureAwait( false );
+					(bool confirmed, List<ModComponent> componentsToUnlink) = await DependencyUnlinkDialog.ShowUnlinkDialog(
+						_parentWindow,
+						component,
+						dependentComponents
+					).ConfigureAwait( true );
 
 					if (!confirmed)
 						return false;
@@ -300,19 +275,19 @@ namespace KOTORModSync.Services
 						_ = componentToUnlink.InstallBefore.Remove( component.Guid );
 						_ = componentToUnlink.InstallAfter.Remove( component.Guid );
 
-						Logger.Log( $"Unlinked dependencies from '{componentToUnlink.Name}'" );
+						await Logger.LogAsync( $"Unlinked dependencies from '{componentToUnlink.Name}'" ).ConfigureAwait( false );
 					}
 				}
 
 				_ = _mainConfig.allComponents.Remove( component );
-				Logger.Log( $"Removed component: {component.Name}" );
+				await Logger.LogAsync( $"Removed component: {component.Name}" ).ConfigureAwait( false );
 				return true;
 			}
 			catch (Exception ex)
 
 
 			{
-				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to remove component" ).ConfigureAwait( false );
 				return false;
 			}
 		}

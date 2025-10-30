@@ -25,72 +25,64 @@ namespace KOTORModSync.Core.Services
 
 
 
-
 		public async Task<ModComponent.InstallExitCode> ExecuteComponentsWithCheckpointsAsync(
 			List<ModComponent> components,
 			string destinationPath,
 			IFileSystemProvider fileSystemProvider,
 			IProgress<InstallProgress> progress = null,
-			CancellationToken cancellationToken = default )
+			CancellationToken cancellationToken = default)
 		{
 			try
 			{
 
-
 				int componentIndex = 0;
-				foreach (ModComponent component in components.Where( c => c.IsSelected ))
+				foreach (ModComponent component in components.Where(c => c.IsSelected))
 				{
 					componentIndex++;
 
 					if (cancellationToken.IsCancellationRequested)
 
-
 					{
-						await Logger.LogWarningAsync( "[Installation] Installation cancelled by user" ).ConfigureAwait( false );
+						await Logger.LogWarningAsync("[Installation] Installation cancelled by user").ConfigureAwait(false);
 						return ModComponent.InstallExitCode.UserCancelledInstall;
 					}
 
-
 					if (component.WidescreenOnly && !_widescreenNotificationShown)
 
-
 					{
-						await Logger.LogAsync( "[Installation] First widescreen component detected, requesting notification" ).ConfigureAwait( false );
+						await Logger.LogAsync("[Installation] First widescreen component detected, requesting notification").ConfigureAwait(false);
 
 						WidescreenNotificationEventArgs widescreenArgs = new WidescreenNotificationEventArgs
 						{
 							Component = component,
 							ComponentIndex = componentIndex,
-							TotalComponents = components.Count
+							TotalComponents = components.Count,
 						};
 
-						WidescreenNotificationRequested?.Invoke( this, widescreenArgs );
-
+						WidescreenNotificationRequested?.Invoke(this, widescreenArgs);
 
 						if (widescreenArgs.UserCancelled)
 
-
 						{
-							await Logger.LogWarningAsync( "[Installation] User cancelled installation at widescreen notification" ).ConfigureAwait( false );
+							await Logger.LogWarningAsync("[Installation] User cancelled installation at widescreen notification").ConfigureAwait(false);
 							return ModComponent.InstallExitCode.UserCancelledInstall;
 						}
 
 						_widescreenNotificationShown = true;
 
-
-						await Logger.LogAsync( "[Installation] Widescreen notification acknowledged, continuing" ).ConfigureAwait( false );
+						await Logger.LogAsync("[Installation] Widescreen notification acknowledged, continuing").ConfigureAwait(false);
 					}
 
-					ComponentInstallStarted?.Invoke( this, new ComponentInstallEventArgs( component, componentIndex, components.Count ) );
+					ComponentInstallStarted?.Invoke(this, new ComponentInstallEventArgs(component, componentIndex, components.Count));
 
-					progress?.Report( new InstallProgress
+					progress?.Report(new InstallProgress
 					{
 						Phase = InstallPhase.InstallingComponent,
 						Message = $"Installing {component.Name} ({componentIndex}/{components.Count})",
 						Current = componentIndex,
 						Total = components.Count,
-						ComponentName = component.Name
-					} );
+						ComponentName = component.Name,
+					});
 
 					try
 					{
@@ -100,36 +92,32 @@ namespace KOTORModSync.Core.Services
 							components,
 							cancellationToken,
 
-
 							fileSystemProvider
-						).ConfigureAwait( false );
+						).ConfigureAwait(false);
 
 						if (exitCode != ModComponent.InstallExitCode.Success)
 
-
 						{
-							await Logger.LogErrorAsync( $"[Installation] Component '{component.Name}' failed with exit code: {exitCode}" ).ConfigureAwait( false );
+							await Logger.LogErrorAsync($"[Installation] Component '{component.Name}' failed with exit code: {exitCode}").ConfigureAwait(false);
 
 							InstallationErrorEventArgs errorArgs = new InstallationErrorEventArgs
 							{
 								Component = component,
 								ErrorCode = exitCode,
 								CanRollback = false,
-								SessionId = null
+								SessionId = null,
 							};
 
-							InstallationError?.Invoke( this, errorArgs );
+							InstallationError?.Invoke(this, errorArgs);
 
 							if (errorArgs.RollbackRequested)
 
-
 							{
-								await RollbackInstallationAsync( progress, cancellationToken ).ConfigureAwait( false );
+								await RollbackInstallationAsync(progress, cancellationToken).ConfigureAwait(false);
 								return ModComponent.InstallExitCode.UserCancelledInstall;
 							}
 
-							ComponentInstallFailed?.Invoke( this, new ComponentInstallEventArgs( component, componentIndex, components.Count ) );
-
+							ComponentInstallFailed?.Invoke(this, new ComponentInstallEventArgs(component, componentIndex, components.Count));
 
 							if (exitCode == ModComponent.InstallExitCode.UserCancelledInstall || exitCode == ModComponent.InstallExitCode.UnknownError)
 							{
@@ -139,78 +127,70 @@ namespace KOTORModSync.Core.Services
 							continue;
 						}
 
-
-						ComponentInstallCompleted?.Invoke( this, new ComponentInstallEventArgs( component, componentIndex, components.Count )
+						ComponentInstallCompleted?.Invoke(this, new ComponentInstallEventArgs(component, componentIndex, components.Count)
 						{
-							CheckpointId = null
-						} );
+							CheckpointId = null,
+						});
 					}
 					catch (OperationCanceledException)
 
-
 					{
-						await Logger.LogWarningAsync( "[Installation] Installation cancelled" )
+						await Logger.LogWarningAsync("[Installation] Installation cancelled")
 
 
 
-
-
-.ConfigureAwait( false );
+.ConfigureAwait(false);
 						return ModComponent.InstallExitCode.UserCancelledInstall;
 					}
 					catch (Exception ex)
 					{
-						await Logger.LogErrorAsync( $"[Installation] Unexpected error installing component '{component.Name}': {ex.Message}" ).ConfigureAwait( false );
+						await Logger.LogErrorAsync($"[Installation] Unexpected error installing component '{component.Name}': {ex.Message}").ConfigureAwait(false);
 
 						InstallationErrorEventArgs errorArgs = new InstallationErrorEventArgs
 						{
 							Component = component,
 							Exception = ex,
 							CanRollback = false,
-							SessionId = null
+							SessionId = null,
 						};
 
-						InstallationError?.Invoke( this, errorArgs );
+						InstallationError?.Invoke(this, errorArgs);
 
 						if (errorArgs.RollbackRequested)
 						{
-							await RollbackInstallationAsync( progress, cancellationToken ).ConfigureAwait( false );
+							await RollbackInstallationAsync(progress, cancellationToken).ConfigureAwait(false);
 							return ModComponent.InstallExitCode.UserCancelledInstall;
 						}
 
-						ComponentInstallFailed?.Invoke( this, new ComponentInstallEventArgs( component, componentIndex, components.Count ) );
+						ComponentInstallFailed?.Invoke(this, new ComponentInstallEventArgs(component, componentIndex, components.Count));
 					}
 				}
 
-
-				await Logger.LogAsync( "[Installation] Installation completed successfully" ).ConfigureAwait( false );
+				await Logger.LogAsync("[Installation] Installation completed successfully").ConfigureAwait(false);
 
 				return ModComponent.InstallExitCode.Success;
 			}
 			catch (Exception ex)
 
-
 			{
-				await Logger.LogErrorAsync( $"[Installation] Fatal error: {ex.Message}" ).ConfigureAwait( false );
+				await Logger.LogErrorAsync($"[Installation] Fatal error: {ex.Message}").ConfigureAwait(false);
 				return ModComponent.InstallExitCode.UnknownError;
 			}
 		}
 
 		public static async Task RollbackInstallationAsync(
 			IProgress<InstallProgress> progress = null,
-			CancellationToken cancellationToken = default )
-
+			CancellationToken cancellationToken = default)
 
 		{
-			await Logger.LogAsync( "[Installation] Rollback not available - checkpoint system disabled" ).ConfigureAwait( false );
+			await Logger.LogAsync("[Installation] Rollback not available - checkpoint system disabled").ConfigureAwait(false);
 			return;
 		}
 
 		public static async Task<List<CheckpointSession>> ListAvailableSessionsAsync()
 
-
 		{
-			await Task.CompletedTask.ConfigureAwait( false );
+			await Task.CompletedTask.ConfigureAwait(false);
 			return new List<CheckpointSession>();
 		}
 
@@ -219,11 +199,10 @@ namespace KOTORModSync.Core.Services
 			string checkpointId,
 			string destinationPath,
 			IProgress<InstallProgress> progress = null,
-			CancellationToken cancellationToken = default )
-
+			CancellationToken cancellationToken = default)
 
 		{
-			await Logger.LogAsync( "[Installation] Checkpoint restore not available - checkpoint system disabled" ).ConfigureAwait( false );
+			await Logger.LogAsync("[Installation] Checkpoint restore not available - checkpoint system disabled").ConfigureAwait(false);
 			return;
 		}
 	}
@@ -237,7 +216,7 @@ namespace KOTORModSync.Core.Services
 		public int TotalComponents { get; }
 		public string CheckpointId { get; set; }
 
-		public ComponentInstallEventArgs( ModComponent component, int componentIndex, int totalComponents )
+		public ComponentInstallEventArgs(ModComponent component, int componentIndex, int totalComponents)
 		{
 			Component = component;
 			ComponentIndex = componentIndex;
@@ -279,7 +258,7 @@ namespace KOTORModSync.Core.Services
 		InstallingComponent,
 		CreatingCheckpoint,
 		RollingBack,
-		Completed
+		Completed,
 	}
 
 	#endregion

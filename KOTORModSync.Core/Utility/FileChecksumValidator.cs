@@ -35,12 +35,12 @@ namespace KOTORModSync.Core.Utility
 
 		[NotNull]
 		public static string Sha1ToString( [NotNull] SHA1 sha1 ) =>
-			sha1 == null
+			sha1 is null
 				? throw new ArgumentNullException( nameof( sha1 ) )
 				: string.Concat( sha1.Hash.Select( b => b.ToString( format: "x2" ) ) );
 
 		[NotNull]
-		public static string StringToSha1( [NotNull] string s ) => s == null
+		public static string StringToSha1( [NotNull] string s ) => s is null
 			? throw new ArgumentNullException( nameof( s ) )
 			: string.Concat(
 				SHA1.Create()
@@ -91,7 +91,7 @@ StringComparer.Ordinal );
 			{
 				FileInfo expectedFileInfo = expectedChecksum.Key;
 				SHA1 expectedSha1 = expectedChecksum.Value;
-				if (expectedSha1?.Hash == null)
+				if (expectedSha1?.Hash is null)
 					continue;
 				string expectedSha1String = BitConverter.ToString( expectedSha1.Hash )
 					.Replace( oldValue: "-", newValue: "" );
@@ -173,7 +173,7 @@ StringComparer.Ordinal );
 			[CanBeNull] Dictionary<DirectoryInfo, SHA1> checksums
 		)
 		{
-			if (filePath == null)
+			if (filePath is null)
 				throw new ArgumentNullException( nameof( filePath ) );
 
 			string json = JsonConvert.SerializeObject( checksums );
@@ -186,7 +186,7 @@ StringComparer.Ordinal );
 		[ItemNotNull]
 		public static async Task<Dictionary<FileInfo, SHA1>> LoadChecksumsFromFileAsync( [NotNull] FileInfo filePath )
 		{
-			if (filePath == null)
+			if (filePath is null)
 				throw new ArgumentNullException( nameof( filePath ) );
 
 			if (!File.Exists( filePath.FullName ))
@@ -264,7 +264,7 @@ SHA1.Create();
 
 		private static bool TryConvertHexStringToBytes( [NotNull] string hexString, [CanBeNull] out byte[] bytes )
 		{
-			if (hexString == null)
+			if (hexString is null)
 				throw new ArgumentNullException( nameof( hexString ) );
 
 			int numberChars = hexString.Length;

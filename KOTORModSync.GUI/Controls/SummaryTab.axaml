@@ -184,9 +184,9 @@
                 <StackPanel>
                     <Border Classes="summary-header">
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock 
+                            <TextBlock
                                 Grid.Column="0"
-                                Classes="summary-section-title" 
+                                Classes="summary-section-title"
                                 Text="🔗 Download Links" />
                             <Button
                                 Grid.Column="1"
@@ -457,6 +457,7 @@
                                                     Content="🔗 Jump to Instruction"
                                                     DockPanel.Dock="Right"
                                                     FontSize="11"
+                                                    IsVisible="{Binding $parent[Window].EditorMode}"
                                                     Tag="{Binding .}"
                                                     ToolTip.Tip="Jump to this instruction in Editor tab" />
 

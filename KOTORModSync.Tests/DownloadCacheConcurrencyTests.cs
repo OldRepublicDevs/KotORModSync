@@ -23,18 +23,18 @@ namespace KOTORModSync.Tests
 		[SetUp]
 		public void Setup()
 		{
-			_testDirectory = Path.Combine( Path.GetTempPath(), "KOTORModSync_ConcurrencyTests_" + Path.GetRandomFileName() );
-			Directory.CreateDirectory( _testDirectory );
+			_testDirectory = Path.Combine(Path.GetTempPath(), "KOTORModSync_ConcurrencyTests_" + Path.GetRandomFileName());
+			Directory.CreateDirectory(_testDirectory);
 		}
 
 		[TearDown]
 		public void Teardown()
 		{
-			if (Directory.Exists( _testDirectory ))
+			if (Directory.Exists(_testDirectory))
 			{
 				try
 				{
-					Directory.Delete( _testDirectory, true );
+					Directory.Delete(_testDirectory, true);
 				}
 				catch
 				{
@@ -53,22 +53,22 @@ namespace KOTORModSync.Tests
 
 			for (int i = 0; i < 10; i++)
 			{
-				tasks.Add( Task.Run( async () =>
+				tasks.Add(Task.Run(async () =>
 				{
-					using (await DownloadCacheOptimizer.AcquireContentKeyLock( contentKey ).ConfigureAwait( false ))
+					using (await DownloadCacheOptimizer.AcquireContentKeyLock(contentKey).ConfigureAwait(false))
 					{
-						Interlocked.Increment( ref acquired );
-						await Task.Delay( 10 ).ConfigureAwait( false ); // Simulate work
-						Interlocked.Increment( ref released );
+						Interlocked.Increment(ref acquired);
+						await Task.Delay(10).ConfigureAwait(false); // Simulate work
+						Interlocked.Increment(ref released);
 					}
-				} ) );
+				}));
 			}
 
-			await Task.WhenAll( tasks );
+			await Task.WhenAll(tasks);
 
 			// All should have acquired and released
-			Assert.That( acquired, Is.EqualTo( 10 ) );
-			Assert.That( released, Is.EqualTo( 10 ) );
+			Assert.That(acquired, Is.EqualTo(10));
+			Assert.That(released, Is.EqualTo(10));
 		}
 
 		[Test]
@@ -81,25 +81,25 @@ namespace KOTORModSync.Tests
 
 			for (int i = 0; i < 5; i++)
 			{
-				tasks.Add( Task.Run( async () =>
+				tasks.Add(Task.Run(async () =>
 				{
-					using (await DownloadCacheOptimizer.AcquireContentKeyLock( contentKey ).ConfigureAwait( false ))
+					using (await DownloadCacheOptimizer.AcquireContentKeyLock(contentKey).ConfigureAwait(false))
 					{
-						int current = Interlocked.Increment( ref currentConcurrent );
+						int current = Interlocked.Increment(ref currentConcurrent);
 						if (current > maxConcurrent)
 						{
 							maxConcurrent = current;
 						}
-						await Task.Delay( 20 ).ConfigureAwait( false ); // Simulate work
-						Interlocked.Decrement( ref currentConcurrent );
+						await Task.Delay(20).ConfigureAwait(false); // Simulate work
+						Interlocked.Decrement(ref currentConcurrent);
 					}
-				} ) );
+				}));
 			}
 
-			await Task.WhenAll( tasks );
+			await Task.WhenAll(tasks);
 
 			// Max concurrent should be 1 (serialized access)
-			Assert.That( maxConcurrent, Is.EqualTo( 1 ) );
+			Assert.That(maxConcurrent, Is.EqualTo(1));
 		}
 
 		[Test]
@@ -112,25 +112,25 @@ namespace KOTORModSync.Tests
 			for (int i = 0; i < 5; i++)
 			{
 				string uniqueKey = $"key_{i}";
-				tasks.Add( Task.Run( async () =>
+				tasks.Add(Task.Run(async () =>
 				{
-					using (await DownloadCacheOptimizer.AcquireContentKeyLock( uniqueKey ).ConfigureAwait( false ))
+					using (await DownloadCacheOptimizer.AcquireContentKeyLock(uniqueKey).ConfigureAwait(false))
 					{
-						int current = Interlocked.Increment( ref currentConcurrent );
+						int current = Interlocked.Increment(ref currentConcurrent);
 						if (current > maxConcurrent)
 						{
 							maxConcurrent = current;
 						}
-						await Task.Delay( 50 ).ConfigureAwait( false ); // Simulate longer work
-						Interlocked.Decrement( ref currentConcurrent );
+						await Task.Delay(50).ConfigureAwait(false); // Simulate longer work
+						Interlocked.Decrement(ref currentConcurrent);
 					}
-				} ) );
+				}));
 			}
 
-			await Task.WhenAll( tasks );
+			await Task.WhenAll(tasks);
 
 			// Different keys should allow parallel access
-			Assert.That( maxConcurrent, Is.GreaterThan( 1 ) );
+			Assert.That(maxConcurrent, Is.GreaterThan(1));
 		}
 
 		[Test]
@@ -140,47 +140,46 @@ namespace KOTORModSync.Tests
 			var files = new List<string>();
 			for (int i = 0; i < 5; i++)
 			{
-				string file = Path.Combine( _testDirectory, $"test_{i}.txt" );
-				File.WriteAllText( file, $"Content {i}" );
-				files.Add( file );
+				string file = Path.Combine(_testDirectory, $"test_{i}.txt");
+				File.WriteAllText(file, $"Content {i}");
+				files.Add(file);
 			}
 
-			var tasks = files.Select( f => DownloadCacheOptimizer.ComputeFileIntegrityData( f ) ).ToList();
-			var results = await Task.WhenAll( tasks );
+			var tasks = files.Select(f => DownloadCacheOptimizer.ComputeFileIntegrityData(f)).ToList();
+			var results = await Task.WhenAll(tasks);
 
 			// All should succeed
-			Assert.That( results.Length, Is.EqualTo( 5 ) );
+			Assert.That(results.Length, Is.EqualTo(5));
 			foreach (var result in results)
 			{
-				Assert.That( result.contentHashSHA256, Has.Length.EqualTo( 64 ) );
-				Assert.That( result.pieceLength, Is.GreaterThan( 0 ) );
+				Assert.That(result.contentHashSHA256, Has.Length.EqualTo(64));
+				Assert.That(result.pieceLength, Is.GreaterThan(0));
 			}
 		}
 
 		[Test]
 		public async Task ComputeContentIdFromMetadata_ConcurrentCalls_ProduceConsistentResults()
 		{
-			var metadata = new Dictionary<string, object>
-( StringComparer.Ordinal )
+			var metadata = new Dictionary<string, object>(StringComparer.Ordinal)
 			{
 				["provider"] = "deadlystream",
 				["fileId"] = "test123",
-				["version"] = "1.0"
+				["version"] = "1.0",
 			};
 
 			string url = "https://example.com/test";
 
-			var tasks = Enumerable.Range( 0, 10 )
-				.Select( _ => Task.Run( () => DownloadCacheOptimizer.ComputeContentIdFromMetadata( metadata, url ) ) )
+			var tasks = Enumerable.Range(0, 10)
+				.Select(_ => Task.Run(() => DownloadCacheOptimizer.ComputeContentIdFromMetadata(metadata, url)))
 				.ToList();
 
-			var results = await Task.WhenAll( tasks );
+			var results = await Task.WhenAll(tasks);
 
 			// All results should be identical
 			string first = results[0];
 			foreach (var result in results)
 			{
-				Assert.That( result, Is.EqualTo( first ) );
+				Assert.That(result, Is.EqualTo(first));
 			}
 		}
 
@@ -192,15 +191,15 @@ namespace KOTORModSync.Tests
 			for (int i = 0; i < 10; i++)
 			{
 				string contentId = $"blocked_{i}";
-				tasks.Add( Task.Run( () => DownloadCacheOptimizer.BlockContentId( contentId, "test" ) ) );
+				tasks.Add(Task.Run(() => DownloadCacheOptimizer.BlockContentId(contentId, "test")));
 			}
 
-			await Task.WhenAll( tasks );
+			await Task.WhenAll(tasks);
 
 			// All should be blocked
 			for (int i = 0; i < 10; i++)
 			{
-				Assert.That( DownloadCacheOptimizer.IsContentIdBlocked( $"blocked_{i}" ), Is.True );
+				Assert.That(DownloadCacheOptimizer.IsContentIdBlocked($"blocked_{i}"), Is.True);
 			}
 		}
 
@@ -208,16 +207,16 @@ namespace KOTORModSync.Tests
 		public async Task IsContentIdBlocked_ConcurrentReads_AllSucceed()
 		{
 			string contentId = "read_test";
-			DownloadCacheOptimizer.BlockContentId( contentId, "test" );
+			DownloadCacheOptimizer.BlockContentId(contentId, "test");
 
-			var tasks = Enumerable.Range( 0, 20 )
-				.Select( _ => Task.Run( () => DownloadCacheOptimizer.IsContentIdBlocked( contentId ) ) )
+			var tasks = Enumerable.Range(0, 20)
+				.Select(_ => Task.Run(() => DownloadCacheOptimizer.IsContentIdBlocked(contentId)))
 				.ToList();
 
-			var results = await Task.WhenAll( tasks );
+			var results = await Task.WhenAll(tasks);
 
 			// All should return true
-			Assert.That( results.All( r => r ), Is.True );
+			Assert.That(results.All(r => r), Is.True);
 		}
 
 		[Test]
@@ -226,38 +225,38 @@ namespace KOTORModSync.Tests
 			long[] fileSizes = { 1024, 1024 * 1024, 10 * 1024 * 1024, 100 * 1024 * 1024 };
 
 			var tasks = fileSizes
-				.SelectMany( _ => Enumerable.Range( 0, 5 ) )
-				.Select( i => Task.Run( () => DownloadCacheOptimizer.DeterminePieceSize( fileSizes[i % fileSizes.Length] ) ) )
+				.SelectMany(_ => Enumerable.Range(0, 5))
+				.Select(i => Task.Run(() => DownloadCacheOptimizer.DeterminePieceSize(fileSizes[i % fileSizes.Length])))
 				.ToList();
 
-			var results = await Task.WhenAll( tasks );
+			var results = await Task.WhenAll(tasks);
 
 			// All should return valid piece sizes
 			foreach (var result in results)
 			{
-				Assert.That( result, Is.GreaterThan( 0 ) );
-				Assert.That( result, Is.LessThanOrEqualTo( 4194304 ) ); // Max 4MB
+				Assert.That(result, Is.GreaterThan(0));
+				Assert.That(result, Is.LessThanOrEqualTo(4194304)); // Max 4MB
 			}
 		}
 
 		[Test]
 		public async Task PartialFilePath_ConcurrentGeneration_ProducesUniqueFiles()
 		{
-			var tasks = Enumerable.Range( 0, 10 )
-				.Select( i => Task.Run( () =>
-					DownloadCacheOptimizer.GetPartialFilePath( $"content_{i}", _testDirectory ) ) )
+			var tasks = Enumerable.Range(0, 10)
+				.Select(i => Task.Run(() =>
+					DownloadCacheOptimizer.GetPartialFilePath($"content_{i}", _testDirectory)))
 				.ToList();
 
-			var paths = await Task.WhenAll( tasks );
+			var paths = await Task.WhenAll(tasks);
 
 			// All paths should be unique
-			var uniquePaths = paths.Distinct( StringComparer.Ordinal ).ToList();
-			Assert.That( uniquePaths.Count, Is.EqualTo( 10 ) );
+			var uniquePaths = paths.Distinct(StringComparer.Ordinal).ToList();
+			Assert.That(uniquePaths.Count, Is.EqualTo(10));
 
 			// All should be in .partial directory
 			foreach (var path in paths)
 			{
-				Assert.That( path, Does.Contain( ".partial" ) );
+				Assert.That(path, Does.Contain(".partial"));
 			}
 		}
 
@@ -266,16 +265,16 @@ namespace KOTORModSync.Tests
 		{
 			string contentKey = "timeout_test";
 
-			using (await DownloadCacheOptimizer.AcquireContentKeyLock( contentKey ))
+			using (await DownloadCacheOptimizer.AcquireContentKeyLock(contentKey))
 			{
 				// Try to acquire again from another task (should wait)
-				var task = Task.Run( async () =>
+				var task = Task.Run(async () =>
 				{
-					using (var cts = new CancellationTokenSource( TimeSpan.FromMilliseconds( 100 ) ))
+					using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100)))
 					{
 						try
 						{
-							using (await DownloadCacheOptimizer.AcquireContentKeyLock( contentKey ).ConfigureAwait( false ))
+							using (await DownloadCacheOptimizer.AcquireContentKeyLock(contentKey).ConfigureAwait(false))
 							{
 								return "acquired";
 							}
@@ -285,10 +284,10 @@ namespace KOTORModSync.Tests
 							return "timeout";
 						}
 					}
-				} );
+				});
 
 				// The inner lock should timeout since we're holding the outer one
-				await Task.Delay( 200 );
+				await Task.Delay(200);
 
 				// Complete to avoid deadlock
 			}

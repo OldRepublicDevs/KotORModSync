@@ -10,14 +10,14 @@ namespace KOTORModSync.Core.Parsing
 	{
 		public IList<ModComponent> Components { get; set; } = new List<ModComponent>();
 		public IList<string> Warnings { get; set; } = new List<string>();
-		public IDictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>( System.StringComparer.Ordinal );
+		public IDictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>(System.StringComparer.Ordinal);
 
-		public string BeforeModListContent { get; set; } = string.Empty;
+		public string PreambleContent { get; set; } = string.Empty;
 
-		public string AfterModListContent { get; set; } = string.Empty;
+		public string EpilogueContent { get; set; } = string.Empty;
 
-		public string WidescreenSectionContent { get; set; } = string.Empty;
+		public string WidescreenWarningContent { get; set; } = string.Empty;
 
-		public string AspyrSectionContent { get; set; } = string.Empty;
+		public string AspyrExclusiveWarningContent { get; set; } = string.Empty;
 	}
 }

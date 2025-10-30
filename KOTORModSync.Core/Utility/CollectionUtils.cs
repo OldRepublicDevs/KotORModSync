@@ -22,7 +22,7 @@ namespace KOTORModSync.Core.Utility
 
 			foreach (KeyValuePair<string, object> kvp in thisTable)
 			{
-				if (kvp.Key == null)
+				if (kvp.Key is null)
 					continue;
 
 				switch (kvp.Value)

@@ -58,7 +58,7 @@ namespace KOTORModSync.Converters
 						continue;
 
 					Dictionary<string, Dictionary<string, string>> result = IniHelper.ReadNamespacesIniFromArchive( archivePath );
-					if (result == null || result.Count == 0)
+					if (result is null || result.Count == 0)
 						continue;
 
 					var optionNames = new List<string>();

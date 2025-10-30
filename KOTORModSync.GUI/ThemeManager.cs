@@ -73,7 +73,7 @@ namespace KOTORModSync
 			if (!string.IsNullOrEmpty(s_currentTheme))
 				return s_currentTheme;
 
-			if (s_currentStyleUri == null)
+			if (s_currentStyleUri is null)
 				return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
 
 			string path = s_currentStyleUri.ToString();

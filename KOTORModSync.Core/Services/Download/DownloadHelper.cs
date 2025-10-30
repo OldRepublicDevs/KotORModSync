@@ -11,7 +11,6 @@ namespace KOTORModSync.Core.Services.Download
 {
 
 
-
 	public static class DownloadHelper
 	{
 		private const int BufferSize = 8192;
@@ -25,42 +24,38 @@ namespace KOTORModSync.Core.Services.Download
 			string url,
 			IProgress<DownloadProgress> progress = null,
 			string modName = null,
-			CancellationToken cancellationToken = default )
+			CancellationToken cancellationToken = default)
 		{
 
 			DateTime startTime = DateTime.Now;
 
-			using (FileStream fileStream = new FileStream( destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, useAsync: true ))
+			using (FileStream fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, useAsync: true))
 			{
 				byte[] buffer = new byte[BufferSize];
 				int bytesRead;
 				long totalBytesRead = 0;
 				DateTimeOffset lastProgressUpdate = DateTimeOffset.UtcNow;
 
-				while ((bytesRead = await sourceStream.ReadAsync( buffer, 0, buffer.Length, cancellationToken ).ConfigureAwait( false )) > 0)
+				while ((bytesRead = await sourceStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
 				{
 
 					cancellationToken.ThrowIfCancellationRequested();
 
 
 
-
-					await fileStream.WriteAsync( buffer, 0, bytesRead, cancellationToken ).ConfigureAwait( false );
+					await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
 					totalBytesRead += bytesRead;
-
 
 					DateTimeOffset now = DateTimeOffset.UtcNow;
 					if ((now - lastProgressUpdate).TotalMilliseconds >= ProgressUpdateIntervalMs)
 					{
 						lastProgressUpdate = now;
 
-
 						double progressPercentage = totalBytes > 0
 							? (double)totalBytesRead / totalBytes * 100.0
 							: 0;
 
-
-						progress?.Report( new DownloadProgress
+						progress?.Report(new DownloadProgress
 						{
 							ModName = modName,
 							Url = url,
@@ -68,24 +63,21 @@ namespace KOTORModSync.Core.Services.Download
 							StatusMessage = totalBytes > 0
 								? $"Downloading {fileName}... ({totalBytesRead:N0} / {totalBytes:N0} bytes)"
 								: $"Downloading {fileName}... ({totalBytesRead:N0} bytes)",
-							ProgressPercentage = totalBytes > 0 ? Math.Min( progressPercentage, 100 ) : 0,
+							ProgressPercentage = totalBytes > 0 ? Math.Min(progressPercentage, 100) : 0,
 							BytesDownloaded = totalBytesRead,
 							TotalBytes = totalBytes,
 							StartTime = startTime,
-							FilePath = destinationPath
-						} );
-
+							FilePath = destinationPath,
+						});
 
 					}
 				}
 
-
-				await fileStream.FlushAsync( cancellationToken ).ConfigureAwait( false );
-
+				await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
 				if (totalBytes > 0)
 				{
-					progress?.Report( new DownloadProgress
+					progress?.Report(new DownloadProgress
 					{
 						ModName = modName,
 						Url = url,
@@ -95,8 +87,8 @@ namespace KOTORModSync.Core.Services.Download
 						BytesDownloaded = totalBytesRead,
 						TotalBytes = totalBytes,
 						StartTime = startTime,
-						FilePath = destinationPath
-					} );
+						FilePath = destinationPath,
+					});
 				}
 
 				return totalBytesRead;

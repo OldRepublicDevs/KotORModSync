@@ -24,7 +24,7 @@ namespace KOTORModSync.Converters
 
 				if (instruction.Action == Instruction.ActionType.Choose)
 				{
-					if (instruction.Source == null || instruction.Source.Count == 0)
+					if (instruction.Source is null || instruction.Source.Count == 0)
 						return "Choose (no options)";
 
 					var componentNames = (from guidString in instruction.Source
@@ -35,7 +35,7 @@ namespace KOTORModSync.Converters
 					return string.Join( " ", componentNames );
 				}
 
-				if (instruction.Source == null || instruction.Source.Count == 0)
+				if (instruction.Source is null || instruction.Source.Count == 0)
 					return string.Empty;
 
 				return string.Join( Environment.NewLine, instruction.Source );

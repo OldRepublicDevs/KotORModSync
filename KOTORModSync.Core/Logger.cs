@@ -41,9 +41,9 @@ namespace KOTORModSync.Core
 				}
 
 				// Configure NLog with debug logging setting
-				GlobalDiagnosticsContext.Set( "DebugLogging", MainConfig.DebugLogging.ToString().ToLower() );
+				GlobalDiagnosticsContext.Set("DebugLogging", MainConfig.DebugLogging.ToString().ToLower());
 
-				Log( $"Logging initialized at {DateTime.Now}" );
+				Log($"Logging initialized at {DateTime.Now}");
 				AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 				TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 			}
@@ -59,24 +59,24 @@ namespace KOTORModSync.Core
 			try
 			{
 				// Log using NLog
-				s_logger.Log( level, internalMessage );
+				s_logger.Log(level, internalMessage);
 
 				// Invoke the Logged event for backward compatibility
 				string logMessage = $"[{DateTime.Now}] {internalMessage}";
-				Logged?.Invoke( logMessage );
+				Logged?.Invoke(logMessage);
 
 				// Output to appropriate destination based on context
 				if (IsRunningInTestContext())
 				{
 					// During tests, use Console.Error for better visibility and less buffering
 					// Console.Error is often more reliable than Console.Out in test environments
-					Console.Error.WriteLine( logMessage );
+					Console.Error.WriteLine(logMessage);
 					Console.Error.Flush();
 				}
 				else
 				{
 					// Use Console.WriteLine for normal runtime
-					Console.WriteLine( logMessage );
+					Console.WriteLine(logMessage);
 				}
 			}
 			catch (Exception ex)
@@ -84,19 +84,19 @@ namespace KOTORModSync.Core
 				string errorMessage = $"Exception occurred in LogInternalAsync: {ex}";
 				if (IsRunningInTestContext())
 				{
-					Console.Error.WriteLine( errorMessage );
+					Console.Error.WriteLine(errorMessage);
 					Console.Error.Flush();
 				}
 				else
 				{
-					Console.WriteLine( errorMessage );
+					Console.WriteLine(errorMessage);
 
 
 				}
 			}
 
 			// Add a small delay to make it actually async and ensure proper sequencing
-			await Task.Delay( 1 ).ConfigureAwait( false );
+			await Task.Delay(1).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -119,18 +119,18 @@ namespace KOTORModSync.Core
 				{
 					string assemblyName = assembly.GetName().Name?.ToLowerInvariant();
 					if (assemblyName != null &&
-						(assemblyName.Contains( "nunit" ) ||
-						 assemblyName.Contains( "xunit" ) ||
-						 assemblyName.Contains( "mstest" ) ||
-						 assemblyName.Contains( "test" )))
+						(assemblyName.Contains("nunit") ||
+						 assemblyName.Contains("xunit") ||
+						 assemblyName.Contains("mstest") ||
+						 assemblyName.Contains("test")))
 					{
 						return true;
 					}
 				}
 
 				// Check for test-related environment variables
-				string testEnvironment = Environment.GetEnvironmentVariable( "DOTNET_TEST_RUNNER" );
-				if (!string.IsNullOrEmpty( testEnvironment ))
+				string testEnvironment = Environment.GetEnvironmentVariable("DOTNET_TEST_RUNNER");
+				if (!string.IsNullOrEmpty(testEnvironment))
 				{
 					return true;
 				}
@@ -140,7 +140,7 @@ namespace KOTORModSync.Core
 				try
 				{
 					string processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName.ToLowerInvariant();
-					if (processName.Contains( "test" ) || processName.Contains( "nunit" ) || processName.Contains( "xunit" ))
+					if (processName.Contains("test") || processName.Contains("nunit") || processName.Contains("xunit"))
 					{
 						return true;
 					}
@@ -166,31 +166,31 @@ namespace KOTORModSync.Core
 		/// <param name="count">Number of recent messages to retrieve (default: 50)</param>
 		/// <returns>List of recent log messages, most recent last</returns>
 		[NotNull]
-		public static List<string> GetRecentLogMessages( int count = 50 )
+		public static List<string> GetRecentLogMessages(int count = 50)
 		{
 			try
 			{
-				MemoryTarget memoryTarget = LogManager.Configuration?.FindTargetByName<MemoryTarget>( "memory" );
-				if (memoryTarget == null)
+				MemoryTarget memoryTarget = LogManager.Configuration?.FindTargetByName<MemoryTarget>("memory");
+				if (memoryTarget is null)
 				{
 					return new List<string>();
 				}
 
 				IList<string> logs = memoryTarget.Logs;
-				int takeCount = Math.Min( count, logs.Count );
-				return logs.Skip( logs.Count - takeCount ).ToList();
+				int takeCount = Math.Min(count, logs.Count);
+				return logs.Skip(logs.Count - takeCount).ToList();
 			}
 			catch (Exception ex)
 			{
 				string errorMessage = $"Exception occurred in GetRecentLogMessages: {ex}";
 				if (IsRunningInTestContext())
 				{
-					Console.Error.WriteLine( errorMessage );
+					Console.Error.WriteLine(errorMessage);
 					Console.Error.Flush();
 				}
 				else
 				{
-					Console.WriteLine( errorMessage );
+					Console.WriteLine(errorMessage);
 				}
 				return new List<string>();
 			}
@@ -203,7 +203,7 @@ namespace KOTORModSync.Core
 		{
 			try
 			{
-				MemoryTarget memoryTarget = LogManager.Configuration?.FindTargetByName<MemoryTarget>( "memory" );
+				MemoryTarget memoryTarget = LogManager.Configuration?.FindTargetByName<MemoryTarget>("memory");
 				memoryTarget?.Logs.Clear();
 			}
 			catch (Exception ex)
@@ -211,46 +211,59 @@ namespace KOTORModSync.Core
 				string errorMessage = $"Exception occurred in ClearLogHistory: {ex}";
 				if (IsRunningInTestContext())
 				{
-					Console.Error.WriteLine( errorMessage );
+					Console.Error.WriteLine(errorMessage);
 					Console.Error.Flush();
 				}
 				else
 				{
-					Console.WriteLine( errorMessage );
+					Console.WriteLine(errorMessage);
 				}
 			}
 		}
-		public static void Log( [CanBeNull] string message = null, bool fileOnly = false ) =>
-			_ = LogInternalAsync( message, LogLevel.Info );
+		public static void Log([CanBeNull] string message = null, bool fileOnly = false) =>
+			_ = LogInternalAsync(message, LogLevel.Info);
+
 		[NotNull]
-		public static Task LogAsync( [CanBeNull] string message = "" ) => LogInternalAsync( message, LogLevel.Info );
-		public static void LogVerbose( [CanBeNull] string message ) =>
-			_ = LogInternalAsync( $"[Verbose] {message}", LogLevel.Debug );
+		public static Task LogAsync([CanBeNull] string message = "") => LogInternalAsync(message, LogLevel.Info);
+
+		public static void LogInfo([CanBeNull] string message = null, bool fileOnly = false) =>
+			_ = LogInternalAsync(message, LogLevel.Info);
+
 		[NotNull]
-		public static Task LogVerboseAsync( [CanBeNull] string message ) =>
-			LogInternalAsync( $"[Verbose] {message}", LogLevel.Debug );
-		public static void LogWarning( [NotNull] string message ) =>
-			_ = LogInternalAsync( $"[Warning] {message}", LogLevel.Warn );
+		public static Task LogInfoAsync([CanBeNull] string message = "") => LogInternalAsync(message, LogLevel.Info);
+
+		public static void LogVerbose([CanBeNull] string message) =>
+			_ = LogInternalAsync($"[Verbose] {message}", LogLevel.Debug);
+
 		[NotNull]
-		public static Task LogWarningAsync( [NotNull] string message ) =>
-			LogInternalAsync( $"[Warning] {message}", LogLevel.Warn );
-		public static void LogError( [CanBeNull] string message ) =>
-			_ = LogInternalAsync( $"[Error] {message}", LogLevel.Error );
+		public static Task LogVerboseAsync([CanBeNull] string message) =>
+			LogInternalAsync($"[Verbose] {message}", LogLevel.Debug);
+
+		public static void LogWarning([NotNull] string message) =>
+			_ = LogInternalAsync($"[Warning] {message}", LogLevel.Warn);
+
 		[NotNull]
-		public static Task LogErrorAsync( [CanBeNull] string message ) =>
-			LogInternalAsync( $"[Error] {message}", LogLevel.Error );
-		public static void LogException( [CanBeNull] Exception ex, [CanBeNull] string customMessage = null ) =>
-			_ = LogExceptionAsync( ex, customMessage );
+		public static Task LogWarningAsync([NotNull] string message) =>
+			LogInternalAsync($"[Warning] {message}", LogLevel.Warn);
+
+		public static void LogError([CanBeNull] string message) =>
+			_ = LogInternalAsync($"[Error] {message}", LogLevel.Error);
+
 		[NotNull]
-		public static async Task LogExceptionAsync( [CanBeNull] Exception ex, [CanBeNull] string customMessage = null )
+		public static Task LogErrorAsync([CanBeNull] string message) =>
+			LogInternalAsync($"[Error] {message}", LogLevel.Error);
+
+		public static void LogException([CanBeNull] Exception ex, [CanBeNull] string customMessage = null) =>
+			_ = LogExceptionAsync(ex, customMessage);
+		[NotNull]
+		public static async Task LogExceptionAsync([CanBeNull] Exception ex, [CanBeNull] string customMessage = null)
 		{
 			ex = ex ?? new ApplicationException();
 
-
-			await LogErrorAsync( customMessage ?? $"Unhandled exception: {ex.GetType().Name}" ).ConfigureAwait( false );
-			await LogInternalAsync( $"Exception: {ex.GetType().Name} - {ex.Message}", LogLevel.Error ).ConfigureAwait( false );
-			await LogInternalAsync( $"Stack trace:{Environment.NewLine}{ex.StackTrace}", LogLevel.Error ).ConfigureAwait( false );
-			ExceptionLogged?.Invoke( ex );
+			await LogErrorAsync(customMessage ?? $"Unhandled exception: {ex.GetType().Name}").ConfigureAwait(false);
+			await LogInternalAsync($"Exception: {ex.GetType().Name} - {ex.Message}", LogLevel.Error).ConfigureAwait(false);
+			await LogInternalAsync($"Stack trace:{Environment.NewLine}{ex.StackTrace}", LogLevel.Error).ConfigureAwait(false);
+			ExceptionLogged?.Invoke(ex);
 
 			// Send exception to telemetry service
 			try
@@ -268,12 +281,12 @@ namespace KOTORModSync.Core
 				string errorMessage = $"Failed to send exception to telemetry: {telemetryEx.Message}";
 				if (IsRunningInTestContext())
 				{
-					Console.Error.WriteLine( errorMessage );
+					Console.Error.WriteLine(errorMessage);
 					Console.Error.Flush();
 				}
 				else
 				{
-					Console.WriteLine( errorMessage );
+					Console.WriteLine(errorMessage);
 				}
 			}
 		}
@@ -284,10 +297,10 @@ namespace KOTORModSync.Core
 		{
 			if (!(e?.ExceptionObject is Exception ex))
 			{
-				LogError( "current appdomain's unhandled exception did not have a valid exception handle?" );
+				LogError("current appdomain's unhandled exception did not have a valid exception handle?");
 				return;
 			}
-			LogException( ex );
+			LogException(ex);
 		}
 		private static void TaskScheduler_UnobservedTaskException(
 			[NotNull] object sender,
@@ -296,12 +309,12 @@ namespace KOTORModSync.Core
 		{
 			if (e?.Exception is null)
 			{
-				LogError( "appdomain's unhandledexception did not have a valid exception handle?" );
+				LogError("appdomain's unhandledexception did not have a valid exception handle?");
 				return;
 			}
 			foreach (Exception ex in e.Exception.InnerExceptions)
 			{
-				LogException( ex );
+				LogException(ex);
 			}
 			e.SetObserved();
 		}

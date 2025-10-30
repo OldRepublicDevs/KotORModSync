@@ -44,7 +44,7 @@ namespace KOTORModSync.Converters
 			{
 				valueDisplay = $"[{string.Join(", ", enumerablePaths.Select(p => $"'{p}'"))}]";
 			}
-			else if (value == null)
+			else if (value is null)
 			{
 				valueDisplay = "null";
 			}
@@ -146,7 +146,7 @@ namespace KOTORModSync.Converters
 
 			Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - MainConfig.SourcePath: {MainConfig.SourcePath?.FullName ?? "null"}, MainConfig.DestinationPath: {MainConfig.DestinationPath?.FullName ?? "null"}" );
 
-			if (MainConfig.SourcePath == null && MainConfig.DestinationPath == null)
+			if (MainConfig.SourcePath is null && MainConfig.DestinationPath is null)
 			{
 				Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - Both config paths are null, returning path as-is" );
 				return path;

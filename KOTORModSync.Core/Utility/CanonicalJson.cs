@@ -28,7 +28,7 @@ namespace KOTORModSync.Core.Utility
 		/// </summary>
 		public static string Serialize( Dictionary<string, object> obj )
 		{
-			if (obj == null)
+			if (obj is null)
 				return "null";
 
 			StringBuilder sb = new StringBuilder();
@@ -57,7 +57,7 @@ hash = sha.ComputeHash(bytes);
 
 		private static void SerializeValue( object value, StringBuilder sb )
 		{
-			if (value == null)
+			if (value is null)
 			{
 				sb.Append( "null" );
 			}

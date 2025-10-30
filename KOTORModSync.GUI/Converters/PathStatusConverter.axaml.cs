@@ -27,7 +27,7 @@ namespace KOTORModSync.Converters
 
 			if (value is System.Collections.Generic.List<string> pathList)
 			{
-				if (pathList == null || pathList.Count == 0)
+				if (pathList is null || pathList.Count == 0)
 					return "❓ Empty";
 
 				return ValidateSinglePath( pathList.FirstOrDefault(), instruction );

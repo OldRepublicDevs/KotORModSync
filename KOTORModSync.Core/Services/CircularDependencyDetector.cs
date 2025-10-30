@@ -20,7 +20,6 @@ namespace KOTORModSync.Core.Services
 			public string DetailedErrorMessage { get; set; }
 		}
 
-
 		public static CircularDependencyResult DetectCircularDependencies( List<ModComponent> components )
 		{
 			CircularDependencyResult result = new CircularDependencyResult();
@@ -112,7 +111,6 @@ namespace KOTORModSync.Core.Services
 			return result;
 		}
 
-
 		private static bool DfsDetectCycle(
 			Guid node,
 			Dictionary<Guid, List<Guid>> graph,
@@ -157,7 +155,6 @@ namespace KOTORModSync.Core.Services
 			currentPath.RemoveAt( currentPath.Count - 1 );
 			return false;
 		}
-
 
 		public static List<ModComponent> SuggestComponentsToRemove( CircularDependencyResult result )
 		{

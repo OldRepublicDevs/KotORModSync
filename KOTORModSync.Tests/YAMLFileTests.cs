@@ -99,7 +99,7 @@ Instructions:
 							Source = new List<string> { "%temp%\\mod_files\\Dantooine HR\\" },
 							Destination = "%temp%\\Override"
 						}
-					}
+					},
 				},
 				new ModComponent
 				{
@@ -119,7 +119,7 @@ Instructions:
 							Source = new List<string> { "%temp%\\mod_files\\TSLPatcher.exe" }
 						}
 					}
-				}
+				},
 			};
 
 			string serializedYaml = ModComponentSerializationService.SerializeModComponentAsYamlString(originalComponents);
@@ -161,7 +161,7 @@ Instructions:
 						Action = Instruction.ActionType.Extract,
 						Source = new List<string> { "test.rar" }
 					}
-				}
+				},
 			};
 
 			string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString([newComponent]);
@@ -211,7 +211,7 @@ Instructions:
 					Name = "Test Component",
 					Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
 					IsSelected = true,
-				}
+				},
 			};
 
 			// Serialize to YAML
@@ -347,7 +347,7 @@ Instructions:
 					Name = "Second Component",
 					Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
 					IsSelected = true,
-				}
+				},
 			};
 
 			// Modify the first component
@@ -369,8 +369,8 @@ Instructions:
 		}
 
 		[Test]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        public void SaveAndLoadYAMLFile_MultipleRounds()
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		public void SaveAndLoadYAMLFile_MultipleRounds()
 		{
 
 			List<List<ModComponent>> rounds =
@@ -446,8 +446,8 @@ Instructions:
 		}
 
 		[Test]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        public void Instruction_ConditionalSerialization_OnlyRelevantFieldsAreIncluded()
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		public void Instruction_ConditionalSerialization_OnlyRelevantFieldsAreIncluded()
 		{
 
 			var extractComponent = new ModComponent
@@ -464,7 +464,7 @@ Instructions:
 					Destination = "some/path",
 					Arguments = "some args"
 				}
-			}
+			},
 			};
 			string extractYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([extractComponent]);
 			Assert.Multiple(() =>
@@ -488,7 +488,7 @@ Instructions:
 					Overwrite = false,  // Set to false so it gets serialized (different from default)
 					Arguments = "should not appear"
 				}
-			}
+			},
 			};
 			string moveYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([moveComponent]);
 			Assert.Multiple(() =>
@@ -512,7 +512,7 @@ Instructions:
 					Arguments = "0",
 					Overwrite = true
 				}
-			}
+			},
 			};
 			string patcherYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([patcherComponent]);
 			Assert.Multiple(() =>
@@ -536,7 +536,7 @@ Instructions:
 					Overwrite = true,
 					Destination = "some/path"
 				}
-			}
+			},
 			};
 			string executeYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([executeComponent]);
 			Assert.Multiple(() =>
@@ -557,7 +557,7 @@ Instructions:
 				Guid = Guid.NewGuid(),
 				IsDownloaded = true,
 				InstallState = ModComponent.ComponentInstallState.Completed,
-				IsSelected = true
+				IsSelected = true,
 			};
 
 			string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString([component]);

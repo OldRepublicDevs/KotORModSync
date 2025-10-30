@@ -39,31 +39,25 @@ namespace KOTORModSync.Services
 		}
 
 		public async Task<int> GenerateInstructionsFromModLinksAsync( ModComponent component )
-
-
 		{
 			try
 			{
-				await Logger.LogVerboseAsync( "[InstructionGenerationService] START GenerateInstructionsFromModLinks" )
-
-.ConfigureAwait( false );
+				await Logger.LogVerboseAsync( "[InstructionGenerationService] START GenerateInstructionsFromModLinks" ).ConfigureAwait( false );
 
 				// Validation (GUI-specific)
-				if (component.ModLinkFilenames == null || component.ModLinkFilenames.Count == 0)
+				if (component.ModLinkFilenames is null || component.ModLinkFilenames.Count == 0)
 				{
 					await InformationDialog.ShowInformationDialogAsync(
 						_parentWindow,
-
-
-						"No mod link filenames available for this component" ).ConfigureAwait( false );
+						"No mod link filenames available for this component" ).ConfigureAwait( true );
 					return 0;
 				}
 
-				if (_mainConfig.sourcePath == null || !_mainConfig.sourcePath.Exists)
+				if (_mainConfig.sourcePath is null || !_mainConfig.sourcePath.Exists)
 				{
 					await InformationDialog.ShowInformationDialogAsync(
 						_parentWindow,
-						"Source path is not set. Please configure the mod directory first." ).ConfigureAwait( false );
+						"Source path is not set. Please configure the mod directory first." ).ConfigureAwait( true );
 					return 0;
 				}
 
@@ -110,7 +104,7 @@ namespace KOTORModSync.Services
 							noButtonText: "Skip (Generate Placeholder Instructions)",
 							yesButtonTooltip: "Download the missing files now.",
 							noButtonTooltip: "Skip (Generate Placeholder Instructions).",
-							closeButtonTooltip: "Cancel the download process." ).ConfigureAwait( false );
+							closeButtonTooltip: "Cancel the download process." ).ConfigureAwait( true );
 
 						if (shouldDownload is null)
 						{
@@ -154,8 +148,6 @@ namespace KOTORModSync.Services
 					int totalInstructionsGenerated = await AutoInstructionGenerator.GenerateInstructionsFromAnalyzedFilesAsync(
 						component,
 						analysis,
-
-
 						_mainConfig.sourcePath.FullName ).ConfigureAwait( false );
 
 					// Step 4: Update component state and show results (GUI-specific)
@@ -176,15 +168,14 @@ namespace KOTORModSync.Services
 							_parentWindow,
 
 
-							message ).ConfigureAwait( false );
+							message ).ConfigureAwait( true );
 					}
 					else
 					{
 						await InformationDialog.ShowInformationDialogAsync(
 							_parentWindow,
-
-
-							"Could not generate any instructions from the available mod links. Please check that the files exist and are in the correct format." ).ConfigureAwait( false );
+							"Could not generate any instructions from the available mod links. Please check that the files exist and are in the correct format."
+						).ConfigureAwait( true );
 					}
 
 					return totalInstructionsGenerated;
@@ -197,35 +188,20 @@ namespace KOTORModSync.Services
 				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
 				await InformationDialog.ShowInformationDialogAsync(
 					_parentWindow,
-
-
-					$"Error generating instructions from mod links: {ex.Message}" ).ConfigureAwait( false );
+					$"Error generating instructions from mod links: {ex.Message}"
+				).ConfigureAwait( true );
 				return 0;
 			}
 		}
 
 		public async Task<bool> GenerateInstructionsFromArchiveAsync( ModComponent component, Func<Task<string[]>> showFileDialog )
-
-
 		{
 			try
 			{
-				await Logger.LogVerboseAsync( "[InstructionGenerationService] START GenerateInstructionsFromArchive" )
-
-
-
-
-
-
-
-
-
-
-
-.ConfigureAwait( false );
+				await Logger.LogVerboseAsync( "[InstructionGenerationService] START GenerateInstructionsFromArchive" ).ConfigureAwait( false );
 
 				// Show file dialog (GUI-specific)
-				string[] filePaths = await showFileDialog().ConfigureAwait( false );
+				string[] filePaths = await showFileDialog().ConfigureAwait( true );
 
 				if (filePaths is null || filePaths.Length == 0)
 				{
@@ -241,7 +217,7 @@ namespace KOTORModSync.Services
 				{
 					await InformationDialog.ShowInformationDialogAsync(
 						_parentWindow,
-						"The selected file does not exist" ).ConfigureAwait( false );
+						"The selected file does not exist" ).ConfigureAwait( true );
 					return false;
 				}
 
@@ -249,7 +225,7 @@ namespace KOTORModSync.Services
 				{
 					await InformationDialog.ShowInformationDialogAsync(
 						_parentWindow,
-						"The selected file is not a supported archive format (.zip, .rar, .7z)" ).ConfigureAwait( false );
+						"The selected file is not a supported archive format (.zip, .rar, .7z)" ).ConfigureAwait( true );
 					return false;
 				}
 
@@ -259,47 +235,37 @@ namespace KOTORModSync.Services
 
 				// Show results (GUI-specific)
 				if (success)
-
-
 				{
 					await Logger.LogVerboseAsync( $"[InstructionGenerationService] Successfully generated {component.Instructions.Count} instructions" ).ConfigureAwait( false );
 					await InformationDialog.ShowInformationDialogAsync(
 						_parentWindow,
-
-
-						$"Successfully generated {component.Instructions.Count} instructions from the archive.\n\nInstallation Method: {component.InstallationMethod}" ).ConfigureAwait( false );
+						$"Successfully generated {component.Instructions.Count} instructions from the archive.\n\nInstallation Method: {component.InstallationMethod}" ).ConfigureAwait( true );
 					return true;
-
-
 				}
 				else
 				{
 					await Logger.LogVerboseAsync( "[InstructionGenerationService] AutoInstructionGenerator returned false" ).ConfigureAwait( false );
 					await InformationDialog.ShowInformationDialogAsync(
 						_parentWindow,
-
-
-						"Could not generate instructions from the selected archive. The archive may not contain recognizable game files or TSLPatcher components." ).ConfigureAwait( false );
+						"Could not generate instructions from the selected archive. The archive may not contain recognizable game files or TSLPatcher components." ).ConfigureAwait( true );
 					return false;
 				}
 			}
 			catch (Exception ex)
-
-
 			{
 				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
 				await InformationDialog.ShowInformationDialogAsync(
 					_parentWindow,
 
 
-					$"Error generating instructions from archive: {ex.Message}" ).ConfigureAwait( false );
+					$"Error generating instructions from archive: {ex.Message}" ).ConfigureAwait( true );
 				return false;
 			}
 		}
 
 		public static async Task<int> TryAutoGenerateInstructionsForComponentsAsync( List<ModComponent> components )
 		{
-			if (components == null || components.Count == 0)
+			if (components is null || components.Count == 0)
 				return 0;
 
 			try
@@ -316,26 +282,19 @@ namespace KOTORModSync.Services
 						continue;
 					}
 
-					bool success = Core.Services.AutoInstructionGenerator.TryGenerateInstructionsFromArchive( component );
+					bool success = AutoInstructionGenerator.TryGenerateInstructionsFromArchive( component );
 					if (!success)
 						continue;
 
 					generatedCount++;
-
-
 					await Logger.LogAsync( $"Auto-generated instructions for '{component.Name}': {component.InstallationMethod}" ).ConfigureAwait( false );
 				}
 
 				if (generatedCount > 0)
-
-
 					await Logger.LogAsync( $"Auto-generated instructions for {generatedCount} component(s). Skipped {skippedCount} component(s) that already had instructions." ).ConfigureAwait( false );
-
 				return generatedCount;
 			}
 			catch (Exception ex)
-
-
 			{
 				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
 				return 0;

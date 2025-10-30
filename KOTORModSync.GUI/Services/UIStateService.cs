@@ -102,7 +102,7 @@ namespace KOTORModSync.Services
 
 	private static void UpdateStepCompletion( Border stepBorder, Border indicator, TextBlock text, bool isComplete )
 	{
-		if (stepBorder == null || indicator == null || text == null)
+		if (stepBorder is null || indicator is null || text is null)
 			return;
 
 		if (isComplete)

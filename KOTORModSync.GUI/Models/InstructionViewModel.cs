@@ -79,7 +79,7 @@ namespace KOTORModSync.Models
 		private static List<string> ResolveGuidNames( List<Guid> guids )
 		{
 			var names = new List<string>();
-			if (guids == null || guids.Count == 0)
+			if (guids is null || guids.Count == 0)
 				return names;
 
 			foreach (Guid guid in guids)
@@ -95,7 +95,7 @@ namespace KOTORModSync.Models
 				foreach (ModComponent comp in MainConfig.AllComponents)
 				{
 					Option option = comp.Options.FirstOrDefault( o => o.Guid == guid );
-					if (option == null)
+					if (option is null)
 						continue;
 					names.Add( $"[Option] {comp.Name} → {option.Name}" );
 					break;

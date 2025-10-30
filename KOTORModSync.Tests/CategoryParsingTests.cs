@@ -20,14 +20,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Bugfix & Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component?.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Bugfix & Graphics Improvement" ) );
-			} );
+				Assert.That(component?.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -41,14 +41,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Graphics Improvement & Bugfix""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component?.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Graphics Improvement & Bugfix" ) );
-			} );
+				Assert.That(component?.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Graphics Improvement & Bugfix"));
+			});
 		}
 
 		[Test]
@@ -62,15 +62,15 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Bugfix & Graphics Improvement, Immersion""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component?.Category, Has.Count.EqualTo( 2 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Bugfix & Graphics Improvement" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Immersion" ) );
-			} );
+				Assert.That(component?.Category, Has.Count.EqualTo(2));
+				Assert.That(component.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"));
+				Assert.That(component.Category[1], Is.EqualTo("Immersion"));
+			});
 		}
 
 		[Test]
@@ -84,15 +84,15 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Graphics; Immersion""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component?.Category, Has.Count.EqualTo( 2 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Graphics" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Immersion" ) );
-			} );
+				Assert.That(component?.Category, Has.Count.EqualTo(2));
+				Assert.That(component.Category[0], Is.EqualTo("Graphics"));
+				Assert.That(component.Category[1], Is.EqualTo("Immersion"));
+			});
 		}
 
 		[Test]
@@ -106,16 +106,16 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Essential, Mechanics Change; Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component?.Category, Has.Count.EqualTo( 3 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Essential" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Mechanics Change" ) );
-				Assert.That( component.Category[2], Is.EqualTo( "Graphics Improvement" ) );
-			} );
+				Assert.That(component?.Category, Has.Count.EqualTo(3));
+				Assert.That(component.Category[0], Is.EqualTo("Essential"));
+				Assert.That(component.Category[1], Is.EqualTo("Mechanics Change"));
+				Assert.That(component.Category[2], Is.EqualTo("Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -129,14 +129,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Essential""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component?.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Essential" ) );
-			} );
+				Assert.That(component?.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Essential"));
+			});
 		}
 
 		[Test]
@@ -150,10 +150,10 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = """"
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.That( component?.Category, Is.Empty );
+			Assert.That(component, Is.Not.Null);
+			Assert.That(component?.Category, Is.Empty);
 		}
 
 		[Test]
@@ -167,10 +167,10 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""   ""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.That( component?.Category, Is.Empty );
+			Assert.That(component, Is.Not.Null);
+			Assert.That(component?.Category, Is.Empty);
 		}
 
 		[Test]
@@ -184,16 +184,16 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""  Essential  ,  Mechanics Change  ;  Graphics Improvement  ""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 3 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Essential" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Mechanics Change" ) );
-				Assert.That( component.Category[2], Is.EqualTo( "Graphics Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(3));
+				Assert.That(component.Category[0], Is.EqualTo("Essential"));
+				Assert.That(component.Category[1], Is.EqualTo("Mechanics Change"));
+				Assert.That(component.Category[2], Is.EqualTo("Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -207,16 +207,16 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Essential,,Mechanics Change; ;Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 3 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Essential" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Mechanics Change" ) );
-				Assert.That( component.Category[2], Is.EqualTo( "Graphics Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(3));
+				Assert.That(component.Category[0], Is.EqualTo("Essential"));
+				Assert.That(component.Category[1], Is.EqualTo("Mechanics Change"));
+				Assert.That(component.Category[2], Is.EqualTo("Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -230,14 +230,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Graphics/Visual Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Graphics/Visual Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Graphics/Visual Improvement"));
+			});
 		}
 
 		[Test]
@@ -251,7 +251,7 @@ Category = ""Graphics/Visual Improvement""
 				("Graphics Improvement", ["Graphics Improvement"]),
 				("Graphics Improvement & Bugfix", ["Graphics Improvement & Bugfix"]),
 				("Bugfix & Graphics Improvement, Immersion", ["Bugfix & Graphics Improvement", "Immersion"]),
-				("Essential, Mechanics Change; Graphics Improvement", ["Essential", "Mechanics Change", "Graphics Improvement"])
+				("Essential, Mechanics Change; Graphics Improvement", ["Essential", "Mechanics Change", "Graphics Improvement"]),
 			];
 
 			foreach ((string input, string[] expected) in testCases)
@@ -264,10 +264,10 @@ Guid = ""{{12345678-1234-1234-1234-123456789012}}""
 Category = ""{input}""
 ";
 
-				var component = ModComponent.DeserializeTomlComponent( tomlContent );
+				var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-				Assert.That( component, Is.Not.Null, $"Failed for input: '{input}'" );
-				Assert.That( component?.Category, Is.EqualTo( expected ), $"Failed for input: '{input}'" );
+				Assert.That(component, Is.Not.Null, $"Failed for input: '{input}'");
+				Assert.That(component?.Category, Is.EqualTo(expected), $"Failed for input: '{input}'");
 			}
 		}
 
@@ -282,15 +282,15 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = [""Bugfix & Graphics Improvement"", ""Immersion""]
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.That( component?.Category, Has.Count.EqualTo( 2 ), "Category should have 2 items" );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.That(component?.Category, Has.Count.EqualTo(2), "Category should have 2 items");
+			Assert.Multiple(() =>
 			{
-				Assert.That( component?.Category[0], Is.EqualTo( "Bugfix & Graphics Improvement" ) );
-				Assert.That( component?.Category[1], Is.EqualTo( "Immersion" ) );
-			} );
+				Assert.That(component?.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"));
+				Assert.That(component?.Category[1], Is.EqualTo("Immersion"));
+			});
 		}
 
 		[Test]
@@ -303,10 +303,10 @@ Name = ""Test Mod""
 Guid = ""{12345678-1234-1234-1234-123456789012}""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.That( component?.Category, Is.Empty, "Category should be empty" );
+			Assert.That(component, Is.Not.Null);
+			Assert.That(component?.Category, Is.Empty, "Category should be empty");
 		}
 
 		[Test]
@@ -320,14 +320,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Bugfix & Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Bugfix & Graphics Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -341,15 +341,15 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Bugfix, Graphics Improvement & Immersion""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 2 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Bugfix" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Graphics Improvement & Immersion" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(2));
+				Assert.That(component.Category[0], Is.EqualTo("Bugfix"));
+				Assert.That(component.Category[1], Is.EqualTo("Graphics Improvement & Immersion"));
+			});
 		}
 
 		[Test]
@@ -363,14 +363,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Appearance Change & Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Appearance Change & Graphics Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Appearance Change & Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -384,14 +384,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Graphics Improvement & Appearance Change""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Graphics Improvement & Appearance Change" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Graphics Improvement & Appearance Change"));
+			});
 		}
 
 		[Test]
@@ -405,14 +405,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Added Content & Immersion""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Added Content & Immersion" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Added Content & Immersion"));
+			});
 		}
 
 		[Test]
@@ -426,14 +426,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Bugfix & Immersion""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Bugfix & Immersion" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Bugfix & Immersion"));
+			});
 		}
 
 		[Test]
@@ -447,15 +447,15 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Appearance Change, Bugfix & Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 2 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Appearance Change" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Bugfix & Graphics Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(2));
+				Assert.That(component.Category[0], Is.EqualTo("Appearance Change"));
+				Assert.That(component.Category[1], Is.EqualTo("Bugfix & Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -469,15 +469,15 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Appearance Change, Immersion & Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 2 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Appearance Change" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Immersion & Graphics Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(2));
+				Assert.That(component.Category[0], Is.EqualTo("Appearance Change"));
+				Assert.That(component.Category[1], Is.EqualTo("Immersion & Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -491,14 +491,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Added & Restored Content""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Added & Restored Content" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Added & Restored Content"));
+			});
 		}
 
 		[Test]
@@ -512,14 +512,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Mechanics Change & Immersion""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Mechanics Change & Immersion" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Mechanics Change & Immersion"));
+			});
 		}
 
 		[Test]
@@ -533,14 +533,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Immersion & Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Immersion & Graphics Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Immersion & Graphics Improvement"));
+			});
 		}
 
 		[Test]
@@ -554,14 +554,14 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Appearance Change & Immersion""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 1 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Appearance Change & Immersion" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(1));
+				Assert.That(component.Category[0], Is.EqualTo("Appearance Change & Immersion"));
+			});
 		}
 
 		[Test]
@@ -575,15 +575,15 @@ Guid = ""{12345678-1234-1234-1234-123456789012}""
 Category = ""Appearance Change, Immersion & Graphics Improvement""
 ";
 
-			var component = ModComponent.DeserializeTomlComponent( tomlContent );
+			var component = ModComponent.DeserializeTomlComponent(tomlContent);
 
-			Assert.That( component, Is.Not.Null );
-			Assert.Multiple( () =>
+			Assert.That(component, Is.Not.Null);
+			Assert.Multiple(() =>
 			{
-				Assert.That( component!.Category, Has.Count.EqualTo( 2 ) );
-				Assert.That( component.Category[0], Is.EqualTo( "Appearance Change" ) );
-				Assert.That( component.Category[1], Is.EqualTo( "Immersion & Graphics Improvement" ) );
-			} );
+				Assert.That(component!.Category, Has.Count.EqualTo(2));
+				Assert.That(component.Category[0], Is.EqualTo("Appearance Change"));
+				Assert.That(component.Category[1], Is.EqualTo("Immersion & Graphics Improvement"));
+			});
 		}
 	}
 }

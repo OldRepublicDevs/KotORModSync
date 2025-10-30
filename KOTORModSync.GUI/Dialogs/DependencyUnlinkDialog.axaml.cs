@@ -72,13 +72,13 @@ namespace KOTORModSync.Dialogs
 			List<ModComponent> dependentComponents )
 		{
 
-			if (dependentComponents == null || !dependentComponents.Any())
+			if (dependentComponents is null || !dependentComponents.Any())
 				return (true, new List<ModComponent>());
 
 			var dialog = new DependencyUnlinkDialog( componentToDelete, dependentComponents );
 
 
-			await dialog.ShowDialog( owner ).ConfigureAwait( false );
+			await dialog.ShowDialog( owner ).ConfigureAwait( true );
 			return (dialog.UserConfirmed, dialog.ComponentsToUnlink);
 		}
 

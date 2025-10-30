@@ -138,7 +138,7 @@ namespace KOTORModSync.Controls
 
 		private static string GetFormatForTextBox(TextBox textBox)
 		{
-			if ( textBox == null ) return null;
+			if ( textBox is null ) return null;
 
 			// Compare by name to avoid reference issues with FindControl
 			return string.Equals(textBox.Name, "TomlTextBox", StringComparison.Ordinal) ? "toml" : string.Equals(textBox.Name, "MarkdownTextBox", StringComparison.Ordinal) ? "markdown" : string.Equals(textBox.Name, "YamlTextBox", StringComparison.Ordinal) ? "yaml" : string.Equals(textBox.Name, "JsonTextBox", StringComparison.Ordinal) ? "json" :
@@ -150,7 +150,7 @@ namespace KOTORModSync.Controls
 		/// </summary>
 		public void RefreshCurrentFormatContent()
 		{
-			if ( CurrentComponent == null )
+			if ( CurrentComponent is null )
 				return;
 
 			try

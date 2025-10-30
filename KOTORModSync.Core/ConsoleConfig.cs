@@ -19,7 +19,7 @@ namespace KOTORModSync.Core
 		public static extern bool SetConsoleCtrlHandler( HandlerRoutine Handler, bool Add );
 		public enum CtrlTypes
 		{
-			CTRL_CLOSE_EVENT = 2
+			CTRL_CLOSE_EVENT = 2,
 		}
 		public delegate bool HandlerRoutine( CtrlTypes CtrlType );
 		private const int MF_BYCOMMAND = 0x00000000;

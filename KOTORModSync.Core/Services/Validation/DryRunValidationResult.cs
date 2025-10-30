@@ -101,7 +101,7 @@ namespace KOTORModSync.Core.Services.Validation
 			}
 
 
-			List<ValidationIssue> genericIssues = Issues.Where( i => i.AffectedComponent == null ).ToList();
+			List<ValidationIssue> genericIssues = Issues.Where( i => i.AffectedComponent is null ).ToList();
 			if (genericIssues.Any())
 			{
 				_ = sb.AppendLine( "━━━ General Issues ━━━" );

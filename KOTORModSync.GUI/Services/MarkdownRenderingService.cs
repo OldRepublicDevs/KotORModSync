@@ -25,7 +25,7 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				if (targetTextBlock == null)
+				if (targetTextBlock is null)
 					return;
 
 				if (string.IsNullOrWhiteSpace( markdownContent ))
@@ -110,7 +110,7 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				if (component == null)
+				if (component is null)
 					return;
 
 				if (descriptionTextBlock != null)
@@ -174,7 +174,7 @@ namespace KOTORModSync.Services
 
 		private static string GetTextBlockText( TextBlock textBlock )
 		{
-			if (textBlock.Inlines == null || textBlock.Inlines.Count == 0)
+			if (textBlock.Inlines is null || textBlock.Inlines.Count == 0)
 				return textBlock.Text ?? string.Empty;
 
 			var text = new System.Text.StringBuilder();

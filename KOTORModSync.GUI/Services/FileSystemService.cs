@@ -28,7 +28,7 @@ namespace KOTORModSync.Services
 		// TEMPORARY: Set to false to disable file watching
 		private const bool _watcherEnabled = false;
 
-		public void SetupModDirectoryWatcher( string path, Action<string> onDirectoryChanged )
+		public static void SetupModDirectoryWatcher( string path, Action<string> onDirectoryChanged )
 		{
 			// TEMPORARY: File watcher is disabled
 			if (!_watcherEnabled)

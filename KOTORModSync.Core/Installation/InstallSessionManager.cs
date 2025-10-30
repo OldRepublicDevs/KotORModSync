@@ -33,9 +33,9 @@ namespace KOTORModSync.Core.Installation
 
 		public async Task InitializeAsync( [NotNull] IList<ModComponent> components, [NotNull] DirectoryInfo destinationPath )
 		{
-			if (components == null)
+			if (components is null)
 				throw new ArgumentNullException( nameof( components ) );
-			if (destinationPath == null)
+			if (destinationPath is null)
 				throw new ArgumentNullException( nameof( destinationPath ) );
 
 			_sessionPath = GetSessionFilePath( destinationPath );
@@ -56,15 +56,13 @@ namespace KOTORModSync.Core.Installation
 			_state = CreateNewState( components, destinationPath.FullName );
 			SyncInitialComponentState( components );
 
-
 			await SaveAsync().ConfigureAwait( false );
 		}
 
 		public async Task SaveAsync()
 		{
-			if (_state == null || string.IsNullOrEmpty( _sessionPath ))
+			if (_state is null || string.IsNullOrEmpty( _sessionPath ))
 				return;
-
 
 
 			await _saveSemaphore.WaitAsync().ConfigureAwait( false );
@@ -88,7 +86,6 @@ namespace KOTORModSync.Core.Installation
 				return;
 
 
-
 			await _saveSemaphore.WaitAsync().ConfigureAwait( false );
 			try
 			{
@@ -108,7 +105,6 @@ namespace KOTORModSync.Core.Installation
 
 			throw new KeyNotFoundException( $"ModComponent {componentId} not found in session state" );
 		}
-
 
 		public void UpdateComponentState( ModComponent component )
 		{

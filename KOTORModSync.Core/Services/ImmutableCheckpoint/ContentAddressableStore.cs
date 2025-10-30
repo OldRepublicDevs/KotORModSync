@@ -44,7 +44,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 
 		public static async Task<string> ComputeStreamHashAsync( Stream stream )
 		{
-			if (stream == null)
+			if (stream is null)
 				throw new ArgumentNullException( nameof( stream ) );
 
 			long originalPosition = stream.Position;
@@ -100,7 +100,7 @@ hash );
 
 		public async Task<string> StoreStreamAsync( Stream stream )
 		{
-			if (stream == null)
+			if (stream is null)
 				throw new ArgumentNullException( nameof( stream ) );
 
 
@@ -266,7 +266,7 @@ hash );
 
 		public async Task<int> GarbageCollectAsync( HashSet<string> referencedHashes )
 		{
-			if (referencedHashes == null)
+			if (referencedHashes is null)
 				throw new ArgumentNullException( nameof( referencedHashes ) );
 
 

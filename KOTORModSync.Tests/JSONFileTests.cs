@@ -126,7 +126,7 @@ namespace KOTORModSync.Tests
 						Source = new List<string> { "test.rar" },
 						Destination = "%temp%\\test"
 					}
-				}
+				},
 			};
 
 			string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([newComponent]);
@@ -275,7 +275,7 @@ namespace KOTORModSync.Tests
 						Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
 						IsSelected = true,
 					},
-				]
+				],
 			];
 
 			foreach (List<ModComponent> components in rounds)
@@ -309,7 +309,7 @@ namespace KOTORModSync.Tests
 						Action = Instruction.ActionType.Extract,
 						Source = new List<string> { "test.rar" }
 					}
-				}
+				},
 			};
 
 			string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([component]);
@@ -335,7 +335,7 @@ namespace KOTORModSync.Tests
 						Destination = "some/path",
 						Arguments = "some args"
 					}
-				}
+				},
 			};
 			string extractJson = ModComponentSerializationService.SerializeModComponentAsJsonString([extractComponent]);
 			Assert.Multiple(() =>
@@ -355,7 +355,7 @@ namespace KOTORModSync.Tests
 				Guid = Guid.NewGuid(),
 				IsDownloaded = true,
 				InstallState = ModComponent.ComponentInstallState.Completed,
-				IsSelected = true
+				IsSelected = true,
 			};
 
 			string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([component]);
@@ -383,12 +383,12 @@ namespace KOTORModSync.Tests
 					{
 						["mod_v1.0.zip"] = true,
 						["mod_v2.0.zip"] = false,
-						["mod_beta.zip"] = null
+						["mod_beta.zip"] = null,
 					},
 					["https://example.com/patch.rar"] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
 					{
 						["patch.rar"] = true
-					}
+					},
 				},
 				ExcludedDownloads = new List<string> { "debug.zip", "old_version.rar" },
 				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
@@ -399,7 +399,7 @@ namespace KOTORModSync.Tests
 					Action = Instruction.ActionType.Extract,
 					Source = new List<string> { "<<modDirectory>>\\mod*.zip" },
 					Overwrite = true
-				}
+				},
 			},
 				Options = new System.Collections.ObjectModel.ObservableCollection<Option>
 			{
@@ -439,7 +439,7 @@ namespace KOTORModSync.Tests
 						}
 					}
 				}
-			}
+			},
 			};
 
 			// Save to JSON

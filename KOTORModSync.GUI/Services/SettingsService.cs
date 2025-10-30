@@ -91,7 +91,7 @@ namespace KOTORModSync.Services
 
 		private static void UpdateDirectoryPickerWithPath( DirectoryPickerControl picker, string path )
 		{
-			if (picker == null || string.IsNullOrEmpty( path ))
+			if (picker is null || string.IsNullOrEmpty( path ))
 				return;
 
 			try

@@ -37,7 +37,7 @@ namespace KOTORModSync.Core.Services
 			IProgress<Download.DownloadProgress> progress = null,
 			CancellationToken cancellationToken = default )
 		{
-			if (components == null || components.Count == 0)
+			if (components is null || components.Count == 0)
 				return 0;
 
 			if (string.IsNullOrWhiteSpace( downloadDirectory ))
@@ -49,7 +49,7 @@ namespace KOTORModSync.Core.Services
 			{
 				try
 				{
-					if (component.ModLinkFilenames == null || component.ModLinkFilenames.Count == 0)
+					if (component.ModLinkFilenames is null || component.ModLinkFilenames.Count == 0)
 						continue;
 
 					int initialInstructionCount = component.Instructions.Count;
@@ -57,7 +57,6 @@ namespace KOTORModSync.Core.Services
 					bool generated = await AutoInstructionGenerator.GenerateInstructionsFromUrlsAsync(
 						component,
 						_downloadCacheService,
-
 
 						cancellationToken )
 
@@ -72,7 +71,6 @@ namespace KOTORModSync.Core.Services
 				}
 				catch (Exception ex)
 
-
 				{
 					await Logger.LogExceptionAsync( ex, $"Error processing component '{component.Name}'" ).ConfigureAwait( false );
 				}
@@ -80,14 +78,12 @@ namespace KOTORModSync.Core.Services
 
 			if (successCount > 0)
 
-
 			{
 				await Logger.LogAsync( $"Processed ModLinks and generated placeholder instructions for {successCount} component(s)." ).ConfigureAwait( false );
 			}
 
 			return successCount;
 		}
-
 
 		public int ProcessComponentModLinksSync(
 			List<ModComponent> components,

@@ -22,6 +22,6 @@ namespace KOTORModSync.CallbackDialogs
 			await InformationDialog.ShowInformationDialogAsync(
 				_topLevelWindow,
 				message
-			).ConfigureAwait( false );
+			).ConfigureAwait( true );
 	}
 }

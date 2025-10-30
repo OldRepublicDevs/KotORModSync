@@ -77,5 +77,18 @@ namespace KOTORModSync
 		public static IBrush ExpanderDefaultForegroundBrush => GetBrush( "Expander.DefaultForegroundBrush" );
 		public static IBrush ExpanderHoverBackgroundBrush => GetBrush( "Expander.HoverBackgroundBrush" );
 		public static IBrush ExpanderHoverForegroundBrush => GetBrush( "Expander.HoverForegroundBrush" );
+
+		public static IBrush DownloadLedActiveBrush => GetBrush( "DownloadLed.ActiveBrush", new SolidColorBrush( Color.FromRgb( 0, 255, 0 ) ) );
+		public static IBrush DownloadLedInactiveBrush => GetBrush( "DownloadLed.InactiveBrush", new SolidColorBrush( Color.FromRgb( 128, 128, 128 ) ) );
+
+		public static IBrush DragDropErrorForegroundBrush => GetBrush( "DragDrop.ErrorForegroundBrush", new SolidColorBrush( Color.FromRgb( 255, 87, 34 ) ) );
+		public static IBrush DragDropErrorBackgroundBrush => GetBrush( "DragDrop.ErrorBackgroundBrush", new SolidColorBrush( Color.FromRgb( 255, 235, 238 ) ) );
+		public static IBrush DragDropErrorBorderBrush => GetBrush( "DragDrop.ErrorBorderBrush", new SolidColorBrush( Color.FromRgb( 244, 67, 54 ) ) );
+		public static IBrush DragDropSuccessForegroundBrush => GetBrush( "DragDrop.SuccessForegroundBrush", new SolidColorBrush( Color.FromRgb( 76, 175, 80 ) ) );
+		public static IBrush DragDropSuccessBackgroundBrush => GetBrush( "DragDrop.SuccessBackgroundBrush", new SolidColorBrush( Color.FromRgb( 232, 245, 233 ) ) );
+		public static IBrush DragDropSuccessBorderBrush => GetBrush( "DragDrop.SuccessBorderBrush", new SolidColorBrush( Color.FromRgb( 76, 175, 80 ) ) );
+		public static IBrush DragDropInfoForegroundBrush => GetBrush( "DragDrop.InfoForegroundBrush", new SolidColorBrush( Color.FromRgb( 33, 150, 243 ) ) );
+		public static IBrush DragDropInfoBackgroundBrush => GetBrush( "DragDrop.InfoBackgroundBrush", new SolidColorBrush( Color.FromRgb( 227, 242, 253 ) ) );
+		public static IBrush DragDropInfoBorderBrush => GetBrush( "DragDrop.InfoBorderBrush", new SolidColorBrush( Color.FromRgb( 33, 150, 243 ) ) );
 	}
 }

@@ -45,17 +45,17 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		public static DependencyResolutionResult ResolveDependencies(
 			[NotNull] List<ModComponent> components,
-			bool ignoreErrors = false )
+			bool ignoreErrors = false)
 		{
-			if (components == null)
-				throw new ArgumentNullException( nameof( components ) );
+			if (components is null)
+				throw new ArgumentNullException(nameof(components));
 
 			DependencyResolutionResult result = new DependencyResolutionResult();
-			Dictionary<Guid, ModComponent> componentDict = components.ToDictionary( c => c.Guid, c => c );
+			Dictionary<Guid, ModComponent> componentDict = components.ToDictionary(c => c.Guid, c => c);
 
 			// Validate all dependencies exist
-			List<DependencyError> validationErrors = ValidateDependencies( components, componentDict );
-			result.Errors.AddRange( validationErrors );
+			List<DependencyError> validationErrors = ValidateDependencies(components, componentDict);
+			result.Errors.AddRange(validationErrors);
 
 			if (result.Errors.Count > 0 && !ignoreErrors)
 			{
@@ -64,11 +64,11 @@ namespace KOTORModSync.Core.Services
 			}
 
 			// Build dependency graph
-			Dictionary<Guid, HashSet<Guid>> dependencyGraph = BuildDependencyGraph( components, componentDict );
+			Dictionary<Guid, HashSet<Guid>> dependencyGraph = BuildDependencyGraph(components, componentDict);
 
 			// Detect circular dependencies
-			List<DependencyError> circularDependencies = DetectCircularDependencies( dependencyGraph, componentDict );
-			result.Errors.AddRange( circularDependencies );
+			List<DependencyError> circularDependencies = DetectCircularDependencies(dependencyGraph, componentDict);
+			result.Errors.AddRange(circularDependencies);
 
 			if (result.Errors.Count > 0 && !ignoreErrors)
 			{
@@ -79,20 +79,20 @@ namespace KOTORModSync.Core.Services
 			// Perform topological sort
 			try
 			{
-				List<ModComponent> orderedComponents = PerformTopologicalSort( dependencyGraph, componentDict );
+				List<ModComponent> orderedComponents = PerformTopologicalSort(dependencyGraph, componentDict);
 				result.OrderedComponents = orderedComponents;
 				result.Success = true;
 			}
 			catch (Exception ex)
 			{
 				result.Success = false;
-				result.Errors.Add( new DependencyError
+				result.Errors.Add(new DependencyError
 				{
 					ComponentName = "System",
 					ComponentGuid = Guid.Empty,
 					ErrorType = "TopologicalSortFailed",
-					Message = $"Failed to resolve component order: {ex.Message}"
-				} );
+					Message = $"Failed to resolve component order: {ex.Message}",
+				});
 			}
 
 			return result;
@@ -103,10 +103,10 @@ namespace KOTORModSync.Core.Services
 		/// Component at index i will have InstallBefore for all components 0 to i-1,
 		/// and InstallAfter for all components i+1 to count-1.
 		/// </summary>
-		public static void GenerateDependenciesFromOrder( [NotNull] List<ModComponent> components )
+		public static void GenerateDependenciesFromOrder([NotNull] List<ModComponent> components)
 		{
-			if (components == null)
-				throw new ArgumentNullException( nameof( components ) );
+			if (components is null)
+				throw new ArgumentNullException(nameof(components));
 
 			// Clear existing dependencies
 			foreach (ModComponent component in components)
@@ -123,13 +123,13 @@ namespace KOTORModSync.Core.Services
 				// InstallBefore: all components that come before this one
 				for (int j = 0; j < i; j++)
 				{
-					currentComponent.InstallBefore.Add( components[j].Guid );
+					currentComponent.InstallBefore.Add(components[j].Guid);
 				}
 
 				// InstallAfter: all components that come after this one
 				for (int j = i + 1; j < components.Count; j++)
 				{
-					currentComponent.InstallAfter.Add( components[j].Guid );
+					currentComponent.InstallAfter.Add(components[j].Guid);
 				}
 			}
 		}
@@ -137,10 +137,10 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Removes all InstallBefore/InstallAfter dependencies from all components.
 		/// </summary>
-		public static void ClearAllDependencies( [NotNull] List<ModComponent> components )
+		public static void ClearAllDependencies([NotNull] List<ModComponent> components)
 		{
-			if (components == null)
-				throw new ArgumentNullException( nameof( components ) );
+			if (components is null)
+				throw new ArgumentNullException(nameof(components));
 
 			foreach (ModComponent component in components)
 			{
@@ -151,7 +151,7 @@ namespace KOTORModSync.Core.Services
 
 		private static List<DependencyError> ValidateDependencies(
 			List<ModComponent> components,
-			Dictionary<Guid, ModComponent> componentDict )
+			Dictionary<Guid, ModComponent> componentDict)
 		{
 			List<DependencyError> errors = new List<DependencyError>();
 
@@ -160,56 +160,56 @@ namespace KOTORModSync.Core.Services
 				// Check InstallBefore dependencies
 				foreach (Guid beforeGuid in component.InstallBefore)
 				{
-					if (!componentDict.ContainsKey( beforeGuid ))
+					if (!componentDict.ContainsKey(beforeGuid))
 					{
-						errors.Add( new DependencyError
+						errors.Add(new DependencyError
 						{
 							ComponentName = component.Name,
 							ComponentGuid = component.Guid,
 							ErrorType = "MissingInstallBefore",
 							Message = $"InstallBefore references non-existent component with GUID: {beforeGuid}",
-							AffectedComponents = new List<string> { beforeGuid.ToString() }
-						} );
+							AffectedComponents = new List<string> { beforeGuid.ToString() },
+						});
 					}
 				}
 
 				// Check InstallAfter dependencies
 				foreach (Guid afterGuid in component.InstallAfter)
 				{
-					if (!componentDict.ContainsKey( afterGuid ))
+					if (!componentDict.ContainsKey(afterGuid))
 					{
-						errors.Add( new DependencyError
+						errors.Add(new DependencyError
 						{
 							ComponentName = component.Name,
 							ComponentGuid = component.Guid,
 							ErrorType = "MissingInstallAfter",
 							Message = $"InstallAfter references non-existent component with GUID: {afterGuid}",
-							AffectedComponents = new List<string> { afterGuid.ToString() }
-						} );
+							AffectedComponents = new List<string> { afterGuid.ToString() },
+						});
 					}
 				}
 
 				// Check for self-references
-				if (component.InstallBefore.Contains( component.Guid ))
+				if (component.InstallBefore.Contains(component.Guid))
 				{
-					errors.Add( new DependencyError
+					errors.Add(new DependencyError
 					{
 						ComponentName = component.Name,
 						ComponentGuid = component.Guid,
 						ErrorType = "SelfReference",
-						Message = "Component references itself in InstallBefore"
-					} );
+						Message = "Component references itself in InstallBefore",
+					});
 				}
 
-				if (component.InstallAfter.Contains( component.Guid ))
+				if (component.InstallAfter.Contains(component.Guid))
 				{
-					errors.Add( new DependencyError
+					errors.Add(new DependencyError
 					{
 						ComponentName = component.Name,
 						ComponentGuid = component.Guid,
 						ErrorType = "SelfReference",
-						Message = "Component references itself in InstallAfter"
-					} );
+						Message = "Component references itself in InstallAfter",
+					});
 				}
 			}
 
@@ -218,7 +218,7 @@ namespace KOTORModSync.Core.Services
 
 		private static Dictionary<Guid, HashSet<Guid>> BuildDependencyGraph(
 			List<ModComponent> components
-, Dictionary<Guid, ModComponent> componentDict )
+, Dictionary<Guid, ModComponent> componentDict)
 		{
 			Dictionary<Guid, HashSet<Guid>> graph = new Dictionary<Guid, HashSet<Guid>>();
 
@@ -235,9 +235,9 @@ namespace KOTORModSync.Core.Services
 				// So these components depend on this component
 				foreach (Guid beforeGuid in component.InstallBefore)
 				{
-					if (graph.ContainsKey( beforeGuid ))
+					if (graph.ContainsKey(beforeGuid))
 					{
-						graph[beforeGuid].Add( component.Guid );
+						graph[beforeGuid].Add(component.Guid);
 					}
 				}
 
@@ -245,9 +245,9 @@ namespace KOTORModSync.Core.Services
 				// So this component depends on these components
 				foreach (Guid afterGuid in component.InstallAfter)
 				{
-					if (graph.ContainsKey( afterGuid ))
+					if (graph.ContainsKey(afterGuid))
 					{
-						graph[component.Guid].Add( afterGuid );
+						graph[component.Guid].Add(afterGuid);
 					}
 				}
 			}
@@ -257,7 +257,7 @@ namespace KOTORModSync.Core.Services
 
 		private static List<DependencyError> DetectCircularDependencies(
 			Dictionary<Guid, HashSet<Guid>> graph,
-			Dictionary<Guid, ModComponent> componentDict )
+			Dictionary<Guid, ModComponent> componentDict)
 		{
 			List<DependencyError> errors = new List<DependencyError>();
 			HashSet<Guid> visited = new HashSet<Guid>();
@@ -265,22 +265,22 @@ namespace KOTORModSync.Core.Services
 
 			foreach (Guid componentGuid in graph.Keys)
 			{
-				if (!visited.Contains( componentGuid ))
+				if (!visited.Contains(componentGuid))
 				{
-					List<Guid> cycle = DetectCycleDFS( componentGuid, graph, visited, recursionStack );
+					List<Guid> cycle = DetectCycleDFS(componentGuid, graph, visited, recursionStack);
 					if (cycle != null)
 					{
-						List<string> cycleNames = cycle.Select( guid =>
-							componentDict.TryGetValue( guid, out ModComponent comp ) ? comp.Name : guid.ToString() ).ToList();
+						List<string> cycleNames = cycle.Select(guid =>
+							componentDict.TryGetValue(guid, out ModComponent comp) ? comp.Name : guid.ToString()).ToList();
 
-						errors.Add( new DependencyError
+						errors.Add(new DependencyError
 						{
-							ComponentName = string.Join( " → ", cycleNames ),
+							ComponentName = string.Join(" → ", cycleNames),
 							ComponentGuid = cycle.First(),
 							ErrorType = "CircularDependency",
-							Message = $"Circular dependency detected: {string.Join( " → ", cycleNames )}",
-							AffectedComponents = cycle.Select( g => g.ToString() ).ToList()
-						} );
+							Message = $"Circular dependency detected: {string.Join(" → ", cycleNames)}",
+							AffectedComponents = cycle.Select(g => g.ToString()).ToList(),
+						});
 					}
 				}
 			}
@@ -292,46 +292,46 @@ namespace KOTORModSync.Core.Services
 			Guid current,
 			Dictionary<Guid, HashSet<Guid>> graph,
 			HashSet<Guid> visited,
-			HashSet<Guid> recursionStack )
+			HashSet<Guid> recursionStack)
 		{
-			visited.Add( current );
-			recursionStack.Add( current );
+			visited.Add(current);
+			recursionStack.Add(current);
 
-			if (graph.ContainsKey( current ))
+			if (graph.ContainsKey(current))
 			{
 				foreach (Guid neighbor in graph[current])
 				{
-					if (!visited.Contains( neighbor ))
+					if (!visited.Contains(neighbor))
 					{
-						List<Guid> cycle = DetectCycleDFS( neighbor, graph, visited, recursionStack );
+						List<Guid> cycle = DetectCycleDFS(neighbor, graph, visited, recursionStack);
 						if (cycle != null)
 							return cycle;
 					}
-					else if (recursionStack.Contains( neighbor ))
+					else if (recursionStack.Contains(neighbor))
 					{
 						// Found a cycle - reconstruct it
 						List<Guid> cycle = new List<Guid>();
 						Guid temp = current;
 						while (temp != neighbor)
 						{
-							cycle.Add( temp );
+							cycle.Add(temp);
 							// Find the component that leads to temp
-							temp = graph.FirstOrDefault( kvp => kvp.Value.Contains( temp ) ).Key;
+							temp = graph.FirstOrDefault(kvp => kvp.Value.Contains(temp)).Key;
 						}
-						cycle.Add( neighbor );
+						cycle.Add(neighbor);
 						cycle.Reverse();
 						return cycle;
 					}
 				}
 			}
 
-			recursionStack.Remove( current );
+			recursionStack.Remove(current);
 			return null;
 		}
 
 		private static List<ModComponent> PerformTopologicalSort(
 			Dictionary<Guid, HashSet<Guid>> graph,
-			Dictionary<Guid, ModComponent> componentDict )
+			Dictionary<Guid, ModComponent> componentDict)
 		{
 			List<ModComponent> result = new List<ModComponent>();
 			HashSet<Guid> visited = new HashSet<Guid>();
@@ -339,9 +339,9 @@ namespace KOTORModSync.Core.Services
 
 			foreach (Guid componentGuid in graph.Keys)
 			{
-				if (!visited.Contains( componentGuid ))
+				if (!visited.Contains(componentGuid))
 				{
-					TopologicalSortDFS( componentGuid, graph, componentDict, visited, tempMark, result );
+					TopologicalSortDFS(componentGuid, graph, componentDict, visited, tempMark, result);
 				}
 			}
 
@@ -354,29 +354,29 @@ namespace KOTORModSync.Core.Services
 			Dictionary<Guid, ModComponent> componentDict,
 			HashSet<Guid> visited,
 			HashSet<Guid> tempMark,
-			List<ModComponent> result )
+			List<ModComponent> result)
 		{
-			if (tempMark.Contains( current ))
-				throw new InvalidOperationException( $"Circular dependency detected involving component {current}" );
+			if (tempMark.Contains(current))
+				throw new InvalidOperationException($"Circular dependency detected involving component {current}");
 
-			if (visited.Contains( current ))
+			if (visited.Contains(current))
 				return;
 
-			visited.Add( current );
-			tempMark.Add( current );
+			visited.Add(current);
+			tempMark.Add(current);
 
-			if (graph.ContainsKey( current ))
+			if (graph.ContainsKey(current))
 			{
 				foreach (Guid neighbor in graph[current])
 				{
-					TopologicalSortDFS( neighbor, graph, componentDict, visited, tempMark, result );
+					TopologicalSortDFS(neighbor, graph, componentDict, visited, tempMark, result);
 				}
 			}
 
-			tempMark.Remove( current );
-			if (componentDict.TryGetValue( current, out ModComponent component ))
+			tempMark.Remove(current);
+			if (componentDict.TryGetValue(current, out ModComponent component))
 			{
-				result.Add( component );
+				result.Add(component);
 			}
 		}
 	}

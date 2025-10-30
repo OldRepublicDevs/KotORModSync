@@ -12,7 +12,6 @@ namespace KOTORModSync.Core.Services.FileSystem
 {
 
 
-
 	public interface IFileSystemProvider
 	{
 		bool IsDryRun { get; }
@@ -34,7 +33,6 @@ namespace KOTORModSync.Core.Services.FileSystem
 		Task WriteFileAsync( [NotNull] string path, [NotNull] string contents );
 
 		Task CreateDirectoryAsync( [NotNull] string path );
-
 
 		Task<List<string>> ExtractArchiveAsync( [NotNull] string archivePath, [NotNull] string destinationPath );
 

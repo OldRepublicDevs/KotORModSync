@@ -27,7 +27,7 @@ namespace KOTORModSync.Converters
 		{
 
 
-			if (Application.Current?.Resources.TryGetResource( "ThemeForegroundBrush", null, out object resource ) == true && resource is IBrush brush)
+			if (Application.Current?.Resources.TryGetResource("ThemeForegroundBrush", null, out object resource) == true && resource is IBrush brush)
 				return brush;
 
 
@@ -35,23 +35,31 @@ namespace KOTORModSync.Converters
 			{
 				foreach (var style in Application.Current.Styles)
 				{
-					if (style is Avalonia.Markup.Xaml.Styling.StyleInclude styleInclude)
+					if (style is Avalonia.Markup.Xaml.Styling.StyleInclude styleInclude
+						&& styleInclude.Loaded is Avalonia.Styling.Styles styles
+						&& styles.Resources.TryGetResource("ThemeForegroundBrush", null, out object res)
+						&& res is IBrush b)
 					{
-						if (styleInclude.Loaded is Avalonia.Styling.Styles styles)
-						{
-							if (styles.Resources.TryGetResource( "ThemeForegroundBrush", null, out object res ) && res is IBrush b)
-								return b;
-						}
+						return b;
 					}
 				}
 			}
 
+			// Fallback: determine color based on current theme
+			string currentTheme = ThemeManager.GetCurrentStylePath();
+			if (currentTheme.Contains("FluentLightStyle"))
+				return new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
+			else if (currentTheme.Contains("Kotor2Style"))
+				return new SolidColorBrush(Color.FromRgb(0x18, 0xae, 0x88)); // #18ae88
+			else if (currentTheme.Contains("KotorStyle"))
+				return new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // #3AAAFF
 
-			return null;
+			// Default fallback
+			return new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
 		}
 
 		[NotNull]
-		public static TextBlock RenderToTextBlock( [CanBeNull] string markdownText, [CanBeNull] Action<string> onLinkClick = null )
+		public static TextBlock RenderToTextBlock([CanBeNull] string markdownText, [CanBeNull] Action<string> onLinkClick = null)
 		{
 			var textBlock = new TextBlock
 			{
@@ -59,17 +67,15 @@ namespace KOTORModSync.Converters
 				TextTrimming = TextTrimming.None,
 			};
 
-			if (string.IsNullOrWhiteSpace( markdownText ))
+			if (string.IsNullOrWhiteSpace(markdownText))
 			{
 				return textBlock;
 			}
 
 			try
 			{
-
-
 				if (textBlock.Inlines != null)
-					textBlock.Inlines.AddRange( ParseMarkdownInlines( markdownText, onLinkClick ) );
+					textBlock.Inlines.AddRange(ParseMarkdownInlines(markdownText, onLinkClick));
 			}
 			catch (Exception)
 			{
@@ -80,22 +86,26 @@ namespace KOTORModSync.Converters
 			return textBlock;
 		}
 
-		private static List<Inline> ParseMarkdownInlines( [NotNull] string text, [CanBeNull] Action<string> onLinkClick )
+		private static List<Inline> ParseMarkdownInlines([NotNull] string text, [CanBeNull] Action<string> onLinkClick)
 		{
 			var inlines = new List<Inline>();
 			int currentIndex = 0;
 
 
-			string linkPattern = @"\[([^\]]+)\]\(([^)]+)\)";
-			MatchCollection linkMatches = Regex.Matches( text, linkPattern );
+			// Use Regex.CompileToAssembly or timeout-parameter overload to avoid ReDoS
+			MatchCollection linkMatches = new Regex(
+				@"\[([^\]]+)\]\(([^)]+)\)",
+				RegexOptions.Compiled | RegexOptions.ExplicitCapture,
+				TimeSpan.FromSeconds(1)
+			).Matches(text);
 
 			foreach (Match match in linkMatches)
 			{
 
 				if (match.Index > currentIndex)
 				{
-					string beforeText = text.Substring( currentIndex, match.Index - currentIndex );
-					AddTextWithFormatting( beforeText, inlines );
+					string beforeText = text.Substring(currentIndex, match.Index - currentIndex);
+					AddTextWithFormatting(beforeText, inlines);
 				}
 
 
@@ -113,28 +123,31 @@ namespace KOTORModSync.Converters
 				if (onLinkClick != null)
 					linkRun.Text = $"🔗{linkUrl}🔗{linkText}";
 
-				inlines.Add( linkRun );
+				inlines.Add(linkRun);
 				currentIndex = match.Index + match.Length;
 			}
 
 
 			if (currentIndex < text.Length)
 			{
-				string remainingText = text.Substring( currentIndex );
-				AddTextWithFormatting( remainingText, inlines );
+				string remainingText = text.Substring(currentIndex);
+				AddTextWithFormatting(remainingText, inlines);
 			}
 
 			return inlines;
 		}
 
-		private static void AddTextWithFormatting( [NotNull] string text, [NotNull] List<Inline> inlines )
+		private static void AddTextWithFormatting([NotNull] string text, [NotNull] List<Inline> inlines)
 		{
-			if (string.IsNullOrEmpty( text ))
+			if (string.IsNullOrEmpty(text))
 				return;
 
 
-			string boldPattern = @"(\*\*|__)([^*_]+)\1";
-			MatchCollection boldMatches = Regex.Matches( text, boldPattern );
+			MatchCollection boldMatches = new Regex(
+				@"(\*\*|__)([^*_]+)\1",
+				RegexOptions.Compiled | RegexOptions.ExplicitCapture,
+				TimeSpan.FromSeconds(1)
+			).Matches(text);
 			int currentIndex = 0;
 
 			foreach (Match match in boldMatches)
@@ -142,8 +155,8 @@ namespace KOTORModSync.Converters
 
 				if (match.Index > currentIndex)
 				{
-					string beforeText = text.Substring( currentIndex, match.Index - currentIndex );
-					AddTextWithItalic( beforeText, inlines );
+					string beforeText = text.Substring(currentIndex, match.Index - currentIndex);
+					AddTextWithItalic(beforeText, inlines);
 				}
 
 
@@ -154,7 +167,7 @@ namespace KOTORModSync.Converters
 					FontWeight = FontWeight.Bold,
 					Foreground = GetThemeForegroundBrush(),
 				};
-				inlines.Add( boldRun );
+				inlines.Add(boldRun);
 
 				currentIndex = match.Index + match.Length;
 			}
@@ -162,19 +175,23 @@ namespace KOTORModSync.Converters
 
 			if (currentIndex < text.Length)
 			{
-				string remainingText = text.Substring( currentIndex );
-				AddTextWithItalic( remainingText, inlines );
+				string remainingText = text.Substring(currentIndex);
+				AddTextWithItalic(remainingText, inlines);
 			}
 		}
 
-		private static void AddTextWithItalic( [NotNull] string text, [NotNull] List<Inline> inlines )
+		private static void AddTextWithItalic([NotNull] string text, [NotNull] List<Inline> inlines)
 		{
-			if (string.IsNullOrEmpty( text ))
+			if (string.IsNullOrEmpty(text))
 				return;
 
 
 			string italicPattern = @"(\*|_)([^*_]+)\1";
-			MatchCollection italicMatches = Regex.Matches( text, italicPattern );
+			MatchCollection italicMatches = new Regex(
+				italicPattern,
+				RegexOptions.Compiled | RegexOptions.ExplicitCapture,
+				TimeSpan.FromSeconds(1)
+			).Matches(text);
 			int currentIndex = 0;
 
 			foreach (Match match in italicMatches)
@@ -182,8 +199,8 @@ namespace KOTORModSync.Converters
 
 				if (match.Index > currentIndex)
 				{
-					string beforeText = text.Substring( currentIndex, match.Index - currentIndex );
-					inlines.Add( new Run { Text = beforeText, Foreground = GetThemeForegroundBrush() } );
+					string beforeText = text.Substring(currentIndex, match.Index - currentIndex);
+					inlines.Add(new Run { Text = beforeText, Foreground = GetThemeForegroundBrush() });
 				}
 
 
@@ -194,7 +211,7 @@ namespace KOTORModSync.Converters
 					FontStyle = FontStyle.Italic,
 					Foreground = GetThemeForegroundBrush(),
 				};
-				inlines.Add( italicRun );
+				inlines.Add(italicRun);
 
 				currentIndex = match.Index + match.Length;
 			}
@@ -202,8 +219,8 @@ namespace KOTORModSync.Converters
 
 			if (currentIndex < text.Length)
 			{
-				string remainingText = text.Substring( currentIndex );
-				inlines.Add( new Run { Text = remainingText, Foreground = GetThemeForegroundBrush() } );
+				string remainingText = text.Substring(currentIndex);
+				inlines.Add(new Run { Text = remainingText, Foreground = GetThemeForegroundBrush() });
 			}
 		}
 	}

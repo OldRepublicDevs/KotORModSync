@@ -28,6 +28,7 @@ namespace KOTORModSync.Services
 		/// For GitHub releases, this should be a URL to an appcast.xml file
 		/// hosted on GitHub releases or in the repository.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S1075:URIs should not be hardcoded", Justification = "<Pending>")]
 		private const string AppCastUrl = "https://raw.githubusercontent.com/th3w1zard1/KOTORModSync/master/appcast.xml";
 
 		/// <summary>
@@ -37,7 +38,7 @@ namespace KOTORModSync.Services
 		{
 			if (_isInitialized)
 			{
-				Logger.Log( "AutoUpdateService already initialized." );
+				Logger.Log("AutoUpdateService already initialized.");
 				return;
 			}
 
@@ -49,19 +50,19 @@ namespace KOTORModSync.Services
 				// Initialize NetSparkle with Ed25519 signature verification
 				_sparkle = new SparkleUpdater(
 					appcastUrl: AppCastUrl,
-					signatureVerifier: new Ed25519Checker( SecurityMode.Strict, "jZSQV+2C1HL2Ufek3ekC7gtgOk5ctuDQzngh86OEdlA=" )
+					signatureVerifier: new Ed25519Checker(SecurityMode.Strict, "jZSQV+2C1HL2Ufek3ekC7gtgOk5ctuDQzngh86OEdlA=")
 				)
 				{
 					UIFactory = uiFactory,
-					RelaunchAfterUpdate = true
+					RelaunchAfterUpdate = true,
 				};
 
 				_isInitialized = true;
-				Logger.Log( "AutoUpdateService initialized successfully." );
+				Logger.Log("AutoUpdateService initialized successfully.");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Failed to initialize AutoUpdateService" );
+				Logger.LogException(ex, "Failed to initialize AutoUpdateService");
 			}
 		}
 
@@ -72,19 +73,19 @@ namespace KOTORModSync.Services
 		{
 			if (!_isInitialized)
 			{
-				Logger.Log( "Cannot start update check loop: AutoUpdateService not initialized." );
+				Logger.Log("Cannot start update check loop: AutoUpdateService not initialized.");
 				return;
 			}
 
 			try
 			{
 				// Check for updates once per day
-				_sparkle.StartLoop( doInitialCheck: true, checkFrequency: TimeSpan.FromHours( 24 ) );
-				Logger.Log( "Started automatic update check loop." );
+				_sparkle.StartLoop(doInitialCheck: true, checkFrequency: TimeSpan.FromHours(24));
+				Logger.Log("Started automatic update check loop.");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Failed to start update check loop" );
+				Logger.LogException(ex, "Failed to start update check loop");
 			}
 		}
 
@@ -96,32 +97,32 @@ namespace KOTORModSync.Services
 		{
 			if (!_isInitialized)
 			{
-				Logger.Log( "Cannot check for updates: AutoUpdateService not initialized." );
+				Logger.Log("Cannot check for updates: AutoUpdateService not initialized.");
 				return false;
 			}
 
 			try
 			{
-				Logger.Log( "Manually checking for updates..." );
+				await Logger.LogAsync("Manually checking for updates...").ConfigureAwait(false);
 
 
-				var updateInfo = await _sparkle.CheckForUpdatesQuietly().ConfigureAwait( false );
+				var updateInfo = await _sparkle.CheckForUpdatesQuietly().ConfigureAwait(false);
 
 				if (updateInfo.Status == UpdateStatus.UpdateAvailable)
 
 
 				{
-					// Show update UI to user
-					await _sparkle.CheckForUpdatesAtUserRequest().ConfigureAwait( false );
+					// Show update UI to user - ConfigureAwait(true) needed since this shows UI
+					await _sparkle.CheckForUpdatesAtUserRequest().ConfigureAwait(true);
 					return true;
 				}
 
-				Logger.Log( $"No updates available. Status: {updateInfo.Status}" );
+				await Logger.LogAsync($"No updates available. Status: {updateInfo.Status}").ConfigureAwait(false);
 				return false;
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Failed to check for updates" );
+				await Logger.LogExceptionAsync(ex, "Failed to check for updates").ConfigureAwait(false);
 				return false;
 			}
 		}
@@ -134,7 +135,7 @@ namespace KOTORModSync.Services
 			if (_sparkle != null)
 			{
 				_sparkle.StopLoop();
-				Logger.Log( "Stopped automatic update check loop." );
+				Logger.Log("Stopped automatic update check loop.");
 			}
 		}
 
@@ -156,11 +157,11 @@ namespace KOTORModSync.Services
 				}
 
 				_disposed = true;
-				Logger.Log( "AutoUpdateService disposed." );
+				Logger.Log("AutoUpdateService disposed.");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error disposing AutoUpdateService" );
+				Logger.LogException(ex, "Error disposing AutoUpdateService");
 			}
 		}
 

@@ -26,7 +26,7 @@ namespace KOTORModSync.Dialogs
 		{
 			UseExisting,
 			UseIncoming,
-			Merge
+			Merge,
 		}
 
 		private FieldSource _name = FieldSource.UseIncoming;
@@ -61,8 +61,8 @@ namespace KOTORModSync.Dialogs
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null ) =>
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 	}
 
 	public class ComponentMergeConflictViewModel : INotifyPropertyChanged
@@ -90,7 +90,7 @@ namespace KOTORModSync.Dialogs
 			[NotNull] List<ModComponent> incomingComponents,
 			[NotNull] string existingSource,
 			[NotNull] string incomingSource,
-			[NotNull] Func<ModComponent, ModComponent, bool> matchFunc )
+			[NotNull] Func<ModComponent, ModComponent, bool> matchFunc)
 		{
 			ExistingComponents = new ObservableCollection<ComponentConflictItem>();
 			IncomingComponents = new ObservableCollection<ComponentConflictItem>();
@@ -106,29 +106,29 @@ namespace KOTORModSync.Dialogs
 			ExistingSourceInfo = existingSource;
 			IncomingSourceInfo = incomingSource;
 
-			SelectAllIncomingMatchesCommand = new RelayCommand( _ => SelectAllIncomingMatches() );
-			SelectAllExistingMatchesCommand = new RelayCommand( _ => SelectAllExistingMatches() );
-			KeepAllNewCommand = new RelayCommand( _ => KeepAllNew() );
-			KeepAllExistingUnmatchedCommand = new RelayCommand( _ => KeepAllExistingUnmatched() );
-			LinkSelectedCommand = new RelayCommand( _ => LinkSelectedItems(), _ => CanLinkSelected() );
-			UnlinkSelectedCommand = new RelayCommand( _ => UnlinkSelectedItems(), _ => CanUnlinkSelected() );
-			UseAllIncomingFieldsCommand = new RelayCommand( _ => UseAllIncomingFields() );
-			UseAllExistingFieldsCommand = new RelayCommand( _ => UseAllExistingFields() );
-			JumpToRawViewCommand = new RelayCommand( param => JumpToRawView( param as ComponentConflictItem ), param => param is ComponentConflictItem );
+			SelectAllIncomingMatchesCommand = new RelayCommand(_ => SelectAllIncomingMatches());
+			SelectAllExistingMatchesCommand = new RelayCommand(_ => SelectAllExistingMatches());
+			KeepAllNewCommand = new RelayCommand(_ => KeepAllNew());
+			KeepAllExistingUnmatchedCommand = new RelayCommand(_ => KeepAllExistingUnmatched());
+			LinkSelectedCommand = new RelayCommand(_ => LinkSelectedItems(), _ => CanLinkSelected());
+			UnlinkSelectedCommand = new RelayCommand(_ => UnlinkSelectedItems(), _ => CanUnlinkSelected());
+			UseAllIncomingFieldsCommand = new RelayCommand(_ => UseAllIncomingFields());
+			UseAllExistingFieldsCommand = new RelayCommand(_ => UseAllExistingFields());
+			JumpToRawViewCommand = new RelayCommand(param => JumpToRawView(param as ComponentConflictItem), param => param is ComponentConflictItem);
 
-			BuildConflictItems( existingComponents, incomingComponents, matchFunc );
+			BuildConflictItems(existingComponents, incomingComponents, matchFunc);
 
-			PropertyChanged += ( _, e ) =>
+			PropertyChanged += (_, e) =>
 			{
 				switch (e.PropertyName)
 				{
-					case nameof( UseIncomingOrder ):
-					case nameof( SelectAllExisting ):
-					case nameof( SelectAllIncoming ):
-					case nameof( SkipDuplicates ):
+					case nameof(UseIncomingOrder):
+					case nameof(SelectAllExisting):
+					case nameof(SelectAllIncoming):
+					case nameof(SkipDuplicates):
 						UpdatePreview();
 						break;
-					case nameof( SearchText ):
+					case nameof(SearchText):
 						ApplySearchFilter();
 						break;
 				}
@@ -174,7 +174,7 @@ namespace KOTORModSync.Dialogs
 			get => _searchText;
 			set
 			{
-				if (string.Equals( _searchText, value, StringComparison.Ordinal )) return;
+				if (string.Equals(_searchText, value, StringComparison.Ordinal)) return;
 				_searchText = value;
 				OnPropertyChanged();
 			}
@@ -189,23 +189,23 @@ namespace KOTORModSync.Dialogs
 		{
 			get
 			{
-				int existingSelected = ExistingComponents.Count( c => c.IsSelected );
-				int incomingSelected = IncomingComponents.Count( c => c.IsSelected );
+				int existingSelected = ExistingComponents.Count(c => c.IsSelected);
+				int incomingSelected = IncomingComponents.Count(c => c.IsSelected);
 				return
 					$"Selected: {existingSelected} from existing, {incomingSelected} from incoming → {PreviewComponents.Count} total components";
 			}
 		}
 
-		public int NewComponentsCount => _incomingOnly.Count( i => i.IsSelected );
-		public int UpdatedComponentsCount => _matchedPairs.Count( p => p.Incoming.IsSelected && !p.Existing.IsSelected );
+		public int NewComponentsCount => _incomingOnly.Count(i => i.IsSelected);
+		public int UpdatedComponentsCount => _matchedPairs.Count(p => p.Incoming.IsSelected && !p.Existing.IsSelected);
 
-		public int KeptComponentsCount => _existingOnly.Count( e => e.IsSelected ) +
-										  _matchedPairs.Count( p => p.Existing.IsSelected && !p.Incoming.IsSelected );
+		public int KeptComponentsCount => _existingOnly.Count(e => e.IsSelected) +
+										  _matchedPairs.Count(p => p.Existing.IsSelected && !p.Incoming.IsSelected);
 
-		public int RemovedComponentsCount => _existingOnly.Count( e => !e.IsSelected ) +
-											 _matchedPairs.Count( p =>
+		public int RemovedComponentsCount => _existingOnly.Count(e => !e.IsSelected) +
+											 _matchedPairs.Count(p =>
 												 p.Existing.IsSelected && !p.Incoming.IsSelected &&
-												 !p.Incoming.IsSelected );
+												 !p.Incoming.IsSelected);
 
 		public int TotalChanges => NewComponentsCount + UpdatedComponentsCount + RemovedComponentsCount;
 
@@ -216,15 +216,15 @@ namespace KOTORModSync.Dialogs
 		{
 			get
 			{
-				if (_selectedExistingItem == null && _selectedIncomingItem == null)
+				if (_selectedExistingItem is null && _selectedIncomingItem is null)
 					return false;
 
 				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = default;
 
 				if (_selectedExistingItem != null)
-					matchedPair = _matchedPairs.FirstOrDefault( p => p.Existing == _selectedExistingItem );
+					matchedPair = _matchedPairs.FirstOrDefault(p => p.Existing == _selectedExistingItem);
 				else if (_selectedIncomingItem != null)
-					matchedPair = _matchedPairs.FirstOrDefault( p => p.Incoming == _selectedIncomingItem );
+					matchedPair = _matchedPairs.FirstOrDefault(p => p.Incoming == _selectedIncomingItem);
 
 				return matchedPair.Existing != null && matchedPair.Incoming != null;
 			}
@@ -235,52 +235,52 @@ namespace KOTORModSync.Dialogs
 			get
 			{
 
-				if (_selectedExistingItem == null && _selectedIncomingItem == null)
+				if (_selectedExistingItem is null && _selectedIncomingItem is null)
 					return new FieldMergePreference();
 
 				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = default;
 
 				if (_selectedExistingItem != null)
-					matchedPair = _matchedPairs.FirstOrDefault( p => p.Existing == _selectedExistingItem );
+					matchedPair = _matchedPairs.FirstOrDefault(p => p.Existing == _selectedExistingItem);
 				else if (_selectedIncomingItem != null)
-					matchedPair = _matchedPairs.FirstOrDefault( p => p.Incoming == _selectedIncomingItem );
+					matchedPair = _matchedPairs.FirstOrDefault(p => p.Incoming == _selectedIncomingItem);
 
-				if (matchedPair.Existing == null || matchedPair.Incoming == null)
+				if (matchedPair.Existing is null || matchedPair.Incoming is null)
 					return new FieldMergePreference();
 
-				var key = Tuple.Create( matchedPair.Existing, matchedPair.Incoming );
+				var key = Tuple.Create(matchedPair.Existing, matchedPair.Incoming);
 
-				if (_fieldPreferences.TryGetValue( key, out FieldMergePreference prefs ))
+				if (_fieldPreferences.TryGetValue(key, out FieldMergePreference prefs))
 					return prefs;
-				prefs = CreateAndSubscribeFieldPreferences( matchedPair.Existing.ModComponent, matchedPair.Incoming.ModComponent );
+				prefs = CreateAndSubscribeFieldPreferences(matchedPair.Existing.ModComponent, matchedPair.Incoming.ModComponent);
 				_fieldPreferences[key] = prefs;
 
 				return prefs;
 			}
 		}
 
-		private FieldMergePreference CreateAndSubscribeFieldPreferences( ModComponent existing, ModComponent incoming )
+		private FieldMergePreference CreateAndSubscribeFieldPreferences(ModComponent existing, ModComponent incoming)
 		{
-			FieldMergePreference prefs = ComponentMergeConflictViewModel.CreateSmartFieldPreferences( existing, incoming );
+			FieldMergePreference prefs = ComponentMergeConflictViewModel.CreateSmartFieldPreferences(existing, incoming);
 
-			prefs.PropertyChanged += ( _, __ ) =>
+			prefs.PropertyChanged += (_, __) =>
 			{
 				UpdatePreview();
-				OnPropertyChanged( nameof( PreviewName ) );
-				OnPropertyChanged( nameof( PreviewAuthor ) );
-				OnPropertyChanged( nameof( PreviewInstructionsCount ) );
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 			};
 
 			return prefs;
 		}
 
-		private static FieldMergePreference CreateSmartFieldPreferences( ModComponent existing, ModComponent incoming )
+		private static FieldMergePreference CreateSmartFieldPreferences(ModComponent existing, ModComponent incoming)
 		{
 			var prefs = new FieldMergePreference();
 
 
-			bool existingHasName = !string.IsNullOrWhiteSpace( existing.Name );
-			bool incomingHasName = !string.IsNullOrWhiteSpace( incoming.Name );
+			bool existingHasName = !string.IsNullOrWhiteSpace(existing.Name);
+			bool incomingHasName = !string.IsNullOrWhiteSpace(incoming.Name);
 			if (!existingHasName && incomingHasName)
 				prefs.Name = FieldMergePreference.FieldSource.UseIncoming;
 			else if (existingHasName && !incomingHasName)
@@ -288,8 +288,8 @@ namespace KOTORModSync.Dialogs
 			else
 				prefs.Name = FieldMergePreference.FieldSource.UseIncoming;
 
-			bool existingHasAuthor = !string.IsNullOrWhiteSpace( existing.Author );
-			bool incomingHasAuthor = !string.IsNullOrWhiteSpace( incoming.Author );
+			bool existingHasAuthor = !string.IsNullOrWhiteSpace(existing.Author);
+			bool incomingHasAuthor = !string.IsNullOrWhiteSpace(incoming.Author);
 			if (!existingHasAuthor && incomingHasAuthor)
 				prefs.Author = FieldMergePreference.FieldSource.UseIncoming;
 			else if (existingHasAuthor && !incomingHasAuthor)
@@ -375,10 +375,10 @@ namespace KOTORModSync.Dialogs
 			{
 				if (!HasMatchedPairSelected) return string.Empty;
 
-				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault( p =>
-				p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem );
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p =>
+				p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
 
-				return matchedPair.Existing == null || matchedPair.Incoming == null
+				return matchedPair.Existing is null || matchedPair.Incoming is null
 				? string.Empty
 				: CurrentFieldPreferences.Name == FieldMergePreference.FieldSource.UseExisting
 				? matchedPair.Existing.ModComponent.Name
@@ -392,10 +392,10 @@ namespace KOTORModSync.Dialogs
 			{
 				if (!HasMatchedPairSelected) return string.Empty;
 
-				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault( p =>
-					p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem );
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p =>
+					p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
 
-				return matchedPair.Existing == null || matchedPair.Incoming == null
+				return matchedPair.Existing is null || matchedPair.Incoming is null
 					? string.Empty
 					: CurrentFieldPreferences.Author == FieldMergePreference.FieldSource.UseExisting
 					? matchedPair.Existing.ModComponent.Author
@@ -409,10 +409,10 @@ namespace KOTORModSync.Dialogs
 			{
 				if (!HasMatchedPairSelected) return "0 instructions";
 
-				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault( p =>
-					p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem );
+				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p =>
+					p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
 
-				if (matchedPair.Existing == null || matchedPair.Incoming == null)
+				if (matchedPair.Existing is null || matchedPair.Incoming is null)
 					return "0 instructions";
 
 				int count = CurrentFieldPreferences.Instructions == FieldMergePreference.FieldSource.UseExisting
@@ -439,28 +439,28 @@ namespace KOTORModSync.Dialogs
 					_selectedExistingItem.IsVisuallySelected = true;
 
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( ComparisonVisible ) );
-				OnPropertyChanged( nameof( ComparisonText ) );
-				OnPropertyChanged( nameof( CanLinkItems ) );
-				OnPropertyChanged( nameof( ExistingComponentsToml ) );
-				OnPropertyChanged( nameof( HasMatchedPairSelected ) );
-				OnPropertyChanged( nameof( CurrentFieldPreferences ) );
-				OnPropertyChanged( nameof( PreviewName ) );
-				OnPropertyChanged( nameof( PreviewAuthor ) );
-				OnPropertyChanged( nameof( PreviewInstructionsCount ) );
+				OnPropertyChanged(nameof(ComparisonVisible));
+				OnPropertyChanged(nameof(ComparisonText));
+				OnPropertyChanged(nameof(CanLinkItems));
+				OnPropertyChanged(nameof(ExistingComponentsToml));
+				OnPropertyChanged(nameof(HasMatchedPairSelected));
+				OnPropertyChanged(nameof(CurrentFieldPreferences));
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 
-				if (value == null)
+				if (value is null)
 					return;
 				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
-					_matchedPairs.FirstOrDefault( p => p.Existing == value );
+					_matchedPairs.FirstOrDefault(p => p.Existing == value);
 
-				if (matchedPair.Incoming == null)
+				if (matchedPair.Incoming is null)
 				{
 					if (_selectedIncomingItem != null)
 					{
 						_selectedIncomingItem.IsVisuallySelected = false;
 						_selectedIncomingItem = null;
-						OnPropertyChanged( nameof( SelectedIncomingItem ) );
+						OnPropertyChanged(nameof(SelectedIncomingItem));
 					}
 					return;
 				}
@@ -473,14 +473,14 @@ namespace KOTORModSync.Dialogs
 
 				_selectedIncomingItem = matchedPair.Incoming;
 				matchedPair.Incoming.IsVisuallySelected = true;
-				OnPropertyChanged( nameof( SelectedIncomingItem ) );
-				OnPropertyChanged( nameof( IncomingComponentsToml ) );
-				OnPropertyChanged( nameof( CurrentFieldPreferences ) );
-				OnPropertyChanged( nameof( PreviewName ) );
-				OnPropertyChanged( nameof( PreviewAuthor ) );
-				OnPropertyChanged( nameof( PreviewInstructionsCount ) );
+				OnPropertyChanged(nameof(SelectedIncomingItem));
+				OnPropertyChanged(nameof(IncomingComponentsToml));
+				OnPropertyChanged(nameof(CurrentFieldPreferences));
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 
-				SyncSelectionRequested?.Invoke( this, new SyncSelectionEventArgs { SelectedItem = value, MatchedItem = matchedPair.Incoming } );
+				SyncSelectionRequested?.Invoke(this, new SyncSelectionEventArgs { SelectedItem = value, MatchedItem = matchedPair.Incoming });
 			}
 		}
 
@@ -500,28 +500,28 @@ namespace KOTORModSync.Dialogs
 					_selectedIncomingItem.IsVisuallySelected = true;
 
 				OnPropertyChanged();
-				OnPropertyChanged( nameof( ComparisonVisible ) );
-				OnPropertyChanged( nameof( ComparisonText ) );
-				OnPropertyChanged( nameof( CanLinkItems ) );
-				OnPropertyChanged( nameof( IncomingComponentsToml ) );
-				OnPropertyChanged( nameof( HasMatchedPairSelected ) );
-				OnPropertyChanged( nameof( CurrentFieldPreferences ) );
-				OnPropertyChanged( nameof( PreviewName ) );
-				OnPropertyChanged( nameof( PreviewAuthor ) );
-				OnPropertyChanged( nameof( PreviewInstructionsCount ) );
+				OnPropertyChanged(nameof(ComparisonVisible));
+				OnPropertyChanged(nameof(ComparisonText));
+				OnPropertyChanged(nameof(CanLinkItems));
+				OnPropertyChanged(nameof(IncomingComponentsToml));
+				OnPropertyChanged(nameof(HasMatchedPairSelected));
+				OnPropertyChanged(nameof(CurrentFieldPreferences));
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 
-				if (value == null)
+				if (value is null)
 					return;
 				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
-					_matchedPairs.FirstOrDefault( p => p.Incoming == value );
+					_matchedPairs.FirstOrDefault(p => p.Incoming == value);
 
-				if (matchedPair.Existing == null)
+				if (matchedPair.Existing is null)
 				{
 					if (_selectedExistingItem != null)
 					{
 						_selectedExistingItem.IsVisuallySelected = false;
 						_selectedExistingItem = null;
-						OnPropertyChanged( nameof( SelectedExistingItem ) );
+						OnPropertyChanged(nameof(SelectedExistingItem));
 					}
 					return;
 				}
@@ -534,14 +534,14 @@ namespace KOTORModSync.Dialogs
 
 				_selectedExistingItem = matchedPair.Existing;
 				matchedPair.Existing.IsVisuallySelected = true;
-				OnPropertyChanged( nameof( SelectedExistingItem ) );
-				OnPropertyChanged( nameof( ExistingComponentsToml ) );
-				OnPropertyChanged( nameof( CurrentFieldPreferences ) );
-				OnPropertyChanged( nameof( PreviewName ) );
-				OnPropertyChanged( nameof( PreviewAuthor ) );
-				OnPropertyChanged( nameof( PreviewInstructionsCount ) );
+				OnPropertyChanged(nameof(SelectedExistingItem));
+				OnPropertyChanged(nameof(ExistingComponentsToml));
+				OnPropertyChanged(nameof(CurrentFieldPreferences));
+				OnPropertyChanged(nameof(PreviewName));
+				OnPropertyChanged(nameof(PreviewAuthor));
+				OnPropertyChanged(nameof(PreviewInstructionsCount));
 
-				SyncSelectionRequested?.Invoke( this, new SyncSelectionEventArgs { SelectedItem = value, MatchedItem = matchedPair.Existing } );
+				SyncSelectionRequested?.Invoke(this, new SyncSelectionEventArgs { SelectedItem = value, MatchedItem = matchedPair.Existing });
 			}
 		}
 
@@ -560,14 +560,14 @@ namespace KOTORModSync.Dialogs
 		public bool ComparisonVisible => _selectedExistingItem != null || _selectedIncomingItem != null;
 
 		public bool CanLinkItems => _selectedExistingItem != null && _selectedIncomingItem != null &&
-									!_matchedPairs.Any( p =>
-										p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem );
+									!_matchedPairs.Any(p =>
+										p.Existing == _selectedExistingItem || p.Incoming == _selectedIncomingItem);
 
 		public string LinkButtonText
 		{
 			get
 			{
-				if (_selectedExistingItem == null || _selectedIncomingItem == null)
+				if (_selectedExistingItem is null || _selectedIncomingItem is null)
 					return "Select one from each list to link";
 				if (CanLinkItems)
 					return $"🔗 Link \"{_selectedExistingItem.Name}\" ↔ \"{_selectedIncomingItem.Name}\"";
@@ -580,41 +580,41 @@ namespace KOTORModSync.Dialogs
 		{
 			get
 			{
-				if (_selectedExistingItem == null && _selectedIncomingItem == null)
+				if (_selectedExistingItem is null && _selectedIncomingItem is null)
 					return "Select a component to see details";
 
 				ComponentConflictItem item = _selectedExistingItem ?? _selectedIncomingItem;
 				ModComponent component = item.ModComponent;
 
 				var sb = new System.Text.StringBuilder();
-				_ = sb.AppendLine( $"ModComponent: {component.Name}" );
-				_ = sb.AppendLine( $"Author: {component.Author}" );
+				_ = sb.AppendLine($"ModComponent: {component.Name}");
+				_ = sb.AppendLine($"Author: {component.Author}");
 				string categoryStr = component.Category != null && component.Category.Count > 0
-					? string.Join( ", ", component.Category )
+					? string.Join(", ", component.Category)
 					: "No category";
-				_ = sb.AppendLine( $"Category: {categoryStr} / {component.Tier}" );
-				_ = sb.AppendLine( $"Instructions: {component.Instructions.Count}" );
-				_ = sb.AppendLine( $"Options: {component.Options.Count}" );
-				_ = sb.AppendLine( $"Dependencies: {component.Dependencies.Count}" );
-				_ = sb.AppendLine( $"Links: {component.ModLinkFilenames.Count}" );
+				_ = sb.AppendLine($"Category: {categoryStr} / {component.Tier}");
+				_ = sb.AppendLine($"Instructions: {component.Instructions.Count}");
+				_ = sb.AppendLine($"Options: {component.Options.Count}");
+				_ = sb.AppendLine($"Dependencies: {component.Dependencies.Count}");
+				_ = sb.AppendLine($"Links: {component.ModLinkFilenames.Count}");
 
 				if (_selectedExistingItem != null)
 				{
 					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
-						_matchedPairs.FirstOrDefault( p => p.Existing == _selectedExistingItem );
-					if (matchedPair.Incoming == null)
+						_matchedPairs.FirstOrDefault(p => p.Existing == _selectedExistingItem);
+					if (matchedPair.Incoming is null)
 						return sb.ToString();
-					_ = sb.AppendLine( "\n🔄 DIFFERENCES FROM INCOMING:" );
-					CompareComponents( component, matchedPair.Incoming.ModComponent, sb );
+					_ = sb.AppendLine("\n🔄 DIFFERENCES FROM INCOMING:");
+					CompareComponents(component, matchedPair.Incoming.ModComponent, sb);
 				}
 				else if (_selectedIncomingItem != null)
 				{
 					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
-						_matchedPairs.FirstOrDefault( p => p.Incoming == _selectedIncomingItem );
+						_matchedPairs.FirstOrDefault(p => p.Incoming == _selectedIncomingItem);
 					if (matchedPair.Existing != null)
 					{
-						_ = sb.AppendLine( "\n🔄 DIFFERENCES FROM EXISTING:" );
-						CompareComponents( component, matchedPair.Existing.ModComponent, sb );
+						_ = sb.AppendLine("\n🔄 DIFFERENCES FROM EXISTING:");
+						CompareComponents(component, matchedPair.Existing.ModComponent, sb);
 					}
 				}
 
@@ -622,18 +622,18 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private static void CompareComponents( ModComponent a, ModComponent b, System.Text.StringBuilder sb )
+		private static void CompareComponents(ModComponent a, ModComponent b, System.Text.StringBuilder sb)
 		{
-			if (!string.Equals( a.Name, b.Name, StringComparison.Ordinal )) _ = sb.AppendLine( $"  Name: '{a.Name}' vs '{b.Name}'" );
-			if (!string.Equals( a.Author, b.Author, StringComparison.Ordinal )) _ = sb.AppendLine( $"  Author: '{a.Author}' vs '{b.Author}'" );
-			if (a.Category != b.Category) _ = sb.AppendLine( $"  Category: '{a.Category}' vs '{b.Category}'" );
-			if (!string.Equals( a.Tier, b.Tier, StringComparison.Ordinal )) _ = sb.AppendLine( $"  Tier: '{a.Tier}' vs '{b.Tier}'" );
+			if (!string.Equals(a.Name, b.Name, StringComparison.Ordinal)) _ = sb.AppendLine($"  Name: '{a.Name}' vs '{b.Name}'");
+			if (!string.Equals(a.Author, b.Author, StringComparison.Ordinal)) _ = sb.AppendLine($"  Author: '{a.Author}' vs '{b.Author}'");
+			if (a.Category != b.Category) _ = sb.AppendLine($"  Category: '{a.Category}' vs '{b.Category}'");
+			if (!string.Equals(a.Tier, b.Tier, StringComparison.Ordinal)) _ = sb.AppendLine($"  Tier: '{a.Tier}' vs '{b.Tier}'");
 			if (a.Instructions.Count != b.Instructions.Count)
-				_ = sb.AppendLine( $"  Instructions: {a.Instructions.Count} vs {b.Instructions.Count}" );
+				_ = sb.AppendLine($"  Instructions: {a.Instructions.Count} vs {b.Instructions.Count}");
 			if (a.Options.Count != b.Options.Count)
-				_ = sb.AppendLine( $"  Options: {a.Options.Count} vs {b.Options.Count}" );
+				_ = sb.AppendLine($"  Options: {a.Options.Count} vs {b.Options.Count}");
 			if (a.ModLinkFilenames.Count != b.ModLinkFilenames.Count)
-				_ = sb.AppendLine( $"  Links: {a.ModLinkFilenames.Count} vs {b.ModLinkFilenames.Count}" );
+				_ = sb.AppendLine($"  Links: {a.ModLinkFilenames.Count} vs {b.ModLinkFilenames.Count}");
 		}
 
 		public bool UseIncomingOrder
@@ -701,14 +701,14 @@ namespace KOTORModSync.Dialogs
 		private void BuildConflictItems(
 			List<ModComponent> existingComponents,
 			List<ModComponent> incomingComponents,
-			Func<ModComponent, ModComponent, bool> matchFunc )
+			Func<ModComponent, ModComponent, bool> matchFunc)
 		{
 			var existingSet = new HashSet<ModComponent>();
 			var incomingSet = new HashSet<ModComponent>();
 
-			var potentialMatches = (from existing in existingComponents from incoming in incomingComponents where matchFunc( existing, incoming ) let score = FuzzyMatcher.GetComponentMatchScore( existing, incoming ) select (existing, incoming, score)).ToList();
+			var potentialMatches = (from existing in existingComponents from incoming in incomingComponents where matchFunc(existing, incoming) let score = FuzzyMatcher.GetComponentMatchScore(existing, incoming) select (existing, incoming, score)).ToList();
 
-			potentialMatches = potentialMatches.OrderByDescending( m => m.score ).Cast<(ModComponent, ModComponent, double)>().ToList();
+			potentialMatches = potentialMatches.OrderByDescending(m => m.score).Cast<(ModComponent, ModComponent, double)>().ToList();
 
 			var existingToIncomingMatch = new Dictionary<ModComponent, ModComponent>();
 			var incomingToExistingMatch = new Dictionary<ModComponent, ModComponent>();
@@ -718,24 +718,24 @@ namespace KOTORModSync.Dialogs
 			foreach ((ModComponent existing, ModComponent incoming, double _) in potentialMatches)
 			{
 
-				if (existingSet.Contains( existing ) || incomingSet.Contains( incoming ))
+				if (existingSet.Contains(existing) || incomingSet.Contains(incoming))
 					continue;
 
 				existingToIncomingMatch[existing] = incoming;
 				incomingToExistingMatch[incoming] = existing;
 
-				_ = existingSet.Add( existing );
-				_ = incomingSet.Add( incoming );
+				_ = existingSet.Add(existing);
+				_ = incomingSet.Add(incoming);
 			}
 
 			foreach (ModComponent existing in existingComponents)
 			{
 				ComponentConflictItem existingItem;
 
-				if (existingToIncomingMatch.ContainsKey( existing ))
+				if (existingToIncomingMatch.ContainsKey(existing))
 				{
 
-					existingItem = new ComponentConflictItem( existing, true, ComponentConflictStatus.Matched );
+					existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.Matched);
 					existingItem.PropertyChanged += OnItemSelectionChanged;
 					existingItem.IsSelected = false;
 
@@ -744,23 +744,23 @@ namespace KOTORModSync.Dialogs
 				else
 				{
 
-					existingItem = new ComponentConflictItem( existing, true, ComponentConflictStatus.ExistingOnly );
+					existingItem = new ComponentConflictItem(existing, true, ComponentConflictStatus.ExistingOnly);
 					existingItem.PropertyChanged += OnItemSelectionChanged;
 					existingItem.IsSelected = true;
-					_existingOnly.Add( existingItem );
+					_existingOnly.Add(existingItem);
 				}
 
-				ExistingComponents.Add( existingItem );
+				ExistingComponents.Add(existingItem);
 			}
 
 			foreach (ModComponent incoming in incomingComponents)
 			{
 				ComponentConflictItem incomingItem;
 
-				if (incomingToExistingMatch.ContainsKey( incoming ))
+				if (incomingToExistingMatch.ContainsKey(incoming))
 				{
 
-					incomingItem = new ComponentConflictItem( incoming, false, ComponentConflictStatus.Matched );
+					incomingItem = new ComponentConflictItem(incoming, false, ComponentConflictStatus.Matched);
 					incomingItem.PropertyChanged += OnItemSelectionChanged;
 					incomingItem.IsSelected = true;
 
@@ -769,13 +769,13 @@ namespace KOTORModSync.Dialogs
 				else
 				{
 
-					incomingItem = new ComponentConflictItem( incoming, false, ComponentConflictStatus.New );
+					incomingItem = new ComponentConflictItem(incoming, false, ComponentConflictStatus.New);
 					incomingItem.PropertyChanged += OnItemSelectionChanged;
 					incomingItem.IsSelected = true;
-					_incomingOnly.Add( incomingItem );
+					_incomingOnly.Add(incomingItem);
 				}
 
-				IncomingComponents.Add( incomingItem );
+				IncomingComponents.Add(incomingItem);
 			}
 
 			foreach (KeyValuePair<ModComponent, ModComponent> kvp in existingToIncomingMatch)
@@ -786,11 +786,11 @@ namespace KOTORModSync.Dialogs
 				ComponentConflictItem existingItem = existingItemLookup[existing];
 				ComponentConflictItem incomingItem = incomingItemLookup[incoming];
 
-				var pair = Tuple.Create( existingItem, incomingItem );
-				_matchedPairs.Add( (existingItem, incomingItem) );
+				var pair = Tuple.Create(existingItem, incomingItem);
+				_matchedPairs.Add((existingItem, incomingItem));
 
 				GuidConflictResolver.GuidResolution guidResolution =
-					GuidConflictResolver.ResolveGuidConflict( existing, incoming );
+					GuidConflictResolver.ResolveGuidConflict(existing, incoming);
 				if (guidResolution != null)
 				{
 					_guidResolutions[pair] = guidResolution;
@@ -829,7 +829,7 @@ namespace KOTORModSync.Dialogs
 		public void KeepAllNew()
 		{
 
-			bool anyUnselected = _incomingOnly.Any( item => !item.IsSelected );
+			bool anyUnselected = _incomingOnly.Any(item => !item.IsSelected);
 			foreach (ComponentConflictItem item in _incomingOnly)
 				item.IsSelected = anyUnselected;
 
@@ -838,7 +838,7 @@ namespace KOTORModSync.Dialogs
 		public void KeepAllExistingUnmatched()
 		{
 
-			bool anyUnselected = _existingOnly.Any( item => !item.IsSelected );
+			bool anyUnselected = _existingOnly.Any(item => !item.IsSelected);
 			foreach (ComponentConflictItem item in _existingOnly)
 				item.IsSelected = anyUnselected;
 
@@ -849,26 +849,26 @@ namespace KOTORModSync.Dialogs
 		{
 			foreach ((ComponentConflictItem Existing, ComponentConflictItem Incoming) pair in _matchedPairs)
 			{
-				var key = Tuple.Create( pair.Existing, pair.Incoming );
+				var key = Tuple.Create(pair.Existing, pair.Incoming);
 
-				if (!_fieldPreferences.ContainsKey( key ))
+				if (!_fieldPreferences.ContainsKey(key))
 				{
 					_ = CurrentFieldPreferences;
 				}
 
-				if (_fieldPreferences.TryGetValue( key, out FieldMergePreference fieldPrefs ))
+				if (_fieldPreferences.TryGetValue(key, out FieldMergePreference fieldPrefs))
 				{
 					ModComponent existing = pair.Existing.ModComponent;
 					ModComponent incoming = pair.Incoming.ModComponent;
 
-					if (!string.IsNullOrWhiteSpace( incoming.Name ))
+					if (!string.IsNullOrWhiteSpace(incoming.Name))
 						fieldPrefs.Name = FieldMergePreference.FieldSource.UseIncoming;
-					else if (!string.IsNullOrWhiteSpace( existing.Name ))
+					else if (!string.IsNullOrWhiteSpace(existing.Name))
 						fieldPrefs.Name = FieldMergePreference.FieldSource.UseExisting;
 
-					if (!string.IsNullOrWhiteSpace( incoming.Author ))
+					if (!string.IsNullOrWhiteSpace(incoming.Author))
 						fieldPrefs.Author = FieldMergePreference.FieldSource.UseIncoming;
-					else if (!string.IsNullOrWhiteSpace( existing.Author ))
+					else if (!string.IsNullOrWhiteSpace(existing.Author))
 						fieldPrefs.Author = FieldMergePreference.FieldSource.UseExisting;
 
 					if (incoming.Instructions != null && incoming.Instructions.Count > 0)
@@ -926,14 +926,14 @@ namespace KOTORModSync.Dialogs
 					else if (existingHasLanguage)
 						fieldPrefs.Language = FieldMergePreference.FieldSource.UseExisting;
 
-					if (!string.IsNullOrWhiteSpace( incoming.Description ))
+					if (!string.IsNullOrWhiteSpace(incoming.Description))
 						fieldPrefs.Description = FieldMergePreference.FieldSource.UseIncoming;
-					else if (!string.IsNullOrWhiteSpace( existing.Description ))
+					else if (!string.IsNullOrWhiteSpace(existing.Description))
 						fieldPrefs.Description = FieldMergePreference.FieldSource.UseExisting;
 
-					if (!string.IsNullOrWhiteSpace( incoming.Directions ))
+					if (!string.IsNullOrWhiteSpace(incoming.Directions))
 						fieldPrefs.Directions = FieldMergePreference.FieldSource.UseIncoming;
-					else if (!string.IsNullOrWhiteSpace( existing.Directions ))
+					else if (!string.IsNullOrWhiteSpace(existing.Directions))
 						fieldPrefs.Directions = FieldMergePreference.FieldSource.UseExisting;
 
 					if (incoming.Category != null && incoming.Category.Count > 0)
@@ -941,22 +941,22 @@ namespace KOTORModSync.Dialogs
 					else if (existing.Category != null && existing.Category.Count > 0)
 						fieldPrefs.Category = FieldMergePreference.FieldSource.UseExisting;
 
-					if (!string.IsNullOrWhiteSpace( incoming.Tier ))
+					if (!string.IsNullOrWhiteSpace(incoming.Tier))
 						fieldPrefs.Tier = FieldMergePreference.FieldSource.UseIncoming;
-					else if (!string.IsNullOrWhiteSpace( existing.Tier ))
+					else if (!string.IsNullOrWhiteSpace(existing.Tier))
 						fieldPrefs.Tier = FieldMergePreference.FieldSource.UseExisting;
 
-					if (!string.IsNullOrWhiteSpace( incoming.InstallationMethod ))
+					if (!string.IsNullOrWhiteSpace(incoming.InstallationMethod))
 						fieldPrefs.InstallationMethod = FieldMergePreference.FieldSource.UseIncoming;
-					else if (!string.IsNullOrWhiteSpace( existing.InstallationMethod ))
+					else if (!string.IsNullOrWhiteSpace(existing.InstallationMethod))
 						fieldPrefs.InstallationMethod = FieldMergePreference.FieldSource.UseExisting;
 				}
 			}
 
-			OnPropertyChanged( nameof( CurrentFieldPreferences ) );
-			OnPropertyChanged( nameof( PreviewName ) );
-			OnPropertyChanged( nameof( PreviewAuthor ) );
-			OnPropertyChanged( nameof( PreviewInstructionsCount ) );
+			OnPropertyChanged(nameof(CurrentFieldPreferences));
+			OnPropertyChanged(nameof(PreviewName));
+			OnPropertyChanged(nameof(PreviewAuthor));
+			OnPropertyChanged(nameof(PreviewInstructionsCount));
 			UpdatePreview();
 		}
 
@@ -965,26 +965,26 @@ namespace KOTORModSync.Dialogs
 		{
 			foreach ((ComponentConflictItem Existing, ComponentConflictItem Incoming) pair in _matchedPairs)
 			{
-				var key = Tuple.Create( pair.Existing, pair.Incoming );
+				var key = Tuple.Create(pair.Existing, pair.Incoming);
 
-				if (!_fieldPreferences.ContainsKey( key ))
+				if (!_fieldPreferences.ContainsKey(key))
 				{
 					_ = CurrentFieldPreferences;
 				}
 
-				if (_fieldPreferences.TryGetValue( key, out FieldMergePreference fieldPrefs ))
+				if (_fieldPreferences.TryGetValue(key, out FieldMergePreference fieldPrefs))
 				{
 					ModComponent existing = pair.Existing.ModComponent;
 					ModComponent incoming = pair.Incoming.ModComponent;
 
-					if (!string.IsNullOrWhiteSpace( existing.Name ))
+					if (!string.IsNullOrWhiteSpace(existing.Name))
 						fieldPrefs.Name = FieldMergePreference.FieldSource.UseExisting;
-					else if (!string.IsNullOrWhiteSpace( incoming.Name ))
+					else if (!string.IsNullOrWhiteSpace(incoming.Name))
 						fieldPrefs.Name = FieldMergePreference.FieldSource.UseIncoming;
 
-					if (!string.IsNullOrWhiteSpace( existing.Author ))
+					if (!string.IsNullOrWhiteSpace(existing.Author))
 						fieldPrefs.Author = FieldMergePreference.FieldSource.UseExisting;
-					else if (!string.IsNullOrWhiteSpace( incoming.Author ))
+					else if (!string.IsNullOrWhiteSpace(incoming.Author))
 						fieldPrefs.Author = FieldMergePreference.FieldSource.UseIncoming;
 
 					if (existing.Instructions != null && existing.Instructions.Count > 0)
@@ -1042,14 +1042,14 @@ namespace KOTORModSync.Dialogs
 					else if (incomingHasLanguage)
 						fieldPrefs.Language = FieldMergePreference.FieldSource.UseIncoming;
 
-					if (!string.IsNullOrWhiteSpace( existing.Description ))
+					if (!string.IsNullOrWhiteSpace(existing.Description))
 						fieldPrefs.Description = FieldMergePreference.FieldSource.UseExisting;
-					else if (!string.IsNullOrWhiteSpace( incoming.Description ))
+					else if (!string.IsNullOrWhiteSpace(incoming.Description))
 						fieldPrefs.Description = FieldMergePreference.FieldSource.UseIncoming;
 
-					if (!string.IsNullOrWhiteSpace( existing.Directions ))
+					if (!string.IsNullOrWhiteSpace(existing.Directions))
 						fieldPrefs.Directions = FieldMergePreference.FieldSource.UseExisting;
-					else if (!string.IsNullOrWhiteSpace( incoming.Directions ))
+					else if (!string.IsNullOrWhiteSpace(incoming.Directions))
 						fieldPrefs.Directions = FieldMergePreference.FieldSource.UseIncoming;
 
 					if (existing.Category != null && existing.Category.Count > 0)
@@ -1057,22 +1057,22 @@ namespace KOTORModSync.Dialogs
 					else if (incoming.Category != null && incoming.Category.Count > 0)
 						fieldPrefs.Category = FieldMergePreference.FieldSource.UseIncoming;
 
-					if (!string.IsNullOrWhiteSpace( existing.Tier ))
+					if (!string.IsNullOrWhiteSpace(existing.Tier))
 						fieldPrefs.Tier = FieldMergePreference.FieldSource.UseExisting;
-					else if (!string.IsNullOrWhiteSpace( incoming.Tier ))
+					else if (!string.IsNullOrWhiteSpace(incoming.Tier))
 						fieldPrefs.Tier = FieldMergePreference.FieldSource.UseIncoming;
 
-					if (!string.IsNullOrWhiteSpace( existing.InstallationMethod ))
+					if (!string.IsNullOrWhiteSpace(existing.InstallationMethod))
 						fieldPrefs.InstallationMethod = FieldMergePreference.FieldSource.UseExisting;
-					else if (!string.IsNullOrWhiteSpace( incoming.InstallationMethod ))
+					else if (!string.IsNullOrWhiteSpace(incoming.InstallationMethod))
 						fieldPrefs.InstallationMethod = FieldMergePreference.FieldSource.UseIncoming;
 				}
 			}
 
-			OnPropertyChanged( nameof( CurrentFieldPreferences ) );
-			OnPropertyChanged( nameof( PreviewName ) );
-			OnPropertyChanged( nameof( PreviewAuthor ) );
-			OnPropertyChanged( nameof( PreviewInstructionsCount ) );
+			OnPropertyChanged(nameof(CurrentFieldPreferences));
+			OnPropertyChanged(nameof(PreviewName));
+			OnPropertyChanged(nameof(PreviewAuthor));
+			OnPropertyChanged(nameof(PreviewInstructionsCount));
 			UpdatePreview();
 		}
 
@@ -1082,46 +1082,46 @@ namespace KOTORModSync.Dialogs
 			FilteredIncomingComponents.Clear();
 
 			string searchLower = (SearchText ?? string.Empty).ToLowerInvariant().Trim();
-			bool hasSearch = !string.IsNullOrEmpty( searchLower );
+			bool hasSearch = !string.IsNullOrEmpty(searchLower);
 
 			foreach (ComponentConflictItem item in ExistingComponents)
 			{
 				if (!hasSearch ||
-					 item.Name.IndexOf( searchLower, StringComparison.InvariantCultureIgnoreCase ) >= 0 ||
-					 item.Author.IndexOf( searchLower, StringComparison.InvariantCultureIgnoreCase ) >= 0)
+					 item.Name.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+					 item.Author.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0)
 				{
-					FilteredExistingComponents.Add( item );
+					FilteredExistingComponents.Add(item);
 				}
 			}
 
 			foreach (ComponentConflictItem item in IncomingComponents)
 			{
 				if (!hasSearch ||
-					 item.Name.IndexOf( searchLower, StringComparison.InvariantCultureIgnoreCase ) >= 0 ||
-					 item.Author.IndexOf( searchLower, StringComparison.InvariantCultureIgnoreCase ) >= 0)
+					 item.Name.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+					 item.Author.IndexOf(searchLower, StringComparison.InvariantCultureIgnoreCase) >= 0)
 				{
-					FilteredIncomingComponents.Add( item );
+					FilteredIncomingComponents.Add(item);
 				}
 			}
 		}
 
 		private bool CanLinkSelected() => _selectedExistingItem != null && _selectedIncomingItem != null &&
-										  !_matchedPairs.Any( p =>
+										  !_matchedPairs.Any(p =>
 											  p.Existing == _selectedExistingItem ||
-											  p.Incoming == _selectedIncomingItem );
+											  p.Incoming == _selectedIncomingItem);
 
-		public void ChooseGuidForItem( ComponentConflictItem item )
+		public void ChooseGuidForItem(ComponentConflictItem item)
 		{
 
 			(ComponentConflictItem existing, ComponentConflictItem incoming) =
-				_matchedPairs.FirstOrDefault( p => p.Existing == item || p.Incoming == item );
+				_matchedPairs.FirstOrDefault(p => p.Existing == item || p.Incoming == item);
 
-			if (existing == null || incoming == null)
+			if (existing is null || incoming is null)
 				return;
 
-			var pairKey = Tuple.Create( existing, incoming );
+			var pairKey = Tuple.Create(existing, incoming);
 
-			if (!_guidResolutions.TryGetValue( pairKey, out GuidConflictResolver.GuidResolution resolution ))
+			if (!_guidResolutions.TryGetValue(pairKey, out GuidConflictResolver.GuidResolution resolution))
 				return;
 
 			if (item == existing)
@@ -1146,9 +1146,9 @@ namespace KOTORModSync.Dialogs
 		private bool CanUnlinkSelected()
 		{
 			if (_selectedExistingItem != null)
-				return _matchedPairs.Any( p => p.Existing == _selectedExistingItem );
+				return _matchedPairs.Any(p => p.Existing == _selectedExistingItem);
 			if (_selectedIncomingItem != null)
-				return _matchedPairs.Any( p => p.Incoming == _selectedIncomingItem );
+				return _matchedPairs.Any(p => p.Incoming == _selectedIncomingItem);
 			return false;
 		}
 
@@ -1156,23 +1156,23 @@ namespace KOTORModSync.Dialogs
 		{
 			if (!CanLinkSelected()) return;
 
-			_ = _existingOnly.Remove( _selectedExistingItem );
-			_ = _incomingOnly.Remove( _selectedIncomingItem );
+			_ = _existingOnly.Remove(_selectedExistingItem);
+			_ = _incomingOnly.Remove(_selectedIncomingItem);
 
-			_selectedExistingItem.UpdateStatus( ComponentConflictStatus.Matched );
-			_selectedIncomingItem.UpdateStatus( ComponentConflictStatus.Matched );
+			_selectedExistingItem.UpdateStatus(ComponentConflictStatus.Matched);
+			_selectedIncomingItem.UpdateStatus(ComponentConflictStatus.Matched);
 
-			_matchedPairs.Add( (_selectedExistingItem, _selectedIncomingItem) );
+			_matchedPairs.Add((_selectedExistingItem, _selectedIncomingItem));
 
 			_selectedExistingItem.IsSelected = false;
 			_selectedIncomingItem.IsSelected = true;
 
 			UpdatePreview();
-			OnPropertyChanged( nameof( ConflictDescription ) );
-			OnPropertyChanged( nameof( MergeImpactSummary ) );
-			OnPropertyChanged( nameof( LinkButtonText ) );
-			OnPropertyChanged( nameof( HasMatchedPairSelected ) );
-			OnPropertyChanged( nameof( CurrentFieldPreferences ) );
+			OnPropertyChanged(nameof(ConflictDescription));
+			OnPropertyChanged(nameof(MergeImpactSummary));
+			OnPropertyChanged(nameof(LinkButtonText));
+			OnPropertyChanged(nameof(HasMatchedPairSelected));
+			OnPropertyChanged(nameof(CurrentFieldPreferences));
 			LinkSelectedCommand.RaiseCanExecuteChanged();
 			UnlinkSelectedCommand.RaiseCanExecuteChanged();
 		}
@@ -1183,48 +1183,48 @@ namespace KOTORModSync.Dialogs
 			(ComponentConflictItem Existing, ComponentConflictItem Incoming) pairToRemove = default;
 
 			if (_selectedExistingItem != null)
-				pairToRemove = _matchedPairs.FirstOrDefault( p => p.Existing == _selectedExistingItem );
+				pairToRemove = _matchedPairs.FirstOrDefault(p => p.Existing == _selectedExistingItem);
 			else if (_selectedIncomingItem != null)
-				pairToRemove = _matchedPairs.FirstOrDefault( p => p.Incoming == _selectedIncomingItem );
+				pairToRemove = _matchedPairs.FirstOrDefault(p => p.Incoming == _selectedIncomingItem);
 
-			if (pairToRemove.Existing == null)
+			if (pairToRemove.Existing is null)
 				return;
 			ComponentConflictItem existingToUnlink = pairToRemove.Existing;
 			ComponentConflictItem incomingToUnlink = pairToRemove.Incoming;
 
-			_ = _matchedPairs.Remove( pairToRemove );
+			_ = _matchedPairs.Remove(pairToRemove);
 
-			existingToUnlink.UpdateStatus( ComponentConflictStatus.ExistingOnly );
-			incomingToUnlink.UpdateStatus( ComponentConflictStatus.New );
+			existingToUnlink.UpdateStatus(ComponentConflictStatus.ExistingOnly);
+			incomingToUnlink.UpdateStatus(ComponentConflictStatus.New);
 
-			if (!_existingOnly.Contains( existingToUnlink ))
-				_existingOnly.Add( existingToUnlink );
-			if (!_incomingOnly.Contains( incomingToUnlink ))
-				_incomingOnly.Add( incomingToUnlink );
+			if (!_existingOnly.Contains(existingToUnlink))
+				_existingOnly.Add(existingToUnlink);
+			if (!_incomingOnly.Contains(incomingToUnlink))
+				_incomingOnly.Add(incomingToUnlink);
 
 			existingToUnlink.IsSelected = true;
 			incomingToUnlink.IsSelected = true;
 
 			UpdatePreview();
-			OnPropertyChanged( nameof( ConflictDescription ) );
-			OnPropertyChanged( nameof( MergeImpactSummary ) );
-			OnPropertyChanged( nameof( LinkButtonText ) );
+			OnPropertyChanged(nameof(ConflictDescription));
+			OnPropertyChanged(nameof(MergeImpactSummary));
+			OnPropertyChanged(nameof(LinkButtonText));
 			LinkSelectedCommand.RaiseCanExecuteChanged();
 			UnlinkSelectedCommand.RaiseCanExecuteChanged();
 		}
 
-		private void OnItemSelectionChanged( object sender, PropertyChangedEventArgs e )
+		private void OnItemSelectionChanged(object sender, PropertyChangedEventArgs e)
 		{
-			if (!string.Equals( e.PropertyName, nameof( ComponentConflictItem.IsSelected ), StringComparison.Ordinal ))
+			if (!string.Equals(e.PropertyName, nameof(ComponentConflictItem.IsSelected), StringComparison.Ordinal))
 				return;
 			UpdatePreview();
-			OnPropertyChanged( nameof( ConflictSummary ) );
-			OnPropertyChanged( nameof( NewComponentsCount ) );
-			OnPropertyChanged( nameof( UpdatedComponentsCount ) );
-			OnPropertyChanged( nameof( KeptComponentsCount ) );
-			OnPropertyChanged( nameof( RemovedComponentsCount ) );
-			OnPropertyChanged( nameof( TotalChanges ) );
-			OnPropertyChanged( nameof( MergeImpactSummary ) );
+			OnPropertyChanged(nameof(ConflictSummary));
+			OnPropertyChanged(nameof(NewComponentsCount));
+			OnPropertyChanged(nameof(UpdatedComponentsCount));
+			OnPropertyChanged(nameof(KeptComponentsCount));
+			OnPropertyChanged(nameof(RemovedComponentsCount));
+			OnPropertyChanged(nameof(TotalChanges));
+			OnPropertyChanged(nameof(MergeImpactSummary));
 		}
 
 		private void UpdatePreview()
@@ -1243,13 +1243,13 @@ namespace KOTORModSync.Dialogs
 					if (!incomingItem.IsSelected) continue;
 
 					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
-						_matchedPairs.FirstOrDefault( p => p.Incoming == incomingItem );
+						_matchedPairs.FirstOrDefault(p => p.Incoming == incomingItem);
 					if (matchedPair.Existing != null && matchedPair.Existing.IsSelected)
 					{
 
 						if (!SkipDuplicates)
 						{
-							result.Add( new PreviewItem
+							result.Add(new PreviewItem
 							{
 								OrderNumber = $"{order++}.",
 								Name = incomingItem.Name,
@@ -1258,12 +1258,12 @@ namespace KOTORModSync.Dialogs
 								ModComponent = incomingItem.ModComponent,
 								StatusIcon = "⬆️",
 								PositionChange = "UPDATED",
-								PositionChangeColor = ThemeResourceHelper.MergePositionChangedBrush
-							} );
+								PositionChangeColor = ThemeResourceHelper.MergePositionChangedBrush,
+							});
 						}
 						else
 						{
-							result.Add( new PreviewItem
+							result.Add(new PreviewItem
 							{
 								OrderNumber = $"{order++}.",
 								Name = incomingItem.Name,
@@ -1272,13 +1272,13 @@ namespace KOTORModSync.Dialogs
 								ModComponent = incomingItem.ModComponent,
 								StatusIcon = "🔄",
 								PositionChange = "MATCH",
-								PositionChangeColor = ThemeResourceHelper.MergePositionNewBrush
-							} );
+								PositionChangeColor = ThemeResourceHelper.MergePositionNewBrush,
+							});
 						}
 					}
 					else
 					{
-						result.Add( new PreviewItem
+						result.Add(new PreviewItem
 						{
 							OrderNumber = $"{order++}.",
 							Name = incomingItem.Name,
@@ -1289,16 +1289,16 @@ namespace KOTORModSync.Dialogs
 							PositionChange = incomingItem.Status == ComponentConflictStatus.New ? "NEW" : "MATCH",
 							PositionChangeColor = incomingItem.Status == ComponentConflictStatus.New
 								? ThemeResourceHelper.MergeStatusNewBrush
-								: ThemeResourceHelper.MergePositionNewBrush
-						} );
+								: ThemeResourceHelper.MergePositionNewBrush,
+						});
 					}
 				}
 
-				foreach (ComponentConflictItem existingItem in _existingOnly.Where( e => e.IsSelected ))
+				foreach (ComponentConflictItem existingItem in _existingOnly.Where(e => e.IsSelected))
 				{
 
-					int insertAt = FindInsertionPoint( result, existingItem );
-					result.Insert( insertAt,
+					int insertAt = FindInsertionPoint(result, existingItem);
+					result.Insert(insertAt,
 						new PreviewItem
 						{
 							OrderNumber = $"{insertAt + 1}.",
@@ -1308,8 +1308,8 @@ namespace KOTORModSync.Dialogs
 							ModComponent = existingItem.ModComponent,
 							StatusIcon = "📦",
 							PositionChange = "KEPT",
-							PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush
-						} );
+							PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush,
+						});
 				}
 
 				for (int i = 0; i < result.Count; i++)
@@ -1327,13 +1327,13 @@ namespace KOTORModSync.Dialogs
 					if (!existingItem.IsSelected) continue;
 
 					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
-						_matchedPairs.FirstOrDefault( p => p.Existing == existingItem );
+						_matchedPairs.FirstOrDefault(p => p.Existing == existingItem);
 					if (matchedPair.Incoming != null && matchedPair.Incoming.IsSelected)
 					{
 
 						if (!SkipDuplicates)
 						{
-							result.Add( new PreviewItem
+							result.Add(new PreviewItem
 							{
 								OrderNumber = $"{order++}.",
 								Name = existingItem.Name,
@@ -1342,12 +1342,12 @@ namespace KOTORModSync.Dialogs
 								ModComponent = existingItem.ModComponent,
 								StatusIcon = "🔄",
 								PositionChange = "MATCH",
-								PositionChangeColor = ThemeResourceHelper.MergePositionNewBrush
-							} );
+								PositionChangeColor = ThemeResourceHelper.MergePositionNewBrush,
+							});
 						}
 						else
 						{
-							result.Add( new PreviewItem
+							result.Add(new PreviewItem
 							{
 								OrderNumber = $"{order++}.",
 								Name = existingItem.Name,
@@ -1356,13 +1356,13 @@ namespace KOTORModSync.Dialogs
 								ModComponent = existingItem.ModComponent,
 								StatusIcon = "📦",
 								PositionChange = "KEPT",
-								PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush
-							} );
+								PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush,
+							});
 						}
 					}
 					else
 					{
-						result.Add( new PreviewItem
+						result.Add(new PreviewItem
 						{
 							OrderNumber = $"{order++}.",
 							Name = existingItem.Name,
@@ -1371,13 +1371,13 @@ namespace KOTORModSync.Dialogs
 							ModComponent = existingItem.ModComponent,
 							StatusIcon = "📦",
 							PositionChange = "KEPT",
-							PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush
-						} );
+							PositionChangeColor = ThemeResourceHelper.MergeStatusExistingOnlyBrush,
+						});
 					}
 				}
 
-				result.AddRange( _incomingOnly.Where( i => i.IsSelected )
-				.Select( incomingItem => new PreviewItem
+				result.AddRange(_incomingOnly.Where(i => i.IsSelected)
+				.Select(incomingItem => new PreviewItem
 				{
 					OrderNumber = $"{order++}.",
 					Name = incomingItem.Name,
@@ -1386,30 +1386,30 @@ namespace KOTORModSync.Dialogs
 					ModComponent = incomingItem.ModComponent,
 					StatusIcon = "✨",
 					PositionChange = "NEW",
-					PositionChangeColor = ThemeResourceHelper.MergeStatusNewBrush
-				} ) );
+					PositionChangeColor = ThemeResourceHelper.MergeStatusNewBrush,
+				}));
 			}
 
 			foreach (PreviewItem item in result)
 			{
-				PreviewComponents.Add( item );
+				PreviewComponents.Add(item);
 			}
 
 			UpdateRealtimeMergedComponents();
 
-			OnPropertyChanged( nameof( ConflictSummary ) );
+			OnPropertyChanged(nameof(ConflictSummary));
 		}
 
-		private int FindInsertionPoint( List<PreviewItem> result, ComponentConflictItem itemToInsert )
+		private int FindInsertionPoint(List<PreviewItem> result, ComponentConflictItem itemToInsert)
 		{
 
-			int originalIndex = ExistingComponents.ToList().FindIndex( c => c == itemToInsert );
+			int originalIndex = ExistingComponents.ToList().FindIndex(c => c == itemToInsert);
 			if (originalIndex < 0) return result.Count;
 
 			for (int i = originalIndex + 1; i < ExistingComponents.Count; i++)
 			{
 				ComponentConflictItem afterComponent = ExistingComponents[i];
-				int afterIndexInResult = result.FindIndex( p => p.ModComponent == afterComponent.ModComponent );
+				int afterIndexInResult = result.FindIndex(p => p.ModComponent == afterComponent.ModComponent);
 				if (afterIndexInResult >= 0)
 					return afterIndexInResult;
 			}
@@ -1431,15 +1431,15 @@ namespace KOTORModSync.Dialogs
 					ModComponent component = previewItem.ModComponent;
 
 					(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
-						_matchedPairs.FirstOrDefault( p =>
-							p.Existing.ModComponent == component || p.Incoming.ModComponent == component );
+						_matchedPairs.FirstOrDefault(p =>
+							p.Existing.ModComponent == component || p.Incoming.ModComponent == component);
 
 					if (matchedPair.Existing != null && matchedPair.Incoming != null)
 					{
 
-						var pair = Tuple.Create( matchedPair.Existing, matchedPair.Incoming );
+						var pair = Tuple.Create(matchedPair.Existing, matchedPair.Incoming);
 
-						if (!_fieldPreferences.TryGetValue( pair, out FieldMergePreference fieldPrefs ))
+						if (!_fieldPreferences.TryGetValue(pair, out FieldMergePreference fieldPrefs))
 						{
 							fieldPrefs = CreateAndSubscribeFieldPreferences(
 								matchedPair.Existing.ModComponent,
@@ -1454,7 +1454,7 @@ namespace KOTORModSync.Dialogs
 							fieldPrefs
 						);
 
-						if (_guidResolutions.TryGetValue( pair, out GuidConflictResolver.GuidResolution resolution ))
+						if (_guidResolutions.TryGetValue(pair, out GuidConflictResolver.GuidResolution resolution))
 						{
 							Guid chosenGuid = resolution.ChosenGuid;
 							Guid rejectedGuid = resolution.RejectedGuid;
@@ -1465,12 +1465,12 @@ namespace KOTORModSync.Dialogs
 								guidMap[rejectedGuid] = chosenGuid;
 						}
 
-						mergedComponents.Add( mergedComponent );
+						mergedComponents.Add(mergedComponent);
 					}
 					else
 					{
 
-						mergedComponents.Add( component );
+						mergedComponents.Add(component);
 					}
 				}
 
@@ -1479,33 +1479,33 @@ namespace KOTORModSync.Dialogs
 
 					for (int i = 0; i < component.Dependencies.Count; i++)
 					{
-						if (guidMap.TryGetValue( component.Dependencies[i], out Guid newGuid ))
+						if (guidMap.TryGetValue(component.Dependencies[i], out Guid newGuid))
 							component.Dependencies[i] = newGuid;
 					}
 
 					for (int i = 0; i < component.Restrictions.Count; i++)
 					{
-						if (guidMap.TryGetValue( component.Restrictions[i], out Guid newGuid ))
+						if (guidMap.TryGetValue(component.Restrictions[i], out Guid newGuid))
 							component.Restrictions[i] = newGuid;
 					}
 
 					for (int i = 0; i < component.InstallAfter.Count; i++)
 					{
-						if (guidMap.TryGetValue( component.InstallAfter[i], out Guid newGuid ))
+						if (guidMap.TryGetValue(component.InstallAfter[i], out Guid newGuid))
 							component.InstallAfter[i] = newGuid;
 					}
 				}
 
 				foreach (ModComponent component in mergedComponents)
 				{
-					RealtimeMergedComponents.Add( component );
+					RealtimeMergedComponents.Add(component);
 				}
 
 				UpdateCurrentTomlDiff();
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error updating real-time merged components" );
+				Logger.LogException(ex, "Error updating real-time merged components");
 			}
 		}
 
@@ -1519,15 +1519,15 @@ namespace KOTORModSync.Dialogs
 				ModComponent component = previewItem.ModComponent;
 
 				(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair =
-					_matchedPairs.FirstOrDefault( p =>
-						p.Existing.ModComponent == component || p.Incoming.ModComponent == component );
+					_matchedPairs.FirstOrDefault(p =>
+						p.Existing.ModComponent == component || p.Incoming.ModComponent == component);
 
 				if (matchedPair.Existing != null && matchedPair.Incoming != null)
 				{
 
-					var pair = Tuple.Create( matchedPair.Existing, matchedPair.Incoming );
+					var pair = Tuple.Create(matchedPair.Existing, matchedPair.Incoming);
 
-					if (!_fieldPreferences.TryGetValue( pair, out FieldMergePreference fieldPrefs ))
+					if (!_fieldPreferences.TryGetValue(pair, out FieldMergePreference fieldPrefs))
 					{
 						fieldPrefs = CreateAndSubscribeFieldPreferences(
 							matchedPair.Existing.ModComponent,
@@ -1542,7 +1542,7 @@ namespace KOTORModSync.Dialogs
 						fieldPrefs
 					);
 
-					if (_guidResolutions.TryGetValue( pair, out GuidConflictResolver.GuidResolution resolution ))
+					if (_guidResolutions.TryGetValue(pair, out GuidConflictResolver.GuidResolution resolution))
 					{
 						Guid chosenGuid = resolution.ChosenGuid;
 						Guid rejectedGuid = resolution.RejectedGuid;
@@ -1553,12 +1553,12 @@ namespace KOTORModSync.Dialogs
 							guidMap[rejectedGuid] = chosenGuid;
 					}
 
-					mergedComponents.Add( mergedComponent );
+					mergedComponents.Add(mergedComponent);
 				}
 				else
 				{
 
-					mergedComponents.Add( component );
+					mergedComponents.Add(component);
 				}
 			}
 
@@ -1567,19 +1567,19 @@ namespace KOTORModSync.Dialogs
 
 				for (int i = 0; i < component.Dependencies.Count; i++)
 				{
-					if (guidMap.TryGetValue( component.Dependencies[i], out Guid newGuid ))
+					if (guidMap.TryGetValue(component.Dependencies[i], out Guid newGuid))
 						component.Dependencies[i] = newGuid;
 				}
 
 				for (int i = 0; i < component.Restrictions.Count; i++)
 				{
-					if (guidMap.TryGetValue( component.Restrictions[i], out Guid newGuid ))
+					if (guidMap.TryGetValue(component.Restrictions[i], out Guid newGuid))
 						component.Restrictions[i] = newGuid;
 				}
 
 				for (int i = 0; i < component.InstallAfter.Count; i++)
 				{
-					if (guidMap.TryGetValue( component.InstallAfter[i], out Guid newGuid ))
+					if (guidMap.TryGetValue(component.InstallAfter[i], out Guid newGuid))
 						component.InstallAfter[i] = newGuid;
 				}
 			}
@@ -1589,10 +1589,10 @@ namespace KOTORModSync.Dialogs
 
 
 
-		private static ModComponent MergeComponentData( ModComponent existing, ModComponent incoming, FieldMergePreference fieldPrefs )
+		private static ModComponent MergeComponentData(ModComponent existing, ModComponent incoming, FieldMergePreference fieldPrefs)
 		{
 
-			if (fieldPrefs == null)
+			if (fieldPrefs is null)
 				fieldPrefs = new FieldMergePreference();
 
 			var merged = new ModComponent
@@ -1600,48 +1600,48 @@ namespace KOTORModSync.Dialogs
 
 				Guid = existing.Guid,
 
-				Name = MergeStringField( existing.Name, incoming.Name, fieldPrefs.Name ),
-				Author = MergeStringField( existing.Author, incoming.Author, fieldPrefs.Author ),
-				Description = MergeStringField( existing.Description, incoming.Description, fieldPrefs.Description ),
-				Directions = MergeStringField( existing.Directions, incoming.Directions, fieldPrefs.Directions ),
-				Category = MergeListField( existing.Category, incoming.Category, fieldPrefs.Category ),
-				Tier = MergeStringField( existing.Tier, incoming.Tier, fieldPrefs.Tier ),
-				InstallationMethod = MergeStringField( existing.InstallationMethod, incoming.InstallationMethod, fieldPrefs.InstallationMethod ),
+				Name = MergeStringField(existing.Name, incoming.Name, fieldPrefs.Name),
+				Author = MergeStringField(existing.Author, incoming.Author, fieldPrefs.Author),
+				Description = MergeStringField(existing.Description, incoming.Description, fieldPrefs.Description),
+				Directions = MergeStringField(existing.Directions, incoming.Directions, fieldPrefs.Directions),
+				Category = MergeListField(existing.Category, incoming.Category, fieldPrefs.Category),
+				Tier = MergeStringField(existing.Tier, incoming.Tier, fieldPrefs.Tier),
+				InstallationMethod = MergeStringField(existing.InstallationMethod, incoming.InstallationMethod, fieldPrefs.InstallationMethod),
 
-				Instructions = MergeListField( existing.Instructions, incoming.Instructions, fieldPrefs.Instructions ),
-				Options = MergeListField( existing.Options, incoming.Options, fieldPrefs.Options ),
+				Instructions = MergeListField(existing.Instructions, incoming.Instructions, fieldPrefs.Instructions),
+				Options = MergeListField(existing.Options, incoming.Options, fieldPrefs.Options),
 
 				Dependencies = fieldPrefs.Dependencies == FieldMergePreference.FieldSource.Merge
-						? MergeLists( existing.Dependencies, incoming.Dependencies, deduplicate: true )
-						: MergeListField( existing.Dependencies, incoming.Dependencies, fieldPrefs.Dependencies ),
+						? MergeLists(existing.Dependencies, incoming.Dependencies, deduplicate: true)
+						: MergeListField(existing.Dependencies, incoming.Dependencies, fieldPrefs.Dependencies),
 
 				Restrictions = fieldPrefs.Restrictions == FieldMergePreference.FieldSource.Merge
-						? MergeLists( existing.Restrictions, incoming.Restrictions, deduplicate: true )
-						: MergeListField( existing.Restrictions, incoming.Restrictions, fieldPrefs.Restrictions ),
+						? MergeLists(existing.Restrictions, incoming.Restrictions, deduplicate: true)
+						: MergeListField(existing.Restrictions, incoming.Restrictions, fieldPrefs.Restrictions),
 
 				InstallAfter = fieldPrefs.InstallAfter == FieldMergePreference.FieldSource.Merge
-						? MergeLists( existing.InstallAfter, incoming.InstallAfter, deduplicate: true )
-						: MergeListField( existing.InstallAfter, incoming.InstallAfter, fieldPrefs.InstallAfter ),
+						? MergeLists(existing.InstallAfter, incoming.InstallAfter, deduplicate: true)
+						: MergeListField(existing.InstallAfter, incoming.InstallAfter, fieldPrefs.InstallAfter),
 
 				ModLinkFilenames = fieldPrefs.ModLinkFilenames == FieldMergePreference.FieldSource.Merge
-					? MergeModLinkFilenames( existing.ModLinkFilenames, incoming.ModLinkFilenames )
-					: MergeDictionaryField( existing.ModLinkFilenames, incoming.ModLinkFilenames, fieldPrefs.ModLinkFilenames ),
+					? MergeModLinkFilenames(existing.ModLinkFilenames, incoming.ModLinkFilenames)
+					: MergeDictionaryField(existing.ModLinkFilenames, incoming.ModLinkFilenames, fieldPrefs.ModLinkFilenames),
 
 				Language = fieldPrefs.Language == FieldMergePreference.FieldSource.Merge
-						? MergeLists( existing.Language, incoming.Language, deduplicate: true )
-						: MergeListField( existing.Language, incoming.Language, fieldPrefs.Language ),
+						? MergeLists(existing.Language, incoming.Language, deduplicate: true)
+						: MergeListField(existing.Language, incoming.Language, fieldPrefs.Language),
 
 				IsSelected = existing.IsSelected,
 				InstallState = existing.InstallState,
-				IsDownloaded = existing.IsDownloaded
+				IsDownloaded = existing.IsDownloaded,
 			};
 
 			return merged;
 
-			T MergeListField<T>( T existingList, T incomingList, FieldMergePreference.FieldSource preference ) where T : System.Collections.ICollection, new()
+			T MergeListField<T>(T existingList, T incomingList, FieldMergePreference.FieldSource preference) where T : System.Collections.ICollection, new()
 			{
-				bool existingHasValues = !object.Equals( existingList, default( T ) ) && existingList.Count > 0;
-				bool incomingHasValues = !object.Equals( incomingList, default( T ) ) && incomingList.Count > 0;
+				bool existingHasValues = !object.Equals(existingList, default(T)) && existingList.Count > 0;
+				bool incomingHasValues = !object.Equals(incomingList, default(T)) && incomingList.Count > 0;
 
 				switch (existingHasValues)
 				{
@@ -1663,10 +1663,10 @@ namespace KOTORModSync.Dialogs
 				return existingList;
 			}
 
-			string MergeStringField( string existingVal, string incomingVal, FieldMergePreference.FieldSource preference )
+			string MergeStringField(string existingVal, string incomingVal, FieldMergePreference.FieldSource preference)
 			{
-				bool existingHasValue = !string.IsNullOrWhiteSpace( existingVal );
-				bool incomingHasValue = !string.IsNullOrWhiteSpace( incomingVal );
+				bool existingHasValue = !string.IsNullOrWhiteSpace(existingVal);
+				bool incomingHasValue = !string.IsNullOrWhiteSpace(incomingVal);
 
 				switch (existingHasValue)
 				{
@@ -1684,32 +1684,32 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private static List<T> MergeLists<T>( List<T> existingList, List<T> incomingList, bool deduplicate = false )
+		private static List<T> MergeLists<T>(List<T> existingList, List<T> incomingList, bool deduplicate = false)
 		{
-			if (existingList == null && incomingList == null)
+			if (existingList is null && incomingList is null)
 				return new List<T>();
 
-			if (existingList == null || existingList.Count == 0)
-				return incomingList != null ? new List<T>( incomingList ) : new List<T>();
+			if (existingList is null || existingList.Count == 0)
+				return incomingList != null ? new List<T>(incomingList) : new List<T>();
 
-			if (incomingList == null || incomingList.Count == 0)
-				return new List<T>( existingList );
+			if (incomingList is null || incomingList.Count == 0)
+				return new List<T>(existingList);
 
-			var merged = new List<T>( existingList );
+			var merged = new List<T>(existingList);
 
 			if (deduplicate)
 			{
 
 				foreach (T item in incomingList)
 				{
-					if (!merged.Contains( item ))
-						merged.Add( item );
+					if (!merged.Contains(item))
+						merged.Add(item);
 				}
 			}
 			else
 			{
 
-				merged.AddRange( incomingList );
+				merged.AddRange(incomingList);
 			}
 
 			return merged;
@@ -1717,15 +1717,15 @@ namespace KOTORModSync.Dialogs
 
 		private static Dictionary<string, Dictionary<string, bool?>> MergeModLinkFilenames(
 			Dictionary<string, Dictionary<string, bool?>> existingDict,
-			Dictionary<string, Dictionary<string, bool?>> incomingDict )
+			Dictionary<string, Dictionary<string, bool?>> incomingDict)
 		{
-			var result = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase );
+			var result = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
 
 			if (existingDict != null)
 			{
 				foreach (var kvp in existingDict)
 				{
-					result[kvp.Key] = new Dictionary<string, bool?>( kvp.Value, StringComparer.OrdinalIgnoreCase );
+					result[kvp.Key] = new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase);
 				}
 			}
 
@@ -1733,16 +1733,16 @@ namespace KOTORModSync.Dialogs
 			{
 				foreach (var kvp in incomingDict)
 				{
-					if (!result.ContainsKey( kvp.Key ))
+					if (!result.ContainsKey(kvp.Key))
 					{
-						result[kvp.Key] = new Dictionary<string, bool?>( kvp.Value, StringComparer.OrdinalIgnoreCase );
+						result[kvp.Key] = new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase);
 					}
 					else
 					{
 						// Merge filename dictionaries - prefer incoming by default when both have explicit values
 						foreach (var fileKvp in kvp.Value)
 						{
-							if (!result[kvp.Key].TryGetValue( fileKvp.Key, out bool? value ))
+							if (!result[kvp.Key].TryGetValue(fileKvp.Key, out bool? value))
 							{
 								// File doesn't exist in result, add incoming
 								result[kvp.Key][fileKvp.Key] = fileKvp.Value;
@@ -1773,45 +1773,45 @@ namespace KOTORModSync.Dialogs
 		private static Dictionary<string, Dictionary<string, bool?>> MergeDictionaryField(
 			Dictionary<string, Dictionary<string, bool?>> existingDict,
 			Dictionary<string, Dictionary<string, bool?>> incomingDict,
-			FieldMergePreference.FieldSource source )
+			FieldMergePreference.FieldSource source)
 		{
 			switch (source)
 			{
 				case FieldMergePreference.FieldSource.UseExisting:
 					return existingDict != null
-						? existingDict.ToDictionary( kvp => kvp.Key, kvp => new Dictionary<string, bool?>( kvp.Value, StringComparer.OrdinalIgnoreCase ), StringComparer.OrdinalIgnoreCase )
-						: new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase );
+						? existingDict.ToDictionary(kvp => kvp.Key, kvp => new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase)
+						: new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
 
 				case FieldMergePreference.FieldSource.UseIncoming:
 					return incomingDict != null
-						? incomingDict.ToDictionary( kvp => kvp.Key, kvp => new Dictionary<string, bool?>( kvp.Value, StringComparer.OrdinalIgnoreCase ), StringComparer.OrdinalIgnoreCase )
-						: new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase );
+						? incomingDict.ToDictionary(kvp => kvp.Key, kvp => new Dictionary<string, bool?>(kvp.Value, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase)
+						: new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
 
 				case FieldMergePreference.FieldSource.Merge:
 				default:
-					return MergeModLinkFilenames( existingDict, incomingDict );
+					return MergeModLinkFilenames(existingDict, incomingDict);
 			}
 		}
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null ) =>
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
 		public event EventHandler<JumpToRawViewEventArgs> JumpToRawViewRequested;
 		public event EventHandler<SyncSelectionEventArgs> SyncSelectionRequested;
 
-		private void JumpToRawView( ComponentConflictItem item )
+		private void JumpToRawView(ComponentConflictItem item)
 		{
-			if (item == null) return;
-			JumpToRawViewRequested?.Invoke( this, new JumpToRawViewEventArgs { Item = item } );
+			if (item is null) return;
+			JumpToRawViewRequested?.Invoke(this, new JumpToRawViewEventArgs { Item = item });
 		}
 
 		public void UpdateExistingTomlView()
 		{
 			try
 			{
-				var selectedComponents = ExistingComponents.Where( c => c.IsSelected ).Select( c => c.ModComponent ).ToList();
+				var selectedComponents = ExistingComponents.Where(c => c.IsSelected).Select(c => c.ModComponent).ToList();
 
 				_existingComponentLineNumbers.Clear();
 				int currentLine = 1;
@@ -1821,9 +1821,9 @@ namespace KOTORModSync.Dialogs
 
 					new TomlDiffResult
 					{
-						DiffType = DiffType.Unchanged, Text = "# ModComponent List", LineNumber = currentLine++
+						DiffType = DiffType.Unchanged, Text = "# ModComponent List", LineNumber = currentLine++,
 					},
-					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++ }
+					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++ },
 				};
 
 				for (int i = 0; i < selectedComponents.Count; i++)
@@ -1832,11 +1832,11 @@ namespace KOTORModSync.Dialogs
 					string componentGuid = component.Guid.ToString();
 
 					if (i > 0)
-						newCollection.Add( new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++, ComponentGuid = componentGuid } );
+						newCollection.Add(new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++, ComponentGuid = componentGuid });
 
 					_existingComponentLineNumbers[component] = currentLine;
 
-					ComponentConflictItem conflictItem = ExistingComponents.FirstOrDefault( ci => ci.ModComponent == component );
+					ComponentConflictItem conflictItem = ExistingComponents.FirstOrDefault(ci => ci.ModComponent == component);
 					DiffType componentDiffType = DiffType.Removed;
 
 					if (conflictItem != null)
@@ -1844,7 +1844,7 @@ namespace KOTORModSync.Dialogs
 						if (conflictItem.IsSelected)
 						{
 
-							(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault( p => p.Existing == conflictItem );
+							(ComponentConflictItem Existing, ComponentConflictItem Incoming) matchedPair = _matchedPairs.FirstOrDefault(p => p.Existing == conflictItem);
 
 							if (matchedPair.Incoming != null && matchedPair.Incoming.IsSelected)
 							{
@@ -1860,29 +1860,29 @@ namespace KOTORModSync.Dialogs
 
 					}
 
-					newCollection.Add( new TomlDiffResult
+					newCollection.Add(new TomlDiffResult
 					{
 						DiffType = componentDiffType,
 						Text = $"# ModComponent {i + 1}: {component.Name}",
 						LineNumber = currentLine++,
-						ComponentGuid = componentGuid
-					} );
+						ComponentGuid = componentGuid,
+					});
 
 					string componentToml = component.SerializeComponent();
-					string[] lines = componentToml.Split( new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None );
+					string[] lines = componentToml.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
 					foreach (string line in lines)
 					{
-						newCollection.Add( new TomlDiffResult { DiffType = componentDiffType, Text = line, LineNumber = currentLine++, ComponentGuid = componentGuid } );
+						newCollection.Add(new TomlDiffResult { DiffType = componentDiffType, Text = line, LineNumber = currentLine++, ComponentGuid = componentGuid });
 					}
 				}
 
 				ExistingComponentsToml = newCollection;
-				OnPropertyChanged( nameof( ExistingComponentsToml ) );
+				OnPropertyChanged(nameof(ExistingComponentsToml));
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error updating existing TOML view" );
+				Logger.LogException(ex, "Error updating existing TOML view");
 			}
 		}
 
@@ -1890,7 +1890,7 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				var selectedComponents = IncomingComponents.Where( c => c.IsSelected ).Select( c => c.ModComponent ).ToList();
+				var selectedComponents = IncomingComponents.Where(c => c.IsSelected).Select(c => c.ModComponent).ToList();
 
 				_incomingComponentLineNumbers.Clear();
 				int currentLine = 1;
@@ -1899,7 +1899,7 @@ namespace KOTORModSync.Dialogs
 				{
 
 					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "# ModComponent List", LineNumber = currentLine++ },
-					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++ }
+					new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++ },
 				};
 
 				for (int i = 0; i < selectedComponents.Count; i++)
@@ -1908,17 +1908,17 @@ namespace KOTORModSync.Dialogs
 					string componentGuid = component.Guid.ToString();
 
 					if (i > 0)
-						newCollection.Add( new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++, ComponentGuid = componentGuid } );
+						newCollection.Add(new TomlDiffResult { DiffType = DiffType.Unchanged, Text = "", LineNumber = currentLine++, ComponentGuid = componentGuid });
 
 					_incomingComponentLineNumbers[component] = currentLine;
 
-					ComponentConflictItem conflictItem = IncomingComponents.FirstOrDefault( ci => ci.ModComponent == component );
+					ComponentConflictItem conflictItem = IncomingComponents.FirstOrDefault(ci => ci.ModComponent == component);
 					DiffType componentDiffType = DiffType.Added;
 
 					if (conflictItem != null)
 					{
 
-						ComponentConflictItem existing = _matchedPairs.FirstOrDefault( p => p.Incoming == conflictItem ).Existing;
+						ComponentConflictItem existing = _matchedPairs.FirstOrDefault(p => p.Incoming == conflictItem).Existing;
 
 						if (existing != null)
 						{
@@ -1946,35 +1946,35 @@ namespace KOTORModSync.Dialogs
 						}
 					}
 
-					newCollection.Add( new TomlDiffResult
+					newCollection.Add(new TomlDiffResult
 					{
 						DiffType = componentDiffType,
 						Text = $"# ModComponent {i + 1}: {component.Name}",
 						LineNumber = currentLine++,
-						ComponentGuid = componentGuid
-					} );
+						ComponentGuid = componentGuid,
+					});
 
 					string componentToml = component.SerializeComponent();
-					string[] lines = componentToml.Split( new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None );
+					string[] lines = componentToml.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
 					foreach (string line in lines)
 					{
-						newCollection.Add( new TomlDiffResult
+						newCollection.Add(new TomlDiffResult
 						{
 							DiffType = componentDiffType,
 							Text = line,
 							LineNumber = currentLine++,
-							ComponentGuid = componentGuid
-						} );
+							ComponentGuid = componentGuid,
+						});
 					}
 				}
 
 				IncomingComponentsToml = newCollection;
-				OnPropertyChanged( nameof( IncomingComponentsToml ) );
+				OnPropertyChanged(nameof(IncomingComponentsToml));
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error updating incoming TOML view" );
+				Logger.LogException(ex, "Error updating incoming TOML view");
 			}
 		}
 
@@ -1984,39 +1984,39 @@ namespace KOTORModSync.Dialogs
 			{
 				MergedComponentsToml.Clear();
 
-				string existingToml = GenerateFullToml( ExistingComponents.Where( c => c.IsSelected ).Select( c => c.ModComponent ).ToList() );
-				string mergedToml = GenerateFullToml( RealtimeMergedComponents.ToList() );
+				string existingToml = GenerateFullToml(ExistingComponents.Where(c => c.IsSelected).Select(c => c.ModComponent).ToList());
+				string mergedToml = GenerateFullToml(RealtimeMergedComponents.ToList());
 
-				List<TomlDiffResult> diffResults = GenerateTomlDiff( existingToml, mergedToml );
+				List<TomlDiffResult> diffResults = GenerateTomlDiff(existingToml, mergedToml);
 				foreach (TomlDiffResult line in diffResults)
 				{
-					MergedComponentsToml.Add( line );
+					MergedComponentsToml.Add(line);
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error updating merged TOML view" );
+				Logger.LogException(ex, "Error updating merged TOML view");
 			}
 		}
 
-		public int GetComponentLineNumber( ComponentConflictItem item )
+		public int GetComponentLineNumber(ComponentConflictItem item)
 		{
-			if (item == null) return 0;
+			if (item is null) return 0;
 
 			Dictionary<ModComponent, int> map = item.IsFromExisting ? _existingComponentLineNumbers : _incomingComponentLineNumbers;
-			return map.TryGetValue( item.ModComponent, out int value ) ? value : 0;
+			return map.TryGetValue(item.ModComponent, out int value) ? value : 0;
 		}
 
 		private readonly Dictionary<ModComponent, int> _existingComponentLineNumbers = new Dictionary<ModComponent, int>();
 		private readonly Dictionary<ModComponent, int> _incomingComponentLineNumbers = new Dictionary<ModComponent, int>();
 
-		private static string GenerateFullToml( List<ModComponent> components )
+		private static string GenerateFullToml(List<ModComponent> components)
 		{
-			if (components == null || components.Count == 0)
+			if (components is null || components.Count == 0)
 				return "# No components selected";
 
 			var sb = new System.Text.StringBuilder();
-			_ = sb.AppendLine( "# ModComponent List" );
+			_ = sb.AppendLine("# ModComponent List");
 			_ = sb.AppendLine();
 
 			for (int i = 0; i < components.Count; i++)
@@ -2024,8 +2024,8 @@ namespace KOTORModSync.Dialogs
 				if (i > 0)
 					_ = sb.AppendLine();
 
-				_ = sb.AppendLine( $"# ModComponent {i + 1}: {components[i].Name}" );
-				_ = sb.Append( components[i].SerializeComponent() );
+				_ = sb.AppendLine($"# ModComponent {i + 1}: {components[i].Name}");
+				_ = sb.Append(components[i].SerializeComponent());
 			}
 
 			return sb.ToString();
@@ -2037,62 +2037,62 @@ namespace KOTORModSync.Dialogs
 			{
 				CurrentTomlDiff.Clear();
 
-				if (_selectedExistingItem == null && _selectedIncomingItem == null)
+				if (_selectedExistingItem is null && _selectedIncomingItem is null)
 					return;
 
 				ComponentConflictItem selectedItem = _selectedExistingItem ?? _selectedIncomingItem;
-				if (selectedItem == null)
+				if (selectedItem is null)
 					return;
 
 				ModComponent component = selectedItem.ModComponent;
 
-				ModComponent mergedComponent = RealtimeMergedComponents.FirstOrDefault( c => string.Equals( c.Name, component.Name, StringComparison.Ordinal ) );
-				if (mergedComponent == null)
+				ModComponent mergedComponent = RealtimeMergedComponents.FirstOrDefault(c => string.Equals(c.Name, component.Name, StringComparison.Ordinal));
+				if (mergedComponent is null)
 					return;
 
 				string originalToml = component.SerializeComponent();
 				string mergedToml = mergedComponent.SerializeComponent();
 
-				List<TomlDiffResult> diffResults = GenerateTomlDiff( originalToml, mergedToml );
+				List<TomlDiffResult> diffResults = GenerateTomlDiff(originalToml, mergedToml);
 
 				foreach (TomlDiffResult result in diffResults)
 				{
-					CurrentTomlDiff.Add( result );
+					CurrentTomlDiff.Add(result);
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error updating TOML diff" );
+				Logger.LogException(ex, "Error updating TOML diff");
 			}
 		}
 
-		private static List<TomlDiffResult> GenerateTomlDiff( string original, string merged )
+		private static List<TomlDiffResult> GenerateTomlDiff(string original, string merged)
 		{
 			var results = new List<TomlDiffResult>();
 
-			if (string.IsNullOrEmpty( original ) && string.IsNullOrEmpty( merged ))
+			if (string.IsNullOrEmpty(original) && string.IsNullOrEmpty(merged))
 				return results;
 
-			if (string.IsNullOrEmpty( original ))
+			if (string.IsNullOrEmpty(original))
 			{
 
-				string[] lines = merged.Split( new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None );
-				results.AddRange( lines.Select( ( t, i ) => new TomlDiffResult { DiffType = DiffType.Added, Text = t, LineNumber = i + 1 } ) );
+				string[] lines = merged.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+				results.AddRange(lines.Select((t, i) => new TomlDiffResult { DiffType = DiffType.Added, Text = t, LineNumber = i + 1 }));
 
 				return results;
 			}
 
-			if (string.IsNullOrEmpty( merged ))
+			if (string.IsNullOrEmpty(merged))
 			{
 
-				string[] lines = original.Split( new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None );
-				results.AddRange( lines.Select( ( t, i ) => new TomlDiffResult { DiffType = DiffType.Removed, Text = t, LineNumber = i + 1 } ) );
+				string[] lines = original.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+				results.AddRange(lines.Select((t, i) => new TomlDiffResult { DiffType = DiffType.Removed, Text = t, LineNumber = i + 1 }));
 
 				return results;
 			}
 
-			string[] originalLines = original.Split( new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None );
-			string[] mergedLines = merged.Split( new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None );
+			string[] originalLines = original.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+			string[] mergedLines = merged.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
 			int originalIndex = 0;
 			int mergedIndex = 0;
@@ -2102,49 +2102,49 @@ namespace KOTORModSync.Dialogs
 				string originalLine = originalLines[originalIndex];
 				string mergedLine = mergedLines[mergedIndex];
 
-				if (string.Equals( originalLine, mergedLine, StringComparison.Ordinal ))
+				if (string.Equals(originalLine, mergedLine, StringComparison.Ordinal))
 				{
 
-					results.Add( new TomlDiffResult
+					results.Add(new TomlDiffResult
 					{
 						DiffType = DiffType.Unchanged,
 						Text = originalLine,
-						LineNumber = mergedIndex + 1
-					} );
+						LineNumber = mergedIndex + 1,
+					});
 					originalIndex++;
 					mergedIndex++;
 				}
-				else if (mergedIndex + 1 < mergedLines.Length && string.Equals( originalLine, mergedLines[mergedIndex + 1], StringComparison.Ordinal ))
+				else if (mergedIndex + 1 < mergedLines.Length && string.Equals(originalLine, mergedLines[mergedIndex + 1], StringComparison.Ordinal))
 				{
 
-					results.Add( new TomlDiffResult
+					results.Add(new TomlDiffResult
 					{
 						DiffType = DiffType.Added,
 						Text = mergedLine,
-						LineNumber = mergedIndex + 1
-					} );
+						LineNumber = mergedIndex + 1,
+					});
 					mergedIndex++;
 				}
-				else if (originalIndex + 1 < originalLines.Length && string.Equals( mergedLine, originalLines[originalIndex + 1], StringComparison.Ordinal ))
+				else if (originalIndex + 1 < originalLines.Length && string.Equals(mergedLine, originalLines[originalIndex + 1], StringComparison.Ordinal))
 				{
 
-					results.Add( new TomlDiffResult
+					results.Add(new TomlDiffResult
 					{
 						DiffType = DiffType.Removed,
 						Text = originalLine,
-						LineNumber = mergedIndex + 1
-					} );
+						LineNumber = mergedIndex + 1,
+					});
 					originalIndex++;
 				}
 				else
 				{
 
-					results.Add( new TomlDiffResult
+					results.Add(new TomlDiffResult
 					{
 						DiffType = DiffType.Modified,
 						Text = mergedLine,
-						LineNumber = mergedIndex + 1
-					} );
+						LineNumber = mergedIndex + 1,
+					});
 					originalIndex++;
 					mergedIndex++;
 				}
@@ -2152,23 +2152,23 @@ namespace KOTORModSync.Dialogs
 
 			while (originalIndex < originalLines.Length)
 			{
-				results.Add( new TomlDiffResult
+				results.Add(new TomlDiffResult
 				{
 					DiffType = DiffType.Removed,
 					Text = originalLines[originalIndex],
-					LineNumber = mergedIndex + 1
-				} );
+					LineNumber = mergedIndex + 1,
+				});
 				originalIndex++;
 			}
 
 			while (mergedIndex < mergedLines.Length)
 			{
-				results.Add( new TomlDiffResult
+				results.Add(new TomlDiffResult
 				{
 					DiffType = DiffType.Added,
 					Text = mergedLines[mergedIndex],
-					LineNumber = mergedIndex + 1
-				} );
+					LineNumber = mergedIndex + 1,
+				});
 				mergedIndex++;
 			}
 
@@ -2180,7 +2180,7 @@ namespace KOTORModSync.Dialogs
 			Unchanged,
 			Added,
 			Removed,
-			Modified
+			Modified,
 		}
 
 		public class TomlDiffResult : INotifyPropertyChanged
@@ -2199,7 +2199,7 @@ namespace KOTORModSync.Dialogs
 						return;
 					_diffType = value;
 					OnPropertyChanged();
-					OnPropertyChanged( nameof( DiffColor ) );
+					OnPropertyChanged(nameof(DiffColor));
 				}
 			}
 
@@ -2208,7 +2208,7 @@ namespace KOTORModSync.Dialogs
 				get => _text;
 				set
 				{
-					if (string.Equals( _text, value, StringComparison.Ordinal ))
+					if (string.Equals(_text, value, StringComparison.Ordinal))
 						return;
 					_text = value;
 					OnPropertyChanged();
@@ -2232,7 +2232,7 @@ namespace KOTORModSync.Dialogs
 				get => _componentGuid;
 				set
 				{
-					if (string.Equals( _componentGuid, value, StringComparison.Ordinal ))
+					if (string.Equals(_componentGuid, value, StringComparison.Ordinal))
 						return;
 					_componentGuid = value;
 					OnPropertyChanged();
@@ -2260,8 +2260,8 @@ namespace KOTORModSync.Dialogs
 
 			public event PropertyChangedEventHandler PropertyChanged;
 
-			protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null ) =>
-				PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+			protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 
 		public enum ComponentConflictStatus
@@ -2269,7 +2269,7 @@ namespace KOTORModSync.Dialogs
 			New,
 			ExistingOnly,
 			Matched,
-			Updated
+			Updated,
 		}
 
 		public class ComponentConflictItem : INotifyPropertyChanged
@@ -2282,18 +2282,18 @@ namespace KOTORModSync.Dialogs
 			private bool _hasGuidConflict;
 			private string _guidConflictTooltip;
 
-			public ComponentConflictItem( [NotNull] ModComponent component, bool isFromExisting,
-				ComponentConflictStatus status )
+			public ComponentConflictItem([NotNull] ModComponent component, bool isFromExisting,
+				ComponentConflictStatus status)
 			{
 				ModComponent = component;
 				Name = component.Name;
-				Author = string.IsNullOrWhiteSpace( component.Author ) ? "Unknown Author" : component.Author;
+				Author = string.IsNullOrWhiteSpace(component.Author) ? "Unknown Author" : component.Author;
 				DateInfo = "Modified: N/A";
 				SizeInfo = $"{component.Instructions.Count} instruction(s)";
 				IsFromExisting = isFromExisting;
 				_status = status;
-				_statusIcon = GetStatusIcon( status );
-				_statusColor = GetStatusColor( status );
+				_statusIcon = GetStatusIcon(status);
+				_statusColor = GetStatusColor(status);
 			}
 
 			public ModComponent ModComponent { get; }
@@ -2319,7 +2319,7 @@ namespace KOTORModSync.Dialogs
 				get => _statusIcon;
 				private set
 				{
-					if (string.Equals( _statusIcon, value, StringComparison.Ordinal )) return;
+					if (string.Equals(_statusIcon, value, StringComparison.Ordinal)) return;
 					_statusIcon = value;
 					OnPropertyChanged();
 				}
@@ -2330,7 +2330,7 @@ namespace KOTORModSync.Dialogs
 				get => _statusColor;
 				private set
 				{
-					if (Equals( _statusColor, value )) return;
+					if (Equals(_statusColor, value)) return;
 					_statusColor = value;
 					OnPropertyChanged();
 				}
@@ -2344,8 +2344,8 @@ namespace KOTORModSync.Dialogs
 					if (_isVisuallySelected == value) return;
 					_isVisuallySelected = value;
 					OnPropertyChanged();
-					OnPropertyChanged( nameof( SelectionBorderBrush ) );
-					OnPropertyChanged( nameof( SelectionBackground ) );
+					OnPropertyChanged(nameof(SelectionBorderBrush));
+					OnPropertyChanged(nameof(SelectionBackground));
 				}
 			}
 
@@ -2373,7 +2373,7 @@ namespace KOTORModSync.Dialogs
 				get => _guidConflictTooltip;
 				set
 				{
-					if (string.Equals( _guidConflictTooltip, value, StringComparison.Ordinal )) return;
+					if (string.Equals(_guidConflictTooltip, value, StringComparison.Ordinal)) return;
 					_guidConflictTooltip = value;
 					OnPropertyChanged();
 				}
@@ -2386,78 +2386,78 @@ namespace KOTORModSync.Dialogs
 					var sb = new System.Text.StringBuilder();
 					ModComponent component = ModComponent;
 
-					_ = sb.AppendLine( $"📦 {component.Name}" );
+					_ = sb.AppendLine($"📦 {component.Name}");
 					_ = sb.AppendLine();
 
-					if (!string.IsNullOrEmpty( component.Author ))
-						_ = sb.AppendLine( $"👤 Author: {component.Author}" );
+					if (!string.IsNullOrEmpty(component.Author))
+						_ = sb.AppendLine($"👤 Author: {component.Author}");
 
 					if (component.Category.Count > 0)
-						_ = sb.AppendLine( $"📁 Category: {string.Join( ", ", component.Category )}" );
+						_ = sb.AppendLine($"📁 Category: {string.Join(", ", component.Category)}");
 
-					if (!string.IsNullOrEmpty( component.Tier ))
-						_ = sb.AppendLine( $"⭐ Tier: {component.Tier}" );
+					if (!string.IsNullOrEmpty(component.Tier))
+						_ = sb.AppendLine($"⭐ Tier: {component.Tier}");
 
-					if (!string.IsNullOrEmpty( component.Description ))
+					if (!string.IsNullOrEmpty(component.Description))
 					{
 						_ = sb.AppendLine();
-						_ = sb.AppendLine( "📝 Description:" );
+						_ = sb.AppendLine("📝 Description:");
 						string desc = component.Description.Length > 200
-							? component.Description.Substring( 0, 200 ) + "..."
+							? component.Description.Substring(0, 200) + "..."
 							: component.Description;
-						_ = sb.AppendLine( desc );
+						_ = sb.AppendLine(desc);
 					}
 
 					_ = sb.AppendLine();
-					_ = sb.AppendLine( $"🔧 Instructions: {component.Instructions.Count}" );
+					_ = sb.AppendLine($"🔧 Instructions: {component.Instructions.Count}");
 
-					if (!string.IsNullOrEmpty( component.InstallationMethod ))
-						_ = sb.AppendLine( $"⚙️ Method: {component.InstallationMethod}" );
+					if (!string.IsNullOrEmpty(component.InstallationMethod))
+						_ = sb.AppendLine($"⚙️ Method: {component.InstallationMethod}");
 
 					if (component.Dependencies.Count > 0)
 					{
 						_ = sb.AppendLine();
-						_ = sb.AppendLine( $"✓ Requires: {component.Dependencies.Count} mod(s)" );
+						_ = sb.AppendLine($"✓ Requires: {component.Dependencies.Count} mod(s)");
 					}
 
 					if (component.Restrictions.Count > 0)
-						_ = sb.AppendLine( $"✗ Conflicts with: {component.Restrictions.Count} mod(s)" );
+						_ = sb.AppendLine($"✗ Conflicts with: {component.Restrictions.Count} mod(s)");
 
 					if (component.Options.Count > 0)
-						_ = sb.AppendLine( $"⚙️ Has {component.Options.Count} optional component(s)" );
+						_ = sb.AppendLine($"⚙️ Has {component.Options.Count} optional component(s)");
 
 					_ = sb.AppendLine();
-					_ = sb.AppendLine( $"📊 Status: {Status}" );
+					_ = sb.AppendLine($"📊 Status: {Status}");
 
 					if (!component.IsDownloaded)
 					{
 						_ = sb.AppendLine();
-						_ = sb.AppendLine( "⚠️ Mod archive not downloaded" );
+						_ = sb.AppendLine("⚠️ Mod archive not downloaded");
 						if (component.ModLinkFilenames.Count > 0)
-							_ = sb.AppendLine( $"🔗 Download: {component.ModLinkFilenames.Keys.FirstOrDefault()}" );
+							_ = sb.AppendLine($"🔗 Download: {component.ModLinkFilenames.Keys.FirstOrDefault()}");
 					}
 
-					if (HasGuidConflict && !string.IsNullOrEmpty( GuidConflictTooltip ))
+					if (HasGuidConflict && !string.IsNullOrEmpty(GuidConflictTooltip))
 					{
 						_ = sb.AppendLine();
-						_ = sb.AppendLine( "⚠️ GUID CONFLICT ⚠️" );
-						_ = sb.AppendLine( GuidConflictTooltip );
+						_ = sb.AppendLine("⚠️ GUID CONFLICT ⚠️");
+						_ = sb.AppendLine(GuidConflictTooltip);
 					}
 
 					return sb.ToString();
 				}
 			}
 
-			public void UpdateStatus( ComponentConflictStatus newStatus )
+			public void UpdateStatus(ComponentConflictStatus newStatus)
 			{
 				if (Status == newStatus) return;
 
 				Status = newStatus;
-				StatusIcon = GetStatusIcon( newStatus );
-				StatusColor = GetStatusColor( newStatus );
+				StatusIcon = GetStatusIcon(newStatus);
+				StatusColor = GetStatusColor(newStatus);
 			}
 
-			private static string GetStatusIcon( ComponentConflictStatus status )
+			private static string GetStatusIcon(ComponentConflictStatus status)
 			{
 				if (status == ComponentConflictStatus.New)
 					return "✨";
@@ -2470,7 +2470,7 @@ namespace KOTORModSync.Dialogs
 				return "";
 			}
 
-			private static IBrush GetStatusColor( ComponentConflictStatus status )
+			private static IBrush GetStatusColor(ComponentConflictStatus status)
 			{
 				if (status == ComponentConflictStatus.New)
 					return ThemeResourceHelper.MergeStatusNewBrush;
@@ -2496,8 +2496,8 @@ namespace KOTORModSync.Dialogs
 
 			public event PropertyChangedEventHandler PropertyChanged;
 
-			protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null ) =>
-				PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+			protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 
 		public class PreviewItem
@@ -2515,7 +2515,7 @@ namespace KOTORModSync.Dialogs
 			{
 				get
 				{
-					if (ModComponent == null)
+					if (ModComponent is null)
 						return Name ?? "Unknown Component";
 
 					var sb = new System.Text.StringBuilder();

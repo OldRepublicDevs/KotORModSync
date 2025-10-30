@@ -21,7 +21,7 @@ namespace KOTORModSync.Core.TSLPatcher
 	{
 		public static void ReplaceIniPattern( [NotNull] DirectoryInfo directory, string pattern, string replacement )
 		{
-			if (directory == null)
+			if (directory is null)
 				throw new ArgumentNullException( nameof( directory ) );
 
 			FileInfo[] iniFiles = directory.GetFilesSafely( searchPattern: "*.ini", SearchOption.AllDirectories );

@@ -138,7 +138,7 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				if (!(sender is Border border) || !(border.DataContext is PreviewItem previewItem) || ViewModel == null)
+				if (!(sender is Border border) || !(border.DataContext is PreviewItem previewItem) || ViewModel is null)
 					return;
 
 				// Find corresponding items in Existing and Incoming lists
@@ -278,19 +278,19 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				if (e.Item == null) return;
+				if (e.Item is null) return;
 
 				if (e.Item.IsFromExisting)
 				{
 
 					TabControl existingTabControl = this.FindControl<TabControl>( "ExistingTabControl" );
-					if (existingTabControl == null)
+					if (existingTabControl is null)
 						return;
 					existingTabControl.SelectedIndex = 1;
 
 					ViewModel?.UpdateExistingTomlView();
 
-					if (ViewModel == null)
+					if (ViewModel is null)
 						return;
 					int lineNumber = ViewModel.GetComponentLineNumber( e.Item );
 					if (lineNumber > 0)
@@ -303,13 +303,13 @@ namespace KOTORModSync.Dialogs
 				{
 
 					TabControl incomingTabControl = this.FindControl<TabControl>( "IncomingTabControl" );
-					if (incomingTabControl == null)
+					if (incomingTabControl is null)
 						return;
 					incomingTabControl.SelectedIndex = 1;
 
 					ViewModel?.UpdateIncomingTomlView();
 
-					if (ViewModel == null)
+					if (ViewModel is null)
 						return;
 					int lineNumber = ViewModel.GetComponentLineNumber( e.Item );
 					if (lineNumber > 0)
@@ -333,10 +333,10 @@ namespace KOTORModSync.Dialogs
 				if (tabControl.SelectedIndex != 1) return;
 
 				ScrollViewer scrollViewer = ComponentMergeConflictDialog.FindScrollViewerInTab( tabControl );
-				if (scrollViewer == null) return;
+				if (scrollViewer is null) return;
 
 				ListBox listBox = FindDescendant<ListBox>( scrollViewer );
-				if (listBox == null || listBox.ItemCount == 0) return;
+				if (listBox is null || listBox.ItemCount == 0) return;
 
 				Avalonia.Threading.Dispatcher.UIThread.Post( () =>
 				{
@@ -386,7 +386,7 @@ namespace KOTORModSync.Dialogs
 
 		private static T FindDescendant<T>( Control control ) where T : Control
 		{
-			if (control == null) return null;
+			if (control is null) return null;
 
 			if (control is T result)
 				return result;
@@ -408,7 +408,7 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				if (e.MatchedItem == null) return;
+				if (e.MatchedItem is null) return;
 
 				Avalonia.Threading.Dispatcher.UIThread.Post( () =>
 				{
@@ -429,16 +429,16 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				if (selectedItem == null || ViewModel == null) return;
+				if (selectedItem is null || ViewModel is null) return;
 
 				PreviewItem previewItem = ViewModel.PreviewComponents.FirstOrDefault( p =>
 					p.ModComponent == selectedItem.ModComponent ||
 string.Equals( p.Name, selectedItem.Name, StringComparison.Ordinal ) );
 
-				if (previewItem == null) return;
+				if (previewItem is null) return;
 
 				ScrollViewer previewScrollViewer = this.FindControl<ScrollViewer>( "PreviewScrollViewer" );
-				if (previewScrollViewer == null) return;
+				if (previewScrollViewer is null) return;
 
 				int index = ViewModel.PreviewComponents.IndexOf( previewItem );
 				if (index < 0) return;
@@ -449,7 +449,7 @@ string.Equals( p.Name, selectedItem.Name, StringComparison.Ordinal ) );
 					{
 
 						ItemsControl itemsControl = FindDescendant<ItemsControl>( previewScrollViewer );
-						if (itemsControl == null || itemsControl.ItemCount == 0) return;
+						if (itemsControl is null || itemsControl.ItemCount == 0) return;
 
 						if (itemsControl.ContainerFromIndex( 0 ) is Control firstItem && firstItem.Bounds.Height > 0)
 						{
@@ -480,7 +480,7 @@ string.Equals( p.Name, selectedItem.Name, StringComparison.Ordinal ) );
 			try
 			{
 				ScrollViewer scrollViewer = this.FindControl<ScrollViewer>( scrollViewerName );
-				if (scrollViewer == null) return;
+				if (scrollViewer is null) return;
 
 				ItemsControl itemsControl = FindDescendant<ItemsControl>( scrollViewer );
 

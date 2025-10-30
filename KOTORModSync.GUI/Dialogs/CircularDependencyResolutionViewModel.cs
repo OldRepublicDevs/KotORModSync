@@ -35,7 +35,7 @@ namespace KOTORModSync.Dialogs
 			get => _statusText;
 			set
 			{
-				if (string.Equals( _statusText, value, StringComparison.Ordinal )) return;
+				if (string.Equals(_statusText, value, StringComparison.Ordinal)) return;
 				_statusText = value;
 				OnPropertyChanged();
 			}
@@ -43,11 +43,11 @@ namespace KOTORModSync.Dialogs
 
 		public CircularDependencyResolutionViewModel(
 			List<ModComponent> components,
-			CircularDependencyDetector.CircularDependencyResult cycleInfo )
+			CircularDependencyDetector.CircularDependencyResult cycleInfo)
 		{
 			Components = new ObservableCollection<ComponentItem>();
 			Suggestions = new ObservableCollection<SuggestionItem>();
-			ApplySuggestionCommand = new RelayCommand( ApplySuggestion );
+			ApplySuggestionCommand = new RelayCommand(ApplySuggestion);
 
 			int cycleCount = cycleInfo.Cycles.Count;
 			SummaryText = $"Found {cycleCount} circular dependency cycle{(cycleCount > 1 ? "s" : "")} that prevent installation. " +
@@ -60,35 +60,35 @@ namespace KOTORModSync.Dialogs
 			{
 				foreach (Guid guid in cycle)
 				{
-					_ = componentsInCycles.Add( guid );
+					_ = componentsInCycles.Add(guid);
 				}
 			}
 
 			foreach (ModComponent component in components)
 			{
-				bool isInCycle = componentsInCycles.Contains( component.Guid );
-				var item = new ComponentItem( component, isInCycle );
+				bool isInCycle = componentsInCycles.Contains(component.Guid);
+				var item = new ComponentItem(component, isInCycle);
 				item.PropertyChanged += OnComponentSelectionChanged;
-				Components.Add( item );
+				Components.Add(item);
 			}
 
-			List<ModComponent> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove( cycleInfo );
+			List<ModComponent> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
 			foreach (ModComponent suggestion in suggestedComponents)
 			{
-				Suggestions.Add( new SuggestionItem
+				Suggestions.Add(new SuggestionItem
 				{
 					ModComponent = suggestion,
 					Text = $"❌ Uncheck: {suggestion.Name}" +
-						   (!string.IsNullOrWhiteSpace( suggestion.Author ) ? $" by {suggestion.Author}" : "")
-				} );
+						   (!string.IsNullOrWhiteSpace(suggestion.Author) ? $" by {suggestion.Author}" : ""),
+				});
 			}
 
 			UpdateStatus();
 		}
 
-		private void OnComponentSelectionChanged( object sender, PropertyChangedEventArgs e )
+		private void OnComponentSelectionChanged(object sender, PropertyChangedEventArgs e)
 		{
-			if (string.Equals( e.PropertyName, nameof( ComponentItem.IsSelected ), StringComparison.Ordinal ))
+			if (string.Equals(e.PropertyName, nameof(ComponentItem.IsSelected), StringComparison.Ordinal))
 			{
 				UpdateStatus();
 			}
@@ -96,9 +96,9 @@ namespace KOTORModSync.Dialogs
 
 		private void UpdateStatus()
 		{
-			int selectedCount = Components.Count( c => c.IsSelected );
+			int selectedCount = Components.Count(c => c.IsSelected);
 			int totalCount = Components.Count;
-			int uncheckedInCycle = Components.Count( c => c.IsInCycle && !c.IsSelected );
+			int uncheckedInCycle = Components.Count(c => c.IsInCycle && !c.IsSelected);
 
 			if (uncheckedInCycle > 0)
 			{
@@ -110,12 +110,12 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		private void ApplySuggestion( object parameter )
+		private void ApplySuggestion(object parameter)
 		{
 			if (!(parameter is SuggestionItem suggestion))
 				return;
 
-			ComponentItem componentItem = Components.FirstOrDefault( c => c.ModComponent == suggestion.ModComponent );
+			ComponentItem componentItem = Components.FirstOrDefault(c => c.ModComponent == suggestion.ModComponent);
 			if (componentItem != null)
 			{
 				componentItem.IsSelected = false;
@@ -125,9 +125,9 @@ namespace KOTORModSync.Dialogs
 		public event PropertyChangedEventHandler PropertyChanged;
 
 		[NotifyPropertyChangedInvocator]
-		protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null )
+		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
 		{
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 	}
 
@@ -157,7 +157,7 @@ namespace KOTORModSync.Dialogs
 			}
 		}
 
-		public ComponentItem( ModComponent component, bool isInCycle )
+		public ComponentItem(ModComponent component, bool isInCycle)
 		{
 			ModComponent = component;
 			_isSelected = component.IsSelected;
@@ -166,11 +166,11 @@ namespace KOTORModSync.Dialogs
 			if (isInCycle)
 			{
 				CycleInfo = "⚠️ Involved in circular dependency";
-				CycleInfoColor = new SolidColorBrush( Color.FromRgb( 255, 193, 7 ) );
+				CycleInfoColor = new SolidColorBrush(Color.FromRgb(255, 193, 7));
 				StatusIcon = "⚠️";
 				StatusTooltip = "This component is involved in a circular dependency. Consider unchecking it.";
-				BackgroundBrush = new SolidColorBrush( Color.FromArgb( 30, 255, 193, 7 ) );
-				BorderBrush = new SolidColorBrush( Color.FromRgb( 255, 193, 7 ) );
+				BackgroundBrush = new SolidColorBrush(Color.FromArgb(30, 255, 193, 7));
+				BorderBrush = new SolidColorBrush(Color.FromRgb(255, 193, 7));
 			}
 			else
 			{
@@ -184,9 +184,9 @@ namespace KOTORModSync.Dialogs
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null )
+		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
 		{
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 	}
 

@@ -81,7 +81,7 @@ namespace KOTORModSync.Core.Services
 			PreferExistingInstallationMethod = false,
 			PreferExistingInstructions = false,
 			PreferExistingOptions = false,
-			PreferExistingModLinkFilenames = false
+			PreferExistingModLinkFilenames = false,
 		};
 	}
 
@@ -94,19 +94,18 @@ namespace KOTORModSync.Core.Services
 				[NotNull] MergeOptions options,
 				[CanBeNull] DownloadCacheService downloadCache = null,
 				bool sequential = true,
-				System.Threading.CancellationToken cancellationToken = default )
+				System.Threading.CancellationToken cancellationToken = default)
 		{
-			if (existingFilePath == null)
-				throw new ArgumentNullException( nameof( existingFilePath ) );
-			if (incomingFilePath == null)
-				throw new ArgumentNullException( nameof( incomingFilePath ) );
+			if (existingFilePath is null)
+				throw new ArgumentNullException(nameof(existingFilePath));
+			if (incomingFilePath is null)
+				throw new ArgumentNullException(nameof(incomingFilePath));
 
 			options = options ?? MergeOptions.CreateDefault();
 
 
-
-			List<ModComponent> existing = await FileLoadingService.LoadFromFileAsync( existingFilePath ).ConfigureAwait( false );
-			List<ModComponent> incoming = await FileLoadingService.LoadFromFileAsync( incomingFilePath ).ConfigureAwait( false );
+			List<ModComponent> existing = await FileLoadingService.LoadFromFileAsync(existingFilePath).ConfigureAwait(false);
+			List<ModComponent> incoming = await FileLoadingService.LoadFromFileAsync(incomingFilePath).ConfigureAwait(false);
 
 			return await MergeComponentListsAsync(
 				existing,
@@ -115,26 +114,26 @@ namespace KOTORModSync.Core.Services
 				downloadCache,
 				sequential,
 				cancellationToken
-			).ConfigureAwait( false );
+			).ConfigureAwait(false);
 		}
 
 		[NotNull]
 		public static List<ModComponent> MergeInstructionSets(
 				[NotNull] string existingFilePath,
 				[NotNull] string incomingFilePath,
-				[NotNull] MergeOptions options )
+				[NotNull] MergeOptions options)
 		{
-			if (existingFilePath == null)
-				throw new ArgumentNullException( nameof( existingFilePath ) );
-			if (incomingFilePath == null)
-				throw new ArgumentNullException( nameof( incomingFilePath ) );
+			if (existingFilePath is null)
+				throw new ArgumentNullException(nameof(existingFilePath));
+			if (incomingFilePath is null)
+				throw new ArgumentNullException(nameof(incomingFilePath));
 
 			options = options ?? MergeOptions.CreateDefault();
 
-			List<ModComponent> existing = FileLoadingService.LoadFromFile( existingFilePath );
-			List<ModComponent> incoming = FileLoadingService.LoadFromFile( incomingFilePath );
+			List<ModComponent> existing = FileLoadingService.LoadFromFile(existingFilePath);
+			List<ModComponent> incoming = FileLoadingService.LoadFromFile(incomingFilePath);
 
-			return MergeComponentLists( existing, incoming, options );
+			return MergeComponentLists(existing, incoming, options);
 		}
 
 		[NotNull]
@@ -144,12 +143,12 @@ namespace KOTORModSync.Core.Services
 			[NotNull] MergeOptions options,
 			[CanBeNull] DownloadCacheService downloadCache = null,
 			bool sequential = true,
-			System.Threading.CancellationToken cancellationToken = default )
+			System.Threading.CancellationToken cancellationToken = default)
 		{
-			if (existing == null)
-				throw new ArgumentNullException( nameof( existing ) );
-			if (incoming == null)
-				throw new ArgumentNullException( nameof( incoming ) );
+			if (existing is null)
+				throw new ArgumentNullException(nameof(existing));
+			if (incoming is null)
+				throw new ArgumentNullException(nameof(incoming));
 
 			options = options ?? MergeOptions.CreateDefault();
 			options.HeuristicsOptions = options.HeuristicsOptions ?? MergeHeuristicsOptions.CreateDefault();
@@ -158,8 +157,7 @@ namespace KOTORModSync.Core.Services
 
 			if (options.UseExistingOrder)
 			{
-				result = new List<ModComponent>( existing );
-
+				result = new List<ModComponent>(existing);
 
 				await MergeIntoAsync(
 					result,
@@ -169,18 +167,17 @@ namespace KOTORModSync.Core.Services
 					downloadCache,
 					sequential,
 					cancellationToken
-				).ConfigureAwait( false );
+				).ConfigureAwait(false);
 
 				if (options.ExcludeExistingOnly)
 				{
-					HashSet<Guid> matchedGuids = new HashSet<Guid>( incoming.Select( c => c.Guid ) );
-					result.RemoveAll( c => !matchedGuids.Contains( c.Guid ) );
+					HashSet<Guid> matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
 				}
 			}
 			else
 			{
-				result = new List<ModComponent>( incoming );
-
+				result = new List<ModComponent>(incoming);
 
 				await MergeIntoAsync(
 					result,
@@ -190,12 +187,12 @@ namespace KOTORModSync.Core.Services
 					downloadCache,
 					sequential,
 					cancellationToken
-				).ConfigureAwait( false );
+				).ConfigureAwait(false);
 
 				if (options.ExcludeExistingOnly)
 				{
-					HashSet<Guid> matchedGuids = new HashSet<Guid>( incoming.Select( c => c.Guid ) );
-					result.RemoveAll( c => !matchedGuids.Contains( c.Guid ) );
+					HashSet<Guid> matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
 				}
 			}
 
@@ -206,12 +203,12 @@ namespace KOTORModSync.Core.Services
 		public static List<ModComponent> MergeComponentLists(
 			[NotNull] List<ModComponent> existing,
 			[NotNull] List<ModComponent> incoming,
-			[NotNull] MergeOptions options )
+			[NotNull] MergeOptions options)
 		{
-			if (existing == null)
-				throw new ArgumentNullException( nameof( existing ) );
-			if (incoming == null)
-				throw new ArgumentNullException( nameof( incoming ) );
+			if (existing is null)
+				throw new ArgumentNullException(nameof(existing));
+			if (incoming is null)
+				throw new ArgumentNullException(nameof(incoming));
 
 			options = options ?? MergeOptions.CreateDefault();
 			options.HeuristicsOptions = options.HeuristicsOptions ?? MergeHeuristicsOptions.CreateDefault();
@@ -220,13 +217,13 @@ namespace KOTORModSync.Core.Services
 
 			if (options.UseExistingOrder)
 			{
-				result = new List<ModComponent>( existing );
-				MergeInto( result, incoming, options.HeuristicsOptions, options );
+				result = new List<ModComponent>(existing);
+				MergeInto(result, incoming, options.HeuristicsOptions, options);
 
 				if (options.ExcludeExistingOnly)
 				{
-					HashSet<Guid> matchedGuids = new HashSet<Guid>( incoming.Select( c => c.Guid ) );
-					result.RemoveAll( c => !matchedGuids.Contains( c.Guid ) );
+					HashSet<Guid> matchedGuids = new HashSet<Guid>(incoming.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
 				}
 			}
 			else
@@ -235,19 +232,18 @@ namespace KOTORModSync.Core.Services
 				// When ExcludeIncomingOnly: don't add unmatched components from incoming (but we start with incoming, so this is handled by removal)
 				// Default: add all unmatched components from both sides
 
-				result = new List<ModComponent>( incoming );
-				MergeInto( result, existing, options.HeuristicsOptions, options );
+				result = new List<ModComponent>(incoming);
+				MergeInto(result, existing, options.HeuristicsOptions, options);
 
 				if (options.ExcludeIncomingOnly)
 				{
-					HashSet<Guid> matchedGuids = new HashSet<Guid>( existing.Select( c => c.Guid ) );
-					result.RemoveAll( c => !matchedGuids.Contains( c.Guid ) );
+					HashSet<Guid> matchedGuids = new HashSet<Guid>(existing.Select(c => c.Guid));
+					result.RemoveAll(c => !matchedGuids.Contains(c.Guid));
 				}
 			}
 
 			return result;
 		}
-
 
 		public static async System.Threading.Tasks.Task MergeIntoAsync(
 			[NotNull] List<ModComponent> incomingList,
@@ -256,28 +252,28 @@ namespace KOTORModSync.Core.Services
 			[NotNull] MergeOptions mergeOptions,
 			[CanBeNull] DownloadCacheService downloadCache = null,
 			bool sequential = true,
-			System.Threading.CancellationToken cancellationToken = default )
+			System.Threading.CancellationToken cancellationToken = default)
 		{
-			if (incomingList == null)
-				throw new ArgumentNullException( nameof( incomingList ) );
-			if (existingList == null)
-				throw new ArgumentNullException( nameof( existingList ) );
+			if (incomingList is null)
+				throw new ArgumentNullException(nameof(incomingList));
+			if (existingList is null)
+				throw new ArgumentNullException(nameof(existingList));
 
-			await MergeModComponentsAsync( incomingList, existingList, heuristicsOptions, mergeOptions, downloadCache, sequential, cancellationToken ).ConfigureAwait( false );
+			await MergeModComponentsAsync(incomingList, existingList, heuristicsOptions, mergeOptions, downloadCache, sequential, cancellationToken).ConfigureAwait(false);
 		}
 
 		public static void MergeInto(
 			[NotNull] List<ModComponent> incomingList,
 			[NotNull] List<ModComponent> existingList,
 			[NotNull] MergeHeuristicsOptions heuristicsOptions,
-			[NotNull] MergeOptions mergeOptions )
+			[NotNull] MergeOptions mergeOptions)
 		{
-			if (incomingList == null)
-				throw new ArgumentNullException( nameof( incomingList ) );
-			if (existingList == null)
-				throw new ArgumentNullException( nameof( existingList ) );
+			if (incomingList is null)
+				throw new ArgumentNullException(nameof(incomingList));
+			if (existingList is null)
+				throw new ArgumentNullException(nameof(existingList));
 
-			MergeModComponents( incomingList, existingList, heuristicsOptions, mergeOptions );
+			MergeModComponents(incomingList, existingList, heuristicsOptions, mergeOptions);
 		}
 
 		/// <summary>
@@ -291,12 +287,12 @@ namespace KOTORModSync.Core.Services
 			[CanBeNull] MergeOptions mergeOptions = null,
 			[CanBeNull] DownloadCacheService downloadCache = null,
 			bool sequential = true,
-			System.Threading.CancellationToken cancellationToken = default )
+			System.Threading.CancellationToken cancellationToken = default)
 		{
-			if (incomingList == null)
-				throw new ArgumentNullException( nameof( incomingList ) );
-			if (existingList == null)
-				throw new ArgumentNullException( nameof( existingList ) );
+			if (incomingList is null)
+				throw new ArgumentNullException(nameof(incomingList));
+			if (existingList is null)
+				throw new ArgumentNullException(nameof(existingList));
 
 			heuristicsOptions = heuristicsOptions
 								?? MergeHeuristicsOptions.CreateDefault();
@@ -306,9 +302,8 @@ namespace KOTORModSync.Core.Services
 			// Validate URLs before merge if enabled
 			if (heuristicsOptions.ValidateExistingLinksBeforeReplace && downloadCache != null)
 
-
 			{
-				await ValidateAndFilterUrlsAsync( incomingList, existingList, downloadCache, sequential, cancellationToken ).ConfigureAwait( false );
+				await ValidateAndFilterUrlsAsync(incomingList, existingList, downloadCache, sequential, cancellationToken).ConfigureAwait(false);
 			}
 
 			// Build GUID lookup for existing components
@@ -327,26 +322,24 @@ namespace KOTORModSync.Core.Services
 				ModComponent matchedExisting;
 
 				// Step 1: Try to match by GUID
-				if (existingByGuid.TryGetValue( incomingComponent.Guid, out ModComponent existingByGuidMatch ))
+				if (existingByGuid.TryGetValue(incomingComponent.Guid, out ModComponent existingByGuidMatch))
 				{
 					matchedExisting = existingByGuidMatch;
 
-
-					await Logger.LogVerboseAsync( $"[UnifiedMerge] Matched '{incomingComponent.Name}' by GUID: {incomingComponent.Guid}" ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync($"[UnifiedMerge] Matched '{incomingComponent.Name}' by GUID: {incomingComponent.Guid}").ConfigureAwait(false);
 				}
 				// Step 2: If no GUID match, try name/author heuristics
 				else
 				{
 					matchedExisting = FindHeuristicMatch(
-						existingList.Where( e => !matchedExistingComponents.Contains( e ) ).ToList(),
+						existingList.Where(e => !matchedExistingComponents.Contains(e)).ToList(),
 						incomingComponent,
-						heuristicsOptions );
+						heuristicsOptions);
 
 					if (matchedExisting != null)
 
-
 					{
-						await Logger.LogVerboseAsync( $"[UnifiedMerge] Matched '{incomingComponent.Name}' by name/author to '{matchedExisting.Name}'" ).ConfigureAwait( false );
+						await Logger.LogVerboseAsync($"[UnifiedMerge] Matched '{incomingComponent.Name}' by name/author to '{matchedExisting.Name}'").ConfigureAwait(false);
 					}
 				}
 
@@ -355,19 +348,19 @@ namespace KOTORModSync.Core.Services
 				{
 					// Update the INCOMING component with data from EXISTING based on preferences
 					// This preserves incoming component in the result list but merges in existing data where needed
-					UpdateModComponentFields( incomingComponent, matchedExisting, heuristicsOptions, mergeOptions );
-					matchedExistingComponents.Add( matchedExisting );
+					UpdateModComponentFields(incomingComponent, matchedExisting, heuristicsOptions, mergeOptions);
+					matchedExistingComponents.Add(matchedExisting);
 				}
 				// else: incoming component has no match, it stays as-is in the result
 			}
 
 			// Step 4: Add unmatched existing components to the result
-			List<ModComponent> unmatchedExisting = existingList.Where( e => !matchedExistingComponents.Contains( e ) ).ToList();
+			List<ModComponent> unmatchedExisting = existingList.Where(e => !matchedExistingComponents.Contains(e)).ToList();
 			foreach (ModComponent existingComponent in unmatchedExisting)
 			{
 				// Find insertion point to maintain relative order from existing list
-				int insertIndex = FindInsertionPointForUnmatched( incomingList, existingComponent, existingList );
-				incomingList.Insert( insertIndex, existingComponent );
+				int insertIndex = FindInsertionPointForUnmatched(incomingList, existingComponent, existingList);
+				incomingList.Insert(insertIndex, existingComponent);
 			}
 		}
 
@@ -379,12 +372,12 @@ namespace KOTORModSync.Core.Services
 			[NotNull] List<ModComponent> incomingList,
 			[NotNull] List<ModComponent> existingList,
 			[NotNull] MergeHeuristicsOptions heuristicsOptions,
-			[NotNull] MergeOptions mergeOptions )
+			[NotNull] MergeOptions mergeOptions)
 		{
-			if (incomingList == null)
-				throw new ArgumentNullException( nameof( incomingList ) );
-			if (existingList == null)
-				throw new ArgumentNullException( nameof( existingList ) );
+			if (incomingList is null)
+				throw new ArgumentNullException(nameof(incomingList));
+			if (existingList is null)
+				throw new ArgumentNullException(nameof(existingList));
 
 			// Build GUID lookup for existing components
 			Dictionary<Guid, ModComponent> existingByGuid = new Dictionary<Guid, ModComponent>();
@@ -402,22 +395,22 @@ namespace KOTORModSync.Core.Services
 				ModComponent matchedExisting;
 
 				// Step 1: Try to match by GUID
-				if (existingByGuid.TryGetValue( incomingComponent.Guid, out ModComponent existingByGuidMatch ))
+				if (existingByGuid.TryGetValue(incomingComponent.Guid, out ModComponent existingByGuidMatch))
 				{
 					matchedExisting = existingByGuidMatch;
-					Logger.LogVerbose( $"[UnifiedMerge] Matched '{incomingComponent.Name}' by GUID: {incomingComponent.Guid}" );
+					Logger.LogVerbose($"[UnifiedMerge] Matched '{incomingComponent.Name}' by GUID: {incomingComponent.Guid}");
 				}
 				// Step 2: If no GUID match, try name/author heuristics
 				else
 				{
 					matchedExisting = FindHeuristicMatch(
-						existingList.Where( e => !matchedExistingComponents.Contains( e ) ).ToList(),
+						existingList.Where(e => !matchedExistingComponents.Contains(e)).ToList(),
 						incomingComponent,
-						heuristicsOptions );
+						heuristicsOptions);
 
 					if (matchedExisting != null)
 					{
-						Logger.LogVerbose( $"[UnifiedMerge] Matched '{incomingComponent.Name}' by name/author to '{matchedExisting.Name}'" );
+						Logger.LogVerbose($"[UnifiedMerge] Matched '{incomingComponent.Name}' by name/author to '{matchedExisting.Name}'");
 					}
 				}
 
@@ -426,19 +419,19 @@ namespace KOTORModSync.Core.Services
 				{
 					// Update the INCOMING component with data from EXISTING based on preferences
 					// This preserves incoming component in the result list but merges in existing data where needed
-					UpdateModComponentFields( incomingComponent, matchedExisting, heuristicsOptions, mergeOptions );
-					matchedExistingComponents.Add( matchedExisting );
+					UpdateModComponentFields(incomingComponent, matchedExisting, heuristicsOptions, mergeOptions);
+					matchedExistingComponents.Add(matchedExisting);
 				}
 				// else: incoming component has no match, it stays as-is in the result
 			}
 
 			// Step 4: Add unmatched existing components to the result
-			List<ModComponent> unmatchedExisting = existingList.Where( e => !matchedExistingComponents.Contains( e ) ).ToList();
+			List<ModComponent> unmatchedExisting = existingList.Where(e => !matchedExistingComponents.Contains(e)).ToList();
 			foreach (ModComponent existingComponent in unmatchedExisting)
 			{
 				// Find insertion point to maintain relative order from existing list
-				int insertIndex = FindInsertionPointForUnmatched( incomingList, existingComponent, existingList );
-				incomingList.Insert( insertIndex, existingComponent );
+				int insertIndex = FindInsertionPointForUnmatched(incomingList, existingComponent, existingList);
+				incomingList.Insert(insertIndex, existingComponent);
 			}
 		}
 
@@ -450,15 +443,14 @@ namespace KOTORModSync.Core.Services
 			[NotNull] List<ModComponent> existingList,
 			[NotNull] DownloadCacheService downloadCache,
 			bool sequential = true,
-			System.Threading.CancellationToken cancellationToken = default )
-
+			System.Threading.CancellationToken cancellationToken = default)
 
 		{
-			await Logger.LogVerboseAsync( "[ComponentMerge] Validating URLs before merge..." )
+			await Logger.LogVerboseAsync("[ComponentMerge] Validating URLs before merge...")
 
-.ConfigureAwait( false );
+.ConfigureAwait(false);
 
-			HashSet<string> allUrls = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+			HashSet<string> allUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 			foreach (ModComponent component in incomingList)
 			{
 				if (component.ModLinkFilenames != null)
@@ -467,8 +459,8 @@ namespace KOTORModSync.Core.Services
 
 component.ModLinkFilenames.Keys)
 					{
-						if (!string.IsNullOrWhiteSpace( url ))
-							allUrls.Add( url );
+						if (!string.IsNullOrWhiteSpace(url))
+							allUrls.Add(url);
 					}
 				}
 			}
@@ -478,8 +470,8 @@ component.ModLinkFilenames.Keys)
 				{
 					foreach (string url in component.ModLinkFilenames.Keys)
 					{
-						if (!string.IsNullOrWhiteSpace( url ))
-							allUrls.Add( url );
+						if (!string.IsNullOrWhiteSpace(url))
+							allUrls.Add(url);
 					}
 				}
 			}
@@ -489,21 +481,21 @@ component.ModLinkFilenames.Keys)
 				downloadCache,
 				sequential,
 				cancellationToken
-			).ConfigureAwait( false );
-			HashSet<string> validUrlSet = new HashSet<string>( validUrls, StringComparer.OrdinalIgnoreCase );
+			).ConfigureAwait(false);
+			HashSet<string> validUrlSet = new HashSet<string>(validUrls, StringComparer.OrdinalIgnoreCase);
 
 			foreach (ModComponent component in incomingList)
 			{
 				if (component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0)
 				{
-					List<string> urlsToRemove = component.ModLinkFilenames.Keys.Where( url => !validUrlSet.Contains( url ) ).ToList();
+					List<string> urlsToRemove = component.ModLinkFilenames.Keys.Where(url => !validUrlSet.Contains(url)).ToList();
 					foreach (string invalidUrl in urlsToRemove)
 					{
-						component.ModLinkFilenames.Remove( invalidUrl );
+						component.ModLinkFilenames.Remove(invalidUrl);
 					}
 					if (urlsToRemove.Count > 0)
 					{
-						await Logger.LogVerboseAsync( $"[ComponentMerge] Removed {urlsToRemove.Count} invalid URL(s) from component: {component.Name}" ).ConfigureAwait( false );
+						await Logger.LogVerboseAsync($"[ComponentMerge] Removed {urlsToRemove.Count} invalid URL(s) from component: {component.Name}").ConfigureAwait(false);
 					}
 				}
 			}
@@ -511,14 +503,14 @@ component.ModLinkFilenames.Keys)
 			{
 				if (component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0)
 				{
-					List<string> urlsToRemove = component.ModLinkFilenames.Keys.Where( url => !validUrlSet.Contains( url ) ).ToList();
+					List<string> urlsToRemove = component.ModLinkFilenames.Keys.Where(url => !validUrlSet.Contains(url)).ToList();
 					foreach (string invalidUrl in urlsToRemove)
 					{
-						component.ModLinkFilenames.Remove( invalidUrl );
+						component.ModLinkFilenames.Remove(invalidUrl);
 					}
 					if (urlsToRemove.Count > 0)
 					{
-						await Logger.LogVerboseAsync( $"[ComponentMerge] Removed {urlsToRemove.Count} invalid URL(s) from component: {component.Name}" ).ConfigureAwait( false );
+						await Logger.LogVerboseAsync($"[ComponentMerge] Removed {urlsToRemove.Count} invalid URL(s) from component: {component.Name}").ConfigureAwait(false);
 					}
 				}
 			}
@@ -530,9 +522,9 @@ component.ModLinkFilenames.Keys)
 		private static int FindInsertionPointForUnmatched(
 			[NotNull] List<ModComponent> incomingList,
 			[NotNull] ModComponent unmatchedExisting,
-			[NotNull] List<ModComponent> originalExistingList )
+			[NotNull] List<ModComponent> originalExistingList)
 		{
-			int originalIndex = originalExistingList.IndexOf( unmatchedExisting );
+			int originalIndex = originalExistingList.IndexOf(unmatchedExisting);
 			if (originalIndex < 0)
 				return incomingList.Count;
 
@@ -540,7 +532,7 @@ component.ModLinkFilenames.Keys)
 			for (int i = originalIndex + 1; i < originalExistingList.Count; i++)
 			{
 				ModComponent afterComponent = originalExistingList[i];
-				int afterIndexInIncoming = incomingList.FindIndex( c => c.Guid == afterComponent.Guid );
+				int afterIndexInIncoming = incomingList.FindIndex(c => c.Guid == afterComponent.Guid);
 				if (afterIndexInIncoming >= 0)
 				{
 					return afterIndexInIncoming; // Insert before this component
@@ -558,53 +550,74 @@ component.ModLinkFilenames.Keys)
 			[NotNull] ModComponent target,
 			[NotNull] ModComponent source,
 			[NotNull] MergeHeuristicsOptions heuristicsOptions,
-			[NotNull] MergeOptions mergeOptions )
+			[NotNull] MergeOptions mergeOptions)
 		{
+			// Preserve GUID from source (existing) if target (incoming) has empty GUID
+			// This ensures markdown files without GUIDs preserve existing GUIDs from TOML files
+			if (target.Guid == Guid.Empty && source.Guid != Guid.Empty)
+			{
+				target.Guid = source.Guid;
+			}
+
 			// Update text fields based on preferences and heuristicsOptions.SkipBlankUpdates
-			if (!(heuristicsOptions.SkipBlankUpdates && IsBlank( source.Name )))
+			if (
+				!(heuristicsOptions.SkipBlankUpdates && IsBlank(source.Name))
+				&& mergeOptions.PreferExistingName && !string.IsNullOrWhiteSpace(source.Name)
+			)
 			{
-				if (mergeOptions.PreferExistingName && !string.IsNullOrWhiteSpace( source.Name ))
-					target.Name = source.Name;
+				target.Name = source.Name;
 			}
-			if (!(heuristicsOptions.SkipBlankUpdates && IsBlank( source.Author )))
+			if (
+				!(heuristicsOptions.SkipBlankUpdates && IsBlank(source.Author))
+				&& mergeOptions.PreferExistingAuthor && !string.IsNullOrWhiteSpace(source.Author)
+			)
 			{
-				if (mergeOptions.PreferExistingAuthor && !string.IsNullOrWhiteSpace( source.Author ))
-					target.Author = source.Author;
+				target.Author = source.Author;
 			}
-			if (!(heuristicsOptions.SkipBlankUpdates && IsBlank( source.Description )))
+			if (
+				!(heuristicsOptions.SkipBlankUpdates && IsBlank(source.Description))
+				&& mergeOptions.PreferExistingDescription && !string.IsNullOrWhiteSpace(source.Description)
+			)
 			{
-				if (mergeOptions.PreferExistingDescription && !string.IsNullOrWhiteSpace( source.Description ))
-					target.Description = source.Description;
+				target.Description = source.Description;
 			}
-			if (!(heuristicsOptions.SkipBlankUpdates && IsBlank( source.Directions )))
+			if (
+				!(heuristicsOptions.SkipBlankUpdates && IsBlank(source.Directions))
+				&& mergeOptions.PreferExistingDirections && !string.IsNullOrWhiteSpace(source.Directions)
+			)
 			{
-				if (mergeOptions.PreferExistingDirections && !string.IsNullOrWhiteSpace( source.Directions ))
-					target.Directions = source.Directions;
+				target.Directions = source.Directions;
 			}
-			if (!(heuristicsOptions.SkipBlankUpdates && IsBlank( source.Category )))
+			if (
+				!(heuristicsOptions.SkipBlankUpdates && IsBlank(source.Category))
+				&& mergeOptions.PreferExistingCategory && source.Category.Count > 0
+			)
 			{
-				if (mergeOptions.PreferExistingCategory && source.Category.Count > 0)
-					target.Category = new List<string>( source.Category );
+				target.Category = new List<string>(source.Category);
 			}
-			if (!(heuristicsOptions.SkipBlankUpdates && IsBlank( source.Tier )))
+			if (
+				!(heuristicsOptions.SkipBlankUpdates && IsBlank(source.Tier))
+				&& mergeOptions.PreferExistingTier && !string.IsNullOrWhiteSpace(source.Tier)
+			)
 			{
-				if (mergeOptions.PreferExistingTier && !string.IsNullOrWhiteSpace( source.Tier ))
-					target.Tier = source.Tier;
+				target.Tier = source.Tier;
 			}
-			if (!(heuristicsOptions.SkipBlankUpdates && IsBlank( source.InstallationMethod )))
+			if (
+				!(heuristicsOptions.SkipBlankUpdates && IsBlank(source.InstallationMethod))
+				&& mergeOptions.PreferExistingInstallationMethod && !string.IsNullOrWhiteSpace(source.InstallationMethod)
+			)
 			{
-				if (mergeOptions.PreferExistingInstallationMethod && !string.IsNullOrWhiteSpace( source.InstallationMethod ))
-					target.InstallationMethod = source.InstallationMethod;
+				target.InstallationMethod = source.InstallationMethod;
 			}
 
 			// Merge arrays (union of both)
 			if (source.Language.Count > 0)
 			{
-				HashSet<string> languageSet = new HashSet<string>( target.Language, StringComparer.OrdinalIgnoreCase );
+				HashSet<string> languageSet = new HashSet<string>(target.Language, StringComparer.OrdinalIgnoreCase);
 				foreach (string lang in source.Language)
 				{
-					if (!string.IsNullOrWhiteSpace( lang ))
-						languageSet.Add( lang );
+					if (!string.IsNullOrWhiteSpace(lang))
+						languageSet.Add(lang);
 				}
 				target.Language = languageSet.ToList();
 			}
@@ -613,54 +626,54 @@ component.ModLinkFilenames.Keys)
 			if (source.ModLinkFilenames.Count > 0 && !mergeOptions.PreferExistingModLinkFilenames)
 			{
 				// Build a set of URLs to merge from source
-				HashSet<string> sourceUrlsToMerge = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+				HashSet<string> sourceUrlsToMerge = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 				foreach (string link in source.ModLinkFilenames.Keys)
 				{
-					if (!string.IsNullOrWhiteSpace( link ))
-						sourceUrlsToMerge.Add( link );
+					if (!string.IsNullOrWhiteSpace(link))
+						sourceUrlsToMerge.Add(link);
 				}
 
 				// Filter URLs if validation is enabled
 				if (heuristicsOptions.ValidateExistingLinksBeforeReplace)
 				{
-					sourceUrlsToMerge = new HashSet<string>( sourceUrlsToMerge.Where( IsLikelyAccessibleUrl ), StringComparer.OrdinalIgnoreCase );
+					sourceUrlsToMerge = new HashSet<string>(sourceUrlsToMerge.Where(IsLikelyAccessibleUrl), StringComparer.OrdinalIgnoreCase);
 
 					// Also remove invalid URLs from target
-					List<string> targetUrlsToRemove = target.ModLinkFilenames.Keys.Where( url => !IsLikelyAccessibleUrl( url ) ).ToList();
+					List<string> targetUrlsToRemove = target.ModLinkFilenames.Keys.Where(url => !IsLikelyAccessibleUrl(url)).ToList();
 					foreach (string invalidUrl in targetUrlsToRemove)
 					{
-						target.ModLinkFilenames.Remove( invalidUrl );
+						target.ModLinkFilenames.Remove(invalidUrl);
 					}
 				}
 
 				// Merge URLs from source into target, copying the actual filename dictionaries
 				foreach (string url in sourceUrlsToMerge)
 				{
-					if (!target.ModLinkFilenames.ContainsKey( url ))
+					if (!target.ModLinkFilenames.ContainsKey(url))
 					{
 						// Copy the filename dictionary from source
-						if (source.ModLinkFilenames.TryGetValue( url, out Dictionary<string, bool?> sourceFilenames ) && sourceFilenames != null)
+						if (source.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> sourceFilenames) && sourceFilenames != null)
 						{
 							// Deep copy the dictionary to avoid shared references
-							Dictionary<string, bool?> copiedFilenames = new Dictionary<string, bool?>( sourceFilenames, StringComparer.Ordinal );
+							Dictionary<string, bool?> copiedFilenames = new Dictionary<string, bool?>(sourceFilenames, StringComparer.Ordinal);
 							target.ModLinkFilenames[url] = copiedFilenames;
 						}
 						else
 						{
-							target.ModLinkFilenames[url] = new Dictionary<string, bool?>( StringComparer.Ordinal );
+							target.ModLinkFilenames[url] = new Dictionary<string, bool?>(StringComparer.Ordinal);
 						}
 					}
 					else
 					{
 						// URL exists in target - merge filenames from source into target's dictionary
-						if (source.ModLinkFilenames.TryGetValue( url, out Dictionary<string, bool?> sourceFilenames ) && sourceFilenames != null)
+						if (source.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> sourceFilenames) && sourceFilenames != null)
 						{
 							Dictionary<string, bool?> targetFilenames = target.ModLinkFilenames[url];
 							if (targetFilenames != null)
 							{
 								foreach (KeyValuePair<string, bool?> filenameEntry in sourceFilenames)
 								{
-									if (!targetFilenames.ContainsKey( filenameEntry.Key ))
+									if (!targetFilenames.ContainsKey(filenameEntry.Key))
 									{
 										targetFilenames[filenameEntry.Key] = filenameEntry.Value;
 									}
@@ -673,33 +686,33 @@ component.ModLinkFilenames.Keys)
 
 			if (source.Dependencies.Count > 0)
 			{
-				HashSet<Guid> depsSet = new HashSet<Guid>( target.Dependencies );
+				HashSet<Guid> depsSet = new HashSet<Guid>(target.Dependencies);
 				foreach (Guid dep in source.Dependencies)
-					depsSet.Add( dep );
+					depsSet.Add(dep);
 				target.Dependencies = depsSet.ToList();
 			}
 
 			if (source.Restrictions.Count > 0)
 			{
-				HashSet<Guid> resSet = new HashSet<Guid>( target.Restrictions );
+				HashSet<Guid> resSet = new HashSet<Guid>(target.Restrictions);
 				foreach (Guid res in source.Restrictions)
-					resSet.Add( res );
+					resSet.Add(res);
 				target.Restrictions = resSet.ToList();
 			}
 
 			if (source.InstallAfter.Count > 0)
 			{
-				HashSet<Guid> afterSet = new HashSet<Guid>( target.InstallAfter );
+				HashSet<Guid> afterSet = new HashSet<Guid>(target.InstallAfter);
 				foreach (Guid after in source.InstallAfter)
-					afterSet.Add( after );
+					afterSet.Add(after);
 				target.InstallAfter = afterSet.ToList();
 			}
 
 			if (source.InstallBefore.Count > 0)
 			{
-				HashSet<Guid> beforeSet = new HashSet<Guid>( target.InstallBefore );
+				HashSet<Guid> beforeSet = new HashSet<Guid>(target.InstallBefore);
 				foreach (Guid before in source.InstallBefore)
-					beforeSet.Add( before );
+					beforeSet.Add(before);
 				target.InstallBefore = beforeSet.ToList();
 			}
 
@@ -711,19 +724,55 @@ component.ModLinkFilenames.Keys)
 					// Copy all instructions from source (deep copy to avoid shared references)
 					foreach (Instruction instr in source.Instructions)
 					{
-						target.Instructions.Add( CloneInstruction( instr ) );
+						target.Instructions.Add(CloneInstruction(instr));
 					}
 				}
 				else
 				{
 					// Merge instructions, avoiding duplicates based on Action+Destination key
-					HashSet<string> existingKeys = new HashSet<string>( target.Instructions.Select( i => (i.ActionString + "|" + i.Destination).ToLowerInvariant() ), StringComparer.Ordinal );
+					// Build lookup for existing instructions by key for GUID preservation
+					Dictionary<string, Instruction> existingInstrByKey = target.Instructions
+						.ToDictionary(i => (i.ActionString + "|" + i.Destination).ToLowerInvariant(), StringComparer.Ordinal);
+
+					HashSet<string> existingKeys = new HashSet<string>(existingInstrByKey.Keys, StringComparer.Ordinal);
 					foreach (Instruction instr in source.Instructions)
 					{
 						string key = (instr.ActionString + "|" + (instr.Destination)).ToLowerInvariant();
-						if (!existingKeys.Contains( key ))
+						if (!existingKeys.Contains(key))
 						{
-							target.Instructions.Add( CloneInstruction( instr ) );
+							target.Instructions.Add(CloneInstruction(instr));
+						}
+						else if (existingInstrByKey.TryGetValue(key, out Instruction existingInstr))
+						{
+							// Matched existing instruction - preserve GUID from existing if incoming has empty GUID
+							if (instr.Guid == Guid.Empty && existingInstr.Guid != Guid.Empty)
+							{
+								instr.Guid = existingInstr.Guid;
+							}
+							// Update existing instruction with merged data
+							int index = target.Instructions.IndexOf(existingInstr);
+							if (index >= 0)
+							{
+								Instruction cloned = CloneInstruction(instr);
+								// Ensure GUID is preserved (use existing if incoming was empty, otherwise use incoming)
+								if (instr.Guid == Guid.Empty && existingInstr.Guid != Guid.Empty)
+								{
+									cloned.Guid = existingInstr.Guid;
+								}
+								target.Instructions[index] = cloned;
+							}
+						}
+					}
+
+					// Also preserve GUIDs for existing instructions that have empty GUIDs
+					foreach (Instruction targetInstr in target.Instructions.Where(i => i.Guid == Guid.Empty))
+					{
+						string targetKey = (targetInstr.ActionString + "|" + targetInstr.Destination).ToLowerInvariant();
+						Instruction sourceInstr = source.Instructions.FirstOrDefault(i =>
+							(i.ActionString + "|" + i.Destination).Equals(targetKey, StringComparison.InvariantCultureIgnoreCase));
+						if (sourceInstr != null && sourceInstr.Guid != Guid.Empty)
+						{
+							targetInstr.Guid = sourceInstr.Guid;
 						}
 					}
 				}
@@ -732,26 +781,72 @@ component.ModLinkFilenames.Keys)
 			// Merge Options based on preference
 			if (source.Options.Count > 0 && !mergeOptions.PreferExistingOptions)
 			{
-				Dictionary<string, Option> optMap = target.Options.ToDictionary( o => o.Name.Trim().ToLowerInvariant(), StringComparer.Ordinal );
+				Dictionary<string, Option> optMap = target.Options.ToDictionary(o => o.Name.Trim().ToLowerInvariant(), StringComparer.Ordinal);
 				foreach (Option srcOpt in source.Options)
 				{
 					string oname = srcOpt.Name.Trim().ToLowerInvariant();
-					if (optMap.TryGetValue( oname, out Option trgOpt ))
+					if (optMap.TryGetValue(oname, out Option trgOpt))
 					{
+						// Preserve GUID from existing option if incoming has empty GUID
+						if (srcOpt.Guid == Guid.Empty && trgOpt.Guid != Guid.Empty)
+						{
+							srcOpt.Guid = trgOpt.Guid;
+						}
+						else if (trgOpt.Guid == Guid.Empty && srcOpt.Guid != Guid.Empty)
+						{
+							trgOpt.Guid = srcOpt.Guid;
+						}
+
 						// Merge description if source has one
-						if (!string.IsNullOrWhiteSpace( srcOpt.Description )) 
+						if (!string.IsNullOrWhiteSpace(srcOpt.Description))
 							trgOpt.Description = srcOpt.Description;
 
 						// Merge instructions (deep copy to avoid shared references)
 						if (srcOpt.Instructions.Count > 0)
 						{
-							HashSet<string> keys = new HashSet<string>( trgOpt.Instructions.Select( i => (i.ActionString + "|" + i.Destination).ToLowerInvariant() ), StringComparer.Ordinal );
+							// Build lookup for existing instructions by key for GUID preservation
+							Dictionary<string, Instruction> existingInstrByKey = trgOpt.Instructions
+								.ToDictionary(i => (i.ActionString + "|" + i.Destination).ToLowerInvariant(), StringComparer.Ordinal);
+
+							HashSet<string> keys = new HashSet<string>(existingInstrByKey.Keys, StringComparer.Ordinal);
 							foreach (Instruction instr in srcOpt.Instructions)
 							{
 								string key = (instr.ActionString + "|" + instr.Destination).ToLowerInvariant();
-								if (!keys.Contains( key ))
+								if (!keys.Contains(key))
 								{
-									trgOpt.Instructions.Add( CloneInstruction( instr ) );
+									trgOpt.Instructions.Add(CloneInstruction(instr));
+								}
+								else if (existingInstrByKey.TryGetValue(key, out Instruction existingInstr))
+								{
+									// Matched existing instruction - preserve GUID from existing if incoming has empty GUID
+									if (instr.Guid == Guid.Empty && existingInstr.Guid != Guid.Empty)
+									{
+										instr.Guid = existingInstr.Guid;
+									}
+									// Update existing instruction with merged data
+									int index = trgOpt.Instructions.IndexOf(existingInstr);
+									if (index >= 0)
+									{
+										Instruction cloned = CloneInstruction(instr);
+										// Ensure GUID is preserved (use existing if incoming was empty, otherwise use incoming)
+										if (instr.Guid == Guid.Empty && existingInstr.Guid != Guid.Empty)
+										{
+											cloned.Guid = existingInstr.Guid;
+										}
+										trgOpt.Instructions[index] = cloned;
+									}
+								}
+							}
+
+							// Also preserve GUIDs for existing option instructions that have empty GUIDs
+							foreach (Instruction targetInstr in trgOpt.Instructions.Where(i => i.Guid == Guid.Empty))
+							{
+								string targetKey = (targetInstr.ActionString + "|" + targetInstr.Destination).ToLowerInvariant();
+								Instruction sourceInstr = srcOpt.Instructions.FirstOrDefault(i =>
+									(i.ActionString + "|" + i.Destination).Equals(targetKey, StringComparison.InvariantCultureIgnoreCase));
+								if (sourceInstr != null && sourceInstr.Guid != Guid.Empty)
+								{
+									targetInstr.Guid = sourceInstr.Guid;
 								}
 							}
 						}
@@ -759,17 +854,18 @@ component.ModLinkFilenames.Keys)
 					else
 					{
 						// Option doesn't exist in target, add a deep copy
-						target.Options.Add( CloneOption( srcOpt ) );
+						target.Options.Add(CloneOption(srcOpt));
 					}
 				}
 			}
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static async System.Threading.Tasks.Task<List<string>> ValidateUrlsViaResolutionAsync(
 			[NotNull] List<string> urls,
 			[NotNull] DownloadCacheService downloadCache,
 			bool sequential = true,
-			System.Threading.CancellationToken cancellationToken = default )
+			System.Threading.CancellationToken cancellationToken = default)
 		{
 			if (urls.Count == 0)
 				return new List<string>();
@@ -778,114 +874,77 @@ component.ModLinkFilenames.Keys)
 			List<string> failedToResolveUrls = new List<string>();
 			List<string> timedOutUrls = new List<string>();
 
+			await Logger.LogVerboseAsync($"[ComponentMerge] Validating {urls.Count} URLs via filename resolution...").ConfigureAwait(false);
 
-
-			await Logger.LogVerboseAsync( $"[ComponentMerge] Validating {urls.Count} URLs via filename resolution..." )
-
-.ConfigureAwait( false );
-
-			Dictionary<string, Dictionary<string, bool?>> tempModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>( StringComparer.OrdinalIgnoreCase );
+			Dictionary<string, Dictionary<string, bool?>> tempModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
 			foreach (string url in urls)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 			{
-				tempModLinkFilenames[url] = new Dictionary<string, bool?>( StringComparer.OrdinalIgnoreCase );
-
-
-
-
-
-
+				tempModLinkFilenames[url] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
 			}
 
 			ModComponent tempComponent = new ModComponent
 			{
 				Name = "TempValidation",
 				Guid = Guid.NewGuid(),
-				ModLinkFilenames = tempModLinkFilenames
+				ModLinkFilenames = tempModLinkFilenames,
 			};
 
-			Dictionary<string, List<string>> resolvedUrls = await downloadCache.PreResolveUrlsAsync(
+			IReadOnlyDictionary<string, List<string>> resolvedUrlsReadOnly = await downloadCache.PreResolveUrlsAsync(
 				tempComponent, null,
 				sequential: sequential,
 				cancellationToken
-			).ConfigureAwait( false );
+			).ConfigureAwait(false);
+
+			// Convert to Dictionary for easier manipulation
+			Dictionary<string, List<string>> resolvedUrls = resolvedUrlsReadOnly?.ToDictionary(
+				kvp => kvp.Key,
+				kvp => new List<string>(kvp.Value),
+				StringComparer.OrdinalIgnoreCase
+			) ?? new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
 			foreach (string url in urls)
 			{
-				if (resolvedUrls.TryGetValue( url, out List<string> filenames ) &&
-					 filenames.Count > 0 && !string.IsNullOrWhiteSpace( filenames[0] ))
+				if (resolvedUrls.TryGetValue(url, out List<string> filenames) &&
+					 filenames.Count > 0 && !string.IsNullOrWhiteSpace(filenames[0]))
 				{
-					validUrls.Add( url );
-					await Logger.LogVerboseAsync( $"[ComponentMerge] ✓ Resolved: {url} -> {filenames[0]}" ).ConfigureAwait( false );
+					validUrls.Add(url);
+					await Logger.LogVerboseAsync($"[ComponentMerge] ✓ Resolved: {url} -> {filenames[0]}").ConfigureAwait(false);
 				}
 				else
 				{
-					if (IsUrlLikelyTimedOut( url ))
+					if (IsUrlLikelyTimedOut(url))
 					{
-						timedOutUrls.Add( url );
-						await Logger.LogWarningAsync( $"[ComponentMerge] ✗ URL timed out during resolution: {url}" ).ConfigureAwait( false );
+						timedOutUrls.Add(url);
+						await Logger.LogWarningAsync($"[ComponentMerge] ✗ URL timed out during resolution: {url}").ConfigureAwait(false);
 					}
 					else
 					{
-						failedToResolveUrls.Add( url );
-						await Logger.LogVerboseAsync( $"[ComponentMerge] ⚠ Failed to resolve: {url}" ).ConfigureAwait( false );
+						failedToResolveUrls.Add(url);
+						await Logger.LogVerboseAsync($"[ComponentMerge] ⚠ Failed to resolve: {url}").ConfigureAwait(false);
 					}
 				}
 			}
 
 			if (failedToResolveUrls.Count > 0)
 			{
-				await Logger.LogVerboseAsync( $"[ComponentMerge] Checking existence of {failedToResolveUrls.Count} unresolved URL(s)..." ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync($"[ComponentMerge] Checking existence of {failedToResolveUrls.Count} unresolved URL(s)...").ConfigureAwait(false);
 
 				using (HttpClient httpClient = new HttpClient())
 				{
-					httpClient.Timeout = TimeSpan.FromSeconds( 10 );
-					httpClient.DefaultRequestHeaders.Add( "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" );
+					httpClient.Timeout = TimeSpan.FromSeconds(10);
+					httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
 
 					foreach (string url in failedToResolveUrls)
 					{
-						bool exists = await CheckUrlExistsAsync( httpClient, url, cancellationToken ).ConfigureAwait( false );
+						bool exists = await CheckUrlExistsAsync(httpClient, url, cancellationToken).ConfigureAwait(false);
 						if (exists)
 						{
-							validUrls.Add( url );
-							await Logger.LogVerboseAsync( $"[ComponentMerge] ✓ URL exists (but unresolved): {url}" ).ConfigureAwait( false );
+							validUrls.Add(url);
+							await Logger.LogVerboseAsync($"[ComponentMerge] ✓ URL exists (but unresolved): {url}").ConfigureAwait(false);
 						}
 						else
 						{
-							await Logger.LogWarningAsync( $"[ComponentMerge] ✗ Invalid/Broken URL: {url}" ).ConfigureAwait( false );
+							await Logger.LogWarningAsync($"[ComponentMerge] ✗ Invalid/Broken URL: {url}").ConfigureAwait(false);
 						}
 					}
 				}
@@ -893,24 +952,24 @@ component.ModLinkFilenames.Keys)
 
 			if (timedOutUrls.Count > 0)
 			{
-				await Logger.LogVerboseAsync( $"[ComponentMerge] Checking existence of {timedOutUrls.Count} timed out URL(s)..." ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync($"[ComponentMerge] Checking existence of {timedOutUrls.Count} timed out URL(s)...").ConfigureAwait(false);
 
 				using (HttpClient httpClient = new HttpClient())
 				{
-					httpClient.Timeout = TimeSpan.FromSeconds( 5 );
-					httpClient.DefaultRequestHeaders.Add( "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" );
+					httpClient.Timeout = TimeSpan.FromSeconds(5);
+					httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
 
 					foreach (string url in timedOutUrls)
 					{
-						bool exists = await CheckUrlExistsAsync( httpClient, url, cancellationToken ).ConfigureAwait( false );
+						bool exists = await CheckUrlExistsAsync(httpClient, url, cancellationToken).ConfigureAwait(false);
 						if (exists)
 						{
-							validUrls.Add( url );
-							await Logger.LogVerboseAsync( $"[ComponentMerge] ✓ URL exists (but timed out): {url}" ).ConfigureAwait( false );
+							validUrls.Add(url);
+							await Logger.LogVerboseAsync($"[ComponentMerge] ✓ URL exists (but timed out): {url}").ConfigureAwait(false);
 						}
 						else
 						{
-							await Logger.LogWarningAsync( $"[ComponentMerge] ✗ Invalid/Timed out URL: {url}" ).ConfigureAwait( false );
+							await Logger.LogWarningAsync($"[ComponentMerge] ✗ Invalid/Timed out URL: {url}").ConfigureAwait(false);
 						}
 					}
 				}
@@ -918,19 +977,18 @@ component.ModLinkFilenames.Keys)
 
 			int removedCount = urls.Count - validUrls.Count;
 			if (removedCount > 0)
-				await Logger.LogAsync( $"[ComponentMerge] Filtered out {removedCount} invalid URL(s)" ).ConfigureAwait( false );
+				await Logger.LogAsync($"[ComponentMerge] Filtered out {removedCount} invalid URL(s)").ConfigureAwait(false);
 
 			return validUrls;
 		}
 
-		private static bool IsUrlLikelyTimedOut( string url )
+		private static bool IsUrlLikelyTimedOut(string url)
 		{
-			if (string.IsNullOrWhiteSpace( url ))
+			if (string.IsNullOrWhiteSpace(url))
 				return false;
 
-			if (url.Contains( "mega.nz" ) || url.Contains( "mega.co.nz" ))
+			if (url.Contains("mega.nz") || url.Contains("mega.co.nz"))
 				return true;
-
 
 			return false;
 		}
@@ -938,26 +996,26 @@ component.ModLinkFilenames.Keys)
 		private static async System.Threading.Tasks.Task<bool> CheckUrlExistsAsync(
 			HttpClient httpClient,
 			string url,
-			System.Threading.CancellationToken cancellationToken )
+			System.Threading.CancellationToken cancellationToken)
 		{
 			try
 			{
-				if (!Uri.TryCreate( url, UriKind.Absolute, out Uri uri ))
+				if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
 				{
-					await Logger.LogVerboseAsync( $"[ComponentMerge] Invalid URL syntax: {url}" ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync($"[ComponentMerge] Invalid URL syntax: {url}").ConfigureAwait(false);
 					return false;
 				}
 
-				if (!uri.Scheme.Equals( "http", StringComparison.OrdinalIgnoreCase ) &&
-					 !uri.Scheme.Equals( "https", StringComparison.OrdinalIgnoreCase ))
+				if (!uri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
+					 !uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
 				{
-					await Logger.LogVerboseAsync( $"[ComponentMerge] Unsupported URL scheme: {uri.Scheme}" ).ConfigureAwait( false );
+					await Logger.LogVerboseAsync($"[ComponentMerge] Unsupported URL scheme: {uri.Scheme}").ConfigureAwait(false);
 					return false;
 				}
 
-				using (HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Head, url ))
+				using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Head, url))
 				{
-					using (HttpResponseMessage response = await httpClient.SendAsync( request, cancellationToken ).ConfigureAwait( false ))
+					using (HttpResponseMessage response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
 					{
 						int statusCode = (int)response.StatusCode;
 						return statusCode >= 200 && statusCode < 400;
@@ -970,12 +1028,12 @@ component.ModLinkFilenames.Keys)
 			}
 			catch (System.Threading.Tasks.TaskCanceledException)
 			{
-				await Logger.LogVerboseAsync( $"[ComponentMerge] Timeout checking URL: {url}" ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync($"[ComponentMerge] Timeout checking URL: {url}").ConfigureAwait(false);
 				return false;
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogVerboseAsync( $"[ComponentMerge] Error checking URL {url}: {ex.Message}" ).ConfigureAwait( false );
+				await Logger.LogVerboseAsync($"[ComponentMerge] Error checking URL {url}: {ex.Message}").ConfigureAwait(false);
 				return false;
 			}
 		}
@@ -984,14 +1042,14 @@ component.ModLinkFilenames.Keys)
 			[NotNull] string value,
 			bool ignoreCase,
 			bool ignorePunctuation,
-			bool trim )
+			bool trim)
 		{
 			string s = value;
 			if (trim) s = s.Trim();
 			if (ignorePunctuation)
 			{
-				char[] arr = s.Where( c => !char.IsPunctuation( c ) ).ToArray();
-				s = new string( arr );
+				char[] arr = s.Where(c => !char.IsPunctuation(c)).ToArray();
+				s = new string(arr);
 			}
 			if (ignoreCase) s = s.ToLowerInvariant();
 			return s;
@@ -999,46 +1057,46 @@ component.ModLinkFilenames.Keys)
 
 		private static readonly char[] s_spaceSeparatorArray = new[] { ' ' };
 
-		private static double JaccardSimilarity( [NotNull] string a, [NotNull] string b )
+		private static double JaccardSimilarity([NotNull] string a, [NotNull] string b)
 		{
-			if (string.IsNullOrWhiteSpace( a ) || string.IsNullOrWhiteSpace( b )) return 0.0;
-			HashSet<string> setA = new HashSet<string>( a.Split( s_spaceSeparatorArray, StringSplitOptions.RemoveEmptyEntries ), StringComparer.Ordinal );
-			HashSet<string> setB = new HashSet<string>( b.Split( s_spaceSeparatorArray, StringSplitOptions.RemoveEmptyEntries ), StringComparer.Ordinal );
-			int intersection = setA.Intersect( setB, StringComparer.Ordinal ).Count();
-			int union = setA.Union( setB, StringComparer.Ordinal ).Count();
+			if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) return 0.0;
+			HashSet<string> setA = new HashSet<string>(a.Split(s_spaceSeparatorArray, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
+			HashSet<string> setB = new HashSet<string>(b.Split(s_spaceSeparatorArray, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
+			int intersection = setA.Intersect(setB, StringComparer.Ordinal).Count();
+			int union = setA.Union(setB, StringComparer.Ordinal).Count();
 			return union == 0 ? 0.0 : (double)intersection / union;
 		}
 
-		private static bool IsBlank( [CanBeNull] string v ) => string.IsNullOrWhiteSpace( v );
+		private static bool IsBlank([CanBeNull] string v) => string.IsNullOrWhiteSpace(v);
 
-		private static bool IsBlank( [CanBeNull] List<string> v ) => v == null || v.Count == 0;
+		private static bool IsBlank([CanBeNull] List<string> v) => v is null || v.Count == 0;
 
 		private static ModComponent FindHeuristicMatch(
 			[NotNull] List<ModComponent> incomingModComponents,
 			[NotNull] ModComponent existingComponent,
-			[NotNull] MergeHeuristicsOptions opt )
+			[NotNull] MergeHeuristicsOptions opt)
 		{
-			string existingName = Normalize( existingComponent.Name, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace );
-			string existingAuthor = Normalize( existingComponent.Author, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace );
+			string existingName = Normalize(existingComponent.Name, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
+			string existingAuthor = Normalize(existingComponent.Author, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
 
 			double bestScore = 0.0;
 			ModComponent best = null;
 			foreach (ModComponent incomingComp in incomingModComponents)
 			{
-				string incomingName = Normalize( incomingComp.Name, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace );
-				string incomingAuthor = Normalize( incomingComp.Author, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace );
+				string incomingName = Normalize(incomingComp.Name, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
+				string incomingAuthor = Normalize(incomingComp.Author, opt.IgnoreCase, opt.IgnorePunctuation, opt.TrimWhitespace);
 
 				double score = 0.0;
-				if (opt.UseNameExact && !string.IsNullOrEmpty( existingName ) && string.Equals( existingName, incomingName, StringComparison.Ordinal )) score += 1.0;
-				if (opt.UseAuthorExact && !string.IsNullOrEmpty( existingAuthor ) && string.Equals( existingAuthor, incomingAuthor, StringComparison.Ordinal )) score += 1.0;
-				if (opt.UseNameSimilarity && !string.IsNullOrEmpty( existingName )) score += JaccardSimilarity( existingName, incomingName );
-				if (opt.UseAuthorSimilarity && !string.IsNullOrEmpty( existingAuthor )) score += JaccardSimilarity( existingAuthor, incomingAuthor ) * 0.5;
+				if (opt.UseNameExact && !string.IsNullOrEmpty(existingName) && string.Equals(existingName, incomingName, StringComparison.Ordinal)) score += 1.0;
+				if (opt.UseAuthorExact && !string.IsNullOrEmpty(existingAuthor) && string.Equals(existingAuthor, incomingAuthor, StringComparison.Ordinal)) score += 1.0;
+				if (opt.UseNameSimilarity && !string.IsNullOrEmpty(existingName)) score += JaccardSimilarity(existingName, incomingName);
+				if (opt.UseAuthorSimilarity && !string.IsNullOrEmpty(existingAuthor)) score += JaccardSimilarity(existingAuthor, incomingAuthor) * 0.5;
 
 				if (score < 0.5 && opt.MatchByDomainIfNoNameAuthorMatch)
 				{
-					string existingDomain = GetPrimaryDomain( existingComponent );
-					string incomingDomain = GetPrimaryDomain( incomingComp );
-					if (!string.IsNullOrEmpty( existingDomain ) && string.Equals( existingDomain, incomingDomain, StringComparison.Ordinal ))
+					string existingDomain = GetPrimaryDomain(existingComponent);
+					string incomingDomain = GetPrimaryDomain(incomingComp);
+					if (!string.IsNullOrEmpty(existingDomain) && string.Equals(existingDomain, incomingDomain, StringComparison.Ordinal))
 						score += 0.6;
 				}
 
@@ -1051,13 +1109,13 @@ component.ModLinkFilenames.Keys)
 			return best;
 		}
 
-		private static string GetPrimaryDomain( [NotNull] ModComponent c )
+		private static string GetPrimaryDomain([NotNull] ModComponent c)
 		{
 			string url = c.ModLinkFilenames.Keys.FirstOrDefault();
-			if (string.IsNullOrWhiteSpace( url )) return null;
+			if (string.IsNullOrWhiteSpace(url)) return null;
 			try
 			{
-				Uri uri = new Uri( url, UriKind.Absolute );
+				Uri uri = new Uri(url, UriKind.Absolute);
 				return uri.Host.ToLowerInvariant();
 			}
 			catch
@@ -1066,15 +1124,15 @@ component.ModLinkFilenames.Keys)
 			}
 		}
 
-		private static bool IsLikelyAccessibleUrl( [NotNull] string url )
+		private static bool IsLikelyAccessibleUrl([NotNull] string url)
 		{
-			if (string.IsNullOrWhiteSpace( url )) return false;
-			if (!(url.StartsWith( "http://", StringComparison.OrdinalIgnoreCase ) || url.StartsWith( "https://", StringComparison.OrdinalIgnoreCase )))
+			if (string.IsNullOrWhiteSpace(url)) return false;
+			if (!(url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
 				return false;
 			try
 			{
-				Uri uri = new Uri( url );
-				return !string.IsNullOrWhiteSpace( uri.Host );
+				Uri uri = new Uri(url);
+				return !string.IsNullOrWhiteSpace(uri.Host);
 			}
 			catch
 			{
@@ -1086,18 +1144,18 @@ component.ModLinkFilenames.Keys)
 		/// Creates a deep copy of an Instruction to avoid shared references between components.
 		/// </summary>
 		[NotNull]
-		private static Instruction CloneInstruction( [NotNull] Instruction source )
+		private static Instruction CloneInstruction([NotNull] Instruction source)
 		{
 			return new Instruction
 			{
 				Guid = source.Guid,
 				Action = source.Action,
-				Source = new List<string>( source.Source ),
+				Source = new List<string>(source.Source),
 				Destination = source.Destination,
 				Overwrite = source.Overwrite,
 				Arguments = source.Arguments,
-				Dependencies = new List<Guid>( source.Dependencies ),
-				Restrictions = new List<Guid>( source.Restrictions )
+				Dependencies = new List<Guid>(source.Dependencies),
+				Restrictions = new List<Guid>(source.Restrictions),
 			};
 		}
 
@@ -1105,19 +1163,19 @@ component.ModLinkFilenames.Keys)
 		/// Creates a deep copy of an Option to avoid shared references between components.
 		/// </summary>
 		[NotNull]
-		private static Option CloneOption( [NotNull] Option source )
+		private static Option CloneOption([NotNull] Option source)
 		{
 			Option cloned = new Option
 			{
 				Name = source.Name,
 				Description = source.Description,
-				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>()
+				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(),
 			};
 
 			// Deep copy all instructions
 			foreach (Instruction instr in source.Instructions)
 			{
-				cloned.Instructions.Add( CloneInstruction( instr ) );
+				cloned.Instructions.Add(CloneInstruction(instr));
 			}
 
 			return cloned;

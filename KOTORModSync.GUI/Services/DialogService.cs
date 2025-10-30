@@ -22,25 +22,25 @@ namespace KOTORModSync.Services
 	{
 		private readonly Window _parentWindow;
 
-		public DialogService( Window parentWindow )
+		public DialogService(Window parentWindow)
 		{
 			_parentWindow = parentWindow
-							?? throw new ArgumentNullException( nameof( parentWindow ) );
+							?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
 		public async Task<string[]> ShowFileDialogAsync(
 			bool isFolderDialog,
 			bool allowMultiple = false,
 			IStorageFolder startFolder = null,
-			string windowName = null )
+			string windowName = null)
 		{
 			try
 			{
-				if (_parentWindow?.StorageProvider == null)
+				if (_parentWindow?.StorageProvider is null)
 
 
 				{
-					await Logger.LogErrorAsync( $"Could not open {(isFolderDialog ? "folder" : "file")} dialog - storage provider not available" ).ConfigureAwait( false );
+					await Logger.LogErrorAsync($"Could not open {(isFolderDialog ? "folder" : "file")} dialog - storage provider not available").ConfigureAwait(false);
 					return null;
 				}
 
@@ -55,8 +55,8 @@ namespace KOTORModSync.Services
 
 
 						}
-					).ConfigureAwait( false );
-					return result.Select( s => s.TryGetLocalPath() ).ToArray();
+					).ConfigureAwait(true);
+					return result.Select(s => s.TryGetLocalPath()).ToArray();
 				}
 				else
 				{
@@ -66,11 +66,9 @@ namespace KOTORModSync.Services
 							Title = windowName ?? "Choose the file(s)",
 							AllowMultiple = allowMultiple,
 							FileTypeFilter = new[] { FilePickerFileTypes.All, FilePickerFileTypes.TextPlain },
-
-
 						}
-					).ConfigureAwait( false );
-					string[] files = result.Select( s => s.TryGetLocalPath() ).ToArray();
+					).ConfigureAwait(true);
+					string[] files = result.Select(s => s.TryGetLocalPath()).ToArray();
 					if (files.Length > 0)
 						return files;
 				}
@@ -79,7 +77,7 @@ namespace KOTORModSync.Services
 
 
 			{
-				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
 			}
 
 			return null;
@@ -92,7 +90,7 @@ namespace KOTORModSync.Services
 			[CanBeNull] string defaultExtension = "toml",
 			[CanBeNull][ItemNotNull] List<FilePickerFileType> fileTypeChoices = null,
 			[CanBeNull] string windowName = "Save file as...",
-			[CanBeNull] IStorageFolder startFolder = null )
+			[CanBeNull] IStorageFolder startFolder = null)
 		{
 			try
 			{
@@ -102,11 +100,11 @@ namespace KOTORModSync.Services
 						Title = windowName,
 						DefaultExtension = defaultExtension,
 						SuggestedFileName = suggestedFileName,
-						FileTypeChoices = fileTypeChoices ?? new List<FilePickerFileType> { FilePickerFileTypes.All }
+						FileTypeChoices = fileTypeChoices ?? new List<FilePickerFileType> { FilePickerFileTypes.All },
 
 
 					}
-				).ConfigureAwait( false );
+				).ConfigureAwait(true);
 
 				return file?.TryGetLocalPath();
 			}
@@ -114,24 +112,25 @@ namespace KOTORModSync.Services
 
 
 			{
-				await Logger.LogExceptionAsync( ex ).ConfigureAwait( false );
-				await InformationDialog.ShowInformationDialogAsync( _parentWindow, $"Error opening save file dialog: {ex.Message}." ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await InformationDialog.ShowInformationDialogAsync(_parentWindow, $"Error opening save file dialog: {ex.Message}.").ConfigureAwait(true);
 				return null;
 			}
 		}
 
-		public async Task<IStorageFolder> GetStorageFolderFromPathAsync( string path )
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public async Task<IStorageFolder> GetStorageFolderFromPathAsync(string path)
 		{
 			try
 			{
-				if (string.IsNullOrEmpty( path ))
+				if (string.IsNullOrEmpty(path))
 					return null;
 
-				return await _parentWindow.StorageProvider.TryGetFolderFromPathAsync( path ).ConfigureAwait( false );
+				return await _parentWindow.StorageProvider.TryGetFolderFromPathAsync(path).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogVerbose( $"Error getting storage folder from path: {ex.Message}" );
+				await Logger.LogVerboseAsync($"Error getting storage folder from path: {ex.Message}").ConfigureAwait(true);
 				return null;
 			}
 		}

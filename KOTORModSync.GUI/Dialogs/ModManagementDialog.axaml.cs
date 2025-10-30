@@ -72,14 +72,14 @@ namespace KOTORModSync.Dialogs
 						ModManagementService.BatchModOperation.SetSelected,
 
 
-						new Dictionary<string, object>( StringComparer.Ordinal ) { ["selected"] = true } ).ConfigureAwait( false );
+						new Dictionary<string, object>( StringComparer.Ordinal ) { ["selected"] = true } ).ConfigureAwait( true );
 
 					ShowBatchResult( "Select All", result );
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to select all mods" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to select all mods" ).ConfigureAwait( true );
 			}
 		}
 
@@ -94,14 +94,14 @@ namespace KOTORModSync.Dialogs
 						ModManagementService.BatchModOperation.SetSelected,
 
 
-						new Dictionary<string, object>( StringComparer.Ordinal ) { ["selected"] = false } ).ConfigureAwait( false );
+						new Dictionary<string, object>( StringComparer.Ordinal ) { ["selected"] = false } ).ConfigureAwait( true );
 
 					ShowBatchResult( "Deselect All", result );
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to deselect all mods" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to deselect all mods" ).ConfigureAwait( true );
 			}
 		}
 
@@ -116,14 +116,14 @@ namespace KOTORModSync.Dialogs
 					ModManagementService.BatchModOperation.SetSelected,
 
 
-					new Dictionary<string, object>( StringComparer.Ordinal ) { ["invert"] = true } ).ConfigureAwait( false );
+					new Dictionary<string, object>( StringComparer.Ordinal ) { ["invert"] = true } ).ConfigureAwait( true );
 
 					ShowBatchResult( "Invert Selection", result );
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to invert selection" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to invert selection" ).ConfigureAwait( true );
 			}
 		}
 
@@ -143,12 +143,12 @@ namespace KOTORModSync.Dialogs
 				$"Warnings: {warningCount}\n\n" +
 
 
-				$"Valid mods: {results.Count( r => r.Value.IsValid )}/{results.Count}" ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+				$"Valid mods: {results.Count( r => r.Value.IsValid )}/{results.Count}" ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to validate all mods" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to validate all mods" ).ConfigureAwait( true );
 			}
 		}
 
@@ -174,12 +174,12 @@ namespace KOTORModSync.Dialogs
 				$"Available: {availableCount}\n" +
 
 
-				$"Unavailable: {unavailableCount}" ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+				$"Unavailable: {unavailableCount}" ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to check file availability" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to check file availability" ).ConfigureAwait( true );
 			}
 		}
 
@@ -224,14 +224,14 @@ namespace KOTORModSync.Dialogs
 						ModManagementService.BatchModOperation.SetDownloaded,
 
 
-						new Dictionary<string, object>( StringComparer.Ordinal ) { ["downloaded"] = true } ).ConfigureAwait( false );
+						new Dictionary<string, object>( StringComparer.Ordinal ) { ["downloaded"] = true } ).ConfigureAwait( true );
 
 					ShowBatchResult( "Set All Downloaded", result );
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to set all mods downloaded" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to set all mods downloaded" ).ConfigureAwait( true );
 			}
 		}
 
@@ -246,14 +246,14 @@ namespace KOTORModSync.Dialogs
 						ModManagementService.BatchModOperation.SetDownloaded,
 
 
-						new Dictionary<string, object>( StringComparer.Ordinal ) { ["downloaded"] = false } ).ConfigureAwait( false );
+						new Dictionary<string, object>( StringComparer.Ordinal ) { ["downloaded"] = false } ).ConfigureAwait( true );
 
 					ShowBatchResult( "Set All Not Downloaded", result );
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to set all mods not downloaded" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to set all mods not downloaded" ).ConfigureAwait( true );
 			}
 		}
 
@@ -268,7 +268,7 @@ namespace KOTORModSync.Dialogs
 
 
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to update categories." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to update categories." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -294,7 +294,7 @@ namespace KOTORModSync.Dialogs
 						"Clear Categories",
 
 
-						"Cancel" ).ConfigureAwait( false );
+						"Cancel" ).ConfigureAwait( true );
 
 					if (proceed == true)
 					{
@@ -303,15 +303,15 @@ namespace KOTORModSync.Dialogs
 							ModManagementService.BatchModOperation.UpdateCategory,
 
 
-							new Dictionary<string, object>( StringComparer.Ordinal ) { ["category"] = string.Empty } ).ConfigureAwait( false );
+							new Dictionary<string, object>( StringComparer.Ordinal ) { ["category"] = string.Empty } ).ConfigureAwait( true );
 
 						ShowBatchResult( "Clear Categories", result );
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to update categories" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to update categories" ).ConfigureAwait( true );
 			}
 		}
 
@@ -327,13 +327,13 @@ namespace KOTORModSync.Dialogs
 
 
 				{
-					string[] files = await _dialogService.ShowFileDialog( isFolderDialog: false, windowName: "Import from TOML file" ).ConfigureAwait( false );
+					string[] files = await _dialogService.ShowFileDialog( isFolderDialog: false, windowName: "Import from TOML file" ).ConfigureAwait( true );
 					if (files != null && files.Length > 0)
 
 
 					{
-						List<ModComponent> imported = await _modManagementService.ImportMods( files[0] ).ConfigureAwait( false );
-						await _dialogService.ShowInformationDialog( $"Imported {imported.Count} component(s)" ).ConfigureAwait( false );
+						List<ModComponent> imported = await _modManagementService.ImportMods( files[0] ).ConfigureAwait( true );
+						await _dialogService.ShowInformationDialog( $"Imported {imported.Count} component(s)" ).ConfigureAwait( true );
 
 
 
@@ -403,11 +403,11 @@ namespace KOTORModSync.Dialogs
 						ModificationsApplied = true;
 						_dialogService.RefreshStatistics();
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to import from TOML file" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to import from TOML file" ).ConfigureAwait( true );
 			}
 		}
 
@@ -417,19 +417,19 @@ namespace KOTORModSync.Dialogs
 			{
 				await PerformImportOperationAsync( async () =>
 				{
-					string[] files = await _dialogService.ShowFileDialog( isFolderDialog: false, windowName: "Import from JSON file" ).ConfigureAwait( false );
+					string[] files = await _dialogService.ShowFileDialog( isFolderDialog: false, windowName: "Import from JSON file" ).ConfigureAwait( true );
 					if (files != null && files.Length > 0)
 					{
-						List<ModComponent> imported = await _modManagementService.ImportMods( files[0] ).ConfigureAwait( false );
-						await _dialogService.ShowInformationDialog( $"Imported {imported.Count} component(s)" ).ConfigureAwait( false );
+						List<ModComponent> imported = await _modManagementService.ImportMods( files[0] ).ConfigureAwait( true );
+						await _dialogService.ShowInformationDialog( $"Imported {imported.Count} component(s)" ).ConfigureAwait( true );
 						ModificationsApplied = true;
 						_dialogService.RefreshStatistics();
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to import from JSON file" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to import from JSON file" ).ConfigureAwait( true );
 			}
 		}
 
@@ -440,17 +440,17 @@ namespace KOTORModSync.Dialogs
 			{
 				await PerformExportOperationAsync( async () =>
 				{
-					string filePath = await _dialogService.ShowSaveFileDialogAsync( "exported_mods.toml" ).ConfigureAwait( false );
+					string filePath = await _dialogService.ShowSaveFileDialogAsync( "exported_mods.toml" ).ConfigureAwait( true );
 					if (filePath != null)
 					{
-						bool success = await ModManagementService.ExportMods( _originalComponents, filePath ).ConfigureAwait( false );
-						await _dialogService.ShowInformationDialog( success ? "Export completed successfully" : "Export failed" ).ConfigureAwait( false );
+						bool success = await ModManagementService.ExportMods( _originalComponents, filePath ).ConfigureAwait( true );
+						await _dialogService.ShowInformationDialog( success ? "Export completed successfully" : "Export failed" ).ConfigureAwait( true );
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to export to TOML file" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to export to TOML file" ).ConfigureAwait( true );
 			}
 		}
 
@@ -460,17 +460,17 @@ namespace KOTORModSync.Dialogs
 			{
 				await PerformExportOperationAsync( async () =>
 				{
-					string filePath = await _dialogService.ShowSaveFileDialogAsync( "exported_mods.json" ).ConfigureAwait( false );
+					string filePath = await _dialogService.ShowSaveFileDialogAsync( "exported_mods.json" ).ConfigureAwait( true );
 					if (filePath != null)
 					{
-						bool success = await ModManagementService.ExportMods( _originalComponents, filePath, ModManagementService.ExportFormat.Json ).ConfigureAwait( false );
-						await _dialogService.ShowInformationDialog( success ? "Export completed successfully" : "Export failed" ).ConfigureAwait( false );
+						bool success = await ModManagementService.ExportMods( _originalComponents, filePath, ModManagementService.ExportFormat.Json ).ConfigureAwait( true );
+						await _dialogService.ShowInformationDialog( success ? "Export completed successfully" : "Export failed" ).ConfigureAwait( true );
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to export to JSON file" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to export to JSON file" ).ConfigureAwait( true );
 			}
 		}
 
@@ -488,7 +488,7 @@ namespace KOTORModSync.Dialogs
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to analyze dependencies." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to analyze dependencies." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -511,12 +511,12 @@ namespace KOTORModSync.Dialogs
 					$"Mods with dependencies: {componentsWithDependencies}\n" +
 					$"Total dependency relationships: {totalDependencies}\n" +
 					$"Circular dependencies detected: {circularDependencies}\n\n" +
-					"Dependencies help ensure mods are installed in the correct order." ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+					"Dependencies help ensure mods are installed in the correct order." ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to check dependency chains" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to check dependency chains" ).ConfigureAwait( true );
 			}
 		}
 
@@ -667,7 +667,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 
 					if (totalConflicts == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No conflicts detected between components." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No conflicts detected between components." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -678,12 +678,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					$"Total conflicts found: {totalConflicts}\n" +
 					$"Dependency conflicts: {dependencyCount}\n" +
 					$"Restriction conflicts: {restrictionCount}\n\n" +
-					"Conflicts have been automatically resolved based on component dependencies and restrictions." ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+					"Conflicts have been automatically resolved based on component dependencies and restrictions." ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to resolve conflicts" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to resolve conflicts" ).ConfigureAwait( true );
 			}
 		}
 
@@ -696,7 +696,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to generate dependency graph." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to generate dependency graph." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -706,12 +706,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					await _dialogService.ShowInformationDialog(
 					$"Dependency Graph for {selectedComponents.Count} selected mods:\n\n" +
 					graphText +
-					"\n\nNote: This is a text representation. A visual graph view could be implemented in the future." ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+					"\n\nNote: This is a text representation. A visual graph view could be implemented in the future." ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to generate dependency graph" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to generate dependency graph" ).ConfigureAwait( true );
 			}
 		}
 
@@ -751,15 +751,15 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to optimize installation order." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to optimize installation order." ).ConfigureAwait( true );
 						return;
 					}
 
 					(bool isCorrectOrder, List<ModComponent> reorderedComponents) = ModComponent.ConfirmComponentsInstallOrder( selectedComponents );
 
-					if (isCorrectOrder && reorderedComponents == null)
+					if (isCorrectOrder && reorderedComponents is null)
 					{
-						await _dialogService.ShowInformationDialog( "Installation order is already optimal for the selected mods." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "Installation order is already optimal for the selected mods." ).ConfigureAwait( true );
 					}
 					else
 					{
@@ -772,13 +772,13 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						"Installation Order Optimization:\n\n" +
 						$"Original order: {originalOrder}\n\n" +
 						$"Optimized order: {newOrder}\n\n" +
-						"The installation order has been optimized based on component dependencies." ).ConfigureAwait( false );
+						"The installation order has been optimized based on component dependencies." ).ConfigureAwait( true );
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to optimize installation order" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to optimize installation order" ).ConfigureAwait( true );
 			}
 		}
 
@@ -791,7 +791,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to analyze sizes." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to analyze sizes." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -830,12 +830,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						analysis += $"{category}: {count} mods ({FormatBytes( size )})\n";
 					}
 
-					await _dialogService.ShowInformationDialog( analysis ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+					await _dialogService.ShowInformationDialog( analysis ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to analyze mod sizes" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to analyze mod sizes" ).ConfigureAwait( true );
 			}
 		}
 
@@ -892,7 +892,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to check for redundant files." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to check for redundant files." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -926,7 +926,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 
 					if (actualRedundantFiles.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No redundant files found across selected mods." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No redundant files found across selected mods." ).ConfigureAwait( true );
 					}
 					else
 					{
@@ -949,13 +949,13 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 							report += $"... and {actualRedundantFiles.Count - 10} more files.\n";
 						}
 
-						await _dialogService.ShowInformationDialog( report ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( report ).ConfigureAwait( true );
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to check redundant files" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to check redundant files" ).ConfigureAwait( true );
 			}
 		}
 
@@ -968,7 +968,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to scan for malware." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to scan for malware." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -1006,7 +1006,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						await _dialogService.ShowInformationDialog(
 						"Malware Scan Results:\n\n" +
 						"✅ No suspicious executable files found in selected mods.\n\n" +
-						"Note: This is a basic scan. For comprehensive security, use dedicated antivirus software." ).ConfigureAwait( false );
+						"Note: This is a basic scan. For comprehensive security, use dedicated antivirus software." ).ConfigureAwait( true );
 					}
 					else
 					{
@@ -1025,13 +1025,13 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						report += "\n⚠️  Warning: These files may be legitimate mod tools or patches.\n" +
 							  "Please verify with the mod author before removing.";
 
-						await _dialogService.ShowInformationDialog( report ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( report ).ConfigureAwait( true );
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to scan for malware" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to scan for malware" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1044,7 +1044,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to check file integrity." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to check file integrity." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -1098,12 +1098,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						report += "✅ All selected components have checksum validation configured.";
 					}
 
-					await _dialogService.ShowInformationDialog( report ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+					await _dialogService.ShowInformationDialog( report ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to check file integrity" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to check file integrity" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1116,7 +1116,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to validate digital signatures." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to validate digital signatures." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -1174,12 +1174,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						report += "ℹ️  No digital signature validation is currently configured for any instructions.";
 					}
 
-					await _dialogService.ShowInformationDialog( report ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+					await _dialogService.ShowInformationDialog( report ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to validate digital signatures" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to validate digital signatures" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1194,7 +1194,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					"⚠️  WARNING: This is an analysis tool. No files will be deleted automatically.\n\n" +
 					"Continue with orphaned file analysis?",
 					"Yes, Analyze",
-					"Cancel" ).ConfigureAwait( false );
+					"Cancel" ).ConfigureAwait( true );
 
 					if (confirm != true)
 						return;
@@ -1226,12 +1226,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					"1. Scan your KOTOR installation directory\n" +
 					"2. Compare against this reference list\n" +
 					"3. Manually review and delete unneeded files\n\n" +
-					"⚠️  Note: Automatic deletion is intentionally not implemented to prevent accidental data loss." ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+					"⚠️  Note: Automatic deletion is intentionally not implemented to prevent accidental data loss." ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to clean orphaned files" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to clean orphaned files" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1244,7 +1244,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					var selectedComponents = _originalComponents.Where( c => c.IsSelected ).ToList();
 					if (selectedComponents.Count == 0)
 					{
-						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to check mod links." ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( "No mods selected. Please select mods to check mod links." ).ConfigureAwait( true );
 						return;
 					}
 
@@ -1296,12 +1296,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						report += "✅ All mod links appear to be valid URLs.";
 					}
 
-					await _dialogService.ShowInformationDialog( report ).ConfigureAwait( false );
-				} ).ConfigureAwait( false );
+					await _dialogService.ShowInformationDialog( report ).ConfigureAwait( true );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to check mod links" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to check mod links" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1316,7 +1316,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 					"⚠️  Note: This is an analysis tool. No files will be moved automatically.\n\n" +
 					"Continue with version analysis?",
 					"Yes, Analyze",
-					"Cancel" ).ConfigureAwait( false );
+					"Cancel" ).ConfigureAwait( true );
 
 					if (confirm != true)
 						return;
@@ -1345,7 +1345,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						await _dialogService.ShowInformationDialog(
 						"Version Analysis:\n\n" +
 						"✅ No potential duplicate versions found!\n\n" +
-						"All mod names appear to be unique." ).ConfigureAwait( false );
+						"All mod names appear to be unique." ).ConfigureAwait( true );
 					}
 					else
 					{
@@ -1367,13 +1367,13 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						_ = report.AppendLine( "💡 Tip: Review these mods and consider keeping only the latest version." );
 						_ = report.AppendLine( "\n⚠️  Note: Automatic archiving is intentionally not implemented to prevent accidental data loss." );
 
-						await _dialogService.ShowInformationDialog( report.ToString() ).ConfigureAwait( false );
+						await _dialogService.ShowInformationDialog( report.ToString() ).ConfigureAwait( true );
 					}
-				} ).ConfigureAwait( false );
+				} ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to archive old versions" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to archive old versions" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1385,13 +1385,13 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 		{
 			try
 			{
-				await operation().ConfigureAwait( false );
+				await operation().ConfigureAwait( true );
 				ModificationsApplied = true;
 				_dialogService.RefreshStatistics();
 			}
 			catch (Exception ex)
 			{
-				await _dialogService.ShowInformationDialog( $"Operation failed: {ex.Message}" ).ConfigureAwait( false );
+				await _dialogService.ShowInformationDialog( $"Operation failed: {ex.Message}" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1399,13 +1399,13 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 		{
 			try
 			{
-				await operation().ConfigureAwait( false );
+				await operation().ConfigureAwait( true );
 				ModificationsApplied = true;
 				_dialogService.RefreshStatistics();
 			}
 			catch (Exception ex)
 			{
-				await _dialogService.ShowInformationDialog( $"Import failed: {ex.Message}" ).ConfigureAwait( false );
+				await _dialogService.ShowInformationDialog( $"Import failed: {ex.Message}" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1413,11 +1413,11 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 		{
 			try
 			{
-				await operation().ConfigureAwait( false );
+				await operation().ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await _dialogService.ShowInformationDialog( $"Export failed: {ex.Message}" ).ConfigureAwait( false );
+				await _dialogService.ShowInformationDialog( $"Export failed: {ex.Message}" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1425,11 +1425,11 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 		{
 			try
 			{
-				await operation().ConfigureAwait( false );
+				await operation().ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await _dialogService.ShowInformationDialog( $"Operation failed: {ex.Message}" ).ConfigureAwait( false );
+				await _dialogService.ShowInformationDialog( $"Operation failed: {ex.Message}" ).ConfigureAwait( true );
 			}
 		}
 
@@ -1448,11 +1448,11 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph( List<ModCompo
 						message += $"\n... and {result.Errors.Count - 5} more";
 				}
 
-				await _dialogService.ShowInformationDialog( message ).ConfigureAwait( false );
+				await _dialogService.ShowInformationDialog( message ).ConfigureAwait( true );
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync( ex, "Failed to show batch result" ).ConfigureAwait( false );
+				await Logger.LogExceptionAsync( ex, "Failed to show batch result" ).ConfigureAwait( true );
 			}
 		}
 

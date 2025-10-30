@@ -222,7 +222,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 				Logger.LogVerbose( $"[PathHelper.GetRelativePath] No common path, returning full path: '{path}'" );
 				return path;
 
-
 			}
 
 			bool pathEndsInSeparator = path.EndsWith( Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal );
@@ -491,7 +490,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 						useAsync: true
 					))
 
-
 				{
 					await sourceStream.CopyToAsync( destinationStream ).ConfigureAwait( false );
 				}
@@ -512,7 +510,6 @@ namespace KOTORModSync.Core.FileSystemUtils
 				throw new ArgumentNullException( nameof( fileSystemProvider ) );
 
 			List<string> result = new List<string>();
-
 
 			HashSet<string> uniquePaths = new HashSet<string>( filesAndFolders, StringComparer.Ordinal );
 
@@ -551,12 +548,10 @@ namespace KOTORModSync.Core.FileSystemUtils
 						continue;
 					}
 
-
 					string currentDir = formattedPath;
 					while (ContainsWildcards( currentDir ))
 					{
 						string parentDirectory = Path.GetDirectoryName( currentDir );
-
 
 
 						if (string.IsNullOrEmpty( parentDirectory ) || string.Equals( parentDirectory, currentDir, StringComparison.Ordinal ))

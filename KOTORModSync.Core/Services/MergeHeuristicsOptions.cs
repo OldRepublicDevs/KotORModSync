@@ -9,7 +9,6 @@ namespace KOTORModSync.Core.Services
 
 
 
-
 	public sealed class MergeHeuristicsOptions
 	{
 		public bool UseNameExact { get; set; } = true;

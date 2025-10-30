@@ -9,13 +9,15 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
+using KOTORModSync.Core;
+
 namespace KOTORModSync.Core.CLI
 {
 	public class ConsoleProgressDisplay : IDisposable
 	{
 		private readonly object _lock = new object();
-		private readonly ConcurrentDictionary<string, ProgressItem> _activeItems = new ConcurrentDictionary<string, ProgressItem>( StringComparer.Ordinal );
-		private readonly Dictionary<string, FailedItem> _failedItems = new Dictionary<string, FailedItem>( StringComparer.Ordinal );
+		private readonly ConcurrentDictionary<string, ProgressItem> _activeItems = new ConcurrentDictionary<string, ProgressItem>(StringComparer.Ordinal);
+		private readonly Dictionary<string, FailedItem> _failedItems = new Dictionary<string, FailedItem>(StringComparer.Ordinal);
 		private readonly Queue<string> _scrollingLogs = new Queue<string>();
 		private readonly Timer _refreshTimer;
 		private bool _disposed;
@@ -31,7 +33,7 @@ namespace KOTORModSync.Core.CLI
 		private const string HIDE_CURSOR = "\x1b[?25l";
 		private const string SHOW_CURSOR = "\x1b[?25h";
 
-		public ConsoleProgressDisplay( bool usePlainText = false )
+		public ConsoleProgressDisplay(bool usePlainText = false)
 		{
 			_usePlainText = usePlainText;
 
@@ -52,12 +54,12 @@ namespace KOTORModSync.Core.CLI
 
 			if (_isEnabled)
 			{
-				Console.Write( HIDE_CURSOR );
-				_refreshTimer = new Timer( _ => Render(), null, TimeSpan.FromMilliseconds( 16 ), TimeSpan.FromMilliseconds( 16 ) );
+				Console.Write(HIDE_CURSOR);
+				_refreshTimer = new Timer(_ => Render(), null, TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(16));
 			}
 		}
 
-		private class ProgressItem
+		private sealed class ProgressItem
 		{
 			public string Key { get; set; }
 			public string DisplayText { get; set; }
@@ -66,38 +68,38 @@ namespace KOTORModSync.Core.CLI
 			public string Status { get; set; }
 		}
 
-		private class FailedItem
+		private sealed class FailedItem
 		{
 			public string Url { get; set; }
 			public string Error { get; set; }
 			public DateTime Timestamp { get; set; }
 		}
 
-		public void UpdateProgress( string key, string displayText, double progress, string status = "processing" )
+		public void UpdateProgress(string key, string displayText, double progress, string status = "processing")
 		{
 			if (_usePlainText)
 			{
-				Console.WriteLine( $"[{status.ToUpper()}] {displayText} - {progress:F1}%" );
+				Console.WriteLine($"[{status.ToUpper(System.Globalization.CultureInfo.CurrentCulture)}] {displayText} - {progress:F1}%");
 				return;
 			}
 
 			if (!_isEnabled) return;
 
-			bool isNewItem = !_activeItems.ContainsKey( key );
+			bool isNewItem = !_activeItems.ContainsKey(key);
 			bool shouldRender = isNewItem;
 
-			_activeItems.AddOrUpdate( key,
+			_activeItems.AddOrUpdate(key,
 				new ProgressItem
 				{
 					Key = key,
 					DisplayText = displayText,
 					Progress = progress,
 					LastUpdate = DateTime.Now,
-					Status = status
+					Status = status,
 				},
-			( k, existing ) =>
+			(k, existing) =>
 			{
-				if (Math.Abs( existing.Progress - progress ) >= 0.5 || !string.Equals( existing.Status, status, StringComparison.Ordinal ))
+				if (Math.Abs(existing.Progress - progress) >= 0.5 || !string.Equals(existing.Status, status, StringComparison.Ordinal))
 				{
 					shouldRender = true;
 				}
@@ -106,7 +108,7 @@ namespace KOTORModSync.Core.CLI
 				existing.LastUpdate = DateTime.Now;
 				existing.Status = status;
 				return existing;
-			} );
+			});
 
 			if (shouldRender)
 			{
@@ -114,28 +116,28 @@ namespace KOTORModSync.Core.CLI
 			}
 		}
 
-		public void RemoveProgress( string key )
+		public void RemoveProgress(string key)
 		{
 			if (_usePlainText)
 			{
-				if (_activeItems.TryGetValue( key, out ProgressItem item ))
+				if (_activeItems.TryGetValue(key, out ProgressItem item))
 				{
-					Console.WriteLine( $"[COMPLETED] {item.DisplayText}" );
+					Console.WriteLine($"[COMPLETED] {item.DisplayText}");
 				}
 				return;
 			}
 
 			if (!_isEnabled) return;
-			_activeItems.TryRemove( key, out _ );
+			_activeItems.TryRemove(key, out _);
 			_needsRender = true;
 		}
 
-		public void AddFailedItem( string url, string error )
+		public void AddFailedItem(string url, string error)
 		{
 			if (_usePlainText)
 			{
-				Console.WriteLine( $"[FAILED] {url}" );
-				Console.WriteLine( $"  Error: {error}" );
+				Console.WriteLine($"[FAILED] {url}");
+				Console.WriteLine($"  Error: {error}");
 				return;
 			}
 
@@ -147,20 +149,20 @@ namespace KOTORModSync.Core.CLI
 				{
 					Url = url,
 					Error = error,
-					Timestamp = DateTime.Now
+					Timestamp = DateTime.Now,
 				};
 
 				if (_failedItems.Count > _maxFailedItems * 2)
 				{
 					List<string> oldestKeys = _failedItems
-						.OrderBy( kvp => kvp.Value.Timestamp )
-						.Take( _failedItems.Count - _maxFailedItems )
-						.Select( kvp => kvp.Key )
+						.OrderBy(kvp => kvp.Value.Timestamp)
+						.Take(_failedItems.Count - _maxFailedItems)
+						.Select(kvp => kvp.Key)
 						.ToList();
 
 					foreach (string key in oldestKeys)
 					{
-						_failedItems.Remove( key );
+						_failedItems.Remove(key);
 					}
 				}
 
@@ -168,23 +170,23 @@ namespace KOTORModSync.Core.CLI
 			}
 		}
 
-		public void AddLog( string message )
+		public void AddLog(string message)
 		{
 			if (_usePlainText)
 			{
-				Console.WriteLine( $"[{DateTime.Now:HH:mm:ss}] {message}" );
+				Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
 				return;
 			}
 
 			if (!_isEnabled)
 			{
-				Console.WriteLine( message );
+				Console.WriteLine(message);
 				return;
 			}
 
 			lock (_lock)
 			{
-				_scrollingLogs.Enqueue( message );
+				_scrollingLogs.Enqueue(message);
 
 				while (_scrollingLogs.Count > _maxScrollingLogs)
 				{
@@ -207,8 +209,9 @@ namespace KOTORModSync.Core.CLI
 				{
 					_consoleWidth = Console.WindowWidth;
 				}
-				catch
+				catch (Exception ex)
 				{
+					Logger.LogException(ex, "Failed to get console width");
 				}
 
 				StringBuilder sb = new StringBuilder();
@@ -218,58 +221,65 @@ namespace KOTORModSync.Core.CLI
 				try
 				{
 					int consoleHeight = Console.WindowHeight;
-					int statusStartLine = Math.Max( 1, consoleHeight - statusLines + 1 );
+					int statusStartLine = Math.Max(1, consoleHeight - statusLines + 1);
 
-					sb.Append( $"\x1b[{statusStartLine};1H" );
-					sb.Append( "\x1b[0J" );
+					_ = sb.Append(string.Format(System.Globalization.CultureInfo.InvariantCulture, "\x1b[{0};1H", statusStartLine));
+					_ = sb.Append("\x1b[0J");
 
 					List<FailedItem> failedItems = _failedItems.Values
-						.OrderByDescending( f => f.Timestamp )
-						.Take( _maxFailedItems )
+						.OrderByDescending(f => f.Timestamp)
+						.Take(_maxFailedItems)
 						.ToList();
 
 					if (failedItems.Count > 0)
 					{
-						sb.AppendLine( "╔═══ FAILED DOWNLOADS ═══" );
+						_ = sb.AppendLine("╔═══ FAILED DOWNLOADS ═══");
 						foreach (FailedItem failed in failedItems)
 						{
-							string truncatedUrl = TruncateString( failed.Url, _consoleWidth - 35 );
-							string shortError = failed.Error.Length > 25 ? failed.Error.Substring( 0, 22 ) + "..." : failed.Error;
-							sb.AppendLine( $"║ ✗ {truncatedUrl} ({shortError})" );
+							string truncatedUrl = TruncateString(failed.Url, _consoleWidth - 35);
+							string shortError = failed.Error.Length > 25 ? failed.Error.Substring(0, 22) + "..." : failed.Error;
+							_ = sb.AppendLine($"║ ✗ {truncatedUrl} ({shortError})");
 						}
-						sb.AppendLine( "╚" + new string( '═', Math.Min( _consoleWidth - 2, 50 ) ) );
+						_ = sb.AppendLine("╚" + new string('═', Math.Min(_consoleWidth - 2, 50)));
 					}
 
 					List<ProgressItem> activeItems = _activeItems.Values
-						.OrderBy( x => x.LastUpdate )
-						.Take( _maxActiveItems )
+						.OrderBy(x => x.LastUpdate)
+						.Take(_maxActiveItems)
 						.ToList();
 
 					if (activeItems.Count > 0)
 					{
-						sb.AppendLine( "╔═══ ACTIVE DOWNLOADS ═══" );
+						_ = sb.AppendLine("╔═══ ACTIVE DOWNLOADS ═══");
 						foreach (ProgressItem item in activeItems)
 						{
-							string progressBar = RenderProgressBar( item.Progress, 30 );
-							string statusIcon = GetStatusIcon( item.Status );
-							string displayText = TruncateString( item.DisplayText, _consoleWidth - 45 );
-							sb.AppendLine( $"{statusIcon} {displayText} {progressBar} {item.Progress:F1}%" );
+							string progressBar = RenderProgressBar(item.Progress, 30);
+							string statusIcon = GetStatusIcon(item.Status);
+							string displayText = TruncateString(item.DisplayText, _consoleWidth - 45);
+							_ = sb.AppendLine(
+								string.Format(
+									System.Globalization.CultureInfo.InvariantCulture,
+									"{0} {1} {2} {3:F1}%",
+									statusIcon, displayText, progressBar, item.Progress
+								)
+							);
 						}
-						sb.AppendLine( "╚" + new string( '═', Math.Min( _consoleWidth - 2, 50 ) ) );
+						_ = sb.Append('╚').AppendLine(new string('═', Math.Min(_consoleWidth - 2, 50)));
 					}
 
 					string newContent = sb.ToString();
 
-					if (!string.Equals( newContent, _lastRenderedContent, StringComparison.Ordinal ))
+					if (!string.Equals(newContent, _lastRenderedContent, StringComparison.Ordinal))
 					{
-						Console.Write( newContent );
+						Console.Write(newContent);
 						_lastRenderedContent = newContent;
 					}
 
 					_needsRender = false;
 				}
-				catch
+				catch (Exception ex)
 				{
+					Logger.LogException(ex, "Failed to render console progress display");
 				}
 			}
 		}
@@ -281,27 +291,27 @@ namespace KOTORModSync.Core.CLI
 			if (_failedItems.Count > 0)
 			{
 				lines += 2;
-				lines += Math.Min( _failedItems.Count, _maxFailedItems );
+				lines += Math.Min(_failedItems.Count, _maxFailedItems);
 			}
 
 			if (!_activeItems.IsEmpty)
 			{
 				lines += 2;
-				lines += Math.Min( _activeItems.Count, _maxActiveItems );
+				lines += Math.Min(_activeItems.Count, _maxActiveItems);
 			}
 
-			return Math.Min( lines, 20 );
+			return Math.Min(lines, 20);
 		}
 
-		private static string RenderProgressBar( double progress, int width )
+		private static string RenderProgressBar(double progress, int width)
 		{
 			int filled = (int)((progress / 100.0) * width);
 			int empty = width - filled;
 
-			return $"[{new string( '█', filled )}{new string( '░', empty )}]";
+			return $"[{new string('█', filled)}{new string('░', empty)}]";
 		}
 
-		private static string GetStatusIcon( string status )
+		private static string GetStatusIcon(string status)
 		{
 			switch (status.ToLowerInvariant())
 			{
@@ -322,18 +332,18 @@ namespace KOTORModSync.Core.CLI
 			}
 		}
 
-		private static string TruncateString( string text, int maxLength )
+		private static string TruncateString(string text, int maxLength)
 		{
-			if (string.IsNullOrEmpty( text )) return string.Empty;
+			if (string.IsNullOrEmpty(text)) return string.Empty;
 			if (text.Length <= maxLength) return text;
-			return text.Substring( 0, maxLength - 3 ) + "...";
+			return text.Substring(0, maxLength - 3) + "...";
 		}
 
-		public void WriteScrollingLog( string message )
+		public void WriteScrollingLog(string message)
 		{
 			if (_usePlainText || !_isEnabled)
 			{
-				Console.WriteLine( message );
+				Console.WriteLine(message);
 				return;
 			}
 
@@ -343,53 +353,64 @@ namespace KOTORModSync.Core.CLI
 				{
 					int statusLines = CalculateStatusLines();
 					int consoleHeight = Console.WindowHeight;
-					int statusStartLine = Math.Max( 1, consoleHeight - statusLines );
+					int statusStartLine = Math.Max(1, consoleHeight - statusLines);
 
-					Console.Write( $"\x1b[{statusStartLine};1H" );
-					Console.Write( "\x1b[0J" );
-					Console.Write( $"\x1b[{statusStartLine - 1};1H" );
-					Console.WriteLine( message );
+					Console.Write($"\x1b[{statusStartLine};1H");
+					Console.Write("\x1b[0J");
+					Console.Write($"\x1b[{statusStartLine - 1};1H");
+					Console.WriteLine(message);
 
 					_needsRender = true;
 					Render();
 				}
-				catch
+				catch (Exception ex)
 				{
-					Console.WriteLine( message );
+					Logger.LogException(ex, "Failed to write scrolling log");
 				}
 			}
 		}
 
 		public void Dispose()
 		{
+			Dispose(disposing: true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
 			if (_disposed) return;
-			_disposed = true;
 
-			_refreshTimer?.Dispose();
-
-			if (_isEnabled)
+			if (disposing)
 			{
-				lock (_lock)
+				_refreshTimer?.Dispose();
+
+				if (_isEnabled)
 				{
-					try
+					lock (_lock)
 					{
-						int statusLines = CalculateStatusLines();
-						int consoleHeight = Console.WindowHeight;
-						int statusStartLine = Math.Max( 1, consoleHeight - statusLines );
-
-						Console.Write( $"\x1b[{statusStartLine};1H" );
-						for (int i = 0; i < statusLines; i++)
+						try
 						{
-							Console.WriteLine( CLEAR_LINE );
-						}
+							int statusLines = CalculateStatusLines();
+							int consoleHeight = Console.WindowHeight;
+							int statusStartLine = Math.Max(1, consoleHeight - statusLines);
 
-						Console.Write( SHOW_CURSOR );
-					}
-					catch
-					{
+							Console.Write($"\x1b[{statusStartLine};1H");
+							for (int i = 0; i < statusLines; i++)
+							{
+								Console.WriteLine(CLEAR_LINE);
+							}
+
+							Console.Write(SHOW_CURSOR);
+						}
+						catch (Exception ex)
+						{
+							Logger.LogException(ex, "Failed to dispose console progress display");
+						}
 					}
 				}
 			}
+
+			_disposed = true;
 		}
 	}
 }

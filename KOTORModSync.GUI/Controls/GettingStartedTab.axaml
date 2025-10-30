@@ -69,27 +69,6 @@
                         Margin="30,10,0,10"
                         Text="Configure your mod workspace and KOTOR installation directory"
                         TextWrapping="Wrap" />
-                    
-                    <!--  Detailed Directory Explanations  -->
-                    <StackPanel Margin="30,5,0,10" Spacing="8">
-                        <TextBlock
-                            FontWeight="SemiBold"
-                            Text="📁 Mod Directory (Workspace):" />
-                        <TextBlock
-                            Margin="15,0,0,0"
-                            Text="Choose any folder on your computer to use as your mod workspace. This is where:"
-                            TextWrapping="Wrap" />
-                        <StackPanel Margin="15,5,0,0" Spacing="2">
-                            <TextBlock Text="• Mod files will be downloaded from the internet" />
-                            <TextBlock Text="• Mod archives will be extracted and processed" />
-                            <TextBlock Text="• Temporary files will be stored during installation" />
-                        </StackPanel>
-                        <TextBlock
-                            Margin="15,5,0,0"
-                            FontStyle="Italic"
-                            Text="Tip: Create a dedicated folder like 'C:\KOTORMods' or use your Documents folder"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
 
                     <!--  Directory Controls  -->
                     <StackPanel Margin="30,10,0,10">
@@ -97,29 +76,20 @@
                             x:Name="Step1ModDirectoryPicker"
                             Title="Mod Workspace Directory:"
                             Margin="0,0,0,10"
+                            Description="Choose any folder on your computer to use as your mod workspace. This is where:&#x0a;• Mod files will be downloaded from the internet&#x0a;• Mod archives will be extracted and processed&#x0a;• Temporary files will be stored during installation&#x0a;&#x0a;Tip: Create a dedicated folder like 'C:\KOTORMods' or use your Documents folder"
                             DirectoryChanged="OnDirectoryChanged"
                             PickerType="ModDirectory"
-                            Watermark="Choose a folder for your mod workspace (e.g., C:\KOTORMods)"
-                            ToolTip.Tip="Select any folder on your computer to use as your mod workspace. This is where mod files will be downloaded and processed." />
-
-                        <!--  KOTOR Directory Explanation  -->
-                        <StackPanel Margin="0,10,0,10" Spacing="8">
-                            <TextBlock
-                                FontWeight="SemiBold"
-                                Text="🎮 KOTOR Directory:" />
-                            <TextBlock
-                                Margin="15,0,0,0"
-                                Text="Point to your KOTOR game installation folder (where the game is installed)"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
+                            ToolTip.Tip="Select any folder on your computer to use as your mod workspace. This is where mod files will be downloaded and processed."
+                            Watermark="Choose a folder for your mod workspace (e.g., C:\KOTORMods)" />
 
                         <controls:DirectoryPickerControl
                             x:Name="Step1KotorDirectoryPicker"
                             Title="KOTOR Game Directory:"
+                            Description="Point to your KOTOR game installation folder (where the game is installed)"
                             DirectoryChanged="OnDirectoryChanged"
                             PickerType="KotorDirectory"
-                            Watermark="Enter your KOTOR game installation folder"
-                            ToolTip.Tip="Point to the folder where KOTOR is installed (usually contains swkotor.exe or swkotor2.exe)" />
+                            ToolTip.Tip="Point to the folder where KOTOR is installed (usually contains swkotor.exe or swkotor2.exe)"
+                            Watermark="Enter your KOTOR game installation folder" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -352,23 +322,26 @@
                                 Text="Validation Results" />
 
                             <!--  Error Navigation & Details (only shown if there are errors)  -->
-                            <StackPanel x:Name="ErrorNavigationArea" Spacing="10" IsVisible="False">
+                            <StackPanel
+                                x:Name="ErrorNavigationArea"
+                                IsVisible="False"
+                                Spacing="10">
                                 <!--  Error Counter & Navigation  -->
-                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" Height="36">
+                                <Grid Height="36" ColumnDefinitions="Auto,*,Auto,Auto,Auto">
                                     <TextBlock
-                                        Grid.Column="0"
-                                        VerticalAlignment="Center"
-                                        Margin="0,0,12,0"
                                         x:Name="ErrorCounterText"
+                                        Grid.Column="0"
+                                        Margin="0,0,12,0"
+                                        VerticalAlignment="Center"
                                         FontWeight="SemiBold"
                                         Text="Error 1 of 3" />
 
                                     <TextBlock
+                                        x:Name="ErrorModNameText"
                                         Grid.Column="1"
                                         VerticalAlignment="Center"
-                                        x:Name="ErrorModNameText"
-                                        TextTrimming="CharacterEllipsis"
-                                        Text="Mod Name" />
+                                        Text="Mod Name"
+                                        TextTrimming="CharacterEllipsis" />
 
                                     <Button
                                         x:Name="PrevErrorButton"
@@ -416,9 +389,9 @@
                                             Text="Error Type" />
                                         <TextBlock
                                             x:Name="ErrorDescriptionText"
-                                            TextWrapping="Wrap"
                                             Opacity="0.9"
-                                            Text="Error description" />
+                                            Text="Error description"
+                                            TextWrapping="Wrap" />
                                         <Button
                                             x:Name="AutoFixButton"
                                             HorizontalAlignment="Left"
@@ -437,9 +410,7 @@
                                 CornerRadius="4"
                                 IsVisible="False">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <TextBlock
-                                        FontSize="20"
-                                        Text="✅" />
+                                    <TextBlock FontSize="20" Text="✅" />
                                     <TextBlock
                                         VerticalAlignment="Center"
                                         FontWeight="SemiBold"
@@ -595,4 +566,3 @@
         </StackPanel>
     </ScrollViewer>
 </UserControl>
-

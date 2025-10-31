@@ -3,9 +3,11 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Avalonia.Data.Converters;
 
@@ -22,6 +24,12 @@ namespace KOTORModSync.Converters
 		private static int _resolvePathCallCount = 0;
 		private static readonly object _lockObject = new object();
 
+		// Cache for resolved paths - thread-safe
+		private static readonly ConcurrentDictionary<string, string> _resolvedPathCache = new ConcurrentDictionary<string, string>();
+
+		// Track pending resolutions to avoid duplicate work
+		private static readonly ConcurrentDictionary<string, Task<string>> _pendingResolutions = new ConcurrentDictionary<string, Task<string>>();
+
 		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			lock (_lockObject)
@@ -37,7 +45,7 @@ namespace KOTORModSync.Converters
 			}
 
 			Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - Value type: {value?.GetType().Name ?? "null"}, TargetType: {targetType?.Name ?? "null"}" );
-			
+
 			// Expand IEnumerable<string> to show actual items instead of type name
 			string valueDisplay;
 			if (value is IEnumerable<string> enumerablePaths)
@@ -63,14 +71,14 @@ namespace KOTORModSync.Converters
 			if (value is string singlePath)
 			{
 				Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - Processing single path: '{singlePath}' (length: {singlePath.Length})" );
-				var result = ResolvePath( singlePath );
+                string result = ResolvePath( singlePath );
 				Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - Single path result: '{result}' (length: {result.Length})" );
 				return result;
 			}
 
 			if (value is IEnumerable<string> pathList)
 			{
-				var pathArray = pathList.ToArray();
+                string[] pathArray = pathList.ToArray();
 				Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - Processing path list with {pathArray.Length} items" );
 				for (int i = 0; i < pathArray.Length; i++)
 				{
@@ -79,7 +87,7 @@ namespace KOTORModSync.Converters
 
 				Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - About to call ResolvePath on each path in the list" );
 				var resolvedPaths = pathArray.Select( ResolvePath ).ToList();
-				var result = string.Join( Environment.NewLine, resolvedPaths );
+                string result = string.Join( Environment.NewLine, resolvedPaths );
 				Logger.LogVerbose( $"[PathResolverConverter.Convert] Call #{_convertCallCount} - Path list result: '{result}' (length: {result.Length})" );
 				return result;
 			}
@@ -144,26 +152,109 @@ namespace KOTORModSync.Converters
 				return path;
 			}
 
-			Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - MainConfig.SourcePath: {MainConfig.SourcePath?.FullName ?? "null"}, MainConfig.DestinationPath: {MainConfig.DestinationPath?.FullName ?? "null"}" );
-
-			if (MainConfig.SourcePath is null && MainConfig.DestinationPath is null)
+			// Check cache first - return immediately if already resolved
+			if (_resolvedPathCache.TryGetValue(path, out string cachedResult))
 			{
-				Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - Both config paths are null, returning path as-is" );
+				Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - Found cached result: '{cachedResult}'" );
+				return cachedResult;
+			}
+
+			// Check if resolution is already in progress
+			if (_pendingResolutions.TryGetValue(path, out Task<string> pendingTask))
+			{
+				Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - Resolution already in progress, returning unresolved path for now" );
+				// Return unresolved path immediately - next evaluation will use cached result
+				// Continue the async task in background
+				_ = ContinuePendingResolution(path, pendingTask);
 				return path;
 			}
 
+			// Capture config values on UI thread before starting background task
+			// This ensures safe access to MainConfig properties
+			string sourcePath = MainConfig.SourcePath?.FullName;
+			string destPath = MainConfig.DestinationPath?.FullName;
+
+			// Start async resolution in background, return unresolved path immediately
+			Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - Starting async resolution, returning unresolved path" );
+			var resolutionTask = ResolvePathAsync(path, sourcePath, destPath);
+			_pendingResolutions.TryAdd(path, resolutionTask);
+			_ = ContinuePendingResolution(path, resolutionTask);
+
+			// Return unresolved path immediately so UI doesn't block
+			return path;
+		}
+
+		/// <summary>
+		/// Continues a pending resolution task and updates the cache when complete.
+		/// Runs on background thread to avoid blocking.
+		/// </summary>
+		private static async Task ContinuePendingResolution(string path, Task<string> resolutionTask)
+		{
 			try
 			{
-				Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - Calling Utility.ReplaceCustomVariables" );
-				var result = UtilityHelper.ReplaceCustomVariables( path );
-				Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - ReplaceCustomVariables result: '{result}' (length: {result.Length})" );
-				return result;
+				// Wait for resolution to complete (this is safe - we're already off UI thread)
+				string resolved = await resolutionTask.ConfigureAwait(false);
+
+				// Update cache
+				_resolvedPathCache.TryAdd(path, resolved);
+
+				await Logger.LogVerboseAsync($"[PathResolverConverter] Background resolution completed for '{path}' -> '{resolved}'").ConfigureAwait(false);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogVerbose( $"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - Exception in ReplaceCustomVariables: {ex.Message}, returning path as-is" );
-				return path;
+				await Logger.LogVerboseAsync($"[PathResolverConverter] Error in background resolution for '{path}': {ex.Message}").ConfigureAwait(false);
+				// On error, cache the original path to prevent repeated failures
+				_resolvedPathCache.TryAdd(path, path);
 			}
+			finally
+			{
+				// Clean up pending task tracking
+				_pendingResolutions.TryRemove(path, out _);
+			}
+		}
+
+		/// <summary>
+		/// Resolves a path asynchronously on a background thread.
+		/// This performs the actual path resolution work without blocking the UI thread.
+		/// </summary>
+		/// <param name="path">The path to resolve</param>
+		/// <param name="sourcePath">The mod directory path (captured on UI thread)</param>
+		/// <param name="destPath">The KOTOR directory path (captured on UI thread)</param>
+		private static Task<string> ResolvePathAsync(string path, string sourcePath, string destPath)
+		{
+			return Task.Run(() =>
+			{
+				try
+				{
+					Logger.LogVerbose($"[PathResolverConverter.ResolvePathAsync] Starting background resolution for: '{path}'");
+
+					if (string.IsNullOrEmpty(sourcePath) && string.IsNullOrEmpty(destPath))
+					{
+						Logger.LogVerbose($"[PathResolverConverter.ResolvePathAsync] Both config paths are null, returning path as-is");
+						return path;
+					}
+
+					// Perform the resolution (simple string replacement, safe on background thread)
+					// Values were captured on UI thread before calling this method
+					string result = path;
+					if (!string.IsNullOrEmpty(sourcePath))
+					{
+						result = result.Replace("<<modDirectory>>", sourcePath);
+					}
+					if (!string.IsNullOrEmpty(destPath))
+					{
+						result = result.Replace("<<kotorDirectory>>", destPath);
+					}
+
+					Logger.LogVerbose($"[PathResolverConverter.ResolvePathAsync] Resolution completed: '{path}' -> '{result}'");
+					return result;
+				}
+				catch (Exception ex)
+				{
+					Logger.LogVerbose($"[PathResolverConverter.ResolvePathAsync] Exception during resolution: {ex.Message}, returning path as-is");
+					return path;
+				}
+			});
 		}
 	}
 }

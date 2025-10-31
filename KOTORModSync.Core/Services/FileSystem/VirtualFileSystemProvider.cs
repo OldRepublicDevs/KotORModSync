@@ -116,9 +116,11 @@ namespace KOTORModSync.Core.Services.FileSystem
 		public async Task InitializeFromRealFileSystemAsync(string rootPath)
 		{
 			if (!Directory.Exists(rootPath))
-				return;
+            {
+                return;
+            }
 
-			try
+            try
 			{
 				foreach (FileInfo file in new DirectoryInfo(rootPath).GetFilesSafely("*.*", SearchOption.AllDirectories))
 				{
@@ -158,11 +160,12 @@ namespace KOTORModSync.Core.Services.FileSystem
 			}
 		}
 
-		/// <summary>
-		/// Initializes VFS only with files relevant to the specified components, not the entire directory.
-		/// This is much faster than loading all of the potentially thousands of files in the mod directory.
-		/// </summary>
-		public async Task InitializeFromRealFileSystemForComponentsAsync(string rootPath, List<ModComponent> components)
+        /// <summary>
+        /// Initializes VFS only with files relevant to the specified components, not the entire directory.
+        /// This is much faster than loading all of the potentially thousands of files in the mod directory.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public async Task InitializeFromRealFileSystemForComponentsAsync(string rootPath, List<ModComponent> components)
 		{
 			if (!Directory.Exists(rootPath) || components is null || components.Count == 0)
 				return;
@@ -206,9 +209,11 @@ namespace KOTORModSync.Core.Services.FileSystem
 								foreach (string sourcePath in instruction.Source)
 								{
 									if (string.IsNullOrWhiteSpace(sourcePath))
-										continue;
+                                    {
+                                        continue;
+                                    }
 
-									string resolvedPath = ResolvePath(sourcePath);
+                                    string resolvedPath = ResolvePath(sourcePath);
 									if (File.Exists(resolvedPath))
 									{
 										relevantFiles.Add(resolvedPath);
@@ -257,9 +262,11 @@ namespace KOTORModSync.Core.Services.FileSystem
 		private static string ResolvePath(string path)
 		{
 			if (string.IsNullOrWhiteSpace(path))
-				return path ?? string.Empty;
+            {
+                return path ?? string.Empty;
+            }
 
-			if (path.Contains("<<modDirectory>>"))
+            if (path.Contains("<<modDirectory>>"))
 			{
 				string modDir = MainConfig.SourcePath?.FullName ?? "";
 				path = path.Replace("<<modDirectory>>", modDir);
@@ -277,9 +284,11 @@ namespace KOTORModSync.Core.Services.FileSystem
 		private async Task ScanArchiveContentsAsync([NotNull] string archivePath)
 		{
 			if (_archiveContents.ContainsKey(archivePath))
-				return;
+            {
+                return;
+            }
 
-			HashSet<string> contents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var contents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
 			try
 			{
@@ -324,10 +333,7 @@ namespace KOTORModSync.Core.Services.FileSystem
 			try
 			{
 
-				if (
-
-
-string.Equals(extension, ".zip", StringComparison.Ordinal))
+				if (string.Equals(extension, ".zip", StringComparison.Ordinal))
 					return ZipArchive.Open(stream);
 
 				if (string.Equals(extension, ".rar", StringComparison.Ordinal))
@@ -350,9 +356,9 @@ string.Equals(extension, ".zip", StringComparison.Ordinal))
 			string extension = Path.GetExtension(path).ToLowerInvariant();
 
 			return string.Equals(extension, ".zip"
-, StringComparison.Ordinal) || string.Equals(extension, ".rar"
-, StringComparison.Ordinal) || string.Equals(extension, ".7z"
-, StringComparison.Ordinal) || string.Equals(extension, ".exe", StringComparison.Ordinal);
+                , StringComparison.Ordinal) || string.Equals(extension, ".rar"
+                , StringComparison.Ordinal) || string.Equals(extension, ".7z"
+                , StringComparison.Ordinal) || string.Equals(extension, ".exe", StringComparison.Ordinal);
 		}
 
 		public bool FileExists(string path)
@@ -372,11 +378,13 @@ string.Equals(extension, ".zip", StringComparison.Ordinal))
 
 			if (!result && _virtualFiles.Count > 0)
 			{
+				// This is informational - file doesn't exist yet (e.g., destination check before move)
+				// Only log as warning if it's likely an actual problem (not just a destination check)
 				AddIssue(ValidationSeverity.Warning, "FileExists",
 					$"File not found: {path}", affectedPath: path);
 				// Only log in debug mode to avoid performance issues
 				if (MainConfig.DebugLogging)
-					Logger.LogVerbose($"[VFS] FileExists: File not found: {path}");
+					Logger.LogVerbose($"[VFS] FileExists: File not found (informational check): {path}");
 				return false;
 			}
 
@@ -386,9 +394,11 @@ string.Equals(extension, ".zip", StringComparison.Ordinal))
 		public bool DirectoryExists(string path)
 		{
 			if (string.IsNullOrWhiteSpace(path))
-				return false;
+            {
+                return false;
+            }
 
-			lock (_lockObject)
+            lock (_lockObject)
 			{
 				return _virtualDirectories.Contains(path) || Directory.Exists(path);
 			}
@@ -426,7 +436,8 @@ string.Equals(extension, ".zip", StringComparison.Ordinal))
 			return Task.CompletedTask;
 		}
 
-		public Task MoveFileAsync(string sourcePath, string destinationPath, bool overwrite)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public Task MoveFileAsync(string sourcePath, string destinationPath, bool overwrite)
 		{
 			// Only log VFS operations in debug mode to avoid performance issues
 			if (MainConfig.DebugLogging)

@@ -513,3 +513,9 @@ dotnet_diagnostic.CS8619.severity = none
 dotnet_diagnostic.CS8625.severity = none
 dotnet_diagnostic.CS8629.severity = none
 
+
+# MA0042: Do not use blocking calls in an async method
+dotnet_diagnostic.MA0042.severity = none
+
+# CS1998: Async method lacks 'await' operators and will run synchronously
+dotnet_diagnostic.CS1998.severity = none

@@ -4639,11 +4639,11 @@ namespace KOTORModSync
 				}
 
 				// Expand the Instructions expander before proceeding
-				Expander instructionsExpander = this.FindControl<Expander>("InstructionsExpander");
+				Expander instructionsExpander = await Dispatcher.UIThread.InvokeAsync(() => this.FindControl<Expander>("InstructionsExpander"));
 				if (instructionsExpander != null)
 				{
 					await Logger.LogVerboseAsync("[AutoGenerateInstructions_Click] Expanding Instructions expander").ConfigureAwait(false);
-					instructionsExpander.IsExpanded = true;
+					await Dispatcher.UIThread.InvokeAsync(() => instructionsExpander.IsExpanded = true);
 				}
 				else
 				{
@@ -4736,6 +4736,18 @@ namespace KOTORModSync
 		}
 
 		private void UpdateAutoGenerateButtonState()
+		{
+			if (Dispatcher.UIThread.CheckAccess())
+			{
+				UpdateAutoGenerateButtonStateCore();
+			}
+			else
+			{
+				Dispatcher.UIThread.Post(UpdateAutoGenerateButtonStateCore);
+			}
+		}
+
+		private void UpdateAutoGenerateButtonStateCore()
 		{
 			try
 			{

@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Avalonia.Controls;
+using Avalonia.Threading;
 
 using KOTORModSync.Converters;
 using KOTORModSync.Core;
@@ -38,7 +39,7 @@ namespace KOTORModSync.Services
 
 				var startFolder = _mainConfig.sourcePath != null
 					? await _dialogService.GetStorageFolderFromPathAsync( _mainConfig.sourcePath.FullName )
-.ConfigureAwait( false ) : null;
+.ConfigureAwait(true) : null;
 
 				string[] filePaths = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: false,
@@ -51,7 +52,7 @@ namespace KOTORModSync.Services
 
 
 
-				).ConfigureAwait( false );
+				).ConfigureAwait(true);
 
 				if (filePaths is null || filePaths.Length == 0)
 				{
@@ -87,14 +88,17 @@ namespace KOTORModSync.Services
 
 				if (sourceTextBox != null)
 				{
-					string convertedItems = new ListToStringConverter().Convert(
-						files,
-						typeof( string ),
-						parameter: null,
-						CultureInfo.CurrentCulture
-					) as string;
+					await Dispatcher.UIThread.InvokeAsync(() =>
+					{
+						string convertedItems = new ListToStringConverter().Convert(
+							files,
+							typeof( string ),
+							parameter: null,
+							CultureInfo.CurrentCulture
+						) as string;
 
-					sourceTextBox.Text = convertedItems;
+						sourceTextBox.Text = convertedItems;
+					});
 				}
 			}
 			catch (Exception ex)
@@ -112,7 +116,7 @@ namespace KOTORModSync.Services
 
 				var startFolder = _mainConfig.sourcePath != null
 					? await _dialogService.GetStorageFolderFromPathAsync( _mainConfig.sourcePath.FullName )
-.ConfigureAwait( false ) : null;
+.ConfigureAwait(true) : null;
 
 				string[] folderPaths = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: true,
@@ -123,7 +127,7 @@ namespace KOTORModSync.Services
 
 
 
-				).ConfigureAwait( false );
+				).ConfigureAwait(true);
 
 				if (folderPaths is null || folderPaths.Length == 0)
 				{
@@ -141,14 +145,17 @@ namespace KOTORModSync.Services
 
 				if (sourceTextBox != null)
 				{
-					string convertedItems = new ListToStringConverter().Convert(
-						modifiedFolders,
-						typeof( string ),
-						parameter: null,
-						CultureInfo.CurrentCulture
-					) as string;
+					await Dispatcher.UIThread.InvokeAsync(() =>
+					{
+						string convertedItems = new ListToStringConverter().Convert(
+							modifiedFolders,
+							typeof( string ),
+							parameter: null,
+							CultureInfo.CurrentCulture
+						) as string;
 
-					sourceTextBox.Text = convertedItems;
+						sourceTextBox.Text = convertedItems;
+					});
 				}
 			}
 			catch (Exception ex)
@@ -166,7 +173,7 @@ namespace KOTORModSync.Services
 
 				var startFolder = _mainConfig.destinationPath != null
 					? await _dialogService.GetStorageFolderFromPathAsync( _mainConfig.destinationPath.FullName )
-.ConfigureAwait( false ) : null;
+.ConfigureAwait(true) : null;
 
 				string[] result = await _dialogService.ShowFileDialogAsync(
 					isFolderDialog: true,
@@ -175,7 +182,7 @@ namespace KOTORModSync.Services
 					windowName: "Select destination folder"
 
 
-				).ConfigureAwait( false );
+				).ConfigureAwait(true);
 
 				if (result is null || result.Length <= 0)
 					return;
@@ -202,7 +209,12 @@ namespace KOTORModSync.Services
 				}
 
 				if (destinationTextBox != null)
-					destinationTextBox.Text = instruction.Destination;
+				{
+					await Dispatcher.UIThread.InvokeAsync(() =>
+					{
+						destinationTextBox.Text = instruction.Destination;
+					});
+				}
 			}
 			catch (Exception ex)
 			{

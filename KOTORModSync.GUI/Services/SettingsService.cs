@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Avalonia.Controls;
+using Avalonia.Threading;
 
 using KOTORModSync.Controls;
 using KOTORModSync.Core;
@@ -20,93 +21,109 @@ namespace KOTORModSync.Services
 		private readonly MainConfig _mainConfig;
 		private readonly Window _parentWindow;
 
-		public SettingsService( MainConfig mainConfig, Window parentWindow )
+		public SettingsService(MainConfig mainConfig, Window parentWindow)
 		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException( nameof( mainConfig ) );
-			_parentWindow = parentWindow ?? throw new ArgumentNullException( nameof( parentWindow ) );
+			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
+			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
 		}
 
-		public (AppSettings Settings, string Theme) LoadSettings()
+		public (AppSettings Settings, string Theme, bool SpoilerFreeMode) LoadSettings()
 		{
 			try
 			{
 				AppSettings settings = SettingsManager.LoadSettings();
-				settings.ApplyToMainConfig( _mainConfig, out string theme );
+				settings.ApplyToMainConfig(_mainConfig, out string theme, out bool spoilerFreeMode);
 
-				Logger.LogVerbose( "Settings loaded successfully" );
-				return (settings, theme);
+				Logger.LogVerbose("Settings loaded successfully");
+				return (settings, theme, spoilerFreeMode);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Failed to load settings" );
-				return (new AppSettings(), null);
+				Logger.LogException(ex, "Failed to load settings");
+				return (new AppSettings(), null, false);
 			}
 		}
 
-		public void SaveSettings( string currentTheme )
+		public void SaveSettings(string currentTheme, bool spoilerFreeMode)
 		{
 			try
 			{
-				var settings = AppSettings.FromCurrentState( _mainConfig, currentTheme );
-				SettingsManager.SaveSettings( settings );
+				var settings = AppSettings.FromCurrentState(_mainConfig, currentTheme, spoilerFreeMode);
+				SettingsManager.SaveSettings(settings);
 
-				Logger.LogVerbose( "Settings saved successfully" );
+				Logger.LogVerbose("Settings saved successfully");
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Failed to save settings" );
+				Logger.LogException(ex, "Failed to save settings");
 			}
 		}
 
 		public static void UpdateDirectoryPickersFromSettings(
 			AppSettings settings,
-			Func<string, DirectoryPickerControl> findControl )
+			Func<string, DirectoryPickerControl> findControl)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateDirectoryPickersFromSettings(settings, findControl), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 
-				if (!string.IsNullOrEmpty( settings.SourcePath ))
+				if (!string.IsNullOrEmpty(settings.SourcePath))
 				{
-					DirectoryPickerControl modPicker = findControl( "ModDirectoryPicker" );
-					DirectoryPickerControl step1ModPicker = findControl( "Step1ModDirectoryPicker" );
+					DirectoryPickerControl modPicker = findControl("ModDirectoryPicker");
+					DirectoryPickerControl step1ModPicker = findControl("Step1ModDirectoryPicker");
 
-					SettingsService.UpdateDirectoryPickerWithPath( modPicker, settings.SourcePath );
-					SettingsService.UpdateDirectoryPickerWithPath( step1ModPicker, settings.SourcePath );
+					SettingsService.UpdateDirectoryPickerWithPath(modPicker, settings.SourcePath);
+					SettingsService.UpdateDirectoryPickerWithPath(step1ModPicker, settings.SourcePath);
 				}
 
-				if (!string.IsNullOrEmpty( settings.DestinationPath ))
+				if (!string.IsNullOrEmpty(settings.DestinationPath))
 				{
-					DirectoryPickerControl kotorPicker = findControl( "KotorDirectoryPicker" );
-					DirectoryPickerControl step1KotorPicker = findControl( "Step1KotorDirectoryPicker" );
+					DirectoryPickerControl kotorPicker = findControl("KotorDirectoryPicker");
+					DirectoryPickerControl step1KotorPicker = findControl("Step1KotorDirectoryPicker");
 
-					SettingsService.UpdateDirectoryPickerWithPath( kotorPicker, settings.DestinationPath );
-					SettingsService.UpdateDirectoryPickerWithPath( step1KotorPicker, settings.DestinationPath );
+					SettingsService.UpdateDirectoryPickerWithPath(kotorPicker, settings.DestinationPath);
+					SettingsService.UpdateDirectoryPickerWithPath(step1KotorPicker, settings.DestinationPath);
 				}
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Failed to update directory pickers from settings" );
+				Logger.LogException(ex, "Failed to update directory pickers from settings");
 			}
 		}
 
-		private static void UpdateDirectoryPickerWithPath( DirectoryPickerControl picker, string path )
+		private static void UpdateDirectoryPickerWithPath(DirectoryPickerControl picker, string path)
 		{
-			if (picker is null || string.IsNullOrEmpty( path ))
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateDirectoryPickerWithPath(picker, path), DispatcherPriority.Normal);
+				return;
+			}
+			if (picker is null || string.IsNullOrEmpty(path))
 				return;
 
 			try
 			{
-				picker.SetCurrentPathFromSettings( path );
+				if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+				{
+					Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateDirectoryPickerWithPath(picker, path), DispatcherPriority.Normal);
+					return;
+				}
 
-				ComboBox comboBox = picker.FindControl<ComboBox>( "PathSuggestions" );
+				picker.SetCurrentPathFromSettings(path);
+
+				ComboBox comboBox = picker.FindControl<ComboBox>("PathSuggestions");
 				if (comboBox != null)
 				{
 					var currentItems = (comboBox.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
-					if (!currentItems.Contains( path, StringComparer.Ordinal ))
+					if (!currentItems.Contains(path, StringComparer.Ordinal))
 					{
-						currentItems.Insert( 0, path );
+						currentItems.Insert(0, path);
 						if (currentItems.Count > 20)
-							currentItems = currentItems.Take( 20 ).ToList();
+							currentItems = currentItems.Take(20).ToList();
 						comboBox.ItemsSource = currentItems;
 					}
 
@@ -115,69 +132,79 @@ namespace KOTORModSync.Services
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, $"Failed to update directory picker with path: {path}" );
+				Logger.LogException(ex, $"Failed to update directory picker with path: {path}");
 			}
 		}
 
 		public static void SyncDirectoryPickers(
 			DirectoryPickerType pickerType,
 			string path,
-			Func<string, DirectoryPickerControl> findControl )
+			Func<string, DirectoryPickerControl> findControl)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => SyncDirectoryPickers(pickerType, path, findControl), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				var allPickers = new List<DirectoryPickerControl>();
 
 				if (pickerType == DirectoryPickerType.ModDirectory)
 				{
-					DirectoryPickerControl mainPicker = findControl( "ModDirectoryPicker" );
-					DirectoryPickerControl step1Picker = findControl( "Step1ModDirectoryPicker" );
+					DirectoryPickerControl mainPicker = findControl("ModDirectoryPicker");
+					DirectoryPickerControl step1Picker = findControl("Step1ModDirectoryPicker");
 
-					if (mainPicker != null) allPickers.Add( mainPicker );
-					if (step1Picker != null) allPickers.Add( step1Picker );
+					if (mainPicker != null) allPickers.Add(mainPicker);
+					if (step1Picker != null) allPickers.Add(step1Picker);
 				}
 				else if (pickerType == DirectoryPickerType.KotorDirectory)
 				{
-					DirectoryPickerControl mainPicker = findControl( "KotorDirectoryPicker" );
-					DirectoryPickerControl step1Picker = findControl( "Step1KotorDirectoryPicker" );
+					DirectoryPickerControl mainPicker = findControl("KotorDirectoryPicker");
+					DirectoryPickerControl step1Picker = findControl("Step1KotorDirectoryPicker");
 
-					if (mainPicker != null) allPickers.Add( mainPicker );
-					if (step1Picker != null) allPickers.Add( step1Picker );
+					if (mainPicker != null) allPickers.Add(mainPicker);
+					if (step1Picker != null) allPickers.Add(step1Picker);
 				}
 
 				foreach (DirectoryPickerControl picker in allPickers)
-					picker.SetCurrentPathFromSettings( path );
+					picker.SetCurrentPathFromSettings(path);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error synchronizing directory pickers" );
+				Logger.LogException(ex, "Error synchronizing directory pickers");
 			}
 		}
 
-		public void InitializeDirectoryPickers( Func<string, DirectoryPickerControl> findControl )
+		public void InitializeDirectoryPickers(Func<string, DirectoryPickerControl> findControl)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => InitializeDirectoryPickers(findControl), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
-				DirectoryPickerControl modPicker = findControl( "ModDirectoryPicker" );
-				DirectoryPickerControl kotorPicker = findControl( "KotorDirectoryPicker" );
-				DirectoryPickerControl step1ModPicker = findControl( "Step1ModDirectoryPicker" );
-				DirectoryPickerControl step1KotorPicker = findControl( "Step1KotorDirectoryPicker" );
+				DirectoryPickerControl modPicker = findControl("ModDirectoryPicker");
+				DirectoryPickerControl kotorPicker = findControl("KotorDirectoryPicker");
+				DirectoryPickerControl step1ModPicker = findControl("Step1ModDirectoryPicker");
+				DirectoryPickerControl step1KotorPicker = findControl("Step1KotorDirectoryPicker");
 
 				if (modPicker != null && _mainConfig.sourcePath != null)
-					modPicker.SetCurrentPathFromSettings( _mainConfig.sourcePath.FullName );
+					modPicker.SetCurrentPathFromSettings(_mainConfig.sourcePath.FullName);
 
 				if (kotorPicker != null && _mainConfig.destinationPath != null)
-					kotorPicker.SetCurrentPathFromSettings( _mainConfig.destinationPath.FullName );
+					kotorPicker.SetCurrentPathFromSettings(_mainConfig.destinationPath.FullName);
 
 				if (step1ModPicker != null && _mainConfig.sourcePath != null)
-					step1ModPicker.SetCurrentPathFromSettings( _mainConfig.sourcePath.FullName );
+					step1ModPicker.SetCurrentPathFromSettings(_mainConfig.sourcePath.FullName);
 
 				if (step1KotorPicker != null && _mainConfig.destinationPath != null)
-					step1KotorPicker.SetCurrentPathFromSettings( _mainConfig.destinationPath.FullName );
+					step1KotorPicker.SetCurrentPathFromSettings(_mainConfig.destinationPath.FullName);
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException( ex, "Error initializing directory pickers" );
+				Logger.LogException(ex, "Error initializing directory pickers");
 			}
 		}
 	}

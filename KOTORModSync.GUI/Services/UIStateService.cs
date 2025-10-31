@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -8,6 +8,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 using KOTORModSync.Core;
 
@@ -36,6 +37,11 @@ namespace KOTORModSync.Services
 			bool editorMode,
 			Func<ModComponent, bool> isComponentValidFunc )
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateStepProgress(step1Border, step1Indicator, step1Text, step2Border, step2Indicator, step2Text, step3Border, step3Indicator, step3Text, step4Border, step4Indicator, step4Text, step5Border, step5Indicator, step5Text, progressBar, progressText, step5Check, editorMode, isComponentValidFunc), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				bool canUpdateProgress = progressBar != null && progressText != null;
@@ -77,8 +83,8 @@ namespace KOTORModSync.Services
 				UpdateStepCompletion( step5Border, step5Indicator, step5Text, step5Complete );
 
 				int completedSteps = (step1Complete ? 1 : 0) + (step2Complete ? 1 : 0) +
-									(step3Complete ? 1 : 0) + (step4Complete ? 1 : 0) +
-									(step5Complete ? 1 : 0);
+										(step3Complete ? 1 : 0) + (step4Complete ? 1 : 0) +
+										(step5Complete ? 1 : 0);
 
 				if (!canUpdateProgress)
 					return;
@@ -102,6 +108,11 @@ namespace KOTORModSync.Services
 
 	private static void UpdateStepCompletion( Border stepBorder, Border indicator, TextBlock text, bool isComplete )
 	{
+		if (!Dispatcher.UIThread.CheckAccess())
+		{
+			Dispatcher.UIThread.Post(() => UpdateStepCompletion(stepBorder, indicator, text, isComplete), DispatcherPriority.Normal);
+			return;
+		}
 		if (stepBorder is null || indicator is null || text is null)
 			return;
 

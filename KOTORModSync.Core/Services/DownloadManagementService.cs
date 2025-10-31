@@ -26,14 +26,13 @@ namespace KOTORModSync.Core.Services
 			_downloadCacheService = downloadCacheService ?? throw new ArgumentNullException(nameof(downloadCacheService));
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static async Task<string> DownloadModFromUrl(string url, ModComponent component, CancellationToken cancellationToken = default)
 
 		{
 			try
 			{
-				await Logger.LogVerboseAsync($"[DownloadModFromUrl] Starting download from: {url}")
-
-.ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DownloadModFromUrl] Starting download from: {url}").ConfigureAwait(false);
 
 				DownloadProgress progress = new DownloadProgress
 				{
@@ -51,14 +50,7 @@ namespace KOTORModSync.Core.Services
 				string tempDir = Path.Combine(Path.GetTempPath(), "KOTORModSync_AutoGen_" + shortGuid);
 				_ = Directory.CreateDirectory(tempDir);
 
-				await Logger.LogVerboseAsync($"[DownloadModFromUrl] Created temporary directory: {tempDir}")
-
-
-
-
-
-
-.ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DownloadModFromUrl] Created temporary directory: {tempDir}").ConfigureAwait(false);
 
 				Progress<DownloadProgress> progressReporter = new Progress<DownloadProgress>(update =>
 				{
@@ -78,18 +70,6 @@ namespace KOTORModSync.Core.Services
 				{
 					string downloadedPath = results[0].FilePath;
 					await Logger.LogVerboseAsync($"[DownloadModFromUrl] Download successful: {downloadedPath}").ConfigureAwait(false);
-
-
-
-
-
-
-
-
-
-
-
-
 					return downloadedPath;
 				}
 				else
@@ -116,6 +96,7 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static async Task ProcessDownloadCompletions(
 			Dictionary<string, DownloadProgress> urlToProgressMap,
 			IReadOnlyList<ModComponent> componentsToDownload)
@@ -168,16 +149,17 @@ namespace KOTORModSync.Core.Services
 					{
 						await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] File already referenced in instructions: {fileName}").ConfigureAwait(false);
 
-						Guid existingExtractGuid = DownloadCacheService.GetExtractInstructionGuid(modLink);
-
-						DownloadCacheEntry cacheEntry = new DownloadCacheEntry
+						// Update resource-index and ModLinkFilenames
+						await DownloadCacheService.UpdateResourceMetadataWithFilenamesAsync(component, modLink, new List<string> { fileName }).ConfigureAwait(false);
+						if (!component.ModLinkFilenames.TryGetValue(modLink, out Dictionary<string, bool?> filenamesDict))
 						{
-							Url = modLink,
-							FileName = fileName,
-							IsArchiveFile = isArchive,
-							ExtractInstructionGuid = existingExtractGuid,
-						};
-						DownloadCacheService.AddOrUpdate(modLink, cacheEntry);
+							filenamesDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+							component.ModLinkFilenames[modLink] = filenamesDict;
+						}
+						if (!filenamesDict.ContainsKey(fileName))
+						{
+							filenamesDict[fileName] = true;
+						}
 						continue;
 					}
 
@@ -186,7 +168,6 @@ namespace KOTORModSync.Core.Services
 
 						Instruction extractInstruction = new Instruction
 						{
-							Guid = Guid.NewGuid(),
 							Action = Instruction.ActionType.Extract,
 							Source = new List<string> { $@"<<modDirectory>>\{fileName}" },
 							Destination = $@"<<modDirectory>>\{Path.GetFileNameWithoutExtension(fileName)}",
@@ -197,28 +178,34 @@ namespace KOTORModSync.Core.Services
 
 						await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] Created Extract instruction for archive: {fileName}").ConfigureAwait(false);
 
-						DownloadCacheEntry cacheEntry = new DownloadCacheEntry
+						// Update resource-index and ModLinkFilenames
+						await DownloadCacheService.UpdateResourceMetadataWithFilenamesAsync(component, modLink, new List<string> { fileName }).ConfigureAwait(false);
+						if (!component.ModLinkFilenames.TryGetValue(modLink, out Dictionary<string, bool?> filenamesDict))
 						{
-							Url = modLink,
-							FileName = fileName,
-							IsArchiveFile = true,
-							ExtractInstructionGuid = extractInstruction.Guid,
-						};
-						DownloadCacheService.AddOrUpdate(modLink, cacheEntry);
+							filenamesDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+							component.ModLinkFilenames[modLink] = filenamesDict;
+						}
+						if (!filenamesDict.ContainsKey(fileName))
+						{
+							filenamesDict[fileName] = true;
+						}
 					}
 					else
 					{
 
 						await Logger.LogWarningAsync($"[ProcessDownloadCompletions] Downloaded single file (not an archive): {fileName}").ConfigureAwait(false);
 
-						DownloadCacheEntry cacheEntry = new DownloadCacheEntry
+						// Update resource-index and ModLinkFilenames
+						await DownloadCacheService.UpdateResourceMetadataWithFilenamesAsync(component, modLink, new List<string> { fileName }).ConfigureAwait(false);
+						if (!component.ModLinkFilenames.TryGetValue(modLink, out Dictionary<string, bool?> filenamesDict))
 						{
-							Url = modLink,
-							FileName = fileName,
-							IsArchiveFile = false,
-							ExtractInstructionGuid = Guid.Empty,
-						};
-						DownloadCacheService.AddOrUpdate(modLink, cacheEntry);
+							filenamesDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+							component.ModLinkFilenames[modLink] = filenamesDict;
+						}
+						if (!filenamesDict.ContainsKey(fileName))
+						{
+							filenamesDict[fileName] = true;
+						}
 					}
 				}
 			}

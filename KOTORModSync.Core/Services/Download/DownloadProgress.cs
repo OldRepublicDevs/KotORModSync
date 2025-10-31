@@ -578,6 +578,7 @@ Url
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public enum DownloadStatus
 	{
 		Pending,

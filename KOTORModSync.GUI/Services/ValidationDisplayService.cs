@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Avalonia.Controls;
+using Avalonia.Threading;
 
 using KOTORModSync.Core;
 
@@ -34,6 +35,11 @@ namespace KOTORModSync.Services
 			Border validationSuccessArea,
 			Func<ModComponent, bool> isComponentValid )
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => ShowValidationResults(validationResultsArea, validationSummaryText, errorNavigationArea, errorDetailsArea, validationSuccessArea, isComponentValid), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				var mainComponents = _getMainComponents();
@@ -95,6 +101,11 @@ namespace KOTORModSync.Services
 			Button prevErrorButton,
 			Button nextErrorButton )
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateErrorDisplay(errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)

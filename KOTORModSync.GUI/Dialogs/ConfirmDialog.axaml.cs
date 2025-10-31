@@ -1,10 +1,11 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 
 namespace KOTORModSync.Dialogs
 {
@@ -17,24 +18,31 @@ namespace KOTORModSync.Dialogs
 
 		public ConfirmDialog( string title, string message, string confirmText = "Confirm", string cancelText = "Cancel" ) : this()
 		{
-			Title = title;
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() =>
+				{
+					Title = title;
 
-			var titleText = this.FindControl<TextBlock>( "TitleText" );
-			var messageText = this.FindControl<TextBlock>( "MessageText" );
-			var confirmButton = this.FindControl<Button>( "ConfirmButton" );
-			var cancelButton = this.FindControl<Button>( "CancelButton" );
+					var titleText = this.FindControl<TextBlock>( "TitleText" );
+					var messageText = this.FindControl<TextBlock>( "MessageText" );
+					var confirmButton = this.FindControl<Button>( "ConfirmButton" );
+					var cancelButton = this.FindControl<Button>( "CancelButton" );
 
-			if (titleText != null)
-				titleText.Text = title;
+					if (titleText != null)
+						titleText.Text = title;
 
-			if (messageText != null)
-				messageText.Text = message;
+					if (messageText != null)
+						messageText.Text = message;
 
-			if (confirmButton != null)
-				confirmButton.Content = confirmText;
+					if (confirmButton != null)
+						confirmButton.Content = confirmText;
 
-			if (cancelButton != null)
-				cancelButton.Content = cancelText;
+					if (cancelButton != null)
+						cancelButton.Content = cancelText;
+				}, DispatcherPriority.Normal);
+				return;
+			}
 		}
 
 		private void InitializeComponent()

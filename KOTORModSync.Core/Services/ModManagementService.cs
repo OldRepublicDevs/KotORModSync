@@ -808,8 +808,10 @@ namespace KOTORModSync.Core.Services
 				}
 			}
 
-			foreach ((ModComponent existing, ModComponent imported) in matchedPairs)
+			foreach (var item in matchedPairs)
 			{
+				ModComponent existing = item.Item1;
+				ModComponent imported = item.Item2;
 
 				existing.Name = imported.Name;
 				existing.Author = imported.Author;

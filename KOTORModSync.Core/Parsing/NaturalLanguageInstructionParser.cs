@@ -605,7 +605,7 @@ namespace KOTORModSync.Core.Parsing
 			string[] actionVerbs = { "move", "copy", "delete", "remove", "install", "apply", "run", "execute",
 									 "extract", "unzip", "place", "put", "rename", "download", "use", "select", };
 
-			return actionVerbs.Any(verb => lower.Contains(" " + verb + " ") || lower.StartsWith(verb + " ", StringComparison.Ordinal));
+			return actionVerbs.Any(verb => lower.IndexOf(" " + verb + " ", StringComparison.OrdinalIgnoreCase) >= 0 || lower.StartsWith(verb + " ", StringComparison.Ordinal));
 		}
 
 		/// <summary>
@@ -620,7 +620,6 @@ namespace KOTORModSync.Core.Parsing
 		{
 			Instruction instruction = new Instruction
 			{
-				Guid = Guid.NewGuid(),
 				Action = pattern.ActionType,
 				Source = new List<string>(),
 				Overwrite = true,
@@ -1008,7 +1007,7 @@ namespace KOTORModSync.Core.Parsing
 			// Check for direct mappings
 			foreach (KeyValuePair<string, string> mapping in s_destinationMappings)
 			{
-				if (lower.Contains(mapping.Key) || lower.Equals(mapping.Key.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
+				if (lower.IndexOf(mapping.Key, StringComparison.OrdinalIgnoreCase) >= 0 || lower.Equals(mapping.Key.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
 				{
 					return mapping.Value;
 				}

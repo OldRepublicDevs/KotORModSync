@@ -224,6 +224,7 @@ namespace KOTORModSync.Core.Services
 		}
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class InstallationErrorEventArgs : EventArgs
 	{
 		public ModComponent Component { get; set; }
@@ -234,6 +235,7 @@ namespace KOTORModSync.Core.Services
 		public string SessionId { get; set; }
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class WidescreenNotificationEventArgs : EventArgs
 	{
 		public ModComponent Component { get; set; }
@@ -243,6 +245,7 @@ namespace KOTORModSync.Core.Services
 		public bool DontShowAgain { get; set; }
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class InstallProgress
 	{
 		public InstallPhase Phase { get; set; }
@@ -252,6 +255,7 @@ namespace KOTORModSync.Core.Services
 		public string ComponentName { get; set; }
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public enum InstallPhase
 	{
 		Initializing,

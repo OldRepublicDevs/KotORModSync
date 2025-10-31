@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using JetBrains.Annotations;
@@ -51,23 +52,26 @@ namespace KOTORModSync.Services
 			if (scrollViewer is null)
 				throw new ArgumentNullException(nameof(scrollViewer));
 
-			double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
-			double clampedOffset = Math.Max(0, Math.Min(targetOffset, maxOffset));
-
-			double currentOffset = scrollViewer.Offset.Y;
-			double distance = clampedOffset - currentOffset;
-			double stepSize = distance / animationSteps;
-
-			for (int i = 0; i < animationSteps; i++)
+			await Dispatcher.UIThread.InvokeAsync(async () =>
 			{
-				currentOffset += stepSize;
-				scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset);
+				double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+				double clampedOffset = Math.Max(0, Math.Min(targetOffset, maxOffset));
 
-				// Use ConfigureAwait(true) to keep continuation on UI thread for subsequent UI updates
-				await Task.Delay(stepDelayMs).ConfigureAwait(true);
-			}
+				double currentOffset = scrollViewer.Offset.Y;
+				double distance = clampedOffset - currentOffset;
+				double stepSize = distance / animationSteps;
 
-			scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedOffset);
+				for (int i = 0; i < animationSteps; i++)
+				{
+					currentOffset += stepSize;
+					scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset);
+
+					// Use ConfigureAwait(true) to keep continuation on UI thread for subsequent UI updates
+					await Task.Delay(stepDelayMs).ConfigureAwait(true);
+				}
+
+				scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedOffset);
+			});
 		}
 
 
@@ -103,9 +107,12 @@ namespace KOTORModSync.Services
 		{
 			if (expander != null && !expander.IsExpanded)
 			{
-				expander.IsExpanded = true;
-				// Use ConfigureAwait(true) to keep continuation on UI thread
-				await Task.Delay(waitTimeMs).ConfigureAwait(true);
+				await Dispatcher.UIThread.InvokeAsync(async () =>
+				{
+					expander.IsExpanded = true;
+					// Use ConfigureAwait(true) to keep continuation on UI thread
+					await Task.Delay(waitTimeMs).ConfigureAwait(true);
+				});
 			}
 		}
 
@@ -114,9 +121,12 @@ namespace KOTORModSync.Services
 		{
 			if (tabItem != null)
 			{
-				tabItem.IsSelected = true;
-				// Use ConfigureAwait(true) to keep continuation on UI thread
-				await Task.Delay(waitTimeMs).ConfigureAwait(true);
+				await Dispatcher.UIThread.InvokeAsync(async () =>
+				{
+					tabItem.IsSelected = true;
+					// Use ConfigureAwait(true) to keep continuation on UI thread
+					await Task.Delay(waitTimeMs).ConfigureAwait(true);
+				});
 			}
 		}
 

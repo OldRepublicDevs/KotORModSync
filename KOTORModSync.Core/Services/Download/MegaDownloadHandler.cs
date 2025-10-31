@@ -24,7 +24,6 @@ namespace KOTORModSync.Core.Services.Download
 		public bool CanHandle(string url)
 		{
 			bool canHandle = url != null && url.IndexOf("mega.nz", StringComparison.OrdinalIgnoreCase) >= 0;
-			Logger.LogVerbose($"[MEGA] CanHandle check for URL '{url}': {canHandle}");
 			return canHandle;
 		}
 

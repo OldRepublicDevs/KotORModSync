@@ -78,12 +78,21 @@ namespace KOTORModSync.Converters
 
 					return "→ (choose from options)";
 
-				case Instruction.ActionType.Run:
+			case Instruction.ActionType.Run:
 
-					return "→ (run program)";
+				return "→ (run program)";
 
-				default:
-					return "→ (unknown operation)";
+			case Instruction.ActionType.CleanList:
+
+				if (!string.IsNullOrEmpty( instruction.Destination ))
+				{
+					string resolvedDestination = ResolvePath( instruction.Destination );
+					return $"→ clean files in {resolvedDestination}";
+				}
+				return "→ (clean conflicting files)";
+
+			default:
+				return "→ (unknown operation)";
 			}
 		}
 

@@ -81,7 +81,7 @@ namespace KOTORModSync.Dialogs
 					progressReporter,
 					sequential: false,
 					_cancellationTokenSource.Token
-				).ConfigureAwait(false);
+				).ConfigureAwait(true);
 
 				await Logger.LogVerboseAsync($"[SingleModDownloadDialog] Download completed, {results.Count} entries returned").ConfigureAwait(false);
 

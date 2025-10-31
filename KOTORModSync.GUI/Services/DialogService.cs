@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Platform.Storage;
 
 using JetBrains.Annotations;
@@ -37,45 +38,41 @@ namespace KOTORModSync.Services
 			try
 			{
 				if (_parentWindow?.StorageProvider is null)
-
-
 				{
 					await Logger.LogErrorAsync($"Could not open {(isFolderDialog ? "folder" : "file")} dialog - storage provider not available").ConfigureAwait(false);
 					return null;
 				}
 
-				if (isFolderDialog)
+				return await Dispatcher.UIThread.InvokeAsync(async () =>
 				{
-					IReadOnlyList<IStorageFolder> result = await _parentWindow.StorageProvider.OpenFolderPickerAsync(
-						new FolderPickerOpenOptions
-						{
-							Title = windowName ?? "Choose the folder",
-							AllowMultiple = allowMultiple,
-							SuggestedStartLocation = startFolder,
-
-
-						}
-					).ConfigureAwait(true);
-					return result.Select(s => s.TryGetLocalPath()).ToArray();
-				}
-				else
-				{
-					IReadOnlyList<IStorageFile> result = await _parentWindow.StorageProvider.OpenFilePickerAsync(
-						new FilePickerOpenOptions
-						{
-							Title = windowName ?? "Choose the file(s)",
-							AllowMultiple = allowMultiple,
-							FileTypeFilter = new[] { FilePickerFileTypes.All, FilePickerFileTypes.TextPlain },
-						}
-					).ConfigureAwait(true);
-					string[] files = result.Select(s => s.TryGetLocalPath()).ToArray();
-					if (files.Length > 0)
-						return files;
-				}
+					if (isFolderDialog)
+					{
+						IReadOnlyList<IStorageFolder> result = await _parentWindow.StorageProvider.OpenFolderPickerAsync(
+							new FolderPickerOpenOptions
+							{
+								Title = windowName ?? "Choose the folder",
+								AllowMultiple = allowMultiple,
+								SuggestedStartLocation = startFolder,
+							}
+						).ConfigureAwait(true);
+						return result.Select(s => s.TryGetLocalPath()).ToArray();
+					}
+					else
+					{
+						IReadOnlyList<IStorageFile> result = await _parentWindow.StorageProvider.OpenFilePickerAsync(
+							new FilePickerOpenOptions
+							{
+								Title = windowName ?? "Choose the file(s)",
+								AllowMultiple = allowMultiple,
+								FileTypeFilter = new[] { FilePickerFileTypes.All, FilePickerFileTypes.TextPlain },
+							}
+						).ConfigureAwait(true);
+						string[] files = result.Select(s => s.TryGetLocalPath()).ToArray();
+						return files.Length > 0 ? files : null;
+					}
+				}).ConfigureAwait(true);
 			}
 			catch (Exception ex)
-
-
 			{
 				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
 			}
@@ -94,23 +91,22 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
-				IStorageFile file = await _parentWindow.StorageProvider.SaveFilePickerAsync(
-					new FilePickerSaveOptions
-					{
-						Title = windowName,
-						DefaultExtension = defaultExtension,
-						SuggestedFileName = suggestedFileName,
-						FileTypeChoices = fileTypeChoices ?? new List<FilePickerFileType> { FilePickerFileTypes.All },
+				return await Dispatcher.UIThread.InvokeAsync(async () =>
+				{
+					IStorageFile file = await _parentWindow.StorageProvider.SaveFilePickerAsync(
+						new FilePickerSaveOptions
+						{
+							Title = windowName,
+							DefaultExtension = defaultExtension,
+							SuggestedFileName = suggestedFileName,
+							FileTypeChoices = fileTypeChoices ?? new List<FilePickerFileType> { FilePickerFileTypes.All },
+						}
+					).ConfigureAwait(true);
 
-
-					}
-				).ConfigureAwait(true);
-
-				return file?.TryGetLocalPath();
+					return file?.TryGetLocalPath();
+				}).ConfigureAwait(true);
 			}
 			catch (Exception ex)
-
-
 			{
 				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
 				await InformationDialog.ShowInformationDialogAsync(_parentWindow, $"Error opening save file dialog: {ex.Message}.").ConfigureAwait(true);

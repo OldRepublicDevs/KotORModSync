@@ -1,25 +1,515 @@
+# EditorConfig is awesome: https://editorconfig.org
+
+# Top-most EditorConfig file
+root = true
+
+# All files
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Code files
+[*.{cs,csx,vb,vbx}]
+indent_size = 4
+indent_style = space
+
+# XML project files
+[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
+indent_size = 2
+indent_style = space
+
+# XML config files
+[*.{props,targets,ruleset,config,nuspec,resx,vsixmanifest,vsct}]
+indent_size = 2
+indent_style = space
+
+# JSON files
+[*.json]
+indent_size = 2
+indent_style = space
+
+# YAML files
+[*.{yml,yaml}]
+indent_size = 2
+indent_style = space
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+
+# C# files - Coding style rules compatible with C# 7.3 and .NET Framework 4.8
 [*.cs]
 
+#### IMPORTANT: C# 7.3 / .NET Framework 4.8 Compatibility ####
+# This project targets .NET Framework 4.8 which supports C# 7.3 maximum.
+# The following C# 8+ features are DISABLED to prevent IDE suggestions that aren't compatible:
+# - C# 8: switch expressions, range/index operators, async streams, nullable reference types, default interface methods
+# - C# 9: init-only properties, records, target-typed new, pattern matching improvements
+# - C# 10: file-scoped namespaces, record structs, extended property patterns
+# - C# 11: required members, raw string literals
+# - C# 12: primary constructors, collection expressions, inline arrays
+# These rules suppress IDE suggestions for incompatible features when using .NET 9+ tooling.
+
+#### Core EditorConfig Options ####
+
+# Indentation preferences
+indent_size = 4
+indent_style = space
+tab_width = 4
+
+# New line preferences
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+#### .NET Coding Conventions ####
+
+# Organize usings
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# this. preferences
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# Language keywords vs BCL types preferences
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+
+# Parentheses preferences
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_operators = never_if_unnecessary:silent
+
+# Modifier preferences
+dotnet_style_require_accessibility_modifiers = always:warning
+dotnet_style_readonly_field = true:warning
+
+# Expression-level preferences
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_explicit_tuple_names = true:warning
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+dotnet_style_prefer_inferred_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
+dotnet_style_prefer_auto_properties = true:silent
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_prefer_conditional_expression_over_return = true:silent
+
+# Null-checking preferences (compatible with C# 7.3 - nullable reference types not enabled)
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_prefer_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_prefer_pattern_matching_over_as_and_null_check = true:suggestion
+
+#### C# Coding Conventions ####
+
+# var preferences
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# Expression-bodied members
+csharp_style_expression_bodied_methods = false:silent
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_operators = false:silent
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_indexers = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+
+# Pattern matching preferences (C# 7.3 compatible)
+csharp_style_pattern_matching_over_is_with_cast_check = true:warning
+csharp_style_pattern_matching_over_as_and_null_check = true:warning
+
+# Null-checking preferences
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:warning
+
+# Modifier preferences
+csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
+
+# Code-block preferences
+csharp_prefer_braces = true:warning
+# csharp_prefer_simple_using_statement disabled below (C# 8 feature)
+# csharp_prefer_simple_default_expression = true:suggestion (C# 7.3 compatible)
+csharp_prefer_simple_default_expression = true:suggestion
+
+# Expression-level preferences
+csharp_prefer_conditional_expression_over_assignment = true:silent
+csharp_prefer_conditional_expression_over_return = true:silent
+csharp_style_prefer_switch_expression = false:none
+# csharp_style_prefer_index_operator - disabled below (C# 8 feature, limited C# 7.3 support)
+# csharp_style_prefer_range_operator - disabled below (C# 8 feature)
+# csharp_style_implicit_object_creation_when_type_is_apparent - disabled below (C# 9 feature)
+
+# Null-checking preferences (C# 7.3 compatible - no nullable reference types)
+# csharp_style_prefer_not_pattern - disabled below (C# 9 'not' pattern)
+
+#### C# Formatting Rules ####
+
+# New line preferences
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+csharp_new_line_between_query_expression_clauses = true
+
+# Indentation preferences
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_indent_labels = one_less_than_current
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_case_labels = false
+csharp_indent_labels = no_change
+
+# Space preferences
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_parentheses = false
+csharp_space_before_colon_in_inheritance_clause = true
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_around_binary_operators = before_and_after
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false
+csharp_space_between_method_declaration_name_and_open_parenthesis = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_between_method_call_empty_parameter_list_parentheses = false
+csharp_space_between_method_call_name_and_opening_parenthesis = false
+csharp_space_after_comma = true
+csharp_space_before_comma = false
+csharp_space_after_dot = false
+csharp_space_before_dot = false
+csharp_space_after_semicolon_in_for_statement = true
+csharp_space_before_semicolon_in_for_statement = false
+csharp_space_around_declaration_statements = false
+csharp_space_before_open_square_brackets = false
+csharp_space_between_square_brackets = false
+
+# Wrapping preferences
+csharp_preserve_single_line_statements = true
+csharp_preserve_single_line_blocks = true
+
+#### .NET Naming Conventions ####
+
+# Naming rules
+
+# Constants are PascalCase
+dotnet_naming_rule.constants_should_be_pascal_case.severity = warning
+dotnet_naming_rule.constants_should_be_pascal_case.symbols = constants
+dotnet_naming_rule.constants_should_be_pascal_case.style = pascal_case_style
+
+# Static fields are PascalCase
+dotnet_naming_rule.static_fields_should_be_pascal_case.severity = warning
+dotnet_naming_rule.static_fields_should_be_pascal_case.symbols = static_fields
+dotnet_naming_rule.static_fields_should_be_pascal_case.style = pascal_case_style
+
+# Instance fields are camelCase with underscore prefix
+dotnet_naming_rule.instance_fields_should_be_camel_case.severity = warning
+dotnet_naming_rule.instance_fields_should_be_camel_case.symbols = instance_fields
+dotnet_naming_rule.instance_fields_should_be_camel_case.style = camel_case_with_underscore
+
+# Locals and parameters are camelCase
+dotnet_naming_rule.locals_should_be_camel_case.severity = warning
+dotnet_naming_rule.locals_should_be_camel_case.symbols = locals
+dotnet_naming_rule.locals_should_be_camel_case.style = camel_case_style
+
+# Types are PascalCase
+dotnet_naming_rule.types_should_be_pascal_case.severity = warning
+dotnet_naming_rule.types_should_be_pascal_case.symbols = types
+dotnet_naming_rule.types_should_be_pascal_case.style = pascal_case_style
+
+# Interfaces start with I
+dotnet_naming_rule.interfaces_should_be_begins_with_i.severity = warning
+dotnet_naming_rule.interfaces_should_be_begins_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_should_be_begins_with_i.style = begins_with_i_style
+
+# Non-field members are PascalCase
+dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = warning
+dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
+dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case_style
+
+# Symbol specifications
+dotnet_naming_symbols.constants.applicable_kinds = field, local
+dotnet_naming_symbols.constants.applicable_accessibilities = *
+dotnet_naming_symbols.constants.required_modifiers = const
+
+dotnet_naming_symbols.static_fields.applicable_kinds = field
+dotnet_naming_symbols.static_fields.applicable_accessibilities = *
+dotnet_naming_symbols.static_fields.required_modifiers = static
+
+dotnet_naming_symbols.instance_fields.applicable_kinds = field
+dotnet_naming_symbols.instance_fields.applicable_accessibilities = *
+dotnet_naming_symbols.instance_fields.required_modifiers =
+
+dotnet_naming_symbols.locals.applicable_kinds = local, parameter
+dotnet_naming_symbols.locals.applicable_accessibilities = *
+
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
+dotnet_naming_symbols.types.applicable_accessibilities = *
+dotnet_naming_symbols.types.required_modifiers =
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_symbols.interfaces.applicable_accessibilities = *
+dotnet_naming_symbols.interfaces.required_modifiers =
+
+dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, method
+dotnet_naming_symbols.non_field_members.applicable_accessibilities = *
+dotnet_naming_symbols.non_field_members.required_modifiers =
+
+# Naming styles
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+dotnet_naming_style.camel_case_with_underscore.capitalization = camel_case
+dotnet_naming_style.camel_case_with_underscore.required_prefix = _
+
+dotnet_naming_style.begins_with_i_style.capitalization = pascal_case
+dotnet_naming_style.begins_with_i_style.required_prefix = I
+
+#### Code Analysis Rules ####
+
+# IDE0001: Simplify name
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+
+# IDE0002-IDE0005: Simplify member access
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# IDE0009: Member access
+dotnet_style_qualification_for_field = false:warning
+
+# IDE0010: Add missing cases
+# IDE0011: Add braces
+csharp_prefer_braces = true:warning
+
+# IDE0016: Use 'throw' expression
+csharp_style_throw_expression = true:suggestion
+
+# IDE0017: Simplify object initialization
+dotnet_style_object_initializer = true:suggestion
+
+# IDE0018: Inline variable declaration
+csharp_style_inlined_variable_declaration = true:suggestion
+
+# IDE0019: Use pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:warning
+
+# IDE0020: Use pattern matching
+csharp_style_pattern_matching_over_as_and_null_check = true:warning
+
+# IDE0021-IDE0022: Expression body for constructors, operators, etc.
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_methods = false:silent
+csharp_style_expression_bodied_operators = false:silent
+
+# IDE0023-IDE0024-IDE0025: Expression body for properties/indexers/accessors
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_indexers = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+
+# IDE0026: Use expression body for operators
+csharp_style_expression_bodied_operators = false:silent
+
+# IDE0027: Use expression body for accessors
+csharp_style_expression_bodied_accessors = true:suggestion
+
+# IDE0028: Simplify collection initialization
+dotnet_style_collection_initializer = true:suggestion
+
+# IDE0029: Use coalesce expression
+dotnet_style_coalesce_expression = true:suggestion
+
+# IDE0030: Use coalesce expression
+dotnet_style_coalesce_expression = true:suggestion
+
+# IDE0031: Use null propagation
+dotnet_style_null_propagation = true:suggestion
+
+# IDE0032: Use auto property
+dotnet_style_prefer_auto_properties = true:silent
+
+# IDE0033: Use explicitly provided tuple name
+dotnet_style_explicit_tuple_names = true:warning
+
+# IDE0034: Simplify 'default' expression
+csharp_prefer_simple_default_expression = true:suggestion
+
+# IDE0035: Unreachable code
+# IDE0036: Order modifiers
+csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
+
+# IDE0037: Use inferred member name
+dotnet_style_prefer_inferred_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
+
+# IDE0038: Use pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:warning
+
+# IDE0039: Use local function
+csharp_style_prefer_local_over_anonymous_function = true:suggestion
+
+# IDE0040: Add accessibility modifiers
+dotnet_style_require_accessibility_modifiers = always:warning
+
+# IDE0041: Use 'is null' check
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+
+# IDE0042: Deconstruct variable declaration
+csharp_style_deconstruct_variable_declaration = true:suggestion
+
+# IDE0043: Format string contains invalid placeholder
+# IDE0044: Add readonly modifier
+dotnet_style_readonly_field = true:warning
+
+# IDE0045: Convert to conditional expression
+dotnet_style_prefer_conditional_expression_over_assignment = true:silent
+dotnet_style_prefer_conditional_expression_over_return = true:silent
+csharp_prefer_conditional_expression_over_assignment = true:silent
+csharp_prefer_conditional_expression_over_return = true:silent
+
+# IDE0046: Convert to conditional expression
+csharp_prefer_conditional_expression_over_return = true:silent
+
+# IDE0047: Remove unnecessary parentheses
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_operators = never_if_unnecessary:silent
+
+# IDE0048: Add parentheses for clarity
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:silent
+
+# IDE0049: Simplify names
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+
+# IDE0050: Convert to tuple
+# IDE0051: Remove unused private members
+# IDE0052: Remove unread private members
+# IDE0053: Use expression body for lambdas
+# IDE0054: Use compound assignment
+dotnet_style_prefer_compound_assignment = true:suggestion
+
 # IDE0055: Fix formatting
-dotnet_diagnostic.IDE0055.severity = none
+# IDE0056: Use index operator (C# 8 - limited support in C# 7.3, disable to avoid confusion)
+csharp_style_prefer_index_operator = false:none
 
-# IDE0305: Simplify collection initialization
-dotnet_style_prefer_collection_expression = never
+# IDE0057: Use range operator (C# 8 - NOT compatible with C# 7.3)
+csharp_style_prefer_range_operator = false:none
+dotnet_diagnostic.IDE0057.severity = none
 
-# IDE0090: Use 'new(...)'
-dotnet_diagnostic.IDE0090.severity = none
+# IDE0058: Expression value is never used
+# IDE0059: Unnecessary assignment of a value
+# IDE0060: Remove unused parameter
+# IDE0061: Use expression body for local functions (C# 7.0+ compatible, but keeping disabled for consistency)
+csharp_style_expression_bodied_local_functions = false:silent
 
-# IDE0090: Use 'new(...)'
-dotnet_diagnostic.IDE0090.severity = none
+# IDE0062: Make local function static
+csharp_prefer_static_local_function = true:warning
 
-# IDE0090: Use 'new(...)'
-csharp_style_implicit_object_creation_when_type_is_apparent = false
+# IDE0063: Use simple 'using' statement (C# 8 - NOT compatible with C# 7.3)
+csharp_prefer_simple_using_statement = false:none
 
-# IDE0057: Use range operator
-csharp_style_prefer_range_operator = false
+# IDE0064: Make readonly fields writable
+# IDE0065: Misplaced using directive
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
 
-# Default severity for analyzer diagnostics with category 'Style'
-dotnet_analyzer_diagnostic.category-Style.severity = silent
+# IDE0066: Convert switch statement to expression (C# 8 - NOT compatible with C# 7.3)
+csharp_style_prefer_switch_expression = false:none
 
-# IDE1006: Naming Styles
-dotnet_diagnostic.IDE1006.severity = none
+# IDE0070: Use 'System.HashCode'
+# IDE0071: Simplify interpolation
+csharp_style_prefer_simplified_interpolation = true:suggestion
+
+# IDE0072: Add missing cases
+# IDE0073: Use file header
+# IDE0074: Use compound assignment
+dotnet_style_prefer_compound_assignment = true:suggestion
+
+# IDE0075: Simplify conditional expression
+# IDE0076: Remove invalid global 'SuppressMessageAttribute'
+# IDE0077: Avoid legacy format target
+# IDE0078: Use pattern matching
+csharp_style_prefer_pattern_matching = true:suggestion
+
+# IDE0083: Use pattern matching (C# 9 'not' pattern - NOT compatible with C# 7.3)
+csharp_style_prefer_not_pattern = false:none
+dotnet_diagnostic.IDE0083.severity = none
+
+# IDE0090: Use 'new(...)' (C# 9 - NOT compatible with C# 7.3)
+csharp_style_implicit_object_creation_when_type_is_apparent = false:none
+
+# IDE0100: Remove redundant equality
+# IDE0110: Remove redundant discard
+# IDE0120: Simplify LINQ expression
+# IDE0130: Namespace does not match folder structure
+dotnet_diagnostic.IDE0130.severity = none
+# IDE0131: Unused private members
+# IDE0140: Simplify object creation
+# IDE0150: Prefer 'null' check over type check
+# IDE0160: Convert to file-scoped namespace (C# 10 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0160.severity = none
+# IDE0161: Convert to file-scoped namespace (C# 10 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0161.severity = none
+# IDE0170: Simplify property pattern (C# 8+ - may not be fully compatible with C# 7.3)
+dotnet_diagnostic.IDE0170.severity = none
+# IDE0180: Inline tuple
+# IDE0200: Simplify LINQ expression
+# IDE0201: Simplify namespace
+# IDE0210: Simplify member initialization
+# IDE0220: Add explicit cast for method invocation
+# IDE0230: Use language features instead of framework types
+# IDE0240: Null check can be simplified
+# IDE0250: Convert to struct member expression
+# IDE0251: Member can be made 'readonly'
+# IDE0260: Type can be made readonly
+# IDE0266: Missing partial keyword
+# IDE0270: Use coalesce expression
+# IDE0280: Use pattern matching (C# 8+ pattern matching improvements - may not be compatible)
+dotnet_diagnostic.IDE0280.severity = none
+# IDE0290: Use primary constructor (C# 12 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0290.severity = none
+# IDE0300: Use collection expression (C# 12 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0300.severity = none
+# IDE0301: Use collection expression for array (C# 12 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0301.severity = none
+# IDE0302: Use collection expression for array (C# 12 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0302.severity = none
+# IDE0303: Use collection expression for list (C# 12 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0303.severity = none
+# IDE0304: Use collection expression for list (C# 12 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0304.severity = none
+# IDE0305: Use collection expression for dictionary (C# 12 - NOT compatible with C# 7.3)
+dotnet_diagnostic.IDE0305.severity = none
+# IDE1006: Naming rule violation
+# IDE1007: Use 'throw' expression
+
+#### Additional Analyzer Suppressions for .NET Framework 4.8 Compatibility ####
+
+# Note: Nullable reference types are already disabled in the project file (<Nullable>disable</Nullable>)
+# These suppressions are here as an extra safeguard for any IDE suggestions that might slip through
+dotnet_diagnostic.CS8618.severity = none
+dotnet_diagnostic.CS8600.severity = none
+dotnet_diagnostic.CS8601.severity = none
+dotnet_diagnostic.CS8602.severity = none
+dotnet_diagnostic.CS8603.severity = none
+dotnet_diagnostic.CS8604.severity = none
+dotnet_diagnostic.CS8605.severity = none
+dotnet_diagnostic.CS8619.severity = none
+dotnet_diagnostic.CS8625.severity = none
+dotnet_diagnostic.CS8629.severity = none
+

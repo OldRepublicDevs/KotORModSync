@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -53,6 +53,11 @@ namespace KOTORModSync
 			[CanBeNull] string currentComponentName
 		)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateMetrics(percentComplete, installedCount, totalCount, installStartUtc, warningCount, errorCount, currentComponentName), DispatcherPriority.Normal);
+				return;
+			}
 			PercentCompleted.Text = $"{Math.Round( percentComplete * 100 )}%";
 			InstalledRemaining.Text = $"{installedCount}/{totalCount} Total Installed";
 			ProgressBar.Value = percentComplete;

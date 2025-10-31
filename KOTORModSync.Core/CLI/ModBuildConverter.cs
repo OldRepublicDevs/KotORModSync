@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -407,6 +408,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option("ignore-errors", Required = false, HelpText = "Ignore dependency resolution errors and attempt to load components in the best possible order")]
 			public bool IgnoreErrors { get; set; }
+
+			[Option("spoiler-free", Required = false, HelpText = "Path to spoiler-free markdown file to populate spoiler-free content fields")]
+			public string SpoilerFreePath { get; set; }
 		}
 
 		[Verb("merge", HelpText = "Merge two instruction sets together")]
@@ -486,6 +490,9 @@ namespace KOTORModSync.Core.CLI
 
 			[Option("ignore-errors", Required = false, HelpText = "Ignore dependency resolution errors and attempt to load components in the best possible order")]
 			public bool IgnoreErrors { get; set; }
+
+			[Option("spoiler-free", Required = false, HelpText = "Path to spoiler-free markdown file to populate spoiler-free content fields")]
+			public string SpoilerFreePath { get; set; }
 		}
 
 		[Verb("validate", HelpText = "Validate instruction files for errors")]
@@ -1254,6 +1261,189 @@ namespace KOTORModSync.Core.CLI
 			}
 		}
 
+		/// <summary>
+		/// Parses a spoiler-free markdown file and applies spoiler-free content to matching components.
+		/// The markdown file should contain ### Component Name headers with **Field:** content below.
+		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private static async Task ApplySpoilerFreeContentAsync(
+			List<ModComponent> components,
+			string spoilerFreePath)
+		{
+			if (string.IsNullOrEmpty(spoilerFreePath) || !File.Exists(spoilerFreePath))
+			{
+				return;
+			}
+
+			try
+			{
+				string content = await Task.Run(() => System.IO.File.ReadAllText(spoilerFreePath)).ConfigureAwait(false);
+				Dictionary<string, Dictionary<string, string>> componentSpoilerFreeData = ParseSpoilerFreeMarkdown(content);
+
+				if (componentSpoilerFreeData.Count == 0)
+				{
+					await Logger.LogWarningAsync("No spoiler-free content found in markdown file").ConfigureAwait(false);
+					return;
+				}
+
+				int appliedCount = 0;
+				foreach (ModComponent component in components)
+				{
+					// Try to find a matching entry using component name
+					string matchKey = componentSpoilerFreeData.Keys.FirstOrDefault(
+						k => string.Equals(k, component.Name, StringComparison.OrdinalIgnoreCase));
+
+					if (matchKey != null && componentSpoilerFreeData.TryGetValue(matchKey, out Dictionary<string, string> spoilerFreeFields))
+					{
+						bool componentUpdated = false;
+
+						if (spoilerFreeFields.TryGetValue("description", out string descriptionSpoilerFree) && !string.IsNullOrWhiteSpace(descriptionSpoilerFree))
+						{
+							component.DescriptionSpoilerFree = descriptionSpoilerFree;
+							componentUpdated = true;
+						}
+
+						if (spoilerFreeFields.TryGetValue("directions", out string directionsSpoilerFree) && !string.IsNullOrWhiteSpace(directionsSpoilerFree))
+						{
+							component.DirectionsSpoilerFree = directionsSpoilerFree;
+							componentUpdated = true;
+						}
+
+						if (spoilerFreeFields.TryGetValue("downloadinstructions", out string downloadInstructionsSpoilerFree) && !string.IsNullOrWhiteSpace(downloadInstructionsSpoilerFree))
+						{
+							component.DownloadInstructionsSpoilerFree = downloadInstructionsSpoilerFree;
+							componentUpdated = true;
+						}
+
+						if (spoilerFreeFields.TryGetValue("usagewarning", out string usageWarningSpoilerFree) && !string.IsNullOrWhiteSpace(usageWarningSpoilerFree))
+						{
+							component.UsageWarningSpoilerFree = usageWarningSpoilerFree;
+							componentUpdated = true;
+						}
+
+						if (spoilerFreeFields.TryGetValue("screenshots", out string screenshotsSpoilerFree) && !string.IsNullOrWhiteSpace(screenshotsSpoilerFree))
+						{
+							component.ScreenshotsSpoilerFree = screenshotsSpoilerFree;
+							componentUpdated = true;
+						}
+
+						if (componentUpdated)
+						{
+							appliedCount++;
+							await Logger.LogVerboseAsync($"Applied spoiler-free content to component: {component.Name}").ConfigureAwait(false);
+						}
+					}
+				}
+
+				if (appliedCount > 0)
+				{
+					await Logger.LogAsync($"Applied spoiler-free content to {appliedCount} component(s)").ConfigureAwait(false);
+				}
+				else
+				{
+					await Logger.LogWarningAsync("No matching components found for spoiler-free content").ConfigureAwait(false);
+				}
+			}
+			catch (Exception ex)
+			{
+				_errorCollector?.RecordError(
+					ErrorCollector.ErrorCategory.FileOperation,
+					null,
+					"Failed to parse spoiler-free markdown file",
+					$"File: {spoilerFreePath}",
+					ex);
+				await Logger.LogWarningAsync($"Error loading spoiler-free content: {ex.Message}").ConfigureAwait(false);
+			}
+		}
+
+		/// <summary>
+		/// Parses a spoiler-free markdown file and extracts component-specific content.
+		/// Returns a dictionary mapping component names to their spoiler-free fields.
+		///
+		/// Expected markdown format:
+		///
+		/// ### Component Name
+		/// **Description:** Spoiler-free description content
+		/// **Directions:** Spoiler-free directions content
+		/// **DownloadInstructions:** Spoiler-free download instructions
+		/// **UsageWarning:** Spoiler-free usage warning
+		/// **Screenshots:** Spoiler-free screenshots description
+		///
+		/// ___
+		///
+		/// ### Another Component
+		/// **Description:** Another spoiler-free description
+		/// ...
+		///
+		/// Field values can span multiple lines. Field names are case-insensitive.
+		/// Only fields with non-empty values will be applied to components.
+		/// </summary>
+		private static Dictionary<string, Dictionary<string, string>> ParseSpoilerFreeMarkdown(string content)
+		{
+			Dictionary<string, Dictionary<string, string>> result = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
+			string[] lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+			string currentComponentName = null;
+			Dictionary<string, string> currentFields = null;
+			string currentFieldName = null;
+			StringBuilder currentFieldValue = null;
+
+			for (int i = 0; i < lines.Length; i++)
+			{
+				string line = lines[i];
+				string trimmedLine = line.TrimStart();
+
+				// Component header: ### Component Name
+				if (trimmedLine.StartsWith("### ", StringComparison.Ordinal))
+				{
+					// Save previous field before starting new component
+					if (currentFieldName != null && currentFieldValue != null && currentFields != null)
+					{
+						currentFields[currentFieldName] = currentFieldValue.ToString().Trim();
+					}
+
+					// Start new component
+					currentComponentName = trimmedLine.Substring(4).Trim();
+					currentFields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+					result[currentComponentName] = currentFields;
+					currentFieldName = null;
+					currentFieldValue = null;
+				}
+				// Field marker: **Description:** or similar
+				else if (trimmedLine.StartsWith("**", StringComparison.Ordinal) && trimmedLine.IndexOf(":**", StringComparison.Ordinal) >= 0 && currentComponentName != null)
+				{
+					// Save previous field value
+					if (currentFieldName != null && currentFieldValue != null && currentFields != null)
+					{
+						currentFields[currentFieldName] = currentFieldValue.ToString().Trim();
+					}
+
+					// Extract field name and value
+					int colonIndex = trimmedLine.IndexOf(":**", StringComparison.Ordinal);
+					if (colonIndex > 2)
+					{
+						currentFieldName = trimmedLine.Substring(2, colonIndex - 2).Trim().ToLowerInvariant();
+						string afterColon = trimmedLine.Substring(colonIndex + 3).Trim();
+						currentFieldValue = new StringBuilder(afterColon);
+					}
+				}
+				// Continuation of field value
+				else if (currentFieldValue != null && !string.IsNullOrWhiteSpace(trimmedLine) && !trimmedLine.StartsWith("###", StringComparison.Ordinal) && !trimmedLine.StartsWith("**", StringComparison.Ordinal))
+				{
+					currentFieldValue.AppendLine();
+					currentFieldValue.Append(line.TrimStart());
+				}
+			}
+
+			// Save last field and component
+			if (currentFieldName != null && currentFieldValue != null && currentFields != null)
+			{
+				currentFields[currentFieldName] = currentFieldValue.ToString().Trim();
+			}
+
+			return result;
+		}
+
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static async Task<int> RunConvertAsync(ConvertOptions opts)
 		{
@@ -1317,13 +1507,13 @@ namespace KOTORModSync.Core.CLI
 					Console.Error.WriteLine("Exiting...");
 					Console.Error.Flush();
 
-					System.Threading.Thread.Sleep(500);
+					Thread.Sleep(500);
 				}
 				catch (Exception ex)
 				{
 					Console.Error.WriteLine($"Critical error in CTRL+C handler: {ex.Message}");
 					Console.Error.Flush();
-					System.Threading.Thread.Sleep(100);
+					Thread.Sleep(100);
 				}
 				finally
 				{
@@ -1597,6 +1787,12 @@ namespace KOTORModSync.Core.CLI
 
 				ApplySelectionFilters(components, opts.Select);
 
+				// Apply spoiler-free content if provided
+				if (!string.IsNullOrEmpty(opts.SpoilerFreePath))
+				{
+					await ApplySpoilerFreeContentAsync(components, opts.SpoilerFreePath).ConfigureAwait(false);
+				}
+
 				// Populate ModLinkFilenames from download cache before serialization
 				if (downloadCache != null)
 				{
@@ -1767,13 +1963,13 @@ namespace KOTORModSync.Core.CLI
 					Console.Error.WriteLine("Exiting...");
 					Console.Error.Flush();
 
-					System.Threading.Thread.Sleep(500);
+					Thread.Sleep(500);
 				}
 				catch (Exception ex)
 				{
 					Console.Error.WriteLine($"Critical error in CTRL+C handler: {ex.Message}");
 					Console.Error.Flush();
-					System.Threading.Thread.Sleep(100);
+					Thread.Sleep(100);
 				}
 				finally
 				{
@@ -1888,7 +2084,7 @@ namespace KOTORModSync.Core.CLI
 						mergeOptions.PreferExistingModLinkFilenames = true;
 
 					// Use async merge to support URL validation with sequential flag
-					using (CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
+					using (CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromHours(2)))
 					{
 						components = await ComponentMergeService.MergeInstructionSetsAsync(
 							opts.ExistingPath,
@@ -1942,6 +2138,12 @@ namespace KOTORModSync.Core.CLI
 				}
 
 				ApplySelectionFilters(components, opts.Select);
+
+				// Apply spoiler-free content if provided
+				if (!string.IsNullOrEmpty(opts.SpoilerFreePath))
+				{
+					await ApplySpoilerFreeContentAsync(components, opts.SpoilerFreePath).ConfigureAwait(false);
+				}
 
 				// Populate ModLinkFilenames from download cache before serialization
 				if (downloadCache != null)
@@ -2945,20 +3147,20 @@ namespace KOTORModSync.Core.CLI
 		/// Populates ModLinkFilenames from download cache for all components before serialization.
 		/// This ensures cached filenames are included in the output even if they weren't in the original source.
 		/// </summary>
-		private static async System.Threading.Tasks.Task PopulateModLinkFilenamesFromCacheAsync(
+		private static async Task PopulateModLinkFilenamesFromCacheAsync(
 			List<ModComponent> components)
 		{
 			int populatedCount = 0;
-			foreach (ModComponent component in components)
+			foreach (var component in components)
 			{
-				if (component.ModLinkFilenames is null || component.ModLinkFilenames.Count == 0)
-					continue;
+				if (component.ModLinkFilenames is null)
+					component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
 
 				foreach (string url in component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)))
 				{
-					// Check if cache has entry for this URL
-					if (DownloadCacheService.TryGetEntry(url, out DownloadCacheService.DownloadCacheEntry cachedEntry) &&
-						 !string.IsNullOrWhiteSpace(cachedEntry.FileName))
+					// Check resource-index for this URL - get ALL filenames
+					ResourceMetadata cachedMeta = DownloadCacheService.TryGetResourceMetadataByUrl(url);
+					if (cachedMeta != null && cachedMeta.Files != null && cachedMeta.Files.Count > 0)
 					{
 						// Ensure ModLinkFilenames dictionary exists for this URL
 						if (!component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict))
@@ -2967,12 +3169,15 @@ namespace KOTORModSync.Core.CLI
 							component.ModLinkFilenames[url] = filenameDict;
 						}
 
-						// Add cached filename if not already present (don't override explicit values)
-						if (!filenameDict.ContainsKey(cachedEntry.FileName))
+						// Add ALL cached filenames if not already present (don't override explicit values)
+						foreach (KeyValuePair<string, bool?> fileEntry in cachedMeta.Files)
 						{
-							filenameDict[cachedEntry.FileName] = null; // null = auto-discover
-							populatedCount++;
-							await Logger.LogVerboseAsync($"[ModBuildConverter] Populated ModLinkFilenames from cache: {url} -> {cachedEntry.FileName}").ConfigureAwait(false);
+							if (!filenameDict.ContainsKey(fileEntry.Key))
+							{
+								filenameDict[fileEntry.Key] = fileEntry.Value ?? null; // Preserve exists flag, default to null (auto-discover)
+								populatedCount++;
+								await Logger.LogVerboseAsync($"[ModBuildConverter] Populated ModLinkFilenames from resource-index: {url} -> {fileEntry.Key}").ConfigureAwait(false);
+							}
 						}
 					}
 				}

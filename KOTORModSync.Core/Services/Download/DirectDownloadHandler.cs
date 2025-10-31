@@ -27,7 +27,6 @@ namespace KOTORModSync.Core.Services.Download
 
 				 (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal) && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)))
 			{
-				Logger.LogVerbose($"[DirectDownload] CanHandle check for URL '{url}': False (invalid URL or non-HTTP)");
 				return false;
 			}
 
@@ -38,11 +37,9 @@ namespace KOTORModSync.Core.Services.Download
 				 lowerUrl.Contains("gamefront.com") ||
 				 lowerUrl.Contains("mega.nz"))
 			{
-				Logger.LogVerbose($"[DirectDownload] CanHandle check for URL '{url}': False (handled by specialized handler)");
 				return false;
 			}
 
-			Logger.LogVerbose($"[DirectDownload] CanHandle check for URL '{url}': True");
 			Logger.LogVerbose($"[DirectDownload] URL scheme: {uri.Scheme}, host: {uri.Host}");
 			return true;
 		}

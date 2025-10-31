@@ -628,7 +628,7 @@ Exception Type: {ex.GetType().FullName}";
 
 		public static async Task<ModComponent.InstallExitCode> InstallSingleComponentAsync(
 			[NotNull] ModComponent component,
-			[NotNull][ItemNotNull] List<ModComponent> allComponents,
+			[NotNull][ItemNotNull] IReadOnlyList<ModComponent> allComponents,
 			CancellationToken cancellationToken = default)
 		{
 			if (component is null)
@@ -636,12 +636,12 @@ Exception Type: {ex.GetType().FullName}";
 			if (allComponents is null)
 				throw new ArgumentNullException(nameof(allComponents));
 
-			ComponentValidation validator = new ComponentValidation(component, allComponents);
+			ComponentValidation validator = new ComponentValidation(component, allComponents.ToList());
 			await Logger.LogVerboseAsync($" == Validating '{component.Name}' == ").ConfigureAwait(false);
 			if (!validator.Run())
 				return ModComponent.InstallExitCode.InvalidOperation;
 
-			return await component.InstallAsync(allComponents, cancellationToken).ConfigureAwait(false);
+			return await component.InstallAsync(allComponents.ToList(), cancellationToken).ConfigureAwait(false);
 		}
 
 

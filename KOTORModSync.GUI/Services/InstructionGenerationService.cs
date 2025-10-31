@@ -92,7 +92,7 @@ namespace KOTORModSync.Services
 
 
 
-.ConfigureAwait( false );
+.ConfigureAwait(true);
 
 					// Step 2: Handle missing files (GUI-specific)
 					if (analysis.MissingUrls.Count > 0)
@@ -120,7 +120,7 @@ namespace KOTORModSync.Services
 
 							var downloadDialog = new SingleModDownloadDialog( component, downloadCacheService );
 							_ = downloadDialog.StartDownloadAsync();
-							await downloadDialog.ShowDialog( _parentWindow ).ConfigureAwait( false );
+							await downloadDialog.ShowDialog( _parentWindow ).ConfigureAwait(true);
 
 							// Re-analyze after download to pick up new files
 							if (downloadDialog.WasSuccessful && downloadDialog.DownloadedFiles.Count > 0)
@@ -131,7 +131,7 @@ namespace KOTORModSync.Services
 									component,
 									downloadCacheService,
 									_mainConfig.sourcePath.FullName,
-									cts.Token ).ConfigureAwait( false );
+									cts.Token ).ConfigureAwait(true);
 							}
 							else
 							{
@@ -148,7 +148,7 @@ namespace KOTORModSync.Services
 					int totalInstructionsGenerated = await AutoInstructionGenerator.GenerateInstructionsFromAnalyzedFilesAsync(
 						component,
 						analysis,
-						_mainConfig.sourcePath.FullName ).ConfigureAwait( false );
+						_mainConfig.sourcePath.FullName ).ConfigureAwait(true);
 
 					// Step 4: Update component state and show results (GUI-specific)
 					if (totalInstructionsGenerated > 0)

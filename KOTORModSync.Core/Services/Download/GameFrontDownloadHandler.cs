@@ -37,7 +37,6 @@ namespace KOTORModSync.Core.Services.Download
 		public bool CanHandle(string url)
 		{
 			bool canHandle = url != null && url.IndexOf("gamefront.com", StringComparison.OrdinalIgnoreCase) >= 0;
-			Logger.LogVerbose($"[GameFront] CanHandle check for URL '{url}': {canHandle}");
 			return canHandle;
 		}
 

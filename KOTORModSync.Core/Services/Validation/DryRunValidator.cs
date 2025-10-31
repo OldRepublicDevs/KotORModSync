@@ -209,15 +209,32 @@ namespace KOTORModSync.Core.Services.Validation
 							IsValid = true,
 						};
 
-					case Instruction.ActionType.Choose:
-						// Choose instructions use GUIDs, not file paths
+				case Instruction.ActionType.Choose:
+					// Choose instructions use GUIDs, not file paths
+					return new PathValidationResult
+					{
+						StatusMessage = "✓ Option",
+						IsValid = true,
+					};
+
+				case Instruction.ActionType.CleanList:
+					// Cleanlist file should exist
+					if (!vfs.FileExists(resolvedPath))
+					{
 						return new PathValidationResult
 						{
-							StatusMessage = "✓ Option",
-							IsValid = true,
+							StatusMessage = "✗ Cleanlist not found",
+							DetailedMessage = "Cleanlist CSV file not found",
+							IsValid = false,
 						};
+					}
+					return new PathValidationResult
+					{
+						StatusMessage = "✓ Cleanlist found",
+						IsValid = true,
+					};
 
-					default:
+				default:
 						return new PathValidationResult
 						{
 							StatusMessage = "❓ Unknown action",

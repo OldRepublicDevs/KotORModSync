@@ -164,6 +164,7 @@ namespace KOTORModSync.Core.Services
 		}
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class ComponentProcessingResult
 	{
 

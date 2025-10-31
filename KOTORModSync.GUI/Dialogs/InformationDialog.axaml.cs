@@ -73,6 +73,7 @@ namespace KOTORModSync.Dialogs
 			[CanBeNull] string closeButtonTooltip = null
 		)
 		{
+			// Ensure dialog creation and showing occur on the UI thread
 			await Dispatcher.UIThread.InvokeAsync(async () =>
 			{
 				var dialog = new InformationDialog
@@ -84,8 +85,8 @@ namespace KOTORModSync.Dialogs
 					Topmost = true,
 				};
 
-				_ = await dialog.ShowDialog<bool?>(parentWindow).ConfigureAwait(true);
-			}).ConfigureAwait(true);
+				await dialog.ShowDialog<bool?>(parentWindow).ConfigureAwait(true);
+			}).ConfigureAwait(false);
 		}
 
 		protected override void OnOpened([NotNull] EventArgs e)
@@ -96,7 +97,7 @@ namespace KOTORModSync.Dialogs
 		private void OKButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => Close();
 		private void UpdateInfoText()
 		{
-			DispatcherOperation task = Dispatcher.UIThread.InvokeAsync(() =>
+			_ = Dispatcher.UIThread.InvokeAsync(() =>
 			{
 				try
 				{

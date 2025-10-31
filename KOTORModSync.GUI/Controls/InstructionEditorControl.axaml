@@ -33,6 +33,7 @@
         <converters:ValidationDetailedMessageConverter x:Key="ValidationDetailedMessageConverter" />
         <converters:ValidationHasBlockingInstructionConverter x:Key="ValidationHasBlockingInstructionConverter" />
         <converters:ValidationBlockingInstructionTextConverter x:Key="ValidationBlockingInstructionTextConverter" />
+        <converters:StringToIntConverter x:Key="StringToIntConverter" />
     </UserControl.Resources>
 
     <Border
@@ -272,7 +273,7 @@
                         Focusable="True"
                         IsVisible="{Binding ., Converter={StaticResource PatcherWithNamespacesVisibilityConverter}}"
                         ItemsSource="{Binding ., Converter={StaticResource NamespacesIniOptionConverter}}"
-                        SelectedIndex="{Binding Arguments}"
+                        SelectedIndex="{Binding Arguments, Converter={StaticResource StringToIntConverter}}"
                         ToolTip.Tip="Select namespace option" />
 
                     <!--  File Extensions Control for DelDuplicate actions  -->

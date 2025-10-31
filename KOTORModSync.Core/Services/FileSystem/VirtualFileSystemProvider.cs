@@ -795,6 +795,7 @@ string.Equals(extension, ".zip", StringComparison.Ordinal))
 		}
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class ValidationIssue
 	{
 		public ValidationSeverity Severity { get; set; }
@@ -812,6 +813,7 @@ string.Equals(extension, ".zip", StringComparison.Ordinal))
 	}
 
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public enum ValidationSeverity
 	{
 		Info,

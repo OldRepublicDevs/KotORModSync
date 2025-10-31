@@ -12,6 +12,7 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class DependencyResolutionResult
 	{
 		public bool Success { get; set; }
@@ -20,6 +21,7 @@ namespace KOTORModSync.Core.Services
 		public List<DependencyWarning> Warnings { get; set; } = new List<DependencyWarning>();
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class DependencyError
 	{
 		public string ComponentName { get; set; }

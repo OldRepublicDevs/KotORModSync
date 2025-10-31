@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -205,6 +205,11 @@ namespace KOTORModSync.Services
 
 		private void CreateDragVisual()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(CreateDragVisual, DispatcherPriority.Normal);
+				return;
+			}
 			if (_draggedItem is null || _dragVisualContainer != null)
 				return;
 
@@ -244,6 +249,11 @@ namespace KOTORModSync.Services
 
 		private void UpdateDragVisualPosition(Point position)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateDragVisualPosition(position), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (_dragVisualContainer is Canvas canvas && canvas.Children.Count > 0)
@@ -265,6 +275,11 @@ namespace KOTORModSync.Services
 
 		private void CleanupDragVisuals()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(CleanupDragVisuals, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 

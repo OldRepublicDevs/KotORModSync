@@ -590,16 +590,6 @@ Instructions:
 				ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
 				ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
 
-				var fixedGuid = Guid.Parse("00000000-0000-0000-0000-000000000001");
-				foreach (Instruction instruction in copy1.Instructions)
-				{
-					instruction.Guid = fixedGuid;
-				}
-				foreach (Instruction instruction in copy2.Instructions)
-				{
-					instruction.Guid = fixedGuid;
-				}
-
 				string normalizedJson1 = JsonConvert.SerializeObject(copy1);
 				string normalizedJson2 = JsonConvert.SerializeObject(copy2);
 

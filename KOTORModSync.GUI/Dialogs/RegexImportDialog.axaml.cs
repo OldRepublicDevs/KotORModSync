@@ -28,7 +28,7 @@ namespace KOTORModSync.Dialogs
 	{
 		public RegexImportDialogViewModel ViewModel { get; private set; }
 		public bool LoadSuccessful { get; private set; }
-		private readonly TextBox _previewTextBox;
+		private SelectableTextBlock _previewTextBox;
 		private readonly Func<Task<bool>> _confirmationCallback;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
@@ -58,11 +58,21 @@ namespace KOTORModSync.Dialogs
 			LoadSuccessful = false;
 			_confirmationCallback = confirmationCallback;
 
-			_previewTextBox = this.FindControl<TextBox>("PreviewTextBox");
+			_previewTextBox = this.FindControl<SelectableTextBlock>("PreviewTextBox");
 			if (_previewTextBox != null)
 			{
 				_previewTextBox.PointerMoved += PreviewTextBox_PointerMoved;
 				_previewTextBox.PointerExited += PreviewTextBox_PointerExited;
+				
+				// Subscribe to ViewModel HighlightedPreview updates
+				ViewModel.PropertyChanged += (s, e) =>
+				{
+					if (string.Equals(e.PropertyName, nameof(RegexImportDialogViewModel.HighlightedPreview), StringComparison.Ordinal))
+					{
+						UpdatePreviewInlines();
+					}
+				};
+				UpdatePreviewInlines();
 			}
 
 			// Subscribe to ViewModel events
@@ -105,7 +115,7 @@ namespace KOTORModSync.Dialogs
 
 
 			{
-				bool confirmed = await _confirmationCallback().ConfigureAwait(false);
+				bool confirmed = await _confirmationCallback().ConfigureAwait(true);
 				if (!confirmed)
 					return;
 			}
@@ -213,7 +223,7 @@ namespace KOTORModSync.Dialogs
 			if (_previewTextBox == null || ViewModel == null) return;
 
 			var position = e.GetPosition(_previewTextBox);
-			int caretPosition = RegexImportDialog.GetCharacterIndexFromPoint(_previewTextBox, position);
+			int caretPosition = GetCharacterIndexFromPoint(_previewTextBox, position);
 
 			if (caretPosition >= 0)
 			{
@@ -221,25 +231,60 @@ namespace KOTORModSync.Dialogs
 				if (!string.IsNullOrEmpty(groupName))
 				{
 					HighlightTextBoxForGroup(groupName);
+					
+					// Show component info tooltip
+					string componentInfo = ViewModel.GetComponentInfoForPosition(caretPosition);
+					if (!string.IsNullOrEmpty(componentInfo))
+					{
+						ToolTip.SetTip(_previewTextBox, componentInfo);
+					}
+					else
+					{
+						ToolTip.SetTip(_previewTextBox, null);
+					}
 					return;
 				}
 			}
 
 			ClearTextBoxHighlight();
+			ToolTip.SetTip(_previewTextBox, null);
 		}
 
 		private void PreviewTextBox_PointerExited(object sender, PointerEventArgs e)
 		{
 			ClearTextBoxHighlight();
+			ToolTip.SetTip(_previewTextBox, null);
 		}
 
-		private static int GetCharacterIndexFromPoint(TextBox textBox, Avalonia.Point point)
+		private void UpdatePreviewInlines()
+		{
+			if (_previewTextBox == null || ViewModel?.HighlightedPreview == null)
+				return;
+
+			_previewTextBox.Inlines?.Clear();
+			foreach (var inline in ViewModel.HighlightedPreview)
+			{
+				_previewTextBox.Inlines?.Add(inline);
+			}
+		}
+
+		private static int GetCharacterIndexFromPoint(SelectableTextBlock textBox, Avalonia.Point point)
 		{
 			// Approximate character position based on font metrics
 			// This is a simplified version - exact hit testing would require TextPointer API
 			try
 			{
-				string text = textBox.Text ?? "";
+				// Get text from inlines
+				var textBuilder = new System.Text.StringBuilder();
+				if (textBox.Inlines != null)
+				{
+					foreach (var inline in textBox.Inlines)
+					{
+						if (inline is Run run)
+							textBuilder.Append(run.Text ?? "");
+					}
+				}
+				string text = textBuilder.ToString();
 				if (string.IsNullOrEmpty(text)) return -1;
 
 				// Get approximate character based on scroll position and click location
@@ -310,8 +355,9 @@ namespace KOTORModSync.Dialogs
 		{
 			if (_previewTextBox == null) return;
 
-			// Simple Ctrl+F implementation - use browser-style find
-			_previewTextBox.Focus();
+			// Note: Find functionality requires TextBox with Text property
+			// SelectableTextBlock doesn't support find, so we skip it for now
+			Logger.LogVerbose("Find dialog not yet supported for highlighted preview");
 
 			// Create a simple find panel at the top of the preview area
 			var findPanel = CreateFindPanel();
@@ -366,9 +412,9 @@ namespace KOTORModSync.Dialogs
 				Width = 30
 			};
 
-			findTextBox.TextChanged += (s, e) => PerformFind(findTextBox.Text, forward: true);
-			findNextButton.Click += (s, e) => PerformFind(findTextBox.Text, forward: true);
-			findPrevButton.Click += (s, e) => PerformFind(findTextBox.Text, forward: false);
+			findTextBox.TextChanged += (s, e) => RegexImportDialog.PerformFind(findTextBox.Text);
+			findNextButton.Click += (s, e) => RegexImportDialog.PerformFind(findTextBox.Text);
+			findPrevButton.Click += (s, e) => RegexImportDialog.PerformFind(findTextBox.Text);
 			closeButton.Click += (s, e) => CloseFindPanel();
 
 			var panel = new StackPanel
@@ -392,32 +438,12 @@ namespace KOTORModSync.Dialogs
 			};
 		}
 
-		private void PerformFind(string searchText, bool forward)
+		private static void PerformFind(string searchText)
 		{
-			if (_previewTextBox == null || string.IsNullOrEmpty(searchText)) return;
-
-			string text = _previewTextBox.Text ?? "";
-			int startIndex = forward ? _previewTextBox.CaretIndex : Math.Max(0, _previewTextBox.CaretIndex - 1);
-
-			int foundIndex = forward
-				? text.IndexOf(searchText, startIndex, StringComparison.OrdinalIgnoreCase)
-				: text.LastIndexOf(searchText, startIndex, StringComparison.OrdinalIgnoreCase);
-
-			if (foundIndex < 0 && startIndex > 0)
-			{
-				// Wrap around
-				foundIndex = forward
-					? text.IndexOf(searchText, 0, StringComparison.OrdinalIgnoreCase)
-					: text.LastIndexOf(searchText, text.Length - 1, StringComparison.OrdinalIgnoreCase);
-			}
-
-			if (foundIndex >= 0)
-			{
-				_previewTextBox.CaretIndex = foundIndex;
-				_previewTextBox.SelectionStart = foundIndex;
-				_previewTextBox.SelectionEnd = foundIndex + searchText.Length;
-				_previewTextBox.Focus();
-			}
+			// Find functionality not implemented for SelectableTextBlock
+			// Would need to switch to TextBox for full find/selection support
+			if (string.IsNullOrEmpty(searchText)) return;
+			Logger.LogVerbose($"Find '{searchText}' not supported in highlight preview mode");
 		}
 
 		private void CloseFindPanel()

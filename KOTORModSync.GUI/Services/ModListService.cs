@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -152,6 +152,11 @@ namespace KOTORModSync.Services
 
 		public void RefreshModListItems(ListBox modListBox, bool editorMode, Func<ModComponent, ContextMenu> buildContextMenu)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => RefreshModListItems(modListBox, editorMode, buildContextMenu), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (modListBox is null)
@@ -200,6 +205,11 @@ namespace KOTORModSync.Services
 			CheckBox selectAllCheckBox,
 			Action<bool> setSuppressSelectAllEvents)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateModCounts(modCountText, selectedCountText, selectAllCheckBox, setSuppressSelectAllEvents), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (modCountText != null)

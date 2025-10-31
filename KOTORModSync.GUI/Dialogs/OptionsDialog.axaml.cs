@@ -138,13 +138,13 @@ namespace KOTORModSync.Dialogs
 					if (!(parentWindow is null))
 
 
-						await optionsDialog.ShowDialog( parentWindow ).ConfigureAwait( false );
+						await optionsDialog.ShowDialog( parentWindow ).ConfigureAwait(true);
 
 
 				}
 			).ConfigureAwait( false );
 
-			return tcs is null ? throw new NullReferenceException( nameof( tcs ) ) : await tcs.Task.ConfigureAwait( false );
+			return tcs is null ? throw new NullReferenceException( nameof( tcs ) ) : await tcs.Task.ConfigureAwait(true);
 		}
 
 		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )

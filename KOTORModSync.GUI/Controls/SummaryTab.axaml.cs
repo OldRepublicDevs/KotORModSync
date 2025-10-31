@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
@@ -76,6 +76,11 @@ namespace KOTORModSync.Controls
 
 		private void OnLoaded(object sender, RoutedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => OnLoaded(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				// Attach markdown rendering to all TextBlocks dynamically
@@ -89,6 +94,11 @@ namespace KOTORModSync.Controls
 
 		private void AttachMarkdownRenderingToAllTextBlocks()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(AttachMarkdownRenderingToAllTextBlocks, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				// Find ALL TextBlocks in the visual tree
@@ -170,6 +180,11 @@ namespace KOTORModSync.Controls
 
 		private void OnPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => OnPropertyChanged(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			if (e.Property == CurrentComponentProperty)
 			{
 				UpdateAllFilenamePanels();
@@ -193,16 +208,31 @@ namespace KOTORModSync.Controls
 
 		private void SummaryOptionBorder_PointerPressed(object sender, PointerPressedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => SummaryOptionBorder_PointerPressed(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			SummaryOptionPointerPressedRequested?.Invoke(this, e);
 		}
 
 		private void OnCheckBoxChanged(object sender, RoutedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => OnCheckBoxChanged(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			CheckBoxChangedRequested?.Invoke(this, e);
 		}
 
 		private void JumpToInstruction_Click(object sender, RoutedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => JumpToInstruction_Click(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			JumpToInstructionRequested?.Invoke(this, e);
 		}
 
@@ -220,6 +250,37 @@ namespace KOTORModSync.Controls
 			catch (Exception ex)
 			{
 				await Logger.LogExceptionAsync(ex, $"Error downloading mod from SummaryTab: {component.Name}").ConfigureAwait(false);
+			}
+		}
+
+		private async void DownloadLinksExpander_Expanding(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				// Find the expander
+				if (!(sender is Expander expander))
+					return;
+
+				// Show confirmation dialog
+				bool? result = await Dialogs.ConfirmationDialog.ShowConfirmationDialogAsync(
+					VisualRoot as Window,
+					"**WARNING:** This may contain spoilers!\n\nDownload URLs may reveal story details or mod content that could spoil your playthrough.\n\n**Tip:** You can download this mod by pressing the **Home** button and then pressing **'Fetch Downloads'** without viewing spoiler content.\n\nDo you really want to continue and show these URLs?",
+					yesButtonText: "Yes, Show URLs",
+					noButtonText: "No, Keep Hidden",
+					yesButtonTooltip: "Show the download URLs (may contain spoilers)",
+					noButtonTooltip: "Keep the URLs hidden",
+					closeButtonTooltip: "Cancel and keep URLs hidden"
+				).ConfigureAwait(true);
+
+				// If user declined, collapse the expander again
+				if (result != true)
+				{
+					expander.IsExpanded = false;
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Failed to show spoiler warning");
 			}
 		}
 
@@ -257,6 +318,11 @@ namespace KOTORModSync.Controls
 		[SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private void PopulateFilenamesPanel(StackPanel panel, string url)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => PopulateFilenamesPanel(panel, url), DispatcherPriority.Normal);
+				return;
+			}
 			if (panel is null || string.IsNullOrWhiteSpace(url))
 				return;
 

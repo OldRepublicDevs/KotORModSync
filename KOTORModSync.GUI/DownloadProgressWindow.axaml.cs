@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -42,6 +42,7 @@ namespace KOTORModSync
 		private bool _isCompleted;
 		private bool _mouseDownForWindowMoving;
 		private PointerPoint _originalPoint;
+		private int _downloadTimeoutMinutes = 10080; // 7 days
 
 
 		public event EventHandler<DownloadControlEventArgs> DownloadControlRequested;
@@ -89,23 +90,29 @@ namespace KOTORModSync
 			_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(timeoutMinutes));
 		}
 
-		public int DownloadTimeoutMinutes
-		{
-			get
-			{
-				NumericUpDown timeoutControl = this.FindControl<NumericUpDown>("TimeoutNumericUpDown");
-				if (timeoutControl != null && timeoutControl.Value.HasValue)
-				{
-					return (int)timeoutControl.Value.Value;
-				}
-				return 180;
-			}
-		}
+		public int DownloadTimeoutMinutes => _downloadTimeoutMinutes;
 
 		public DownloadProgressWindow()
 		{
 			InitializeComponent();
 			_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(180));
+
+			// Initialize and track timeout value without cross-thread UI access
+			NumericUpDown timeoutControl = this.FindControl<NumericUpDown>("TimeoutNumericUpDown");
+			if (timeoutControl != null)
+			{
+				if (timeoutControl.Value.HasValue)
+					_downloadTimeoutMinutes = (int)timeoutControl.Value.Value;
+
+				// Update cached value whenever the control changes
+				timeoutControl.PropertyChanged += (s, e) =>
+				{
+					if (e.Property == NumericUpDown.ValueProperty && timeoutControl.Value.HasValue)
+					{
+						_downloadTimeoutMinutes = (int)timeoutControl.Value.Value;
+					}
+				};
+			}
 
 
 			ItemsControl activeControl = this.FindControl<ItemsControl>("ActiveDownloadsControl");
@@ -358,9 +365,14 @@ namespace KOTORModSync
 			});
 		}
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private void UpdateSummary()
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private void UpdateSummary()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(UpdateSummary, DispatcherPriority.Normal);
+				return;
+			}
 			TextBlock summaryText = this.FindControl<TextBlock>("SummaryText");
 			TextBlock overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
 			ProgressBar overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
@@ -517,7 +529,7 @@ namespace KOTORModSync
 
 			if (!_isCompleted && _allDownloadItems.Exists(
 				download => download.Status == DownloadStatus.InProgress
-						    || download.Status == DownloadStatus.Pending))
+							|| download.Status == DownloadStatus.Pending))
 			{
 				_cancellationTokenSource?.Cancel();
 			}
@@ -561,8 +573,8 @@ namespace KOTORModSync
 			textBlock.Inlines = ParseTextWithUrls(progress.ErrorMessage);
 		}
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private static InlineCollection ParseTextWithUrls(string text)
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private static InlineCollection ParseTextWithUrls(string text)
 		{
 			var inlines = new InlineCollection();
 
@@ -762,8 +774,8 @@ namespace KOTORModSync
 		}
 	}
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
-    public enum DownloadControlAction
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
+	public enum DownloadControlAction
 	{
 		Start,
 		Stop,
@@ -771,8 +783,8 @@ namespace KOTORModSync
 		Retry,
 	}
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
-    public class DownloadControlEventArgs : EventArgs
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
+	public class DownloadControlEventArgs : EventArgs
 	{
 		public DownloadProgress Progress { get; }
 		public DownloadControlAction Action { get; }

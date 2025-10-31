@@ -35,7 +35,8 @@ namespace KOTORModSync.Core.Services.Download
 			string destinationDirectory,
 			Func<Task<DownloadResult>> traditionalDownloadFunc,
 			IProgress<DownloadProgress> progress,
-			CancellationToken cancellationToken)
+			CancellationToken cancellationToken,
+			string contentId = null)
 
 		{
 			await EnsureInitializedAsync()
@@ -43,10 +44,18 @@ namespace KOTORModSync.Core.Services.Download
 .ConfigureAwait(false);
 
 			if (_client is null)
-				return await traditionalDownloadFunc().ConfigureAwait(false);
+            {
+                return await traditionalDownloadFunc().ConfigureAwait(false);
+            }
 
-			string hash = GetUrlHash(url);
+            // Use pre-computed ContentId if available (from metadata), otherwise fall back to URL hash
+            string hash = !string.IsNullOrEmpty(contentId) ? contentId : GetUrlHash(url);
 			string cachePath = GetCachePath(hash);
+
+			if (!string.IsNullOrEmpty(contentId))
+			{
+				await Logger.LogVerboseAsync($"[Cache] Using ContentId for cache lookup: {contentId.Substring(0, Math.Min(16, contentId.Length))}...").ConfigureAwait(false);
+			}
 
 			if (!File.Exists(cachePath))
 
@@ -54,7 +63,7 @@ namespace KOTORModSync.Core.Services.Download
 				DownloadResult result = await traditionalDownloadFunc().ConfigureAwait(false);
 				if (result != null && result.Success && !string.IsNullOrEmpty(result.FilePath))
 				{
-					_ = Task.Run(() => StartBackgroundSharingAsync(url, result.FilePath), cancellationToken);
+					_ = Task.Run(() => StartBackgroundSharingAsync(url, result.FilePath, hash), cancellationToken);
 				}
 				return result;
 			}
@@ -64,7 +73,7 @@ namespace KOTORModSync.Core.Services.Download
 			using (CancellationTokenSource cts = new CancellationTokenSource())
 			using (CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cts.Token))
 			{
-				Task<DownloadResult> distributedTask = TryDistributedDownloadAsync(url, destinationDirectory, progress, linkedCts.Token);
+				Task<DownloadResult> distributedTask = TryDistributedDownloadAsync(url, destinationDirectory, progress, linkedCts.Token, hash);
 				Task<DownloadResult> traditionalTask = traditionalDownloadFunc();
 
 				while (!linkedCts.Token.IsCancellationRequested)
@@ -79,7 +88,7 @@ namespace KOTORModSync.Core.Services.Download
 						{
 							if (!string.IsNullOrEmpty(result.FilePath) && File.Exists(result.FilePath))
 							{
-								_ = Task.Run(() => StartBackgroundSharingAsync(url, result.FilePath), cancellationToken);
+								_ = Task.Run(() => StartBackgroundSharingAsync(url, result.FilePath, hash), cancellationToken);
 							}
 
 							return result;
@@ -120,14 +129,18 @@ namespace KOTORModSync.Core.Services.Download
 		private static Task EnsureInitializedAsync()
 		{
 			if (_initialized)
-				return Task.CompletedTask;
+            {
+                return Task.CompletedTask;
+            }
 
-			lock (_lock)
+            lock (_lock)
 			{
 				if (_initialized)
-					return Task.CompletedTask;
+                {
+                    return Task.CompletedTask;
+                }
 
-				try
+                try
 				{
 					Type engineSettingsType = Type.GetType(D("TW9ub1RvcnJlbnQuQ2xpZW50LkVuZ2luZVNldHRpbmdzLCBNb25vVG9ycmVudA=="));
 					if (engineSettingsType is null)
@@ -220,14 +233,18 @@ namespace KOTORModSync.Core.Services.Download
 			string url,
 			string destinationDirectory,
 			IProgress<DownloadProgress> progress,
-			CancellationToken cancellationToken)
+			CancellationToken cancellationToken,
+			string contentKeyOrHash = null)
 		{
 			try
 			{
 				if (_client is null)
-					return null;
+                {
+                    return null;
+                }
 
-				string hash = GetUrlHash(url);
+                // Use provided ContentId/hash or compute from URL
+                string hash = !string.IsNullOrEmpty(contentKeyOrHash) ? contentKeyOrHash : GetUrlHash(url);
 				string cachePath = GetCachePath(hash);
 
 				if (!File.Exists(cachePath))
@@ -238,15 +255,13 @@ namespace KOTORModSync.Core.Services.Download
 
 				}
 
-				await Logger.LogVerboseAsync($"[Cache] Attempting optimized download")
-
-.ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[Cache] Attempting optimized download").ConfigureAwait(false);
 
 				Type metadataType = Type.GetType(D("TW9ub1RvcnJlbnQuVG9ycmVudCwgTW9ub1RvcnJlbnQ="));
 				dynamic metadata =
 
 
-await Task.Run(() =>
+                await Task.Run(() =>
 				{
 					System.Reflection.MethodInfo loadMethod = metadataType.GetMethod(D("TG9hZA=="), new[] { typeof(string) });
 					return loadMethod.Invoke(null, new object[] { cachePath });
@@ -260,7 +275,7 @@ await Task.Run(() =>
 				await manager.StartAsync();
 
 				DateTime startTime = DateTime.Now;
-				TimeSpan timeout = TimeSpan.FromMinutes(5);
+				TimeSpan timeout = TimeSpan.FromHours(2);
 
 				while (!cancellationToken.IsCancellationRequested && DateTime.Now - startTime < timeout)
 				{
@@ -307,14 +322,17 @@ await Task.Run(() =>
 			}
 		}
 
-		private static async Task StartBackgroundSharingAsync(string url, string filePath)
+		private static async Task StartBackgroundSharingAsync(string url, string filePath, string contentKeyOrHash = null)
 		{
 			try
 			{
 				if (_client is null || !File.Exists(filePath))
-					return;
+                {
+                    return;
+                }
 
-				string hash = GetUrlHash(url);
+                // Use provided ContentId/hash or compute from URL
+                string hash = !string.IsNullOrEmpty(contentKeyOrHash) ? contentKeyOrHash : GetUrlHash(url);
 				string metadataPath = GetCachePath(hash);
 
 				if (!File.Exists(metadataPath))
@@ -379,9 +397,11 @@ manager);
 			lock (_lock)
 			{
 				if (_urlHashes.TryGetValue(url, out string existing))
-					return existing;
+                {
+                    return existing;
+                }
 
-				string normalized = NormalizeUrl(url);
+                string normalized = NormalizeUrl(url);
 				byte[] hashBytes;
 #if NET48
 				using ( var sha1 = SHA1.Create() )
@@ -405,20 +425,26 @@ manager);
 				{
 					System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(url, @"nexusmods\.com/([^/]+)/mods/(\d+)");
 					if (match.Success)
-						return $"nexusmods:{match.Groups[1].Value}:{match.Groups[2].Value}";
-				}
+                    {
+                        return $"nexusmods:{match.Groups[1].Value}:{match.Groups[2].Value}";
+                    }
+                }
 				else if (url.Contains("deadlystream.com"))
 				{
 					System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(url, @"deadlystream\.com/files/file/(\d+)");
 					if (match.Success)
-						return $"deadlystream:{match.Groups[1].Value}";
-				}
+                    {
+                        return $"deadlystream:{match.Groups[1].Value}";
+                    }
+                }
 				else if (url.Contains("mega.nz"))
 				{
 					System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(url, @"mega\.nz/(file|folder)/([A-Za-z0-9_-]+)");
 					if (match.Success)
-						return $"mega:{match.Groups[1].Value}:{match.Groups[2].Value}";
-				}
+                    {
+                        return $"mega:{match.Groups[1].Value}:{match.Groups[2].Value}";
+                    }
+                }
 
 				Uri uri = new Uri(url);
 				return $"{uri.Host}{uri.AbsolutePath}";
@@ -439,9 +465,11 @@ manager);
 			);
 
 			if (!Directory.Exists(cacheDir))
-				Directory.CreateDirectory(cacheDir);
+            {
+                Directory.CreateDirectory(cacheDir);
+            }
 
-			return Path.Combine(cacheDir, $"{hash}.dat");
+            return Path.Combine(cacheDir, $"{hash}.dat");
 		}
 
 		#region Phase 4: Content Identification & Integrity Verification
@@ -531,8 +559,10 @@ manager);
 			{
 				long pieceCount = (fileSize + size - 1) / size;
 				if (pieceCount <= 1048576)
-					return size;
-			}
+                {
+                    return size;
+                }
+            }
 
 			return 4194304; // Max 4MB pieces
 		}
@@ -563,9 +593,12 @@ manager);
 #else
 					int bytesRead = await fs.ReadAsync(buffer.AsMemory(0, pieceLength)).ConfigureAwait(false);
 #endif
-					if (bytesRead == 0) break;
+					if (bytesRead == 0)
+                    {
+                        break;
+                    }
 
-					byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take(bytesRead).ToArray();
+                    byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take(bytesRead).ToArray();
 #if NET48
 					using ( var sha1 = SHA1.Create() )
 					{
@@ -628,9 +661,12 @@ manager);
 #else
 					int bytesRead = await fs.ReadAsync(buffer.AsMemory(0, pieceLength)).ConfigureAwait(false);
 #endif
-					if (bytesRead == 0) break;
+					if (bytesRead == 0)
+                    {
+                        break;
+                    }
 
-					byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take(bytesRead).ToArray();
+                    byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take(bytesRead).ToArray();
 #if NET48
 					using ( var sha1 = SHA1.Create() )
 					{
@@ -698,19 +734,23 @@ manager);
 		public static string SanitizeFilename(string name)
 		{
 			if (string.IsNullOrEmpty(name))
-				return name;
+            {
+                return name;
+            }
 
-			// Normalize to Unicode NFC
-			name = name.Normalize(NormalizationForm.FormC);
+            // Normalize to Unicode NFC
+            name = name.Normalize(NormalizationForm.FormC);
 
 			// Replace backslashes with forward slashes
 			name = name.Replace('\\', '/');
 
 			// Remove any path components (keep filename only)
 			if (name.Contains('/'))
-				name = name.Substring(name.LastIndexOf('/') + 1);
+            {
+                name = name.Substring(name.LastIndexOf('/') + 1);
+            }
 
-			return name;
+            return name;
 		}
 
 		/// <summary>
@@ -792,8 +832,12 @@ manager);
 				List<byte[]> expectedHashes = new List<byte[]>();
 				for (int i = 0; i < pieceHashesHex.Length; i += 40)
 				{
-					if (i + 40 > pieceHashesHex.Length) break;
-					string hexPiece = pieceHashesHex.Substring(i, 40);
+					if (i + 40 > pieceHashesHex.Length)
+                    {
+                        break;
+                    }
+
+                    string hexPiece = pieceHashesHex.Substring(i, 40);
 #if NET48
 					expectedHashes.Add(HexStringToByteArray(hexPiece));
 #else
@@ -815,9 +859,12 @@ manager);
 #else
 						int bytesRead = await fs.ReadAsync(buffer.AsMemory(0, pieceLength)).ConfigureAwait(false);
 #endif
-						if (bytesRead == 0) break;
+						if (bytesRead == 0)
+                        {
+                            break;
+                        }
 
-						byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take(bytesRead).ToArray();
+                        byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take(bytesRead).ToArray();
 #if NET48
 						byte[] computedHash;
 						using ( var sha1 = SHA1.Create() )
@@ -875,9 +922,11 @@ manager);
 		{
 			string partialDir = Path.Combine(destinationDirectory, ".partial");
 			if (!Directory.Exists(partialDir))
-				Directory.CreateDirectory(partialDir);
+            {
+                Directory.CreateDirectory(partialDir);
+            }
 
-			return Path.Combine(partialDir, $"{contentKey.Substring(0, Math.Min(32, contentKey.Length))}.part");
+            return Path.Combine(partialDir, $"{contentKey.Substring(0, Math.Min(32, contentKey.Length))}.part");
 		}
 
 		/// <summary>
@@ -893,8 +942,10 @@ manager);
 				sem.Release();
 				// Clean up if no waiters
 				if (sem.CurrentCount == 1)
-					s_contentKeyLocks.TryRemove(contentKey, out _);
-			});
+                {
+                    s_contentKeyLocks.TryRemove(contentKey, out _);
+                }
+            });
 		}
 
 		private class LockReleaser : IDisposable
@@ -922,9 +973,11 @@ manager);
 						"Cache"
 					);
 					if (!Directory.Exists(cacheDir))
-						Directory.CreateDirectory(cacheDir);
+                    {
+                        Directory.CreateDirectory(cacheDir);
+                    }
 
-					string auditLog = Path.Combine(cacheDir, "block-audit.log");
+                    string auditLog = Path.Combine(cacheDir, "block-audit.log");
 					File.AppendAllText(auditLog, $"{DateTime.UtcNow:O}|BLOCK|{contentId}|{reason ?? "manual"}\n");
 				}
 				catch (Exception ex)

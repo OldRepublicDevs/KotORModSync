@@ -1,18 +1,20 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 
 using JetBrains.Annotations;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Controls
 {
@@ -79,17 +81,60 @@ namespace KOTORModSync.Controls
 		public event EventHandler<RoutedEventArgs> DeleteOptionRequested;
 		public event EventHandler<RoutedEventArgs> MoveOptionUpRequested;
 		public event EventHandler<RoutedEventArgs> MoveOptionDownRequested;
-		public event EventHandler<Core.Services.Validation.PathValidationResult> JumpToBlockingInstructionRequested;
+
+        [SuppressMessage("Design", "MA0046:Use EventHandler<T> to declare events", Justification = "<Pending>")]
+        public event EventHandler<Core.Services.Validation.PathValidationResult> JumpToBlockingInstructionRequested;
 
 		public EditorTab()
 		{
 			InitializeComponent();
 			DataContext = this;
 			_autoGenerateButton = this.FindControl<Button>( "AutoGenerateButton" );
+
+			// Initialize Tier options so the ComboBox has selectable items
+			try
+			{
+				var tierKeys = new List<string>(CategoryTierDefinitions.TierDefinitions.Keys);
+				// Keep a stable, user-friendly order: by leading number if present
+				tierKeys.Sort( (a, b) =>
+				{
+					int ParseLeadingNumber(string s)
+					{
+						if (string.IsNullOrWhiteSpace(s)) return int.MaxValue;
+						for (int i = 0; i < s.Length; i++)
+						{
+							if (char.IsDigit(s[i]))
+							{
+								int j = i;
+								while (j < s.Length && char.IsDigit(s[j])) j++;
+								if (int.TryParse(s.Substring(i, j - i), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n)) return n;
+								break;
+							}
+						}
+						return int.MaxValue;
+					}
+
+					int na = ParseLeadingNumber(a);
+					int nb = ParseLeadingNumber(b);
+					int cmp = na.CompareTo(nb);
+					return cmp != 0 ? cmp : string.Compare(a, b, StringComparison.Ordinal);
+				});
+
+				TierOptions = tierKeys;
+			}
+			catch (Exception ex)
+			{
+				Logger.LogException(ex, "Failed to initialize Tier options");
+			}
 		}
 
 		private void ExpandAllSections_Click( object sender, RoutedEventArgs e )
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => ExpandAllSections_Click(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				BasicInfoExpander.IsExpanded = true;
@@ -101,12 +146,17 @@ namespace KOTORModSync.Controls
 			}
 			catch (Exception ex)
 			{
-				Core.Logger.LogException( ex, "Error expanding all sections" );
+				Logger.LogException( ex, "Error expanding all sections" );
 			}
 		}
 
 		private void CollapseAllSections_Click( object sender, RoutedEventArgs e )
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => CollapseAllSections_Click(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				BasicInfoExpander.IsExpanded = false;
@@ -118,7 +168,7 @@ namespace KOTORModSync.Controls
 			}
 			catch (Exception ex)
 			{
-				Core.Logger.LogException( ex, "Error collapsing all sections" );
+				Logger.LogException( ex, "Error collapsing all sections" );
 			}
 		}
 
@@ -180,11 +230,6 @@ namespace KOTORModSync.Controls
 		private void MoveOptionDown_Click( object sender, RoutedEventArgs e )
 		{
 			MoveOptionDownRequested?.Invoke( this, e );
-		}
-
-		private void JumpToBlockingInstruction_Handler( object sender, Core.Services.Validation.PathValidationResult validationResult )
-		{
-			JumpToBlockingInstructionRequested?.Invoke( this, validationResult );
 		}
 	}
 }

@@ -768,12 +768,12 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
 				// Verify Instructions
 				Assert.That(component.Instructions, Has.Count.EqualTo(2));
 
-				var extractInstruction = component.Instructions.FirstOrDefault(i => string.Equals(i.Guid.ToString(), "e6d0dbb7-75f7-4886-a4a5-e7eea85dac1c", StringComparison.Ordinal));
+				var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
 				Assert.That(extractInstruction, Is.Not.Null);
 				Assert.That(extractInstruction.Action, Is.EqualTo(Instruction.ActionType.Extract));
 				Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
 
-				var chooseInstruction = component.Instructions.FirstOrDefault(i => string.Equals(i.Guid.ToString(), "b201d6e8-3d07-4de5-a937-47ba9952afac", StringComparison.Ordinal));
+				var chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose);
 				Assert.That(chooseInstruction, Is.Not.Null);
 				Assert.That(chooseInstruction.Action, Is.EqualTo(Instruction.ActionType.Choose));
 				Assert.That(chooseInstruction.Source, Has.Count.EqualTo(2));
@@ -799,14 +799,12 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
 				// Verify Option Instructions
 				Assert.That(standardOption.Instructions, Has.Count.EqualTo(1));
 				var standardInstruction = standardOption.Instructions[0];
-				Assert.That(standardInstruction.Guid.ToString(), Is.EqualTo("9521423e-e617-474c-bcbb-a15563a516fc"));
 				Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
 				Assert.That(standardInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
 				Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"));
 
 				Assert.That(revisedOption.Instructions, Has.Count.EqualTo(1));
 				var revisedInstruction = revisedOption.Instructions[0];
-				Assert.That(revisedInstruction.Guid.ToString(), Is.EqualTo("80fba038-4a24-4716-a0cc-1d4051e952a0"));
 				Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
 				Assert.That(revisedInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
 				Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"));
@@ -844,16 +842,6 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
 
 				ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
 				ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
-
-				var fixedGuid = Guid.Parse("00000000-0000-0000-0000-000000000001");
-				foreach (Instruction instruction in copy1.Instructions)
-				{
-					instruction.Guid = fixedGuid;
-				}
-				foreach (Instruction instruction in copy2.Instructions)
-				{
-					instruction.Guid = fixedGuid;
-				}
 
 				string normalizedJson1 = JsonConvert.SerializeObject(copy1);
 				string normalizedJson2 = JsonConvert.SerializeObject(copy2);

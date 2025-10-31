@@ -2,11 +2,8 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
-using System.Text;
-
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
-using KOTORModSync.Core.Utility;
 
 using Newtonsoft.Json;
 
@@ -177,7 +174,10 @@ namespace KOTORModSync.Tests
 				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
 				Assert.That(loadedComponents, Is.Null.Or.Empty);
 			}
-			catch (InvalidDataException) { }
+			catch (InvalidDataException ex)
+			{
+				Logger.LogException(ex);
+			}
 		}
 
 		[Test]
@@ -395,7 +395,6 @@ namespace KOTORModSync.Tests
 			{
 				new Instruction
 				{
-					Guid = Guid.NewGuid(),
 					Action = Instruction.ActionType.Extract,
 					Source = new List<string> { "<<modDirectory>>\\mod*.zip" },
 					Overwrite = true
@@ -413,7 +412,6 @@ namespace KOTORModSync.Tests
 					{
 						new Instruction
 						{
-							Guid = Guid.NewGuid(),
 							Action = Instruction.ActionType.Move,
 							Source = new List<string> { "<<modDirectory>>\\optional\\file1.txt" },
 							Destination = "<<kotorDirectory>>\\Override",
@@ -431,7 +429,6 @@ namespace KOTORModSync.Tests
 					{
 						new Instruction
 						{
-							Guid = Guid.NewGuid(),
 							Action = Instruction.ActionType.Copy,
 							Source = new List<string> { "<<modDirectory>>\\optional\\file2.txt" },
 							Destination = "<<kotorDirectory>>\\Override",
@@ -497,20 +494,10 @@ namespace KOTORModSync.Tests
 				string json1 = JsonConvert.SerializeObject(comp1);
 				string json2 = JsonConvert.SerializeObject(comp2);
 
-				ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
-				ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
+			ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
+			ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
 
-				var fixedGuid = Guid.Parse("00000000-0000-0000-0000-000000000001");
-				foreach (Instruction instruction in copy1.Instructions)
-				{
-					instruction.Guid = fixedGuid;
-				}
-				foreach (Instruction instruction in copy2.Instructions)
-				{
-					instruction.Guid = fixedGuid;
-				}
-
-				string normalizedJson1 = JsonConvert.SerializeObject(copy1);
+			string normalizedJson1 = JsonConvert.SerializeObject(copy1);
 				string normalizedJson2 = JsonConvert.SerializeObject(copy2);
 
 				Assert.That(normalizedJson1, Is.EqualTo(normalizedJson2));

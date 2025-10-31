@@ -353,7 +353,7 @@ namespace KOTORModSync.Core.Utility
 				try
 				{
 					TimeSpan? thisTimeout = timeout != 0
-						? TimeSpan.FromMilliseconds(timeout)
+						? (TimeSpan?)TimeSpan.FromMilliseconds(timeout)
 						: null;
 					CancellationTokenSource cancellationTokenSource = thisTimeout.HasValue
 						? new CancellationTokenSource(thisTimeout.Value)

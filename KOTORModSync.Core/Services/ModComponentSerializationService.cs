@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using JetBrains.Annotations;
@@ -25,64 +26,6 @@ using YamlSerialization = YamlDotNet.Serialization;
 
 namespace KOTORModSync.Core.Services
 {
-	public class ComponentValidationContext
-	{
-		public Dictionary<Guid, List<string>> ComponentIssues { get; set; } = new Dictionary<Guid, List<string>>();
-		public Dictionary<Guid, List<string>> InstructionIssues { get; set; } = new Dictionary<Guid, List<string>>();
-		public Dictionary<string, List<string>> UrlFailures { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-
-		public void AddModComponentIssue(Guid componentGuid, string issue)
-		{
-			if (!ComponentIssues.ContainsKey(componentGuid))
-				ComponentIssues[componentGuid] = new List<string>();
-			ComponentIssues[componentGuid].Add(issue);
-		}
-
-		public void AddInstructionIssue(Guid instructionGuid, string issue)
-		{
-			if (!InstructionIssues.ContainsKey(instructionGuid))
-				InstructionIssues[instructionGuid] = new List<string>();
-			InstructionIssues[instructionGuid].Add(issue);
-		}
-
-		public void AddUrlFailure(string url, string error)
-		{
-			if (!UrlFailures.ContainsKey(url))
-				UrlFailures[url] = new List<string>();
-			UrlFailures[url].Add(error);
-		}
-
-		public List<string> GetComponentIssues(Guid componentGuid)
-		{
-			return ComponentIssues.TryGetValue(componentGuid, out List<string> issues) ? issues : new List<string>();
-		}
-
-		public List<string> GetInstructionIssues(Guid instructionGuid)
-		{
-			return InstructionIssues.TryGetValue(instructionGuid, out List<string> issues) ? issues : new List<string>();
-		}
-
-		public List<string> GetUrlFailures(string url)
-		{
-			return UrlFailures.TryGetValue(url, out List<string> failures) ? failures : new List<string>();
-		}
-
-		public bool HasIssues(Guid componentGuid)
-		{
-			return ComponentIssues.ContainsKey(componentGuid);
-		}
-
-		public bool HasInstructionIssues(Guid instructionGuid)
-		{
-			return InstructionIssues.ContainsKey(instructionGuid);
-		}
-
-		public bool HasUrlFailures(string url)
-		{
-			return UrlFailures.ContainsKey(url);
-		}
-	}
-
 	public static class ModComponentSerializationService
 	{
 		#region Encoding Sanitization
@@ -90,6 +33,7 @@ namespace KOTORModSync.Core.Services
 		/// Sanitizes string content to handle problematic characters that break parsers.
 		/// Uses the encoding specified in MainConfig.FileEncoding (default: utf-8)
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static string SanitizeUtf8(string input)
 		{
 			if (string.IsNullOrEmpty(input))
@@ -135,7 +79,7 @@ namespace KOTORModSync.Core.Services
 					try
 					{
 						// Try to encode this character to target encoding
-						byte[] unused = targetEncoding.GetBytes(new[] { c });
+						targetEncoding.GetBytes(new[] { c });
 						// If successful, add it to result
 						result.Append(c);
 					}
@@ -240,8 +184,8 @@ namespace KOTORModSync.Core.Services
 			Logger.LogVerbose($"TOML table keys: {string.Join(", ", tomlTable.Keys)}");
 			foreach (string key in tomlTable.Keys)
 			{
-				Logger.LogVerbose($"Checking key: '{key}' - Contains Options: {key.Contains("Options")}, Contains Instructions: {key.Contains("Instructions")}");
-				if (key.Contains("Options") && !key.Contains("Instructions"))
+				Logger.LogVerbose($"Checking key: '{key}' - Contains Options: {key.IndexOf("Options", StringComparison.OrdinalIgnoreCase) >= 0}, Contains Instructions: {key.IndexOf("Instructions", StringComparison.OrdinalIgnoreCase) >= 0}");
+				if (key.IndexOf("Options", StringComparison.OrdinalIgnoreCase) >= 0 && key.IndexOf("Instructions", StringComparison.OrdinalIgnoreCase) < 0)
 				{
 					Logger.LogVerbose($"Found Options key: '{key}'");
 					if (tomlTable.TryGetValue(key, out object optionsObj))
@@ -272,8 +216,8 @@ namespace KOTORModSync.Core.Services
 			List<object> allOptionsInstructions = new List<object>();
 			foreach (string key in tomlTable.Keys)
 			{
-				Logger.LogVerbose($"Checking key for Options Instructions: '{key}' - Contains Options: {key.Contains("Options")}, Contains Instructions: {key.Contains("Instructions")}");
-				if (key.Contains("Options") && key.Contains("Instructions"))
+				Logger.LogVerbose($"Checking key for Options Instructions: '{key}' - Contains Options: {key.IndexOf("Options", StringComparison.OrdinalIgnoreCase) >= 0}, Contains Instructions: {key.IndexOf("Instructions", StringComparison.OrdinalIgnoreCase) >= 0}");
+				if (key.IndexOf("Options", StringComparison.OrdinalIgnoreCase) >= 0 && key.IndexOf("Instructions", StringComparison.OrdinalIgnoreCase) >= 0)
 				{
 					Logger.LogVerbose($"Found Options Instructions key: '{key}'");
 					if (tomlTable.TryGetValue(key, out object optionsInstructionsObj))
@@ -378,12 +322,9 @@ namespace KOTORModSync.Core.Services
 						foreach (Option option in thisComponent.Options)
 						{
 							string optionGuidStr = option.Guid.ToString();
-							if (instructionsByParent.TryGetValue(optionGuidStr, out List<object> instructions))
+							if (instructionsByParent.TryGetValue(optionGuidStr, out List<object> instructions) && option.Instructions.Count == 0)
 							{
-								if (option.Instructions.Count == 0)
-								{
-									option.Instructions = DeserializeInstructions(instructions, option);
-								}
+								option.Instructions = DeserializeInstructions(instructions, option);
 							}
 						}
 					}
@@ -783,6 +724,7 @@ namespace KOTORModSync.Core.Services
 		/// Preprocesses a component dictionary to handle duplicate fields by flattening nested collections.
 		/// This handles cases where TOML/JSON/YAML might have duplicate field definitions.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static Dictionary<string, object> PreprocessComponentDictionary([NotNull] IDictionary<string, object> componentDict)
 		{
 			Dictionary<string, object> processedDict = new Dictionary<string, object>(componentDict, StringComparer.OrdinalIgnoreCase);
@@ -1003,6 +945,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Processes component-level properties that might be converted to KeyValuePair objects during YAML deserialization.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static void ProcessComponentLevelProperties(Dictionary<string, object> processedDict)
 		{
 			// Check if any component-level properties are KeyValuePair objects
@@ -1038,7 +981,7 @@ namespace KOTORModSync.Core.Services
 							{
 								kvpValue = boolValue;
 							}
-							else if (int.TryParse(stringValue, out int intValue))
+							else if (int.TryParse(stringValue, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int intValue))
 							{
 								kvpValue = intValue;
 							}
@@ -1071,6 +1014,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Groups KeyValuePair objects into complete instruction dictionaries.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static List<object> GroupKeyValuePairsIntoInstructions(List<object> kvpList)
 		{
 			List<object> instructions = new List<object>();
@@ -1096,7 +1040,7 @@ namespace KOTORModSync.Core.Services
 						{
 							value = boolValue;
 						}
-						else if (int.TryParse(stringValue, out int intValue))
+						else if (int.TryParse(stringValue, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int intValue))
 						{
 							value = intValue;
 						}
@@ -1109,35 +1053,17 @@ namespace KOTORModSync.Core.Services
 					Logger.LogVerbose($"GroupKeyValuePairsIntoInstructions: Processing {key} = {value}");
 
 					// Check if this is a new instruction (GUID field only)
-					if (key.Equals("Guid", StringComparison.OrdinalIgnoreCase) && value != null)
+					if (!(key is null) && key.Equals("Guid", StringComparison.OrdinalIgnoreCase) && value != null)
 					{
 						// If we have a current instruction, save it before starting a new one
 						if (currentInstruction.Count > 0)
-
 						{
 							instructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
 							currentInstruction.Clear();
 						}
 						currentInstruction[key] = value;
 					}
-					else if (key.Equals("Action", StringComparison.OrdinalIgnoreCase) && value != null)
-					{
-						// Only start a new instruction with Action if we don't have a current instruction
-						if (currentInstruction.Count == 0)
-						{
-							currentInstruction[key] = value;
-						}
-						else
-						{
-							// Add to current instruction
-							currentInstruction[key] = value;
-						}
-					}
-					else
-					{
-						// Add to current instruction
-						currentInstruction[key] = value;
-					}
+					currentInstruction[key] = value;
 				}
 			}
 
@@ -1155,6 +1081,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Groups KeyValuePair objects into complete option dictionaries.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static List<object> GroupKeyValuePairsIntoOptions(List<object> kvpList)
 		{
 			List<object> options = new List<object>();
@@ -1180,7 +1107,7 @@ namespace KOTORModSync.Core.Services
 						{
 							value = boolValue;
 						}
-						else if (int.TryParse(stringValue, out int intValue))
+						else if (int.TryParse(stringValue, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int intValue))
 						{
 							value = intValue;
 						}
@@ -1194,17 +1121,17 @@ namespace KOTORModSync.Core.Services
 					currentOption[key] = value;
 
 					// Check if this completes an option (has Name field and we've seen a Guid)
-					if (key?.Equals("Name", StringComparison.OrdinalIgnoreCase) == true && !string.IsNullOrEmpty(value?.ToString()) && currentOption.ContainsKey("Guid"))
+					if (
+						key?.Equals("Name", StringComparison.OrdinalIgnoreCase) == true
+						&& !string.IsNullOrEmpty(value?.ToString())
+						&& currentOption.ContainsKey("Guid")
+						&& currentOption.Count > 0
+					)
 					{
-						if (currentOption.Count > 0)
-						{
-							Logger.LogVerbose($"GroupKeyValuePairsIntoOptions: Completed option with {currentOption.Count} fields");
+						Logger.LogVerbose($"GroupKeyValuePairsIntoOptions: Completed option with {currentOption.Count} fields");
 
-							options.Add(new Dictionary<string, object>(currentOption
-
-, StringComparer.Ordinal));
-							currentOption.Clear();
-						}
+						options.Add(new Dictionary<string, object>(currentOption, StringComparer.Ordinal));
+						currentOption.Clear();
 					}
 				}
 			}
@@ -1224,6 +1151,7 @@ namespace KOTORModSync.Core.Services
 		/// Deserializes a component from a dictionary with all conditional logic unified.
 		/// This is the migrated version from ModComponent.DeserializeComponent.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static ModComponent DeserializeComponent([NotNull] IDictionary<string, object> componentDict)
 		{
 			ModComponent component = new ModComponent();
@@ -1277,7 +1205,7 @@ namespace KOTORModSync.Core.Services
 
 			// Load legacy ModLink format first (if present)
 			List<string> legacyModLink = GetValueOrDefault<List<string>>(componentDict, key: "ModLink") ?? new List<string>();
-			if (legacyModLink is null || legacyModLink.Count == 0)
+			if (legacyModLink.Count == 0)
 			{
 				string modLink = GetValueOrDefault<string>(componentDict, key: "ModLink") ?? string.Empty;
 				if (!string.IsNullOrEmpty(modLink))
@@ -1494,7 +1422,7 @@ namespace KOTORModSync.Core.Services
 							}
 							else
 							{
-								Logger.LogVerbose($"Removed GUID {guid} from Choose instruction {instruction.Guid}");
+								Logger.LogVerbose($"Removed GUID {guid} from Choose instruction");
 							}
 						}
 						else
@@ -1538,12 +1466,10 @@ namespace KOTORModSync.Core.Services
 					MainConfig.BuildAuthor = authorObj.ToString() ?? string.Empty;
 				if (metadataTable.TryGetValue("buildDescription", out object descObj))
 					MainConfig.BuildDescription = descObj.ToString() ?? string.Empty;
-				if (metadataTable.TryGetValue("lastModified", out object modifiedObj))
+				if (metadataTable.TryGetValue("lastModified", out object modifiedObj) &&
+					DateTime.TryParse(modifiedObj.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
 				{
-					if (DateTime.TryParse(modifiedObj.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
-					{
-						MainConfig.LastModified = parsedDate;
-					}
+					MainConfig.LastModified = parsedDate;
 				}
 				// Always load content sections if present (check both Pascal and camel case for backward compatibility)
 				if (metadataTable.TryGetValue("preambleContent", out object preambleObj) || metadataTable.TryGetValue("PreambleContent", out preambleObj))
@@ -1624,15 +1550,10 @@ namespace KOTORModSync.Core.Services
 				Utility.Serializer.DeserializeGuidDictionary(instructionDict, key: "Dependencies");
 				Instruction instruction = new Instruction();
 
-				// Set the GUID from the TOML data
-				if (
-					instructionDict.TryGetValue("Guid", out object guidObj)
-					&& guidObj != null
-					&& Guid.TryParse(guidObj.ToString(), out Guid guid)
-				)
-					instruction.Guid = guid;
+				// Ignore GUID if present (for backward compatibility)
+				_ = instructionDict.TryGetValue("Guid", out _);
 				if (string.Equals(GetValueOrDefault<string>(instructionDict, key: "Action"), "TSLPatcher", StringComparison.OrdinalIgnoreCase) ||
-					string.Equals(GetValueOrDefault<string>(instructionDict, key: "Action"), "HoloPatcher", StringComparison.OrdinalIgnoreCase))
+						string.Equals(GetValueOrDefault<string>(instructionDict, key: "Action"), "HoloPatcher", StringComparison.OrdinalIgnoreCase))
 				{
 					instruction.Action = ActionType.Patcher;
 					_ = Logger.LogVerboseAsync($" -- Deserialize instruction #{index + 1} action '{strAction}' -> Patcher (backward compatibility)");
@@ -1788,16 +1709,10 @@ namespace KOTORModSync.Core.Services
 
 			Instruction instruction = new Instruction();
 
-			// Set the GUID from the TOML data
-			if (instructionDict.TryGetValue("Guid", out object guidObj) && guidObj != null)
-			{
-				if (Guid.TryParse(guidObj.ToString(), out Guid guid))
-				{
-					instruction.Guid = guid;
-				}
-			}
+			// Ignore GUID if present (for backward compatibility)
+			_ = instructionDict.TryGetValue("Guid", out _);
 			if (string.Equals(strAction, "TSLPatcher", StringComparison.OrdinalIgnoreCase) ||
-				string.Equals(strAction, "HoloPatcher", StringComparison.OrdinalIgnoreCase))
+					string.Equals(strAction, "HoloPatcher", StringComparison.OrdinalIgnoreCase))
 			{
 				instruction.Action = ActionType.Patcher;
 				Logger.LogVerbose($"Instruction action '{strAction}' -> Patcher (backward compatibility)");
@@ -1847,7 +1762,7 @@ namespace KOTORModSync.Core.Services
 			}
 
 			// Check if we're dealing with individual option fields (KeyValuePair objects) that need to be grouped
-			bool needsGrouping = optionsSerializedList.Count > 0 && optionsSerializedList[0] is KeyValuePair<string, object>;
+			bool needsGrouping = optionsSerializedList[0] is KeyValuePair<string, object>;
 
 			if (needsGrouping)
 			{
@@ -1898,6 +1813,7 @@ namespace KOTORModSync.Core.Services
 		/// </summary>
 		[ItemNotNull]
 		[NotNull]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static System.Collections.ObjectModel.ObservableCollection<Option> GroupOptionFieldsIntoOptions(
 			[NotNull] IList<object> optionFields)
 		{
@@ -2541,13 +2457,18 @@ namespace KOTORModSync.Core.Services
 				Dictionary<string, object> componentDict = SerializeComponentToDictionary(component, validationContext);
 
 				StringBuilder nestedContent = new StringBuilder();
-				Dictionary<string, object> modLinkFilenamesDict = FixSerializedTomlDict(componentDict, nestedContent, validationContext, component);
+				(Dictionary<string, object> modLinkFilenamesDict, Dictionary<string, object> resourceRegistryDict) = FixSerializedTomlDict(
+					componentDict,
+					nestedContent,
+					validationContext,
+					component
+				);
 
 				Dictionary<string, object> rootTable = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["thisMod"] = componentDict,
 				};
-				string componentToml = Toml.FromModel(rootTable).Replace("[thisMod]", "[[thisMod]]");
+				string componentToml = Regex.Replace(Toml.FromModel(rootTable), Regex.Escape("[thisMod]"), "[[thisMod]]", RegexOptions.IgnoreCase);
 
 				// Insert ModLinkFilenames inline if present
 				if (modLinkFilenamesDict != null && modLinkFilenamesDict.Count > 0)
@@ -2583,15 +2504,14 @@ namespace KOTORModSync.Core.Services
 
 								if (fileEntry.Value is bool boolVal)
 									_ = mlf.Append(boolVal ? "true" : "false");
-
-								else if (fileEntry.Value is string strVal && string.Equals(strVal, "null", StringComparison.Ordinal))
-								{
+								else if (fileEntry.Value is string strVal && string.Equals(strVal, "null", StringComparison.OrdinalIgnoreCase))
 									_ = mlf.Append("\"null\"");
-								}
+								else if (fileEntry.Value is string strVal2)
+									_ = mlf.Append($"\"{strVal2.Replace("\"", "\\\"")}\"");
+								else if (fileEntry.Value == null)
+									_ = mlf.Append("\"null\"");
 								else
-								{
-									_ = mlf.Append("\"null\"");
-								}
+									_ = mlf.Append($"\"{fileEntry.Value}\"");
 							}
 						}
 
@@ -2606,28 +2526,47 @@ namespace KOTORModSync.Core.Services
 						componentToml = componentToml.Insert(insertPos + 1, mlf.ToString());
 				}
 
+				// Insert ResourceRegistry inline if present
+				if (resourceRegistryDict != null && resourceRegistryDict.Count > 0)
+				{
+					StringBuilder rr = new StringBuilder();
+					Dictionary<string, object> rrModel = new Dictionary<string, object>(StringComparer.Ordinal)
+					{
+						["ResourceRegistry"] = resourceRegistryDict
+					};
+					string rrToml = Toml.FromModel(rrModel);
+					rr.AppendLine();
+					rr.Append(rrToml.Replace("[ResourceRegistry]", "ResourceRegistry = {").Replace(']', '}'));
+
+					// Insert after ModLinkFilenames (if present) or after the [[thisMod]] line
+					int insertPos = componentToml.LastIndexOf('\n');
+					if (insertPos > 0)
+						componentToml = componentToml.Insert(insertPos + 1, rr.ToString());
+				}
+
 				_ = result.Append(componentToml.TrimEnd());
 
 				if (nestedContent.Length <= 0)
 					continue;
 				_ = result.AppendLine();
-				_ = result.Append(nestedContent.ToString());
+				_ = result.Append(nestedContent);
 			}
 
 			return SanitizeUtf8(Utility.Serializer.FixWhitespaceIssues(result.ToString()));
 		}
 
-		private static Dictionary<string, object> FixSerializedTomlDict(
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private static (Dictionary<string, object> modLinkFilenamesDict, Dictionary<string, object> resourceRegistryDict) FixSerializedTomlDict(
 			Dictionary<string, object> serializedComponentDict,
-			StringBuilder tomlString,
+			StringBuilder nestedContent,
 			ComponentValidationContext validationContext = null,
 			ModComponent component = null
 		)
 		{
 			if (serializedComponentDict is null)
 				throw new ArgumentNullException(nameof(serializedComponentDict));
-			if (tomlString is null)
-				throw new ArgumentNullException(nameof(tomlString));
+			if (nestedContent is null)
+				throw new ArgumentNullException(nameof(nestedContent));
 
 			// Remove metadata fields that were added by unified serialization (they're for format-specific use only)
 			serializedComponentDict.Remove("_ValidationIssues");
@@ -2654,15 +2593,14 @@ namespace KOTORModSync.Core.Services
 						// Add validation comments for instruction issues
 						if (validationContext != null && component != null && instructionIndex < component.Instructions.Count)
 						{
-							Instruction instruction = component.Instructions[instructionIndex];
-							List<string> instructionIssues = validationContext.GetInstructionIssues(instruction.Guid);
+							List<string> instructionIssues = validationContext.GetInstructionIssues(component.Guid, instructionIndex);
 							if (instructionIssues.Count > 0)
 							{
-								tomlString.AppendLine();
-								tomlString.AppendLine("# INSTRUCTION VALIDATION ISSUES:");
+								nestedContent.AppendLine();
+								nestedContent.AppendLine("# INSTRUCTION VALIDATION ISSUES:");
 								foreach (string issue in instructionIssues)
 								{
-									tomlString.AppendLine($"# {issue}");
+									nestedContent.AppendLine($"# {issue}");
 								}
 							}
 						}
@@ -2670,15 +2608,13 @@ namespace KOTORModSync.Core.Services
 						Dictionary<string, object> model = new Dictionary<string, object>(StringComparer.Ordinal)
 						{
 							{
-								"thisMod", new Dictionary<string, object>
-
-(StringComparer.Ordinal) {
+								"thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
 									{ "Instructions", item }
 								}
 							},
 						};
-						tomlString.AppendLine();
-						tomlString.Append(Toml.FromModel(model).Replace("thisMod.Instructions", $"[thisMod.Instructions]"));
+						nestedContent.AppendLine();
+						nestedContent.Append(Regex.Replace(Toml.FromModel(model), Regex.Escape("thisMod.Instructions"), "[thisMod.Instructions]", RegexOptions.IgnoreCase));
 						instructionIndex++;
 					}
 				}
@@ -2688,109 +2624,102 @@ namespace KOTORModSync.Core.Services
 
 			// Remove ModLinkFilenames - we'll add it manually after the main TOML generation
 			Dictionary<string, object> modLinkFilenamesDict = null;
-			if (serializedComponentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesVal))
+			if (serializedComponentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesVal) &&
+				modLinkFilenamesVal is Dictionary<string, object> mlf)
 			{
-				if (modLinkFilenamesVal is Dictionary<string, object> mlf)
-				{
-					modLinkFilenamesDict = mlf;
-					serializedComponentDict.Remove("ModLinkFilenames");
-				}
+				modLinkFilenamesDict = mlf;
+				serializedComponentDict.Remove("ModLinkFilenames");
+			}
+
+			// Remove ResourceRegistry - we'll add it manually after the main TOML generation
+			Dictionary<string, object> resourceRegistryDict = null;
+			if (serializedComponentDict.TryGetValue("ResourceRegistry", out object resourceRegistryVal) &&
+				resourceRegistryVal is Dictionary<string, object> rr)
+			{
+				resourceRegistryDict = rr;
+				serializedComponentDict.Remove("ResourceRegistry");
 			}
 
 			bool hasOptions = serializedComponentDict.ContainsKey("Options");
 			bool hasOptionsInstructions = serializedComponentDict.ContainsKey("OptionsInstructions");
 
-			if (hasOptions && hasOptionsInstructions)
+			if (
+				hasOptions && hasOptionsInstructions &&
+				serializedComponentDict["Options"] is List<Dictionary<string, object>> optionsList &&
+				serializedComponentDict["OptionsInstructions"] is List<Dictionary<string, object>> optionsInstructionsList &&
+				optionsInstructionsList.Count > 0)
 			{
-				if (
-					serializedComponentDict["Options"] is List<Dictionary<string, object>> optionsList &&
-					serializedComponentDict["OptionsInstructions"] is List<Dictionary<string, object>> optionsInstructionsList &&
-					optionsInstructionsList.Count > 0)
+				Dictionary<string, List<Dictionary<string, object>>> instructionsByParent = optionsInstructionsList
+					.Where(instr => instr != null && instr.ContainsKey("Parent"))
+
+					.GroupBy(instr => instr["Parent"]?.ToString(), StringComparer.Ordinal)
+					.ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+
+				foreach (Dictionary<string, object> optionDict in optionsList)
 				{
-					Dictionary<string, List<Dictionary<string, object>>> instructionsByParent = optionsInstructionsList
-						.Where(instr => instr != null && instr.ContainsKey("Parent"))
+					if (optionDict is null || optionDict.Count == 0)
+						continue;
 
-						.GroupBy(instr => instr["Parent"]?.ToString(), StringComparer.Ordinal)
-						.ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+					// CRITICAL: Remove the Instructions field from optionDict before serializing
+					// We use [[thisMod.Options.Instructions]] sections instead of inline arrays
+					optionDict.Remove("Instructions");
+					// Remove internal metadata field
+					optionDict.Remove("_HasInstructions");
 
-					foreach (Dictionary<string, object> optionDict in optionsList)
+					Dictionary<string, object> optionModel = new Dictionary<string, object>(StringComparer.Ordinal)
 					{
-						if (optionDict is null || optionDict.Count == 0)
-							continue;
+						{
+							"thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
+								{ "Options", optionDict }
+							}
+						},
+					};
+					nestedContent.AppendLine();
+					nestedContent.Append(Regex.Replace(Toml.FromModel(optionModel), Regex.Escape("thisMod.Options"), "[thisMod.Options]", RegexOptions.IgnoreCase));
 
-						// CRITICAL: Remove the Instructions field from optionDict before serializing
-						// We use [[thisMod.Options.Instructions]] sections instead of inline arrays
-						optionDict.Remove("Instructions");
-						// Remove internal metadata field
-						optionDict.Remove("_HasInstructions");
+					if (!optionDict.TryGetValue("Guid", out object guidObj))
+						continue;
+					string optionGuid = guidObj?.ToString();
+					if (string.IsNullOrEmpty(optionGuid) || !instructionsByParent.TryGetValue(optionGuid, out List<Dictionary<string, object>> instructions))
+						continue;
+					// Find the option in the component
+					Option currentOption = null;
+					if (component != null && Guid.TryParse(optionGuid, out Guid optGuid))
+						currentOption = component.Options.FirstOrDefault(opt => opt.Guid == optGuid);
 
-						Dictionary<string, object> optionModel = new Dictionary<string, object>
+					int optionInstrIndex = 0;
+					foreach (Dictionary<string, object> instruction in instructions.Where(instruction => instruction != null && instruction.Count != 0))
+					{
+						// Add validation comments for option instruction issues
+						if (validationContext != null && currentOption != null && optionInstrIndex < currentOption.Instructions.Count)
+						{
+							List<string> instructionIssues = validationContext.GetInstructionIssues(component.Guid, optionInstrIndex);
+							if (instructionIssues.Count > 0)
+							{
+								nestedContent.AppendLine();
+								nestedContent.AppendLine("# OPTION INSTRUCTION VALIDATION ISSUES:");
+								foreach (string issue in instructionIssues)
+								{
+									nestedContent.AppendLine($"# {issue}");
+								}
+							}
+						}
 
-(StringComparer.Ordinal)
+						Dictionary<string, object> instrModel = new Dictionary<string, object>(StringComparer.Ordinal)
 						{
 							{
-								"thisMod", new Dictionary<string, object>
-
-(StringComparer.Ordinal) {
-									{ "Options", optionDict }
+								"thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
+									{ "OptionsInstructions", instruction }
 								}
 							},
 						};
-						tomlString.AppendLine();
-						tomlString.Append(Toml.FromModel(optionModel).Replace("thisMod.Options", "[thisMod.Options]"));
-
-						if (!optionDict.TryGetValue("Guid", out object guidObj))
-							continue;
-						string optionGuid = guidObj?.ToString();
-						if (string.IsNullOrEmpty(optionGuid) || !instructionsByParent.TryGetValue(optionGuid, out List<Dictionary<string, object>> instructions))
-							continue;
-						// Find the option in the component
-						Option currentOption = null;
-						if (component != null && Guid.TryParse(optionGuid, out Guid optGuid))
-							currentOption = component.Options.FirstOrDefault(opt => opt.Guid == optGuid);
-
-						int optionInstrIndex = 0;
-						foreach (Dictionary<string, object> instruction in instructions.Where(instruction => instruction != null && instruction.Count != 0))
-						{
-							// Add validation comments for option instruction issues
-							if (validationContext != null && currentOption != null && optionInstrIndex < currentOption.Instructions.Count)
-							{
-								Instruction optionInstruction = currentOption.Instructions[optionInstrIndex];
-								List<string> instructionIssues = validationContext.GetInstructionIssues(optionInstruction.Guid);
-								if (instructionIssues.Count > 0)
-								{
-									tomlString.AppendLine();
-									tomlString.AppendLine("# OPTION INSTRUCTION VALIDATION ISSUES:");
-									foreach (string issue in instructionIssues)
-									{
-										tomlString.AppendLine($"# {issue}");
-									}
-								}
-							}
-
-							Dictionary<string, object> instrModel = new Dictionary<string, object>
-
-(StringComparer.Ordinal)
-							{
-								{
-									"thisMod", new Dictionary<string, object>
-
-(StringComparer.Ordinal) {
-										{ "OptionsInstructions", instruction }
-									}
-								},
-							};
-							tomlString.Append(Toml.FromModel(instrModel).Replace(
-								"thisMod.OptionsInstructions",
-								"[thisMod.Options.Instructions]"
-							));
-							optionInstrIndex++;
-						}
+						nestedContent.Append(Regex.Replace(Toml.FromModel(instrModel), Regex.Escape("thisMod.OptionsInstructions"), "[thisMod.Options.Instructions]", RegexOptions.IgnoreCase));
+						optionInstrIndex++;
 					}
-
-					serializedComponentDict.Remove("Options");
-					serializedComponentDict.Remove("OptionsInstructions");
 				}
+
+				serializedComponentDict.Remove("Options");
+				serializedComponentDict.Remove("OptionsInstructions");
 			}
 
 			List<string> keysCopy = serializedComponentDict.Keys.ToList();
@@ -2808,27 +2737,24 @@ namespace KOTORModSync.Core.Services
 
 				foreach (Dictionary<string, object> item in listItems.Where(item => item != null && item.Count != 0))
 				{
-					Dictionary<string, object> model = new Dictionary<string, object>
-
-(StringComparer.Ordinal)
+					Dictionary<string, object> model = new Dictionary<string, object>(StringComparer.Ordinal)
 					{
 					{
-						"thisMod", new Dictionary<string, object>
-
-(StringComparer.Ordinal) {
+						"thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
 							{ key, item }
 						}
 					},
 				};
-					tomlString.AppendLine();
-					tomlString.Append(Toml.FromModel(model).Replace($"thisMod.{key}", $"[thisMod.{key}]"));
+					nestedContent.AppendLine();
+					nestedContent.Append(Regex.Replace(Toml.FromModel(model), Regex.Escape($"thisMod.{key}"), $"[thisMod.{key}]", RegexOptions.IgnoreCase));
 				}
 
 				serializedComponentDict.Remove(key);
 			}
 
-			return modLinkFilenamesDict;
+			return (modLinkFilenamesDict, resourceRegistryDict);
 		}
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static string SerializeModComponentAsYamlString(
 				List<ModComponent> components,
 				ComponentValidationContext validationContext = null
@@ -2840,9 +2766,9 @@ namespace KOTORModSync.Core.Services
 			// Write metadata section
 			WriteYamlMetadataSection(sb);
 
-			YamlSerialization.ISerializer serializer = new YamlDotNet.Serialization.SerializerBuilder()
-				.WithNamingConvention(YamlDotNet.Serialization.NamingConventions.PascalCaseNamingConvention.Instance)
-				.ConfigureDefaultValuesHandling(YamlDotNet.Serialization.DefaultValuesHandling.OmitNull)
+			YamlSerialization.ISerializer serializer = new YamlSerialization.SerializerBuilder()
+				.WithNamingConvention(YamlSerialization.NamingConventions.PascalCaseNamingConvention.Instance)
+				.ConfigureDefaultValuesHandling(YamlSerialization.DefaultValuesHandling.OmitNull)
 				.DisableAliases()
 				.Build();
 			foreach (ModComponent component in components)
@@ -3005,6 +2931,7 @@ namespace KOTORModSync.Core.Services
 				MainConfig.AspyrExclusiveWarningContent,
 				validationContext);
 		}
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static string SerializeModComponentAsJsonString(
 			List<ModComponent> components,
 			ComponentValidationContext validationContext = null)
@@ -3066,6 +2993,18 @@ namespace KOTORModSync.Core.Services
 				// JSON doesn't need OptionsInstructions - remove it (JSON nests instructions under options)
 				componentObj.Remove("optionsInstructions");
 
+				// Ensure internal metadata does not leak into options
+				if (componentObj["options"] is JArray optionsArray)
+				{
+					foreach (JToken optionToken in optionsArray)
+					{
+						if (optionToken is JObject optionObj)
+						{
+							optionObj.Remove("_hasInstructions");
+						}
+					}
+				}
+
 				componentsArray.Add(componentObj);
 			}
 			jsonRoot["components"] = componentsArray;
@@ -3111,10 +3050,11 @@ namespace KOTORModSync.Core.Services
 				widescreenWarningContent,
 				aspyrExclusiveWarningContent,
 				validationContext
-			));
+			)).ConfigureAwait(false);
 		}
 
 		[NotNull]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static string GenerateModDocumentation(
 			[NotNull][ItemNotNull] List<ModComponent> componentsList,
 			[CanBeNull] string preambleContent = null,
@@ -3308,26 +3248,6 @@ namespace KOTORModSync.Core.Services
 				{
 					_ = sb.AppendLine();
 					_ = sb.Append("**Known Bugs:** ").AppendLine(component.KnownBugs);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 				}
 
 				if (!string.IsNullOrWhiteSpace(component.InstallationWarning))
@@ -3365,7 +3285,7 @@ namespace KOTORModSync.Core.Services
 					if (masterNames.Count > 0)
 					{
 						_ = sb.AppendLine();
-						_ = sb.Append("**Masters:** ").AppendLine(string.Join(", ", masterNames));
+						_ = sb.Append("**Masters:** ").Append(string.Join(", ", masterNames)).AppendLine();
 					}
 				}
 
@@ -3468,6 +3388,9 @@ namespace KOTORModSync.Core.Services
 			{
 				foreach (Dictionary<string, object> opt in options)
 				{
+					// Remove internal metadata fields from options
+					opt.Remove("_HasInstructions");
+
 					if (opt.ContainsKey("Instructions") && opt["Instructions"] is List<Dictionary<string, object>> optInstructions)
 					{
 						foreach (Dictionary<string, object> instr in optInstructions)
@@ -3569,13 +3492,10 @@ namespace KOTORModSync.Core.Services
 		/// Handles: ActionType-specific fields (Arguments, Destination, Overwrite), Dependencies, Restrictions, Validation warnings.
 		/// </summary>
 		private static Dictionary<string, object> SerializeInstructionToDictionary(
-			[NotNull] Instruction instr,
-			[CanBeNull] ComponentValidationContext validationContext = null)
+			[NotNull] Instruction instr)
 		{
 			Dictionary<string, object> instrDict = new Dictionary<string, object>(StringComparer.Ordinal);
 
-			if (instr.Guid != Guid.Empty)
-				instrDict["Guid"] = instr.Guid.ToString();
 			if (!string.IsNullOrWhiteSpace(instr.ActionString))
 				instrDict["Action"] = instr.ActionString;
 			if (instr.Source.Count > 0)
@@ -3630,13 +3550,7 @@ namespace KOTORModSync.Core.Services
 			if (instr.Restrictions.Count > 0)
 				instrDict["Restrictions"] = instr.Restrictions.Select(g => g.ToString()).ToList();
 
-			// Add validation warnings if present (format-specific rendering)
-			if (validationContext != null)
-			{
-				List<string> instructionIssues = validationContext.GetInstructionIssues(instr.Guid);
-				if (instructionIssues.Count > 0)
-					instrDict["_ValidationWarnings"] = instructionIssues;
-			}
+			// Instruction validation is no longer supported (instructions don't have GUIDs)
 
 			return instrDict;
 		}
@@ -3666,7 +3580,7 @@ namespace KOTORModSync.Core.Services
 			// Serialize instructions if present
 			if (opt.Instructions.Count <= 0)
 				return optDict;
-			List<Dictionary<string, object>> instructionsList = opt.Instructions.Select(instr => SerializeInstructionToDictionary(instr, validationContext)).ToList();
+			List<Dictionary<string, object>> instructionsList = opt.Instructions.Select(instr => SerializeInstructionToDictionary(instr)).ToList();
 			optDict["Instructions"] = instructionsList;
 
 			return optDict;
@@ -3675,6 +3589,7 @@ namespace KOTORModSync.Core.Services
 		/// <summary>
 		/// Serializes a component to a dictionary with all conditional logic unified
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static Dictionary<string, object> SerializeComponentToDictionary(
 			[NotNull] ModComponent component,
 			[CanBeNull] ComponentValidationContext validationContext = null)
@@ -3731,7 +3646,7 @@ namespace KOTORModSync.Core.Services
 				componentDict["Language"] = component.Language;
 
 			// Serialize ModLinkFilenames
-			if (component.ModLinkFilenames.Count > 0)
+			if (component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0)
 				componentDict["ModLinkFilenames"] = SerializeModLinkFilenames(component.ModLinkFilenames);
 
 			// Serialize ResourceRegistry (always serialize if it has entries, contains ContentId/MetadataHash/etc.)
@@ -3755,7 +3670,7 @@ namespace KOTORModSync.Core.Services
 			// Serialize instructions
 			if (component.Instructions.Count > 0)
 			{
-				List<Dictionary<string, object>> instructionsList = component.Instructions.Select(instr => SerializeInstructionToDictionary(instr, validationContext)).ToList();
+				List<Dictionary<string, object>> instructionsList = component.Instructions.Select(instr => SerializeInstructionToDictionary(instr)).ToList();
 				componentDict["Instructions"] = instructionsList;
 			}
 
@@ -3767,7 +3682,7 @@ namespace KOTORModSync.Core.Services
 
 				foreach (Option opt in component.Options)
 				{
-					Dictionary<string, object> optDict = SerializeOptionToDictionary(opt, validationContext);
+					Dictionary<string, object> optDict = SerializeOptionToDictionary(opt);
 
 					// For TOML format, we need to separate option instructions
 					if (optDict.ContainsKey("Instructions") && optDict["Instructions"] is List<Dictionary<string, object>> optInstructions)
@@ -3944,7 +3859,20 @@ namespace KOTORModSync.Core.Services
 				}
 				else if (value is System.Collections.IEnumerable enumerable && !(value is string))
 				{
-					jobj[key] = JArray.FromObject(enumerable);
+					// Build array manually to avoid Newtonsoft edge cases when enumerable items are heterogeneous
+					JArray array = new JArray();
+					foreach (object item in enumerable)
+					{
+						if (item is Dictionary<string, object> itemDict)
+						{
+							array.Add(DictionaryToJObject(itemDict));
+						}
+						else
+						{
+							array.Add(item is null ? JValue.CreateNull() : JToken.FromObject(item));
+						}
+					}
+					jobj[key] = array;
 				}
 				else
 				{
@@ -3994,6 +3922,7 @@ namespace KOTORModSync.Core.Services
 			return result;
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static Dictionary<string, Dictionary<string, bool?>> DeserializeModLinkFilenames(IDictionary<string, object> componentDict)
 		{
 			Dictionary<string, Dictionary<string, bool?>> result = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
@@ -4078,10 +4007,11 @@ namespace KOTORModSync.Core.Services
 									else if (fileKvp.Value != null)
 									{
 										string valueStr = fileKvp.Value.ToString();
-										if (!string.IsNullOrEmpty(valueStr) && !valueStr.Equals("null", StringComparison.OrdinalIgnoreCase))
+										if (!string.IsNullOrEmpty(valueStr)
+											&& !valueStr.Equals("null", StringComparison.OrdinalIgnoreCase)
+											&& bool.TryParse(valueStr, out bool parsedBool))
 										{
-											if (bool.TryParse(valueStr, out bool parsedBool))
-												shouldDownload = parsedBool;
+											shouldDownload = parsedBool;
 										}
 									}
 
@@ -4107,8 +4037,7 @@ namespace KOTORModSync.Core.Services
 			Dictionary<string, object> result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 			foreach (KeyValuePair<string, ResourceMetadata> kvp in registry)
 			{
-				Dictionary<string, object> metaDict = new Dictionary<string, object>
-(StringComparer.Ordinal)
+				Dictionary<string, object> metaDict = new Dictionary<string, object>(StringComparer.Ordinal)
 				{
 					["ContentKey"] = kvp.Value.ContentKey,
 					["MetadataHash"] = kvp.Value.MetadataHash,
@@ -4139,6 +4068,7 @@ namespace KOTORModSync.Core.Services
 			return result;
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public static Dictionary<string, ResourceMetadata> DeserializeResourceRegistry(IDictionary<string, object> componentDict)
 		{
 			Dictionary<string, ResourceMetadata> result = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase);
@@ -4152,7 +4082,7 @@ namespace KOTORModSync.Core.Services
 					return result;
 				}
 
-				Logger.LogVerbose($"DeserializeResourceRegistry: Found ResourceRegistry field, type: {registryObj?.GetType().Name}");
+				Logger.LogVerbose($"DeserializeResourceRegistry: Found ResourceRegistry field, type: {registryObj.GetType().Name}");
 
 				if (registryObj is IDictionary<string, object> registryDict)
 				{
@@ -4245,5 +4175,66 @@ namespace KOTORModSync.Core.Services
 		}
 
 		#endregion
+	}
+
+	public class ComponentValidationContext
+	{
+		public Dictionary<Guid, List<string>> ComponentIssues { get; set; } = new Dictionary<Guid, List<string>>();
+		public Dictionary<(Guid ComponentGuid, int InstructionIndex), List<string>> InstructionIssues { get; set; } = new Dictionary<(Guid ComponentGuid, int InstructionIndex), List<string>>();
+		public Dictionary<string, List<string>> UrlFailures { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+		public void AddModComponentIssue(Guid componentGuid, string issue)
+		{
+			if (!ComponentIssues.ContainsKey(componentGuid))
+				ComponentIssues[componentGuid] = new List<string>();
+			ComponentIssues[componentGuid].Add(issue);
+		}
+
+		public void AddInstructionIssue(Guid componentGuid, int instructionIndex, string issue)
+		{
+			var key = (componentGuid, instructionIndex);
+			if (!InstructionIssues.ContainsKey(key))
+				InstructionIssues[key] = new List<string>();
+			InstructionIssues[key].Add(issue);
+		}
+
+		public void AddUrlFailure(string url, string error)
+		{
+			if (!UrlFailures.ContainsKey(url))
+				UrlFailures[url] = new List<string>();
+			UrlFailures[url].Add(error);
+		}
+
+		public List<string> GetComponentIssues(Guid componentGuid)
+		{
+			return ComponentIssues.TryGetValue(componentGuid, out List<string> issues) ? issues : new List<string>();
+		}
+
+		public List<string> GetInstructionIssues(Guid componentGuid, int instructionIndex)
+		{
+			var key = (componentGuid, instructionIndex);
+			return InstructionIssues.TryGetValue(key, out List<string> issues) ? issues : new List<string>();
+		}
+
+		public List<string> GetUrlFailures(string url)
+		{
+			return UrlFailures.TryGetValue(url, out List<string> failures) ? failures : new List<string>();
+		}
+
+		public bool HasIssues(Guid componentGuid)
+		{
+			return ComponentIssues.ContainsKey(componentGuid);
+		}
+
+		public bool HasInstructionIssues(Guid componentGuid, int instructionIndex)
+		{
+			var key = (componentGuid, instructionIndex);
+			return InstructionIssues.ContainsKey(key);
+		}
+
+		public bool HasUrlFailures(string url)
+		{
+			return UrlFailures.ContainsKey(url);
+		}
 	}
 }

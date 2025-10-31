@@ -417,9 +417,9 @@
                                             Text="Mods that must be selected before this one can install" />
                                         <controls:DependencyControl
                                             HorizontalAlignment="Stretch"
-                                            CurrentComponent="{Binding CurrentComponent}"
+                                            CurrentComponent="{Binding Path=CurrentComponent, RelativeSource={RelativeSource AncestorType=controls:EditorTab}}"
                                             DependencyType="Dependency"
-                                            ModManagementService="{Binding ModManagementService}"
+                                            ModManagementService="{Binding Path=ModManagementService, RelativeSource={RelativeSource AncestorType=controls:EditorTab}}"
                                             ThisGuidList="{Binding Dependencies}" />
                                     </StackPanel>
                                 </Border>
@@ -442,9 +442,9 @@
                                             Text="Incompatible mods that prevent this one from installing" />
                                         <controls:DependencyControl
                                             HorizontalAlignment="Stretch"
-                                            CurrentComponent="{Binding CurrentComponent}"
+                                            CurrentComponent="{Binding Path=CurrentComponent, RelativeSource={RelativeSource AncestorType=controls:EditorTab}}"
                                             DependencyType="Restriction"
-                                            ModManagementService="{Binding ModManagementService}"
+                                            ModManagementService="{Binding Path=ModManagementService, RelativeSource={RelativeSource AncestorType=controls:EditorTab}}"
                                             ThisGuidList="{Binding Restrictions}" />
                                     </StackPanel>
                                 </Border>
@@ -464,9 +464,9 @@
                                             Text="Mods that should be installed after this one" />
                                         <controls:DependencyControl
                                             HorizontalAlignment="Stretch"
-                                            CurrentComponent="{Binding CurrentComponent}"
+                                            CurrentComponent="{Binding Path=CurrentComponent, RelativeSource={RelativeSource AncestorType=controls:EditorTab}}"
                                             DependencyType="InstallBefore"
-                                            ModManagementService="{Binding ModManagementService}"
+                                            ModManagementService="{Binding Path=ModManagementService, RelativeSource={RelativeSource AncestorType=controls:EditorTab}}"
                                             ThisGuidList="{Binding InstallBefore}" />
                                     </StackPanel>
                                 </Border>
@@ -486,9 +486,9 @@
                                             Text="Mods that should be installed before this one" />
                                         <controls:DependencyControl
                                             HorizontalAlignment="Stretch"
-                                            CurrentComponent="{Binding CurrentComponent}"
+                                            CurrentComponent="{Binding Path=CurrentComponent, RelativeSource={RelativeSource AncestorType=controls:EditorTab}}"
                                             DependencyType="InstallAfter"
-                                            ModManagementService="{Binding ModManagementService}"
+                                            ModManagementService="{Binding Path=ModManagementService, RelativeSource={RelativeSource AncestorType=controls:EditorTab}}"
                                             ThisGuidList="{Binding InstallAfter}" />
                                     </StackPanel>
                                 </Border>

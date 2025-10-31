@@ -11,7 +11,8 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Services
 {
-	public class MergeOptions
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
+    public class MergeOptions
 	{
 		public bool ExcludeExistingOnly { get; set; }
 		public bool ExcludeIncomingOnly { get; set; }
@@ -276,11 +277,12 @@ namespace KOTORModSync.Core.Services
 			MergeModComponents(incomingList, existingList, heuristicsOptions, mergeOptions);
 		}
 
-		/// <summary>
-		/// Unified merge pipeline: matches by GUID first, then falls back to name/author matching.
-		/// Async version that supports URL validation during merge.
-		/// </summary>
-		private static async System.Threading.Tasks.Task MergeModComponentsAsync(
+        /// <summary>
+        /// Unified merge pipeline: matches by GUID first, then falls back to name/author matching.
+        /// Async version that supports URL validation during merge.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        private static async System.Threading.Tasks.Task MergeModComponentsAsync(
 			[NotNull] List<ModComponent> incomingList,
 			[NotNull] List<ModComponent> existingList,
 			[CanBeNull] MergeHeuristicsOptions heuristicsOptions = null,
@@ -546,15 +548,27 @@ component.ModLinkFilenames.Keys)
 		/// Updates a component with data from another component based on merge options and heuristics.
 		/// The target parameter receives updates from the source parameter.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static void UpdateModComponentFields(
 			[NotNull] ModComponent target,
 			[NotNull] ModComponent source,
 			[NotNull] MergeHeuristicsOptions heuristicsOptions,
 			[NotNull] MergeOptions mergeOptions)
 		{
-			// Preserve GUID from source (existing) if target (incoming) has empty GUID
-			// This ensures markdown files without GUIDs preserve existing GUIDs from TOML files
-			if (target.Guid == Guid.Empty && source.Guid != Guid.Empty)
+			// GUID merge logic: prefer the GUID that exists (non-empty)
+			// If incoming has a GUID but existing has empty, keep incoming GUID
+			if (target.Guid != Guid.Empty && source.Guid == Guid.Empty)
+			{
+				// Keep incoming GUID, don't overwrite with empty
+			}
+			// If existing has a GUID but incoming has empty, preserve existing GUID
+			else if (target.Guid == Guid.Empty && source.Guid != Guid.Empty)
+			{
+				target.Guid = source.Guid;
+			}
+			// If both have GUIDs but they're different (heuristic match), prefer existing GUID
+			// This ensures consistency and prevents overwriting stable GUIDs with auto-generated ones
+			else if (target.Guid != Guid.Empty && source.Guid != Guid.Empty && target.Guid != source.Guid)
 			{
 				target.Guid = source.Guid;
 			}
@@ -744,35 +758,29 @@ component.ModLinkFilenames.Keys)
 						}
 						else if (existingInstrByKey.TryGetValue(key, out Instruction existingInstr))
 						{
-							// Matched existing instruction - preserve GUID from existing if incoming has empty GUID
-							if (instr.Guid == Guid.Empty && existingInstr.Guid != Guid.Empty)
-							{
-								instr.Guid = existingInstr.Guid;
-							}
 							// Update existing instruction with merged data
 							int index = target.Instructions.IndexOf(existingInstr);
 							if (index >= 0)
 							{
 								Instruction cloned = CloneInstruction(instr);
 								// Ensure GUID is preserved (use existing if incoming was empty, otherwise use incoming)
-								if (instr.Guid == Guid.Empty && existingInstr.Guid != Guid.Empty)
+								if (
+									instr.Action == existingInstr.Action
+									&& instr.Source == existingInstr.Source
+									&& string.Equals(
+										instr.Destination,
+										existingInstr.Destination,
+										StringComparison.OrdinalIgnoreCase
+									) && string.Equals(
+										instr.Arguments,
+										existingInstr.Arguments,
+										StringComparison.OrdinalIgnoreCase
+									))
 								{
-									cloned.Guid = existingInstr.Guid;
+									cloned.Source = existingInstr.Source;
 								}
 								target.Instructions[index] = cloned;
 							}
-						}
-					}
-
-					// Also preserve GUIDs for existing instructions that have empty GUIDs
-					foreach (Instruction targetInstr in target.Instructions.Where(i => i.Guid == Guid.Empty))
-					{
-						string targetKey = (targetInstr.ActionString + "|" + targetInstr.Destination).ToLowerInvariant();
-						Instruction sourceInstr = source.Instructions.FirstOrDefault(i =>
-							(i.ActionString + "|" + i.Destination).Equals(targetKey, StringComparison.InvariantCultureIgnoreCase));
-						if (sourceInstr != null && sourceInstr.Guid != Guid.Empty)
-						{
-							targetInstr.Guid = sourceInstr.Guid;
 						}
 					}
 				}
@@ -787,19 +795,44 @@ component.ModLinkFilenames.Keys)
 					string oname = srcOpt.Name.Trim().ToLowerInvariant();
 					if (optMap.TryGetValue(oname, out Option trgOpt))
 					{
-						// Preserve GUID from existing option if incoming has empty GUID
-						if (srcOpt.Guid == Guid.Empty && trgOpt.Guid != Guid.Empty)
-						{
-							srcOpt.Guid = trgOpt.Guid;
-						}
-						else if (trgOpt.Guid == Guid.Empty && srcOpt.Guid != Guid.Empty)
+						// GUID merge logic: prefer the GUID that exists (non-empty)
+						// If incoming has a GUID but existing has empty, keep incoming GUID
+						if (srcOpt.Guid != Guid.Empty && trgOpt.Guid == Guid.Empty)
 						{
 							trgOpt.Guid = srcOpt.Guid;
+						}
+						// If existing has a GUID but incoming has empty, preserve existing GUID
+						else if (srcOpt.Guid == Guid.Empty && trgOpt.Guid != Guid.Empty)
+						{
+							// Keep existing GUID (already set in trgOpt)
+						}
+						// If both have GUIDs but they're different, prefer existing GUID
+						else if (srcOpt.Guid != Guid.Empty && trgOpt.Guid != Guid.Empty && srcOpt.Guid != trgOpt.Guid)
+						{
+							// Keep existing GUID (already set in trgOpt)
 						}
 
 						// Merge description if source has one
 						if (!string.IsNullOrWhiteSpace(srcOpt.Description))
 							trgOpt.Description = srcOpt.Description;
+
+						// Merge Restrictions
+						if (srcOpt.Restrictions.Count > 0)
+						{
+							HashSet<Guid> restrictionsSet = new HashSet<Guid>(trgOpt.Restrictions);
+							foreach (Guid restriction in srcOpt.Restrictions)
+								restrictionsSet.Add(restriction);
+							trgOpt.Restrictions = restrictionsSet.ToList();
+						}
+
+						// Merge Dependencies
+						if (srcOpt.Dependencies.Count > 0)
+						{
+							HashSet<Guid> dependenciesSet = new HashSet<Guid>(trgOpt.Dependencies);
+							foreach (Guid dependency in srcOpt.Dependencies)
+								dependenciesSet.Add(dependency);
+							trgOpt.Dependencies = dependenciesSet.ToList();
+						}
 
 						// Merge instructions (deep copy to avoid shared references)
 						if (srcOpt.Instructions.Count > 0)
@@ -818,35 +851,13 @@ component.ModLinkFilenames.Keys)
 								}
 								else if (existingInstrByKey.TryGetValue(key, out Instruction existingInstr))
 								{
-									// Matched existing instruction - preserve GUID from existing if incoming has empty GUID
-									if (instr.Guid == Guid.Empty && existingInstr.Guid != Guid.Empty)
-									{
-										instr.Guid = existingInstr.Guid;
-									}
 									// Update existing instruction with merged data
 									int index = trgOpt.Instructions.IndexOf(existingInstr);
 									if (index >= 0)
 									{
 										Instruction cloned = CloneInstruction(instr);
-										// Ensure GUID is preserved (use existing if incoming was empty, otherwise use incoming)
-										if (instr.Guid == Guid.Empty && existingInstr.Guid != Guid.Empty)
-										{
-											cloned.Guid = existingInstr.Guid;
-										}
 										trgOpt.Instructions[index] = cloned;
 									}
-								}
-							}
-
-							// Also preserve GUIDs for existing option instructions that have empty GUIDs
-							foreach (Instruction targetInstr in trgOpt.Instructions.Where(i => i.Guid == Guid.Empty))
-							{
-								string targetKey = (targetInstr.ActionString + "|" + targetInstr.Destination).ToLowerInvariant();
-								Instruction sourceInstr = srcOpt.Instructions.FirstOrDefault(i =>
-									(i.ActionString + "|" + i.Destination).Equals(targetKey, StringComparison.InvariantCultureIgnoreCase));
-								if (sourceInstr != null && sourceInstr.Guid != Guid.Empty)
-								{
-									targetInstr.Guid = sourceInstr.Guid;
 								}
 							}
 						}
@@ -862,10 +873,10 @@ component.ModLinkFilenames.Keys)
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static async System.Threading.Tasks.Task<List<string>> ValidateUrlsViaResolutionAsync(
-			[NotNull] List<string> urls,
-			[NotNull] DownloadCacheService downloadCache,
-			bool sequential = true,
-			System.Threading.CancellationToken cancellationToken = default)
+					[NotNull] List<string> urls,
+					[NotNull] DownloadCacheService downloadCache,
+					bool sequential = true,
+					System.Threading.CancellationToken cancellationToken = default)
 		{
 			if (urls.Count == 0)
 				return new List<string>();
@@ -981,7 +992,6 @@ component.ModLinkFilenames.Keys)
 
 			return validUrls;
 		}
-
 		private static bool IsUrlLikelyTimedOut(string url)
 		{
 			if (string.IsNullOrWhiteSpace(url))
@@ -1148,7 +1158,6 @@ component.ModLinkFilenames.Keys)
 		{
 			return new Instruction
 			{
-				Guid = source.Guid,
 				Action = source.Action,
 				Source = new List<string>(source.Source),
 				Destination = source.Destination,
@@ -1167,9 +1176,13 @@ component.ModLinkFilenames.Keys)
 		{
 			Option cloned = new Option
 			{
+				Guid = source.Guid,
 				Name = source.Name,
 				Description = source.Description,
+				IsSelected = source.IsSelected,
 				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(),
+				Restrictions = new List<Guid>(source.Restrictions),
+				Dependencies = new List<Guid>(source.Dependencies),
 			};
 
 			// Deep copy all instructions

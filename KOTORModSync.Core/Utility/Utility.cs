@@ -86,7 +86,7 @@ namespace KOTORModSync.Core.Utility
 				case PlatformID.Unix:
 					return OSPlatform.Linux;
 				default:
-					throw new Exception( "Unknown/unsupported operating system, cannot continue" );
+					throw new InvalidOperationException( "Unknown/unsupported operating system, cannot continue" );
 			}
 		}
 
@@ -152,12 +152,11 @@ namespace KOTORModSync.Core.Utility
 			}
 			catch (UnauthorizedAccessException ex)
 			{
-				Logger.LogError( $"Failed to access files in the destination directory: {ex.Message}" );
+				Logger.LogException(ex, $"Failed to access files in the destination directory: {ex.Message}" );
 			}
 			catch (PathTooLongException ex)
 			{
-				Logger.LogException( ex );
-				Logger.LogError( $"The pathname is too long: '{dirPath.FullName}'" );
+				Logger.LogException( ex, $"The pathname is too long: '{dirPath.FullName}'" );
 				Logger.LogError(
 					"Please utilize the registry patch that increases the Windows legacy path limit higher than 260 characters"
 					+ " or move your folder/file above to a shorter directory path."

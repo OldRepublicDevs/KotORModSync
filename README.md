@@ -51,9 +51,9 @@ See <https://pastebin.com/7gML3zCJ> for a quick explanation of those fields. See
 
 KOTORModSync is a cross-platform 32-bit and 64-bit .NET application. It is compatible with the following operating systems:
 
-- **Windows 7 and 8:** Compatible if running **.NET Framework 4.8.0** or **higher**. The NET6 version is NOT supported.
-- **Windows 10 and 11:** Compatible with both the **.NET Framework 4.8.0** *and* the **NET6** builds.
-- **Linux and Mac:** Compatible with the **NET6** x64 builds - choose one of the two that match your operating system.
+- **Windows 7 and 8:** Compatible if running **.NET Framework 4.8.0** or **higher**. The NET8 version is NOT supported.
+- **Windows 10 and 11:** Compatible with both the **.NET Framework 4.8.0** *and* the **NET8** builds.
+- **Linux and Mac:** Compatible with the **NET8** x64 builds - choose one of the two that match your operating system.
 Users do not need to download any additional runtimes: everything is self-contained within the application. Additionally, **.NET Framework 4.8.0** is preinstalled on Windows 7 and 8 or at least provided by Windows Updates.
 
 ### Linux/Mac
@@ -72,7 +72,7 @@ If you run into problems with the Linux or Mac builds, please contact me and I'l
 
 I'm honestly not sure what all you need, I was able to build and run it on both vs2019 and vs2022. From what I understand, the minimum build requirements are:
 
-- **NET6 or .NET Framework 4.6.2 targeting platform and build tools.**
+- **NET8 or .NET Framework 4.8.0 targeting platform and build tools.**
 - **.NET Standard Development Kit.**
 
 All you need to do is build KOTORModSync.GUI. This should build the program into ./KOTORModSync.GUI/bin directory. Or run the command `dotnet build` then `dotnet run` inside KOTORModSync.GUI folder.

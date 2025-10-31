@@ -83,7 +83,6 @@ namespace KOTORModSync.Core.Services.Download
 		public bool CanHandle(string url)
 		{
 			bool canHandle = url != null && url.IndexOf("deadlystream.com", StringComparison.OrdinalIgnoreCase) >= 0;
-			Logger.LogVerbose($"[DeadlyStream] CanHandle check for URL '{url}': {canHandle}");
 			return canHandle;
 		}
 
@@ -92,8 +91,8 @@ namespace KOTORModSync.Core.Services.Download
 			if (string.IsNullOrEmpty(url))
 				return url;
 
-			int queryIndex = url.IndexOf('?', StringComparison.Ordinal);
-			int fragmentIndex = url.IndexOf('#', StringComparison.Ordinal);
+			int queryIndex = url.IndexOf('?');
+			int fragmentIndex = url.IndexOf('#');
 
 			int cutIndex = -1;
 			if (queryIndex >= 0 && fragmentIndex >= 0)
@@ -410,11 +409,10 @@ namespace KOTORModSync.Core.Services.Download
 
 				if (downloadPageResponse.IsSuccessStatusCode)
 				{
-					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+					string downloadPageHtml = await downloadPageResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
 					ExtractAndStoreCookies(downloadPageResponse, validatedUri);
 
-
-					if (downloadPageHtml.Contains("Download your files", StringComparison.Ordinal) || downloadPageHtml.Contains("data-action=\"download\"", StringComparison.Ordinal))
+					if (downloadPageHtml.IndexOf("Download your files", StringComparison.Ordinal) >= 0 || downloadPageHtml.IndexOf("data-action=\"download\"", StringComparison.Ordinal) >= 0)
 					{
 						await Logger.LogVerboseAsync("[DeadlyStream] Detected multi-file selection page").ConfigureAwait(false);
 						List<string> confirmedLinks = ExtractConfirmedDownloadLinks(downloadPageHtml, url);
@@ -658,8 +656,8 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private async Task<string> DownloadSingleFile(
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private async Task<string> DownloadSingleFile(
 			string downloadLink,
 			string destinationDirectory,
 			IProgress<DownloadProgress> progress,
@@ -745,7 +743,7 @@ namespace KOTORModSync.Core.Services.Download
 				{
 
 					fileName = Path.GetFileName(Uri.UnescapeDataString(downloadUri.AbsolutePath));
-					if (string.IsNullOrWhiteSpace(fileName) || fileName.Contains("?", StringComparison.Ordinal))
+					if (string.IsNullOrWhiteSpace(fileName) || fileName.IndexOf('?') >= 0)
 					{
 						fileName = $"deadlystream_download_{Guid.NewGuid():N}.zip";
 					}
@@ -769,7 +767,7 @@ namespace KOTORModSync.Core.Services.Download
 					TotalBytes = totalBytes,
 				});
 
-				using (Stream contentStream = await fileResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+				using (Stream contentStream = await fileResponse.Content.ReadAsStreamAsync().ConfigureAwait(false))
 				using (ThrottledStream throttledStream = new ThrottledStream(contentStream, MaxBytesPerSecond))
 				{
 
@@ -990,7 +988,7 @@ namespace KOTORModSync.Core.Services.Download
 				return null;
 			}
 
-			string trimmed = SurroundingQuotesRegex().Replace(fileName, string.Empty);
+			string trimmed = SurroundingQuotesRegex.Replace(fileName, string.Empty);
 			string unescaped = Uri.UnescapeDataString(trimmed);
 
 			if (!trimmed.Equals(unescaped, StringComparison.OrdinalIgnoreCase))
@@ -1016,7 +1014,7 @@ namespace KOTORModSync.Core.Services.Download
 				await Logger.LogVerboseAsync($"[DeadlyStream] Getting metadata for URL: {normalizedUrl}").ConfigureAwait(false);
 
 				// Parse URL to extract IDs
-				Match match = FilePageUrlRegex().Match(normalizedUrl);
+				Match match = FilePageUrlRegex.Match(normalizedUrl);
 				if (!match.Success)
 				{
 					await Logger.LogWarningAsync($"[DeadlyStream] Could not parse file page ID from URL: {normalizedUrl}").ConfigureAwait(false);
@@ -1076,10 +1074,10 @@ namespace KOTORModSync.Core.Services.Download
 				if (sizeNode != null)
 				{
 					string sizeText = sizeNode.InnerText;
-					Match sizeMatch = FileSizeWithUnitRegex().Match(sizeText);
+					Match sizeMatch = FileSizeWithUnitRegex.Match(sizeText);
 					if (sizeMatch.Success)
 					{
-						double size = double.Parse(sizeMatch.Groups[1].Value.Replace(",", "", StringComparison.Ordinal), NumberStyles.Float, CultureInfo.InvariantCulture);
+						double size = double.Parse(sizeMatch.Groups[1].Value.Replace(",", ""), NumberStyles.Float, CultureInfo.InvariantCulture);
 						string unit = sizeMatch.Groups[2].Value.ToUpperInvariant();
 
 						long bytes = 0;
@@ -1156,11 +1154,8 @@ namespace KOTORModSync.Core.Services.Download
 			return normalized;
 		}
 
-        [GeneratedRegex("^\"|\"$", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
-        private static partial Regex SurroundingQuotesRegex();
-        [GeneratedRegex(@"files/file/(\d+)-[^/]*/?(?:\?r=(\d+))?", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
-        private static partial Regex FilePageUrlRegex();
-        [GeneratedRegex(@"([\d,.]+)\s*(KB|MB|GB)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
-        private static partial Regex FileSizeWithUnitRegex();
-    }
+		private static readonly Regex SurroundingQuotesRegex = new Regex("^\"|\"$", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture | RegexOptions.Compiled, TimeSpan.FromMilliseconds(1000));
+		private static readonly Regex FilePageUrlRegex = new Regex(@"files/file/(\d+)-[^/]*/?(?:\?r=(\d+))?", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture | RegexOptions.Compiled, TimeSpan.FromMilliseconds(1000));
+		private static readonly Regex FileSizeWithUnitRegex = new Regex(@"([\d,.]+)\s*(KB|MB|GB)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture | RegexOptions.Compiled, TimeSpan.FromMilliseconds(1000));
+	}
 }

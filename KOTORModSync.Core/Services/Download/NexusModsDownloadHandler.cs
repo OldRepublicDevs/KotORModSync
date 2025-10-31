@@ -87,11 +87,11 @@ namespace KOTORModSync.Core.Services.Download
 		public bool CanHandle(string url)
 		{
 			bool canHandle = url != null && url.IndexOf("nexusmods.com", StringComparison.OrdinalIgnoreCase) >= 0;
-			Logger.LogVerbose($"[NexusMods] CanHandle check for URL '{url}': {canHandle}");
 			return canHandle;
 		}
 
-		public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public async Task<List<string>> ResolveFilenamesAsync(string url, CancellationToken cancellationToken = default)
 
 		{
 			try
@@ -219,7 +219,8 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		public async Task<DownloadResult> DownloadAsync(
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public async Task<DownloadResult> DownloadAsync(
 			string url,
 			string destinationDirectory,
 			IProgress<DownloadProgress> progress = null,
@@ -355,7 +356,8 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		private async Task<DownloadResult> DownloadWithApiKey(
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        private async Task<DownloadResult> DownloadWithApiKey(
 			string url,
 			string destinationDirectory,
 			IProgress<DownloadProgress> progress,
@@ -389,7 +391,7 @@ namespace KOTORModSync.Core.Services.Download
 				{
 					Status = DownloadStatus.InProgress,
 					StatusMessage = $"Downloading {fileName} ({i + 1}/{linkInfos.Count})...",
-					ProgressPercentage = (i * 100) / linkInfos.Count,
+					ProgressPercentage = linkInfos.Count,
 				});
 
 				await Logger.LogVerboseAsync($"[NexusMods] Making HTTP GET request to download URL").ConfigureAwait(false);
@@ -510,7 +512,8 @@ namespace KOTORModSync.Core.Services.Download
 			return response;
 		}
 
-		private async Task<List<NexusDownloadLink>> ResolveDownloadLinksAsync(string url, List<string> targetFilenames = null)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        private async Task<List<NexusDownloadLink>> ResolveDownloadLinksAsync(string url, List<string> targetFilenames = null)
 		{
 			await Logger.LogVerboseAsync($"[NexusMods] ResolveDownloadLinksAsync called with URL: {url}").ConfigureAwait(false);
 			if (targetFilenames != null && targetFilenames.Count > 0)
@@ -632,7 +635,6 @@ namespace KOTORModSync.Core.Services.Download
 					catch (Exception ex)
 					{
 						await Logger.LogWarningAsync($"[NexusMods] Error getting download link for '{fileName}': {ex.Message}").ConfigureAwait(false);
-						continue;
 					}
 				}
 
@@ -753,7 +755,8 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
-		public async Task<Dictionary<string, object>> GetFileMetadataAsync(string url, CancellationToken cancellationToken = default)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public async Task<Dictionary<string, object>> GetFileMetadataAsync(string url, CancellationToken cancellationToken = default)
 		{
 			Dictionary<string, object> metadata = new Dictionary<string, object>(StringComparer.Ordinal);
 

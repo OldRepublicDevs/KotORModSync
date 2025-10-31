@@ -28,13 +28,13 @@
 
   <!-- Target Platforms/Frameworks -->
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net48</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
     <Platforms>x86;x64</Platforms>
     <UseAppHost>true</UseAppHost>
   </PropertyGroup>
 
   <!-- RuntimeIdentifiers for both TargetFrameworks -->
-  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0' OR '$(TargetFramework)'=='net9.0'">
     <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)'=='net48'">

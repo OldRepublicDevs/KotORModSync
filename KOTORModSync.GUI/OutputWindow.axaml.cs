@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -110,6 +110,11 @@ namespace KOTORModSync
 
 		private void InitializeControls()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(InitializeControls, DispatcherPriority.Normal);
+				return;
+			}
 			Logger.Logged += AppendLog;
 
 			Logger.ExceptionLogged += ex =>
@@ -187,6 +192,11 @@ namespace KOTORModSync
 
 		private void LogListBox_KeyDown(object sender, KeyEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => LogListBox_KeyDown(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (!(sender is ListBox list))
@@ -243,7 +253,7 @@ namespace KOTORModSync
 				if (string.IsNullOrEmpty(filePath))
 					return;
 
-				await Task.Run(() => File.WriteAllText(filePath, _viewModel.LogText ?? string.Empty)).ConfigureAwait(false);
+				await Task.Run(() => File.WriteAllText(filePath, _viewModel.LogText ?? string.Empty)).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{

@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -13,6 +13,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using KOTORModSync.Core;
@@ -148,14 +149,27 @@ namespace KOTORModSync.Controls
 
 		private void OnPointerPressed(object sender, PointerPressedEventArgs e)
 		{
-
+			Logger.LogVerbose($"[ModListItem] OnPointerPressed: {e.Source}");
 			if (e.Source is TextBlock textBlock && string.Equals(textBlock.Name, "DragHandle", StringComparison.Ordinal))
+			{
+				Logger.LogVerbose($"[ModListItem] DragHandle pressed");
 				return;
+			}
 			if (e.Source is CheckBox)
+			{
+				Logger.LogVerbose($"[ModListItem] CheckBox pressed");
 				return;
+			}
 
-			if (DataContext is ModComponent component && this.FindAncestorOfType<Window>() is MainWindow mainWindow)
+
+			if (
+				DataContext is ModComponent component
+				&& this.FindAncestorOfType<Window>() is MainWindow mainWindow
+			)
+			{
+				Logger.LogVerbose($"[ModListItem] Setting current mod component: {component.Name}");
 				mainWindow.SetCurrentModComponent(component);
+			}
 		}
 
 		private void OnCheckBoxChanged(object sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -230,6 +244,11 @@ namespace KOTORModSync.Controls
 
 		public void UpdateTooltip(ModComponent component)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateTooltip(component), DispatcherPriority.Normal);
+				return;
+			}
 
 			TextBlock nameTextBlock = this.FindControl<TextBlock>("NameTextBlock");
 			if (nameTextBlock is null)
@@ -269,6 +288,11 @@ namespace KOTORModSync.Controls
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		public void UpdateValidationState(ModComponent component)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateValidationState(component), DispatcherPriority.Normal);
+				return;
+			}
 			if (!(this.FindControl<Border>("RootBorder") is Border border))
 				return;
 
@@ -398,6 +422,11 @@ namespace KOTORModSync.Controls
 
 		private static void UpdateValidationIcon(TextBlock validationIconControl, bool hasErrors, bool shouldShowDownloadWarning)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateValidationIcon(validationIconControl, hasErrors, shouldShowDownloadWarning), DispatcherPriority.Normal);
+				return;
+			}
 			if (validationIconControl is null)
 				return;
 

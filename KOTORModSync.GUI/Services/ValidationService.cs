@@ -214,13 +214,13 @@ namespace KOTORModSync.Services
 						modIssues.Add(issue);
 					}
 
-					bool componentValid = await Core.Services.ComponentValidationService.ValidateComponentFilesExistAsync(component).ConfigureAwait(false);
+					bool componentValid = await Core.Services.ComponentValidationService.ValidateComponentFilesExistAsync(component).ConfigureAwait(true);
 					if (!componentValid)
 
 
 					{
 
-						List<string> missingFiles = await Core.Services.ComponentValidationService.GetMissingFilesForComponentAsync(component).ConfigureAwait(false);
+						List<string> missingFiles = await Core.Services.ComponentValidationService.GetMissingFilesForComponentAsync(component).ConfigureAwait(true);
 						string missingFilesDescription = missingFiles.Count > 0
 							? $"Missing file(s): {string.Join(", ", missingFiles)}"
 							: "One or more required files for this mod are missing from your Mod Directory.";

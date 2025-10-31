@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -306,7 +306,6 @@ namespace KOTORModSync.Core.Services
 		{
 			Instruction delDuplicateInstruction = new Instruction
 			{
-				Guid = Guid.NewGuid(),
 				Action = Instruction.ActionType.DelDuplicate,
 				Source = new List<string>(),
 				Arguments = ".tpc",
@@ -336,7 +335,6 @@ namespace KOTORModSync.Core.Services
 
 			Instruction executeInstruction = new Instruction
 			{
-				Guid = Guid.NewGuid(),
 				Action = Instruction.ActionType.Execute,
 				Source = new List<string> { $@"<<modDirectory>>\{fileName}" },
 				Overwrite = true,
@@ -506,6 +504,7 @@ namespace KOTORModSync.Core.Services
 			return false;
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static bool DoWildcardPatternsOverlap([NotNull] string pattern1, [NotNull] string pattern2)
 		{
 			string[] parts1 = pattern1.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
@@ -662,7 +661,7 @@ namespace KOTORModSync.Core.Services
 
 		private static Option FindEquivalentOption([NotNull] ModComponent component, [NotNull] Option potentialOption)
 		{
-			foreach (Option existingOption in component.Options)
+			foreach (Option existingOption in component.Options.Where(existingOption => AreOptionsEquivalentByInstructions(existingOption, potentialOption)))
 			{
 				if (AreOptionsEquivalentByInstructions(existingOption, potentialOption))
 				{
@@ -801,7 +800,7 @@ namespace KOTORModSync.Core.Services
 
 			foreach (Instruction potentialInstr in potential.Instructions)
 			{
-				foreach (Instruction existingInstr in existing.Instructions)
+				foreach (var existingInstr in existing.Instructions.Where(existingInstr => AreInstructionsEquivalent(existingInstr, potentialInstr)))
 				{
 					if (AreInstructionsEquivalent(existingInstr, potentialInstr))
 					{
@@ -822,7 +821,7 @@ namespace KOTORModSync.Core.Services
 			foreach (Instruction potentialInstr in potential.Instructions)
 			{
 				bool foundMatch = false;
-				foreach (Instruction existingInstr in existing.Instructions)
+				foreach (Instruction existingInstr in existing.Instructions.Where(existingInstr => AreInstructionsEquivalent(existingInstr, potentialInstr)))
 				{
 					if (AreInstructionsEquivalent(existingInstr, potentialInstr))
 					{
@@ -933,7 +932,6 @@ namespace KOTORModSync.Core.Services
 				{
 					Instruction newInstruction = new Instruction
 					{
-						Guid = Guid.NewGuid(),
 						Action = potentialInstr.Action,
 						Source = new List<string>(potentialInstr.Source),
 						Destination = potentialInstr.Destination,
@@ -1150,7 +1148,6 @@ namespace KOTORModSync.Core.Services
 			{
 				Instruction extractInstruction = new Instruction
 				{
-					Guid = Guid.NewGuid(),
 					Action = Instruction.ActionType.Extract,
 					Source = new List<string> { $@"<<modDirectory>>\{archiveFileName}" },
 					Overwrite = true,
@@ -1383,7 +1380,7 @@ namespace KOTORModSync.Core.Services
 					await Logger.LogWarningAsync($"[AutoInstructionGenerator] Component '{component.Name}' has {missingFiles.Count} file(s) not found on disk:").ConfigureAwait(false);
 					foreach (string fileName in missingFiles.Take(5))
 					{
-						await Logger.LogWarningAsync($"  • {fileName}").ConfigureAwait(false);
+						await Logger.LogWarningAsync($"  � {fileName}").ConfigureAwait(false);
 					}
 					if (missingFiles.Count > 5)
 					{
@@ -1580,7 +1577,6 @@ namespace KOTORModSync.Core.Services
 
 				Instruction moveInstruction = new Instruction
 				{
-					Guid = Guid.NewGuid(),
 					Action = Instruction.ActionType.Move,
 					Source = new List<string> { $@"<<modDirectory>>\{relativePath}" },
 					Destination = @"<<kotorDirectory>>\Override",
@@ -1655,7 +1651,6 @@ namespace KOTORModSync.Core.Services
 
 			Instruction instruction = new Instruction
 			{
-				Guid = Guid.NewGuid(),
 				Action = isArchive ? Instruction.ActionType.Extract : Instruction.ActionType.Move,
 				Source = new List<string> { $@"<<modDirectory>>\{fileName}" },
 				Destination = isArchive ? string.Empty : @"<<kotorDirectory>>\Override",
@@ -1703,8 +1698,12 @@ namespace KOTORModSync.Core.Services
 
 			List<string> optionGuidsToAdd = new List<string>();
 
-			foreach (string ns in value.Values)
+			// Convert to list to preserve order and allow indexing
+			List<string> namespaceValues = value.Values.ToList();
+
+			for (int index = 0; index < namespaceValues.Count; index++)
 			{
+				string ns = namespaceValues[index];
 				if (!namespaces.TryGetValue(ns, out Dictionary<string, string> namespaceData))
 					continue;
 
@@ -1716,7 +1715,6 @@ namespace KOTORModSync.Core.Services
 					IsSelected = false,
 				};
 
-				string iniName = namespaceData.TryGetValue("IniName", out string value4) ? value4 : "changes.ini";
 				string patcherPath = string.IsNullOrEmpty(analysis.TslPatcherPath)
 					? extractedPath
 					: analysis.TslPatcherPath;
@@ -1727,11 +1725,12 @@ namespace KOTORModSync.Core.Services
 
 				Instruction patcherInstruction = new Instruction
 				{
-					Guid = Guid.NewGuid(),
+
 					Action = Instruction.ActionType.Patcher,
 					Source = new List<string> { $@"<<modDirectory>>\{patcherPath}\{ns}\{executableName}" },
 					Destination = "<<kotorDirectory>>",
-					Arguments = iniName,
+					// Arguments should be the 0-based index of the namespace option in namespaces.ini
+					Arguments = index.ToString(),
 					Overwrite = true,
 				};
 				patcherInstruction.SetParentComponent(potentialOption);
@@ -1787,7 +1786,7 @@ namespace KOTORModSync.Core.Services
 				{
 					Instruction chooseInstruction = new Instruction
 					{
-						Guid = Guid.NewGuid(),
+
 						Action = Instruction.ActionType.Choose,
 						Source = optionGuidsToAdd,
 						Overwrite = true,
@@ -1820,7 +1819,6 @@ namespace KOTORModSync.Core.Services
 
 			Instruction patcherInstruction = new Instruction
 			{
-				Guid = Guid.NewGuid(),
 				Action = Instruction.ActionType.Patcher,
 				Source = new List<string> { $@"<<modDirectory>>\{patcherPath}\{executableName}" },
 				Destination = "<<kotorDirectory>>",
@@ -1874,7 +1872,7 @@ namespace KOTORModSync.Core.Services
 
 				Instruction moveInstruction = new Instruction
 				{
-					Guid = Guid.NewGuid(),
+
 					Action = Instruction.ActionType.Move,
 					Source = new List<string> { potentialSourcePath },
 					Destination = @"<<kotorDirectory>>\Override",
@@ -1933,7 +1931,7 @@ namespace KOTORModSync.Core.Services
 				{
 					Instruction chooseInstruction = new Instruction
 					{
-						Guid = Guid.NewGuid(),
+
 						Action = Instruction.ActionType.Choose,
 						Source = optionGuidsToAdd,
 						Overwrite = true,
@@ -1981,7 +1979,6 @@ namespace KOTORModSync.Core.Services
 
 			Instruction moveInstruction = new Instruction
 			{
-				Guid = Guid.NewGuid(),
 				Action = Instruction.ActionType.Move,
 				Source = new List<string> { sourcePath },
 				Destination = @"<<kotorDirectory>>\Override",
@@ -2247,10 +2244,11 @@ namespace KOTORModSync.Core.Services
 		}
 	}
 
-	/// <summary>
-	/// Represents the result of attempting to generate instructions for a component
-	/// </summary>
-	public class GenerationResult
+    /// <summary>
+    /// Represents the result of attempting to generate instructions for a component
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
+    public class GenerationResult
 	{
 		public Guid ComponentGuid { get; set; }
 		public string ComponentName { get; set; }

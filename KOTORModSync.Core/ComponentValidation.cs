@@ -113,6 +113,7 @@ namespace KOTORModSync.Core
 						case Instruction.ActionType.Rename:
 						case Instruction.ActionType.Delete:
 						case Instruction.ActionType.DelDuplicate:
+						case Instruction.ActionType.CleanList:
 						case Instruction.ActionType.Run:
 						default:
 							break;

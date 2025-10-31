@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
@@ -82,6 +83,11 @@ namespace KOTORModSync.Services
 			Action<object, object> onSave,
 			Action<object, object> onClose)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => BuildGlobalActionsFlyout(menu, editorMode, onRefresh, onValidateAll, onCreate, setCurrentComponent, setTab, tabControl, guiEditTab, onShowModManagement, onShowStats, onSave, onClose), DispatcherPriority.Normal);
+				return;
+			}
 			menu.Items.Clear();
 
 			AddCommonMenuItems(menu.Items, onRefresh);
@@ -109,6 +115,11 @@ namespace KOTORModSync.Services
 			Action<object, object> onSave,
 			Action<object, object> onClose)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => BuildGlobalActionsContextMenu(menu, editorMode, onRefresh, onValidateAll, onCreate, setCurrentComponent, setTab, tabControl, guiEditTab, onShowModManagement, onShowStats, onSave, onClose), DispatcherPriority.Normal);
+				return;
+			}
 			menu.Items.Clear();
 
 			AddCommonMenuItems(menu.Items, onRefresh);

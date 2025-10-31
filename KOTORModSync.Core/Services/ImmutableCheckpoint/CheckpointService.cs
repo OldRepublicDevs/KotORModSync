@@ -820,11 +820,13 @@ $"Installation_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
 
 	#region Event Args
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class CheckpointEventArgs : EventArgs
 	{
 		public Checkpoint Checkpoint { get; set; }
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class CheckpointProgressEventArgs : EventArgs
 	{
 		public string Message { get; set; }

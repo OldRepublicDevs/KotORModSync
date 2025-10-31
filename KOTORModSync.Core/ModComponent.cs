@@ -245,7 +245,7 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string DescriptionSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_descriptionSpoilerFree) ? _description : _descriptionSpoilerFree;
+			get => _descriptionSpoilerFree;
 
 
 			set
@@ -284,7 +284,7 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string DirectionsSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_directionsSpoilerFree) ? _directions : _directionsSpoilerFree;
+			get => _directionsSpoilerFree;
 
 
 			set
@@ -310,7 +310,7 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string DownloadInstructionsSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_downloadInstructionsSpoilerFree) ? _downloadInstructions : _downloadInstructionsSpoilerFree;
+			get => _downloadInstructionsSpoilerFree;
 
 
 			set
@@ -336,7 +336,7 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string UsageWarningSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_usageWarningSpoilerFree) ? _usageWarning : _usageWarningSpoilerFree;
+			get => _usageWarningSpoilerFree;
 
 
 			set
@@ -362,7 +362,7 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public string ScreenshotsSpoilerFree
 		{
-			get => string.IsNullOrWhiteSpace(_screenshotsSpoilerFree) ? _screenshots : _screenshotsSpoilerFree;
+			get => _screenshotsSpoilerFree;
 
 
 			set
@@ -740,14 +740,15 @@ namespace KOTORModSync.Core
 			}
 			return InstallExitCode.UnknownError;
 		}
-		/// <summary>
-		/// Executes a single instruction using the unified instruction execution pipeline.
-		/// This method is used by both real installations and dry-run validation.
-		/// </summary>
-		public async Task<Instruction.ActionExitCode> ExecuteSingleInstructionAsync(
+        /// <summary>
+        /// Executes a single instruction using the unified instruction execution pipeline.
+        /// This method is used by both real installations and dry-run validation.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public async Task<Instruction.ActionExitCode> ExecuteSingleInstructionAsync(
 			[NotNull] Instruction instruction,
 			int instructionIndex,
-			[NotNull][ItemNotNull] List<ModComponent> componentsList,
+			[NotNull][ItemNotNull] IReadOnlyList<ModComponent> componentsList,
 			[NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider,
 			bool skipDependencyCheck = false,
 			CancellationToken cancellationToken = default
@@ -765,31 +766,7 @@ namespace KOTORModSync.Core
 			{
 				case Instruction.ActionType.Extract:
 					instruction.SetRealPaths();
-
-
-					exitCode = await instruction.ExtractFileAsync()
-
-
-
-
-
-
-
-
-
-
-
-
-
-.ConfigureAwait(false);
-
-
-
-
-
-
-
-
+					exitCode = await instruction.ExtractFileAsync().ConfigureAwait(false);
 					break;
 				case Instruction.ActionType.Delete:
 					instruction.SetRealPaths(skipExistenceCheck: true);
@@ -842,6 +819,85 @@ namespace KOTORModSync.Core
 						}
 					}
 					break;
+				case Instruction.ActionType.CleanList:
+					instruction.SetRealPaths(skipExistenceCheck: true);
+					// Robust auto-selection: token-based matching and special-cases
+					bool IsModSelected(string modName)
+					{
+						if (string.IsNullOrWhiteSpace(modName))
+							return false;
+						// Always apply mandatory deletions
+						if (modName.StartsWith("Mandatory Deletions", StringComparison.OrdinalIgnoreCase))
+							return true;
+
+						string[] StopWords = new[] { "by", "for", "the", "and", "of", "mod", "pack", "k1", "k2", "hd", "kotor", "kotorn", "version", "recolored", "reskin", "retexture", "fix", "fixes" };
+						HashSet<string> Tokenize(string name, string[] stop)
+						{
+							string lower = name.ToLowerInvariant();
+							char[] buf = lower.ToCharArray();
+							for (int i = 0; i < buf.Length; i++)
+							{
+								char c = buf[i];
+								if (!(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != ' ')
+									buf[i] = ' ';
+							}
+							string cleaned = new string(buf);
+							string[] raw = cleaned.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+							HashSet<string> set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+							foreach (string r in raw)
+							{
+								string t = r.Trim();
+								if (t.Length == 0)
+									continue;
+								if (System.Array.IndexOf(stop, t) >= 0)
+									continue;
+								// crude singularize
+								if (t.EndsWith("s", StringComparison.Ordinal) && t.Length > 3)
+									t = t.Substring(0, t.Length - 1);
+								set.Add(t);
+							}
+							return set;
+						}
+						HashSet<string> target = Tokenize(modName, StopWords);
+						if (target.Count == 0)
+							return false;
+
+						// Exact or substring quick checks first
+						foreach (ModComponent component in componentsList)
+						{
+							if (component is null || !component.IsSelected)
+								continue;
+							string compName = component.Name ?? string.Empty;
+							if (string.Equals(compName, modName, StringComparison.OrdinalIgnoreCase))
+								return true;
+							if (compName.IndexOf(modName, StringComparison.OrdinalIgnoreCase) >= 0 || modName.IndexOf(compName, StringComparison.OrdinalIgnoreCase) >= 0)
+								return true;
+						}
+						// Token overlap heuristic
+						foreach (ModComponent component in componentsList)
+						{
+							if (component is null || !component.IsSelected)
+								continue;
+							HashSet<string> comp = Tokenize(component.Name ?? string.Empty, StopWords);
+							if (comp.Count == 0)
+								continue;
+							int intersect = 0;
+							foreach (string t in target)
+								if (comp.Contains(t))
+									intersect++;
+							int minSize = Math.Min(target.Count, comp.Count);
+							// require at least 2 shared tokens and 60% of the smaller token set
+							if (intersect >= 2 && intersect >= (int)Math.Ceiling(minSize * 0.6))
+								return true;
+						}
+						return false;
+					}
+					exitCode = await instruction.ExecuteCleanListAsync(
+						cleanlistPath: null,
+						targetDirectory: null,
+						isModSelectedFunc: IsModSelected
+					).ConfigureAwait(false);
+					break;
 				default:
 					await Logger.LogWarningAsync($"Unknown instruction '{instruction.ActionString}'").ConfigureAwait(false);
 					exitCode = Instruction.ActionExitCode.UnknownInstruction;
@@ -852,7 +908,7 @@ namespace KOTORModSync.Core
 
 		public async Task<InstallExitCode> ExecuteInstructionsAsync(
 			[NotNull][ItemNotNull] ObservableCollection<Instruction> theseInstructions,
-			[NotNull][ItemNotNull] List<ModComponent> componentsList,
+			[NotNull][ItemNotNull] IReadOnlyList<ModComponent> componentsList,
 			CancellationToken cancellationToken,
 			[NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider,
 			bool skipDependencyCheck = false
@@ -935,7 +991,7 @@ namespace KOTORModSync.Core
 		public static Dictionary<string, List<ModComponent>> GetConflictingComponents(
 			[NotNull] List<Guid> dependencyGuids,
 			[NotNull] List<Guid> restrictionGuids,
-			[NotNull][ItemNotNull] List<ModComponent> componentsList
+			[NotNull][ItemNotNull] IReadOnlyList<ModComponent> componentsList
 		)
 		{
 			if (dependencyGuids is null)
@@ -979,7 +1035,7 @@ namespace KOTORModSync.Core
 			}
 			return conflicts;
 		}
-		public bool ShouldInstallComponent([NotNull][ItemNotNull] List<ModComponent> componentsList)
+		public bool ShouldInstallComponent([NotNull][ItemNotNull] IReadOnlyList<ModComponent> componentsList)
 		{
 			if (componentsList is null)
 				throw new ArgumentNullException(nameof(componentsList));
@@ -992,7 +1048,7 @@ namespace KOTORModSync.Core
 		}
 		public static bool ShouldRunInstruction(
 			[NotNull] Instruction instruction,
-			[NotNull] List<ModComponent> componentsList
+			[NotNull] IReadOnlyList<ModComponent> componentsList
 		)
 		{
 			if (instruction is null)
@@ -1009,7 +1065,7 @@ namespace KOTORModSync.Core
 		[CanBeNull]
 		public static ModComponent FindComponentFromGuid(
 			Guid guidToFind,
-			[NotNull][ItemNotNull] List<ModComponent> componentsList
+			[NotNull][ItemNotNull] IReadOnlyList<ModComponent> componentsList
 		)
 		{
 			if (componentsList is null)
@@ -1038,7 +1094,7 @@ namespace KOTORModSync.Core
 		[NotNull]
 		public static List<ModComponent> FindComponentsFromGuidList(
 			[NotNull] List<Guid> guidsToFind,
-			[NotNull] List<ModComponent> componentsList
+			[NotNull] IReadOnlyList<ModComponent> componentsList
 		)
 		{
 			if (guidsToFind is null)
@@ -1056,7 +1112,7 @@ namespace KOTORModSync.Core
 			return foundComponents;
 		}
 		public static (bool isCorrectOrder, List<ModComponent> reorderedComponents) ConfirmComponentsInstallOrder(
-			[NotNull][ItemNotNull] List<ModComponent> components
+			[NotNull][ItemNotNull] IReadOnlyList<ModComponent> components
 		)
 		{
 			if (components is null)
@@ -1115,7 +1171,7 @@ namespace KOTORModSync.Core
 			orderedComponents.Add(node.ModComponent);
 		}
 		private static Dictionary<Guid, GraphNode> CreateDependencyGraph(
-			[NotNull][ItemNotNull] List<ModComponent> components
+			[NotNull][ItemNotNull] IReadOnlyList<ModComponent> components
 		)
 		{
 			if (components is null)

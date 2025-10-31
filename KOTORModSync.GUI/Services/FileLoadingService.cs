@@ -290,7 +290,8 @@ namespace KOTORModSync.Services
 
 						if (confirmResult == true)
 						{
-							var conflictDialog = new ComponentMergeConflictDialog(
+							// Create the dialog on the UI thread
+							var conflictDialog = await Dispatcher.UIThread.InvokeAsync(() => new ComponentMergeConflictDialog(
 								_mainConfig.allComponents,
 								new List<ModComponent>(
 									parseResult.Components
@@ -298,11 +299,10 @@ namespace KOTORModSync.Services
 								),
 								"Currently Loaded Components",
 								"Markdown File",
-								FuzzyMatcher.FuzzyMatchComponents);
+								FuzzyMatcher.FuzzyMatchComponents));
 
-#pragma warning disable MA0004 // Use Task.
-							await conflictDialog.ShowDialog(_parentWindow);
-#pragma warning restore MA0004 // Use Task.
+							// Show the dialog on the UI thread as well
+							await Dispatcher.UIThread.InvokeAsync(() => conflictDialog.ShowDialog(_parentWindow)).ConfigureAwait(true);
 
 							if (conflictDialog.UserConfirmed && conflictDialog.MergedComponents != null)
 							{

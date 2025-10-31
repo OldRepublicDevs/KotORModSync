@@ -19,7 +19,7 @@ namespace KOTORModSync.Core.Services.Download
 		private readonly object _logThrottleLock = new object();
 		private const int LogThrottleSeconds = 30;
 
-		private readonly CancellationTokenSource _globalCancellationTokenSource;
+		private CancellationTokenSource _globalCancellationTokenSource;
 
 		public DownloadManager(IEnumerable<IDownloadHandler> handlers)
 		{
@@ -62,6 +62,16 @@ namespace KOTORModSync.Core.Services.Download
 						(string resolvedUrl, List<string> filenames) = await ResolveUrlToFilenamesInternalAsync(url, cancellationToken).ConfigureAwait(false);
 						results[resolvedUrl] = filenames;
 					}
+
+					sw.Stop();
+					TelemetryService.Instance.RecordFileOperation(
+						operationType: "resolve_urls",
+						success: true,
+						fileCount: urlList.Count,
+						durationMs: sw.Elapsed.TotalMilliseconds
+					);
+
+					return results;
 				}
 				else
 				{
@@ -70,21 +80,23 @@ namespace KOTORModSync.Core.Services.Download
 
 					(string url, List<string> filenames)[] resolvedItems = await Task.WhenAll(resolutionTasks).ConfigureAwait(false);
 
-					foreach ((string url, List<string> filenames) in resolvedItems)
+					foreach (var item in resolvedItems)
 					{
+						string url = item.Item1;
+						List<string> filenames = item.Item2;
 						results[url] = filenames;
 					}
+
+					sw.Stop();
+					Services.TelemetryService.Instance.RecordFileOperation(
+						operationType: "resolve_urls",
+						success: true,
+						fileCount: urlList.Count,
+						durationMs: sw.Elapsed.TotalMilliseconds
+					);
+
+					return results;
 				}
-
-				sw.Stop();
-				Services.TelemetryService.Instance.RecordFileOperation(
-					operationType: "resolve_urls",
-					success: true,
-					fileCount: urlList.Count,
-					durationMs: sw.Elapsed.TotalMilliseconds
-				);
-
-				return results;
 			}
 			catch (Exception ex)
 			{
@@ -159,6 +171,33 @@ namespace KOTORModSync.Core.Services.Download
 			}
 		}
 
+		/// <summary>
+		/// Resets the global cancellation token so new downloads can start after a cancellation.
+		/// </summary>
+		public void ResetCancellation()
+		{
+			try
+			{
+				if (_globalCancellationTokenSource == null)
+				{
+					_globalCancellationTokenSource = new CancellationTokenSource();
+					Logger.LogVerbose("[DownloadManager] Created global cancellation token");
+					return;
+				}
+
+				if (_globalCancellationTokenSource.IsCancellationRequested)
+				{
+					_globalCancellationTokenSource.Dispose();
+					_globalCancellationTokenSource = new CancellationTokenSource();
+					Logger.LogVerbose("[DownloadManager] Reset global cancellation token");
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogWarning($"[DownloadManager] Failed to reset cancellation token: {ex.Message}");
+			}
+		}
+
 		public async Task<List<DownloadResult>> DownloadAllWithProgressAsync(
 				Dictionary<string, DownloadProgress> urlToProgressMap,
 				string destinationDirectory,
@@ -182,15 +221,11 @@ namespace KOTORModSync.Core.Services.Download
 			{
 				DownloadProgress progressItem = urlToProgressMap[url];
 
-				await Logger.LogVerboseAsync($"[DownloadManager] Creating download task for URL: {url}, Mod: {progressItem.ModName}")
-
-.ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[DownloadManager] Creating download task for URL: {url}, Mod: {progressItem.ModName}").ConfigureAwait(false);
 				tasks.Add(DownloadSingleWithConcurrencyLimit(url, progressItem, destinationDirectory, progressReporter, combinedCancellationToken));
 			}
 
-			DownloadResult[] downloadResults =
-
-await Task.WhenAll(tasks).ConfigureAwait(false);
+			DownloadResult[] downloadResults = await Task.WhenAll(tasks).ConfigureAwait(false);
 
 
 

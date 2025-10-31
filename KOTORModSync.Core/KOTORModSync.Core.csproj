@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net48</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <Platforms>AnyCPU</Platforms>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
@@ -9,14 +9,15 @@
     <_NC2>Mon</_NC2>
   </PropertyGroup>
 
-  <!-- Default to Library (so it can be referenced by GUI) unless building the Core project standalone -->
-  <PropertyGroup Condition="!('$(MSBuildProjectName)' == 'KOTORModSync.Core' AND '$(BuildingProject)' == 'true' AND '$(BuildingInsideVisualStudio)' != 'true' AND '$(DesignTimeBuild)' != 'true' AND '$(IsPublishing)' != 'true' AND '$(BuildProjectReferences)' != 'false')">
+  <!-- Default to Library - this allows the project to be referenced by GUI -->
+  <PropertyGroup>
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
-  <!-- Only use Exe when building Core project standalone, not as part of solution/publish -->
+  <!-- Only use Exe when building Core project standalone via dotnet run (not when referenced) -->
   <!-- This allows 'dotnet run' with the Core project for CLI usage -->
-  <PropertyGroup>
+  <!-- We detect standalone by checking if we're not publishing and RuntimeIdentifier is empty (typical for dotnet run) -->
+  <PropertyGroup Condition="'$(IsPublishing)' != 'true' AND '$(RuntimeIdentifier)' == '' AND '$(RuntimeIdentifiers)' == '' AND '$(PublishProfile)' == ''">
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 

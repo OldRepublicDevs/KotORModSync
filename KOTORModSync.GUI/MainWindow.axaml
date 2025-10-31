@@ -144,7 +144,7 @@
                         VerticalAlignment="Center"
                         Content="Spoiler-Free Mode"
                         IsChecked="{Binding SpoilerFreeMode, Mode=TwoWay}"
-                        IsVisible="False"
+                        IsVisible="{Binding !EditorMode}"
                         ToolTip.Tip="Toggle to enable Spoiler-Free Mode: hides spoiler content in descriptions, directions, and other text fields to avoid plot reveals." />
                 </StackPanel>
                 <Button

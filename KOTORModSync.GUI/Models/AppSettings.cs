@@ -72,97 +72,104 @@ namespace KOTORModSync.Models
 		[CanBeNull]
 		public string SelectedHolopatcherVersion { get; set; }
 
-		[JsonPropertyName("enableFileWatcher")]
-		public bool EnableFileWatcher { get; set; } = true;
+	[JsonPropertyName("enableFileWatcher")]
+	public bool EnableFileWatcher { get; set; } = true;
 
-		public AppSettings()
+	[JsonPropertyName("spoilerFreeMode")]
+	public bool SpoilerFreeMode { get; set; } = false;
+
+	public AppSettings()
+	{
+	}
+
+	public static AppSettings FromCurrentState([NotNull] MainConfig mainConfig, [CanBeNull] string currentTheme, bool spoilerFreeMode = false)
+	{
+		if (mainConfig is null)
+			throw new ArgumentNullException(nameof(mainConfig));
+
+		Logger.LogVerbose($"[AppSettings.FromCurrentState] Creating settings from MainConfig:");
+		Logger.LogVerbose($"[AppSettings.FromCurrentState] SourcePath: '{mainConfig.sourcePathFullName}'");
+		Logger.LogVerbose($"[AppSettings.FromCurrentState] DestinationPath: '{mainConfig.destinationPathFullName}'");
+		Logger.LogVerbose($"[AppSettings.FromCurrentState] Theme: '{currentTheme}'");
+		Logger.LogVerbose($"[AppSettings.FromCurrentState] SpoilerFreeMode: '{spoilerFreeMode}'");
+
+		return new AppSettings
 		{
+			Theme = currentTheme ?? "/Styles/FluentLightStyle.axaml",
+			SourcePath = mainConfig.sourcePathFullName,
+			DestinationPath = mainConfig.destinationPathFullName,
+			DebugLogging = mainConfig.debugLogging,
+			AttemptFixes = mainConfig.attemptFixes,
+			NoAdmin = mainConfig.noAdmin,
+			CaseInsensitivePathing = mainConfig.caseInsensitivePathing,
+			ArchiveDeepCheck = mainConfig.archiveDeepCheck,
+			UseMultiThreadedIO = mainConfig.useMultiThreadedIO,
+			UseCopyForMoveActions = mainConfig.useCopyForMoveActions,
+			LastOutputDirectory = mainConfig.lastOutputDirectory?.FullName,
+			ValidateAndReplaceInvalidArchives = mainConfig.validateAndReplaceInvalidArchives,
+			FilterDownloadsByResolution = mainConfig.filterDownloadsByResolution,
+			NexusModsApiKey = mainConfig.nexusModsApiKey,
+			FileEncoding = mainConfig.fileEncoding,
+			SelectedHolopatcherVersion = mainConfig.selectedHolopatcherVersion,
+			EnableFileWatcher = mainConfig.enableFileWatcher,
+			SpoilerFreeMode = spoilerFreeMode,
+		};
+	}
+
+	public void ApplyToMainConfig([NotNull] MainConfig mainConfig, [NotNull] out string theme, out bool spoilerFreeMode)
+	{
+		if (mainConfig is null)
+			throw new ArgumentNullException(nameof(mainConfig));
+
+		Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applying settings to MainConfig:");
+		Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SourcePath from settings: '{SourcePath}'");
+		Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] DestinationPath from settings: '{DestinationPath}'");
+		Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SpoilerFreeMode from settings: '{SpoilerFreeMode}'");
+
+		if (!string.IsNullOrEmpty(SourcePath))
+		{
+			mainConfig.sourcePath = new DirectoryInfo(SourcePath);
+			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applied SourcePath: '{mainConfig.sourcePathFullName}'");
+		}
+		else
+		{
+			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SourcePath is empty, not applying");
 		}
 
-		public static AppSettings FromCurrentState([NotNull] MainConfig mainConfig, [CanBeNull] string currentTheme)
+		if (!string.IsNullOrEmpty(DestinationPath))
 		{
-			if (mainConfig is null)
-				throw new ArgumentNullException(nameof(mainConfig));
-
-			Logger.LogVerbose($"[AppSettings.FromCurrentState] Creating settings from MainConfig:");
-			Logger.LogVerbose($"[AppSettings.FromCurrentState] SourcePath: '{mainConfig.sourcePathFullName}'");
-			Logger.LogVerbose($"[AppSettings.FromCurrentState] DestinationPath: '{mainConfig.destinationPathFullName}'");
-			Logger.LogVerbose($"[AppSettings.FromCurrentState] Theme: '{currentTheme}'");
-
-			return new AppSettings
-			{
-				Theme = currentTheme ?? "/Styles/FluentLightStyle.axaml",
-				SourcePath = mainConfig.sourcePathFullName,
-				DestinationPath = mainConfig.destinationPathFullName,
-				DebugLogging = mainConfig.debugLogging,
-				AttemptFixes = mainConfig.attemptFixes,
-				NoAdmin = mainConfig.noAdmin,
-				CaseInsensitivePathing = mainConfig.caseInsensitivePathing,
-				ArchiveDeepCheck = mainConfig.archiveDeepCheck,
-				UseMultiThreadedIO = mainConfig.useMultiThreadedIO,
-				UseCopyForMoveActions = mainConfig.useCopyForMoveActions,
-				LastOutputDirectory = mainConfig.lastOutputDirectory?.FullName,
-				ValidateAndReplaceInvalidArchives = mainConfig.validateAndReplaceInvalidArchives,
-				FilterDownloadsByResolution = mainConfig.filterDownloadsByResolution,
-				NexusModsApiKey = mainConfig.nexusModsApiKey,
-				FileEncoding = mainConfig.fileEncoding,
-				SelectedHolopatcherVersion = mainConfig.selectedHolopatcherVersion,
-				EnableFileWatcher = mainConfig.enableFileWatcher,
-			};
+			mainConfig.destinationPath = new DirectoryInfo(DestinationPath);
+			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applied DestinationPath: '{mainConfig.destinationPathFullName}'");
+		}
+		else
+		{
+			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] DestinationPath is empty, not applying");
 		}
 
-		public void ApplyToMainConfig([NotNull] MainConfig mainConfig, [NotNull] out string theme)
-		{
-			if (mainConfig is null)
-				throw new ArgumentNullException(nameof(mainConfig));
+		mainConfig.debugLogging = DebugLogging;
+		mainConfig.attemptFixes = AttemptFixes;
+		mainConfig.noAdmin = NoAdmin;
+		mainConfig.caseInsensitivePathing = CaseInsensitivePathing;
+		mainConfig.archiveDeepCheck = ArchiveDeepCheck;
+		mainConfig.useMultiThreadedIO = UseMultiThreadedIO;
+		mainConfig.useCopyForMoveActions = UseCopyForMoveActions;
+		mainConfig.validateAndReplaceInvalidArchives = ValidateAndReplaceInvalidArchives;
+		mainConfig.filterDownloadsByResolution = FilterDownloadsByResolution;
+		mainConfig.nexusModsApiKey = NexusModsApiKey;
+		mainConfig.fileEncoding = FileEncoding
+								  ?? "utf-8";
+		mainConfig.selectedHolopatcherVersion = SelectedHolopatcherVersion;
+		mainConfig.enableFileWatcher = EnableFileWatcher;
 
-			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applying settings to MainConfig:");
-			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SourcePath from settings: '{SourcePath}'");
-			Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] DestinationPath from settings: '{DestinationPath}'");
+		if (!string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory))
+			mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
 
-			if (!string.IsNullOrEmpty(SourcePath))
-			{
-				mainConfig.sourcePath = new DirectoryInfo(SourcePath);
-				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applied SourcePath: '{mainConfig.sourcePathFullName}'");
-			}
-			else
-			{
-				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] SourcePath is empty, not applying");
-			}
+		theme = Theme ?? "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light theme
+		spoilerFreeMode = SpoilerFreeMode;
 
-			if (!string.IsNullOrEmpty(DestinationPath))
-			{
-				mainConfig.destinationPath = new DirectoryInfo(DestinationPath);
-				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] Applied DestinationPath: '{mainConfig.destinationPathFullName}'");
-			}
-			else
-			{
-				Logger.LogVerbose($"[AppSettings.ApplyToMainConfig] DestinationPath is empty, not applying");
-			}
-
-			mainConfig.debugLogging = DebugLogging;
-			mainConfig.attemptFixes = AttemptFixes;
-			mainConfig.noAdmin = NoAdmin;
-			mainConfig.caseInsensitivePathing = CaseInsensitivePathing;
-			mainConfig.archiveDeepCheck = ArchiveDeepCheck;
-			mainConfig.useMultiThreadedIO = UseMultiThreadedIO;
-			mainConfig.useCopyForMoveActions = UseCopyForMoveActions;
-			mainConfig.validateAndReplaceInvalidArchives = ValidateAndReplaceInvalidArchives;
-			mainConfig.filterDownloadsByResolution = FilterDownloadsByResolution;
-			mainConfig.nexusModsApiKey = NexusModsApiKey;
-			mainConfig.fileEncoding = FileEncoding
-									  ?? "utf-8";
-			mainConfig.selectedHolopatcherVersion = SelectedHolopatcherVersion;
-			mainConfig.enableFileWatcher = EnableFileWatcher;
-
-			if (!string.IsNullOrEmpty(LastOutputDirectory) && Directory.Exists(LastOutputDirectory))
-				mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
-
-			theme = Theme ?? "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light theme
-
-			// Set TargetGame from theme (they're the same thing)
-			MainConfig.TargetGame = GetTargetGameFromTheme(theme);
-		}
+		// Set TargetGame from theme (they're the same thing)
+		MainConfig.TargetGame = GetTargetGameFromTheme(theme);
+	}
 
 		/// <summary>
 		/// Converts a theme path to the corresponding TargetGame value.

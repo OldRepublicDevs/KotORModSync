@@ -19,5 +19,10 @@ namespace KOTORModSync.Core.Parsing
 		public string WidescreenWarningContent { get; set; } = string.Empty;
 
 		public string AspyrExclusiveWarningContent { get; set; } = string.Empty;
+
+		/// <summary>
+		/// Trace information showing exactly what MarkdownParser matched, where, and with which patterns
+		/// </summary>
+		public ParsingTraceInfo Trace { get; set; } = new ParsingTraceInfo();
 	}
 }

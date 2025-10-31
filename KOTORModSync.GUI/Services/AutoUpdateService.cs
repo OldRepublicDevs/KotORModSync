@@ -106,7 +106,7 @@ namespace KOTORModSync.Services
 				await Logger.LogAsync("Manually checking for updates...").ConfigureAwait(false);
 
 
-				var updateInfo = await _sparkle.CheckForUpdatesQuietly().ConfigureAwait(false);
+				var updateInfo = await _sparkle.CheckForUpdatesQuietly().ConfigureAwait(true);
 
 				if (updateInfo.Status == UpdateStatus.UpdateAvailable)
 

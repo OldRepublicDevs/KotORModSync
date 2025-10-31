@@ -156,6 +156,13 @@ namespace KOTORModSync
 			{
 				if (_editorMode == value) return;
 				_ = SetAndRaise(EditorModeProperty, ref _editorMode, value);
+
+				// When EditorMode is enabled, disable SpoilerFreeMode (developers don't need spoiler protection)
+				if (value)
+				{
+					SpoilerFreeMode = false;
+				}
+
 				UpdateMenuVisibility();
 				RefreshModListItems();
 				BuildGlobalActionsMenu();
@@ -278,7 +285,7 @@ namespace KOTORModSync
 
 				Opened += async (s, e) =>
 				{
-					await InitializeTelemetryIfEnabled().ConfigureAwait(false);
+					await InitializeTelemetryIfEnabled().ConfigureAwait(true);
 					UpdateHolopatcherVersionDisplay();
 
 					// Detect game version if destination path is set
@@ -312,7 +319,7 @@ namespace KOTORModSync
 			{
 				await Logger.LogExceptionAsync(ex, "[Telemetry] Error initializing telemetry").ConfigureAwait(false);
 			}
-			await Task.CompletedTask.ConfigureAwait(false);
+			await Task.CompletedTask.ConfigureAwait(true);
 		}
 		private static void UpdatePathDisplays(TextBlock modPathDisplay, TextBlock kotorPathDisplay)
 		{
@@ -324,6 +331,11 @@ namespace KOTORModSync
 		}
 		private void UpdatePathDisplays()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(UpdatePathDisplays, DispatcherPriority.Normal);
+				return;
+			}
 			TextBlock modPathDisplay = this.FindControl<TextBlock>(name: "CurrentModPathDisplay");
 			TextBlock kotorPathDisplay = this.FindControl<TextBlock>(name: "CurrentKotorPathDisplay");
 			UpdatePathDisplays(modPathDisplay, kotorPathDisplay);
@@ -348,19 +360,22 @@ namespace KOTORModSync
 				Logger.LogVerbose($"[MainWindow.LoadSettings]   settings.DestinationPath: '{settings.DestinationPath}'");
 				Logger.LogVerbose($"[MainWindow.LoadSettings]   settings.Theme: '{settings.Theme}'");
 				Logger.LogVerbose($"[MainWindow.LoadSettings]   settings.DebugLogging: '{settings.DebugLogging}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   settings.SpoilerFreeMode: '{settings.SpoilerFreeMode}'");
 
-				settings.ApplyToMainConfig(MainConfigInstance, out string theme);
+				settings.ApplyToMainConfig(MainConfigInstance, out string theme, out bool spoilerFreeMode);
 
 				Logger.LogVerbose("[MainWindow.LoadSettings] AFTER ApplyToMainConfig:");
 				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.sourcePath: '{MainConfigInstance.sourcePathFullName}'");
 				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
 				Logger.LogVerbose($"[MainWindow.LoadSettings]   MainConfigInstance.debugLogging: '{MainConfigInstance.debugLogging}'");
 				Logger.LogVerbose($"[MainWindow.LoadSettings]   theme: '{theme}'");
+				Logger.LogVerbose($"[MainWindow.LoadSettings]   spoilerFreeMode: '{spoilerFreeMode}'");
 
 				// Detect game version if destination path is set (don't do this here - _componentSelectionService not initialized yet)
 				// Detection will happen automatically when path is set via GuiPathService
 
 				EditorMode = false;
+				SpoilerFreeMode = spoilerFreeMode;
 
 				// Apply theme (defaults to Fluent Light if not specified)
 				string themeToApply = string.IsNullOrEmpty(theme) ? "/Styles/FluentLightStyle.axaml" : theme;
@@ -388,6 +403,11 @@ namespace KOTORModSync
 
 		private void UpdateDirectoryPickersFromSettings(AppSettings settings)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateDirectoryPickersFromSettings(settings), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 
@@ -415,6 +435,11 @@ namespace KOTORModSync
 
 		private static void UpdateDirectoryPickerWithPath(DirectoryPickerControl picker, string path)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateDirectoryPickerWithPath(picker, path), DispatcherPriority.Normal);
+				return;
+			}
 			if (picker is null || string.IsNullOrEmpty(path))
 				return;
 			try
@@ -453,6 +478,7 @@ namespace KOTORModSync
 				Logger.LogVerbose($"[MainWindow.SaveSettings] MainConfigInstance.sourcePath: '{MainConfigInstance.sourcePathFullName}'");
 				Logger.LogVerbose($"[MainWindow.SaveSettings] MainConfigInstance.destinationPath: '{MainConfigInstance.destinationPathFullName}'");
 				Logger.LogVerbose($"[MainWindow.SaveSettings] MainConfig.TargetGame: '{MainConfig.TargetGame}'");
+				Logger.LogVerbose($"[MainWindow.SaveSettings] SpoilerFreeMode: '{SpoilerFreeMode}'");
 
 				// Get theme from TargetGame (they're the same thing)
 				string themeToSave = !string.IsNullOrEmpty(MainConfig.TargetGame)
@@ -461,12 +487,13 @@ namespace KOTORModSync
 
 				Logger.LogVerbose($"[MainWindow.SaveSettings] Theme to save: '{themeToSave}'");
 
-				var settings = AppSettings.FromCurrentState(MainConfigInstance, themeToSave);
+				var settings = AppSettings.FromCurrentState(MainConfigInstance, themeToSave, SpoilerFreeMode);
 
 				Logger.LogVerbose("[MainWindow.SaveSettings] Settings created:");
 				Logger.LogVerbose($"[MainWindow.SaveSettings]   settings.SourcePath: '{settings.SourcePath}'");
 				Logger.LogVerbose($"[MainWindow.SaveSettings]   settings.DestinationPath: '{settings.DestinationPath}'");
 				Logger.LogVerbose($"[MainWindow.SaveSettings]   settings.Theme: '{settings.Theme}'");
+				Logger.LogVerbose($"[MainWindow.SaveSettings]   settings.SpoilerFreeMode: '{settings.SpoilerFreeMode}'");
 
 				SettingsManager.SaveSettings(settings);
 				Logger.LogVerbose($"[MainWindow.SaveSettings] === Settings saved successfully with theme: {themeToSave} (TargetGame: {MainConfig.TargetGame}) ===");
@@ -482,13 +509,21 @@ namespace KOTORModSync
 		/// </summary>
 		public void RefreshFromSettings()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(RefreshFromSettings, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				Logger.LogVerbose("MainWindow.RefreshFromSettings - reloading settings");
 
 				// Reload settings from disk
 				AppSettings settings = SettingsManager.LoadSettings();
-				settings.ApplyToMainConfig(MainConfigInstance, out _);  // theme is not used
+				settings.ApplyToMainConfig(MainConfigInstance, out _, out bool spoilerFreeMode);  // theme is not used
+
+				// Apply spoiler-free mode
+				SpoilerFreeMode = spoilerFreeMode;
 
 				// Update directory pickers with the loaded settings
 				UpdateDirectoryPickersFromSettings(settings);
@@ -510,6 +545,11 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void ModPathInput_LostFocus(object sender, RoutedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => ModPathInput_LostFocus(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			if (sender is TextBox tb)
 			{
 				if (_suppressPathEvents) return;
@@ -526,6 +566,11 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void InstallPathInput_LostFocus(object sender, RoutedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => InstallPathInput_LostFocus(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			if (sender is TextBox tb)
 			{
 				if (_suppressPathEvents) return;
@@ -542,6 +587,11 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void ModPathSuggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => ModPathSuggestions_SelectionChanged(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			if (_suppressComboEvents) return;
 			if (sender is ComboBox comboBox && comboBox.SelectedItem is string path)
 			{
@@ -566,6 +616,11 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void InstallPathSuggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => InstallPathSuggestions_SelectionChanged(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			if (_suppressComboEvents)
 				return;
 			if (!(sender is ComboBox comboBox) || !(comboBox.SelectedItem is string path))
@@ -701,6 +756,11 @@ namespace KOTORModSync
 
 		private void OnCurrentComponentPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => OnCurrentComponentPropertyChanged(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			if (sender is ModComponent component && component == MainConfig.CurrentComponent)
 			{
 
@@ -1028,6 +1088,11 @@ namespace KOTORModSync
 
 		private void UpdateMenuVisibility()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(UpdateMenuVisibility, DispatcherPriority.Normal);
+				return;
+			}
 			Menu topMenu = this.FindControl<Menu>(name: "TopMenu");
 			if (topMenu is null)
 				return;
@@ -1053,11 +1118,21 @@ namespace KOTORModSync
 
 		private void RefreshSingleComponentVisuals(ModComponent component)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => RefreshSingleComponentVisuals(component), DispatcherPriority.Normal);
+				return;
+			}
 			ModListService.RefreshSingleComponentVisuals(ModListBox, component);
 		}
 
 		private void RefreshModListItems()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(RefreshModListItems, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				_modListService.RefreshModListItems(ModListBox, EditorMode, BuildContextMenuForComponent);
@@ -1411,7 +1486,7 @@ namespace KOTORModSync
 						// For folders, create a Copy instruction
 						if (targetComponent.Instructions.Count == 0)
 						{
-							instructionsGenerated = await GenerateInstructionsFromFolder(targetComponent, itemPath).ConfigureAwait(false);
+							instructionsGenerated = await GenerateInstructionsFromFolder(targetComponent, itemPath).ConfigureAwait(true);
 						}
 						else
 						{
@@ -1520,7 +1595,6 @@ namespace KOTORModSync
 				// Create Copy instruction
 				Instruction copyInstruction = new Instruction
 				{
-					Guid = Guid.NewGuid(),
 					Action = Instruction.ActionType.Copy,
 					Source = new List<string> { $"<<modDirectory>>/{relativePath}/*" },
 					Destination = destination,
@@ -1678,6 +1752,11 @@ namespace KOTORModSync
 		}
 		private void SearchText_PropertyChanged([NotNull] object sender, [NotNull] PropertyChangedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => SearchText_PropertyChanged(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (!string.Equals(e.PropertyName, nameof(SearchText), StringComparison.Ordinal))
@@ -1696,6 +1775,11 @@ namespace KOTORModSync
 		}
 		private void InitializeModListBox()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(InitializeModListBox, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (ModListBox is null)
@@ -1717,6 +1801,11 @@ namespace KOTORModSync
 		}
 		private void SetupKeyboardShortcuts()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(SetupKeyboardShortcuts, DispatcherPriority.Normal);
+				return;
+			}
 			if (ModListBox is null)
 				return;
 			ModListBox.KeyDown += (sender, e) =>
@@ -1926,6 +2015,11 @@ namespace KOTORModSync
 
 		private void BuildGlobalActionsMenu()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(BuildGlobalActionsMenu, DispatcherPriority.Normal);
+				return;
+			}
 			DropDownButton globalActionsButton = ModListSidebar?.GlobalActionsButton;
 			if (globalActionsButton?.Flyout is MenuFlyout globalActionsFlyout)
 				BuildMenuFlyoutItems(globalActionsFlyout);
@@ -1933,6 +2027,11 @@ namespace KOTORModSync
 
 		private void BuildMenuFlyoutItems(MenuFlyout menu)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => BuildMenuFlyoutItems(menu), DispatcherPriority.Normal);
+				return;
+			}
 			menu.Items.Clear();
 
 			_ = menu.Items.Add(new MenuItem
@@ -2029,6 +2128,11 @@ namespace KOTORModSync
 
 		private void SetupDragAndDrop()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(SetupDragAndDrop, DispatcherPriority.Normal);
+				return;
+			}
 			if (ModListBox is null)
 				return;
 
@@ -2106,6 +2210,11 @@ namespace KOTORModSync
 		private bool _suppressSelectAllCheckBoxEvents;
 		private void SelectAllCheckBox_IsCheckedChanged(object sender, RoutedEventArgs e)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => SelectAllCheckBox_IsCheckedChanged(sender, e), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (!(sender is CheckBox checkBox) || _suppressSelectAllCheckBoxEvents)
@@ -2128,6 +2237,11 @@ namespace KOTORModSync
 		}
 		private void FilterModList(string searchText)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => FilterModList(searchText), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (ModListBox is null)
@@ -2149,6 +2263,11 @@ namespace KOTORModSync
 		}
 		private void RefreshModList()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(RefreshModList, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				PopulateModList(MainConfig.AllComponents);
@@ -2160,6 +2279,11 @@ namespace KOTORModSync
 		}
 		private void RefreshModListVisuals()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(RefreshModListVisuals, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				ModListService.RefreshModListVisuals(ModListBox, UpdateStepProgress);
@@ -2172,6 +2296,11 @@ namespace KOTORModSync
 
 		private void RefreshAllTooltips()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(RefreshAllTooltips, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (ModListBox is null) return;
@@ -2191,6 +2320,11 @@ namespace KOTORModSync
 
 		private void RefreshComponentValidationState(ModComponent component)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => RefreshComponentValidationState(component), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (ModListBox is null || component is null)
@@ -2223,6 +2357,11 @@ namespace KOTORModSync
 		}
 		private void PopulateModList(List<ModComponent> components)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => PopulateModList(components), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				ModListService.PopulateModList(ModListBox, components, UpdateModCounts);
@@ -2239,6 +2378,11 @@ namespace KOTORModSync
 		{
 			try
 			{
+				if (!Dispatcher.UIThread.CheckAccess())
+				{
+					Dispatcher.UIThread.Post(UpdateModCounts, DispatcherPriority.Normal);
+					return;
+				}
 				_modListService.UpdateModCounts(
 					ModListSidebar?.ModCountTextBlock,
 					ModListSidebar?.SelectedCountTextBlock,
@@ -2287,6 +2431,11 @@ namespace KOTORModSync
 		}
 		private void FindProblemControls([CanBeNull] Control control)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => FindProblemControls(control), DispatcherPriority.Normal);
+				return;
+			}
 			if (!(control is ILogical visual))
 				throw new ArgumentNullException(nameof(control));
 			if (control is ComboBox || control is MenuItem)
@@ -2308,6 +2457,11 @@ namespace KOTORModSync
 
 		public void FindComboBoxesInWindow([NotNull] Window thisWindow)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => FindComboBoxesInWindow(thisWindow), DispatcherPriority.Normal);
+				return;
+			}
 			if (thisWindow is null)
 				throw new ArgumentNullException(nameof(thisWindow));
 			FindProblemControls(thisWindow);
@@ -2490,7 +2644,7 @@ namespace KOTORModSync
 						}
 
 						string detectedFormat = fileExtension ?? "unknown";
-						_telemetryService?.RecordEvent("file.loaded", new Dictionary<string, object>( StringComparer.OrdinalIgnoreCase )
+						_telemetryService?.RecordEvent("file.loaded", new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
 						{
 							["file_type"] = detectedFormat,
 							["duration_ms"] = (DateTime.UtcNow - startTime).TotalMilliseconds,
@@ -2661,7 +2815,7 @@ namespace KOTORModSync
 						_ = Logger.LogErrorAsync($"Directory not found: '{folder}', skipping...").ConfigureAwait(false);
 						continue;
 					}
-					await FilePermissionHelper.FixPermissionsAsync(thisDir).ConfigureAwait(false);
+					await FilePermissionHelper.FixPermissionsAsync(thisDir).ConfigureAwait(true);
 					await Logger.LogAsync($"Completed FixPathPermissions at '{thisDir.FullName}'").ConfigureAwait(false);
 				}
 			}
@@ -2694,7 +2848,7 @@ namespace KOTORModSync
 						_ = Logger.LogErrorAsync($"Directory not found: '{thisDir.FullName}', skipping...").ConfigureAwait(false);
 						continue;
 					}
-					numObjectsRenamed += await UIUtilities.FixIOSCaseSensitivity(thisDir).ConfigureAwait(false);
+					numObjectsRenamed += await UIUtilities.FixIOSCaseSensitivity(thisDir).ConfigureAwait(true);
 				}
 				await Logger.LogAsync($"Successfully renamed {numObjectsRenamed} files/folders.").ConfigureAwait(false);
 			}
@@ -3004,8 +3158,8 @@ namespace KOTORModSync
 		}
 
 		[UsedImplicitly]
-        [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private async void InstallModSingle_Click(
+		[SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private async void InstallModSingle_Click(
 			[CanBeNull] object sender,
 			[CanBeNull] RoutedEventArgs e)
 		{
@@ -3109,8 +3263,15 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void StartInstall_Click(
 			[CanBeNull] object sender,
-			[NotNull] RoutedEventArgs e)
+			[NotNull] RoutedEventArgs e,
+			[NotNull] CancellationToken cancellationToken = default)
 		{
+			if (cancellationToken.IsCancellationRequested)
+			{
+				Logger.LogVerbose("[StartInstall_Click] Cancellation requested");
+				return;
+			}
+
 			// Clear validation cache before running installation
 			ComponentValidationService.ClearValidationCache();
 			Logger.LogVerbose("[MainWindow] Cleared validation cache before installation");
@@ -3139,9 +3300,9 @@ namespace KOTORModSync
 					}
 
 					(bool success, string informationMessage) = await InstallationService.ValidateInstallationEnvironmentAsync(
-					MainConfigInstance,
-					async message => await ConfirmationDialog.ShowConfirmationDialogAsync(this, message).ConfigureAwait(true) == true
-				).ConfigureAwait(false);
+						MainConfigInstance,
+						async message => await ConfirmationDialog.ShowConfirmationDialogAsync(this, message).ConfigureAwait(true) == true
+					).ConfigureAwait(false);
 
 					if (!success)
 					{
@@ -3153,9 +3314,9 @@ namespace KOTORModSync
 					}
 
 					await Dispatcher.UIThread.InvokeAsync(async () =>
-				{
-					await StartInstallationProcess().ConfigureAwait(false);
-				}).ConfigureAwait(true);
+					{
+						await StartInstallationProcess().ConfigureAwait(true);
+					}).ConfigureAwait(true);
 				}
 				catch (Exception ex)
 				{
@@ -3164,12 +3325,17 @@ namespace KOTORModSync
 			}, _installSuggestCts.Token).ConfigureAwait(false);
 		}
 
-        [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private async Task StartInstallationProcess()
+		[SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private async Task StartInstallationProcess([NotNull] CancellationToken cancellationToken = default)
 		{
+			if (cancellationToken.IsCancellationRequested)
+			{
+				await Logger.LogVerboseAsync("[StartInstallationProcess] Cancellation requested").ConfigureAwait(false);
+				return;
+			}
+
 			try
 			{
-
 				UpdateStepProgress();
 				if (await ConfirmationDialog.ShowConfirmationDialogAsync(
 						this,
@@ -3186,6 +3352,7 @@ namespace KOTORModSync
 				}
 				if (await ConfirmationDialog.ShowConfirmationDialogAsync(this, confirmText: "Really install all mods?").ConfigureAwait(true) != true)
 					return;
+
 				var progressWindow = new ProgressWindow { ProgressBar = { Value = 0 }, Topmost = true };
 				DateTime installStartTime = DateTime.UtcNow;
 				int warningCount = 0;
@@ -3290,14 +3457,14 @@ namespace KOTORModSync
 									component.Name
 								);
 
-								await Task.Delay(millisecondsDelay: 100).ConfigureAwait(true);
+								await Task.Delay(millisecondsDelay: 100, _installSuggestCts.Token).ConfigureAwait(true);
 								await Dispatcher.UIThread.InvokeAsync(() => { });
-								await Task.Delay(millisecondsDelay: 50).ConfigureAwait(true);
+								await Task.Delay(millisecondsDelay: 50, _installSuggestCts.Token).ConfigureAwait(true);
 							}
 						).ConfigureAwait(true);
 
 						await Task.Yield();
-						await Task.Delay(millisecondsDelay: 200).ConfigureAwait(true);
+						await Task.Delay(millisecondsDelay: 200, _installSuggestCts.Token).ConfigureAwait(true);
 						if (!component.IsSelected)
 						{
 							await Logger.LogAsync($"Skipping install of '{component.Name}' (unchecked)").ConfigureAwait(false);
@@ -3307,7 +3474,7 @@ namespace KOTORModSync
 
 						if (component.WidescreenOnly && !string.IsNullOrWhiteSpace(MainConfig.WidescreenWarningContent))
 						{
-							bool shouldContinue = await ShowWidescreenNotificationAsync();
+							bool shouldContinue = await ShowWidescreenNotificationAsync().ConfigureAwait(true);
 							if (!shouldContinue)
 							{
 								await Logger.LogAsync(message: "Install cancelled by user at widescreen notification").ConfigureAwait(false);
@@ -3316,12 +3483,14 @@ namespace KOTORModSync
 							}
 						}
 
-						exitCode = await InstallationService.InstallSingleComponentAsync(
-							component,
-							MainConfig.AllComponents
-						).ConfigureAwait(false);
-						await Logger.LogAsync($"Install of '{component.Name}' finished with exit code {exitCode}").ConfigureAwait(false);
-						if (exitCode != 0)
+						exitCode = await InstallationService.InstallSingleComponentAsync(component,
+							MainConfig.AllComponents,
+							_installSuggestCts.Token
+						).ConfigureAwait(true);
+
+						await Logger.LogAsync($"Install of '{component.Name}' finished with exit code {UtilityHelper.GetEnumDescription(exitCode)}").ConfigureAwait(false);
+
+						if (exitCode != ModComponent.InstallExitCode.Success)
 						{
 							bool? confirm = await ConfirmationDialog.ShowConfirmationDialogAsync(
 								this,
@@ -3335,12 +3504,12 @@ namespace KOTORModSync
 								+ Environment.NewLine
 								+ $"Skip '{component.Name}' and install the next mod anyway? (NOT RECOMMENDED!)"
 							).ConfigureAwait(true);
-							if (confirm == true)
+							if (confirm is true)
 								continue;
-							await Logger.LogAsync(message: "Install cancelled").ConfigureAwait(false);
+							await Logger.LogAsync("Install cancelled").ConfigureAwait(false);
 							break;
 						}
-						await Logger.LogAsync($"Finished installed '{component.Name}'").ConfigureAwait(false);
+						await Logger.LogAsync($"Finished installing '{component.Name}'").ConfigureAwait(false);
 
 					}
 					if (exitCode != ModComponent.InstallExitCode.Success)
@@ -3349,13 +3518,13 @@ namespace KOTORModSync
 						this,
 						message: "Install Completed. Check the output window for information."
 					).ConfigureAwait(true);
-					await Logger.LogAsync(message: "Install completed.").ConfigureAwait(false);
+					await Logger.LogAsync("Install completed.").ConfigureAwait(false);
 
 					UpdateStepProgress();
 				}
 				catch (Exception)
 				{
-					await Logger.LogErrorAsync(message: "Terminating install due to unhandled exception:").ConfigureAwait(false);
+					await Logger.LogErrorAsync("Terminating install due to unhandled exception:").ConfigureAwait(false);
 					throw;
 				}
 				finally
@@ -3371,7 +3540,7 @@ namespace KOTORModSync
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex, customMessage: "Error in StartInstallationProcess").ConfigureAwait(false);
 			}
 		}
 
@@ -3392,21 +3561,20 @@ namespace KOTORModSync
 				_ = Logger.LogVerboseAsync("Install terminated, re-enabling the close button in the console window").ConfigureAwait(false);
 				ConsoleConfig.EnableCloseButton();
 			}
-			catch (Exception exception)
+			catch (Exception ex)
 			{
-				Logger.LogException(exception);
+				Logger.LogException(ex, customMessage: "Error in ProgressWindowClosed");
 			}
 		}
 
 		[UsedImplicitly]
-        [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private async void DocsButton_Click(
+		[SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private async void DocsButton_Click(
 			[NotNull] object sender,
 			[NotNull] RoutedEventArgs e)
 		{
 			try
 			{
-
 				if (MainConfig.AllComponents.Count == 0)
 				{
 					await InformationDialog.ShowInformationDialogAsync(
@@ -3453,7 +3621,7 @@ namespace KOTORModSync
 			}
 			catch (IOException ioEx)
 			{
-				await Logger.LogExceptionAsync(ioEx, customMessage: "IO error while saving documentation file").ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ioEx, customMessage: "Error in DocsButton_Click: IO error while saving documentation file").ConfigureAwait(false);
 				await InformationDialog.ShowInformationDialogAsync(
 					this,
 					message: "Failed to save documentation file. The file may be in use or the path may be invalid."
@@ -3464,7 +3632,7 @@ namespace KOTORModSync
 			}
 			catch (UnauthorizedAccessException uaEx)
 			{
-				await Logger.LogExceptionAsync(uaEx, customMessage: "Access denied while saving documentation").ConfigureAwait(false);
+				await Logger.LogExceptionAsync(uaEx, customMessage: "Error in DocsButton_Click: Access denied while saving documentation").ConfigureAwait(false);
 				await InformationDialog.ShowInformationDialogAsync(
 					this,
 					message: "Access denied while saving the documentation file. Please check file permissions."
@@ -3475,7 +3643,7 @@ namespace KOTORModSync
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex, customMessage: "Unexpected error generating and saving documentation").ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex, customMessage: "Error in DocsButton_Click: Unexpected error generating and saving documentation").ConfigureAwait(false);
 				await InformationDialog.ShowInformationDialogAsync(
 					this,
 					message: "An unexpected error occurred while generating and saving documentation."
@@ -3492,22 +3660,28 @@ namespace KOTORModSync
 			[NotNull] object sender,
 			[NotNull] SelectionChangedEventArgs e)
 		{
+			// Ensure we are on the UI thread before accessing Avalonia controls
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				await Dispatcher.UIThread.InvokeAsync(() => TabControl_SelectionChanged(sender, e));
+				return;
+			}
 			try
 			{
-				await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] START - IgnoreInternalTabChange={IgnoreInternalTabChange}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] START - IgnoreInternalTabChange={IgnoreInternalTabChange}").ConfigureAwait(true);
 				if (IgnoreInternalTabChange)
 				{
-					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Ignoring internal tab change, returning early").ConfigureAwait(false);
+					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Ignoring internal tab change, returning early").ConfigureAwait(true);
 					return;
 				}
 				try
 				{
 					if (!(sender is TabControl tabControl))
 					{
-						await Logger.LogErrorAsync(message: "[TabControl_SelectionChanged] Sender is not a TabControl control").ConfigureAwait(false);
+						await Logger.LogErrorAsync(message: "[TabControl_SelectionChanged] Sender is not a TabControl control").ConfigureAwait(true);
 						return;
 					}
-					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] TabControl found, SelectedIndex={tabControl.SelectedIndex}").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] TabControl found, SelectedIndex={tabControl.SelectedIndex}").ConfigureAwait(true);
 
 					// Declare attemptedTabSelection early to avoid use-before-declaration error
 					TabItem attemptedTabSelection = null;
@@ -3518,13 +3692,13 @@ namespace KOTORModSync
 
 					if (CurrentComponent is null)
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] CurrentComponent is null, tabs can't be used").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] CurrentComponent is null, tabs can't be used").ConfigureAwait(true);
 
 						// Check if user is trying to access Editor tab specifically
 						string attemptedTabName = GetControlNameFromHeader(attemptedTabSelection)?.ToLowerInvariant();
 						if (string.Equals(attemptedTabName, "editor", StringComparison.Ordinal))
 						{
-							await Logger.LogVerboseAsync("[TabControl_SelectionChanged] User attempted to access Editor tab without selecting a mod").ConfigureAwait(false);
+							await Logger.LogVerboseAsync("[TabControl_SelectionChanged] User attempted to access Editor tab without selecting a mod").ConfigureAwait(true);
 							await InformationDialog.ShowInformationDialogAsync(
 								this,
 								"Choose a mod in the left list before clicking the Editor tabs.",
@@ -3533,64 +3707,64 @@ namespace KOTORModSync
 						}
 
 						SetTabInternal(tabControl, InitialTab);
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Set to InitialTab").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Set to InitialTab").ConfigureAwait(true);
 						return;
 					}
-					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] CurrentComponent='{CurrentComponent.Name}' (GUID={CurrentComponent.Guid})").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] CurrentComponent='{CurrentComponent.Name}' (GUID={CurrentComponent.Guid})").ConfigureAwait(true);
 
 					if (e.RemovedItems.IsNullOrEmptyOrAllNull() || !(e.RemovedItems[0] is TabItem lastSelectedTabItem))
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Previous tab item could not be resolved").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Previous tab item could not be resolved").ConfigureAwait(true);
 						return;
 					}
-					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Previous tab: '{lastSelectedTabItem.Header}' (IsVisible={lastSelectedTabItem.IsVisible})").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Previous tab: '{lastSelectedTabItem.Header}' (IsVisible={lastSelectedTabItem.IsVisible})").ConfigureAwait(true);
 
 					if (attemptedTabSelection is null)
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Attempted tab item could not be resolved").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Attempted tab item could not be resolved").ConfigureAwait(true);
 						return;
 					}
-					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Target tab: '{attemptedTabSelection.Header}' (IsVisible={attemptedTabSelection.IsVisible})").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Target tab: '{attemptedTabSelection.Header}' (IsVisible={attemptedTabSelection.IsVisible})").ConfigureAwait(true);
 
 					if (MainConfig.AllComponents.IsNullOrEmptyCollection() || CurrentComponent is null)
 					{
-						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] No config loaded (ComponentCount={MainConfig.AllComponents.Count}), defaulting to initial tab").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] No config loaded (ComponentCount={MainConfig.AllComponents.Count}), defaulting to initial tab").ConfigureAwait(true);
 						SetTabInternal(tabControl, InitialTab);
 						return;
 					}
 					string tabName = GetControlNameFromHeader(attemptedTabSelection)?.ToLowerInvariant();
 					string lastTabName = GetControlNameFromHeader(lastSelectedTabItem)?.ToLowerInvariant();
-					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] TabNames: from='{lastTabName}' to='{tabName}'").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] TabNames: from='{lastTabName}' to='{tabName}'").ConfigureAwait(true);
 
 					if (string.Equals(tabName, lastTabName, StringComparison.Ordinal))
 					{
-						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Selected tab is already the current tab '{tabName}', returning").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Selected tab is already the current tab '{tabName}', returning").ConfigureAwait(true);
 						return;
 					}
-					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Preparing to swap tabs from '{lastTabName}' to '{tabName}'").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Preparing to swap tabs from '{lastTabName}' to '{tabName}'").ConfigureAwait(true);
 					bool shouldSwapTabs = true;
 					if (string.Equals(tabName, "summary", StringComparison.Ordinal))
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'summary', refreshing markdown content").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'summary', refreshing markdown content").ConfigureAwait(true);
 
 						// Refresh the markdown content in the SummaryTab
 						SummaryTabControl?.RefreshMarkdownContent();
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] SummaryTab markdown content refreshed").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] SummaryTab markdown content refreshed").ConfigureAwait(true);
 					}
 					else if (string.Equals(tabName, "raw", StringComparison.Ordinal))
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'raw', loading into RawTabControl").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Target is 'raw', loading into RawTabControl").ConfigureAwait(true);
 						await LoadIntoRawEditTextBoxAsync(CurrentComponent).ConfigureAwait(true);
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] LoadIntoRawEditTextBox completed").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] LoadIntoRawEditTextBox completed").ConfigureAwait(true);
 					}
 					else if (string.Equals(lastTabName, "raw", StringComparison.Ordinal))
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Source was 'raw', checking if changes should be saved").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Source was 'raw', checking if changes should be saved").ConfigureAwait(true);
 						shouldSwapTabs = await ShouldSaveChangesAsync().ConfigureAwait(true);
-						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] ShouldSaveChanges returned: {shouldSwapTabs}").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] ShouldSaveChanges returned: {shouldSwapTabs}").ConfigureAwait(true);
 						if (shouldSwapTabs)
 						{
-							await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Unloading raw editor").ConfigureAwait(false);
+							await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Unloading raw editor").ConfigureAwait(true);
 							// Clear text on UI thread
 							TextBox rawTextBox = RawTabControl.GetRawEditTextBox();
 							if (rawTextBox != null)
@@ -3599,29 +3773,29 @@ namespace KOTORModSync
 					}
 					else if (string.Equals(tabName, "editor", StringComparison.Ordinal))
 					{
-						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Target is 'editor', CurrentComponent='{CurrentComponent?.Name}', InstructionCount={CurrentComponent?.Instructions.Count}, OptionCount={CurrentComponent?.Options.Count}").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[TabControl_SelectionChanged] Target is 'editor', CurrentComponent='{CurrentComponent?.Name}', InstructionCount={CurrentComponent?.Instructions.Count}, OptionCount={CurrentComponent?.Options.Count}").ConfigureAwait(true);
 					}
 
 					if (!shouldSwapTabs)
 					{
-						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] shouldSwapTabs=false, reverting to previous tab").ConfigureAwait(false);
+						await Logger.LogVerboseAsync("[TabControl_SelectionChanged] shouldSwapTabs=false, reverting to previous tab").ConfigureAwait(true);
 						SetTabInternal(tabControl, lastSelectedTabItem);
 						return;
 					}
-					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Setting visibility for controls based on selected tab").ConfigureAwait(false);
+					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] Setting visibility for controls based on selected tab").ConfigureAwait(true);
 
 					// Note: RawTab format textboxes are managed internally by the RawTab control
 					// and should not have their visibility controlled by the main tab selection
-					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] COMPLETED SUCCESSFULLY").ConfigureAwait(false);
+					await Logger.LogVerboseAsync("[TabControl_SelectionChanged] COMPLETED SUCCESSFULLY").ConfigureAwait(true);
 				}
 				catch (Exception exception)
 				{
-					await Logger.LogExceptionAsync(exception, customMessage: "[TabControl_SelectionChanged] Inner exception").ConfigureAwait(false);
+					await Logger.LogExceptionAsync(exception, customMessage: "[TabControl_SelectionChanged] Inner exception").ConfigureAwait(true);
 				}
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex, customMessage: "[TabControl_SelectionChanged] Outer exception").ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex, customMessage: "[TabControl_SelectionChanged] Outer exception").ConfigureAwait(true);
 			}
 		}
 
@@ -3665,6 +3839,11 @@ namespace KOTORModSync
 		private static string GetControlNameFromHeader([CanBeNull] TabItem tabItem) => tabItem?.Header?.ToString();
 		private void SetTabInternal([NotNull] TabControl tabControl, TabItem tabItem)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => SetTabInternal(tabControl, tabItem), DispatcherPriority.Normal);
+				return;
+			}
 			if (tabControl is null)
 				throw new ArgumentNullException(nameof(tabControl));
 			IgnoreInternalTabChange = true;
@@ -3672,8 +3851,8 @@ namespace KOTORModSync
 			IgnoreInternalTabChange = false;
 		}
 
-        [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private async void LoadComponentDetails([NotNull] ModComponent selectedComponent)
+		[SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		private async void LoadComponentDetails([NotNull] ModComponent selectedComponent)
 		{
 			try
 			{
@@ -3739,13 +3918,18 @@ namespace KOTORModSync
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex, customMessage: "Error in LoadComponentDetails").ConfigureAwait(false);
 			}
 		}
 
-        [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        public void SetCurrentModComponent([CanBeNull] ModComponent c)
+		[SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+		public void SetCurrentModComponent([CanBeNull] ModComponent c)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => SetCurrentModComponent(c), DispatcherPriority.Normal);
+				return;
+			}
 			Logger.LogVerbose($"[SetCurrentComponent] START with component={(c is null ? "null" : $"'{c.Name}' (GUID={c.Guid})")}");
 
 			bool isNewComponent = c != null && c != CurrentComponent;
@@ -3781,12 +3965,12 @@ namespace KOTORModSync
 				{
 					_preResolveCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 					var cts = _preResolveCts;
-					Task.Run(async () =>
+					_ = Task.Run(async () =>
 					{
 						try
 						{
 							await Logger.LogVerboseAsync($"[SetCurrentComponent] Pre-resolving URLs for component '{c.Name}' in editor mode").ConfigureAwait(false);
-							await DownloadCacheService.PreResolveUrlsAsync(c, DownloadCacheService.DownloadManager, sequential: false, cts.Token);
+							await DownloadCacheService.PreResolveUrlsAsync(c, DownloadCacheService.DownloadManager, sequential: false, cts.Token).ConfigureAwait(false);
 							await Logger.LogVerboseAsync($"[SetCurrentComponent] Pre-resolution completed for '{c.Name}'").ConfigureAwait(false);
 						}
 						catch (OperationCanceledException)
@@ -3852,7 +4036,7 @@ namespace KOTORModSync
 			}
 			else
 			{
-				Logger.LogVerbose("[SetCurrentComponent] Not switching tabs");
+				Logger.LogWarning($"[SetCurrentComponent] Not switching tabs? InitialTab.IsSelected={InitialTab.IsSelected}, TabControl.SelectedIndex={TabControl.SelectedIndex}, GuiEditTabItem.IsSelected={GuiEditTabItem.IsSelected}, RawEditTabItem.IsSelected={RawEditTabItem.IsSelected}, isNewComponent={isNewComponent}");
 			}
 			Logger.LogVerbose("[SetCurrentComponent] COMPLETED");
 		}
@@ -4036,9 +4220,12 @@ namespace KOTORModSync
 		}
 
 		private async void SaveModFileAs_ClickWithFormat(
-			[CanBeNull] object sender,
-			[CanBeNull] RoutedEventArgs e, string format = "toml")
+			[CanBeNull] object sender = null,
+			[CanBeNull] RoutedEventArgs e = null,
+			[NotNull] string format = "toml")
 		{
+			if (format is null)
+				throw new ArgumentNullException(nameof(format));
 			try
 			{
 
@@ -4065,13 +4252,13 @@ namespace KOTORModSync
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex, customMessage: "Error in SaveModFileAs_ClickWithFormat").ConfigureAwait(false);
 			}
 		}
 
 		public void ComponentCheckboxChecked(
 			[NotNull] ModComponent component,
-			[NotNull] HashSet<ModComponent> visitedComponents,
+			[NotNull][ItemNotNull] HashSet<ModComponent> visitedComponents,
 			bool suppressErrors = false
 			)
 		{
@@ -4080,7 +4267,7 @@ namespace KOTORModSync
 
 		public void ComponentCheckboxUnchecked(
 			[NotNull] ModComponent component,
-			[CanBeNull] HashSet<ModComponent> visitedComponents,
+			[CanBeNull][ItemNotNull] HashSet<ModComponent> visitedComponents,
 			bool suppressErrors = false)
 		{
 			_componentSelectionService.HandleComponentUnchecked(component, visitedComponents ?? new HashSet<ModComponent>(), suppressErrors, RefreshSingleComponentVisuals);
@@ -4091,19 +4278,25 @@ namespace KOTORModSync
 		[SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private async void OnCheckBoxChanged(object sender, RoutedEventArgs e)
 		{
+			// Ensure UI thread before any Avalonia control access
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				await Dispatcher.UIThread.InvokeAsync(() => OnCheckBoxChanged(sender, e));
+				return;
+			}
 			try
 			{
-				await Logger.LogVerboseAsync($"[OnCheckBoxChanged] START - sender type: {sender?.GetType().Name ?? "null"}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[OnCheckBoxChanged] START - sender type: {sender?.GetType().Name ?? "null"}").ConfigureAwait(true);
 
 				if (_suppressComponentCheckboxEvents)
 				{
-					await Logger.LogVerboseAsync("[OnCheckBoxChanged] Suppressing component checkbox events, returning").ConfigureAwait(false);
+					await Logger.LogVerboseAsync("[OnCheckBoxChanged] Suppressing component checkbox events, returning").ConfigureAwait(true);
 					return;
 				}
 
 				if (!(sender is CheckBox checkBox))
 				{
-					await Logger.LogVerboseAsync("[OnCheckBoxChanged] Sender is not a CheckBox, returning").ConfigureAwait(false);
+					await Logger.LogVerboseAsync("[OnCheckBoxChanged] Sender is not a CheckBox, returning").ConfigureAwait(true);
 					return;
 				}
 
@@ -4114,13 +4307,13 @@ namespace KOTORModSync
 					visualPath.Add($"{current.GetType().Name}(Name='{current.Name}')");
 					current = current.Parent;
 				}
-				await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Visual tree path: {string.Join(" -> ", visualPath)}").ConfigureAwait(false);
-				await Logger.LogVerboseAsync($"[OnCheckBoxChanged] CheckBox.Tag type: {checkBox.Tag?.GetType().Name ?? "null"}").ConfigureAwait(false);
+				await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Visual tree path: {string.Join(" -> ", visualPath)}").ConfigureAwait(true);
+				await Logger.LogVerboseAsync($"[OnCheckBoxChanged] CheckBox.Tag type: {checkBox.Tag?.GetType().Name ?? "null"}").ConfigureAwait(true);
 
 				// Check for Option FIRST since both Option and ModComponent might be in the visual tree
 				if (checkBox.Tag is Option thisOption)
 				{
-					await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Option: '{thisOption.Name}' (GUID={thisOption.Guid}), IsChecked={checkBox.IsChecked}").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Option: '{thisOption.Name}' (GUID={thisOption.Guid}), IsChecked={checkBox.IsChecked}").ConfigureAwait(true);
 
 					ModComponent parentComponent = MainConfig.AllComponents.Find(c => c.Options.Contains(thisOption));
 
@@ -4132,7 +4325,7 @@ namespace KOTORModSync
 							// 1. Auto-check parent component if not selected
 							// 2. Handle dependencies/restrictions via HandleComponentChecked
 							// 3. Auto-select first option if needed
-							await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Calling HandleOptionChecked for option '{thisOption.Name}'").ConfigureAwait(false);
+							await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Calling HandleOptionChecked for option '{thisOption.Name}'").ConfigureAwait(true);
 							_componentSelectionService.HandleOptionChecked(thisOption, parentComponent, RefreshSingleComponentVisuals);
 						}
 						else if (checkBox.IsChecked == false)
@@ -4140,7 +4333,7 @@ namespace KOTORModSync
 							// HandleOptionUnchecked will:
 							// 1. Auto-uncheck parent component if all options are unchecked
 							// 2. Handle cascading dependencies
-							await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Calling HandleOptionUnchecked for option '{thisOption.Name}'").ConfigureAwait(false);
+							await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Calling HandleOptionUnchecked for option '{thisOption.Name}'").ConfigureAwait(true);
 							_componentSelectionService.HandleOptionUnchecked(thisOption, parentComponent, RefreshSingleComponentVisuals);
 						}
 
@@ -4149,11 +4342,11 @@ namespace KOTORModSync
 						ResetDownloadStatusDisplay();
 					}
 
-					await Logger.LogVerboseAsync("[OnCheckBoxChanged] COMPLETED (Option)").ConfigureAwait(false);
+					await Logger.LogVerboseAsync("[OnCheckBoxChanged] COMPLETED (Option)").ConfigureAwait(true);
 				}
 				else if (checkBox.Tag is ModComponent thisComponent)
 				{
-					await Logger.LogVerboseAsync($"[OnCheckBoxChanged] ModComponent: '{thisComponent.Name}' (GUID={thisComponent.Guid}), IsChecked={checkBox.IsChecked}").ConfigureAwait(false);
+					await Logger.LogVerboseAsync($"[OnCheckBoxChanged] ModComponent: '{thisComponent.Name}' (GUID={thisComponent.Guid}), IsChecked={checkBox.IsChecked}").ConfigureAwait(true);
 					if (checkBox.IsChecked == true)
 					{
 						// Check if component is selectable (Aspyr exclusivity check)
@@ -4164,7 +4357,7 @@ namespace KOTORModSync
 							checkBox.IsChecked = false;
 							_suppressComponentCheckboxEvents = false;
 
-							await Logger.LogWarningAsync($"[OnCheckBoxChanged] Component '{thisComponent.Name}' is Aspyr-exclusive but game is not Aspyr version").ConfigureAwait(false);
+							await Logger.LogWarningAsync($"[OnCheckBoxChanged] Component '{thisComponent.Name}' is Aspyr-exclusive but game is not Aspyr version").ConfigureAwait(true);
 							await InformationDialog.ShowInformationDialogAsync(
 								this,
 								title: "Aspyr Version Required",
@@ -4173,7 +4366,7 @@ namespace KOTORModSync
 							return;
 						}
 
-						await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Checking component '{thisComponent.Name}'").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Checking component '{thisComponent.Name}'").ConfigureAwait(true);
 						// ComponentCheckboxChecked calls HandleComponentChecked which will:
 						// 1. Handle dependencies/restrictions
 						// 2. Auto-select first option if none are selected (lines 84-100 in service)
@@ -4181,7 +4374,7 @@ namespace KOTORModSync
 					}
 					else if (checkBox.IsChecked == false)
 					{
-						await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Unchecking component '{thisComponent.Name}'").ConfigureAwait(false);
+						await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Unchecking component '{thisComponent.Name}'").ConfigureAwait(true);
 						ComponentCheckboxUnchecked(thisComponent, new HashSet<ModComponent>());
 
 						// When unchecking a component, also uncheck all its options
@@ -4194,7 +4387,7 @@ namespace KOTORModSync
 								{
 									if (option.IsSelected)
 									{
-										await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Unchecking option '{option.Name}' because parent component was unchecked").ConfigureAwait(false);
+										await Logger.LogVerboseAsync($"[OnCheckBoxChanged] Unchecking option '{option.Name}' because parent component was unchecked").ConfigureAwait(true);
 										option.IsSelected = false;
 									}
 								}
@@ -4363,7 +4556,7 @@ namespace KOTORModSync
 				{
 					await Logger.LogVerboseAsync("[AddNewInstruction_Click] Tag is Instruction, getting parent component").ConfigureAwait(false);
 					ModComponent parentComponent = thisInstruction.GetParentComponent();
-					await Logger.LogVerboseAsync($"[AddNewInstruction_Click] Parent component: '{parentComponent?.Name}'").ConfigureAwait(false)	;
+					await Logger.LogVerboseAsync($"[AddNewInstruction_Click] Parent component: '{parentComponent?.Name}'").ConfigureAwait(false);
 					index = parentComponent?.Instructions.IndexOf(thisInstruction) ?? throw new NullReferenceException($"Could not get index of instruction '{thisInstruction.Action}' in null parentComponent'");
 					await Logger.LogVerboseAsync($"[AddNewInstruction_Click] Creating instruction at index {index}").ConfigureAwait(false);
 					parentComponent.CreateInstruction(index);
@@ -4514,13 +4707,13 @@ namespace KOTORModSync
 					if (useModLinks == true)
 					{
 						await Logger.LogVerboseAsync("[AutoGenerateInstructions_Click] Calling GenerateInstructionsFromModLinks").ConfigureAwait(false);
-						await GenerateInstructionsFromModLinks().ConfigureAwait(true);
+						await GenerateInstructionsFromModLinks().ConfigureAwait(false);
 						await Logger.LogVerboseAsync("[AutoGenerateInstructions_Click] GenerateInstructionsFromModLinks completed").ConfigureAwait(false);
 					}
 					else
 					{
 						await Logger.LogVerboseAsync("[AutoGenerateInstructions_Click] Calling GenerateInstructionsFromArchive").ConfigureAwait(false);
-						await GenerateInstructionsFromArchive();
+						await GenerateInstructionsFromArchive().ConfigureAwait(false);
 						await Logger.LogVerboseAsync("[AutoGenerateInstructions_Click] GenerateInstructionsFromArchive completed").ConfigureAwait(false);
 					}
 				}
@@ -4565,10 +4758,16 @@ namespace KOTORModSync
 		[UsedImplicitly]
 		private void AutoGenerateAllComponents_Click(object sender, RoutedEventArgs e) => _ = AutoGenerateAllComponentsAsync();
 
-		private async Task AutoGenerateAllComponentsAsync()
+		private async Task AutoGenerateAllComponentsAsync([NotNull] CancellationToken cancellationToken = default)
 		{
 			try
 			{
+				if (cancellationToken.IsCancellationRequested)
+				{
+					await Logger.LogVerboseAsync("[AutoGenerateAllComponents_Click] Cancellation requested").ConfigureAwait(false);
+					return;
+				}
+
 				await Logger.LogVerboseAsync("[AutoGenerateAllComponents_Click] START").ConfigureAwait(false);
 
 				// Get all components that don't have instructions yet
@@ -4643,7 +4842,7 @@ namespace KOTORModSync
 						}
 
 						// Update UI to show progress
-						await Task.Delay(100).ConfigureAwait(true); // Small delay to allow UI updates
+						await Task.Delay(100, cancellationToken).ConfigureAwait(true); // Small delay to allow UI updates
 					}
 
 					results.SuccessfullyGenerated = results.ComponentResults.Count(r => r.Success);
@@ -4745,7 +4944,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				await Logger.LogVerboseAsync("[RemoveAllDependencies_Click] START");
+				await Logger.LogVerboseAsync("[RemoveAllDependencies_Click] START").ConfigureAwait(false);
 
 				var allComponents = MainConfig.AllComponents.ToList();
 				if (allComponents.Count == 0)
@@ -4759,7 +4958,7 @@ namespace KOTORModSync
 				// Show confirmation dialog
 				bool? confirmed = await ConfirmationDialog.ShowConfirmationDialogAsync(
 					this,
-					(string)($"This will remove all InstallBefore/InstallAfter dependencies from all {allComponents.Count} components.\n\n" +
+					($"This will remove all InstallBefore/InstallAfter dependencies from all {allComponents.Count} components.\n\n" +
 					"This action cannot be undone.\n\n" +
 					"Would you like to proceed?"),
 					"Yes, Remove All Dependencies",
@@ -4860,7 +5059,7 @@ namespace KOTORModSync
 				await Logger.LogVerboseAsync("[GenerateInstructionsFromModLinks] CurrentComponent is null").ConfigureAwait(false);
 				return;
 			}
-			int result = await _instructionGenerationService.GenerateInstructionsFromModLinksAsync(CurrentComponent).ConfigureAwait(false);
+			int result = await _instructionGenerationService.GenerateInstructionsFromModLinksAsync(CurrentComponent).ConfigureAwait(true);
 			if (result > 0)
 				LoadComponentDetails(CurrentComponent);
 		}
@@ -4871,7 +5070,7 @@ namespace KOTORModSync
 				await Logger.LogVerboseAsync("[GenerateInstructionsFromArchive] CurrentComponent is null").ConfigureAwait(false);
 				return;
 			}
-			bool success = await _instructionGenerationService.GenerateInstructionsFromArchiveAsync(CurrentComponent, () => _dialogService.ShowFileDialogAsync(false, false, null, "Select the mod archive to analyze for auto-generation")).ConfigureAwait(false);
+			bool success = await _instructionGenerationService.GenerateInstructionsFromArchiveAsync(CurrentComponent, () => _dialogService.ShowFileDialogAsync(false, false, null, "Select the mod archive to analyze for auto-generation")).ConfigureAwait(true);
 			if (success)
 				LoadComponentDetails(CurrentComponent);
 		}
@@ -4947,7 +5146,7 @@ namespace KOTORModSync
 			{
 				var settingsDialog = new SettingsDialog();
 				settingsDialog.InitializeFromMainWindow(this);
-				bool result = await settingsDialog.ShowDialog<bool>(this);
+				bool result = await settingsDialog.ShowDialog<bool>(this).ConfigureAwait(true);
 				if (!result)
 					return;
 
@@ -4961,7 +5160,7 @@ namespace KOTORModSync
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex, customMessage: "Error in OpenSettings_Click").ConfigureAwait(false);
 			}
 		}
 
@@ -4977,16 +5176,16 @@ namespace KOTORModSync
 						"Please set a KOTOR installation directory before managing checkpoints.",
 						"OK"
 					);
-					await dialog.ShowDialog(this);
+					await dialog.ShowDialog(this).ConfigureAwait(true);
 					return;
 				}
 
 				var checkpointDialog = new Dialogs.CheckpointManagementDialog(MainConfig.DestinationPath.FullName);
-				await checkpointDialog.ShowDialog(this);
+				await checkpointDialog.ShowDialog(this).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
-				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(ex, customMessage: "Error in OpenCheckpointManagement_Click").ConfigureAwait(false);
 			}
 		}
 
@@ -5022,11 +5221,11 @@ namespace KOTORModSync
 				string stderr;
 				if (usePythonVersion)
 				{
-					(exitCode, stdout, stderr) = await InstallationService.RunHolopatcherPyAsync(holopatcherPath, "").ConfigureAwait(false);
+					(exitCode, stdout, stderr) = await InstallationService.RunHolopatcherPyAsync(holopatcherPath, "").ConfigureAwait(true);
 				}
 				else
 				{
-					(exitCode, stdout, stderr) = await PlatformAgnosticMethods.ExecuteProcessAsync(holopatcherPath, "").ConfigureAwait(false);
+					(exitCode, stdout, stderr) = await PlatformAgnosticMethods.ExecuteProcessAsync(holopatcherPath, "").ConfigureAwait(true);
 				}
 
 				if (exitCode == 0)
@@ -5176,7 +5375,7 @@ namespace KOTORModSync
 		{
 			try
 			{
-				await Logger.LogVerboseAsync($"[AddNewOption_Click] START - CurrentComponent={(CurrentComponent is null ? "null" : $"'{CurrentComponent.Name}'")}");
+				await Logger.LogVerboseAsync($"[AddNewOption_Click] START - CurrentComponent={(CurrentComponent is null ? "null" : $"'{CurrentComponent.Name}'")}").ConfigureAwait(false);
 				if (CurrentComponent is null)
 				{
 					await Logger.LogVerboseAsync("[AddNewOption_Click] CurrentComponent is null, showing dialog").ConfigureAwait(false);
@@ -5193,7 +5392,7 @@ namespace KOTORModSync
 				if (thisOption is null && thisComponent is null)
 				{
 					await Logger.LogErrorAsync("[AddNewOption_Click] Cannot find option or component instance from button tag").ConfigureAwait(false);
-					throw new NullReferenceException("Cannot find option instance from button.");
+					throw new InvalidOperationException("Cannot find option instance from button.");
 				}
 				int index;
 				if (thisOption is null)
@@ -5271,7 +5470,7 @@ namespace KOTORModSync
 			}
 			catch (Exception exception)
 			{
-				await Logger.LogExceptionAsync(exception).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(exception, customMessage: "Error in MoveOptionUp_Click").ConfigureAwait(false);
 			}
 		}
 
@@ -5291,13 +5490,13 @@ namespace KOTORModSync
 				var thisOption = (Option)((Button)sender).Tag;
 				int index = CurrentComponent.Options.IndexOf(thisOption);
 				if (thisOption is null)
-					throw new NullReferenceException($"Could not get option instance from button's tag: {((Button)sender).Content}");
+					throw new InvalidOperationException($"Could not get option instance from button's tag: {((Button)sender).Content}");
 				InstructionManagementService.MoveOption(CurrentComponent, thisOption, index + 1);
 				LoadComponentDetails(CurrentComponent);
 			}
 			catch (Exception exception)
 			{
-				await Logger.LogExceptionAsync(exception).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(exception, customMessage: "Error in MoveOptionDown_Click").ConfigureAwait(false);
 			}
 		}
 		private async void CopyTextToClipboard_Click(object sender, RoutedEventArgs e)
@@ -5305,12 +5504,12 @@ namespace KOTORModSync
 			try
 			{
 				if (Clipboard is null)
-					throw new NullReferenceException(nameof(Clipboard));
+					throw new InvalidOperationException(nameof(Clipboard));
 				await Clipboard.SetTextAsync((string)((MenuItem)sender).DataContext).ConfigureAwait(true);
 			}
 			catch (Exception exception)
 			{
-				await Logger.LogExceptionAsync(exception).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(exception, customMessage: "Error in CopyTextToClipboard_Click").ConfigureAwait(false);
 			}
 		}
 
@@ -5328,7 +5527,7 @@ namespace KOTORModSync
 			}
 			catch (Exception exception)
 			{
-				Logger.LogException(exception);
+				Logger.LogException(exception, customMessage: "Error in HomeButton_Click");
 			}
 		}
 		[UsedImplicitly]
@@ -5342,7 +5541,7 @@ namespace KOTORModSync
 			}
 			catch (Exception exception)
 			{
-				await Logger.LogExceptionAsync(exception).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(exception, customMessage: "Error in Step1Button_Click").ConfigureAwait(false);
 			}
 		}
 		private async void Step2Button_Click(object sender, RoutedEventArgs e)
@@ -5355,7 +5554,7 @@ namespace KOTORModSync
 			}
 			catch (Exception exception)
 			{
-				await Logger.LogExceptionAsync(exception).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(exception, customMessage: "Error in Step2Button_Click").ConfigureAwait(false);
 			}
 		}
 		private async void GettingStartedValidateButton_Click(object sender, RoutedEventArgs e)
@@ -5369,7 +5568,7 @@ namespace KOTORModSync
 			}
 			catch (Exception exception)
 			{
-				await Logger.LogExceptionAsync(exception).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(exception, customMessage: "Error in GettingStartedValidateButton_Click").ConfigureAwait(false);
 			}
 		}
 		private async void InstallButton_Click(object sender, RoutedEventArgs e)
@@ -5381,7 +5580,7 @@ namespace KOTORModSync
 			}
 			catch (Exception exception)
 			{
-				await Logger.LogExceptionAsync(exception).ConfigureAwait(false);
+				await Logger.LogExceptionAsync(exception, customMessage: "Error in InstallButton_Click").ConfigureAwait(false);
 			}
 		}
 
@@ -5403,7 +5602,7 @@ namespace KOTORModSync
 		private void GettingStartedTab_StopDownloadsRequested(object sender, RoutedEventArgs e) => StopDownloadsButton_Click(sender, e);
 		private void GettingStartedTab_ValidateRequested(object sender, RoutedEventArgs e) => GettingStartedValidateButton_Click(sender, e);
 
-		private async Task ShowSetDirectoriesDialog()
+		private async Task ShowSetDirectoriesDialog([NotNull] CancellationToken cancellationToken = default)
 		{
 
 			Menu topMenu = this.FindControl<Menu>(name: "TopMenu");
@@ -5412,7 +5611,7 @@ namespace KOTORModSync
 				if (fileMenu.Items.Count > 1 && fileMenu.Items[1] is MenuItem setDirItem)
 				{
 
-					await Task.Delay(millisecondsDelay: 100).ConfigureAwait(true);
+					await Task.Delay(millisecondsDelay: 100, cancellationToken).ConfigureAwait(true);
 					SetDirectories_Click(setDirItem, new RoutedEventArgs());
 				}
 			}
@@ -5431,24 +5630,33 @@ namespace KOTORModSync
 				}
 			}
 		}
-		private async Task RunValidation()
+		private async Task RunValidation([NotNull] CancellationToken cancellationToken = default)
 		{
 
-			await Task.Delay(millisecondsDelay: 100).ConfigureAwait(true);
+			if (cancellationToken.IsCancellationRequested)
+			{
+				await Logger.LogVerboseAsync("[RunValidation] Cancellation requested").ConfigureAwait(false);
+				return;
+			}
+
+			await Task.Delay(millisecondsDelay: 100, cancellationToken).ConfigureAwait(true);
 			ValidateButton_Click(sender: null, new RoutedEventArgs());
 		}
-		private async Task StartInstallation()
+		private async Task StartInstallation([NotNull] CancellationToken cancellationToken = default)
 		{
 
-			await Task.Delay(millisecondsDelay: 100).ConfigureAwait(true);
+			await Task.Delay(millisecondsDelay: 100, cancellationToken).ConfigureAwait(true);
 			StartInstall_Click(sender: null, new RoutedEventArgs());
 		}
-
-		private static bool IsStep1Complete() => ValidationService.IsStep1Complete();
 		private void UpdateStepProgress()
 		{
 			try
 			{
+				if (!Dispatcher.UIThread.CheckAccess())
+				{
+					Dispatcher.UIThread.Post(UpdateStepProgress, DispatcherPriority.Normal);
+					return;
+				}
 				// Check if the control is loaded yet
 				if (GettingStartedTabControl is null)
 					return;
@@ -5619,11 +5827,11 @@ namespace KOTORModSync
 							// Check if component references this file in instructions
 							if (component.Instructions != null)
 							{
-								foreach (var instruction in component.Instructions)
+								foreach (Instruction instruction in component.Instructions)
 								{
 									if (instruction.Source != null)
 									{
-										foreach (var source in instruction.Source)
+										foreach (string source in instruction.Source)
 										{
 											if (source.Contains(fileName))
 											{
@@ -5647,16 +5855,16 @@ namespace KOTORModSync
 							// Check if component's options reference this file
 							if (!componentAffected && component.Options != null)
 							{
-								foreach (var option in component.Options)
+								foreach (Option option in component.Options)
 								{
 									// Check option's instructions
 									if (option.Instructions != null)
 									{
-										foreach (var instruction in option.Instructions)
+										foreach (Instruction instruction in option.Instructions)
 										{
 											if (instruction.Source != null)
 											{
-												foreach (var source in instruction.Source)
+												foreach (string source in instruction.Source)
 												{
 													if (source.Contains(fileName))
 													{
@@ -5712,9 +5920,7 @@ namespace KOTORModSync
 								bool isCached = DownloadCacheService.IsCached(url);
 								if (isCached)
 								{
-									string cachedArchive = null;
-									if (DownloadCacheService.TryGetEntry(url, out DownloadCacheEntry entry))
-										cachedArchive = entry.FileName;
+									List<string> cachedArchive = Core.Services.DownloadCacheService.GetFileNames(url);
 									await Logger.LogVerboseAsync($"[FileValidation]   URL: {url} - CACHED (Archive: {cachedArchive})").ConfigureAwait(false);
 								}
 								else
@@ -5780,6 +5986,11 @@ namespace KOTORModSync
 		{
 			try
 			{
+				if (!Dispatcher.UIThread.CheckAccess())
+				{
+					Dispatcher.UIThread.Post(ResetDownloadStatusDisplay, DispatcherPriority.Normal);
+					return;
+				}
 				TextBlock statusText = GettingStartedTabControl.FindControl<TextBlock>("DownloadStatusText");
 				if (statusText != null)
 				{
@@ -5794,18 +6005,6 @@ namespace KOTORModSync
 			}
 		}
 
-		private static bool ValidateComponentFilesExist(ModComponent component)
-		{
-			try
-			{
-				return ComponentValidationService.ValidateComponentFilesExistAsync(component).GetAwaiter().GetResult();
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, $"Error in synchronous validation for component '{component?.Name}'");
-				return false;
-			}
-		}
 		private async void ScrapeDownloadsButton_Click(object sender, RoutedEventArgs e)
 		{
 			await Logger.LogVerboseAsync("[ScrapeDownloadsButton_Click] Starting download session").ConfigureAwait(false);
@@ -5945,14 +6144,14 @@ namespace KOTORModSync
 			}
 			catch (Exception ex)
 			{
-				Logger.LogException(ex, "Failed to open mod workspace");
+				Logger.LogException(ex, "Error in OpenModDirectoryButton_Click: Failed to open mod workspace");
 			}
 		}
 
-		private static async Task TryAutoGenerateInstructionsForComponents(List<ModComponent> components)
+		private static async Task TryAutoGenerateInstructionsForComponents([NotNull][ItemNotNull] List<ModComponent> components)
 		{
 			await Logger.LogVerboseAsync("[TryAutoGenerateInstructionsForComponents] Starting auto-generation").ConfigureAwait(false);
-			await ComponentProcessingService.TryAutoGenerateInstructionsForComponentsAsync(components).ConfigureAwait(false);
+			await ComponentProcessingService.TryAutoGenerateInstructionsForComponentsAsync(components).ConfigureAwait(true);
 		}
 
 		#region Selection Methods
@@ -6028,10 +6227,10 @@ namespace KOTORModSync
 			_filterUiService.InitializeFilters(components, ModListSidebar?.TierSelectionComboBox, ModListSidebar?.CategorySelectionItemsControl);
 		}
 		private void CategoryItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            // Method unintentionally left empty.
-        }
-        private void SelectByTier_Click(object sender, RoutedEventArgs e)
+		{
+			// Method unintentionally left empty.
+		}
+		private void SelectByTier_Click(object sender, RoutedEventArgs e)
 		{
 			var selectedTier = ModListSidebar?.TierSelectionComboBox?.SelectedItem as TierFilterItem;
 			_filterUiService.SelectByTier(selectedTier, (c, visited) => ComponentCheckboxChecked(c, visited), () =>
@@ -6054,9 +6253,9 @@ namespace KOTORModSync
 				UpdateStepProgress();
 			});
 		}
-		private void EditorTab_ExpandAllSectionsRequested(object sender, RoutedEventArgs e) { }
-		private void EditorTab_CollapseAllSectionsRequested(object sender, RoutedEventArgs e) { }
-		private void EditorTab_AutoGenerateInstructionsRequested(object sender, RoutedEventArgs e) => AutoGenerateInstructions_Click(sender, e);
+		private void EditorTab_ExpandAllSectionsRequested(object sender, RoutedEventArgs e) { throw new NotSupportedException(); }
+		private void EditorTab_CollapseAllSectionsRequested(object sender, RoutedEventArgs e) { throw new NotSupportedException(); }
+        private void EditorTab_AutoGenerateInstructionsRequested(object sender, RoutedEventArgs e) => AutoGenerateInstructions_Click(sender, e);
 		private void EditorTab_AddNewInstructionRequested(object sender, RoutedEventArgs e) => AddNewInstruction_Click(sender, e);
 		private void EditorTab_DeleteInstructionRequested(object sender, RoutedEventArgs e) => DeleteInstruction_Click(sender, e);
 		private void EditorTab_BrowseDestinationRequested(object sender, RoutedEventArgs e) => BrowseDestination_Click(sender, e);
@@ -6069,6 +6268,39 @@ namespace KOTORModSync
 		private void EditorTab_MoveOptionUpRequested(object sender, RoutedEventArgs e) => MoveOptionUp_Click(sender, e);
 		private void EditorTab_MoveOptionDownRequested(object sender, RoutedEventArgs e) => MoveOptionDown_Click(sender, e);
 
+		private void RawTab_ApplyEditorChangesRequested(object sender, RoutedEventArgs e) => RawTabApply_Click(sender, e);
+		private void RawTab_GenerateGuidRequested(object sender, RoutedEventArgs e) => GenerateGuidButton_Click(sender, e);
+
+		private void SummaryTab_OpenLinkRequested(object sender, TappedEventArgs e) => OpenLink_Click(sender, e);
+		private void SummaryTab_CopyTextToClipboardRequested(object sender, RoutedEventArgs e) => CopyTextToClipboard_Click(sender, e);
+		private void SummaryTab_SummaryOptionPointerPressedRequested(object sender, PointerPressedEventArgs e) => SummaryOptionBorder_PointerPressed(sender, e);
+		private void SummaryTab_CheckBoxChangedRequested(object sender, RoutedEventArgs e) => OnCheckBoxChanged(sender, e);
+		private void SummaryTab_JumpToInstructionRequested(object sender, RoutedEventArgs e) => JumpToInstruction_Click(sender, e);
+
+		[UsedImplicitly]
+		private async void JumpToCurrentStep_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await Dispatcher.UIThread.InvokeAsync(async () =>
+				{
+					ScrollViewer scrollViewer = GettingStartedTabControl.FindControl<ScrollViewer>("PART_ScrollViewer");
+					if (scrollViewer is null)
+						scrollViewer = GettingStartedTabControl.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+
+					if (scrollViewer is null)
+						return;
+
+					await _stepNavigationService.JumpToCurrentStepAsync(scrollViewer, name => GettingStartedTabControl.FindControl<Border>(name)).ConfigureAwait(true);
+				}).ConfigureAwait(true);
+			}
+			catch (Exception ex)
+			{
+				await Logger.LogExceptionAsync(ex, customMessage: "[JumpToCurrentStep_Click] Exception occurred").ConfigureAwait(false);
+			}
+		}
+
+		[UsedImplicitly]
 		private async void EditorTab_JumpToBlockingInstructionRequested(
 			object sender,
 			Core.Services.Validation.PathValidationResult e)
@@ -6117,38 +6349,6 @@ namespace KOTORModSync
 			catch (Exception ex)
 			{
 				await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
-			}
-		}
-
-		private void RawTab_ApplyEditorChangesRequested(object sender, RoutedEventArgs e) => RawTabApply_Click(sender, e);
-		private void RawTab_GenerateGuidRequested(object sender, RoutedEventArgs e) => GenerateGuidButton_Click(sender, e);
-
-		private void SummaryTab_OpenLinkRequested(object sender, TappedEventArgs e) => OpenLink_Click(sender, e);
-		private void SummaryTab_CopyTextToClipboardRequested(object sender, RoutedEventArgs e) => CopyTextToClipboard_Click(sender, e);
-		private void SummaryTab_SummaryOptionPointerPressedRequested(object sender, PointerPressedEventArgs e) => SummaryOptionBorder_PointerPressed(sender, e);
-		private void SummaryTab_CheckBoxChangedRequested(object sender, RoutedEventArgs e) => OnCheckBoxChanged(sender, e);
-		private void SummaryTab_JumpToInstructionRequested(object sender, RoutedEventArgs e) => JumpToInstruction_Click(sender, e);
-
-		[UsedImplicitly]
-		private async void JumpToCurrentStep_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-				await Dispatcher.UIThread.InvokeAsync(async () =>
-				{
-					ScrollViewer scrollViewer = GettingStartedTabControl.FindControl<ScrollViewer>("PART_ScrollViewer");
-					if (scrollViewer is null)
-						scrollViewer = GettingStartedTabControl.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
-
-					if (scrollViewer is null)
-						return;
-
-					await _stepNavigationService.JumpToCurrentStepAsync(scrollViewer, name => GettingStartedTabControl.FindControl<Border>(name));
-				}).ConfigureAwait(true);
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync(ex, customMessage: "[JumpToCurrentStep_Click] Exception occurred").ConfigureAwait(false);
 			}
 		}
 		#region Validation Results Display
@@ -6313,7 +6513,7 @@ namespace KOTORModSync
 					control =>
 					{
 						if (control.DataContext is Instruction instruction &&
-							   instruction.Guid == targetInstruction.Guid)
+							   ReferenceEquals(instruction, targetInstruction))
 						{
 							return true;
 						}

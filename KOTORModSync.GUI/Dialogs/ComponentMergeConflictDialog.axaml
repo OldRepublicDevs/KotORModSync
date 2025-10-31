@@ -231,7 +231,7 @@
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem
-                                                            Command="{Binding JumpToRawViewCommand}"
+                                                            Command="{Binding DataContext.JumpToRawViewCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
                                                             CommandParameter="{Binding}"
                                                             Header="📄 Jump to Raw TOML" />
                                                         <Separator />
@@ -311,7 +311,7 @@
                                                         MinWidth="30"
                                                         Padding="2"
                                                         VerticalAlignment="Center"
-                                                        Command="{Binding $parent[Window].JumpToRawViewCommand}"
+                                                        Command="{Binding DataContext.JumpToRawViewCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
                                                         CommandParameter="{Binding}"
                                                         Content="📄"
                                                         ToolTip.Tip="Jump to Raw TOML" />
@@ -419,7 +419,7 @@
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem
-                                                            Command="{Binding JumpToRawViewCommand}"
+                                                            Command="{Binding DataContext.JumpToRawViewCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
                                                             CommandParameter="{Binding}"
                                                             Header="📄 Jump to Raw TOML" />
                                                         <Separator />
@@ -499,7 +499,7 @@
                                                         MinWidth="30"
                                                         Padding="2"
                                                         VerticalAlignment="Center"
-                                                        Command="{Binding $parent[Window].JumpToRawViewCommand}"
+                                                        Command="{Binding DataContext.JumpToRawViewCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
                                                         CommandParameter="{Binding}"
                                                         Content="📄"
                                                         ToolTip.Tip="Jump to Raw TOML" />

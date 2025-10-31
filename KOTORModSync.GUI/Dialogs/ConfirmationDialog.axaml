@@ -60,11 +60,14 @@
         <!--  Custom Window Controls - positioned above text area  -->
         <StackPanel
             Grid.Row="0"
-            Margin="0,8,8,0"
+            Margin="8,8,8,0"
             HorizontalAlignment="Right"
             VerticalAlignment="Top"
             Orientation="Horizontal"
-            Spacing="0">
+            Spacing="8">
+            <TextBlock
+                Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+                VerticalAlignment="Center" />
             <Button
                 Width="40"
                 Height="40"
@@ -73,7 +76,6 @@
                 HorizontalContentAlignment="Center"
                 Click="CloseButton_Click"
                 Content="X"
-                FontSize="15"
                 ToolTip.Tip="{Binding CloseButtonTooltip, RelativeSource={RelativeSource AncestorType=Window}}" />
         </StackPanel>
     </Grid>

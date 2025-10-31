@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -147,12 +147,22 @@ namespace KOTORModSync.Controls
 
 		private void UpdateTitle()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(UpdateTitle, DispatcherPriority.Normal);
+				return;
+			}
 			if (_titleTextBlock != null)
 				_titleTextBlock.Text = Title ?? string.Empty;
 		}
 
 		private void UpdateDescription()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(UpdateDescription, DispatcherPriority.Normal);
+				return;
+			}
 			if (_descriptionTextBlock != null)
 			{
 				_descriptionTextBlock.Text = Description ?? string.Empty;
@@ -162,12 +172,22 @@ namespace KOTORModSync.Controls
 
 		private void UpdateWatermark()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(UpdateWatermark, DispatcherPriority.Normal);
+				return;
+			}
 			if (_pathInput != null)
 				_pathInput.Watermark = Watermark ?? string.Empty;
 		}
 
 		public void InitializePathSuggestions()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(InitializePathSuggestions, DispatcherPriority.Normal);
+				return;
+			}
 			if (_pathSuggestions is null)
 			{
 				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] InitializePathSuggestions: _pathSuggestions is null");
@@ -199,6 +219,11 @@ namespace KOTORModSync.Controls
 
 		private void InitializeModDirectoryPaths()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(InitializeModDirectoryPaths, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				List<string> recentPaths = LoadRecentModPaths();
@@ -219,6 +244,11 @@ namespace KOTORModSync.Controls
 
 		private void InitializeKotorDirectoryPaths()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(InitializeKotorDirectoryPaths, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				List<string> defaultPaths = GetDefaultPathsForGame();
@@ -366,8 +396,19 @@ namespace KOTORModSync.Controls
 
 		public void SetCurrentPath(string path, bool fireEvent = false)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => SetCurrentPath(path, fireEvent), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
+				if (!Dispatcher.UIThread.CheckAccess())
+				{
+					Dispatcher.UIThread.Post(() => SetCurrentPath(path, fireEvent), DispatcherPriority.Normal);
+					return;
+				}
+
 				_pendingPath = path;
 				Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] SetCurrentPath -> '{path}' (fireEvent={fireEvent})");
 				_suppressEvents = true;
@@ -681,6 +722,11 @@ namespace KOTORModSync.Controls
 
 		public void RefreshSuggestionsSafely()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(RefreshSuggestionsSafely, DispatcherPriority.Normal);
+				return;
+			}
 			if (_pathSuggestions is null) return;
 
 			try
@@ -711,6 +757,11 @@ namespace KOTORModSync.Controls
 
 		private void AddPathToSuggestions(string path)
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => AddPathToSuggestions(path), DispatcherPriority.Normal);
+				return;
+			}
 			if (_pathSuggestions is null || string.IsNullOrEmpty(path)) return;
 
 			try

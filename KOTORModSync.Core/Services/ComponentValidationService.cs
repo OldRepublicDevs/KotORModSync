@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,7 +21,7 @@ namespace KOTORModSync.Core.Services
 	/// Core validation service for component instruction validation, VFS simulation, and path verification.
 	/// Handles dry-run validation and file existence checking without GUI dependencies.
 	/// </summary>
-	public class ComponentValidationService
+	public partial class ComponentValidationService
 	{
 		private VirtualFileSystemProvider _virtualFileSystem;
 
@@ -1159,6 +1160,7 @@ namespace KOTORModSync.Core.Services
 			return null;
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static async Task<bool> TryFixArchiveNameMismatchesAsync(
 			ModComponent component,
 			IReadOnlyList<string> failedPatterns,
@@ -1168,36 +1170,40 @@ namespace KOTORModSync.Core.Services
 		{
 			await Logger.LogVerboseAsync("[ComponentValidationService] Scanning for archive name mismatches...").ConfigureAwait(false);
 
-			// Get all cached download entries
-			List<DownloadCacheService.DownloadCacheEntry> cachedEntries = DownloadCacheService.GetCachedEntries().Where(e => e.IsArchiveFile).ToList();
+			// Gather known archive filenames from the component's ResourceRegistry (resource-index)
+			List<string> archiveFilenames = component.ResourceRegistry.Values
+				.SelectMany(meta => meta.Files?.Keys ?? Enumerable.Empty<string>())
+				.Where(fn => !string.IsNullOrWhiteSpace(fn) && Utility.ArchiveHelper.IsArchive(fn))
+				.Distinct(StringComparer.OrdinalIgnoreCase)
+				.ToList();
 
-			if (cachedEntries.Count == 0)
+			if (archiveFilenames.Count == 0)
 			{
-				await Logger.LogVerboseAsync("[ComponentValidationService] No cached archives found").ConfigureAwait(false);
+				await Logger.LogVerboseAsync("[ComponentValidationService] No known archives found in ResourceRegistry").ConfigureAwait(false);
 				return false;
 			}
 
 			bool anyFixApplied = false;
-			Dictionary<Guid, (Instruction.ActionType action, List<string> source, string destination)> originalInstructions = new Dictionary<Guid, (Instruction.ActionType action, List<string> source, string destination)>();
+			List<(Instruction instruction, List<string> source, string destination)> originalInstructions = new List<(Instruction instruction, List<string> source, string destination)>();
 
 			// Backup all instructions
 			foreach (Instruction instruction in component.Instructions)
 			{
-				originalInstructions[instruction.Guid] = (
-					instruction.Action,
+				originalInstructions.Add((
+					instruction,
 					new List<string>(instruction.Source),
 					instruction.Destination
-				);
+				));
 			}
 			foreach (Option option in component.Options)
 			{
 				foreach (Instruction instruction in option.Instructions)
 				{
-					originalInstructions[instruction.Guid] = (
-						instruction.Action,
+					originalInstructions.Add((
+						instruction,
 						new List<string>(instruction.Source),
 						instruction.Destination
-					);
+					));
 				}
 			}
 
@@ -1212,23 +1218,23 @@ namespace KOTORModSync.Core.Services
 					string expectedBase = Path.GetFileNameWithoutExtension(expectedArchive);
 					string normalizedExpected = NormalizeModName(expectedBase);
 
-					// Find matching cached entry
-					DownloadCacheService.DownloadCacheEntry matchingEntry = null;
-					foreach (DownloadCacheService.DownloadCacheEntry entry in cachedEntries)
+					// Find matching archive filename
+					string matchingArchive = null;
+					foreach (string archiveName in archiveFilenames)
 					{
-						string entryBase = Path.GetFileNameWithoutExtension(entry.FileName);
+						string entryBase = Path.GetFileNameWithoutExtension(archiveName);
 						string normalizedEntry = NormalizeModName(entryBase);
 
 						if (normalizedExpected.Equals(normalizedEntry, StringComparison.OrdinalIgnoreCase) ||
 							 (!(entryBase is null) && expectedBase.IndexOf(entryBase, StringComparison.OrdinalIgnoreCase) >= 0) ||
 							 (!(entryBase is null) && entryBase.IndexOf(expectedBase, StringComparison.OrdinalIgnoreCase) >= 0))
 						{
-							matchingEntry = entry;
+							matchingArchive = archiveName;
 							break;
 						}
 					}
 
-					if (matchingEntry is null)
+					if (matchingArchive is null)
 					{
 						await Logger.LogVerboseAsync($"[ComponentValidationService] No matching cached archive for '{expectedArchive}'").ConfigureAwait(false);
 						continue;
@@ -1260,12 +1266,12 @@ namespace KOTORModSync.Core.Services
 					}
 
 					// Apply fix
-					bool fixSuccess = await TryFixSingleMismatchAsync(component, extractInstruction, matchingEntry, vfs, modArchiveDirectory, cancellationToken).ConfigureAwait(false);
+					bool fixSuccess = await TryFixSingleMismatchAsync(component, extractInstruction, matchingArchive, vfs, modArchiveDirectory, cancellationToken).ConfigureAwait(false);
 
 					if (fixSuccess)
 					{
 						anyFixApplied = true;
-						await Logger.LogAsync($"[ComponentValidationService] ✓ Fixed mismatch for '{expectedArchive}' -> '{matchingEntry.FileName}'").ConfigureAwait(false);
+						await Logger.LogAsync($"[ComponentValidationService] ✓ Fixed mismatch for '{expectedArchive}' -> '{matchingArchive}'").ConfigureAwait(false);
 					}
 				}
 
@@ -1279,16 +1285,16 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
 		private static async Task<bool> TryFixSingleMismatchAsync(
 			ModComponent component,
 			Instruction extractInstruction,
-			DownloadCacheService.DownloadCacheEntry entry,
+			string newArchiveName,
 			VirtualFileSystemProvider vfs,
 			string modArchiveDirectory,
 			CancellationToken cancellationToken = default)
 		{
 			string oldArchiveName = ExtractFilenameFromSource(extractInstruction.Source[0]);
-			string newArchiveName = entry.FileName;
 
 			string oldExtractedFolder = Path.GetFileNameWithoutExtension(oldArchiveName);
 			string newExtractedFolder = Path.GetFileNameWithoutExtension(newArchiveName);
@@ -1367,32 +1373,17 @@ namespace KOTORModSync.Core.Services
 
 		private static void RollbackInstructions(
 			ModComponent component,
-			Dictionary<Guid, (Instruction.ActionType action, List<string> source, string destination)> original)
+			List<(Instruction instruction, List<string> source, string destination)> original)
 		{
-			foreach (Instruction instr in component.Instructions)
+			foreach (var item in original)
 			{
-				if (original.TryGetValue(instr.Guid, out (Instruction.ActionType action, List<string> source, string destination) orig))
-				{
-					instr.Action = orig.action;
-					instr.Source = orig.source;
-					instr.Destination = orig.destination;
-				}
-			}
-
-			foreach (Option opt in component.Options)
-			{
-				foreach (Instruction instr in opt.Instructions)
-				{
-					if (original.TryGetValue(instr.Guid, out (Instruction.ActionType action, List<string> source, string destination) orig))
-					{
-						instr.Action = orig.action;
-						instr.Source = orig.source;
-						instr.Destination = orig.destination;
-					}
-				}
+				var instruction = item.Item1;
+				var source = item.Item2;
+				var destination = item.Item3;
+				instruction.Source = new List<string>(source);
+				instruction.Destination = destination;
 			}
 		}
-
 		private static string ExtractFilenameFromSource(string sourcePath)
 		{
 			if (string.IsNullOrEmpty(sourcePath))
@@ -1411,9 +1402,9 @@ namespace KOTORModSync.Core.Services
 				return string.Empty;
 
 			string normalized = name.ToLowerInvariant();
-			normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"[_\-\s]+", " ");
-			normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"v?\d+(\.\d+)*", "");
-			normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"[^\w\s]", "");
+			normalized = MyRegex.Replace(normalized, " ");
+			normalized = MyRegex_.Replace(normalized, "");
+			normalized = MyRegex__.Replace(normalized, "");
 			normalized = normalized.Trim();
 
 			return normalized;
@@ -1424,18 +1415,22 @@ namespace KOTORModSync.Core.Services
 			if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(pattern))
 				return false;
 
-			string regexPattern = "^" + System.Text.RegularExpressions.Regex.Escape(pattern)
+			string regexPattern = "^" + Regex.Escape(pattern)
 				.Replace("\\*", ".*")
 				.Replace("\\?", ".") + "$";
 
 			try
 			{
-				return System.Text.RegularExpressions.Regex.IsMatch(filename, regexPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+				return Regex.IsMatch(filename, regexPattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000));
 			}
 			catch
 			{
 				return filename.IndexOf(pattern.Replace("*", ""), StringComparison.OrdinalIgnoreCase) >= 0;
 			}
 		}
+
+		private static readonly Regex MyRegex = new Regex(@"[_\-\s]+", RegexOptions.Compiled, TimeSpan.FromMilliseconds(1000));
+		private static readonly Regex MyRegex_ = new Regex(@"v?\d+(\.\d+)*", RegexOptions.Compiled, TimeSpan.FromMilliseconds(1000));
+		private static readonly Regex MyRegex__ = new Regex(@"[^\w\s]", RegexOptions.Compiled, TimeSpan.FromMilliseconds(1000));
 	}
 }

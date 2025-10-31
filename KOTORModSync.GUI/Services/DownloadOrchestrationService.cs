@@ -139,6 +139,8 @@ namespace KOTORModSync.Services
 					nexusModsApiKey: MainConfig.NexusModsApiKey,
 					timeoutMinutes: timeoutMinutes);
 				_cacheService.SetDownloadManager(downloadManager);
+				// Ensure a fresh cancellation token for this session
+				downloadManager.ResetCancellation();
 
 				progressWindow.DownloadControlRequested += async (sender, args) =>
 				{
@@ -147,16 +149,20 @@ namespace KOTORModSync.Services
 						switch (args.Action)
 						{
 							case DownloadControlAction.Retry:
-								await HandleRetryDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow).ConfigureAwait(false);
+								await HandleRetryDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow).ConfigureAwait(true);
 								break;
 							case DownloadControlAction.Stop:
+								// Signal cancellation to all active downloads
+								downloadManager.CancelAll();
 								await HandleStopDownloadAsync(args.Progress).ConfigureAwait(true);
+								// Also trigger orchestration-level cancellation
+								CancelAllDownloads(closeWindow: false);
 								break;
 							case DownloadControlAction.Resume:
-								await HandleResumeDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow).ConfigureAwait(false);
+								await HandleResumeDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow).ConfigureAwait(true);
 								break;
 							case DownloadControlAction.Start:
-								await HandleStartDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow).ConfigureAwait(false);
+								await HandleStartDownloadAsync(args.Progress, selectedComponents, downloadManager, progressWindow).ConfigureAwait(true);
 								break;
 						}
 					}
@@ -205,7 +211,7 @@ namespace KOTORModSync.Services
 							{
 								try
 								{
-									await ProcessComponentDownloadAsync(component, downloadManager, progressWindow).ConfigureAwait(false);
+									await ProcessComponentDownloadAsync(component, downloadManager, progressWindow).ConfigureAwait(true);
 								}
 								catch (Exception ex)
 								{
@@ -219,7 +225,7 @@ namespace KOTORModSync.Services
 							{
 								try
 								{
-									await ProcessComponentDownloadAsync(component, downloadManager, progressWindow).ConfigureAwait(false);
+									await ProcessComponentDownloadAsync(component, downloadManager, progressWindow).ConfigureAwait(true);
 								}
 								catch (Exception ex)
 								{
@@ -269,7 +275,7 @@ namespace KOTORModSync.Services
 			DownloadProgressWindow progressWindow)
 		{
 			await Logger.LogVerboseAsync($"[DownloadOrchestration] Pre-resolving URLs for: {component.Name}").ConfigureAwait(false);
-			var urlToFilenames = await _cacheService.PreResolveUrlsAsync(component, downloadManager, sequential: false, progressWindow.CancellationToken).ConfigureAwait(false);
+			var urlToFilenames = await _cacheService.PreResolveUrlsAsync(component, downloadManager, sequential: false, progressWindow.CancellationToken).ConfigureAwait(true);
 
 			foreach (var kvp in urlToFilenames)
 			{
@@ -308,7 +314,7 @@ namespace KOTORModSync.Services
 				_mainConfig.sourcePath.FullName,
 				progressReporter,
 				sequential: false,
-				progressWindow.CancellationToken).ConfigureAwait(false);
+				progressWindow.CancellationToken).ConfigureAwait(true);
 
 			await Logger.LogVerboseAsync($"[DownloadOrchestration] Processed component '{component.Name}': {cacheEntries.Count} cache entries").ConfigureAwait(false);
 
@@ -337,6 +343,8 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
+				// Signal global cancellation to the download manager to stop all in-flight downloads immediately
+				_cacheService?.DownloadManager?.CancelAll();
 				if (_currentDownloadWindow != null && _currentDownloadWindow.IsVisible)
 				{
 					_currentDownloadWindow.CancelDownloads();
@@ -423,6 +431,8 @@ namespace KOTORModSync.Services
 		{
 			try
 			{
+				// Ensure the manager isn't still in a cancelled state
+				downloadManager.ResetCancellation();
 				await Logger.LogAsync($"[HandleRetryDownload] Starting retry for: {progress.ModName} ({progress.Url})").ConfigureAwait(false);
 
 				ModComponent matchingComponent = components.FirstOrDefault(c => string.Equals(c.Name, progress.ModName, StringComparison.Ordinal) && c.ModLinkFilenames.Keys.Any(link => string.Equals(link, progress.Url, StringComparison.Ordinal)));
@@ -457,7 +467,7 @@ namespace KOTORModSync.Services
 					urlToProgressMap,
 					_mainConfig.sourcePath.FullName,
 					progressReporter,
-					progressWindow.CancellationToken).ConfigureAwait(false);
+					progressWindow.CancellationToken).ConfigureAwait(true);
 
 				if (results.Count > 0 && results[0].Success)
 				{
@@ -472,21 +482,15 @@ namespace KOTORModSync.Services
 						return;
 					}
 
-					string fileName = Path.GetFileName(filePath);
-					bool isArchive = ArchiveHelper.IsArchive(filePath);
+				string fileName = Path.GetFileName(filePath);
+				bool isArchive = ArchiveHelper.IsArchive(filePath);
+				await UpdateResourceMetadataWithFilenamesAsync(
+					matchingComponent,
+					progress.Url,
+					new List<string> { fileName }
+				).ConfigureAwait(false);
 
-					var cacheEntry = new DownloadCacheEntry
-					{
-						Url = progress.Url,
-						FileName = fileName,
-						IsArchiveFile = isArchive,
-					};
-
-
-					DownloadCacheService.AddOrUpdate(progress.Url, cacheEntry);
-					AddOrUpdate(progress.Url, cacheEntry);
-
-					if (isArchive && matchingComponent.Instructions.Count == 0)
+				if (isArchive && matchingComponent.Instructions.Count == 0)
 					{
 						bool generated = AutoInstructionGenerator.GenerateInstructions(matchingComponent, filePath);
 						if (generated)
@@ -511,7 +515,11 @@ namespace KOTORModSync.Services
 		}
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        public static async Task<string> DownloadModFromUrlAsync(string url, ModComponent component, CancellationToken cancellationToken = default)
+        public static async Task<string> DownloadModFromUrlAsync(
+			string url,
+			ModComponent component,
+			CancellationToken cancellationToken = default
+		)
 		{
 			try
 			{
@@ -549,7 +557,7 @@ namespace KOTORModSync.Services
 					progress.Exception = update.Exception;
 				});
 				List<DownloadResult> results = await downloadManager.DownloadAllWithProgressAsync(
-					urlToProgressMap, tempDir, progressReporter, cancellationToken).ConfigureAwait(false);
+					urlToProgressMap, tempDir, progressReporter, cancellationToken).ConfigureAwait(true);
 
 				if (results.Count > 0 && results[0].Success)
 				{
@@ -615,7 +623,7 @@ namespace KOTORModSync.Services
 				progress.ErrorMessage = null;
 				progress.Exception = null;
 
-				await HandleRetryDownloadAsync(progress, components, downloadManager, progressWindow).ConfigureAwait(false);
+				await HandleRetryDownloadAsync(progress, components, downloadManager, progressWindow).ConfigureAwait(true);
 
 				await Logger.LogAsync($"[HandleResumeDownload] Download resumed: {progress.ModName}").ConfigureAwait(false);
 			}
@@ -642,7 +650,7 @@ namespace KOTORModSync.Services
 				progress.ErrorMessage = null;
 				progress.Exception = null;
 
-				await HandleRetryDownloadAsync(progress, components, downloadManager, progressWindow).ConfigureAwait(false);
+				await HandleRetryDownloadAsync(progress, components, downloadManager, progressWindow).ConfigureAwait(true);
 
 				await Logger.LogAsync($"[HandleStartDownload] Download started: {progress.ModName}").ConfigureAwait(false);
 			}
@@ -670,7 +678,7 @@ namespace KOTORModSync.Services
 					component,
 					_cacheService.DownloadManager,
 					sequential: false,
-					cancellationToken).ConfigureAwait(false);
+					cancellationToken).ConfigureAwait(true);
 
 				if (resolvedUrls.Count == 0)
 				{
@@ -721,8 +729,6 @@ namespace KOTORModSync.Services
 
 				// Step 3: Download missing files if needed
 				if (urlsNeedingDownload.Count > 0)
-
-
 				{
 					await Logger.LogAsync($"[DownloadOrchestration] Downloading {urlsNeedingDownload.Count} missing file(s) for '{component.Name}'").ConfigureAwait(false);
 
@@ -732,7 +738,7 @@ namespace KOTORModSync.Services
 						progress: null,
 						sequential: false,
 						cancellationToken
-					).ConfigureAwait(false);
+					).ConfigureAwait(true);
 
 					foreach (var fileName in downloadedEntries.Select(entry => entry.FileName).Where(fn => !string.IsNullOrEmpty(fn)))
 					{
@@ -809,10 +815,11 @@ namespace KOTORModSync.Services
 
 			try
 			{
+				_cacheService?.DownloadManager?.ResetCancellation();
 				await Logger.LogVerboseAsync($"[DownloadOrchestration] Starting single component download for: {component.Name}").ConfigureAwait(false);
 
 				// Get download URLs for this component
-				var urls = await GetDownloadUrlsForComponentAsync(component).ConfigureAwait(false);
+				var urls = await GetDownloadUrlsForComponentAsync(component).ConfigureAwait(true);
 
 				if (urls.Count == 0)
 				{
@@ -843,7 +850,7 @@ namespace KOTORModSync.Services
 						await _cacheService.DownloadManager.DownloadFileAsync(
 							progress.Url,
 							progress,
-							progressWindow.CancellationToken).ConfigureAwait(false);
+							progressWindow.CancellationToken).ConfigureAwait(true);
 					}
 					catch (Exception ex)
 					{
@@ -894,7 +901,7 @@ namespace KOTORModSync.Services
 									await _cacheService.DownloadManager.DownloadFileAsync(
 										progress.Url,
 										progress,
-										progressWindow.CancellationToken).ConfigureAwait(false);
+										progressWindow.CancellationToken).ConfigureAwait(true);
 								}
 								catch (Exception ex)
 								{
@@ -929,7 +936,7 @@ namespace KOTORModSync.Services
 									await _cacheService.DownloadManager.DownloadFileAsync(
 										progress.Url,
 										progress,
-										progressWindow.CancellationToken).ConfigureAwait(false);
+										progressWindow.CancellationToken).ConfigureAwait(true);
 								}
 								catch (Exception ex)
 								{

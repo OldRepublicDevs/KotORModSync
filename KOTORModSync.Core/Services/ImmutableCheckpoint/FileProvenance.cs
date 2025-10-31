@@ -7,6 +7,7 @@ using System.Collections.Generic;
 
 namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class FileState
 	{
 		public string Path { get; set; }
@@ -20,6 +21,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 		public DateTime LastModified { get; set; }
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class Checkpoint
 	{
 		public string Id { get; set; }
@@ -55,6 +57,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 		public int FileCount { get; set; }
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class FileDelta
 	{
 		public string Path { get; set; }
@@ -82,6 +85,7 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
 		public string Method { get; set; }
 	}
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
 	public class CheckpointSession
 	{
 		public string Id { get; set; }

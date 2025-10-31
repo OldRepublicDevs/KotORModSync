@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -173,11 +173,11 @@ namespace KOTORModSync.Services
 
 
 
-				List<string> existing = await LoadRecentModDirectoriesAsync( file ).ConfigureAwait( false );
+				List<string> existing = await LoadRecentModDirectoriesAsync( file ).ConfigureAwait(true);
 
 				AddToRecentDirectories( path, existing, maxCount: 20 );
 
-				await SaveRecentModDirectoriesAsync( existing, file ).ConfigureAwait( false );
+				await SaveRecentModDirectoriesAsync( existing, file ).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
@@ -196,7 +196,7 @@ namespace KOTORModSync.Services
 
 
 
-				string[] lines = await Task.Run( () => File.ReadAllLines( filePath ) ).ConfigureAwait( false );
+				string[] lines = await Task.Run( () => File.ReadAllLines( filePath ) ).ConfigureAwait(true);
 				result.AddRange( lines.Where( line => !string.IsNullOrWhiteSpace( line ) && Directory.Exists( line ) ) );
 			}
 			catch (Exception ex)
@@ -212,7 +212,7 @@ namespace KOTORModSync.Services
 			try
 			{
 
-				await Task.Run( () => File.WriteAllLines( filePath, directories ) ).ConfigureAwait( false );
+				await Task.Run( () => File.WriteAllLines( filePath, directories ) ).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
@@ -280,6 +280,11 @@ namespace KOTORModSync.Services
 
 		private static void UpdateComboBoxItemsSource( ComboBox combo, TextBox input, IList<string> newResults )
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => UpdateComboBoxItemsSource(combo, input, newResults), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 

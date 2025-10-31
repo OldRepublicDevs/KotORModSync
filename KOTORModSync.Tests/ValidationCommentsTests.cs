@@ -42,18 +42,19 @@ namespace KOTORModSync.Tests
 		{
 			// Arrange
 			var context = new ComponentValidationContext();
-			var guid = Guid.NewGuid();
+			var componentGuid = Guid.NewGuid();
+			var instructionIndex = 0;
 
 			// Act
-			context.AddInstructionIssue(guid, "Instruction error");
+			context.AddInstructionIssue(componentGuid, instructionIndex, "Instruction error");
 
 			// Assert
-			var issues = context.GetInstructionIssues(guid);
-			Assert.That(issues.Count, Is.EqualTo(1));
+			var issues = context.GetInstructionIssues(componentGuid, instructionIndex);
+			Assert.That(issues, Has.Count.EqualTo(1));
 			Assert.Multiple(() =>
 			{
 				Assert.That(issues[0], Is.EqualTo("Instruction error"));
-				Assert.That(context.HasInstructionIssues(guid), Is.True);
+				Assert.That(context.HasInstructionIssues(componentGuid, instructionIndex), Is.True);
 			});
 		}
 
@@ -143,7 +144,6 @@ namespace KOTORModSync.Tests
 
 			var instruction = new Instruction
 			{
-				Guid = Guid.NewGuid(),
 				Action = Instruction.ActionType.Move,
 				Source = new List<string> { "<<modDirectory>>\\test.2da" },
 				Destination = "<<kotorDirectory>>\\Override",
@@ -152,7 +152,7 @@ namespace KOTORModSync.Tests
 			component.Instructions.Add(instruction);
 
 			var context = new ComponentValidationContext();
-			context.AddInstructionIssue(instruction.Guid, "MoveFile: Source file does not exist");
+			context.AddInstructionIssue(component.Guid, 0, "MoveFile: Source file does not exist");
 
 			// Act
 			string toml = ModComponentSerializationService.SerializeModComponentAsTomlString(
@@ -176,7 +176,6 @@ namespace KOTORModSync.Tests
 
 			var instruction = new Instruction
 			{
-				Guid = Guid.NewGuid(),
 				Action = Instruction.ActionType.Extract,
 				Source = new List<string> { "<<modDirectory>>\\missing.zip" },
 			};
@@ -185,7 +184,7 @@ namespace KOTORModSync.Tests
 
 			var context = new ComponentValidationContext();
 			context.AddModComponentIssue(component.Guid, "Component validation issue");
-			context.AddInstructionIssue(instruction.Guid, "ExtractArchive: Archive does not exist");
+			context.AddInstructionIssue(component.Guid, 0, "ExtractArchive: Archive does not exist");
 
 			// Act
 			string yaml = ModComponentSerializationService.SerializeModComponentAsYamlString(

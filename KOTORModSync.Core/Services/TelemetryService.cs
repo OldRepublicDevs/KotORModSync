@@ -56,7 +56,8 @@ namespace KOTORModSync.Core.Services
 
 		private TelemetryService() => _config = TelemetryConfiguration.Load();
 
-		public void Initialize()
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public void Initialize()
 		{
 			if (_isInitialized || !_config.IsEnabled)
 				return;
@@ -645,7 +646,12 @@ namespace KOTORModSync.Core.Services
 			}
 		}
 
-		public void RecordCacheOperation(string operationType, bool success, double durationMs, string provider = null, string errorMessage = null)
+		public void RecordCacheOperation(
+			string operationType,
+			bool success,
+			double durationMs,
+			string provider = null,
+			string errorMessage = null)
 		{
 			if (!IsEnabled || !_config.CollectUsageData)
 				return;
@@ -726,12 +732,9 @@ namespace KOTORModSync.Core.Services
 			}
 			catch
 			{
-
 				return "hash_error";
 			}
 		}
-
-
 
 		private string GetAuthHeaders(string requestPath)
 		{
@@ -763,7 +766,6 @@ namespace KOTORModSync.Core.Services
 				return string.Empty;
 			}
 		}
-
 		public void Dispose()
 		{
 			if (_disposed)

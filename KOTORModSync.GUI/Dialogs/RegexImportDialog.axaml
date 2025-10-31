@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <Window
     x:Class="KOTORModSync.Dialogs.RegexImportDialog"
     xmlns="https://github.com/avaloniaui"
@@ -86,9 +86,9 @@
                                 Grid.Row="0"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.ComponentSectionPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.ComponentSectionPattern}" />
 
                             <TextBlock
                                 Grid.Row="1"
@@ -101,9 +101,9 @@
                                 Grid.Row="1"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.HeadingPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.HeadingPattern}" />
 
                             <TextBlock
                                 Grid.Row="2"
@@ -116,9 +116,9 @@
                                 Grid.Row="2"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.NamePattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.NamePattern}" />
 
                             <TextBlock
                                 Grid.Row="3"
@@ -131,9 +131,9 @@
                                 Grid.Row="3"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.AuthorPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.AuthorPattern}" />
 
                             <TextBlock
                                 Grid.Row="4"
@@ -146,9 +146,9 @@
                                 Grid.Row="4"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.DescriptionPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.DescriptionPattern}" />
 
                             <TextBlock
                                 Grid.Row="5"
@@ -161,9 +161,9 @@
                                 Grid.Row="5"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.DependenciesPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.DependenciesPattern}" />
 
                             <TextBlock
                                 Grid.Row="6"
@@ -176,9 +176,9 @@
                                 Grid.Row="6"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.CategoryTierPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.CategoryTierPattern}" />
 
                             <TextBlock
                                 Grid.Row="7"
@@ -191,9 +191,9 @@
                                 Grid.Row="7"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.NonEnglishPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.NonEnglishPattern}" />
 
                             <TextBlock
                                 Grid.Row="8"
@@ -206,9 +206,9 @@
                                 Grid.Row="8"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.InstallationMethodPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.InstallationMethodPattern}" />
 
                             <TextBlock
                                 Grid.Row="9"
@@ -221,9 +221,9 @@
                                 Grid.Row="9"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.InstallationInstructionsPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.InstallationInstructionsPattern}" />
 
                             <TextBlock
                                 Grid.Row="10"
@@ -236,9 +236,9 @@
                                 Grid.Row="10"
                                 Grid.Column="1"
                                 Margin="0,0,0,4"
-                                Text="{Binding Profile.ModLinkPattern}"
+                                KeyDown="OnRegexTextBox_KeyDown"
                                 LostFocus="OnRegexPatternChanged"
-                                KeyDown="OnRegexTextBox_KeyDown" />
+                                Text="{Binding Profile.ModLinkPattern}" />
 
                             <TextBlock
                                 Grid.Row="11"
@@ -295,9 +295,9 @@
                             <TextBox
                                 x:Name="RawRegexTextBox"
                                 AcceptsReturn="True"
-                                Text="{Binding Profile.RawRegexPattern}"
-                                LostFocus="OnRegexPatternChanged"
                                 KeyDown="OnRegexTextBox_KeyDown"
+                                LostFocus="OnRegexPatternChanged"
+                                Text="{Binding Profile.RawRegexPattern}"
                                 TextWrapping="Wrap" />
                         </ScrollViewer>
                     </Grid>
@@ -330,17 +330,20 @@
                     Grid.Row="0"
                     Margin="8,8,8,4"
                     Text="Live Preview" />
-                <TextBox
-                    Name="PreviewTextBox"
-                    Grid.Row="1"
-                    Margin="8"
-                    AcceptsReturn="True"
-                    AcceptsTab="True"
-                    TextWrapping="Wrap"
-                    FontFamily="Consolas,Monaco,monospace"
-                    IsReadOnly="False"
-                    Text="{Binding PreviewMarkdown, Mode=TwoWay}"
-                    KeyDown="OnPreviewTextBox_KeyDown" />
+                <Grid Grid.Row="1" Margin="8">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <SelectableTextBlock
+                            Name="PreviewTextBox"
+                            FontFamily="Consolas,Monaco,monospace"
+                            TextWrapping="Wrap">
+                            <SelectableTextBlock.Inlines>
+                                <InlineCollection>
+                                    <Run Text="Loading..." />
+                                </InlineCollection>
+                            </SelectableTextBlock.Inlines>
+                        </SelectableTextBlock>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
         </Border>
 

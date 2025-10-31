@@ -199,47 +199,103 @@
                                 ToolTip.Tip="Download this mod using the single mod download window" />
                         </Grid>
                     </Border>
-                    <TextBlock
-                        Margin="0,0,0,4"
-                        Classes="secondary-text"
-                        Text="Click any link to open in your browser" />
-                    <ItemsRepeater x:Name="ModLinkRepeater" ItemsSource="{Binding ModLinkFilenames, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}">
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate>
-                                <Border Classes="summary-link-container">
-                                    <StackPanel Spacing="2">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <SelectableTextBlock
-                                                Grid.Column="0"
-                                                Cursor="Hand"
-                                                FontSize="14"
-                                                Tapped="OpenLink_Tapped"
-                                                Text="{Binding}"
-                                                TextDecorations="Underline"
-                                                TextWrapping="Wrap">
-                                                <TextBlock.ContextMenu>
-                                                    <ContextMenu>
-                                                        <MenuItem Click="CopyTextToClipboard_Click" Header="Copy" />
-                                                    </ContextMenu>
-                                                </TextBlock.ContextMenu>
-                                            </SelectableTextBlock>
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Margin="8,0,0,0"
-                                                VerticalAlignment="Center"
-                                                FontSize="12"
-                                                Foreground="{DynamicResource UrlValidation.ErrorIconBrush}"
-                                                IsVisible="{Binding ., Converter={StaticResource InvalidUrlVisibilityConverter}}"
-                                                Text="❌"
-                                                ToolTip.Tip="Invalid URL" />
-                                        </Grid>
-                                        <!--  Filenames Panel (populated in code-behind)  -->
-                                        <StackPanel x:Name="SummaryFilenamesPanel" Margin="16,2,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
+
+                    <!--  Show directly if not in spoiler-free mode  -->
+                    <StackPanel IsVisible="{Binding !$parent[Window].SpoilerFreeMode}">
+                        <TextBlock
+                            Margin="0,0,0,4"
+                            Classes="secondary-text"
+                            Text="Click any link to open in your browser" />
+                        <ItemsRepeater x:Name="ModLinkRepeater" ItemsSource="{Binding ModLinkFilenames, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="summary-link-container">
+                                        <StackPanel Spacing="2">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <SelectableTextBlock
+                                                    Grid.Column="0"
+                                                    Cursor="Hand"
+                                                    FontSize="14"
+                                                    Tapped="OpenLink_Tapped"
+                                                    Text="{Binding}"
+                                                    TextDecorations="Underline"
+                                                    TextWrapping="Wrap">
+                                                    <TextBlock.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Click="CopyTextToClipboard_Click" Header="Copy" />
+                                                        </ContextMenu>
+                                                    </TextBlock.ContextMenu>
+                                                </SelectableTextBlock>
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Margin="8,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="{DynamicResource UrlValidation.ErrorIconBrush}"
+                                                    IsVisible="{Binding ., Converter={StaticResource InvalidUrlVisibilityConverter}}"
+                                                    Text="❌"
+                                                    ToolTip.Tip="Invalid URL" />
+                                            </Grid>
+                                            <!--  Filenames Panel (populated in code-behind)  -->
+                                            <StackPanel x:Name="SummaryFilenamesPanel" Margin="16,2,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+
+                    <!--  Show expander with warning if in spoiler-free mode  -->
+                    <StackPanel IsVisible="{Binding $parent[Window].SpoilerFreeMode}">
+                        <Expander x:Name="DownloadLinksExpander" Expanding="DownloadLinksExpander_Expanding">
+                            <Expander.Header>
+                                <TextBlock Text="⚠️ Show Download URLs (May Contain Spoilers)" />
+                            </Expander.Header>
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,4"
+                                    Classes="secondary-text"
+                                    Text="Click any link to open in your browser" />
+                                <ItemsRepeater x:Name="ModLinkRepeaterSpoilerFree" ItemsSource="{Binding ModLinkFilenames, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}">
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Classes="summary-link-container">
+                                                <StackPanel Spacing="2">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <SelectableTextBlock
+                                                            Grid.Column="0"
+                                                            Cursor="Hand"
+                                                            FontSize="14"
+                                                            Tapped="OpenLink_Tapped"
+                                                            Text="{Binding}"
+                                                            TextDecorations="Underline"
+                                                            TextWrapping="Wrap">
+                                                            <TextBlock.ContextMenu>
+                                                                <ContextMenu>
+                                                                    <MenuItem Click="CopyTextToClipboard_Click" Header="Copy" />
+                                                                </ContextMenu>
+                                                            </TextBlock.ContextMenu>
+                                                        </SelectableTextBlock>
+                                                        <TextBlock
+                                                            Grid.Column="1"
+                                                            Margin="8,0,0,0"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="12"
+                                                            Foreground="{DynamicResource UrlValidation.ErrorIconBrush}"
+                                                            IsVisible="{Binding ., Converter={StaticResource InvalidUrlVisibilityConverter}}"
+                                                            Text="❌"
+                                                            ToolTip.Tip="Invalid URL" />
+                                                    </Grid>
+                                                    <!--  Filenames Panel (populated in code-behind)  -->
+                                                    <StackPanel x:Name="SummaryFilenamesPanel" Margin="16,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

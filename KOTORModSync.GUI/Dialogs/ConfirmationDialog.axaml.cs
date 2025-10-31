@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -130,8 +130,7 @@ namespace KOTORModSync.Dialogs
 		{
 			var tcs = new TaskCompletionSource<bool?>();
 
-			await Dispatcher.UIThread.InvokeAsync(
-				() =>
+			await Dispatcher.UIThread.InvokeAsync(async () =>
 				{
 					try
 					{
@@ -187,12 +186,12 @@ namespace KOTORModSync.Dialogs
 							tcs.SetResult(null);
 						}
 					}
-					catch (Exception e)
+					catch (Exception ex)
 					{
-						Logger.LogException(e);
+						await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
 					}
 				}
-			);
+			).ConfigureAwait(false);
 
 			return await tcs.Task.ConfigureAwait(true);
 		}
@@ -210,8 +209,7 @@ namespace KOTORModSync.Dialogs
 		{
 			var tcs = new TaskCompletionSource<ConfirmationResult>();
 
-			await Dispatcher.UIThread.InvokeAsync(
-				() =>
+			await Dispatcher.UIThread.InvokeAsync(async () =>
 				{
 					try
 					{
@@ -269,10 +267,10 @@ namespace KOTORModSync.Dialogs
 					}
 					catch (Exception e)
 					{
-						Logger.LogException(e);
+						await Logger.LogExceptionAsync(e).ConfigureAwait(false);
 					}
 				}
-			);
+			).ConfigureAwait(false);
 
 			return await tcs.Task.ConfigureAwait(true);
 		}
@@ -290,8 +288,7 @@ namespace KOTORModSync.Dialogs
 		{
 			var tcs = new TaskCompletionSource<bool?>();
 
-			await Dispatcher.UIThread.InvokeAsync(
-				() =>
+			await Dispatcher.UIThread.InvokeAsync(async () =>
 				{
 					try
 					{
@@ -349,10 +346,10 @@ namespace KOTORModSync.Dialogs
 					}
 					catch (Exception e)
 					{
-						Logger.LogException(e);
+						await Logger.LogExceptionAsync(e).ConfigureAwait(false);
 					}
 				}
-			);
+			).ConfigureAwait(false);
 
 			return await tcs.Task.ConfigureAwait(true);
 		}
@@ -377,6 +374,11 @@ namespace KOTORModSync.Dialogs
 
 		private void UpdateConfirmationText()
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(UpdateConfirmationText, DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				// Debug logging

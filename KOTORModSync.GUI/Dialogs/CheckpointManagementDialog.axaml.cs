@@ -62,7 +62,7 @@ namespace KOTORModSync.Dialogs
 		{
 			try
 			{
-				var sessions = await _checkpointService.ListSessionsAsync().ConfigureAwait( false );
+				var sessions = await _checkpointService.ListSessionsAsync().ConfigureAwait(true);
 
 				await Dispatcher.UIThread.InvokeAsync( () =>
 				{
@@ -160,7 +160,7 @@ namespace KOTORModSync.Dialogs
 
 
 
-				var checkpoints = await _checkpointService.ListCheckpointsAsync( session.Session.Id ).ConfigureAwait( false );
+				var checkpoints = await _checkpointService.ListCheckpointsAsync( session.Session.Id ).ConfigureAwait(true);
 
 				await Dispatcher.UIThread.InvokeAsync( () =>
 				{
@@ -220,11 +220,11 @@ namespace KOTORModSync.Dialogs
 				"Cancel"
 			);
 
-			var result = await confirmDialog.ShowDialog<bool>( this ).ConfigureAwait( false );
+			var result = await confirmDialog.ShowDialog<bool>( this ).ConfigureAwait(true);
 			if (!result)
 				return;
 
-			await PerformRollbackAsync( checkpointVm ).ConfigureAwait( false );
+			await PerformRollbackAsync( checkpointVm ).ConfigureAwait(true);
 		}
 
 		private async Task PerformRollbackAsync( CheckpointViewModel checkpointVm )
@@ -261,7 +261,7 @@ namespace KOTORModSync.Dialogs
 
 
 
-						).ConfigureAwait( false );
+						).ConfigureAwait(true);
 					}
 				} )
 
@@ -273,9 +273,9 @@ namespace KOTORModSync.Dialogs
 				await ShowSuccessDialog(
 					"Checkpoint restored successfully!\n\n" +
 					$"Your game directory has been restored to the state after '{checkpointVm.ComponentName}' was installed."
-				).ConfigureAwait( false );
+				).ConfigureAwait(true);
 
-				await LoadSessionsAsync().ConfigureAwait( false );
+				await LoadSessionsAsync().ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
@@ -283,7 +283,7 @@ namespace KOTORModSync.Dialogs
 
 
 				await Logger.LogErrorAsync( $"Checkpoint restoration failed: {ex.Message}" ).ConfigureAwait( false );
-				await ShowErrorDialog( $"Checkpoint restoration failed:\n\n{ex.Message}" ).ConfigureAwait( false );
+				await ShowErrorDialog( $"Checkpoint restoration failed:\n\n{ex.Message}" ).ConfigureAwait(true);
 			}
 		}
 
@@ -299,7 +299,7 @@ namespace KOTORModSync.Dialogs
 				"Clean Up"
 			);
 
-			bool result = await confirmDialog.ShowDialog<bool>( this ).ConfigureAwait( false );
+			bool result = await confirmDialog.ShowDialog<bool>( this ).ConfigureAwait(true);
 			if (!result)
 				return;
 
@@ -307,7 +307,7 @@ namespace KOTORModSync.Dialogs
 
 			try
 			{
-				List<CheckpointSession> sessions = await _checkpointService.ListSessionsAsync().ConfigureAwait( false );
+				List<CheckpointSession> sessions = await _checkpointService.ListSessionsAsync().ConfigureAwait(true);
 				List<CheckpointSession> completedSessions = sessions.Where( s => s.IsComplete ).ToList();
 
 				int cleanedCount = 0;
@@ -325,39 +325,39 @@ namespace KOTORModSync.Dialogs
 
 					await _checkpointService.DeleteSessionAsync( session.Id )
 
-.ConfigureAwait( false );
+.ConfigureAwait(true);
 					cleanedCount++;
 				}
 
 				int orphanedObjects = await _checkpointService.GarbageCollectAsync()
 
-.ConfigureAwait( false );
+.ConfigureAwait(true);
 
 				await ShowSuccessDialog(
 					"Cleanup complete!\n\n" +
 					$"• Deleted {cleanedCount} completed session(s)\n" +
 					$"• Removed {orphanedObjects} orphaned file(s)\n" +
 					$"• Freed approximately {FormatBytes( freedSpace )} of disk space"
-				).ConfigureAwait( false );
+				).ConfigureAwait(true);
 
-				await LoadSessionsAsync().ConfigureAwait( false );
+				await LoadSessionsAsync().ConfigureAwait(true);
 			}
 			catch (Exception ex)
 
 
 			{
 				await Logger.LogErrorAsync( $"Cleanup failed: {ex.Message}" ).ConfigureAwait( false );
-				await ShowErrorDialog( $"Cleanup failed:\n\n{ex.Message}" ).ConfigureAwait( false );
+				await ShowErrorDialog( $"Cleanup failed:\n\n{ex.Message}" ).ConfigureAwait(true);
 			}
 		}
 
 		private async void RefreshButton_Click( object sender, RoutedEventArgs e )
 		{
-			await LoadSessionsAsync().ConfigureAwait( false );
+			await LoadSessionsAsync().ConfigureAwait(true);
 
 			if (_selectedSession != null)
 			{
-				await LoadCheckpointsAsync( _selectedSession ).ConfigureAwait( false );
+				await LoadCheckpointsAsync( _selectedSession ).ConfigureAwait(true);
 			}
 		}
 
@@ -369,13 +369,13 @@ namespace KOTORModSync.Dialogs
 		private async Task ShowSuccessDialog( string message )
 		{
 			var dialog = new MessageDialog( "Success", message, "OK" );
-			await dialog.ShowDialog( this ).ConfigureAwait( false );
+			await dialog.ShowDialog( this ).ConfigureAwait(true);
 		}
 
 		private async Task ShowErrorDialog( string message )
 		{
 			var dialog = new MessageDialog( "Error", message, "OK" );
-			await dialog.ShowDialog( this ).ConfigureAwait( false );
+			await dialog.ShowDialog( this ).ConfigureAwait(true);
 		}
 	}
 

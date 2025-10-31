@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
+using Avalonia.Threading;
 
 using KOTORModSync.Converters;
 using KOTORModSync.Core;
@@ -23,6 +24,11 @@ namespace KOTORModSync.Services
 		/// </summary>
 		public void RenderMarkdownToTextBlock( TextBlock targetTextBlock, string markdownContent )
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => RenderMarkdownToTextBlock(targetTextBlock, markdownContent), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (targetTextBlock is null)
@@ -108,6 +114,11 @@ namespace KOTORModSync.Services
 			TextBlock directionsTextBlock,
 			bool spoilerFreeMode = false )
 		{
+			if (!Dispatcher.UIThread.CheckAccess())
+			{
+				Dispatcher.UIThread.Post(() => RenderComponentMarkdown(component, descriptionTextBlock, directionsTextBlock, spoilerFreeMode), DispatcherPriority.Normal);
+				return;
+			}
 			try
 			{
 				if (component is null)

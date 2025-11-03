@@ -2,11 +2,18 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
+
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -66,10 +73,11 @@ namespace KOTORModSync.Tests
 
         private static string Find7Zip()
         {
-            string[] paths = [
+            string[] paths = new string[]
+            {
                 @"C:\Program Files\7-Zip\7z.exe",
                 @"C:\Program Files (x86)\7-Zip\7z.exe",
-            ];
+            };
 
             foreach (string path in paths)
             {
@@ -83,7 +91,7 @@ namespace KOTORModSync.Tests
             {
                 var process = Process.Start(new ProcessStartInfo
                 {
-                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "where" : "which",
+                    FileName = OperatingSystem.IsWindows() ? "where" : "which",
                     Arguments = "7z",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -96,14 +104,11 @@ namespace KOTORModSync.Tests
                     process.WaitForExit();
                     if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
                     {
-                        return output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+                        return output.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
                     }
                 }
             }
-            catch
-            {
-
-            }
+            catch {}
 
             throw new InvalidOperationException("7-Zip not found. Please install 7-Zip to run these tests.");
         }
@@ -119,7 +124,7 @@ namespace KOTORModSync.Tests
                 {
                     string filePath = Path.Combine(tempDir, kvp.Key);
                     Assert.That(filePath, Is.Not.Null);
-                    string? fileDir = Path.GetDirectoryName(filePath);
+                    string fileDir = Path.GetDirectoryName(filePath);
                     Assert.That(fileDir, Is.Not.Null);
                     if (!string.IsNullOrEmpty(fileDir))
                     {
@@ -179,8 +184,8 @@ namespace KOTORModSync.Tests
             CopyDirectory(realDestPath, virtualDestCopy);
             CopyDirectory(realDestPath, realDestCopy);
 
-            DirectoryInfo? originalSourcePath = MainConfig.SourcePath;
-            DirectoryInfo? originalDestPath = MainConfig.DestinationPath;
+            DirectoryInfo originalSourcePath = MainConfig.SourcePath;
+            DirectoryInfo originalDestPath = MainConfig.DestinationPath;
 
             try
             {
@@ -197,12 +202,12 @@ namespace KOTORModSync.Tests
                 var virtualInstructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(instructions);
                 _ = await virtualComponent.ExecuteInstructionsAsync(
                     virtualInstructions,
-                    [],
+                    new List<ModComponent>(),
                     CancellationToken.None,
                     virtualProvider
                 );
-                await TestContext.Progress.WriteLine($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
-                await TestContext.Progress.WriteLine($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
+                await TestContext.Progress.WriteLineAsync($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
+                await TestContext.Progress.WriteLineAsync($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
 
                 _ = new MainConfig
                 {
@@ -230,7 +235,7 @@ namespace KOTORModSync.Tests
                 var realInstructionsObservable = new System.Collections.ObjectModel.ObservableCollection<Instruction>(realInstructions);
                 _ = await realComponent.ExecuteInstructionsAsync(
                     realInstructionsObservable,
-                    [],
+                    new List<ModComponent>(),
                     CancellationToken.None,
                     realProvider
                 );
@@ -260,7 +265,7 @@ namespace KOTORModSync.Tests
             {
                 string relativePath = file.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string destFile = Path.Combine(destDir, relativePath);
-                string? destFileDir = Path.GetDirectoryName(destFile);
+                string destFileDir = Path.GetDirectoryName(destFile);
 
                 if (!string.IsNullOrEmpty(destFileDir))
                 {
@@ -274,7 +279,8 @@ namespace KOTORModSync.Tests
         private static void AssertFileSystemsMatch(VirtualFileSystemProvider virtualProvider, string realDir, string subfolder = "dest")
         {
 
-            string virtBasePath = Path.GetDirectoryName(Path.GetDirectoryName(realDir))!;
+            string virtBasePath = Path.GetDirectoryName(Path.GetDirectoryName(realDir));
+            Assert.That(virtBasePath, Is.Not.Null);
             string virtualPath = Path.Combine(virtBasePath, "Virtual", subfolder);
 
             var virtualFiles = virtualProvider.GetTrackedFiles()
@@ -480,14 +486,14 @@ namespace KOTORModSync.Tests
                 new Instruction
                 {
                     Action = Instruction.ActionType.Copy,
-                    Source =
-                    [
+                    Source = new List<string>
+                    {
                         @"<<modDirectory>>\files\*.ncs",
                         @"<<modDirectory>>\files\*.dlg",
-                        @"<<modDirectory>>\files\*.2da"
-                    ],
+                        @"<<modDirectory>>\files\*.2da",
+                    },
                     Destination = @"<<kotorDirectory>>\override",
-                    Overwrite = true
+                    Overwrite = true,
                 },
             };
 

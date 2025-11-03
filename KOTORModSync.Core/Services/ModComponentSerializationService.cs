@@ -3736,7 +3736,7 @@ namespace KOTORModSync.Core.Services
                         {
                             {
                                 "thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
-                                    { "Instructions", item }
+                                    { "Instructions", item },
                                 }
                             },
                         };
@@ -3807,7 +3807,7 @@ namespace KOTORModSync.Core.Services
                     {
                         {
                             "thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
-                                { "Options", optionDict }
+                                { "Options", optionDict },
                             }
                         },
                     };
@@ -3859,7 +3859,7 @@ namespace KOTORModSync.Core.Services
                         {
                             {
                                 "thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
-                                    { "OptionsInstructions", instruction }
+                                    { "OptionsInstructions", instruction },
                                 }
                             },
                         };
@@ -3904,7 +3904,7 @@ namespace KOTORModSync.Core.Services
                     {
                     {
                         "thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
-                            { key, item }
+                            { key, item },
                         }
                     },
                 };

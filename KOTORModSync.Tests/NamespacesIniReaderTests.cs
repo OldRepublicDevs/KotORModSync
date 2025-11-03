@@ -2,9 +2,14 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 using KOTORModSync.Core.TSLPatcher;
+
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -163,7 +168,7 @@ Name=hk50 with tslrcm
         public void ParseNamespacesIni_WhenInvalidInput_ThrowsArgumentNullException()
         {
 
-            StreamReader? reader = null;
+            StreamReader reader = null;
 
             _ = Assert.Throws<ArgumentNullException>(() => IniHelper.ParseNamespacesIni(reader));
         }

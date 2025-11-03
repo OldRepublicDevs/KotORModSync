@@ -2,12 +2,18 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
-
+using System.Threading;
+using System.Threading.Tasks;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.FileSystem;
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -15,11 +21,11 @@ namespace KOTORModSync.Tests
     [TestFixture]
     public class VirtualFileSystemTests
     {
-        private string? _testRootDir;
-        private string? _sourceDir;
-        private string? _destinationDir;
-        private string? _sevenZipPath;
-        private MainConfig? _originalConfig;
+        private string _testRootDir;
+        private string _sourceDir;
+        private string _destinationDir;
+        private string _sevenZipPath;
+        private MainConfig _originalConfig;
 
         [OneTimeSetUp]
         public void OneTimeSetUp() => _sevenZipPath = Find7Zip();
@@ -61,10 +67,11 @@ namespace KOTORModSync.Tests
         internal static string Find7Zip()
         {
             string[] paths =
-            [
+            new string[]
+            {
                 @"C:\Program Files\7-Zip\7z.exe",
                 @"C:\Program Files (x86)\7-Zip\7z.exe",
-            ];
+            };
 
             foreach (string path in paths)
             {
@@ -78,7 +85,7 @@ namespace KOTORModSync.Tests
             {
                 var process = Process.Start(new ProcessStartInfo
                 {
-                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "where" : "which",
+                    FileName = OperatingSystem.IsWindows() ? "where" : "which",
                     Arguments = "7z",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -90,7 +97,7 @@ namespace KOTORModSync.Tests
                     process.WaitForExit();
                     if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
                     {
-                        return output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+                        return output.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
                     }
                 }
             }
@@ -108,8 +115,8 @@ namespace KOTORModSync.Tests
                 foreach (var file in files)
                 {
                     string filePath = Path.Combine(tempDir, file.Key);
-                    string? fileDir = Path.GetDirectoryName(filePath);
-                    if (fileDir != null)
+                    string fileDir = Path.GetDirectoryName(filePath);
+                    if (!string.IsNullOrEmpty(fileDir))
                     {
                         _ = Directory.CreateDirectory(fileDir);
                     }
@@ -179,8 +186,8 @@ namespace KOTORModSync.Tests
             CopyDirectory(sourceDir, virtualRoot);
             CopyDirectory(sourceDir, realRoot);
 
-            DirectoryInfo? originalSourcePath = MainConfig.SourcePath;
-            DirectoryInfo? originalDestPath = MainConfig.DestinationPath;
+            DirectoryInfo originalSourcePath = MainConfig.SourcePath;
+            DirectoryInfo originalDestPath = MainConfig.DestinationPath;
 
             var virtualInstructions = new List<Instruction>();
             var realInstructions = new List<Instruction>();
@@ -221,9 +228,9 @@ namespace KOTORModSync.Tests
                     Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(virtualInstructions),
                 };
 
-                _ = await virtualComponent.ExecuteInstructionsAsync(virtualComponent.Instructions, [], CancellationToken.None, virtualProvider);
-                await TestContext.Progress.WriteLine($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
-                await TestContext.Progress.WriteLine($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
+                _ = await virtualComponent.ExecuteInstructionsAsync(virtualComponent.Instructions, new List<ModComponent>(), CancellationToken.None, virtualProvider);
+                await TestContext.Progress.WriteLineAsync($"Virtual Provider - Files tracked: {virtualProvider.GetTrackedFiles().Count}");
+                await TestContext.Progress.WriteLineAsync($"Virtual Provider - Issues: {virtualProvider.GetValidationIssues().Count}");
 
                 _ = new MainConfig
                 {
@@ -239,7 +246,7 @@ namespace KOTORModSync.Tests
                 };
 
                 _ = await realComponent.ExecuteInstructionsAsync(realComponent.Instructions, new List<ModComponent>(), CancellationToken.None, realProvider);
-                await TestContext.Progress.WriteLine("Real Provider - Executed successfully");
+                await TestContext.Progress.WriteLineAsync("Real Provider - Executed successfully");
 
                 return (virtualProvider, Path.Combine(realRoot, "dest"));
             }
@@ -257,7 +264,7 @@ namespace KOTORModSync.Tests
         private static void AssertFileSystemsMatch(VirtualFileSystemProvider virtualProvider, string realDestDir)
         {
 
-            string virtDestPath = Path.GetDirectoryName(Path.GetDirectoryName(realDestDir))!;
+            string virtDestPath = Path.GetDirectoryName(Path.GetDirectoryName(realDestDir));
             string virtualDestPath = Path.Combine(virtDestPath, "Virtual", "dest");
 
             var virtualFiles = virtualProvider.GetTrackedFiles()
@@ -320,8 +327,7 @@ namespace KOTORModSync.Tests
 
             Debug.Assert(_sourceDir != null);
             string archivePath = Path.Combine(_sourceDir, "test.zip");
-            CreateArchive(archivePath, new Dictionary<string, string>
-(StringComparer.Ordinal)
+            CreateArchive(archivePath, new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 { "file1.txt", "Content 1" },
                 { "file2.txt", "Content 2" },
@@ -334,7 +340,7 @@ namespace KOTORModSync.Tests
                 {
                     Action = Instruction.ActionType.Extract,
                     Source = new List<string> { "<<modDirectory>>\\test.zip" },
-                    Destination = "<<modDirectory>>"
+                    Destination = "<<modDirectory>>",
                 },
             };
 
@@ -435,8 +441,8 @@ namespace KOTORModSync.Tests
                 new Instruction { Action = Instruction.ActionType.Extract, Source = new List<string> { "<<modDirectory>>\\wc_set.zip" }, Destination = "<<modDirectory>>" },
                 new Instruction { Action = Instruction.ActionType.Copy, Source = new List<string>
                 {
-                    @"<<modDirectory>>\wc_set\pack\*.txt"
-                }, Destination = "<<kotorDirectory>>\\txts", Overwrite = true },
+                    @"<<modDirectory>>\wc_set\pack\*.txt",
+                }, Destination = "<<kotorDirectory>>\\txts", Overwrite = true, },
             };
 
             (VirtualFileSystemProvider v, string r) = await RunBothProviders(instructions, _sourceDir);
@@ -531,7 +537,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.Move,
                     Source = new List<string> { "<<modDirectory>>\\nope.txt" },
                     Destination = "<<kotorDirectory>>\\anywhere.txt",
-                    Overwrite = true
+                    Overwrite = true,
                 },
             };
 
@@ -564,7 +570,7 @@ namespace KOTORModSync.Tests
             {
                 Action = Instruction.ActionType.Extract,
                     Source = new List<string> { "<<modDirectory>>\\moved.zip" },
-                    Destination = "<<kotorDirectory>>"
+                    Destination = "<<kotorDirectory>>",
                 },
             };
 
@@ -615,7 +621,7 @@ namespace KOTORModSync.Tests
             {
                 Action = Instruction.ActionType.Extract,
                     Source = new List<string> { "<<modDirectory>>\\archives\\copy.zip" },
-                    Destination = "<<kotorDirectory>>\\copy_extract"
+                    Destination = "<<kotorDirectory>>\\copy_extract",
                 },
             };
 
@@ -649,7 +655,7 @@ namespace KOTORModSync.Tests
             {
                 Action = Instruction.ActionType.Extract,
                     Source = new List<string> { "<<modDirectory>>\\newname.zip" },
-                    Destination = "<<kotorDirectory>>"
+                    Destination = "<<kotorDirectory>>",
                 },
             };
 
@@ -702,7 +708,7 @@ namespace KOTORModSync.Tests
             {
                 Action = Instruction.ActionType.Extract,
                     Source = new List<string> { "<<modDirectory>>\\mod3.zip" },
-                    Destination = "<<kotorDirectory>>"
+                    Destination = "<<kotorDirectory>>",
                 },
             };
 
@@ -741,7 +747,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.Move,
                     Source = new List<string> { "<<modDirectory>>\\files\\file1.txt" },
                     Destination = "<<kotorDirectory>>\\final",
-                    Overwrite = true
+                    Overwrite = true,
                 },
             };
 
@@ -775,7 +781,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.Copy,
                     Source = new List<string> { "<<modDirectory>>\\source\\original.txt" },
                     Destination = "<<kotorDirectory>>\\backup",
-                    Overwrite = true
+                    Overwrite = true,
                 },
             };
 
@@ -809,7 +815,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.Rename,
                     Source = new List<string> { "<<modDirectory>>\\content\\oldname.dat" },
                     Destination = "newname.dat",
-                    Overwrite = true
+                    Overwrite = true,
                 },
             };
 
@@ -843,7 +849,7 @@ namespace KOTORModSync.Tests
             new Instruction
             {
                 Action = Instruction.ActionType.Delete,
-                    Source = new List<string> { "<<modDirectory>>\\cleanup\\delete.txt" }
+                    Source = new List<string> { "<<modDirectory>>\\cleanup\\delete.txt" },
                 },
             };
 
@@ -867,7 +873,7 @@ namespace KOTORModSync.Tests
             {
                 Action = Instruction.ActionType.Extract,
                     Source = new List<string> { "<<modDirectory>>\\doesnotexist.zip" },
-                    Destination = "<<kotorDirectory>>"
+                    Destination = "<<kotorDirectory>>",
                 },
             };
 
@@ -903,7 +909,7 @@ namespace KOTORModSync.Tests
             {
                 Action = Instruction.ActionType.Move,
                     Source = new List<string> { "<<modDirectory>>\\test\\file.txt" },
-                    Destination = "<<kotorDirectory>>\\moved.txt"
+                    Destination = "<<kotorDirectory>>\\moved.txt",
                 },
             };
 
@@ -937,7 +943,7 @@ namespace KOTORModSync.Tests
             {
                 Action = Instruction.ActionType.Extract,
                     Source = new List<string> { "<<modDirectory>>\\subdir\\moved.zip" },
-                    Destination = "<<kotorDirectory>>"
+                    Destination = "<<kotorDirectory>>",
                 },
             };
 
@@ -1065,7 +1071,7 @@ namespace KOTORModSync.Tests
             new Instruction
             {
                 Action = Instruction.ActionType.Delete,
-                    Source = new List<string> { "<<modDirectory>>\\temp1.zip" }
+                    Source = new List<string> { "<<modDirectory>>\\temp1.zip" },
                 },
             };
 
@@ -1095,7 +1101,7 @@ namespace KOTORModSync.Tests
                 Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "mod-builds", "TOMLs", "KOTOR1_Mobile_Full.toml"),
             };
 
-            string? tomlPath = null;
+            string tomlPath = null;
             foreach (string path in possiblePaths)
             {
                 try
@@ -1119,7 +1125,7 @@ namespace KOTORModSync.Tests
                 return;
             }
 
-            await TestContext.Progress.WriteLine($"Loading TOML from: {tomlPath}");
+            await TestContext.Progress.WriteLineAsync($"Loading TOML from: {tomlPath}");
 
             List<ModComponent> components;
             try
@@ -1132,22 +1138,22 @@ namespace KOTORModSync.Tests
                 return;
             }
 
-            await TestContext.Progress.WriteLine($"Loaded {components.Count} mods from TOML");
+            await TestContext.Progress.WriteLineAsync($"Loaded {components.Count} mods from TOML");
 
             _ = new MainConfig
             {
                 sourcePath = new DirectoryInfo(modDirectory),
                 destinationPath = new DirectoryInfo(kotorRoot),
             };
-            await TestContext.Progress.WriteLine("Attempting to download mods...");
+            await TestContext.Progress.WriteLineAsync("Attempting to download mods...");
             int downloadedCount = 0;
             int failedCount = 0;
 
             foreach (ModComponent component in components)
             {
-                if (component.ModLinkFilenames.Count == 0)
+                if (component.ResourceRegistry.Count == 0)
                 {
-                    await TestContext.Progress.WriteLine($"  [{component.Name}] No download links available");
+                    await TestContext.Progress.WriteLineAsync($"  [{component.Name}] No download links available");
                     component.IsSelected = false;
                     failedCount++;
                     continue;
@@ -1159,25 +1165,25 @@ namespace KOTORModSync.Tests
                     bool downloaded = await TryDownloadModAsync(component, modDirectory);
                     if (downloaded)
                     {
-                        await TestContext.Progress.WriteLine($"  ✓ [{component.Name}] Downloaded successfully");
+                        await TestContext.Progress.WriteLineAsync($"  ✓ [{component.Name}] Downloaded successfully");
                         downloadedCount++;
                     }
                     else
                     {
-                        await TestContext.Progress.WriteLine($"  ✗ [{component.Name}] Download failed");
+                        await TestContext.Progress.WriteLineAsync($"  ✗ [{component.Name}] Download failed");
                         component.IsSelected = false;
                         failedCount++;
                     }
                 }
                 catch (Exception ex)
                 {
-                    await TestContext.Progress.WriteLine($"  ✗ [{component.Name}] Download error: {ex.Message}");
+                    await TestContext.Progress.WriteLineAsync($"  ✗ [{component.Name}] Download error: {ex.Message}");
                     component.IsSelected = false;
                     failedCount++;
                 }
             }
 
-            await TestContext.Progress.WriteLine($"\nDownload summary: {downloadedCount} successful, {failedCount} failed");
+            await TestContext.Progress.WriteLineAsync($"\nDownload summary: {downloadedCount} successful, {failedCount} failed");
 
             if (downloadedCount == 0)
             {
@@ -1186,7 +1192,7 @@ namespace KOTORModSync.Tests
             }
 
             var selectedComponents = components.Where(c => c.IsSelected).ToList();
-            await TestContext.Progress.WriteLine($"\nInstalling {selectedComponents.Count} mods...");
+            await TestContext.Progress.WriteLineAsync($"\nInstalling {selectedComponents.Count} mods...");
 
             var allInstructions = new List<Instruction>();
             foreach (ModComponent component in selectedComponents)
@@ -1200,7 +1206,7 @@ namespace KOTORModSync.Tests
                 return;
             }
 
-            await TestContext.Progress.WriteLine($"Total instructions: {allInstructions.Count}");
+            await TestContext.Progress.WriteLineAsync($"Total instructions: {allInstructions.Count}");
 
             try
             {
@@ -1212,19 +1218,19 @@ namespace KOTORModSync.Tests
                 var criticalIssues = virtualProvider.GetValidationIssues()
                     .Where(i => i.Severity >= ValidationSeverity.Error)
                     .ToList();
-                await TestContext.Progress.WriteLine("\nInstallation complete!");
-                await TestContext.Progress.WriteLine($"Total validation issues: {virtualProvider.GetValidationIssues().Count}");
-                await TestContext.Progress.WriteLine($"Critical issues: {criticalIssues.Count}");
+                await TestContext.Progress.WriteLineAsync("\nInstallation complete!");
+                await TestContext.Progress.WriteLineAsync($"Total validation issues: {virtualProvider.GetValidationIssues().Count}");
+                await TestContext.Progress.WriteLineAsync($"Critical issues: {criticalIssues.Count}");
 
                 foreach (ValidationIssue issue in criticalIssues.Take(10))
                 {
-                    await TestContext.Progress.WriteLine($"  {issue.Severity}: [{issue.Category}] {issue.Message}");
+                    await TestContext.Progress.WriteLineAsync($"  {issue.Severity}: [{issue.Category}] {issue.Message}");
                 }
 
                 Assert.That(criticalIssues, Is.Empty, "Installation should complete without critical errors");
 
                 AssertFileSystemsMatch(virtualProvider, realDestDir);
-                await TestContext.Progress.WriteLine("\n✓ Installation test passed!");
+                await TestContext.Progress.WriteLineAsync("\n✓ Installation test passed!");
             }
             catch (Exception ex)
             {
@@ -1237,7 +1243,7 @@ namespace KOTORModSync.Tests
             _ = Directory.CreateDirectory(rootPath);
 
             string[] directories =
-            [
+            {
                 "data",
                 "lips",
                 "modules\\extras",
@@ -1249,7 +1255,7 @@ namespace KOTORModSync.Tests
                 "streamwaves\\globe",
                 "TexturePacks",
                 "utils\\swupdateskins",
-            ];
+            };
 
             foreach (string dir in directories)
             {
@@ -1276,11 +1282,11 @@ namespace KOTORModSync.Tests
                         continue;
                     }
 
-                    foreach (string cleanSource in instruction.Source.Select(source => source.Replace("<<modDirectory>>\\", "")
-                                 .Replace("<<modDirectory>>/", "")))
+                    foreach (string cleanSource in instruction.Source.Select(source => source.Replace("<<modDirectory>>\\", "", StringComparison.Ordinal)
+                                 .Replace("<<modDirectory>>/", "", StringComparison.Ordinal)))
                     {
 
-                        if (cleanSource.Contains('*'))
+                        if (cleanSource.Contains('*', StringComparison.Ordinal))
                         {
                             try
                             {
@@ -1320,7 +1326,7 @@ namespace KOTORModSync.Tests
                     continue;
                 }
 
-                await TestContext.Progress.WriteLine($"    Found existing file: {expectedFile}");
+                await TestContext.Progress.WriteLineAsync($"    Found existing file: {expectedFile}");
                 return true;
             }
 

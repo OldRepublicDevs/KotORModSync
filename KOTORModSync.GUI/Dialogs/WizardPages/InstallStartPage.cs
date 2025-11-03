@@ -35,21 +35,21 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             var panel = new StackPanel
             {
-                Spacing = 16
+                Spacing = 16,
             };
 
             panel.Children.Add(new TextBlock
             {
                 Text = "🚀 Ready to Begin Installation",
                 FontSize = 24,
-                FontWeight = FontWeight.Bold
+                FontWeight = FontWeight.Bold,
             });
 
             panel.Children.Add(new TextBlock
             {
                 Text = "Review your mod selection below. Click 'Next' to begin the installation process.",
                 FontSize = 14,
-                TextWrapping = TextWrapping.Wrap
+                TextWrapping = TextWrapping.Wrap,
             });
 
             // Installation summary
@@ -58,19 +58,19 @@ namespace KOTORModSync.Dialogs.WizardPages
             var summaryBorder = new Border
             {
                 Padding = new Avalonia.Thickness(16),
-                CornerRadius = new Avalonia.CornerRadius(8)
+                CornerRadius = new Avalonia.CornerRadius(8),
             };
 
             var summaryPanel = new StackPanel
             {
-                Spacing = 12
+                Spacing = 12,
             };
 
             summaryPanel.Children.Add(new TextBlock
             {
                 Text = $"📦 {selectedMods.Count} mods selected for installation",
                 FontSize = 16,
-                FontWeight = FontWeight.SemiBold
+                FontWeight = FontWeight.SemiBold,
             });
 
             // Show mod list
@@ -78,12 +78,12 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                MaxHeight = 250
+                MaxHeight = 250,
             };
 
             var modListPanel = new StackPanel
             {
-                Spacing = 4
+                Spacing = 4,
             };
 
             foreach (var mod in selectedMods)
@@ -91,7 +91,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 modListPanel.Children.Add(new TextBlock
                 {
                     Text = $"• {mod.Name}",
-                    FontSize = 12
+                    FontSize = 12,
                 });
             }
 
@@ -133,7 +133,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                             FontSize = 13
                         }
                     }
-                }
+                },
             });
 
             Content = panel;

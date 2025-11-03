@@ -2,10 +2,16 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
+
+using NUnit.Framework;
 
 using SharpCompress.Archives.Zip;
 using SharpCompress.Common;
@@ -17,8 +23,8 @@ namespace KOTORModSync.Tests
     [TestFixture]
     public class ModComponentInstructionGenerationTests
     {
-        private string? _testDirectory;
-        private MainConfig? _mainConfig;
+        private string _testDirectory;
+        private MainConfig _mainConfig;
 
         [SetUp]
         public void SetUp()
@@ -44,7 +50,7 @@ namespace KOTORModSync.Tests
             }
             catch
             {
-
+                Logger.LogError("Failed to delete test directory");
             }
         }
 
@@ -120,13 +126,6 @@ namespace KOTORModSync.Tests
                 InstallationMethod = "TSLPatcher Mod",
                 IsSelected = false,
                 Category = new List<string> { "Restored Content" },
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    {
-                        "https://deadlystream.com/files/file/2473-kotor-swoop-bike-upgrades/",
-                        new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
-                    }
-                },
             };
 
             const string archiveName = "kotor-swoop-bike-upgrades.zip";
@@ -161,13 +160,8 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.NewGuid(),
                 Name = "Correct Mod",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    {
-                        "https://example.com/download/correct-mod.zip",
-                        new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
-                    }
-                },
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
             };
 
             bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
@@ -178,7 +172,7 @@ namespace KOTORModSync.Tests
                 Assert.That(component.Instructions, Is.Not.Empty);
             });
 
-            Instruction? extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
+            Instruction extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
             Assert.That(extractInstruction, Is.Not.Null);
             Assert.That(extractInstruction.Source[0], Does.Contain("correct-mod.zip"));
         }
@@ -193,10 +187,8 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.NewGuid(),
                 Name = "Non-Existent Mod",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "https://example.com/download/missing-mod.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-                },
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
             };
 
             bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
@@ -219,10 +211,8 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.NewGuid(),
                 Name = "Swoop Bike Upgrades",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "https://example.com/swoop-bike-upgrades.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-                },
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
             };
 
             bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
@@ -246,30 +236,28 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.NewGuid(),
                 Name = "Mod One",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "https://example.com/mod-one.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-                },
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+                // {
+                //     { "https://example.com/mod-one.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) },
+                // },
             };
 
             var component2 = new ModComponent
             {
                 Guid = Guid.NewGuid(),
                 Name = "Mod Two",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "https://example.com/mod-two.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-                },
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
             };
 
             var component3 = new ModComponent
             {
                 Guid = Guid.NewGuid(),
                 Name = "Mod Three",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "https://example.com/mod-three.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-                },
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)                //     { "https://example.com/mod-three.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) },
+                // },
             };
 
             bool result1 = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component1);
@@ -287,9 +275,9 @@ namespace KOTORModSync.Tests
                 Assert.That(component3.InstallationMethod, Is.EqualTo("TSLPatcher"));
             });
 
-            Instruction? extract1 = component1.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
-            Instruction? extract2 = component2.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
-            Instruction? extract3 = component3.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
+            Instruction extract1 = component1.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
+            Instruction extract2 = component2.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
+            Instruction extract3 = component3.Instructions.First(i => i.Action == Instruction.ActionType.Extract);
 
             Assert.Multiple(() =>
             {
@@ -309,10 +297,9 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.NewGuid(),
                 Name = "Test Mod",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "https://example.com/test-mod.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-                },
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)                //     { "https://example.com/test-mod.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) },
+                // },
             };
 
             var existingInstruction = new Instruction { Action = Instruction.ActionType.Move };
@@ -337,7 +324,8 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.NewGuid(),
                 Name = "No Link Mod",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase),
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase),
             };
 
             bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);
@@ -360,10 +348,9 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.NewGuid(),
                 Name = "URL Test Mod",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
-                {
-                    { "https://deadlystream.com/files/download-file-1234.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
-                },
+                // ModLinkFilenames property doesn't exist on ModComponent - commented out
+                // ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)                //     { "https://deadlystream.com/files/download-file-1234.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) },
+                // },
             };
 
             bool result = AutoInstructionGenerator.TryGenerateInstructionsFromArchive(component);

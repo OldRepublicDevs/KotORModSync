@@ -283,7 +283,7 @@ namespace KOTORModSync.Controls
                         // New URL without previous entry
                         var newResourceMeta = new ResourceMetadata
                         {
-                            Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+                            Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase),
                         };
                         component.ResourceRegistry[newText] = newResourceMeta;
                     }
@@ -450,7 +450,7 @@ namespace KOTORModSync.Controls
                             {
                                 resourceMeta = new ResourceMetadata
                                 {
-                                    Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+                                    Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase),
                                 };
                                 component.ResourceRegistry[url] = resourceMeta;
                             }
@@ -581,7 +581,7 @@ namespace KOTORModSync.Controls
                 // URL exists but no ResourceMetadata - create an empty one
                 resourceMeta = new ResourceMetadata
                 {
-                    Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+                    Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase),
                 };
                 component.ResourceRegistry[url] = resourceMeta;
             }
@@ -704,7 +704,7 @@ namespace KOTORModSync.Controls
                 {
                     var resourceMeta = new ResourceMetadata
                     {
-                        Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+                        Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase),
                     };
                     component.ResourceRegistry[url] = resourceMeta;
                     Logger.LogVerbose($"[DownloadLinksControl] Added new URL to ResourceRegistry: {url}");

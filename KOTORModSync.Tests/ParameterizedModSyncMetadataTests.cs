@@ -12,6 +12,8 @@ using KOTORModSync.Core.CLI;
 using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
 
+using NUnit.Framework;
+
 namespace KOTORModSync.Tests
 {
     [TestFixture]
@@ -34,8 +36,8 @@ namespace KOTORModSync.Tests
                 foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories))
                 {
 
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/"))
+                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        mdFile.Contains("/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -54,8 +56,8 @@ namespace KOTORModSync.Tests
                 foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories))
                 {
 
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/"))
+                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        mdFile.Contains("/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }

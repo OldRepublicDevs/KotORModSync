@@ -2,7 +2,10 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using KOTORModSync.Core;
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -209,27 +212,30 @@ namespace KOTORModSync.Tests
                 Name = "B",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentA.Guid,
-                ],
+                },
             };
             var componentC = new ModComponent
             {
                 Name = "C",
                 Guid = Guid.NewGuid(),
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentA.Guid,
-                ],
+                },
             };
             var componentD = new ModComponent
             {
                 Name = "D",
                 Guid = Guid.NewGuid(),
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentB.Guid,
-                ],
+                },
             };
             var componentFGuid = Guid.Empty;
             var componentE = new ModComponent
@@ -237,58 +243,65 @@ namespace KOTORModSync.Tests
                 Name = "E",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentB.Guid,
-                ],
+                },
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentFGuid,
-                ],
+                },
             };
             var componentF = new ModComponent
             {
                 Name = "F",
                 Guid = componentFGuid,
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentE.Guid, componentB.Guid,
-                ],
+                },
             };
             var componentG = new ModComponent
             {
                 Name = "G",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentD.Guid, componentF.Guid,
-                ],
+                },
             };
             var componentH = new ModComponent
             {
                 Name = "H",
                 Guid = Guid.NewGuid(),
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentG.Guid,
-                ],
+                },
             };
             var componentI = new ModComponent
             {
                 Name = "I",
                 Guid = Guid.NewGuid(),
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentG.Guid,
-                ],
+                },
             };
             var componentJ = new ModComponent
             {
                 Name = "J",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentH.Guid, componentI.Guid,
-                ],
+                },
             };
 
             var correctOrderedComponentsList = new List<ModComponent>
@@ -337,27 +350,30 @@ namespace KOTORModSync.Tests
                 Name = "B",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentA.Guid,
-                ],
+                },
             };
             var componentC = new ModComponent
             {
                 Name = "C",
                 Guid = Guid.NewGuid(),
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentA.Guid,
-                ],
+                },
             };
             var componentD = new ModComponent
             {
                 Name = "D",
                 Guid = Guid.NewGuid(),
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentB.Guid,
-                ],
+                },
             };
             var componentFGuid = Guid.Empty;
             var componentE = new ModComponent
@@ -365,62 +381,70 @@ namespace KOTORModSync.Tests
                 Name = "E",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentB.Guid,
-                ],
+                },
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentFGuid,
-                ],
+                },
             };
             var componentF = new ModComponent
             {
                 Name = "F",
                 Guid = componentFGuid,
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentE.Guid, componentB.Guid,
-                ],
+                },
             };
             var componentG = new ModComponent
             {
                 Name = "G",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentD.Guid, componentF.Guid,
-                ],
+                },
             };
             var componentH = new ModComponent
             {
                 Name = "H",
                 Guid = Guid.NewGuid(),
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentG.Guid,
-                ],
+                },
             };
             var componentI = new ModComponent
             {
                 Name = "I",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentH.Guid,
-                ],
+                },
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentG.Guid,
-                ],
+                },
             };
             var componentJ = new ModComponent
             {
                 Name = "J",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentH.Guid, componentI.Guid,
-                ],
+                },
             };
 
             var unorderedComponentsList = new List<ModComponent>
@@ -476,31 +500,35 @@ namespace KOTORModSync.Tests
                 Name = "A",
                 Guid = Guid.NewGuid(),
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     Guid.NewGuid(),
-                ],
+                },
             };
             var componentB = new ModComponent
             {
                 Name = "B",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentA.Guid,
-                ],
+                },
             };
             var componentC = new ModComponent
             {
                 Name = "C",
                 Guid = Guid.NewGuid(),
                 InstallAfter =
-                [
+                new List<Guid>
+                {
                     componentB.Guid,
-                ],
+                },
                 InstallBefore =
-                [
+                new List<Guid>
+                {
                     componentA.Guid,
-                ],
+                },
             };
 
             var componentsList = new List<ModComponent>

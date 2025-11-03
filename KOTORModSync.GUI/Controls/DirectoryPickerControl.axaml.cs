@@ -81,11 +81,14 @@ namespace KOTORModSync.Controls
         private string _pendingPath;
         private CancellationTokenSource _pathSuggestCts;
         private FileSystemWatcher _fileSystemWatcher;
+        private DirectoryPickerType _pickerType; // Cached value for thread-safe access
 
         public DirectoryPickerControl()
         {
             InitializeComponent();
             DataContext = this;
+            // Initialize cached value for thread-safe access
+            _pickerType = PickerType;
             Logger.LogVerbose($"DirectoryPickerControl[Type={PickerType}] constructed");
         }
 
@@ -155,6 +158,11 @@ namespace KOTORModSync.Controls
             }
             else if (change.Property == PickerTypeProperty)
             {
+                // Cache the value for thread-safe access from background threads
+                if (change.NewValue is DirectoryPickerType newType)
+                {
+                    _pickerType = newType;
+                }
                 InitializePathSuggestions();
             }
 
@@ -319,7 +327,7 @@ namespace KOTORModSync.Controls
                     @"C:\Program Files (x86)\Steam\steamapps\common\swkotor",
                     @"C:\Program Files (x86)\Steam\steamapps\common\Knights of the Old Republic II",
                     @"C:\Program Files\Steam\steamapps\common\swkotor",
-                    @"C:\Program Files\Steam\steamapps\common\Knights of the Old Republic II"
+                    @"C:\Program Files\Steam\steamapps\common\Knights of the Old Republic II",
                 });
 
 
@@ -328,7 +336,7 @@ namespace KOTORModSync.Controls
                     @"C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR",
                     @"C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR2",
                     @"C:\Program Files\GOG Galaxy\Games\Star Wars - KotOR",
-                    @"C:\Program Files\GOG Galaxy\Games\Star Wars - KotOR2"
+                    @"C:\Program Files\GOG Galaxy\Games\Star Wars - KotOR2",
                 });
 
 
@@ -337,7 +345,7 @@ namespace KOTORModSync.Controls
                     @"C:\Program Files (x86)\Origin Games\Star Wars Knights of the Old Republic",
                     @"C:\Program Files (x86)\Origin Games\Star Wars Knights of the Old Republic II - The Sith Lords",
                     @"C:\Program Files\Origin Games\Star Wars Knights of the Old Republic",
-                    @"C:\Program Files\Origin Games\Star Wars Knights of the Old Republic II - The Sith Lords"
+                    @"C:\Program Files\Origin Games\Star Wars Knights of the Old Republic II - The Sith Lords",
                 });
             }
             else if (osType == OSPlatform.OSX)
@@ -348,7 +356,7 @@ namespace KOTORModSync.Controls
                     Path.Combine(homeDir, "Library/Application Support/Steam/steamapps/common/swkotor"),
                     Path.Combine(homeDir, "Library/Application Support/Steam/steamapps/common/Knights of the Old Republic II"),
                     "/Applications/Knights of the Old Republic.app",
-                    "/Applications/Knights of the Old Republic II.app"
+                    "/Applications/Knights of the Old Republic II.app",
                 });
             }
             else if (osType == OSPlatform.Linux)
@@ -359,7 +367,7 @@ namespace KOTORModSync.Controls
                     Path.Combine(homeDir, ".steam/steam/steamapps/common/swkotor"),
                     Path.Combine(homeDir, ".steam/steam/steamapps/common/Knights of the Old Republic II"),
                     Path.Combine(homeDir, ".local/share/Steam/steamapps/common/swkotor"),
-                    Path.Combine(homeDir, ".local/share/Steam/steamapps/common/Knights of the Old Republic II")
+                    Path.Combine(homeDir, ".local/share/Steam/steamapps/common/Knights of the Old Republic II"),
                 });
             }
 
@@ -550,7 +558,7 @@ namespace KOTORModSync.Controls
                 var options = new FolderPickerOpenOptions
                 {
                     Title = PickerType == DirectoryPickerType.ModDirectory ? "Select Mod Directory" : "Select KOTOR Installation Directory",
-                    AllowMultiple = false
+                    AllowMultiple = false,
                 };
 
 
@@ -1051,7 +1059,7 @@ namespace KOTORModSync.Controls
                 {
                     NotifyFilter = NotifyFilters.DirectoryName,
                     IncludeSubdirectories = false,
-                    InternalBufferSize = 65536 // 64KB (maximum recommended size)
+                    InternalBufferSize = 65536, // 64KB (maximum recommended size)
                 };
 
                 _fileSystemWatcher.Created += OnFileSystemChanged;
@@ -1085,7 +1093,8 @@ namespace KOTORModSync.Controls
         {
             try
             {
-                Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] File system changed: {e.ChangeType} - {e.FullPath}");
+                // Use cached _pickerType instead of property access (which requires UI thread)
+                Logger.LogVerbose($"DirectoryPickerControl[{_pickerType}] File system changed: {e.ChangeType} - {e.FullPath}");
 
 
                 Dispatcher.UIThread.Post(() =>
@@ -1098,7 +1107,8 @@ namespace KOTORModSync.Controls
             }
             catch (Exception ex)
             {
-                Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] Error handling file system change: {ex.Message}");
+                // Use cached _pickerType instead of property access (which requires UI thread)
+                Logger.LogVerbose($"DirectoryPickerControl[{_pickerType}] Error handling file system change: {ex.Message}");
             }
         }
     }
@@ -1107,7 +1117,7 @@ namespace KOTORModSync.Controls
     public enum DirectoryPickerType
     {
         ModDirectory,
-        KotorDirectory
+        KotorDirectory,
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]

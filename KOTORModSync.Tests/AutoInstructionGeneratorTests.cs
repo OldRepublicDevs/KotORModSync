@@ -23,7 +23,7 @@ namespace KOTORModSync.Tests
     [TestFixture]
     public class AutoInstructionGeneratorTests
     {
-        private string? _testDirectory;
+        private string _testDirectory;
 
         [SetUp]
         public void SetUp()
@@ -261,9 +261,9 @@ namespace KOTORModSync.Tests
             });
 
             var archive1Instructions = component.Instructions.Where(i =>
-                i.Source != null && i.Source.Any(s => s.Contains("archive1"))).ToList();
+                i.Source != null && i.Source.Any(s => s.Contains("archive1", StringComparison.Ordinal))).ToList();
             var archive2Instructions = component.Instructions.Where(i =>
-                i.Source != null && i.Source.Any(s => s.Contains("archive2"))).ToList();
+                i.Source != null && i.Source.Any(s => s.Contains("archive2", StringComparison.Ordinal))).ToList();
 
             Assert.Multiple(() =>
             {
@@ -284,10 +284,10 @@ namespace KOTORModSync.Tests
             var component = new ModComponent { Name = "Test Mod", Guid = Guid.NewGuid() };
 
             AutoInstructionGenerator.GenerateInstructions(component, archivePath);
-            var firstGuids = component.Instructions.Select(i => i.Guid).ToList();
+            var firstGuids = component.Instructions.Select(i => i.GetHashCode()).ToList();
 
             AutoInstructionGenerator.GenerateInstructions(component, archivePath);
-            var secondGuids = component.Instructions.Select(i => i.Guid).ToList();
+            var secondGuids = component.Instructions.Select(i => i.GetHashCode()).ToList();
 
             Assert.Multiple(() =>
             {
@@ -300,7 +300,10 @@ namespace KOTORModSync.Tests
 
         private string CreateTestArchive(string fileName, Action<ZipArchive> populateArchive)
         {
-            Debug.Assert(_testDirectory is not null, "Test directory is null");
+            if (_testDirectory is null)
+            {
+                throw new InvalidOperationException("Test directory is null");
+            }
             string archivePath = Path.Combine(_testDirectory, fileName);
 
             using (var archive = ZipArchive.Create())

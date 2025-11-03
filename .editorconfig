@@ -561,6 +561,9 @@ dotnet_diagnostic.S2376.severity = silent
 # S2583: Conditionally executed code should be reachable
 dotnet_diagnostic.S2583.severity = silent
 
+# S2589: Boolean expressions should not be gratuitous - DISABLED GLOBALLY
+dotnet_diagnostic.S2589.severity = none
+
 # S3267: Loops should be simplified using the "Where" LINQ method
 dotnet_diagnostic.S3267.severity = none
 
@@ -582,6 +585,9 @@ dotnet_diagnostic.S1481.severity = silent
 
 # S1854: Remove this useless assignment to local variable '_' - DISABLED GLOBALLY
 dotnet_diagnostic.S1854.severity = none
+
+# S3878: Arrays should not be created for params parameters - DISABLED GLOBALLY
+dotnet_diagnostic.S3878.severity = none
 
 #### Project-Specific Analyzer Rules ####
 

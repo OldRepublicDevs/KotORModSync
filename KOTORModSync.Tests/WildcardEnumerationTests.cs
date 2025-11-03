@@ -2,7 +2,13 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+
 using KOTORModSync.Core.FileSystemUtils;
+
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -44,10 +50,10 @@ namespace KOTORModSync.Tests
             foreach (KeyValuePair<string, string> kvp in pathsToTest)
             {
                 string realPath = Path.Combine(_basePath, kvp.Key);
-                string? directoryPath = Path.GetDirectoryName(realPath);
-                if (!Directory.Exists(directoryPath))
+                string directoryPath = Path.GetDirectoryName(realPath);
+                if (directoryPath != null && !Directory.Exists(directoryPath))
                 {
-                    _ = Directory.CreateDirectory(directoryPath!);
+                    _ = Directory.CreateDirectory(directoryPath);
                 }
 
                 File.WriteAllText(realPath, contents: "Arbitrary content for testing.");
@@ -56,14 +62,14 @@ namespace KOTORModSync.Tests
             foreach (KeyValuePair<string, string> kvp in pathsToTest)
             {
                 string wildcardPath = Path.Combine(_basePath, kvp.Value);
-                List<string> paths =
-                [
+                List<string> paths = new List<string>
+                {
                     wildcardPath,
-                ];
+                };
                 List<string> files = PathHelper.EnumerateFilesWithWildcards(paths, new Core.Services.FileSystem.RealFileSystemProvider());
 
                 TestContext.Progress.WriteLine($"Files found for path: {wildcardPath}");
-                foreach (string? file in files)
+                foreach (string file in files)
                 {
                     TestContext.Progress.WriteLine(file);
                 }

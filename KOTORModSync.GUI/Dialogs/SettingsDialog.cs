@@ -1282,12 +1282,11 @@ namespace KOTORModSync.Dialogs
                         }
                     }
 
-                    var successDialog = new MessageDialog(
-                        "Installation Complete",
+                    await InformationDialog.ShowInformationDialogAsync(
+                        this,
                         $"PyKotor {displayVersion} source code has been installed.\n\nHoloPatcher will use this version.",
-                        "OK"
+                        "Installation Complete"
                     );
-                    await successDialog.ShowDialog(this);
 
                     // Ensure the combobox still shows the selected version after installation
                     var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
@@ -1318,12 +1317,11 @@ namespace KOTORModSync.Dialogs
                 await Logger
                     .LogExceptionAsync(ex, "Failed to download and install PyKotor")
                     ;
-                var errorDialog = new MessageDialog(
-                    "Installation Failed",
+                await InformationDialog.ShowInformationDialogAsync(
+                    this,
                     $"Failed to install PyKotor:\n\n{ex.Message}",
-                    "OK"
+                    "Installation Failed"
                 );
-                await errorDialog.ShowDialog(this);
             }
         }
 

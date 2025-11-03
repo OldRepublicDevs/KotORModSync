@@ -68,26 +68,26 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             var mainPanel = new Grid
             {
-                RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto")
+                RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto"),
             };
 
             // Progress section
             var progressPanel = new StackPanel
             {
-                Spacing = 8
+                Spacing = 8,
             };
             Grid.SetRow(progressPanel, 0);
 
             var progressHeader = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("*,Auto")
+                ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             };
 
             _percentText = new TextBlock
             {
                 Text = "0%",
                 FontSize = 18,
-                FontWeight = FontWeight.Bold
+                FontWeight = FontWeight.Bold,
             };
             Grid.SetColumn(_percentText, 0);
             progressHeader.Children.Add(_percentText);
@@ -96,7 +96,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Text = "0/0 mods installed",
                 FontSize = 14,
-                HorizontalAlignment = HorizontalAlignment.Right
+                HorizontalAlignment = HorizontalAlignment.Right,
             };
             Grid.SetColumn(_countText, 1);
             progressHeader.Children.Add(_countText);
@@ -108,7 +108,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Height = 18,
                 Minimum = 0,
                 Maximum = 1,
-                Value = 0
+                Value = 0,
             };
             progressPanel.Children.Add(_mainProgressBar);
 
@@ -116,14 +116,14 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Text = "Preparing installation...",
                 FontSize = 14,
-                FontWeight = FontWeight.SemiBold
+                FontWeight = FontWeight.SemiBold,
             };
             progressPanel.Children.Add(_currentModText);
 
             _currentModProgress = new ProgressBar
             {
                 Height = 6,
-                IsIndeterminate = true
+                IsIndeterminate = true,
             };
             progressPanel.Children.Add(_currentModProgress);
 
@@ -136,7 +136,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 FontSize = 12,
                 Opacity = 0.8,
                 Margin = new Avalonia.Thickness(0, 16, 0, 0),
-                MaxHeight = 100
+                MaxHeight = 100,
             }, 1);
             mainPanel.Children.Add(_directionsText);
 
@@ -145,7 +145,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 ColumnDefinitions = new ColumnDefinitions("*,*,*,*"),
                 RowDefinitions = new RowDefinitions("Auto,Auto"),
-                Margin = new Avalonia.Thickness(0, 16, 0, 0)
+                Margin = new Avalonia.Thickness(0, 16, 0, 0),
             };
             Grid.SetRow(statsGrid, 2);
 
@@ -172,7 +172,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Text = "Initializing...",
                 FontSize = 12,
-                Opacity = 0.7
+                Opacity = 0.7,
             };
             Grid.SetRow(_currentOperationText, 0);
             Grid.SetColumn(_currentOperationText, 3);
@@ -202,7 +202,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                     FontSize = 12,
                     Opacity = 0.5,
                     HorizontalAlignment = HorizontalAlignment.Center
-                }
+                },
             }, 3);
 
             Content = mainPanel;
@@ -212,20 +212,20 @@ namespace KOTORModSync.Dialogs.WizardPages
         {
             var panel = new StackPanel
             {
-                Spacing = 4
+                Spacing = 4,
             };
 
             panel.Children.Add(new TextBlock
             {
                 Text = label,
                 FontSize = 12,
-                FontWeight = FontWeight.SemiBold
+                FontWeight = FontWeight.SemiBold,
             });
 
             valueText = new TextBlock
             {
                 Text = "---",
-                FontSize = 14
+                FontSize = 14,
             };
             panel.Children.Add(valueText);
 

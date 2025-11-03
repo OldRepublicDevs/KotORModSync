@@ -13,10 +13,10 @@
     x:Name="RootWindow"
     Title="KOTORModSync"
     Width="1280"
-    Height="720"
+    Height="800"
     MinWidth="600"
     MinHeight="400"
-    d:DesignHeight="720"
+    d:DesignHeight="800"
     d:DesignWidth="1280"
     DragDrop.AllowDrop="True"
     ExtendClientAreaChromeHints="NoChrome"
@@ -48,37 +48,102 @@
     <Window.Styles />
 
     <Panel>
-
-        <Grid
-            x:Name="MainGrid"
-            MinWidth="200"
-            RowDefinitions="Auto,Auto,*">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MinWidth="250" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!--  Header row: menu (left), centered title (middle), window controls (right)  -->
-            <Grid
-                Grid.Row="0"
-                Grid.Column="0"
-                Grid.ColumnSpan="2">
+        <Grid RowDefinitions="Auto,Auto,*">
+            <!--  Header row: menu, toggles, title, toggles, theme switcher, window controls  -->
+            <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Menu x:Name="TopMenu" Grid.Column="0" />
+                <Menu x:Name="TopMenu" Grid.Column="0" VerticalAlignment="Center" />
+
+                <!--  Spoiler-Free Toggle (left of title)  -->
+                <ToggleSwitch
+                    x:Name="SpoilerFreeModeToggle"
+                    Grid.Column="1"
+                    Margin="10,0,10,0"
+                    VerticalAlignment="Center"
+                    Content="Spoiler-Free"
+                    IsChecked="{Binding SpoilerFreeMode, Mode=TwoWay}"
+                    IsVisible="{Binding !EditorMode}"
+                    ToolTip.Tip="Hide spoiler content" />
+
+                <!--  Title (center)  -->
                 <TextBlock
                     x:Name="TitleTextBlock"
-                    Grid.Column="1"
+                    Grid.Column="2"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     FontSize="24"
                     FontWeight="Bold"
                     Text="KOTORModSync" />
+
+                <!--  Wizard Mode Toggle (right of title)  -->
+                <ToggleSwitch
+                    x:Name="WizardModeToggle"
+                    Grid.Column="3"
+                    Margin="10,0,10,0"
+                    VerticalAlignment="Center"
+                    Content="Wizard Mode"
+                    IsChecked="{Binding WizardMode, Mode=TwoWay}"
+                    IsVisible="{Binding !EditorMode}"
+                    ToolTip.Tip="Use wizard interface for guided installation" />
+
+                <!--  Theme Switcher (segmented control style)  -->
+                <Border
+                    Grid.Column="4"
+                    Margin="10,0,10,0"
+                    VerticalAlignment="Center"
+                    CornerRadius="4"
+                    IsVisible="{Binding !WizardMode}">
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="0">
+                        <Button
+                            x:Name="LightThemeButton"
+                            MinWidth="36"
+                            Height="28"
+                            Margin="0"
+                            Padding="8,4"
+                            Click="SwitchToLightTheme_Click"
+                            Content="☀"
+                            CornerRadius="4,0,0,4"
+                            FontSize="14"
+                            ToolTip.Tip="Light Theme" />
+                        <Button
+                            x:Name="K1ThemeButton"
+                            MinWidth="36"
+                            Height="28"
+                            Margin="0"
+                            Padding="8,4"
+                            Click="SwitchToK1Theme_Click"
+                            Content="K1"
+                            CornerRadius="0"
+                            FontSize="11"
+                            FontWeight="Bold"
+                            ToolTip.Tip="KOTOR 1 Theme" />
+                        <Button
+                            x:Name="TslThemeButton"
+                            MinWidth="36"
+                            Height="28"
+                            Margin="0"
+                            Padding="8,4"
+                            Click="SwitchToTslTheme_Click"
+                            Content="K2"
+                            CornerRadius="0,4,4,0"
+                            FontSize="11"
+                            FontWeight="Bold"
+                            ToolTip.Tip="KOTOR 2 Theme" />
+                    </StackPanel>
+                </Border>
+
+                <!--  Window Controls  -->
                 <StackPanel
-                    Grid.Column="2"
+                    Grid.Column="5"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
@@ -86,8 +151,6 @@
                     <Button
                         Width="40"
                         Height="40"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
                         HorizontalContentAlignment="Center"
                         Click="MinimizeButton_Click"
                         Content="-"
@@ -95,8 +158,6 @@
                     <Button
                         Width="40"
                         Height="40"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
                         HorizontalContentAlignment="Center"
                         Click="ToggleMaximizeButton_Click"
                         Content="▢"
@@ -104,92 +165,55 @@
                     <Button
                         Width="40"
                         Height="40"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
                         HorizontalContentAlignment="Center"
                         Click="CloseButton_Click"
                         Content="X"
                         FontSize="15" />
                 </StackPanel>
             </Grid>
-            <!--  Getting Started button row  -->
-            <Grid
-                Grid.Row="1"
-                Grid.Column="0"
-                Grid.ColumnSpan="2"
-                RowDefinitions="Auto,Auto">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel
-                    Grid.Row="0"
-                    Grid.RowSpan="2"
-                    Grid.Column="0"
-                    Margin="10,4,10,4"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal">
-                    <ToggleSwitch
-                        x:Name="EditorModeToggle"
-                        Margin="0,0,20,0"
-                        VerticalAlignment="Center"
-                        Content="Editor Mode"
-                        IsChecked="{Binding EditorMode, Mode=TwoWay}"
-                        ToolTip.Tip="Toggle to enable Editor Mode: exposes Raw/Editor tabs, editing buttons, and creation tools. When off, the UI is simplified for end users installing mods." />
-                    <ToggleSwitch
-                        x:Name="SpoilerFreeModeToggle"
-                        Margin="0,0,20,0"
-                        VerticalAlignment="Center"
-                        Content="Spoiler-Free Mode"
-                        IsChecked="{Binding SpoilerFreeMode, Mode=TwoWay}"
-                        IsVisible="{Binding !EditorMode}"
-                        ToolTip.Tip="Toggle to enable Spoiler-Free Mode: hides spoiler content in descriptions, directions, and other text fields to avoid plot reveals." />
-                </StackPanel>
+
+            <!--  Home button row (when not in wizard mode)  -->
+            <Grid Grid.Row="1" ColumnDefinitions="*">
                 <Button
                     x:Name="HomeButton"
-                    Grid.Row="0"
-                    Grid.RowSpan="2"
-                    Grid.Column="1"
+                    Grid.Column="0"
                     MinWidth="300"
+                    MaxWidth="500"
                     Margin="10,4,10,4"
                     Padding="24,12"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
                     Click="HomeButton_Click"
                     Content="🏠 Home"
                     FontSize="18"
+                    IsVisible="{Binding !WizardMode}"
                     ToolTip.Tip="Return to the getting started guide" />
-                <StackPanel
-                    Grid.Column="2"
-                    Margin="0,4,10,4"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Orientation="Vertical"
-                    Spacing="4">
-                    <Button
-                        x:Name="OutputWindowButton"
-                        HorizontalAlignment="Stretch"
-                        Click="OpenOutputWindow_Click"
-                        Content="📊 Output Window"
-                        ToolTip.Tip="Open the output window to view detailed logs" />
-                    <Button
-                        x:Name="HeaderSettingsButton"
-                        HorizontalAlignment="Stretch"
-                        Click="OpenSettings_Click"
-                        Content="⚙️ Settings"
-                        ToolTip.Tip="Open settings dialog to configure preferences" />
-                </StackPanel>
             </Grid>
+
+            <!-- Content Area: Wizard Mode or Normal Mode -->
+            <!-- Wizard Mode (shown when WizardMode is true and EditorMode is false) -->
+            <controls:WizardHostControl
+                x:Name="WizardHost"
+                Grid.Row="2"
+                IsVisible="{Binding WizardMode}" />
+
+            <!-- Normal Mode (shown when not in wizard mode) -->
+            <Grid
+                x:Name="MainGrid"
+                Grid.Row="2"
+                MinWidth="200"
+                RowDefinitions="*">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="250" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
             <!--  Mod List Sidebar  -->
             <controls:ModListSidebar
                 x:Name="ModListSidebar"
-                Grid.Row="2"
+                Grid.Row="0"
                 Grid.Column="0"
+                IsVisible="{Binding !WizardMode}"
                 AddNewModRequested="AddNewMod_Click"
                 ApplyCategorySelectionsRequested="ApplyCategorySelections_Click"
                 AutofetchInstructionsRequested="AutoGenerateAllComponents_Click"
@@ -207,14 +231,16 @@
                 SelectByTierRequested="SelectByTier_Click"
                 ValidateAllModsRequested="ValidateAllMods_Click" />
             <GridSplitter
-                Grid.Row="2"
+                Grid.Row="0"
                 Grid.Column="0"
-                HorizontalAlignment="Right" />
+                HorizontalAlignment="Right"
+                IsVisible="{Binding !WizardMode}" />
             <TabControl
                 x:Name="TabControl"
-                Grid.Row="2"
+                Grid.Row="0"
                 Grid.Column="1"
                 HorizontalAlignment="Stretch"
+                IsVisible="{Binding !WizardMode}"
                 SelectionChanged="TabControl_SelectionChanged">
                 <TabItem
                     x:Name="InitialTab"
@@ -404,5 +430,6 @@
                 </Border>
             </Grid>
         </Border>
+        </Grid>
     </Panel>
 </Window>

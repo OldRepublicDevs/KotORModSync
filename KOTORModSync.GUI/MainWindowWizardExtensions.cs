@@ -82,7 +82,7 @@ namespace KOTORModSync
                         _telemetryService?.RecordEvent("installation.wizard.completed", new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                         {
                             ["success"] = true,
-                            ["cancelled"] = false
+                            ["cancelled"] = false,
                         });
                     }
                     else if (wizard.InstallationCancelled)
@@ -93,7 +93,7 @@ namespace KOTORModSync
                         _telemetryService?.RecordEvent("installation.wizard.completed", new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                         {
                             ["success"] = false,
-                            ["cancelled"] = true
+                            ["cancelled"] = true,
                         });
                     }
                 });

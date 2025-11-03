@@ -27,7 +27,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             panel.Children.Add(new ScrollViewer
             {
                 MaxHeight = 350,
-                Content = new TextBlock { Text = widescreenContent ?? string.Empty, TextWrapping = TextWrapping.Wrap, FontSize = 14 }
+                Content = new TextBlock { Text = widescreenContent ?? string.Empty, TextWrapping = TextWrapping.Wrap, FontSize = 14 },
             });
             Content = panel;
         }

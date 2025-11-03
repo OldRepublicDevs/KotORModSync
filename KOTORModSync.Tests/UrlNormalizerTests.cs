@@ -2,6 +2,8 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+
 using KOTORModSync.Core.Utility;
 
 using NUnit.Framework;
@@ -38,8 +40,11 @@ namespace KOTORModSync.Tests
             string normalized1 = UrlNormalizer.Normalize(url1);
             string normalized2 = UrlNormalizer.Normalize(url2);
 
-            Assert.That(normalized1, Does.Not.Contain(":443"));
-            Assert.That(normalized2, Does.Not.Contain(":80"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(normalized1, Does.Not.Contain(":443"));
+                Assert.That(normalized2, Does.Not.Contain(":80"));
+            });
         }
 
         [Test]
@@ -97,8 +102,11 @@ namespace KOTORModSync.Tests
             int mIndex = normalized.IndexOf("m=", StringComparison.Ordinal);
             int zIndex = normalized.IndexOf("z=", StringComparison.Ordinal);
 
-            Assert.That(aIndex, Is.LessThan(mIndex));
-            Assert.That(mIndex, Is.LessThan(zIndex));
+            Assert.Multiple(() =>
+            {
+                Assert.That(aIndex, Is.LessThan(mIndex));
+                Assert.That(mIndex, Is.LessThan(zIndex));
+            });
         }
 
         [Test]

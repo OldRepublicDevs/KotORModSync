@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,8 +20,6 @@ namespace KOTORModSync.Core.Services.Download
         private static bool _initialized;
         private static dynamic _client;
         private static readonly Dictionary<string, string> _urlHashes = new Dictionary<string, string>(StringComparer.Ordinal);
-        private static int _listenPort;
-
         private const int MaxSendKbps = 100;
 
         // Phase 4 additions
@@ -39,8 +38,7 @@ namespace KOTORModSync.Core.Services.Download
             string contentId = null)
 
         {
-            await EnsureInitializedAsync()
-.ConfigureAwait(false);
+            await EnsureInitializedAsync().ConfigureAwait(false);
 
             if (_client is null)
             {
@@ -88,7 +86,7 @@ namespace KOTORModSync.Core.Services.Download
                             // CRITICAL: Cancel the losing download to prevent resource waste
                             // Each download uses its own unique temp file via GetTempFilePath(),
                             // so there's no file collision risk. The cancelled task will clean up its own temp file.
-                            cts.Cancel();
+                            await cts.CancelAsync();
 
                             // Log which source won
                             if (completed == distributedTask)
@@ -178,14 +176,14 @@ namespace KOTORModSync.Core.Services.Download
                         return Task.CompletedTask;
                     }
 
-                    _listenPort = FindAvailablePort();
-                    Logger.LogVerbose($"[Cache] Using port {_listenPort} for distributed cache");
+                    int lp = FindAvailablePort();
+                    Logger.LogVerbose($"[Cache] Using {lp} for distributed cache");
 
                     dynamic settings = Activator.CreateInstance(engineSettingsType);
-                    settings.ListenPort = _listenPort;
+                    settings.ListenPort = lp;
                     settings.MaximumUploadSpeed = MaxSendKbps * 1024;
 
-                    settings.DhtPort = _listenPort;
+                    settings.DhtPort = lp;
 
                     settings.AllowPortForwarding = true;
 
@@ -218,7 +216,7 @@ namespace KOTORModSync.Core.Services.Download
                     }
 
                     _initialized = true;
-                    Logger.LogVerbose($"[Cache] Distributed cache initialized (port {_listenPort}, UPnP enabled)");
+                    Logger.LogVerbose($"[Cache] Distributed cache initialized ({lp})");
                 }
                 catch (Exception ex)
                 {
@@ -251,7 +249,6 @@ namespace KOTORModSync.Core.Services.Download
                     {
                         try { listener.Stop(); } catch { }
                     }
-                    continue;
                 }
             }
 
@@ -281,16 +278,12 @@ namespace KOTORModSync.Core.Services.Download
                 {
                     await Logger.LogVerboseAsync($"[Cache] No cached metadata for URL").ConfigureAwait(false);
                     return null;
-
                 }
 
                 await Logger.LogVerboseAsync($"[Cache] Attempting optimized download").ConfigureAwait(false);
 
                 var metadataType = Type.GetType(D("TW9ub1RvcnJlbnQuVG9ycmVudCwgTW9ub1RvcnJlbnQ="));
-                dynamic metadata =
-
-
-                await Task.Run(() =>
+                dynamic metadata = await Task.Run(() =>
                 {
                     System.Reflection.MethodInfo loadMethod = metadataType.GetMethod(D("TG9hZA=="), new[] { typeof(string) });
                     return loadMethod.Invoke(null, new object[] { cachePath });
@@ -311,10 +304,10 @@ namespace KOTORModSync.Core.Services.Download
 
                 await manager.StartAsync();
 
-                DateTime startTime = DateTime.Now;
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 var timeout = TimeSpan.FromHours(2);
 
-                while (!cancellationToken.IsCancellationRequested && DateTime.Now - startTime < timeout)
+                while (!cancellationToken.IsCancellationRequested && stopwatch.Elapsed < timeout)
                 {
                     if (manager.State.ToString() == D("U2VlZGluZw==") || manager.Complete)
                     {
@@ -429,9 +422,7 @@ namespace KOTORModSync.Core.Services.Download
 
                 dynamic manager = Activator.CreateInstance(managerType, metadata, Path.GetDirectoryName(filePath));
 
-                await _client.Register(
-
-manager);
+                await _client.Register(manager);
                 await manager.StartAsync();
 
                 await Logger.LogVerboseAsync($"[Cache] Background sharing started: {Path.GetFileName(filePath)}").ConfigureAwait(false);
@@ -499,7 +490,7 @@ manager);
             {
                 if (url.Contains("nexusmods.com"))
                 {
-                    System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(url, @"nexusmods\.com/([^/]+)/mods/(\d+)");
+                    Match match = Regex.Match(url, @"nexusmods\.com/([^/]+)/mods/(\d+)", RegexOptions.None, TimeSpan.FromSeconds(2));
                     if (match.Success)
                     {
                         return $"nexusmods:{match.Groups[1].Value}:{match.Groups[2].Value}";
@@ -507,10 +498,10 @@ manager);
                 }
                 else if (url.Contains("deadlystream.com"))
                 {
-                    System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(
+                    Match match = Regex.Match(
                         url,
                         @"deadlystream\.com/files/file/(\d+)",
-                        System.Text.RegularExpressions.RegexOptions.None,
+                        RegexOptions.None,
                         TimeSpan.FromSeconds(2)
                     );
                     if (match.Success)
@@ -520,8 +511,8 @@ manager);
                 }
                 else if (url.Contains("mega.nz"))
                 {
-                    System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(
-                        url, @"mega\.nz/(file|folder)/([A-Za-z0-9_-]+)", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(2)
+                    Match match = Regex.Match(
+                        url, @"mega\.nz/(file|folder)/([A-Za-z0-9_-]+)", RegexOptions.None, TimeSpan.FromSeconds(2)
                     );
                     if (match.Success)
                     {
@@ -567,9 +558,7 @@ manager);
             string primaryUrl)
         {
             // Build deterministic info dict from metadata ONLY
-            var infoDict = new SortedDictionary<string, object>
-
-(StringComparer.Ordinal)
+            var infoDict = new SortedDictionary<string, object>(StringComparer.Ordinal)
             {
                 ["provider"] = normalizedMetadata["provider"],
                 ["url_canonical"] = Utility.UrlNormalizer.Normalize(primaryUrl, stripQueryParameters: true),
@@ -715,126 +704,6 @@ manager);
             string contentHashSHA256 = BitConverter.ToString(sha256).Replace("-", "").ToLowerInvariant();
 
             return (contentHashSHA256, pieceLength, pieceHashes);
-        }
-
-        /// <summary>
-        /// DEPRECATED: Use ComputeContentIdFromMetadata() for pre-download ContentId, then ComputeFileIntegrityData() post-download.
-        /// This function computes ContentId from file bytes (wrong approach for P2P discovery).
-        /// Kept for backward compatibility only.
-        /// </summary>
-        [Obsolete("Use ComputeContentIdFromMetadata() before download, then ComputeFileIntegrityData() after download")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        public static async Task<(string contentId, string contentHashSHA256, int pieceLength, string pieceHashes)> ComputeContentIdentifiers(string filePath)
-        {
-            var fileInfo = new FileInfo(filePath);
-            long fileSize = fileInfo.Length;
-
-            // 1. Determine canonical piece size
-            int pieceLength = DeterminePieceSize(fileSize);
-
-            // 2. Compute piece hashes (SHA-1, 20 bytes each)
-            var pieceHashList = new List<byte[]>();
-            using (FileStream fs = File.OpenRead(filePath))
-            {
-                byte[] buffer = new byte[pieceLength];
-                while (true)
-
-                {
-#if NET48
-					int bytesRead = await fs.ReadAsync(buffer, 0, pieceLength);
-#else
-                    int bytesRead = await fs.ReadAsync(buffer.AsMemory(0, pieceLength)).ConfigureAwait(false);
-#endif
-                    if (bytesRead == 0)
-                    {
-                        break;
-                    }
-
-                    byte[] pieceData = bytesRead == pieceLength ? buffer : buffer.Take(bytesRead).ToArray();
-#if NET48
-					using ( var sha1 = SHA1.Create() )
-					{
-						byte[] pieceHash = sha1.ComputeHash(pieceData);
-						pieceHashList.Add(pieceHash);
-					}
-#else
-                    byte[] pieceHash = SHA1.HashData(pieceData);
-                    pieceHashList.Add(pieceHash);
-#endif
-                }
-            }
-
-            // Concatenate piece hashes as hex
-            string pieceHashes = string.Concat(pieceHashList.Select(h => BitConverter.ToString(h).Replace("-", "").ToLowerInvariant()));
-
-            // 3. Build canonical bencoded info dict (BitTorrent spec)
-            string sanitizedName = SanitizeFilename(Path.GetFileName(filePath));
-            byte[] piecesRaw = pieceHashList.SelectMany(h => h).ToArray(); // Raw SHA-1 bytes concatenated
-
-            var infoDict = new SortedDictionary<string, object>
-
-(StringComparer.Ordinal)
-            {
-                ["length"] = fileSize,
-                ["name"] = sanitizedName,
-                ["piece length"] = (long)pieceLength,
-                ["pieces"] = piecesRaw,
-                ["private"] = (long)0,
-            };
-
-            byte[] bencodedInfo = Utility.CanonicalBencoding.BencodeCanonical(infoDict);
-#if NET48
-			byte[] infohash;
-			using ( var sha1 = SHA1.Create() )
-			{
-				infohash = sha1.ComputeHash(bencodedInfo);
-			}
-#else
-            byte[] infohash = SHA1.HashData(bencodedInfo);
-#endif
-            string contentId = BitConverter.ToString(infohash).Replace("-", "").ToLowerInvariant();
-
-            // 4. Compute SHA-256 of entire file (CANONICAL integrity check)
-            byte[] sha256;
-            using (FileStream fs = File.OpenRead(filePath))
-            {
-#if NET48
-				using ( var sha = SHA256.Create() )
-				{
-					sha256 = sha.ComputeHash(fs);
-				}
-#else
-                sha256 = await SHA256.HashDataAsync(fs).ConfigureAwait(false);
-#endif
-            }
-            string contentHashSHA256 = BitConverter.ToString(sha256).Replace("-", "").ToLowerInvariant();
-
-            return (contentId, contentHashSHA256, pieceLength, pieceHashes);
-        }
-
-        /// <summary>
-        /// Sanitizes a filename for canonical content identification.
-        /// </summary>
-        public static string SanitizeFilename(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                return name;
-            }
-
-            // Normalize to Unicode NFC
-            name = name.Normalize(NormalizationForm.FormC);
-
-            // Replace backslashes with forward slashes
-            name = name.Replace('\\', '/');
-
-            // Remove any path components (keep filename only)
-            if (name.Contains('/'))
-            {
-                name = name.Substring(name.LastIndexOf('/') + 1);
-            }
-
-            return name;
         }
 
         /// <summary>

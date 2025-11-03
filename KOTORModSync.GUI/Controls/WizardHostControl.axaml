@@ -1,0 +1,182 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Controls.WizardHostControl"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="720"
+    d:DesignWidth="1280"
+    mc:Ignorable="d">
+
+    <Border
+        Padding="0"
+        CornerRadius="0">
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Header with progress indicator -->
+            <Border
+                Grid.Row="0"
+                Padding="24,16"
+                CornerRadius="0">
+                <Grid RowDefinitions="Auto,Auto">
+                    <!-- Theme selector (segmented control style) -->
+                    <Border
+                        Grid.Row="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,0,0,8"
+                        CornerRadius="4">
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="0">
+                            <Button
+                                x:Name="LightThemeButton"
+                                MinWidth="36"
+                                Height="28"
+                                Margin="0"
+                                Padding="8,4"
+                                Click="SwitchToLightTheme_Click"
+                                Content="☀"
+                                CornerRadius="4,0,0,4"
+                                FontSize="14"
+                                ToolTip.Tip="Light Theme" />
+                            <Button
+                                x:Name="K1ThemeButton"
+                                MinWidth="36"
+                                Height="28"
+                                Margin="0"
+                                Padding="8,4"
+                                Click="SwitchToK1Theme_Click"
+                                Content="K1"
+                                CornerRadius="0"
+                                FontSize="11"
+                                FontWeight="Bold"
+                                ToolTip.Tip="KOTOR 1 Theme" />
+                            <Button
+                                x:Name="TslThemeButton"
+                                MinWidth="36"
+                                Height="28"
+                                Margin="0"
+                                Padding="8,4"
+                                Click="SwitchToTslTheme_Click"
+                                Content="K2"
+                                CornerRadius="0,4,4,0"
+                                FontSize="11"
+                                FontWeight="Bold"
+                                ToolTip.Tip="KOTOR 2 Theme" />
+                        </StackPanel>
+                    </Border>
+                    <!-- Title and progress row -->
+                    <Grid
+                        Grid.Row="1"
+                        ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="8">
+                            <TextBlock
+                                x:Name="PageTitleText"
+                                FontSize="24"
+                                FontWeight="Bold"
+                                Text="Welcome" />
+                            <TextBlock
+                                x:Name="PageSubtitleText"
+                                FontSize="14"
+                                Opacity="0.7"
+                                Text="Welcome to the KOTORModSync Installation Wizard" />
+                        </StackPanel>
+                        <StackPanel
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Spacing="4">
+                            <TextBlock
+                                x:Name="ProgressStepText"
+                                HorizontalAlignment="Right"
+                                FontSize="12"
+                                Opacity="0.7"
+                                Text="Step 1 of 15" />
+                            <ProgressBar
+                                x:Name="WizardProgress"
+                                Width="200"
+                                Height="6"
+                                Maximum="15"
+                                Minimum="0"
+                                Value="1" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Content area with page transition -->
+            <Border
+                Grid.Row="1"
+                Padding="16,16">
+                <ScrollViewer
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
+                    <ContentControl x:Name="PageContent" />
+                </ScrollViewer>
+            </Border>
+
+            <!-- Navigation buttons -->
+            <Border
+                Grid.Row="2"
+                Padding="24,16"
+                CornerRadius="0">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                    <Button
+                        x:Name="CancelButton"
+                        Grid.Column="0"
+                        MinWidth="100"
+                        Padding="12,8"
+                        Click="CancelButton_Click"
+                        Content="Cancel" />
+
+                    <StackPanel
+                        Grid.Column="1"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <TextBlock
+                            x:Name="StatusText"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Opacity="0.7" />
+                        <ProgressBar
+                            x:Name="StatusProgress"
+                            Width="200"
+                            Height="4"
+                            IsIndeterminate="True"
+                            IsVisible="False" />
+                    </StackPanel>
+
+                    <Button
+                        x:Name="BackButton"
+                        Grid.Column="2"
+                        MinWidth="100"
+                        Margin="0,0,8,0"
+                        Padding="12,8"
+                        Click="BackButton_Click"
+                        Content="← Back" />
+                    <Button
+                        x:Name="NextButton"
+                        Grid.Column="3"
+                        MinWidth="100"
+                        Margin="0,0,8,0"
+                        Padding="12,8"
+                        Click="NextButton_Click"
+                        Content="Next →" />
+                    <Button
+                        x:Name="FinishButton"
+                        Grid.Column="4"
+                        MinWidth="100"
+                        Padding="12,8"
+                        Click="FinishButton_Click"
+                        Content="Finish"
+                        IsVisible="False" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>
+

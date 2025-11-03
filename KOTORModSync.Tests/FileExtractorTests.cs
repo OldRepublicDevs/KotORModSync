@@ -2,9 +2,15 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.IO.Compression;
+using System.Threading.Tasks;
 
 using KOTORModSync.Core;
+
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -17,37 +23,34 @@ namespace KOTORModSync.Tests
         {
 
             _destinationPath = new DirectoryInfo("DestinationPath");
-            _sourcePaths =
-            [
+            _sourcePaths = new List<string>
+            {
                 "SourcePath1", "SourcePath2", "SourcePath3",
-            ];
+            };
         }
 
         [TearDown]
         public void TearDown()
         {
 
-            if (_destinationPath is
-                {
-                    Exists: true,
-                })
+            if (_destinationPath != null && _destinationPath.Exists)
             {
                 _destinationPath.Delete(true);
             }
         }
 
-        private DirectoryInfo? _destinationPath;
-        private List<string>? _sourcePaths;
+        private DirectoryInfo _destinationPath;
+        private List<string> _sourcePaths;
 
         [Test]
         public async Task ExtractFileAsync_ValidArchive_Success()
         {
 
             string archivePath = CreateTemporaryArchive("validArchive.zip");
-            _sourcePaths =
-            [
+            _sourcePaths = new List<string>
+            {
                 archivePath,
-            ];
+            };
 
             Instruction.ActionExitCode extractionResult =
                 await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
@@ -68,9 +71,10 @@ namespace KOTORModSync.Tests
 
             string archivePath = CreateTemporaryArchive("invalidArchive.zip");
             _sourcePaths =
-            [
+            new List<string>
+            {
                 archivePath,
-            ];
+            };
 
             Instruction.ActionExitCode extractionResult =
                 await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);
@@ -115,9 +119,10 @@ namespace KOTORModSync.Tests
 
             string archivePath = CreateTemporaryArchive("archiveWithPermissionDenied.zip");
             _sourcePaths =
-            [
+            new List<string>
+            {
                 archivePath,
-            ];
+            };
 
             Instruction.ActionExitCode extractionResult =
                 await new Instruction().ExtractFileAsync(_destinationPath, _sourcePaths);

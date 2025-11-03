@@ -18,7 +18,7 @@ namespace KOTORModSync.Tests
     [TestFixture]
     public class DownloadCacheConcurrencyTests
     {
-        private string? _testDirectory;
+        private string _testDirectory;
 
         [SetUp]
         public void Setup()
@@ -66,9 +66,12 @@ namespace KOTORModSync.Tests
 
             await Task.WhenAll(tasks);
 
-            // All should have acquired and released
-            Assert.That(acquired, Is.EqualTo(10));
-            Assert.That(released, Is.EqualTo(10));
+            Assert.Multiple(() =>
+            {
+                // All should have acquired and released
+                Assert.That(acquired, Is.EqualTo(10));
+                Assert.That(released, Is.EqualTo(10));
+            });
         }
 
         [Test]
@@ -141,7 +144,7 @@ namespace KOTORModSync.Tests
             for (int i = 0; i < 5; i++)
             {
                 string file = Path.Combine(_testDirectory, $"test_{i}.txt");
-                await File.WriteAllText(file, $"Content {i}");
+                await File.WriteAllTextAsync(file, $"Content {i}");
                 files.Add(file);
             }
 
@@ -152,8 +155,11 @@ namespace KOTORModSync.Tests
             Assert.That(results.Length, Is.EqualTo(5));
             foreach (var result in results)
             {
-                Assert.That(result.contentHashSHA256, Has.Length.EqualTo(64));
-                Assert.That(result.pieceLength, Is.GreaterThan(0));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.contentHashSHA256, Has.Length.EqualTo(64));
+                    Assert.That(result.pieceLength, Is.GreaterThan(0));
+                });
             }
         }
 
@@ -177,7 +183,7 @@ namespace KOTORModSync.Tests
 
             // All results should be identical
             string first = results[0];
-            foreach (string? result in results)
+            foreach (string result in results)
             {
                 Assert.That(result, Is.EqualTo(first));
             }
@@ -254,7 +260,7 @@ namespace KOTORModSync.Tests
             Assert.That(uniquePaths.Count, Is.EqualTo(10));
 
             // All should be in .partial directory
-            foreach (string? path in paths)
+            foreach (string path in paths)
             {
                 Assert.That(path, Does.Contain(".partial"));
             }

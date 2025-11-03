@@ -2,18 +2,22 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Threading.Tasks;
 
 using KOTORModSync.Core.FileSystemUtils;
 
+using NUnit.Framework;
 using Xunit;
-
 using Assert = Xunit.Assert;
+using System.Threading;
+using System.Linq;
 
 namespace KOTORModSync.Tests
 {
-
-
     public class CrossPlatformFileWatcherTests : IDisposable
     {
         private readonly string _testDirectory;
@@ -53,7 +57,7 @@ namespace KOTORModSync.Tests
                 catch { }
             }
 
-            foreach (string? dir in _createdDirectories.OrderByDescending(d => d.Length))
+            foreach (string dir in _createdDirectories.OrderByDescending(d => d.Length))
             {
                 try
                 {
@@ -109,7 +113,7 @@ namespace KOTORModSync.Tests
         public void Constructor_WithNullPath_ThrowsArgumentNullException()
         {
 
-            var exception = Assert.Throws<ArgumentNullException>(() => new CrossPlatformFileWatcher(null!));
+            var exception = Assert.Throws<ArgumentNullException>(() => new CrossPlatformFileWatcher(null));
             Assert.Equal("path", exception.ParamName);
         }
 
@@ -157,8 +161,6 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
 
             watcher.Dispose();
-            watcher.Dispose();
-            watcher.Dispose();
         }
 
         #endregion
@@ -172,7 +174,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Created += (sender, e) =>
@@ -190,7 +192,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised within 5 seconds of file creation");
             Assert.NotNull(capturedEvent);
-            Assert.Equal(WatcherChangeTypes.Created, capturedEvent!.ChangeType);
+            Assert.Equal(WatcherChangeTypes.Created, capturedEvent.ChangeType);
             Assert.Equal(fileName, capturedEvent.Name);
             Assert.True(File.Exists(filePath), "Created file must actually exist on file system");
         }
@@ -208,7 +210,7 @@ namespace KOTORModSync.Tests
 
             watcher.Created += (_, e) =>
             {
-                createdFiles.Add(e.Name!);
+                createdFiles.Add(e.Name);
                 lock (lockObj)
                 {
                     eventCount++;
@@ -218,7 +220,7 @@ namespace KOTORModSync.Tests
             watcher.StartWatching();
             await Task.Delay(100);
 
-            string[] fileNames = ["file1.txt", "file2.txt", "file3.txt"];
+            string[] fileNames = new string[] { "file1.txt", "file2.txt", "file3.txt" };
             foreach (string fileName in fileNames)
             {
                 CreateTestFile(_testDirectory, fileName);
@@ -244,12 +246,12 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory, "*.log");
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Created += (_, e) =>
             {
-                if (e.Name!.EndsWith(".log", StringComparison.Ordinal))
+                if (e.Name.EndsWith(".log", StringComparison.Ordinal))
                 {
                     capturedEvent = e;
                     eventReceived.Set();
@@ -265,7 +267,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised for .log file");
             Assert.NotNull(capturedEvent);
-            Assert.Equal(fileName, capturedEvent!.Name);
+            Assert.Equal(fileName, capturedEvent.Name);
             Assert.EndsWith(".log", capturedEvent.Name, StringComparison.Ordinal);
         }
 
@@ -284,7 +286,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Deleted += (_, e) =>
@@ -301,7 +303,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Deleted event must be raised within 5 seconds of file deletion");
             Assert.NotNull(capturedEvent);
-            Assert.Equal(WatcherChangeTypes.Deleted, capturedEvent!.ChangeType);
+            Assert.Equal(WatcherChangeTypes.Deleted, capturedEvent.ChangeType);
             Assert.Equal(fileName, capturedEvent.Name);
             Assert.False(File.Exists(filePath), "Deleted file must no longer exist on file system");
         }
@@ -328,7 +330,7 @@ namespace KOTORModSync.Tests
 
             watcher.Deleted += (_, e) =>
             {
-                deletedFiles.Add(e.Name!);
+                deletedFiles.Add(e.Name);
                 lock (lockObj)
                 {
                     eventCount++;
@@ -371,7 +373,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Changed += (_, e) =>
@@ -392,7 +394,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Changed event must be raised within 5 seconds of file modification");
             Assert.NotNull(capturedEvent);
-            Assert.Equal(WatcherChangeTypes.Changed, capturedEvent!.ChangeType);
+            Assert.Equal(WatcherChangeTypes.Changed, capturedEvent.ChangeType);
             Assert.Equal(fileName, capturedEvent.Name);
             Assert.Equal(modifiedContent, await File.ReadAllTextAsync(filePath));
         }
@@ -429,7 +431,7 @@ namespace KOTORModSync.Tests
             for (int i = 0; i < modifications; i++)
             {
                 await Task.Delay(200);
-                await File.WriteAllText(filePath, $"content version {i}");
+                await File.WriteAllTextAsync(filePath, $"content version {i}");
             }
 
             await Task.Delay(800);
@@ -455,7 +457,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Created += (_, e) =>
@@ -477,7 +479,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised when file is moved into watched directory");
             Assert.NotNull(capturedEvent);
-            Assert.Equal(fileName, capturedEvent!.Name);
+            Assert.Equal(fileName, capturedEvent.Name);
             Assert.True(File.Exists(destinationFilePath), "File must exist in watched directory after move");
             Assert.False(File.Exists(sourceFilePath), "File must not exist in source location after move");
         }
@@ -493,7 +495,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Deleted += (_, e) =>
@@ -515,7 +517,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Deleted event must be raised when file is moved out of watched directory");
             Assert.NotNull(capturedEvent);
-            Assert.Equal(fileName, capturedEvent!.Name);
+            Assert.Equal(fileName, capturedEvent.Name);
             Assert.False(File.Exists(sourceFilePath), "File must not exist in watched directory after move");
             Assert.True(File.Exists(destinationFilePath), "File must exist in destination location after move");
         }
@@ -590,19 +592,19 @@ namespace KOTORModSync.Tests
 
             string fileName = "copy_source.txt";
             string sourceFilePath = Path.Combine(_externalDirectory, fileName);
-            await File.WriteAllText(sourceFilePath, "content to copy");
+            await File.WriteAllTextAsync(sourceFilePath, "content to copy");
             _createdFiles.Add(sourceFilePath);
             await Task.Delay(500);
 
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Created += (sender, e) =>
             {
-                if (e.Name!.Contains("copy_dest"))
+                if (e.Name.Contains("copy_dest", System.StringComparison.Ordinal))
                 {
                     capturedEvent = e;
                     eventReceived.Set();
@@ -620,10 +622,10 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised when file is copied into watched directory");
             Assert.NotNull(capturedEvent);
-            Assert.Equal(destinationFileName, capturedEvent!.Name);
+            Assert.Equal(destinationFileName, capturedEvent.Name);
             Assert.True(File.Exists(destinationFilePath), "Destination file must exist after copy");
             Assert.True(File.Exists(sourceFilePath), "Source file must still exist after copy");
-            Assert.Equal(await File.ReadAllText(sourceFilePath), await File.ReadAllText(destinationFilePath));
+            Assert.Equal(await File.ReadAllTextAsync(sourceFilePath), await File.ReadAllTextAsync(destinationFilePath));
         }
 
         #endregion
@@ -642,12 +644,12 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory, includeSubdirectories: true);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Created += (sender, e) =>
             {
-                if (e.Name!.Contains("subdir"))
+                if (e.Name.Contains("subdir", System.StringComparison.Ordinal))
                 {
                     capturedEvent = e;
                     eventReceived.Set();
@@ -663,7 +665,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised for file in subdirectory when includeSubdirectories is true");
             Assert.NotNull(capturedEvent);
-            Assert.True(capturedEvent!.Name!.Contains(fileName), $"Event name should contain {fileName}");
+            Assert.True(capturedEvent.Name.Contains(fileName), $"Event name should contain {fileName}");
             Assert.True(File.Exists(filePath), "File must exist in subdirectory");
         }
 
@@ -683,7 +685,7 @@ namespace KOTORModSync.Tests
 
             watcher.Created += (_, e) =>
             {
-                if (e.Name!.Contains(subDirName))
+                if (e.Name.Contains(subDirName, System.StringComparison.Ordinal))
                 {
                     eventRaisedForSubdir = true;
                 }
@@ -715,7 +717,7 @@ namespace KOTORModSync.Tests
 
             watcher.Created += (_, e) =>
             {
-                detectedFiles.Add(e.Name!);
+                detectedFiles.Add(e.Name);
             };
 
             watcher.StartWatching();
@@ -745,7 +747,7 @@ namespace KOTORModSync.Tests
 
             bool eventRaised = false;
 
-            watcher.Created += (_, _) =>
+            watcher.Created += (_, __) =>
             {
                 eventRaised = true;
             };
@@ -778,7 +780,7 @@ namespace KOTORModSync.Tests
             int eventCount = 0;
             object lockObj = new object();
 
-            watcher.Created += (_, _) =>
+            watcher.Created += (_, __) =>
             {
                 lock (lockObj)
                 {
@@ -831,7 +833,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Created += (_, e) =>
@@ -855,7 +857,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(5));
             Assert.True(signaled, "Created event must be raised for large file");
             Assert.NotNull(capturedEvent);
-            Assert.Equal("largefile.dat", capturedEvent!.Name);
+            Assert.Equal("largefile.dat", capturedEvent.Name);
             Assert.True(File.Exists(filePath), "Large file must exist");
             Assert.True(new FileInfo(filePath).Length >= 5 * 1024 * 1024, "File size must be at least 5MB");
         }
@@ -871,7 +873,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? capturedEvent = null;
+            FileSystemEventArgs capturedEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Created += (_, e) =>
@@ -893,7 +895,7 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised for empty file");
             Assert.NotNull(capturedEvent);
-            Assert.Equal("empty.txt", capturedEvent!.Name);
+            Assert.Equal("empty.txt", capturedEvent.Name);
             Assert.True(File.Exists(filePath), "Empty file must exist");
             Assert.Equal(0, new FileInfo(filePath).Length);
         }
@@ -913,7 +915,7 @@ namespace KOTORModSync.Tests
 
             watcher.Created += (_, e) =>
             {
-                detectedFiles.Add(e.Name!);
+                detectedFiles.Add(e.Name);
             };
 
             watcher.StartWatching();

@@ -14,6 +14,8 @@ using KOTORModSync.Core.Parsing;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Services.Download;
 
+using NUnit.Framework;
+
 namespace KOTORModSync.Tests
 {
     [TestFixture]
@@ -29,8 +31,8 @@ namespace KOTORModSync.Tests
             // TestTempDirectory is now created in base class
 
             var mainConfig = new MainConfig();
-            mainConfig.sourcePath = new DirectoryInfo(TestTempDirectory!);
-            mainConfig.destinationPath = new DirectoryInfo(Path.Combine(TestTempDirectory!, "KOTOR"));
+            mainConfig.sourcePath = new DirectoryInfo(TestTempDirectory);
+            mainConfig.destinationPath = new DirectoryInfo(Path.Combine(TestTempDirectory, "KOTOR"));
             Directory.CreateDirectory(mainConfig.destinationPath.FullName);
             WriteLog($"KOTOR directory created: {mainConfig.destinationPath.FullName}");
         }
@@ -55,8 +57,8 @@ namespace KOTORModSync.Tests
                 foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories))
                 {
 
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/"))
+                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        mdFile.Contains("/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -74,8 +76,8 @@ namespace KOTORModSync.Tests
                 foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories))
                 {
 
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/"))
+                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        mdFile.Contains("/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -103,8 +105,8 @@ namespace KOTORModSync.Tests
             {
                 foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.AllDirectories))
                 {
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/"))
+                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        mdFile.Contains("/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -113,7 +115,7 @@ namespace KOTORModSync.Tests
                     MarkdownParserResult parseResult = parser.Parse(markdown);
 
                     var deadlyStreamComponents = parseResult.Components
-                        .Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
+                        .Where(c => c.ResourceRegistry != null && c.ResourceRegistry.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
                             link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
                         .ToList();
 
@@ -135,8 +137,8 @@ namespace KOTORModSync.Tests
             {
                 foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.AllDirectories))
                 {
-                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/"))
+                    if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                        mdFile.Contains("/validated/", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -145,7 +147,7 @@ namespace KOTORModSync.Tests
                     MarkdownParserResult parseResult = parser.Parse(markdown);
 
                     var deadlyStreamComponents = parseResult.Components
-                        .Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
+                        .Where(c => c.ResourceRegistry != null && c.ResourceRegistry.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
                             link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
                         .ToList();
 
@@ -172,13 +174,13 @@ namespace KOTORModSync.Tests
             WriteLog($"Component GUID: {component.Guid}");
             WriteLog($"Component Author: {component.Author}");
 
-            var deadlyStreamLinks = component.ModLinkFilenames.Keys
+            var deadlyStreamLinks = component.ResourceRegistry.Keys
                 .Where(link => !string.IsNullOrWhiteSpace(link) &&
                     link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             WriteLogAndConsole($"Deadlystream link(s): {deadlyStreamLinks.Count}");
-            foreach (var link in deadlyStreamLinks)
+            foreach (string link in deadlyStreamLinks)
             {
                 WriteLogAndConsole($"  - {link}");
             }
@@ -212,7 +214,7 @@ namespace KOTORModSync.Tests
             WriteLogAndConsole($"Total components: {parseResult.Components.Count}");
 
             var deadlyStreamComponents = parseResult.Components
-                .Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
+                .Where(c => c.ResourceRegistry != null && c.ResourceRegistry.Keys.Any(link => !string.IsNullOrWhiteSpace(link) &&
                     link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase)))
                 .ToList();
 
@@ -239,14 +241,14 @@ namespace KOTORModSync.Tests
                     continue;
                 }
 
-                var deadlyStreamLinks = component.ModLinkFilenames
+                var deadlyStreamLinks = component.ResourceRegistry
                     .Keys.Where(link => !string.IsNullOrWhiteSpace(link) &&
                         link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 WriteLogAndConsole($"\n{component.Name}:");
                 WriteLogAndConsole($"  Deadlystream link(s): {deadlyStreamLinks.Count}");
-                foreach (var link in deadlyStreamLinks.Take(2))
+                foreach (string link in deadlyStreamLinks.Take(2))
                 {
                     WriteLogAndConsole($"    - {link}");
                 }
@@ -276,7 +278,7 @@ namespace KOTORModSync.Tests
             if (componentsWithoutInstructions.Count > 0)
             {
                 WriteLogAndConsole($"\nComponents without instructions:");
-                foreach (string? name in componentsWithoutInstructions.Take(10))
+                foreach (string name in componentsWithoutInstructions.Take(10))
                 {
                     WriteLogAndConsole($"  - {name}");
                 }
@@ -318,21 +320,21 @@ namespace KOTORModSync.Tests
 
             foreach (var component in parseResult.Components)
             {
-                if (component.ModLinkFilenames is null)
+                if (component.ResourceRegistry is null)
                 {
                     continue;
                 }
 
-                var deadlyStreamLinks = component.ModLinkFilenames
+                var deadlyStreamLinks = component.ResourceRegistry
                     .Keys.Where(link => !string.IsNullOrWhiteSpace(link) &&
                         link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
                 deadlyStreamLinkCount += deadlyStreamLinks.Count;
 
-                foreach (var link in deadlyStreamLinks)
+                foreach (string link in deadlyStreamLinks)
                 {
-                    if (!Uri.TryCreate(link, UriKind.Absolute, out Uri? uri) ||
+                    if (!Uri.TryCreate(link, UriKind.Absolute, out Uri uri) ||
                         (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal) && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)))
                     {
                         invalidLinks++;
@@ -484,7 +486,7 @@ namespace KOTORModSync.Tests
 
                 methodCounts[method]++;
 
-                bool hasDeadlyStream = component.ModLinkFilenames?.Keys.Any(link =>
+                bool hasDeadlyStream = component.ResourceRegistry.Keys.Any(link =>
                     !string.IsNullOrWhiteSpace(link) &&
                     link.Contains("deadlystream.com", StringComparison.OrdinalIgnoreCase));
 
@@ -511,7 +513,7 @@ namespace KOTORModSync.Tests
 
             WriteLogAndConsole($"\nTotal components: {parseResult.Components.Count}");
             WriteLogAndConsole($"\nInstallation Methods:");
-            foreach (var kvp in methodCounts.OrderByDescending(x => x.Value))
+            foreach (KeyValuePair<string, int> kvp in methodCounts.OrderByDescending(x => x.Value))
             {
                 int dsCount = componentsWithDeadlyStream.GetValueOrDefault(kvp.Key, 0);
                 int instrCount = componentsWithInstructions.GetValueOrDefault(kvp.Key, 0);

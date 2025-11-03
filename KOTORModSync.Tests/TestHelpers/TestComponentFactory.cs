@@ -2,7 +2,10 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 
 using KOTORModSync.Core;
 
@@ -41,15 +44,17 @@ namespace KOTORModSync.Tests.TestHelpers
 
         private static void CreateMinimalZip(string path)
         {
-            _ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            byte[] emptyZip = [
+            string dir = Path.GetDirectoryName(path);
+            if (dir != null) Directory.CreateDirectory(dir);
+            byte[] emptyZip = new byte[]
+            {
                 0x50, 0x4B, 0x05, 0x06,
                 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00,
-            ];
+            };
             File.WriteAllBytes(path, emptyZip);
         }
     }

@@ -128,7 +128,8 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                     PreferExistingInstallationMethod = false,
                     PreferExistingInstructions = false,
                     PreferExistingOptions = false,
-                    PreferExistingModLinkFilenames = false,
+                    // PreferExistingModLinkFilenames doesn't exist - using PreferExistingModLinks instead if needed
+                    // PreferExistingModLinks = false,
                 };
 
                 List<ModComponent> mergedComponents = await ComponentMergeService.MergeInstructionSetsAsync(
@@ -144,22 +145,31 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 Assert.That(mergedComponents.Count, Is.EqualTo(1));
 
                 ModComponent mergedComponent = mergedComponents[0];
-                Assert.That(mergedComponent.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
-                Assert.That(mergedComponent.Author, Is.EqualTo("Salk & Kainzorus Prime"));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(mergedComponent.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
+                    Assert.That(mergedComponent.Author, Is.EqualTo("Salk & Kainzorus Prime"));
+                });
 
                 // The critical assertion: Directions should come from INCOMING (markdown), not existing (TOML)
                 string expectedDirections = "The choice of which version to use is up to you; I recommend PC Response Moderation, as it makes your character sound less like a giddy little schoolchild following every little dialogue, but if you prefer only bugfixes it is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable is)—in this very specific case, NOT the override.";
                 string actualDirections = mergedComponent.Directions;
 
-                Assert.That(actualDirections, Is.EqualTo(expectedDirections),
-                    $"Directions should come from INCOMING file, not EXISTING file.\nExpected (incoming): {expectedDirections}\nActual: {actualDirections}");
+                Assert.Multiple(() =>
+                {
+                    Assert.That(actualDirections, Is.EqualTo(expectedDirections),
+                                    $"Directions should come from INCOMING file, not EXISTING file.\nExpected (incoming): {expectedDirections}\nActual: {actualDirections}");
 
-                // Also verify other incoming fields are preserved
-                Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"));
-                Assert.That(mergedComponent.Tier, Is.EqualTo("1 - Essential"));
-                Assert.That(mergedComponent.Category.Count, Is.EqualTo(1));
-                Assert.That(mergedComponent.Category[0], Is.EqualTo("Immersion"));
-                Assert.That(mergedComponent.Language.Count, Is.EqualTo(1));
+                    // Also verify other incoming fields are preserved
+                    Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"));
+                    Assert.That(mergedComponent.Tier, Is.EqualTo("1 - Essential"));
+                    Assert.That(mergedComponent.Category.Count, Is.EqualTo(1));
+                });
+                Assert.Multiple(() =>
+                {
+                    Assert.That(mergedComponent.Category[0], Is.EqualTo("Immersion"));
+                    Assert.That(mergedComponent.Language.Count, Is.EqualTo(1));
+                });
                 Assert.That(mergedComponent.Language[0], Is.EqualTo("NO"));
             }
             finally
@@ -250,17 +260,20 @@ IsSelected = true
 
                 ModComponent mergedComponent = mergedComponents[0];
 
-                // Description should come from INCOMING
-                Assert.That(mergedComponent.Description, Is.EqualTo("Incoming description"),
-                    "Description should come from INCOMING file");
+                Assert.Multiple(() =>
+                {
+                    // Description should come from INCOMING
+                    Assert.That(mergedComponent.Description, Is.EqualTo("Incoming description"),
+                        "Description should come from INCOMING file");
 
-                // Directions should come from INCOMING
-                Assert.That(mergedComponent.Directions, Is.EqualTo("Incoming directions text"),
-                    "Directions should come from INCOMING file");
+                    // Directions should come from INCOMING
+                    Assert.That(mergedComponent.Directions, Is.EqualTo("Incoming directions text"),
+                        "Directions should come from INCOMING file");
 
-                // InstallationMethod only exists in incoming
-                Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"),
-                    "InstallationMethod should come from INCOMING file");
+                    // InstallationMethod only exists in incoming
+                    Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"),
+                        "InstallationMethod should come from INCOMING file");
+                });
             }
             finally
             {

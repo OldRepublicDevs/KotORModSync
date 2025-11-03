@@ -2179,7 +2179,7 @@ namespace KOTORModSync.Dialogs
                 PieceHashes = source.PieceHashes,
                 FirstSeen = source.FirstSeen,
                 LastVerified = source.LastVerified,
-                TrustLevel = source.TrustLevel
+                TrustLevel = source.TrustLevel,
             };
         }
 

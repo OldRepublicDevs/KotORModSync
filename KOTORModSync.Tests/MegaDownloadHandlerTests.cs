@@ -2,14 +2,16 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
 using KOTORModSync.Core.Services.Download;
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
     [TestFixture]
     public class MegaDownloadHandlerTests
     {
-        private MegaDownloadHandler? _megaHandler;
+        private MegaDownloadHandler _megaHandler;
 
         [SetUp]
         public void SetUp() => _megaHandler = new MegaDownloadHandler();
@@ -20,7 +22,7 @@ namespace KOTORModSync.Tests
 
             const string url = "https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
 
-            bool? canHandle = _megaHandler?.CanHandle(url);
+            bool canHandle = _megaHandler?.CanHandle(url) ?? false;
 
             Assert.That(canHandle, Is.True);
         }
@@ -31,7 +33,7 @@ namespace KOTORModSync.Tests
 
             const string url = "https://www.nexusmods.com/kotor2/mods/1100";
 
-            bool? canHandle = _megaHandler?.CanHandle(url);
+            bool canHandle = _megaHandler?.CanHandle(url) ?? false;
 
             Assert.That(canHandle, Is.False);
         }
@@ -40,9 +42,9 @@ namespace KOTORModSync.Tests
         public void CanHandle_NullUrl_ReturnsFalse()
         {
 
-            string? url = null;
+            string url = null;
 
-            bool? canHandle = _megaHandler?.CanHandle(url);
+            bool canHandle = _megaHandler?.CanHandle(url) ?? false;
 
             Assert.That(canHandle, Is.False);
         }
@@ -53,7 +55,7 @@ namespace KOTORModSync.Tests
 
             const string oldUrl = "https://mega.nz/#!1A4RCLha!Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
 
-            string? convertedUrl = _megaHandler?.ConvertMegaUrl(oldUrl);
+            string convertedUrl = _megaHandler?.ConvertMegaUrl(oldUrl) ?? oldUrl;
 
             string expectedUrl = "https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
             Assert.That(convertedUrl, Is.EqualTo(expectedUrl));
@@ -65,7 +67,7 @@ namespace KOTORModSync.Tests
 
             const string oldFolderUrl = "https://mega.nz/#F!folderId!folderKey";
 
-            string? convertedUrl = _megaHandler?.ConvertMegaUrl(oldFolderUrl);
+            string convertedUrl = _megaHandler?.ConvertMegaUrl(oldFolderUrl) ?? oldFolderUrl;
 
             const string expectedUrl = "https://mega.nz/folder/folderId#folderKey";
             Assert.That(convertedUrl, Is.EqualTo(expectedUrl));
@@ -77,7 +79,7 @@ namespace KOTORModSync.Tests
 
             const string newUrl = "https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
 
-            string? convertedUrl = _megaHandler?.ConvertMegaUrl(newUrl);
+            string convertedUrl = _megaHandler?.ConvertMegaUrl(newUrl);
 
             Assert.That(convertedUrl, Is.EqualTo(newUrl));
         }
@@ -87,7 +89,7 @@ namespace KOTORModSync.Tests
         {
 
             const string emptyUrl = "";
-            string? nullUrl = null;
+            string nullUrl = null;
 
             Assert.Multiple(() =>
             {
@@ -103,7 +105,7 @@ namespace KOTORModSync.Tests
 
             const string malformedUrl = "https://mega.nz/#!invalid";
 
-            string? convertedUrl = _megaHandler?.ConvertMegaUrl(malformedUrl);
+            string convertedUrl = _megaHandler?.ConvertMegaUrl(malformedUrl) ?? malformedUrl;
 
             Assert.That(convertedUrl, Is.EqualTo(malformedUrl));
         }
@@ -114,7 +116,7 @@ namespace KOTORModSync.Tests
 
             const string complexUrl = "https://mega.nz/#!1A4RCLha!Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
 
-            string? convertedUrl = _megaHandler?.ConvertMegaUrl(complexUrl);
+            string convertedUrl = _megaHandler?.ConvertMegaUrl(complexUrl);
 
             const string expectedUrl = "https://mega.nz/file/1A4RCLha#Ro2GNVUPRfgot-woqh80jVaukixr-cnUmTdakuc0Ca4";
             Assert.That(convertedUrl, Is.EqualTo(expectedUrl));
@@ -126,13 +128,13 @@ namespace KOTORModSync.Tests
 
     public static class MegaDownloadHandlerExtensions
     {
-        public static string? ConvertMegaUrl(this MegaDownloadHandler handler, string? url)
+        public static string ConvertMegaUrl(this MegaDownloadHandler handler, string url)
         {
 
-            System.Reflection.MethodInfo? method = typeof(MegaDownloadHandler).GetMethod("ConvertMegaUrl",
+            System.Reflection.MethodInfo method = typeof(MegaDownloadHandler).GetMethod("ConvertMegaUrl",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 
-            return method is not null ? (string?)method.Invoke(null, [url]) : url;
+            return method != null ? (string)method.Invoke(null, new object[] { url }) ?? url : url;
         }
     }
 }

@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
+
 using NUnit.Framework;
 
 namespace KOTORModSync.Tests
@@ -55,11 +56,11 @@ namespace KOTORModSync.Tests
 				"L_Alien02.mdl", // K1CP
 				"N_Tusken02.tpc", // HD Realistic Sand People
 				"Twilek_F01.tpc", // HD Twi'lek Females by Dark Hope
-				"Unrelated_KeepMe.tpc" // should remain
+				"Unrelated_KeepMe.tpc", // should remain
 			};
             foreach (string f in filesToSeed)
             {
-                await File.WriteAllText(Path.Combine(overrideDir, f), "dummy");
+                await File.WriteAllTextAsync(Path.Combine(overrideDir, f), "dummy");
             }
 
             // Cleanlist CSV content
@@ -73,12 +74,12 @@ namespace KOTORModSync.Tests
                 "HD Twi'lek Females by Dark Hope,Twilek_F01.tpc,Twilek_F02.tpc,Twilek_F03.tpc,Twilek_F04.tpc",
             });
             string cleanlistPath = Path.Combine(_workDir, "cleanlist_k1.txt");
-            await File.WriteAllText(cleanlistPath, csv);
+            await File.WriteAllTextAsync(cleanlistPath, csv);
 
             // Configure MainConfig to point to work directories
-            var originalSourcePath = Core.MainConfig.SourcePath;
-            var originalDestPath = Core.MainConfig.DestinationPath;
-            _ = new Core.MainConfig
+            DirectoryInfo originalSourcePath = MainConfig.SourcePath;
+            DirectoryInfo originalDestPath = MainConfig.DestinationPath;
+            _ = new MainConfig
             {
                 sourcePath = new DirectoryInfo(_workDir),
                 destinationPath = new DirectoryInfo(_workDir),
@@ -111,7 +112,7 @@ namespace KOTORModSync.Tests
                 var component = new ModComponent
                 {
                     Name = "Character Textures & Model Fixes",
-                    Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(new[] { cleanList })
+                    Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(new[] { cleanList }),
                 };
 
                 // Execute the single CleanList instruction
@@ -138,18 +139,21 @@ namespace KOTORModSync.Tests
                 foreach (string f in shouldBeDeleted)
                 {
                     string p = Path.Combine(overrideDir, f);
-                    Assert.False(vfs.FileExists(p), $"Expected deleted: {f}");
+                    Assert.That(vfs.FileExists(p), Is.False, $"Expected deleted: {f}");
                 }
 
-                // Not selected: Sand People line, so keep N_Tusken02.tpc
-                Assert.True(vfs.FileExists(Path.Combine(overrideDir, "N_Tusken02.tpc")), "Unexpected deletion of non-selected mod file");
-                // Unrelated file should remain
-                Assert.True(vfs.FileExists(Path.Combine(overrideDir, "Unrelated_KeepMe.tpc")), "Unrelated file should remain");
+                Assert.Multiple(() =>
+                {
+                    // Not selected: Sand People line, so keep N_Tusken02.tpc
+                    Assert.That(vfs.FileExists(Path.Combine(overrideDir, "N_Tusken02.tpc")), Is.True, "Unexpected deletion of non-selected mod file");
+                    // Unrelated file should remain
+                    Assert.That(vfs.FileExists(Path.Combine(overrideDir, "Unrelated_KeepMe.tpc")), Is.True, "Unrelated file should remain");
+                });
             }
             finally
             {
                 // Restore MainConfig
-                _ = new Core.MainConfig
+                _ = new MainConfig
                 {
                     sourcePath = originalSourcePath,
                     destinationPath = originalDestPath,

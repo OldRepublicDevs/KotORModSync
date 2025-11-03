@@ -2,15 +2,21 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
 
+using NUnit.Framework;
+using System.Linq;
 using Xunit;
-
 using Assert = Xunit.Assert;
+using System.Threading;
 
 namespace KOTORModSync.Tests
 {
@@ -27,9 +33,9 @@ namespace KOTORModSync.Tests
         {
             _testDirectory = Path.Combine(Path.GetTempPath(), $"IntegrationTest_{Guid.NewGuid()}");
             _ = Directory.CreateDirectory(_testDirectory);
-            _watchers = [];
-            _createdFiles = [];
-            _createdDirectories = [];
+            _watchers = new List<CrossPlatformFileWatcher>();
+            _createdFiles = new List<string>();
+            _createdDirectories = new List<string>();
         }
 
         public void Dispose()
@@ -88,7 +94,7 @@ namespace KOTORModSync.Tests
 
         #region Real-World Scenario Tests
 
-        [Fact]
+        [Test]
         public async Task Scenario_ApplicationLogFile_DetectsMultipleAppends()
         {
 
@@ -134,17 +140,18 @@ namespace KOTORModSync.Tests
             Assert.Contains("Log entry", logContent, StringComparison.Ordinal);
         }
 
-        [Fact]
+        [Test]
         public async Task Scenario_ConfigFileUpdate_DetectsRewrite()
         {
 
             string configFile = Path.Combine(_testDirectory, "settings.ini");
             string[] initialConfig =
-            [
+            new string[]
+            {
                 "[Settings]",
                 "Theme=Dark",
                 "Language=English",
-            ];
+            };
             await File.WriteAllLinesAsync(configFile, initialConfig);
             _createdFiles.Add(configFile);
             await Task.Delay(100);
@@ -152,7 +159,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(_testDirectory, "*.ini");
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? changeEvent = null;
+            FileSystemEventArgs changeEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Changed += (_, e) =>
@@ -167,13 +174,13 @@ namespace KOTORModSync.Tests
             watcher.StartWatching();
             await Task.Delay(100);
 
-            string[] newConfig =
-            [
+            string[] newConfig = new string[]
+            {
                 "[Settings]",
                 "Theme=Light",
                 "Language=French",
                 "Version=2.0",
-            ];
+            };
             await File.WriteAllLinesAsync(configFile, newConfig);
 
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
@@ -185,19 +192,19 @@ namespace KOTORModSync.Tests
             Assert.Contains("Version=2.0", actualContent, StringComparison.Ordinal);
         }
 
-        [Fact]
+        [Test]
         public async Task Scenario_DatabaseBackup_DetectsBackupFileCreation()
         {
 
             var watcher = new CrossPlatformFileWatcher(_testDirectory, "*.bak");
             _watchers.Add(watcher);
 
-            FileSystemEventArgs? createEvent = null;
+            FileSystemEventArgs createEvent = null;
             var eventReceived = new ManualResetEventSlim(false);
 
             watcher.Created += (_, e) =>
             {
-                if (e.Name!.EndsWith(".bak", StringComparison.Ordinal))
+                if (e.Name.EndsWith(".bak", StringComparison.Ordinal))
                 {
                     createEvent = e;
                     eventReceived.Set();
@@ -217,16 +224,16 @@ namespace KOTORModSync.Tests
             bool signaled = eventReceived.Wait(TimeSpan.FromSeconds(3));
             Assert.True(signaled, "Created event must be raised for backup file");
             Assert.NotNull(createEvent);
-            Assert.EndsWith(".bak", createEvent!.Name, StringComparison.Ordinal);
+            Assert.EndsWith(".bak", createEvent.Name, StringComparison.Ordinal);
             Assert.True(File.Exists(backupFile), "Backup file must exist");
             Assert.True(new FileInfo(backupFile).Length >= 1024 * 1024, "Backup file must be at least 1MB");
         }
 
-        [Fact]
+        [Test]
         public async Task Scenario_TempFileCleanup_DetectsMultipleDeletions()
         {
 
-            List<string> tempFiles = [];
+            List<string> tempFiles = new List<string>();
             for (int i = 0; i < 5; i++)
             {
                 string tempFile = Path.Combine(_testDirectory, $"temp_{i}.tmp");
@@ -243,7 +250,7 @@ namespace KOTORModSync.Tests
 
             watcher.Deleted += (_, e) =>
             {
-                deletedFiles.Add(e.Name!);
+                deletedFiles.Add(e.Name);
             };
 
             watcher.StartWatching();
@@ -266,18 +273,18 @@ namespace KOTORModSync.Tests
             }
         }
 
-        [Fact]
+        [Test]
         public async Task Scenario_ExtractArchive_DetectsRapidFileCreation()
         {
 
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            ConcurrentBag<string> createdFiles = [];
+            ConcurrentBag<string> createdFiles = new ConcurrentBag<string>();
 
             watcher.Created += (_, e) =>
             {
-                createdFiles.Add(e.Name!);
+                createdFiles.Add(e.Name);
             };
 
             watcher.StartWatching();
@@ -307,7 +314,7 @@ namespace KOTORModSync.Tests
 
         #region Stress Tests
 
-        [Fact]
+        [Test]
         public async Task Stress_ContinuousActivity_RemainsStableFor30Seconds()
         {
 
@@ -316,12 +323,12 @@ namespace KOTORModSync.Tests
 
             int totalEvents = 0;
             bool errorOccurred = false;
-            object lockObj = new();
+            object lockObj = new object();
 
-            watcher.Created += (_, _) => { lock (lockObj) { totalEvents++; } };
-            watcher.Changed += (_, _) => { lock (lockObj) { totalEvents++; } };
-            watcher.Deleted += (_, _) => { lock (lockObj) { totalEvents++; } };
-            watcher.Error += (_, _) => { errorOccurred = true; };
+            watcher.Created += (_, __) => { lock (lockObj) { totalEvents++; } };
+            watcher.Changed += (_, __) => { lock (lockObj) { totalEvents++; } };
+            watcher.Deleted += (_, __) => { lock (lockObj) { totalEvents++; } };
+            watcher.Error += (_, __) => { errorOccurred = true; };
 
             watcher.StartWatching();
             await Task.Delay(100);
@@ -373,18 +380,18 @@ namespace KOTORModSync.Tests
             Assert.True(watcher.EnableRaisingEvents, "Watcher must still be running after stress test");
         }
 
-        [Fact]
+        [Test]
         public async Task Stress_HighVolumeCreation_ProcessesMajorityOfFiles()
         {
 
             var watcher = new CrossPlatformFileWatcher(_testDirectory);
             _watchers.Add(watcher);
 
-            ConcurrentBag<string> detectedFiles = [];
+            ConcurrentBag<string> detectedFiles = new ConcurrentBag<string>();
 
             watcher.Created += (_, e) =>
             {
-                detectedFiles.Add(e.Name!);
+                detectedFiles.Add(e.Name);
             };
 
             watcher.StartWatching();
@@ -417,7 +424,7 @@ namespace KOTORModSync.Tests
             Assert.Equal(fileCount, existingFiles);
         }
 
-        [Fact]
+        [Test]
         public async Task Stress_CreateModifyDeleteCycle_TracksAllOperations()
         {
 
@@ -427,11 +434,11 @@ namespace KOTORModSync.Tests
             int createdCount = 0;
             int modifiedCount = 0;
             int deletedCount = 0;
-            object lockObj = new();
+            object lockObj = new object();
 
-            watcher.Created += (_, _) => { lock (lockObj) { createdCount++; } };
-            watcher.Changed += (_, _) => { lock (lockObj) { modifiedCount++; } };
-            watcher.Deleted += (_, _) => { lock (lockObj) { deletedCount++; } };
+            watcher.Created += (_, __) => { lock (lockObj) { createdCount++; } };
+            watcher.Changed += (_, __) => { lock (lockObj) { modifiedCount++; } };
+            watcher.Deleted += (_, __) => { lock (lockObj) { deletedCount++; } };
 
             watcher.StartWatching();
             await Task.Delay(100);
@@ -468,7 +475,7 @@ namespace KOTORModSync.Tests
 
         #region Multi-Watcher Tests
 
-        [Fact]
+        [Test]
         public async Task MultipleWatchers_SameDirectory_AllDetectSameEvents()
         {
 
@@ -480,11 +487,11 @@ namespace KOTORModSync.Tests
             int watcher1Events = 0;
             int watcher2Events = 0;
             int watcher3Events = 0;
-            object lockObj = new();
+            object lockObj = new object();
 
-            watcher1.Created += (_, _) => { lock (lockObj) { watcher1Events++; } };
-            watcher2.Created += (_, _) => { lock (lockObj) { watcher2Events++; } };
-            watcher3.Created += (_, _) => { lock (lockObj) { watcher3Events++; } };
+            watcher1.Created += (_, __) => { lock (lockObj) { watcher1Events++; } };
+            watcher2.Created += (_, __) => { lock (lockObj) { watcher2Events++; } };
+            watcher3.Created += (_, __) => { lock (lockObj) { watcher3Events++; } };
 
             watcher1.StartWatching();
             watcher2.StartWatching();
@@ -510,7 +517,7 @@ namespace KOTORModSync.Tests
                 $"Watcher3 should detect at least {fileCount * 0.6} files, detected {watcher3Events}");
         }
 
-        [Fact]
+        [Test]
         public async Task MultipleWatchers_DifferentDirectories_EachDetectsOwnEvents()
         {
 
@@ -524,11 +531,11 @@ namespace KOTORModSync.Tests
             var watcher2 = new CrossPlatformFileWatcher(dir2);
             _watchers.AddRange(new[] { watcher1, watcher2 });
 
-            ConcurrentBag<string> watcher1Files = [];
-            ConcurrentBag<string> watcher2Files = [];
+            ConcurrentBag<string> watcher1Files = new ConcurrentBag<string>();
+            ConcurrentBag<string> watcher2Files = new ConcurrentBag<string>();
 
-            watcher1.Created += (_, e) => watcher1Files.Add(e.Name!);
-            watcher2.Created += (_, e) => watcher2Files.Add(e.Name!);
+            watcher1.Created += (_, e) => watcher1Files.Add(e.Name);
+            watcher2.Created += (_, e) => watcher2Files.Add(e.Name);
 
             watcher1.StartWatching();
             watcher2.StartWatching();
@@ -554,7 +561,7 @@ namespace KOTORModSync.Tests
 
         #region Stability Tests
 
-        [Fact]
+        [Test]
         public async Task Stability_StartStopCycles_MaintainsCorrectState()
         {
 
@@ -562,9 +569,9 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             int totalEvents = 0;
-            object lockObj = new();
+            object lockObj = new object();
 
-            watcher.Created += (_, _) => { lock (lockObj) { totalEvents++; } };
+            watcher.Created += (_, __) => { lock (lockObj) { totalEvents++; } };
 
             int cycles = 5;
             for (int cycle = 0; cycle < cycles; cycle++)
@@ -587,7 +594,7 @@ namespace KOTORModSync.Tests
                 $"Expected at least {cycles * 0.8} events across {cycles} cycles, received {totalEvents}");
         }
 
-        [Fact]
+        [Test]
         public async Task Stability_WatcherRunsFor60Seconds_NoMemoryLeakOrErrors()
         {
 
@@ -596,10 +603,10 @@ namespace KOTORModSync.Tests
 
             int eventCount = 0;
             bool errorOccurred = false;
-            object lockObj = new();
+            object lockObj = new object();
 
-            watcher.Created += (_, _) => { lock (lockObj) { eventCount++; } };
-            watcher.Error += (_, _) => { errorOccurred = true; };
+            watcher.Created += (_, __) => { lock (lockObj) { eventCount++; } };
+            watcher.Error += (_, __) => { errorOccurred = true; };
 
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -654,7 +661,7 @@ namespace KOTORModSync.Tests
 
         #region Error Recovery Tests
 
-        [Fact]
+        [Test]
         public async Task ErrorRecovery_DirectoryDeleted_WatcherHandlesGracefully()
         {
 
@@ -665,7 +672,7 @@ namespace KOTORModSync.Tests
             var watcher = new CrossPlatformFileWatcher(tempDir);
             _watchers.Add(watcher);
 
-            watcher.Error += (_, _) => { };
+            watcher.Error += (_, __) => { };
 
             watcher.StartWatching();
             await Task.Delay(100);
@@ -685,7 +692,7 @@ namespace KOTORModSync.Tests
 
         #region Performance Measurement Tests
 
-        [Fact]
+        [Test]
         public async Task Performance_MeasureEventLatency_WithinAcceptableRange()
         {
 
@@ -693,14 +700,15 @@ namespace KOTORModSync.Tests
             _watchers.Add(watcher);
 
             var latencies = new ConcurrentBag<TimeSpan>();
-            var timestamps = new ConcurrentDictionary<string, DateTime>(StringComparer.Ordinal);
+            var timestamps = new ConcurrentDictionary<string, long>(StringComparer.Ordinal);
 
             watcher.Created += (_, e) =>
             {
-                if (timestamps.TryRemove(e.Name!, out DateTime createTime))
+                if (timestamps.TryRemove(e.Name, out long createTicks))
                 {
-                    TimeSpan latency = DateTime.Now - createTime;
-                    latencies.Add(latency);
+                    long nowTicks = Stopwatch.GetTimestamp();
+                    double latencySeconds = (nowTicks - createTicks) / (double)Stopwatch.Frequency;
+                    latencies.Add(TimeSpan.FromSeconds(latencySeconds));
                 }
             };
 
@@ -714,7 +722,7 @@ namespace KOTORModSync.Tests
                 string filePath = Path.Combine(_testDirectory, fileName);
                 _createdFiles.Add(filePath);
 
-                timestamps[fileName] = DateTime.Now;
+                timestamps[fileName] = Stopwatch.GetTimestamp();
                 await File.WriteAllTextAsync(filePath, $"content {i}");
                 await Task.Delay(150);
             }

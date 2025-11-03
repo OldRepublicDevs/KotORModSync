@@ -73,6 +73,8 @@ namespace KOTORModSync
         private bool _editorMode;
         private bool _spoilerFreeMode;
         private bool _isClosingProgressWindow;
+        private bool _wizardMode = true; // Default to true
+        private bool _isWizardMode;
         private string _lastLoadedFileName;
         private CancellationTokenSource _preResolveCts;
         private DispatcherTimer _preResolveDebounceTimer;
@@ -181,6 +183,12 @@ namespace KOTORModSync
                 BuildGlobalActionsMenu();
                 UpdateStepProgress();
                 RefreshModListVisuals();
+
+                // If turning on EditorMode, disable WizardMode
+                if (value)
+                {
+                    WizardMode = false;
+                }
             }
         }
 
@@ -213,6 +221,38 @@ namespace KOTORModSync
                 nameof(SpoilerFreeMode),
                 o => o._spoilerFreeMode,
                 (o, v) => o.SpoilerFreeMode = v
+            );
+
+        public bool WizardMode
+        {
+            get => _wizardMode;
+            set
+            {
+                if (_wizardMode == value)
+                {
+                    return;
+                }
+
+                _ = SetAndRaise(WizardModeProperty, ref _wizardMode, value);
+
+                // If turning on WizardMode, initialize it
+                if (value && !EditorMode && MainConfig.AllComponents != null && MainConfig.AllComponents.Count > 0)
+                {
+                    EnterWizardMode();
+                }
+                // If turning off WizardMode, exit it
+                else if (!value && _isWizardMode)
+                {
+                    ExitWizardMode();
+                }
+            }
+        }
+
+        public static readonly DirectProperty<MainWindow, bool> WizardModeProperty =
+            AvaloniaProperty.RegisterDirect<MainWindow, bool>(
+                nameof(WizardMode),
+                o => o._wizardMode,
+                (o, v) => o.WizardMode = v
             );
 
         public static readonly DirectProperty<MainWindow, bool?> RootSelectionStateProperty =
@@ -864,8 +904,30 @@ namespace KOTORModSync
             fileMenu.ItemsSource = fileItems;
 
             var toolsMenu = new MenuItem { Header = "Tools" };
+
+            // Editor Mode checkbox menu item
+            var editorModeMenuItem = new MenuItem
+            {
+                Header = EditorMode ? "✓ Editor Mode" : "Editor Mode",
+            };
+            editorModeMenuItem.Click += (s, e) =>
+            {
+                EditorMode = !EditorMode;
+            };
+
+            // Subscribe to EditorMode changes to keep menu item in sync
+            PropertyChanged += (s, e) =>
+            {
+                if (string.Equals(e.PropertyName, nameof(EditorMode), StringComparison.Ordinal))
+                {
+                    editorModeMenuItem.Header = EditorMode ? "✓ Editor Mode" : "Editor Mode";
+                }
+            };
+
             var toolItems = new List<MenuItem>
             {
+                editorModeMenuItem,
+                new MenuItem { Header = "-" }, // Separator
                 new MenuItem
                 {
                     Header = "Fix iOS case sensitivity.",
@@ -898,17 +960,17 @@ namespace KOTORModSync
                 },
             };
             ToolTip.SetTip(
-                toolItems[0],
+                editorModeMenuItem,
                 value:
-                "Create documentation for all instructions in the loaded setup. Useful if you need human-readable documentation of your TOML."
+                "Toggle to enable Editor Mode: exposes Raw/Editor tabs, editing buttons, and creation tools. When off, the UI is simplified for end users installing mods."
             );
             ToolTip.SetTip(
-                toolItems[1],
+                toolItems[2],
                 value:
                 "Lowercase all files/folders recursively at the given path. Necessary for iOS installs."
             );
             ToolTip.SetTip(
-                toolItems[2],
+                toolItems[3],
                 value:
                 "Fixes various file/folder permissions. On Unix, this will also find case-insensitive duplicate file/folder names."
             );
@@ -1270,35 +1332,44 @@ namespace KOTORModSync
                 }
 
                 // Check if overlay is already visible for the same file - early return to prevent flickering
+                // Always check UI state on UI thread to prevent race conditions, like ShowLoadingOverlay does
                 if (_dragOverlayVisible && string.Equals(currentFilePath, _currentDragFilePath, StringComparison.Ordinal))
                 {
-                    Logger.LogVerbose($"[DragOver] Overlay visible and same file ('{currentFilePath}'), checking UI state");
-                    // Double-check actual UI state if on UI thread to prevent race conditions
-                    if (Dispatcher.UIThread.CheckAccess())
+                    Logger.LogVerbose($"[DragOver] Overlay visible and same file ('{currentFilePath}'), checking UI state on UI thread");
+                    // Cancel any pending updates since we might already be showing the correct file
+                    _dragOverlayDebounceTimer?.Stop();
+                    _pendingDragOverlayUpdate = false;
+                    
+                    // Always check actual UI state on UI thread for consistency
+                    Dispatcher.UIThread.Post(() =>
                     {
-                        Border overlay = this.FindControl<Border>("DragDropOverlay");
-                        bool overlayIsVisible = overlay != null && overlay.IsVisible;
-                        Logger.LogVerbose($"[DragOver] On UI thread, overlay.IsVisible: {overlayIsVisible}");
-                        if (overlayIsVisible)
+                        try
                         {
-                            // Overlay is already showing this file, cancel any pending updates
-                            _dragOverlayDebounceTimer?.Stop();
-                            _pendingDragOverlayUpdate = false;
-                            Logger.LogVerbose("[DragOver] Overlay already visible for same file, cancelling debounce and returning early");
-                            e.Handled = true;
-                            return;
+                            Border overlay = this.FindControl<Border>("DragDropOverlay");
+                            bool overlayIsVisible = overlay != null && overlay.IsVisible;
+                            Logger.LogVerbose($"[DragOver] Overlay.IsVisible: {overlayIsVisible}");
+                            if (!overlayIsVisible)
+                            {
+                                // UI says not visible, but flag says visible - update flag and allow update
+                                Logger.LogVerbose("[DragOver] UI says not visible, allowing update");
+                                _dragOverlayVisible = false;
+                            }
+                            else
+                            {
+                                Logger.LogVerbose("[DragOver] Overlay already visible for same file, no update needed");
+                            }
                         }
-                        Logger.LogVerbose("[DragOver] Flag says visible but UI says not visible, continuing");
-                    }
-                    else
-                    {
-                        // Overlay is already showing this file, cancel any pending updates
-                        _dragOverlayDebounceTimer?.Stop();
-                        _pendingDragOverlayUpdate = false;
-                        Logger.LogVerbose("[DragOver] Not on UI thread, but flag says visible for same file, cancelling debounce and returning early");
-                        e.Handled = true;
-                        return;
-                    }
+                        catch (Exception ex)
+                        {
+                            Logger.LogException(ex, "[DragOver] Error checking overlay state");
+                        }
+                    });
+                    
+                    // Return early to prevent scheduling another update
+                    // The UI thread check above will fix the flag if needed
+                    Logger.LogVerbose("[DragOver] Overlay flag says visible for same file, cancelling debounce and returning early");
+                    e.Handled = true;
+                    return;
                 }
 
                 // File changed or overlay not visible - schedule update with debounce
@@ -1320,7 +1391,7 @@ namespace KOTORModSync
                     Logger.LogVerbose("[DragOver] Creating new debounce timer");
                     _dragOverlayDebounceTimer = new DispatcherTimer
                     {
-                        Interval = TimeSpan.FromMilliseconds(50) // 50ms debounce delay
+                        Interval = TimeSpan.FromMilliseconds(50), // 50ms debounce delay
                     };
                     _dragOverlayDebounceTimer.Tick += (s, args) =>
                     {
@@ -1329,6 +1400,7 @@ namespace KOTORModSync
                         if (_pendingDragOverlayUpdate && _pendingDragEventArgs != null)
                         {
                             // Verify the overlay isn't already showing the correct file before updating
+                            // Always check on UI thread for consistency
                             bool shouldUpdate = true;
                             try
                             {
@@ -1338,23 +1410,27 @@ namespace KOTORModSync
                                     string pendingFilePath = storageItem?.TryGetLocalPath();
                                     if (_dragOverlayVisible && string.Equals(pendingFilePath, _currentDragFilePath, StringComparison.Ordinal))
                                     {
-                                        // Double-check actual UI state
-                                        if (Dispatcher.UIThread.CheckAccess())
+                                        // Always check actual UI state on UI thread
+                                        Dispatcher.UIThread.Post(() =>
                                         {
-                                            Border overlay = this.FindControl<Border>("DragDropOverlay");
-                                            if (overlay != null && overlay.IsVisible)
+                                            try
                                             {
-                                                // Overlay is already showing the correct file, skip update
-                                                shouldUpdate = false;
-                                                Logger.LogVerbose("[DragOver.Timer] Overlay already showing correct file, skipping update");
+                                                Border overlay = this.FindControl<Border>("DragDropOverlay");
+                                                if (overlay != null && overlay.IsVisible)
+                                                {
+                                                    // Overlay is already showing the correct file, update is not needed
+                                                    Logger.LogVerbose("[DragOver.Timer] Overlay already showing correct file, update not needed");
+                                                }
                                             }
-                                        }
-                                        else
-                                        {
-                                            // Not on UI thread but flag says it's visible, trust the flag
-                                            shouldUpdate = false;
-                                            Logger.LogVerbose("[DragOver.Timer] Flag says overlay visible for same file, skipping update");
-                                        }
+                                            catch (Exception ex)
+                                            {
+                                                Logger.LogException(ex, "[DragOver.Timer] Error checking overlay state");
+                                            }
+                                        });
+                                        
+                                        // Trust the flag for now, but the UI thread check will verify
+                                        shouldUpdate = false;
+                                        Logger.LogVerbose("[DragOver.Timer] Flag says overlay visible for same file, skipping update");
                                     }
                                 }
                             }
@@ -1543,49 +1619,25 @@ namespace KOTORModSync
                     return;
                 }
 
-                // If same file and already visible, skip update to prevent flickering
-                bool isSameFile = string.Equals(filePath, _currentDragFilePath, StringComparison.Ordinal);
-                Logger.LogVerbose($"[ShowDragDropOverlay] Is same file: {isSameFile}, _dragOverlayVisible: {_dragOverlayVisible}");
-                if (isSameFile && _dragOverlayVisible)
-                {
-                    // Double-check actual UI state if on UI thread to avoid race conditions
-                    if (Dispatcher.UIThread.CheckAccess())
-                    {
-                        Border overlay = this.FindControl<Border>("DragDropOverlay");
-                        bool overlayIsVisible = overlay != null && overlay.IsVisible;
-                        Logger.LogVerbose($"[ShowDragDropOverlay] On UI thread, overlay.IsVisible: {overlayIsVisible}");
-                        if (overlayIsVisible)
-                        {
-                            Logger.LogVerbose("[ShowDragDropOverlay] Overlay already visible for same file, returning early");
-                            return; // Already visible, no update needed
-                        }
-                    }
-                    else
-                    {
-                        Logger.LogVerbose("[ShowDragDropOverlay] Not on UI thread, but flag says visible for same file, continuing anyway");
-                    }
-                }
-
                 _currentDragFilePath = filePath;
 
-                // Check if we're already on UI thread to avoid unnecessary posting
-                bool onUIThread = Dispatcher.UIThread.CheckAccess();
-                Logger.LogVerbose($"[ShowDragDropOverlay] On UI thread: {onUIThread}");
-                if (onUIThread)
+                // Always use Dispatcher.UIThread.Post for consistency, like ShowLoadingOverlay does
+                // This prevents race conditions from rapid DragOver events
+                // All checks and updates happen in the posted callback to ensure atomic operations
+                Logger.LogVerbose("[ShowDragDropOverlay] Posting UpdateDragDropOverlayUI to UI thread");
+                Dispatcher.UIThread.Post(() =>
                 {
-                    Logger.LogVerbose("[ShowDragDropOverlay] Calling UpdateDragDropOverlayUI directly (on UI thread)");
-                    UpdateDragDropOverlayUI(filePath, storageItem);
-                }
-                else
-                {
-                    Logger.LogVerbose("[ShowDragDropOverlay] Posting UpdateDragDropOverlayUI to UI thread");
-                    _dragOverlayVisible = true;
-                    Dispatcher.UIThread.Post(() =>
+                    try
                     {
                         Logger.LogVerbose("[ShowDragDropOverlay.Post] Posted UpdateDragDropOverlayUI callback executing");
                         UpdateDragDropOverlayUI(filePath, storageItem);
-                    });
-                }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogException(ex, "[ShowDragDropOverlay.Post] Error in UpdateDragDropOverlayUI");
+                        _dragOverlayVisible = false;
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -1772,11 +1824,9 @@ namespace KOTORModSync
             _currentDragFilePath = null;
             _dragOverlayVisible = false;
 
-            // Check if we're already on UI thread to avoid unnecessary posting
-            bool onUIThread = Dispatcher.UIThread.CheckAccess();
-            Logger.LogVerbose($"[HideDragDropOverlay] On UI thread: {onUIThread}");
-
-            if (onUIThread)
+            // Always use Dispatcher.UIThread.Post for consistency, like HideLoadingOverlay does
+            // This prevents race conditions from rapid drag events
+            Dispatcher.UIThread.Post(() =>
             {
                 try
                 {
@@ -1797,34 +1847,7 @@ namespace KOTORModSync
                 {
                     Logger.LogException(ex, "[HideDragDropOverlay] Error hiding drag-drop overlay");
                 }
-            }
-            else
-            {
-                Logger.LogVerbose("[HideDragDropOverlay] Posting HideDragDropOverlay to UI thread");
-                Dispatcher.UIThread.Post(() =>
-                {
-                    Logger.LogVerbose("[HideDragDropOverlay.Post] Posted callback executing");
-                    try
-                    {
-                        Border overlay = this.FindControl<Border>("DragDropOverlay");
-                        bool overlayWasVisible = overlay != null && overlay.IsVisible;
-                        Logger.LogVerbose($"[HideDragDropOverlay.Post] Overlay found: {overlay != null}, was visible: {overlayWasVisible}");
-                        if (overlayWasVisible)
-                        {
-                            Logger.LogVerbose("[HideDragDropOverlay.Post] Setting overlay.IsVisible = false");
-                            overlay.IsVisible = false;
-                        }
-                        else
-                        {
-                            Logger.LogVerbose("[HideDragDropOverlay.Post] Overlay not visible, skipping visibility change");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogException(ex, "[HideDragDropOverlay.Post] Error hiding drag-drop overlay");
-                    }
-                });
-            }
+            });
             Logger.LogVerbose("[HideDragDropOverlay] EXIT");
         }
 
@@ -2009,7 +2032,7 @@ namespace KOTORModSync
                     Action = Instruction.ActionType.Copy,
                     Source = new List<string> { $"<<modDirectory>>/{relativePath}/*" },
                     Destination = destination,
-                    Overwrite = true
+                    Overwrite = true,
                 };
                 copyInstruction.SetParentComponent(component);
 
@@ -3051,6 +3074,12 @@ namespace KOTORModSync
         private void CloseButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => Close();
         [UsedImplicitly]
         private void MinimizeButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => WindowState = WindowState.Minimized;
+        [UsedImplicitly]
+        private void SwitchToLightTheme_Click(object sender, RoutedEventArgs e) => ThemeManager.UpdateStyle("/Styles/FluentLightStyle.axaml");
+        [UsedImplicitly]
+        private void SwitchToK1Theme_Click(object sender, RoutedEventArgs e) => ThemeManager.UpdateStyle("/Styles/KotorStyle.axaml");
+        [UsedImplicitly]
+        private void SwitchToTslTheme_Click(object sender, RoutedEventArgs e) => ThemeManager.UpdateStyle("/Styles/Kotor2Style.axaml");
         [ItemCanBeNull]
         public async Task<string> SaveFileAsync(
             string saveFileName = null
@@ -3062,7 +3091,7 @@ namespace KOTORModSync
         [UsedImplicitly]
         [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
-        private async void LoadFile_Click(
+        internal async void LoadFile_Click(
             [NotNull] object sender,
             [NotNull] RoutedEventArgs e,
             CancellationToken cancellationToken = default)
@@ -3670,7 +3699,7 @@ namespace KOTORModSync
                                 Description = coreIssue.Message ?? "No description available",
                                 Solution = GetSolutionForIssue(coreIssue),
                                 VfsIssue = coreIssue,
-                                Component = coreIssue.AffectedComponent
+                                Component = coreIssue.AffectedComponent,
                             });
 
                             progressDialog?.AppendLog($"{icon} [{coreIssue.Category}] {coreIssue.Message}");
@@ -4874,6 +4903,12 @@ namespace KOTORModSync
                         await Logger.LogVerboseAsync("[LoadInstructionFileAsync] User requested filename resolution after loading");
                         await ResolveAllComponentFilenamesAsync(MainConfig.AllComponents);
                     }
+                }
+
+                // If not in Editor Mode and WizardMode is enabled, activate wizard mode
+                if (!EditorMode && WizardMode && MainConfig.AllComponents != null && MainConfig.AllComponents.Count > 0)
+                {
+                    EnterWizardMode();
                 }
             }
             return result;
@@ -6165,12 +6200,11 @@ namespace KOTORModSync
             {
                 if (MainConfig.DestinationPath is null || !Directory.Exists(MainConfig.DestinationPath.FullName))
                 {
-                    var dialog = new MessageDialog(
-                        "No Destination Path",
+                    await InformationDialog.ShowInformationDialogAsync(
+                        this,
                         "Please set a KOTOR installation directory before managing checkpoints.",
-                        "OK"
+                        "No Destination Path"
                     );
-                    await dialog.ShowDialog(this);
                     return;
                 }
 
@@ -6222,44 +6256,40 @@ namespace KOTORModSync
                         await Logger.LogErrorAsync($"Error: {stderr}");
 
                         // Show detailed error dialog with full stack trace
-                        var errorDialog = new MessageDialog(
-                            "Error Launching HoloPatcher",
+                        await InformationDialog.ShowInformationDialogAsync(
+                            this,
                             $"HoloPatcher failed to launch (exit code: {exitCode})\n\nFull Error Details:\n{stderr}",
-                            "OK"
+                            "Error Launching HoloPatcher"
                         );
-                        await errorDialog.ShowDialog(this);
                     }
                     else
                     {
                         // Show basic error dialog if no detailed error info
-                        var errorDialog = new MessageDialog(
-                            "Error Launching HoloPatcher",
+                        await InformationDialog.ShowInformationDialogAsync(
+                            this,
                             $"HoloPatcher failed to launch (exit code: {exitCode})\n\nNo additional error details available.",
-                            "OK"
+                            "Error Launching HoloPatcher"
                         );
-                        await errorDialog.ShowDialog(this);
                     }
                 }
             }
             catch (FileNotFoundException ex)
             {
                 await Logger.LogErrorAsync($"HoloPatcher not found: {ex.Message}");
-                var dialog = new MessageDialog(
-                    "HoloPatcher Not Found",
+                await InformationDialog.ShowInformationDialogAsync(
+                    this,
                     $"HoloPatcher could not be found in the Resources directory.\n\nPlease ensure the application is installed correctly.\n\n{ex.Message}",
-                    "OK"
+                    "HoloPatcher Not Found"
                 );
-                await dialog.ShowDialog(this);
             }
             catch (Exception ex)
             {
                 await Logger.LogExceptionAsync(ex, "[RunHolopatcherButton_Click] Error in RunHolopatcherButton_Click");
-                var dialog = new MessageDialog(
-                    "Error Launching HoloPatcher",
+                await InformationDialog.ShowInformationDialogAsync(
+                    this,
                     $"Failed to launch HoloPatcher:\n{ex.Message}\n\nFull Stack Trace:\n{ex.StackTrace}",
-                    "OK"
+                    "Error Launching HoloPatcher"
                 );
-                await dialog.ShowDialog(this);
             }
         }
 
@@ -7852,6 +7882,79 @@ namespace KOTORModSync
                 await InformationDialog.ShowInformationDialogAsync(this, $"An error occurred: {ex.Message}");
             }
         }
+
+        #region Wizard Mode Management
+
+        /// <summary>
+        /// Enters wizard mode, showing the wizard interface and hiding the main editor UI
+        /// </summary>
+        private void EnterWizardMode()
+        {
+            if (_isWizardMode)
+            {
+                return;
+            }
+
+            _isWizardMode = true;
+
+            // Initialize the wizard with current data and provide MainWindow reference
+            if (this.FindControl<WizardHostControl>("WizardHost") is WizardHostControl wizardHost)
+            {
+                var modListSidebar = this.FindControl<ModListSidebar>("ModListSidebar");
+                wizardHost.Initialize(MainConfigInstance, MainConfig.AllComponents, this, modListSidebar);
+
+                // Subscribe to wizard events
+                wizardHost.WizardCompleted += OnWizardCompleted;
+                wizardHost.WizardCancelled += OnWizardCancelled;
+            }
+
+            _ = Logger.LogVerboseAsync("[MainWindow] Entered wizard mode");
+        }
+
+        /// <summary>
+        /// Exits wizard mode, showing the main editor UI and hiding the wizard
+        /// </summary>
+        private void ExitWizardMode()
+        {
+            if (!_isWizardMode)
+            {
+                return;
+            }
+
+            _isWizardMode = false;
+
+            if (this.FindControl<WizardHostControl>("WizardHost") is WizardHostControl wizardHost)
+            {
+                // Unsubscribe from wizard events
+                wizardHost.WizardCompleted -= OnWizardCompleted;
+                wizardHost.WizardCancelled -= OnWizardCancelled;
+
+                // Cleanup wizard resources
+                wizardHost.Cleanup();
+            }
+
+            _ = Logger.LogVerboseAsync("[MainWindow] Exited wizard mode");
+        }
+
+        /// <summary>
+        /// Called when the wizard is completed
+        /// </summary>
+        private void OnWizardCompleted(object sender, EventArgs e)
+        {
+            _ = Logger.LogVerboseAsync("[MainWindow] Wizard completed successfully");
+            ExitWizardMode();
+        }
+
+        /// <summary>
+        /// Called when the wizard is cancelled
+        /// </summary>
+        private void OnWizardCancelled(object sender, EventArgs e)
+        {
+            _ = Logger.LogVerboseAsync("[MainWindow] Wizard cancelled by user");
+            ExitWizardMode();
+        }
+
+        #endregion
 
         /// <summary>
         /// Checks if any components have download URLs that need filename resolution

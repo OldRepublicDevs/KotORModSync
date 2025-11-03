@@ -305,7 +305,7 @@ namespace KOTORModSync.Dialogs
                 inlines.Add(new Run(markdown.Substring(start, end - start))
                 {
                     Foreground = brush,
-                    FontWeight = FontWeight.Bold
+                    FontWeight = FontWeight.Bold,
                 });
 
                 pos = end;
@@ -497,7 +497,7 @@ namespace KOTORModSync.Dialogs
                 ["directions"] = "InstallationInstructions",
                 ["download"] = "Download",
                 ["label"] = "ModLink",
-                ["link"] = "ModLink"
+                ["link"] = "ModLink",
             };
 
             return mapping.TryGetValue(groupName, out string textBoxName) ? textBoxName : null;

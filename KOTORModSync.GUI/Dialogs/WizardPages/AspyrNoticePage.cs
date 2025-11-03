@@ -24,21 +24,21 @@ namespace KOTORModSync.Dialogs.WizardPages
         {
             var panel = new StackPanel
             {
-                Spacing = 16
+                Spacing = 16,
             };
 
             panel.Children.Add(new TextBlock
             {
                 Text = "⚠️ Aspyr Version Notice",
                 FontSize = 20,
-                FontWeight = FontWeight.Bold
+                FontWeight = FontWeight.Bold,
             });
 
             var scrollViewer = new ScrollViewer
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                MaxHeight = 400
+                MaxHeight = 400,
             };
 
             scrollViewer.Content = new TextBlock
@@ -46,7 +46,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = aspyrContent ?? string.Empty,
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 14,
-                LineHeight = 22
+                LineHeight = 22,
             };
 
             panel.Children.Add(scrollViewer);
@@ -56,7 +56,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "Please ensure you are using the correct game version before proceeding.",
                 FontSize = 14,
                 FontWeight = FontWeight.SemiBold,
-                Opacity = 0.8
+                Opacity = 0.8,
             });
 
             Content = panel;

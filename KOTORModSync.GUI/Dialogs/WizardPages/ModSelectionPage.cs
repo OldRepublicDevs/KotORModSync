@@ -35,20 +35,20 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             var mainPanel = new StackPanel
             {
-                Spacing = 12
+                Spacing = 12,
             };
 
             // Header with quick actions
             var headerPanel = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto")
+                ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"),
             };
 
             _selectionCountText = new TextBlock
             {
                 FontSize = 14,
                 FontWeight = FontWeight.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
             };
             Grid.SetColumn(_selectionCountText, 0);
             headerPanel.Children.Add(_selectionCountText);
@@ -56,7 +56,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             var selectAllButton = new Button
             {
                 Content = "Select All",
-                Margin = new Avalonia.Thickness(0, 0, 8, 0)
+                Margin = new Avalonia.Thickness(0, 0, 8, 0),
             };
             selectAllButton.Click += (s, e) => SetAllMods(true);
             Grid.SetColumn(selectAllButton, 1);
@@ -64,7 +64,7 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             var deselectAllButton = new Button
             {
-                Content = "Deselect All"
+                Content = "Deselect All",
             };
             deselectAllButton.Click += (s, e) => SetAllMods(false);
             Grid.SetColumn(deselectAllButton, 2);
@@ -77,12 +77,12 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                MaxHeight = 400
+                MaxHeight = 400,
             };
 
             var modListPanel = new StackPanel
             {
-                Spacing = 4
+                Spacing = 4,
             };
 
             // Group mods by category if available
@@ -99,7 +99,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                     Text = categoryGroup.Key,
                     FontSize = 16,
                     FontWeight = FontWeight.Bold,
-                    Margin = new Avalonia.Thickness(0, 12, 0, 4)
+                    Margin = new Avalonia.Thickness(0, 12, 0, 4),
                 });
 
                 // Mods in this category
@@ -110,7 +110,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                         Content = component.Name,
                         IsChecked = component.IsSelected,
                         Tag = component,
-                        Margin = new Avalonia.Thickness(16, 2, 0, 2)
+                        Margin = new Avalonia.Thickness(16, 2, 0, 2),
                     };
 
                     checkBox.IsCheckedChanged += (s, e) =>
@@ -134,7 +134,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                             FontSize = 12,
                             Opacity = 0.7,
                             TextWrapping = TextWrapping.Wrap,
-                            Margin = new Avalonia.Thickness(36, 0, 0, 4)
+                            Margin = new Avalonia.Thickness(36, 0, 0, 4),
                         };
                         modListPanel.Children.Add(descText);
                     }

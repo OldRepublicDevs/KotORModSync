@@ -72,10 +72,10 @@ namespace KOTORModSync.Models
                 {
                     _isChecked = value;
                     OnPropertyChanged();
-                    
+
                     // Update children
                     UpdateChildrenCheckedState(value);
-                    
+
                     // Update parent
                     Parent?.UpdateCheckedStateFromChildren();
                 }

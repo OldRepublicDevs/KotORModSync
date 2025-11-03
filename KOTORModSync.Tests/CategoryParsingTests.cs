@@ -4,6 +4,8 @@
 
 using KOTORModSync.Core;
 
+using NUnit.Framework;
+
 namespace KOTORModSync.Tests
 {
     [TestFixture]
@@ -189,7 +191,7 @@ Category = ""  Essential  ,  Mechanics Change  ;  Graphics Improvement  ""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(3));
+                Assert.That(component.Category, Has.Count.EqualTo(3));
                 Assert.That(component.Category[0], Is.EqualTo("Essential"));
                 Assert.That(component.Category[1], Is.EqualTo("Mechanics Change"));
                 Assert.That(component.Category[2], Is.EqualTo("Graphics Improvement"));
@@ -212,7 +214,7 @@ Category = ""Essential,,Mechanics Change; ;Graphics Improvement""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(3));
+                Assert.That(component.Category, Has.Count.EqualTo(3));
                 Assert.That(component.Category[0], Is.EqualTo("Essential"));
                 Assert.That(component.Category[1], Is.EqualTo("Mechanics Change"));
                 Assert.That(component.Category[2], Is.EqualTo("Graphics Improvement"));
@@ -235,7 +237,7 @@ Category = ""Graphics/Visual Improvement""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Graphics/Visual Improvement"));
             });
         }
@@ -244,15 +246,15 @@ Category = ""Graphics/Visual Improvement""
         public void ComponentDeserialization_WithRealWorldExamples_ShouldWorkCorrectly()
         {
 
-            (string, string[])[] testCases =
-            [
-                ("Essential", ["Essential"]),
-                ("Mechanics Change", ["Mechanics Change"]),
-                ("Graphics Improvement", ["Graphics Improvement"]),
-                ("Graphics Improvement & Bugfix", ["Graphics Improvement & Bugfix"]),
-                ("Bugfix & Graphics Improvement, Immersion", ["Bugfix & Graphics Improvement", "Immersion"]),
-                ("Essential, Mechanics Change; Graphics Improvement", ["Essential", "Mechanics Change", "Graphics Improvement"]),
-            ];
+            (string, string[])[] testCases = new (string, string[])[]
+            {
+                ("Essential", new string[] { "Essential" }),
+                ("Mechanics Change", new string[] { "Mechanics Change" }),
+                ("Graphics Improvement", new string[] { "Graphics Improvement" }),
+                ("Graphics Improvement & Bugfix", new string[] { "Graphics Improvement & Bugfix" }),
+                ("Bugfix & Graphics Improvement, Immersion", new string[] { "Bugfix & Graphics Improvement", "Immersion" }),
+                ("Essential, Mechanics Change; Graphics Improvement", new string[] { "Essential", "Mechanics Change", "Graphics Improvement" }),
+            };
 
             foreach ((string input, string[] expected) in testCases)
             {
@@ -325,7 +327,7 @@ Category = ""Bugfix & Graphics Improvement""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Bugfix & Graphics Improvement"));
             });
         }
@@ -346,7 +348,7 @@ Category = ""Bugfix, Graphics Improvement & Immersion""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(2));
+                Assert.That(component.Category, Has.Count.EqualTo(2));
                 Assert.That(component.Category[0], Is.EqualTo("Bugfix"));
                 Assert.That(component.Category[1], Is.EqualTo("Graphics Improvement & Immersion"));
             });
@@ -368,7 +370,7 @@ Category = ""Appearance Change & Graphics Improvement""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Appearance Change & Graphics Improvement"));
             });
         }
@@ -389,7 +391,7 @@ Category = ""Graphics Improvement & Appearance Change""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Graphics Improvement & Appearance Change"));
             });
         }
@@ -410,7 +412,7 @@ Category = ""Added Content & Immersion""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Added Content & Immersion"));
             });
         }
@@ -431,7 +433,7 @@ Category = ""Bugfix & Immersion""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Bugfix & Immersion"));
             });
         }
@@ -452,7 +454,7 @@ Category = ""Appearance Change, Bugfix & Graphics Improvement""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(2));
+                Assert.That(component.Category, Has.Count.EqualTo(2));
                 Assert.That(component.Category[0], Is.EqualTo("Appearance Change"));
                 Assert.That(component.Category[1], Is.EqualTo("Bugfix & Graphics Improvement"));
             });
@@ -474,7 +476,7 @@ Category = ""Appearance Change, Immersion & Graphics Improvement""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(2));
+                Assert.That(component.Category, Has.Count.EqualTo(2));
                 Assert.That(component.Category[0], Is.EqualTo("Appearance Change"));
                 Assert.That(component.Category[1], Is.EqualTo("Immersion & Graphics Improvement"));
             });
@@ -496,7 +498,7 @@ Category = ""Added & Restored Content""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Added & Restored Content"));
             });
         }
@@ -517,7 +519,7 @@ Category = ""Mechanics Change & Immersion""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Mechanics Change & Immersion"));
             });
         }
@@ -538,7 +540,7 @@ Category = ""Immersion & Graphics Improvement""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Immersion & Graphics Improvement"));
             });
         }
@@ -559,7 +561,7 @@ Category = ""Appearance Change & Immersion""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(1));
+                Assert.That(component.Category, Has.Count.EqualTo(1));
                 Assert.That(component.Category[0], Is.EqualTo("Appearance Change & Immersion"));
             });
         }
@@ -580,7 +582,7 @@ Category = ""Appearance Change, Immersion & Graphics Improvement""
             Assert.That(component, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(component!.Category, Has.Count.EqualTo(2));
+                Assert.That(component.Category, Has.Count.EqualTo(2));
                 Assert.That(component.Category[0], Is.EqualTo("Appearance Change"));
                 Assert.That(component.Category[1], Is.EqualTo("Immersion & Graphics Improvement"));
             });

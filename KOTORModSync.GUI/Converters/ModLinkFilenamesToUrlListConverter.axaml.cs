@@ -46,7 +46,7 @@ namespace KOTORModSync.Converters
                 {
                     result[url] = new Core.ResourceMetadata
                     {
-                        Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+                        Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase),
                     };
                 }
             }

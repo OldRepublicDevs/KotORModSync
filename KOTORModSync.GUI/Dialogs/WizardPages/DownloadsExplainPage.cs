@@ -24,7 +24,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             var panel = new StackPanel
             {
                 Spacing = 16,
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
             };
 
             panel.Children.Add(new TextBlock
@@ -32,7 +32,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "⬇️ Downloading Mod Files",
                 FontSize = 24,
                 FontWeight = FontWeight.Bold,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
 
             panel.Children.Add(new TextBlock
@@ -41,7 +41,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 FontSize = 14,
                 TextAlignment = TextAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
-                MaxWidth = 600
+                MaxWidth = 600,
             });
 
             panel.Children.Add(new Border
@@ -80,7 +80,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                             FontSize = 14
                         }
                     }
-                }
+                },
             });
 
             panel.Children.Add(new TextBlock
@@ -89,7 +89,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 FontSize = 14,
                 TextAlignment = TextAlignment.Center,
                 FontWeight = FontWeight.SemiBold,
-                Opacity = 0.8
+                Opacity = 0.8,
             });
 
             Content = panel;

@@ -2,18 +2,27 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
 using KOTORModSync.Core;
 using KOTORModSync.Core.Installation;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Tests.TestHelpers;
+
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
     [TestFixture]
     public sealed class InstallCoordinatorTests
     {
-        private DirectoryInfo? _workingDirectory;
-        private MainConfig? _mainConfigInstance;
+        private DirectoryInfo _workingDirectory;
+        private MainConfig _mainConfigInstance;
 
         [SetUp]
         public void SetUp()
@@ -28,7 +37,7 @@ namespace KOTORModSync.Tests
                 sourcePath = _workingDirectory,
                 allComponents = new List<ModComponent>(),
             };
-            InstallCoordinator.ClearSessionForTests(_workingDirectory!);
+            InstallCoordinator.ClearSessionForTests(_workingDirectory);
         }
 
         [TearDown]
@@ -43,26 +52,28 @@ namespace KOTORModSync.Tests
         [Test]
         public async Task InstallCoordinator_CreatesCheckpointAndBackup()
         {
-            ModComponent component = TestComponentFactory.CreateComponent("SingleComponent", _workingDirectory!);
-            _mainConfigInstance!.allComponents = [component];
+            ModComponent component = TestComponentFactory.CreateComponent("SingleComponent", _workingDirectory);
+            _mainConfigInstance.allComponents = new List<ModComponent> { component };
 
             var coordinator = new InstallCoordinator();
-            using var cts = new CancellationTokenSource();
-            ResumeResult resume = await coordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, cts.Token);
+            using (var cts = new CancellationTokenSource())
+            {
+                ResumeResult resume = await coordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, cts.Token);
 
-            Assert.That(resume.OrderedComponents, Has.Count.EqualTo(1), "Coordinator should return component order");
-            string sessionPath = Path.Combine(MainConfig.DestinationPath.FullName, ModComponent.CheckpointFolderName, "install_session.json");
-            Assert.That(File.Exists(sessionPath), "Checkpoint state should be written to disk");
+                Assert.That(resume.OrderedComponents, Has.Count.EqualTo(1), "Coordinator should return component order");
+                string sessionPath = Path.Combine(MainConfig.DestinationPath.FullName, ModComponent.CheckpointFolderName, "install_session.json");
+                Assert.That(File.Exists(sessionPath), "Checkpoint state should be written to disk");
 
-            string backupPath = Path.Combine(MainConfig.DestinationPath.FullName, ModComponent.CheckpointFolderName, "last_good_backup.zip");
-            Assert.That(File.Exists(backupPath), Is.True, "Backup manager should create backup snapshot");
+                string backupPath = Path.Combine(MainConfig.DestinationPath.FullName, ModComponent.CheckpointFolderName, "last_good_backup.zip");
+                Assert.That(File.Exists(backupPath), Is.True, "Backup manager should create backup snapshot");
+            }
         }
 
         [Test]
         public async Task SessionManager_Persists_ComponentState_BetweenRuns()
         {
-            ModComponent component = TestComponentFactory.CreateComponent("ResumeComponent", _workingDirectory!);
-            _mainConfigInstance!.allComponents = [component];
+            ModComponent component = TestComponentFactory.CreateComponent("ResumeComponent", _workingDirectory);
+            _mainConfigInstance.allComponents = new List<ModComponent> { component };
 
             var coordinator = new InstallCoordinator();
             _ = await coordinator.InitializeAsync(MainConfig.AllComponents, MainConfig.DestinationPath, CancellationToken.None);
@@ -81,10 +92,10 @@ namespace KOTORModSync.Tests
         [Test]
         public async Task InstallationService_RespectsCheckpointSkippingCompleted()
         {
-            ModComponent component1 = TestComponentFactory.CreateComponent("CompletedComponent", _workingDirectory!);
+            ModComponent component1 = TestComponentFactory.CreateComponent("CompletedComponent", _workingDirectory);
             component1.InstallState = ModComponent.ComponentInstallState.Completed;
-            ModComponent component2 = TestComponentFactory.CreateComponent("PendingComponent", _workingDirectory!);
-            _mainConfigInstance!.allComponents = [component1, component2];
+            ModComponent component2 = TestComponentFactory.CreateComponent("PendingComponent", _workingDirectory);
+            _mainConfigInstance.allComponents = new List<ModComponent> { component1, component2 };
 
             ModComponent.InstallExitCode exitCode = await InstallationService.InstallAllSelectedComponentsAsync(MainConfig.AllComponents, null, CancellationToken.None);
 

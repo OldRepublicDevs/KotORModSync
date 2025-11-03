@@ -25,7 +25,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Spacing = 24,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
             };
 
             panel.Children.Add(new TextBlock
@@ -33,26 +33,26 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "🎉 Installation Complete!",
                 FontSize = 32,
                 FontWeight = FontWeight.Bold,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
 
             panel.Children.Add(new TextBlock
             {
                 Text = "All mods have been successfully installed.",
                 FontSize = 18,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
 
             var tipsBorder = new Border
             {
                 Padding = new Avalonia.Thickness(24),
                 CornerRadius = new Avalonia.CornerRadius(8),
-                MaxWidth = 600
+                MaxWidth = 600,
             };
 
             var tipsPanel = new StackPanel
             {
-                Spacing = 12
+                Spacing = 12,
             };
 
             tipsPanel.Children.Add(new TextBlock
@@ -60,25 +60,25 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "🎮 Next Steps:",
                 FontSize = 20,
                 FontWeight = FontWeight.SemiBold,
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
             });
 
             tipsPanel.Children.Add(new TextBlock
             {
                 Text = "• Launch the game and enjoy your modded experience!",
-                FontSize = 14
+                FontSize = 14,
             });
 
             tipsPanel.Children.Add(new TextBlock
             {
                 Text = "• If you encounter issues, you can rollback to previous checkpoints",
-                FontSize = 14
+                FontSize = 14,
             });
 
             tipsPanel.Children.Add(new TextBlock
             {
                 Text = "• Check the output log for detailed installation information",
-                FontSize = 14
+                FontSize = 14,
             });
 
             tipsBorder.Child = tipsPanel;
@@ -116,7 +116,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                             TextAlignment = TextAlignment.Center
                         }
                     }
-                }
+                },
             });
 
             panel.Children.Add(new TextBlock
@@ -124,7 +124,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "Click 'Finish' to close the wizard.",
                 FontSize = 14,
                 Opacity = 0.7,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
 
             Content = panel;

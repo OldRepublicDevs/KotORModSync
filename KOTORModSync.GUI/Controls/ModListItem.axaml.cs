@@ -1046,7 +1046,7 @@ namespace KOTORModSync.Controls
             }
 
             // Return unique errors only (in case multiple instructions have the same issue)
-            return errors.Distinct().ToList();
+            return errors.Distinct(StringComparer.Ordinal).ToList();
         }
     }
 }

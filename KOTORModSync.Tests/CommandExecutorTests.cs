@@ -2,10 +2,14 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Utility;
+using NUnit.Framework;
 
 using ThreadState = System.Threading.ThreadState;
 

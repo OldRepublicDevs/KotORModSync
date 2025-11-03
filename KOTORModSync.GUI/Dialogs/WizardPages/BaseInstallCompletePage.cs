@@ -25,7 +25,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Spacing = 20,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
             };
 
             panel.Children.Add(new TextBlock
@@ -33,26 +33,26 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "✅ Base Installation Complete!",
                 FontSize = 28,
                 FontWeight = FontWeight.Bold,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
 
             panel.Children.Add(new TextBlock
             {
                 Text = "All selected mods have been installed successfully.",
                 FontSize = 16,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
 
             var resultsBorder = new Border
             {
                 Padding = new Avalonia.Thickness(24),
                 CornerRadius = new Avalonia.CornerRadius(8),
-                MaxWidth = 500
+                MaxWidth = 500,
             };
 
             var resultsPanel = new StackPanel
             {
-                Spacing = 12
+                Spacing = 12,
             };
 
             resultsPanel.Children.Add(new TextBlock
@@ -60,7 +60,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "📊 Installation Summary",
                 FontSize = 18,
                 FontWeight = FontWeight.SemiBold,
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
             });
 
             // TODO: Show actual statistics
@@ -78,7 +78,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "Click 'Next' to continue...",
                 FontSize = 14,
                 Opacity = 0.7,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
 
             Content = panel;
@@ -88,20 +88,20 @@ namespace KOTORModSync.Dialogs.WizardPages
         {
             var grid = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("*,Auto")
+                ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             };
 
             grid.Children.Add(new TextBlock
             {
                 Text = label,
-                FontSize = 14
+                FontSize = 14,
             });
 
             var valueText = new TextBlock
             {
                 Text = value,
                 FontSize = 14,
-                FontWeight = FontWeight.SemiBold
+                FontWeight = FontWeight.SemiBold,
             };
             Grid.SetColumn(valueText, 1);
             grid.Children.Add(valueText);

@@ -113,9 +113,9 @@ namespace KOTORModSync.Tests
             {
                 Guid = Guid.NewGuid(),
                 Name = "Test Component",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+                ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "https://example.com/mod.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+                    { "https://example.com/mod.zip", new ResourceMetadata { } },
                 },
             };
 
@@ -211,9 +211,9 @@ namespace KOTORModSync.Tests
             context.AddModComponentIssue(component.Guid, "JSON validation test");
             context.AddUrlFailure("https://example.com/test.zip", "Resolution failed");
 
-            component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+            component.ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
             {
-                { "https://example.com/test.zip", new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) },
+                { "https://example.com/test.zip", new ResourceMetadata { } },
             };
 
             // Act

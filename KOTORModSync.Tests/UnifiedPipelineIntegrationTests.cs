@@ -24,8 +24,8 @@ namespace KOTORModSync.Tests
     [TestFixture]
     public class UnifiedPipelineIntegrationTests
     {
-        private string? _testDirectory;
-        private string? _downloadDirectory;
+        private string _testDirectory;
+        private string _downloadDirectory;
 
         [SetUp]
         public void SetUp()
@@ -71,9 +71,9 @@ namespace KOTORModSync.Tests
             {
                 Name = "Test Mod",
                 Guid = Guid.NewGuid(),
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+                ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+                    { "file:///" + archivePath.Replace("\\", "/", StringComparison.Ordinal), new ResourceMetadata { } },
                 },
             };
 
@@ -119,10 +119,10 @@ namespace KOTORModSync.Tests
             {
                 Name = "Multi Link Mod",
                 Guid = Guid.NewGuid(),
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+                ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "file:///" + archive1.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) },
-                    { "file:///" + archive2.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+                    { "file:///" + archive1.Replace('\\', '/'), new ResourceMetadata { } },
+                    { "file:///" + archive2.Replace('\\', '/'), new ResourceMetadata { } },
                 },
             };
 
@@ -142,9 +142,9 @@ namespace KOTORModSync.Tests
             Assert.That(component.Instructions, Has.Count.EqualTo(4), "Should have 2 Extract + 2 Move instructions");
 
             var mod1Instructions = component.Instructions.Where(i =>
-                i.Source != null && i.Source.Any(s => s.Contains("mod1"))).ToList();
+                i.Source != null && i.Source.Any(s => s.Contains("mod1", StringComparison.Ordinal))).ToList();
             var mod2Instructions = component.Instructions.Where(i =>
-                i.Source != null && i.Source.Any(s => s.Contains("mod2"))).ToList();
+                i.Source != null && i.Source.Any(s => s.Contains("mod2", StringComparison.Ordinal))).ToList();
 
             Assert.Multiple(() =>
             {
@@ -166,15 +166,14 @@ namespace KOTORModSync.Tests
             {
                 Name = "Test Mod",
                 Guid = Guid.NewGuid(),
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+                ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+                    { "file:///" + archivePath.Replace('\\', '/'), new ResourceMetadata { } },
                 },
             };
 
             var existingInstruction = new Instruction
             {
-                Guid = Guid.NewGuid(),
                 Action = Instruction.ActionType.Copy,
                 Source = new List<string> { "existing_file.txt" },
                 Destination = "some_path",
@@ -212,9 +211,9 @@ namespace KOTORModSync.Tests
             {
                 Name = "Test Mod",
                 Guid = Guid.NewGuid(),
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+                ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+                    { "file:///" + archivePath.Replace('\\', '/'), new ResourceMetadata { } },
                 },
             };
 
@@ -260,9 +259,9 @@ namespace KOTORModSync.Tests
             {
                 Name = "Hybrid Mod",
                 Guid = Guid.NewGuid(),
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+                ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "file:///" + archivePath.Replace("\\", "/"), new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase) }
+                    { "file:///" + archivePath.Replace('\\', '/'), new ResourceMetadata { } },
                 },
             };
 
@@ -293,7 +292,7 @@ namespace KOTORModSync.Tests
 
         private string CreateTestArchive(string fileName, Action<ZipArchive> populateArchive)
         {
-            System.Diagnostics.Debug.Assert(_downloadDirectory is not null, "Download directory is null");
+            System.Diagnostics.Debug.Assert(!(_downloadDirectory is null), "Download directory is null");
             string archivePath = Path.Combine(_downloadDirectory, fileName);
 
             using (var archive = ZipArchive.Create())

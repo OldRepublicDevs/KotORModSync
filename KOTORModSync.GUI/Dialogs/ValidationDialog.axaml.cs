@@ -126,7 +126,7 @@ namespace KOTORModSync.Dialogs
                             Child = new TextBlock
                             {
                                 Text = issue,
-                                TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                             },
                         });
                     }

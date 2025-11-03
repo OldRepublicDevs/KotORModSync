@@ -9,7 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -29,12 +29,19 @@ namespace KOTORModSync.Dialogs
         private readonly string _destinationPath;
         private SessionViewModel _selectedSession;
         private readonly CheckpointService _checkpointService;
+        private bool _mouseDownForWindowMoving;
+        private PointerPoint _originalPoint;
 
         public CheckpointManagementDialog()
         {
             InitializeComponent();
             // Apply current theme
             ThemeManager.ApplyCurrentToWindow(this);
+
+            PointerPressed += InputElement_OnPointerPressed;
+            PointerMoved += InputElement_OnPointerMoved;
+            PointerReleased += InputElement_OnPointerReleased;
+            PointerExited += InputElement_OnPointerReleased;
         }
 
         public CheckpointManagementDialog(string destinationPath) : this()
@@ -225,15 +232,13 @@ namespace KOTORModSync.Dialogs
                 confirmMessage += $"\n\n📍 This is an anchor checkpoint (optimized for fast restoration).";
             }
 
-            var confirmDialog = new ConfirmDialog(
-                "Confirm Checkpoint Restoration",
+            bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(
+                this,
                 confirmMessage,
                 "Restore",
                 "Cancel"
             );
-
-            bool result = await confirmDialog.ShowDialog<bool>(this);
-            if (!result)
+            if (result != true)
             {
                 return;
             }
@@ -303,18 +308,17 @@ namespace KOTORModSync.Dialogs
 
         private async void CleanupButton_Click(object sender, RoutedEventArgs e)
         {
-            var confirmDialog = new ConfirmDialog(
-                "Clean Up Checkpoint Storage",
+            bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(
+                this,
                 "This will delete checkpoint data for all completed installation sessions.\n\n" +
                 "Completed sessions will be removed, but you'll keep any in-progress sessions.\n\n" +
                 "After cleanup, you will no longer be able to rollback completed installations.\n\n" +
                 "The system will also garbage collect orphaned files to free up disk space.\n\n" +
                 "Continue?",
-                "Clean Up"
+                "Clean Up",
+                "Cancel"
             );
-
-            bool result = await confirmDialog.ShowDialog<bool>(this);
-            if (!result)
+            if (result != true)
             {
                 return;
             }
@@ -376,16 +380,50 @@ namespace KOTORModSync.Dialogs
             Close();
         }
 
+        private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+        {
+            if (!_mouseDownForWindowMoving)
+            {
+                return;
+            }
+
+            PointerPoint currentPoint = e.GetCurrentPoint(this);
+            Position = new PixelPoint(
+                Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
+                Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
+            );
+        }
+
+        private void InputElement_OnPointerPressed(object sender, PointerEventArgs e)
+        {
+            if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+            {
+                return;
+            }
+
+            _mouseDownForWindowMoving = true;
+            _originalPoint = e.GetCurrentPoint(this);
+        }
+
+        private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+            _mouseDownForWindowMoving = false;
+
         private async Task ShowSuccessDialog(string message)
         {
-            var dialog = new MessageDialog("Success", message, "OK");
-            await dialog.ShowDialog(this);
+            await InformationDialog.ShowInformationDialogAsync(
+                this,
+                message,
+                "Success"
+            );
         }
 
         private async Task ShowErrorDialog(string message)
         {
-            var dialog = new MessageDialog("Error", message, "OK");
-            await dialog.ShowDialog(this);
+            await InformationDialog.ShowInformationDialogAsync(
+                this,
+                message,
+                "Error"
+            );
         }
     }
 

@@ -3,6 +3,7 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -20,7 +21,7 @@ namespace KOTORModSync.Tests
     {
         private static readonly List<string> _allTestDirectories = new List<string>();
         private static readonly object _lockObject = new object();
-        protected string? LogFilePath { get; private set; }
+        protected string LogFilePath { get; private set; }
 
         /// <summary>
         /// Override to specify the test category/type for logging purposes
@@ -47,16 +48,16 @@ namespace KOTORModSync.Tests
             lock (_lockObject)
             {
                 var uniqueDirectories = _allTestDirectories.Distinct(StringComparer.Ordinal).ToList();
-                foreach (string? dir in uniqueDirectories)
+                foreach (string dir in uniqueDirectories)
                 {
                     TestOutputHelper.WriteLine($"TEST DIRECTORY: {dir}");
                 }
             }
             TestOutputHelper.WriteLine($"=== END FINAL TEST DIRECTORY SUMMARY ===");
         }
-        protected StreamWriter? LogWriter { get; private set; }
-        protected string? TestFileDirectory { get; private set; }
-        protected string? TestTempDirectory { get; private set; }
+        protected StreamWriter LogWriter { get; private set; }
+        protected string TestFileDirectory { get; private set; }
+        protected string TestTempDirectory { get; private set; }
 
         [SetUp]
         public virtual void SetUp()
@@ -184,13 +185,13 @@ namespace KOTORModSync.Tests
                 if (TestFileDirectory != null && Directory.Exists(TestFileDirectory))
                 {
                     var testDirFiles = Directory.GetFiles(TestFileDirectory, "*", SearchOption.TopDirectoryOnly)
-                        .Where(f => Path.GetFileName(f).Contains(GetType().Name) ||
-                                    Path.GetFileName(f).Contains("diff_") ||
-                                    Path.GetFileName(f).Contains("debug_") ||
-                                    Path.GetFileName(f).Contains("generated_") ||
-                                    Path.GetFileName(f).Contains("regenerated_") ||
-                                    Path.GetFileName(f).Contains("from_markdown_") ||
-                                    Path.GetFileName(f).Contains("from_toml_") ||
+                        .Where(f => Path.GetFileName(f).Contains(GetType().Name, StringComparison.Ordinal) ||
+                                    Path.GetFileName(f).Contains("diff_", StringComparison.Ordinal) ||
+                                    Path.GetFileName(f).Contains("debug_", StringComparison.Ordinal) ||
+                                    Path.GetFileName(f).Contains("generated_", StringComparison.Ordinal) ||
+                                    Path.GetFileName(f).Contains("regenerated_", StringComparison.Ordinal) ||
+                                    Path.GetFileName(f).Contains("from_markdown_", StringComparison.Ordinal) ||
+                                    Path.GetFileName(f).Contains("from_toml_", StringComparison.Ordinal) ||
                                     string.Equals(Path.GetExtension(f), ".log", StringComparison.OrdinalIgnoreCase) ||
                                     string.Equals(Path.GetExtension(f), ".toml", StringComparison.OrdinalIgnoreCase) ||
                                     string.Equals(Path.GetExtension(f), ".md", StringComparison.OrdinalIgnoreCase))
@@ -199,7 +200,7 @@ namespace KOTORModSync.Tests
                     if (testDirFiles.Count > 0)
                     {
                         WriteLog($"Preserving {testDirFiles.Count} result files in test directory:");
-                        foreach (string? file in testDirFiles)
+                        foreach (string file in testDirFiles)
                         {
                             WriteLog($"  - {Path.GetFileName(file)}");
                         }
@@ -273,7 +274,7 @@ namespace KOTORModSync.Tests
         /// </summary>
         /// <param name="ex">The exception to log</param>
         /// <param name="context">Optional context about where the exception occurred</param>
-        protected void WriteLogException(Exception ex, string? context = null)
+        protected void WriteLogException(Exception ex, string context = "")
         {
             WriteLog($"EXCEPTION{(context != null ? $" in {context}" : "")}: {ex.GetType().Name}");
             WriteLog($"Message: {ex.Message}");
@@ -294,7 +295,7 @@ namespace KOTORModSync.Tests
         /// <returns>Full path to the debug file</returns>
         protected string GetDebugFilePath(string fileName)
         {
-            if (TestFileDirectory is null)
+            if (TestFileDirectory == null)
             {
                 throw new InvalidOperationException("TestFileDirectory is not initialized");
             }
@@ -314,7 +315,7 @@ namespace KOTORModSync.Tests
         /// <returns>Full path to the debug file</returns>
         protected string GetTempDebugFilePath(string fileName)
         {
-            if (TestTempDirectory is null)
+            if (TestTempDirectory == null)
             {
                 throw new InvalidOperationException("TestTempDirectory is not initialized");
             }

@@ -65,7 +65,7 @@ namespace KOTORModSync.Services
             {
                 // Collect all files from ResourceRegistry
                 var filesToWatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                
+
                 if (_currentComponent.ResourceRegistry != null)
                 {
                     foreach (var resource in _currentComponent.ResourceRegistry)

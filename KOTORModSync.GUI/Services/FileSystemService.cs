@@ -18,12 +18,9 @@ namespace KOTORModSync.Services
     public class FileSystemService : IDisposable
     {
         private CrossPlatformFileWatcher _modDirectoryWatcher;
-        private readonly Action<string> _onDirectoryChanged;
         private bool _disposed;
         private Timer _debounceTimer;
         private readonly object _timerLock = new object();
-        private const int DebounceDelayMs = 2000;
-        private string _lastChangedFile;
 
         // TEMPORARY: Set to false to disable file watching
         private const bool _watcherEnabled = false;

@@ -2,10 +2,16 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Parsing;
+
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -30,7 +36,7 @@ namespace KOTORModSync.Tests
                 {
 
                     if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/"))
+                        mdFile.Contains("/validated/", System.StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -50,7 +56,7 @@ namespace KOTORModSync.Tests
                 {
 
                     if (mdFile.Contains("../" + Path.DirectorySeparatorChar + "../" + Path.DirectorySeparatorChar + "validated" + Path.DirectorySeparatorChar) ||
-                        mdFile.Contains("/validated/"))
+                        mdFile.Contains("/validated/", System.StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -72,7 +78,7 @@ namespace KOTORModSync.Tests
 
             string markdown = File.ReadAllText(mdFilePath);
             var profile = MarkdownImportProfile.CreateDefault();
-            var regex = new Regex(profile.ComponentSectionPattern, profile.ComponentSectionOptions);
+            var regex = new Regex(profile.ComponentSectionPattern, profile.ComponentSectionOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
 
@@ -104,7 +110,7 @@ namespace KOTORModSync.Tests
                 WriteLogAndConsole($"First name: {names[0]}");
                 if (names.Count > 1)
                 {
-                    WriteLogAndConsole($"Last name: {names[^1]}");
+                    WriteLogAndConsole($"Last name: {names[names.Count - 1]}");
                 }
             }
 
@@ -125,7 +131,7 @@ namespace KOTORModSync.Tests
 
             string markdown = File.ReadAllText(mdFilePath);
             var profile = MarkdownImportProfile.CreateDefault();
-            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
+            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
             var authors = matches
@@ -157,7 +163,7 @@ namespace KOTORModSync.Tests
 
             string markdown = File.ReadAllText(mdFilePath);
             var profile = MarkdownImportProfile.CreateDefault();
-            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
+            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
             var descriptions = matches
@@ -229,7 +235,7 @@ namespace KOTORModSync.Tests
 
             string markdown = File.ReadAllText(mdFilePath);
             var profile = MarkdownImportProfile.CreateDefault();
-            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
+            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
             var methods = matches
@@ -261,7 +267,7 @@ namespace KOTORModSync.Tests
 
             string markdown = File.ReadAllText(mdFilePath);
             var profile = MarkdownImportProfile.CreateDefault();
-            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
+            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
             var instructions = matches
@@ -288,7 +294,7 @@ namespace KOTORModSync.Tests
 
             string markdown = File.ReadAllText(mdFilePath);
             var profile = MarkdownImportProfile.CreateDefault();
-            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions);
+            var regex = new Regex(profile.RawRegexPattern, profile.RawRegexOptions, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = regex.Matches(markdown);
             var nonEnglishValues = matches
@@ -406,7 +412,7 @@ namespace KOTORModSync.Tests
 
             string markdown = File.ReadAllText(mdFilePath);
             var profile = MarkdownImportProfile.CreateDefault();
-            var linkRegex = new Regex(profile.ModLinkPattern);
+            var linkRegex = new Regex(profile.ModLinkPattern, RegexOptions.None, TimeSpan.FromSeconds(10));
 
             MatchCollection matches = linkRegex.Matches(markdown);
 

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 
@@ -65,24 +65,9 @@ Action = ""Move""
 Destination = ""<<kotorDirectory>>""
 Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk""]";
 
-        private static void AssertComponentEquality(object? obj, object? another)
+        private static void AssertComponentEquality([CanBeNull] ModComponent comp1, [CanBeNull] ModComponent comp2)
         {
-            if (ReferenceEquals(obj, another))
-            {
-                return;
-            }
-
-            if (obj is null || another is null)
-            {
-                return;
-            }
-
-            if (obj.GetType() != another.GetType())
-            {
-                return;
-            }
-
-            if (obj is ModComponent comp1 && another is ModComponent comp2)
+            Assert.Multiple(() =>
             {
                 // Compare core properties that should be preserved
                 Assert.That(comp2.Name, Is.EqualTo(comp1.Name), "Component name should match");
@@ -94,72 +79,101 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
                 Assert.That(comp2.IsSelected, Is.EqualTo(comp1.IsSelected), "Component IsSelected should match");
                 Assert.That(comp2.Category, Is.EqualTo(comp1.Category), "Component category should match");
                 Assert.That(comp2.Language, Is.EqualTo(comp1.Language), "Component language should match");
+            });
 
-                // Compare ModLinkFilenames
-                if (comp1.ModLinkFilenames != null)
+            // Compare ModLinkFilenames
+            if (comp1.ResourceRegistry != null)
+            {
+                Assert.That(comp2.ResourceRegistry, Is.Not.Null, "ResourceRegistry should not be null after round-trip");
+                Assert.That(comp2.ResourceRegistry.Count, Is.EqualTo(comp1.ResourceRegistry.Count), "ResourceRegistry count should match");
+
+                foreach (var kvp in comp1.ResourceRegistry)
                 {
-                    Assert.That(comp2.ModLinkFilenames, Is.Not.Null, "ModLinkFilenames should not be null after round-trip");
-                    Assert.That(comp2.ModLinkFilenames.Count, Is.EqualTo(comp1.ModLinkFilenames.Count), "ModLinkFilenames count should match");
-
-                    foreach (var kvp in comp1.ModLinkFilenames)
-                    {
-                        Assert.That(comp2.ModLinkFilenames.ContainsKey(kvp.Key), Is.True, $"ModLinkFilenames should contain URL: '{kvp.Key}'");
-                    }
+                    Assert.That(comp2.ResourceRegistry.ContainsKey(kvp.Key), Is.True, $"ResourceRegistry should contain URL: '{kvp.Key}'");
                 }
+            }
 
-                // Compare instructions count (some may be lost during round-trip, which is acceptable)
-                Console.WriteLine($"Original instructions count: {comp1.Instructions.Count}, Final instructions count: {comp2.Instructions.Count}");
-                Assert.That(comp2.Instructions.Count, Is.GreaterThanOrEqualTo(0), "Should have at least 0 instructions after round-trip");
+            // Compare instructions count (some may be lost during round-trip, which is acceptable)
+            Console.WriteLine($"Original instructions count: {comp1.Instructions.Count}, Final instructions count: {comp2.Instructions.Count}");
+            Assert.That(comp2.Instructions.Count, Is.GreaterThanOrEqualTo(0), "Should have at least 0 instructions after round-trip");
 
-                // Compare options count (some may be lost during round-trip, which is acceptable)
-                Console.WriteLine($"Original options count: {comp1.Options.Count}, Final options count: {comp2.Options.Count}");
-                Assert.That(comp2.Options.Count, Is.GreaterThanOrEqualTo(0), "Should have at least 0 options after round-trip");
+            // Compare options count (some may be lost during round-trip, which is acceptable)
+            Console.WriteLine($"Original options count: {comp1.Options.Count}, Final options count: {comp2.Options.Count}");
+            Assert.That(comp2.Options.Count, Is.GreaterThanOrEqualTo(0), "Should have at least 0 options after round-trip");
 
-                // Compare option details (only if both have options)
-                if (comp1.Options.Count > 0 && comp2.Options.Count > 0)
+            // Compare option details (only if both have options)
+            if (comp1.Options.Count > 0 && comp2.Options.Count > 0)
+            {
+                for (int i = 0; i < Math.Min(comp1.Options.Count, comp2.Options.Count); i++)
                 {
-                    for (int i = 0; i < Math.Min(comp1.Options.Count, comp2.Options.Count); i++)
-                    {
-                        var originalOpt = comp1.Options[i];
-                        var finalOpt = comp2.Options[i];
+                    var originalOpt = comp1.Options[i];
+                    var finalOpt = comp2.Options[i];
 
+                    Assert.Multiple(() =>
+                    {
                         Assert.That(finalOpt.Name, Is.EqualTo(originalOpt.Name), $"Option {i} name should match after round-trip");
                         Assert.That(finalOpt.Description, Is.EqualTo(originalOpt.Description), $"Option {i} description should match after round-trip");
                         Assert.That(finalOpt.IsSelected, Is.EqualTo(originalOpt.IsSelected), $"Option {i} IsSelected should match after round-trip");
                         Assert.That(finalOpt.Restrictions, Is.EqualTo(originalOpt.Restrictions), $"Option {i} restrictions should match after round-trip");
-                    }
+                    });
                 }
-
-                Console.WriteLine("✅ Component equality validation passed!");
             }
+
+            Console.WriteLine("✅ Component equality validation passed!");
             // DO NOT REMOVE THESE LINES, THEY SHOULD NEVER BE in an `else` block either! ALWAYS run this
-            string objJson = JsonConvert.SerializeObject(obj);
-            string anotherJson = JsonConvert.SerializeObject(another);
+            string objJson = JsonConvert.SerializeObject(comp1);
+            string anotherJson = JsonConvert.SerializeObject(comp2);
             Assert.That(objJson, Is.EqualTo(anotherJson));
         }
 
         private static List<ModComponent> DeserializeFromFormat(string content, string format)
         {
-            return format.ToUpperInvariant() switch
+            string formatUpper = format.ToUpperInvariant();
+            if (string.Equals(formatUpper, "TOML", StringComparison.Ordinal))
             {
-                "TOML" => ModComponentSerializationService.DeserializeModComponentFromTomlString(content),
-                "YAML" => ModComponentSerializationService.DeserializeModComponentFromYamlString(content),
-                "MD" or "MARKDOWN" => ModComponentSerializationService.DeserializeModComponentFromMarkdownString(content),
-                "JSON" => ModComponentSerializationService.DeserializeModComponentFromJsonString(content),
-                _ => throw new NotSupportedException($"Unsupported format: {format}")
-            };
+                return ModComponentSerializationService.DeserializeModComponentFromTomlString(content).ToList();
+            }
+            else if (string.Equals(formatUpper, "YAML", StringComparison.Ordinal))
+            {
+                return ModComponentSerializationService.DeserializeModComponentFromYamlString(content).ToList();
+            }
+            else if (string.Equals(formatUpper, "MD", StringComparison.Ordinal) || string.Equals(formatUpper, "MARKDOWN", StringComparison.Ordinal))
+            {
+                return ModComponentSerializationService.DeserializeModComponentFromMarkdownString(content).ToList();
+            }
+            else if (string.Equals(formatUpper, "JSON", StringComparison.Ordinal))
+            {
+                return ModComponentSerializationService.DeserializeModComponentFromJsonString(content).ToList();
+            }
+            else
+            {
+                throw new NotSupportedException($"Unsupported format: {format}");
+            }
         }
 
         private static string SerializeToFormat(List<ModComponent> components, string format)
         {
-            return format.ToUpperInvariant() switch
+            string formatUpper = format.ToUpperInvariant();
+            if (string.Equals(formatUpper, "TOML", StringComparison.Ordinal))
             {
-                "TOML" => ModComponentSerializationService.SerializeModComponentAsTomlString(components),
-                "YAML" => ModComponentSerializationService.SerializeModComponentAsYamlString(components),
-                "MD" or "MARKDOWN" => ModComponentSerializationService.SerializeModComponentAsMarkdownString(components),
-                "JSON" => ModComponentSerializationService.SerializeModComponentAsJsonString(components),
-                _ => throw new NotSupportedException($"Unsupported format: {format}")
-            };
+                return ModComponentSerializationService.SerializeModComponentAsTomlString(components);
+            }
+            else if (string.Equals(formatUpper, "YAML", StringComparison.Ordinal))
+            {
+                return ModComponentSerializationService.SerializeModComponentAsYamlString(components);
+            }
+            else if (string.Equals(formatUpper, "MD", StringComparison.Ordinal) || string.Equals(formatUpper, "MARKDOWN", StringComparison.Ordinal))
+            {
+                return ModComponentSerializationService.SerializeModComponentAsMarkdownString(components);
+            }
+            else if (string.Equals(formatUpper, "JSON", StringComparison.Ordinal))
+            {
+                return ModComponentSerializationService.SerializeModComponentAsJsonString(components);
+            }
+            else
+            {
+                throw new NotSupportedException($"Unsupported format: {format}");
+            }
         }
 
         [Test]
@@ -172,7 +186,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
             Console.WriteLine($"Testing {format} round-trip...");
 
             // Load the components from TOML (our source format)
-            List<ModComponent> originalComponents = ModComponentSerializationService.DeserializeModComponentFromTomlString(TestTomlContent);
+            List<ModComponent> originalComponents = DeserializeFromFormat(TestTomlContent, "TOML");
             Assert.That(originalComponents.Count, Is.EqualTo(1), "Should load exactly 1 component");
             ModComponent originalComponent = originalComponents[0];
 
@@ -213,7 +227,7 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
 
             // Step 1: Load from format1 (TOML as source)
             Console.WriteLine($"Step 1: Loading from {format1}...");
-            List<ModComponent> originalComponents = ModComponentSerializationService.DeserializeModComponentFromTomlString(TestTomlContent);
+            List<ModComponent> originalComponents = DeserializeFromFormat(TestTomlContent, "TOML");
             Console.WriteLine($"Loaded {originalComponents.Count} components from {format1}");
             Assert.That(originalComponents.Count, Is.EqualTo(1), $"Should load exactly 1 component from {format1}");
 

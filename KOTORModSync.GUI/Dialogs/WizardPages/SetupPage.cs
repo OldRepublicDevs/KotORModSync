@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using JetBrains.Annotations;
 using KOTORModSync.Controls;
 using KOTORModSync.Core;
@@ -37,13 +36,13 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-                Padding = new Thickness(40, 20, 40, 20)
+                Padding = new Thickness(40, 20, 40, 20),
             };
 
             var mainPanel = new StackPanel
             {
                 Spacing = 24,
-                MaxWidth = 900
+                MaxWidth = 900,
             };
 
             // Header
@@ -51,14 +50,14 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Spacing = 12,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 20)
+                Margin = new Thickness(0, 0, 0, 20),
             };
 
             headerPanel.Children.Add(new TextBlock
             {
                 Text = "⚙️",
                 FontSize = 48,
-                TextAlignment = Avalonia.Media.TextAlignment.Center
+                TextAlignment = Avalonia.Media.TextAlignment.Center,
             });
 
             headerPanel.Children.Add(new TextBlock
@@ -66,7 +65,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "Directory Setup",
                 FontSize = 28,
                 FontWeight = Avalonia.Media.FontWeight.Bold,
-                TextAlignment = Avalonia.Media.TextAlignment.Center
+                TextAlignment = Avalonia.Media.TextAlignment.Center,
             });
 
             headerPanel.Children.Add(new TextBlock
@@ -74,7 +73,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "Configure your workspace and game directories",
                 FontSize = 16,
                 TextAlignment = Avalonia.Media.TextAlignment.Center,
-                Opacity = 0.8
+                Opacity = 0.8,
             });
 
             mainPanel.Children.Add(headerPanel);
@@ -83,7 +82,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             var modDirCard = new Border
             {
                 Padding = new Thickness(24),
-                CornerRadius = new CornerRadius(12, 12, 12, 12)
+                CornerRadius = new CornerRadius(12, 12, 12, 12),
             };
 
             var modDirPanel = new StackPanel { Spacing = 12 };
@@ -91,7 +90,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             var modDirHeader = new StackPanel
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 12
+                Spacing = 12,
             };
 
             modDirHeader.Children.Add(new Border
@@ -106,7 +105,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                     TextAlignment = Avalonia.Media.TextAlignment.Center,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
-                }
+                },
             });
 
             modDirHeader.Children.Add(new TextBlock
@@ -114,7 +113,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "📁 Mod Workspace Directory",
                 FontSize = 20,
                 FontWeight = Avalonia.Media.FontWeight.SemiBold,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             });
 
             modDirPanel.Children.Add(modDirHeader);
@@ -125,27 +124,27 @@ namespace KOTORModSync.Dialogs.WizardPages
                 FontSize = 14,
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                 Opacity = 0.9,
-                LineHeight = 20
+                LineHeight = 20,
             });
 
             var tipPanel1 = new Border
             {
                 Padding = new Thickness(12),
                 CornerRadius = new CornerRadius(6, 6, 6, 6),
-                Margin = new Thickness(0, 8, 0, 0)
+                Margin = new Thickness(0, 8, 0, 0),
             };
 
             var tipContent1 = new StackPanel
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 8
+                Spacing = 8,
             };
 
             tipContent1.Children.Add(new TextBlock
             {
                 Text = "💡",
                 FontSize = 16,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
             });
 
             tipContent1.Children.Add(new TextBlock
@@ -153,7 +152,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "Tip: Create a new folder like 'C:\\KOTORMods' or use your Documents folder",
                 FontSize = 13,
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                Opacity = 0.8
+                Opacity = 0.8,
             });
 
             tipPanel1.Child = tipContent1;
@@ -163,7 +162,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Height = 44,
                 PickerType = DirectoryPickerType.ModDirectory,
-                Margin = new Thickness(0, 12, 0, 0)
+                Margin = new Thickness(0, 12, 0, 0),
             };
             modDirPanel.Children.Add(_sourcePathPicker);
 
@@ -174,7 +173,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             var kotorDirCard = new Border
             {
                 Padding = new Thickness(24),
-                CornerRadius = new CornerRadius(12, 12, 12, 12)
+                CornerRadius = new CornerRadius(12, 12, 12, 12),
             };
 
             var kotorDirPanel = new StackPanel { Spacing = 12 };
@@ -182,7 +181,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             var kotorDirHeader = new StackPanel
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 12
+                Spacing = 12,
             };
 
             kotorDirHeader.Children.Add(new Border
@@ -197,7 +196,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                     TextAlignment = Avalonia.Media.TextAlignment.Center,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
-                }
+                },
             });
 
             kotorDirHeader.Children.Add(new TextBlock
@@ -205,7 +204,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "🎮 KOTOR Installation Directory",
                 FontSize = 20,
                 FontWeight = Avalonia.Media.FontWeight.SemiBold,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             });
 
             kotorDirPanel.Children.Add(kotorDirHeader);
@@ -216,38 +215,38 @@ namespace KOTORModSync.Dialogs.WizardPages
                 FontSize = 14,
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                 Opacity = 0.9,
-                LineHeight = 20
+                LineHeight = 20,
             });
 
             var tipPanel2 = new Border
             {
                 Padding = new Thickness(12),
                 CornerRadius = new CornerRadius(6, 6, 6, 6),
-                Margin = new Thickness(0, 8, 0, 0)
+                Margin = new Thickness(0, 8, 0, 0),
             };
 
             var tipContent2 = new StackPanel
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 8
+                Spacing = 8,
             };
 
             tipContent2.Children.Add(new TextBlock
             {
                 Text = "💡",
                 FontSize = 16,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
             });
 
             var commonPathsText = new TextBlock
             {
                 FontSize = 13,
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                Opacity = 0.8
+                Opacity = 0.8,
             };
             commonPathsText.Inlines.AddRange(new Avalonia.Controls.Documents.Inline[]
             {
-                new Avalonia.Controls.Documents.Run { Text = "Common locations:\n• Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\swkotor\n• GOG: C:\\GOG Games\\Star Wars - KotOR" }
+                new Avalonia.Controls.Documents.Run { Text = "Common locations:\n• Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\swkotor\n• GOG: C:\\GOG Games\\Star Wars - KotOR" },
             });
 
             tipContent2.Children.Add(commonPathsText);
@@ -258,7 +257,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 Height = 44,
                 PickerType = DirectoryPickerType.KotorDirectory,
-                Margin = new Thickness(0, 12, 0, 0)
+                Margin = new Thickness(0, 12, 0, 0),
             };
             kotorDirPanel.Children.Add(_destinationPathPicker);
 
@@ -269,7 +268,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             var loadFileCard = new Border
             {
                 Padding = new Thickness(24),
-                CornerRadius = new CornerRadius(12, 12, 12, 12)
+                CornerRadius = new CornerRadius(12, 12, 12, 12),
             };
 
             var loadFilePanel = new StackPanel { Spacing = 12 };
@@ -277,7 +276,7 @@ namespace KOTORModSync.Dialogs.WizardPages
             var loadFileHeader = new StackPanel
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 12
+                Spacing = 12,
             };
 
             loadFileHeader.Children.Add(new Border
@@ -292,7 +291,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                     TextAlignment = Avalonia.Media.TextAlignment.Center,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
-                }
+                },
             });
 
             loadFileHeader.Children.Add(new TextBlock
@@ -300,7 +299,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "📄 Load Instruction File",
                 FontSize = 20,
                 FontWeight = Avalonia.Media.FontWeight.SemiBold,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             });
 
             loadFilePanel.Children.Add(loadFileHeader);
@@ -311,7 +310,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 FontSize = 14,
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                 Opacity = 0.9,
-                LineHeight = 20
+                LineHeight = 20,
             });
 
             var loadFileButton = new Button
@@ -320,7 +319,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 12, 0, 0),
                 Padding = new Thickness(16, 12),
-                FontSize = 15
+                FontSize = 15,
             };
             loadFileButton.Click += (s, e) =>
             {
@@ -340,14 +339,14 @@ namespace KOTORModSync.Dialogs.WizardPages
             var statusCard = new Border
             {
                 Padding = new Thickness(20),
-                CornerRadius = new CornerRadius(8, 8, 8, 8)
+                CornerRadius = new CornerRadius(8, 8, 8, 8),
             };
 
             _statusText = new TextBlock
             {
                 FontSize = 14,
                 FontWeight = Avalonia.Media.FontWeight.Medium,
-                TextAlignment = Avalonia.Media.TextAlignment.Center
+                TextAlignment = Avalonia.Media.TextAlignment.Center,
             };
 
             statusCard.Child = _statusText;

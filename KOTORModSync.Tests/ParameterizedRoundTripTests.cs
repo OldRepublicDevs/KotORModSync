@@ -53,7 +53,7 @@ namespace KOTORModSync.Tests
             {
                 foreach (string mdFile in Directory.GetFiles(k1Path, "*.md", SearchOption.TopDirectoryOnly))
                 {
-                    if (mdFile.Contains("validated"))
+                    if (mdFile.Contains("validated", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -71,7 +71,7 @@ namespace KOTORModSync.Tests
             {
                 foreach (string mdFile in Directory.GetFiles(k2Path, "*.md", SearchOption.TopDirectoryOnly))
                 {
-                    if (mdFile.Contains("validated"))
+                    if (mdFile.Contains("validated", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -107,7 +107,7 @@ namespace KOTORModSync.Tests
                 foreach (string tomlFile in Directory.GetFiles(searchPath, "*.toml", SearchOption.TopDirectoryOnly))
                 {
                     string fileName = Path.GetFileNameWithoutExtension(tomlFile);
-                    string gameType = fileName.Contains("KOTOR1") || fileName.Contains("K1") ? "K1" : "K2";
+                    string gameType = fileName.Contains("KOTOR1", StringComparison.Ordinal) || fileName.Contains("K1", StringComparison.Ordinal) ? "K1" : "K2";
 
                     yield return new TestCaseData(tomlFile)
                         .SetName($"{gameType}_{fileName}")
@@ -239,8 +239,8 @@ namespace KOTORModSync.Tests
 
             Assert.That(File.Exists(tomlFilePath), Is.True, $"Test file not found: {tomlFilePath}");
 
-            List<ModComponent> components1 = FileLoadingService.LoadFromFile(tomlFilePath);
-            Debug.Assert(TestTempDirectory is not null, "Test directory is null");
+            List<ModComponent> components1 = FileLoadingService.LoadFromFile(tomlFilePath).ToList() ?? throw new InvalidDataException();
+            Debug.Assert(!(TestTempDirectory is null), "Test directory is null");
             string tomlPath1 = GetTempDebugFilePath("generation1.toml");
             FileLoadingService.SaveToFile(components1, tomlPath1);
             string generatedToml1 = File.ReadAllText(tomlPath1);
@@ -250,7 +250,7 @@ namespace KOTORModSync.Tests
             WriteLogAndConsole($"First generation: {generatedToml1.Length} characters");
             WriteLog($"First generation saved to: {tomlPath1}");
 
-            List<ModComponent> components2 = FileLoadingService.LoadFromFile(tomlPath1);
+            List<ModComponent> components2 = FileLoadingService.LoadFromFile(tomlPath1).ToList() ?? throw new InvalidDataException();
             string tomlPath2 = GetTempDebugFilePath("generation2.toml");
             FileLoadingService.SaveToFile(components2, tomlPath2);
             string generatedToml2 = File.ReadAllText(tomlPath2);
@@ -301,16 +301,16 @@ namespace KOTORModSync.Tests
 
             Assert.That(File.Exists(tomlFilePath), Is.True, $"Test file not found: {tomlFilePath}");
 
-            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(tomlFilePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(tomlFilePath).ToList() ?? throw new InvalidDataException();
             WriteLog($"Original components loaded: {originalComponents.Count}");
 
-            Debug.Assert(TestTempDirectory is not null, "Test directory is null");
+            Debug.Assert(!(TestTempDirectory is null), "Test directory is null");
             string generatedTomlPath = GetTempDebugFilePath("regenerated.toml");
             FileLoadingService.SaveToFile(originalComponents, generatedTomlPath);
             MarkFileForPreservation(generatedTomlPath, "Regenerated TOML for data preservation testing");
             WriteLog($"Regenerated TOML saved to: {generatedTomlPath}");
 
-            List<ModComponent> regeneratedComponents = FileLoadingService.LoadFromFile(generatedTomlPath);
+            List<ModComponent> regeneratedComponents = FileLoadingService.LoadFromFile(generatedTomlPath).ToList() ?? throw new InvalidDataException();
             WriteLog($"Regenerated components loaded: {regeneratedComponents.Count}");
 
             Assert.That(regeneratedComponents, Has.Count.EqualTo(originalComponents.Count),
@@ -337,7 +337,7 @@ namespace KOTORModSync.Tests
                 {
                     Assert.That(regen.Category, Is.EqualTo(orig.Category).AsCollection, $"Component {i}: Category mismatch");
                     Assert.That(regen.Language, Is.EqualTo(orig.Language).AsCollection, $"Component {i}: Language mismatch");
-                    Assert.That(regen.ModLinkFilenames, Is.EqualTo(orig.ModLinkFilenames).AsCollection, $"Component {i}: ModLinkFilenames mismatch");
+                    Assert.That(regen.ResourceRegistry, Is.EqualTo(orig.ResourceRegistry).AsCollection, $"Component {i}: ResourceRegistry mismatch");
                     Assert.That(regen.Dependencies, Is.EqualTo(orig.Dependencies).AsCollection, $"Component {i}: Dependencies mismatch");
                     Assert.That(regen.Restrictions, Is.EqualTo(orig.Restrictions).AsCollection, $"Component {i}: Restrictions mismatch");
                 });
@@ -365,13 +365,13 @@ namespace KOTORModSync.Tests
 
             MarkdownParserResult parseResult1 = parser.Parse(originalMarkdown);
             var components1 = parseResult1.Components.ToList();
-            Debug.Assert(TestTempDirectory is not null, "Test directory is null");
+            Debug.Assert(!(TestTempDirectory is null), "Test directory is null");
             string tomlPath1 = GetTempDebugFilePath("from_markdown_1.toml");
             FileLoadingService.SaveToFile(components1, tomlPath1);
             MarkFileForPreservation(tomlPath1, "Cross-format TOML 1 - from markdown");
             WriteLog($"First TOML saved to: {tomlPath1}");
 
-            List<ModComponent> componentsFromToml = FileLoadingService.LoadFromFile(tomlPath1);
+            List<ModComponent> componentsFromToml = FileLoadingService.LoadFromFile(tomlPath1).ToList() ?? throw new InvalidDataException();
             string generatedMarkdown = ModComponentSerializationService.GenerateModDocumentation(componentsFromToml);
             WriteLog($"Generated markdown length: {generatedMarkdown.Length} characters");
 
@@ -406,7 +406,7 @@ namespace KOTORModSync.Tests
 
             Assert.That(File.Exists(tomlFilePath), Is.True, $"Test file not found: {tomlFilePath}");
 
-            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(tomlFilePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(tomlFilePath).ToList() ?? throw new InvalidDataException();
             WriteLog($"Original components loaded: {originalComponents.Count}");
 
             string generatedMarkdown = ModComponentSerializationService.GenerateModDocumentation(originalComponents);

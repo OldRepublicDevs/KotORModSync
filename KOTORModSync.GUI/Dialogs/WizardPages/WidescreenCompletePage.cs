@@ -27,13 +27,13 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = "✅ Widescreen Installation Complete!",
                 FontSize = 24,
                 FontWeight = FontWeight.Bold,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
             panel.Children.Add(new TextBlock
             {
                 Text = "All widescreen mods have been successfully installed.",
                 FontSize = 16,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Center,
             });
             Content = panel;
         }

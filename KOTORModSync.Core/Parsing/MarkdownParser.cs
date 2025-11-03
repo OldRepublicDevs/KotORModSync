@@ -150,7 +150,7 @@ namespace KOTORModSync.Core.Parsing
                 {
                     StartIndex = outerMatch.Index,
                     EndIndex = outerMatch.Index + outerMatch.Length,
-                    ComponentIndex = componentIndex
+                    ComponentIndex = componentIndex,
                 };
 
                 if (modListIndex >= 0 && outerMatch.Index < modListIndex)
@@ -311,7 +311,7 @@ namespace KOTORModSync.Core.Parsing
                 EpilogueContent = epilogueContent,
                 WidescreenWarningContent = widescreenWarningContent,
                 AspyrExclusiveWarningContent = aspyrExclusiveWarningContent,
-                Trace = _trace
+                Trace = _trace,
             };
         }
 
@@ -559,7 +559,7 @@ namespace KOTORModSync.Core.Parsing
                                     PatternName = "ModLinkPattern",
                                     GroupName = "link",
                                     ComponentIndex = _currentComponentIndex,
-                                    WasUsed = true
+                                    WasUsed = true,
                                 });
                             }
                         }
@@ -622,7 +622,7 @@ namespace KOTORModSync.Core.Parsing
                             PatternName = "CategoryTierPattern",
                             GroupName = "category",
                             ComponentIndex = _currentComponentIndex,
-                            WasUsed = true
+                            WasUsed = true,
                         });
                     }
 
@@ -637,7 +637,7 @@ namespace KOTORModSync.Core.Parsing
                             PatternName = "CategoryTierPattern",
                             GroupName = "tier",
                             ComponentIndex = _currentComponentIndex,
-                            WasUsed = true
+                            WasUsed = true,
                         });
                     }
 
@@ -766,7 +766,7 @@ namespace KOTORModSync.Core.Parsing
                         PatternName = patternName,
                         GroupName = groupName.Trim(),
                         ComponentIndex = _currentComponentIndex,
-                        WasUsed = true
+                        WasUsed = true,
                     });
                     return group.Value.Trim();
                 }

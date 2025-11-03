@@ -2,10 +2,17 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+ using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 
 using Newtonsoft.Json;
+
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -89,12 +96,12 @@ namespace KOTORModSync.Tests
         {
             Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " is null");
 
-            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList();
 
             string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".json");
             FileLoadingService.SaveToFile(originalComponents, modifiedFilePath);
 
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -126,11 +133,11 @@ namespace KOTORModSync.Tests
                         Action = Instruction.ActionType.Extract,
                         Source = new List<string> { "test.rar" },
                         Destination = "%temp%\\test"
-                    }
+                    },
                 },
             };
 
-            string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([newComponent]);
+            string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString(new List<ModComponent> { newComponent });
             ModComponent duplicateComponent = ModComponentSerializationService.DeserializeModComponentFromJsonString(jsonString)[0];
 
             Assert.That(duplicateComponent, Is.Not.Null);
@@ -140,7 +147,7 @@ namespace KOTORModSync.Tests
         [Test]
         public void SaveAndLoadJSONFile_WhitespaceTests()
         {
-            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList();
 
             Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
             string jsonContents = File.ReadAllText(_filePath);
@@ -150,7 +157,7 @@ namespace KOTORModSync.Tests
             string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".json");
             File.WriteAllText(modifiedFilePath, jsonContents);
 
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -171,13 +178,14 @@ namespace KOTORModSync.Tests
         [Test]
         public void SaveAndLoadJSONFile_EmptyComponentsList()
         {
-            List<ModComponent> originalComponents = [];
+            List<ModComponent> originalComponents = new List<ModComponent>();
 
             FileLoadingService.SaveToFile(originalComponents, _filePath);
 
             try
             {
-                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList()
+                    ?? throw new InvalidDataException();
                 Assert.That(loadedComponents, Is.Null.Or.Empty);
             }
             catch (InvalidDataException ex)
@@ -189,8 +197,8 @@ namespace KOTORModSync.Tests
         [Test]
         public void SaveAndLoadJSONFile_DuplicateGuids()
         {
-            List<ModComponent> originalComponents =
-            [
+            List<ModComponent> originalComponents = new List<ModComponent>
+            {
                 new ModComponent
                 {
                     Name = "ModComponent 1",
@@ -206,10 +214,11 @@ namespace KOTORModSync.Tests
                     Name = "ModComponent 3",
                     Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
                 },
-            ];
+            };
 
             FileLoadingService.SaveToFile(originalComponents, _filePath);
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList()
+                ?? throw new InvalidDataException();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -225,12 +234,14 @@ namespace KOTORModSync.Tests
         [Test]
         public void SaveAndLoadJSONFile_ModifyComponents()
         {
-            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList()
+                ?? throw new InvalidDataException();
 
             originalComponents[0].Name = "Modified Name";
 
             FileLoadingService.SaveToFile(originalComponents, _filePath);
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList()
+                ?? throw new InvalidDataException();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -246,9 +257,11 @@ namespace KOTORModSync.Tests
         [Test]
         public void SaveAndLoadJSONFile_MultipleRounds()
         {
-            List<List<ModComponent>> rounds =
-            [
-                [
+            // Each round in this test should be a List<ModComponent>, not a ModComponent
+            var rounds = new List<List<ModComponent>>
+            {
+                new List<ModComponent>
+                {
                     new ModComponent
                     {
                         Name = "ModComponent 1",
@@ -261,8 +274,9 @@ namespace KOTORModSync.Tests
                         Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
                         IsSelected = true,
                     },
-                ],
-                [
+                },
+                new List<ModComponent>
+                {
                     new ModComponent
                     {
                         Name = "ModComponent 3",
@@ -281,13 +295,14 @@ namespace KOTORModSync.Tests
                         Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
                         IsSelected = true,
                     },
-                ],
-            ];
+                },
+            };
 
-            foreach (List<ModComponent> components in rounds)
+            foreach (var components in rounds)
             {
                 FileLoadingService.SaveToFile(components, _filePath);
-                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList()
+                    ?? throw new InvalidDataException();
 
                 Assert.That(loadedComponents, Has.Count.EqualTo(components.Count));
 
@@ -313,12 +328,15 @@ namespace KOTORModSync.Tests
                     new Instruction
                     {
                         Action = Instruction.ActionType.Extract,
-                        Source = new List<string> { "test.rar" }
-                    }
+                        Source = new List<string> { "test.rar" },
+                        Overwrite = true,
+                        Destination = "some/path",
+                        Arguments = "some args"
+                    },
                 },
             };
 
-            string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([component]);
+            string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString(new List<ModComponent> { component });
 
             Assert.That(jsonString, Does.Contain("\n"), "Pretty-printed JSON should contain newlines");
             Assert.That(jsonString, Does.Contain("  "), "Pretty-printed JSON should contain indentation");
@@ -339,16 +357,15 @@ namespace KOTORModSync.Tests
                         Source = new List<string> { "test.rar" },
                         Overwrite = true,
                         Destination = "some/path",
-                        Arguments = "some args"
-                    }
+                    },
                 },
             };
-            string extractJson = ModComponentSerializationService.SerializeModComponentAsJsonString([extractComponent]);
+            string extractJson = ModComponentSerializationService.SerializeModComponentAsJsonString(new List<ModComponent> { extractComponent });
             Assert.Multiple(() =>
             {
-                Assert.That(extractJson.Contains("overwrite"), Is.False, "Extract should not serialize Overwrite");
-                Assert.That(extractJson.Contains("destination"), Is.False, "Extract should not serialize Destination");
-                Assert.That(extractJson.Contains("arguments"), Is.False, "Extract should not serialize Arguments");
+                Assert.That(extractJson, Does.Not.Contain("overwrite"), "Extract should not serialize Overwrite");
+                Assert.That(extractJson, Does.Not.Contain("destination"), "Extract should not serialize Destination");
+                Assert.That(extractJson, Does.Not.Contain("arguments"), "Extract should not serialize Arguments");
             });
         }
 
@@ -364,7 +381,7 @@ namespace KOTORModSync.Tests
                 IsSelected = true,
             };
 
-            string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([component]);
+            string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString(new List<ModComponent> { component });
             Assert.Multiple(() =>
             {
                 Assert.That(jsonString, Does.Not.Contain("isDownloaded"), "JSON should not contain IsDownloaded");
@@ -383,17 +400,15 @@ namespace KOTORModSync.Tests
                 Guid = Guid.NewGuid(),
                 Author = "Test Author",
                 Description = "Test description",
-                ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase)
+                ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase)
                 {
-                    ["https://example.com/mod.zip"] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+                    ["https://example.com/mod.zip"] = new ResourceMetadata
                     {
-                        ["mod_v1.0.zip"] = true,
-                        ["mod_v2.0.zip"] = false,
-                        ["mod_beta.zip"] = null,
+                        Files = new Dictionary<string, bool?>(StringComparer.Ordinal) { { "mod_v1.0.zip", true }, { "mod_v2.0.zip", false }, { "mod_beta.zip", null } },
                     },
-                    ["https://example.com/patch.rar"] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+                    ["https://example.com/patch.rar"] = new ResourceMetadata
                     {
-                        ["patch.rar"] = true
+                        Files = new Dictionary<string, bool?>(StringComparer.Ordinal) { { "patch.rar", true } },
                     },
                 },
                 ExcludedDownloads = new List<string> { "debug.zip", "old_version.rar" },
@@ -403,7 +418,7 @@ namespace KOTORModSync.Tests
                 {
                     Action = Instruction.ActionType.Extract,
                     Source = new List<string> { "<<modDirectory>>\\mod*.zip" },
-                    Overwrite = true
+                    Overwrite = true,
                 },
             },
                 Options = new System.Collections.ObjectModel.ObservableCollection<Option>
@@ -423,7 +438,7 @@ namespace KOTORModSync.Tests
                             Destination = "<<kotorDirectory>>\\Override",
                             Overwrite = true
                         }
-                    }
+                    },
                 },
                 new Option
                 {
@@ -441,12 +456,12 @@ namespace KOTORModSync.Tests
                             Overwrite = false
                         }
                     }
-                }
+                },
             },
             };
 
             // Save to JSON
-            string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString([testComponent]);
+            string jsonString = ModComponentSerializationService.SerializeModComponentAsJsonString(new List<ModComponent> { testComponent });
 
             // Verify JSON contains expected structures
             Assert.Multiple(() =>
@@ -459,26 +474,32 @@ namespace KOTORModSync.Tests
             });
 
             // Load from JSON
-            List<ModComponent> loadedComponents = ModComponentSerializationService.DeserializeModComponentFromJsonString(jsonString);
+            List<ModComponent> loadedComponents = ModComponentSerializationService.DeserializeModComponentFromJsonString(jsonString).ToList();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(1));
             ModComponent loadedComponent = loadedComponents[0];
 
-            // Verify component properties
-            Assert.That(loadedComponent.Name, Is.EqualTo(testComponent.Name));
-            Assert.That(loadedComponent.Options.Count, Is.EqualTo(2), "Should have 2 options");
-            Assert.That(loadedComponent.Options[0].Name, Is.EqualTo("Optional Feature 1"));
-            Assert.That(loadedComponent.Options[1].Name, Is.EqualTo("Optional Feature 2"));
-            Assert.That(loadedComponent.Options[0].Instructions.Count, Is.EqualTo(1), "Option 1 should have 1 instruction");
-            Assert.That(loadedComponent.Options[1].Instructions.Count, Is.EqualTo(1), "Option 2 should have 1 instruction");
+            Assert.Multiple(() =>
+            {
+                // Verify component properties
+                Assert.That(loadedComponent.Name, Is.EqualTo(testComponent.Name));
+                Assert.That(loadedComponent.Options.Count, Is.EqualTo(2), "Should have 2 options");
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(loadedComponent.Options[0].Name, Is.EqualTo("Optional Feature 1"));
+                Assert.That(loadedComponent.Options[1].Name, Is.EqualTo("Optional Feature 2"));
+                Assert.That(loadedComponent.Options[0].Instructions.Count, Is.EqualTo(1), "Option 1 should have 1 instruction");
+                Assert.That(loadedComponent.Options[1].Instructions.Count, Is.EqualTo(1), "Option 2 should have 1 instruction");
 
-            // Verify ModLinkFilenames
-            Assert.That(loadedComponent.ModLinkFilenames.Count, Is.EqualTo(2), "Should have 2 URLs");
-            Assert.That(loadedComponent.ModLinkFilenames.ContainsKey("https://example.com/mod.zip"), Is.True);
-            Assert.That(loadedComponent.ModLinkFilenames["https://example.com/mod.zip"].Count, Is.EqualTo(3), "First URL should have 3 filenames");
-            Assert.That(loadedComponent.ModLinkFilenames["https://example.com/mod.zip"]["mod_v1.0.zip"], Is.EqualTo(true));
-            Assert.That(loadedComponent.ModLinkFilenames["https://example.com/mod.zip"]["mod_v2.0.zip"], Is.EqualTo(false));
-            Assert.That(loadedComponent.ModLinkFilenames["https://example.com/mod.zip"]["mod_beta.zip"], Is.EqualTo(null));
+                // Verify ModLinkFilenames
+                Assert.That(loadedComponent.ResourceRegistry.Count, Is.EqualTo(2), "Should have 2 URLs");
+            });
+            Assert.That(loadedComponent.ResourceRegistry.ContainsKey("https://example.com/mod.zip"), Is.True);
+            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files.Count, Is.EqualTo(3), "First URL should have 3 filenames");
+            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v1.0.zip"], Is.EqualTo(true));
+            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_v2.0.zip"], Is.EqualTo(false));
+            Assert.That(loadedComponent.ResourceRegistry["https://example.com/mod.zip"].Files["mod_beta.zip"], Is.EqualTo(null));
 
             // Verify ExcludedDownloads
             Assert.That(loadedComponent.ExcludedDownloads.Count, Is.EqualTo(2), "Should have 2 excluded downloads");
@@ -486,30 +507,32 @@ namespace KOTORModSync.Tests
             Assert.That(loadedComponent.ExcludedDownloads, Does.Contain("old_version.rar"));
         }
 
-        private static void AssertComponentEquality(object? obj, object? another)
+        private static void AssertComponentEquality([CanBeNull] ModComponent comp1, [CanBeNull] ModComponent comp2)
         {
-            if (ReferenceEquals(obj, another))
+            if (ReferenceEquals(comp1, comp2))
             {
                 return;
             }
 
-            if (obj is null || another is null)
+            if (comp1 is null || comp2 is null)
             {
                 return;
             }
 
-            if (obj.GetType() != another.GetType())
+            if (comp1.GetType() != comp2.GetType())
             {
                 return;
             }
 
-            if (obj is ModComponent comp1 && another is ModComponent comp2)
+            if (comp1 is ModComponent modComp1 && comp2 is ModComponent modComp2)
             {
-                string json1 = JsonConvert.SerializeObject(comp1);
-                string json2 = JsonConvert.SerializeObject(comp2);
+                string json1 = JsonConvert.SerializeObject(modComp1);
+                string json2 = JsonConvert.SerializeObject(modComp2);
 
-                ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
-                ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
+                ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)
+                    ?? throw new InvalidOperationException();
+                ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)
+                    ?? throw new InvalidOperationException();
 
                 string normalizedJson1 = JsonConvert.SerializeObject(copy1);
                 string normalizedJson2 = JsonConvert.SerializeObject(copy2);
@@ -518,8 +541,8 @@ namespace KOTORModSync.Tests
             }
             else
             {
-                string objJson = JsonConvert.SerializeObject(obj);
-                string anotherJson = JsonConvert.SerializeObject(another);
+                string objJson = JsonConvert.SerializeObject(comp1);
+                string anotherJson = JsonConvert.SerializeObject(comp2);
 
                 Assert.That(objJson, Is.EqualTo(anotherJson));
             }

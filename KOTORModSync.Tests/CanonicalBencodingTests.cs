@@ -66,8 +66,11 @@ namespace KOTORModSync.Tests
             int mIndex = decoded.IndexOf("1:m", StringComparison.Ordinal);
             int zIndex = decoded.IndexOf("1:z", StringComparison.Ordinal);
 
-            Assert.That(aIndex, Is.LessThan(mIndex));
-            Assert.That(mIndex, Is.LessThan(zIndex));
+            Assert.Multiple(() =>
+            {
+                Assert.That(aIndex, Is.LessThan(mIndex));
+                Assert.That(mIndex, Is.LessThan(zIndex));
+            });
         }
 
         [Test]
@@ -82,9 +85,12 @@ namespace KOTORModSync.Tests
 
             byte[] bencode = CanonicalBencoding.BencodeCanonical(dict);
 
-            // Format: d 4:data 3:<raw bytes> e
-            Assert.That(bencode[0], Is.EqualTo((byte)'d'));
-            Assert.That(bencode[bencode.Length - 1], Is.EqualTo((byte)'e'));
+            Assert.Multiple(() =>
+            {
+                // Format: d 4:data 3:<raw bytes> e
+                Assert.That(bencode[0], Is.EqualTo((byte)'d'));
+                Assert.That(bencode[bencode.Length - 1], Is.EqualTo((byte)'e'));
+            });
         }
 
         [Test]

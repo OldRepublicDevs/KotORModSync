@@ -45,10 +45,10 @@ namespace KOTORModSync.Controls
             {
                 MainConfig.CurrentComponent = value;
                 SetValue(CurrentComponentProperty, value);
-                
+
                 // Update the validation watcher to monitor this component's files
                 _validationWatcher?.SetCurrentComponent(value);
-                
+
                 // Trigger initial validation when component is loaded
                 if (value != null)
                 {

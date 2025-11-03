@@ -2,6 +2,10 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 
 using KOTORModSync.Core;
@@ -9,6 +13,7 @@ using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Utility;
 
 using Newtonsoft.Json;
+using NUnit.Framework;
 
 using YamlSerialization = YamlDotNet.Serialization;
 
@@ -81,7 +86,7 @@ Instructions:
                         new Instruction
                         {
                             Action = Instruction.ActionType.Extract,
-                            Source = new List<string> { "Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar" }
+                            Source = new List<string> { "Ultimate Dantooine High Resolution - TPC Version-1103-2-1-1670680013.rar" },
                         },
                         new Instruction
                         {
@@ -91,14 +96,14 @@ Instructions:
                                 "%temp%\\mod_files\\Dantooine HR\\DAN_wall03.tpc",
                                 "%temp%\\mod_files\\Dantooine HR\\DAN_NEW1.tpc",
                                 "%temp%\\mod_files\\Dantooine HR\\DAN_MWFl.tpc"
-                            }
+                            },
                         },
                         new Instruction
                         {
                             Action = Instruction.ActionType.Move,
                             Source = new List<string> { "%temp%\\mod_files\\Dantooine HR\\" },
                             Destination = "%temp%\\Override"
-                        }
+                        },
                     },
                 },
                 new ModComponent
@@ -111,14 +116,14 @@ Instructions:
                         new Instruction
                         {
                             Action = Instruction.ActionType.Extract,
-                            Source = new List<string> { "URCMTP 1.3.rar" }
+                            Source = new List<string> { "URCMTP 1.3.rar" },
                         },
                         new Instruction
                         {
                             Action = Instruction.ActionType.Run,
-                            Source = new List<string> { "%temp%\\mod_files\\TSLPatcher.exe" }
+                            Source = new List<string> { "%temp%\\mod_files\\TSLPatcher.exe" },
                         }
-                    }
+                    },
                 },
             };
 
@@ -132,7 +137,7 @@ Instructions:
             string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".yaml");
             File.WriteAllText(tempFilePath, serializedYaml);
 
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath).ToList();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -160,13 +165,13 @@ Instructions:
                     {
                         Action = Instruction.ActionType.Extract,
                         Source = new List<string> { "test.rar" }
-                    }
+                    },
                 },
             };
 
-            string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString([newComponent]);
+            string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { newComponent });
 
-            List<ModComponent> loadedComponents = ModComponentSerializationService.DeserializeModComponentFromYamlString(yamlString);
+            List<ModComponent> loadedComponents = ModComponentSerializationService.DeserializeModComponentFromYamlString(yamlString).ToList() ?? throw new InvalidDataException();
             ModComponent duplicateComponent = loadedComponents[0];
 
             AssertComponentEquality(newComponent, duplicateComponent);
@@ -177,7 +182,7 @@ Instructions:
         public void SaveAndLoadYAMLFile_CaseInsensitive()
         {
 
-            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath).ToList();
 
             Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
             string yamlContents = File.ReadAllText(_filePath);
@@ -187,7 +192,7 @@ Instructions:
             string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".yaml");
             File.WriteAllText(modifiedFilePath, yamlContents);
 
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -223,7 +228,7 @@ Instructions:
             string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".yaml");
             File.WriteAllText(modifiedFilePath, yamlContents);
 
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath).ToList();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -285,7 +290,7 @@ Instructions:
         [Test]
         public void SaveAndLoadYAMLFile_EmptyComponentsList()
         {
-            List<ModComponent> originalComponents = [];
+            List<ModComponent> originalComponents = new List<ModComponent>();
 
             string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".yaml");
             FileLoadingService.SaveToFile(originalComponents, tempFilePath);
@@ -297,7 +302,8 @@ Instructions:
         public void SaveAndLoadYAMLFile_DuplicateGuids()
         {
             List<ModComponent> originalComponents =
-            [
+            new List<ModComponent>
+            {
                 new ModComponent
                 {
                     Name = "ModComponent 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
@@ -313,11 +319,11 @@ Instructions:
                     Name = "ModComponent 3", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
                     IsSelected = true,
                 },
-            ];
+            };
 
             string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".yaml");
             FileLoadingService.SaveToFile(originalComponents, tempFilePath);
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath).ToList();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -355,7 +361,7 @@ Instructions:
 
             string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".yaml");
             FileLoadingService.SaveToFile(originalComponents, tempFilePath);
-            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath).ToList();
 
             Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
@@ -374,8 +380,10 @@ Instructions:
         {
 
             List<List<ModComponent>> rounds =
-            [
-                [
+            new List<List<ModComponent>>
+            {
+                new List<ModComponent>
+                {
                     new ModComponent
                     {
                         Name = "ModComponent 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
@@ -386,8 +394,9 @@ Instructions:
                         Name = "ModComponent 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
                         IsSelected = true,
                     },
-                ],
-                [
+                },
+                new List<ModComponent>
+                {
                     new ModComponent
                     {
                         Name = "ModComponent 3", Guid = Guid.Parse("{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}"),
@@ -403,8 +412,9 @@ Instructions:
                         Name = "ModComponent 5", Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
                         IsSelected = true,
                     },
-                ],
-                [
+                },
+                new List<ModComponent>
+                {
                     new ModComponent
                     {
                         Name = "ModComponent 6", Guid = Guid.Parse("{EF04A28E-5031-4A95-A85A-9A1B29A31710}"),
@@ -425,13 +435,13 @@ Instructions:
                         Name = "ModComponent 9", Guid = Guid.Parse("{D6B5C60F-26A7-4595-A0E2-2DE567A376DE}"),
                         IsSelected = true,
                     },
-                ],
-            ];
+                },
+            };
 
             foreach (List<ModComponent> components in rounds)
             {
                 FileLoadingService.SaveToFile(components, _filePath);
-                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList();
 
                 Assert.That(loadedComponents, Has.Count.EqualTo(components.Count));
 
@@ -463,15 +473,15 @@ Instructions:
                     Overwrite = true,
                     Destination = "some/path",
                     Arguments = "some args"
-                }
+                },
             },
             };
-            string extractYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([extractComponent]);
+            string extractYaml = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { extractComponent });
             Assert.Multiple(() =>
             {
-                Assert.That(extractYaml.Contains("Overwrite"), Is.False, "Extract should not serialize Overwrite");
-                Assert.That(extractYaml.Contains("Destination"), Is.False, "Extract should not serialize Destination");
-                Assert.That(extractYaml.Contains("Arguments"), Is.False, "Extract should not serialize Arguments");
+                Assert.That(extractYaml.Contains("Overwrite", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Overwrite");
+                Assert.That(extractYaml.Contains("Destination", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Destination");
+                Assert.That(extractYaml.Contains("Arguments", System.StringComparison.Ordinal), Is.False, "Extract should not serialize Arguments");
             });
 
             var moveComponent = new ModComponent
@@ -487,10 +497,10 @@ Instructions:
                     Destination = "<<kotorDirectory>>\\Override",
                     Overwrite = false,  // Set to false so it gets serialized (different from default)
 					Arguments = "should not appear"
-                }
+                },
             },
             };
-            string moveYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([moveComponent]);
+            string moveYaml = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { moveComponent });
             Assert.Multiple(() =>
             {
                 Assert.That(moveYaml, Does.Contain("Overwrite"), "Move should serialize Overwrite");
@@ -511,10 +521,10 @@ Instructions:
                     Destination = "<<kotorDirectory>>",
                     Arguments = "0",
                     Overwrite = true
-                }
+                },
             },
             };
-            string patcherYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([patcherComponent]);
+            string patcherYaml = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { patcherComponent });
             Assert.Multiple(() =>
             {
                 Assert.That(patcherYaml, Does.Not.Contain("Overwrite"), "Patcher should not serialize Overwrite");
@@ -535,10 +545,10 @@ Instructions:
                     Arguments = "/silent",
                     Overwrite = true,
                     Destination = "some/path"
-                }
+                },
             },
             };
-            string executeYaml = ModComponentSerializationService.SerializeModComponentAsYamlString([executeComponent]);
+            string executeYaml = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { executeComponent });
             Assert.Multiple(() =>
             {
                 Assert.That(executeYaml, Does.Not.Contain("Overwrite"), "Execute should not serialize Overwrite");
@@ -560,7 +570,7 @@ Instructions:
                 IsSelected = true,
             };
 
-            string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString([component]);
+            string yamlString = ModComponentSerializationService.SerializeModComponentAsYamlString(new List<ModComponent> { component });
             Assert.Multiple(() =>
             {
                 Assert.That(yamlString, Does.Not.Contain("IsDownloaded"), "YAML should not contain IsDownloaded");
@@ -572,7 +582,7 @@ Instructions:
             });
         }
 
-        private static void AssertComponentEquality(object? obj, object? another)
+        private static void AssertComponentEquality(object obj, object another)
         {
             if (ReferenceEquals(obj, another))
             {
@@ -595,8 +605,8 @@ Instructions:
                 string json1 = JsonConvert.SerializeObject(comp1);
                 string json2 = JsonConvert.SerializeObject(comp2);
 
-                ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
-                ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
+                ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1) ?? throw new InvalidDataException();
+                ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2) ?? throw new InvalidDataException();
 
                 string normalizedJson1 = JsonConvert.SerializeObject(copy1);
                 string normalizedJson2 = JsonConvert.SerializeObject(copy2);

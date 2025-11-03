@@ -2,11 +2,19 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
 using KOTORModSync.Core.Utility;
+
+using NUnit.Framework;
 
 #pragma warning disable U2U1000, CS8618, RCS1118
 
@@ -104,7 +112,7 @@ namespace KOTORModSync.Tests
 
             var virtualProvider = new VirtualFileSystemProvider();
             await virtualProvider.InitializeFromRealFileSystemAsync(virtualSource);
-            var virtualComponent = new ModComponent { Name = "TestComponent", Instructions = new(virtualInstructions) };
+            var virtualComponent = new ModComponent { Name = "TestComponent", Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(virtualInstructions) };
 
             _ = new MainConfig
             {
@@ -112,7 +120,7 @@ namespace KOTORModSync.Tests
                 destinationPath = new DirectoryInfo(virtualDest),
             };
 
-            _ = await virtualComponent.ExecuteInstructionsAsync(virtualComponent.Instructions, [virtualComponent], CancellationToken.None, virtualProvider);
+            _ = await virtualComponent.ExecuteInstructionsAsync(virtualComponent.Instructions, new List<ModComponent> { virtualComponent }, CancellationToken.None, virtualProvider);
 
             string realRoot = Path.Combine(_testRootDir, "Real");
             string realSource = Path.Combine(realRoot, "source");
@@ -122,7 +130,7 @@ namespace KOTORModSync.Tests
             VirtualFileSystemTests.CopyDirectory(sourceDir, realSource);
 
             var realProvider = new RealFileSystemProvider();
-            var realComponent = new ModComponent { Name = "TestComponent", Instructions = new(realInstructions) };
+            var realComponent = new ModComponent { Name = "TestComponent", Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(realInstructions) };
 
             _ = new MainConfig
             {
@@ -130,12 +138,12 @@ namespace KOTORModSync.Tests
                 destinationPath = new DirectoryInfo(realDest),
             };
 
-            _ = await realComponent.ExecuteInstructionsAsync(realComponent.Instructions, [realComponent], CancellationToken.None, realProvider);
+            _ = await realComponent.ExecuteInstructionsAsync(realComponent.Instructions, new List<ModComponent> { realComponent }, CancellationToken.None, realProvider);
 
             return (virtualProvider, realSource, realDest);
         }
 
-        private async Task RunDeleteDuplicateFile(string directory, string fileExtension, List<string>? compatibleExtensions = null)
+        private async Task RunDeleteDuplicateFile(string directory, string fileExtension, List<string> compatibleExtensions)
         {
             var instructions = new List<Instruction>
             {
@@ -143,7 +151,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.DelDuplicate,
                     Destination = "<<modDirectory>>",
                     Arguments = fileExtension,
-                    Source = compatibleExtensions
+                    Source = compatibleExtensions.ToList(),
                 },
             };
 
@@ -168,7 +176,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.DelDuplicate,
                     Destination = "<<modDirectory>>",
                     Arguments = ".txt",
-                    Source = [".txt", ".png"]
+                    Source = new List<string> { ".txt", ".png" },
                 },
             };
 
@@ -199,7 +207,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.DelDuplicate,
                     Destination = "<<modDirectory>>",
                     Arguments = ".txt",
-                    Source = [".txt", ".png", ".jpg"]
+                    Source = new List<string> { ".txt", ".png", ".jpg" },
                 },
             };
 
@@ -229,7 +237,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.DelDuplicate,
                     Destination = "<<modDirectory>>",
                     Arguments = ".tga",
-                    Source = [".tga", ".tpc"]
+                    Source = new List<string> { ".tga", ".tpc" },
                 },
             };
 
@@ -258,7 +266,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.DelDuplicate,
                     Destination = "<<modDirectory>>",
                     Arguments = ".jpg",
-                    Source = [".txt", ".png"]
+                    Source = new List<string> { ".txt", ".png" },
                 },
             };
 
@@ -282,7 +290,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.DelDuplicate,
                     Destination = "<<modDirectory>>",
                     Arguments = ".txt",
-                    Source = [".txt"]
+                    Source = new List<string> { ".txt" },
                 },
             };
 
@@ -312,7 +320,7 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.DelDuplicate,
                     Destination = "<<modDirectory>>",
                     Arguments = ".txt",
-                    Source = [".txt", ".png"]
+                    Source = new List<string> { ".txt", ".png" },
                 },
             };
 
@@ -331,7 +339,7 @@ namespace KOTORModSync.Tests
         {
             if (UtilityHelper.GetOperatingSystem() == OSPlatform.Windows)
             {
-                await TestContext.Progress.WriteLine("Test is not possible on Windows.");
+                await TestContext.Progress.WriteLineAsync("Test is not possible on Windows.");
                 return;
             }
 
@@ -350,11 +358,11 @@ namespace KOTORModSync.Tests
                 Action = Instruction.ActionType.DelDuplicate,
                     Destination = "<<modDirectory>>",
                     Arguments = ".tpc",
-                    Source = [".tpc", ".tga"]
+                    Source = new List<string> { ".tpc", ".tga" },
                 },
             };
 
-            await RunDeleteDuplicateFile(directory, ".tpc");
+            await RunDeleteDuplicateFile(directory, ".tpc", new List<string> { ".tpc", ".tga" }.ToList());
 
             Assert.Multiple(() =>
             {

@@ -2,7 +2,13 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.Threading;
+
 using KOTORModSync.Core.Utility;
+
+using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
@@ -13,7 +19,7 @@ namespace KOTORModSync.Tests
         public void TestSerializeString()
         {
             const string str = "Hello, world!";
-            object? serialized = Serializer.SerializeObject(str);
+            object serialized = Serializer.SerializeObject(str);
 
             Assert.That(serialized, Is.EqualTo(str));
         }
@@ -22,7 +28,7 @@ namespace KOTORModSync.Tests
         public void TestSerializeInt()
         {
             int thisInt = new Random().Next(minValue: 1, maxValue: 65535);
-            object? serialized = Serializer.SerializeObject(thisInt);
+            object serialized = Serializer.SerializeObject(thisInt);
 
             Assert.That(serialized, Is.EqualTo(thisInt.ToString()));
         }
@@ -31,7 +37,7 @@ namespace KOTORModSync.Tests
         public void TestSerializeGuid()
         {
             var guid = Guid.NewGuid();
-            object? serialized = Serializer.SerializeObject(guid);
+            object serialized = Serializer.SerializeObject(guid);
 
             if (serialized is null)
             {
@@ -49,11 +55,11 @@ namespace KOTORModSync.Tests
         [Test]
         public void TestSerializeListOfGuid()
         {
-            List<Guid> list =
-            [
+            List<Guid> list = new List<Guid>
+            {
                 Guid.NewGuid(), Guid.NewGuid(),
-            ];
-            object? serialized = Serializer.SerializeObject(list);
+            };
+            object serialized = Serializer.SerializeObject(list);
 
             Assert.Multiple(() =>
             {
@@ -73,7 +79,7 @@ namespace KOTORModSync.Tests
                 {
                     Guid.NewGuid(), new List<MyNestedClass>
                     {
-                        new(instance1),
+                        new MyNestedClass(instance1),
                     }
                 },
             };
@@ -85,7 +91,7 @@ namespace KOTORModSync.Tests
                 {
                     Guid.NewGuid(), new List<MyNestedClass>
                     {
-                        new(instance2), new(instance2),
+                        new MyNestedClass(instance2), new MyNestedClass(instance2),
                     }
                 },
             };
@@ -178,9 +184,9 @@ namespace KOTORModSync.Tests
 
         private static void VerifyUniqueSerialization(object serialized, ISet<object> serializedObjects)
         {
-            if (serialized is not Dictionary<string, object> serializedDict)
+            if (!(serialized is Dictionary<string, object> serializedDict))
             {
-                if (serialized is not List<object> serializedList)
+                if (!(serialized is List<object> serializedList))
                 {
                     return;
                 }
@@ -217,8 +223,8 @@ namespace KOTORModSync.Tests
 
     public class MyClass
     {
-        public MyNestedClass? NestedInstance { get; set; }
-        public Dictionary<Guid, List<MyNestedClass>>? GuidNestedClassDict { get; set; }
+        public MyNestedClass NestedInstance { get; set; }
+        public Dictionary<Guid, List<MyNestedClass>> GuidNestedClassDict { get; set; }
     }
 
     public class MyNestedClass

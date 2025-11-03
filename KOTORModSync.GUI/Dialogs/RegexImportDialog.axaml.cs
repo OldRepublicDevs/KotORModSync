@@ -428,26 +428,26 @@ namespace KOTORModSync.Dialogs
             var findTextBox = new TextBox
             {
                 Watermark = "Find in preview...",
-                MinWidth = 200
+                MinWidth = 200,
             };
 
             var findNextButton = new Button
             {
                 Content = "Next",
-                Margin = new Thickness(4, 0, 0, 0)
+                Margin = new Thickness(4, 0, 0, 0),
             };
 
             var findPrevButton = new Button
             {
                 Content = "Prev",
-                Margin = new Thickness(4, 0, 0, 0)
+                Margin = new Thickness(4, 0, 0, 0),
             };
 
             var closeButton = new Button
             {
                 Content = "X",
                 Margin = new Thickness(4, 0, 0, 0),
-                Width = 30
+                Width = 30,
             };
 
             findTextBox.TextChanged += (s, e) => RegexImportDialog.PerformFind(findTextBox.Text);
@@ -466,13 +466,13 @@ namespace KOTORModSync.Dialogs
                     findNextButton,
                     findPrevButton,
                     closeButton
-                }
+                },
             };
 
             return new Border
             {
                 Child = panel,
-                BorderThickness = new Thickness(0, 0, 0, 1)
+                BorderThickness = new Thickness(0, 0, 0, 1),
             };
         }
 

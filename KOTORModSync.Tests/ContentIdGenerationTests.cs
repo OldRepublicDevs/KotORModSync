@@ -2,6 +2,7 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
+using System;
 using System.Collections.Generic;
 
 using KOTORModSync.Core.Services.Download;
@@ -205,9 +206,12 @@ namespace KOTORModSync.Tests
             TestContext.WriteLine($"ContentId2: {contentId2}");
             TestContext.WriteLine($"ContentId3: {contentId3}");
 
-            // All should produce same ContentId (normalized URL base is same, query params removed)
-            Assert.That(contentId1, Is.EqualTo(contentId2));
-            Assert.That(contentId2, Is.EqualTo(contentId3));
+            Assert.Multiple(() =>
+            {
+                // All should produce same ContentId (normalized URL base is same, query params removed)
+                Assert.That(contentId1, Is.EqualTo(contentId2));
+                Assert.That(contentId2, Is.EqualTo(contentId3));
+            });
             Assert.That(contentId1, Has.Length.EqualTo(40));
         }
 
@@ -231,8 +235,11 @@ namespace KOTORModSync.Tests
             string id2 = DownloadCacheOptimizer.ComputeContentIdFromMetadata(metadata, url);
             string id3 = DownloadCacheOptimizer.ComputeContentIdFromMetadata(metadata, url);
 
-            Assert.That(id1, Is.EqualTo(id2));
-            Assert.That(id2, Is.EqualTo(id3));
+            Assert.Multiple(() =>
+            {
+                Assert.That(id1, Is.EqualTo(id2));
+                Assert.That(id2, Is.EqualTo(id3));
+            });
         }
     }
 }

@@ -1313,7 +1313,7 @@ namespace KOTORModSync.Core.Services
                     {
                         var singleUrlMap = new Dictionary<string, DownloadProgress>(StringComparer.Ordinal)
                         {
-                            [url] = tracker
+                            [url] = tracker,
                         };
                         List<DownloadResult> results = await DownloadManager.DownloadAllWithProgressAsync(
                             singleUrlMap,

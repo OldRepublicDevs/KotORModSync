@@ -5,6 +5,8 @@
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.FileSystem;
 
+using NUnit.Framework;
+
 namespace KOTORModSync.Tests
 {
     [TestFixture]

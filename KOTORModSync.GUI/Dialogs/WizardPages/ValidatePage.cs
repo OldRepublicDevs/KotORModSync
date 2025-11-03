@@ -42,20 +42,20 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             var panel = new StackPanel
             {
-                Spacing = 16
+                Spacing = 16,
             };
 
             panel.Children.Add(new TextBlock
             {
                 Text = "Click 'Run Validation' to check your installation for potential issues.",
-                FontSize = 14
+                FontSize = 14,
             });
 
             _validateButton = new Button
             {
                 Content = "🔍 Run Validation",
                 HorizontalAlignment = HorizontalAlignment.Left,
-                Padding = new Avalonia.Thickness(16, 8)
+                Padding = new Avalonia.Thickness(16, 8),
             };
             _validateButton.Click += async (s, e) => await RunValidation();
             panel.Children.Add(_validateButton);
@@ -64,14 +64,14 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 IsIndeterminate = true,
                 IsVisible = false,
-                Height = 4
+                Height = 4,
             };
             panel.Children.Add(_validationProgress);
 
             _statusText = new TextBlock
             {
                 FontSize = 14,
-                FontWeight = FontWeight.SemiBold
+                FontWeight = FontWeight.SemiBold,
             };
             panel.Children.Add(_statusText);
 
@@ -79,12 +79,12 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                MaxHeight = 300
+                MaxHeight = 300,
             };
 
             _resultsPanel = new StackPanel
             {
-                Spacing = 8
+                Spacing = 8,
             };
 
             scrollViewer.Content = _resultsPanel;
@@ -138,14 +138,14 @@ namespace KOTORModSync.Dialogs.WizardPages
                     if (conflicts.ContainsKey("Dependency"))
                     {
                         var deps = conflicts["Dependency"];
-                        AddResult($"⚠️ {component.Name}", $"Missing dependencies: {string.Join(", ", deps.Select(d => d.Name))}", false);
+                        AddResult($"⚠️ {component.Name}", $"Missing dependencies: {string.Join(", ", deps.Select(d => d.Name ?? string.Empty))}", false);
                         warningCount++;
                     }
 
                     if (conflicts.ContainsKey("Restriction"))
                     {
                         var restrictions = conflicts["Restriction"];
-                        AddResult($"❌ {component.Name}", $"Incompatible with: {string.Join(", ", restrictions.Select(r => r.Name))}", true);
+                        AddResult($"❌ {component.Name}", $"Incompatible with: {string.Join(", ", restrictions.Select(r => r.Name ?? string.Empty))}", true);
                         errorCount++;
                         _hasCriticalErrors = true;
                     }
@@ -186,24 +186,30 @@ namespace KOTORModSync.Dialogs.WizardPages
             }
         }
 
-        private void AddResult(string title, string message, bool _)
+        private void AddResult(string title, string message, bool isError = false)
         {
             var border = new Border
             {
                 Padding = new Avalonia.Thickness(12, 8),
-                CornerRadius = new Avalonia.CornerRadius(4)
+                CornerRadius = new Avalonia.CornerRadius(4),
+                BorderBrush = new SolidColorBrush(Colors.Red),
+                BorderThickness = new Avalonia.Thickness(1),
             };
+            if (isError)
+            {
+                border.Background = new SolidColorBrush(Colors.Red);
+            }
 
             var panel = new StackPanel
             {
-                Spacing = 4
+                Spacing = 4,
             };
 
             panel.Children.Add(new TextBlock
             {
                 Text = title,
                 FontWeight = FontWeight.SemiBold,
-                FontSize = 14
+                FontSize = 14,
             });
 
             panel.Children.Add(new TextBlock
@@ -211,7 +217,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Text = message,
                 FontSize = 12,
                 Opacity = 0.9,
-                TextWrapping = TextWrapping.Wrap
+                TextWrapping = TextWrapping.Wrap,
             });
 
             border.Child = panel;

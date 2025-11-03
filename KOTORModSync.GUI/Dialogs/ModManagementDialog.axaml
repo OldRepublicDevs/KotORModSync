@@ -71,7 +71,7 @@
             <!--  Batch Operations Tab  -->
             <TabItem Header="Batch Operations">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="10" ColumnDefinitions="2">
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="10">
                         <TextBlock
                             Grid.Column="0"
                             Grid.ColumnSpan="2"
@@ -143,7 +143,7 @@
             <!--  Import/Export Tab  -->
             <TabItem Header="Import/Export">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <Grid ColumnDefinitions="*,*" Margin="10" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="2">
+                    <Grid ColumnDefinitions="*,*" Margin="10" RowDefinitions="Auto,Auto,Auto">
                         <TextBlock
                             Grid.Column="0"
                             Grid.ColumnSpan="2"

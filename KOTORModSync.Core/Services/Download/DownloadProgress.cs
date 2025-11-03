@@ -24,6 +24,7 @@ namespace KOTORModSync.Core.Services.Download
         private DateTime _startTime;
         private DateTime? _endTime;
         private Exception _exception;
+        private DownloadSource _downloadSource = DownloadSource.Direct;
         private readonly List<string> _logs = new List<string>();
         private readonly object _logLock = new object();
 
@@ -251,6 +252,23 @@ Url
 
                 _exception = value;
                 OnPropertyChanged();
+            }
+        }
+
+        public DownloadSource DownloadSource
+        {
+            get => _downloadSource;
+            set
+            {
+                if (_downloadSource == value)
+                {
+                    return;
+                }
+
+                _downloadSource = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SourceIcon));
+                OnPropertyChanged(nameof(SourceDisplayName));
             }
         }
 
@@ -487,6 +505,42 @@ Url
             }
         }
 
+        public string SourceIcon
+        {
+            get
+            {
+                switch (_downloadSource)
+                {
+                    case DownloadSource.Direct:
+                        return "🌐";
+                    case DownloadSource.Optimized:
+                        return "⚡";
+                    case DownloadSource.Hybrid:
+                        return "🔄";
+                    default:
+                        return "❓";
+                }
+            }
+        }
+
+        public string SourceDisplayName
+        {
+            get
+            {
+                switch (_downloadSource)
+                {
+                    case DownloadSource.Direct:
+                        return "Direct Download";
+                    case DownloadSource.Optimized:
+                        return "Network Cache";
+                    case DownloadSource.Hybrid:
+                        return "Hybrid Download";
+                    default:
+                        return "Unknown";
+                }
+            }
+        }
+
         private static string FormatBytes(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };
@@ -675,5 +729,13 @@ Url
         Completed,
         Failed,
         Skipped,
+    }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
+    public enum DownloadSource
+    {
+        Direct,      // Traditional HTTP/HTTPS download
+        Optimized,   // Network cache download
+        Hybrid,      // Both sources attempted
     }
 }

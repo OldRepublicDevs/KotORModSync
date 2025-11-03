@@ -6,10 +6,12 @@
              x:Class="KOTORModSync.Controls.BrowseButtonsControl">
     <StackPanel>
         <Button HorizontalAlignment="Stretch"
-                Content="Browse Files"
-                Click="BrowseSourceFiles_Click" />
+                Content="📦 Browse Mod Files"
+                Click="BrowseModFiles_Click"
+                ToolTip.Tip="Browse files inside mod archives and select specific files" />
         <Button HorizontalAlignment="Stretch"
-                Content="Browse Folder"
-                Click="BrowseSourceFromFolders_Click" />
+                Content="📁 Browse Files"
+                Click="BrowseSourceFiles_Click"
+                ToolTip.Tip="Browse for files on disk" />
     </StackPanel>
 </UserControl>

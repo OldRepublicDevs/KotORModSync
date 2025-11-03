@@ -767,7 +767,8 @@ namespace KOTORModSync.Core.Services.Download
 
 
                 _ = Directory.CreateDirectory(destinationDirectory);
-                string filePath = Path.Combine(destinationDirectory, fileName);
+                string finalPath = Path.Combine(destinationDirectory, fileName);
+                string tempPath = DownloadHelper.GetTempFilePath(finalPath);
 
                 long totalBytes = fileResponse.Content.Headers.ContentLength ?? 0;
                 progress?.Report(new DownloadProgress
@@ -784,7 +785,7 @@ namespace KOTORModSync.Core.Services.Download
 
                     await DownloadHelper.DownloadWithProgressAsync(
                         throttledStream,
-                        filePath,
+                        tempPath,
                         totalBytes,
                         fileName,
                         downloadLink,
@@ -792,11 +793,24 @@ namespace KOTORModSync.Core.Services.Download
                         cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
 
-                long fileSize = new FileInfo(filePath).Length;
-                await Logger.LogVerboseAsync(string.Format(CultureInfo.InvariantCulture, "[DeadlyStream] File downloaded successfully: {0} ({1} bytes)", filePath, fileSize)).ConfigureAwait(false);
+                long fileSize = new FileInfo(tempPath).Length;
+                await Logger.LogVerboseAsync(string.Format(CultureInfo.InvariantCulture, "[DeadlyStream] File downloaded successfully: {0} ({1} bytes)", tempPath, fileSize)).ConfigureAwait(false);
+
+                // Atomically move to final destination
+                try
+                {
+                    DownloadHelper.MoveToFinalDestination(tempPath, finalPath);
+                    await Logger.LogVerboseAsync(string.Format(CultureInfo.InvariantCulture, "[DeadlyStream] Moved temporary file to final destination: {0}", finalPath)).ConfigureAwait(false);
+                }
+                catch (Exception moveEx)
+                {
+                    await Logger.LogErrorAsync(string.Format(CultureInfo.InvariantCulture, "[DeadlyStream] Failed to move temporary file to final destination: {0}", moveEx.Message)).ConfigureAwait(false);
+                    try { File.Delete(tempPath); } catch { }
+                    throw;
+                }
 
                 fileResponse.Dispose();
-                return filePath;
+                return finalPath;
             }
             catch (Exception ex)
             {

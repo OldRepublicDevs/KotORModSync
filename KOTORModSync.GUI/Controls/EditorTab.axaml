@@ -538,8 +538,8 @@
                                             <controls:InstructionEditorControl
                                                 AddNewInstruction="AddNewInstruction_Click"
                                                 BrowseDestination="BrowseDestination_Click"
+                                                BrowseModFiles="BrowseModFiles_Click"
                                                 BrowseSourceFiles="BrowseSourceFiles_Click"
-                                                BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
                                                 DeleteInstruction="DeleteInstruction_Click"
                                                 MoveInstructionDown="MoveInstructionDown_Click"
                                                 MoveInstructionUp="MoveInstructionUp_Click" />
@@ -579,8 +579,8 @@
                                                 AddNewInstruction="AddNewInstruction_Click"
                                                 AddNewOption="AddNewOption_Click"
                                                 BrowseDestination="BrowseDestination_Click"
+                                                BrowseModFiles="BrowseModFiles_Click"
                                                 BrowseSourceFiles="BrowseSourceFiles_Click"
-                                                BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
                                                 DeleteInstruction="DeleteInstruction_Click"
                                                 DeleteOption="DeleteOption_Click"
                                                 MoveInstructionDown="MoveInstructionDown_Click"

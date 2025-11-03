@@ -272,7 +272,7 @@
                             AutoGenerateInstructionsRequested="EditorTab_AutoGenerateInstructionsRequested"
                             BrowseDestinationRequested="EditorTab_BrowseDestinationRequested"
                             BrowseSourceFilesRequested="EditorTab_BrowseSourceFilesRequested"
-                            BrowseSourceFromFoldersRequested="EditorTab_BrowseSourceFromFoldersRequested"
+                            BrowseModFilesRequested="EditorTab_BrowseModFilesRequested"
                             CollapseAllSectionsRequested="EditorTab_CollapseAllSectionsRequested"
                             CurrentComponent="{Binding CurrentComponent}"
                             DeleteInstructionRequested="EditorTab_DeleteInstructionRequested"

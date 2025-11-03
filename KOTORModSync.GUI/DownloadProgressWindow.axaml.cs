@@ -38,6 +38,12 @@ namespace KOTORModSync
         private readonly ObservableCollection<DownloadProgress> _pendingDownloads = new ObservableCollection<DownloadProgress>();
         private readonly ObservableCollection<DownloadProgress> _completedDownloads = new ObservableCollection<DownloadProgress>();
 
+        // Filtered collections for tabs
+        private readonly ObservableCollection<DownloadProgress> _activeDirectDownloads = new ObservableCollection<DownloadProgress>();
+        private readonly ObservableCollection<DownloadProgress> _completedDirectDownloads = new ObservableCollection<DownloadProgress>();
+        private readonly ObservableCollection<DownloadProgress> _activeOptimizedDownloads = new ObservableCollection<DownloadProgress>();
+        private readonly ObservableCollection<DownloadProgress> _completedOptimizedDownloads = new ObservableCollection<DownloadProgress>();
+
         private CancellationTokenSource _cancellationTokenSource;
         private bool _isCompleted;
         private bool _mouseDownForWindowMoving;
@@ -139,6 +145,31 @@ namespace KOTORModSync
             if (completedControl != null)
             {
                 completedControl.ItemsSource = _completedDownloads;
+            }
+
+            // Bind filtered collections for tabs
+            var activeDirectControl = this.FindControl<ItemsControl>("ActiveDirectDownloadsControl");
+            if (activeDirectControl != null)
+            {
+                activeDirectControl.ItemsSource = _activeDirectDownloads;
+            }
+
+            var completedDirectControl = this.FindControl<ItemsControl>("CompletedDirectDownloadsControl");
+            if (completedDirectControl != null)
+            {
+                completedDirectControl.ItemsSource = _completedDirectDownloads;
+            }
+
+            var activeOptimizedControl = this.FindControl<ItemsControl>("ActiveOptimizedDownloadsControl");
+            if (activeOptimizedControl != null)
+            {
+                activeOptimizedControl.ItemsSource = _activeOptimizedDownloads;
+            }
+
+            var completedOptimizedControl = this.FindControl<ItemsControl>("CompletedOptimizedDownloadsControl");
+            if (completedOptimizedControl != null)
+            {
+                completedOptimizedControl.ItemsSource = _completedOptimizedDownloads;
             }
 
             Button closeButton = this.FindControl<Button>("CloseButton");
@@ -300,27 +331,48 @@ namespace KOTORModSync
 
         private void CategorizeDownload(DownloadProgress progress)
         {
-
+            // Remove from all collections
             _activeDownloads.Remove(progress);
             _pendingDownloads.Remove(progress);
             _completedDownloads.Remove(progress);
+            _activeDirectDownloads.Remove(progress);
+            _completedDirectDownloads.Remove(progress);
+            _activeOptimizedDownloads.Remove(progress);
+            _completedOptimizedDownloads.Remove(progress);
 
-
+            // Categorize by status
             switch (progress.Status)
             {
                 case DownloadStatus.InProgress:
-                    DownloadProgressWindow.InsertSorted(_activeDownloads, progress, p => p.StartTime);
+                    InsertSorted(_activeDownloads, progress, p => p.StartTime);
+                    // Also add to filtered collections based on source
+                    if (progress.DownloadSource == DownloadSource.Direct)
+                    {
+                        InsertSorted(_activeDirectDownloads, progress, p => p.StartTime);
+                    }
+                    else if (progress.DownloadSource == DownloadSource.Optimized)
+                    {
+                        InsertSorted(_activeOptimizedDownloads, progress, p => p.StartTime);
+                    }
                     break;
                 case DownloadStatus.Pending:
-                    DownloadProgressWindow.InsertSorted(_pendingDownloads, progress, p => p.StartTime);
+                    InsertSorted(_pendingDownloads, progress, p => p.StartTime);
                     break;
                 case DownloadStatus.Completed:
                 case DownloadStatus.Failed:
                 case DownloadStatus.Skipped:
-                    DownloadProgressWindow.InsertSorted(_completedDownloads, progress, p => p.EndTime ?? p.StartTime);
+                    InsertSorted(_completedDownloads, progress, p => p.EndTime ?? p.StartTime);
+                    // Also add to filtered collections based on source
+                    if (progress.DownloadSource == DownloadSource.Direct)
+                    {
+                        InsertSorted(_completedDirectDownloads, progress, p => p.EndTime ?? p.StartTime);
+                    }
+                    else if (progress.DownloadSource == DownloadSource.Optimized)
+                    {
+                        InsertSorted(_completedOptimizedDownloads, progress, p => p.EndTime ?? p.StartTime);
+                    }
                     break;
             }
-
 
             UpdateSummary();
         }
@@ -403,7 +455,6 @@ namespace KOTORModSync
             });
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private void UpdateSummary()
         {
             if (!Dispatcher.UIThread.CheckAccess())
@@ -433,6 +484,31 @@ namespace KOTORModSync
             if (completedHeader != null)
             {
                 completedHeader.Text = $"✅ Completed Downloads ({_completedDownloads.Count})";
+            }
+
+            // Update filtered tab headers
+            TextBlock activeDirectHeader = this.FindControl<TextBlock>("ActiveDirectSectionHeader");
+            if (activeDirectHeader != null)
+            {
+                activeDirectHeader.Text = $"🌐 Active Direct Downloads ({_activeDirectDownloads.Count})";
+            }
+
+            TextBlock completedDirectHeader = this.FindControl<TextBlock>("CompletedDirectSectionHeader");
+            if (completedDirectHeader != null)
+            {
+                completedDirectHeader.Text = $"🌐 Completed Direct Downloads ({_completedDirectDownloads.Count})";
+            }
+
+            TextBlock activeOptimizedHeader = this.FindControl<TextBlock>("ActiveOptimizedSectionHeader");
+            if (activeOptimizedHeader != null)
+            {
+                activeOptimizedHeader.Text = $"⚡ Active Network Cache Downloads ({_activeOptimizedDownloads.Count})";
+            }
+
+            TextBlock completedOptimizedHeader = this.FindControl<TextBlock>("CompletedOptimizedSectionHeader");
+            if (completedOptimizedHeader != null)
+            {
+                completedOptimizedHeader.Text = $"⚡ Completed Network Cache Downloads ({_completedOptimizedDownloads.Count})";
             }
 
             if (summaryText is null)
@@ -668,7 +744,6 @@ namespace KOTORModSync
             textBlock.Inlines = ParseTextWithUrls(progress.ErrorMessage);
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private static InlineCollection ParseTextWithUrls(string text)
         {
             var inlines = new InlineCollection();
@@ -780,7 +855,7 @@ namespace KOTORModSync
                 Logger.LogVerbose($"Start all pending downloads requested - {_pendingDownloads.Count} items");
 
                 // Start all pending downloads
-                foreach (var progress in _pendingDownloads.ToList())
+                foreach (DownloadProgress progress in _pendingDownloads.ToList())
                 {
                     Logger.LogVerbose($"Starting download: {progress.ModName}");
                     DownloadControlRequested?.Invoke(this, new DownloadControlEventArgs(progress, DownloadControlAction.Start));
@@ -879,7 +954,6 @@ namespace KOTORModSync
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
     public enum DownloadControlAction
     {
         Start,
@@ -888,7 +962,6 @@ namespace KOTORModSync
         Retry,
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
     public class DownloadControlEventArgs : EventArgs
     {
         public DownloadProgress Progress { get; }

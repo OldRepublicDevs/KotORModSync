@@ -6,19 +6,15 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Mod Management Tools"
-    Width="800"
-    Height="600"
-    MinWidth="600"
-    MinHeight="400"
+    Width="900"
+    Height="700"
+    MinWidth="700"
+    MinHeight="500"
     ExtendClientAreaChromeHints="NoChrome"
     ExtendClientAreaTitleBarHeightHint="-1"
     ExtendClientAreaToDecorationsHint="True"
     SystemDecorations="BorderOnly"
     WindowStartupLocation="CenterOwner">
-
-    <Window.Styles>
-        <!-- <StyleInclude Source="/Styles/KotorStyle.axaml" /> -->
-    </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto">
         <!--  Custom Window Controls  -->
@@ -57,55 +53,68 @@
                 Content="X"
                 FontSize="15" />
         </StackPanel>
+
         <!--  Header  -->
         <Border
             Grid.Row="0"
-            Padding="10"
+            Padding="16,12"
             Background="{DynamicResource ThemeBorderBrush}">
             <TextBlock
-                FontSize="18"
+                FontSize="20"
                 FontWeight="Bold"
                 Foreground="{DynamicResource ThemeForegroundBrush}"
                 Text="Mod Management Tools" />
         </Border>
 
         <!--  Main Content  -->
-        <TabControl Grid.Row="1" Margin="10">
+        <TabControl Grid.Row="1" Margin="16">
             <!--  Batch Operations Tab  -->
             <TabItem Header="Batch Operations">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="10" Spacing="20">
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="10" ColumnDefinitions="2">
                         <TextBlock
-                            FontSize="16"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Grid.Row="0"
+                            Margin="0,0,0,16"
+                            FontSize="18"
                             FontWeight="Bold"
                             Text="Batch Operations" />
 
+                        <!--  Selection Operations  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="0"
+                            Grid.Row="1"
+                            Margin="0,0,8,0"
                             Header="Selection Operations"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <Button Click="SelectAllMods_Click" Content="Select All Mods" />
                                 <Button Click="DeselectAllMods_Click" Content="Deselect All Mods" />
                                 <Button Click="InvertSelection_Click" Content="Invert Selection" />
                             </StackPanel>
                         </Expander>
 
+                        <!--  Validation Operations  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            Margin="8,0,0,0"
                             Header="Validation Operations"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <Button Click="ValidateAllMods_Click" Content="Validate All Mods" />
-                                <Button Click="CheckFileAvailability_Click" Content="Check File Availability" />
                             </StackPanel>
                         </Expander>
 
+                        <!--  Sorting Operations  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="0"
+                            Grid.Row="2"
+                            Margin="0,0,8,8"
                             Header="Sorting Operations"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <Button Click="SortByName_Click" Content="Sort by Name (A-Z)" />
                                 <Button Click="SortByNameDesc_Click" Content="Sort by Name (Z-A)" />
                                 <Button Click="SortByAuthor_Click" Content="Sort by Author" />
@@ -114,54 +123,71 @@
                             </StackPanel>
                         </Expander>
 
+                        <!--  Metadata Operations  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="1"
+                            Grid.Row="2"
+                            Margin="8,0,0,8"
                             Header="Metadata Operations"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <Button Click="SetAllDownloaded_Click" Content="Set All to Downloaded" />
                                 <Button Click="SetAllNotDownloaded_Click" Content="Set All to Not Downloaded" />
                                 <Button Click="UpdateCategories_Click" Content="Update Categories" />
                             </StackPanel>
                         </Expander>
-                    </StackPanel>
+                    </Grid>
                 </ScrollViewer>
             </TabItem>
 
             <!--  Import/Export Tab  -->
             <TabItem Header="Import/Export">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="10" Spacing="20">
+                    <Grid ColumnDefinitions="*,*" Margin="10" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="2">
                         <TextBlock
-                            FontSize="16"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Grid.Row="0"
+                            Margin="0,0,0,16"
+                            FontSize="18"
                             FontWeight="Bold"
                             Text="Import and Export Operations" />
 
+                        <!--  Import Operations  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="0"
+                            Grid.Row="1"
+                            Margin="0,0,8,0"
                             Header="Import Operations"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <Button Click="ImportFromToml_Click" Content="Import from TOML File" />
                                 <Button Click="ImportFromJson_Click" Content="Import from JSON" />
                             </StackPanel>
                         </Expander>
 
+                        <!--  Export Operations  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            Margin="8,0,0,0"
                             Header="Export Operations"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <Button Click="ExportToToml_Click" Content="Export to TOML File" />
                                 <Button Click="ExportToJson_Click" Content="Export to JSON" />
                             </StackPanel>
                         </Expander>
 
+                        <!--  Merge Strategies  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Grid.Row="2"
+                            Margin="0,8,0,0"
                             Header="Merge Strategies"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <RadioButton
                                     Content="Replace existing components"
                                     GroupName="MergeStrategy"
@@ -170,187 +196,247 @@
                                 <RadioButton Content="Merge by Name/Author" GroupName="MergeStrategy" />
                             </StackPanel>
                         </Expander>
-                    </StackPanel>
+                    </Grid>
                 </ScrollViewer>
             </TabItem>
 
             <!--  Statistics Tab  -->
             <TabItem Header="Statistics">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="10" Spacing="20">
+                    <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="10">
                         <TextBlock
-                            FontSize="16"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="4"
+                            Grid.Row="0"
+                            Margin="0,0,0,16"
+                            FontSize="18"
                             FontWeight="Bold"
                             Text="Mod Collection Statistics" />
 
+                        <!--  Basic Statistics  -->
                         <Grid
+                            Grid.Column="0"
+                            Grid.ColumnSpan="4"
+                            Grid.Row="1"
+                            Margin="0,0,0,16"
                             ColumnDefinitions="*,*"
                             DataContext="{Binding .}"
-                            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                            RowDefinitions="Auto,Auto,Auto,Auto,Auto">
                             <TextBlock
                                 Grid.Row="0"
                                 Grid.Column="0"
+                                Margin="0,4"
                                 FontWeight="Bold"
                                 Text="Total Mods:" />
                             <TextBlock
                                 Grid.Row="0"
                                 Grid.Column="1"
+                                Margin="0,4"
                                 Text="{Binding TotalMods}" />
 
                             <TextBlock
                                 Grid.Row="1"
                                 Grid.Column="0"
+                                Margin="0,4"
                                 FontWeight="Bold"
                                 Text="Selected Mods:" />
                             <TextBlock
                                 Grid.Row="1"
                                 Grid.Column="1"
+                                Margin="0,4"
                                 Text="{Binding SelectedMods}" />
 
                             <TextBlock
                                 Grid.Row="2"
                                 Grid.Column="0"
+                                Margin="0,4"
                                 FontWeight="Bold"
                                 Text="Downloaded Mods:" />
                             <TextBlock
                                 Grid.Row="2"
                                 Grid.Column="1"
+                                Margin="0,4"
                                 Text="{Binding DownloadedMods}" />
 
                             <TextBlock
                                 Grid.Row="3"
                                 Grid.Column="0"
+                                Margin="0,4"
                                 FontWeight="Bold"
                                 Text="Average Instructions/Mod:" />
                             <TextBlock
                                 Grid.Row="3"
                                 Grid.Column="1"
+                                Margin="0,4"
                                 Text="{Binding AverageInstructionsPerMod, StringFormat=F1}" />
 
                             <TextBlock
                                 Grid.Row="4"
                                 Grid.Column="0"
+                                Margin="0,4"
                                 FontWeight="Bold"
                                 Text="Average Options/Mod:" />
                             <TextBlock
                                 Grid.Row="4"
                                 Grid.Column="1"
+                                Margin="0,4"
                                 Text="{Binding AverageOptionsPerMod, StringFormat=F1}" />
                         </Grid>
 
-                        <TextBlock
-                            Margin="0,20,0,10"
-                            FontWeight="Bold"
-                            Text="Categories:" />
-                        <ItemsRepeater ItemsSource="{Binding Category}">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock>
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}{0}: {1}">
-                                                <Binding Path="Key" />
-                                                <Binding Path="Value" />
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
+                        <!--  Categories List  -->
+                        <Grid
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Grid.Row="2"
+                            Margin="0,0,8,16"
+                            RowDefinitions="Auto,*">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontWeight="Bold"
+                                    Text="Categories:" />
+                                <Button
+                                    Grid.Column="1"
+                                    Click="SortCategoriesByName_Click"
+                                    Content="Sort by Name" />
+                            </Grid>
+                            <ListBox x:Name="CategoriesListBox" ItemsSource="{Binding Categories}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Text="{Binding Key}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                Text="{Binding Value}"
+                                                VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
 
-                        <TextBlock
-                            Margin="0,20,0,10"
-                            FontWeight="Bold"
-                            Text="Tiers:" />
-                        <ItemsRepeater ItemsSource="{Binding Tiers}">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock>
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}{0}: {1}">
-                                                <Binding Path="Key" />
-                                                <Binding Path="Value" />
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
+                        <!--  Tiers List  -->
+                        <Grid
+                            Grid.Column="2"
+                            Grid.ColumnSpan="2"
+                            Grid.Row="2"
+                            Margin="8,0,0,16"
+                            RowDefinitions="Auto,*">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontWeight="Bold"
+                                    Text="Tiers:" />
+                                <Button
+                                    Grid.Column="1"
+                                    Click="SortTiersByName_Click"
+                                    Content="Sort by Name" />
+                            </Grid>
+                            <ListBox x:Name="TiersListBox" ItemsSource="{Binding Tiers}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Text="{Binding Key}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                Text="{Binding Value}"
+                                                VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
 
-                        <TextBlock
-                            Margin="0,20,0,10"
-                            FontWeight="Bold"
-                            Text="Authors:" />
-                        <ItemsRepeater ItemsSource="{Binding Authors}">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock>
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}{0}: {1}">
-                                                <Binding Path="Key" />
-                                                <Binding Path="Value" />
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                    </StackPanel>
+                        <!--  Authors List  -->
+                        <Grid
+                            Grid.Column="0"
+                            Grid.ColumnSpan="4"
+                            Grid.Row="3"
+                            RowDefinitions="Auto,*">
+                            <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontWeight="Bold"
+                                    Text="Authors:" />
+                                <Button
+                                    Grid.Column="1"
+                                    Margin="8,0,8,0"
+                                    Click="SortAuthorsByName_Click"
+                                    Content="Sort by Name" />
+                                <Button
+                                    Grid.Column="2"
+                                    Click="SortAuthorsByCount_Click"
+                                    Content="Sort by Count" />
+                            </Grid>
+                            <ListBox x:Name="AuthorsListBox" ItemsSource="{Binding Authors}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Text="{Binding Key}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                Text="{Binding Value}"
+                                                VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Grid>
                 </ScrollViewer>
             </TabItem>
 
             <!--  Advanced Tools Tab  -->
             <TabItem Header="Advanced Tools">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="10" Spacing="20">
+                    <Grid ColumnDefinitions="*,*" Margin="10" RowDefinitions="Auto,Auto">
                         <TextBlock
-                            FontSize="16"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Grid.Row="0"
+                            Margin="0,0,0,16"
+                            FontSize="18"
                             FontWeight="Bold"
                             Text="Advanced Mod Management Tools" />
 
+                        <!--  Dependency Management  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="0"
+                            Grid.Row="1"
+                            Margin="0,0,8,0"
                             Header="Dependency Management"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <Button Click="CheckDependencyChains_Click" Content="Check Dependency Chains" />
                                 <Button Click="ResolveConflicts_Click" Content="Resolve Conflicts" />
                                 <Button Click="GenerateDependencyGraph_Click" Content="Generate Dependency Graph" />
                             </StackPanel>
                         </Expander>
 
+                        <!--  Performance Tools  -->
                         <Expander
-                            HorizontalAlignment="Stretch"
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            Margin="8,0,0,0"
                             Header="Performance Tools"
                             IsExpanded="True">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="8" Margin="8,8,8,8">
                                 <Button Click="OptimizeInstallationOrder_Click" Content="Optimize Installation Order" />
-                                <Button Click="AnalyzeModSizes_Click" Content="Analyze Mod Sizes" />
-                                <Button Click="CheckRedundantFiles_Click" Content="Check for Redundant Files" />
                             </StackPanel>
                         </Expander>
-
-                        <Expander
-                            HorizontalAlignment="Stretch"
-                            Header="Security Tools"
-                            IsExpanded="True">
-                            <StackPanel Spacing="10">
-                                <Button Click="ScanForMalware_Click" Content="Scan for Malware" />
-                                <Button Click="CheckFileIntegrity_Click" Content="Check File Integrity" />
-                                <Button Click="ValidateDigitalSignatures_Click" Content="Validate Digital Signatures" />
-                            </StackPanel>
-                        </Expander>
-
-                        <Expander
-                            HorizontalAlignment="Stretch"
-                            Header="Maintenance Tools"
-                            IsExpanded="True">
-                            <StackPanel Spacing="10">
-                                <Button Click="CleanOrphanedFiles_Click" Content="Clean Orphaned Files" />
-                                <Button Click="UpdateModLinks_Click" Content="Update Mod Links" />
-                                <Button Click="ArchiveOldVersions_Click" Content="Archive Old Versions" />
-                            </StackPanel>
-                        </Expander>
-                    </StackPanel>
+                    </Grid>
                 </ScrollViewer>
             </TabItem>
         </TabControl>
@@ -358,14 +444,13 @@
         <!--  Footer  -->
         <Border
             Grid.Row="2"
-            Padding="10"
+            Padding="16"
             Background="{DynamicResource ThemeBorderBrush}">
             <StackPanel
                 HorizontalAlignment="Right"
                 Orientation="Horizontal"
                 Spacing="10">
-                <Button Click="ApplyChanges_Click" Content="Apply Changes" />
-                <Button Click="Cancel_Click" Content="Cancel" />
+                <Button Click="Cancel_Click" Content="Close" />
             </StackPanel>
         </Border>
     </Grid>

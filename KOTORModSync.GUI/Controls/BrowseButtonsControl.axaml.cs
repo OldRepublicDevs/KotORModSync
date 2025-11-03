@@ -16,7 +16,7 @@ namespace KOTORModSync.Controls
         public BrowseButtonsControl() => InitializeComponent();
 
         public event EventHandler<RoutedEventArgs> BrowseSourceFiles;
-        public event EventHandler<RoutedEventArgs> BrowseSourceFromFolders;
+        public event EventHandler<RoutedEventArgs> BrowseModFiles;
 
         private void BrowseSourceFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
         {
@@ -24,10 +24,10 @@ namespace KOTORModSync.Controls
             BrowseSourceFiles?.Invoke(this, e);
         }
 
-        private void BrowseSourceFromFolders_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+        private void BrowseModFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
         {
-            Core.Logger.LogVerbose("BrowseButtonsControl.BrowseSourceFromFolders_Click: Event triggered");
-            BrowseSourceFromFolders?.Invoke(this, e);
+            Core.Logger.LogVerbose("BrowseButtonsControl.BrowseModFiles_Click: Event triggered");
+            BrowseModFiles?.Invoke(this, e);
         }
     }
 }

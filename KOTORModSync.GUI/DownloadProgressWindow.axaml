@@ -82,13 +82,13 @@
                 FontSize="15" />
         </StackPanel>
 
-        <!--  Download List - Three Sections  -->
-        <ScrollViewer
-            Grid.Row="1"
-            Padding="16,16,24,16"
-            HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Spacing="16">
-                <!--  Active Downloads Section  -->
+        <!--  Download List with Tabs  -->
+        <TabControl Grid.Row="1" Padding="16,16,24,16">
+            <!--  All Downloads Tab  -->
+            <TabItem Header="All Downloads">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="16">
+                        <!--  Active Downloads Section  -->
                 <StackPanel>
                     <TextBlock
                         x:Name="ActiveSectionHeader"
@@ -514,8 +514,486 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
-            </StackPanel>
-        </ScrollViewer>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!--  Direct Downloads Tab  -->
+            <TabItem Header="Direct Downloads">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="16">
+                        <!--  Active Direct Downloads  -->
+                        <StackPanel>
+                            <TextBlock
+                                x:Name="ActiveDirectSectionHeader"
+                                Margin="0,0,0,8"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="🌐 Active Direct Downloads (0)" />
+                            <ItemsControl x:Name="ActiveDirectDownloadsControl" HorizontalAlignment="Stretch">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            HorizontalAlignment="Stretch"
+                                            Classes="download-item"
+                                            Cursor="Hand"
+                                            PointerPressed="DownloadItem_PointerPressed">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Click="OpenFolderMenuItem_Click" Header="Open Download Folder" />
+                                                    <MenuItem Click="CopyUrlMenuItem_Click" Header="Copy Download URL" />
+                                                    <Separator />
+                                                    <MenuItem Click="ViewDetailsMenuItem_Click" Header="View Details" />
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+
+                                            <Grid HorizontalAlignment="Stretch" RowDefinitions="Auto,Auto,Auto,Auto">
+                                                <Grid
+                                                    Grid.Row="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    ColumnDefinitions="Auto,*,Auto,Auto">
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        Margin="0,0,8,0"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="20"
+                                                        Text="{Binding StatusIcon}" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="14"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding DisplayName}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        TextWrapping="Wrap" />
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        Margin="8,0,8,0"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding GroupProgressPercentage, StringFormat={}{0:F1}%}" />
+                                                    <Button
+                                                        x:Name="ControlButton"
+                                                        Grid.Column="3"
+                                                        Width="28"
+                                                        Height="28"
+                                                        Padding="4"
+                                                        VerticalAlignment="Center"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        Background="Transparent"
+                                                        BorderThickness="1"
+                                                        Click="ControlButton_Click"
+                                                        Content="{Binding ControlButtonIcon}"
+                                                        CornerRadius="4"
+                                                        Cursor="Hand"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="14"
+                                                        IsVisible="{Binding ControlButtonIcon, Converter={StaticResource StringNotEmptyConverter}}"
+                                                        ToolTip.Tip="{Binding ControlButtonTooltip}">
+                                                        <Button.Styles>
+                                                            <Style Selector="Button:pointerover" />
+                                                            <Style Selector="Button:pressed" />
+                                                        </Button.Styles>
+                                                    </Button>
+                                                </Grid>
+                                                <ProgressBar
+                                                    Grid.Row="1"
+                                                    Margin="0,8,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-progress"
+                                                    DataContext="{Binding .}"
+                                                    Maximum="100"
+                                                    Minimum="0"
+                                                    Value="{Binding GroupProgressPercentage}" />
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Margin="0,6,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-status-text"
+                                                    DataContext="{Binding .}"
+                                                    IsVisible="{Binding GroupStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                                    Text="{Binding GroupStatusMessage}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="Wrap" />
+                                                <TextBlock
+                                                    x:Name="ErrorMessageBlock"
+                                                    Grid.Row="3"
+                                                    Margin="0,6,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-error-text"
+                                                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="Wrap">
+                                                    <TextBlock.Text>
+                                                        <Binding Path="ErrorMessage" />
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                                <TextBlock
+                                                    Grid.Row="3"
+                                                    Margin="0,6,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-status-text"
+                                                    DataContext="{Binding .}"
+                                                    IsVisible="{Binding IsInProgress}"
+                                                    Text="{Binding DownloadSpeed}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!--  Completed Direct Downloads  -->
+                        <StackPanel>
+                            <TextBlock
+                                x:Name="CompletedDirectSectionHeader"
+                                Margin="0,0,0,8"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="🌐 Completed Direct Downloads (0)" />
+                            <ItemsControl x:Name="CompletedDirectDownloadsControl" HorizontalAlignment="Stretch">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            HorizontalAlignment="Stretch"
+                                            Classes="download-item"
+                                            Cursor="Hand"
+                                            PointerPressed="DownloadItem_PointerPressed">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Click="OpenFolderMenuItem_Click" Header="Open Download Folder" />
+                                                    <MenuItem Click="CopyUrlMenuItem_Click" Header="Copy Download URL" />
+                                                    <Separator />
+                                                    <MenuItem Click="ViewDetailsMenuItem_Click" Header="View Details" />
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+
+                                            <Grid HorizontalAlignment="Stretch" RowDefinitions="Auto,Auto,Auto,Auto">
+                                                <Grid
+                                                    Grid.Row="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    ColumnDefinitions="Auto,*,Auto,Auto">
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        Margin="0,0,8,0"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="20"
+                                                        Text="{Binding StatusIcon}" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="14"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding DisplayName}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        TextWrapping="Wrap" />
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        Margin="8,0,8,0"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding GroupProgressPercentage, StringFormat={}{0:F1}%}" />
+                                                    <Button
+                                                        x:Name="ControlButton"
+                                                        Grid.Column="3"
+                                                        Width="28"
+                                                        Height="28"
+                                                        Padding="4"
+                                                        VerticalAlignment="Center"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        Background="Transparent"
+                                                        BorderThickness="1"
+                                                        Click="ControlButton_Click"
+                                                        Content="{Binding ControlButtonIcon}"
+                                                        CornerRadius="4"
+                                                        Cursor="Hand"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="14"
+                                                        IsVisible="{Binding ControlButtonIcon, Converter={StaticResource StringNotEmptyConverter}}"
+                                                        ToolTip.Tip="{Binding ControlButtonTooltip}">
+                                                        <Button.Styles>
+                                                            <Style Selector="Button:pointerover" />
+                                                            <Style Selector="Button:pressed" />
+                                                        </Button.Styles>
+                                                    </Button>
+                                                </Grid>
+                                                <ProgressBar
+                                                    Grid.Row="1"
+                                                    Margin="0,8,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-progress"
+                                                    DataContext="{Binding .}"
+                                                    Maximum="100"
+                                                    Minimum="0"
+                                                    Value="{Binding GroupProgressPercentage}" />
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Margin="0,6,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-status-text"
+                                                    DataContext="{Binding .}"
+                                                    IsVisible="{Binding GroupStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                                    Text="{Binding GroupStatusMessage}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="Wrap" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!--  Network Cache Downloads Tab  -->
+            <TabItem Header="Network Cache">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="16">
+                        <!--  Active Network Cache Downloads  -->
+                        <StackPanel>
+                            <TextBlock
+                                x:Name="ActiveOptimizedSectionHeader"
+                                Margin="0,0,0,8"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="⚡ Active Network Cache Downloads (0)" />
+                            <ItemsControl x:Name="ActiveOptimizedDownloadsControl" HorizontalAlignment="Stretch">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            HorizontalAlignment="Stretch"
+                                            Classes="download-item"
+                                            Cursor="Hand"
+                                            PointerPressed="DownloadItem_PointerPressed">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Click="OpenFolderMenuItem_Click" Header="Open Download Folder" />
+                                                    <MenuItem Click="CopyUrlMenuItem_Click" Header="Copy Download URL" />
+                                                    <Separator />
+                                                    <MenuItem Click="ViewDetailsMenuItem_Click" Header="View Details" />
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+
+                                            <Grid HorizontalAlignment="Stretch" RowDefinitions="Auto,Auto,Auto,Auto">
+                                                <Grid
+                                                    Grid.Row="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    ColumnDefinitions="Auto,*,Auto,Auto">
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        Margin="0,0,8,0"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="20"
+                                                        Text="{Binding StatusIcon}" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="14"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding DisplayName}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        TextWrapping="Wrap" />
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        Margin="8,0,8,0"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding GroupProgressPercentage, StringFormat={}{0:F1}%}" />
+                                                    <Button
+                                                        x:Name="ControlButton"
+                                                        Grid.Column="3"
+                                                        Width="28"
+                                                        Height="28"
+                                                        Padding="4"
+                                                        VerticalAlignment="Center"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        Background="Transparent"
+                                                        BorderThickness="1"
+                                                        Click="ControlButton_Click"
+                                                        Content="{Binding ControlButtonIcon}"
+                                                        CornerRadius="4"
+                                                        Cursor="Hand"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="14"
+                                                        IsVisible="{Binding ControlButtonIcon, Converter={StaticResource StringNotEmptyConverter}}"
+                                                        ToolTip.Tip="{Binding ControlButtonTooltip}">
+                                                        <Button.Styles>
+                                                            <Style Selector="Button:pointerover" />
+                                                            <Style Selector="Button:pressed" />
+                                                        </Button.Styles>
+                                                    </Button>
+                                                </Grid>
+                                                <ProgressBar
+                                                    Grid.Row="1"
+                                                    Margin="0,8,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-progress"
+                                                    DataContext="{Binding .}"
+                                                    Maximum="100"
+                                                    Minimum="0"
+                                                    Value="{Binding GroupProgressPercentage}" />
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Margin="0,6,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-status-text"
+                                                    DataContext="{Binding .}"
+                                                    IsVisible="{Binding GroupStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                                    Text="{Binding GroupStatusMessage}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="Wrap" />
+                                                <TextBlock
+                                                    x:Name="ErrorMessageBlock"
+                                                    Grid.Row="3"
+                                                    Margin="0,6,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-error-text"
+                                                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="Wrap">
+                                                    <TextBlock.Text>
+                                                        <Binding Path="ErrorMessage" />
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                                <TextBlock
+                                                    Grid.Row="3"
+                                                    Margin="0,6,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-status-text"
+                                                    DataContext="{Binding .}"
+                                                    IsVisible="{Binding IsInProgress}"
+                                                    Text="{Binding DownloadSpeed}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!--  Completed Network Cache Downloads  -->
+                        <StackPanel>
+                            <TextBlock
+                                x:Name="CompletedOptimizedSectionHeader"
+                                Margin="0,0,0,8"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="⚡ Completed Network Cache Downloads (0)" />
+                            <ItemsControl x:Name="CompletedOptimizedDownloadsControl" HorizontalAlignment="Stretch">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            HorizontalAlignment="Stretch"
+                                            Classes="download-item"
+                                            Cursor="Hand"
+                                            PointerPressed="DownloadItem_PointerPressed">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Click="OpenFolderMenuItem_Click" Header="Open Download Folder" />
+                                                    <MenuItem Click="CopyUrlMenuItem_Click" Header="Copy Download URL" />
+                                                    <Separator />
+                                                    <MenuItem Click="ViewDetailsMenuItem_Click" Header="View Details" />
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+
+                                            <Grid HorizontalAlignment="Stretch" RowDefinitions="Auto,Auto,Auto,Auto">
+                                                <Grid
+                                                    Grid.Row="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    ColumnDefinitions="Auto,*,Auto,Auto">
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        Margin="0,0,8,0"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="20"
+                                                        Text="{Binding StatusIcon}" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="14"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding DisplayName}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        TextWrapping="Wrap" />
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        Margin="8,0,8,0"
+                                                        VerticalAlignment="Center"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding GroupProgressPercentage, StringFormat={}{0:F1}%}" />
+                                                    <Button
+                                                        x:Name="ControlButton"
+                                                        Grid.Column="3"
+                                                        Width="28"
+                                                        Height="28"
+                                                        Padding="4"
+                                                        VerticalAlignment="Center"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        Background="Transparent"
+                                                        BorderThickness="1"
+                                                        Click="ControlButton_Click"
+                                                        Content="{Binding ControlButtonIcon}"
+                                                        CornerRadius="4"
+                                                        Cursor="Hand"
+                                                        DataContext="{Binding .}"
+                                                        FontSize="14"
+                                                        IsVisible="{Binding ControlButtonIcon, Converter={StaticResource StringNotEmptyConverter}}"
+                                                        ToolTip.Tip="{Binding ControlButtonTooltip}">
+                                                        <Button.Styles>
+                                                            <Style Selector="Button:pointerover" />
+                                                            <Style Selector="Button:pressed" />
+                                                        </Button.Styles>
+                                                    </Button>
+                                                </Grid>
+                                                <ProgressBar
+                                                    Grid.Row="1"
+                                                    Margin="0,8,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-progress"
+                                                    DataContext="{Binding .}"
+                                                    Maximum="100"
+                                                    Minimum="0"
+                                                    Value="{Binding GroupProgressPercentage}" />
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Margin="0,6,0,0"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="download-status-text"
+                                                    DataContext="{Binding .}"
+                                                    IsVisible="{Binding GroupStatusMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                                                    Text="{Binding GroupStatusMessage}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="Wrap" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
 
         <!--  Footer  -->
         <Border

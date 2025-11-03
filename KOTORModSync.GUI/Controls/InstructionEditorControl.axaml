@@ -30,6 +30,9 @@
         <converters:ValidationHasBlockingInstructionConverter x:Key="ValidationHasBlockingInstructionConverter" />
         <converters:ValidationBlockingInstructionTextConverter x:Key="ValidationBlockingInstructionTextConverter" />
         <converters:StringToIntConverter x:Key="StringToIntConverter" />
+        <converters:PathValidationBorderBrushConverter x:Key="PathValidationBorderBrushConverter" />
+        <converters:PathValidationMessageConverter x:Key="PathValidationMessageConverter" />
+        <converters:UnresolvedPathTooltipConverter x:Key="UnresolvedPathTooltipConverter" />
     </UserControl.Resources>
 
     <Border
@@ -139,6 +142,34 @@
                         TextWrapping="Wrap">
                         <Run Text="File paths or wildcards (e.g., &lt;&lt;modDirectory&gt;&gt;\*.zip)" />
                     </TextBlock>
+                    <!--  Resolved Path Preview (above input)  -->
+                    <Border
+                        Margin="0,2,0,4"
+                        Padding="6,4"
+                        Classes="summary-card">
+                        <StackPanel Spacing="2">
+                            <TextBlock
+                                Classes="secondary-text"
+                                FontSize="10"
+                                FontWeight="Medium"
+                                Opacity="0.85"
+                                Text="Resolved Path:"
+                                Margin="0,0,0,1" />
+                            <TextBlock
+                                FontSize="10"
+                                Opacity="0.9"
+                                MaxLines="3"
+                                Text="{Binding Source, Converter={StaticResource PathResolverConverter}}"
+                                TextWrapping="Wrap">
+                                <ToolTip.Tip>
+                                    <MultiBinding Converter="{StaticResource UnresolvedPathTooltipConverter}">
+                                        <Binding Path="Source" />
+                                        <Binding Path="Source" Converter="{StaticResource PathResolverConverter}" />
+                                    </MultiBinding>
+                                </ToolTip.Tip>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBox
                             x:Name="SourceTextBox"
@@ -148,29 +179,28 @@
                             Focusable="True"
                             Text="{Binding Source, Converter={StaticResource ListToStringConverter}}"
                             TextWrapping="Wrap"
-                            Watermark="Enter file paths (one per line)..." />
+                            Watermark="Enter file paths (one per line)..."
+                            BorderThickness="2">
+                            <TextBox.BorderBrush>
+                                <MultiBinding Converter="{StaticResource PathValidationBorderBrushConverter}">
+                                    <Binding Path="Source" />
+                                    <Binding Path="." />
+                                </MultiBinding>
+                            </TextBox.BorderBrush>
+                            <ToolTip.Tip>
+                                <MultiBinding Converter="{StaticResource PathValidationMessageConverter}">
+                                    <Binding Path="Source" />
+                                    <Binding Path="." />
+                                </MultiBinding>
+                            </ToolTip.Tip>
+                        </TextBox>
                         <StackPanel
                             Grid.Column="1"
                             Margin="2,0,0,0"
                             Spacing="2">
-                            <controls:BrowseButtonsControl BrowseSourceFiles="BrowseSourceFiles_Click" BrowseSourceFromFolders="BrowseSourceFromFolders_Click" />
+                            <controls:BrowseButtonsControl BrowseModFiles="BrowseModFiles_Click" BrowseSourceFiles="BrowseSourceFiles_Click" />
                         </StackPanel>
                     </Grid>
-                    <!--  Path Status & Resolved Preview  -->
-                    <Border
-                        Margin="0,2,0,0"
-                        Padding="4,3"
-                        Classes="summary-card">
-                        <StackPanel Spacing="2">
-                            <TextBlock
-                                Classes="secondary-text"
-                                FontSize="8"
-                                FontStyle="Italic"
-                                MaxLines="2"
-                                Text="{Binding Source, Converter={StaticResource PathResolverConverter}}"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
 
                 <!--  Destination Field (Move, Copy, Rename, Patcher)  -->
@@ -182,6 +212,27 @@
                         TextWrapping="Wrap">
                         <Run Text="Target directory or new filename for Rename" />
                     </TextBlock>
+                    <!--  Resolved Path Preview (above input)  -->
+                    <Border
+                        Margin="0,2,0,4"
+                        Padding="6,4"
+                        Classes="summary-card">
+                        <StackPanel Spacing="2">
+                            <TextBlock
+                                Classes="secondary-text"
+                                FontSize="10"
+                                FontWeight="Medium"
+                                Opacity="0.85"
+                                Text="Resolved Path:"
+                                Margin="0,0,0,1" />
+                            <TextBlock
+                                FontSize="10"
+                                Opacity="0.9"
+                                MaxLines="3"
+                                Text="{Binding Destination, Converter={StaticResource PathResolverConverter}}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBox
                             x:Name="DestinationTextBox"
@@ -189,7 +240,21 @@
                             Focusable="True"
                             Text="{Binding Destination}"
                             TextWrapping="Wrap"
-                            Watermark="e.g., &lt;&lt;kotorDirectory&gt;&gt;\Override" />
+                            Watermark="e.g., &lt;&lt;kotorDirectory&gt;&gt;\Override"
+                            BorderThickness="2">
+                            <TextBox.BorderBrush>
+                                <MultiBinding Converter="{StaticResource PathValidationBorderBrushConverter}">
+                                    <Binding Path="Destination" />
+                                    <Binding Path="." />
+                                </MultiBinding>
+                            </TextBox.BorderBrush>
+                            <ToolTip.Tip>
+                                <MultiBinding Converter="{StaticResource PathValidationMessageConverter}">
+                                    <Binding Path="Destination" />
+                                    <Binding Path="." />
+                                </MultiBinding>
+                            </ToolTip.Tip>
+                        </TextBox>
                         <Button
                             Grid.Column="1"
                             Margin="2,0,0,0"
@@ -197,21 +262,6 @@
                             Content="📁 Browse"
                             Tag="{Binding ElementName=DestinationTextBox}" />
                     </Grid>
-                    <!--  Path Status & Resolved Preview  -->
-                    <Border
-                        Margin="0,1,0,0"
-                        Padding="3,2"
-                        Classes="summary-card">
-                        <StackPanel Spacing="1">
-                            <TextBlock
-                                Classes="secondary-text"
-                                FontSize="8"
-                                FontStyle="Italic"
-                                MaxLines="2"
-                                Text="{Binding Destination, Converter={StaticResource PathResolverConverter}}"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
 
                 <!--  Arguments Field - Show only for DelDuplicate, Execute, and Patcher actions  -->

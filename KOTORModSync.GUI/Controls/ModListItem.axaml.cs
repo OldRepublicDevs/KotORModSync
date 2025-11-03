@@ -17,6 +17,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using KOTORModSync.Core;
+using KOTORModSync.Core.Services.Validation;
 using KOTORModSync.Services;
 
 namespace KOTORModSync.Controls
@@ -436,6 +437,14 @@ namespace KOTORModSync.Controls
             {
                 hasErrors = true;
                 errorReasons.Add("No installation instructions defined");
+            }
+
+            // Check for path validation errors
+            var pathErrors = GetPathValidationErrors(component);
+            if (pathErrors.Count > 0)
+            {
+                hasErrors = true;
+                errorReasons.AddRange(pathErrors);
             }
 
             if (
@@ -977,6 +986,67 @@ namespace KOTORModSync.Controls
             border.Background = isSelected
                 ? ThemeResourceHelper.ModListItemHoverBackgroundBrush
                 : Brushes.Transparent;
+        }
+
+        /// <summary>
+        /// Checks PathValidationCache for invalid paths in the component's instructions.
+        /// Returns a list of error messages for any invalid paths found.
+        /// </summary>
+        private static List<string> GetPathValidationErrors(ModComponent component)
+        {
+            var errors = new List<string>();
+
+            if (component == null || component.Instructions == null)
+            {
+                return errors;
+            }
+
+            try
+            {
+                foreach (Instruction instruction in component.Instructions)
+                {
+                    // Check Source paths
+                    if (instruction.Source != null)
+                    {
+                        foreach (string sourcePath in instruction.Source)
+                        {
+                            if (string.IsNullOrWhiteSpace(sourcePath))
+                            {
+                                continue;
+                            }
+
+                            PathValidationResult result = PathValidationCache.GetCachedResult(sourcePath, instruction, component);
+                            if (result != null && !result.IsValid)
+                            {
+                                string message = !string.IsNullOrWhiteSpace(result.StatusMessage)
+                                    ? result.StatusMessage
+                                    : "Invalid source path";
+                                errors.Add($"Source: {message}");
+                            }
+                        }
+                    }
+
+                    // Check Destination path
+                    if (!string.IsNullOrWhiteSpace(instruction.Destination))
+                    {
+                        PathValidationResult result = PathValidationCache.GetCachedResult(instruction.Destination, instruction, component);
+                        if (result != null && !result.IsValid)
+                        {
+                            string message = !string.IsNullOrWhiteSpace(result.StatusMessage)
+                                ? result.StatusMessage
+                                : "Invalid destination path";
+                            errors.Add($"Destination: {message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error checking path validation");
+            }
+
+            // Return unique errors only (in case multiple instructions have the same issue)
+            return errors.Distinct().ToList();
         }
     }
 }

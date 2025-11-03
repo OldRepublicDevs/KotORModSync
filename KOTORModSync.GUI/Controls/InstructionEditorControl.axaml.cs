@@ -35,7 +35,7 @@ namespace KOTORModSync.Controls
         public event EventHandler<RoutedEventArgs> MoveInstructionUp;
         public event EventHandler<RoutedEventArgs> MoveInstructionDown;
         public event EventHandler<RoutedEventArgs> BrowseSourceFiles;
-        public event EventHandler<RoutedEventArgs> BrowseSourceFromFolders;
+        public event EventHandler<RoutedEventArgs> BrowseModFiles;
         public event EventHandler<RoutedEventArgs> BrowseDestination;
         public event EventHandler<Core.Services.Validation.PathValidationResult> JumpToBlockingInstruction;
 
@@ -53,10 +53,10 @@ namespace KOTORModSync.Controls
             BrowseSourceFiles?.Invoke(this, e);
         }
 
-        private void BrowseSourceFromFolders_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+        private void BrowseModFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
         {
-            Core.Logger.LogVerbose("InstructionEditorControl.BrowseSourceFromFolders_Click: Event triggered");
-            BrowseSourceFromFolders?.Invoke(this, e);
+            Core.Logger.LogVerbose("InstructionEditorControl.BrowseModFiles_Click: Event triggered");
+            BrowseModFiles?.Invoke(this, e);
         }
 
         private void BrowseDestination_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseDestination?.Invoke(this, e);

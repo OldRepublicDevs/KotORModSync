@@ -156,69 +156,40 @@ namespace KOTORModSync.Dialogs
             }
         }
 
-        private async void CheckFileAvailability_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await PerformBatchOperationAsync(async () =>
-                {
-                    int availableCount = 0;
-                    int unavailableCount = 0;
-
-                    foreach (ModComponent component in _originalComponents.Where(c => c.IsSelected))
-                    {
-                        if (component.IsDownloaded)
-                        {
-                            availableCount++;
-                        }
-                        else
-                        {
-                            unavailableCount++;
-                        }
-                    }
-
-                    await _dialogService.ShowInformationDialog(
-                    "File Availability Check:\n\n" +
-                $"Available: {availableCount}\n" +
-
-
-                $"Unavailable: {unavailableCount}").ConfigureAwait(true);
-                }).ConfigureAwait(true);
-            }
-            catch (Exception ex)
-            {
-                await Logger.LogExceptionAsync(ex, "Failed to check file availability").ConfigureAwait(true);
-            }
-        }
 
         private void SortByName_Click(object sender, RoutedEventArgs e)
         {
-            _modManagementService.SortMods();
+            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Name, ModManagementService.SortOrder.Ascending);
             ModificationsApplied = true;
+            _dialogService.RefreshStatistics();
         }
 
         private void SortByNameDesc_Click(object sender, RoutedEventArgs e)
         {
             _modManagementService.SortMods(ModManagementService.ModSortCriteria.Name, ModManagementService.SortOrder.Descending);
             ModificationsApplied = true;
+            _dialogService.RefreshStatistics();
         }
 
         private void SortByAuthor_Click(object sender, RoutedEventArgs e)
         {
-            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Author);
+            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Author, ModManagementService.SortOrder.Ascending);
             ModificationsApplied = true;
+            _dialogService.RefreshStatistics();
         }
 
         private void SortByCategory_Click(object sender, RoutedEventArgs e)
         {
-            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Category);
+            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Category, ModManagementService.SortOrder.Ascending);
             ModificationsApplied = true;
+            _dialogService.RefreshStatistics();
         }
 
         private void SortByTier_Click(object sender, RoutedEventArgs e)
         {
-            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Tier);
+            _modManagementService.SortMods(ModManagementService.ModSortCriteria.Tier, ModManagementService.SortOrder.Ascending);
             ModificationsApplied = true;
+            _dialogService.RefreshStatistics();
         }
 
         private async void SetAllDownloaded_Click(object sender, RoutedEventArgs e)
@@ -794,7 +765,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
             }
         }
 
-        private async void AnalyzeModSizes_Click(object sender, RoutedEventArgs e)
+        private async void AnalyzeModSizes_Removed(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -920,7 +891,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
             return $"{size:F1} {units[unitIndex]}";
         }
 
-        private async void CheckRedundantFiles_Click(object sender, RoutedEventArgs e)
+        private async void CheckRedundantFiles_Removed(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -1548,17 +1519,74 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
 
         #region Dialog Management
 
-        private void ApplyChanges_Click(object sender, RoutedEventArgs e) => Close();
-
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-
-            if (ModificationsApplied)
-            {
-                _dialogService.UpdateComponents(_originalComponents);
-            }
-
+            // Changes are already applied to MainConfig.AllComponents, just close
             Close();
+        }
+
+        #endregion
+
+        #region Statistics Sorting
+
+        private void SortCategoriesByName_Click(object sender, RoutedEventArgs e)
+        {
+            var categoriesListBox = this.FindControl<ListBox>("CategoriesListBox");
+            if (categoriesListBox?.ItemsSource is Dictionary<string, int> categories)
+            {
+                var sorted = categories.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
+                var newDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in sorted)
+                {
+                    newDict[kvp.Key] = kvp.Value;
+                }
+                categoriesListBox.ItemsSource = newDict;
+            }
+        }
+
+        private void SortTiersByName_Click(object sender, RoutedEventArgs e)
+        {
+            var tiersListBox = this.FindControl<ListBox>("TiersListBox");
+            if (tiersListBox?.ItemsSource is Dictionary<string, int> tiers)
+            {
+                var sorted = tiers.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
+                var newDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in sorted)
+                {
+                    newDict[kvp.Key] = kvp.Value;
+                }
+                tiersListBox.ItemsSource = newDict;
+            }
+        }
+
+        private void SortAuthorsByName_Click(object sender, RoutedEventArgs e)
+        {
+            var authorsListBox = this.FindControl<ListBox>("AuthorsListBox");
+            if (authorsListBox?.ItemsSource is Dictionary<string, int> authors)
+            {
+                var sorted = authors.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
+                var newDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in sorted)
+                {
+                    newDict[kvp.Key] = kvp.Value;
+                }
+                authorsListBox.ItemsSource = newDict;
+            }
+        }
+
+        private void SortAuthorsByCount_Click(object sender, RoutedEventArgs e)
+        {
+            var authorsListBox = this.FindControl<ListBox>("AuthorsListBox");
+            if (authorsListBox?.ItemsSource is Dictionary<string, int> authors)
+            {
+                var sorted = authors.OrderByDescending(kvp => kvp.Value).ThenBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
+                var newDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in sorted)
+                {
+                    newDict[kvp.Key] = kvp.Value;
+                }
+                authorsListBox.ItemsSource = newDict;
+            }
         }
 
         #endregion

@@ -405,8 +405,9 @@ namespace KOTORModSync.Core.Services.Download
                 _ = response.EnsureSuccessStatusCode();
 
                 _ = Directory.CreateDirectory(destinationDirectory);
-                string filePath = Path.Combine(destinationDirectory, fileName);
-                await Logger.LogVerboseAsync($"[NexusMods] Writing file to: {filePath}").ConfigureAwait(false);
+                string finalPath = Path.Combine(destinationDirectory, fileName);
+                string tempPath = DownloadHelper.GetTempFilePath(finalPath);
+                await Logger.LogVerboseAsync($"[NexusMods] Writing file to temporary path: {tempPath}").ConfigureAwait(false);
 
                 long totalBytes = response.Content.Headers.ContentLength ?? 0;
 
@@ -414,7 +415,7 @@ namespace KOTORModSync.Core.Services.Download
                 {
                     await DownloadHelper.DownloadWithProgressAsync(
                         contentStream,
-                        filePath,
+                        tempPath,
                         totalBytes,
                         fileName,
                         url,
@@ -422,10 +423,23 @@ namespace KOTORModSync.Core.Services.Download
                         cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
 
-                long fileSize = new FileInfo(filePath).Length;
+                long fileSize = new FileInfo(tempPath).Length;
                 await Logger.LogVerboseAsync($"[NexusMods] File download completed successfully. File size: {fileSize} bytes").ConfigureAwait(false);
 
-                downloadedFiles.Add(filePath);
+                // Atomically move to final destination
+                try
+                {
+                    DownloadHelper.MoveToFinalDestination(tempPath, finalPath);
+                    await Logger.LogVerboseAsync($"[NexusMods] Moved temporary file to final destination: {finalPath}").ConfigureAwait(false);
+                }
+                catch (Exception moveEx)
+                {
+                    await Logger.LogErrorAsync($"[NexusMods] Failed to move temporary file to final destination: {moveEx.Message}").ConfigureAwait(false);
+                    try { File.Delete(tempPath); } catch { }
+                    throw;
+                }
+
+                downloadedFiles.Add(finalPath);
 
                 request.Dispose();
                 response.Dispose();

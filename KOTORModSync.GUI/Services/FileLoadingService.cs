@@ -146,6 +146,7 @@ namespace KOTORModSync.Services
 #pragma warning disable MA0004 // Use Task.
                 await onComponentsLoaded();
 #pragma warning restore MA0004 // Use Task.
+
                 return true;
             }
             catch (Exception ex)

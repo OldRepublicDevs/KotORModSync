@@ -184,8 +184,9 @@ namespace KOTORModSync.Core.Services.Download
                 }
 
                 _ = Directory.CreateDirectory(destinationDirectory);
-                string filePath = Path.Combine(destinationDirectory, fileName);
-                await Logger.LogVerboseAsync($"[DirectDownload] Writing file to: {filePath}").ConfigureAwait(false);
+                string finalPath = Path.Combine(destinationDirectory, fileName);
+                string tempPath = DownloadHelper.GetTempFilePath(finalPath);
+                await Logger.LogVerboseAsync($"[DirectDownload] Writing file to temporary path: {tempPath}").ConfigureAwait(false);
 
                 long totalBytes = response.Content.Headers.ContentLength ?? 0;
                 progress?.Report(new DownloadProgress
@@ -200,7 +201,7 @@ namespace KOTORModSync.Core.Services.Download
                 {
                     await DownloadHelper.DownloadWithProgressAsync(
                         contentStream,
-                        filePath,
+                        tempPath,
                         totalBytes,
                         fileName,
                         url,
@@ -208,8 +209,22 @@ namespace KOTORModSync.Core.Services.Download
                         cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
 
-                long fileSize = new FileInfo(filePath).Length;
+                long fileSize = new FileInfo(tempPath).Length;
                 await Logger.LogVerboseAsync($"[DirectDownload] File download completed successfully. File size: {fileSize} bytes").ConfigureAwait(false);
+
+                // Atomically move to final destination
+                try
+                {
+                    DownloadHelper.MoveToFinalDestination(tempPath, finalPath);
+                    await Logger.LogVerboseAsync($"[DirectDownload] Moved temporary file to final destination: {finalPath}").ConfigureAwait(false);
+                }
+                catch (Exception moveEx)
+                {
+                    await Logger.LogErrorAsync($"[DirectDownload] Failed to move temporary file to final destination: {moveEx.Message}").ConfigureAwait(false);
+                    // Clean up temp file
+                    try { File.Delete(tempPath); } catch { }
+                    throw;
+                }
 
                 progress?.Report(new DownloadProgress
                 {
@@ -218,13 +233,13 @@ namespace KOTORModSync.Core.Services.Download
                     ProgressPercentage = 100,
                     BytesDownloaded = fileSize,
                     TotalBytes = fileSize,
-                    FilePath = filePath,
+                    FilePath = finalPath,
                     EndTime = DateTime.Now,
                 });
 
                 response.Dispose();
 
-                return DownloadResult.Succeeded(filePath, message: "Downloaded via direct link");
+                return DownloadResult.Succeeded(finalPath, message: "Downloaded via direct link");
             }
             catch (HttpRequestException httpEx)
             {

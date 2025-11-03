@@ -85,9 +85,33 @@ namespace KOTORModSync.Core.Services.Download
                         DownloadResult result = await completed.ConfigureAwait(false);
                         if (result != null && result.Success)
                         {
+                            // CRITICAL: Cancel the losing download to prevent resource waste
+                            // Each download uses its own unique temp file via GetTempFilePath(),
+                            // so there's no file collision risk. The cancelled task will clean up its own temp file.
+                            cts.Cancel();
+
+                            // Log which source won
+                            if (completed == distributedTask)
+                            {
+                                await Logger.LogVerboseAsync("[Cache] Distributed download completed first, cancelling traditional download").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await Logger.LogVerboseAsync("[Cache] Traditional download completed first, cancelling distributed download").ConfigureAwait(false);
+                            }
+
+                            // Wait briefly for the losing task to handle cancellation gracefully
+                            await Task.WhenAny(distributedTask, traditionalTask).ConfigureAwait(false);
+
                             if (!string.IsNullOrEmpty(result.FilePath) && File.Exists(result.FilePath))
                             {
                                 _ = Task.Run(() => StartBackgroundSharingAsync(url, result.FilePath, hash), cancellationToken);
+                            }
+
+                            // Mark as hybrid if both sources were racing
+                            if (result.DownloadSource == DownloadSource.Optimized && traditionalTask.IsCompleted)
+                            {
+                                result = DownloadResult.Succeeded(result.FilePath, result.Message, DownloadSource.Hybrid);
                             }
 
                             return result;
@@ -103,7 +127,13 @@ namespace KOTORModSync.Core.Services.Download
                     {
                         try
                         {
-                            return await traditionalTask.ConfigureAwait(false);
+                            DownloadResult traditionalResult = await traditionalTask.ConfigureAwait(false);
+                            // We tried cache first, but using traditional - mark as hybrid
+                            if (traditionalResult != null && traditionalResult.Success)
+                            {
+                                traditionalResult = DownloadResult.Succeeded(traditionalResult.FilePath, traditionalResult.Message, DownloadSource.Hybrid);
+                            }
+                            return traditionalResult;
 
                         }
                         catch
@@ -266,8 +296,16 @@ namespace KOTORModSync.Core.Services.Download
                     return loadMethod.Invoke(null, new object[] { cachePath });
                 }).ConfigureAwait(false);
 
+                string fileName = Path.GetFileName(metadata.Name.ToString());
+                string finalPath = Path.Combine(destinationDirectory, fileName);
+                string tempPath = DownloadHelper.GetTempFilePath(finalPath);
+
+                // Use temp directory as save path for MonoTorrent
+                string tempDirectory = Path.GetDirectoryName(tempPath);
+                _ = Directory.CreateDirectory(tempDirectory);
+
                 var managerType = Type.GetType(D("TW9ub1RvcnJlbnQuQ2xpZW50LlRvcnJlbnRNYW5hZ2VyLCBNb25vVG9ycmVudA=="));
-                dynamic manager = Activator.CreateInstance(managerType, metadata, destinationDirectory);
+                dynamic manager = Activator.CreateInstance(managerType, metadata, tempDirectory);
 
                 await _client.Register(manager);
 
@@ -280,21 +318,32 @@ namespace KOTORModSync.Core.Services.Download
                 {
                     if (manager.State.ToString() == D("U2VlZGluZw==") || manager.Complete)
                     {
-                        string fileName = Path.GetFileName(metadata.Name.ToString());
-                        string filePath = Path.Combine(destinationDirectory, fileName);
-
+                        // MonoTorrent downloads to temp directory, now move to final location
                         await Logger.LogVerboseAsync($"[Cache] ✓ Optimized download complete: {fileName}").ConfigureAwait(false);
+
+                        // Atomically move to final destination
+                        try
+                        {
+                            DownloadHelper.MoveToFinalDestination(tempPath, finalPath);
+                            await Logger.LogVerboseAsync($"[Cache] Moved temporary file to final destination: {finalPath}").ConfigureAwait(false);
+                        }
+                        catch (Exception moveEx)
+                        {
+                            await Logger.LogErrorAsync($"[Cache] Failed to move temporary file to final destination: {moveEx.Message}").ConfigureAwait(false);
+                            try { File.Delete(tempPath); } catch { }
+                            throw;
+                        }
 
                         progress?.Report(new DownloadProgress
                         {
                             Status = DownloadStatus.Completed,
                             StatusMessage = "Download complete",
                             ProgressPercentage = 100,
-                            FilePath = filePath,
+                            FilePath = finalPath,
                             EndTime = DateTime.Now,
                         });
 
-                        return DownloadResult.Succeeded(filePath, "Downloaded via optimized cache");
+                        return DownloadResult.Succeeded(finalPath, "Downloaded via optimized cache", DownloadSource.Optimized);
                     }
 
                     double progressPct = manager.Progress * 100.0;
@@ -310,6 +359,34 @@ namespace KOTORModSync.Core.Services.Download
 
                 await manager.StopAsync();
                 await _client.Unregister(manager);
+
+                // Clean up any partial files if download was cancelled or incomplete
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        if (Directory.Exists(tempDirectory))
+                        {
+                            string[] partialFiles = Directory.GetFiles(tempDirectory, $"{fileName}*", SearchOption.AllDirectories);
+                            foreach (string partialFile in partialFiles)
+                            {
+                                try
+                                {
+                                    File.Delete(partialFile);
+                                    await Logger.LogVerboseAsync($"[Cache] Cleaned up cancelled download: {partialFile}").ConfigureAwait(false);
+                                }
+                                catch (Exception deleteEx)
+                                {
+                                    await Logger.LogVerboseAsync($"[Cache] Could not delete partial file {partialFile}: {deleteEx.Message}").ConfigureAwait(false);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception cleanupEx)
+                    {
+                        await Logger.LogWarningAsync($"[Cache] Error during cancellation cleanup: {cleanupEx.Message}").ConfigureAwait(false);
+                    }
+                }
 
                 return null;
             }

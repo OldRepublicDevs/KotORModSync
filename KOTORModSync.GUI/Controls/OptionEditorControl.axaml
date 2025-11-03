@@ -150,8 +150,8 @@
                                     <controls:InstructionEditorControl
                                         AddNewInstruction="AddNewInstruction_Click"
                                         BrowseDestination="BrowseDestination_Click"
+                                        BrowseModFiles="BrowseModFiles_Click"
                                         BrowseSourceFiles="BrowseSourceFiles_Click"
-                                        BrowseSourceFromFolders="BrowseSourceFromFolders_Click"
                                         DeleteInstruction="DeleteInstruction_Click"
                                         MoveInstructionDown="MoveInstructionDown_Click"
                                         MoveInstructionUp="MoveInstructionUp_Click" />

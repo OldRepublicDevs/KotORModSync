@@ -78,6 +78,9 @@ namespace KOTORModSync
         private DispatcherTimer _preResolveDebounceTimer;
         private string _currentDragFilePath;
         private bool _dragOverlayVisible;
+        private DispatcherTimer _dragOverlayDebounceTimer;
+        private DragEventArgs _pendingDragEventArgs;
+        private bool _pendingDragOverlayUpdate;
 
         public static bool HasFetchedDownloads { get; private set; }
 
@@ -1214,11 +1217,13 @@ namespace KOTORModSync
 
         private void DragOver(object sender, DragEventArgs e)
         {
+            Logger.LogVerbose($"[DragOver] ENTER - ContainsFiles: {e.Data.Contains(DataFormats.Files)}, _dragOverlayVisible: {_dragOverlayVisible}, _pendingDragOverlayUpdate: {_pendingDragOverlayUpdate}, _currentDragFilePath: '{_currentDragFilePath}'");
+
             if (e.Data.Contains(DataFormats.Files))
             {
                 e.DragEffects = DragDropEffects.Copy;
 
-                // Get the current file path to check if it changed
+                // Get the current file path
                 string currentFilePath = null;
                 try
                 {
@@ -1226,82 +1231,230 @@ namespace KOTORModSync
                     {
                         IStorageItem storageItem = items.FirstOrDefault();
                         currentFilePath = storageItem?.TryGetLocalPath();
+                        Logger.LogVerbose($"[DragOver] Got file path: '{currentFilePath}'");
+                    }
+                    else
+                    {
+                        Logger.LogVerbose("[DragOver] Failed to get items from DataFormats.Files");
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore errors getting file path - just ensure overlay stays visible if already shown
+                    Logger.LogVerbose($"[DragOver] Exception getting file path: {ex.Message}");
+                    // If we can't get path but overlay is already visible, keep it visible
                     if (_dragOverlayVisible)
                     {
+                        Logger.LogVerbose("[DragOver] Can't get path but overlay visible, returning early");
                         e.Handled = true;
                         return;
                     }
+                    Logger.LogVerbose("[DragOver] Can't get path and overlay not visible, returning");
+                    e.Handled = true;
+                    return;
                 }
 
-                // Only update overlay if file changed or overlay not visible
-                // This prevents flickering from constant DragOver events as mouse moves
-                if (!string.Equals(currentFilePath, _currentDragFilePath, StringComparison.Ordinal) || !_dragOverlayVisible)
+                if (string.IsNullOrEmpty(currentFilePath))
                 {
-                    if (string.IsNullOrEmpty(currentFilePath))
+                    Logger.LogVerbose($"[DragOver] File path is null/empty, _dragOverlayVisible: {_dragOverlayVisible}");
+                    // Can't get path, but already showing something - keep it visible
+                    if (_dragOverlayVisible)
                     {
-                        // Can't get path, but already showing something - keep it visible
-                        if (_dragOverlayVisible)
+                        Logger.LogVerbose("[DragOver] Path empty but overlay visible, returning early");
+                        e.Handled = true;
+                        return;
+                    }
+                    // Can't get path and nothing showing - can't show overlay
+                    Logger.LogVerbose("[DragOver] Path empty and overlay not visible, returning");
+                    e.Handled = true;
+                    return;
+                }
+
+                // Check if overlay is already visible for the same file - early return to prevent flickering
+                if (_dragOverlayVisible && string.Equals(currentFilePath, _currentDragFilePath, StringComparison.Ordinal))
+                {
+                    Logger.LogVerbose($"[DragOver] Overlay visible and same file ('{currentFilePath}'), checking UI state");
+                    // Double-check actual UI state if on UI thread to prevent race conditions
+                    if (Dispatcher.UIThread.CheckAccess())
+                    {
+                        Border overlay = this.FindControl<Border>("DragDropOverlay");
+                        bool overlayIsVisible = overlay != null && overlay.IsVisible;
+                        Logger.LogVerbose($"[DragOver] On UI thread, overlay.IsVisible: {overlayIsVisible}");
+                        if (overlayIsVisible)
                         {
+                            // Overlay is already showing this file, cancel any pending updates
+                            _dragOverlayDebounceTimer?.Stop();
+                            _pendingDragOverlayUpdate = false;
+                            Logger.LogVerbose("[DragOver] Overlay already visible for same file, cancelling debounce and returning early");
                             e.Handled = true;
                             return;
                         }
-                        // Can't get path and nothing showing - can't show overlay
+                        Logger.LogVerbose("[DragOver] Flag says visible but UI says not visible, continuing");
+                    }
+                    else
+                    {
+                        // Overlay is already showing this file, cancel any pending updates
+                        _dragOverlayDebounceTimer?.Stop();
+                        _pendingDragOverlayUpdate = false;
+                        Logger.LogVerbose("[DragOver] Not on UI thread, but flag says visible for same file, cancelling debounce and returning early");
                         e.Handled = true;
                         return;
                     }
-
-                    _currentDragFilePath = currentFilePath;
-                    ShowDragDropOverlay(e);
                 }
+
+                // File changed or overlay not visible - schedule update with debounce
+                bool fileChanged = !string.Equals(currentFilePath, _currentDragFilePath, StringComparison.Ordinal);
+                Logger.LogVerbose($"[DragOver] File changed: {fileChanged} (old: '{_currentDragFilePath}', new: '{currentFilePath}'), overlay visible: {_dragOverlayVisible}, scheduling debounced update");
+
+                _currentDragFilePath = currentFilePath; // Set immediately so subsequent checks work
+                _pendingDragEventArgs = e;
+                _pendingDragOverlayUpdate = true;
+
+                // Cancel existing timer if running
+                bool timerWasRunning = _dragOverlayDebounceTimer?.IsEnabled ?? false;
+                _dragOverlayDebounceTimer?.Stop();
+                Logger.LogVerbose($"[DragOver] Timer was running: {timerWasRunning}, stopped it");
+
+                // Create timer if it doesn't exist
+                if (_dragOverlayDebounceTimer == null)
+                {
+                    Logger.LogVerbose("[DragOver] Creating new debounce timer");
+                    _dragOverlayDebounceTimer = new DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(50) // 50ms debounce delay
+                    };
+                    _dragOverlayDebounceTimer.Tick += (s, args) =>
+                    {
+                        Logger.LogVerbose($"[DragOver.Timer] Timer tick fired, _pendingDragOverlayUpdate: {_pendingDragOverlayUpdate}, _pendingDragEventArgs is null: {_pendingDragEventArgs == null}");
+                        _dragOverlayDebounceTimer.Stop();
+                        if (_pendingDragOverlayUpdate && _pendingDragEventArgs != null)
+                        {
+                            // Verify the overlay isn't already showing the correct file before updating
+                            bool shouldUpdate = true;
+                            try
+                            {
+                                if (_pendingDragEventArgs.Data.Get(DataFormats.Files) is IEnumerable<IStorageItem> items)
+                                {
+                                    IStorageItem storageItem = items.FirstOrDefault();
+                                    string pendingFilePath = storageItem?.TryGetLocalPath();
+                                    if (_dragOverlayVisible && string.Equals(pendingFilePath, _currentDragFilePath, StringComparison.Ordinal))
+                                    {
+                                        // Double-check actual UI state
+                                        if (Dispatcher.UIThread.CheckAccess())
+                                        {
+                                            Border overlay = this.FindControl<Border>("DragDropOverlay");
+                                            if (overlay != null && overlay.IsVisible)
+                                            {
+                                                // Overlay is already showing the correct file, skip update
+                                                shouldUpdate = false;
+                                                Logger.LogVerbose("[DragOver.Timer] Overlay already showing correct file, skipping update");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // Not on UI thread but flag says it's visible, trust the flag
+                                            shouldUpdate = false;
+                                            Logger.LogVerbose("[DragOver.Timer] Flag says overlay visible for same file, skipping update");
+                                        }
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                // If we can't check, proceed with update
+                            }
+
+                            if (shouldUpdate)
+                            {
+                                Logger.LogVerbose("[DragOver.Timer] Calling ShowDragDropOverlay");
+                                _pendingDragOverlayUpdate = false;
+                                ShowDragDropOverlay(_pendingDragEventArgs);
+                            }
+                            else
+                            {
+                                _pendingDragOverlayUpdate = false;
+                            }
+                            _pendingDragEventArgs = null;
+                        }
+                        else
+                        {
+                            Logger.LogVerbose("[DragOver.Timer] Skipping ShowDragDropOverlay - update cancelled or no event args");
+                        }
+                    };
+                }
+
+                // Start/reset the timer
+                _dragOverlayDebounceTimer.Start();
+                Logger.LogVerbose("[DragOver] Started debounce timer");
             }
             else
             {
+                Logger.LogVerbose("[DragOver] No files in data, hiding overlay if visible");
                 e.DragEffects = DragDropEffects.None;
+                // Cancel any pending overlay updates
+                _dragOverlayDebounceTimer?.Stop();
+                _pendingDragOverlayUpdate = false;
+                _pendingDragEventArgs = null;
                 if (_dragOverlayVisible)
                 {
+                    Logger.LogVerbose("[DragOver] Calling HideDragDropOverlay");
                     HideDragDropOverlay();
                 }
             }
             e.Handled = true;
+            Logger.LogVerbose("[DragOver] EXIT");
         }
 
         private void DragLeave(object sender, DragEventArgs e)
         {
+            Logger.LogVerbose($"[DragLeave] ENTER - _dragOverlayVisible: {_dragOverlayVisible}, _pendingDragOverlayUpdate: {_pendingDragOverlayUpdate}, _currentDragFilePath: '{_currentDragFilePath}'");
             _currentDragFilePath = null;
+            // Cancel any pending overlay updates
+            bool timerWasRunning = _dragOverlayDebounceTimer?.IsEnabled ?? false;
+            _dragOverlayDebounceTimer?.Stop();
+            Logger.LogVerbose($"[DragLeave] Timer was running: {timerWasRunning}, stopped it");
+            _pendingDragOverlayUpdate = false;
+            _pendingDragEventArgs = null;
+            Logger.LogVerbose("[DragLeave] Calling HideDragDropOverlay");
             HideDragDropOverlay();
+            Logger.LogVerbose("[DragLeave] EXIT");
         }
 
         [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
         private async void Drop(object sender, DragEventArgs e)
         {
+            await Logger.LogVerboseAsync($"[Drop] ENTER - _dragOverlayVisible: {_dragOverlayVisible}, _pendingDragOverlayUpdate: {_pendingDragOverlayUpdate}, _currentDragFilePath: '{_currentDragFilePath}'");
             try
             {
+                // Cancel any pending overlay updates
+                bool timerWasRunning = _dragOverlayDebounceTimer?.IsEnabled ?? false;
+                _dragOverlayDebounceTimer?.Stop();
+                await Logger.LogVerboseAsync($"[Drop] Timer was running: {timerWasRunning}, stopped it");
+                _pendingDragOverlayUpdate = false;
+                _pendingDragEventArgs = null;
+
                 if (!e.Data.Contains(DataFormats.Files))
                 {
-                    await Logger.LogVerboseAsync("No files dropped");
+                    await Logger.LogVerboseAsync("[Drop] No files dropped");
                     return;
                 }
 
                 if (!(e.Data.Get(DataFormats.Files) is IEnumerable<IStorageItem> items))
                 {
-                    await Logger.LogVerboseAsync("Dropped items were not IStorageItem enumerable");
+                    await Logger.LogVerboseAsync("[Drop] Dropped items were not IStorageItem enumerable");
                     return;
                 }
 
                 IStorageItem storageItem = items.FirstOrDefault();
                 string filePath = storageItem?.TryGetLocalPath();
+                await Logger.LogVerboseAsync($"[Drop] Got file path: '{filePath}'");
                 if (string.IsNullOrEmpty(filePath))
                 {
-                    await Logger.LogVerboseAsync("Dropped item had no path");
+                    await Logger.LogVerboseAsync("[Drop] Dropped item had no path");
                     HideDragDropOverlay();
                     return;
                 }
                 _currentDragFilePath = null;
+                await Logger.LogVerboseAsync("[Drop] Calling HideDragDropOverlay");
                 HideDragDropOverlay();
                 string fileExt = Path.GetExtension(filePath);
                 switch (storageItem)
@@ -1361,12 +1514,15 @@ namespace KOTORModSync
         [SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private void ShowDragDropOverlay(DragEventArgs e)
         {
+            Logger.LogVerbose($"[ShowDragDropOverlay] ENTER - _dragOverlayVisible: {_dragOverlayVisible}, _currentDragFilePath: '{_currentDragFilePath}'");
             try
             {
                 if (!(e.Data.Get(DataFormats.Files) is IEnumerable<IStorageItem> items))
                 {
+                    Logger.LogVerbose("[ShowDragDropOverlay] Failed to get items from DataFormats.Files");
                     if (_dragOverlayVisible)
                     {
+                        Logger.LogVerbose("[ShowDragDropOverlay] Calling HideDragDropOverlay (no items)");
                         HideDragDropOverlay();
                     }
                     return;
@@ -1374,47 +1530,74 @@ namespace KOTORModSync
 
                 IStorageItem storageItem = items.FirstOrDefault();
                 string filePath = storageItem?.TryGetLocalPath();
+                Logger.LogVerbose($"[ShowDragDropOverlay] Got file path: '{filePath}'");
 
                 if (string.IsNullOrEmpty(filePath))
                 {
+                    Logger.LogVerbose("[ShowDragDropOverlay] File path is null/empty");
                     if (_dragOverlayVisible)
                     {
+                        Logger.LogVerbose("[ShowDragDropOverlay] Calling HideDragDropOverlay (empty path)");
                         HideDragDropOverlay();
                     }
                     return;
                 }
 
                 // If same file and already visible, skip update to prevent flickering
-                if (string.Equals(filePath, _currentDragFilePath, StringComparison.Ordinal) && _dragOverlayVisible)
+                bool isSameFile = string.Equals(filePath, _currentDragFilePath, StringComparison.Ordinal);
+                Logger.LogVerbose($"[ShowDragDropOverlay] Is same file: {isSameFile}, _dragOverlayVisible: {_dragOverlayVisible}");
+                if (isSameFile && _dragOverlayVisible)
                 {
-                    return;
+                    // Double-check actual UI state if on UI thread to avoid race conditions
+                    if (Dispatcher.UIThread.CheckAccess())
+                    {
+                        Border overlay = this.FindControl<Border>("DragDropOverlay");
+                        bool overlayIsVisible = overlay != null && overlay.IsVisible;
+                        Logger.LogVerbose($"[ShowDragDropOverlay] On UI thread, overlay.IsVisible: {overlayIsVisible}");
+                        if (overlayIsVisible)
+                        {
+                            Logger.LogVerbose("[ShowDragDropOverlay] Overlay already visible for same file, returning early");
+                            return; // Already visible, no update needed
+                        }
+                    }
+                    else
+                    {
+                        Logger.LogVerbose("[ShowDragDropOverlay] Not on UI thread, but flag says visible for same file, continuing anyway");
+                    }
                 }
 
                 _currentDragFilePath = filePath;
 
                 // Check if we're already on UI thread to avoid unnecessary posting
-                if (Dispatcher.UIThread.CheckAccess())
+                bool onUIThread = Dispatcher.UIThread.CheckAccess();
+                Logger.LogVerbose($"[ShowDragDropOverlay] On UI thread: {onUIThread}");
+                if (onUIThread)
                 {
+                    Logger.LogVerbose("[ShowDragDropOverlay] Calling UpdateDragDropOverlayUI directly (on UI thread)");
                     UpdateDragDropOverlayUI(filePath, storageItem);
                 }
                 else
                 {
+                    Logger.LogVerbose("[ShowDragDropOverlay] Posting UpdateDragDropOverlayUI to UI thread");
                     _dragOverlayVisible = true;
                     Dispatcher.UIThread.Post(() =>
                     {
+                        Logger.LogVerbose("[ShowDragDropOverlay.Post] Posted UpdateDragDropOverlayUI callback executing");
                         UpdateDragDropOverlayUI(filePath, storageItem);
                     });
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex, "Error in ShowDragDropOverlay");
+                Logger.LogException(ex, "[ShowDragDropOverlay] Error in ShowDragDropOverlay");
                 _dragOverlayVisible = false;
             }
+            Logger.LogVerbose("[ShowDragDropOverlay] EXIT");
         }
 
         private void UpdateDragDropOverlayUI(string filePath, IStorageItem storageItem)
         {
+            Logger.LogVerbose($"[UpdateDragDropOverlayUI] ENTER - filePath: '{filePath}', _dragOverlayVisible: {_dragOverlayVisible}, _currentDragFilePath: '{_currentDragFilePath}'");
             try
             {
                 Border overlay = this.FindControl<Border>("DragDropOverlay");
@@ -1424,18 +1607,30 @@ namespace KOTORModSync
                 TextBlock actionTextBlock = this.FindControl<TextBlock>("DragDropActionText");
                 Border actionBorder = this.FindControl<Border>("DragDropActionBorder");
 
-                if (
-                    overlay == null
-                    || titleBlock == null
-                    || fileNameBlock == null
-                    || fileInfoBlock == null
-                    || actionTextBlock == null
-                    || actionBorder == null
-                )
+                bool controlsFound = overlay != null && titleBlock != null && fileNameBlock != null &&
+                                   fileInfoBlock != null && actionTextBlock != null && actionBorder != null;
+                Logger.LogVerbose($"[UpdateDragDropOverlayUI] Controls found: {controlsFound} (overlay: {overlay != null}, title: {titleBlock != null}, fileName: {fileNameBlock != null}, fileInfo: {fileInfoBlock != null}, actionText: {actionTextBlock != null}, actionBorder: {actionBorder != null})");
+
+                if (!controlsFound)
                 {
+                    Logger.LogVerbose("[UpdateDragDropOverlayUI] Missing controls, setting _dragOverlayVisible = false and returning");
                     _dragOverlayVisible = false;
                     return;
                 }
+
+                bool overlayIsVisible = overlay.IsVisible;
+                bool isSameFile = string.Equals(filePath, _currentDragFilePath, StringComparison.Ordinal);
+                Logger.LogVerbose($"[UpdateDragDropOverlayUI] overlay.IsVisible: {overlayIsVisible}, isSameFile: {isSameFile}");
+
+                // Early return if overlay is already visible for the same file - prevents flickering
+                if (overlayIsVisible && isSameFile)
+                {
+                    // Already showing the correct file, no update needed
+                    Logger.LogVerbose("[UpdateDragDropOverlayUI] Overlay already visible for same file, returning early");
+                    return;
+                }
+
+                Logger.LogVerbose($"[UpdateDragDropOverlayUI] Proceeding to update overlay (was visible: {overlayIsVisible}, will set visible: true)");
 
                 string fileName = Path.GetFileName(filePath);
                 string fileExt = Path.GetExtension(filePath).ToLowerInvariant();
@@ -1549,39 +1744,88 @@ namespace KOTORModSync
                 actionBorder.BorderBrush = statusBorderBrush;
 
                 // Only update visibility if not already visible to prevent flickering
-                if (!overlay.IsVisible)
+                bool wasVisible = overlay.IsVisible;
+                if (!wasVisible)
                 {
+                    Logger.LogVerbose("[UpdateDragDropOverlayUI] Setting overlay.IsVisible = true");
                     overlay.IsVisible = true;
+                }
+                else
+                {
+                    Logger.LogVerbose("[UpdateDragDropOverlayUI] Overlay already visible, skipping visibility change");
                 }
 
                 _dragOverlayVisible = true;
+                Logger.LogVerbose($"[UpdateDragDropOverlayUI] Set _dragOverlayVisible = true, overlay.IsVisible is now: {overlay.IsVisible}");
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex, "Error showing drag-drop overlay");
+                Logger.LogException(ex, "[UpdateDragDropOverlayUI] Error showing drag-drop overlay");
                 _dragOverlayVisible = false;
             }
+            Logger.LogVerbose("[UpdateDragDropOverlayUI] EXIT");
         }
 
         private void HideDragDropOverlay()
         {
+            Logger.LogVerbose($"[HideDragDropOverlay] ENTER - _dragOverlayVisible: {_dragOverlayVisible}, _currentDragFilePath: '{_currentDragFilePath}'");
             _currentDragFilePath = null;
             _dragOverlayVisible = false;
-            Dispatcher.UIThread.Post(() =>
+
+            // Check if we're already on UI thread to avoid unnecessary posting
+            bool onUIThread = Dispatcher.UIThread.CheckAccess();
+            Logger.LogVerbose($"[HideDragDropOverlay] On UI thread: {onUIThread}");
+
+            if (onUIThread)
             {
                 try
                 {
                     Border overlay = this.FindControl<Border>("DragDropOverlay");
-                    if (overlay != null && overlay.IsVisible)
+                    bool overlayWasVisible = overlay != null && overlay.IsVisible;
+                    Logger.LogVerbose($"[HideDragDropOverlay] Overlay found: {overlay != null}, was visible: {overlayWasVisible}");
+                    if (overlayWasVisible)
                     {
+                        Logger.LogVerbose("[HideDragDropOverlay] Setting overlay.IsVisible = false");
                         overlay.IsVisible = false;
+                    }
+                    else
+                    {
+                        Logger.LogVerbose("[HideDragDropOverlay] Overlay not visible, skipping visibility change");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogException(ex, "Error hiding drag-drop overlay");
+                    Logger.LogException(ex, "[HideDragDropOverlay] Error hiding drag-drop overlay");
                 }
-            });
+            }
+            else
+            {
+                Logger.LogVerbose("[HideDragDropOverlay] Posting HideDragDropOverlay to UI thread");
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Logger.LogVerbose("[HideDragDropOverlay.Post] Posted callback executing");
+                    try
+                    {
+                        Border overlay = this.FindControl<Border>("DragDropOverlay");
+                        bool overlayWasVisible = overlay != null && overlay.IsVisible;
+                        Logger.LogVerbose($"[HideDragDropOverlay.Post] Overlay found: {overlay != null}, was visible: {overlayWasVisible}");
+                        if (overlayWasVisible)
+                        {
+                            Logger.LogVerbose("[HideDragDropOverlay.Post] Setting overlay.IsVisible = false");
+                            overlay.IsVisible = false;
+                        }
+                        else
+                        {
+                            Logger.LogVerbose("[HideDragDropOverlay.Post] Overlay not visible, skipping visibility change");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogException(ex, "[HideDragDropOverlay.Post] Error hiding drag-drop overlay");
+                    }
+                });
+            }
+            Logger.LogVerbose("[HideDragDropOverlay] EXIT");
         }
 
         private static string FormatFileSize(long bytes)
@@ -2942,6 +3186,7 @@ namespace KOTORModSync
                 _telemetryService?.RecordError("file.load", ex.Message, ex.StackTrace);
             }
         }
+
         [UsedImplicitly]
         private void LoadInstallFile_Click(
             [NotNull] object sender,
@@ -3032,6 +3277,101 @@ namespace KOTORModSync
             catch (Exception ex)
             {
                 await Logger.LogExceptionAsync(ex, customMessage: "[BrowseSourceFromFolders_Click] Exception occurred");
+            }
+        }
+
+        [UsedImplicitly]
+        [SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
+        private async void BrowseModFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e)
+        {
+            try
+            {
+                await Logger.LogVerboseAsync("BrowseModFiles_Click: Event triggered");
+
+                // Get the original source button from the routed event
+                // The sender might be EditorTab, but e.Source should be the original button
+                Button button = null;
+                if (e.Source is Button sourceButton)
+                {
+                    button = sourceButton;
+                }
+                else if (sender is Button senderButton)
+                {
+                    button = senderButton;
+                }
+                else
+                {
+                    // Try to find the button by traversing from the source
+                    if (e.Source is Control sourceControl)
+                    {
+                        button = sourceControl.FindAncestorOfType<Button>();
+                        if (button == null && sender is Control senderControl)
+                        {
+                            button = senderControl.FindAncestorOfType<Button>();
+                        }
+                    }
+                }
+
+                if (button == null)
+                {
+                    await Logger.LogErrorAsync("BrowseModFiles_Click: Could not find button from event");
+                    return;
+                }
+
+                // Find the InstructionEditorControl to get the Instruction
+                InstructionEditorControl instructionEditorControl = button.FindAncestorOfType<InstructionEditorControl>();
+                if (instructionEditorControl == null)
+                {
+                    await Logger.LogErrorAsync("BrowseModFiles_Click: Could not find InstructionEditorControl");
+                    return;
+                }
+
+                Instruction thisInstruction = instructionEditorControl.DataContext as Instruction
+                                            ?? throw new InvalidOperationException(message: "Could not find instruction instance");
+
+                await Logger.LogVerboseAsync($"BrowseModFiles_Click: Instruction found: {thisInstruction.Action}");
+
+                // Find the SourceTextBox in the parent InstructionEditorControl
+                TextBox sourceTextBox = instructionEditorControl.FindControl<TextBox>("SourceTextBox");
+
+                if (sourceTextBox != null)
+                {
+                    await Logger.LogVerboseAsync("BrowseModFiles_Click: Found SourceTextBox, opening ModFilesBrowserDialog");
+
+                    // Get the parent component
+                    if (CurrentComponent == null)
+                    {
+                        await Logger.LogWarningAsync("BrowseModFiles_Click: CurrentComponent is null");
+                        return;
+                    }
+
+                    // Show the ModFilesBrowserDialog
+                    var dialog = await Dialogs.ModFilesBrowserDialog.ShowBrowserDialogAsync(this, CurrentComponent);
+
+                    if (dialog != null && dialog.UserConfirmed && dialog.SelectedPaths != null && dialog.SelectedPaths.Count > 0)
+                    {
+                        // Update the Source textbox with selected paths
+                        string selectedPathsText = string.Join(Environment.NewLine, dialog.SelectedPaths);
+                        sourceTextBox.Text = selectedPathsText;
+
+                        // Update the instruction's Source property
+                        thisInstruction.Source = dialog.SelectedPaths;
+
+                        await Logger.LogVerboseAsync($"BrowseModFiles_Click: Updated Source with {dialog.SelectedPaths.Count} selected paths");
+                    }
+                    else
+                    {
+                        await Logger.LogVerboseAsync("BrowseModFiles_Click: User cancelled or no paths selected");
+                    }
+                }
+                else
+                {
+                    await Logger.LogWarningAsync("BrowseModFiles_Click: Could not find SourceTextBox");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, customMessage: "[BrowseModFiles_Click] Exception occurred");
             }
         }
 
@@ -4437,61 +4777,9 @@ namespace KOTORModSync
                 _preResolveDebounceTimer?.Stop();
                 _preResolveDebounceTimer = null;
 
-                if (c.ResourceRegistry.Count > 0)
-                {
-                    // Debounce: Wait 500ms before starting expensive PreResolveUrlsAsync
-                    // This prevents lag when rapidly switching between components
-                    ModComponent componentToResolve = c;
-                    _preResolveDebounceTimer = new DispatcherTimer
-                    {
-                        Interval = TimeSpan.FromMilliseconds(500)
-                    };
-                    _preResolveDebounceTimer.Tick += async (sender, e) =>
-                    {
-                        _preResolveDebounceTimer.Stop();
-                        _preResolveDebounceTimer = null;
-
-                        // Only proceed if this component is still current
-                        if (componentToResolve != CurrentComponent)
-                        {
-                            await Logger.LogVerboseAsync($"[SetCurrentModComponent] Component changed during debounce, skipping pre-resolve for '{componentToResolve.Name}'");
-                            return;
-                        }
-
-                        _preResolveCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-                        var cts = _preResolveCts;
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                await Logger.LogVerboseAsync($"[SetCurrentModComponent] Pre-resolving URLs for component '{componentToResolve.Name}' in editor mode");
-                                await DownloadCacheService.PreResolveUrlsAsync(componentToResolve, DownloadCacheService.DownloadManager, sequential: false, cts.Token);
-                                await Logger.LogVerboseAsync($"[SetCurrentModComponent] Pre-resolution completed for '{componentToResolve.Name}'");
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                await Logger.LogVerboseAsync($"[SetCurrentModComponent] Pre-resolution cancelled for '{componentToResolve.Name}'");
-                            }
-                            catch (Exception ex)
-                            {
-                                await Logger.LogExceptionAsync(ex, $"[SetCurrentModComponent] Error pre-resolving URLs for '{componentToResolve.Name}'");
-                            }
-                            finally
-                            {
-                                if (cts == _preResolveCts)
-                                {
-                                    _preResolveCts?.Dispose();
-                                    _preResolveCts = null;
-                                }
-                                else
-                                {
-                                    cts.Dispose();
-                                }
-                            }
-                        });
-                    };
-                    _preResolveDebounceTimer.Start();
-                }
+                // Network calls should ONLY happen when user explicitly requests them via buttons
+                // (e.g., "Resolve Filenames" or "Download" buttons)
+                // No automatic network calls when clicking mod list items
             }
             Logger.LogVerbose("[SetCurrentModComponent] Tabs visibility set to true");
 
@@ -4576,6 +4864,17 @@ namespace KOTORModSync
                     ThemeManager.ApplyCurrentToWindow(this);
                     await Logger.LogVerboseAsync($"Applied theme from TargetGame '{MainConfig.TargetGame}': {themeToApply}");
                 }
+
+                // In Editor Mode, ask if user wants to resolve download filenames after loading
+                if (EditorMode && HasComponentsNeedingResolution(MainConfig.AllComponents))
+                {
+                    bool? shouldResolve = await AskToResolveFilenamesAsync("load");
+                    if (shouldResolve == true)
+                    {
+                        await Logger.LogVerboseAsync("[LoadInstructionFileAsync] User requested filename resolution after loading");
+                        await ResolveAllComponentFilenamesAsync(MainConfig.AllComponents);
+                    }
+                }
             }
             return result;
         }
@@ -4589,7 +4888,13 @@ namespace KOTORModSync
             try
             {
                 await Logger.LogAsync($"[AutoLoadInstructionFileAsync] Loading instruction file from CLI: '{filePath}'");
+
+                string fileName = System.IO.Path.GetFileName(filePath);
+                ShowLoadingOverlay($"Loading {fileName}...");
+
+                // Load the file while overlay is shown
                 bool success = await LoadInstructionFileAsync(filePath, "CLI-specified file");
+
                 if (success)
                 {
                     await Logger.LogAsync($"[AutoLoadInstructionFileAsync] Successfully loaded instruction file");
@@ -4602,6 +4907,10 @@ namespace KOTORModSync
             catch (Exception ex)
             {
                 await Logger.LogExceptionAsync(ex, "[AutoLoadInstructionFileAsync] Exception loading instruction file from CLI");
+            }
+            finally
+            {
+                HideLoadingOverlay();
             }
         }
 
@@ -4785,6 +5094,24 @@ namespace KOTORModSync
                 if (filePath is null)
                 {
                     return;
+                }
+
+                // In Editor Mode, ask if user wants to resolve download filenames before saving
+                if (EditorMode && HasComponentsNeedingResolution(MainConfig.AllComponents))
+                {
+                    bool? shouldResolve = await AskToResolveFilenamesAsync("save");
+                    if (shouldResolve == null)
+                    {
+                        // User cancelled
+                        await Logger.LogVerboseAsync("[SaveModFileAs_ClickWithFormat] User cancelled save after filename resolution prompt");
+                        return;
+                    }
+
+                    if (shouldResolve == true)
+                    {
+                        await Logger.LogVerboseAsync("[SaveModFileAs_ClickWithFormat] User requested filename resolution before saving");
+                        await ResolveAllComponentFilenamesAsync(MainConfig.AllComponents);
+                    }
                 }
 
                 await Core.Services.FileLoadingService.SaveToFileAsync(
@@ -7004,7 +7331,7 @@ namespace KOTORModSync
         private void EditorTab_DeleteInstructionRequested(object sender, RoutedEventArgs e) => DeleteInstruction_Click(sender, e);
         private void EditorTab_BrowseDestinationRequested(object sender, RoutedEventArgs e) => BrowseDestination_Click(sender, e);
         private void EditorTab_BrowseSourceFilesRequested(object sender, RoutedEventArgs e) => BrowseSourceFiles_Click(sender, e);
-        private void EditorTab_BrowseSourceFromFoldersRequested(object sender, RoutedEventArgs e) => BrowseSourceFromFolders_Click(sender, e);
+        private void EditorTab_BrowseModFilesRequested(object sender, RoutedEventArgs e) => BrowseModFiles_Click(sender, e);
         private void EditorTab_MoveInstructionUpRequested(object sender, RoutedEventArgs e) => MoveInstructionUp_Click(sender, e);
         private void EditorTab_MoveInstructionDownRequested(object sender, RoutedEventArgs e) => MoveInstructionDown_Click(sender, e);
         private void EditorTab_AddNewOptionRequested(object sender, RoutedEventArgs e) => AddNewOption_Click(sender, e);
@@ -7524,6 +7851,126 @@ namespace KOTORModSync
                 await Logger.LogExceptionAsync(ex, "[ValidateAllMods_Click] Exception occurred");
                 await InformationDialog.ShowInformationDialogAsync(this, $"An error occurred: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Checks if any components have download URLs that need filename resolution
+        /// </summary>
+        private static bool HasComponentsNeedingResolution([NotNull][ItemNotNull] IEnumerable<ModComponent> components)
+        {
+            if (components == null)
+            {
+                return false;
+            }
+
+            foreach (ModComponent component in components)
+            {
+                if (component?.ResourceRegistry == null)
+                {
+                    continue;
+                }
+
+                // Check if any URLs don't have files populated yet
+                foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry)
+                {
+                    if (kvp.Value?.Files == null || kvp.Value.Files.Count == 0)
+                    {
+                        return true; // Found at least one URL that needs resolution
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Shows a user-friendly dialog asking if the user wants to resolve download filenames
+        /// </summary>
+        private async Task<bool?> AskToResolveFilenamesAsync([NotNull] string context)
+        {
+            string contextText = string.Equals(context, "save", StringComparison.Ordinal) ? "before saving" : "after loading";
+
+            string dialogText = $"Would you like to look up the actual filenames for your download links {contextText}?\n\n" +
+                               "Download links in your mod instructions point to files on websites. Looking up the filenames helps:\n" +
+                               "• Ensure the correct files are downloaded\n" +
+                               "• Verify files exist before installation\n" +
+                               "• Improve auto-detection of mod files\n\n" +
+                               "This will check the download pages online to find the exact filenames. You can skip this and resolve them later using the 'Resolve Filenames' button.";
+
+            return await ConfirmationDialog.ShowConfirmationDialogAsync(
+                this,
+                confirmText: dialogText,
+                yesButtonText: "Resolve Filenames",
+                noButtonText: "Skip",
+                yesButtonTooltip: "Look up filenames from download pages now",
+                noButtonTooltip: "Continue without resolving filenames"
+            );
+        }
+
+        /// <summary>
+        /// Resolves filenames for all components that need it
+        /// </summary>
+        private async Task ResolveAllComponentFilenamesAsync([NotNull][ItemNotNull] IReadOnlyList<ModComponent> components)
+        {
+            if (components == null || components.Count == 0)
+            {
+                return;
+            }
+
+            int resolvedCount = 0;
+            int totalUrls = 0;
+
+            await Logger.LogVerboseAsync("[ResolveAllComponentFilenamesAsync] Starting filename resolution for all components");
+
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
+            {
+                foreach (ModComponent component in components)
+                {
+                    if (component?.ResourceRegistry == null || component.ResourceRegistry.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    // Count URLs that need resolution
+                    int urlsNeedingResolution = 0;
+                    foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry)
+                    {
+                        if (kvp.Value?.Files == null || kvp.Value.Files.Count == 0)
+                        {
+                            urlsNeedingResolution++;
+                        }
+                    }
+
+                    if (urlsNeedingResolution > 0)
+                    {
+                        totalUrls += urlsNeedingResolution;
+                        await Logger.LogVerboseAsync($"[ResolveAllComponentFilenamesAsync] Resolving {urlsNeedingResolution} URL(s) for component '{component.Name}'");
+
+                        try
+                        {
+                            await DownloadCacheService.PreResolveUrlsAsync(
+                                component,
+                                DownloadCacheService.DownloadManager,
+                                sequential: false,
+                                cts.Token
+                            );
+                            resolvedCount++;
+                            await Logger.LogVerboseAsync($"[ResolveAllComponentFilenamesAsync] Successfully resolved filenames for component '{component.Name}'");
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            await Logger.LogVerboseAsync($"[ResolveAllComponentFilenamesAsync] Resolution cancelled for component '{component.Name}'");
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            await Logger.LogExceptionAsync(ex, $"[ResolveAllComponentFilenamesAsync] Error resolving filenames for component '{component.Name}'");
+                        }
+                    }
+                }
+            }
+
+            await Logger.LogVerboseAsync($"[ResolveAllComponentFilenamesAsync] Completed: resolved filenames for {resolvedCount} component(s) with {totalUrls} total URL(s)");
         }
     }
 }

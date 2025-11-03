@@ -29,7 +29,7 @@ namespace KOTORModSync.Controls
         public event EventHandler<RoutedEventArgs> MoveInstructionUp;
         public event EventHandler<RoutedEventArgs> MoveInstructionDown;
         public event EventHandler<RoutedEventArgs> BrowseSourceFiles;
-        public event EventHandler<RoutedEventArgs> BrowseSourceFromFolders;
+        public event EventHandler<RoutedEventArgs> BrowseModFiles;
         public event EventHandler<RoutedEventArgs> BrowseDestination;
 
         private void AddNewOption_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => AddNewOption?.Invoke(this, e);
@@ -50,7 +50,7 @@ namespace KOTORModSync.Controls
 
         private void BrowseSourceFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseSourceFiles?.Invoke(this, e);
 
-        private void BrowseSourceFromFolders_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseSourceFromFolders?.Invoke(this, e);
+        private void BrowseModFiles_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseModFiles?.Invoke(this, e);
 
         private void BrowseDestination_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => BrowseDestination?.Invoke(this, e);
     }

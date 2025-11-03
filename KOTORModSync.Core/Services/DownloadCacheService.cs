@@ -268,12 +268,65 @@ namespace KOTORModSync.Core.Services
                 return new Dictionary<string, List<string>>(StringComparer.Ordinal);
             }
 
+            // Check if ResourceRegistry already has files for all URLs before extracting metadata
+            // This prevents unnecessary network calls when files are already known
+            bool allUrlsHaveFiles = true;
+            foreach (string url in filteredUrls)
+            {
+                if (component.ResourceRegistry.TryGetValue(url, out ResourceMetadata existingMeta))
+                {
+                    if (existingMeta?.Files == null || existingMeta.Files.Count == 0)
+                    {
+                        allUrlsHaveFiles = false;
+                        break;
+                    }
+                }
+                else
+                {
+                    allUrlsHaveFiles = false;
+                    break;
+                }
+            }
+
+            List<string> urlsToResolve = new List<string>();
+            Dictionary<string, List<string>> results = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            List<(string url, string filename)> missingFiles = new List<(string, string)>();
+            int cacheHits = 0;
+
+            // If all URLs already have files, populate results directly from ResourceRegistry and return early
+            if (allUrlsHaveFiles)
+            {
+                await Logger.LogVerboseAsync($"[DownloadCacheService] ResourceRegistry already has files for all {filteredUrls.Count} URL(s), skipping network calls").ConfigureAwait(false);
+                foreach (string url in filteredUrls)
+                {
+                    if (component.ResourceRegistry.TryGetValue(url, out ResourceMetadata meta) && meta?.Files != null && meta.Files.Count > 0)
+                    {
+                        results[url] = meta.Files.Keys.ToList();
+                    }
+                }
+
+                Dictionary<string, List<string>> filteredResolvedResults = _resolutionFilter.FilterResolvedUrls(results);
+                await Logger.LogVerboseAsync($"[DownloadCacheService] Final filtered results count: {filteredResolvedResults.Count}").ConfigureAwait(false);
+                await Logger.LogVerboseAsync($"[DownloadCacheService] Pre-resolved {filteredResolvedResults.Count} URLs (all from cache), all files exist on disk").ConfigureAwait(false);
+                await Logger.LogVerboseAsync("[DownloadCacheService] ===== PreResolveUrlsAsync END =====").ConfigureAwait(false);
+                return filteredResolvedResults;
+            }
+
+            // Only extract metadata for URLs that don't already have files in ResourceRegistry
             // Extract metadata for each URL and populate ResourceRegistry
             await Logger.LogVerboseAsync($"[DownloadCacheService] Extracting metadata for {filteredUrls.Count} URL(s)").ConfigureAwait(false);
             foreach (string url in filteredUrls)
             {
                 try
                 {
+                    // Skip metadata extraction if ResourceRegistry already has files for this URL
+                    if (component.ResourceRegistry.TryGetValue(url, out ResourceMetadata existingMetaForUrl) &&
+                        existingMetaForUrl?.Files != null && existingMetaForUrl.Files.Count > 0)
+                    {
+                        await Logger.LogVerboseAsync($"[DownloadCacheService] Skipping metadata extraction for URL: {url} (already has {existingMetaForUrl.Files.Count} file(s) in ResourceRegistry)").ConfigureAwait(false);
+                        continue;
+                    }
+
                     IDownloadHandler handler = downloadManager.GetHandlerForUrl(url);
                     if (handler != null)
                     {
@@ -491,11 +544,6 @@ namespace KOTORModSync.Core.Services
             {
                 await Logger.LogWarningAsync($"[Cache] Failed to save resource index: {ex.Message}").ConfigureAwait(false);
             }
-
-            var results = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-            var urlsToResolve = new List<string>();
-            var missingFiles = new List<(string url, string filename)>();
-            int cacheHits = 0;
 
             foreach (string url in filteredUrls)
             {
@@ -1283,6 +1331,12 @@ namespace KOTORModSync.Core.Services
                         progressForwarder,
                         cancellationToken,
                         contentId).ConfigureAwait(false);
+
+                    // Set DownloadSource on the tracker
+                    if (result.Success && tracker != null)
+                    {
+                        tracker.DownloadSource = result.DownloadSource;
+                    }
 
                     downloadResults.Add(result);
                 }

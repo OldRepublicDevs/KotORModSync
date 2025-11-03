@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -15,12 +16,15 @@ using JetBrains.Annotations;
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services;
 using KOTORModSync.Core.Utility;
+using KOTORModSync.Services;
 
 namespace KOTORModSync.Controls
 {
     [SuppressMessage("ReSharper", "UnusedParameter.Local")]
     public partial class EditorTab : UserControl
     {
+        private readonly ComponentValidationWatcherService _validationWatcher;
+
         public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
             AvaloniaProperty.Register<EditorTab, ModComponent>(nameof(CurrentComponent));
 
@@ -41,6 +45,52 @@ namespace KOTORModSync.Controls
             {
                 MainConfig.CurrentComponent = value;
                 SetValue(CurrentComponentProperty, value);
+                
+                // Update the validation watcher to monitor this component's files
+                _validationWatcher?.SetCurrentComponent(value);
+                
+                // Trigger initial validation when component is loaded
+                if (value != null)
+                {
+                    _ = ValidateCurrentComponentAsync();
+                }
+            }
+        }
+
+        private async Task ValidateCurrentComponentAsync()
+        {
+            if (CurrentComponent == null)
+            {
+                return;
+            }
+
+            try
+            {
+                // Validate all instructions in the component
+                foreach (Instruction instruction in CurrentComponent.Instructions)
+                {
+                    if (instruction.Source != null)
+                    {
+                        foreach (string sourcePath in instruction.Source)
+                        {
+                            if (!string.IsNullOrWhiteSpace(sourcePath))
+                            {
+                                await Core.Services.Validation.PathValidationCache.ValidateAndCacheAsync(
+                                    sourcePath, instruction, CurrentComponent).ConfigureAwait(false);
+                            }
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(instruction.Destination))
+                    {
+                        await Core.Services.Validation.PathValidationCache.ValidateAndCacheAsync(
+                            instruction.Destination, instruction, CurrentComponent).ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Error validating component");
             }
         }
 
@@ -72,7 +122,7 @@ namespace KOTORModSync.Controls
         public event EventHandler<RoutedEventArgs> DeleteInstructionRequested;
         public event EventHandler<RoutedEventArgs> BrowseDestinationRequested;
         public event EventHandler<RoutedEventArgs> BrowseSourceFilesRequested;
-        public event EventHandler<RoutedEventArgs> BrowseSourceFromFoldersRequested;
+        public event EventHandler<RoutedEventArgs> BrowseModFilesRequested;
 
         public event EventHandler<RoutedEventArgs> MoveInstructionUpRequested;
         public event EventHandler<RoutedEventArgs> MoveInstructionDownRequested;
@@ -88,6 +138,10 @@ namespace KOTORModSync.Controls
         {
             InitializeComponent();
             DataContext = this;
+
+            // Initialize validation watcher
+            _validationWatcher = new ComponentValidationWatcherService();
+            _validationWatcher.ValidationStateChanged += OnValidationStateChanged;
 
             // Initialize Tier options so the ComboBox has selectable items
             try
@@ -135,6 +189,28 @@ namespace KOTORModSync.Controls
             catch (Exception ex)
             {
                 Logger.LogException(ex, "Failed to initialize Tier options");
+            }
+        }
+
+        private void OnValidationStateChanged(object sender, ModComponent component)
+        {
+            // Force UI refresh to show updated validation state
+            if (component != null && component == CurrentComponent)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        // Trigger property change to update bindings
+                        var temp = CurrentComponent;
+                        CurrentComponent = null;
+                        CurrentComponent = temp;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogException(ex, "Error refreshing validation state");
+                    }
+                }, DispatcherPriority.Background);
             }
         }
 
@@ -207,9 +283,9 @@ namespace KOTORModSync.Controls
             BrowseSourceFilesRequested?.Invoke(this, e);
         }
 
-        private void BrowseSourceFromFolders_Click(object sender, RoutedEventArgs e)
+        private void BrowseModFiles_Click(object sender, RoutedEventArgs e)
         {
-            BrowseSourceFromFoldersRequested?.Invoke(this, e);
+            BrowseModFilesRequested?.Invoke(this, e);
         }
 
         private void MoveInstructionUp_Click(object sender, RoutedEventArgs e)

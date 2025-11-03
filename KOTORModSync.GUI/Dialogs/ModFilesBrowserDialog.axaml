@@ -1,0 +1,141 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<Window
+    x:Class="KOTORModSync.Dialogs.ModFilesBrowserDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="clr-namespace:KOTORModSync.Models"
+    xmlns:converters="clr-namespace:KOTORModSync.Converters"
+    Title="Browse Mod Files"
+    Width="700"
+    Height="600"
+    MinWidth="500"
+    MinHeight="400"
+    ExtendClientAreaChromeHints="NoChrome"
+    ExtendClientAreaTitleBarHeightHint="-1"
+    ExtendClientAreaToDecorationsHint="True"
+    SystemDecorations="BorderOnly"
+    WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <converters:BooleanNotConverter x:Key="BooleanNotConverter" />
+    </Window.Resources>
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!--  Custom Window Controls  -->
+        <StackPanel
+            Grid.Row="0"
+            Margin="8,8,8,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Orientation="Horizontal"
+            Spacing="8">
+            <TextBlock
+                Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+                VerticalAlignment="Center" />
+            <Button
+                Width="40"
+                Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Click="CloseButton_Click"
+                Content="X"
+                ToolTip.Tip="Close without selecting" />
+        </StackPanel>
+
+        <!--  Main Content  -->
+        <Border
+            Grid.Row="1"
+            Margin="16,40,16,16"
+            Padding="16"
+            CornerRadius="8"
+            Classes="summary-card">
+            <Grid RowDefinitions="Auto,*">
+                <!--  Instructions  -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,12" Spacing="4">
+                    <TextBlock
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Text="Select files and folders from your mod archives" />
+                    <TextBlock
+                        Classes="secondary-text"
+                        FontSize="11"
+                        Text="Check the boxes next to files or folders you want to include. Archive contents are shown in the tree."
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!--  File Tree  -->
+                <Border
+                    Grid.Row="1"
+                    Padding="8"
+                    Classes="summary-card">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <TreeView
+                            x:Name="FileTreeView"
+                            ItemsSource="{Binding RootNodes}">
+                            <TreeView.Styles>
+                                <Style Selector="TreeViewItem">
+                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                </Style>
+                            </TreeView.Styles>
+                            <TreeView.ItemTemplate>
+                                <TreeDataTemplate ItemsSource="{Binding Children}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <CheckBox
+                                            IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                            ToolTip.Tip="{Binding Path}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock
+                                                Text="📦"
+                                                IsVisible="{Binding IsArchive}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                Text="📁"
+                                                IsVisible="{Binding IsDirectory}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                Text="📄"
+                                                VerticalAlignment="Center">
+                                                <TextBlock.IsVisible>
+                                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                        <Binding Path="IsDirectory" Converter="{StaticResource BooleanNotConverter}" />
+                                                        <Binding Path="IsArchive" Converter="{StaticResource BooleanNotConverter}" />
+                                                    </MultiBinding>
+                                                </TextBlock.IsVisible>
+                                            </TextBlock>
+                                            <TextBlock
+                                                Text="{Binding Name}"
+                                                VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </TreeDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!--  Bottom Buttons  -->
+        <Border
+            Grid.Row="2"
+            Margin="16,0,16,16"
+            Padding="12"
+            CornerRadius="8"
+            Classes="summary-card">
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+                <Button
+                    MinWidth="100"
+                    Click="SelectButton_Click"
+                    Content="Select"
+                    ToolTip.Tip="Use selected files/folders" />
+                <Button
+                    MinWidth="100"
+                    Click="CancelButton_Click"
+                    Content="Cancel"
+                    ToolTip.Tip="Cancel without changes" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
+

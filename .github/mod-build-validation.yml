@@ -1,0 +1,248 @@
+name: Mod Build Validation & Conversion
+
+on:
+  workflow_dispatch: # Allow manual triggering
+  push:
+    paths:
+      - "content/k1/**/*.md"
+      - "content/k2/**/*.md"
+  schedule:
+    - cron: "0 0 * * *" # Run daily at midnight UTC
+
+permissions:
+  contents: write # Required for pushing back to the repo
+
+jobs:
+  validate-and-convert:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # Don't cancel other jobs if one fails
+      matrix:
+        build:
+          - name: "K1 Full"
+            source_path: "content/k1/full.md"
+            toml_filename: "KOTOR1_Full.toml"
+          - name: "K1 Full Mobile"
+            source_path: "content/k1/full_mobile.md"
+            toml_filename: "KOTOR1_Mobile_Full.toml"
+          - name: "K1 Spoiler-Free"
+            source_path: "content/k1/spoiler-free.md"
+            toml_filename: "KOTOR1_Spoiler_Free.toml"
+          - name: "K1 Spoiler-Free Mobile"
+            source_path: "content/k1/spoiler-free_mobile.md"
+            toml_filename: "KOTOR1_Mobile_Spoiler_Free.toml"
+          - name: "K2 Full"
+            source_path: "content/k2/full.md"
+            toml_filename: "KOTOR2_Full.toml"
+          - name: "K2 Full Mobile"
+            source_path: "content/k2/full_mobile.md"
+            toml_filename: "KOTOR2_Mobile_Full.toml"
+          - name: "K2 Spoiler-Free"
+            source_path: "content/k2/spoiler-free.md"
+            toml_filename: "KOTOR2_Spoiler_Free.toml"
+          - name: "K2 Spoiler-Free Mobile"
+            source_path: "content/k2/spoiler-free_mobile.md"
+            toml_filename: "KOTOR2_Mobile_Spoiler_Free.toml"
+
+    name: ${{ matrix.build.name }}
+
+    steps:
+      - name: Checkout mod-builds repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for proper change detection
+          path: mod-builds
+
+      - name: Checkout KOTORModSync repository
+        uses: actions/checkout@v4
+        with:
+          repository: "th3w1zard1/KOTORModSync"
+          path: KOTORModSync
+          fetch-depth: 1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Calculate hash
+        id: hash
+        working-directory: mod-builds
+        run: |
+          SOURCE_FILE="${{ matrix.build.source_path }}"
+
+          if [ ! -f "$SOURCE_FILE" ]; then
+            echo "::warning::Source file $SOURCE_FILE not found - skipping"
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CURRENT_HASH=$(sha256sum "$SOURCE_FILE" | awk '{print $1}')
+          echo "current_hash=$CURRENT_HASH" >> $GITHUB_OUTPUT
+          echo "Current hash: $CURRENT_HASH"
+
+          # Check if hash file exists
+          HASH_FILE=".checksums/${{ matrix.build.toml_filename }}.sha256"
+          if [ -f "$HASH_FILE" ]; then
+            STORED_HASH=$(cat "$HASH_FILE")
+            echo "stored_hash=$STORED_HASH" >> $GITHUB_OUTPUT
+            echo "Stored hash: $STORED_HASH"
+
+            if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "No changes detected - skipping processing"
+            else
+              echo "changed=true" >> $GITHUB_OUTPUT
+              echo "Changes detected - proceeding with processing"
+            fi
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "stored_hash=" >> $GITHUB_OUTPUT
+            echo "No stored hash found - proceeding with processing"
+          fi
+
+      - name: Restore dependencies
+        if: steps.hash.outputs.changed == 'true'
+        working-directory: KOTORModSync
+        run: dotnet restore
+
+      - name: Build KOTORModSync
+        if: steps.hash.outputs.changed == 'true'
+        working-directory: KOTORModSync
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Parse and convert to TOML
+        if: steps.hash.outputs.changed == 'true'
+        id: convert
+        working-directory: KOTORModSync
+        run: |
+          mkdir -p temp_output
+          dotnet run --project KOTORModSync.Core/KOTORModSync.Core.csproj \
+            --framework net8.0 \
+            --configuration Release \
+            -- convert-to-toml \
+            --input "../mod-builds/${{ matrix.build.source_path }}" \
+            --output "temp_output/${{ matrix.build.toml_filename }}"
+        continue-on-error: true
+
+      - name: Generate documentation
+        if: steps.hash.outputs.changed == 'true'
+        id: generate
+        working-directory: KOTORModSync
+        run: |
+          dotnet run --project KOTORModSync.Core/KOTORModSync.Core.csproj \
+            --framework net8.0 \
+            --configuration Release \
+            -- generate-docs \
+            --input "../mod-builds/${{ matrix.build.source_path }}" \
+            --output "../mod-builds/${{ matrix.build.source_path }}"
+        continue-on-error: true
+
+      - name: Create output directories
+        if: steps.hash.outputs.changed == 'true'
+        working-directory: mod-builds
+        run: |
+          mkdir -p TOMLs
+          mkdir -p .checksums
+
+      - name: Write TOML to repository
+        if: steps.hash.outputs.changed == 'true'
+        working-directory: mod-builds
+        run: |
+          # Write TOML to TOMLs directory
+          if [ -f "../KOTORModSync/temp_output/${{ matrix.build.toml_filename }}" ]; then
+            cp "../KOTORModSync/temp_output/${{ matrix.build.toml_filename }}" \
+               "TOMLs/${{ matrix.build.toml_filename }}"
+            echo "Updated TOMLs/${{ matrix.build.toml_filename }}"
+          fi
+
+          # Store new hash
+          echo "${{ steps.hash.outputs.current_hash }}" > \
+            ".checksums/${{ matrix.build.toml_filename }}.sha256"
+
+      - name: Create validation report
+        if: steps.hash.outputs.changed == 'true'
+        working-directory: mod-builds
+        run: |
+          mkdir -p .validation-reports
+          REPORT_FILE=".validation-reports/${{ matrix.build.toml_filename }}_report.txt"
+
+          echo "Validation Report for ${{ matrix.build.name }}" > "$REPORT_FILE"
+          echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> "$REPORT_FILE"
+          echo "Source File: ${{ matrix.build.source_path }}" >> "$REPORT_FILE"
+          echo "TOML File: TOMLs/${{ matrix.build.toml_filename }}" >> "$REPORT_FILE"
+          echo "SHA256: ${{ steps.hash.outputs.current_hash }}" >> "$REPORT_FILE"
+          echo "" >> "$REPORT_FILE"
+
+          if [ "${{ steps.convert.outcome }}" = "success" ]; then
+            echo "✓ TOML conversion: SUCCESS" >> "$REPORT_FILE"
+          else
+            echo "✗ TOML conversion: FAILED" >> "$REPORT_FILE"
+          fi
+
+          if [ "${{ steps.generate.outcome }}" = "success" ]; then
+            echo "✓ Documentation generation: SUCCESS" >> "$REPORT_FILE"
+          else
+            echo "✗ Documentation generation: FAILED" >> "$REPORT_FILE"
+          fi
+
+          if [ -f "TOMLs/${{ matrix.build.toml_filename }}" ]; then
+            echo "✓ TOML file created: YES" >> "$REPORT_FILE"
+          else
+            echo "✗ TOML file created: NO" >> "$REPORT_FILE"
+          fi
+
+          if [ -f "${{ matrix.build.source_path }}" ]; then
+            echo "✓ Documentation file exists: YES" >> "$REPORT_FILE"
+          else
+            echo "✗ Documentation file exists: NO" >> "$REPORT_FILE"
+          fi
+
+      - name: Commit and push changes
+        if: steps.hash.outputs.changed == 'true'
+        working-directory: mod-builds
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add "${{ matrix.build.source_path }}"
+          git add "TOMLs/${{ matrix.build.toml_filename }}"
+          git add ".checksums/${{ matrix.build.toml_filename }}.sha256"
+          git add ".validation-reports/${{ matrix.build.toml_filename }}_report.txt"
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update validated mod build: ${{ matrix.build.name }} ($(date -u +"%Y-%m-%d"))"
+            git pull --rebase origin main || git pull --rebase origin master
+            git push
+          fi
+
+      - name: Upload artifacts
+        if: steps.hash.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.build.toml_filename }}-artifacts
+          path: |
+            mod-builds/${{ matrix.build.source_path }}
+            mod-builds/TOMLs/${{ matrix.build.toml_filename }}
+            mod-builds/.validation-reports/${{ matrix.build.toml_filename }}_report.txt
+          retention-days: 30
+
+      - name: Report skipped
+        if: steps.hash.outputs.changed == 'false'
+        run: |
+          echo "::notice::Skipped ${{ matrix.build.name }} - no changes detected"
+
+  summary:
+    needs: validate-and-convert
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Mod Build Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check individual job results above for details." >> $GITHUB_STEP_SUMMARY

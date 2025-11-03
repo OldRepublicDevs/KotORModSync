@@ -18,6 +18,8 @@ namespace KOTORModSync.Dialogs
         public MessageDialog()
         {
             InitializeComponent();
+            // Apply current theme
+            ThemeManager.ApplyCurrentToWindow(this);
         }
 
         public MessageDialog(string title, string message, string buttonText = "OK")
@@ -35,13 +37,19 @@ namespace KOTORModSync.Dialogs
                     Title = title;
 
                     if (_titleText != null)
+                    {
                         _titleText.Text = title;
+                    }
 
                     if (_messageText != null)
+                    {
                         _messageText.Text = message;
+                    }
 
                     if (_okButton != null)
+                    {
                         _okButton.Content = buttonText;
+                    }
                 });
                 return;
             }

@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -17,99 +17,112 @@ using ModComponent = KOTORModSync.Core.ModComponent;
 namespace KOTORModSync.Models
 {
 
-	public class InstructionViewModel : INotifyPropertyChanged
-	{
-		private bool _willExecute;
-		private double _opacity;
+    public class InstructionViewModel : INotifyPropertyChanged
+    {
+        private bool _willExecute;
+        private double _opacity;
 
-		public Instruction Instruction { get; }
-		public ModComponent ParentComponent { get; }
+        public Instruction Instruction { get; }
+        public ModComponent ParentComponent { get; }
 
-		public bool WillExecute
-		{
-			get => _willExecute;
-			set
-			{
-				if (_willExecute == value) return;
-				_willExecute = value;
-				UpdateVisualState();
-				OnPropertyChanged();
-			}
-		}
+        public bool WillExecute
+        {
+            get => _willExecute;
+            set
+            {
+                if (_willExecute == value)
+                {
+                    return;
+                }
 
-		public double Opacity
-		{
-			get => _opacity;
-			set
-			{
-				if (Math.Abs( _opacity - value ) < 0.01) return;
-				_opacity = value;
-				OnPropertyChanged();
-			}
-		}
+                _willExecute = value;
+                UpdateVisualState();
+                OnPropertyChanged();
+            }
+        }
 
-		public string FontWeight => WillExecute ? "SemiBold" : "Normal";
+        public double Opacity
+        {
+            get => _opacity;
+            set
+            {
+                if (Math.Abs(_opacity - value) < 0.01)
+                {
+                    return;
+                }
 
-		public List<string> DependencyNames { get; }
+                _opacity = value;
+                OnPropertyChanged();
+            }
+        }
 
-		public List<string> RestrictionNames { get; }
+        public string FontWeight => WillExecute ? "SemiBold" : "Normal";
 
-		public bool ShowDependencyInfo { get; set; }
+        public List<string> DependencyNames { get; }
 
-		public InstructionViewModel( [NotNull] Instruction instruction, [NotNull] ModComponent parentComponent, bool willExecute, bool showDependencyInfo = false )
-		{
-			Instruction = instruction ?? throw new ArgumentNullException( nameof( instruction ) );
-			ParentComponent = parentComponent ?? throw new ArgumentNullException( nameof( parentComponent ) );
-			_willExecute = willExecute;
-			ShowDependencyInfo = showDependencyInfo;
+        public List<string> RestrictionNames { get; }
 
-			DependencyNames = InstructionViewModel.ResolveGuidNames( instruction.Dependencies );
-			RestrictionNames = InstructionViewModel.ResolveGuidNames( instruction.Restrictions );
+        public bool ShowDependencyInfo { get; set; }
 
-			UpdateVisualState();
-		}
+        public InstructionViewModel([NotNull] Instruction instruction, [NotNull] ModComponent parentComponent, bool willExecute, bool showDependencyInfo = false)
+        {
+            Instruction = instruction ?? throw new ArgumentNullException(nameof(instruction));
+            ParentComponent = parentComponent ?? throw new ArgumentNullException(nameof(parentComponent));
+            _willExecute = willExecute;
+            ShowDependencyInfo = showDependencyInfo;
 
-		private void UpdateVisualState()
-		{
+            DependencyNames = InstructionViewModel.ResolveGuidNames(instruction.Dependencies);
+            RestrictionNames = InstructionViewModel.ResolveGuidNames(instruction.Restrictions);
 
-			Opacity = WillExecute ? 1.0 : 0.5;
-			OnPropertyChanged( nameof( FontWeight ) );
-		}
+            UpdateVisualState();
+        }
 
-		private static List<string> ResolveGuidNames( List<Guid> guids )
-		{
-			var names = new List<string>();
-			if (guids is null || guids.Count == 0)
-				return names;
+        private void UpdateVisualState()
+        {
 
-			foreach (Guid guid in guids)
-			{
+            Opacity = WillExecute ? 1.0 : 0.5;
+            OnPropertyChanged(nameof(FontWeight));
+        }
 
-				ModComponent component = MainConfig.AllComponents.FirstOrDefault( c => c.Guid == guid );
-				if (component != null)
-				{
-					names.Add( $"[ModComponent] {component.Name}" );
-					continue;
-				}
+        private static List<string> ResolveGuidNames(List<Guid> guids)
+        {
+            var names = new List<string>();
+            if (guids is null || guids.Count == 0)
+            {
+                return names;
+            }
 
-				foreach (ModComponent comp in MainConfig.AllComponents)
-				{
-					Option option = comp.Options.FirstOrDefault( o => o.Guid == guid );
-					if (option is null)
-						continue;
-					names.Add( $"[Option] {comp.Name} → {option.Name}" );
-					break;
-				}
-			}
+            foreach (Guid guid in guids)
+            {
 
-			return names;
-		}
+                ModComponent component = MainConfig.AllComponents.FirstOrDefault(c => c.Guid == guid);
+                if (component != null)
+                {
+                    names.Add($"[ModComponent] {component.Name}");
+                    continue;
+                }
 
-		public event PropertyChangedEventHandler PropertyChanged;
+                foreach (ModComponent comp in MainConfig.AllComponents)
+                {
+                    Option option = comp.Options.FirstOrDefault(o => o.Guid == guid);
+                    if (option is null)
+                    {
+                        continue;
+                    }
 
-		private void OnPropertyChanged( [CallerMemberName] string propertyName = null )
-		{
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
-		}
-	}
+                    names.Add($"[Option] {comp.Name} → {option.Name}");
+                    break;
+                }
+            }
+
+            return names;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
 }

@@ -19,447 +19,661 @@ using KOTORModSync.Services;
 
 namespace KOTORModSync.Dialogs
 {
-	public partial class ConfirmationDialog : Window
-	{
-		private static readonly AvaloniaProperty s_confirmTextProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(ConfirmText));
+    public partial class ConfirmationDialog : Window
+    {
+        private static readonly AvaloniaProperty s_confirmTextProperty =
+            AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(ConfirmText));
 
-		private static readonly AvaloniaProperty s_yesButtonTextProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(YesButtonText), "Yes");
+        private static readonly AvaloniaProperty s_yesButtonTextProperty =
+            AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(YesButtonText), "Yes");
 
-		private static readonly AvaloniaProperty s_noButtonTextProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonText), "No");
+        private static readonly AvaloniaProperty s_noButtonTextProperty =
+            AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonText), "No");
 
-		private static readonly AvaloniaProperty s_yesButtonTooltipProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(YesButtonTooltip));
+        private static readonly AvaloniaProperty s_yesButtonTooltipProperty =
+            AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(YesButtonTooltip));
 
-		private static readonly AvaloniaProperty s_noButtonTooltipProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonTooltip));
+        private static readonly AvaloniaProperty s_noButtonTooltipProperty =
+            AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(NoButtonTooltip));
 
-		private static readonly AvaloniaProperty s_closeButtonTooltipProperty =
-			AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(CloseButtonTooltip));
+        private static readonly AvaloniaProperty s_closeButtonTooltipProperty =
+            AvaloniaProperty.Register<ConfirmationDialog, string>(nameof(CloseButtonTooltip));
 
-		private static readonly RoutedEvent<RoutedEventArgs> s_yesButtonClickedEvent =
-			RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
-				nameof(YesButtonClicked),
-				RoutingStrategies.Bubble
-			);
+        private static readonly RoutedEvent<RoutedEventArgs> s_yesButtonClickedEvent =
+            RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
+                nameof(YesButtonClicked),
+                RoutingStrategies.Bubble
+            );
 
-		private static readonly RoutedEvent<RoutedEventArgs> s_noButtonClickedEvent =
-			RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
-				nameof(NoButtonClicked),
-				RoutingStrategies.Bubble
-			);
-		private bool _mouseDownForWindowMoving;
-		private PointerPoint _originalPoint;
-		private readonly MarkdownRenderingService _markdownService;
+        private static readonly RoutedEvent<RoutedEventArgs> s_noButtonClickedEvent =
+            RoutedEvent.Register<ConfirmationDialog, RoutedEventArgs>(
+                nameof(NoButtonClicked),
+                RoutingStrategies.Bubble
+            );
+        private bool _mouseDownForWindowMoving;
+        private PointerPoint _originalPoint;
+        private readonly MarkdownRenderingService _markdownService;
 
-		public ConfirmationDialog()
-		{
-			InitializeComponent();
-			DataContext = this;
+        public ConfirmationDialog()
+        {
+            InitializeComponent();
+            DataContext = this;
 
-			ThemeManager.ApplyCurrentToWindow(this);
-			_markdownService = new MarkdownRenderingService();
+            ThemeManager.ApplyCurrentToWindow(this);
+            _markdownService = new MarkdownRenderingService();
 
-			PointerPressed += InputElement_OnPointerPressed;
-			PointerMoved += InputElement_OnPointerMoved;
-			PointerReleased += InputElement_OnPointerReleased;
-			PointerExited += InputElement_OnPointerReleased;
-		}
+            PointerPressed += InputElement_OnPointerPressed;
+            PointerMoved += InputElement_OnPointerMoved;
+            PointerReleased += InputElement_OnPointerReleased;
+            PointerExited += InputElement_OnPointerReleased;
+        }
 
-		[CanBeNull]
-		public string ConfirmText
-		{
-			get => GetValue(s_confirmTextProperty) as string;
-			set => SetValue(s_confirmTextProperty, value);
-		}
+        [CanBeNull]
+        public string ConfirmText
+        {
+            get => GetValue(s_confirmTextProperty) as string;
+            set => SetValue(s_confirmTextProperty, value);
+        }
 
-		[CanBeNull]
-		public string YesButtonText
-		{
-			get => GetValue(s_yesButtonTextProperty) as string;
-			set => SetValue(s_yesButtonTextProperty, value);
-		}
+        [CanBeNull]
+        public string YesButtonText
+        {
+            get => GetValue(s_yesButtonTextProperty) as string;
+            set => SetValue(s_yesButtonTextProperty, value);
+        }
 
-		[CanBeNull]
-		public string NoButtonText
-		{
-			get => GetValue(s_noButtonTextProperty) as string;
-			set => SetValue(s_noButtonTextProperty, value);
-		}
+        [CanBeNull]
+        public string NoButtonText
+        {
+            get => GetValue(s_noButtonTextProperty) as string;
+            set => SetValue(s_noButtonTextProperty, value);
+        }
 
-		[CanBeNull]
-		public string YesButtonTooltip
-		{
-			get => GetValue(s_yesButtonTooltipProperty) as string;
-			set => SetValue(s_yesButtonTooltipProperty, value);
-		}
+        [CanBeNull]
+        public string YesButtonTooltip
+        {
+            get => GetValue(s_yesButtonTooltipProperty) as string;
+            set => SetValue(s_yesButtonTooltipProperty, value);
+        }
 
-		[CanBeNull]
-		public string NoButtonTooltip
-		{
-			get => GetValue(s_noButtonTooltipProperty) as string;
-			set => SetValue(s_noButtonTooltipProperty, value);
-		}
+        [CanBeNull]
+        public string NoButtonTooltip
+        {
+            get => GetValue(s_noButtonTooltipProperty) as string;
+            set => SetValue(s_noButtonTooltipProperty, value);
+        }
 
-		[CanBeNull]
-		public string CloseButtonTooltip
-		{
-			get => GetValue(s_closeButtonTooltipProperty) as string;
-			set => SetValue(s_closeButtonTooltipProperty, value);
-		}
+        [CanBeNull]
+        public string CloseButtonTooltip
+        {
+            get => GetValue(s_closeButtonTooltipProperty) as string;
+            set => SetValue(s_closeButtonTooltipProperty, value);
+        }
 
-		public enum ConfirmationResult
-		{
-			Save,
-			Discard,
-			Cancel,
-		}
+        public enum ConfirmationResult
+        {
+            Save,
+            Discard,
+            Cancel,
+        }
 
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-		public static async Task<bool?> ShowConfirmationDialogAsync(
-			[CanBeNull] Window parentWindow,
-			[CanBeNull] string confirmText,
-			[CanBeNull] string yesButtonText = null,
-			[CanBeNull] string noButtonText = null,
-			[CanBeNull] string yesButtonTooltip = null,
-			[CanBeNull] string noButtonTooltip = null,
-			[CanBeNull] string closeButtonTooltip = null
-		)
-		{
-			var tcs = new TaskCompletionSource<bool?>();
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public static async Task<bool?> ShowConfirmationDialogAsync(
+            [CanBeNull] Window parentWindow,
+            [CanBeNull] string confirmText,
+            [CanBeNull] string yesButtonText = null,
+            [CanBeNull] string noButtonText = null,
+            [CanBeNull] string yesButtonTooltip = null,
+            [CanBeNull] string noButtonTooltip = null,
+            [CanBeNull] string closeButtonTooltip = null
+        )
+        {
+            var tcs = new TaskCompletionSource<bool?>();
 
-			await Dispatcher.UIThread.InvokeAsync(async () =>
-				{
-					try
-					{
-						var confirmationDialog = new ConfirmationDialog
-						{
-							ConfirmText = confirmText,
-							YesButtonText = yesButtonText ?? "Yes",
-							NoButtonText = noButtonText ?? "No",
-							YesButtonTooltip = yesButtonTooltip,
-							NoButtonTooltip = noButtonTooltip,
-							CloseButtonTooltip = closeButtonTooltip,
-							Topmost = true,
-						};
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                // We're already on the UI thread
+                try
+                {
+                    var confirmationDialog = new ConfirmationDialog
+                    {
+                        ConfirmText = confirmText,
+                        YesButtonText = yesButtonText ?? "Yes",
+                        NoButtonText = noButtonText ?? "No",
+                        YesButtonTooltip = yesButtonTooltip,
+                        NoButtonTooltip = noButtonTooltip,
+                        CloseButtonTooltip = closeButtonTooltip,
+                        Topmost = true,
+                    };
 
-						confirmationDialog.YesButtonClicked += YesClickedHandler;
-						confirmationDialog.NoButtonClicked += NoClickedHandler;
-						confirmationDialog.Closed += ClosedHandler;
-						confirmationDialog.Opened += confirmationDialog.OnOpened;
+                    confirmationDialog.YesButtonClicked += YesClickedHandler;
+                    confirmationDialog.NoButtonClicked += NoClickedHandler;
+                    confirmationDialog.Closed += ClosedHandler;
+                    confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-						if (parentWindow != null)
-						{
-							_ = confirmationDialog.ShowDialog(parentWindow);
-						}
-						else
-						{
-							confirmationDialog.Show();
-						}
+                    if (parentWindow != null)
+                    {
+                        _ = confirmationDialog.ShowDialog(parentWindow);
+                    }
+                    else
+                    {
+                        confirmationDialog.Show();
+                    }
 
-						void CleanupHandlers()
-						{
-							confirmationDialog.YesButtonClicked -= YesClickedHandler;
-							confirmationDialog.NoButtonClicked -= NoClickedHandler;
-							confirmationDialog.Closed -= ClosedHandler;
-						}
+                    void CleanupHandlers()
+                    {
+                        confirmationDialog.YesButtonClicked -= YesClickedHandler;
+                        confirmationDialog.NoButtonClicked -= NoClickedHandler;
+                        confirmationDialog.Closed -= ClosedHandler;
+                    }
 
-						void YesClickedHandler(object sender, RoutedEventArgs e)
-						{
-							CleanupHandlers();
-							confirmationDialog.Close();
-							tcs.SetResult(true);
-						}
+                    void YesClickedHandler(object sender, RoutedEventArgs e)
+                    {
+                        CleanupHandlers();
+                        confirmationDialog.Close();
+                        tcs.SetResult(true);
+                    }
 
-						void NoClickedHandler(object sender, RoutedEventArgs e)
-						{
-							CleanupHandlers();
-							confirmationDialog.Close();
-							tcs.SetResult(false);
-						}
+                    void NoClickedHandler(object sender, RoutedEventArgs e)
+                    {
+                        CleanupHandlers();
+                        confirmationDialog.Close();
+                        tcs.SetResult(false);
+                    }
 
-						void ClosedHandler(object sender, EventArgs e)
-						{
-							CleanupHandlers();
-							tcs.SetResult(null);
-						}
-					}
-					catch (Exception ex)
-					{
-						await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
-					}
-				}
-			).ConfigureAwait(false);
+                    void ClosedHandler(object sender, EventArgs e)
+                    {
+                        CleanupHandlers();
+                        tcs.SetResult(null);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _ = Logger.LogExceptionAsync(ex);
+                    tcs.SetResult(null);
+                }
+            }
+            else
+            {
+                // We're not on the UI thread, invoke on UI thread
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            var confirmationDialog = new ConfirmationDialog
+                            {
+                                ConfirmText = confirmText,
+                                YesButtonText = yesButtonText ?? "Yes",
+                                NoButtonText = noButtonText ?? "No",
+                                YesButtonTooltip = yesButtonTooltip,
+                                NoButtonTooltip = noButtonTooltip,
+                                CloseButtonTooltip = closeButtonTooltip,
+                                Topmost = true,
+                            };
 
-			return await tcs.Task.ConfigureAwait(true);
-		}
+                            confirmationDialog.YesButtonClicked += YesClickedHandler;
+                            confirmationDialog.NoButtonClicked += NoClickedHandler;
+                            confirmationDialog.Closed += ClosedHandler;
+                            confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-		public static async Task<ConfirmationResult> ShowConfirmationDialogWithDiscard(
-			[CanBeNull] Window parentWindow,
-			[CanBeNull] string confirmText,
-			[CanBeNull] string yesButtonText = null,
-			[CanBeNull] string noButtonText = null,
-			[CanBeNull] string yesButtonTooltip = null,
-			[CanBeNull] string noButtonTooltip = null,
-			[CanBeNull] string closeButtonTooltip = null
-		)
-		{
-			var tcs = new TaskCompletionSource<ConfirmationResult>();
+                            if (parentWindow != null)
+                            {
+                                _ = confirmationDialog.ShowDialog(parentWindow);
+                            }
+                            else
+                            {
+                                confirmationDialog.Show();
+                            }
 
-			await Dispatcher.UIThread.InvokeAsync(async () =>
-				{
-					try
-					{
-						var confirmationDialog = new ConfirmationDialog
-						{
-							ConfirmText = confirmText,
-							YesButtonText = yesButtonText ?? "Yes",
-							NoButtonText = noButtonText ?? "No",
-							YesButtonTooltip = yesButtonTooltip,
-							NoButtonTooltip = noButtonTooltip,
-							CloseButtonTooltip = closeButtonTooltip,
-							Topmost = true,
-						};
+                            void CleanupHandlers()
+                            {
+                                confirmationDialog.YesButtonClicked -= YesClickedHandler;
+                                confirmationDialog.NoButtonClicked -= NoClickedHandler;
+                                confirmationDialog.Closed -= ClosedHandler;
+                            }
 
-						confirmationDialog.YesButtonClicked += YesClickedHandler;
-						confirmationDialog.NoButtonClicked += NoClickedHandler;
-						confirmationDialog.Closed += ClosedHandler;
-						confirmationDialog.Opened += confirmationDialog.OnOpened;
+                            void YesClickedHandler(object sender, RoutedEventArgs e)
+                            {
+                                CleanupHandlers();
+                                confirmationDialog.Close();
+                                tcs.SetResult(true);
+                            }
 
-						if (parentWindow != null)
-						{
-							_ = confirmationDialog.ShowDialog(parentWindow);
-						}
-						else
-						{
-							confirmationDialog.Show();
-						}
+                            void NoClickedHandler(object sender, RoutedEventArgs e)
+                            {
+                                CleanupHandlers();
+                                confirmationDialog.Close();
+                                tcs.SetResult(false);
+                            }
 
-						void CleanupHandlers()
-						{
-							confirmationDialog.YesButtonClicked -= YesClickedHandler;
-							confirmationDialog.NoButtonClicked -= NoClickedHandler;
-							confirmationDialog.Closed -= ClosedHandler;
-						}
+                            void ClosedHandler(object sender, EventArgs e)
+                            {
+                                CleanupHandlers();
+                                tcs.SetResult(null);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _ = Logger.LogExceptionAsync(ex);
+                            tcs.SetResult(null);
+                        }
+                    }
+                );
+            }
 
-						void YesClickedHandler(object sender, RoutedEventArgs e)
-						{
-							CleanupHandlers();
-							confirmationDialog.Close();
-							tcs.SetResult(ConfirmationResult.Save);
-						}
+            return await tcs.Task;
+        }
 
-						void NoClickedHandler(object sender, RoutedEventArgs e)
-						{
-							CleanupHandlers();
-							confirmationDialog.Close();
-							tcs.SetResult(ConfirmationResult.Discard);
-						}
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public static async Task<ConfirmationResult> ShowConfirmationDialogWithDiscard(
+            [CanBeNull] Window parentWindow,
+            [CanBeNull] string confirmText,
+            [CanBeNull] string yesButtonText = null,
+            [CanBeNull] string noButtonText = null,
+            [CanBeNull] string yesButtonTooltip = null,
+            [CanBeNull] string noButtonTooltip = null,
+            [CanBeNull] string closeButtonTooltip = null
+        )
+        {
+            var tcs = new TaskCompletionSource<ConfirmationResult>();
 
-						void ClosedHandler(object sender, EventArgs e)
-						{
-							CleanupHandlers();
-							tcs.SetResult(ConfirmationResult.Cancel);
-						}
-					}
-					catch (Exception e)
-					{
-						await Logger.LogExceptionAsync(e).ConfigureAwait(false);
-					}
-				}
-			).ConfigureAwait(false);
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                // We're already on the UI thread
+                try
+                {
+                    var confirmationDialog = new ConfirmationDialog
+                    {
+                        ConfirmText = confirmText,
+                        YesButtonText = yesButtonText ?? "Yes",
+                        NoButtonText = noButtonText ?? "No",
+                        YesButtonTooltip = yesButtonTooltip,
+                        NoButtonTooltip = noButtonTooltip,
+                        CloseButtonTooltip = closeButtonTooltip,
+                        Topmost = true,
+                    };
 
-			return await tcs.Task.ConfigureAwait(true);
-		}
+                    confirmationDialog.YesButtonClicked += YesClickedHandler;
+                    confirmationDialog.NoButtonClicked += NoClickedHandler;
+                    confirmationDialog.Closed += ClosedHandler;
+                    confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-		public static async Task<bool?> ShowTwoOptionDialogAsync(
-			[CanBeNull] Window parentWindow,
-			[CanBeNull] string confirmText,
-			[CanBeNull] string firstButtonText,
-			[CanBeNull] string secondButtonText,
-			[CanBeNull] string firstButtonTooltip = null,
-			[CanBeNull] string secondButtonTooltip = null,
-			[CanBeNull] string closeButtonTooltip = null
-		)
-		{
-			var tcs = new TaskCompletionSource<bool?>();
+                    if (parentWindow != null)
+                    {
+                        _ = confirmationDialog.ShowDialog(parentWindow);
+                    }
+                    else
+                    {
+                        confirmationDialog.Show();
+                    }
 
-			await Dispatcher.UIThread.InvokeAsync(async () =>
-				{
-					try
-					{
-						var confirmationDialog = new ConfirmationDialog
-						{
-							ConfirmText = confirmText,
-							YesButtonText = firstButtonText ?? "First Option",
-							NoButtonText = secondButtonText ?? "Second Option",
-							YesButtonTooltip = firstButtonTooltip,
-							NoButtonTooltip = secondButtonTooltip,
-							CloseButtonTooltip = closeButtonTooltip,
-							Topmost = true,
-						};
+                    void CleanupHandlers()
+                    {
+                        confirmationDialog.YesButtonClicked -= YesClickedHandler;
+                        confirmationDialog.NoButtonClicked -= NoClickedHandler;
+                        confirmationDialog.Closed -= ClosedHandler;
+                    }
 
-						confirmationDialog.YesButtonClicked += YesClickedHandler;
-						confirmationDialog.NoButtonClicked += NoClickedHandler;
-						confirmationDialog.Closed += ClosedHandler;
-						confirmationDialog.Opened += confirmationDialog.OnOpened;
+                    void YesClickedHandler(object sender, RoutedEventArgs e)
+                    {
+                        CleanupHandlers();
+                        confirmationDialog.Close();
+                        tcs.SetResult(ConfirmationResult.Save);
+                    }
 
-						if (parentWindow != null)
-						{
-							_ = confirmationDialog.ShowDialog(parentWindow);
-						}
-						else
-						{
-							confirmationDialog.Show();
-						}
+                    void NoClickedHandler(object sender, RoutedEventArgs e)
+                    {
+                        CleanupHandlers();
+                        confirmationDialog.Close();
+                        tcs.SetResult(ConfirmationResult.Discard);
+                    }
 
-						void CleanupHandlers()
-						{
-							confirmationDialog.YesButtonClicked -= YesClickedHandler;
-							confirmationDialog.NoButtonClicked -= NoClickedHandler;
-							confirmationDialog.Closed -= ClosedHandler;
-						}
+                    void ClosedHandler(object sender, EventArgs e)
+                    {
+                        CleanupHandlers();
+                        tcs.SetResult(ConfirmationResult.Cancel);
+                    }
+                }
+                catch (Exception e)
+                {
+                    await Logger.LogExceptionAsync(e);
+                    tcs.SetResult(ConfirmationResult.Cancel);
+                }
+            }
+            else
+            {
+                // We're not on the UI thread, invoke on UI thread
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            var confirmationDialog = new ConfirmationDialog
+                            {
+                                ConfirmText = confirmText,
+                                YesButtonText = yesButtonText ?? "Yes",
+                                NoButtonText = noButtonText ?? "No",
+                                YesButtonTooltip = yesButtonTooltip,
+                                NoButtonTooltip = noButtonTooltip,
+                                CloseButtonTooltip = closeButtonTooltip,
+                                Topmost = true,
+                            };
 
-						void YesClickedHandler(object sender, RoutedEventArgs e)
-						{
-							CleanupHandlers();
-							confirmationDialog.Close();
-							tcs.SetResult(true);
-						}
+                            confirmationDialog.YesButtonClicked += YesClickedHandler;
+                            confirmationDialog.NoButtonClicked += NoClickedHandler;
+                            confirmationDialog.Closed += ClosedHandler;
+                            confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-						void NoClickedHandler(object sender, RoutedEventArgs e)
-						{
-							CleanupHandlers();
-							confirmationDialog.Close();
-							tcs.SetResult(false);
-						}
+                            if (parentWindow != null)
+                            {
+                                _ = confirmationDialog.ShowDialog(parentWindow);
+                            }
+                            else
+                            {
+                                confirmationDialog.Show();
+                            }
 
-						void ClosedHandler(object sender, EventArgs e)
-						{
-							CleanupHandlers();
-							tcs.SetResult(null);
-						}
-					}
-					catch (Exception e)
-					{
-						await Logger.LogExceptionAsync(e).ConfigureAwait(false);
-					}
-				}
-			).ConfigureAwait(false);
+                            void CleanupHandlers()
+                            {
+                                confirmationDialog.YesButtonClicked -= YesClickedHandler;
+                                confirmationDialog.NoButtonClicked -= NoClickedHandler;
+                                confirmationDialog.Closed -= ClosedHandler;
+                            }
 
-			return await tcs.Task.ConfigureAwait(true);
-		}
+                            void YesClickedHandler(object sender, RoutedEventArgs e)
+                            {
+                                CleanupHandlers();
+                                confirmationDialog.Close();
+                                tcs.SetResult(ConfirmationResult.Save);
+                            }
 
-		public event EventHandler<RoutedEventArgs> YesButtonClicked
-		{
-			add => AddHandler(s_yesButtonClickedEvent, value);
-			remove => RemoveHandler(s_yesButtonClickedEvent, value);
-		}
+                            void NoClickedHandler(object sender, RoutedEventArgs e)
+                            {
+                                CleanupHandlers();
+                                confirmationDialog.Close();
+                                tcs.SetResult(ConfirmationResult.Discard);
+                            }
 
-		public event EventHandler<RoutedEventArgs> NoButtonClicked
-		{
-			add => AddHandler(s_noButtonClickedEvent, value);
-			remove => RemoveHandler(s_noButtonClickedEvent, value);
-		}
+                            void ClosedHandler(object sender, EventArgs e)
+                            {
+                                CleanupHandlers();
+                                tcs.SetResult(ConfirmationResult.Cancel);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _ = Logger.LogExceptionAsync(e);
+                            tcs.SetResult(ConfirmationResult.Cancel);
+                        }
+                    }
+                );
+            }
 
-		private void OnOpened([CanBeNull] object sender, [CanBeNull] EventArgs e)
-		{
-			// Use a small delay to ensure XAML is fully loaded
-			Dispatcher.UIThread.Post(() => UpdateConfirmationText(), DispatcherPriority.Loaded);
-		}
+            return await tcs.Task;
+        }
 
-		private void UpdateConfirmationText()
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(UpdateConfirmationText, DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
-				// Debug logging
-				Logger.LogInfo($"ConfirmationDialog UpdateConfirmationText - ConfirmTextBlock is null: {ConfirmTextBlock == null}");
-				Logger.LogInfo($"ConfirmationDialog UpdateConfirmationText - ConfirmText: '{ConfirmText}'");
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        public static async Task<bool?> ShowTwoOptionDialogAsync(
+            [CanBeNull] Window parentWindow,
+            [CanBeNull] string confirmText,
+            [CanBeNull] string firstButtonText,
+            [CanBeNull] string secondButtonText,
+            [CanBeNull] string firstButtonTooltip = null,
+            [CanBeNull] string secondButtonTooltip = null,
+            [CanBeNull] string closeButtonTooltip = null
+        )
+        {
+            var tcs = new TaskCompletionSource<bool?>();
 
-				if (ConfirmTextBlock == null)
-				{
-					Logger.LogError("ConfirmTextBlock is null in UpdateConfirmationText method");
-					return;
-				}
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                // We're already on the UI thread
+                try
+                {
+                    var confirmationDialog = new ConfirmationDialog
+                    {
+                        ConfirmText = confirmText,
+                        YesButtonText = firstButtonText ?? "First Option",
+                        NoButtonText = secondButtonText ?? "Second Option",
+                        YesButtonTooltip = firstButtonTooltip,
+                        NoButtonTooltip = secondButtonTooltip,
+                        CloseButtonTooltip = closeButtonTooltip,
+                        Topmost = true,
+                    };
 
-				if (string.IsNullOrWhiteSpace(ConfirmText))
-				{
-					Logger.LogWarning("ConfirmText is null or empty in UpdateConfirmationText method");
-					return;
-				}
+                    confirmationDialog.YesButtonClicked += YesClickedHandler;
+                    confirmationDialog.NoButtonClicked += NoClickedHandler;
+                    confirmationDialog.Closed += ClosedHandler;
+                    confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-				// Try markdown rendering first
-				try
-				{
-					_markdownService.RenderMarkdownToTextBlock(ConfirmTextBlock, ConfirmText);
-					Logger.LogInfo("Markdown rendering completed successfully");
-				}
-				catch (Exception markdownEx)
-				{
-					Logger.LogException(markdownEx, "Markdown rendering failed, falling back to plain text");
-					// Fallback to plain text if markdown rendering fails
-					ConfirmTextBlock.Text = ConfirmText;
-				}
+                    if (parentWindow != null)
+                    {
+                        _ = confirmationDialog.ShowDialog(parentWindow);
+                    }
+                    else
+                    {
+                        confirmationDialog.Show();
+                    }
 
-				// Ensure the ConfirmTextBlock has the proper foreground color for the current theme
-				string currentTheme = ThemeManager.GetCurrentStylePath();
-				Logger.LogInfo($"Current theme: {currentTheme}");
+                    void CleanupHandlers()
+                    {
+                        confirmationDialog.YesButtonClicked -= YesClickedHandler;
+                        confirmationDialog.NoButtonClicked -= NoClickedHandler;
+                        confirmationDialog.Closed -= ClosedHandler;
+                    }
 
-				if (currentTheme.Contains("FluentLightStyle"))
-					ConfirmTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
-				else if (currentTheme.Contains("Kotor2Style"))
-					ConfirmTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x18, 0xae, 0x88)); // #18ae88
-				else if (currentTheme.Contains("KotorStyle"))
-					ConfirmTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // #3AAAFF
+                    void YesClickedHandler(object sender, RoutedEventArgs e)
+                    {
+                        CleanupHandlers();
+                        confirmationDialog.Close();
+                        tcs.SetResult(true);
+                    }
 
-				Logger.LogInfo($"Set foreground color for ConfirmTextBlock");
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Failed to update confirmation text");
-			}
-		}
+                    void NoClickedHandler(object sender, RoutedEventArgs e)
+                    {
+                        CleanupHandlers();
+                        confirmationDialog.Close();
+                        tcs.SetResult(false);
+                    }
 
-		private void YesButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
-			RaiseEvent(new RoutedEventArgs(s_yesButtonClickedEvent));
+                    void ClosedHandler(object sender, EventArgs e)
+                    {
+                        CleanupHandlers();
+                        tcs.SetResult(null);
+                    }
+                }
+                catch (Exception e)
+                {
+                    await Logger.LogExceptionAsync(e);
+                    tcs.SetResult(null);
+                }
+            }
+            else
+            {
+                // We're not on the UI thread, invoke on UI thread
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            var confirmationDialog = new ConfirmationDialog
+                            {
+                                ConfirmText = confirmText,
+                                YesButtonText = firstButtonText ?? "First Option",
+                                NoButtonText = secondButtonText ?? "Second Option",
+                                YesButtonTooltip = firstButtonTooltip,
+                                NoButtonTooltip = secondButtonTooltip,
+                                CloseButtonTooltip = closeButtonTooltip,
+                                Topmost = true,
+                            };
 
-		private void NoButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
-			RaiseEvent(new RoutedEventArgs(s_noButtonClickedEvent));
+                            confirmationDialog.YesButtonClicked += YesClickedHandler;
+                            confirmationDialog.NoButtonClicked += NoClickedHandler;
+                            confirmationDialog.Closed += ClosedHandler;
+                            confirmationDialog.Opened += confirmationDialog.OnOpened;
 
-		private void CloseButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
-			Close();
+                            if (parentWindow != null)
+                            {
+                                _ = confirmationDialog.ShowDialog(parentWindow);
+                            }
+                            else
+                            {
+                                confirmationDialog.Show();
+                            }
 
-		private void InputElement_OnPointerMoved([NotNull] object sender, [NotNull] PointerEventArgs e)
-		{
-			if (!_mouseDownForWindowMoving)
-				return;
+                            void CleanupHandlers()
+                            {
+                                confirmationDialog.YesButtonClicked -= YesClickedHandler;
+                                confirmationDialog.NoButtonClicked -= NoClickedHandler;
+                                confirmationDialog.Closed -= ClosedHandler;
+                            }
 
-			PointerPoint currentPoint = e.GetCurrentPoint(this);
-			Position = new PixelPoint(
-				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
-				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
-			);
-		}
+                            void YesClickedHandler(object sender, RoutedEventArgs e)
+                            {
+                                CleanupHandlers();
+                                confirmationDialog.Close();
+                                tcs.SetResult(true);
+                            }
 
-		private void InputElement_OnPointerPressed([NotNull] object sender, [NotNull] PointerEventArgs e)
-		{
-			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
-				return;
+                            void NoClickedHandler(object sender, RoutedEventArgs e)
+                            {
+                                CleanupHandlers();
+                                confirmationDialog.Close();
+                                tcs.SetResult(false);
+                            }
 
-			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint(this);
-		}
+                            void ClosedHandler(object sender, EventArgs e)
+                            {
+                                CleanupHandlers();
+                                tcs.SetResult(null);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _ = Logger.LogExceptionAsync(e);
+                            tcs.SetResult(null);
+                        }
+                    }
+                );
+            }
 
-		private void InputElement_OnPointerReleased([NotNull] object sender, [NotNull] PointerEventArgs e) =>
-			_mouseDownForWindowMoving = false;
-	}
+            return await tcs.Task;
+        }
+
+        public event EventHandler<RoutedEventArgs> YesButtonClicked
+        {
+            add => AddHandler(s_yesButtonClickedEvent, value);
+            remove => RemoveHandler(s_yesButtonClickedEvent, value);
+        }
+
+        public event EventHandler<RoutedEventArgs> NoButtonClicked
+        {
+            add => AddHandler(s_noButtonClickedEvent, value);
+            remove => RemoveHandler(s_noButtonClickedEvent, value);
+        }
+
+        private void OnOpened([CanBeNull] object sender, [CanBeNull] EventArgs e)
+        {
+            // Use a small delay to ensure XAML is fully loaded
+            Dispatcher.UIThread.Post(() => UpdateConfirmationText(), DispatcherPriority.Loaded);
+        }
+
+        private void UpdateConfirmationText()
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(UpdateConfirmationText, DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
+                // Debug logging
+                Logger.LogInfo($"ConfirmationDialog UpdateConfirmationText - ConfirmTextBlock is null: {ConfirmTextBlock == null}");
+                Logger.LogInfo($"ConfirmationDialog UpdateConfirmationText - ConfirmText: '{ConfirmText}'");
+
+                if (ConfirmTextBlock == null)
+                {
+                    Logger.LogError("ConfirmTextBlock is null in UpdateConfirmationText method");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(ConfirmText))
+                {
+                    Logger.LogWarning("ConfirmText is null or empty in UpdateConfirmationText method");
+                    return;
+                }
+
+                // Try markdown rendering first
+                try
+                {
+                    _markdownService.RenderMarkdownToTextBlock(ConfirmTextBlock, ConfirmText);
+                    Logger.LogInfo("Markdown rendering completed successfully");
+                }
+                catch (Exception markdownEx)
+                {
+                    Logger.LogException(markdownEx, "Markdown rendering failed, falling back to plain text");
+                    // Fallback to plain text if markdown rendering fails
+                    ConfirmTextBlock.Text = ConfirmText;
+                }
+
+                // Ensure the ConfirmTextBlock has the proper foreground color for the current theme
+                string currentTheme = ThemeManager.GetCurrentStylePath();
+                Logger.LogInfo($"Current theme: {currentTheme}");
+
+                if (currentTheme.Contains("FluentLightStyle"))
+                {
+                    ConfirmTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
+                }
+                else if (currentTheme.Contains("Kotor2Style"))
+                {
+                    ConfirmTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x18, 0xae, 0x88)); // #18ae88
+                }
+                else if (currentTheme.Contains("KotorStyle"))
+                {
+                    ConfirmTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // #3AAAFF
+                }
+
+                Logger.LogInfo($"Set foreground color for ConfirmTextBlock");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Failed to update confirmation text");
+            }
+        }
+
+        private void YesButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+            RaiseEvent(new RoutedEventArgs(s_yesButtonClickedEvent));
+
+        private void NoButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+            RaiseEvent(new RoutedEventArgs(s_noButtonClickedEvent));
+
+        private void CloseButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+            Close();
+
+        private void InputElement_OnPointerMoved([NotNull] object sender, [NotNull] PointerEventArgs e)
+        {
+            if (!_mouseDownForWindowMoving)
+            {
+                return;
+            }
+
+            PointerPoint currentPoint = e.GetCurrentPoint(this);
+            Position = new PixelPoint(
+                Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
+                Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
+            );
+        }
+
+        private void InputElement_OnPointerPressed([NotNull] object sender, [NotNull] PointerEventArgs e)
+        {
+            if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+            {
+                return;
+            }
+
+            _mouseDownForWindowMoving = true;
+            _originalPoint = e.GetCurrentPoint(this);
+        }
+
+        private void InputElement_OnPointerReleased([NotNull] object sender, [NotNull] PointerEventArgs e) =>
+            _mouseDownForWindowMoving = false;
+    }
 }

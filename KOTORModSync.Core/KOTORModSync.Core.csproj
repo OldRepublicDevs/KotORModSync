@@ -1,12 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
+    <LangVersion>7.3</LangVersion>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <Platforms>AnyCPU</Platforms>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
     <_NC1>rent</_NC1>
     <_NC2>Mon</_NC2>
+  </PropertyGroup>
+
+  <!-- Release Configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
+  </PropertyGroup>
+
+  <!-- Debug Configuration: Optimized for faster development builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <!-- Build only net8.0 for Debug to speed up development builds (unless TargetFramework is explicitly set) -->
+    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(TargetFramework)' != ''">$(TargetFramework)</TargetFrameworks>
+    <!-- Disable analyzers in Debug builds for faster compilation -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
   </PropertyGroup>
 
   <!-- Default to Library - this allows the project to be referenced by GUI -->
@@ -48,7 +64,7 @@
     <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
     <PackageReference Include="Tomlyn" Version="0.17.0" />
     <PackageReference Include="YamlDotNet" Version="16.2.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="ini-parser-netstandard" Version="2.5.2" />
     <PackageReference Include="SharpCompress" Version="0.36.0" />
     <PackageReference Include="SevenZip" Version="19.0.0" />
@@ -76,19 +92,27 @@
   </ItemGroup>
 
   <!-- Modern 2025 Code Analyzers -->
+  <!-- Analyzers are disabled in Debug builds via EnableNETAnalyzers=false and RunAnalyzersDuringBuild=false -->
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Release'">runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Debug'">runtime; native; contentfiles</IncludeAssets>
     </PackageReference>
     <PackageReference Include="SonarAnalyzer.CSharp" Version="9.25.0.90414">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Release'">runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Debug'">runtime; native; contentfiles</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Meziantou.Analyzer" Version="2.0.126">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Release'">runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Debug'">runtime; native; contentfiles</IncludeAssets>
     </PackageReference>
+    <ProjectReference Include="..\KOTORModSync.Analyzers\KOTORModSync.Analyzers.csproj">
+      <OutputItemType>Analyzer</OutputItemType>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
   </ItemGroup>
 
 

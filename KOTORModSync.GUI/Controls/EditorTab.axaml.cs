@@ -18,218 +18,228 @@ using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Controls
 {
-	[SuppressMessage( "ReSharper", "UnusedParameter.Local" )]
-	public partial class EditorTab : UserControl
-	{
-		public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
-			AvaloniaProperty.Register<EditorTab, ModComponent>( nameof( CurrentComponent ) );
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    public partial class EditorTab : UserControl
+    {
+        public static readonly StyledProperty<ModComponent> CurrentComponentProperty =
+            AvaloniaProperty.Register<EditorTab, ModComponent>(nameof(CurrentComponent));
 
-		public static readonly StyledProperty<List<string>> TierOptionsProperty =
-			AvaloniaProperty.Register<EditorTab, List<string>>( nameof( TierOptions ) );
+        public static readonly StyledProperty<List<string>> TierOptionsProperty =
+            AvaloniaProperty.Register<EditorTab, List<string>>(nameof(TierOptions));
 
-		public static readonly StyledProperty<DownloadCacheService> DownloadCacheServiceProperty =
-			AvaloniaProperty.Register<EditorTab, DownloadCacheService>( nameof( DownloadCacheService ) );
+        public static readonly StyledProperty<DownloadCacheService> DownloadCacheServiceProperty =
+            AvaloniaProperty.Register<EditorTab, DownloadCacheService>(nameof(DownloadCacheService));
 
-		public static readonly StyledProperty<ModManagementService> ModManagementServiceProperty =
-			AvaloniaProperty.Register<EditorTab, ModManagementService>( nameof( ModManagementService ) );
+        public static readonly StyledProperty<ModManagementService> ModManagementServiceProperty =
+            AvaloniaProperty.Register<EditorTab, ModManagementService>(nameof(ModManagementService));
 
-		[CanBeNull]
-		public ModComponent CurrentComponent
-		{
-			get => MainConfig.CurrentComponent;
-			set
-			{
-				MainConfig.CurrentComponent = value;
-				SetValue( CurrentComponentProperty, value );
-			}
-		}
+        [CanBeNull]
+        public ModComponent CurrentComponent
+        {
+            get => MainConfig.CurrentComponent;
+            set
+            {
+                MainConfig.CurrentComponent = value;
+                SetValue(CurrentComponentProperty, value);
+            }
+        }
 
-		[CanBeNull]
-		public List<string> TierOptions
-		{
-			get => GetValue( TierOptionsProperty );
-			set => SetValue( TierOptionsProperty, value );
-		}
+        [CanBeNull]
+        public List<string> TierOptions
+        {
+            get => GetValue(TierOptionsProperty);
+            set => SetValue(TierOptionsProperty, value);
+        }
 
-		[CanBeNull]
-		public DownloadCacheService DownloadCacheService
-		{
-			get => GetValue( DownloadCacheServiceProperty );
-			set => SetValue( DownloadCacheServiceProperty, value );
-		}
+        [CanBeNull]
+        public DownloadCacheService DownloadCacheService
+        {
+            get => GetValue(DownloadCacheServiceProperty);
+            set => SetValue(DownloadCacheServiceProperty, value);
+        }
 
-		[CanBeNull]
-		public ModManagementService ModManagementService
-		{
-			get => GetValue( ModManagementServiceProperty );
-			set => SetValue( ModManagementServiceProperty, value );
-		}
+        [CanBeNull]
+        public ModManagementService ModManagementService
+        {
+            get => GetValue(ModManagementServiceProperty);
+            set => SetValue(ModManagementServiceProperty, value);
+        }
 
-		public event EventHandler<RoutedEventArgs> ExpandAllSectionsRequested;
-		public event EventHandler<RoutedEventArgs> CollapseAllSectionsRequested;
-		public event EventHandler<RoutedEventArgs> AutoGenerateInstructionsRequested;
-		public event EventHandler<RoutedEventArgs> AddNewInstructionRequested;
-		public event EventHandler<RoutedEventArgs> DeleteInstructionRequested;
-		public event EventHandler<RoutedEventArgs> BrowseDestinationRequested;
-		public event EventHandler<RoutedEventArgs> BrowseSourceFilesRequested;
-		public event EventHandler<RoutedEventArgs> BrowseSourceFromFoldersRequested;
+        public event EventHandler<RoutedEventArgs> ExpandAllSectionsRequested;
+        public event EventHandler<RoutedEventArgs> CollapseAllSectionsRequested;
+        public event EventHandler<RoutedEventArgs> AutoGenerateInstructionsRequested;
+        public event EventHandler<RoutedEventArgs> AddNewInstructionRequested;
+        public event EventHandler<RoutedEventArgs> DeleteInstructionRequested;
+        public event EventHandler<RoutedEventArgs> BrowseDestinationRequested;
+        public event EventHandler<RoutedEventArgs> BrowseSourceFilesRequested;
+        public event EventHandler<RoutedEventArgs> BrowseSourceFromFoldersRequested;
 
-		private readonly Button _autoGenerateButton;
-		public event EventHandler<RoutedEventArgs> MoveInstructionUpRequested;
-		public event EventHandler<RoutedEventArgs> MoveInstructionDownRequested;
-		public event EventHandler<RoutedEventArgs> AddNewOptionRequested;
-		public event EventHandler<RoutedEventArgs> DeleteOptionRequested;
-		public event EventHandler<RoutedEventArgs> MoveOptionUpRequested;
-		public event EventHandler<RoutedEventArgs> MoveOptionDownRequested;
+        public event EventHandler<RoutedEventArgs> MoveInstructionUpRequested;
+        public event EventHandler<RoutedEventArgs> MoveInstructionDownRequested;
+        public event EventHandler<RoutedEventArgs> AddNewOptionRequested;
+        public event EventHandler<RoutedEventArgs> DeleteOptionRequested;
+        public event EventHandler<RoutedEventArgs> MoveOptionUpRequested;
+        public event EventHandler<RoutedEventArgs> MoveOptionDownRequested;
 
         [SuppressMessage("Design", "MA0046:Use EventHandler<T> to declare events", Justification = "<Pending>")]
         public event EventHandler<Core.Services.Validation.PathValidationResult> JumpToBlockingInstructionRequested;
 
-		public EditorTab()
-		{
-			InitializeComponent();
-			DataContext = this;
-			_autoGenerateButton = this.FindControl<Button>( "AutoGenerateButton" );
+        public EditorTab()
+        {
+            InitializeComponent();
+            DataContext = this;
 
-			// Initialize Tier options so the ComboBox has selectable items
-			try
-			{
-				var tierKeys = new List<string>(CategoryTierDefinitions.TierDefinitions.Keys);
-				// Keep a stable, user-friendly order: by leading number if present
-				tierKeys.Sort( (a, b) =>
-				{
-					int ParseLeadingNumber(string s)
-					{
-						if (string.IsNullOrWhiteSpace(s)) return int.MaxValue;
-						for (int i = 0; i < s.Length; i++)
-						{
-							if (char.IsDigit(s[i]))
-							{
-								int j = i;
-								while (j < s.Length && char.IsDigit(s[j])) j++;
-								if (int.TryParse(s.Substring(i, j - i), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n)) return n;
-								break;
-							}
-						}
-						return int.MaxValue;
-					}
+            // Initialize Tier options so the ComboBox has selectable items
+            try
+            {
+                var tierKeys = new List<string>(CategoryTierDefinitions.TierDefinitions.Keys);
+                // Keep a stable, user-friendly order: by leading number if present
+                tierKeys.Sort((a, b) =>
+                {
+                    int ParseLeadingNumber(string s)
+                    {
+                        if (string.IsNullOrWhiteSpace(s))
+                        {
+                            return int.MaxValue;
+                        }
 
-					int na = ParseLeadingNumber(a);
-					int nb = ParseLeadingNumber(b);
-					int cmp = na.CompareTo(nb);
-					return cmp != 0 ? cmp : string.Compare(a, b, StringComparison.Ordinal);
-				});
+                        for (int i = 0; i < s.Length; i++)
+                        {
+                            if (char.IsDigit(s[i]))
+                            {
+                                int j = i;
+                                while (j < s.Length && char.IsDigit(s[j]))
+                                {
+                                    j++;
+                                }
 
-				TierOptions = tierKeys;
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Failed to initialize Tier options");
-			}
-		}
+                                if (int.TryParse(s.Substring(i, j - i), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n))
+                                {
+                                    return n;
+                                }
 
-		private void ExpandAllSections_Click( object sender, RoutedEventArgs e )
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(() => ExpandAllSections_Click(sender, e), DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
-				BasicInfoExpander.IsExpanded = true;
-				DescriptionExpander.IsExpanded = true;
-				DependenciesExpander.IsExpanded = true;
-				InstructionsExpander.IsExpanded = true;
-				OptionsExpander.IsExpanded = true;
-				ExpandAllSectionsRequested?.Invoke( this, e );
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex, "Error expanding all sections" );
-			}
-		}
+                                break;
+                            }
+                        }
+                        return int.MaxValue;
+                    }
 
-		private void CollapseAllSections_Click( object sender, RoutedEventArgs e )
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(() => CollapseAllSections_Click(sender, e), DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
-				BasicInfoExpander.IsExpanded = false;
-				DescriptionExpander.IsExpanded = false;
-				DependenciesExpander.IsExpanded = false;
-				InstructionsExpander.IsExpanded = false;
-				OptionsExpander.IsExpanded = false;
-				CollapseAllSectionsRequested?.Invoke( this, e );
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex, "Error collapsing all sections" );
-			}
-		}
+                    int na = ParseLeadingNumber(a);
+                    int nb = ParseLeadingNumber(b);
+                    int cmp = na.CompareTo(nb);
+                    return cmp != 0 ? cmp : string.Compare(a, b, StringComparison.Ordinal);
+                });
 
-		private void AutoGenerateInstructions_Click( object sender, RoutedEventArgs e )
-		{
-			AutoGenerateInstructionsRequested?.Invoke( this, e );
-		}
+                TierOptions = tierKeys;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Failed to initialize Tier options");
+            }
+        }
 
-		private void AddNewInstruction_Click( object sender, RoutedEventArgs e )
-		{
-			AddNewInstructionRequested?.Invoke( this, e );
-		}
+        private void ExpandAllSections_Click(object sender, RoutedEventArgs e)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() => ExpandAllSections_Click(sender, e), DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
+                BasicInfoExpander.IsExpanded = true;
+                DescriptionExpander.IsExpanded = true;
+                DependenciesExpander.IsExpanded = true;
+                InstructionsExpander.IsExpanded = true;
+                OptionsExpander.IsExpanded = true;
+                ExpandAllSectionsRequested?.Invoke(this, e);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error expanding all sections");
+            }
+        }
 
-		private void DeleteInstruction_Click( object sender, RoutedEventArgs e )
-		{
-			DeleteInstructionRequested?.Invoke( this, e );
-		}
+        private void CollapseAllSections_Click(object sender, RoutedEventArgs e)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() => CollapseAllSections_Click(sender, e), DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
+                BasicInfoExpander.IsExpanded = false;
+                DescriptionExpander.IsExpanded = false;
+                DependenciesExpander.IsExpanded = false;
+                InstructionsExpander.IsExpanded = false;
+                OptionsExpander.IsExpanded = false;
+                CollapseAllSectionsRequested?.Invoke(this, e);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error collapsing all sections");
+            }
+        }
 
-		private void BrowseDestination_Click( object sender, RoutedEventArgs e )
-		{
-			BrowseDestinationRequested?.Invoke( this, e );
-		}
+        private void AutoGenerateInstructions_Click(object sender, RoutedEventArgs e)
+        {
+            AutoGenerateInstructionsRequested?.Invoke(this, e);
+        }
 
-		private void BrowseSourceFiles_Click( object sender, RoutedEventArgs e )
-		{
-			BrowseSourceFilesRequested?.Invoke( this, e );
-		}
+        private void AddNewInstruction_Click(object sender, RoutedEventArgs e)
+        {
+            AddNewInstructionRequested?.Invoke(this, e);
+        }
 
-		private void BrowseSourceFromFolders_Click( object sender, RoutedEventArgs e )
-		{
-			BrowseSourceFromFoldersRequested?.Invoke( this, e );
-		}
+        private void DeleteInstruction_Click(object sender, RoutedEventArgs e)
+        {
+            DeleteInstructionRequested?.Invoke(this, e);
+        }
 
-		private void MoveInstructionUp_Click( object sender, RoutedEventArgs e )
-		{
-			MoveInstructionUpRequested?.Invoke( this, e );
-		}
+        private void BrowseDestination_Click(object sender, RoutedEventArgs e)
+        {
+            BrowseDestinationRequested?.Invoke(this, e);
+        }
 
-		private void MoveInstructionDown_Click( object sender, RoutedEventArgs e )
-		{
-			MoveInstructionDownRequested?.Invoke( this, e );
-		}
+        private void BrowseSourceFiles_Click(object sender, RoutedEventArgs e)
+        {
+            BrowseSourceFilesRequested?.Invoke(this, e);
+        }
 
-		private void AddNewOption_Click( object sender, RoutedEventArgs e )
-		{
-			AddNewOptionRequested?.Invoke( this, e );
-		}
+        private void BrowseSourceFromFolders_Click(object sender, RoutedEventArgs e)
+        {
+            BrowseSourceFromFoldersRequested?.Invoke(this, e);
+        }
 
-		private void DeleteOption_Click( object sender, RoutedEventArgs e )
-		{
-			DeleteOptionRequested?.Invoke( this, e );
-		}
+        private void MoveInstructionUp_Click(object sender, RoutedEventArgs e)
+        {
+            MoveInstructionUpRequested?.Invoke(this, e);
+        }
 
-		private void MoveOptionUp_Click( object sender, RoutedEventArgs e )
-		{
-			MoveOptionUpRequested?.Invoke( this, e );
-		}
+        private void MoveInstructionDown_Click(object sender, RoutedEventArgs e)
+        {
+            MoveInstructionDownRequested?.Invoke(this, e);
+        }
 
-		private void MoveOptionDown_Click( object sender, RoutedEventArgs e )
-		{
-			MoveOptionDownRequested?.Invoke( this, e );
-		}
-	}
+        private void AddNewOption_Click(object sender, RoutedEventArgs e)
+        {
+            AddNewOptionRequested?.Invoke(this, e);
+        }
+
+        private void DeleteOption_Click(object sender, RoutedEventArgs e)
+        {
+            DeleteOptionRequested?.Invoke(this, e);
+        }
+
+        private void MoveOptionUp_Click(object sender, RoutedEventArgs e)
+        {
+            MoveOptionUpRequested?.Invoke(this, e);
+        }
+
+        private void MoveOptionDown_Click(object sender, RoutedEventArgs e)
+        {
+            MoveOptionDownRequested?.Invoke(this, e);
+        }
+    }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -18,245 +18,295 @@ using Newtonsoft.Json.Linq;
 
 namespace KOTORModSync.Core.Utility
 {
-	public static class Serializer
-	{
-		public static string ToOrdinal( object numberObj )
-		{
-			if (!(numberObj is int number))
-				throw new ArgumentException( message: "Not a valid number", nameof( numberObj ) );
+    public static class Serializer
+    {
+        public static string ToOrdinal(object numberObj)
+        {
+            if (!(numberObj is int number))
+            {
+                throw new ArgumentException(message: "Not a valid number", nameof(numberObj));
+            }
 
-			if (number < 0)
-				return "-" + ToOrdinal( -number );
+            if (number < 0)
+            {
+                return "-" + ToOrdinal(-number);
+            }
 
-			int lastDigit = number % 10;
-			int lastTwoDigits = number % 100;
+            int lastDigit = number % 10;
+            int lastTwoDigits = number % 100;
 
-			switch (lastTwoDigits)
-			{
+            switch (lastTwoDigits)
+            {
 
-				case 11:
-				case 12:
-				case 13:
-					return number + "th";
-				default:
+                case 11:
+                case 12:
+                case 13:
+                    return number + "th";
+                default:
 
-					switch (lastDigit)
-					{
-						case 1:
-							return number + "st";
-						case 2:
-							return number + "nd";
-						case 3:
-							return number + "rd";
-						default:
-							return number + "th";
-					}
-			}
-		}
+                    switch (lastDigit)
+                    {
+                        case 1:
+                            return number + "st";
+                        case 2:
+                            return number + "nd";
+                        case 3:
+                            return number + "rd";
+                        default:
+                            return number + "th";
+                    }
+            }
+        }
 
-		[NotNull]
-		public static string FixGuidString( [NotNull] string guidString )
-		{
-			if (string.IsNullOrWhiteSpace( guidString ))
-				throw new ArgumentException( message: "Value cannot be null or whitespace.", nameof( guidString ) );
+        [NotNull]
+        public static string FixGuidString([NotNull] string guidString)
+        {
+            if (string.IsNullOrWhiteSpace(guidString))
+            {
+                throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(guidString));
+            }
 
-			guidString = Regex.Replace( guidString, pattern: @"\s", replacement: "" );
+            guidString = Regex.Replace(
+                guidString,
+                pattern: @"\s",
+                replacement: "",
+                options: RegexOptions.None,
+                matchTimeout: TimeSpan.FromSeconds(5)
+            );
 
-			guidString = Regex.Replace( guidString, pattern: "[^0-9A-Fa-f]", replacement: "" );
+            guidString = Regex.Replace(
+                guidString,
+                pattern: "[^0-9A-Fa-f]",
+                replacement: "",
+                options: RegexOptions.None,
+                matchTimeout: TimeSpan.FromSeconds(5)
+            );
 
-			if (guidString.Length != 32)
-				return Guid.Empty.ToString();
+            if (guidString.Length != 32)
+            {
+                return Guid.Empty.ToString();
+            }
 
-			guidString = Regex.Replace(
-				guidString,
-				pattern: @"(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})",
-				replacement: "$1-$2-$3-$4-$5"
-			);
+            guidString = Regex.Replace(
+                guidString,
+                pattern: @"(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})",
+                replacement: "$1-$2-$3-$4-$5",
+                options: RegexOptions.None,
+                matchTimeout: TimeSpan.FromSeconds(5)
+            );
 
-			if (!guidString.StartsWith( value: "{", StringComparison.Ordinal ))
-			{
-				guidString = "{" + guidString;
-			}
+            if (!guidString.StartsWith(value: "{", StringComparison.Ordinal))
+            {
+                guidString = "{" + guidString;
+            }
 
-			if (!guidString.EndsWith( value: "}", StringComparison.Ordinal )) guidString += "}";
+            if (!guidString.EndsWith(value: "}", StringComparison.Ordinal))
+            {
+                guidString += "}";
+            }
 
-			return guidString;
-		}
+            return guidString;
+        }
 
-		public static void DeserializePathInDictionary( [NotNull] IDictionary<string, object> dict, [NotNull] string key )
-		{
-			if (dict.Count == 0)
-				throw new ArgumentException( message: "Value cannot be null or empty.", nameof( dict ) );
-			if (string.IsNullOrEmpty( key ))
-				throw new ArgumentException( message: "Value cannot be null or empty.", nameof( key ) );
+        public static void DeserializePathInDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
+        {
+            if (dict.Count == 0)
+            {
+                throw new ArgumentException(message: "Value cannot be null or empty.", nameof(dict));
+            }
 
-			if (!dict.TryGetValue( key, out object pathValue ))
-				return;
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentException(message: "Value cannot be null or empty.", nameof(key));
+            }
 
-			switch (pathValue)
-			{
-				case string path:
-					{
-						string formattedPath = PathHelper.FixPathFormatting( path );
-						dict[key] = new List<string>
-						{
-							PrefixPath(formattedPath),
-						};
-						break;
-					}
-				case IList<string> paths:
-					{
-						for (int index = 0; index < paths.Count; index++)
-						{
-							string currentPath = paths[index];
-							string formattedPath = PathHelper.FixPathFormatting( currentPath );
-							paths[index] = PrefixPath( formattedPath );
-						}
+            if (!dict.TryGetValue(key, out object pathValue))
+            {
+                return;
+            }
 
-						break;
-					}
-			}
-		}
+            switch (pathValue)
+            {
+                case string path:
+                    {
+                        string formattedPath = PathHelper.FixPathFormatting(path);
+                        dict[key] = new List<string>
+                        {
+                            PrefixPath(formattedPath),
+                        };
+                        break;
+                    }
+                case IList<string> paths:
+                    {
+                        for (int index = 0; index < paths.Count; index++)
+                        {
+                            string currentPath = paths[index];
+                            string formattedPath = PathHelper.FixPathFormatting(currentPath);
+                            paths[index] = PrefixPath(formattedPath);
+                        }
 
-		public static void DeserializeGuidDictionary( [NotNull] IDictionary<string, object> dict, [NotNull] string key )
-		{
-			if (!dict.TryGetValue( key, out object value ))
-				return;
+                        break;
+                    }
+            }
+        }
 
-			switch (value)
-			{
-				case string stringValue:
-					{
+        public static void DeserializeGuidDictionary([NotNull] IDictionary<string, object> dict, [NotNull] string key)
+        {
+            if (!dict.TryGetValue(key, out object value))
+            {
+                return;
+            }
 
-						List<string> stringList = new List<string>
-						{
-							stringValue,
-						};
+            switch (value)
+            {
+                case string stringValue:
+                    {
 
-						dict[key] = stringList;
+                        var stringList = new List<string>
+                        {
+                            stringValue,
+                        };
 
-						for (int i = 0; i < stringList.Count; i++)
-						{
-							if (Guid.TryParse( stringList[i], out Guid guid ))
-								continue;
+                        dict[key] = stringList;
 
-							string fixedGuid = FixGuidString( guid.ToString() );
+                        for (int i = 0; i < stringList.Count; i++)
+                        {
+                            if (Guid.TryParse(stringList[i], out Guid guid))
+                            {
+                                continue;
+                            }
 
-							stringList[i] = fixedGuid;
-						}
+                            string fixedGuid = FixGuidString(guid.ToString());
 
-						break;
-					}
-				case List<string> stringList:
-					{
+                            stringList[i] = fixedGuid;
+                        }
 
-						for (int i = 0; i < stringList.Count; i++)
-						{
-							if (Guid.TryParse( stringList[i], out Guid guid ))
-								continue;
+                        break;
+                    }
+                case List<string> stringList:
+                    {
 
-							string fixedGuid = FixGuidString( guid.ToString() );
+                        for (int i = 0; i < stringList.Count; i++)
+                        {
+                            if (Guid.TryParse(stringList[i], out Guid guid))
+                            {
+                                continue;
+                            }
 
-							stringList[i] = fixedGuid;
-						}
+                            string fixedGuid = FixGuidString(guid.ToString());
 
-						break;
-					}
-			}
-		}
+                            stringList[i] = fixedGuid;
+                        }
 
-		[NotNull]
-		public static string PrefixPath( [NotNull] string path ) =>
-			string.IsNullOrWhiteSpace( path )
-				? throw new ArgumentException( message: "Value cannot be null or whitespace.", nameof( path ) )
-				: !path.StartsWith( value: "<<modDirectory>>", StringComparison.OrdinalIgnoreCase )
-				&& !path.StartsWith( value: "<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase )
-					? PathHelper.FixPathFormatting( "<<modDirectory>>" + Path.DirectorySeparatorChar + path )
-					: path;
+                        break;
+                    }
+            }
+        }
 
-		[NotNull]
-		public static string FixWhitespaceIssues( [NotNull] string strContents )
-		{
-			strContents = strContents.Replace( oldValue: "\r\n", newValue: "\n" )
-				.Replace( oldValue: "\r", Environment.NewLine ).Replace( oldValue: "\n", Environment.NewLine );
+        [NotNull]
+        public static string PrefixPath([NotNull] string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                throw new ArgumentException(message: "Value cannot be null or whitespace.", nameof(path));
+            }
 
-			string[] lines = Regex.Split( strContents, $"(?<!\r){Regex.Escape( Environment.NewLine )}" )
-				.Select( line => line?.Trim() ).ToArray();
+            bool hasModPrefix = path.StartsWith("<<modDirectory>>", StringComparison.OrdinalIgnoreCase);
+            bool hasKotorPrefix = path.StartsWith("<<kotorDirectory>>", StringComparison.OrdinalIgnoreCase);
 
-			return string.Join( Environment.NewLine, lines );
-		}
+            if (!hasModPrefix && !hasKotorPrefix)
+            {
+                return PathHelper.FixPathFormatting("<<modDirectory>>" + Path.DirectorySeparatorChar + path);
+            }
+            return path;
+        }
 
-		[CanBeNull]
-		public static object SerializeObject( [CanBeNull] object obj )
-		{
-			switch (obj)
-			{
-				case null:
-					return null;
-				case IConvertible _:
-				case IFormattable _:
-				case IComparable _:
-					return obj.ToString();
-				case IList objList:
-					return SerializeIntoList( objList );
-				case IDictionary _:
-				case var _ when obj.GetType().IsClass:
-					return SerializeIntoDictionary( obj );
-				default:
-					return obj.ToString();
-			}
-		}
+        [NotNull]
+        public static string FixWhitespaceIssues([NotNull] string strContents)
+        {
+            strContents = strContents.Replace(oldValue: "\r\n", newValue: "\n")
+                .Replace(oldValue: "\r", Environment.NewLine).Replace(oldValue: "\n", Environment.NewLine);
 
-		[NotNull]
-		internal static Dictionary<string, object> SerializeIntoDictionary( [CanBeNull] object obj )
-		{
-			JsonSerializerSettings settings = new JsonSerializerSettings
-			{
-				TypeNameHandling = TypeNameHandling.None,
-				NullValueHandling = NullValueHandling.Ignore,
-			};
+            string[] lines = Regex.Split(
+                strContents,
+                $"(?<!\r){Regex.Escape(Environment.NewLine)}",
+                RegexOptions.None,
+                TimeSpan.FromSeconds(10))
+                .Select(line => line?.Trim()).ToArray();
 
-			string jsonString = JsonConvert.SerializeObject( obj, settings );
-			JObject jsonObject = JObject.Parse( jsonString );
+            return string.Join(Environment.NewLine, lines);
+        }
 
-			return ConvertJObjectToDictionary( jsonObject );
-		}
+        [CanBeNull]
+        public static object SerializeObject([CanBeNull] object obj)
+        {
+            switch (obj)
+            {
+                case null:
+                    return null;
+                case IConvertible _:
+                case IFormattable _:
+                case IComparable _:
+                    return obj.ToString();
+                case IList objList:
+                    return SerializeIntoList(objList);
+                case IDictionary _:
+                case var _ when obj.GetType().IsClass:
+                    return SerializeIntoDictionary(obj);
+                default:
+                    return obj.ToString();
+            }
+        }
 
-		[CanBeNull]
-		private static object ConvertJTokenToObject( [CanBeNull] JToken token )
-		{
-			switch (token)
-			{
-				case JObject jObject:
-					return ConvertJObjectToDictionary( jObject );
-				case JArray jArray:
-					return ConvertJArrayToList( jArray );
-				default:
-					return ((JValue)token)?.Value;
-			}
-		}
+        [NotNull]
+        internal static Dictionary<string, object> SerializeIntoDictionary([CanBeNull] object obj)
+        {
+            var settings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.None,
+                NullValueHandling = NullValueHandling.Ignore,
+            };
 
-		[NotNull]
-		private static List<object> ConvertJArrayToList( [NotNull] JArray jArray ) =>
-			jArray is null
-				? throw new ArgumentNullException( nameof( jArray ) )
-				: jArray.Select( ConvertJTokenToObject ).ToList();
+            string jsonString = JsonConvert.SerializeObject(obj, settings);
+            var jsonObject = JObject.Parse(jsonString);
 
-		[NotNull]
-		private static Dictionary<string, object> ConvertJObjectToDictionary( [NotNull] JObject jObject ) =>
-			jObject is null
-				? throw new ArgumentNullException( nameof( jObject ) )
-				: jObject.Properties().ToDictionary(
-					property => property.Name,
-					property => ConvertJTokenToObject( property.Value )
-, StringComparer.Ordinal );
+            return ConvertJObjectToDictionary(jsonObject);
+        }
 
-		[CanBeNull]
-		public static List<object> SerializeIntoList( [CanBeNull] object obj )
-		{
+        [CanBeNull]
+        private static object ConvertJTokenToObject([CanBeNull] JToken token)
+        {
+            switch (token)
+            {
+                case JObject jObject:
+                    return ConvertJObjectToDictionary(jObject);
+                case JArray jArray:
+                    return ConvertJArrayToList(jArray);
+                default:
+                    return ((JValue)token)?.Value;
+            }
+        }
 
-			string jsonString = JsonConvert.SerializeObject( obj );
-			return JsonConvert.DeserializeObject<List<object>>( jsonString );
-		}
-	}
+        [NotNull]
+        private static List<object> ConvertJArrayToList([NotNull] JArray jArray) =>
+            jArray is null
+                ? throw new ArgumentNullException(nameof(jArray))
+                : jArray.Select(ConvertJTokenToObject).ToList();
+
+        [NotNull]
+        private static Dictionary<string, object> ConvertJObjectToDictionary([NotNull] JObject jObject) =>
+            jObject is null
+                ? throw new ArgumentNullException(nameof(jObject))
+                : jObject.Properties().ToDictionary(
+                    property => property.Name,
+                    property => ConvertJTokenToObject(property.Value)
+, StringComparer.Ordinal);
+
+        [CanBeNull]
+        public static IReadOnlyList<object> SerializeIntoList([CanBeNull] object obj)
+        {
+            string jsonString = JsonConvert.SerializeObject(obj);
+            return JsonConvert.DeserializeObject<List<object>>(jsonString);
+        }
+    }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 using System;
@@ -74,7 +74,7 @@ namespace KOTORModSync.Core.Services
                     }
                 }
 
-                StringBuilder result = new StringBuilder(input.Length);
+                var result = new StringBuilder(input.Length);
 
                 foreach (char c in input)
                 {
@@ -108,7 +108,7 @@ namespace KOTORModSync.Core.Services
         #region Loading Functions
         [NotNull]
         [ItemNotNull]
-        public static List<ModComponent> DeserializeModComponentFromTomlString([NotNull] string tomlContent)
+        public static IReadOnlyList<ModComponent> DeserializeModComponentFromTomlString([NotNull] string tomlContent)
         {
             Logger.LogVerbose("Loading from TOML string");
             if (tomlContent is null)
@@ -125,7 +125,7 @@ namespace KOTORModSync.Core.Services
                 throw new InvalidDataException("TOML content is empty.");
             }
 
-            tomlContent = Utility.Serializer.FixWhitespaceIssues(tomlContent);
+            tomlContent = Serializer.FixWhitespaceIssues(tomlContent);
 
             DocumentSyntax tomlDocument = Toml.Parse(tomlContent);
             if (tomlDocument.HasErrors)
@@ -163,69 +163,61 @@ namespace KOTORModSync.Core.Services
             }
 
             // Collect all [[thisMod.Instructions]] entries from the root level
-            List<object> allInstructions = new List<object>();
+            var allInstructions = new List<object>();
             foreach (string key in tomlTable.Keys)
             {
-                if (key.Contains("Instructions") && !key.Contains("Options"))
+                if (key.Contains("Instructions")
+                    && !key.Contains("Options")
+                    && tomlTable.TryGetValue(key, out object instructionsObj))
                 {
-                    if (tomlTable.TryGetValue(key, out object instructionsObj))
+                    if (instructionsObj is TomlTableArray instructionsTableArray)
                     {
-                        if (instructionsObj is TomlTableArray instructionsTableArray)
+                        Logger.LogVerbose($"Found {instructionsTableArray.Count} instructions at root level (TomlTableArray)");
+                        foreach (TomlTable table in instructionsTableArray)
                         {
-                            Logger.LogVerbose($"Found {instructionsTableArray.Count} instructions at root level (TomlTableArray)");
-                            foreach (TomlTable table in instructionsTableArray)
-                            {
-                                allInstructions.Add(table);
-                            }
+                            allInstructions.Add(table);
                         }
-                        else if (instructionsObj is IList<object> instructionsList)
-                        {
-                            Logger.LogVerbose($"Found {instructionsList.Count} instructions at root level");
-                            allInstructions.AddRange(instructionsList);
-                        }
-                        else
-                        {
-                            Logger.LogVerbose($"Instructions object type not handled: {instructionsObj?.GetType().Name ?? "null"}");
-                        }
+                    }
+                    else if (instructionsObj is IList<object> instructionsList)
+                    {
+                        Logger.LogVerbose($"Found {instructionsList.Count} instructions at root level");
+                        allInstructions.AddRange(instructionsList);
+                    }
+                    else
+                    {
+                        Logger.LogVerbose($"Instructions object type not handled: {instructionsObj?.GetType().Name ?? "null"}");
                     }
                 }
             }
 
             // Collect all [[thisMod.Options]] entries from the root level
-            List<object> allOptions = new List<object>();
+            var allOptions = new List<object>();
             Logger.LogVerbose($"TOML table keys: {string.Join(", ", tomlTable.Keys)}");
             foreach (string key in tomlTable.Keys)
             {
                 Logger.LogVerbose($"Checking key: '{key}' - Contains Options: {key.IndexOf("Options", StringComparison.OrdinalIgnoreCase) >= 0}, Contains Instructions: {key.IndexOf("Instructions", StringComparison.OrdinalIgnoreCase) >= 0}");
-                if (key.IndexOf("Options", StringComparison.OrdinalIgnoreCase) >= 0 && key.IndexOf("Instructions", StringComparison.OrdinalIgnoreCase) < 0)
+                if (
+                    key.IndexOf("Options", StringComparison.OrdinalIgnoreCase) >= 0
+                    && key.IndexOf("Instructions", StringComparison.OrdinalIgnoreCase) < 0
+                    && tomlTable.TryGetValue(key, out object optionsObj)
+                )
                 {
                     Logger.LogVerbose($"Found Options key: '{key}'");
-                    if (tomlTable.TryGetValue(key, out object optionsObj))
+                    Logger.LogVerbose($"Options object type: {optionsObj?.GetType().Name ?? "null"}");
+                    if (optionsObj is IList<object> optionsList && !(optionsObj is TomlTableArray optionsTableArray))
                     {
-                        Logger.LogVerbose($"Options object type: {optionsObj?.GetType().Name ?? "null"}");
-                        if (optionsObj is TomlTableArray optionsTableArray)
-                        {
-                            Logger.LogVerbose($"Found {optionsTableArray.Count} options at root level (TomlTableArray)");
-                            foreach (TomlTable table in optionsTableArray)
-                            {
-                                allOptions.Add(table);
-                            }
-                        }
-                        else if (optionsObj is IList<object> optionsList)
-                        {
-                            Logger.LogVerbose($"Found {optionsList.Count} options at root level");
-                            allOptions.AddRange(optionsList);
-                        }
-                        else
-                        {
-                            Logger.LogVerbose($"Options object type not handled: {optionsObj?.GetType().Name ?? "null"}");
-                        }
+                        Logger.LogVerbose($"Found {optionsList.Count} options at root level");
+                        allOptions.AddRange(optionsList);
+                    }
+                    else
+                    {
+                        Logger.LogVerbose($"Options object type not handled: {optionsObj?.GetType().Name ?? "null"}");
                     }
                 }
             }
 
             // Collect all [[thisMod.Options.Instructions]] entries from the root level
-            List<object> allOptionsInstructions = new List<object>();
+            var allOptionsInstructions = new List<object>();
             foreach (string key in tomlTable.Keys)
             {
                 Logger.LogVerbose($"Checking key for Options Instructions: '{key}' - Contains Options: {key.IndexOf("Options", StringComparison.OrdinalIgnoreCase) >= 0}, Contains Instructions: {key.IndexOf("Instructions", StringComparison.OrdinalIgnoreCase) >= 0}");
@@ -256,7 +248,7 @@ namespace KOTORModSync.Core.Services
                 }
             }
 
-            List<ModComponent> components = new List<ModComponent>();
+            var components = new List<ModComponent>();
 
             foreach (object tomlComponent in componentTables)
             {
@@ -317,7 +309,7 @@ namespace KOTORModSync.Core.Services
                     {
                         Logger.LogVerbose($"Assigning {allOptionsInstructions.Count} options instructions to component '{thisComponent.Name}'");
 
-                        Dictionary<string, List<object>> instructionsByParent = new Dictionary<string, List<object>>(StringComparer.Ordinal);
+                        var instructionsByParent = new Dictionary<string, List<object>>(StringComparer.Ordinal);
                         foreach (object instrObj in allOptionsInstructions)
                         {
                             if (instrObj is IDictionary<string, object> instrDict &&
@@ -368,7 +360,7 @@ namespace KOTORModSync.Core.Services
 
         [NotNull]
         [ItemNotNull]
-        public static List<ModComponent> DeserializeModComponentFromYamlString([NotNull] string yamlContent)
+        public static IReadOnlyList<ModComponent> DeserializeModComponentFromYamlString([NotNull] string yamlContent)
         {
             Logger.LogVerbose("Loading from YAML string");
             if (yamlContent is null)
@@ -377,7 +369,7 @@ namespace KOTORModSync.Core.Services
             }
 
             yamlContent = SanitizeUtf8(yamlContent);
-            List<ModComponent> components = new List<ModComponent>();
+            var components = new List<ModComponent>();
             string[] yamlDocs = yamlContent.Split(s_yamlSeparator, StringSplitOptions.RemoveEmptyEntries);
             int docIndex = 0;
             foreach (string yamlDoc in yamlDocs)
@@ -473,7 +465,7 @@ namespace KOTORModSync.Core.Services
                 if (
                     (metadataDict.TryGetValue("LastModified", out object modifiedObj) ||
                     metadataDict.TryGetValue("lastModified", out modifiedObj)) &&
-                    DateTime.TryParse(modifiedObj?.ToString(), out DateTime parsedDate)
+                    DateTime.TryParse(modifiedObj?.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate)
                 )
                 {
                     MainConfig.LastModified = parsedDate;
@@ -499,6 +491,11 @@ namespace KOTORModSync.Core.Services
                     MainConfig.AspyrExclusiveWarningContent = aspyrObj?.ToString() ?? string.Empty;
                 }
 
+                if (metadataDict.TryGetValue("InstallationWarningContent", out object installationWarningObj) || metadataDict.TryGetValue("installationWarningContent", out installationWarningObj))
+                {
+                    MainConfig.InstallationWarningContent = installationWarningObj?.ToString() ?? string.Empty;
+                }
+
                 Logger.LogVerbose($"Loaded YAML metadata: Game={MainConfig.TargetGame}, Version={MainConfig.FileFormatVersion}, Build={MainConfig.BuildName}");
             }
             catch (Exception ex)
@@ -509,7 +506,7 @@ namespace KOTORModSync.Core.Services
 
         [NotNull]
         [ItemNotNull]
-        public static List<ModComponent> DeserializeModComponentFromMarkdownString([NotNull] string markdownContent)
+        public static IReadOnlyList<ModComponent> DeserializeModComponentFromMarkdownString([NotNull] string markdownContent)
         {
             Logger.LogVerbose("Loading from Markdown string");
             if (markdownContent is null)
@@ -549,6 +546,11 @@ namespace KOTORModSync.Core.Services
                     MainConfig.AspyrExclusiveWarningContent = result.AspyrExclusiveWarningContent;
                 }
 
+                if (!string.IsNullOrWhiteSpace(result.InstallationWarningContent))
+                {
+                    MainConfig.InstallationWarningContent = result.InstallationWarningContent;
+                }
+
                 return result.Components.ToList();
             }
             catch (InvalidDataException)
@@ -565,7 +567,7 @@ namespace KOTORModSync.Core.Services
 
         [NotNull]
         [ItemNotNull]
-        public static List<ModComponent> DeserializeModComponentFromJsonString([NotNull] string jsonContent)
+        public static IReadOnlyList<ModComponent> DeserializeModComponentFromJsonString([NotNull] string jsonContent)
         {
             Logger.LogVerbose("Loading from JSON string");
             if (jsonContent is null)
@@ -574,7 +576,7 @@ namespace KOTORModSync.Core.Services
             }
 
             jsonContent = SanitizeUtf8(jsonContent);
-            JObject jsonObject = JObject.Parse(jsonContent);
+            var jsonObject = JObject.Parse(jsonContent);
             if (jsonObject["metadata"] is JObject metadataObj)
             {
                 MainConfig.FileFormatVersion = metadataObj["fileFormatVersion"]?.ToString() ?? "2.0";
@@ -591,8 +593,9 @@ namespace KOTORModSync.Core.Services
                 MainConfig.EpilogueContent = metadataObj["epilogueContent"]?.ToString() ?? string.Empty;
                 MainConfig.WidescreenWarningContent = metadataObj["widescreenWarningContent"]?.ToString() ?? string.Empty;
                 MainConfig.AspyrExclusiveWarningContent = metadataObj["aspyrExclusiveWarningContent"]?.ToString() ?? string.Empty;
+                MainConfig.InstallationWarningContent = metadataObj["installationWarningContent"]?.ToString() ?? string.Empty;
             }
-            List<ModComponent> components = new List<ModComponent>();
+            var components = new List<ModComponent>();
             if (jsonObject["components"] is JArray componentsArray)
             {
                 int componentIndex = 0;
@@ -624,9 +627,10 @@ namespace KOTORModSync.Core.Services
 
             return components;
         }
+
         [NotNull]
         [ItemNotNull]
-        public static List<ModComponent> DeserializeModComponentFromString(
+        public static IReadOnlyList<ModComponent> DeserializeModComponentFromString(
             [NotNull] string content,
             [CanBeNull] string format = null)
         {
@@ -636,7 +640,7 @@ namespace KOTORModSync.Core.Services
                 throw new ArgumentNullException(nameof(content));
             }
 
-            List<ModComponent> components;
+            IReadOnlyList<ModComponent> components;
 
             if (!string.IsNullOrWhiteSpace(format))
             {
@@ -665,7 +669,7 @@ namespace KOTORModSync.Core.Services
                         components = DeserializeModComponentFromMarkdownString(content);
                         break;
                     default:
-                        throw new ArgumentException($"Unknown format \"{format}\" passed to DeserializeModComponentFromString.");
+                        throw new ArgumentException($"Unknown format \"{format}\" passed to DeserializeModComponentFromString.", nameof(format));
                 }
             }
             else
@@ -750,21 +754,30 @@ namespace KOTORModSync.Core.Services
                 }
             }
 
+            // Auto-fix config errors if enabled
+            if (MainConfig.AttemptFixes && components.Count > 0)
+            {
+                Logger.LogVerbose("Auto-fix enabled, applying fixes to loaded components");
+                AutoFixComponentIssues(components);
+            }
+
             return components;
         }
+
         [NotNull]
         [ItemNotNull]
-        public static Task<List<ModComponent>> DeserializeModComponentFromStringAsync(
+        public static Task<IReadOnlyList<ModComponent>> DeserializeModComponentFromStringAsync(
             [NotNull] string content,
             [CanBeNull] string format = null)
         {
             return Task.Run(() => DeserializeModComponentFromString(content, format));
         }
         #endregion
+
         #region Saving Functions
         [NotNull]
         public static string SerializeModComponentAsString(
-            [NotNull] List<ModComponent> components,
+            [NotNull] IReadOnlyList<ModComponent> components,
             [NotNull] string format = "toml",
             [CanBeNull] ComponentValidationContext validationContext = null
         )
@@ -805,12 +818,13 @@ namespace KOTORModSync.Core.Services
         }
         [NotNull]
         public static Task<string> SerializeModComponentAsStringAsync(
-            [NotNull] List<ModComponent> components,
+            [NotNull] IReadOnlyList<ModComponent> components,
             [NotNull] string format = "toml")
         {
             return Task.Run(() => SerializeModComponentAsString(components, format));
         }
         #endregion
+
         #region Public Helpers
 
         /// <summary>
@@ -820,7 +834,7 @@ namespace KOTORModSync.Core.Services
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private static Dictionary<string, object> PreprocessComponentDictionary([NotNull] IDictionary<string, object> componentDict)
         {
-            Dictionary<string, object> processedDict = new Dictionary<string, object>(componentDict, StringComparer.OrdinalIgnoreCase);
+            var processedDict = new Dictionary<string, object>(componentDict, StringComparer.OrdinalIgnoreCase);
 
             // Add debug logging for ModLinkFilenames
             if (componentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesValue))
@@ -841,7 +855,7 @@ namespace KOTORModSync.Core.Services
                 if (kvp.Value is System.Collections.IEnumerable enumerable && !(kvp.Value is string))
                 {
                     // Flatten any nested collections that might result from duplicate fields
-                    List<object> flattenedList = new List<object>();
+                    var flattenedList = new List<object>();
                     foreach (object item in enumerable)
                     {
                         if (item is System.Collections.IEnumerable nestedEnumerable && !(item is string))
@@ -899,7 +913,7 @@ namespace KOTORModSync.Core.Services
 
 
                 // Check if we have KeyValuePair objects (YAML deserialization issue)
-                List<object> keyValuePairs = instructionsList.Where(item => item.GetType().Name.StartsWith("KeyValuePair", StringComparison.Ordinal)).ToList();
+                var keyValuePairs = instructionsList.Where(item => item.GetType().Name.StartsWith("KeyValuePair", StringComparison.Ordinal)).ToList();
                 bool hasKeyValuePairs = keyValuePairs.Count > 0;
 
                 if (hasKeyValuePairs)
@@ -911,9 +925,9 @@ namespace KOTORModSync.Core.Services
                 else
                 {
                     Logger.LogVerbose("ProcessInstructionsAndOptions: No KeyValuePair instruction items, processing individually");
-                    List<object> processedInstructions = new List<object>();
+                    var processedInstructions = new List<object>();
 
-                    Dictionary<string, object> currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
+                    var currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
 
                     foreach (object item in instructionsList)
                     {
@@ -925,14 +939,11 @@ namespace KOTORModSync.Core.Services
                             currentInstruction[kvp.Key] = kvp.Value;
 
                             // Check if this completes an instruction (has Action field)
-                            if (kvp.Key.Equals("Action", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(kvp.Value?.ToString()))
+                            if (kvp.Key.Equals("Action", StringComparison.OrdinalIgnoreCase)
+                                && !string.IsNullOrEmpty(kvp.Value?.ToString()))
                             {
-                                if (currentInstruction.Count > 0)
-
-                                {
-                                    processedInstructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
-                                    currentInstruction.Clear();
-                                }
+                                processedInstructions.Add(new Dictionary<string, object>(currentInstruction, StringComparer.Ordinal));
+                                currentInstruction.Clear();
                             }
                         }
                         else if (item is Dictionary<string, object> dict)
@@ -970,7 +981,7 @@ namespace KOTORModSync.Core.Services
 
 
                 // Check if we have KeyValuePair objects (YAML deserialization issue)
-                List<object> keyValuePairs = optionsList.Where(item => item.GetType().Name.StartsWith("KeyValuePair", StringComparison.Ordinal)).ToList();
+                var keyValuePairs = optionsList.Where(item => item.GetType().Name.StartsWith("KeyValuePair", StringComparison.Ordinal)).ToList();
                 bool hasKeyValuePairs = keyValuePairs.Count > 0;
 
                 if (hasKeyValuePairs)
@@ -982,9 +993,9 @@ namespace KOTORModSync.Core.Services
                 else
                 {
                     Logger.LogVerbose("ProcessInstructionsAndOptions: No KeyValuePair option items, processing individually");
-                    List<object> processedOptions = new List<object>();
+                    var processedOptions = new List<object>();
 
-                    Dictionary<string, object> currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
+                    var currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
 
                     foreach (object item in optionsList)
                     {
@@ -996,14 +1007,11 @@ namespace KOTORModSync.Core.Services
                             currentOption[kvp.Key] = kvp.Value;
 
                             // Check if this completes an option (has Name field)
-                            if (kvp.Key.Equals("Name", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(kvp.Value?.ToString()))
+                            if (kvp.Key.Equals("Name", StringComparison.OrdinalIgnoreCase)
+                                && !string.IsNullOrEmpty(kvp.Value?.ToString()))
                             {
-                                if (currentOption.Count > 0)
-
-                                {
-                                    processedOptions.Add(new Dictionary<string, object>(currentOption, StringComparer.Ordinal));
-                                    currentOption.Clear();
-                                }
+                                processedOptions.Add(new Dictionary<string, object>(currentOption, StringComparer.Ordinal));
+                                currentOption.Clear();
                             }
                         }
                         else if (item is Dictionary<string, object> dict)
@@ -1042,7 +1050,7 @@ namespace KOTORModSync.Core.Services
         private static void ProcessComponentLevelProperties(Dictionary<string, object> processedDict)
         {
             // Check if any component-level properties are KeyValuePair objects
-            List<string> keyValuePairKeys = new List<string>();
+            var keyValuePairKeys = new List<string>();
             foreach (KeyValuePair<string, object> kvp in processedDict)
             {
                 if (kvp.Value != null && kvp.Value.GetType().Name.StartsWith("KeyValuePair", StringComparison.Ordinal))
@@ -1110,9 +1118,9 @@ namespace KOTORModSync.Core.Services
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private static List<object> GroupKeyValuePairsIntoInstructions(List<object> kvpList)
         {
-            List<object> instructions = new List<object>();
+            var instructions = new List<object>();
 
-            Dictionary<string, object> currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
+            var currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
 
             foreach (object kvp in kvpList)
             {
@@ -1177,9 +1185,9 @@ namespace KOTORModSync.Core.Services
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private static List<object> GroupKeyValuePairsIntoOptions(List<object> kvpList)
         {
-            List<object> options = new List<object>();
+            var options = new List<object>();
 
-            Dictionary<string, object> currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
+            var currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
 
             foreach (object kvp in kvpList)
             {
@@ -1247,7 +1255,7 @@ namespace KOTORModSync.Core.Services
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public static ModComponent DeserializeComponent([NotNull] IDictionary<string, object> componentDict)
         {
-            ModComponent component = new ModComponent();
+            var component = new ModComponent();
 
             component.Guid = GetRequiredValue<Guid>(componentDict, key: "Guid");
             component.Name = GetRequiredValue<string>(componentDict, key: "Name");
@@ -1269,7 +1277,7 @@ namespace KOTORModSync.Core.Services
             {
                 string singleCategory = component.Category[0];
                 if (!string.IsNullOrEmpty(singleCategory) &&
-                     (singleCategory.Contains(',') || singleCategory.Contains(';')))
+                     (singleCategory.Contains(',', StringComparison.Ordinal) || singleCategory.Contains(';', StringComparison.Ordinal)))
                 {
                     component.Category = singleCategory.Split(
                         new[] { ",", ";" },
@@ -1296,7 +1304,16 @@ namespace KOTORModSync.Core.Services
             component.Language = GetValueOrDefault<List<string>>(componentDict, key: "Language") ?? new List<string>();
             component.ExcludedDownloads = GetValueOrDefault<List<string>>(componentDict, key: "ExcludedDownloads") ?? new List<string>();
 
-            // Load legacy ModLink format first (if present)
+            // Load ResourceRegistry (primary source, replaces ModLinkFilenames)
+            component.ResourceRegistry = DeserializeResourceRegistry(componentDict);
+
+            // Ensure ResourceRegistry exists
+            if (component.ResourceRegistry == null)
+            {
+                component.ResourceRegistry = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            // Load legacy ModLink format and migrate directly to ResourceRegistry (not ModLinkFilenames)
             List<string> legacyModLink = GetValueOrDefault<List<string>>(componentDict, key: "ModLink") ?? new List<string>();
             if (legacyModLink.Count == 0)
             {
@@ -1307,33 +1324,238 @@ namespace KOTORModSync.Core.Services
                 }
             }
 
-            // Initialize ModLinkFilenames with legacy URLs (with null values = auto-discover)
-            component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+            // Migrate legacy ModLink directly to ResourceRegistry
             if (legacyModLink.Count > 0)
             {
-                _ = Logger.LogVerboseAsync($"Migrating legacy ModLink to ModLinkFilenames for component '{component.Name}' ({legacyModLink.Count} URLs)");
+                Logger.LogVerbose($"Migrating legacy ModLink to ResourceRegistry for component '{component.Name}' ({legacyModLink.Count} URLs)");
+                var registryDict = new Dictionary<string, ResourceMetadata>(component.ResourceRegistry, StringComparer.OrdinalIgnoreCase);
+
                 foreach (string url in legacyModLink)
                 {
                     if (!string.IsNullOrWhiteSpace(url))
                     {
-                        // Create an entry with an empty filename dictionary - files will be discovered during download
-                        component.ModLinkFilenames[url] = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+                        // Check if ResourceRegistry already has an entry for this URL (keyed by URL directly)
+                        bool urlExistsInRegistry = registryDict.ContainsKey(url);
+
+                        if (!urlExistsInRegistry)
+                        {
+                            // Create minimal ResourceMetadata entry from legacy ModLink
+                            string normalizedUrl = UrlNormalizer.Normalize(url);
+                            byte[] urlHashBytes;
+#if NET48
+                            using (var sha1 = System.Security.Cryptography.SHA1.Create())
+                            {
+                                urlHashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
+                            }
+#else
+                            urlHashBytes = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
+#endif
+                            string tempKey = System.BitConverter.ToString(urlHashBytes).Replace("-", string.Empty).ToLowerInvariant();
+
+                            var meta = new ResourceMetadata
+                            {
+                                ContentKey = tempKey,
+                                MetadataHash = tempKey, // Temporary, will be updated when metadata is available
+                                Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase), // Empty - files will be discovered during download
+                                HandlerMetadata = new Dictionary<string, object>(StringComparer.Ordinal),
+                                FileSize = 0,
+                                TrustLevel = MappingTrustLevel.Unverified,
+                                FirstSeen = DateTime.UtcNow,
+                            };
+
+                            registryDict[url] = meta; // Key by URL directly
+                            Logger.LogVerbose($"Created ResourceRegistry entry from legacy ModLink for URL: {url}");
+                        }
+                    }
+                }
+
+                component.ResourceRegistry = registryDict;
+            }
+
+            // DEPRECATED: Load ModLinkFilenames for backward compatibility and migrate to ResourceRegistry
+            // This inline deserialization replaces the removed DeserializeModLinkFilenames function
+            var deserializedFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                if ((componentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesObj) ||
+                     componentDict.TryGetValue("modLinkFilenames", out modLinkFilenamesObj)) && modLinkFilenamesObj != null)
+                {
+                    Logger.LogVerbose($"Migrating deprecated ModLinkFilenames to ResourceRegistry for component '{component.Name}'");
+
+                    if (modLinkFilenamesObj is IDictionary<string, object> urlDict)
+                    {
+                        foreach (KeyValuePair<string, object> kvp in urlDict)
+                        {
+                            string url = kvp.Key;
+                            var filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+
+                            if (kvp.Value is IDictionary<string, object> filenameObj)
+                            {
+                                foreach (KeyValuePair<string, object> fileKvp in filenameObj)
+                                {
+                                    string filename = fileKvp.Key;
+                                    bool? shouldDownload = null;
+
+                                    if (fileKvp.Value is bool boolVal)
+                                    {
+                                        shouldDownload = boolVal;
+                                    }
+                                    else if (fileKvp.Value != null)
+                                    {
+                                        string valueStr = fileKvp.Value.ToString();
+                                        if (!string.IsNullOrEmpty(valueStr) &&
+                                            !valueStr.Equals("null", StringComparison.OrdinalIgnoreCase) &&
+                                            bool.TryParse(valueStr, out bool parsedBool))
+                                        {
+                                            shouldDownload = parsedBool;
+                                        }
+                                        // else remains null (default)
+                                    }
+
+                                    filenameDict[filename] = shouldDownload;
+                                }
+                            }
+                            else if (kvp.Value is IDictionary<object, object> objectFilenameDict)
+                            {
+                                foreach (KeyValuePair<object, object> fileKvp in objectFilenameDict)
+                                {
+                                    string filename = fileKvp.Key?.ToString();
+                                    if (string.IsNullOrEmpty(filename))
+                                    {
+                                        continue;
+                                    }
+
+
+                                    bool? shouldDownload = null;
+                                    if (fileKvp.Value is bool boolVal)
+                                    {
+                                        shouldDownload = boolVal;
+                                    }
+                                    else if (fileKvp.Value != null)
+                                    {
+                                        string valueStr = fileKvp.Value.ToString();
+                                        if (!string.IsNullOrEmpty(valueStr) &&
+                                            !valueStr.Equals("null", StringComparison.OrdinalIgnoreCase) &&
+                                            bool.TryParse(valueStr, out bool parsedBool))
+                                        {
+                                            shouldDownload = parsedBool;
+                                        }
+                                    }
+
+                                    filenameDict[filename] = shouldDownload;
+                                }
+                            }
+
+                            if (filenameDict.Count > 0)
+                            {
+                                deserializedFilenames[url] = filenameDict;
+                            }
+                        }
+                    }
+                    else if (modLinkFilenamesObj is IDictionary<object, object> objectDict)
+                    {
+                        foreach (KeyValuePair<object, object> kvp in objectDict)
+                        {
+                            string url = kvp.Key?.ToString();
+                            if (string.IsNullOrEmpty(url))
+                            {
+                                continue;
+                            }
+
+
+                            var filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+
+                            if (kvp.Value is IDictionary<object, object> filenameObj)
+                            {
+                                foreach (KeyValuePair<object, object> fileKvp in filenameObj)
+                                {
+                                    string filename = fileKvp.Key?.ToString();
+                                    if (string.IsNullOrEmpty(filename))
+                                    {
+                                        continue;
+                                    }
+
+
+                                    bool? shouldDownload = null;
+                                    if (fileKvp.Value is bool boolVal)
+                                    {
+                                        shouldDownload = boolVal;
+                                    }
+                                    else if (fileKvp.Value != null)
+                                    {
+                                        string valueStr = fileKvp.Value.ToString();
+                                        if (!string.IsNullOrEmpty(valueStr) &&
+                                            !valueStr.Equals("null", StringComparison.OrdinalIgnoreCase) &&
+                                            bool.TryParse(valueStr, out bool parsedBool))
+                                        {
+                                            shouldDownload = parsedBool;
+                                        }
+                                    }
+
+                                    filenameDict[filename] = shouldDownload;
+                                }
+                            }
+
+                            if (filenameDict.Count > 0)
+                            {
+                                deserializedFilenames[url] = filenameDict;
+                            }
+                        }
                     }
                 }
             }
-
-            // Load ModLinkFilenames (will merge/overwrite legacy entries if present)
-            Dictionary<string, Dictionary<string, bool?>> deserializedFilenames = DeserializeModLinkFilenames(componentDict);
-            if (deserializedFilenames.Count > 0)
+            catch (Exception ex)
             {
-                foreach (KeyValuePair<string, Dictionary<string, bool?>> kvp in deserializedFilenames)
-                {
-                    component.ModLinkFilenames[kvp.Key] = kvp.Value;
-                }
+                Logger.LogWarning($"Failed to deserialize deprecated ModLinkFilenames (non-fatal): {ex.Message}");
             }
 
-            // Load ResourceRegistry
-            component.ResourceRegistry = DeserializeResourceRegistry(componentDict);
+            // Migrate deserialized ModLinkFilenames entries to ResourceRegistry if not already present
+            if (deserializedFilenames.Count > 0)
+            {
+                Logger.LogVerbose($"Migrating {deserializedFilenames.Count} deprecated ModLinkFilenames entries to ResourceRegistry for component '{component.Name}'");
+                var registryDict = new Dictionary<string, ResourceMetadata>(component.ResourceRegistry, StringComparer.OrdinalIgnoreCase);
+
+                foreach (KeyValuePair<string, Dictionary<string, bool?>> kvp in deserializedFilenames)
+                {
+                    string url = kvp.Key;
+                    Dictionary<string, bool?> filenames = kvp.Value;
+
+                    // Check if ResourceRegistry already has an entry for this URL (keyed by URL directly)
+                    bool urlExistsInRegistry = registryDict.ContainsKey(url);
+
+                    if (!urlExistsInRegistry && filenames != null && filenames.Count > 0)
+                    {
+                        // Create minimal ResourceMetadata entry from ModLinkFilenames
+                        string normalizedUrl = UrlNormalizer.Normalize(url);
+                        byte[] urlHashBytes;
+#if NET48
+                        using (var sha1 = System.Security.Cryptography.SHA1.Create())
+                        {
+                            urlHashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
+                        }
+#else
+                        urlHashBytes = System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(normalizedUrl));
+#endif
+                        string tempKey = BitConverter.ToString(urlHashBytes).Replace("-", string.Empty).ToLowerInvariant();
+
+                        var meta = new ResourceMetadata
+                        {
+                            ContentKey = tempKey,
+                            MetadataHash = tempKey, // Temporary, will be updated when metadata is available
+                            Files = new Dictionary<string, bool?>(filenames, StringComparer.Ordinal),
+                            HandlerMetadata = new Dictionary<string, object>(StringComparer.Ordinal),
+                            FileSize = 0,
+                            TrustLevel = MappingTrustLevel.Unverified,
+                            FirstSeen = DateTime.UtcNow,
+                        };
+
+                        registryDict[url] = meta; // Key by URL directly
+                        Logger.LogVerbose($"Created ResourceRegistry entry from deprecated ModLinkFilenames for URL: {url}");
+                    }
+                }
+
+                component.ResourceRegistry = registryDict;
+            }
 
             component.Dependencies = GetValueOrDefault<List<Guid>>(componentDict, key: "Dependencies") ?? new List<Guid>();
             component.Restrictions = GetValueOrDefault<List<Guid>>(componentDict, key: "Restrictions") ?? new List<Guid>();
@@ -1351,10 +1573,10 @@ namespace KOTORModSync.Core.Services
                 if (instructionsObj is TomlTableArray instructionsTableArray)
                 {
                     Logger.LogVerbose($"Instructions is TomlTableArray with {instructionsTableArray.Count} items");
-                    List<object> instructionsList = new List<object>();
-                    foreach (TomlTable table in instructionsTableArray)
+                    var instructionsList = new List<object>();
+                    foreach (object item in instructionsTableArray)
                     {
-                        instructionsList.Add(table);
+                        instructionsList.Add(item);
                     }
                     componentInstructions = instructionsList;
                 }
@@ -1396,8 +1618,8 @@ namespace KOTORModSync.Core.Services
                 return;
             }
 
-            List<int> optionsToRemove = new List<int>();
-            HashSet<Guid> guidsToRemove = new HashSet<Guid>();
+            var optionsToRemove = new List<int>();
+            var guidsToRemove = new HashSet<Guid>();
 
             // Compare each option with all subsequent options
             for (int i = 0; i < component.Options.Count; i++)
@@ -1445,6 +1667,7 @@ namespace KOTORModSync.Core.Services
         /// <summary>
         /// Compares two instruction collections to determine if they are identical.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private static bool AreInstructionsIdentical(
             [NotNull][ItemNotNull] System.Collections.ObjectModel.ObservableCollection<Instruction> instructions1,
             [NotNull][ItemNotNull] System.Collections.ObjectModel.ObservableCollection<Instruction> instructions2)
@@ -1469,9 +1692,7 @@ namespace KOTORModSync.Core.Services
                     return false;
                 }
 
-                if (
-
-!string.Equals(instr1.Destination, instr2.Destination, StringComparison.Ordinal))
+                if (!string.Equals(instr1.Destination, instr2.Destination, StringComparison.Ordinal))
                 {
                     return false;
                 }
@@ -1546,8 +1767,8 @@ namespace KOTORModSync.Core.Services
                 if (instruction.Action == ActionType.Choose)
                 {
                     // Source contains GUIDs as strings
-                    List<string> originalSource = instruction.Source.ToList();
-                    List<string> filteredSource = new List<string>();
+                    var originalSource = instruction.Source.ToList();
+                    var filteredSource = new List<string>();
 
                     foreach (string guidStr in originalSource)
                     {
@@ -1592,6 +1813,7 @@ namespace KOTORModSync.Core.Services
             MainConfig.EpilogueContent = string.Empty;
             MainConfig.WidescreenWarningContent = string.Empty;
             MainConfig.AspyrExclusiveWarningContent = string.Empty;
+            MainConfig.InstallationWarningContent = string.Empty;
             try
             {
                 if (!tomlTable.TryGetValue("metadata", out object metadataObj) || !(metadataObj is TomlTable metadataTable))
@@ -1650,6 +1872,11 @@ namespace KOTORModSync.Core.Services
                     MainConfig.AspyrExclusiveWarningContent = aspyrObj?.ToString() ?? string.Empty;
                 }
 
+                if (metadataTable.TryGetValue("installationWarningContent", out object installationWarningObj) || metadataTable.TryGetValue("InstallationWarningContent", out installationWarningObj))
+                {
+                    MainConfig.InstallationWarningContent = installationWarningObj?.ToString() ?? string.Empty;
+                }
+
                 Logger.LogVerbose($"Loaded metadata: Game={MainConfig.TargetGame}, Version={MainConfig.FileFormatVersion}, Build={MainConfig.BuildName}");
             }
             catch (Exception ex)
@@ -1701,24 +1928,24 @@ namespace KOTORModSync.Core.Services
                 return GroupInstructionFieldsIntoInstructions(instructionsSerializedList, parentComponent);
             }
 
-            System.Collections.ObjectModel.ObservableCollection<Instruction> instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>();
+            var instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>();
             for (int index = 0; index < instructionsSerializedList.Count; index++)
             {
                 Logger.LogVerbose($"Processing instruction {index + 1} for '{componentName}': {instructionsSerializedList[index]}");
                 Dictionary<string, object> instructionDict =
-                    Utility.Serializer.SerializeIntoDictionary(instructionsSerializedList[index]);
+                    Serializer.SerializeIntoDictionary(instructionsSerializedList[index]);
                 Logger.LogVerbose($"Serialized instruction dict: {string.Join(", ", instructionDict.Keys)}");
 
                 // Only deserialize paths for non-Choose instructions (Choose instructions have GUIDs as sources)
                 string strAction = GetValueOrDefault<string>(instructionDict, key: "Action");
                 if (!string.Equals(strAction, "Choose", StringComparison.OrdinalIgnoreCase))
                 {
-                    Utility.Serializer.DeserializePathInDictionary(instructionDict, key: "Source");
+                    Serializer.DeserializePathInDictionary(instructionDict, key: "Source");
                 }
 
-                Utility.Serializer.DeserializeGuidDictionary(instructionDict, key: "Restrictions");
-                Utility.Serializer.DeserializeGuidDictionary(instructionDict, key: "Dependencies");
-                Instruction instruction = new Instruction();
+                Serializer.DeserializeGuidDictionary(instructionDict, key: "Restrictions");
+                Serializer.DeserializeGuidDictionary(instructionDict, key: "Dependencies");
+                var instruction = new Instruction();
 
                 // Ignore GUID if present (for backward compatibility)
                 _ = instructionDict.TryGetValue("Guid", out _);
@@ -1789,9 +2016,9 @@ namespace KOTORModSync.Core.Services
             Logger.LogVerbose($"=== GroupInstructionFieldsIntoInstructions for '{componentName}' ===");
             Logger.LogVerbose($"Processing {instructionFields.Count} individual instruction fields");
 
-            System.Collections.ObjectModel.ObservableCollection<Instruction> instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>();
+            var instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>();
 
-            Dictionary<string, object> currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
+            var currentInstruction = new Dictionary<string, object>(StringComparer.Ordinal);
 
             foreach (object fieldObj in instructionFields)
             {
@@ -1840,15 +2067,15 @@ namespace KOTORModSync.Core.Services
             }
 
             // Handle TomlTableArray - preserve it for further processing (e.g., Instructions)
-            if (value is Tomlyn.Model.TomlTableArray)
+            if (value is TomlTableArray)
             {
                 return value;
             }
 
             // Handle TomlArray by converting to List<string>
-            if (value is Tomlyn.Model.TomlArray tomlArray)
+            if (value is TomlArray tomlArray)
             {
-                List<string> list = new List<string>();
+                var list = new List<string>();
                 foreach (object item in tomlArray)
                 {
                     list.Add(item?.ToString() ?? string.Empty);
@@ -1866,6 +2093,49 @@ namespace KOTORModSync.Core.Services
         }
 
         /// <summary>
+        /// Converts a TomlTable to a Dictionary&lt;string, object&gt; recursively, handling nested TomlTable objects.
+        /// </summary>
+        private static Dictionary<string, object> ConvertTomlTableToDictionary(TomlTable tomlTable)
+        {
+            if (tomlTable == null)
+            {
+                return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, object> kvp in tomlTable)
+            {
+                // Recursively convert nested TomlTable objects
+                if (kvp.Value is TomlTable nestedTable)
+                {
+                    result[kvp.Key] = ConvertTomlTableToDictionary(nestedTable);
+                }
+                // Handle TomlArray (list of nested tables)
+                else if (kvp.Value is TomlArray tomlArray)
+                {
+                    var list = new List<object>();
+                    foreach (object item in tomlArray)
+                    {
+                        if (item is TomlTable arrayTable)
+                        {
+                            list.Add(ConvertTomlTableToDictionary(arrayTable));
+                        }
+                        else
+                        {
+                            list.Add(item);
+                        }
+                    }
+                    result[kvp.Key] = list;
+                }
+                else
+                {
+                    result[kvp.Key] = kvp.Value;
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Processes a complete instruction dictionary and adds it to the instructions collection.
         /// </summary>
         private static void ProcessCompleteInstruction(
@@ -1879,13 +2149,13 @@ namespace KOTORModSync.Core.Services
             string strAction = GetValueOrDefault<string>(instructionDict, key: "Action");
             if (!string.Equals(strAction, "Choose", StringComparison.OrdinalIgnoreCase))
             {
-                Utility.Serializer.DeserializePathInDictionary(instructionDict, key: "Source");
+                Serializer.DeserializePathInDictionary(instructionDict, key: "Source");
             }
 
-            Utility.Serializer.DeserializeGuidDictionary(instructionDict, key: "Restrictions");
-            Utility.Serializer.DeserializeGuidDictionary(instructionDict, key: "Dependencies");
+            Serializer.DeserializeGuidDictionary(instructionDict, key: "Restrictions");
+            Serializer.DeserializeGuidDictionary(instructionDict, key: "Dependencies");
 
-            Instruction instruction = new Instruction();
+            var instruction = new Instruction();
 
             // Ignore GUID if present (for backward compatibility)
             _ = instructionDict.TryGetValue("Guid", out _);
@@ -1956,7 +2226,7 @@ namespace KOTORModSync.Core.Services
                 return GroupOptionFieldsIntoOptions(optionsSerializedList);
             }
 
-            System.Collections.ObjectModel.ObservableCollection<Option> options = new System.Collections.ObjectModel.ObservableCollection<Option>();
+            var options = new System.Collections.ObjectModel.ObservableCollection<Option>();
             for (int index = 0; index < optionsSerializedList.Count; index++)
             {
                 // Handle both KeyValuePair<string, object> (from TOML array of tables) and direct IDictionary
@@ -1975,9 +2245,9 @@ namespace KOTORModSync.Core.Services
                     continue;
                 }
 
-                Utility.Serializer.DeserializeGuidDictionary(optionsDict, key: "Restrictions");
-                Utility.Serializer.DeserializeGuidDictionary(optionsDict, key: "Dependencies");
-                Option option = new Option();
+                Serializer.DeserializeGuidDictionary(optionsDict, key: "Restrictions");
+                Serializer.DeserializeGuidDictionary(optionsDict, key: "Dependencies");
+                var option = new Option();
                 _ = Logger.LogVerboseAsync($"-- Deserialize option #{index + 1}");
                 option.Name = GetRequiredValue<string>(optionsDict, key: "Name");
                 option.Description = GetValueOrDefault<string>(optionsDict, key: "Description") ?? string.Empty;
@@ -2009,9 +2279,9 @@ namespace KOTORModSync.Core.Services
             Logger.LogVerbose($"=== GroupOptionFieldsIntoOptions ===");
             Logger.LogVerbose($"Processing {optionFields.Count} individual option fields");
 
-            System.Collections.ObjectModel.ObservableCollection<Option> options = new System.Collections.ObjectModel.ObservableCollection<Option>();
+            var options = new System.Collections.ObjectModel.ObservableCollection<Option>();
 
-            Dictionary<string, object> currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
+            var currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
 
             foreach (object fieldObj in optionFields)
             {
@@ -2024,10 +2294,10 @@ namespace KOTORModSync.Core.Services
 
                     // Special handling for Instructions field - preserve complex objects
                     object convertedValue;
-                    if (key.Equals("Instructions", StringComparison.OrdinalIgnoreCase) && value is Tomlyn.Model.TomlArray instructionsArray)
+                    if (key.Equals("Instructions", StringComparison.OrdinalIgnoreCase) && value is TomlArray instructionsArray)
                     {
                         // Convert TomlArray containing instruction dictionaries to List<object>
-                        List<object> instructionsList = new List<object>();
+                        var instructionsList = new List<object>();
                         foreach (object item in instructionsArray)
                         {
                             if (item is TomlTable table)
@@ -2041,7 +2311,7 @@ namespace KOTORModSync.Core.Services
                             else
                             {
                                 // Convert other types to dictionary if possible
-                                Dictionary<string, object> converted = Utility.Serializer.SerializeIntoDictionary(item);
+                                Dictionary<string, object> converted = Serializer.SerializeIntoDictionary(item);
                                 instructionsList.Add(converted);
                             }
                         }
@@ -2057,7 +2327,7 @@ namespace KOTORModSync.Core.Services
                     if (key.Equals("Guid", StringComparison.OrdinalIgnoreCase) && currentOption.Count > 0)
                     {
                         // We have a complete option, process it
-                        Logger.LogVerbose($"Found complete option with Guid: {(currentOption.ContainsKey("Guid") ? currentOption["Guid"] : "unknown")}");
+                        Logger.LogVerbose($"Found complete option with Guid: {(currentOption.TryGetValue("Guid", out object guidValue) ? guidValue : "unknown")}");
                         ProcessCompleteOption(currentOption, options);
 
                         currentOption = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -2088,10 +2358,10 @@ namespace KOTORModSync.Core.Services
         {
             Logger.LogVerbose($"Processing complete option with keys: {string.Join(", ", optionDict.Keys)}");
 
-            Utility.Serializer.DeserializeGuidDictionary(optionDict, key: "Restrictions");
-            Utility.Serializer.DeserializeGuidDictionary(optionDict, key: "Dependencies");
+            Serializer.DeserializeGuidDictionary(optionDict, key: "Restrictions");
+            Serializer.DeserializeGuidDictionary(optionDict, key: "Dependencies");
 
-            Option option = new Option();
+            var option = new Option();
             option.Name = GetRequiredValue<string>(optionDict, key: "Name");
             option.Description = GetValueOrDefault<string>(optionDict, key: "Description") ?? string.Empty;
             option.Guid = GetRequiredValue<Guid>(optionDict, key: "Guid");
@@ -2108,10 +2378,10 @@ namespace KOTORModSync.Core.Services
                 IList<object> instructionsList = null;
 
                 // Handle TomlTableArray (from Tomlyn parser)
-                if (instructionsObj is Tomlyn.Model.TomlTableArray optionInstructionsTableArray)
+                if (instructionsObj is TomlTableArray optionInstructionsTableArray)
                 {
                     Logger.LogVerbose($"Option Instructions is TomlTableArray with {optionInstructionsTableArray.Count} items");
-                    List<object> convertedList = new List<object>();
+                    var convertedList = new List<object>();
                     foreach (TomlTable item in optionInstructionsTableArray)
                     {
                         convertedList.Add(item);
@@ -2121,7 +2391,7 @@ namespace KOTORModSync.Core.Services
                 // Handle inline array of instruction dictionaries (legacy format)
                 else if (instructionsObj is System.Collections.IEnumerable instructionsEnumerable && !(instructionsObj is string))
                 {
-                    List<object> convertedList = new List<object>();
+                    var convertedList = new List<object>();
                     foreach (object item in instructionsEnumerable)
                     {
                         // Convert Tomlyn types to dictionaries
@@ -2136,7 +2406,7 @@ namespace KOTORModSync.Core.Services
                         else
                         {
                             // Try to convert to dictionary using SerializeIntoDictionary
-                            Dictionary<string, object> converted = Utility.Serializer.SerializeIntoDictionary(item);
+                            Dictionary<string, object> converted = Serializer.SerializeIntoDictionary(item);
                             convertedList.Add(converted);
                         }
                     }
@@ -2201,16 +2471,19 @@ namespace KOTORModSync.Core.Services
                     throw new ArgumentNullException(nameof(key));
                 }
 
+                Logger.LogVerbose($"GetValue<{typeof(T).Name}>: Attempting to get key '{key}' from dict with {dict.Count} keys");
+
                 // Handle duplicate keys by consolidating values
 
                 // First try exact key match
                 if (dict.TryGetValue(key, out object value))
                 {
+                    Logger.LogVerbose($"GetValue: Found key '{key}', type={value?.GetType().Name ?? "null"}, value={value}");
                     // Check if this is a collection that might contain duplicates
                     if (value is System.Collections.IEnumerable valueEnumerable && !(value is string))
                     {
                         // For collections, consolidate duplicates by flattening nested collections
-                        List<object> consolidatedList = new List<object>();
+                        var consolidatedList = new List<object>();
                         foreach (object item in valueEnumerable)
                         {
                             if (item is System.Collections.IEnumerable nestedEnumerable && !(item is string))
@@ -2233,7 +2506,7 @@ namespace KOTORModSync.Core.Services
                 {
                     // Try case-insensitive match
                     string caseInsensitiveKey = dict.Keys.FirstOrDefault(
-                        k => !(k is null) && k.Equals(key, StringComparison.OrdinalIgnoreCase)
+                        k => !(k is null) && k.Equals(key, StringComparison.Ordinal)
                     );
                     if (
                         caseInsensitiveKey != null
@@ -2242,7 +2515,7 @@ namespace KOTORModSync.Core.Services
                         && !(value is string))
                     {
                         // For collections, consolidate duplicates by flattening nested collections
-                        List<object> consolidatedList = new List<object>();
+                        var consolidatedList = new List<object>();
                         foreach (object item in caseInsensitiveEnumerable)
                         {
                             if (item is System.Collections.IEnumerable nestedEnumerable && !(item is string))
@@ -2259,6 +2532,7 @@ namespace KOTORModSync.Core.Services
                             }
                         }
                         value = consolidatedList;
+                        // else: value is already set from TryGetValue for non-collection types
                     }
                 }
 
@@ -2279,6 +2553,7 @@ namespace KOTORModSync.Core.Services
                     case T t:
                         return t;
                     case string valueStr:
+                        Logger.LogVerbose($"GetValue<{typeof(T).Name}>: key='{key}', type=string, value='{valueStr}'");
                         if (string.IsNullOrEmpty(valueStr))
                         {
                             return required
@@ -2287,7 +2562,7 @@ namespace KOTORModSync.Core.Services
                         }
                         if (targetType == typeof(Guid))
                         {
-                            string guidStr = Utility.Serializer.FixGuidString(valueStr);
+                            string guidStr = Serializer.FixGuidString(valueStr);
                             T result;
                             if (!string.IsNullOrEmpty(guidStr) && Guid.TryParse(guidStr, out Guid guid))
                             {
@@ -2295,6 +2570,7 @@ namespace KOTORModSync.Core.Services
                             }
                             else
                             {
+                                Logger.LogError($"GUID parsing failed for key '{key}': original='{valueStr}', fixed='{guidStr}', empty={string.IsNullOrEmpty(guidStr)}");
                                 if (required)
                                 {
                                     throw new ArgumentException($"'{key}' field is not a valid Guid!", nameof(key));
@@ -2315,6 +2591,285 @@ namespace KOTORModSync.Core.Services
                         break;
                 }
 
+                // Handle TomlTable explicitly (must come before IDictionary check since TomlTable might not implement IDictionary<string, object> directly)
+                if (value is TomlTable tomlTable)
+                {
+                    try
+                    {
+                        // Convert TomlTable to Dictionary<string, object>
+                        var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        foreach (KeyValuePair<string, object> kvp in tomlTable)
+                        {
+                            // Recursively convert nested TomlTable objects
+                            if (kvp.Value is TomlTable nestedTable)
+                            {
+                                result[kvp.Key] = ConvertTomlTableToDictionary(nestedTable);
+                            }
+                            else
+                            {
+                                result[kvp.Key] = kvp.Value;
+                            }
+                        }
+
+                        // Return as target type
+                        if (targetType == typeof(Dictionary<string, object>))
+                        {
+                            return (T)(object)result;
+                        }
+
+                        // If target is generic Dictionary, continue to generic handling
+                        Type genericDictDefinition2 = targetType.IsGenericType
+                            ? targetType.GetGenericTypeDefinition()
+                            : null;
+                        if (genericDictDefinition2 == typeof(Dictionary<,>))
+                        {
+                            // Convert the Dictionary<string, object> to the target generic type
+                            Type[] genericArgs = typeof(T).GetGenericArguments();
+                            Type dictKeyType = genericArgs.Length > 0 ? genericArgs[0] : typeof(string);
+                            Type dictValueType = genericArgs.Length > 1 ? genericArgs[1] : typeof(object);
+
+                            Type dictType = typeof(Dictionary<,>).MakeGenericType(dictKeyType, dictValueType);
+                            var genericResult = (T)Activator.CreateInstance(dictType, StringComparer.OrdinalIgnoreCase);
+                            System.Reflection.MethodInfo addMethod = genericResult?.GetType().GetMethod("Add");
+
+                            foreach (KeyValuePair<string, object> kvp in result)
+                            {
+                                object convertedKey = kvp.Key;
+                                if (dictKeyType != typeof(string))
+                                {
+                                    convertedKey = Convert.ChangeType(kvp.Key, dictKeyType, System.Globalization.CultureInfo.InvariantCulture);
+                                }
+
+                                object convertedValue = null;
+                                if (dictValueType == typeof(bool?))
+                                {
+                                    if (kvp.Value == null)
+                                    {
+                                        convertedValue = null;
+                                    }
+                                    else if (kvp.Value is bool b)
+                                    {
+                                        convertedValue = b;
+                                    }
+                                    else if (kvp.Value is string str && string.Equals(str, "null", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        convertedValue = null;
+                                    }
+                                    else if (bool.TryParse(kvp.Value?.ToString(), out bool parsedBool))
+                                    {
+                                        convertedValue = parsedBool;
+                                    }
+                                    else
+                                    {
+                                        convertedValue = null;
+                                    }
+                                }
+                                else
+                                {
+                                    convertedValue = Convert.ChangeType(kvp.Value, dictValueType, System.Globalization.CultureInfo.InvariantCulture);
+                                }
+
+                                _ = addMethod?.Invoke(genericResult, new[] { convertedKey, convertedValue });
+                            }
+
+                            return genericResult;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning($"Failed to convert TomlTable to Dictionary for '{key}': {ex.Message} - using default value");
+                        Logger.LogVerbose($"TomlTable conversion error details for '{key}': {ex}");
+                        return default;
+                    }
+                }
+
+                // Handle Dictionary<string, object> types (including TomlTable and IDictionary)
+                if (targetType == typeof(Dictionary<string, object>))
+                {
+                    // Handle direct dictionary
+                    if (value is IDictionary<string, object> dictValue)
+                    {
+                        var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        foreach (KeyValuePair<string, object> kvp in dictValue)
+                        {
+                            // Recursively convert nested TomlTable objects
+                            if (kvp.Value is TomlTable nestedTable)
+                            {
+                                result[kvp.Key] = ConvertTomlTableToDictionary(nestedTable);
+                            }
+                            else if (kvp.Value is IDictionary<string, object> nestedDict)
+                            {
+                                // Recursively convert nested dictionaries
+                                result[kvp.Key] = ConvertNestedDictionary(nestedDict);
+                            }
+                            else
+                            {
+                                result[kvp.Key] = kvp.Value;
+                            }
+                        }
+                        return (T)(object)result;
+                    }
+                    // Handle IDictionary<object, object> (from some serializers)
+                    else if (value is IDictionary<object, object> objectDict)
+                    {
+                        var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        foreach (KeyValuePair<object, object> kvp in objectDict)
+                        {
+                            string dictKey = kvp.Key?.ToString();
+                            if (string.IsNullOrEmpty(dictKey))
+                            {
+                                continue;
+                            }
+
+                            if (kvp.Value is TomlTable nestedTable)
+                            {
+                                result[dictKey] = ConvertTomlTableToDictionary(nestedTable);
+                            }
+                            else if (kvp.Value is IDictionary<object, object> nestedObjectDict)
+                            {
+                                var nestedDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                                foreach (KeyValuePair<object, object> nestedKvp in nestedObjectDict)
+                                {
+                                    string nestedKey = nestedKvp.Key?.ToString();
+                                    if (!string.IsNullOrEmpty(nestedKey))
+                                    {
+                                        nestedDict[nestedKey] = nestedKvp.Value;
+                                    }
+                                }
+                                result[dictKey] = nestedDict;
+                            }
+                            else
+                            {
+                                result[dictKey] = kvp.Value;
+                            }
+                        }
+                        return (T)(object)result;
+                    }
+                }
+
+                // Handle generic Dictionary types (e.g., Dictionary<string, bool?>)
+                Type genericDictDefinition = targetType.IsGenericType
+                    ? targetType.GetGenericTypeDefinition()
+                    : null;
+                if (genericDictDefinition == typeof(Dictionary<,>))
+                {
+                    // Handle TomlTable for generic dictionaries
+                    if (value is TomlTable tomlTableForGeneric)
+                    {
+                        try
+                        {
+                            Type[] genericArgs = typeof(T).GetGenericArguments();
+                            Type dictKeyType = genericArgs.Length > 0 ? genericArgs[0] : typeof(string);
+                            Type dictValueType = genericArgs.Length > 1 ? genericArgs[1] : typeof(object);
+
+                            Type dictType = typeof(Dictionary<,>).MakeGenericType(dictKeyType, dictValueType);
+                            var result = (T)Activator.CreateInstance(dictType, StringComparer.OrdinalIgnoreCase);
+                            System.Reflection.MethodInfo addMethod = result?.GetType().GetMethod("Add");
+
+                            foreach (KeyValuePair<string, object> kvp in tomlTableForGeneric)
+                            {
+                                object convertedKey = kvp.Key;
+                                if (dictKeyType != typeof(string))
+                                {
+                                    convertedKey = Convert.ChangeType(kvp.Key, dictKeyType, System.Globalization.CultureInfo.InvariantCulture);
+                                }
+
+                                object convertedValue = ConvertDictionaryValue(kvp.Value, dictValueType);
+                                _ = addMethod?.Invoke(result, new[] { convertedKey, convertedValue });
+                            }
+
+                            return result;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning($"Failed to convert TomlTable to generic Dictionary for '{key}': {ex.Message} - using default value");
+                            return default;
+                        }
+                    }
+                    // Handle IDictionary<string, object> for generic dictionaries
+                    else if (value is IDictionary<string, object> genericDictValue)
+                    {
+                        try
+                        {
+                            Type[] genericArgs = typeof(T).GetGenericArguments();
+                            Type dictKeyType = genericArgs.Length > 0 ? genericArgs[0] : typeof(string);
+                            Type dictValueType = genericArgs.Length > 1 ? genericArgs[1] : typeof(object);
+
+                            Type dictType = typeof(Dictionary<,>).MakeGenericType(dictKeyType, dictValueType);
+                            var result = (T)Activator.CreateInstance(dictType, StringComparer.OrdinalIgnoreCase);
+                            System.Reflection.MethodInfo addMethod = result?.GetType().GetMethod("Add");
+
+                            foreach (KeyValuePair<string, object> kvp in genericDictValue)
+                            {
+                                // Convert key if needed
+                                object convertedKey = kvp.Key;
+                                if (dictKeyType != typeof(string))
+                                {
+                                    convertedKey = Convert.ChangeType(kvp.Key, dictKeyType, System.Globalization.CultureInfo.InvariantCulture);
+                                }
+
+                                // Handle nested TomlTable objects
+                                object valueToConvert = kvp.Value;
+                                if (kvp.Value is TomlTable nestedTable)
+                                {
+                                    valueToConvert = ConvertTomlTableToDictionary(nestedTable);
+                                }
+
+                                // Convert value based on target type using helper method
+                                object convertedValue = ConvertDictionaryValue(valueToConvert, dictValueType);
+
+                                _ = addMethod?.Invoke(result, new[] { convertedKey, convertedValue });
+                            }
+
+                            return result;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning($"Failed to deserialize Dictionary for '{key}': {ex.Message} - using default value");
+                            return default;
+                        }
+                    }
+                    // Handle IDictionary<object, object> for generic dictionaries
+                    else if (value is IDictionary<object, object> objectDictForGeneric)
+                    {
+                        try
+                        {
+                            Type[] genericArgs = typeof(T).GetGenericArguments();
+                            Type dictKeyType = genericArgs.Length > 0 ? genericArgs[0] : typeof(string);
+                            Type dictValueType = genericArgs.Length > 1 ? genericArgs[1] : typeof(object);
+
+                            Type dictType = typeof(Dictionary<,>).MakeGenericType(dictKeyType, dictValueType);
+                            var result = (T)Activator.CreateInstance(dictType, StringComparer.OrdinalIgnoreCase);
+                            System.Reflection.MethodInfo addMethod = result?.GetType().GetMethod("Add");
+
+                            foreach (KeyValuePair<object, object> kvp in objectDictForGeneric)
+                            {
+                                string keyStr = kvp.Key?.ToString();
+                                if (string.IsNullOrEmpty(keyStr))
+                                {
+                                    continue;
+                                }
+
+                                object convertedKey = keyStr;
+                                if (dictKeyType != typeof(string))
+                                {
+                                    convertedKey = Convert.ChangeType(keyStr, dictKeyType, System.Globalization.CultureInfo.InvariantCulture);
+                                }
+
+                                object convertedValue = ConvertDictionaryValue(kvp.Value, dictValueType);
+                                _ = addMethod?.Invoke(result, new[] { convertedKey, convertedValue });
+                            }
+
+                            return result;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogWarning($"Failed to deserialize Dictionary<object,object> to generic Dictionary for '{key}': {ex.Message} - using default value");
+                            return default;
+                        }
+                    }
+                }
+
                 // Backwards/forwards compatibility: String <-> List<string> conversion
                 Type genericListDefinition = targetType.IsGenericType
                     ? targetType.GetGenericTypeDefinition()
@@ -2333,7 +2888,7 @@ namespace KOTORModSync.Core.Services
                         try
                         {
                             Type listType = typeof(List<>).MakeGenericType(listElementType);
-                            T list = (T)Activator.CreateInstance(listType);
+                            var list = (T)Activator.CreateInstance(listType);
                             System.Reflection.MethodInfo addMethod = list?.GetType().GetMethod(name: "Add");
 
                             // Split by semicolon or comma for delimited strings
@@ -2365,7 +2920,7 @@ namespace KOTORModSync.Core.Services
                     try
                     {
                         // Try to join collection items as strings
-                        List<string> items = new List<string>();
+                        var items = new List<string>();
                         foreach (object item in enumerable)
                         {
                             string itemStr = item?.ToString();
@@ -2398,7 +2953,7 @@ namespace KOTORModSync.Core.Services
                             ? genericArgs[0]
                             : typeof(string);
                         Type listType = typeof(List<>).MakeGenericType(listElementType);
-                        T list = (T)Activator.CreateInstance(listType);
+                        var list = (T)Activator.CreateInstance(listType);
                         System.Reflection.MethodInfo addMethod = list?.GetType().GetMethod(name: "Add");
 
                         // Handle any IEnumerable (not just IEnumerable<object>)
@@ -2505,7 +3060,7 @@ namespace KOTORModSync.Core.Services
                 }
                 try
                 {
-                    return (T)Convert.ChangeType(value, typeof(T));
+                    return (T)Convert.ChangeType(value, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
                 }
                 catch (Exception e)
                 {
@@ -2528,6 +3083,186 @@ namespace KOTORModSync.Core.Services
             {
                 Logger.LogWarning($"Unexpected error deserializing key '{key}': {ex.Message} - using default value");
                 return default;
+            }
+        }
+
+        /// <summary>
+        /// Recursively converts nested dictionaries to ensure proper type handling
+        /// </summary>
+        private static Dictionary<string, object> ConvertNestedDictionary(IDictionary<string, object> dict)
+        {
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, object> kvp in dict)
+            {
+                if (kvp.Value is TomlTable nestedTable)
+                {
+                    result[kvp.Key] = ConvertTomlTableToDictionary(nestedTable);
+                }
+                else if (kvp.Value is IDictionary<string, object> nestedDict)
+                {
+                    result[kvp.Key] = ConvertNestedDictionary(nestedDict);
+                }
+                else
+                {
+                    result[kvp.Key] = kvp.Value;
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Converts a dictionary value to the target type, handling bool?, dictionaries, and other types
+        /// </summary>
+        private static object ConvertDictionaryValue(object value, Type targetType)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            // Handle bool? specifically
+            if (targetType == typeof(bool?))
+            {
+                if (value is bool b)
+                {
+                    return b;
+                }
+
+                if (value is string str && string.Equals(str, "null", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                if (bool.TryParse(value.ToString(), out bool parsedBool))
+                {
+                    return parsedBool;
+                }
+
+                return null;
+            }
+            // Handle Dictionary<string, bool?> for nested dictionaries like Files
+            else if (targetType == typeof(Dictionary<string, bool?>))
+            {
+                if (value is Dictionary<string, object> nestedDict)
+                {
+                    var filesDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+                    foreach (KeyValuePair<string, object> fileKvp in nestedDict)
+                    {
+                        bool? shouldDownload = null;
+                        if (fileKvp.Value == null)
+                        {
+                            shouldDownload = null;
+                        }
+                        else if (fileKvp.Value is bool b)
+                        {
+                            shouldDownload = b;
+                        }
+                        else if (fileKvp.Value is string str && string.Equals(str, "null", StringComparison.OrdinalIgnoreCase))
+                        {
+                            shouldDownload = null;
+                        }
+                        else if (bool.TryParse(fileKvp.Value?.ToString(), out bool parsedBool))
+                        {
+                            shouldDownload = parsedBool;
+                        }
+                        filesDict[fileKvp.Key] = shouldDownload;
+                    }
+                    return filesDict;
+                }
+                else if (value is IDictionary<object, object> objectDict)
+                {
+                    var filesDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+                    foreach (KeyValuePair<object, object> fileKvp in objectDict)
+                    {
+                        string filename = fileKvp.Key?.ToString();
+                        if (string.IsNullOrEmpty(filename))
+                        {
+                            continue;
+                        }
+
+                        bool? shouldDownload = null;
+                        if (fileKvp.Value == null)
+                        {
+                            shouldDownload = null;
+                        }
+                        else if (fileKvp.Value is bool b)
+                        {
+                            shouldDownload = b;
+                        }
+                        else if (fileKvp.Value is string str && string.Equals(str, "null", StringComparison.OrdinalIgnoreCase))
+                        {
+                            shouldDownload = null;
+                        }
+                        else if (bool.TryParse(fileKvp.Value?.ToString(), out bool parsedBool))
+                        {
+                            shouldDownload = parsedBool;
+                        }
+                        filesDict[filename] = shouldDownload;
+                    }
+                    return filesDict;
+                }
+                else if (value is TomlTable tomlTable)
+                {
+                    var filesDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+                    foreach (KeyValuePair<string, object> fileKvp in tomlTable)
+                    {
+                        bool? shouldDownload = null;
+                        if (fileKvp.Value == null)
+                        {
+                            shouldDownload = null;
+                        }
+                        else if (fileKvp.Value is bool b)
+                        {
+                            shouldDownload = b;
+                        }
+                        else if (fileKvp.Value is string str && string.Equals(str, "null", StringComparison.OrdinalIgnoreCase))
+                        {
+                            shouldDownload = null;
+                        }
+                        else if (bool.TryParse(fileKvp.Value?.ToString(), out bool parsedBool))
+                        {
+                            shouldDownload = parsedBool;
+                        }
+                        filesDict[fileKvp.Key] = shouldDownload;
+                    }
+                    return filesDict;
+                }
+            }
+            // Handle Dictionary<string, object>
+            else if (targetType == typeof(Dictionary<string, object>))
+            {
+                if (value is IDictionary<string, object> dictValue)
+                {
+                    return ConvertNestedDictionary(dictValue);
+                }
+                else if (value is IDictionary<object, object> objectDict)
+                {
+                    var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                    foreach (KeyValuePair<object, object> kvp in objectDict)
+                    {
+                        string key = kvp.Key?.ToString();
+                        if (!string.IsNullOrEmpty(key))
+                        {
+                            result[key] = kvp.Value;
+                        }
+                    }
+                    return result;
+                }
+                else if (value is TomlTable tomlTable)
+                {
+                    return ConvertTomlTableToDictionary(tomlTable);
+                }
+            }
+
+            // Default: try Convert.ChangeType for other types
+            try
+            {
+                return Convert.ChangeType(value, targetType, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                // If conversion fails, return the value as-is (might be already the correct type)
+                return value;
             }
         }
 
@@ -2581,13 +3316,23 @@ namespace KOTORModSync.Core.Services
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public static string SerializeModComponentAsTomlString(
-            List<ModComponent> components,
+            IReadOnlyList<ModComponent> components,
             ComponentValidationContext validationContext = null)
         {
-            Logger.LogVerbose("Saving to TOML string");
-            StringBuilder result = new StringBuilder();
+            Logger.LogVerbose("===== SerializeModComponentAsTomlString START =====");
+            Logger.LogVerbose($"Serializing {components.Count} component(s) to TOML");
+            for (int i = 0; i < Math.Min(components.Count, 5); i++)
+            {
+                ModComponent c = components[i];
+                Logger.LogVerbose($"  Component #{i + 1}: '{c.Name}' (GUID={c.Guid}), ResourceRegistry={c.ResourceRegistry?.Count ?? 0}");
+            }
+            if (components.Count > 5)
+            {
+                Logger.LogVerbose($"  ... and {components.Count - 5} more components");
+            }
+            var result = new StringBuilder();
 
-            TomlTable metadataTable = new TomlTable();
+            var metadataTable = new TomlTable();
             // Only include fileFormatVersion if it's not the default "2.0"
             if (!string.Equals(MainConfig.FileFormatVersion, "2.0", StringComparison.Ordinal))
             {
@@ -2627,8 +3372,9 @@ namespace KOTORModSync.Core.Services
             metadataTable["epilogueContent"] = MainConfig.EpilogueContent ?? string.Empty;
             metadataTable["widescreenWarningContent"] = MainConfig.WidescreenWarningContent ?? string.Empty;
             metadataTable["aspyrExclusiveWarningContent"] = MainConfig.AspyrExclusiveWarningContent ?? string.Empty;
+            metadataTable["installationWarningContent"] = MainConfig.InstallationWarningContent ?? string.Empty;
 
-            Dictionary<string, object> metadataRoot = new Dictionary<string, object>(StringComparer.Ordinal) { ["metadata"] = metadataTable };
+            var metadataRoot = new Dictionary<string, object>(StringComparer.Ordinal) { ["metadata"] = metadataTable };
             _ = result.AppendLine(Toml.FromModel(metadataRoot));
 
             bool isFirst = true;
@@ -2644,7 +3390,7 @@ namespace KOTORModSync.Core.Services
                 // TOML-specific: Add validation comments for component issues
                 if (validationContext != null && validationContext.HasIssues(component.Guid))
                 {
-                    List<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
+                    IReadOnlyList<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
                     if (componentIssues.Count > 0)
                     {
                         _ = result.AppendLine("# VALIDATION ISSUES:");
@@ -2656,9 +3402,9 @@ namespace KOTORModSync.Core.Services
                 }
 
                 // TOML-specific: Add URL failure comments
-                if (validationContext != null && component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0)
+                if (validationContext != null && component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
                 {
-                    foreach (string url in component.ModLinkFilenames.Keys)
+                    foreach (string url in component.ResourceRegistry.Keys)
                     {
                         List<string> urlFailures = validationContext.GetUrlFailures(url);
                         if (urlFailures.Count > 0)
@@ -2675,24 +3421,163 @@ namespace KOTORModSync.Core.Services
                 // Use unified serialization
                 Dictionary<string, object> componentDict = SerializeComponentToDictionary(component, validationContext);
 
-                StringBuilder nestedContent = new StringBuilder();
-                Dictionary<string, object> modLinkFilenamesDict = FixSerializedTomlDict(
+                Logger.LogVerbose($"[SerializeToml] Component '{component.Name}': SerializeComponentToDictionary returned {componentDict.Count} keys");
+                Logger.LogVerbose($"[SerializeToml] Component '{component.Name}': Has ResourceRegistry in dict = {componentDict.ContainsKey("ResourceRegistry")}");
+                Logger.LogVerbose($"[SerializeToml] Component '{component.Name}' runtime state: ResourceRegistry.Count={component.ResourceRegistry?.Count ?? 0}");
+
+                var nestedContent = new StringBuilder();
+                (Dictionary<string, object> modLinkFilenamesDict, Dictionary<string, object> resourceRegistryDict) = FixSerializedTomlDict(
                     componentDict,
                     nestedContent,
                     validationContext,
                     component
                 );
 
-                Dictionary<string, object> rootTable = new Dictionary<string, object>(StringComparer.Ordinal)
+                Logger.LogVerbose($"[SerializeToml] After FixSerializedTomlDict: resourceRegistryDict={(resourceRegistryDict?.Count ?? 0)} entries, modLinkFilenamesDict={(modLinkFilenamesDict?.Count ?? 0)} URLs");
+
+                var rootTable = new Dictionary<string, object>(StringComparer.Ordinal)
                 {
                     ["thisMod"] = componentDict,
                 };
-                string componentToml = Regex.Replace(Toml.FromModel(rootTable), Regex.Escape("[thisMod]"), "[[thisMod]]", RegexOptions.IgnoreCase);
+                // Limit regex evaluation time to 30 seconds to prevent ReDoS (MA0009)
+                string componentToml = Regex.Replace(
+                    Toml.FromModel(rootTable),
+                    Regex.Escape("[thisMod]"),
+                    "[[thisMod]]",
+                    RegexOptions.IgnoreCase,
+                    TimeSpan.FromSeconds(30)
+                );
 
-                // Insert ModLinkFilenames inline if present
+                // Insert ResourceRegistry inline if present (NEW FORMAT - replaces ModLinkFilenames)
+                if (resourceRegistryDict != null && resourceRegistryDict.Count > 0)
+                {
+                    Logger.LogVerbose($"[SerializeToml] Generating inline TOML for ResourceRegistry with {resourceRegistryDict.Count} entries");
+                    var rrBuilder = new StringBuilder();
+                    _ = rrBuilder.Append("ResourceRegistry = { ");
+
+                    bool firstEntry = true;
+                    foreach (KeyValuePair<string, object> registryEntry in resourceRegistryDict)
+                    {
+                        if (!firstEntry)
+                        {
+                            _ = rrBuilder.Append(", ");
+                        }
+                        firstEntry = false;
+
+                        string contentKey = registryEntry.Key;
+                        _ = rrBuilder.Append('"');
+                        _ = rrBuilder.Append(contentKey.Replace("\"", "\\\""));
+                        _ = rrBuilder.Append("\" = { ");
+
+                        if (registryEntry.Value is Dictionary<string, object> metaDict)
+                        {
+                            bool firstField = true;
+                            foreach (KeyValuePair<string, object> metaField in metaDict)
+                            {
+                                if (!firstField)
+                                {
+                                    _ = rrBuilder.Append(", ");
+                                }
+                                firstField = false;
+
+                                _ = rrBuilder.Append('"');
+                                _ = rrBuilder.Append(metaField.Key.Replace("\"", "\\\""));
+                                _ = rrBuilder.Append("\" = ");
+
+                                if (metaField.Value is string strVal)
+                                {
+                                    _ = rrBuilder.Append('"');
+                                    _ = rrBuilder.Append(strVal.Replace("\"", "\\\""));
+                                    _ = rrBuilder.Append('"');
+                                }
+                                else if (metaField.Value is bool boolVal)
+                                {
+                                    _ = rrBuilder.Append(boolVal ? "true" : "false");
+                                }
+                                else if (metaField.Value is long || metaField.Value is int)
+                                {
+                                    _ = rrBuilder.Append(metaField.Value);
+                                }
+                                else if (metaField.Value is Dictionary<string, object> nestedDict)
+                                {
+                                    // Serialize nested dictionaries as inline tables
+                                    _ = rrBuilder.Append("{ ");
+                                    bool firstNestedField = true;
+                                    foreach (KeyValuePair<string, object> nestedKvp in nestedDict)
+                                    {
+                                        if (!firstNestedField)
+                                        {
+                                            _ = rrBuilder.Append(", ");
+                                        }
+                                        firstNestedField = false;
+
+                                        _ = rrBuilder.Append('"');
+                                        _ = rrBuilder.Append(nestedKvp.Key.Replace("\"", "\\\""));
+                                        _ = rrBuilder.Append("\" = ");
+
+                                        if (nestedKvp.Value is string nestedStr)
+                                        {
+                                            _ = rrBuilder.Append('"');
+                                            _ = rrBuilder.Append(nestedStr.Replace("\"", "\\\""));
+                                            _ = rrBuilder.Append('"');
+                                        }
+                                        else if (nestedKvp.Value is bool nestedBool)
+                                        {
+                                            _ = rrBuilder.Append(nestedBool ? "true" : "false");
+                                        }
+                                        else if (nestedKvp.Value == null)
+                                        {
+                                            _ = rrBuilder.Append("\"null\"");
+                                        }
+                                        else
+                                        {
+                                            _ = rrBuilder.Append('"');
+                                            _ = rrBuilder.Append(nestedKvp.Value.ToString().Replace("\"", "\\\""));
+                                            _ = rrBuilder.Append('"');
+                                        }
+                                    }
+                                    _ = rrBuilder.Append(" }");
+                                }
+                                else if (metaField.Value == null)
+                                {
+                                    _ = rrBuilder.Append("\"null\"");
+                                }
+                                else
+                                {
+                                    _ = rrBuilder.Append('"');
+                                    _ = rrBuilder.Append(metaField.Value.ToString().Replace("\"", "\\\""));
+                                    _ = rrBuilder.Append('"');
+                                }
+                            }
+                        }
+
+                        _ = rrBuilder.Append(" }");
+                    }
+
+                    _ = rrBuilder.AppendLine(" }");
+
+                    // Insert after the [[thisMod]] line
+                    int insertPos = componentToml.IndexOf('\n');
+                    if (insertPos > 0)
+                    {
+                        componentToml = componentToml.Insert(insertPos + 1, rrBuilder.ToString());
+                        Logger.LogVerbose($"[SerializeToml] Inserted ResourceRegistry inline TOML at position {insertPos}, length: {rrBuilder.Length}");
+                    }
+                    else
+                    {
+                        Logger.LogWarning($"[SerializeToml] Could not find insertion point for ResourceRegistry inline TOML");
+                    }
+                }
+                else
+                {
+                    Logger.LogVerbose($"[SerializeToml] ResourceRegistry dict is null or empty, skipping inline TOML generation");
+                }
+
+                // Insert ModLinkFilenames inline if present (DEPRECATED - for backward compatibility)
                 if (modLinkFilenamesDict != null && modLinkFilenamesDict.Count > 0)
                 {
-                    StringBuilder mlf = new StringBuilder();
+                    Logger.LogVerbose($"[SerializeToml] Generating inline TOML for ModLinkFilenames with {modLinkFilenamesDict.Count} URLs");
+                    var mlf = new StringBuilder();
                     _ = mlf.Append("ModLinkFilenames = { ");
 
                     bool firstUrl = true;
@@ -2760,7 +3645,16 @@ namespace KOTORModSync.Core.Services
                     if (insertPos > 0)
                     {
                         componentToml = componentToml.Insert(insertPos + 1, mlf.ToString());
+                        Logger.LogVerbose($"[SerializeToml] Inserted ModLinkFilenames inline TOML at position {insertPos}, length: {mlf.Length}");
                     }
+                    else
+                    {
+                        Logger.LogWarning($"[SerializeToml] Could not find insertion point for ModLinkFilenames inline TOML");
+                    }
+                }
+                else
+                {
+                    Logger.LogVerbose($"[SerializeToml] ModLinkFilenames dict is null or empty, skipping inline TOML generation");
                 }
 
                 _ = result.Append(componentToml.TrimEnd());
@@ -2778,7 +3672,7 @@ namespace KOTORModSync.Core.Services
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        private static Dictionary<string, object> FixSerializedTomlDict(
+        private static (Dictionary<string, object> modLinkFilenames, Dictionary<string, object> resourceRegistry) FixSerializedTomlDict(
             Dictionary<string, object> serializedComponentDict,
             StringBuilder nestedContent,
             ComponentValidationContext validationContext = null,
@@ -2838,7 +3732,7 @@ namespace KOTORModSync.Core.Services
                             }
                         }
 
-                        Dictionary<string, object> model = new Dictionary<string, object>(StringComparer.Ordinal)
+                        var model = new Dictionary<string, object>(StringComparer.Ordinal)
                         {
                             {
                                 "thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
@@ -2847,7 +3741,13 @@ namespace KOTORModSync.Core.Services
                             },
                         };
                         nestedContent.AppendLine();
-                        nestedContent.Append(Regex.Replace(Toml.FromModel(model), Regex.Escape("thisMod.Instructions"), "[thisMod.Instructions]", RegexOptions.IgnoreCase));
+                        nestedContent.Append(Regex.Replace(
+                            Toml.FromModel(model),
+                            Regex.Escape("thisMod.Instructions"),
+                            "[thisMod.Instructions]",
+                            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+                            TimeSpan.FromSeconds(15)
+                        ));
                         instructionIndex++;
                     }
                 }
@@ -2855,19 +3755,24 @@ namespace KOTORModSync.Core.Services
                 serializedComponentDict.Remove("Instructions");
             }
 
-            // Remove ModLinkFilenames - we'll add it manually after the main TOML generation
+            // Extract ModLinkFilenames - we'll add it manually as inline TOML after the main TOML generation
             Dictionary<string, object> modLinkFilenamesDict = null;
             if (serializedComponentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesVal) &&
                 modLinkFilenamesVal is Dictionary<string, object> mlf)
             {
                 modLinkFilenamesDict = mlf;
                 serializedComponentDict.Remove("ModLinkFilenames");
+                Logger.LogVerbose($"[FixSerializedTomlDict] Extracted ModLinkFilenames with {modLinkFilenamesDict.Count} URL entries for inline TOML");
             }
 
-            // Remove ResourceRegistry if present (it shouldn't be serialized, but handle legacy files)
-            if (serializedComponentDict.ContainsKey("ResourceRegistry"))
+            // Extract ResourceRegistry for special TOML formatting (inline table format)
+            Dictionary<string, object> resourceRegistryDict = null;
+            if (serializedComponentDict.TryGetValue("ResourceRegistry", out object resourceRegistryVal) &&
+                resourceRegistryVal is Dictionary<string, object> rr)
             {
+                resourceRegistryDict = rr;
                 serializedComponentDict.Remove("ResourceRegistry");
+                Logger.LogVerbose($"[FixSerializedTomlDict] Extracted ResourceRegistry with {resourceRegistryDict.Count} entries for inline TOML");
             }
 
             bool hasOptions = serializedComponentDict.ContainsKey("Options");
@@ -2879,7 +3784,7 @@ namespace KOTORModSync.Core.Services
                 serializedComponentDict["OptionsInstructions"] is List<Dictionary<string, object>> optionsInstructionsList &&
                 optionsInstructionsList.Count > 0)
             {
-                Dictionary<string, List<Dictionary<string, object>>> instructionsByParent = optionsInstructionsList
+                var instructionsByParent = optionsInstructionsList
                     .Where(instr => instr != null && instr.ContainsKey("Parent"))
 
                     .GroupBy(instr => instr["Parent"]?.ToString(), StringComparer.Ordinal)
@@ -2898,7 +3803,7 @@ namespace KOTORModSync.Core.Services
                     // Remove internal metadata field
                     optionDict.Remove("_HasInstructions");
 
-                    Dictionary<string, object> optionModel = new Dictionary<string, object>(StringComparer.Ordinal)
+                    var optionModel = new Dictionary<string, object>(StringComparer.Ordinal)
                     {
                         {
                             "thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
@@ -2907,7 +3812,13 @@ namespace KOTORModSync.Core.Services
                         },
                     };
                     nestedContent.AppendLine();
-                    nestedContent.Append(Regex.Replace(Toml.FromModel(optionModel), Regex.Escape("thisMod.Options"), "[thisMod.Options]", RegexOptions.IgnoreCase));
+                    nestedContent.Append(Regex.Replace(
+                        Toml.FromModel(optionModel),
+                        Regex.Escape("thisMod.Options"),
+                        "[thisMod.Options]",
+                        RegexOptions.IgnoreCase | RegexOptions.Compiled,
+                        TimeSpan.FromSeconds(15)
+                    ));
 
                     if (!optionDict.TryGetValue("Guid", out object guidObj))
                     {
@@ -2944,7 +3855,7 @@ namespace KOTORModSync.Core.Services
                             }
                         }
 
-                        Dictionary<string, object> instrModel = new Dictionary<string, object>(StringComparer.Ordinal)
+                        var instrModel = new Dictionary<string, object>(StringComparer.Ordinal)
                         {
                             {
                                 "thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
@@ -2952,7 +3863,13 @@ namespace KOTORModSync.Core.Services
                                 }
                             },
                         };
-                        nestedContent.Append(Regex.Replace(Toml.FromModel(instrModel), Regex.Escape("thisMod.OptionsInstructions"), "[thisMod.Options.Instructions]", RegexOptions.IgnoreCase));
+                        nestedContent.Append(Regex.Replace(
+                            Toml.FromModel(instrModel),
+                            Regex.Escape("thisMod.OptionsInstructions"),
+                            "[thisMod.Options.Instructions]",
+                            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+                            TimeSpan.FromSeconds(15)
+                        ));
                         optionInstrIndex++;
                     }
                 }
@@ -2961,7 +3878,7 @@ namespace KOTORModSync.Core.Services
                 serializedComponentDict.Remove("OptionsInstructions");
             }
 
-            List<string> keysCopy = serializedComponentDict.Keys.ToList();
+            var keysCopy = serializedComponentDict.Keys.ToList();
             foreach (string key in keysCopy)
             {
                 object value = serializedComponentDict[key];
@@ -2983,7 +3900,7 @@ namespace KOTORModSync.Core.Services
 
                 foreach (Dictionary<string, object> item in listItems.Where(item => item != null && item.Count != 0))
                 {
-                    Dictionary<string, object> model = new Dictionary<string, object>(StringComparer.Ordinal)
+                    var model = new Dictionary<string, object>(StringComparer.Ordinal)
                     {
                     {
                         "thisMod", new Dictionary<string, object>(StringComparer.Ordinal) {
@@ -2992,22 +3909,28 @@ namespace KOTORModSync.Core.Services
                     },
                 };
                     nestedContent.AppendLine();
-                    _ = nestedContent.Append(Regex.Replace(Toml.FromModel(model), Regex.Escape($"thisMod.{key}"), $"[thisMod.{key}]", RegexOptions.IgnoreCase));
+                    _ = nestedContent.Append(Regex.Replace(
+                        Toml.FromModel(model),
+                        Regex.Escape($"thisMod.{key}"),
+                        $"[thisMod.{key}]",
+                        RegexOptions.IgnoreCase | RegexOptions.Compiled,
+                        TimeSpan.FromSeconds(15)
+                    ));
                 }
 
                 serializedComponentDict.Remove(key);
             }
 
-            return modLinkFilenamesDict;
+            return (modLinkFilenamesDict, resourceRegistryDict);
         }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public static string SerializeModComponentAsYamlString(
-                List<ModComponent> components,
+                IReadOnlyList<ModComponent> components,
                 ComponentValidationContext validationContext = null
             )
         {
             Logger.LogVerbose("Saving to YAML string");
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             // Write metadata section
             WriteYamlMetadataSection(sb);
@@ -3103,6 +4026,7 @@ namespace KOTORModSync.Core.Services
                 || !string.IsNullOrWhiteSpace(MainConfig.EpilogueContent)
                 || !string.IsNullOrWhiteSpace(MainConfig.WidescreenWarningContent)
                 || !string.IsNullOrWhiteSpace(MainConfig.AspyrExclusiveWarningContent)
+                || !string.IsNullOrWhiteSpace(MainConfig.InstallationWarningContent)
                 || MainConfig.LastModified.HasValue;
 
 
@@ -3159,6 +4083,9 @@ namespace KOTORModSync.Core.Services
             string escapedAspyr = EscapeYamlString(MainConfig.AspyrExclusiveWarningContent ?? string.Empty);
             sb.AppendLine($"aspyrExclusiveWarningContent: \"{escapedAspyr}\"");
 
+            string escapedInstallationWarning = EscapeYamlString(MainConfig.InstallationWarningContent ?? string.Empty);
+            sb.AppendLine($"installationWarningContent: \"{escapedInstallationWarning}\"");
+
             sb.AppendLine();
         }
 
@@ -3178,7 +4105,7 @@ namespace KOTORModSync.Core.Services
         }
 
         public static string SerializeModComponentAsMarkdownString(
-            List<ModComponent> components,
+            IReadOnlyList<ModComponent> components,
             ComponentValidationContext validationContext = null)
         {
             Logger.LogVerbose("Saving to Markdown string");
@@ -3192,13 +4119,13 @@ namespace KOTORModSync.Core.Services
         }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public static string SerializeModComponentAsJsonString(
-            List<ModComponent> components,
+            IReadOnlyList<ModComponent> components,
             ComponentValidationContext validationContext = null)
         {
             Logger.LogVerbose("Saving to JSON string");
-            JObject jsonRoot = new JObject();
+            var jsonRoot = new JObject();
 
-            JObject metadata = new JObject
+            var metadata = new JObject
             {
                 ["fileFormatVersion"] = MainConfig.FileFormatVersion ?? "2.0",
             };
@@ -3231,9 +4158,10 @@ namespace KOTORModSync.Core.Services
             metadata["epilogueContent"] = MainConfig.EpilogueContent ?? string.Empty;
             metadata["widescreenWarningContent"] = MainConfig.WidescreenWarningContent ?? string.Empty;
             metadata["aspyrExclusiveWarningContent"] = MainConfig.AspyrExclusiveWarningContent ?? string.Empty;
+            metadata["installationWarningContent"] = MainConfig.InstallationWarningContent ?? string.Empty;
             jsonRoot["metadata"] = metadata;
 
-            JArray componentsArray = new JArray();
+            var componentsArray = new JArray();
             foreach (ModComponent c in components)
             {
                 // Use unified serialization
@@ -3251,7 +4179,7 @@ namespace KOTORModSync.Core.Services
                 // JSON-specific: Add URL failure warnings
                 if (componentDict.TryGetValue("_UrlFailures", out object urlFailuresValue) && urlFailuresValue is Dictionary<string, List<string>> urlFailuresDict)
                 {
-                    List<string> urlFailures = new List<string>();
+                    var urlFailures = new List<string>();
                     foreach (KeyValuePair<string, List<string>> kvp in urlFailuresDict)
                     {
                         urlFailures.Add($"URL: {kvp.Key}");
@@ -3300,7 +4228,7 @@ namespace KOTORModSync.Core.Services
             try
             {
                 // Use the existing serialization infrastructure to ensure correct format
-                List<ModComponent> components = new List<ModComponent> { component };
+                var components = new List<ModComponent> { component };
                 return SerializeModComponentAsTomlString(components);
             }
             catch (Exception ex)
@@ -3311,11 +4239,12 @@ namespace KOTORModSync.Core.Services
         }
         public static async Task<string> GenerateModDocumentationAsync(
             [NotNull] string filePath,
-            [NotNull][ItemNotNull] List<ModComponent> componentsList,
+            [NotNull][ItemNotNull] IReadOnlyList<ModComponent> componentsList,
             [CanBeNull] string preambleContent = null,
             [CanBeNull] string epilogueContent = null,
             [CanBeNull] string widescreenWarningContent = null,
             [CanBeNull] string aspyrExclusiveWarningContent = null,
+            [CanBeNull] string installationWarningContent = null,
             [CanBeNull] ComponentValidationContext validationContext = null)
         {
             return await Task.Run(() => GenerateModDocumentation(
@@ -3331,7 +4260,7 @@ namespace KOTORModSync.Core.Services
         [NotNull]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public static string GenerateModDocumentation(
-            [NotNull][ItemNotNull] List<ModComponent> componentsList,
+            [NotNull][ItemNotNull] IReadOnlyList<ModComponent> componentsList,
             [CanBeNull] string preambleContent = null,
             [CanBeNull] string epilogueContent = null,
             [CanBeNull] string widescreenWarningContent = null,
@@ -3343,7 +4272,7 @@ namespace KOTORModSync.Core.Services
                 throw new ArgumentNullException(nameof(componentsList));
             }
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             if (!string.IsNullOrWhiteSpace(preambleContent))
             {
@@ -3357,7 +4286,7 @@ namespace KOTORModSync.Core.Services
 
             _ = sb.AppendLine("## Mod List");
 
-            Dictionary<Guid, string> guidToName = componentsList.ToDictionary(c => c.Guid, c => c.Name);
+            var guidToName = componentsList.ToDictionary(c => c.Guid, c => c.Name);
 
             bool widescreenHeaderWritten = false;
             bool aspyrHeaderWritten = false;
@@ -3400,7 +4329,7 @@ namespace KOTORModSync.Core.Services
                 // Add validation warnings for component
                 if (validationContext != null)
                 {
-                    List<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
+                    IReadOnlyList<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
                     if (componentIssues.Count > 0)
                     {
                         _ = sb.AppendLine("> **⚠️ VALIDATION WARNINGS:**");
@@ -3412,9 +4341,9 @@ namespace KOTORModSync.Core.Services
                     }
 
                     // Add URL failure warnings
-                    if (component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0)
+                    if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
                     {
-                        foreach (string url in component.ModLinkFilenames.Keys)
+                        foreach (string url in component.ResourceRegistry.Keys)
                         {
                             List<string> urlFailures = validationContext.GetUrlFailures(url);
                             if (urlFailures.Count > 0)
@@ -3438,9 +4367,9 @@ namespace KOTORModSync.Core.Services
                 {
                     _ = sb.Append("**Name:** ").AppendLine(component.NameFieldContent);
                 }
-                else if (component.ModLinkFilenames?.Count > 0)
+                else if (component.ResourceRegistry?.Count > 0)
                 {
-                    List<string> urls = component.ModLinkFilenames.Keys.ToList();
+                    var urls = component.ResourceRegistry.Keys.ToList();
                     if (urls.Count > 0 && !string.IsNullOrWhiteSpace(urls[0]))
                     {
                         _ = sb.Append("**Name:** [").Append(component.Name).Append("](")
@@ -3512,7 +4441,7 @@ namespace KOTORModSync.Core.Services
                 _ = sb.Append("**Category & Tier:** ").Append(categoryStr).Append(" / ").AppendLine(tierStr);
                 _ = sb.AppendLine();
 
-                string languageSupport = GetNonEnglishFunctionalityText(component.Language);
+                string languageSupport = GetNonEnglishFunctionalityText(new List<string>(component.Language));
 
                 if (!string.Equals(languageSupport, "UNKNOWN", StringComparison.Ordinal))
                 {
@@ -3551,7 +4480,7 @@ namespace KOTORModSync.Core.Services
 
                 if (component.Dependencies?.Count > 0)
                 {
-                    List<string> masterNames = component.Dependencies
+                    var masterNames = component.Dependencies
                         .Select(guid =>
                         {
                             if (component.DependencyGuidToOriginalName.TryGetValue(guid, out string originalName))
@@ -3793,7 +4722,7 @@ namespace KOTORModSync.Core.Services
         private static Dictionary<string, object> SerializeInstructionToDictionary(
             [NotNull] Instruction instr)
         {
-            Dictionary<string, object> instrDict = new Dictionary<string, object>(StringComparer.Ordinal);
+            var instrDict = new Dictionary<string, object>(StringComparer.Ordinal);
 
             if (!string.IsNullOrWhiteSpace(instr.ActionString))
             {
@@ -3868,10 +4797,9 @@ namespace KOTORModSync.Core.Services
         /// Serializes an option to a dictionary with all conditional logic unified
         /// </summary>
         private static Dictionary<string, object> SerializeOptionToDictionary(
-            [NotNull] Option opt,
-            [CanBeNull] ComponentValidationContext validationContext = null)
+            [NotNull] Option opt)
         {
-            Dictionary<string, object> optDict = new Dictionary<string, object>(StringComparer.Ordinal);
+            var optDict = new Dictionary<string, object>(StringComparer.Ordinal);
 
             // Always serialize Guid for Options (required field)
             optDict["Guid"] = opt.Guid.ToString();
@@ -3903,7 +4831,7 @@ namespace KOTORModSync.Core.Services
                 return optDict;
             }
 
-            List<Dictionary<string, object>> instructionsList = opt.Instructions.Select(instr => SerializeInstructionToDictionary(instr)).ToList();
+            var instructionsList = opt.Instructions.Select(instr => SerializeInstructionToDictionary(instr)).ToList();
             optDict["Instructions"] = instructionsList;
 
             return optDict;
@@ -3917,7 +4845,18 @@ namespace KOTORModSync.Core.Services
             [NotNull] ModComponent component,
             [CanBeNull] ComponentValidationContext validationContext = null)
         {
-            Dictionary<string, object> componentDict = new Dictionary<string, object>(StringComparer.Ordinal);
+            // Log component state at START of serialization to diagnose issues
+            Logger.LogVerbose($"[SerializeComponentToDictionary] START for component '{component.Name}' (GUID={component.Guid})");
+            Logger.LogVerbose($"[SerializeComponentToDictionary] Component state: ResourceRegistry={(component.ResourceRegistry?.Count ?? 0)} entries");
+            if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
+            {
+                foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry.Take(3))
+                {
+                    Logger.LogVerbose($"[SerializeComponentToDictionary]   ResourceRegistry[URL: {kvp.Key}] = Files:{kvp.Value.Files?.Count ?? 0}");
+                }
+            }
+
+            var componentDict = new Dictionary<string, object>(StringComparer.Ordinal);
 
             if (component.Guid != Guid.Empty)
             {
@@ -4035,14 +4974,65 @@ namespace KOTORModSync.Core.Services
                 componentDict["Language"] = component.Language;
             }
 
-            // Serialize ModLinkFilenames
-            if (component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0)
+            // DEPRECATED: ModLinkFilenames migration should happen during DESERIALIZATION, not serialization!
+            // During serialization, we should just save whatever is already in ResourceRegistry.
+            // If there's nothing in ResourceRegistry but ModLinkFilenames exists, it means the component
+            // hasn't been properly migrated yet (old format). We'll serialize ModLinkFilenames as fallback.
+
+            // CRITICAL: Ensure ResourceRegistry is populated from ModLinkFilenames if empty
+            // ResourceRegistry should already be populated by this point
+
+            // Serialize ResourceRegistry (new format)
+            if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
             {
-                componentDict["ModLinkFilenames"] = SerializeModLinkFilenames(component.ModLinkFilenames);
+                IReadOnlyDictionary<string, object> serializedRegistry = SerializeResourceRegistry(component.ResourceRegistry);
+                componentDict["ResourceRegistry"] = new Dictionary<string, object>(serializedRegistry, StringComparer.OrdinalIgnoreCase);
+                Logger.LogVerbose($"[SerializeComponent] Added ResourceRegistry to componentDict: {serializedRegistry.Count} entries");
+            }
+            else
+            {
+                Logger.LogVerbose($"[SerializeComponent] ResourceRegistry is null or empty (null={component.ResourceRegistry == null}, count={component.ResourceRegistry?.Count ?? 0}) - NOT adding to componentDict");
             }
 
-            // Note: ResourceRegistry is NOT serialized - it's only used internally by DownloadCacheService
-            // and stored in resource-index.json, not in component files.
+            // DEPRECATED: ModLinkFilenames - serialize for backward compatibility alongside ResourceRegistry
+            // Old tools/parsers may only understand ModLinkFilenames, so we keep both during transition
+            // Extract ModLinkFilenames from ResourceRegistry.Files for backward compatibility
+            if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
+            {
+                var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry)
+                {
+                    string url = kvp.Key;
+                    ResourceMetadata meta = kvp.Value;
+
+                    if (meta.Files is null || meta.Files.Count == 0)
+                    {
+                        // Empty dictionary means auto-discover files
+                        result[url] = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        continue;
+                    }
+
+                    var serializedFilenames = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                    foreach (KeyValuePair<string, bool?> fileKvp in meta.Files)
+                    {
+                        string filename = fileKvp.Key;
+                        bool? shouldDownload = fileKvp.Value;
+
+                        // Serialize: null = "null", true = true, false = false
+                        if (shouldDownload.HasValue)
+                        {
+                            serializedFilenames[filename] = shouldDownload.Value;
+                        }
+                        else
+                        {
+                            serializedFilenames[filename] = "null";
+                        }
+                    }
+                    result[url] = serializedFilenames;
+                }
+                componentDict["ModLinkFilenames"] = result;
+                Logger.LogVerbose($"[SerializeComponent] Added ModLinkFilenames to componentDict for backward compatibility: {result.Count} URLs (extracted from ResourceRegistry.Files)");
+            }
 
             if (component.ExcludedDownloads.Count > 0)
             {
@@ -4072,15 +5062,15 @@ namespace KOTORModSync.Core.Services
             // Serialize instructions
             if (component.Instructions.Count > 0)
             {
-                List<Dictionary<string, object>> instructionsList = component.Instructions.Select(instr => SerializeInstructionToDictionary(instr)).ToList();
+                var instructionsList = component.Instructions.Select(instr => SerializeInstructionToDictionary(instr)).ToList();
                 componentDict["Instructions"] = instructionsList;
             }
 
             // Serialize options
             if (component.Options.Count > 0)
             {
-                List<Dictionary<string, object>> optionsList = new List<Dictionary<string, object>>();
-                List<Dictionary<string, object>> optionsInstructionsList = new List<Dictionary<string, object>>();
+                var optionsList = new List<Dictionary<string, object>>();
+                var optionsInstructionsList = new List<Dictionary<string, object>>();
 
                 foreach (Option opt in component.Options)
                 {
@@ -4092,7 +5082,7 @@ namespace KOTORModSync.Core.Services
                         // Add Parent field for TOML's OptionsInstructions format
                         foreach (Dictionary<string, object> instrDict in optInstructions)
                         {
-                            Dictionary<string, object> instrDictWithParent = new Dictionary<string, object>(instrDict, StringComparer.Ordinal);
+                            var instrDictWithParent = new Dictionary<string, object>(instrDict, StringComparer.Ordinal);
                             instrDictWithParent["Parent"] = opt.Guid.ToString();
                             optionsInstructionsList.Add(instrDictWithParent);
                         }
@@ -4115,16 +5105,16 @@ namespace KOTORModSync.Core.Services
             // Store validation context metadata (format-specific rendering will use this)
             if (validationContext != null)
             {
-                List<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
+                IReadOnlyList<string> componentIssues = validationContext.GetComponentIssues(component.Guid);
                 if (componentIssues.Count > 0)
                 {
                     componentDict["_ValidationIssues"] = componentIssues;
                 }
 
-                if (component.ModLinkFilenames != null && component.ModLinkFilenames.Count > 0)
+                if (component.ResourceRegistry != null && component.ResourceRegistry.Count > 0)
                 {
-                    Dictionary<string, List<string>> urlFailures = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-                    foreach (string url in component.ModLinkFilenames.Keys)
+                    var urlFailures = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                    foreach (string url in component.ResourceRegistry.Keys)
                     {
                         List<string> failures = validationContext.GetUrlFailures(url);
                         if (failures.Count > 0)
@@ -4144,6 +5134,76 @@ namespace KOTORModSync.Core.Services
 
         #endregion
 
+        #region Auto-Fix Functionality
+
+        /// <summary>
+        /// Automatically fixes common config issues in components after deserialization.
+        /// Only runs if MainConfig.AttemptFixes is enabled.
+        /// </summary>
+        private static void AutoFixComponentIssues(IReadOnlyList<ModComponent> components)
+        {
+            if (components is null || components.Count == 0)
+            {
+                return;
+            }
+
+            var componentList = components.ToList();
+            int fixesApplied = 0;
+
+            foreach (ModComponent component in componentList)
+            {
+                if (component is null)
+                {
+                    continue;
+                }
+
+                // Auto-fix missing dependencies
+                if (component.Dependencies.Count > 0)
+                {
+                    List<ModComponent> dependencyComponents = ModComponent.FindComponentsFromGuidList(
+                        component.Dependencies,
+                        componentList
+                    );
+
+                    foreach (ModComponent dep in dependencyComponents)
+                    {
+                        if (dep != null && !dep.IsSelected)
+                        {
+                            dep.IsSelected = true;
+                            fixesApplied++;
+                            Logger.LogVerbose($"Auto-fix: Selected missing dependency '{dep.Name}' (required by '{component.Name}')");
+                        }
+                    }
+                }
+
+                // Auto-fix conflicting mods (deselect restrictions if component is selected)
+                if (component.IsSelected && component.Restrictions.Count > 0)
+                {
+                    List<ModComponent> restrictionComponents = ModComponent.FindComponentsFromGuidList(
+                        component.Restrictions,
+                        componentList
+                    );
+
+                    foreach (ModComponent restriction in restrictionComponents)
+                    {
+                        if (restriction != null && restriction.IsSelected)
+                        {
+                            restriction.IsSelected = false;
+                            fixesApplied++;
+                            Logger.LogVerbose($"Auto-fix: Deselected conflicting mod '{restriction.Name}' (conflicts with '{component.Name}')");
+                        }
+                    }
+                }
+            }
+
+            if (fixesApplied > 0)
+            {
+                Logger.LogVerbose($"Auto-fix completed: Applied {fixesApplied} fix(es) to {componentList.Count} component(s)");
+            }
+        }
+
+        #endregion
+
         #region Format-Specific Conversion Helpers
 
         /// <summary>
@@ -4159,10 +5219,10 @@ namespace KOTORModSync.Core.Services
 
             if (!(token is JObject jobj))
             {
-                throw new ArgumentException("Token must be a JObject");
+                throw new ArgumentException("Token must be a JObject", nameof(token));
             }
 
-            Dictionary<string, object> result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
             foreach (JProperty prop in jobj.Properties())
             {
@@ -4186,7 +5246,7 @@ namespace KOTORModSync.Core.Services
                         break;
                     case JTokenType.Array:
                         // Convert arrays to List<object>
-                        List<object> list = new List<object>();
+                        var list = new List<object>();
                         foreach (JToken item in (JArray)value)
                         {
                             if (item.Type == JTokenType.Object)
@@ -4226,7 +5286,7 @@ namespace KOTORModSync.Core.Services
         /// </summary>
         private static JObject DictionaryToJObject(Dictionary<string, object> dict)
         {
-            JObject jobj = new JObject();
+            var jobj = new JObject();
             foreach (KeyValuePair<string, object> kvp in dict)
             {
                 string key = kvp.Key;
@@ -4251,7 +5311,7 @@ namespace KOTORModSync.Core.Services
                     // Special handling for ModLinkFilenames - preserve original case for URL keys
                     if (key.Equals("modLinkFilenames", StringComparison.OrdinalIgnoreCase))
                     {
-                        JObject modLinkObj = new JObject();
+                        var modLinkObj = new JObject();
                         foreach (KeyValuePair<string, object> nestedKvp in nestedDict)
                         {
                             // Preserve original case for URL keys in ModLinkFilenames
@@ -4266,7 +5326,7 @@ namespace KOTORModSync.Core.Services
                 }
                 else if (value is List<Dictionary<string, object>> listOfDicts)
                 {
-                    JArray jarray = new JArray();
+                    var jarray = new JArray();
                     foreach (Dictionary<string, object> d in listOfDicts)
                     {
                         jarray.Add(DictionaryToJObject(d));
@@ -4276,7 +5336,7 @@ namespace KOTORModSync.Core.Services
                 else if (value is System.Collections.IEnumerable enumerable && !(value is string))
                 {
                     // Build array manually to avoid Newtonsoft edge cases when enumerable items are heterogeneous
-                    JArray array = new JArray();
+                    var array = new JArray();
                     foreach (object item in enumerable)
                     {
                         if (item is Dictionary<string, object> itemDict)
@@ -4300,184 +5360,35 @@ namespace KOTORModSync.Core.Services
 
         #endregion
 
-        private static Dictionary<string, object> SerializeModLinkFilenames(
-            Dictionary<string, Dictionary<string, bool?>> modLinkFilenames
-        )
+        public static IReadOnlyDictionary<string, object> SerializeResourceRegistry(IReadOnlyDictionary<string, ResourceMetadata> registry)
         {
-            Dictionary<string, object> result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-
-            if (modLinkFilenames is null || modLinkFilenames.Count == 0)
-            {
-                return result;
-            }
-
-            foreach (KeyValuePair<string, Dictionary<string, bool?>> kvp in modLinkFilenames)
-            {
-                string url = kvp.Key;
-                Dictionary<string, bool?> filenamesDict = kvp.Value;
-
-                if (filenamesDict is null || filenamesDict.Count == 0)
-                {
-                    // Empty dictionary means auto-discover files
-                    result[url] = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                    continue;
-                }
-
-                Dictionary<string, object> serializedFilenames = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                foreach (KeyValuePair<string, bool?> fileKvp in filenamesDict)
-                {
-                    string filename = fileKvp.Key;
-                    bool? shouldDownload = fileKvp.Value;
-
-                    // Serialize: null = "null", true = true, false = false
-                    if (shouldDownload.HasValue)
-                    {
-                        serializedFilenames[filename] = shouldDownload.Value;
-                    }
-                    else
-                    {
-                        serializedFilenames[filename] = "null";
-                    }
-                }
-                result[url] = serializedFilenames;
-            }
-            return result;
-        }
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        public static Dictionary<string, Dictionary<string, bool?>> DeserializeModLinkFilenames(IDictionary<string, object> componentDict)
-        {
-            Dictionary<string, Dictionary<string, bool?>> result = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
-
-            try
-            {
-                if ((!componentDict.TryGetValue("ModLinkFilenames", out object modLinkFilenamesObj) &&
-                      !componentDict.TryGetValue("modLinkFilenames", out modLinkFilenamesObj)) || modLinkFilenamesObj is null)
-                {
-                    Logger.LogVerbose($"DeserializeModLinkFilenames: No ModLinkFilenames field found in componentDict");
-                    return result;
-                }
-
-                Logger.LogVerbose($"DeserializeModLinkFilenames: Found ModLinkFilenames field, type: {modLinkFilenamesObj?.GetType().Name}, value: {modLinkFilenamesObj}");
-
-                if (modLinkFilenamesObj is IDictionary<string, object> urlDict)
-                {
-                    Logger.LogVerbose($"DeserializeModLinkFilenames: ModLinkFilenames is IDictionary<string, object> with {urlDict.Count} entries");
-                    foreach (KeyValuePair<string, object> kvp in urlDict)
-                    {
-                        string url = kvp.Key;
-                        Dictionary<string, bool?> filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
-
-                        if (kvp.Value is IDictionary<string, object> filenameObj)
-                        {
-                            foreach (KeyValuePair<string, object> fileKvp in filenameObj)
-                            {
-                                string filename = fileKvp.Key;
-                                bool? shouldDownload = null;
-
-                                if (fileKvp.Value is bool boolVal)
-                                {
-                                    shouldDownload = boolVal;
-                                }
-                                else if (fileKvp.Value != null)
-                                {
-                                    string valueStr = fileKvp.Value.ToString();
-                                    if (string.IsNullOrEmpty(valueStr))
-                                    {
-                                        Logger.LogVerbose(
-                                            $"Failed to deserialize ModLinkFilenames (non-fatal): {filename} is null or empty");
-                                        continue;
-                                    }
-
-                                    if (!valueStr.Equals("null", StringComparison.OrdinalIgnoreCase) &&
-                                        bool.TryParse(valueStr, out bool parsedBool))
-                                    {
-                                        shouldDownload = parsedBool;
-                                    }
-                                    // else remains null (default)
-                                }
-
-                                filenameDict[filename] = shouldDownload;
-                            }
-                        }
-
-                        result[url] = filenameDict;
-                    }
-                }
-                else
-                {
-                    Logger.LogVerbose($"DeserializeModLinkFilenames: ModLinkFilenames is NOT IDictionary<string, object>, actual type: {modLinkFilenamesObj.GetType().Name}");
-                    // Try to handle Dictionary<object, object> case
-                    if (modLinkFilenamesObj is IDictionary<object, object> objectDict)
-                    {
-                        Logger.LogVerbose($"DeserializeModLinkFilenames: ModLinkFilenames is IDictionary<object, object> with {objectDict.Count} entries");
-                        foreach (KeyValuePair<object, object> kvp in objectDict)
-                        {
-                            string url = kvp.Key?.ToString();
-                            if (string.IsNullOrEmpty(url))
-                            {
-                                continue;
-                            }
-
-                            Dictionary<string, bool?> filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
-
-                            if (kvp.Value is IDictionary<object, object> filenameObj)
-                            {
-                                foreach (KeyValuePair<object, object> fileKvp in filenameObj)
-                                {
-                                    string filename = fileKvp.Key?.ToString();
-                                    if (string.IsNullOrEmpty(filename))
-                                    {
-                                        continue;
-                                    }
-
-                                    bool? shouldDownload = null;
-                                    if (fileKvp.Value is bool boolVal)
-                                    {
-                                        shouldDownload = boolVal;
-                                    }
-                                    else if (fileKvp.Value != null)
-                                    {
-                                        string valueStr = fileKvp.Value.ToString();
-                                        if (!string.IsNullOrEmpty(valueStr)
-                                            && !valueStr.Equals("null", StringComparison.OrdinalIgnoreCase)
-                                            && bool.TryParse(valueStr, out bool parsedBool))
-                                        {
-                                            shouldDownload = parsedBool;
-                                        }
-                                    }
-
-                                    filenameDict[filename] = shouldDownload;
-                                }
-                            }
-
-                            result[url] = filenameDict;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning($"Failed to deserialize ModLinkFilenames (non-fatal): {ex.Message}");
-            }
-
-            return result;
-        }
-
-        public static Dictionary<string, object> SerializeResourceRegistry(Dictionary<string, ResourceMetadata> registry)
-        {
-            Dictionary<string, object> result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, ResourceMetadata> kvp in registry)
             {
-                Dictionary<string, object> metaDict = new Dictionary<string, object>(StringComparer.Ordinal)
+                // Convert Files dictionary to serializable format
+                var serializedFiles = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                if (kvp.Value.Files != null)
+                {
+                    foreach (KeyValuePair<string, bool?> fileKvp in kvp.Value.Files)
+                    {
+                        if (fileKvp.Value.HasValue)
+                        {
+                            serializedFiles[fileKvp.Key] = fileKvp.Value.Value;
+                        }
+                        else
+                        {
+                            serializedFiles[fileKvp.Key] = "null";
+                        }
+                    }
+                }
+
+                var metaDict = new Dictionary<string, object>(StringComparer.Ordinal)
                 {
                     ["ContentKey"] = kvp.Value.ContentKey,
                     ["MetadataHash"] = kvp.Value.MetadataHash,
-                    ["PrimaryUrl"] = kvp.Value.PrimaryUrl,
                     ["HandlerMetadata"] = kvp.Value.HandlerMetadata,
-                    ["Files"] = kvp.Value.Files,
+                    ["Files"] = serializedFiles,
                     ["FileSize"] = kvp.Value.FileSize,
-                    ["SchemaVersion"] = kvp.Value.SchemaVersion,
                     ["TrustLevel"] = kvp.Value.TrustLevel.ToString(),
                 };
 
@@ -4520,7 +5431,7 @@ namespace KOTORModSync.Core.Services
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public static Dictionary<string, ResourceMetadata> DeserializeResourceRegistry(IDictionary<string, object> componentDict)
         {
-            Dictionary<string, ResourceMetadata> result = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase);
+            var result = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase);
 
             try
             {
@@ -4533,32 +5444,54 @@ namespace KOTORModSync.Core.Services
 
                 Logger.LogVerbose($"DeserializeResourceRegistry: Found ResourceRegistry field, type: {registryObj.GetType().Name}");
 
-                if (registryObj is IDictionary<string, object> registryDict)
+                // Convert TomlTable to Dictionary if needed
+                IDictionary<string, object> registryDict = null;
+                if (registryObj is TomlTable tomlTable)
+                {
+                    registryDict = ConvertTomlTableToDictionary(tomlTable);
+                }
+                else if (registryObj is IDictionary<string, object> dict)
+                {
+                    registryDict = dict;
+                }
+
+                if (registryDict != null)
                 {
                     Logger.LogVerbose($"DeserializeResourceRegistry: ResourceRegistry is IDictionary<string, object> with {registryDict.Count} entries");
                     foreach (KeyValuePair<string, object> kvp in registryDict)
                     {
-                        if (!(kvp.Value is IDictionary<string, object> metaDict))
+                        IDictionary<string, object> metaDict = null;
+                        if (kvp.Value is TomlTable table)
+                        {
+                            // Convert TomlTable to Dictionary<string, object>
+                            metaDict = ConvertTomlTableToDictionary(table);
+                        }
+                        else if (kvp.Value is IDictionary<string, object> dict)
+                        {
+                            metaDict = dict;
+                        }
+
+                        if (metaDict == null)
                         {
                             continue;
                         }
 
-                        ResourceMetadata meta = new ResourceMetadata
+                        var meta = new ResourceMetadata
                         {
                             ContentKey = GetValueOrDefault<string>(metaDict, "ContentKey"),
                             ContentId = GetValueOrDefault<string>(metaDict, "ContentId"),
                             ContentHashSHA256 = GetValueOrDefault<string>(metaDict, "ContentHashSHA256"),
                             MetadataHash = GetValueOrDefault<string>(metaDict, "MetadataHash"),
-                            PrimaryUrl = GetValueOrDefault<string>(metaDict, "PrimaryUrl"),
-                            HandlerMetadata = GetValueOrDefault<Dictionary<string, object>>(metaDict, "HandlerMetadata") ?? new Dictionary<string, object>(StringComparer.Ordinal),
-                            Files = GetValueOrDefault<Dictionary<string, bool?>>(metaDict, "Files") ?? new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase),
+                            HandlerMetadata = GetValueOrDefault<Dictionary<string, object>>(metaDict, "HandlerMetadata")
+                                            ?? new Dictionary<string, object>(StringComparer.Ordinal),
+                            Files = GetValueOrDefault<Dictionary<string, bool?>>(metaDict, "Files")
+                                  ?? new Dictionary<string, bool?>(StringComparer.Ordinal),
                             FileSize = GetValueOrDefault<long>(metaDict, "FileSize"),
                             PieceLength = GetValueOrDefault<int>(metaDict, "PieceLength"),
                             PieceHashes = GetValueOrDefault<string>(metaDict, "PieceHashes"),
-                            SchemaVersion = metaDict.ContainsKey("SchemaVersion") ? GetValueOrDefault<int>(metaDict, "SchemaVersion") : 1,
                         };
 
-                        if (Enum.TryParse<MappingTrustLevel>(GetValueOrDefault<string>(metaDict, "TrustLevel"), out MappingTrustLevel trustLevel))
+                        if (Enum.TryParse(GetValueOrDefault<string>(metaDict, "TrustLevel"), out MappingTrustLevel trustLevel))
                         {
                             meta.TrustLevel = trustLevel;
                         }
@@ -4573,7 +5506,15 @@ namespace KOTORModSync.Core.Services
                             meta.LastVerified = lastVerified;
                         }
 
-                        result[kvp.Key] = meta;
+                        // Migration: Use PrimaryUrl as key if it exists (backward compatibility), otherwise use the existing key (which should be URL in new format)
+                        string registryKey = GetValueOrDefault<string>(metaDict, "PrimaryUrl");
+                        if (string.IsNullOrEmpty(registryKey))
+                        {
+                            registryKey = kvp.Key; // New format: key is already the URL
+                        }
+                        // Old format: key was a hash, PrimaryUrl was the URL - use PrimaryUrl as the key
+
+                        result[registryKey] = meta;
                     }
                 }
                 else if (registryObj is IDictionary<object, object> objectDict)
@@ -4587,38 +5528,60 @@ namespace KOTORModSync.Core.Services
                             continue;
                         }
 
-                        if (!(kvp.Value is IDictionary<object, object> metaObjDict))
+                        IDictionary<object, object> metaObjDict = null;
+                        if (kvp.Value is TomlTable table)
+                        {
+                            // Convert TomlTable to Dictionary<object, object> for processing
+                            var converted = ConvertTomlTableToDictionary(table);
+                            metaObjDict = new Dictionary<object, object>();
+                            foreach (KeyValuePair<string, object> convertedKvp in converted)
+                            {
+                                metaObjDict[convertedKvp.Key] = convertedKvp.Value;
+                            }
+                        }
+                        else if (kvp.Value is IDictionary<object, object> dict)
+                        {
+                            metaObjDict = dict;
+                        }
+
+                        if (metaObjDict == null)
                         {
                             continue;
                         }
 
                         // Convert IDictionary<object, object> to IDictionary<string, object>
-                        Dictionary<string, object> metaDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        var metaDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                         foreach (KeyValuePair<object, object> metaKvp in metaObjDict)
                         {
                             string metaKey = metaKvp.Key?.ToString();
                             if (!string.IsNullOrEmpty(metaKey))
                             {
-                                metaDict[metaKey] = metaKvp.Value;
+                                // Convert TomlTable objects to dictionaries
+                                if (metaKvp.Value is TomlTable nestedTable)
+                                {
+                                    metaDict[metaKey] = ConvertTomlTableToDictionary(nestedTable);
+                                }
+                                else
+                                {
+                                    metaDict[metaKey] = metaKvp.Value;
+                                }
                             }
                         }
 
-                        ResourceMetadata meta = new ResourceMetadata
+                        var meta = new ResourceMetadata
                         {
                             ContentKey = GetValueOrDefault<string>(metaDict, "ContentKey"),
                             ContentId = GetValueOrDefault<string>(metaDict, "ContentId"),
                             ContentHashSHA256 = GetValueOrDefault<string>(metaDict, "ContentHashSHA256"),
                             MetadataHash = GetValueOrDefault<string>(metaDict, "MetadataHash"),
-                            PrimaryUrl = GetValueOrDefault<string>(metaDict, "PrimaryUrl"),
                             HandlerMetadata = GetValueOrDefault<Dictionary<string, object>>(metaDict, "HandlerMetadata") ?? new Dictionary<string, object>(StringComparer.Ordinal),
                             Files = GetValueOrDefault<Dictionary<string, bool?>>(metaDict, "Files") ?? new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase),
                             FileSize = GetValueOrDefault<long>(metaDict, "FileSize"),
                             PieceLength = GetValueOrDefault<int>(metaDict, "PieceLength"),
                             PieceHashes = GetValueOrDefault<string>(metaDict, "PieceHashes"),
-                            SchemaVersion = metaDict.ContainsKey("SchemaVersion") ? GetValueOrDefault<int>(metaDict, "SchemaVersion") : 1,
                         };
 
-                        if (Enum.TryParse<MappingTrustLevel>(GetValueOrDefault<string>(metaDict, "TrustLevel"), out MappingTrustLevel trustLevel))
+                        if (Enum.TryParse(GetValueOrDefault<string>(metaDict, "TrustLevel"), out MappingTrustLevel trustLevel))
                         {
                             meta.TrustLevel = trustLevel;
                         }
@@ -4633,7 +5596,15 @@ namespace KOTORModSync.Core.Services
                             meta.LastVerified = lastVerified;
                         }
 
-                        result[key] = meta;
+                        // Migration: Use PrimaryUrl as key if it exists (backward compatibility), otherwise use the existing key (which should be URL in new format)
+                        string registryKey = GetValueOrDefault<string>(metaDict, "PrimaryUrl");
+                        if (string.IsNullOrEmpty(registryKey))
+                        {
+                            registryKey = key; // New format: key is already the URL
+                        }
+                        // Old format: key was a hash, PrimaryUrl was the URL - use PrimaryUrl as the key
+
+                        result[registryKey] = meta;
                     }
                 }
             }
@@ -4685,7 +5656,7 @@ namespace KOTORModSync.Core.Services
             UrlFailures[url].Add(error);
         }
 
-        public List<string> GetComponentIssues(Guid componentGuid)
+        public IReadOnlyList<string> GetComponentIssues(Guid componentGuid)
         {
             return ComponentIssues.TryGetValue(componentGuid, out List<string> issues) ? issues : new List<string>();
         }

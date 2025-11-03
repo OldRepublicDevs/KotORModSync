@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -26,311 +26,333 @@ using SharpCompress.Readers;
 
 namespace KOTORModSync.Core.Utility
 {
-	public static class ArchiveHelper
-	{
-		public static readonly ExtractionOptions DefaultExtractionOptions = new ExtractionOptions
-		{
-			ExtractFullPath = false,
-			Overwrite = true,
-			PreserveFileTime = true,
-		};
+    public static class ArchiveHelper
+    {
+        public static readonly ExtractionOptions DefaultExtractionOptions = new ExtractionOptions
+        {
+            ExtractFullPath = false,
+            Overwrite = true,
+            PreserveFileTime = true,
+        };
 
-		public static bool IsArchive([NotNull] string filePath) => IsArchive(
-			new FileInfo(filePath ?? throw new ArgumentNullException(nameof(filePath)))
-		);
+        public static bool IsArchive([NotNull] string filePath) => IsArchive(
+            new FileInfo(filePath ?? throw new ArgumentNullException(nameof(filePath)))
+        );
 
-		public static bool IsArchive([NotNull] FileInfo thisFile) =>
-			thisFile.Extension.Equals(value: ".zip", StringComparison.OrdinalIgnoreCase)
-			|| thisFile.Extension.Equals(value: ".7z", StringComparison.OrdinalIgnoreCase)
-			|| thisFile.Extension.Equals(value: ".rar", StringComparison.OrdinalIgnoreCase)
-			|| thisFile.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase);
+        public static bool IsArchive([NotNull] FileInfo thisFile) =>
+            thisFile.Extension.Equals(value: ".zip", StringComparison.OrdinalIgnoreCase)
+            || thisFile.Extension.Equals(value: ".7z", StringComparison.OrdinalIgnoreCase)
+            || thisFile.Extension.Equals(value: ".rar", StringComparison.OrdinalIgnoreCase)
+            || thisFile.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase);
 
-		public static (IArchive, FileStream) OpenArchive(string archivePath)
-		{
-			if (archivePath is null || !File.Exists(archivePath))
-				throw new ArgumentException(message: "Path must be a valid file on disk.", nameof(archivePath));
+        public static (IArchive, FileStream) OpenArchive(string archivePath)
+        {
+            if (archivePath is null || !File.Exists(archivePath))
+            {
+                throw new ArgumentException(message: "Path must be a valid file on disk.", nameof(archivePath));
+            }
 
-			try
-			{
-				FileStream stream = File.OpenRead(archivePath);
-				IArchive archive = null;
+            try
+            {
+                FileStream stream = File.OpenRead(archivePath);
+                IArchive archive = null;
 
-				if (archivePath.EndsWith(value: ".zip", StringComparison.OrdinalIgnoreCase))
-				{
-					archive = ZipArchive.Open(stream);
-				}
-				else if (archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase))
-				{
-					archive = RarArchive.Open(stream);
-				}
-				else if (archivePath.EndsWith(value: ".7z", StringComparison.OrdinalIgnoreCase))
-				{
-					archive = SevenZipArchive.Open(stream);
-				}
+                if (archivePath.EndsWith(value: ".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    archive = ZipArchive.Open(stream);
+                }
+                else if (archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase))
+                {
+                    archive = RarArchive.Open(stream);
+                }
+                else if (archivePath.EndsWith(value: ".7z", StringComparison.OrdinalIgnoreCase))
+                {
+                    archive = SevenZipArchive.Open(stream);
+                }
 
-				return (archive, stream);
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex);
-				return (null, null);
-			}
-		}
+                return (archive, stream);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+                return (null, null);
+            }
+        }
 
-		public static bool IsPotentialSevenZipSFX([NotNull] string filePath)
-		{
-			byte[] sfxSignature =
-			{
-				0x4D, 0x5A,
-			};
+        public static bool IsPotentialSevenZipSFX([NotNull] string filePath)
+        {
+            byte[] sfxSignature =
+            {
+                0x4D, 0x5A,
+            };
 
-			byte[] fileHeader = new byte[sfxSignature.Length];
+            byte[] fileHeader = new byte[sfxSignature.Length];
 
-			using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-			{
-				_ = fs.Read(fileHeader, offset: 0, sfxSignature.Length);
-			}
+            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            {
+                _ = fs.Read(fileHeader, offset: 0, sfxSignature.Length);
+            }
 
-			return sfxSignature.SequenceEqual(fileHeader);
-		}
+            return sfxSignature.SequenceEqual(fileHeader);
+        }
 
-		public static bool TryExtractSevenZipSfx([NotNull] string sfxPath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
-		{
-			if (sfxPath is null)
-				throw new ArgumentNullException(nameof(sfxPath));
-			if (destinationPath is null)
-				throw new ArgumentNullException(nameof(destinationPath));
-			if (extractedFiles is null)
-				throw new ArgumentNullException(nameof(extractedFiles));
+        public static bool TryExtractSevenZipSfx([NotNull] string sfxPath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
+        {
+            if (sfxPath is null)
+            {
+                throw new ArgumentNullException(nameof(sfxPath));
+            }
 
-			if (!File.Exists(sfxPath))
-				return false;
+            if (destinationPath is null)
+            {
+                throw new ArgumentNullException(nameof(destinationPath));
+            }
 
-			byte[] sevenZipSignature = { 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C };
-			long signatureOffset = -1;
+            if (extractedFiles is null)
+            {
+                throw new ArgumentNullException(nameof(extractedFiles));
+            }
 
-			try
-			{
-				using (FileStream fs = new FileStream(sfxPath, FileMode.Open, FileAccess.Read))
-				{
-					byte[] buffer = new byte[8192];
-					long position = 0;
-					int bytesRead;
+            if (!File.Exists(sfxPath))
+            {
+                return false;
+            }
 
-					while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
-					{
-						for (int i = 0; i < bytesRead - sevenZipSignature.Length + 1; i++)
-						{
-							bool match = true;
-							for (int j = 0; j < sevenZipSignature.Length; j++)
-							{
-								if (buffer[i + j] != sevenZipSignature[j])
-								{
-									match = false;
-									break;
-								}
-							}
+            byte[] sevenZipSignature = { 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C };
+            long signatureOffset = -1;
 
-							if (match)
-							{
-								signatureOffset = position + i;
-								break;
-							}
-						}
+            try
+            {
+                using (var fs = new FileStream(sfxPath, FileMode.Open, FileAccess.Read))
+                {
+                    byte[] buffer = new byte[8192];
+                    long position = 0;
+                    int bytesRead;
 
-						if (signatureOffset != -1)
-							break;
+                    while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        for (int i = 0; i < bytesRead - sevenZipSignature.Length + 1; i++)
+                        {
+                            bool match = true;
+                            for (int j = 0; j < sevenZipSignature.Length; j++)
+                            {
+                                if (buffer[i + j] != sevenZipSignature[j])
+                                {
+                                    match = false;
+                                    break;
+                                }
+                            }
 
-						position += bytesRead;
-						if (bytesRead == buffer.Length)
-						{
-							fs.Seek(-sevenZipSignature.Length, SeekOrigin.Current);
-							position -= sevenZipSignature.Length;
-						}
-					}
-				}
+                            if (match)
+                            {
+                                signatureOffset = position + i;
+                                break;
+                            }
+                        }
 
-				if (signatureOffset == -1)
-				{
-					Logger.LogVerbose($"No 7z signature found in SFX file: {sfxPath}");
-					return false;
-				}
+                        if (signatureOffset != -1)
+                        {
+                            break;
+                        }
 
-				Logger.LogVerbose($"Found 7z signature at offset {signatureOffset} in {sfxPath}");
+                        position += bytesRead;
+                        if (bytesRead == buffer.Length)
+                        {
+                            fs.Seek(-sevenZipSignature.Length, SeekOrigin.Current);
+                            position -= sevenZipSignature.Length;
+                        }
+                    }
+                }
 
-				string tempSevenZipPath = Path.Combine(Path.GetTempPath(), $"sfx_extract_{Guid.NewGuid()}.7z");
+                if (signatureOffset == -1)
+                {
+                    Logger.LogVerbose($"No 7z signature found in SFX file: {sfxPath}");
+                    return false;
+                }
 
-				try
-				{
-					using (FileStream sourceStream = new FileStream(sfxPath, FileMode.Open, FileAccess.Read))
-					using (FileStream destStream = new FileStream(tempSevenZipPath, FileMode.Create, FileAccess.Write))
-					{
-						sourceStream.Seek(signatureOffset, SeekOrigin.Begin);
-						sourceStream.CopyTo(destStream);
-					}
+                Logger.LogVerbose($"Found 7z signature at offset {signatureOffset} in {sfxPath}");
 
-					string extractFolderName = Path.GetFileNameWithoutExtension(sfxPath);
-					string extractPath = Path.Combine(destinationPath, extractFolderName);
+                string tempSevenZipPath = Path.Combine(Path.GetTempPath(), $"sfx_extract_{Guid.NewGuid()}.7z");
 
-					using (FileStream stream = File.OpenRead(tempSevenZipPath))
-					using (SevenZipArchive archive = SevenZipArchive.Open(stream))
-					using (IReader reader = archive.ExtractAllEntries())
-					{
-						while (reader.MoveToNextEntry())
-						{
-							if (reader.Entry.IsDirectory)
-								continue;
+                try
+                {
+                    using (var sourceStream = new FileStream(sfxPath, FileMode.Open, FileAccess.Read))
+                    using (var destStream = new FileStream(tempSevenZipPath, FileMode.Create, FileAccess.Write))
+                    {
+                        sourceStream.Seek(signatureOffset, SeekOrigin.Begin);
+                        sourceStream.CopyTo(destStream);
+                    }
 
-							string destinationItemPath = Path.Combine(extractPath, reader.Entry.Key);
-							string destinationDirectory = Path.GetDirectoryName(destinationItemPath);
+                    string extractFolderName = Path.GetFileNameWithoutExtension(sfxPath);
+                    string extractPath = Path.Combine(destinationPath, extractFolderName);
 
-							if (MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory))
-							{
-								destinationDirectory = PathHelper.GetCaseSensitivePath(destinationDirectory, isFile: false).Item1;
-							}
+                    using (FileStream stream = File.OpenRead(tempSevenZipPath))
+                    using (var archive = SevenZipArchive.Open(stream))
+                    using (IReader reader = archive.ExtractAllEntries())
+                    {
+                        while (reader.MoveToNextEntry())
+                        {
+                            if (reader.Entry.IsDirectory)
+                            {
+                                continue;
+                            }
 
-							if (!Directory.Exists(destinationDirectory))
-							{
-								_ = Directory.CreateDirectory(destinationDirectory);
-								Logger.LogVerbose($"Create directory '{destinationDirectory}'");
-							}
+                            string destinationItemPath = Path.Combine(extractPath, reader.Entry.Key);
+                            string destinationDirectory = Path.GetDirectoryName(destinationItemPath);
 
-							Logger.LogVerbose($"Extract '{reader.Entry.Key}' to '{destinationDirectory}'");
-							reader.WriteEntryToDirectory(destinationDirectory, DefaultExtractionOptions);
-							extractedFiles.Add(destinationItemPath);
-						}
-					}
+                            if (MainConfig.CaseInsensitivePathing && !Directory.Exists(destinationDirectory))
+                            {
+                                destinationDirectory = PathHelper.GetCaseSensitivePath(destinationDirectory, isFile: false).Item1;
+                            }
 
-					Logger.Log($"Successfully extracted 7z SFX archive: {sfxPath}");
-					return true;
-				}
-				finally
-				{
-					if (File.Exists(tempSevenZipPath))
-					{
-						try
-						{
-							File.Delete(tempSevenZipPath);
-						}
-						catch (Exception ex)
-						{
-							Logger.LogVerbose($"Failed to delete temporary 7z file: {ex.Message}");
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, $"Failed to extract 7z SFX: {sfxPath}");
-				return false;
-			}
-		}
+                            if (!Directory.Exists(destinationDirectory))
+                            {
+                                _ = Directory.CreateDirectory(destinationDirectory);
+                                Logger.LogVerbose($"Create directory '{destinationDirectory}'");
+                            }
 
-		public static string AnalyzeArchiveForExe(FileStream fileStream, IArchive archive)
-		{
-			string exePath = null;
-			bool tslPatchDataFolderExists = false;
+                            Logger.LogVerbose($"Extract '{reader.Entry.Key}' to '{destinationDirectory}'");
+                            reader.WriteEntryToDirectory(destinationDirectory, DefaultExtractionOptions);
+                            extractedFiles.Add(destinationItemPath);
+                        }
+                    }
 
-			try
-			{
-				using (IReader reader = archive.ExtractAllEntries())
-				{
-					while (reader.MoveToNextEntry())
-					{
-						if (reader.Entry.IsDirectory)
-							continue;
+                    Logger.Log($"Successfully extracted 7z SFX archive: {sfxPath}");
+                    return true;
+                }
+                finally
+                {
+                    if (File.Exists(tempSevenZipPath))
+                    {
+                        try
+                        {
+                            File.Delete(tempSevenZipPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogVerbose($"Failed to delete temporary 7z file: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, $"Failed to extract 7z SFX: {sfxPath}");
+                return false;
+            }
+        }
 
-						string fileName = Path.GetFileName(reader.Entry.Key);
-						string directory = Path.GetDirectoryName(reader.Entry.Key);
+        public static string AnalyzeArchiveForExe(FileStream fileStream, IArchive archive)
+        {
+            string exePath = null;
+            bool tslPatchDataFolderExists = false;
 
-						if (fileName.EndsWith(value: ".exe", StringComparison.OrdinalIgnoreCase))
-						{
-							if (exePath != null)
-								return null;
+            try
+            {
+                using (IReader reader = archive.ExtractAllEntries())
+                {
+                    while (reader.MoveToNextEntry())
+                    {
+                        if (reader.Entry.IsDirectory)
+                        {
+                            continue;
+                        }
 
-							exePath = reader.Entry.Key;
-						}
+                        string fileName = Path.GetFileName(reader.Entry.Key);
+                        string directory = Path.GetDirectoryName(reader.Entry.Key);
 
-						if (!(directory is null) && directory.Contains("tslpatchdata"))
-						{
-							tslPatchDataFolderExists = true;
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				Logger.LogWarning($"SharpCompress failed to analyze archive: {ex.Message}");
-				Logger.LogVerbose("Archive may require 7zip for extraction.");
-				return null;
-			}
+                        if (fileName.EndsWith(value: ".exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (exePath != null)
+                            {
+                                return null;
+                            }
 
-			if (
-				exePath != null
-				&& tslPatchDataFolderExists
-				&& Path.GetDirectoryName(exePath).Contains("tslpatchdata")
-			)
-			{
-				return exePath;
-			}
+                            exePath = reader.Entry.Key;
+                        }
 
-			return null;
-		}
+                        if (!(directory is null) && directory.Contains("tslpatchdata"))
+                        {
+                            tslPatchDataFolderExists = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"SharpCompress failed to analyze archive: {ex.Message}");
+                Logger.LogVerbose("Archive may require 7zip for extraction.");
+                return null;
+            }
 
-		public static async System.Threading.Tasks.Task<List<string>> TryListArchiveWithSevenZipCliAsync([NotNull] string archivePath)
-		{
-			if (archivePath is null)
-				throw new ArgumentNullException(nameof(archivePath));
+            if (
+                exePath != null
+                && tslPatchDataFolderExists
+                && Path.GetDirectoryName(exePath).Contains("tslpatchdata")
+            )
+            {
+                return exePath;
+            }
 
-			List<string> fileList = new List<string>();
-			string sevenZipPath = null;
-			string[] possiblePaths = {
+            return null;
+        }
+
+        public static async System.Threading.Tasks.Task<List<string>> TryListArchiveWithSevenZipCliAsync([NotNull] string archivePath)
+        {
+            if (archivePath is null)
+            {
+                throw new ArgumentNullException(nameof(archivePath));
+            }
+
+            var fileList = new List<string>();
+            string sevenZipPath = null;
+            string[] possiblePaths = {
 				// Command-line accessible (PATH)
 				"7z",
-				"7za",
-				"7zr",
+                "7za",
+                "7zr",
 
 				// Windows - Program Files locations
 				@"C:\Program Files\7-Zip\7z.exe",
-				@"C:\Program Files (x86)\7-Zip\7z.exe",
-				@"C:\Program Files\7-Zip\7za.exe",
-				@"C:\Program Files (x86)\7-Zip\7za.exe",
-				@"C:\Program Files\7-Zip\7zr.exe",
-				@"C:\Program Files (x86)\7-Zip\7zr.exe",
+                @"C:\Program Files (x86)\7-Zip\7z.exe",
+                @"C:\Program Files\7-Zip\7za.exe",
+                @"C:\Program Files (x86)\7-Zip\7za.exe",
+                @"C:\Program Files\7-Zip\7zr.exe",
+                @"C:\Program Files (x86)\7-Zip\7zr.exe",
 
 				// Windows - Chocolatey
 				@"C:\ProgramData\chocolatey\bin\7z.exe",
-				@"C:\ProgramData\chocolatey\lib\7zip\tools\7z.exe",
+                @"C:\ProgramData\chocolatey\lib\7zip\tools\7z.exe",
 
 				// Windows - Scoop
 				@"C:\Users\%USERNAME%\scoop\apps\7zip\current\7z.exe",
 
 				// Windows - Portable installations
 				@"C:\7-Zip\7z.exe",
-				@"C:\Tools\7-Zip\7z.exe",
-				@"C:\Portable\7-Zip\7z.exe",
+                @"C:\Tools\7-Zip\7z.exe",
+                @"C:\Portable\7-Zip\7z.exe",
 
 				// macOS - Homebrew/MacPorts
 				"/usr/local/bin/7z",
-				"/usr/local/bin/7za",
-				"/opt/homebrew/bin/7z",
-				"/opt/homebrew/bin/7za",
+                "/usr/local/bin/7za",
+                "/opt/homebrew/bin/7z",
+                "/opt/homebrew/bin/7za",
 
 				// macOS - Manual installations
 				"/Applications/7zX.app/Contents/MacOS/7za",
-				"/Applications/Keka.app/Contents/Resources/7za",
+                "/Applications/Keka.app/Contents/Resources/7za",
 
 				// Linux - Common system paths
 				"/usr/bin/7z",
-				"/usr/bin/7za",
-				"/usr/bin/7zr",
-				"/usr/local/bin/7z",
-				"/usr/local/bin/7za",
-				"/usr/local/bin/7zr",
+                "/usr/bin/7za",
+                "/usr/bin/7zr",
+                "/usr/local/bin/7z",
+                "/usr/local/bin/7za",
+                "/usr/local/bin/7zr",
 
 				// Linux - Snap
 				"/snap/bin/7z",
-				"/snap/p7zip/current/usr/bin/7z",
+                "/snap/p7zip/current/usr/bin/7z",
 
 				// Linux - Flatpak
 				"/var/lib/flatpak/exports/bin/7z",
@@ -340,104 +362,105 @@ namespace KOTORModSync.Core.Utility
 
 				// Cross-platform - Home directory installations
 				"~/bin/7z",
-				"~/.local/bin/7z",
-			};
+                "~/.local/bin/7z",
+            };
 
-			foreach (string path in possiblePaths)
-			{
-				try
-				{
-					(int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
-						path,
-						"--help",
-						timeout: 2000,
-						hideProcess: true,
-						noLogging: true
-					).ConfigureAwait(false);
+            foreach (string path in possiblePaths)
+            {
+                try
+                {
+                    (int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+                        path,
+                        "--help",
+                        timeout: 2000,
+                        hideProcess: true,
+                        noLogging: true
+                    ).ConfigureAwait(false);
 
-					if (exitCode == 0)
-					{
-						sevenZipPath = path;
-
-
-						await Logger.LogVerboseAsync($"Found 7z CLI at: {sevenZipPath}").ConfigureAwait(false);
-						break;
-					}
-				}
-				catch
-				{
-				}
-			}
-
-			if (sevenZipPath is null)
-			{
-				await Logger.LogWarningAsync("7z CLI not found in any standard location. Install 7-Zip to improve archive compatibility.").ConfigureAwait(false);
+                    if (exitCode == 0)
+                    {
+                        sevenZipPath = path;
 
 
-				await Logger.LogVerboseAsync($"Searched {possiblePaths.Length} possible 7z locations without success.").ConfigureAwait(false);
-				return fileList;
-			}
+                        await Logger.LogVerboseAsync($"Found 7z CLI at: {sevenZipPath}").ConfigureAwait(false);
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await Logger.LogExceptionAsync(ex, $"Failed to find 7z CLI at: {path}").ConfigureAwait(false);
+                }
+            }
 
-			try
-			{
-				string args = $"l -slt \"{archivePath}\"";
-				(int exitCode, string output, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
-					sevenZipPath,
-					args,
-					timeout: 30000,
-					hideProcess: true,
-					noLogging: true
-				).ConfigureAwait(false);
-
-				if (exitCode != 0)
-				{
-					await Logger.LogVerboseAsync($"7z CLI list failed with exit code {exitCode}").ConfigureAwait(false);
-					return fileList;
-				}
-
-				bool inFileSection = false;
-				string currentPath = null;
-				bool isDirectory = false;
-
-				foreach (string line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-				{
-					string trimmedLine = line.Trim();
-
-					if (trimmedLine.StartsWith("Path = ", StringComparison.Ordinal))
-					{
-						if (currentPath != null && !isDirectory)
-						{
-							fileList.Add(currentPath);
-						}
-						currentPath = trimmedLine.Substring("Path = ".Length);
-						isDirectory = false;
-						inFileSection = true;
-					}
-					else if (inFileSection && trimmedLine.StartsWith("Folder = ", StringComparison.Ordinal))
-					{
-						string folderValue = trimmedLine.Substring("Folder = ".Length);
-						isDirectory = folderValue.Equals("+", StringComparison.OrdinalIgnoreCase);
-					}
-					else if (string.Equals(trimmedLine, "----------", StringComparison.Ordinal))
-					{
-						if (currentPath != null && !isDirectory)
-						{
-							fileList.Add(currentPath);
-						}
-						currentPath = null;
-						isDirectory = false;
-						inFileSection = false;
-					}
-				}
-
-				if (currentPath != null && !isDirectory)
-				{
-					fileList.Add(currentPath);
+            if (sevenZipPath is null)
+            {
+                await Logger.LogWarningAsync("7z CLI not found in any standard location. Install 7-Zip to improve archive compatibility.").ConfigureAwait(false);
 
 
-				}
+                await Logger.LogVerboseAsync($"Searched {possiblePaths.Length} possible 7z locations without success.").ConfigureAwait(false);
+                return fileList;
+            }
 
-				if (fileList.Count > 0 && string.Equals(fileList
+            try
+            {
+                string args = $"l -slt \"{archivePath}\"";
+                (int exitCode, string output, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+                    sevenZipPath,
+                    args,
+                    timeout: 30000,
+                    hideProcess: true,
+                    noLogging: true
+                ).ConfigureAwait(false);
+
+                if (exitCode != 0)
+                {
+                    await Logger.LogVerboseAsync($"7z CLI list failed with exit code {exitCode}").ConfigureAwait(false);
+                    return fileList;
+                }
+
+                bool inFileSection = false;
+                string currentPath = null;
+                bool isDirectory = false;
+
+                foreach (string line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string trimmedLine = line.Trim();
+
+                    if (trimmedLine.StartsWith("Path = ", StringComparison.Ordinal))
+                    {
+                        if (currentPath != null && !isDirectory)
+                        {
+                            fileList.Add(currentPath);
+                        }
+                        currentPath = trimmedLine.Substring("Path = ".Length);
+                        isDirectory = false;
+                        inFileSection = true;
+                    }
+                    else if (inFileSection && trimmedLine.StartsWith("Folder = ", StringComparison.Ordinal))
+                    {
+                        string folderValue = trimmedLine.Substring("Folder = ".Length);
+                        isDirectory = folderValue.Equals("+", StringComparison.OrdinalIgnoreCase);
+                    }
+                    else if (string.Equals(trimmedLine, "----------", StringComparison.Ordinal))
+                    {
+                        if (currentPath != null && !isDirectory)
+                        {
+                            fileList.Add(currentPath);
+                        }
+                        currentPath = null;
+                        isDirectory = false;
+                        inFileSection = false;
+                    }
+                }
+
+                if (currentPath != null && !isDirectory)
+                {
+                    fileList.Add(currentPath);
+
+
+                }
+
+                if (fileList.Count > 0 && string.Equals(fileList
 
 
 
@@ -458,308 +481,338 @@ namespace KOTORModSync.Core.Utility
 
 
 [0], Path.GetFileName(archivePath), StringComparison.Ordinal))
-				{
-					fileList.RemoveAt(0);
-				}
+                {
+                    fileList.RemoveAt(0);
+                }
 
-				await Logger.LogVerboseAsync($"7z CLI listed {fileList.Count} files in archive").ConfigureAwait(false);
-				return fileList;
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync(ex, $"Failed to list archive with 7z CLI: {archivePath}").ConfigureAwait(false);
-				return fileList;
-			}
-		}
+                await Logger.LogVerboseAsync($"7z CLI listed {fileList.Count} files in archive").ConfigureAwait(false);
+                return fileList;
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, $"Failed to list archive with 7z CLI: {archivePath}").ConfigureAwait(false);
+                return fileList;
+            }
+        }
 
-		public static async System.Threading.Tasks.Task<bool> TryExtractWithSevenZipCliAsync([NotNull] string archivePath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
-		{
-			if (archivePath is null)
-				throw new ArgumentNullException(nameof(archivePath));
-			if (destinationPath is null)
-				throw new ArgumentNullException(nameof(destinationPath));
-			if (extractedFiles is null)
-				throw new ArgumentNullException(nameof(extractedFiles));
+        public static async System.Threading.Tasks.Task<bool> TryExtractWithSevenZipCliAsync([NotNull] string archivePath, [NotNull] string destinationPath, [NotNull] List<string> extractedFiles)
+        {
+            if (archivePath is null)
+            {
+                throw new ArgumentNullException(nameof(archivePath));
+            }
 
-			string sevenZipPath = null;
-			string[] possiblePaths = { "7z", "7za", "/usr/bin/7z", "/usr/local/bin/7z" };
+            if (destinationPath is null)
+            {
+                throw new ArgumentNullException(nameof(destinationPath));
+            }
 
-			foreach (string path in possiblePaths)
-			{
-				try
-				{
-					(int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
-						path,
-						"--help",
-						timeout: 2000,
-						hideProcess: true,
-						noLogging: true
-					).ConfigureAwait(false);
+            if (extractedFiles is null)
+            {
+                throw new ArgumentNullException(nameof(extractedFiles));
+            }
 
-					if (exitCode == 0)
-					{
-						sevenZipPath = path;
-						break;
-					}
-				}
-				catch
-				{
-				}
-			}
+            string sevenZipPath = null;
+            string[] possiblePaths = { "7z", "7za", "/usr/bin/7z", "/usr/local/bin/7z" };
 
-			if (sevenZipPath is null)
-			{
-				await Logger.LogVerboseAsync("7z CLI not found on PATH").ConfigureAwait(false);
-				return false;
-			}
+            foreach (string path in possiblePaths)
+            {
+                try
+                {
+                    (int exitCode, string _, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+                        path,
+                        "--help",
+                        timeout: 2000,
+                        hideProcess: true,
+                        noLogging: true
+                    ).ConfigureAwait(false);
 
-			await Logger.LogVerboseAsync($"Found 7z CLI at: {sevenZipPath}").ConfigureAwait(false);
+                    if (exitCode == 0)
+                    {
+                        sevenZipPath = path;
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await Logger.LogExceptionAsync(ex, $"Failed to find 7z CLI at: {path}").ConfigureAwait(false);
+                }
+            }
 
-			try
-			{
-				string extractFolderName = Path.GetFileNameWithoutExtension(archivePath);
-				string extractPath = Path.Combine(destinationPath, extractFolderName);
+            if (sevenZipPath is null)
+            {
+                await Logger.LogVerboseAsync("7z CLI not found on PATH").ConfigureAwait(false);
+                return false;
+            }
 
-				if (!Directory.Exists(extractPath))
-					_ = Directory.CreateDirectory(extractPath);
+            await Logger.LogVerboseAsync($"Found 7z CLI at: {sevenZipPath}").ConfigureAwait(false);
 
-				string args = $"x \"-o{extractPath}\" -y \"{archivePath}\"";
-				(int exitCode, string output, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
-					sevenZipPath,
-					args,
-					timeout: 120000,
-					hideProcess: true,
-					noLogging: false
-				).ConfigureAwait(false);
+            try
+            {
+                string extractFolderName = Path.GetFileNameWithoutExtension(archivePath);
+                string extractPath = Path.Combine(destinationPath, extractFolderName);
 
-				if (exitCode != 0)
-				{
-					await Logger.LogErrorAsync($"7z CLI extraction failed with exit code {exitCode}").ConfigureAwait(false);
-					return false;
-				}
+                if (!Directory.Exists(extractPath))
+                {
+                    _ = Directory.CreateDirectory(extractPath);
+                }
 
-				if (Directory.Exists(extractPath))
-				{
-					string[] files = Directory.GetFiles(extractPath, "*", SearchOption.AllDirectories);
-					extractedFiles.AddRange(files);
-					Logger.Log($"Successfully extracted archive using 7z CLI: {archivePath}");
-					return true;
-				}
+                string args = $"x \"-o{extractPath}\" -y \"{archivePath}\"";
+                (int exitCode, string output, string _) = await PlatformAgnosticMethods.ExecuteProcessAsync(
+                    sevenZipPath,
+                    args,
+                    timeout: 120000,
+                    hideProcess: true,
+                    noLogging: false
+                ).ConfigureAwait(false);
 
-				return false;
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync(ex, $"Failed to extract with 7z CLI: {archivePath}").ConfigureAwait(false);
-				return false;
-			}
-		}
+                if (exitCode != 0)
+                {
+                    await Logger.LogErrorAsync($"7z CLI extraction failed with exit code {exitCode}").ConfigureAwait(false);
+                    return false;
+                }
 
-		public static void ExtractWith7Zip(FileStream stream, string destinationDirectory)
-		{
-			if (UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
-				throw new NotImplementedException("Non-windows OS's are not currently supported");
+                if (Directory.Exists(extractPath))
+                {
+                    string[] files = Directory.GetFiles(extractPath, "*", SearchOption.AllDirectories);
+                    extractedFiles.AddRange(files);
+                    await Logger.LogInfoAsync($"Successfully extracted archive using 7z CLI: {archivePath}").ConfigureAwait(false);
+                    return true;
+                }
 
-			SevenZipBase.SetLibraryPath(Path.Combine(UtilityHelper.GetResourcesDirectory(), "7z.dll"));
-			SevenZipExtractor extractor = new SevenZipExtractor(stream);
-			extractor.ExtractArchive(destinationDirectory);
-		}
+                return false;
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, $"Failed to extract with 7z CLI: {archivePath}").ConfigureAwait(false);
+                return false;
+            }
+        }
 
-		public static void OutputModTree([NotNull] DirectoryInfo directory, [NotNull] string outputPath)
-		{
-			if (directory is null)
-				throw new ArgumentNullException(nameof(directory));
-			if (outputPath is null)
-				throw new ArgumentNullException(nameof(outputPath));
+        public static void ExtractWith7Zip(FileStream stream, string destinationDirectory)
+        {
+            if (UtilityHelper.GetOperatingSystem() != OSPlatform.Windows)
+            {
+                throw new NotImplementedException("Non-windows OS's are not currently supported");
+            }
 
-			Dictionary<string, object> root = GenerateArchiveTreeJson(directory);
-			try
-			{
-				string json = JsonConvert.SerializeObject(
-					root,
-					Formatting.Indented,
-					new JsonSerializerSettings
-					{
-						ContractResolver = new CamelCasePropertyNamesContractResolver(),
-					}
-				);
+            SevenZipBase.SetLibraryPath(Path.Combine(UtilityHelper.GetResourcesDirectory(), "7z.dll"));
+            var extractor = new SevenZipExtractor(stream);
+            extractor.ExtractArchive(destinationDirectory);
+        }
 
-				File.WriteAllText(outputPath, json);
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, $"Error writing output file '{outputPath}': {ex.Message}");
-			}
-		}
+        public static void OutputModTree([NotNull] DirectoryInfo directory, [NotNull] string outputPath)
+        {
+            if (directory is null)
+            {
+                throw new ArgumentNullException(nameof(directory));
+            }
 
-		[CanBeNull]
-		public static Dictionary<string, object> GenerateArchiveTreeJson([NotNull] DirectoryInfo directory)
-		{
-			if (directory is null)
-				throw new ArgumentNullException(nameof(directory));
+            if (outputPath is null)
+            {
+                throw new ArgumentNullException(nameof(outputPath));
+            }
 
-			Dictionary<string, object> root = new Dictionary<string, object>(StringComparer.Ordinal)
-			{
-				{
-					"Name", directory.Name
-				},
-				{
-					"Type", "directory"
-				},
-				{
-					"Contents", new List<object>()
-				},
-			};
+            Dictionary<string, object> root = GenerateArchiveTreeJson(directory);
+            try
+            {
+                string json = JsonConvert.SerializeObject(
+                    root,
+                    Formatting.Indented,
+                    new JsonSerializerSettings
+                    {
+                        ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                    }
+                );
 
-			try
-			{
-				foreach (FileInfo file in directory.EnumerateFilesSafely(searchPattern: "*.*"))
-				{
-					if (file is null || !IsArchive(file.Extension))
-						continue;
+                File.WriteAllText(outputPath, json);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, $"Error writing output file '{outputPath}': {ex.Message}");
+            }
+        }
 
-					Dictionary<string, object> fileInfo = new Dictionary<string, object>(StringComparer.Ordinal)
-					{
-						{
-							"Name", file.Name
-						},
-						{
-							"Type", "file"
-						},
-					};
-					List<ModDirectory.ArchiveEntry> archiveEntries = TraverseArchiveEntries(file.FullName);
-					Dictionary<string, object> archiveRoot = new Dictionary<string, object>(StringComparer.Ordinal)
-					{
-						{
-							"Name", file.Name
-						},
-						{
-							"Type", "directory"
-						},
-						{
-							"Contents", archiveEntries
-						},
-					};
+        [CanBeNull]
+        public static Dictionary<string, object> GenerateArchiveTreeJson([NotNull] DirectoryInfo directory)
+        {
+            if (directory is null)
+            {
+                throw new ArgumentNullException(nameof(directory));
+            }
 
-					fileInfo["Contents"] = archiveRoot["Contents"];
+            var root = new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                {
+                    "Name", directory.Name
+                },
+                {
+                    "Type", "directory"
+                },
+                {
+                    "Contents", new List<object>()
+                },
+            };
 
-					(root["Contents"] as List<object>)?.Add(fileInfo);
-				}
+            try
+            {
+                foreach (FileInfo file in directory.EnumerateFilesSafely(searchPattern: "*.*"))
+                {
+                    if (file is null || !IsArchive(file.Extension))
+                    {
+                        continue;
+                    }
 
-			}
-			catch (Exception ex)
-			{
-				Logger.Log($"Error generating archive tree for '{directory.FullName}': {ex.Message}");
-				return null;
-			}
+                    var fileInfo = new Dictionary<string, object>(StringComparer.Ordinal)
+                    {
+                        {
+                            "Name", file.Name
+                        },
+                        {
+                            "Type", "file"
+                        },
+                    };
+                    List<ModDirectory.ArchiveEntry> archiveEntries = TraverseArchiveEntries(file.FullName);
+                    var archiveRoot = new Dictionary<string, object>(StringComparer.Ordinal)
+                    {
+                        {
+                            "Name", file.Name
+                        },
+                        {
+                            "Type", "directory"
+                        },
+                        {
+                            "Contents", archiveEntries
+                        },
+                    };
 
-			return root;
-		}
+                    fileInfo["Contents"] = archiveRoot["Contents"];
 
-		[NotNull]
-		private static List<ModDirectory.ArchiveEntry> TraverseArchiveEntries([NotNull] string archivePath)
-		{
-			if (archivePath is null)
-				throw new ArgumentNullException(nameof(archivePath));
+                    (root["Contents"] as List<object>)?.Add(fileInfo);
+                }
 
-			List<ModDirectory.ArchiveEntry> archiveEntries = new List<ModDirectory.ArchiveEntry>();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Error generating archive tree for '{directory.FullName}': {ex.Message}");
+            }
 
-			try
-			{
-				(IArchive archive, FileStream stream) = OpenArchive(archivePath);
-				if (archive is null || stream is null)
-				{
-					Logger.Log($"Unsupported archive format: '{Path.GetExtension(archivePath)}'");
-					stream?.Dispose();
-					return archiveEntries;
-				}
+            return root;
+        }
 
-				try
-				{
-					archiveEntries.AddRange(
-						from entry in archive.Entries.Where(e => !e.IsDirectory)
-						let pathParts = entry.Key.Split(
-							archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase)
-								? '\\'
-								: '/'
-						)
-						select new ModDirectory.ArchiveEntry
-						{
-							Name = pathParts[pathParts.Length - 1],
-							Path = entry.Key,
-						}
-					);
-				}
-				catch (Exception enumEx)
-				{
-					Logger.LogWarning($"SharpCompress failed to enumerate archive entries for '{Path.GetFileName(archivePath)}': {enumEx.Message}");
-					Logger.LogVerbose("This archive may require 7zip for extraction.");
-				}
+        [NotNull]
+        private static List<ModDirectory.ArchiveEntry> TraverseArchiveEntries([NotNull] string archivePath)
+        {
+            if (archivePath is null)
+            {
+                throw new ArgumentNullException(nameof(archivePath));
+            }
 
-				stream.Dispose();
-			}
-			catch (Exception ex)
-			{
-				Logger.Log($"Error reading archive '{archivePath}': {ex.Message}");
-			}
+            var archiveEntries = new List<ModDirectory.ArchiveEntry>();
 
-			return archiveEntries;
-		}
+            try
+            {
+                (IArchive archive, FileStream stream) = OpenArchive(archivePath);
+                if (archive is null || stream is null)
+                {
+                    Logger.Log($"Unsupported archive format: '{Path.GetExtension(archivePath)}'");
+                    stream?.Dispose();
+                    return archiveEntries;
+                }
 
-		public static void ProcessArchiveEntry(
-			[NotNull] IArchiveEntry entry,
-			[NotNull] Dictionary<string, object> currentDirectory
-		)
-		{
-			if (entry is null)
-				throw new ArgumentNullException(nameof(entry));
-			if (currentDirectory is null)
-				throw new ArgumentNullException(nameof(currentDirectory));
+                try
+                {
+                    archiveEntries.AddRange(
+                        from entry in archive.Entries.Where(e => !e.IsDirectory)
+                        let pathParts = entry.Key.Split(
+                            archivePath.EndsWith(value: ".rar", StringComparison.OrdinalIgnoreCase)
+                                ? '\\'
+                                : '/'
+                        )
+                        select new ModDirectory.ArchiveEntry
+                        {
+                            Name = pathParts[pathParts.Length - 1],
+                            Path = entry.Key,
+                        }
+                    );
+                }
+                catch (Exception enumEx)
+                {
+                    Logger.LogWarning($"SharpCompress failed to enumerate archive entries for '{Path.GetFileName(archivePath)}': {enumEx.Message}");
+                    Logger.LogVerbose("This archive may require 7zip for extraction.");
+                }
 
-			string[] pathParts = entry.Key.Split('/');
-			bool isFile = !entry.IsDirectory;
+                stream.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Error reading archive '{archivePath}': {ex.Message}");
+            }
 
-			foreach (string name in pathParts)
-			{
-				List<object> existingDirectory = currentDirectory["Contents"] as List<object>
-					?? throw new InvalidDataException(
-						$"Unexpected data type for directory contents: '{currentDirectory["Contents"]?.GetType()}'"
-					);
+            return archiveEntries;
+        }
 
-				object existingChild = existingDirectory.Find(
-					c => c is Dictionary<string, object> dict
-						&& dict.ContainsKey("Name")
-						&& dict["Name"] is string directoryName
-						&& directoryName.Equals(name, StringComparison.OrdinalIgnoreCase)
-				);
+        public static void ProcessArchiveEntry(
+            [NotNull] IArchiveEntry entry,
+            [NotNull] Dictionary<string, object> currentDirectory
+        )
+        {
+            if (entry is null)
+            {
+                throw new ArgumentNullException(nameof(entry));
+            }
 
-				if (existingChild != null)
-				{
-					if (isFile)
-						((Dictionary<string, object>)existingChild)["Type"] = "file";
+            if (currentDirectory is null)
+            {
+                throw new ArgumentNullException(nameof(currentDirectory));
+            }
 
-					currentDirectory = (Dictionary<string, object>)existingChild;
-				}
-				else
-				{
-					Dictionary<string, object> child = new Dictionary<string, object>(StringComparer.Ordinal)
-					{
-						{
-							"Name", name
-						},
-						{
-							"Type", isFile
-								? "file"
-								: "directory"
-						},
-						{
-							"Contents", new List<object>()
-						},
-					};
-					existingDirectory.Add(child);
-					currentDirectory = child;
-				}
-			}
-		}
-	}
+            string[] pathParts = entry.Key.Split('/');
+            bool isFile = !entry.IsDirectory;
+
+            foreach (string name in pathParts)
+            {
+                List<object> existingDirectory = currentDirectory["Contents"] as List<object>
+                    ?? throw new InvalidDataException(
+                        $"Unexpected data type for directory contents: '{currentDirectory["Contents"]?.GetType()}'"
+                    );
+
+                object existingChild = existingDirectory.Find(
+                    c => c is Dictionary<string, object> dict
+                        && dict.ContainsKey("Name")
+                        && dict["Name"] is string directoryName
+                        && directoryName.Equals(name, StringComparison.OrdinalIgnoreCase)
+                );
+
+                if (existingChild != null)
+                {
+                    if (isFile)
+                    {
+                        ((Dictionary<string, object>)existingChild)["Type"] = "file";
+                    }
+
+                    currentDirectory = (Dictionary<string, object>)existingChild;
+                }
+                else
+                {
+                    var child = new Dictionary<string, object>(StringComparer.Ordinal)
+                    {
+                        {
+                            "Name", name
+                        },
+                        {
+                            "Type", isFile
+                                ? "file"
+                                : "directory"
+                        },
+                        {
+                            "Contents", new List<object>()
+                        },
+                    };
+                    existingDirectory.Add(child);
+                    currentDirectory = child;
+                }
+            }
+        }
+    }
 }

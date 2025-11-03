@@ -21,6 +21,10 @@ indent_size = 2
 indent_style = space
 
 # XML config files
+
+# IDE0040: Add accessibility modifiers
+dotnet_diagnostic.IDE0040.severity = none
+
 [*.{props,targets,ruleset,config,nuspec,resx,vsixmanifest,vsct}]
 indent_size = 2
 indent_style = space
@@ -44,6 +48,7 @@ trim_trailing_whitespace = false
 
 #### IMPORTANT: C# 7.3 / .NET Framework 4.8 Compatibility ####
 # This project targets .NET Framework 4.8 which supports C# 7.3 maximum.
+# Language version is set to 7.3 in csproj files via <LangVersion>7.3</LangVersion>
 # The following C# 8+ features are DISABLED to prevent IDE suggestions that aren't compatible:
 # - C# 8: switch expressions, range/index operators, async streams, nullable reference types, default interface methods
 # - C# 9: init-only properties, records, target-typed new, pattern matching improvements
@@ -102,11 +107,6 @@ dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
 dotnet_style_prefer_auto_properties = true:silent
 dotnet_style_prefer_conditional_expression_over_assignment = true:silent
 dotnet_style_prefer_conditional_expression_over_return = true:silent
-
-# Null-checking preferences (compatible with C# 7.3 - nullable reference types not enabled)
-csharp_style_prefer_pattern_matching = true:suggestion
-csharp_style_prefer_pattern_matching_over_is_with_cast_check = true:suggestion
-csharp_style_prefer_pattern_matching_over_as_and_null_check = true:suggestion
 
 #### C# Coding Conventions ####
 
@@ -207,15 +207,15 @@ dotnet_naming_rule.constants_should_be_pascal_case.severity = warning
 dotnet_naming_rule.constants_should_be_pascal_case.symbols = constants
 dotnet_naming_rule.constants_should_be_pascal_case.style = pascal_case_style
 
-# Static fields are PascalCase
+# Static fields are camelCase
 dotnet_naming_rule.static_fields_should_be_pascal_case.severity = warning
 dotnet_naming_rule.static_fields_should_be_pascal_case.symbols = static_fields
-dotnet_naming_rule.static_fields_should_be_pascal_case.style = pascal_case_style
+dotnet_naming_rule.static_fields_should_be_pascal_case.style = camel_case_style
 
-# Instance fields are camelCase with underscore prefix
+# Instance fields are camelCase
 dotnet_naming_rule.instance_fields_should_be_camel_case.severity = warning
 dotnet_naming_rule.instance_fields_should_be_camel_case.symbols = instance_fields
-dotnet_naming_rule.instance_fields_should_be_camel_case.style = camel_case_with_underscore
+dotnet_naming_rule.instance_fields_should_be_camel_case.style = camel_case_style
 
 # Locals and parameters are camelCase
 dotnet_naming_rule.locals_should_be_camel_case.severity = warning
@@ -232,7 +232,7 @@ dotnet_naming_rule.interfaces_should_be_begins_with_i.severity = warning
 dotnet_naming_rule.interfaces_should_be_begins_with_i.symbols = interfaces
 dotnet_naming_rule.interfaces_should_be_begins_with_i.style = begins_with_i_style
 
-# Non-field members are PascalCase
+# Non-field members are PascalCase (public/internal/protected properties still use PascalCase)
 dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = warning
 dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
 dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case_style
@@ -262,16 +262,13 @@ dotnet_naming_symbols.interfaces.applicable_accessibilities = *
 dotnet_naming_symbols.interfaces.required_modifiers =
 
 dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, method
-dotnet_naming_symbols.non_field_members.applicable_accessibilities = *
+dotnet_naming_symbols.non_field_members.applicable_accessibilities = public, internal, protected, protected_internal, private_protected, private
 dotnet_naming_symbols.non_field_members.required_modifiers =
 
 # Naming styles
 dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
 dotnet_naming_style.camel_case_style.capitalization = camel_case
-
-dotnet_naming_style.camel_case_with_underscore.capitalization = camel_case
-dotnet_naming_style.camel_case_with_underscore.required_prefix = _
 
 dotnet_naming_style.begins_with_i_style.capitalization = pascal_case
 dotnet_naming_style.begins_with_i_style.required_prefix = I
@@ -358,11 +355,11 @@ dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
 # IDE0038: Use pattern matching
 csharp_style_pattern_matching_over_is_with_cast_check = true:warning
 
-# IDE0039: Use local function
+dotnet_style_require_accessibility_modifiers = never:warning
 csharp_style_prefer_local_over_anonymous_function = true:suggestion
 
 # IDE0040: Add accessibility modifiers
-dotnet_style_require_accessibility_modifiers = always:warning
+dotnet_style_require_accessibility_modifiers = always:none
 
 # IDE0041: Use 'is null' check
 dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
@@ -406,6 +403,7 @@ dotnet_style_prefer_compound_assignment = true:suggestion
 # IDE0055: Fix formatting
 # IDE0056: Use index operator (C# 8 - limited support in C# 7.3, disable to avoid confusion)
 csharp_style_prefer_index_operator = false:none
+dotnet_diagnostic.IDE0056.severity = none
 
 # IDE0057: Use range operator (C# 8 - NOT compatible with C# 7.3)
 csharp_style_prefer_range_operator = false:none
@@ -422,6 +420,7 @@ csharp_prefer_static_local_function = true:warning
 
 # IDE0063: Use simple 'using' statement (C# 8 - NOT compatible with C# 7.3)
 csharp_prefer_simple_using_statement = false:none
+dotnet_diagnostic.IDE0063.severity = none
 
 # IDE0064: Make readonly fields writable
 # IDE0065: Misplaced using directive
@@ -430,6 +429,7 @@ dotnet_separate_import_directive_groups = false
 
 # IDE0066: Convert switch statement to expression (C# 8 - NOT compatible with C# 7.3)
 csharp_style_prefer_switch_expression = false:none
+dotnet_diagnostic.IDE0066.severity = none
 
 # IDE0070: Use 'System.HashCode'
 # IDE0071: Simplify interpolation
@@ -452,6 +452,7 @@ dotnet_diagnostic.IDE0083.severity = none
 
 # IDE0090: Use 'new(...)' (C# 9 - NOT compatible with C# 7.3)
 csharp_style_implicit_object_creation_when_type_is_apparent = false:none
+dotnet_diagnostic.IDE0090.severity = none
 
 # IDE0100: Remove redundant equality
 # IDE0110: Remove redundant discard
@@ -459,7 +460,8 @@ csharp_style_implicit_object_creation_when_type_is_apparent = false:none
 # IDE0130: Namespace does not match folder structure
 dotnet_diagnostic.IDE0130.severity = none
 # IDE0131: Unused private members
-# IDE0140: Simplify object creation
+# IDE0140: Simplify object creation (may use C# 9+ features)
+dotnet_diagnostic.IDE0140.severity = none
 # IDE0150: Prefer 'null' check over type check
 # IDE0160: Convert to file-scoped namespace (C# 10 - NOT compatible with C# 7.3)
 dotnet_diagnostic.IDE0160.severity = none
@@ -495,7 +497,9 @@ dotnet_diagnostic.IDE0303.severity = none
 dotnet_diagnostic.IDE0304.severity = none
 # IDE0305: Use collection expression for dictionary (C# 12 - NOT compatible with C# 7.3)
 dotnet_diagnostic.IDE0305.severity = none
-# IDE1006: Naming rule violation
+# IDE1006: Naming rule violation - DISABLED GLOBALLY
+# Allows underscore (_) and s_ prefixes that don't match naming conventions
+dotnet_diagnostic.IDE1006.severity = none
 # IDE1007: Use 'throw' expression
 
 #### Additional Analyzer Suppressions for .NET Framework 4.8 Compatibility ####
@@ -514,8 +518,79 @@ dotnet_diagnostic.CS8625.severity = none
 dotnet_diagnostic.CS8629.severity = none
 
 
+# MA0004: Use Task.ConfigureAwait(false) - DISABLED GLOBALLY
+dotnet_diagnostic.MA0004.severity = none
+
+# MA0011: Use an overload of 'ToLower' that has a 'System.Globalization.CultureInfo' parameter
+dotnet_diagnostic.MA0011.severity = silent
+
+# MA0020: Use 'Exists()' instead of 'Any()' - DISABLED GLOBALLY
+dotnet_diagnostic.MA0020.severity = none
+
+# MA0025: Implement the functionality (or raise NotSupportedException or PlatformNotSupportedException) - DISABLED GLOBALLY
+dotnet_diagnostic.MA0025.severity = none
+
+# MA0016: Prefer using collection abstraction instead of implementation
+dotnet_diagnostic.MA0016.severity = none
+
+# MA0023: Add RegexOptions.ExplicitCapture - DISABLED GLOBALLY
+# ExplicitCapture prevents numbered groups from working, which breaks replacement strings like $1-$2
+dotnet_diagnostic.MA0023.severity = none
+
 # MA0042: Do not use blocking calls in an async method
 dotnet_diagnostic.MA0042.severity = none
 
+# MA0046: The delegate must have 2 parameters
+dotnet_diagnostic.MA0046.severity = none
+
+# MA0048: File name must match type name
+dotnet_diagnostic.MA0048.severity = none
+
+# MA0051: Method is too long
+dotnet_diagnostic.MA0051.severity = none
+
+# MA0076: Do not use implicit culture-sensitive ToString in interpolated strings
+dotnet_diagnostic.MA0076.severity = silent
+
 # CS1998: Async method lacks 'await' operators and will run synchronously
 dotnet_diagnostic.CS1998.severity = none
+
+# S2376: Provide a getter for property or replace with method
+dotnet_diagnostic.S2376.severity = silent
+
+# S2583: Conditionally executed code should be reachable
+dotnet_diagnostic.S2583.severity = silent
+
+# S3267: Loops should be simplified using the "Where" LINQ method
+dotnet_diagnostic.S3267.severity = none
+
+# S1075: URIs should not be hardcoded - DISABLED GLOBALLY
+dotnet_diagnostic.S1075.severity = none
+
+# S3358: Extract nested ternary operation into an independent statement - DISABLED GLOBALLY
+dotnet_diagnostic.S3358.severity = none
+
+# S6602: "Find" method should be used instead of "FirstOrDefault" extension method - DISABLED GLOBALLY
+dotnet_diagnostic.S6602.severity = none
+
+# S6605: Collection-specific "Exists" method should be used instead of "Any" extension - DISABLED GLOBALLY
+dotnet_diagnostic.S6605.severity = none
+
+# S1481: Unused local variables - disable for variables prefixed with underscore
+# Variables starting with underscore explicitly indicate "I don't care" usage
+dotnet_diagnostic.S1481.severity = silent
+
+# S1854: Remove this useless assignment to local variable '_' - DISABLED GLOBALLY
+dotnet_diagnostic.S1854.severity = none
+
+#### Project-Specific Analyzer Rules ####
+
+# KOTORModSync.GUI: Disable S1481 - GUI code may have different naming conventions
+# S1481: Unused local variables with underscore prefix are intentional
+[KOTORModSync.GUI/**/*.cs]
+dotnet_diagnostic.S1481.severity = none
+
+# KOTORModSync.Core: Enable MA0004 - Library code should use ConfigureAwait(false)
+# (MA0004 warns when ConfigureAwait is missing - encourages ConfigureAwait(false) usage)
+[KOTORModSync.Core/**/*.cs]
+dotnet_diagnostic.MA0004.severity = warning

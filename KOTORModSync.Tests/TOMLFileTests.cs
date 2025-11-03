@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -14,29 +14,29 @@ using Tomlyn;
 
 namespace KOTORModSync.Tests
 {
-	[TestFixture]
-	public class TomlFileTests
-	{
-		[SetUp]
-		public void SetUp()
-		{
+    [TestFixture]
+    public class TomlFileTests
+    {
+        [SetUp]
+        public void SetUp()
+        {
 
-			_filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
+            _filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
 
-			File.WriteAllText(_filePath, _exampleToml);
-		}
+            File.WriteAllText(_filePath, _exampleToml);
+        }
 
-		[TearDown]
-		public void TearDown()
-		{
+        [TearDown]
+        public void TearDown()
+        {
 
-			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
-			File.Delete(_filePath);
-		}
+            Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
+            File.Delete(_filePath);
+        }
 
-		private string _filePath = string.Empty;
+        private string _filePath = string.Empty;
 
-		private readonly string _exampleToml = @"[[thisMod]]
+        private readonly string _exampleToml = @"[[thisMod]]
 name = ""Ultimate Dantooine""
 guid = ""{B3525945-BDBD-45D8-A324-AAF328A5E13E}""
 dependencies = [
@@ -80,477 +80,477 @@ overwrite = true
 action = ""run""
 path = ""%temp%\\mod_files\\TSLPatcher.exe""";
 
-		[Test]
-		public void SaveAndLoadTOMLFile_MatchingComponents()
-		{
+        [Test]
+        public void SaveAndLoadTOMLFile_MatchingComponents()
+        {
 
-			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " is null");
-			string tomlContents = File.ReadAllText(_filePath);
+            Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " is null");
+            string tomlContents = File.ReadAllText(_filePath);
 
-			tomlContents = Serializer.FixWhitespaceIssues(tomlContents);
+            tomlContents = Serializer.FixWhitespaceIssues(tomlContents);
 
-			string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
-			File.WriteAllText(modifiedFilePath, tomlContents);
+            string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
+            File.WriteAllText(modifiedFilePath, tomlContents);
 
-			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
-			FileLoadingService.SaveToFile(originalComponents, modifiedFilePath);
+            FileLoadingService.SaveToFile(originalComponents, modifiedFilePath);
 
-			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
-			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
-			for (int i = 0; i < originalComponents.Count; i++)
-			{
-				ModComponent originalComponent = originalComponents[i];
-				ModComponent loadedComponent = loadedComponents[i];
+            for (int i = 0; i < originalComponents.Count; i++)
+            {
+                ModComponent originalComponent = originalComponents[i];
+                ModComponent loadedComponent = loadedComponents[i];
 
-				AssertComponentEquality(loadedComponent, originalComponent);
-			}
-		}
+                AssertComponentEquality(loadedComponent, originalComponent);
+            }
+        }
 
-		[Test]
-		public void SaveAndLoad_DefaultComponent()
-		{
+        [Test]
+        public void SaveAndLoad_DefaultComponent()
+        {
 
-			ModComponent newComponent = ModComponent.DeserializeTomlComponent(_exampleToml)
-				?? throw new InvalidOperationException();
-			newComponent.Guid = Guid.NewGuid();
-			newComponent.Name = "test_mod_" + Path.GetRandomFileName();
+            ModComponent newComponent = ModComponent.DeserializeTomlComponent(_exampleToml)
+                ?? throw new InvalidOperationException();
+            newComponent.Guid = Guid.NewGuid();
+            newComponent.Name = "test_mod_" + Path.GetRandomFileName();
 
-			string tomlString = newComponent.SerializeComponent();
+            string tomlString = newComponent.SerializeComponent();
 
-			ModComponent duplicateComponent = ModComponent.DeserializeTomlComponent(tomlString)
-				?? throw new InvalidOperationException();
+            ModComponent duplicateComponent = ModComponent.DeserializeTomlComponent(tomlString)
+                ?? throw new InvalidOperationException();
 
-			AssertComponentEquality(newComponent, duplicateComponent);
-		}
+            AssertComponentEquality(newComponent, duplicateComponent);
+        }
 
-		[Test]
-		[Ignore("not sure if I want to support")]
-		public void SaveAndLoadTOMLFile_CaseInsensitive()
-		{
+        [Test]
+        [Ignore("not sure if I want to support")]
+        public void SaveAndLoadTOMLFile_CaseInsensitive()
+        {
 
-			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
 
-			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
-			string tomlContents = File.ReadAllText(_filePath);
+            Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
+            string tomlContents = File.ReadAllText(_filePath);
 
-			tomlContents = ConvertFieldNamesAndValuesToMixedCase(tomlContents);
+            tomlContents = ConvertFieldNamesAndValuesToMixedCase(tomlContents);
 
-			string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
-			File.WriteAllText(modifiedFilePath, tomlContents);
+            string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
+            File.WriteAllText(modifiedFilePath, tomlContents);
 
-			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
-			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
-			for (int i = 0; i < originalComponents.Count; i++)
-			{
-				ModComponent originalComponent = originalComponents[i];
-				ModComponent loadedComponent = loadedComponents[i];
+            for (int i = 0; i < originalComponents.Count; i++)
+            {
+                ModComponent originalComponent = originalComponents[i];
+                ModComponent loadedComponent = loadedComponents[i];
 
-				AssertComponentEquality(originalComponent, loadedComponent);
-			}
-		}
+                AssertComponentEquality(originalComponent, loadedComponent);
+            }
+        }
 
-		[Test]
-		public void SaveAndLoadTOMLFile_WhitespaceTests()
-		{
+        [Test]
+        public void SaveAndLoadTOMLFile_WhitespaceTests()
+        {
 
-			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
 
-			Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
-			string tomlContents = File.ReadAllText(_filePath);
+            Assert.That(_filePath, Is.Not.Null, nameof(_filePath) + " != null");
+            string tomlContents = File.ReadAllText(_filePath);
 
-			tomlContents = "    \r\n\t   \r\n\r\n\r\n" + tomlContents + "    \r\n\t   \r\n\r\n\r\n";
+            tomlContents = "    \r\n\t   \r\n\r\n\r\n" + tomlContents + "    \r\n\t   \r\n\r\n\r\n";
 
-			string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
-			File.WriteAllText(modifiedFilePath, tomlContents);
+            string modifiedFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
+            File.WriteAllText(modifiedFilePath, tomlContents);
 
-			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(modifiedFilePath);
 
-			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
 
-			for (int i = 0; i < originalComponents.Count; i++)
-			{
-				ModComponent originalComponent = originalComponents[i];
-				ModComponent loadedComponent = loadedComponents[i];
+            for (int i = 0; i < originalComponents.Count; i++)
+            {
+                ModComponent originalComponent = originalComponents[i];
+                ModComponent loadedComponent = loadedComponents[i];
 
-				AssertComponentEquality(originalComponent, loadedComponent);
-			}
-		}
+                AssertComponentEquality(originalComponent, loadedComponent);
+            }
+        }
 
-		private static string ConvertFieldNamesAndValuesToMixedCase(string tomlContents)
-		{
-			var convertedContents = new StringBuilder();
-			var random = new Random();
-
-			bool isFieldName = true;
-
-			foreach (char c in tomlContents)
-			{
-				char convertedChar = c;
-
-				if (isFieldName)
-				{
-					if (char.IsLetter(c))
-					{
-
-						convertedChar = random.Next(2) == 0
-							? char.ToUpper(c)
-							: char.ToLower(c);
-					}
-					else if (c == ']')
-					{
-						isFieldName = false;
-					}
-				}
-				else
-				{
-					if (char.IsLetter(c))
-					{
-
-						convertedChar = random.Next(2) == 0
-							? char.ToUpper(c)
-							: char.ToLower(c);
-					}
-					else if (c == '[')
-					{
-						isFieldName = true;
-					}
-				}
-
-				_ = convertedContents.Append(convertedChar);
-			}
-
-			return convertedContents.ToString();
-		}
-
-		[Test]
-		public void SaveAndLoadTOMLFile_EmptyComponentsList()
-		{
-
-			List<ModComponent> originalComponents = [];
-
-			FileLoadingService.SaveToFile(originalComponents, _filePath);
-
-			try
-			{
-				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
-
-				Assert.That(loadedComponents, Is.Null.Or.Empty);
-			}
-			catch (InvalidDataException) { }
-		}
-
-		[Test]
-		public void SaveAndLoadTOMLFile_DuplicateGuids()
-		{
-
-			List<ModComponent> originalComponents =
-			[
-				new ModComponent
-				{
-					Name = "ModComponent 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
-				},
-				new ModComponent
-				{
-					Name = "ModComponent 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
-				},
-				new ModComponent
-				{
-					Name = "ModComponent 3", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
-				},
-			];
-
-			FileLoadingService.SaveToFile(originalComponents, _filePath);
-			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
-
-			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
-
-			for (int i = 0; i < originalComponents.Count; i++)
-			{
-				ModComponent originalComponent = originalComponents[i];
-				ModComponent loadedComponent = loadedComponents[i];
-
-				AssertComponentEquality(originalComponent, loadedComponent);
-			}
-		}
-
-		[Test]
-		public void SaveAndLoadTOMLFile_ModifyComponents()
-		{
-
-			List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
-
-			originalComponents[0].Name = "Modified Name";
-
-			FileLoadingService.SaveToFile(originalComponents, _filePath);
-			List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
-
-			Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
-
-			for (int i = 0; i < originalComponents.Count; i++)
-			{
-				ModComponent originalComponent = originalComponents[i];
-				ModComponent loadedComponent = loadedComponents[i];
-
-				AssertComponentEquality(loadedComponent, originalComponent);
-			}
-		}
-
-		[Test]
-		public void SaveAndLoadTOMLFile_MultipleRounds()
-		{
-
-			List<List<ModComponent>> rounds =
-			[
-				[
-					new ModComponent
-					{
-						Name = "ModComponent 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
-						IsSelected = true,
-					},
-					new ModComponent
-					{
-						Name = "ModComponent 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
-						IsSelected = true,
-					},
-				],
-				[
-					new ModComponent
-					{
-						Name = "ModComponent 3", Guid = Guid.Parse("{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}"),
-						IsSelected = true,
-					},
-					new ModComponent
-					{
-						Name = "ModComponent 4", Guid = Guid.Parse("{E7B27A19-9A81-4A20-B062-7D00F2603D5C}"),
-						IsSelected = true,
-					},
-					new ModComponent
-					{
-						Name = "ModComponent 5", Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
-						IsSelected = true,
-					},
-				],
-				[
-					new ModComponent
-					{
-						Name = "ModComponent 6", Guid = Guid.Parse("{EF04A28E-5031-4A95-A85A-9A1B29A31710}"),
-						IsSelected = true,
-					},
-					new ModComponent
-					{
-						Name = "ModComponent 7", Guid = Guid.Parse("{B0373F49-ED5A-43A1-91E0-5CEB85659282}"),
-						IsSelected = true,
-					},
-					new ModComponent
-					{
-						Name = "ModComponent 8", Guid = Guid.Parse("{BBDB9C8D-DA44-4859-A641-0364D6F34D12}"),
-						IsSelected = true,
-					},
-					new ModComponent
-					{
-						Name = "ModComponent 9", Guid = Guid.Parse("{D6B5C60F-26A7-4595-A0E2-2DE567A376DE}"),
-						IsSelected = true,
-					},
-				],
-			];
-
-			foreach (List<ModComponent> components in rounds)
-			{
-				FileLoadingService.SaveToFile(components, _filePath);
-				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
-
-				Assert.That(loadedComponents, Has.Count.EqualTo(components.Count));
-
-				for (int i = 0; i < components.Count; i++)
-				{
-					ModComponent originalComponent = components[i];
-					ModComponent loadedComponent = loadedComponents[i];
-
-					AssertComponentEquality(originalComponent, loadedComponent);
-				}
-			}
-		}
-
-		[Test]
-		public void TomlWriteStringTest()
-		{
-
-			var innerDictionary1 = new Dictionary<string, object>
+        private static string ConvertFieldNamesAndValuesToMixedCase(string tomlContents)
+        {
+            var convertedContents = new StringBuilder();
+            var random = new Random();
+
+            bool isFieldName = true;
+
+            foreach (char c in tomlContents)
+            {
+                char convertedChar = c;
+
+                if (isFieldName)
+                {
+                    if (char.IsLetter(c))
+                    {
+
+                        convertedChar = random.Next(2) == 0
+                            ? char.ToUpper(c)
+                            : char.ToLower(c);
+                    }
+                    else if (c == ']')
+                    {
+                        isFieldName = false;
+                    }
+                }
+                else
+                {
+                    if (char.IsLetter(c))
+                    {
+
+                        convertedChar = random.Next(2) == 0
+                            ? char.ToUpper(c)
+                            : char.ToLower(c);
+                    }
+                    else if (c == '[')
+                    {
+                        isFieldName = true;
+                    }
+                }
+
+                _ = convertedContents.Append(convertedChar);
+            }
+
+            return convertedContents.ToString();
+        }
+
+        [Test]
+        public void SaveAndLoadTOMLFile_EmptyComponentsList()
+        {
+
+            List<ModComponent> originalComponents = [];
+
+            FileLoadingService.SaveToFile(originalComponents, _filePath);
+
+            try
+            {
+                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+
+                Assert.That(loadedComponents, Is.Null.Or.Empty);
+            }
+            catch (InvalidDataException) { }
+        }
+
+        [Test]
+        public void SaveAndLoadTOMLFile_DuplicateGuids()
+        {
+
+            List<ModComponent> originalComponents =
+            [
+                new ModComponent
+                {
+                    Name = "ModComponent 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
+                },
+                new ModComponent
+                {
+                    Name = "ModComponent 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
+                },
+                new ModComponent
+                {
+                    Name = "ModComponent 3", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
+                },
+            ];
+
+            FileLoadingService.SaveToFile(originalComponents, _filePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+
+            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+
+            for (int i = 0; i < originalComponents.Count; i++)
+            {
+                ModComponent originalComponent = originalComponents[i];
+                ModComponent loadedComponent = loadedComponents[i];
+
+                AssertComponentEquality(originalComponent, loadedComponent);
+            }
+        }
+
+        [Test]
+        public void SaveAndLoadTOMLFile_ModifyComponents()
+        {
+
+            List<ModComponent> originalComponents = FileLoadingService.LoadFromFile(_filePath);
+
+            originalComponents[0].Name = "Modified Name";
+
+            FileLoadingService.SaveToFile(originalComponents, _filePath);
+            List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+
+            Assert.That(loadedComponents, Has.Count.EqualTo(originalComponents.Count));
+
+            for (int i = 0; i < originalComponents.Count; i++)
+            {
+                ModComponent originalComponent = originalComponents[i];
+                ModComponent loadedComponent = loadedComponents[i];
+
+                AssertComponentEquality(loadedComponent, originalComponent);
+            }
+        }
+
+        [Test]
+        public void SaveAndLoadTOMLFile_MultipleRounds()
+        {
+
+            List<List<ModComponent>> rounds =
+            [
+                [
+                    new ModComponent
+                    {
+                        Name = "ModComponent 1", Guid = Guid.Parse("{B3525945-BDBD-45D8-A324-AAF328A5E13E}"),
+                        IsSelected = true,
+                    },
+                    new ModComponent
+                    {
+                        Name = "ModComponent 2", Guid = Guid.Parse("{C5418549-6B7E-4A8C-8B8E-4AA1BC63C732}"),
+                        IsSelected = true,
+                    },
+                ],
+                [
+                    new ModComponent
+                    {
+                        Name = "ModComponent 3", Guid = Guid.Parse("{D0F371DA-5C69-4A26-8A37-76E3A6A2A50D}"),
+                        IsSelected = true,
+                    },
+                    new ModComponent
+                    {
+                        Name = "ModComponent 4", Guid = Guid.Parse("{E7B27A19-9A81-4A20-B062-7D00F2603D5C}"),
+                        IsSelected = true,
+                    },
+                    new ModComponent
+                    {
+                        Name = "ModComponent 5", Guid = Guid.Parse("{F1B05F5D-3C06-4B64-8E39-8BEC8D22BB0A}"),
+                        IsSelected = true,
+                    },
+                ],
+                [
+                    new ModComponent
+                    {
+                        Name = "ModComponent 6", Guid = Guid.Parse("{EF04A28E-5031-4A95-A85A-9A1B29A31710}"),
+                        IsSelected = true,
+                    },
+                    new ModComponent
+                    {
+                        Name = "ModComponent 7", Guid = Guid.Parse("{B0373F49-ED5A-43A1-91E0-5CEB85659282}"),
+                        IsSelected = true,
+                    },
+                    new ModComponent
+                    {
+                        Name = "ModComponent 8", Guid = Guid.Parse("{BBDB9C8D-DA44-4859-A641-0364D6F34D12}"),
+                        IsSelected = true,
+                    },
+                    new ModComponent
+                    {
+                        Name = "ModComponent 9", Guid = Guid.Parse("{D6B5C60F-26A7-4595-A0E2-2DE567A376DE}"),
+                        IsSelected = true,
+                    },
+                ],
+            ];
+
+            foreach (List<ModComponent> components in rounds)
+            {
+                FileLoadingService.SaveToFile(components, _filePath);
+                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath);
+
+                Assert.That(loadedComponents, Has.Count.EqualTo(components.Count));
+
+                for (int i = 0; i < components.Count; i++)
+                {
+                    ModComponent originalComponent = components[i];
+                    ModComponent loadedComponent = loadedComponents[i];
+
+                    AssertComponentEquality(originalComponent, loadedComponent);
+                }
+            }
+        }
+
+        [Test]
+        public void TomlWriteStringTest()
+        {
+
+            var innerDictionary1 = new Dictionary<string, object>
 (StringComparer.Ordinal)
-			{
-				{
-					"name", "John"
-				},
-				{
-					"age", 30
-				},
+            {
+                {
+                    "name", "John"
+                },
+                {
+                    "age", 30
+                },
 
-			};
+            };
 
-			var innerDictionary2 = new Dictionary<string, object>
+            var innerDictionary2 = new Dictionary<string, object>
 (StringComparer.Ordinal)
-			{
-				{
-					"name", "Alice"
-				},
-				{
-					"age", 25
-				},
+            {
+                {
+                    "name", "Alice"
+                },
+                {
+                    "age", 25
+                },
 
-			};
+            };
 
-			var rootTable = new Dictionary<string, object>
+            var rootTable = new Dictionary<string, object>
 (StringComparer.Ordinal)
-			{
-				{
-					"thisMod", new List<object>
-					{
-						innerDictionary1, innerDictionary2,
+            {
+                {
+                    "thisMod", new List<object>
+                    {
+                        innerDictionary1, innerDictionary2,
 
-					}
-				},
-			};
+                    }
+                },
+            };
 
-			Logger.Log(TomlWriter.WriteString(rootTable));
-			Logger.Log(Toml.FromModel(rootTable));
-		}
+            Logger.Log(TomlWriter.WriteString(rootTable));
+            Logger.Log(Toml.FromModel(rootTable));
+        }
 
-		[Test]
-		public void Instruction_ConditionalSerialization_OnlyRelevantFieldsAreIncluded()
-		{
+        [Test]
+        public void Instruction_ConditionalSerialization_OnlyRelevantFieldsAreIncluded()
+        {
 
-			var extractComponent = new ModComponent
-			{
-				Name = "Extract Test",
-				Guid = Guid.NewGuid(),
-				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
-			{
-				new Instruction
-				{
-					Action = Instruction.ActionType.Extract,
-					Source = new List<string> { "test.rar" },
-					Overwrite = true,
-					Destination = "some/path",
-					Arguments = "some args"
-				}
-			},
-			};
-			string extractToml = extractComponent.SerializeComponent();
-			Assert.Multiple(() =>
-			{
-				Assert.That(extractToml.Contains("Overwrite"), Is.False, "Extract should not serialize Overwrite");
-				Assert.That(extractToml.Contains("Destination"), Is.False, "Extract should not serialize Destination");
-				Assert.That(extractToml.Contains("Arguments"), Is.False, "Extract should not serialize Arguments");
-			});
+            var extractComponent = new ModComponent
+            {
+                Name = "Extract Test",
+                Guid = Guid.NewGuid(),
+                Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+            {
+                new Instruction
+                {
+                    Action = Instruction.ActionType.Extract,
+                    Source = new List<string> { "test.rar" },
+                    Overwrite = true,
+                    Destination = "some/path",
+                    Arguments = "some args"
+                }
+            },
+            };
+            string extractToml = extractComponent.SerializeComponent();
+            Assert.Multiple(() =>
+            {
+                Assert.That(extractToml.Contains("Overwrite"), Is.False, "Extract should not serialize Overwrite");
+                Assert.That(extractToml.Contains("Destination"), Is.False, "Extract should not serialize Destination");
+                Assert.That(extractToml.Contains("Arguments"), Is.False, "Extract should not serialize Arguments");
+            });
 
-			var moveComponent = new ModComponent
-			{
-				Name = "Move Test",
-				Guid = Guid.NewGuid(),
-				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
-			{
-				new Instruction
-				{
-					Action = Instruction.ActionType.Move,
-					Source = new List<string> { "test.txt" },
-					Destination = "<<kotorDirectory>>\\Override",
-					Overwrite = true,
-					Arguments = "should not appear"
-				}
-			},
-			};
-			string moveToml = moveComponent.SerializeComponent();
-			Assert.Multiple(() =>
-			{
-				Assert.That(moveToml, Does.Contain("Overwrite"), "Move should serialize Overwrite");
-				Assert.That(moveToml, Does.Contain("Destination"), "Move should serialize Destination");
-				Assert.That(moveToml, Does.Not.Contain("Arguments"), "Move should not serialize Arguments");
-			});
+            var moveComponent = new ModComponent
+            {
+                Name = "Move Test",
+                Guid = Guid.NewGuid(),
+                Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+            {
+                new Instruction
+                {
+                    Action = Instruction.ActionType.Move,
+                    Source = new List<string> { "test.txt" },
+                    Destination = "<<kotorDirectory>>\\Override",
+                    Overwrite = true,
+                    Arguments = "should not appear"
+                }
+            },
+            };
+            string moveToml = moveComponent.SerializeComponent();
+            Assert.Multiple(() =>
+            {
+                Assert.That(moveToml, Does.Contain("Overwrite"), "Move should serialize Overwrite");
+                Assert.That(moveToml, Does.Contain("Destination"), "Move should serialize Destination");
+                Assert.That(moveToml, Does.Not.Contain("Arguments"), "Move should not serialize Arguments");
+            });
 
-			var patcherComponent = new ModComponent
-			{
-				Name = "Patcher Test",
-				Guid = Guid.NewGuid(),
-				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
-			{
-				new Instruction
-				{
-					Action = Instruction.ActionType.Patcher,
-					Source = new List<string> { "tslpatchdata" },
-					Destination = "<<kotorDirectory>>",
-					Arguments = "0",
-					Overwrite = true
-				}
-			},
-			};
-			string patcherToml = patcherComponent.SerializeComponent();
-			Assert.Multiple(() =>
-			{
-				Assert.That(patcherToml, Does.Not.Contain("Overwrite"), "Patcher should not serialize Overwrite");
-				Assert.That(patcherToml, Does.Contain("Destination"), "Patcher should serialize Destination");
-				Assert.That(patcherToml, Does.Contain("Arguments"), "Patcher should serialize Arguments");
-			});
+            var patcherComponent = new ModComponent
+            {
+                Name = "Patcher Test",
+                Guid = Guid.NewGuid(),
+                Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+            {
+                new Instruction
+                {
+                    Action = Instruction.ActionType.Patcher,
+                    Source = new List<string> { "tslpatchdata" },
+                    Destination = "<<kotorDirectory>>",
+                    Arguments = "0",
+                    Overwrite = true
+                }
+            },
+            };
+            string patcherToml = patcherComponent.SerializeComponent();
+            Assert.Multiple(() =>
+            {
+                Assert.That(patcherToml, Does.Not.Contain("Overwrite"), "Patcher should not serialize Overwrite");
+                Assert.That(patcherToml, Does.Contain("Destination"), "Patcher should serialize Destination");
+                Assert.That(patcherToml, Does.Contain("Arguments"), "Patcher should serialize Arguments");
+            });
 
-			var executeComponent = new ModComponent
-			{
-				Name = "Execute Test",
-				Guid = Guid.NewGuid(),
-				Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
-			{
-				new Instruction
-				{
-					Action = Instruction.ActionType.Execute,
-					Source = new List<string> { "setup.exe" },
-					Arguments = "/silent",
-					Overwrite = true,
-					Destination = "some/path"
-				}
-			},
-			};
-			string executeToml = executeComponent.SerializeComponent();
-			Assert.Multiple(() =>
-			{
-				Assert.That(executeToml, Does.Not.Contain("Overwrite"), "Execute should not serialize Overwrite");
-				Assert.That(executeToml, Does.Not.Contain("Destination"), "Execute should not serialize Destination");
-				Assert.That(executeToml, Does.Contain("Arguments"), "Execute should serialize Arguments");
-			});
-		}
+            var executeComponent = new ModComponent
+            {
+                Name = "Execute Test",
+                Guid = Guid.NewGuid(),
+                Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>
+            {
+                new Instruction
+                {
+                    Action = Instruction.ActionType.Execute,
+                    Source = new List<string> { "setup.exe" },
+                    Arguments = "/silent",
+                    Overwrite = true,
+                    Destination = "some/path"
+                }
+            },
+            };
+            string executeToml = executeComponent.SerializeComponent();
+            Assert.Multiple(() =>
+            {
+                Assert.That(executeToml, Does.Not.Contain("Overwrite"), "Execute should not serialize Overwrite");
+                Assert.That(executeToml, Does.Not.Contain("Destination"), "Execute should not serialize Destination");
+                Assert.That(executeToml, Does.Contain("Arguments"), "Execute should serialize Arguments");
+            });
+        }
 
-		[Test]
-		public void ModComponent_RuntimeFields_AreNotSerialized()
-		{
+        [Test]
+        public void ModComponent_RuntimeFields_AreNotSerialized()
+        {
 
-			var component = new ModComponent
-			{
-				Name = "Test Mod",
-				Guid = Guid.NewGuid(),
-				IsDownloaded = true,
-				InstallState = ModComponent.ComponentInstallState.Completed,
-				IsSelected = true,
-			};
+            var component = new ModComponent
+            {
+                Name = "Test Mod",
+                Guid = Guid.NewGuid(),
+                IsDownloaded = true,
+                InstallState = ModComponent.ComponentInstallState.Completed,
+                IsSelected = true,
+            };
 
-			string tomlString = component.SerializeComponent();
-			Assert.Multiple(() =>
-			{
-				Assert.That(tomlString, Does.Not.Contain("IsDownloaded"), "TOML should not contain IsDownloaded");
-				Assert.That(tomlString, Does.Not.Contain("InstallState"), "TOML should not contain InstallState");
-				Assert.That(tomlString, Does.Not.Contain("LastStartedUtc"), "TOML should not contain LastStartedUtc");
-				Assert.That(tomlString, Does.Not.Contain("LastCompletedUtc"), "TOML should not contain LastCompletedUtc");
+            string tomlString = component.SerializeComponent();
+            Assert.Multiple(() =>
+            {
+                Assert.That(tomlString, Does.Not.Contain("IsDownloaded"), "TOML should not contain IsDownloaded");
+                Assert.That(tomlString, Does.Not.Contain("InstallState"), "TOML should not contain InstallState");
+                Assert.That(tomlString, Does.Not.Contain("LastStartedUtc"), "TOML should not contain LastStartedUtc");
+                Assert.That(tomlString, Does.Not.Contain("LastCompletedUtc"), "TOML should not contain LastCompletedUtc");
 
-				Assert.That(tomlString, Does.Contain("IsSelected"), "TOML should contain IsSelected");
-			});
-		}
+                Assert.That(tomlString, Does.Contain("IsSelected"), "TOML should contain IsSelected");
+            });
+        }
 
-		[Test]
-		public void SaveAndLoadTOMLFile_LegacySyntaxWithInlineOptionInstructions()
-		{
-			// Test the legacy syntax where Options have Instructions inline (not as separate [[thisMod.Options.Instructions]])
-			var legacyToml = @"[[thisMod]]
+        [Test]
+        public void SaveAndLoadTOMLFile_LegacySyntaxWithInlineOptionInstructions()
+        {
+            // Test the legacy syntax where Options have Instructions inline (not as separate [[thisMod.Options.Instructions]])
+            string legacyToml = @"[[thisMod]]
 Guid = ""a9aa5bf5-b4ac-4aa3-acbb-402337235e54""
 Name = ""KOTOR Dialogue Fixes""
 Author = ""Salk & Kainzorus Prime""
@@ -597,99 +597,101 @@ Instructions = [
     ] },
 ]";
 
-			// Write the legacy TOML to a temporary file
-			string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
-			File.WriteAllText(tempFilePath, legacyToml);
+            // Write the legacy TOML to a temporary file
+            string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
+            File.WriteAllText(tempFilePath, legacyToml);
 
-			try
-			{
-				// Load the components from the legacy TOML
-				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
+            try
+            {
+                // Load the components from the legacy TOML
+                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
 
-				// Verify we loaded exactly one component
-				Assert.That(loadedComponents, Has.Count.EqualTo(1));
+                // Verify we loaded exactly one component
+                Assert.That(loadedComponents, Has.Count.EqualTo(1));
 
-				ModComponent component = loadedComponents[0];
+                ModComponent component = loadedComponents[0];
 
-				// Verify basic properties
-				Assert.That(component.Guid.ToString(), Is.EqualTo("a9aa5bf5-b4ac-4aa3-acbb-402337235e54"));
-				Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
-				Assert.That(component.Author, Is.EqualTo("Salk & Kainzorus Prime"));
-				// Tier might be serialized with a prefix like "1 - Essential", so just check it contains "Essential"
-				Assert.That(component.Tier, Does.Contain("Essential"));
-				Assert.That(component.IsSelected, Is.True);
-				Assert.That(component.Category, Contains.Item("Immersion"));
+                // Verify basic properties
+                Assert.That(component.Guid.ToString(), Is.EqualTo("a9aa5bf5-b4ac-4aa3-acbb-402337235e54"));
+                Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
+                Assert.That(component.Author, Is.EqualTo("Salk & Kainzorus Prime"));
+                // Tier might be serialized with a prefix like "1 - Essential", so just check it contains "Essential"
+                Assert.That(component.Tier, Does.Contain("Essential"));
+                Assert.That(component.IsSelected, Is.True);
+                Assert.That(component.Category, Contains.Item("Immersion"));
 
-				// Verify ModLink was converted to ModLinkFilenames
-				Assert.That(component.ModLinkFilenames, Is.Not.Null);
-				Assert.That(component.ModLinkFilenames.Count, Is.EqualTo(1));
-				Assert.That(component.ModLinkFilenames.ContainsKey("https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"), Is.True);
+                // Verify ModLink was converted to ModLinkFilenames
+                Assert.That(component.ModLinkFilenames, Is.Not.Null);
+                Assert.That(component.ModLinkFilenames.Count, Is.EqualTo(1));
+                Assert.That(component.ModLinkFilenames.ContainsKey("https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"), Is.True);
 
-				// Verify Instructions - should have Extract and Choose
-				Assert.That(component.Instructions, Has.Count.EqualTo(2));
+                // Verify Instructions - should have Extract and Choose
+                Assert.That(component.Instructions, Has.Count.EqualTo(2));
 
-				var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
-				Assert.That(extractInstruction, Is.Not.Null, "Extract instruction should be present");
-				Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
+                var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
+                Assert.That(extractInstruction, Is.Not.Null, "Extract instruction should be present");
+                Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
 
-				var chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose);
-				Assert.That(chooseInstruction, Is.Not.Null, "Choose instruction should be present");
-				Assert.That(chooseInstruction.Source, Has.Count.EqualTo(2));
-				Assert.That(chooseInstruction.Source, Contains.Item("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48"));
-				Assert.That(chooseInstruction.Source, Contains.Item("6d593186-e356-4994-b6a8-f71445869937"));
+                var chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose);
+                Assert.That(chooseInstruction, Is.Not.Null, "Choose instruction should be present");
+                Assert.That(chooseInstruction.Source, Has.Count.EqualTo(2));
+                Assert.That(chooseInstruction.Source, Contains.Item("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48"));
+                Assert.That(chooseInstruction.Source, Contains.Item("6d593186-e356-4994-b6a8-f71445869937"));
 
-				// Verify Options
-				Assert.That(component.Options, Has.Count.EqualTo(2));
+                // Verify Options
+                Assert.That(component.Options, Has.Count.EqualTo(2));
 
-				var standardOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal));
-				Assert.That(standardOption, Is.Not.Null);
-				Assert.That(standardOption.Name, Is.EqualTo("Standard"));
-				Assert.That(standardOption.IsSelected, Is.False);
-				Assert.That(standardOption.Restrictions, Contains.Item(Guid.Parse("6d593186-e356-4994-b6a8-f71445869937")));
-				Assert.That(standardOption.Instructions, Has.Count.EqualTo(1), "Standard option should have 1 instruction");
-				if (standardOption.Instructions.Count > 0)
-				{
-					var standardInstruction = standardOption.Instructions[0];
-					Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
-					Assert.That(standardInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
-					Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"));
-				}
+                var standardOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal));
+                Assert.That(standardOption, Is.Not.Null);
+                Assert.That(standardOption.Name, Is.EqualTo("Standard"));
+                Assert.That(standardOption.IsSelected, Is.False);
+                Assert.That(standardOption.Restrictions, Contains.Item(Guid.Parse("6d593186-e356-4994-b6a8-f71445869937")));
+                Assert.That(standardOption.Instructions, Has.Count.EqualTo(1), "Standard option should have 1 instruction");
+                if (standardOption.Instructions.Count > 0)
+                {
+                    var standardInstruction = standardOption.Instructions[0];
+                    Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
+                    Assert.That(standardInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
+                    Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"));
+                }
 
-				var revisedOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal));
-				Assert.That(revisedOption, Is.Not.Null);
-				Assert.That(revisedOption.Name, Is.EqualTo("Revised"));
-				Assert.That(revisedOption.IsSelected, Is.True);
-				Assert.That(revisedOption.Restrictions, Contains.Item(Guid.Parse("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48")));
-				Assert.That(revisedOption.Instructions, Has.Count.EqualTo(1), "Revised option should have 1 instruction");
-				if (revisedOption.Instructions.Count > 0)
-				{
-					var revisedInstruction = revisedOption.Instructions[0];
-					Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
-					Assert.That(revisedInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
-					Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"));
-				}
+                var revisedOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal));
+                Assert.That(revisedOption, Is.Not.Null);
+                Assert.That(revisedOption.Name, Is.EqualTo("Revised"));
+                Assert.That(revisedOption.IsSelected, Is.True);
+                Assert.That(revisedOption.Restrictions, Contains.Item(Guid.Parse("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48")));
+                Assert.That(revisedOption.Instructions, Has.Count.EqualTo(1), "Revised option should have 1 instruction");
+                if (revisedOption.Instructions.Count > 0)
+                {
+                    var revisedInstruction = revisedOption.Instructions[0];
+                    Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
+                    Assert.That(revisedInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
+                    Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"));
+                }
 
-				// Now test round-trip: save and reload
-				FileLoadingService.SaveToFile(loadedComponents, tempFilePath);
-				List<ModComponent> reloadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
+                // Now test round-trip: save and reload
+                FileLoadingService.SaveToFile(loadedComponents, tempFilePath);
+                List<ModComponent> reloadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
 
-				// Verify round-trip worked
-				Assert.That(reloadedComponents, Has.Count.EqualTo(1));
-				AssertComponentEquality(loadedComponents[0], reloadedComponents[0]);
-			}
-			finally
-			{
-				// Clean up
-				if (File.Exists(tempFilePath))
-					File.Delete(tempFilePath);
-			}
-		}
+                // Verify round-trip worked
+                Assert.That(reloadedComponents, Has.Count.EqualTo(1));
+                AssertComponentEquality(loadedComponents[0], reloadedComponents[0]);
+            }
+            finally
+            {
+                // Clean up
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+            }
+        }
 
-		[Test]
-		public void SaveAndLoadTOMLFile_ComplexComponentWithOptionsAndInstructions()
-		{
-			// Test the complex scenario with ModLinkFilenames, Options, and Instructions
-			var expectedToml = @"[[thisMod]]
+        [Test]
+        public void SaveAndLoadTOMLFile_ComplexComponentWithOptionsAndInstructions()
+        {
+            // Test the complex scenario with ModLinkFilenames, Options, and Instructions
+            string expectedToml = @"[[thisMod]]
 ModLinkFilenames = { ""https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"" = {  } }
 Guid = ""987a0d17-c596-49af-ba28-851232455253""
 Name = ""KOTOR Dialogue Fixes""
@@ -739,122 +741,132 @@ Action = ""Move""
 Destination = ""<<kotorDirectory>>""
 Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk""]";
 
-			// Write the expected TOML to a temporary file
-			string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
-			File.WriteAllText(tempFilePath, expectedToml);
+            // Write the expected TOML to a temporary file
+            string tempFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".toml");
+            File.WriteAllText(tempFilePath, expectedToml);
 
-			try
-			{
-				// Load the components from the TOML
-				List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
+            try
+            {
+                // Load the components from the TOML
+                List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
 
-				// Verify we loaded exactly one component
-				Assert.That(loadedComponents, Has.Count.EqualTo(1));
+                // Verify we loaded exactly one component
+                Assert.That(loadedComponents, Has.Count.EqualTo(1));
 
-				ModComponent component = loadedComponents[0];
+                ModComponent component = loadedComponents[0];
 
-				// Verify basic properties
-				Assert.That(component.Guid.ToString(), Is.EqualTo("987a0d17-c596-49af-ba28-851232455253"));
-				Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
-				Assert.That(component.Author, Is.EqualTo("Salk & Kainzorus Prime"));
-				Assert.That(component.Tier, Is.EqualTo("1 - Essential"));
-				Assert.That(component.IsSelected, Is.True);
+                // Verify basic properties
+                Assert.That(component.Guid.ToString(), Is.EqualTo("987a0d17-c596-49af-ba28-851232455253"));
+                Assert.That(component.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
+                Assert.That(component.Author, Is.EqualTo("Salk & Kainzorus Prime"));
+                Assert.That(component.Tier, Is.EqualTo("1 - Essential"));
+                Assert.That(component.IsSelected, Is.True);
 
-				// Verify ModLinkFilenames
-				Assert.That(component.ModLinkFilenames, Is.Not.Null);
-				Assert.That(component.ModLinkFilenames.Count, Is.EqualTo(1));
-				Assert.That(component.ModLinkFilenames.ContainsKey("https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"), Is.True);
+                // Verify ModLinkFilenames
+                Assert.That(component.ModLinkFilenames, Is.Not.Null);
+                Assert.That(component.ModLinkFilenames.Count, Is.EqualTo(1));
+                Assert.That(component.ModLinkFilenames.ContainsKey("https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"), Is.True);
 
-				// Verify Instructions
-				Assert.That(component.Instructions, Has.Count.EqualTo(2));
+                // Verify Instructions
+                Assert.That(component.Instructions, Has.Count.EqualTo(2));
 
-				var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
-				Assert.That(extractInstruction, Is.Not.Null);
-				Assert.That(extractInstruction.Action, Is.EqualTo(Instruction.ActionType.Extract));
-				Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
+                var extractInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Extract);
+                Assert.That(extractInstruction, Is.Not.Null);
+                Assert.That(extractInstruction.Action, Is.EqualTo(Instruction.ActionType.Extract));
+                Assert.That(extractInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*.7z"));
 
-				var chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose);
-				Assert.That(chooseInstruction, Is.Not.Null);
-				Assert.That(chooseInstruction.Action, Is.EqualTo(Instruction.ActionType.Choose));
-				Assert.That(chooseInstruction.Source, Has.Count.EqualTo(2));
-				Assert.That(chooseInstruction.Source, Contains.Item("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48"));
-				Assert.That(chooseInstruction.Source, Contains.Item("6d593186-e356-4994-b6a8-f71445869937"));
+                var chooseInstruction = component.Instructions.FirstOrDefault(i => i.Action == Instruction.ActionType.Choose);
+                Assert.That(chooseInstruction, Is.Not.Null);
+                Assert.That(chooseInstruction.Action, Is.EqualTo(Instruction.ActionType.Choose));
+                Assert.That(chooseInstruction.Source, Has.Count.EqualTo(2));
+                Assert.That(chooseInstruction.Source, Contains.Item("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48"));
+                Assert.That(chooseInstruction.Source, Contains.Item("6d593186-e356-4994-b6a8-f71445869937"));
 
-				// Verify Options
-				Assert.That(component.Options, Has.Count.EqualTo(2));
+                // Verify Options
+                Assert.That(component.Options, Has.Count.EqualTo(2));
 
-				var standardOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal));
-				Assert.That(standardOption, Is.Not.Null);
-				Assert.That(standardOption.Name, Is.EqualTo("Standard"));
-				Assert.That(standardOption.Description, Is.EqualTo("Straight fixes to spelling errors/punctuation/grammar"));
-				Assert.That(standardOption.Restrictions, Contains.Item(Guid.Parse("6d593186-e356-4994-b6a8-f71445869937")));
+                var standardOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "cf2a12ec-3932-42f8-996d-b1b1bdfdbb48", StringComparison.Ordinal));
+                Assert.That(standardOption, Is.Not.Null);
+                Assert.That(standardOption.Name, Is.EqualTo("Standard"));
+                Assert.That(standardOption.Description, Is.EqualTo("Straight fixes to spelling errors/punctuation/grammar"));
+                Assert.That(standardOption.Restrictions, Contains.Item(Guid.Parse("6d593186-e356-4994-b6a8-f71445869937")));
 
-				var revisedOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal));
-				Assert.That(revisedOption, Is.Not.Null);
-				Assert.That(revisedOption.Name, Is.EqualTo("Revised"));
-				Assert.That(revisedOption.Description, Is.EqualTo("Everything in Straight Fixes, but also has changes from the PC Moderation changes."));
-				Assert.That(revisedOption.IsSelected, Is.True);
-				Assert.That(revisedOption.Restrictions, Contains.Item(Guid.Parse("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48")));
+                var revisedOption = component.Options.FirstOrDefault(o => string.Equals(o.Guid.ToString(), "6d593186-e356-4994-b6a8-f71445869937", StringComparison.Ordinal));
+                Assert.That(revisedOption, Is.Not.Null);
+                Assert.That(revisedOption.Name, Is.EqualTo("Revised"));
+                Assert.That(revisedOption.Description, Is.EqualTo("Everything in Straight Fixes, but also has changes from the PC Moderation changes."));
+                Assert.That(revisedOption.IsSelected, Is.True);
+                Assert.That(revisedOption.Restrictions, Contains.Item(Guid.Parse("cf2a12ec-3932-42f8-996d-b1b1bdfdbb48")));
 
-				// Verify Option Instructions
-				Assert.That(standardOption.Instructions, Has.Count.EqualTo(1));
-				var standardInstruction = standardOption.Instructions[0];
-				Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
-				Assert.That(standardInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
-				Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"));
+                // Verify Option Instructions
+                Assert.That(standardOption.Instructions, Has.Count.EqualTo(1));
+                var standardInstruction = standardOption.Instructions[0];
+                Assert.That(standardInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
+                Assert.That(standardInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
+                Assert.That(standardInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\Corrections only\\dialog.tlk"));
 
-				Assert.That(revisedOption.Instructions, Has.Count.EqualTo(1));
-				var revisedInstruction = revisedOption.Instructions[0];
-				Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
-				Assert.That(revisedInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
-				Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"));
+                Assert.That(revisedOption.Instructions, Has.Count.EqualTo(1));
+                var revisedInstruction = revisedOption.Instructions[0];
+                Assert.That(revisedInstruction.Action, Is.EqualTo(Instruction.ActionType.Move));
+                Assert.That(revisedInstruction.Destination, Is.EqualTo("<<kotorDirectory>>"));
+                Assert.That(revisedInstruction.Source, Contains.Item("<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk"));
 
-				// Now test round-trip: save and reload
-				FileLoadingService.SaveToFile(loadedComponents, tempFilePath);
-				List<ModComponent> reloadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
+                // Now test round-trip: save and reload
+                FileLoadingService.SaveToFile(loadedComponents, tempFilePath);
+                List<ModComponent> reloadedComponents = FileLoadingService.LoadFromFile(tempFilePath);
 
-				// Verify round-trip worked
-				Assert.That(reloadedComponents, Has.Count.EqualTo(1));
-				AssertComponentEquality(loadedComponents[0], reloadedComponents[0]);
-			}
-			finally
-			{
-				// Clean up
-				if (File.Exists(tempFilePath))
-					File.Delete(tempFilePath);
-			}
-		}
+                // Verify round-trip worked
+                Assert.That(reloadedComponents, Has.Count.EqualTo(1));
+                AssertComponentEquality(loadedComponents[0], reloadedComponents[0]);
+            }
+            finally
+            {
+                // Clean up
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+            }
+        }
 
-		private static void AssertComponentEquality(object? obj, object? another)
-		{
-			if (ReferenceEquals(obj, another))
-				return;
-			if (obj is null || another is null)
-				return;
-			if (obj.GetType() != another.GetType())
-				return;
+        private static void AssertComponentEquality(object? obj, object? another)
+        {
+            if (ReferenceEquals(obj, another))
+            {
+                return;
+            }
 
-			if (obj is ModComponent comp1 && another is ModComponent comp2)
-			{
+            if (obj is null || another is null)
+            {
+                return;
+            }
 
-				string json1 = JsonConvert.SerializeObject(comp1);
-				string json2 = JsonConvert.SerializeObject(comp2);
+            if (obj.GetType() != another.GetType())
+            {
+                return;
+            }
 
-				ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
-				ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
+            if (obj is ModComponent comp1 && another is ModComponent comp2)
+            {
 
-				string normalizedJson1 = JsonConvert.SerializeObject(copy1);
-				string normalizedJson2 = JsonConvert.SerializeObject(copy2);
+                string json1 = JsonConvert.SerializeObject(comp1);
+                string json2 = JsonConvert.SerializeObject(comp2);
 
-				Assert.That(normalizedJson1, Is.EqualTo(normalizedJson2));
-			}
-			else
-			{
-				string objJson = JsonConvert.SerializeObject(obj);
-				string anotherJson = JsonConvert.SerializeObject(another);
+                ModComponent copy1 = JsonConvert.DeserializeObject<ModComponent>(json1)!;
+                ModComponent copy2 = JsonConvert.DeserializeObject<ModComponent>(json2)!;
 
-				Assert.That(objJson, Is.EqualTo(anotherJson));
-			}
-		}
-	}
+                string normalizedJson1 = JsonConvert.SerializeObject(copy1);
+                string normalizedJson2 = JsonConvert.SerializeObject(copy2);
+
+                Assert.That(normalizedJson1, Is.EqualTo(normalizedJson2));
+            }
+            else
+            {
+                string objJson = JsonConvert.SerializeObject(obj);
+                string anotherJson = JsonConvert.SerializeObject(another);
+
+                Assert.That(objJson, Is.EqualTo(anotherJson));
+            }
+        }
+    }
 }

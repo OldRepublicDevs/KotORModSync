@@ -13,6 +13,12 @@
     <ApplicationIcon>icon53.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <!-- Override analyzer settings for Debug builds (set above will be overridden by Debug condition) -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
   <!-- Allow test projects to access internal members -->
   <ItemGroup>
     <InternalsVisibleTo Include="KOTORModSync.Tests" />
@@ -28,7 +34,6 @@
 
   <!-- Target Platforms/Frameworks -->
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
     <Platforms>x86;x64</Platforms>
     <UseAppHost>true</UseAppHost>
   </PropertyGroup>
@@ -44,6 +49,7 @@
   <!-- Release Configuration: Additional error handling, at the slight cost of performance. All
   optimizations enabled.-->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <TargetFrameworks>net8.0;net9.0;net48</TargetFrameworks>
     <Optimize>true</Optimize>
     <AllowOptimize>true</AllowOptimize>
     <RemoveIntegerChecks>false</RemoveIntegerChecks>
@@ -65,6 +71,14 @@
     <AllowEditAndContinue>true</AllowEditAndContinue>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
+    <!-- Build only net8.0 for Debug to speed up builds (unless TargetFramework is explicitly set) -->
+    <TargetFrameworks Condition="'$(TargetFramework)' == ''">net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(TargetFramework)' != ''">$(TargetFramework)</TargetFrameworks>
+    <!-- Disable analyzers in Debug builds for faster compilation -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
+    <!-- Disable code analysis during build -->
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
   </PropertyGroup>
 
   <!-- Customization -->
@@ -108,18 +122,22 @@
   </ItemGroup>
 
   <!-- Modern 2025 Code Analyzers -->
+  <!-- Analyzers are disabled in Debug builds via EnableNETAnalyzers=false and RunAnalyzersDuringBuild=false -->
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Release'">runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Debug'">runtime; native; contentfiles</IncludeAssets>
     </PackageReference>
     <PackageReference Include="SonarAnalyzer.CSharp" Version="9.25.0.90414">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Release'">runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Debug'">runtime; native; contentfiles</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Meziantou.Analyzer" Version="2.0.126">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Release'">runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets Condition="'$(Configuration)' == 'Debug'">runtime; native; contentfiles</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
@@ -155,41 +173,49 @@
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
 
     <!-- Copy PyKotor source (includes HoloPatcher, runs with embedded Python.NET) -->
+    <!-- SkipUnchangedFiles speeds up Debug builds by only copying when files change -->
     <ItemGroup>
       <PyKotorFiles
         Include="$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar)*.py"
         Exclude="$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar).history$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar).venv$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar)__pycache__$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar).pytest_cache$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar).git$(DirectorySeparatorChar)**;$(SolutionDir)vendor$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)**$(DirectorySeparatorChar)venv$(DirectorySeparatorChar)**" />
     </ItemGroup>
     <Copy SourceFiles="@(PyKotorFiles)"
-      DestinationFiles="@(PyKotorFiles->'$(TargetDir)Resources$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(PyKotorFiles)"
-      DestinationFiles="@(PyKotorFiles->'$(PublishDir)Resources$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)')" />
+      DestinationFiles="@(PyKotorFiles->'$(TargetDir)Resources$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+    <Copy Condition="'$(PublishDir)' != ''"
+      SourceFiles="@(PyKotorFiles)"
+      DestinationFiles="@(PyKotorFiles->'$(PublishDir)Resources$(DirectorySeparatorChar)PyKotor$(DirectorySeparatorChar)%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
 
     <!-- For Mac -->
     <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher"
-      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' "
+      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Copy Condition=" ('$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64') AND '$(PublishDir)' != '' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.app$(DirectorySeparatorChar)Contents$(DirectorySeparatorChar)MacOS$(DirectorySeparatorChar)HoloPatcher"
-      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
     <Move Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' "
       SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)HoloPatcher"
       DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher" />
-    <Move Condition=" '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64' "
+    <Move Condition=" ('$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64') AND '$(PublishDir)' != '' "
       SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)HoloPatcher"
       DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher" />
 
     <!-- For Linux -->
     <Copy Condition=" '$(RuntimeIdentifier)' == 'linux-x64' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher_linux"
-      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(RuntimeIdentifier)' == 'linux-x64' "
+      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(RuntimeIdentifier)' == 'linux-x64' AND '$(PublishDir)' != '' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher_linux"
-      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
+      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
     <Move Condition=" '$(RuntimeIdentifier)' == 'linux-x64' "
       SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)HoloPatcher_linux"
       DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher" />
-    <Move Condition=" '$(RuntimeIdentifier)' == 'linux-x64' "
+    <Move Condition=" '$(RuntimeIdentifier)' == 'linux-x64' AND '$(PublishDir)' != '' "
       SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)HoloPatcher_linux"
       DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher" />
 
@@ -197,65 +223,43 @@
     <Copy
       Condition=" '$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'osx-x64' AND '$(RuntimeIdentifier)' != 'osx-arm64' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.exe"
-      DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher.exe" />
+      DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)holopatcher.exe"
+      SkipUnchangedFiles="true" />
     <Copy
-      Condition=" '$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'osx-x64' AND '$(RuntimeIdentifier)' != 'osx-arm64' "
+      Condition=" '$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'osx-x64' AND '$(RuntimeIdentifier)' != 'osx-arm64' AND '$(PublishDir)' != '' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)bin$(DirectorySeparatorChar)HoloPatcher.exe"
-      DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher.exe" />
+      DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)holopatcher.exe"
+      SkipUnchangedFiles="true" />
 
     <!-- For x64 Platform -->
     <Copy Condition=" '$(Platform)' == 'x64' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll"
-      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(Platform)' == 'x64' "
+      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Platform)' == 'x64' AND '$(PublishDir)' != '' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll"
-      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
-    <Move Condition=" '$(Platform)' == 'x64' "
+      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Move Condition=" '$(Platform)' == 'x64' AND Exists('$(TargetDir)Resources$(DirectorySeparatorChar)7z_x64.dll') "
       SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x64.dll"
       DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
-    <Move Condition=" '$(Platform)' == 'x64' "
+    <Move Condition=" '$(Platform)' == 'x64' AND '$(PublishDir)' != '' AND Exists('$(PublishDir)Resources$(DirectorySeparatorChar)7z_x64.dll') "
       SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x64.dll"
       DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
 
     <!-- For x86 Platform -->
     <Copy Condition=" '$(Platform)' == 'x86' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll"
-      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(Platform)' == 'x86' "
+      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Copy Condition=" '$(Platform)' == 'x86' AND '$(PublishDir)' != '' "
       SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll"
-      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
-    <Move Condition=" '$(Platform)' == 'x86' "
+      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)"
+      SkipUnchangedFiles="true" />
+    <Move Condition=" '$(Platform)' == 'x86' AND Exists('$(TargetDir)Resources$(DirectorySeparatorChar)7z_x86.dll') "
       SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x86.dll"
       DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
-    <Move Condition=" '$(Platform)' == 'x86' "
-      SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x86.dll"
-      DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
-
-    <!-- For x64 Platform -->
-    <Copy Condition=" '$(Platform)' == 'x64' "
-      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll"
-      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(Platform)' == 'x64' "
-      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x64.dll"
-      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
-    <Move Condition=" '$(Platform)' == 'x64' "
-      SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x64.dll"
-      DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
-    <Move Condition=" '$(Platform)' == 'x64' "
-      SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x64.dll"
-      DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
-
-    <!-- For x86 Platform -->
-    <Copy Condition=" '$(Platform)' == 'x86' "
-      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll"
-      DestinationFolder="$(TargetDir)Resources$(DirectorySeparatorChar)" />
-    <Copy Condition=" '$(Platform)' == 'x86' "
-      SourceFiles="$(SolutionDir)vendor$(DirectorySeparatorChar)lib$(DirectorySeparatorChar)7z_x86.dll"
-      DestinationFolder="$(PublishDir)Resources$(DirectorySeparatorChar)" />
-    <Move Condition=" '$(Platform)' == 'x86' "
-      SourceFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z_x86.dll"
-      DestinationFiles="$(TargetDir)Resources$(DirectorySeparatorChar)7z.dll" />
-    <Move Condition=" '$(Platform)' == 'x86' "
+    <Move Condition=" '$(Platform)' == 'x86' AND '$(PublishDir)' != '' AND Exists('$(PublishDir)Resources$(DirectorySeparatorChar)7z_x86.dll') "
       SourceFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z_x86.dll"
       DestinationFiles="$(PublishDir)Resources$(DirectorySeparatorChar)7z.dll" />
   </Target>

@@ -26,11 +26,7 @@
         <converters:ExecuteActionVisibilityConverter x:Key="ExecuteActionVisibilityConverter" />
         <converters:GuidListConverter x:Key="GuidListConverter" />
         <converters:NamespacesIniOptionConverter x:Key="NamespacesIniOptionConverter" />
-        <converters:PathStatusConverter x:Key="PathStatusConverter" />
         <converters:PathResolverConverter x:Key="PathResolverConverter" />
-        <converters:PathStatusDetailedConverter x:Key="PathStatusDetailedConverter" />
-        <converters:ValidationStatusMessageConverter x:Key="ValidationStatusMessageConverter" />
-        <converters:ValidationDetailedMessageConverter x:Key="ValidationDetailedMessageConverter" />
         <converters:ValidationHasBlockingInstructionConverter x:Key="ValidationHasBlockingInstructionConverter" />
         <converters:ValidationBlockingInstructionTextConverter x:Key="ValidationBlockingInstructionTextConverter" />
         <converters:StringToIntConverter x:Key="StringToIntConverter" />
@@ -80,6 +76,8 @@
                                 <MultiBinding Converter="{StaticResource ChooseInstructionDisplayConverter}">
                                     <Binding Path="." />
                                     <Binding Converter="{StaticResource ComponentsListConverter}" Path="$parent[UserControl].DataContext" />
+                                    <Binding Path="Action" />  <!-- Triggers MultiBinding update when Action changes -->
+                                    <Binding Path="Source" />  <!-- Triggers MultiBinding update when Source changes -->
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
@@ -164,27 +162,6 @@
                         Padding="4,3"
                         Classes="summary-card">
                         <StackPanel Spacing="2">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <StackPanel
-                                    Grid.Column="0"
-                                    Orientation="Horizontal"
-                                    Spacing="4">
-                                    <TextBlock
-                                        Classes="secondary-text"
-                                        FontSize="9"
-                                        Text="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationStatusMessageConverter}}"
-                                        ToolTip.Tip="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationDetailedMessageConverter}}" />
-                                </StackPanel>
-                                <Button
-                                    Grid.Column="1"
-                                    Padding="4,2"
-                                    Click="JumpToBlockingInstruction_Click"
-                                    Content="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationBlockingInstructionTextConverter}}"
-                                    FontSize="8"
-                                    IsVisible="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationHasBlockingInstructionConverter}}"
-                                    Tag="{Binding Source, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}}"
-                                    ToolTip.Tip="Click to jump to the instruction that's preventing this path from being valid" />
-                            </Grid>
                             <TextBlock
                                 Classes="secondary-text"
                                 FontSize="8"
@@ -226,27 +203,6 @@
                         Padding="3,2"
                         Classes="summary-card">
                         <StackPanel Spacing="1">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <StackPanel
-                                    Grid.Column="0"
-                                    Orientation="Horizontal"
-                                    Spacing="3">
-                                    <TextBlock
-                                        Classes="secondary-text"
-                                        FontSize="8"
-                                        Text="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationStatusMessageConverter}}"
-                                        ToolTip.Tip="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationDetailedMessageConverter}}" />
-                                </StackPanel>
-                                <Button
-                                    Grid.Column="1"
-                                    Padding="3,1"
-                                    Click="JumpToBlockingInstruction_Click"
-                                    Content="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationBlockingInstructionTextConverter}}"
-                                    FontSize="7"
-                                    IsVisible="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}, Converter={StaticResource ValidationHasBlockingInstructionConverter}}"
-                                    Tag="{Binding Destination, Converter={StaticResource PathStatusDetailedConverter}, ConverterParameter={Binding .}}"
-                                    ToolTip.Tip="Click to jump to the instruction that's preventing this path from being valid" />
-                            </Grid>
                             <TextBlock
                                 Classes="secondary-text"
                                 FontSize="8"

@@ -19,207 +19,196 @@ using KOTORModSync.Core.Utility;
 namespace KOTORModSync.Services
 {
 
-	public class InstructionBrowsingService
-	{
-		private readonly MainConfig _mainConfig;
-		private readonly DialogService _dialogService;
+    public class InstructionBrowsingService
+    {
+        private readonly MainConfig _mainConfig;
+        private readonly DialogService _dialogService;
 
-		public InstructionBrowsingService( MainConfig mainConfig, DialogService dialogService )
-		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException( nameof( mainConfig ) );
-			_dialogService = dialogService ?? throw new ArgumentNullException( nameof( dialogService ) );
-		}
+        public InstructionBrowsingService(MainConfig mainConfig, DialogService dialogService)
+        {
+            _mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
+            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        }
 
-		public async Task BrowseSourceFilesAsync( Instruction instruction, TextBox sourceTextBox )
-		{
-			try
-			{
-				if (instruction is null)
-					throw new ArgumentNullException( nameof( instruction ) );
+        public async Task BrowseSourceFilesAsync(Instruction instruction, TextBox sourceTextBox)
+        {
+            try
+            {
+                if (instruction is null)
+                {
+                    throw new ArgumentNullException(nameof(instruction));
+                }
 
-				var startFolder = _mainConfig.sourcePath != null
-					? await _dialogService.GetStorageFolderFromPathAsync( _mainConfig.sourcePath.FullName )
-.ConfigureAwait(true) : null;
+                var startFolder = _mainConfig.sourcePath != null
+                    ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName)
+ : null;
 
-				string[] filePaths = await _dialogService.ShowFileDialogAsync(
-					isFolderDialog: false,
-					allowMultiple: true,
-					startFolder: startFolder,
-					windowName: "Select the files to perform this instruction on"
+                string[] filePaths = await _dialogService.ShowFileDialogAsync(
+                    isFolderDialog: false,
+                    allowMultiple: true,
+                    startFolder: startFolder,
+                    windowName: "Select the files to perform this instruction on");
 
+                if (filePaths is null || filePaths.Length == 0)
+                {
+                    await Logger.LogVerboseAsync("User did not select any files.").ConfigureAwait(false);
+                    return;
+                }
 
+                await Logger.LogVerboseAsync($"Selected files: [{string.Join($",{Environment.NewLine}", filePaths)}]").ConfigureAwait(false);
 
-
-
-
-				).ConfigureAwait(true);
-
-				if (filePaths is null || filePaths.Length == 0)
-				{
-					await Logger.LogVerboseAsync( "User did not select any files." ).ConfigureAwait( false );
-					return;
-				}
-
-				await Logger.LogVerboseAsync( $"Selected files: [{string.Join( $",{Environment.NewLine}", filePaths )}]" ).ConfigureAwait( false );
-
-				List<string> files = filePaths.ToList();
-				if (files.Count == 0)
+                List<string> files = filePaths.ToList();
+                if (files.Count == 0)
 
 
-				{
-					await Logger.LogVerboseAsync( "No files chosen, returning to previous values" ).ConfigureAwait( false );
-					return;
-				}
+                {
+                    await Logger.LogVerboseAsync("No files chosen, returning to previous values").ConfigureAwait(false);
+                    return;
+                }
 
-				for (int i = 0; i < files.Count; i++)
-				{
-					string filePath = files[i];
-					files[i] = _mainConfig.sourcePath != null
-						? UtilityHelper.RestoreCustomVariables( filePath )
-						: filePath;
-				}
+                for (int i = 0; i < files.Count; i++)
+                {
+                    string filePath = files[i];
+                    files[i] = _mainConfig.sourcePath != null
+                        ? UtilityHelper.RestoreCustomVariables(filePath)
+                        : filePath;
+                }
 
-				if (_mainConfig.sourcePath is null)
+                if (_mainConfig.sourcePath is null)
+                {
+                    await Logger.LogWarningAsync("Not using custom variables <<kotorDirectory>> and <<modDirectory>> due to directories not being set.").ConfigureAwait(false);
+                }
 
+                instruction.Source = files;
 
-					await Logger.LogWarningAsync( "Not using custom variables <<kotorDirectory>> and <<modDirectory>> due to directories not being set." ).ConfigureAwait( false );
+                if (sourceTextBox != null)
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        string convertedItems = new ListToStringConverter().Convert(
+                            files,
+                            typeof(string),
+                            parameter: null,
+                            CultureInfo.CurrentCulture
+                        ) as string;
 
-				instruction.Source = files;
+                        sourceTextBox.Text = convertedItems;
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Error browsing source files").ConfigureAwait(false);
+            }
+        }
 
-				if (sourceTextBox != null)
-				{
-					await Dispatcher.UIThread.InvokeAsync(() =>
-					{
-						string convertedItems = new ListToStringConverter().Convert(
-							files,
-							typeof( string ),
-							parameter: null,
-							CultureInfo.CurrentCulture
-						) as string;
+        public async Task BrowseSourceFoldersAsync(Instruction instruction, TextBox sourceTextBox)
+        {
+            try
+            {
+                if (instruction is null)
+                {
+                    throw new ArgumentNullException(nameof(instruction));
+                }
 
-						sourceTextBox.Text = convertedItems;
-					});
-				}
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync( ex, "Error browsing source files" ).ConfigureAwait( false );
-			}
-		}
+                var startFolder = _mainConfig.sourcePath != null
+                    ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName) : null;
 
-		public async Task BrowseSourceFoldersAsync( Instruction instruction, TextBox sourceTextBox )
-		{
-			try
-			{
-				if (instruction is null)
-					throw new ArgumentNullException( nameof( instruction ) );
+                string[] folderPaths = await _dialogService.ShowFileDialogAsync(
+                    isFolderDialog: true,
+                    allowMultiple: true,
+                    startFolder: startFolder,
+                    windowName: "Select the folder to perform this instruction on");
 
-				var startFolder = _mainConfig.sourcePath != null
-					? await _dialogService.GetStorageFolderFromPathAsync( _mainConfig.sourcePath.FullName )
-.ConfigureAwait(true) : null;
+                if (folderPaths is null || folderPaths.Length == 0)
+                {
+                    await Logger.LogVerboseAsync("User did not select any folders.").ConfigureAwait(false);
+                    return;
+                }
 
-				string[] folderPaths = await _dialogService.ShowFileDialogAsync(
-					isFolderDialog: true,
-					allowMultiple: true,
-					startFolder: startFolder,
-					windowName: "Select the folder to perform this instruction on"
+                var modifiedFolders = folderPaths.SelectMany(
+                    thisFolder => new DirectoryInfo(thisFolder)
+                        .EnumerateDirectories(searchPattern: "*", SearchOption.AllDirectories)
+                        .Select(folder => folder.FullName + Path.DirectorySeparatorChar + "*.*")
+                ).ToList();
 
+                instruction.Source = modifiedFolders;
 
+                if (sourceTextBox != null)
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        string convertedItems = new ListToStringConverter().Convert(
+                            modifiedFolders,
+                            typeof(string),
+                            parameter: null,
+                            CultureInfo.CurrentCulture
+                        ) as string;
 
+                        sourceTextBox.Text = convertedItems;
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Error browsing source folders").ConfigureAwait(false);
+            }
+        }
 
-				).ConfigureAwait(true);
+        public async Task BrowseDestinationAsync(Instruction instruction, TextBox destinationTextBox)
+        {
+            try
+            {
+                if (instruction is null)
+                {
+                    throw new ArgumentNullException(nameof(instruction));
+                }
 
-				if (folderPaths is null || folderPaths.Length == 0)
-				{
-					await Logger.LogVerboseAsync( "User did not select any folders." ).ConfigureAwait( false );
-					return;
-				}
+                var startFolder = _mainConfig.destinationPath != null
+                    ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.destinationPath.FullName) : null;
 
-				var modifiedFolders = folderPaths.SelectMany(
-					thisFolder => new DirectoryInfo( thisFolder )
-						.EnumerateDirectories( searchPattern: "*", SearchOption.AllDirectories )
-						.Select( folder => folder.FullName + Path.DirectorySeparatorChar + "*.*" )
-				).ToList();
+                string[] result = await _dialogService.ShowFileDialogAsync(
+                    isFolderDialog: true,
+                    allowMultiple: false,
+                    startFolder: startFolder,
+                    windowName: "Select destination folder");
 
-				instruction.Source = modifiedFolders;
+                if (result is null || result.Length <= 0)
+                {
+                    return;
+                }
 
-				if (sourceTextBox != null)
-				{
-					await Dispatcher.UIThread.InvokeAsync(() =>
-					{
-						string convertedItems = new ListToStringConverter().Convert(
-							modifiedFolders,
-							typeof( string ),
-							parameter: null,
-							CultureInfo.CurrentCulture
-						) as string;
-
-						sourceTextBox.Text = convertedItems;
-					});
-				}
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync( ex, "Error browsing source folders" ).ConfigureAwait( false );
-			}
-		}
-
-		public async Task BrowseDestinationAsync( Instruction instruction, TextBox destinationTextBox )
-		{
-			try
-			{
-				if (instruction is null)
-					throw new ArgumentNullException( nameof( instruction ) );
-
-				var startFolder = _mainConfig.destinationPath != null
-					? await _dialogService.GetStorageFolderFromPathAsync( _mainConfig.destinationPath.FullName )
-.ConfigureAwait(true) : null;
-
-				string[] result = await _dialogService.ShowFileDialogAsync(
-					isFolderDialog: true,
-					allowMultiple: false,
-					startFolder: startFolder,
-					windowName: "Select destination folder"
-
-
-				).ConfigureAwait(true);
-
-				if (result is null || result.Length <= 0)
-					return;
-
-				string folderPath = result[0];
-				if (string.IsNullOrEmpty( folderPath ))
+                string folderPath = result[0];
+                if (string.IsNullOrEmpty(folderPath))
 
 
-				{
-					await Logger.LogVerboseAsync( $"No folder chosen, will continue using '{instruction.Destination}'" ).ConfigureAwait( false );
-					return;
-				}
+                {
+                    await Logger.LogVerboseAsync($"No folder chosen, will continue using '{instruction.Destination}'").ConfigureAwait(false);
+                    return;
+                }
 
-				if (_mainConfig.sourcePath is null)
+                if (_mainConfig.sourcePath is null)
+                {
+                    await Logger.LogAsync("Directories not set, setting raw folder path without custom variable <<kotorDirectory>>").ConfigureAwait(false);
+                    instruction.Destination = folderPath;
+                }
+                else
+                {
+                    instruction.Destination = UtilityHelper.RestoreCustomVariables(folderPath);
+                }
 
-
-				{
-					await Logger.LogAsync( "Directories not set, setting raw folder path without custom variable <<kotorDirectory>>" ).ConfigureAwait( false );
-					instruction.Destination = folderPath;
-				}
-				else
-				{
-					instruction.Destination = UtilityHelper.RestoreCustomVariables( folderPath );
-				}
-
-				if (destinationTextBox != null)
-				{
-					await Dispatcher.UIThread.InvokeAsync(() =>
-					{
-						destinationTextBox.Text = instruction.Destination;
-					});
-				}
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync( ex, "Error browsing destination" ).ConfigureAwait( false );
-			}
-		}
-	}
+                if (destinationTextBox != null)
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        destinationTextBox.Text = instruction.Destination;
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Error browsing destination").ConfigureAwait(false);
+            }
+        }
+    }
 }

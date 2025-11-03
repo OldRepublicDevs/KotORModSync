@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,11 +11,11 @@ using NUnit.Framework;
 
 namespace TestProject
 {
-	[TestFixture]
-	public class SerializationRoundTripTests
-	{
+    [TestFixture]
+    public class SerializationRoundTripTests
+    {
 
-		private static readonly string TestTomlContent = @"[[thisMod]]
+        private static readonly string TestTomlContent = @"[[thisMod]]
 ModLinkFilenames = { ""https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/"" = {  } }
 Guid = ""987a0d17-c596-49af-ba28-851232455253""
 Name = ""KOTOR Dialogue Fixes""
@@ -65,201 +65,209 @@ Action = ""Move""
 Destination = ""<<kotorDirectory>>""
 Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk""]";
 
-		private static void AssertComponentEquality( object? obj, object? another )
-		{
-			if (ReferenceEquals( obj, another ))
-				return;
-			if (obj is null || another is null)
-				return;
-			if (obj.GetType() != another.GetType())
-				return;
+        private static void AssertComponentEquality(object? obj, object? another)
+        {
+            if (ReferenceEquals(obj, another))
+            {
+                return;
+            }
 
-			if (obj is ModComponent comp1 && another is ModComponent comp2)
-			{
-				// Compare core properties that should be preserved
-				Assert.That( comp2.Name, Is.EqualTo( comp1.Name ), "Component name should match" );
-				Assert.That( comp2.Author, Is.EqualTo( comp1.Author ), "Component author should match" );
-				Assert.That( comp2.Description, Is.EqualTo( comp1.Description ), "Component description should match" );
-				Assert.That( comp2.Tier, Is.EqualTo( comp1.Tier ), "Component tier should match" );
-				Assert.That( comp2.InstallationMethod, Is.EqualTo( comp1.InstallationMethod ), "Component installation method should match" );
-				Assert.That( comp2.Directions, Is.EqualTo( comp1.Directions ), "Component directions should match" );
-				Assert.That( comp2.IsSelected, Is.EqualTo( comp1.IsSelected ), "Component IsSelected should match" );
-				Assert.That( comp2.Category, Is.EqualTo( comp1.Category ), "Component category should match" );
-				Assert.That( comp2.Language, Is.EqualTo( comp1.Language ), "Component language should match" );
+            if (obj is null || another is null)
+            {
+                return;
+            }
 
-				// Compare ModLinkFilenames
-				if (comp1.ModLinkFilenames != null)
-				{
-					Assert.That( comp2.ModLinkFilenames, Is.Not.Null, "ModLinkFilenames should not be null after round-trip" );
-					Assert.That( comp2.ModLinkFilenames.Count, Is.EqualTo( comp1.ModLinkFilenames.Count ), "ModLinkFilenames count should match" );
+            if (obj.GetType() != another.GetType())
+            {
+                return;
+            }
 
-					foreach (var kvp in comp1.ModLinkFilenames)
-					{
-						Assert.That( comp2.ModLinkFilenames.ContainsKey( kvp.Key ), Is.True, $"ModLinkFilenames should contain URL: '{kvp.Key}'" );
-					}
-				}
+            if (obj is ModComponent comp1 && another is ModComponent comp2)
+            {
+                // Compare core properties that should be preserved
+                Assert.That(comp2.Name, Is.EqualTo(comp1.Name), "Component name should match");
+                Assert.That(comp2.Author, Is.EqualTo(comp1.Author), "Component author should match");
+                Assert.That(comp2.Description, Is.EqualTo(comp1.Description), "Component description should match");
+                Assert.That(comp2.Tier, Is.EqualTo(comp1.Tier), "Component tier should match");
+                Assert.That(comp2.InstallationMethod, Is.EqualTo(comp1.InstallationMethod), "Component installation method should match");
+                Assert.That(comp2.Directions, Is.EqualTo(comp1.Directions), "Component directions should match");
+                Assert.That(comp2.IsSelected, Is.EqualTo(comp1.IsSelected), "Component IsSelected should match");
+                Assert.That(comp2.Category, Is.EqualTo(comp1.Category), "Component category should match");
+                Assert.That(comp2.Language, Is.EqualTo(comp1.Language), "Component language should match");
 
-				// Compare instructions count (some may be lost during round-trip, which is acceptable)
-				Console.WriteLine( $"Original instructions count: {comp1.Instructions.Count}, Final instructions count: {comp2.Instructions.Count}" );
-				Assert.That( comp2.Instructions.Count, Is.GreaterThanOrEqualTo( 0 ), "Should have at least 0 instructions after round-trip" );
+                // Compare ModLinkFilenames
+                if (comp1.ModLinkFilenames != null)
+                {
+                    Assert.That(comp2.ModLinkFilenames, Is.Not.Null, "ModLinkFilenames should not be null after round-trip");
+                    Assert.That(comp2.ModLinkFilenames.Count, Is.EqualTo(comp1.ModLinkFilenames.Count), "ModLinkFilenames count should match");
 
-				// Compare options count (some may be lost during round-trip, which is acceptable)
-				Console.WriteLine( $"Original options count: {comp1.Options.Count}, Final options count: {comp2.Options.Count}" );
-				Assert.That( comp2.Options.Count, Is.GreaterThanOrEqualTo( 0 ), "Should have at least 0 options after round-trip" );
+                    foreach (var kvp in comp1.ModLinkFilenames)
+                    {
+                        Assert.That(comp2.ModLinkFilenames.ContainsKey(kvp.Key), Is.True, $"ModLinkFilenames should contain URL: '{kvp.Key}'");
+                    }
+                }
 
-				// Compare option details (only if both have options)
-				if (comp1.Options.Count > 0 && comp2.Options.Count > 0)
-				{
-					for (int i = 0; i < Math.Min( comp1.Options.Count, comp2.Options.Count ); i++)
-					{
-						var originalOpt = comp1.Options[i];
-						var finalOpt = comp2.Options[i];
+                // Compare instructions count (some may be lost during round-trip, which is acceptable)
+                Console.WriteLine($"Original instructions count: {comp1.Instructions.Count}, Final instructions count: {comp2.Instructions.Count}");
+                Assert.That(comp2.Instructions.Count, Is.GreaterThanOrEqualTo(0), "Should have at least 0 instructions after round-trip");
 
-						Assert.That( finalOpt.Name, Is.EqualTo( originalOpt.Name ), $"Option {i} name should match after round-trip" );
-						Assert.That( finalOpt.Description, Is.EqualTo( originalOpt.Description ), $"Option {i} description should match after round-trip" );
-						Assert.That( finalOpt.IsSelected, Is.EqualTo( originalOpt.IsSelected ), $"Option {i} IsSelected should match after round-trip" );
-						Assert.That( finalOpt.Restrictions, Is.EqualTo( originalOpt.Restrictions ), $"Option {i} restrictions should match after round-trip" );
-					}
-				}
+                // Compare options count (some may be lost during round-trip, which is acceptable)
+                Console.WriteLine($"Original options count: {comp1.Options.Count}, Final options count: {comp2.Options.Count}");
+                Assert.That(comp2.Options.Count, Is.GreaterThanOrEqualTo(0), "Should have at least 0 options after round-trip");
 
-				Console.WriteLine( "✅ Component equality validation passed!" );
-			}
-			// DO NOT REMOVE THESE LINES, THEY SHOULD NEVER BE in an `else` block either! ALWAYS run this
-			string objJson = JsonConvert.SerializeObject( obj );
-			string anotherJson = JsonConvert.SerializeObject( another );
-			Assert.That( objJson, Is.EqualTo( anotherJson ) );
-		}
+                // Compare option details (only if both have options)
+                if (comp1.Options.Count > 0 && comp2.Options.Count > 0)
+                {
+                    for (int i = 0; i < Math.Min(comp1.Options.Count, comp2.Options.Count); i++)
+                    {
+                        var originalOpt = comp1.Options[i];
+                        var finalOpt = comp2.Options[i];
 
-		private static List<ModComponent> DeserializeFromFormat( string content, string format )
-		{
-			return format.ToUpperInvariant() switch
-			{
-				"TOML" => ModComponentSerializationService.DeserializeModComponentFromTomlString( content ),
-				"YAML" => ModComponentSerializationService.DeserializeModComponentFromYamlString( content ),
-				"MD" or "MARKDOWN" => ModComponentSerializationService.DeserializeModComponentFromMarkdownString( content ),
-				"JSON" => ModComponentSerializationService.DeserializeModComponentFromJsonString( content ),
-				_ => throw new NotSupportedException( $"Unsupported format: {format}" )
-			};
-		}
+                        Assert.That(finalOpt.Name, Is.EqualTo(originalOpt.Name), $"Option {i} name should match after round-trip");
+                        Assert.That(finalOpt.Description, Is.EqualTo(originalOpt.Description), $"Option {i} description should match after round-trip");
+                        Assert.That(finalOpt.IsSelected, Is.EqualTo(originalOpt.IsSelected), $"Option {i} IsSelected should match after round-trip");
+                        Assert.That(finalOpt.Restrictions, Is.EqualTo(originalOpt.Restrictions), $"Option {i} restrictions should match after round-trip");
+                    }
+                }
 
-		private static string SerializeToFormat( List<ModComponent> components, string format )
-		{
-			return format.ToUpperInvariant() switch
-			{
-				"TOML" => ModComponentSerializationService.SerializeModComponentAsTomlString( components ),
-				"YAML" => ModComponentSerializationService.SerializeModComponentAsYamlString( components ),
-				"MD" or "MARKDOWN" => ModComponentSerializationService.SerializeModComponentAsMarkdownString( components ),
-				"JSON" => ModComponentSerializationService.SerializeModComponentAsJsonString( components ),
-				_ => throw new NotSupportedException( $"Unsupported format: {format}" )
-			};
-		}
+                Console.WriteLine("✅ Component equality validation passed!");
+            }
+            // DO NOT REMOVE THESE LINES, THEY SHOULD NEVER BE in an `else` block either! ALWAYS run this
+            string objJson = JsonConvert.SerializeObject(obj);
+            string anotherJson = JsonConvert.SerializeObject(another);
+            Assert.That(objJson, Is.EqualTo(anotherJson));
+        }
 
-		[Test]
-		[TestCase( "TOML" )]
-		[TestCase( "YAML" )]
-		[TestCase( "MD" )]
-		[TestCase( "JSON" )]
-		public void Format_RoundTrip_Test( string format )
-		{
-			Console.WriteLine( $"Testing {format} round-trip..." );
+        private static List<ModComponent> DeserializeFromFormat(string content, string format)
+        {
+            return format.ToUpperInvariant() switch
+            {
+                "TOML" => ModComponentSerializationService.DeserializeModComponentFromTomlString(content),
+                "YAML" => ModComponentSerializationService.DeserializeModComponentFromYamlString(content),
+                "MD" or "MARKDOWN" => ModComponentSerializationService.DeserializeModComponentFromMarkdownString(content),
+                "JSON" => ModComponentSerializationService.DeserializeModComponentFromJsonString(content),
+                _ => throw new NotSupportedException($"Unsupported format: {format}")
+            };
+        }
 
-			// Load the components from TOML (our source format)
-			List<ModComponent> originalComponents = ModComponentSerializationService.DeserializeModComponentFromTomlString( TestTomlContent );
-			Assert.That( originalComponents.Count, Is.EqualTo( 1 ), "Should load exactly 1 component" );
-			ModComponent originalComponent = originalComponents[0];
+        private static string SerializeToFormat(List<ModComponent> components, string format)
+        {
+            return format.ToUpperInvariant() switch
+            {
+                "TOML" => ModComponentSerializationService.SerializeModComponentAsTomlString(components),
+                "YAML" => ModComponentSerializationService.SerializeModComponentAsYamlString(components),
+                "MD" or "MARKDOWN" => ModComponentSerializationService.SerializeModComponentAsMarkdownString(components),
+                "JSON" => ModComponentSerializationService.SerializeModComponentAsJsonString(components),
+                _ => throw new NotSupportedException($"Unsupported format: {format}")
+            };
+        }
 
-			// Test round-trip through the target format
-			Console.WriteLine( $"\nTesting {format} round-trip..." );
-			string serializedContent = SerializeToFormat( originalComponents, format );
-			Console.WriteLine( $"{format} serialization successful" );
+        [Test]
+        [TestCase("TOML")]
+        [TestCase("YAML")]
+        [TestCase("MD")]
+        [TestCase("JSON")]
+        public void Format_RoundTrip_Test(string format)
+        {
+            Console.WriteLine($"Testing {format} round-trip...");
 
-			List<ModComponent> reloadedComponents = DeserializeFromFormat( serializedContent, format );
-			Console.WriteLine( $"Reloaded {reloadedComponents.Count} components" );
-			Assert.That( reloadedComponents.Count, Is.EqualTo( 1 ), "Should reload exactly 1 component" );
+            // Load the components from TOML (our source format)
+            List<ModComponent> originalComponents = ModComponentSerializationService.DeserializeModComponentFromTomlString(TestTomlContent);
+            Assert.That(originalComponents.Count, Is.EqualTo(1), "Should load exactly 1 component");
+            ModComponent originalComponent = originalComponents[0];
 
-			ModComponent reloadedComponent = reloadedComponents[0];
-			Console.WriteLine( $"Reloaded Component Name: {reloadedComponent.Name}" );
+            // Test round-trip through the target format
+            Console.WriteLine($"\nTesting {format} round-trip...");
+            string serializedContent = SerializeToFormat(originalComponents, format);
+            Console.WriteLine($"{format} serialization successful");
 
-			// Validate round-trip data integrity using reflection-based equality
-			AssertComponentEquality( originalComponent, reloadedComponent );
+            List<ModComponent> reloadedComponents = DeserializeFromFormat(serializedContent, format);
+            Console.WriteLine($"Reloaded {reloadedComponents.Count} components");
+            Assert.That(reloadedComponents.Count, Is.EqualTo(1), "Should reload exactly 1 component");
 
-			Console.WriteLine( $"✅ {format} Round-trip test PASSED!" );
-		}
+            ModComponent reloadedComponent = reloadedComponents[0];
+            Console.WriteLine($"Reloaded Component Name: {reloadedComponent.Name}");
 
-		[Test]
-		[TestCase( "TOML", "YAML" )]
-		[TestCase( "TOML", "MD" )]
-		[TestCase( "TOML", "JSON" )]
-		[TestCase( "YAML", "TOML" )]
-		[TestCase( "YAML", "MD" )]
-		[TestCase( "YAML", "JSON" )]
-		[TestCase( "MD", "TOML" )]
-		[TestCase( "MD", "YAML" )]
-		[TestCase( "MD", "JSON" )]
-		[TestCase( "JSON", "TOML" )]
-		[TestCase( "JSON", "YAML" )]
-		[TestCase( "JSON", "MD" )]
-		public void Format1_To_Format2_To_Format1_RoundTrip_Test( string format1, string format2 )
-		{
-			Console.WriteLine( $"Testing {format1} -> {format2} -> {format1} round-trip..." );
+            // Validate round-trip data integrity using reflection-based equality
+            AssertComponentEquality(originalComponent, reloadedComponent);
 
-			// Step 1: Load from format1 (TOML as source)
-			Console.WriteLine( $"Step 1: Loading from {format1}..." );
-			List<ModComponent> originalComponents = ModComponentSerializationService.DeserializeModComponentFromTomlString( TestTomlContent );
-			Console.WriteLine( $"Loaded {originalComponents.Count} components from {format1}" );
-			Assert.That( originalComponents.Count, Is.EqualTo( 1 ), $"Should load exactly 1 component from {format1}" );
+            Console.WriteLine($"✅ {format} Round-trip test PASSED!");
+        }
 
-			ModComponent originalComponent = originalComponents[0];
-			Console.WriteLine( $"Original Component: {originalComponent.Name}" );
+        [Test]
+        [TestCase("TOML", "YAML")]
+        [TestCase("TOML", "MD")]
+        [TestCase("TOML", "JSON")]
+        [TestCase("YAML", "TOML")]
+        [TestCase("YAML", "MD")]
+        [TestCase("YAML", "JSON")]
+        [TestCase("MD", "TOML")]
+        [TestCase("MD", "YAML")]
+        [TestCase("MD", "JSON")]
+        [TestCase("JSON", "TOML")]
+        [TestCase("JSON", "YAML")]
+        [TestCase("JSON", "MD")]
+        public void Format1_To_Format2_To_Format1_RoundTrip_Test(string format1, string format2)
+        {
+            Console.WriteLine($"Testing {format1} -> {format2} -> {format1} round-trip...");
 
-			// Step 2: Serialize to format2
-			Console.WriteLine( $"\nStep 2: Serializing to {format2}..." );
-			string format2Content = SerializeToFormat( originalComponents, format2 );
-			Console.WriteLine( $"{format2} serialization successful" );
-			Assert.That( format2Content, Is.Not.Null.And.Not.Empty, $"{format2} content should not be null or empty" );
+            // Step 1: Load from format1 (TOML as source)
+            Console.WriteLine($"Step 1: Loading from {format1}...");
+            List<ModComponent> originalComponents = ModComponentSerializationService.DeserializeModComponentFromTomlString(TestTomlContent);
+            Console.WriteLine($"Loaded {originalComponents.Count} components from {format1}");
+            Assert.That(originalComponents.Count, Is.EqualTo(1), $"Should load exactly 1 component from {format1}");
 
-			// Step 3: Deserialize from format2
-			Console.WriteLine( $"\nStep 3: Loading from {format2}..." );
-			List<ModComponent> format2Components = DeserializeFromFormat( format2Content, format2 );
-			Console.WriteLine( $"Loaded {format2Components.Count} components from {format2}" );
-			Assert.That( format2Components.Count, Is.EqualTo( 1 ), $"Should load exactly 1 component from {format2}" );
+            ModComponent originalComponent = originalComponents[0];
+            Console.WriteLine($"Original Component: {originalComponent.Name}");
 
-			ModComponent format2Component = format2Components[0];
-			Console.WriteLine( $"{format2} Component: {format2Component.Name}" );
+            // Step 2: Serialize to format2
+            Console.WriteLine($"\nStep 2: Serializing to {format2}...");
+            string format2Content = SerializeToFormat(originalComponents, format2);
+            Console.WriteLine($"{format2} serialization successful");
+            Assert.That(format2Content, Is.Not.Null.And.Not.Empty, $"{format2} content should not be null or empty");
 
-			// Step 4: Serialize back to format1
-			Console.WriteLine( $"\nStep 4: Serializing back to {format1}..." );
-			string finalFormat1Content = SerializeToFormat( format2Components, format1 );
-			Console.WriteLine( $"Final {format1} serialization successful" );
+            // Step 3: Deserialize from format2
+            Console.WriteLine($"\nStep 3: Loading from {format2}...");
+            List<ModComponent> format2Components = DeserializeFromFormat(format2Content, format2);
+            Console.WriteLine($"Loaded {format2Components.Count} components from {format2}");
+            Assert.That(format2Components.Count, Is.EqualTo(1), $"Should load exactly 1 component from {format2}");
 
-			// Step 5: Deserialize final format1
-			Console.WriteLine( $"\nStep 5: Loading final {format1}..." );
-			List<ModComponent> finalComponents = DeserializeFromFormat( finalFormat1Content, format1 );
-			Console.WriteLine( $"Loaded {finalComponents.Count} components from final {format1}" );
-			Assert.That( finalComponents.Count, Is.EqualTo( 1 ), $"Should load exactly 1 component from final {format1}" );
+            ModComponent format2Component = format2Components[0];
+            Console.WriteLine($"{format2} Component: {format2Component.Name}");
 
-			ModComponent finalComponent = finalComponents[0];
-			Console.WriteLine( $"Final Component: {finalComponent.Name}" );
+            // Step 4: Serialize back to format1
+            Console.WriteLine($"\nStep 4: Serializing back to {format1}...");
+            string finalFormat1Content = SerializeToFormat(format2Components, format1);
+            Console.WriteLine($"Final {format1} serialization successful");
 
-			// Validate data integrity through the entire round-trip
-			Console.WriteLine( "\nValidating data integrity..." );
-			AssertComponentEquality( originalComponent, finalComponent );
+            // Step 5: Deserialize final format1
+            Console.WriteLine($"\nStep 5: Loading final {format1}...");
+            List<ModComponent> finalComponents = DeserializeFromFormat(finalFormat1Content, format1);
+            Console.WriteLine($"Loaded {finalComponents.Count} components from final {format1}");
+            Assert.That(finalComponents.Count, Is.EqualTo(1), $"Should load exactly 1 component from final {format1}");
 
-			Console.WriteLine( $"✅ {format1} -> {format2} -> {format1} Round-trip test PASSED!" );
-		}
+            ModComponent finalComponent = finalComponents[0];
+            Console.WriteLine($"Final Component: {finalComponent.Name}");
 
-		// Legacy test methods for backward compatibility with existing test names
-		[Test]
-		public void TOML_RoundTrip_Test() => Format_RoundTrip_Test( "TOML" );
+            // Validate data integrity through the entire round-trip
+            Console.WriteLine("\nValidating data integrity...");
+            AssertComponentEquality(originalComponent, finalComponent);
 
-		[Test]
-		public void TOML_To_Markdown_To_TOML_RoundTrip_Test() => Format1_To_Format2_To_Format1_RoundTrip_Test( "TOML", "MD" );
+            Console.WriteLine($"✅ {format1} -> {format2} -> {format1} Round-trip test PASSED!");
+        }
 
-		[Test]
-		public void TOML_To_JSON_To_TOML_RoundTrip_Test() => Format1_To_Format2_To_Format1_RoundTrip_Test( "TOML", "JSON" );
+        // Legacy test methods for backward compatibility with existing test names
+        [Test]
+        public void TOML_RoundTrip_Test() => Format_RoundTrip_Test("TOML");
 
-		[Test]
-		public void TOML_To_YAML_To_TOML_RoundTrip_Test() => Format1_To_Format2_To_Format1_RoundTrip_Test( "TOML", "YAML" );
+        [Test]
+        public void TOML_To_Markdown_To_TOML_RoundTrip_Test() => Format1_To_Format2_To_Format1_RoundTrip_Test("TOML", "MD");
 
-	}
+        [Test]
+        public void TOML_To_JSON_To_TOML_RoundTrip_Test() => Format1_To_Format2_To_Format1_RoundTrip_Test("TOML", "JSON");
+
+        [Test]
+        public void TOML_To_YAML_To_TOML_RoundTrip_Test() => Format1_To_Format2_To_Format1_RoundTrip_Test("TOML", "YAML");
+
+    }
 }

@@ -18,470 +18,485 @@ namespace KOTORModSync.Services
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S1118:Utility classes should not have public constructors", Justification = "<Pending>")]
     public class ScrollNavigationService
-	{
-		#region Public Methods
-		public static async Task ScrollToControlAsync(
-			[NotNull] ScrollViewer scrollViewer,
-			[NotNull] Control targetControl,
-			double offsetFromTop = 100)
-		{
-			if (scrollViewer is null)
-				throw new ArgumentNullException(nameof(scrollViewer));
-			if (targetControl is null)
-				throw new ArgumentNullException(nameof(targetControl));
+    {
+        #region Public Methods
+        public static async Task ScrollToControlAsync(
+            [NotNull] ScrollViewer scrollViewer,
+            [NotNull] Control targetControl,
+            double offsetFromTop = 100)
+        {
+            if (scrollViewer is null)
+            {
+                throw new ArgumentNullException(nameof(scrollViewer));
+            }
 
-			try
-			{
-				double targetPosition = CalculateControlScrollPosition(scrollViewer, targetControl, offsetFromTop);
-				await ScrollToPositionSmoothAsync(scrollViewer, targetPosition).ConfigureAwait(true);
-			}
-			catch (Exception ex)
-			{
-				throw new InvalidOperationException($"Failed to scroll to control: {ex.Message}", ex);
-			}
-		}
+            if (targetControl is null)
+            {
+                throw new ArgumentNullException(nameof(targetControl));
+            }
 
+            try
+            {
+                double targetPosition = CalculateControlScrollPosition(scrollViewer, targetControl, offsetFromTop);
+                await ScrollToPositionSmoothAsync(scrollViewer, targetPosition);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to scroll to control: {ex.Message}", ex);
+            }
+        }
 
+        public static async Task ScrollToPositionSmoothAsync(
+            [NotNull] ScrollViewer scrollViewer,
+            double targetOffset,
+            int animationSteps = 20,
+            int stepDelayMs = 16)
+        {
+            if (scrollViewer is null)
+            {
+                throw new ArgumentNullException(nameof(scrollViewer));
+            }
 
-		public static async Task ScrollToPositionSmoothAsync(
-			[NotNull] ScrollViewer scrollViewer,
-			double targetOffset,
-			int animationSteps = 20,
-			int stepDelayMs = 16)
-		{
-			if (scrollViewer is null)
-				throw new ArgumentNullException(nameof(scrollViewer));
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+                double clampedOffset = Math.Max(0, Math.Min(targetOffset, maxOffset));
 
-			await Dispatcher.UIThread.InvokeAsync(async () =>
-			{
-				double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
-				double clampedOffset = Math.Max(0, Math.Min(targetOffset, maxOffset));
+                double currentOffset = scrollViewer.Offset.Y;
+                double distance = clampedOffset - currentOffset;
+                double stepSize = distance / animationSteps;
 
-				double currentOffset = scrollViewer.Offset.Y;
-				double distance = clampedOffset - currentOffset;
-				double stepSize = distance / animationSteps;
+                for (int i = 0; i < animationSteps; i++)
+                {
+                    currentOffset += stepSize;
+                    scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset);
 
-				for (int i = 0; i < animationSteps; i++)
-				{
-					currentOffset += stepSize;
-					scrollViewer.Offset = new Vector(scrollViewer.Offset.X, currentOffset);
+                    // Use ConfigureAwait(true) to keep continuation on UI thread for subsequent UI updates
+                    await Task.Delay(stepDelayMs);
+                }
 
-					// Use ConfigureAwait(true) to keep continuation on UI thread for subsequent UI updates
-					await Task.Delay(stepDelayMs).ConfigureAwait(true);
-				}
-
-				scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedOffset);
-			});
-		}
-
-
-
-		public static T FindControlRecursive<T>([CanBeNull] Control parent, [NotNull] Func<T, bool> predicate) where T : Control
-		{
-			if (parent is null)
-				return null;
-
-			if (parent is T targetControl && predicate(targetControl))
-			{
-				return targetControl;
-			}
-
-			IEnumerable<Control> children = parent.GetVisualChildren().OfType<Control>();
-			foreach (Control child in children)
-			{
-				T result = FindControlRecursive(child, predicate);
-				if (result != null) return result;
-			}
-			return null;
-		}
+                scrollViewer.Offset = new Vector(scrollViewer.Offset.X, clampedOffset);
+            });
+        }
 
 
+        public static T FindControlRecursive<T>([CanBeNull] Control parent, [NotNull] Func<T, bool> predicate) where T : Control
+        {
+            if (parent is null)
+            {
+                return null;
+            }
 
-		public static ScrollViewer FindScrollViewer([CanBeNull] Control parent)
-		{
-			return FindControlRecursive<ScrollViewer>(parent, _ => true);
-		}
+            if (parent is T targetControl && predicate(targetControl))
+            {
+                return targetControl;
+            }
 
-
-		public static async Task ExpandAndWaitAsync([CanBeNull] Expander expander, int waitTimeMs = 200)
-		{
-			if (expander != null && !expander.IsExpanded)
-			{
-				await Dispatcher.UIThread.InvokeAsync(async () =>
-				{
-					expander.IsExpanded = true;
-					// Use ConfigureAwait(true) to keep continuation on UI thread
-					await Task.Delay(waitTimeMs).ConfigureAwait(true);
-				});
-			}
-		}
-
-
-		public static async Task NavigateToTabAsync([CanBeNull] TabItem tabItem, int waitTimeMs = 100)
-		{
-			if (tabItem != null)
-			{
-				await Dispatcher.UIThread.InvokeAsync(async () =>
-				{
-					tabItem.IsSelected = true;
-					// Use ConfigureAwait(true) to keep continuation on UI thread
-					await Task.Delay(waitTimeMs).ConfigureAwait(true);
-				});
-			}
-		}
-
-		public static async Task NavigateToControlAsync(
-			[CanBeNull] TabItem tabItem = null,
-			[CanBeNull] Expander expander = null,
-			[CanBeNull] ScrollViewer scrollViewer = null,
-			[CanBeNull] Control targetControl = null,
-			double? targetPosition = null,
-			int expandWaitMs = 200,
-			int navigationWaitMs = 100)
-		{
-			try
-			{
-
-				if (tabItem != null)
-				{
-					await NavigateToTabAsync(tabItem, navigationWaitMs).ConfigureAwait(true);
-				}
-
-				if (expander != null)
-				{
-					await ExpandAndWaitAsync(expander, expandWaitMs).ConfigureAwait(true);
-				}
-
-				if (scrollViewer != null)
-				{
-					if (targetControl != null)
-					{
-						await ScrollToControlAsync(scrollViewer, targetControl).ConfigureAwait(true);
-					}
-					else if (targetPosition.HasValue)
-					{
-						await ScrollToPositionSmoothAsync(scrollViewer, targetPosition.Value).ConfigureAwait(true);
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new InvalidOperationException($"Navigation failed: {ex.Message}", ex);
-			}
-		}
-
-		#endregion
-
-		#region Estimation Methods (Fallback Strategy)
+            IEnumerable<Control> children = parent.GetVisualChildren().OfType<Control>();
+            foreach (Control child in children)
+            {
+                T result = FindControlRecursive(child, predicate);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+            return null;
+        }
 
 
-		#endregion
 
-		#region Private Methods
+        public static ScrollViewer FindScrollViewer([CanBeNull] Control parent)
+        {
+            return FindControlRecursive<ScrollViewer>(parent, _ => true);
+        }
 
 
-		private static double CalculateControlScrollPosition(
-			[NotNull] ScrollViewer scrollViewer,
-			[NotNull] Control targetControl,
-			double offsetFromTop)
-		{
-			try
-			{
+        public static async Task ExpandAndWaitAsync([CanBeNull] Expander expander, int waitTimeMs = 200)
+        {
+            if (expander != null && !expander.IsExpanded)
+            {
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    expander.IsExpanded = true;
+                    // Use ConfigureAwait(true) to keep continuation on UI thread
+                    await Task.Delay(waitTimeMs);
+                });
+            }
+        }
 
-				Matrix? transform = targetControl.TransformToVisual(scrollViewer);
-				if (transform is null) return 0;
 
-				Point targetPoint = transform.Value.Transform(new Point(0, 0));
-				Size targetSize = targetControl.Bounds.Size;
-				var targetBounds = new Rect(targetPoint, targetSize);
+        public static async Task NavigateToTabAsync([CanBeNull] TabItem tabItem, int waitTimeMs = 100)
+        {
+            if (tabItem != null)
+            {
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    tabItem.IsSelected = true;
+                    // Use ConfigureAwait(true) to keep continuation on UI thread
+                    await Task.Delay(waitTimeMs);
+                });
+            }
+        }
 
-				double targetY = targetBounds.Y;
+        public static async Task NavigateToControlAsync(
+            [CanBeNull] TabItem tabItem = null,
+            [CanBeNull] Expander expander = null,
+            [CanBeNull] ScrollViewer scrollViewer = null,
+            [CanBeNull] Control targetControl = null,
+            double? targetPosition = null,
+            int expandWaitMs = 200,
+            int navigationWaitMs = 100)
+        {
+            try
+            {
 
-				double desiredOffset = targetY - offsetFromTop;
+                if (tabItem != null)
+                {
+                    await NavigateToTabAsync(tabItem, navigationWaitMs);
+                }
 
-				double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
-				return Math.Max(0, Math.Min(desiredOffset, maxOffset));
-			}
-			catch (Exception)
-			{
+                if (expander != null)
+                {
+                    await ExpandAndWaitAsync(expander, expandWaitMs);
+                }
 
-				return 0;
-			}
-		}
+                if (scrollViewer != null)
+                {
+                    if (targetControl != null)
+                    {
+                        await ScrollToControlAsync(scrollViewer, targetControl);
+                    }
+                    else if (targetPosition.HasValue)
+                    {
+                        await ScrollToPositionSmoothAsync(scrollViewer, targetPosition.Value);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Navigation failed: {ex.Message}", ex);
+            }
+        }
+
+        #endregion
+
+        #region Estimation Methods (Fallback Strategy)
+
+
+        #endregion
+
+        #region Private Methods
+
+
+        private static double CalculateControlScrollPosition(
+            [NotNull] ScrollViewer scrollViewer,
+            [NotNull] Control targetControl,
+            double offsetFromTop)
+        {
+            try
+            {
+
+                Matrix? transform = targetControl.TransformToVisual(scrollViewer);
+                if (transform is null)
+                {
+                    return 0;
+                }
+
+                Point targetPoint = transform.Value.Transform(new Point(0, 0));
+                Size targetSize = targetControl.Bounds.Size;
+                var targetBounds = new Rect(targetPoint, targetSize);
+
+                double targetY = targetBounds.Y;
+
+                double desiredOffset = targetY - offsetFromTop;
+
+                double maxOffset = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+                return Math.Max(0, Math.Min(desiredOffset, maxOffset));
+            }
+            catch (Exception)
+            {
+
+                return 0;
+            }
+        }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public static double CalculateEstimatedScrollPosition(
-			[CanBeNull] Grid parentGrid,
-			[CanBeNull] Expander targetSectionExpander,
-			[CanBeNull] ItemsRepeater itemsRepeater,
-			int itemIndex,
-			[CanBeNull] ScrollViewer scrollViewport = null)
-		{
-			double baseOffset = 0;
+            [CanBeNull] Grid parentGrid,
+            [CanBeNull] Expander targetSectionExpander,
+            [CanBeNull] ItemsRepeater itemsRepeater,
+            int itemIndex,
+            [CanBeNull] ScrollViewer scrollViewport = null)
+        {
+            double baseOffset = 0;
 
-			try
-			{
+            try
+            {
 
-				if (parentGrid != null && targetSectionExpander != null)
-				{
-					Avalonia.Controls.Controls children = parentGrid.Children;
-					foreach (Control child in children)
-					{
+                if (parentGrid != null && targetSectionExpander != null)
+                {
+                    Avalonia.Controls.Controls children = parentGrid.Children;
+                    foreach (Control child in children)
+                    {
 
-						if (child == targetSectionExpander)
-						{
-							break;
-						}
+                        if (child == targetSectionExpander)
+                        {
+                            break;
+                        }
 
-						if (child is Control control && control.IsVisible)
-						{
-							Rect bounds = control.Bounds;
-							if (bounds.Height > 0)
-							{
-								baseOffset += bounds.Height + control.Margin.Top + control.Margin.Bottom;
-							}
-						}
-					}
+                        if (child is Control control && control.IsVisible)
+                        {
+                            Rect bounds = control.Bounds;
+                            if (bounds.Height > 0)
+                            {
+                                baseOffset += bounds.Height + control.Margin.Top + control.Margin.Bottom;
+                            }
+                        }
+                    }
 
-					if (targetSectionExpander.IsVisible)
-					{
+                    if (targetSectionExpander.IsVisible)
+                    {
 
-						Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
-							c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
+                        Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
+                            c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
 
-						if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
-						{
-							baseOffset += headerPresenter.Bounds.Height;
-						}
-						else
-						{
+                        if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
+                        {
+                            baseOffset += headerPresenter.Bounds.Height;
+                        }
+                        else
+                        {
 
-							baseOffset += targetSectionExpander.Margin.Top + targetSectionExpander.Padding.Top + 30;
-						}
-					}
-				}
+                            baseOffset += targetSectionExpander.Margin.Top + targetSectionExpander.Padding.Top + 30;
+                        }
+                    }
+                }
 
-				double itemHeight = 0;
-				if (itemsRepeater != null)
-				{
+                double itemHeight = 0;
+                if (itemsRepeater != null)
+                {
 
-					var existingItems = itemsRepeater.GetVisualChildren().OfType<Control>().ToList();
-					if (existingItems.Any())
-					{
+                    var existingItems = itemsRepeater.GetVisualChildren().OfType<Control>().ToList();
+                    if (existingItems.Any())
+                    {
 
-						var measuredHeights = existingItems
-							.Where(item => item.Bounds.Height > 0)
-							.Select(item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom)
-							.ToList();
+                        var measuredHeights = existingItems
+                            .Where(item => item.Bounds.Height > 0)
+                            .Select(item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom)
+                            .ToList();
 
-						if (measuredHeights.Any())
-						{
-							itemHeight = measuredHeights.Average();
-						}
-					}
-				}
+                        if (measuredHeights.Any())
+                        {
+                            itemHeight = measuredHeights.Average();
+                        }
+                    }
+                }
 
-				if (Math.Abs(itemHeight) < 0.0001)
-				{
-					itemHeight = 100;
-				}
+                if (Math.Abs(itemHeight) < 0.0001)
+                {
+                    itemHeight = 100;
+                }
 
-				baseOffset += itemIndex * itemHeight;
+                baseOffset += itemIndex * itemHeight;
 
-				double centeringOffset;
-				if (scrollViewport != null && scrollViewport.Viewport.Height > 0)
-				{
+                double centeringOffset;
+                if (scrollViewport != null && scrollViewport.Viewport.Height > 0)
+                {
 
-					centeringOffset = scrollViewport.Viewport.Height * 0.3;
-				}
-				else
-				{
-					centeringOffset = 100;
-				}
+                    centeringOffset = scrollViewport.Viewport.Height * 0.3;
+                }
+                else
+                {
+                    centeringOffset = 100;
+                }
 
-				baseOffset -= centeringOffset;
-			}
-			catch (Exception)
-			{
+                baseOffset -= centeringOffset;
+            }
+            catch (Exception)
+            {
 
-				baseOffset = Math.Max(0, itemIndex * 100);
-			}
+                baseOffset = Math.Max(0, itemIndex * 100);
+            }
 
-			return Math.Max(0, baseOffset);
-		}
+            return Math.Max(0, baseOffset);
+        }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         public static double CalculateEstimatedScrollPositionWithSections(
-			[CanBeNull] Grid parentGrid,
-			[NotNull] Expander targetSectionExpander,
-			[CanBeNull] ItemsRepeater itemsRepeater,
-			int itemIndex,
-			[CanBeNull] ScrollViewer scrollViewport = null)
-		{
-			if (targetSectionExpander is null) throw new ArgumentNullException(nameof(targetSectionExpander));
+            [CanBeNull] Grid parentGrid,
+            [NotNull] Expander targetSectionExpander,
+            [CanBeNull] ItemsRepeater itemsRepeater,
+            int itemIndex,
+            [CanBeNull] ScrollViewer scrollViewport = null)
+        {
+            if (targetSectionExpander is null)
+            {
+                throw new ArgumentNullException(nameof(targetSectionExpander));
+            }
 
-			double baseOffset = 0;
+            double baseOffset = 0;
 
-			try
-			{
+            try
+            {
 
-				if (parentGrid != null)
-				{
-					bool foundTarget = false;
+                if (parentGrid != null)
+                {
+                    bool foundTarget = false;
 
-					foreach (Control child in parentGrid.Children)
-					{
+                    foreach (Control child in parentGrid.Children)
+                    {
 
-						if (child == targetSectionExpander)
-						{
-							foundTarget = true;
+                        if (child == targetSectionExpander)
+                        {
+                            foundTarget = true;
 
-							if (targetSectionExpander.IsVisible)
-							{
-								Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
-									c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
+                            if (targetSectionExpander.IsVisible)
+                            {
+                                Control headerPresenter = FindControlRecursive<Control>(targetSectionExpander,
+                                    c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
 
-								if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
-								{
-									baseOffset += headerPresenter.Bounds.Height;
-								}
-								else
-								{
-									baseOffset += targetSectionExpander.Margin.Top + targetSectionExpander.Padding.Top + 30;
-								}
-							}
-							break;
-						}
+                                if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
+                                {
+                                    baseOffset += headerPresenter.Bounds.Height;
+                                }
+                                else
+                                {
+                                    baseOffset += targetSectionExpander.Margin.Top + targetSectionExpander.Padding.Top + 30;
+                                }
+                            }
+                            break;
+                        }
 
-						if (child is Expander expander)
-						{
-							if (expander.IsVisible)
-							{
+                        if (child is Expander expander)
+                        {
+                            if (expander.IsVisible)
+                            {
 
-								Control headerPresenter = FindControlRecursive<Control>(expander,
-									c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
+                                Control headerPresenter = FindControlRecursive<Control>(expander,
+                                    c => string.Equals(c.Name, "PART_Header", StringComparison.Ordinal) || c.GetType().Name.Contains("Header"));
 
-								if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
-								{
-									baseOffset += headerPresenter.Bounds.Height;
-								}
-								else
-								{
-									baseOffset += 30;
-								}
+                                if (headerPresenter != null && headerPresenter.Bounds.Height > 0)
+                                {
+                                    baseOffset += headerPresenter.Bounds.Height;
+                                }
+                                else
+                                {
+                                    baseOffset += 30;
+                                }
 
-								if (expander.IsExpanded)
-								{
-									Control contentPresenter = FindControlRecursive<Control>(expander,
-										c => string.Equals(c.Name, "PART_Content", StringComparison.Ordinal) || c.GetType().Name.Contains("Content"));
+                                if (expander.IsExpanded)
+                                {
+                                    Control contentPresenter = FindControlRecursive<Control>(expander,
+                                        c => string.Equals(c.Name, "PART_Content", StringComparison.Ordinal) || c.GetType().Name.Contains("Content"));
 
-									if (contentPresenter != null && contentPresenter.Bounds.Height > 0)
-									{
-										baseOffset += contentPresenter.Bounds.Height;
-									}
-								}
+                                    if (contentPresenter != null && contentPresenter.Bounds.Height > 0)
+                                    {
+                                        baseOffset += contentPresenter.Bounds.Height;
+                                    }
+                                }
 
-								baseOffset += expander.Margin.Top + expander.Margin.Bottom;
-							}
-						}
-						else if (
-							child is Control control && 
-							control.IsVisible && 
-							control.Bounds.Height > 0)
-						{
-							baseOffset += control.Bounds.Height + control.Margin.Top + control.Margin.Bottom;
-						}
-					}
+                                baseOffset += expander.Margin.Top + expander.Margin.Bottom;
+                            }
+                        }
+                        else if (
+                            child is Control control &&
+                            control.IsVisible &&
+                            control.Bounds.Height > 0)
+                        {
+                            baseOffset += control.Bounds.Height + control.Margin.Top + control.Margin.Bottom;
+                        }
+                    }
 
-					if (!foundTarget)
-					{
+                    if (!foundTarget)
+                    {
 
-						return 0;
-					}
-				}
+                        return 0;
+                    }
+                }
 
-				double itemHeight = 0;
-				if (itemsRepeater != null)
-				{
-					var existingItems = itemsRepeater.GetVisualChildren().OfType<Control>().ToList();
-					if (existingItems.Count != 0)
-					{
-						var measuredHeights = existingItems
-							.Where(item => item.Bounds.Height > 0)
-							.Select(item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom)
-							.ToList();
+                double itemHeight = 0;
+                if (itemsRepeater != null)
+                {
+                    var existingItems = itemsRepeater.GetVisualChildren().OfType<Control>().ToList();
+                    if (existingItems.Count != 0)
+                    {
+                        var measuredHeights = existingItems
+                            .Where(item => item.Bounds.Height > 0)
+                            .Select(item => item.Bounds.Height + item.Margin.Top + item.Margin.Bottom)
+                            .ToList();
 
-						if (measuredHeights.Count != 0)
-						{
-							itemHeight = measuredHeights.Average();
-						}
-					}
-				}
+                        if (measuredHeights.Count != 0)
+                        {
+                            itemHeight = measuredHeights.Average();
+                        }
+                    }
+                }
 
-				if (Math.Abs(itemHeight) < 0.0001)
-				{
-					itemHeight = 100;
-				}
+                if (Math.Abs(itemHeight) < 0.0001)
+                {
+                    itemHeight = 100;
+                }
 
-				baseOffset += itemIndex * itemHeight;
+                baseOffset += itemIndex * itemHeight;
 
-				double centeringOffset;
-				if (scrollViewport != null && scrollViewport.Viewport.Height > 0)
-				{
-					centeringOffset = scrollViewport.Viewport.Height * 0.3;
-				}
-				else
-				{
-					centeringOffset = 100;
-				}
+                double centeringOffset;
+                if (scrollViewport != null && scrollViewport.Viewport.Height > 0)
+                {
+                    centeringOffset = scrollViewport.Viewport.Height * 0.3;
+                }
+                else
+                {
+                    centeringOffset = 100;
+                }
 
-				baseOffset -= centeringOffset;
-			}
-			catch (Exception)
-			{
+                baseOffset -= centeringOffset;
+            }
+            catch (Exception)
+            {
 
-				baseOffset = Math.Max(0, itemIndex * 100);
-			}
+                baseOffset = Math.Max(0, itemIndex * 100);
+            }
 
-			return Math.Max(0, baseOffset);
-		}
+            return Math.Max(0, baseOffset);
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0048:File name must match type name", Justification = "<Pending>")]
     public static class ScrollNavigationExtensions
-	{
-		public static async Task ScrollToControlAsync<T>(
-			this ScrollViewer scrollViewer,
-			[NotNull] Control parent,
-			[NotNull] Func<T, bool> predicate,
-			double offsetFromTop = 100) where T : Control
-		{
-			T targetControl = ScrollNavigationService.FindControlRecursive(parent, predicate);
-			if (targetControl != null)
-			{
-				await ScrollNavigationService.ScrollToControlAsync(scrollViewer, targetControl, offsetFromTop).ConfigureAwait(true);
-			}
-		}
+    {
+        public static async Task ScrollToControlAsync<T>(
+            this ScrollViewer scrollViewer,
+            [NotNull] Control parent,
+            [NotNull] Func<T, bool> predicate,
+            double offsetFromTop = 100) where T : Control
+        {
+            T targetControl = ScrollNavigationService.FindControlRecursive(parent, predicate);
+            if (targetControl != null)
+            {
+                await ScrollNavigationService.ScrollToControlAsync(scrollViewer, targetControl, offsetFromTop);
+            }
+        }
 
 
 
-		public static async Task ScrollToControlByDataContextAsync<TControl, TDataContext>(
-			this ScrollViewer scrollViewer,
-			[NotNull] Control parent,
-			[NotNull] Func<TDataContext, bool> dataContextMatcher,
-			double offsetFromTop = 100)
-			where TControl : Control
-			where TDataContext : class
-		{
-			TControl targetControl = ScrollNavigationService.FindControlRecursive<TControl>(parent, control =>
-				control.DataContext is TDataContext dataContext && dataContextMatcher(dataContext));
+        public static async Task ScrollToControlByDataContextAsync<TControl, TDataContext>(
+            this ScrollViewer scrollViewer,
+            [NotNull] Control parent,
+            [NotNull] Func<TDataContext, bool> dataContextMatcher,
+            double offsetFromTop = 100)
+            where TControl : Control
+            where TDataContext : class
+        {
+            TControl targetControl = ScrollNavigationService.FindControlRecursive<TControl>(parent, control =>
+                control.DataContext is TDataContext dataContext && dataContextMatcher(dataContext));
 
-			if (targetControl != null)
-			{
-				await ScrollNavigationService.ScrollToControlAsync(scrollViewer, targetControl, offsetFromTop).ConfigureAwait(true);
-			}
-		}
-	}
+            if (targetControl != null)
+            {
+                await ScrollNavigationService.ScrollToControlAsync(scrollViewer, targetControl, offsetFromTop);
+            }
+        }
+    }
 }

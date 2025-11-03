@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -12,129 +12,155 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Core.Installation
 {
-	public sealed class BackupManager
-	{
-		private const string SessionFolderName = ".kotor_modsync";
-		private const string BackupFileName = "last_good_backup.zip";
-		private const string TempWorkingFolderPrefix = "KOTORModSync_Backup_";
-		private const string TempRestoreFolderPrefix = "KOTORModSync_Restore_";
+    public sealed class BackupManager
+    {
+        private const string SessionFolderName = ".kotor_modsync";
+        private const string BackupFileName = "last_good_backup.zip";
+        private const string TempWorkingFolderPrefix = "KOTORModSync_Backup_";
+        private const string TempRestoreFolderPrefix = "KOTORModSync_Restore_";
 
-		public string BackupPath { get; private set; }
+        public string BackupPath { get; private set; }
 
-		public async Task EnsureSnapshotAsync( [NotNull] DirectoryInfo source, CancellationToken cancellationToken )
-		{
-			if (source is null)
-				throw new ArgumentNullException( nameof( source ) );
+        public async Task EnsureSnapshotAsync([NotNull] DirectoryInfo source, CancellationToken cancellationToken)
+        {
+            if (source is null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
 
-			BackupPath = GetBackupPath( source );
-			if (File.Exists( BackupPath ))
-				return;
+            BackupPath = GetBackupPath(source);
+            if (File.Exists(BackupPath))
+            {
+                return;
+            }
 
-			await CreateSnapshotAsync( source, cancellationToken ).ConfigureAwait( false );
-		}
+            await CreateSnapshotAsync(source, cancellationToken).ConfigureAwait(false);
+        }
 
-		public async Task PromoteSnapshotAsync( [NotNull] DirectoryInfo source, CancellationToken cancellationToken )
-		{
-			if (source is null)
-				throw new ArgumentNullException( nameof( source ) );
+        public async Task PromoteSnapshotAsync([NotNull] DirectoryInfo source, CancellationToken cancellationToken)
+        {
+            if (source is null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
 
-			BackupPath = GetBackupPath( source );
-			await CreateSnapshotAsync( source, cancellationToken ).ConfigureAwait( false );
-		}
+            BackupPath = GetBackupPath(source);
+            await CreateSnapshotAsync(source, cancellationToken).ConfigureAwait(false);
+        }
 
-		public async Task RestoreSnapshotAsync( [NotNull] DirectoryInfo destination, CancellationToken cancellationToken )
-		{
-			if (destination is null)
-				throw new ArgumentNullException( nameof( destination ) );
+        public async Task RestoreSnapshotAsync([NotNull] DirectoryInfo destination, CancellationToken cancellationToken)
+        {
+            if (destination is null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
 
-			BackupPath = GetBackupPath( destination );
-			if (!File.Exists( BackupPath ))
-				throw new FileNotFoundException( "Backup snapshot not found", BackupPath );
+            BackupPath = GetBackupPath(destination);
+            if (!File.Exists(BackupPath))
+            {
+                throw new FileNotFoundException("Backup snapshot not found", BackupPath);
+            }
 
-			string tempExtract = Path.Combine( Path.GetTempPath(), TempRestoreFolderPrefix + Guid.NewGuid() );
-			_ = Directory.CreateDirectory( tempExtract );
+            string tempExtract = Path.Combine(Path.GetTempPath(), TempRestoreFolderPrefix + Guid.NewGuid());
+            _ = Directory.CreateDirectory(tempExtract);
 
-			try
-			{
-				Directory.Delete( tempExtract, recursive: true );
+            try
+            {
+                Directory.Delete(tempExtract, recursive: true);
 
-				await Task.Run( () => ZipFile.ExtractToDirectory( BackupPath, tempExtract, System.Text.Encoding.UTF8 ), cancellationToken ).ConfigureAwait( false );
+                await Task.Run(() => ZipFile.ExtractToDirectory(BackupPath, tempExtract, System.Text.Encoding.UTF8), cancellationToken).ConfigureAwait(false);
 
-				foreach (FileSystemInfo fsi in destination.EnumerateFileSystemInfos())
-				{
-					cancellationToken.ThrowIfCancellationRequested();
-					if (string.Equals( fsi.Name, SessionFolderName, StringComparison.OrdinalIgnoreCase ))
-						continue;
+                foreach (FileSystemInfo fsi in destination.EnumerateFileSystemInfos())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (string.Equals(fsi.Name, SessionFolderName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
 
-					SafeDelete( fsi );
-				}
+                    SafeDelete(fsi);
+                }
 
-				CopyDirectory( new DirectoryInfo( tempExtract ), destination, cancellationToken, skipFolder: SessionFolderName );
-			}
-			finally
-			{
-				if (Directory.Exists( tempExtract ))
-					Directory.Delete( tempExtract, recursive: true );
-			}
-		}
+                CopyDirectory(new DirectoryInfo(tempExtract), destination, cancellationToken, skipFolder: SessionFolderName);
+            }
+            finally
+            {
+                if (Directory.Exists(tempExtract))
+                {
+                    Directory.Delete(tempExtract, recursive: true);
+                }
+            }
+        }
 
-		private async Task CreateSnapshotAsync( DirectoryInfo source, CancellationToken cancellationToken )
-		{
-			string tempWorking = Path.Combine( Path.GetTempPath(), TempWorkingFolderPrefix + Guid.NewGuid() );
-			_ = Directory.CreateDirectory( tempWorking );
+        private async Task CreateSnapshotAsync(DirectoryInfo source, CancellationToken cancellationToken)
+        {
+            string tempWorking = Path.Combine(Path.GetTempPath(), TempWorkingFolderPrefix + Guid.NewGuid());
+            _ = Directory.CreateDirectory(tempWorking);
 
-			try
-			{
-				CopyDirectory( source, new DirectoryInfo( tempWorking ), cancellationToken, skipFolder: SessionFolderName );
+            try
+            {
+                CopyDirectory(source, new DirectoryInfo(tempWorking), cancellationToken, skipFolder: SessionFolderName);
 
-				if (File.Exists( BackupPath ))
-					File.Delete( BackupPath );
+                if (File.Exists(BackupPath))
+                {
+                    File.Delete(BackupPath);
+                }
 
-				await Task.Run( () => ZipFile.CreateFromDirectory( tempWorking, BackupPath, CompressionLevel.Fastest, includeBaseDirectory: false ), cancellationToken ).ConfigureAwait( false );
-			}
-			finally
-			{
-				if (Directory.Exists( tempWorking ))
-					Directory.Delete( tempWorking, recursive: true );
-			}
-		}
+                await Task.Run(() => ZipFile.CreateFromDirectory(tempWorking, BackupPath, CompressionLevel.Fastest, includeBaseDirectory: false), cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (Directory.Exists(tempWorking))
+                {
+                    Directory.Delete(tempWorking, recursive: true);
+                }
+            }
+        }
 
-		private static void CopyDirectory( DirectoryInfo source, DirectoryInfo destination, CancellationToken cancellationToken, string skipFolder )
-		{
-			if (!destination.Exists)
-				destination.Create();
+        private static void CopyDirectory(DirectoryInfo source, DirectoryInfo destination, CancellationToken cancellationToken, string skipFolder)
+        {
+            if (!destination.Exists)
+            {
+                destination.Create();
+            }
 
-			foreach (FileInfo file in source.EnumerateFiles())
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-				string targetPath = Path.Combine( destination.FullName, file.Name );
-				_ = file.CopyTo( targetPath, overwrite: true );
-			}
+            foreach (FileInfo file in source.EnumerateFiles())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                string targetPath = Path.Combine(destination.FullName, file.Name);
+                _ = file.CopyTo(targetPath, overwrite: true);
+            }
 
-			foreach (DirectoryInfo dir in source.EnumerateDirectories())
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-				if (string.Equals( dir.Name, skipFolder, StringComparison.OrdinalIgnoreCase ))
-					continue;
+            foreach (DirectoryInfo dir in source.EnumerateDirectories())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (string.Equals(dir.Name, skipFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
 
-				DirectoryInfo targetDir = new DirectoryInfo( Path.Combine( destination.FullName, dir.Name ) );
-				CopyDirectory( dir, targetDir, cancellationToken, skipFolder );
-			}
-		}
+                var targetDir = new DirectoryInfo(Path.Combine(destination.FullName, dir.Name));
+                CopyDirectory(dir, targetDir, cancellationToken, skipFolder);
+            }
+        }
 
-		private static void SafeDelete( FileSystemInfo fsi )
-		{
-			if (fsi is DirectoryInfo directory)
-				directory.Delete( recursive: true );
-			else
-				fsi.Delete();
-		}
+        private static void SafeDelete(FileSystemInfo fsi)
+        {
+            if (fsi is DirectoryInfo directory)
+            {
+                directory.Delete(recursive: true);
+            }
+            else
+            {
+                fsi.Delete();
+            }
+        }
 
-		private static string GetBackupPath( DirectoryInfo destination )
-		{
-			string folder = Path.Combine( destination.FullName, SessionFolderName );
-			_ = Directory.CreateDirectory( folder );
-			return Path.Combine( folder, BackupFileName );
-		}
-	}
+        private static string GetBackupPath(DirectoryInfo destination)
+        {
+            string folder = Path.Combine(destination.FullName, SessionFolderName);
+            _ = Directory.CreateDirectory(folder);
+            return Path.Combine(folder, BackupFileName);
+        }
+    }
 }

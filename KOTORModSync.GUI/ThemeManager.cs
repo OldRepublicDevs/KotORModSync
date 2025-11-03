@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -11,120 +11,159 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 
 namespace KOTORModSync
 {
-	internal static class ThemeManager
-	{
-		private static Uri s_currentStyleUri;
-		private static string s_currentTheme = "/Styles/FluentLightStyle.axaml"; // Track current theme
+    internal static class ThemeManager
+    {
+        private static Uri s_currentStyleUri;
+        private static string s_currentTheme = "/Styles/FluentLightStyle.axaml"; // Track current theme
 
-		public static event Action<Uri> StyleChanged;
+        public static event Action<Uri> StyleChanged;
 
-		public static void UpdateStyle([JetBrains.Annotations.CanBeNull] string stylePath = null)
-		{
-			// Default to Fluent Light if null or empty
-			if (string.IsNullOrWhiteSpace(stylePath))
-			{
-				stylePath = "/Styles/FluentLightStyle.axaml";
-			}
+        public static void UpdateStyle([JetBrains.Annotations.CanBeNull] string stylePath = null)
+        {
+            // Default to Fluent Light if null or empty
+            if (string.IsNullOrWhiteSpace(stylePath))
+            {
+                stylePath = "/Styles/FluentLightStyle.axaml";
+            }
 
-			// Clear ALL existing styles
-			Application.Current.Styles.Clear();
+            // Handle Fluent Light theme
+            if (string.Equals(stylePath, "Fluent.Light", StringComparison.OrdinalIgnoreCase))
+            {
+                // Redirect to custom FluentLightStyle.axaml
+                UpdateStyle("/Styles/FluentLightStyle.axaml");
+                return;
+            }
 
-			// Handle Fluent Light theme
-			if (string.Equals(stylePath, "Fluent.Light", StringComparison.OrdinalIgnoreCase))
-			{
-				// Redirect to custom FluentLightStyle.axaml
-				UpdateStyle("/Styles/FluentLightStyle.axaml");
-				return;
-			}
+            // Handle custom themes (dynamically loaded)
+            if (stylePath.EndsWith("KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) || stylePath.EndsWith("Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) || stylePath.EndsWith("FluentLightStyle.axaml", StringComparison.OrdinalIgnoreCase))
+            {
+                var newUri = new Uri("avares://KOTORModSync" + stylePath);
+                s_currentStyleUri = newUri;
+                s_currentTheme = stylePath;
 
-			// Handle custom themes (dynamically loaded)
-			if (stylePath.EndsWith("KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) || stylePath.EndsWith("Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) || stylePath.EndsWith("FluentLightStyle.axaml", StringComparison.OrdinalIgnoreCase))
-			{
-				Uri newUri = new Uri("avares://KOTORModSync" + stylePath);
-				s_currentStyleUri = newUri;
-				s_currentTheme = stylePath;
+                // Ensure all UI operations happen on UI thread
+                if (Dispatcher.UIThread.CheckAccess())
+                {
+                    // Already on UI thread - execute directly
+                    ApplyStyleInternal(stylePath);
+                }
+                else
+                {
+                    // Not on UI thread - marshal to UI thread
+                    Dispatcher.UIThread.Post(() => ApplyStyleInternal(stylePath), DispatcherPriority.Normal);
+                }
 
-				Application.Current.RequestedThemeVariant = ThemeVariant.Light;
+                return;
+            }
 
-				// Load Fluent theme first (provides base control templates)
-				var fluentUri = new Uri("avares://Avalonia.Themes.Fluent/FluentTheme.xaml");
-				Application.Current.Styles.Add(new StyleInclude(fluentUri) { Source = fluentUri });
+            // Fallback to Fluent Light for unknown themes
+            UpdateStyle("/Styles/FluentLightStyle.axaml");
+        }
 
-				// Then add custom style overrides on top
-				var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
-				Application.Current.Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
+        private static void ApplyStyleInternal(string stylePath)
+        {
+            // Clear ALL existing styles
+            Application.Current.Styles.Clear();
 
-				ApplyToAllOpenWindows();
-				StyleChanged?.Invoke(s_currentStyleUri);
-				return;
-			}
+            Application.Current.RequestedThemeVariant = ThemeVariant.Light;
 
-			// Fallback to Fluent Light for unknown themes
-			UpdateStyle("/Styles/FluentLightStyle.axaml");
-		}
+            // Load Fluent theme first (provides base control templates)
+            var fluentUri = new Uri("avares://Avalonia.Themes.Fluent/FluentTheme.xaml");
+            Application.Current.Styles.Add(new StyleInclude(fluentUri) { Source = fluentUri });
 
-		public static void ApplyCurrentToWindow(Window window) => ApplyToWindow(window, s_currentStyleUri);
+            // Then add custom style overrides on top
+            var styleUriPath = new Uri("avares://KOTORModSync" + stylePath);
+            Application.Current.Styles.Add(new StyleInclude(styleUriPath) { Source = styleUriPath });
 
-		public static string GetCurrentStylePath()
-		{
-			if (!string.IsNullOrEmpty(s_currentTheme))
-				return s_currentTheme;
+            ApplyToAllOpenWindows();
+            StyleChanged?.Invoke(s_currentStyleUri);
+        }
 
-			if (s_currentStyleUri is null)
-				return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
+        public static void ApplyCurrentToWindow(Window window)
+        {
+            if (window is null)
+            {
+                return;
+            }
 
-			string path = s_currentStyleUri.ToString();
+            // Ensure UI operations happen on UI thread
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                ApplyToWindow(window, s_currentStyleUri);
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(() => ApplyToWindow(window, s_currentStyleUri), DispatcherPriority.Normal);
+            }
+        }
 
-			if (path.StartsWith("avares://KOTORModSync", StringComparison.Ordinal))
-			{
-				return path.Substring("avares://KOTORModSync".Length);
-			}
-			return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
-		}
+        public static string GetCurrentStylePath()
+        {
+            if (!string.IsNullOrEmpty(s_currentTheme))
+            {
+                return s_currentTheme;
+            }
 
-		private static void ApplyToAllOpenWindows()
-		{
-			if (
-				Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-				desktop.Windows != null &&
-				desktop.Windows.Count > 0)
-			{
-				foreach (Window w in desktop.Windows)
-				{
-					ApplyToWindow(w, s_currentStyleUri);
-				}
-			}
-		}
+            if (s_currentStyleUri is null)
+            {
+                return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
+            }
 
-		private static void ApplyToWindow(Window window, Uri styleUri)
-		{
-			if (window is null)
-				return;
+            string path = s_currentStyleUri.ToString();
 
-			// CRITICAL: Always set Light theme variant for FluentLightStyle
-			window.RequestedThemeVariant = ThemeVariant.Light;
+            if (path.StartsWith("avares://KOTORModSync", StringComparison.Ordinal))
+            {
+                return path.Substring("avares://KOTORModSync".Length);
+            }
+            return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
+        }
 
-			// Clear all window styles to prevent conflicts
-			window.Styles.Clear();
+        private static void ApplyToAllOpenWindows()
+        {
+            if (
+                Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+                desktop.Windows != null &&
+                desktop.Windows.Count > 0)
+            {
+                foreach (Window w in desktop.Windows)
+                {
+                    ApplyToWindow(w, s_currentStyleUri);
+                }
+            }
+        }
 
-			// ALWAYS apply Fluent base theme + custom style overrides to ensure consistent theming
-			var fluentUri = new Uri("avares://Avalonia.Themes.Fluent/FluentTheme.xaml");
-			window.Styles.Add(new StyleInclude(fluentUri) { Source = fluentUri });
+        private static void ApplyToWindow(Window window, Uri styleUri)
+        {
+            if (window is null)
+            {
+                return;
+            }
 
-			// Apply custom style overrides if available
-			if (styleUri != null)
-			{
-				window.Styles.Add(new StyleInclude(styleUri) { Source = styleUri });
-			}
-			else if (!string.IsNullOrEmpty(s_currentTheme))
-			{
-				// Fallback to current theme path if styleUri is null
-				var currentUri = new Uri("avares://KOTORModSync" + s_currentTheme);
-				window.Styles.Add(new StyleInclude(currentUri) { Source = currentUri });
-			}
-		}
-	}
+            // CRITICAL: Always set Light theme variant for FluentLightStyle
+            window.RequestedThemeVariant = ThemeVariant.Light;
+
+            // Clear all window styles to prevent conflicts
+            window.Styles.Clear();
+
+            // ALWAYS apply Fluent base theme + custom style overrides to ensure consistent theming
+            var fluentUri = new Uri("avares://Avalonia.Themes.Fluent/FluentTheme.xaml");
+            window.Styles.Add(new StyleInclude(fluentUri) { Source = fluentUri });
+
+            // Apply custom style overrides if available
+            if (styleUri != null)
+            {
+                window.Styles.Add(new StyleInclude(styleUri) { Source = styleUri });
+            }
+            else if (!string.IsNullOrEmpty(s_currentTheme))
+            {
+                // Fallback to current theme path if styleUri is null
+                var currentUri = new Uri("avares://KOTORModSync" + s_currentTheme);
+                window.Styles.Add(new StyleInclude(currentUri) { Source = currentUri });
+            }
+        }
+    }
 }

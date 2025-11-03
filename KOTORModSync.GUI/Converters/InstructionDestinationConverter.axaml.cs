@@ -1,8 +1,9 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 using Avalonia.Data.Converters;
@@ -15,112 +16,141 @@ using KOTORModSync.Core.Utility;
 namespace KOTORModSync.Converters
 {
 
-	public partial class InstructionDestinationConverter : IValueConverter
-	{
-		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
-		{
-			if (!(value is Instruction instruction))
-				return string.Empty;
+    public partial class InstructionDestinationConverter : IValueConverter, IMultiValueConverter
+    {
+        public object Convert(
+            [CanBeNull] object value,
+            [NotNull] Type targetType,
+            [CanBeNull] object parameter,
+            [NotNull] CultureInfo culture
+        )
+        {
+            if (!(value is Instruction instruction))
+            {
+                return string.Empty;
+            }
 
-			switch (instruction.Action)
-			{
-				case Instruction.ActionType.Extract:
+            switch (instruction.Action)
+            {
+                case Instruction.ActionType.Extract:
 
-					return "→ (extracted to same directory)";
+                    return "→ (extracted to same directory)";
 
-				case Instruction.ActionType.Move:
-				case Instruction.ActionType.Copy:
+                case Instruction.ActionType.Move:
+                case Instruction.ActionType.Copy:
 
-					if (!string.IsNullOrEmpty( instruction.Destination ))
-					{
-						string resolvedDestination = ResolvePath( instruction.Destination );
-						return $"→ {resolvedDestination}";
-					}
-					return "→ (no destination specified)";
+                    if (!string.IsNullOrEmpty(instruction.Destination))
+                    {
+                        string resolvedDestination = ResolvePath(instruction.Destination);
+                        return $"→ {resolvedDestination}";
+                    }
+                    return "→ (no destination specified)";
 
-				case Instruction.ActionType.Rename:
+                case Instruction.ActionType.Rename:
 
-					if (!string.IsNullOrEmpty( instruction.Destination ))
-					{
-						return $"→ rename to: {instruction.Destination}";
-					}
-					return "→ (no new name specified)";
+                    if (!string.IsNullOrEmpty(instruction.Destination))
+                    {
+                        return $"→ rename to: {instruction.Destination}";
+                    }
+                    return "→ (no new name specified)";
 
-				case Instruction.ActionType.Delete:
+                case Instruction.ActionType.Delete:
 
-					return "→ (delete operation)";
+                    return "→ (delete operation)";
 
-				case Instruction.ActionType.Patcher:
+                case Instruction.ActionType.Patcher:
 
-					if (MainConfig.DestinationPath != null)
-					{
-						return $"→ {MainConfig.DestinationPath.FullName}";
-					}
-					return "→ <<kotorDirectory>>";
+                    if (MainConfig.DestinationPath != null)
+                    {
+                        return $"→ {MainConfig.DestinationPath.FullName}";
+                    }
+                    return "→ <<kotorDirectory>>";
 
-				case Instruction.ActionType.Execute:
+                case Instruction.ActionType.Execute:
 
-					if (!string.IsNullOrEmpty( instruction.Arguments ))
-					{
-						return $"→ execute with args: {instruction.Arguments}";
-					}
-					return "→ (execute program)";
+                    if (!string.IsNullOrEmpty(instruction.Arguments))
+                    {
+                        return $"→ execute with args: {instruction.Arguments}";
+                    }
+                    return "→ (execute program)";
 
-				case Instruction.ActionType.DelDuplicate:
+                case Instruction.ActionType.DelDuplicate:
 
-					if (!string.IsNullOrEmpty( instruction.Arguments ))
-					{
-						return $"→ remove duplicate .{instruction.Arguments} files";
-					}
-					return "→ (remove duplicates)";
+                    if (!string.IsNullOrEmpty(instruction.Arguments))
+                    {
+                        return $"→ remove duplicate .{instruction.Arguments} files";
+                    }
+                    return "→ (remove duplicates)";
 
-				case Instruction.ActionType.Choose:
+                case Instruction.ActionType.Choose:
 
-					return "→ (choose from options)";
+                    return "→ (choose from options)";
 
-			case Instruction.ActionType.Run:
+                case Instruction.ActionType.Run:
 
-				return "→ (run program)";
+                    return "→ (run program)";
 
-			case Instruction.ActionType.CleanList:
+                case Instruction.ActionType.CleanList:
 
-				if (!string.IsNullOrEmpty( instruction.Destination ))
-				{
-					string resolvedDestination = ResolvePath( instruction.Destination );
-					return $"→ clean files in {resolvedDestination}";
-				}
-				return "→ (clean conflicting files)";
+                    if (!string.IsNullOrEmpty(instruction.Destination))
+                    {
+                        string resolvedDestination = ResolvePath(instruction.Destination);
+                        return $"→ clean files in {resolvedDestination}";
+                    }
+                    return "→ (clean conflicting files)";
 
-			default:
-				return "→ (unknown operation)";
-			}
-		}
+                default:
+                    return "→ (unknown operation)";
+            }
+        }
 
-		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
-		{
-			throw new NotImplementedException();
-		}
+        public object Convert(
+            [CanBeNull][ItemNotNull] IList<object> values,
+            [NotNull] Type targetType,
+            [CanBeNull] object parameter,
+            [NotNull] CultureInfo culture
+        )
+        {
+            if (values is null || values.Count == 0)
+            {
+                return string.Empty;
+            }
 
-		[NotNull]
-		private static string ResolvePath( [CanBeNull] string path )
-		{
-			if (string.IsNullOrEmpty( path ))
-				return string.Empty;
+            // Use the first value for multi-value binding
+            return Convert(values[0], targetType, parameter, culture);
+        }
 
-			if (MainConfig.SourcePath is null && MainConfig.DestinationPath is null)
-			{
-				return path;
-			}
+        public object ConvertBack(
+            [CanBeNull] object value,
+            [NotNull] Type targetType,
+            [CanBeNull] object parameter,
+            [NotNull] CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
 
-			try
-			{
-				return UtilityHelper.ReplaceCustomVariables( path );
-			}
-			catch (Exception)
-			{
+        [NotNull]
+        private static string ResolvePath([CanBeNull] string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return string.Empty;
+            }
 
-				return path;
-			}
-		}
-	}
+            if (MainConfig.SourcePath is null && MainConfig.DestinationPath is null)
+            {
+                return path;
+            }
+
+            try
+            {
+                return UtilityHelper.ReplaceCustomVariables(path);
+            }
+            catch (Exception)
+            {
+
+                return path;
+            }
+        }
+    }
 }

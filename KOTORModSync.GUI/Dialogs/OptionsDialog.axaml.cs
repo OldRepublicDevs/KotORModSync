@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -19,197 +19,210 @@ using JetBrains.Annotations;
 
 namespace KOTORModSync.Dialogs
 {
-	public partial class OptionsDialog : Window
-	{
-		public static readonly AvaloniaProperty OptionsListProperty =
-			AvaloniaProperty.Register<OptionsDialog, List<string>>( nameof( OptionsList ) );
-		private bool _mouseDownForWindowMoving;
-		private PointerPoint _originalPoint;
+    public partial class OptionsDialog : Window
+    {
+        public static readonly AvaloniaProperty OptionsListProperty =
+            AvaloniaProperty.Register<OptionsDialog, List<string>>(nameof(OptionsList));
+        private bool _mouseDownForWindowMoving;
+        private PointerPoint _originalPoint;
 
-		public OptionsDialog()
-		{
-			InitializeComponent();
-			OkButton.Click += OKButton_Click;
+        public OptionsDialog()
+        {
+            InitializeComponent();
+            OkButton.Click += OKButton_Click;
 
-			PointerPressed += InputElement_OnPointerPressed;
-			PointerMoved += InputElement_OnPointerMoved;
-			PointerReleased += InputElement_OnPointerReleased;
-			PointerExited += InputElement_OnPointerReleased;
-		}
+            PointerPressed += InputElement_OnPointerPressed;
+            PointerMoved += InputElement_OnPointerMoved;
+            PointerReleased += InputElement_OnPointerReleased;
+            PointerExited += InputElement_OnPointerReleased;
 
-		[CanBeNull]
-		public List<string> OptionsList
-		{
-			get => GetValue( OptionsListProperty ) as List<string>;
-			set => SetValue( OptionsListProperty, value );
-		}
+            // Apply current theme
+            ThemeManager.ApplyCurrentToWindow(this);
+        }
 
-		private void OKButton_Click( [CanBeNull] object sender, [CanBeNull] RoutedEventArgs e )
-		{
-			RadioButton selectedRadioButton = OptionStackPanel.Children.OfType<RadioButton>()
-				.SingleOrDefault( rb => rb.IsChecked == true );
+        [CanBeNull]
+        public List<string> OptionsList
+        {
+            get => GetValue(OptionsListProperty) as List<string>;
+            set => SetValue(OptionsListProperty, value);
+        }
 
-			if (selectedRadioButton != null)
-			{
-				string selectedOption = selectedRadioButton.Content?.ToString();
-				OptionSelected?.Invoke( this, selectedOption );
-			}
+        private void OKButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e)
+        {
+            RadioButton selectedRadioButton = OptionStackPanel.Children.OfType<RadioButton>()
+                .SingleOrDefault(rb => rb.IsChecked == true);
 
-			Close();
-		}
+            if (selectedRadioButton != null)
+            {
+                string selectedOption = selectedRadioButton.Content?.ToString();
+                OptionSelected?.Invoke(this, selectedOption);
+            }
 
-		private void CloseButton_Click( [CanBeNull] object sender, [CanBeNull] RoutedEventArgs e ) =>
-			Close();
+            Close();
+        }
 
-		public event EventHandler<string> OptionSelected;
+        private void CloseButton_Click([CanBeNull] object sender, [CanBeNull] RoutedEventArgs e) =>
+            Close();
 
-		private void OnOpened( [CanBeNull] object sender, [CanBeNull] EventArgs e )
-		{
-			if (OptionsList is null)
-				throw new NullReferenceException( nameof( OptionsList ) );
+        public event EventHandler<string> OptionSelected;
 
-			foreach (string option in OptionsList)
-			{
-				var radioButton = new RadioButton
-				{
-					Content = option,
-					GroupName = "OptionsGroup",
-				};
-				OptionStackPanel.Children.Add( radioButton );
-			}
+        private void OnOpened([CanBeNull] object sender, [CanBeNull] EventArgs e)
+        {
+            if (OptionsList is null)
+            {
+                throw new NullReferenceException(nameof(OptionsList));
+            }
 
-			OptionStackPanel.Measure( new Size( double.PositiveInfinity, double.PositiveInfinity ) );
-			OptionStackPanel.Arrange( new Rect( OptionStackPanel.DesiredSize ) );
+            foreach (string option in OptionsList)
+            {
+                var radioButton = new RadioButton
+                {
+                    Content = option,
+                    GroupName = "OptionsGroup",
+                };
+                OptionStackPanel.Children.Add(radioButton);
+            }
 
-			Size actualSize = OptionStackPanel.Bounds.Size;
+            OptionStackPanel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            OptionStackPanel.Arrange(new Rect(OptionStackPanel.DesiredSize));
 
-			const double horizontalPadding = 100;
-			const double verticalPadding = 150;
+            Size actualSize = OptionStackPanel.Bounds.Size;
 
-			double contentWidth = actualSize.Width + 2 * horizontalPadding;
-			double contentHeight = actualSize.Height + 2 * verticalPadding;
+            const double horizontalPadding = 100;
+            const double verticalPadding = 150;
 
-			Width = contentWidth;
-			Height = contentHeight;
+            double contentWidth = actualSize.Width + 2 * horizontalPadding;
+            double contentHeight = actualSize.Height + 2 * verticalPadding;
 
-			InvalidateArrange();
-			InvalidateMeasure();
+            Width = contentWidth;
+            Height = contentHeight;
 
-			Screen screen = Screens.ScreenFromVisual( this );
-			if (screen is null)
-				throw new NullReferenceException( nameof( screen ) );
+            InvalidateArrange();
+            InvalidateMeasure();
 
-			double screenWidth = screen.Bounds.Width;
-			double screenHeight = screen.Bounds.Height;
-			double left = (screenWidth - contentWidth) / 2;
-			double top = (screenHeight - contentHeight) / 2;
-			Position = new PixelPoint( (int)left, (int)top );
-		}
+            Screen screen = Screens.ScreenFromVisual(this);
+            if (screen is null)
+            {
+                throw new NullReferenceException(nameof(screen));
+            }
 
-		[ItemCanBeNull]
-		public static async Task<string> ShowOptionsDialog(
-			[CanBeNull] Window parentWindow,
-			[CanBeNull] List<string> optionsList
-		)
-		{
-			var tcs = new TaskCompletionSource<string>();
+            double screenWidth = screen.Bounds.Width;
+            double screenHeight = screen.Bounds.Height;
+            double left = (screenWidth - contentWidth) / 2;
+            double top = (screenHeight - contentHeight) / 2;
+            Position = new PixelPoint((int)left, (int)top);
+        }
 
-			await Dispatcher.UIThread.InvokeAsync(
-				async () =>
-				{
-					var optionsDialog = new OptionsDialog
-					{
-						OptionsList = optionsList,
-						Topmost = true,
+        [ItemCanBeNull]
+        public static async Task<string> ShowOptionsDialog(
+            [CanBeNull] Window parentWindow,
+            [CanBeNull] List<string> optionsList
+        )
+        {
+            var tcs = new TaskCompletionSource<string>();
 
-					};
+            await Dispatcher.UIThread.InvokeAsync(
+                async () =>
+                {
+                    var optionsDialog = new OptionsDialog
+                    {
+                        OptionsList = optionsList,
+                        Topmost = true,
 
-					optionsDialog.Closed += ClosedHandler;
-					optionsDialog.Opened += optionsDialog.OnOpened;
+                    };
 
-					void ClosedHandler( object sender, EventArgs e )
-					{
-						optionsDialog.Closed -= ClosedHandler;
-						_ = tcs.TrySetResult( null );
-					}
+                    optionsDialog.Closed += ClosedHandler;
+                    optionsDialog.Opened += optionsDialog.OnOpened;
 
-					optionsDialog.OptionSelected += ( sender, option ) => _ = tcs.TrySetResult( option );
+                    void ClosedHandler(object sender, EventArgs e)
+                    {
+                        optionsDialog.Closed -= ClosedHandler;
+                        _ = tcs.TrySetResult(null);
+                    }
 
-					if (!(parentWindow is null))
+                    optionsDialog.OptionSelected += (sender, option) => _ = tcs.TrySetResult(option);
 
+                    if (!(parentWindow is null))
+                    {
+                        await optionsDialog.ShowDialog(parentWindow);
+                    }
+                }
+            ).ConfigureAwait(true);
 
-						await optionsDialog.ShowDialog( parentWindow ).ConfigureAwait(true);
+            return tcs is null ? throw new NullReferenceException(nameof(tcs)) : await tcs.Task;
+        }
 
+        private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+        {
+            if (!_mouseDownForWindowMoving)
+            {
+                return;
+            }
 
-				}
-			).ConfigureAwait( false );
+            PointerPoint currentPoint = e.GetCurrentPoint(this);
+            Position = new PixelPoint(
+                Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
+                Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
+            );
+        }
 
-			return tcs is null ? throw new NullReferenceException( nameof( tcs ) ) : await tcs.Task.ConfigureAwait(true);
-		}
+        private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+            {
+                return;
+            }
 
-		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )
-		{
-			if (!_mouseDownForWindowMoving)
-				return;
+            if (ShouldIgnorePointerForWindowDrag(e))
+            {
+                return;
+            }
 
-			PointerPoint currentPoint = e.GetCurrentPoint( this );
-			Position = new PixelPoint(
-				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
-				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
-			);
-		}
+            _mouseDownForWindowMoving = true;
+            _originalPoint = e.GetCurrentPoint(this);
+        }
 
-		private void InputElement_OnPointerPressed( object sender, PointerPressedEventArgs e )
-		{
-			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
-				return;
+        private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+            _mouseDownForWindowMoving = false;
 
-			if (ShouldIgnorePointerForWindowDrag( e ))
-				return;
+        private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+        {
 
-			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint( this );
-		}
+            if (!(e.Source is Visual source))
+            {
+                return false;
+            }
 
-		private void InputElement_OnPointerReleased( object sender, PointerEventArgs e ) =>
-			_mouseDownForWindowMoving = false;
+            Visual current = source;
+            while (current != null && current != this)
+            {
+                switch (current)
+                {
 
-		private bool ShouldIgnorePointerForWindowDrag( PointerEventArgs e )
-		{
+                    case Button _:
+                    case TextBox _:
+                    case ComboBox _:
+                    case ListBox _:
+                    case MenuItem _:
+                    case Menu _:
+                    case Expander _:
+                    case Slider _:
+                    case TabControl _:
+                    case TabItem _:
+                    case ProgressBar _:
+                    case ScrollViewer _:
 
-			if (!(e.Source is Visual source))
-				return false;
+                    case Control control when control.ContextMenu?.IsOpen == true:
+                        return true;
+                    case Control control when control.ContextFlyout?.IsOpen == true:
+                        return true;
+                    default:
+                        current = current.GetVisualParent();
+                        break;
+                }
+            }
 
-			Visual current = source;
-			while (current != null && current != this)
-			{
-				switch (current)
-				{
-
-					case Button _:
-					case TextBox _:
-					case ComboBox _:
-					case ListBox _:
-					case MenuItem _:
-					case Menu _:
-					case Expander _:
-					case Slider _:
-					case TabControl _:
-					case TabItem _:
-					case ProgressBar _:
-					case ScrollViewer _:
-
-					case Control control when control.ContextMenu?.IsOpen == true:
-						return true;
-					case Control control when control.ContextFlyout?.IsOpen == true:
-						return true;
-					default:
-						current = current.GetVisualParent();
-						break;
-				}
-			}
-
-			return false;
-		}
-	}
+            return false;
+        }
+    }
 }

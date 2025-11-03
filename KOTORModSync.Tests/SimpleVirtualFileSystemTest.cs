@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,55 +7,55 @@ using KOTORModSync.Core.Services.FileSystem;
 
 namespace KOTORModSync.Tests
 {
-	[TestFixture]
-	public class SimpleVirtualFileSystemTest
-	{
-		[Test]
-		public void Test_VirtualFileSystemProvider_BasicCreation()
-		{
+    [TestFixture]
+    public class SimpleVirtualFileSystemTest
+    {
+        [Test]
+        public void Test_VirtualFileSystemProvider_BasicCreation()
+        {
 
-			var provider = new VirtualFileSystemProvider();
+            var provider = new VirtualFileSystemProvider();
 
-			Assert.That( provider, Is.Not.Null );
-			Assert.That( provider.IsDryRun, Is.True );
-		}
+            Assert.That(provider, Is.Not.Null);
+            Assert.That(provider.IsDryRun, Is.True);
+        }
 
-		[Test]
-		public void Test_RealFileSystemProvider_BasicCreation()
-		{
+        [Test]
+        public void Test_RealFileSystemProvider_BasicCreation()
+        {
 
-			var provider = new RealFileSystemProvider();
+            var provider = new RealFileSystemProvider();
 
-			Assert.That( provider, Is.Not.Null );
-			Assert.That( provider.IsDryRun, Is.False );
-		}
+            Assert.That(provider, Is.Not.Null);
+            Assert.That(provider.IsDryRun, Is.False);
+        }
 
-		[Test]
-		public void Test_VirtualFileSystemProvider_FileOperations()
-		{
+        [Test]
+        public void Test_VirtualFileSystemProvider_FileOperations()
+        {
 
-			var provider = new VirtualFileSystemProvider();
+            var provider = new VirtualFileSystemProvider();
 
-			provider.WriteFileAsync( "test.txt", "content" ).Wait();
+            provider.WriteFileAsync("test.txt", "content").Wait();
 
-			Assert.Multiple( () =>
-			{
-				Assert.That( provider.FileExists( "test.txt" ), Is.True );
-				Assert.That( provider.FileExists( "nonexistent.txt" ), Is.False );
-			} );
-		}
+            Assert.Multiple(() =>
+            {
+                Assert.That(provider.FileExists("test.txt"), Is.True);
+                Assert.That(provider.FileExists("nonexistent.txt"), Is.False);
+            });
+        }
 
-		[Test]
-		public void Test_MainConfig_Initialization()
-		{
+        [Test]
+        public void Test_MainConfig_Initialization()
+        {
 
-			var config = new MainConfig();
+            var config = new MainConfig();
 
-			Assert.Multiple( () =>
-			{
-				Assert.That( config.caseInsensitivePathing, Is.TypeOf<bool>() );
-				Assert.That( config.useMultiThreadedIO, Is.False );
-			} );
-		}
-	}
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.caseInsensitivePathing, Is.TypeOf<bool>());
+                Assert.That(config.useMultiThreadedIO, Is.False);
+            });
+        }
+    }
 }

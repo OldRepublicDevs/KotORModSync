@@ -1,6 +1,6 @@
-<!-- Copyright 2021-2025 KOTORModSync -->
-<!-- Licensed under the Business Source License 1.1 (BSL 1.1). -->
-<!-- See LICENSE.txt file in the project root for full license information. -->
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
 <Window
     x:Class="KOTORModSync.Dialogs.ValidationDialog"
     xmlns="https://github.com/avaloniaui"
@@ -34,16 +34,41 @@
                 FontSize="18"
                 FontWeight="Bold"
                 Text="Validation Results" />
-            <Button
+            <StackPanel
                 Grid.Column="1"
-                Width="40"
-                Height="40"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                HorizontalContentAlignment="Center"
-                Click="CloseButton_Click"
-                Content="X"
-                FontSize="15" />
+                Margin="0,8,8,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="0">
+                <Button
+                    Width="40"
+                    Height="40"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="MinimizeButton_Click"
+                    Content="-"
+                    FontSize="15" />
+                <Button
+                    Width="40"
+                    Height="40"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="ToggleMaximizeButton_Click"
+                    Content="▢"
+                    FontSize="15" />
+                <Button
+                    Width="40"
+                    Height="40"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Click="CloseButton_Click"
+                    Content="X"
+                    FontSize="15" />
+            </StackPanel>
         </Grid>
 
         <!--  Content  -->
@@ -51,7 +76,7 @@
             Grid.Row="1"
             Padding="16"
             VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="16">
+            <StackPanel MaxWidth="Infinity" Spacing="16">
                 <!--  Success/Failure Summary  -->
                 <Border
                     x:Name="SummaryBorder"
@@ -117,37 +142,41 @@
                                         Margin="0,4"
                                         Padding="12"
                                         Classes="summary-card"
-                                        CornerRadius="6">
+                                        CornerRadius="6"
+                                        Cursor="Hand"
+                                        PointerPressed="ValidationIssueItem_PointerPressed">
                                         <StackPanel Spacing="8">
                                             <Grid ColumnDefinitions="Auto,*">
                                                 <TextBlock
                                                     Grid.Column="0"
                                                     Margin="0,0,8,0"
                                                     VerticalAlignment="Top"
-                                                    FontSize="20"
                                                     DataContext="{Binding .}"
+                                                    FontSize="20"
                                                     Text="{Binding Icon}" />
                                                 <StackPanel Grid.Column="1" Spacing="4">
                                                     <TextBlock
                                                         DataContext="{Binding .}"
                                                         FontSize="14"
                                                         FontWeight="Bold"
-                                                        Text="{Binding ModName}" />
+                                                        Text="{Binding ModName}"
+                                                        TextWrapping="Wrap" />
                                                     <TextBlock
-                                                        DataContext="{Binding .}"
                                                         Classes="secondary-text"
+                                                        DataContext="{Binding .}"
                                                         FontSize="12"
-                                                        Text="{Binding IssueType}" />
+                                                        Text="{Binding IssueType}"
+                                                        TextWrapping="Wrap" />
                                                     <TextBlock
                                                         Margin="0,4,0,0"
                                                         DataContext="{Binding .}"
                                                         Text="{Binding Description}"
                                                         TextWrapping="Wrap" />
                                                     <TextBlock
+                                                        DataContext="{Binding .}"
                                                         FontStyle="Italic"
                                                         Foreground="{DynamicResource Validation.SolutionBrush}"
                                                         IsVisible="{Binding HasSolution}"
-                                                        DataContext="{Binding .}"
                                                         Text="{Binding Solution}"
                                                         TextWrapping="Wrap" />
                                                 </StackPanel>

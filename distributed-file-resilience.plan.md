@@ -90,7 +90,7 @@ csharp // Torrent metadata structure (bencoded) { "info": { "name": SanitizeFile
 
 ```csharp
 [NotNull]
-public Dictionary<string, ResourceMetadata> ResourceRegistry { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+public Dictionary<string, ResourceMetadata> ResourceRegistry { get; set; } = new(StringComparer.Ordinal);
 
 public class ResourceMetadata
 {
@@ -100,7 +100,7 @@ public class ResourceMetadata
     public string MetadataHash { get; set; }      // SHA-256 of canonical provider metadata
     public string PrimaryUrl { get; set; }
     public Dictionary<string, object> HandlerMetadata { get; set; } = new();
-    public Dictionary<string, bool?> Files { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, bool?> Files { get; set; } = new(StringComparer.Ordinal);
     public long FileSize { get; set; }
     public int PieceLength { get; set; }          // Bytes per piece (from DeterminePieceSize)
     public string PieceHashes { get; set; }       // Hex-encoded concatenated SHA-1 hashes (20 bytes per piece)
@@ -133,9 +133,9 @@ public enum MappingTrustLevel
 
 ```csharp
 // Never rename keys - use dual maps to avoid race conditions
-private static readonly Dictionary<string, ResourceMetadata> s_resourceByMetadataHash = new(StringComparer.OrdinalIgnoreCase);
-private static readonly Dictionary<string, string> s_metadataHashToContentId = new(StringComparer.OrdinalIgnoreCase);
-private static readonly Dictionary<string, ResourceMetadata> s_resourceByContentId = new(StringComparer.OrdinalIgnoreCase);
+private static readonly Dictionary<string, ResourceMetadata> s_resourceByMetadataHash = new(StringComparer.Ordinal);
+private static readonly Dictionary<string, string> s_metadataHashToContentId = new(StringComparer.Ordinal);
+private static readonly Dictionary<string, ResourceMetadata> s_resourceByContentId = new(StringComparer.Ordinal);
 ```
 
 **Storage Structure**:
@@ -233,7 +233,7 @@ if (component.ResourceRegistry.Count > 0)
 
 private static Dictionary<string, object> SerializeResourceRegistry(Dictionary<string, ResourceMetadata> registry)
 {
-    var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    var result = new Dictionary<string, object>(StringComparer.Ordinal);
     foreach (var kvp in registry)
     {
         var metaDict = new Dictionary<string, object>
@@ -264,7 +264,7 @@ private static Dictionary<string, object> SerializeResourceRegistry(Dictionary<s
 // Add corresponding DeserializeResourceRegistry in DeserializeComponent
 private static Dictionary<string, ResourceMetadata> DeserializeResourceRegistry(IDictionary<string, object> componentDict)
 {
-    var result = new Dictionary<string, ResourceMetadata>(StringComparer.OrdinalIgnoreCase);
+    var result = new Dictionary<string, ResourceMetadata>(StringComparer.Ordinal);
 
     if (!componentDict.TryGetValue("ResourceRegistry", out object registryObj) || !(registryObj is IDictionary<string, object> registryDict))
         return result;
@@ -281,7 +281,7 @@ private static Dictionary<string, ResourceMetadata> DeserializeResourceRegistry(
             MetadataHash = GetValueOrDefault<string>(metaDict, "MetadataHash"),
             PrimaryUrl = GetValueOrDefault<string>(metaDict, "PrimaryUrl"),
             HandlerMetadata = GetValueOrDefault<Dictionary<string, object>>(metaDict, "HandlerMetadata") ?? new(),
-            Files = GetValueOrDefault<Dictionary<string, bool?>>(metaDict, "Files") ?? new(StringComparer.OrdinalIgnoreCase),
+            Files = GetValueOrDefault<Dictionary<string, bool?>>(metaDict, "Files") ?? new(StringComparer.Ordinal),
             FileSize = GetValueOrDefault<long>(metaDict, "FileSize"),
             PieceLength = GetValueOrDefault<int>(metaDict, "PieceLength"),
             PieceHashes = GetValueOrDefault<string>(metaDict, "PieceHashes"),
@@ -887,7 +887,7 @@ var resourceMeta = new ResourceMetadata
     ContentHashSHA256 = null,
     PieceLength = 0,
     PieceHashes = null,
-    Files = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase)
+    Files = new Dictionary<string, bool?>(StringComparer.Ordinal)
 };
 
 lock (s_resourceIndexLock)

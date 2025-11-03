@@ -161,7 +161,7 @@
                                         HorizontalAlignment="Stretch"
                                         ComponentGuid="{Binding Guid}"
                                         DownloadCacheService="{Binding $parent[Window].DownloadCacheService}"
-                                        DownloadLinks="{Binding ModLinkFilenames, Mode=OneWay, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}" />
+                                        DownloadLinks="{Binding ResourceRegistry, Mode=OneWay, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}" />
                                 </StackPanel>
 
                                 <StackPanel>

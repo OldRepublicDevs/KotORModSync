@@ -16,281 +16,294 @@ using KOTORModSync.Dialogs.WizardPages;
 
 namespace KOTORModSync.Dialogs
 {
-	public partial class InstallWizardDialog : Window
-	{
-		private readonly List<IWizardPage> _pages = new List<IWizardPage>();
-		private int _currentPageIndex = 0;
-		private readonly MainConfig _mainConfig;
-		private readonly List<ModComponent> _allComponents;
-		private readonly CancellationTokenSource _cancellationTokenSource;
+    public partial class InstallWizardDialog : Window
+    {
+        private readonly List<IWizardPage> _pages = new List<IWizardPage>();
+        private int _currentPageIndex = 0;
+        private readonly MainConfig _mainConfig;
+        private readonly List<ModComponent> _allComponents;
+        private readonly CancellationTokenSource _cancellationTokenSource;
 
-		// Installation state
-		public bool InstallationCompleted { get; private set; }
-		public bool InstallationCancelled { get; private set; }
+        // Installation state
+        public bool InstallationCompleted { get; private set; }
+        public bool InstallationCancelled { get; private set; }
 
-		// Widescreen state
-		private bool _hasWidescreenMods;
-		private List<ModComponent> _widescreenMods;
+        // Widescreen state
+        private bool _hasWidescreenMods;
+        private List<ModComponent> _widescreenMods;
 
-		public InstallWizardDialog([NotNull] MainConfig mainConfig, [NotNull] List<ModComponent> allComponents)
-		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
-			_allComponents = allComponents ?? throw new ArgumentNullException(nameof(allComponents));
-			_cancellationTokenSource = new CancellationTokenSource();
+        public InstallWizardDialog([NotNull] MainConfig mainConfig, [NotNull] List<ModComponent> allComponents)
+        {
+            _mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
+            _allComponents = allComponents ?? throw new ArgumentNullException(nameof(allComponents));
+            _cancellationTokenSource = new CancellationTokenSource();
 
-			InitializeComponent();
-			InitializePages();
-			NavigateToPage(0);
-		}
+            InitializeComponent();
+            InitializePages();
+            NavigateToPage(0);
 
-		private void InitializePages()
-		{
-			// 1. Welcome
-			_pages.Add(new WelcomePage());
+            // Apply current theme
+            ThemeManager.ApplyCurrentToWindow(this);
+        }
 
-			// 2. BeforeContent (conditional)
-			if (!string.IsNullOrWhiteSpace(_mainConfig.preambleContent))
-			{
-				_pages.Add(new BeforeContentPage(_mainConfig.preambleContent));
-			}
+        private void InitializePages()
+        {
+            // 1. Welcome
+            _pages.Add(new WelcomePage());
 
-			// 3. Setup (Directories & Load File)
-			_pages.Add(new SetupPage(_mainConfig));
+            // 2. BeforeContent (conditional)
+            if (!string.IsNullOrWhiteSpace(_mainConfig.preambleContent))
+            {
+                _pages.Add(new BeforeContentPage(_mainConfig.preambleContent));
+            }
 
-			// 4. AspyrNotice (conditional)
-			if (MainConfig.TargetGame == "KOTOR2" || MainConfig.TargetGame == "TSL")
-			{
-				if (!string.IsNullOrWhiteSpace(_mainConfig.aspyrExclusiveWarningContent))
-				{
-					_pages.Add(new AspyrNoticePage(_mainConfig.aspyrExclusiveWarningContent));
-				}
-			}
+            // 3. Setup (Directories & Load File)
+            _pages.Add(new SetupPage(_mainConfig));
 
-			// 5. ModSelection
-			_pages.Add(new ModSelectionPage(_allComponents));
+            // 4. AspyrNotice (conditional)
+            if (
+                (
+                    string.Equals(MainConfig.TargetGame, "KOTOR2", StringComparison.Ordinal)
+                    || string.Equals(MainConfig.TargetGame, "TSL", StringComparison.Ordinal)
+                )
+                && !string.IsNullOrWhiteSpace(_mainConfig.aspyrExclusiveWarningContent)
+            )
+            {
+                _pages.Add(new AspyrNoticePage(_mainConfig.aspyrExclusiveWarningContent));
+            }
 
-			// 6. DownloadsExplain
-			_pages.Add(new DownloadsExplainPage());
+            // 5. ModSelection
+            _pages.Add(new ModSelectionPage(_allComponents));
 
-			// 7. Validate
-			_pages.Add(new ValidatePage(_allComponents, _mainConfig));
+            // 6. DownloadsExplain
+            _pages.Add(new DownloadsExplainPage());
 
-			// 8. InstallStart
-			_pages.Add(new InstallStartPage(_allComponents));
+            // 7. Validate
+            _pages.Add(new ValidatePage(_allComponents, _mainConfig));
 
-			// 9. Installing (progress page)
-			_pages.Add(new InstallingPage(_allComponents, _mainConfig, _cancellationTokenSource));
+            // 8. InstallStart
+            _pages.Add(new InstallStartPage(_allComponents));
 
-			// 10. BaseInstallComplete
-			_pages.Add(new BaseInstallCompletePage());
+            // 9. Installing (progress page)
+            _pages.Add(new InstallingPage(_allComponents, _mainConfig, _cancellationTokenSource));
 
-			// Note: Widescreen pages (11-14) will be added dynamically after base install if needed
+            // 10. BaseInstallComplete
+            _pages.Add(new BaseInstallCompletePage());
 
-			// 15. Finished
-			_pages.Add(new FinishedPage());
-		}
+            // Note: Widescreen pages (11-14) will be added dynamically after base install if needed
 
-		private void AddWidescreenPages()
-		{
-			// Detect widescreen mods
-			_widescreenMods = _allComponents.Where(c => c.WidescreenOnly).ToList();
-			_hasWidescreenMods = _widescreenMods.Any();
+            // 15. Finished
+            _pages.Add(new FinishedPage());
+        }
 
-			if (!_hasWidescreenMods)
-				return;
+        private void AddWidescreenPages()
+        {
+            // Detect widescreen mods
+            _widescreenMods = _allComponents.Where(c => c.WidescreenOnly).ToList();
+            _hasWidescreenMods = _widescreenMods.Any();
 
-			// Find the index to insert before FinishedPage
-			int finishedPageIndex = _pages.Count - 1;
+            if (!_hasWidescreenMods)
+            {
+                return;
+            }
 
-			// 11. WidescreenNotice
-			if (!string.IsNullOrWhiteSpace(_mainConfig.widescreenWarningContent))
-			{
-				_pages.Insert(finishedPageIndex, new WidescreenNoticePage(_mainConfig.widescreenWarningContent));
-				finishedPageIndex++;
-			}
+            // Find the index to insert before FinishedPage
+            int finishedPageIndex = _pages.Count - 1;
 
-			// 12. WidescreenModSelection
-			_pages.Insert(finishedPageIndex, new WidescreenModSelectionPage(_widescreenMods));
-			finishedPageIndex++;
+            // 11. WidescreenNotice
+            if (!string.IsNullOrWhiteSpace(_mainConfig.widescreenWarningContent))
+            {
+                _pages.Insert(finishedPageIndex, new WidescreenNoticePage(_mainConfig.widescreenWarningContent));
+                finishedPageIndex++;
+            }
 
-			// 13. WidescreenInstalling
-			_pages.Insert(finishedPageIndex, new WidescreenInstallingPage(_widescreenMods, _mainConfig, _cancellationTokenSource));
-			finishedPageIndex++;
+            // 12. WidescreenModSelection
+            _pages.Insert(finishedPageIndex, new WidescreenModSelectionPage(_widescreenMods));
+            finishedPageIndex++;
 
-			// 14. WidescreenComplete
-			_pages.Insert(finishedPageIndex, new WidescreenCompletePage());
-		}
+            // 13. WidescreenInstalling
+            _pages.Insert(finishedPageIndex, new WidescreenInstallingPage(_widescreenMods, _mainConfig, _cancellationTokenSource));
+            finishedPageIndex++;
 
-		private async void NavigateToPage(int pageIndex)
-		{
-			if (pageIndex < 0 || pageIndex >= _pages.Count)
-				return;
+            // 14. WidescreenComplete
+            _pages.Insert(finishedPageIndex, new WidescreenCompletePage());
+        }
 
-			_currentPageIndex = pageIndex;
-			IWizardPage page = _pages[pageIndex];
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Major Bug", "S3168:\"async\" methods should not return \"void\"", Justification = "<Pending>")]
+        private async void NavigateToPage(int pageIndex)
+        {
+            if (pageIndex < 0 || pageIndex >= _pages.Count)
+            {
+                return;
+            }
 
-			// Update header
-			PageTitleText.Text = page.Title;
-			PageSubtitleText.Text = page.Subtitle;
-			ProgressStepText.Text = $"Step {pageIndex + 1} of {_pages.Count}";
-			WizardProgress.Maximum = _pages.Count;
-			WizardProgress.Value = pageIndex + 1;
+            _currentPageIndex = pageIndex;
+            IWizardPage page = _pages[pageIndex];
 
-			// Update content
-			PageContent.Content = page.Content;
+            // Update header
+            PageTitleText.Text = page.Title;
+            PageSubtitleText.Text = page.Subtitle;
+            ProgressStepText.Text = $"Step {pageIndex + 1} of {_pages.Count}";
+            WizardProgress.Maximum = _pages.Count;
+            WizardProgress.Value = pageIndex + 1;
 
-			// Update navigation buttons
-			BackButton.IsEnabled = pageIndex > 0 && page.CanNavigateBack;
-			NextButton.IsEnabled = page.CanNavigateForward;
-			NextButton.IsVisible = pageIndex < _pages.Count - 1;
-			FinishButton.IsVisible = pageIndex == _pages.Count - 1;
-			CancelButton.IsEnabled = page.CanCancel;
+            // Update content
+            PageContent.Content = page.Content;
 
-			// Update button text
-			if (page is InstallingPage || page is WidescreenInstallingPage)
-			{
-				NextButton.Content = "Continue";
-				BackButton.IsEnabled = false;
-				CancelButton.Content = "Stop Install";
-			}
-			else
-			{
-				NextButton.Content = "Next →";
-				CancelButton.Content = "Cancel";
-			}
+            // Update navigation buttons
+            BackButton.IsEnabled = pageIndex > 0 && page.CanNavigateBack;
+            NextButton.IsEnabled = page.CanNavigateForward;
+            NextButton.IsVisible = pageIndex < _pages.Count - 1;
+            FinishButton.IsVisible = pageIndex == _pages.Count - 1;
+            CancelButton.IsEnabled = page.CanCancel;
 
-			// Call page activation
-			try
-			{
-				await page.OnNavigatedToAsync(_cancellationTokenSource.Token).ConfigureAwait(true);
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync(ex, "Error activating wizard page").ConfigureAwait(false);
-			}
-		}
+            // Update button text
+            if (page is InstallingPage || page is WidescreenInstallingPage)
+            {
+                NextButton.Content = "Continue";
+                BackButton.IsEnabled = false;
+                CancelButton.Content = "Stop Install";
+            }
+            else
+            {
+                NextButton.Content = "Next →";
+                CancelButton.Content = "Cancel";
+            }
 
-		private async void NextButton_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-				IWizardPage currentPage = _pages[_currentPageIndex];
+            // Call page activation
+            try
+            {
+                await page.OnNavigatedToAsync(_cancellationTokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Error activating wizard page");
+            }
+        }
 
-				// Validate current page before proceeding
-				(bool isValid, string errorMessage) = await currentPage.ValidateAsync(_cancellationTokenSource.Token).ConfigureAwait(true);
+        private async void NextButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                IWizardPage currentPage = _pages[_currentPageIndex];
 
-				if (!isValid)
-				{
-					await InformationDialog.ShowInformationDialogAsync(
-						this,
-						errorMessage ?? "Please complete all required fields before continuing."
-					).ConfigureAwait(true);
-					return;
-				}
+                // Validate current page before proceeding
+                (bool isValid, string errorMessage) = await currentPage.ValidateAsync(_cancellationTokenSource.Token);
 
-				// Call page deactivation
-				await currentPage.OnNavigatingFromAsync(_cancellationTokenSource.Token).ConfigureAwait(true);
+                if (!isValid)
+                {
+                    await InformationDialog.ShowInformationDialogAsync(
+                        this,
+                        errorMessage ?? "Please complete all required fields before continuing."
+                    );
+                    return;
+                }
 
-				// Special handling for certain pages
-				if (currentPage is BaseInstallCompletePage && !_hasWidescreenMods)
-				{
-					// Check if widescreen pages need to be added
-					AddWidescreenPages();
-				}
+                // Call page deactivation
+                await currentPage.OnNavigatingFromAsync(_cancellationTokenSource.Token);
 
-				// Navigate to next page
-				if (_currentPageIndex < _pages.Count - 1)
-				{
-					NavigateToPage(_currentPageIndex + 1);
-				}
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync(ex, "Error navigating to next page").ConfigureAwait(false);
-			}
-		}
+                // Special handling for certain pages
+                if (currentPage is BaseInstallCompletePage && !_hasWidescreenMods)
+                {
+                    // Check if widescreen pages need to be added
+                    AddWidescreenPages();
+                }
 
-		private async void BackButton_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-				IWizardPage currentPage = _pages[_currentPageIndex];
-				await currentPage.OnNavigatingFromAsync(_cancellationTokenSource.Token).ConfigureAwait(true);
+                // Navigate to next page
+                if (_currentPageIndex < _pages.Count - 1)
+                {
+                    NavigateToPage(_currentPageIndex + 1);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Error navigating to next page");
+            }
+        }
 
-				if (_currentPageIndex > 0)
-				{
-					NavigateToPage(_currentPageIndex - 1);
-				}
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync(ex, "Error navigating to previous page").ConfigureAwait(false);
-			}
-		}
+        private async void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                IWizardPage currentPage = _pages[_currentPageIndex];
+                await currentPage.OnNavigatingFromAsync(_cancellationTokenSource.Token);
 
-		private async void CancelButton_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-			IWizardPage currentPage = _pages[_currentPageIndex];
+                if (_currentPageIndex > 0)
+                {
+                    NavigateToPage(_currentPageIndex - 1);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Error navigating to previous page");
+            }
+        }
 
-			// If on installing page, confirm cancellation
-			if (currentPage is InstallingPage || currentPage is WidescreenInstallingPage)
-				{
-					bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(
-						this,
-						"Are you sure you want to stop the installation?\n\nThe current mod will finish installing, but no further mods will be installed."
-					).ConfigureAwait(true);
+        private async void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                IWizardPage currentPage = _pages[_currentPageIndex];
 
-					if (result != true)
-						return;
+                // If on installing page, confirm cancellation
+                if (currentPage is InstallingPage || currentPage is WidescreenInstallingPage)
+                {
+                    bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(
+                        this,
+                        "Are you sure you want to stop the installation?\n\nThe current mod will finish installing, but no further mods will be installed."
+                    );
 
-					_cancellationTokenSource.Cancel();
-					InstallationCancelled = true;
-					return;
-				}
+                    if (result != true)
+                    {
+                        return;
+                    }
 
-				// Regular cancel
-				bool? confirmCancel = await ConfirmationDialog.ShowConfirmationDialogAsync(
-					this,
-					"Are you sure you want to cancel the installation wizard?"
-				).ConfigureAwait(true);
+                    await _cancellationTokenSource.CancelAsync();
+                    InstallationCancelled = true;
+                    return;
+                }
 
-				if (confirmCancel == true)
-				{
-					InstallationCancelled = true;
-					await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
-					Close(false);
-				}
-			}
-			catch (Exception ex)
-			{
-				await Logger.LogExceptionAsync(ex, "Error cancelling wizard").ConfigureAwait(false);
-			}
-		}
+                // Regular cancel
+                bool? confirmCancel = await ConfirmationDialog.ShowConfirmationDialogAsync(
+                    this,
+                    "Are you sure you want to cancel the installation wizard?"
+                );
 
-		private void FinishButton_Click(object sender, RoutedEventArgs e)
-		{
-			InstallationCompleted = true;
-			Close(true);
-		}
+                if (confirmCancel == true)
+                {
+                    InstallationCancelled = true;
+                    await _cancellationTokenSource.CancelAsync();
+                    Close(dialogResult: false);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogExceptionAsync(ex, "Error cancelling wizard");
+            }
+        }
 
-		private void MinimizeButton_Click(object sender, RoutedEventArgs e)
-		{
-			WindowState = WindowState.Minimized;
-		}
+        private void FinishButton_Click(object sender, RoutedEventArgs e)
+        {
+            InstallationCompleted = true;
+            Close(true);
+        }
 
-		private void CloseButton_Click(object sender, RoutedEventArgs e)
-		{
-			CancelButton_Click(sender, e);
-		}
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
 
-		protected override void OnClosed(EventArgs e)
-		{
-			_cancellationTokenSource?.Cancel();
-			_cancellationTokenSource?.Dispose();
-			base.OnClosed(e);
-		}
-	}
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            CancelButton_Click(sender, e);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            base.OnClosed(e);
+        }
+    }
 }
 

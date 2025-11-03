@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -20,179 +20,189 @@ using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Dialogs
 {
-	public class CircularDependencyResolutionViewModel : INotifyPropertyChanged
-	{
-		private string _statusText;
+    public class CircularDependencyResolutionViewModel : INotifyPropertyChanged
+    {
+        private string _statusText;
 
-		public ObservableCollection<ComponentItem> Components { get; }
-		public ObservableCollection<SuggestionItem> Suggestions { get; }
-		public string SummaryText { get; }
-		public string DetailedCycleInfo { get; }
-		public ICommand ApplySuggestionCommand { get; }
+        public ObservableCollection<ComponentItem> Components { get; }
+        public ObservableCollection<SuggestionItem> Suggestions { get; }
+        public string SummaryText { get; }
+        public string DetailedCycleInfo { get; }
+        public ICommand ApplySuggestionCommand { get; }
 
-		public string StatusText
-		{
-			get => _statusText;
-			set
-			{
-				if (string.Equals(_statusText, value, StringComparison.Ordinal)) return;
-				_statusText = value;
-				OnPropertyChanged();
-			}
-		}
+        public string StatusText
+        {
+            get => _statusText;
+            set
+            {
+                if (string.Equals(_statusText, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
 
-		public CircularDependencyResolutionViewModel(
-			List<ModComponent> components,
-			CircularDependencyDetector.CircularDependencyResult cycleInfo)
-		{
-			Components = new ObservableCollection<ComponentItem>();
-			Suggestions = new ObservableCollection<SuggestionItem>();
-			ApplySuggestionCommand = new RelayCommand(ApplySuggestion);
+                _statusText = value;
+                OnPropertyChanged();
+            }
+        }
 
-			int cycleCount = cycleInfo.Cycles.Count;
-			SummaryText = $"Found {cycleCount} circular dependency cycle{(cycleCount > 1 ? "s" : "")} that prevent installation. " +
-						  "These components have conflicting dependencies that cannot be automatically resolved.";
+        public CircularDependencyResolutionViewModel(
+            List<ModComponent> components,
+            CircularDependencyDetector.CircularDependencyResult cycleInfo)
+        {
+            Components = new ObservableCollection<ComponentItem>();
+            Suggestions = new ObservableCollection<SuggestionItem>();
+            ApplySuggestionCommand = new RelayCommand(ApplySuggestion);
 
-			DetailedCycleInfo = cycleInfo.DetailedErrorMessage;
+            int cycleCount = cycleInfo.Cycles.Count;
+            SummaryText = $"Found {cycleCount} circular dependency cycle{(cycleCount > 1 ? "s" : "")} that prevent installation. " +
+                          "These components have conflicting dependencies that cannot be automatically resolved.";
 
-			var componentsInCycles = new HashSet<Guid>();
-			foreach (List<Guid> cycle in cycleInfo.Cycles)
-			{
-				foreach (Guid guid in cycle)
-				{
-					_ = componentsInCycles.Add(guid);
-				}
-			}
+            DetailedCycleInfo = cycleInfo.DetailedErrorMessage;
 
-			foreach (ModComponent component in components)
-			{
-				bool isInCycle = componentsInCycles.Contains(component.Guid);
-				var item = new ComponentItem(component, isInCycle);
-				item.PropertyChanged += OnComponentSelectionChanged;
-				Components.Add(item);
-			}
+            var componentsInCycles = new HashSet<Guid>();
+            foreach (List<Guid> cycle in cycleInfo.Cycles)
+            {
+                foreach (Guid guid in cycle)
+                {
+                    _ = componentsInCycles.Add(guid);
+                }
+            }
 
-			List<ModComponent> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
-			foreach (ModComponent suggestion in suggestedComponents)
-			{
-				Suggestions.Add(new SuggestionItem
-				{
-					ModComponent = suggestion,
-					Text = $"❌ Uncheck: {suggestion.Name}" +
-						   (!string.IsNullOrWhiteSpace(suggestion.Author) ? $" by {suggestion.Author}" : ""),
-				});
-			}
+            foreach (ModComponent component in components)
+            {
+                bool isInCycle = componentsInCycles.Contains(component.Guid);
+                var item = new ComponentItem(component, isInCycle);
+                item.PropertyChanged += OnComponentSelectionChanged;
+                Components.Add(item);
+            }
 
-			UpdateStatus();
-		}
+            List<ModComponent> suggestedComponents = CircularDependencyDetector.SuggestComponentsToRemove(cycleInfo);
+            foreach (ModComponent suggestion in suggestedComponents)
+            {
+                Suggestions.Add(new SuggestionItem
+                {
+                    ModComponent = suggestion,
+                    Text = $"❌ Uncheck: {suggestion.Name}" +
+                           (!string.IsNullOrWhiteSpace(suggestion.Author) ? $" by {suggestion.Author}" : ""),
+                });
+            }
 
-		private void OnComponentSelectionChanged(object sender, PropertyChangedEventArgs e)
-		{
-			if (string.Equals(e.PropertyName, nameof(ComponentItem.IsSelected), StringComparison.Ordinal))
-			{
-				UpdateStatus();
-			}
-		}
+            UpdateStatus();
+        }
 
-		private void UpdateStatus()
-		{
-			int selectedCount = Components.Count(c => c.IsSelected);
-			int totalCount = Components.Count;
-			int uncheckedInCycle = Components.Count(c => c.IsInCycle && !c.IsSelected);
+        private void OnComponentSelectionChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (string.Equals(e.PropertyName, nameof(ComponentItem.IsSelected), StringComparison.Ordinal))
+            {
+                UpdateStatus();
+            }
+        }
 
-			if (uncheckedInCycle > 0)
-			{
-				StatusText = $"✅ {selectedCount}/{totalCount} components selected. {uncheckedInCycle} cycle component(s) unchecked. Click 'Retry' to continue.";
-			}
-			else
-			{
-				StatusText = $"⚠️ {selectedCount}/{totalCount} components selected. Uncheck at least one component involved in the cycle to proceed.";
-			}
-		}
+        private void UpdateStatus()
+        {
+            int selectedCount = Components.Count(c => c.IsSelected);
+            int totalCount = Components.Count;
+            int uncheckedInCycle = Components.Count(c => c.IsInCycle && !c.IsSelected);
 
-		private void ApplySuggestion(object parameter)
-		{
-			if (!(parameter is SuggestionItem suggestion))
-				return;
+            if (uncheckedInCycle > 0)
+            {
+                StatusText = $"✅ {selectedCount}/{totalCount} components selected. {uncheckedInCycle} cycle component(s) unchecked. Click 'Retry' to continue.";
+            }
+            else
+            {
+                StatusText = $"⚠️ {selectedCount}/{totalCount} components selected. Uncheck at least one component involved in the cycle to proceed.";
+            }
+        }
 
-			ComponentItem componentItem = Components.FirstOrDefault(c => c.ModComponent == suggestion.ModComponent);
-			if (componentItem != null)
-			{
-				componentItem.IsSelected = false;
-			}
-		}
+        private void ApplySuggestion(object parameter)
+        {
+            if (!(parameter is SuggestionItem suggestion))
+            {
+                return;
+            }
 
-		public event PropertyChangedEventHandler PropertyChanged;
+            ComponentItem componentItem = Components.FirstOrDefault(c => c.ModComponent == suggestion.ModComponent);
+            if (componentItem != null)
+            {
+                componentItem.IsSelected = false;
+            }
+        }
 
-		[NotifyPropertyChangedInvocator]
-		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-		}
-	}
+        public event PropertyChangedEventHandler PropertyChanged;
 
-	public class ComponentItem : INotifyPropertyChanged
-	{
-		private bool _isSelected;
+        [NotifyPropertyChangedInvocator]
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
 
-		public ModComponent ModComponent { get; }
-		public string Name => ModComponent.Name;
-		public string Author => ModComponent.Author;
-		public bool IsInCycle { get; }
-		public string CycleInfo { get; }
-		public IBrush CycleInfoColor { get; }
-		public string StatusIcon { get; }
-		public string StatusTooltip { get; }
-		public IBrush BackgroundBrush { get; }
-		public IBrush BorderBrush { get; }
+    public class ComponentItem : INotifyPropertyChanged
+    {
+        private bool _isSelected;
 
-		public bool IsSelected
-		{
-			get => _isSelected;
-			set
-			{
-				if (_isSelected == value) return;
-				_isSelected = value;
-				OnPropertyChanged();
-			}
-		}
+        public ModComponent ModComponent { get; }
+        public string Name => ModComponent.Name;
+        public string Author => ModComponent.Author;
+        public bool IsInCycle { get; }
+        public string CycleInfo { get; }
+        public IBrush CycleInfoColor { get; }
+        public string StatusIcon { get; }
+        public string StatusTooltip { get; }
+        public IBrush BackgroundBrush { get; }
+        public IBrush BorderBrush { get; }
 
-		public ComponentItem(ModComponent component, bool isInCycle)
-		{
-			ModComponent = component;
-			_isSelected = component.IsSelected;
-			IsInCycle = isInCycle;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected == value)
+                {
+                    return;
+                }
 
-			if (isInCycle)
-			{
-				CycleInfo = "⚠️ Involved in circular dependency";
-				CycleInfoColor = new SolidColorBrush(Color.FromRgb(255, 193, 7));
-				StatusIcon = "⚠️";
-				StatusTooltip = "This component is involved in a circular dependency. Consider unchecking it.";
-				BackgroundBrush = new SolidColorBrush(Color.FromArgb(30, 255, 193, 7));
-				BorderBrush = new SolidColorBrush(Color.FromRgb(255, 193, 7));
-			}
-			else
-			{
-				CycleInfo = "";
-				CycleInfoColor = Brushes.Transparent;
-				StatusIcon = "✓";
-				StatusTooltip = "This component is not involved in any cycles.";
-				BackgroundBrush = Brushes.Transparent;
-			}
-		}
+                _isSelected = value;
+                OnPropertyChanged();
+            }
+        }
 
-		public event PropertyChangedEventHandler PropertyChanged;
+        public ComponentItem(ModComponent component, bool isInCycle)
+        {
+            ModComponent = component;
+            _isSelected = component.IsSelected;
+            IsInCycle = isInCycle;
 
-		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-		}
-	}
+            if (isInCycle)
+            {
+                CycleInfo = "⚠️ Involved in circular dependency";
+                CycleInfoColor = new SolidColorBrush(Color.FromRgb(255, 193, 7));
+                StatusIcon = "⚠️";
+                StatusTooltip = "This component is involved in a circular dependency. Consider unchecking it.";
+                BackgroundBrush = new SolidColorBrush(Color.FromArgb(30, 255, 193, 7));
+                BorderBrush = new SolidColorBrush(Color.FromRgb(255, 193, 7));
+            }
+            else
+            {
+                CycleInfo = "";
+                CycleInfoColor = Brushes.Transparent;
+                StatusIcon = "✓";
+                StatusTooltip = "This component is not involved in any cycles.";
+                BackgroundBrush = Brushes.Transparent;
+            }
+        }
 
-	public class SuggestionItem
-	{
-		public ModComponent ModComponent { get; set; }
-		public string Text { get; set; }
-	}
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public class SuggestionItem
+    {
+        public ModComponent ModComponent { get; set; }
+        public string Text { get; set; }
+    }
 }

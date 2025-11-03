@@ -3,6 +3,7 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -18,237 +19,285 @@ using static KOTORModSync.Core.Services.ModManagementService;
 namespace KOTORModSync.Services
 {
 
-	public class ModListService
-	{
-		private readonly MainConfig _mainConfig;
+    public class ModListService
+    {
+        private readonly MainConfig _mainConfig;
 
-		public ModListService(MainConfig mainConfig)
-		{
-			_mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
-		}
+        public ModListService(MainConfig mainConfig)
+        {
+            _mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
+        }
 
-		public List<ModComponent> FilterModList(string searchText, ModSearchOptions options = null)
-		{
-			try
-			{
-				if (string.IsNullOrWhiteSpace(searchText))
-					return _mainConfig.allComponents.ToList();
+        public List<ModComponent> FilterModList(string searchText, ModSearchOptions options = null)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(searchText))
+                {
+                    return _mainConfig.allComponents.ToList();
+                }
 
-				options = options ?? new ModSearchOptions
-				{
-					SearchInName = true,
-					SearchInAuthor = true,
-					SearchInCategory = true,
-					SearchInDescription = true,
-				};
+                options = options ?? new ModSearchOptions
+                {
+                    SearchInName = true,
+                    SearchInAuthor = true,
+                    SearchInCategory = true,
+                    SearchInDescription = true,
+                };
 
-				return _mainConfig.allComponents.Where(component =>
-				{
-					if (options.SearchInName && component.Name?.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
-						return true;
-					if (options.SearchInAuthor && component.Author?.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
-						return true;
-					if (options.SearchInDescription && component.Description?.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
-						return true;
-					if (options.SearchInCategory && component.Category.Any(cat => cat?.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0))
-						return true;
+                return _mainConfig.allComponents.Where(component =>
+                {
+                    if (options.SearchInName && component.Name?.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
 
-					return false;
-				}).ToList();
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Error filtering mod list");
-				return _mainConfig.allComponents.ToList();
-			}
-		}
+                    if (options.SearchInAuthor && component.Author?.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
 
-		public static void PopulateModList(ListBox modListBox, List<ModComponent> components, Action updateModCounts)
-		{
-			try
-			{
-				if (modListBox is null)
-					return;
+                    if (options.SearchInDescription && component.Description?.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
 
-				modListBox.Items.Clear();
+                    if (options.SearchInCategory && component.Category.Any(cat => cat?.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        return true;
+                    }
 
-				foreach (ModComponent component in components)
-				{
-					_ = modListBox.Items.Add(component);
-				}
+                    return false;
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error filtering mod list");
+                return _mainConfig.allComponents.ToList();
+            }
+        }
 
-				updateModCounts?.Invoke();
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Error populating mod list");
-			}
-		}
+        public static void PopulateModList(ListBox modListBox, List<ModComponent> components, Action updateModCounts)
+        {
+            try
+            {
+                if (modListBox is null)
+                {
+                    return;
+                }
 
-		public static void RefreshModListVisuals(ListBox modListBox, Action updateStepProgress)
-		{
-			try
-			{
-				if (modListBox?.ItemsSource is null)
-					return;
+                modListBox.Items.Clear();
 
-				var currentItems = modListBox.ItemsSource;
-				modListBox.ItemsSource = null;
-				modListBox.ItemsSource = currentItems;
+                foreach (ModComponent component in components)
+                {
+                    _ = modListBox.Items.Add(component);
+                }
 
-				updateStepProgress?.Invoke();
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Error refreshing mod list visuals");
-			}
-		}
+                updateModCounts?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error populating mod list");
+            }
+        }
 
-		public static void RefreshSingleComponentVisuals(ListBox modListBox, ModComponent component)
-		{
-			try
-			{
-				if (modListBox is null || component is null)
-					return;
+        public static void RefreshModListVisuals(ListBox modListBox, Action updateStepProgress)
+        {
+            try
+            {
+                if (modListBox?.ItemsSource is null)
+                {
+                    return;
+                }
 
-				Dispatcher.UIThread.Post(() =>
-				{
-					try
-					{
+                var currentItems = modListBox.ItemsSource;
+                modListBox.ItemsSource = null;
+                modListBox.ItemsSource = currentItems;
 
-						if (!(modListBox.ContainerFromItem(component) is ListBoxItem container))
-							return;
+                updateStepProgress?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error refreshing mod list visuals");
+            }
+        }
 
-						if (container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault() is ModListItem modListItem)
-						{
+        public static void RefreshSingleComponentVisuals(ListBox modListBox, ModComponent component)
+        {
+            try
+            {
+                if (modListBox is null || component is null)
+                {
+                    return;
+                }
 
-							modListItem.UpdateValidationState(component);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
 
-							var optionsContainer = modListItem.FindControl<ItemsControl>("OptionsContainer");
-							if (optionsContainer != null)
-							{
+                        if (!(modListBox.ContainerFromItem(component) is ListBoxItem container))
+                        {
+                            return;
+                        }
 
-								var currentItems = optionsContainer.ItemsSource;
-								optionsContainer.ItemsSource = null;
-								optionsContainer.ItemsSource = currentItems;
+                        if (container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault() is ModListItem modListItem)
+                        {
+                            // NOTE: UpdateValidationState should only be called for fast checks (no instructions)
+                            // or from Validate button. Full VFS validation only happens on Validate button press.
+                            // This refresh only updates basic visuals, not validation state that requires VFS.
 
-								var currentVisibility = optionsContainer.IsVisible;
-								optionsContainer.IsVisible = !currentVisibility;
-								optionsContainer.IsVisible = currentVisibility;
-							}
-						}
-					}
-					catch (Exception ex)
-					{
-						Logger.LogException(ex, "Error refreshing component visuals on UI thread");
-					}
-				}, DispatcherPriority.Normal);
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Error posting visual refresh to UI thread");
-			}
-		}
+                            ItemsControl optionsContainer = modListItem.FindControl<ItemsControl>("OptionsContainer");
+                            if (optionsContainer != null)
+                            {
 
-		public void RefreshModListItems(ListBox modListBox, bool editorMode, Func<ModComponent, ContextMenu> buildContextMenu)
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(() => RefreshModListItems(modListBox, editorMode, buildContextMenu), DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
-				if (modListBox is null)
-					return;
+                                IEnumerable currentItems = optionsContainer.ItemsSource;
+                                optionsContainer.ItemsSource = null;
+                                optionsContainer.ItemsSource = currentItems;
 
-				foreach (object item in modListBox.Items)
-				{
+                                bool currentVisibility = optionsContainer.IsVisible;
+                                optionsContainer.IsVisible = !currentVisibility;
+                                optionsContainer.IsVisible = currentVisibility;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogException(ex, "Error refreshing component visuals on UI thread");
+                    }
+                }, DispatcherPriority.Normal);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error posting visual refresh to UI thread");
+            }
+        }
+
+        public void RefreshModListItems(
+            ListBox modListBox,
+            bool editorMode,
+            Func<ModComponent, ContextMenu> buildContextMenu)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() => RefreshModListItems(modListBox, editorMode, buildContextMenu), DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
+                if (modListBox is null)
+                {
+                    return;
+                }
+
+                foreach (object item in modListBox.Items)
+                {
 #pragma warning disable IDE0078
-					if (!(item is ModComponent component))
-						continue;
+                    if (!(item is ModComponent component))
+                    {
+                        continue;
+                    }
 #pragma warning restore IDE0078
 
 #pragma warning disable IDE0078
-					if (!(modListBox.ContainerFromItem(item) is ListBoxItem container))
-						continue;
+                    if (!(modListBox.ContainerFromItem(item) is ListBoxItem container))
+                    {
+                        continue;
+                    }
 #pragma warning restore IDE0078
 
-					ModListItem modListItem = container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault();
-					if (modListItem is null)
-						continue;
+                    ModListItem modListItem = container.GetVisualDescendants().OfType<ModListItem>().FirstOrDefault();
+                    if (modListItem is null)
+                    {
+                        continue;
+                    }
 
-					modListItem.ContextMenu = buildContextMenu(component);
+                    modListItem.ContextMenu = buildContextMenu(component);
 
-					if (modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock)
-						indexBlock.IsVisible = editorMode;
+                    if (modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexBlock)
+                    {
+                        indexBlock.IsVisible = editorMode;
+                    }
 
-					if (modListItem.FindControl<TextBlock>("DragHandle") is TextBlock dragHandle)
-						dragHandle.IsVisible = editorMode;
+                    if (modListItem.FindControl<TextBlock>("DragHandle") is TextBlock dragHandle)
+                    {
+                        dragHandle.IsVisible = editorMode;
+                    }
 
-					if (!editorMode)
-						continue;
-					int index = _mainConfig.allComponents.IndexOf(component);
-					if (index >= 0 && modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexTextBlock)
-						indexTextBlock.Text = $"#{index + 1}";
-				}
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Error refreshing mod list items");
-			}
-		}
+                    if (!editorMode)
+                    {
+                        continue;
+                    }
 
-		public void UpdateModCounts(
-			TextBlock modCountText,
-			TextBlock selectedCountText,
-			CheckBox selectAllCheckBox,
-			Action<bool> setSuppressSelectAllEvents)
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(() => UpdateModCounts(modCountText, selectedCountText, selectAllCheckBox, setSuppressSelectAllEvents), DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
-				if (modCountText != null)
-				{
-					int totalCount = _mainConfig.allComponents.Count;
-					modCountText.Text = totalCount == 1 ? "1 mod" : $"{totalCount} mods";
-				}
+                    int index = _mainConfig.allComponents.IndexOf(component);
+                    if (index >= 0 && modListItem.FindControl<TextBlock>("IndexTextBlock") is TextBlock indexTextBlock)
+                    {
+                        indexTextBlock.Text = $"#{index + 1}";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error refreshing mod list items");
+            }
+        }
 
-				if (selectedCountText != null)
-				{
-					int selectedCount = _mainConfig.allComponents.Count(c => c.IsSelected);
-					selectedCountText.Text = selectedCount == 1 ? "1 selected" : $"{selectedCount} selected";
-				}
+        public void UpdateModCounts(
+            TextBlock modCountText,
+            TextBlock selectedCountText,
+            CheckBox selectAllCheckBox,
+            Action<bool> setSuppressSelectAllEvents)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() => UpdateModCounts(modCountText, selectedCountText, selectAllCheckBox, setSuppressSelectAllEvents), DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
+                if (modCountText != null)
+                {
+                    int totalCount = _mainConfig.allComponents.Count;
+                    modCountText.Text = totalCount == 1 ? "1 mod" : $"{totalCount} mods";
+                }
 
-				if (selectAllCheckBox != null)
-				{
-					setSuppressSelectAllEvents?.Invoke(true);
-					try
-					{
-						int totalCount = _mainConfig.allComponents.Count;
-						int selectedCount = _mainConfig.allComponents.Count(c => c.IsSelected);
+                if (selectedCountText != null)
+                {
+                    int selectedCount = _mainConfig.allComponents.Count(c => c.IsSelected);
+                    selectedCountText.Text = selectedCount == 1 ? "1 selected" : $"{selectedCount} selected";
+                }
 
-						if (selectedCount == 0)
-							selectAllCheckBox.IsChecked = false;
-						else if (selectedCount == totalCount)
-							selectAllCheckBox.IsChecked = true;
-						else
-							selectAllCheckBox.IsChecked = null;
-					}
-					finally
-					{
-						setSuppressSelectAllEvents?.Invoke(false);
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Error updating mod counts");
-			}
-		}
-	}
+                if (selectAllCheckBox != null)
+                {
+                    setSuppressSelectAllEvents?.Invoke(true);
+                    try
+                    {
+                        int totalCount = _mainConfig.allComponents.Count;
+                        int selectedCount = _mainConfig.allComponents.Count(c => c.IsSelected);
+
+                        if (selectedCount == 0)
+                        {
+                            selectAllCheckBox.IsChecked = false;
+                        }
+                        else if (selectedCount == totalCount)
+                        {
+                            selectAllCheckBox.IsChecked = true;
+                        }
+                        else
+                        {
+                            selectAllCheckBox.IsChecked = null;
+                        }
+                    }
+                    finally
+                    {
+                        setSuppressSelectAllEvents?.Invoke(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error updating mod counts");
+            }
+        }
+    }
 }

@@ -8,6 +8,7 @@
     xmlns:controls="clr-namespace:KOTORModSync.Controls"
     xmlns:converters="clr-namespace:KOTORModSync.Converters"
     xmlns:core="clr-namespace:KOTORModSync.Core;assembly=KOTORModSync.Core"
+    xmlns:helpers="clr-namespace:KOTORModSync.Helpers"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DesignHeight="450"
@@ -34,6 +35,7 @@
         <converters:FirstSourcePathConverter x:Key="FirstSourcePathConverter" />
         <converters:ChooseActionDisplayConverter x:Key="ChooseActionDisplayConverter" />
         <converters:ModLinkFilenamesToUrlListConverter x:Key="ModLinkFilenamesToUrlListConverter" />
+        <converters:SpoilerFreeContentConverter x:Key="SpoilerFreeContentConverter" />
     </UserControl.Resources>
 
     <!--  ReSharper disable once Xaml.BindingWithoutContextNotResolved  -->
@@ -180,7 +182,7 @@
             </Border>
 
             <!--  Download Links Card  -->
-            <Border Classes="summary-card" IsVisible="{Binding ModLinkFilenames, Converter={StaticResource DictionaryToVisibilityConverter}}">
+            <Border Classes="summary-card" IsVisible="{Binding ResourceRegistry, Converter={StaticResource DictionaryToVisibilityConverter}}">
                 <StackPanel>
                     <Border Classes="summary-header">
                         <Grid ColumnDefinitions="*,Auto">
@@ -206,7 +208,7 @@
                             Margin="0,0,0,4"
                             Classes="secondary-text"
                             Text="Click any link to open in your browser" />
-                        <ItemsRepeater x:Name="ModLinkRepeater" ItemsSource="{Binding ModLinkFilenames, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}">
+                        <ItemsRepeater x:Name="ModLinkRepeater" ItemsSource="{Binding ResourceRegistry, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}">
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate>
                                     <Border Classes="summary-link-container">
@@ -256,7 +258,7 @@
                                     Margin="0,0,0,4"
                                     Classes="secondary-text"
                                     Text="Click any link to open in your browser" />
-                                <ItemsRepeater x:Name="ModLinkRepeaterSpoilerFree" ItemsSource="{Binding ModLinkFilenames, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}">
+                                <ItemsRepeater x:Name="ModLinkRepeaterSpoilerFree" ItemsSource="{Binding ResourceRegistry, Converter={StaticResource ModLinkFilenamesToUrlListConverter}}">
                                     <ItemsRepeater.ItemTemplate>
                                         <DataTemplate>
                                             <Border Classes="summary-link-container">
@@ -310,7 +312,13 @@
                         DockPanel.Dock="Top"
                         TextWrapping="Wrap">
                         <TextBlock.Text>
-                            <Binding Path="Description" />
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Source="{x:Static helpers:PropertyNames.Description}" />
+                                <Binding Path="." />
+                                <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                <Binding Source="{x:Static helpers:PropertyNames.DescriptionSpoilerFree}" />
+                                <Binding Path="Description" />  <!-- Triggers MultiBinding update when Description changes -->
+                            </MultiBinding>
                         </TextBlock.Text>
                     </TextBlock>
                 </DockPanel>
@@ -327,7 +335,13 @@
                         DockPanel.Dock="Top"
                         TextWrapping="Wrap">
                         <TextBlock.Text>
-                            <Binding Path="Directions" />
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Source="{x:Static helpers:PropertyNames.Directions}" />
+                                <Binding Path="." />
+                                <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                <Binding Source="{x:Static helpers:PropertyNames.DirectionsSpoilerFree}" />
+                                <Binding Path="Directions" />  <!-- Triggers MultiBinding update when Directions changes -->
+                            </MultiBinding>
                         </TextBlock.Text>
                     </TextBlock>
                 </DockPanel>
@@ -341,7 +355,13 @@
                     </Border>
                     <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
                         <TextBlock.Text>
-                            <Binding Path="DownloadInstructions" />
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Source="{x:Static helpers:PropertyNames.DownloadInstructions}" />
+                                <Binding Path="." />
+                                <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                <Binding Source="{x:Static helpers:PropertyNames.DownloadInstructionsSpoilerFree}" />
+                                <Binding Path="DownloadInstructions" />  <!-- Triggers MultiBinding update when DownloadInstructions changes -->
+                            </MultiBinding>
                         </TextBlock.Text>
                     </TextBlock>
                 </DockPanel>
@@ -355,7 +375,13 @@
                     </Border>
                     <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap">
                         <TextBlock.Text>
-                            <Binding Path="UsageWarning" />
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Source="{x:Static helpers:PropertyNames.UsageWarning}" />
+                                <Binding Path="." />
+                                <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                <Binding Source="{x:Static helpers:PropertyNames.UsageWarningSpoilerFree}" />
+                                <Binding Path="UsageWarning" />  <!-- Triggers MultiBinding update when UsageWarning changes -->
+                            </MultiBinding>
                         </TextBlock.Text>
                     </TextBlock>
                 </DockPanel>
@@ -369,7 +395,13 @@
                     </Border>
                     <controls:ScreenshotDisplayControl>
                         <controls:ScreenshotDisplayControl.ScreenshotData>
-                            <Binding Path="Screenshots" />
+                            <MultiBinding Converter="{StaticResource SpoilerFreeContentConverter}">
+                                <Binding Source="{x:Static helpers:PropertyNames.Screenshots}" />
+                                <Binding Path="." />
+                                <Binding Path="$parent[Window].SpoilerFreeMode" />
+                                <Binding Source="{x:Static helpers:PropertyNames.ScreenshotsSpoilerFree}" />
+                                <Binding Path="Screenshots" />  <!-- Triggers MultiBinding update when Screenshots changes -->
+                            </MultiBinding>
                         </controls:ScreenshotDisplayControl.ScreenshotData>
                     </controls:ScreenshotDisplayControl>
                 </StackPanel>
@@ -534,6 +566,7 @@
                                                                 <MultiBinding.Bindings>
                                                                     <Binding Path="$parent[ItemsRepeater].ItemsSource" />
                                                                     <Binding Path="." />
+                                                                    <Binding Path="Instructions" />  <!-- Triggers MultiBinding update when Instructions changes -->
                                                                 </MultiBinding.Bindings>
                                                             </MultiBinding>
                                                         </TextBlock.Text>

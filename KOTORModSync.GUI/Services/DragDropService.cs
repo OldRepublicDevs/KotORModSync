@@ -20,296 +20,311 @@ using KOTORModSync.Core;
 namespace KOTORModSync.Services
 {
 
-	public class DragDropService
-	{
-		private ModComponent _draggedComponent;
-		private ModListItem _draggedItem;
-		private ModListItem _currentDropTarget;
-		private Panel _dragVisualContainer;
-		private readonly Window _parentWindow;
-		private readonly Func<List<ModComponent>> _getComponents;
-		private readonly Func<Task> _onComponentsReordered;
+    public class DragDropService
+    {
+        private ModComponent _draggedComponent;
+        private ModListItem _draggedItem;
+        private ModListItem _currentDropTarget;
+        private Panel _dragVisualContainer;
+        private readonly Window _parentWindow;
+        private readonly Func<List<ModComponent>> _getComponents;
+        private readonly Func<Task> _onComponentsReordered;
 
-		public DragDropService(Window parentWindow, Func<List<ModComponent>> getComponents, Func<Task> onComponentsReordered)
-		{
-			_parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
-			_getComponents = getComponents ?? throw new ArgumentNullException(nameof(getComponents));
-			_onComponentsReordered = onComponentsReordered ?? throw new ArgumentNullException(nameof(onComponentsReordered));
-		}
+        public DragDropService(Window parentWindow, Func<List<ModComponent>> getComponents, Func<Task> onComponentsReordered)
+        {
+            _parentWindow = parentWindow ?? throw new ArgumentNullException(nameof(parentWindow));
+            _getComponents = getComponents ?? throw new ArgumentNullException(nameof(getComponents));
+            _onComponentsReordered = onComponentsReordered ?? throw new ArgumentNullException(nameof(onComponentsReordered));
+        }
 
-		public void HandlePointerPressed(PointerPressedEventArgs e, ListBox modListBox, bool editorMode)
-		{
-			try
-			{
-				if (!editorMode || !e.GetCurrentPoint(modListBox).Properties.IsLeftButtonPressed)
-					return;
+        public void HandlePointerPressed(PointerPressedEventArgs e, ListBox modListBox, bool editorMode)
+        {
+            try
+            {
+                if (!editorMode || !e.GetCurrentPoint(modListBox).Properties.IsLeftButtonPressed)
+                {
+                    return;
+                }
 
-				if (!(e.Source is Visual visual))
-					return;
+                if (!(e.Source is Visual visual))
+                {
+                    return;
+                }
 
-				var textBlock = FindDragHandle(visual);
-				if (!string.Equals(textBlock?.Text, "⋮⋮", StringComparison.Ordinal))
-					return;
+                var textBlock = FindDragHandle(visual);
+                if (!string.Equals(textBlock?.Text, "⋮⋮", StringComparison.Ordinal))
+                {
+                    return;
+                }
 
-				ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
-				if (!(listBoxItem?.DataContext is ModComponent component))
-					return;
+                ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
+                if (!(listBoxItem?.DataContext is ModComponent component))
+                {
+                    return;
+                }
 
-				_draggedComponent = component;
+                _draggedComponent = component;
 
-				_draggedItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
-				if (_draggedItem != null)
-				{
-					_draggedItem.SetDraggedState(true);
-					CreateDragVisual();
-				}
+                _draggedItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
+                if (_draggedItem != null)
+                {
+                    _draggedItem.SetDraggedState(true);
+                    CreateDragVisual();
+                }
 
-				var data = new DataObject();
-				data.Set("ModComponent", component);
-				_ = DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+                var data = new DataObject();
+                data.Set("ModComponent", component);
+                _ = DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
 
-				CleanupDragVisuals();
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex);
-			}
-		}
+                CleanupDragVisuals();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
 
-		public void HandleDragOver(DragEventArgs e, bool editorMode, Window window)
-		{
-			try
-			{
-				if (!editorMode || _draggedComponent is null || !e.Data.Contains("ModComponent"))
-				{
-					e.DragEffects = DragDropEffects.None;
-					e.Handled = true;
-					return;
-				}
+        public void HandleDragOver(DragEventArgs e, bool editorMode, Window window)
+        {
+            try
+            {
+                if (!editorMode || _draggedComponent is null || !e.Data.Contains("ModComponent"))
+                {
+                    e.DragEffects = DragDropEffects.None;
+                    e.Handled = true;
+                    return;
+                }
 
-				UpdateDragVisualPosition(e.GetPosition(window));
+                UpdateDragVisualPosition(e.GetPosition(window));
 
-				if (_currentDropTarget != null)
-				{
-					_currentDropTarget.SetDropTargetState(false);
-					_currentDropTarget = null;
-				}
+                if (_currentDropTarget != null)
+                {
+                    _currentDropTarget.SetDropTargetState(false);
+                    _currentDropTarget = null;
+                }
 
-				if (e.Source is Visual visual)
-				{
-					ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
-					if (listBoxItem?.DataContext is ModComponent targetComponent && targetComponent != _draggedComponent)
-					{
-						ModListItem modListItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
-						if (modListItem != null)
-						{
-							modListItem.SetDropTargetState(true);
-							_currentDropTarget = modListItem;
-						}
+                if (e.Source is Visual visual)
+                {
+                    ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
+                    if (listBoxItem?.DataContext is ModComponent targetComponent && targetComponent != _draggedComponent)
+                    {
+                        ModListItem modListItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
+                        if (modListItem != null)
+                        {
+                            modListItem.SetDropTargetState(true);
+                            _currentDropTarget = modListItem;
+                        }
 
-						e.DragEffects = DragDropEffects.Move;
-						e.Handled = true;
-						return;
-					}
-				}
+                        e.DragEffects = DragDropEffects.Move;
+                        e.Handled = true;
+                        return;
+                    }
+                }
 
-				e.DragEffects = DragDropEffects.Move;
-				e.Handled = true;
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex);
-			}
-		}
+                e.DragEffects = DragDropEffects.Move;
+                e.Handled = true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
 
-		public void HandleDrop(DragEventArgs e, bool editorMode)
-		{
-			try
-			{
-				if (!editorMode || _draggedComponent is null)
-				{
-					CleanupDragVisuals();
-					return;
-				}
+        public void HandleDrop(DragEventArgs e, bool editorMode)
+        {
+            try
+            {
+                if (!editorMode || _draggedComponent is null)
+                {
+                    CleanupDragVisuals();
+                    return;
+                }
 
-				if (e.Source is Visual visual)
-				{
-					ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
-					if (listBoxItem?.DataContext is ModComponent targetComponent)
-					{
-						List<ModComponent> allComponents = _getComponents();
-						int targetIndex = allComponents.IndexOf(targetComponent);
-						int currentIndex = allComponents.IndexOf(_draggedComponent);
+                if (e.Source is Visual visual)
+                {
+                    ListBoxItem listBoxItem = visual.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
+                    if (listBoxItem?.DataContext is ModComponent targetComponent)
+                    {
+                        List<ModComponent> allComponents = _getComponents();
+                        int targetIndex = allComponents.IndexOf(targetComponent);
+                        int currentIndex = allComponents.IndexOf(_draggedComponent);
 
-						if (targetIndex != currentIndex && targetIndex >= 0 && currentIndex >= 0)
-						{
+                        if (targetIndex != currentIndex && targetIndex >= 0 && currentIndex >= 0)
+                        {
 
-							allComponents.RemoveAt(currentIndex);
-							allComponents.Insert(targetIndex, _draggedComponent);
+                            allComponents.RemoveAt(currentIndex);
+                            allComponents.Insert(targetIndex, _draggedComponent);
 
-							_ = Dispatcher.UIThread.InvokeAsync(async () =>
+                            _ = Dispatcher.UIThread.InvokeAsync(async () =>
 
 
-							{
-								await _onComponentsReordered().ConfigureAwait(true);
-								await Logger.LogVerboseAsync($"Moved '{_draggedComponent.Name}' from index #{currentIndex + 1} to #{targetIndex + 1}").ConfigureAwait(false);
-							});
-						}
-					}
-				}
+                            {
+                                await _onComponentsReordered();
+                                await Logger.LogVerboseAsync($"Moved '{_draggedComponent.Name}' from index #{currentIndex + 1} to #{targetIndex + 1}");
+                            });
+                        }
+                    }
+                }
 
-				CleanupDragVisuals();
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex);
-			}
-		}
+                CleanupDragVisuals();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
 
-		public void StartDragComponent(ModComponent component, PointerPressedEventArgs e, bool editorMode)
-		{
-			if (!editorMode)
-				return;
+        public void StartDragComponent(ModComponent component, PointerPressedEventArgs e, bool editorMode)
+        {
+            if (!editorMode)
+            {
+                return;
+            }
 
-			_draggedComponent = component;
+            _draggedComponent = component;
 
-			if (e.Source is Visual visual)
-			{
-				_draggedItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
-				if (_draggedItem != null)
-				{
-					_draggedItem.SetDraggedState(true);
-					CreateDragVisual();
-				}
-			}
+            if (e.Source is Visual visual)
+            {
+                _draggedItem = visual.GetVisualAncestors().OfType<ModListItem>().FirstOrDefault();
+                if (_draggedItem != null)
+                {
+                    _draggedItem.SetDraggedState(true);
+                    CreateDragVisual();
+                }
+            }
 
-			var data = new DataObject();
-			data.Set("ModComponent", component);
-			_ = DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+            var data = new DataObject();
+            data.Set("ModComponent", component);
+            _ = DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
 
-			CleanupDragVisuals();
-		}
+            CleanupDragVisuals();
+        }
 
-		#region Private Helper Methods
+        #region Private Helper Methods
 
-		private static TextBlock FindDragHandle(Visual visual)
-		{
-			var textBlock = visual as TextBlock;
-			if (textBlock is null && visual is Control control)
-			{
-				IEnumerable<TextBlock> descendants = control.GetVisualDescendants().OfType<TextBlock>();
-				textBlock = descendants.FirstOrDefault(tb => string.Equals(tb.Text, "⋮⋮", StringComparison.Ordinal));
-			}
-			return textBlock;
-		}
+        private static TextBlock FindDragHandle(Visual visual)
+        {
+            var textBlock = visual as TextBlock;
+            if (textBlock is null && visual is Control control)
+            {
+                IEnumerable<TextBlock> descendants = control.GetVisualDescendants().OfType<TextBlock>();
+                textBlock = descendants.FirstOrDefault(tb => string.Equals(tb.Text, "⋮⋮", StringComparison.Ordinal));
+            }
+            return textBlock;
+        }
 
-		private void CreateDragVisual()
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(CreateDragVisual, DispatcherPriority.Normal);
-				return;
-			}
-			if (_draggedItem is null || _dragVisualContainer != null)
-				return;
+        private void CreateDragVisual()
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(CreateDragVisual, DispatcherPriority.Normal);
+                return;
+            }
+            if (_draggedItem is null || _dragVisualContainer != null)
+            {
+                return;
+            }
 
-			try
-			{
+            try
+            {
 
-				_dragVisualContainer = new Canvas
-				{
-					IsHitTestVisible = false,
-					ZIndex = 1000,
-					Background = Brushes.Transparent,
-				};
+                _dragVisualContainer = new Canvas
+                {
+                    IsHitTestVisible = false,
+                    ZIndex = 1000,
+                    Background = Brushes.Transparent,
+                };
 
-				var dragVisual = new ModListItem
-				{
-					DataContext = _draggedItem.DataContext,
-					Opacity = 0.5,
-					IsHitTestVisible = false,
-				};
+                var dragVisual = new ModListItem
+                {
+                    DataContext = _draggedItem.DataContext,
+                    Opacity = 0.5,
+                    IsHitTestVisible = false,
+                };
 
-				Size originalSize = _draggedItem.Bounds.Size;
-				dragVisual.Width = originalSize.Width;
-				dragVisual.Height = originalSize.Height;
+                Size originalSize = _draggedItem.Bounds.Size;
+                dragVisual.Width = originalSize.Width;
+                dragVisual.Height = originalSize.Height;
 
-				_dragVisualContainer.Children.Add(dragVisual);
+                _dragVisualContainer.Children.Add(dragVisual);
 
-				if (_parentWindow.FindControl<Grid>("MainGrid") is Grid mainGrid)
-				{
-					mainGrid.Children.Add(_dragVisualContainer);
-				}
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException(ex, "Error creating drag visual");
-			}
-		}
+                if (_parentWindow.FindControl<Grid>("MainGrid") is Grid mainGrid)
+                {
+                    mainGrid.Children.Add(_dragVisualContainer);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Error creating drag visual");
+            }
+        }
 
-		private void UpdateDragVisualPosition(Point position)
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(() => UpdateDragVisualPosition(position), DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
-				if (_dragVisualContainer is Canvas canvas && canvas.Children.Count > 0)
-				{
-					Control dragVisual = canvas.Children[0];
-					if (dragVisual != null)
-					{
+        private void UpdateDragVisualPosition(Point position)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() => UpdateDragVisualPosition(position), DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
+                if (_dragVisualContainer is Canvas canvas && canvas.Children.Count > 0)
+                {
+                    Control dragVisual = canvas.Children[0];
+                    if (dragVisual != null)
+                    {
 
-						Canvas.SetLeft(dragVisual, position.X - 10);
-						Canvas.SetTop(dragVisual, position.Y - 10);
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				Logger.LogVerbose($"Error updating drag visual position: {ex.Message}");
-			}
-		}
+                        Canvas.SetLeft(dragVisual, position.X - 10);
+                        Canvas.SetTop(dragVisual, position.Y - 10);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogVerbose($"Error updating drag visual position: {ex.Message}");
+            }
+        }
 
-		private void CleanupDragVisuals()
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(CleanupDragVisuals, DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
+        private void CleanupDragVisuals()
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(CleanupDragVisuals, DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
 
-				if (_draggedItem != null)
-				{
-					_draggedItem.SetDraggedState(false);
-					_draggedItem = null;
-				}
+                if (_draggedItem != null)
+                {
+                    _draggedItem.SetDraggedState(false);
+                    _draggedItem = null;
+                }
 
-				if (_dragVisualContainer != null)
-				{
-					if (_dragVisualContainer.Parent is Panel parent)
-						_ = parent.Children.Remove(_dragVisualContainer);
-					_dragVisualContainer = null;
-				}
+                if (_dragVisualContainer != null)
+                {
+                    if (_dragVisualContainer.Parent is Panel parent)
+                    {
+                        _ = parent.Children.Remove(_dragVisualContainer);
+                    }
 
-				if (_currentDropTarget != null)
-				{
-					_currentDropTarget.SetDropTargetState(false);
-					_currentDropTarget = null;
-				}
+                    _dragVisualContainer = null;
+                }
 
-				_draggedComponent = null;
-			}
-			catch (Exception ex)
-			{
-				Logger.LogVerbose($"Error cleaning up drag visuals: {ex.Message}");
-			}
-		}
+                if (_currentDropTarget != null)
+                {
+                    _currentDropTarget.SetDropTargetState(false);
+                    _currentDropTarget = null;
+                }
 
-		#endregion
-	}
+                _draggedComponent = null;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogVerbose($"Error cleaning up drag visuals: {ex.Message}");
+            }
+        }
+
+        #endregion
+    }
 }

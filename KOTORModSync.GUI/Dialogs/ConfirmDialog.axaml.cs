@@ -9,55 +9,65 @@ using Avalonia.Threading;
 
 namespace KOTORModSync.Dialogs
 {
-	public partial class ConfirmDialog : Window
-	{
-		public ConfirmDialog()
-		{
-			InitializeComponent();
-		}
+    public partial class ConfirmDialog : Window
+    {
+        public ConfirmDialog()
+        {
+            InitializeComponent();
+            // Apply current theme
+            ThemeManager.ApplyCurrentToWindow(this);
+        }
 
-		public ConfirmDialog( string title, string message, string confirmText = "Confirm", string cancelText = "Cancel" ) : this()
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(() =>
-				{
-					Title = title;
+        public ConfirmDialog(string title, string message, string confirmText = "Confirm", string cancelText = "Cancel") : this()
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Title = title;
 
-					var titleText = this.FindControl<TextBlock>( "TitleText" );
-					var messageText = this.FindControl<TextBlock>( "MessageText" );
-					var confirmButton = this.FindControl<Button>( "ConfirmButton" );
-					var cancelButton = this.FindControl<Button>( "CancelButton" );
+                    var titleText = this.FindControl<TextBlock>("TitleText");
+                    var messageText = this.FindControl<TextBlock>("MessageText");
+                    var confirmButton = this.FindControl<Button>("ConfirmButton");
+                    var cancelButton = this.FindControl<Button>("CancelButton");
 
-					if (titleText != null)
-						titleText.Text = title;
+                    if (titleText != null)
+                    {
+                        titleText.Text = title;
+                    }
 
-					if (messageText != null)
-						messageText.Text = message;
+                    if (messageText != null)
+                    {
+                        messageText.Text = message;
+                    }
 
-					if (confirmButton != null)
-						confirmButton.Content = confirmText;
+                    if (confirmButton != null)
+                    {
+                        confirmButton.Content = confirmText;
+                    }
 
-					if (cancelButton != null)
-						cancelButton.Content = cancelText;
-				}, DispatcherPriority.Normal);
-				return;
-			}
-		}
+                    if (cancelButton != null)
+                    {
+                        cancelButton.Content = cancelText;
+                    }
+                }, DispatcherPriority.Normal);
+                return;
+            }
+        }
 
-		private void InitializeComponent()
-		{
-			AvaloniaXamlLoader.Load( this );
-		}
+        private void InitializeComponent()
+        {
+            AvaloniaXamlLoader.Load(this);
+        }
 
-		private void ConfirmButton_Click( object sender, RoutedEventArgs e )
-		{
-			Close( true );
-		}
+        private void ConfirmButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close(true);
+        }
 
-		private void CancelButton_Click( object sender, RoutedEventArgs e )
-		{
-			Close( false );
-		}
-	}
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close(false);
+        }
+    }
 }

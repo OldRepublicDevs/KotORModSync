@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -6,515 +6,515 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Tests
 {
-	[TestFixture]
-	internal class ComponentOrderTests
-	{
-		[Test]
-		public void ConfirmComponentsInstallOrder_InstallBefore_ReturnsTrue()
-		{
+    [TestFixture]
+    internal class ComponentOrderTests
+    {
+        [Test]
+        public void ConfirmComponentsInstallOrder_InstallBefore_ReturnsTrue()
+        {
 
-			var thisGuid = Guid.NewGuid();
-			var componentsListExpectedOrder = new List<ModComponent>
-			{
-			new ModComponent
-			{
-				Name = "C1_InstallBefore_C2",
-				Guid = Guid.NewGuid(),
-				InstallBefore = new List<Guid>
-				{
-					thisGuid,
-				},
-			},
-			new ModComponent
-			{
-				Name = "C2", Guid = thisGuid,
-			},
-			new ModComponent
-			{
-				Name = "C3", Guid = Guid.NewGuid(),
-			},
-			};
+            var thisGuid = Guid.NewGuid();
+            var componentsListExpectedOrder = new List<ModComponent>
+            {
+            new ModComponent
+            {
+                Name = "C1_InstallBefore_C2",
+                Guid = Guid.NewGuid(),
+                InstallBefore = new List<Guid>
+                {
+                    thisGuid,
+                },
+            },
+            new ModComponent
+            {
+                Name = "C2", Guid = thisGuid,
+            },
+            new ModComponent
+            {
+                Name = "C3", Guid = Guid.NewGuid(),
+            },
+            };
 
-			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
-				ModComponent.ConfirmComponentsInstallOrder(componentsListExpectedOrder);
+            (bool isCorrectOrder, List<ModComponent> reorderedComponents) =
+                ModComponent.ConfirmComponentsInstallOrder(componentsListExpectedOrder);
 
-			foreach (ModComponent component in reorderedComponents)
-			{
-				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
-				int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
-				Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
-			}
+            foreach (ModComponent component in reorderedComponents)
+            {
+                int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
+                int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
+                Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+            }
 
-			Assert.Multiple(
-				() =>
-				{
-					Assert.That(isCorrectOrder, Is.True);
-					Assert.That(reorderedComponents, Is.Not.Empty);
-				}
-			);
-		}
+            Assert.Multiple(
+                () =>
+                {
+                    Assert.That(isCorrectOrder, Is.True);
+                    Assert.That(reorderedComponents, Is.Not.Empty);
+                }
+            );
+        }
 
-		[Test]
-		public void ConfirmComponentsInstallOrder_InstallBefore_ReturnsFalse()
-		{
+        [Test]
+        public void ConfirmComponentsInstallOrder_InstallBefore_ReturnsFalse()
+        {
 
-			var thisGuid = Guid.NewGuid();
-			var unorderedList = new List<ModComponent>
-			{
-			new ModComponent
-			{
-				Name = "C2", Guid = thisGuid,
-			},
-			new ModComponent
-			{
-				Name = "C1_InstallBefore_C2",
-				Guid = Guid.NewGuid(),
-				InstallBefore = new List<Guid>
-				{
-					thisGuid,
-				},
-			},
-			new ModComponent
-			{
-				Name = "C3", Guid = Guid.NewGuid(),
-			},
-			};
+            var thisGuid = Guid.NewGuid();
+            var unorderedList = new List<ModComponent>
+            {
+            new ModComponent
+            {
+                Name = "C2", Guid = thisGuid,
+            },
+            new ModComponent
+            {
+                Name = "C1_InstallBefore_C2",
+                Guid = Guid.NewGuid(),
+                InstallBefore = new List<Guid>
+                {
+                    thisGuid,
+                },
+            },
+            new ModComponent
+            {
+                Name = "C3", Guid = Guid.NewGuid(),
+            },
+            };
 
-			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
-				ModComponent.ConfirmComponentsInstallOrder(unorderedList);
+            (bool isCorrectOrder, List<ModComponent> reorderedComponents) =
+                ModComponent.ConfirmComponentsInstallOrder(unorderedList);
 
-			var componentsListExpectedOrder = new List<ModComponent>(unorderedList);
-			Swap(componentsListExpectedOrder, index1: 0, index2: 1);
+            var componentsListExpectedOrder = new List<ModComponent>(unorderedList);
+            Swap(componentsListExpectedOrder, index1: 0, index2: 1);
 
-			foreach (ModComponent component in reorderedComponents)
-			{
-				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
-				int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
-				Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
-			}
+            foreach (ModComponent component in reorderedComponents)
+            {
+                int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
+                int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
+                Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+            }
 
-			Assert.Multiple(
-				() =>
-				{
-					Assert.That(isCorrectOrder, Is.False);
-					Assert.That(reorderedComponents, Is.Not.Empty);
-				}
-			);
-		}
+            Assert.Multiple(
+                () =>
+                {
+                    Assert.That(isCorrectOrder, Is.False);
+                    Assert.That(reorderedComponents, Is.Not.Empty);
+                }
+            );
+        }
 
-		[Test]
-		public void ConfirmComponentsInstallOrder_InstallAfter_ReturnsTrue()
-		{
+        [Test]
+        public void ConfirmComponentsInstallOrder_InstallAfter_ReturnsTrue()
+        {
 
-			var thisGuid = Guid.NewGuid();
-			var componentsListExpectedOrder = new List<ModComponent>
-			{
-			new ModComponent
-			{
-				Name = "C1", Guid = thisGuid,
-			},
-			new ModComponent
-			{
-				Name = "C2_InstallAfter_C1",
-				Guid = Guid.NewGuid(),
-				InstallAfter = new List<Guid>
-				{
-					thisGuid,
-				},
-			},
-			new ModComponent
-			{
-				Name = "C3", Guid = Guid.NewGuid(),
-			},
-			};
+            var thisGuid = Guid.NewGuid();
+            var componentsListExpectedOrder = new List<ModComponent>
+            {
+            new ModComponent
+            {
+                Name = "C1", Guid = thisGuid,
+            },
+            new ModComponent
+            {
+                Name = "C2_InstallAfter_C1",
+                Guid = Guid.NewGuid(),
+                InstallAfter = new List<Guid>
+                {
+                    thisGuid,
+                },
+            },
+            new ModComponent
+            {
+                Name = "C3", Guid = Guid.NewGuid(),
+            },
+            };
 
-			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
-				ModComponent.ConfirmComponentsInstallOrder(componentsListExpectedOrder);
+            (bool isCorrectOrder, List<ModComponent> reorderedComponents) =
+                ModComponent.ConfirmComponentsInstallOrder(componentsListExpectedOrder);
 
-			foreach (ModComponent component in reorderedComponents)
-			{
-				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
-				int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
-				Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
-			}
+            foreach (ModComponent component in reorderedComponents)
+            {
+                int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
+                int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
+                Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+            }
 
-			Assert.Multiple(
-				() =>
-				{
-					Assert.That(isCorrectOrder, Is.True);
-					Assert.That(reorderedComponents, Is.Not.Empty);
-				}
-			);
-		}
+            Assert.Multiple(
+                () =>
+                {
+                    Assert.That(isCorrectOrder, Is.True);
+                    Assert.That(reorderedComponents, Is.Not.Empty);
+                }
+            );
+        }
 
-		[Test]
-		public void ConfirmComponentsInstallOrder_InstallAfter_ReturnsFalse()
-		{
+        [Test]
+        public void ConfirmComponentsInstallOrder_InstallAfter_ReturnsFalse()
+        {
 
-			var thisGuid = Guid.NewGuid();
-			var unorderedList = new List<ModComponent>
-			{
-			new ModComponent
-			{
-				Name = "C1_InstallAfter_C2",
-				Guid = Guid.NewGuid(),
-				InstallAfter = new List<Guid>
-				{
-					thisGuid,
-				},
-			},
-			new ModComponent
-			{
-				Name = "C2", Guid = thisGuid,
-			},
-			new ModComponent
-			{
-				Name = "C3", Guid = Guid.NewGuid(),
-			},
-			};
+            var thisGuid = Guid.NewGuid();
+            var unorderedList = new List<ModComponent>
+            {
+            new ModComponent
+            {
+                Name = "C1_InstallAfter_C2",
+                Guid = Guid.NewGuid(),
+                InstallAfter = new List<Guid>
+                {
+                    thisGuid,
+                },
+            },
+            new ModComponent
+            {
+                Name = "C2", Guid = thisGuid,
+            },
+            new ModComponent
+            {
+                Name = "C3", Guid = Guid.NewGuid(),
+            },
+            };
 
-			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
-				ModComponent.ConfirmComponentsInstallOrder(unorderedList);
+            (bool isCorrectOrder, List<ModComponent> reorderedComponents) =
+                ModComponent.ConfirmComponentsInstallOrder(unorderedList);
 
-			var componentsListExpectedOrder = new List<ModComponent>(unorderedList);
-			Swap(componentsListExpectedOrder, index1: 0, index2: 1);
+            var componentsListExpectedOrder = new List<ModComponent>(unorderedList);
+            Swap(componentsListExpectedOrder, index1: 0, index2: 1);
 
-			foreach (ModComponent component in reorderedComponents)
-			{
-				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
-				int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
-				Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
-			}
+            foreach (ModComponent component in reorderedComponents)
+            {
+                int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
+                int expectedIndex = componentsListExpectedOrder.FindIndex(c => c.Guid == component.Guid);
+                Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+            }
 
-			Assert.Multiple(
-				() =>
-				{
-					Assert.That(isCorrectOrder, Is.False);
-					Assert.That(reorderedComponents, Is.Not.Empty);
-				}
-			);
-		}
+            Assert.Multiple(
+                () =>
+                {
+                    Assert.That(isCorrectOrder, Is.False);
+                    Assert.That(reorderedComponents, Is.Not.Empty);
+                }
+            );
+        }
 
-		[Test]
-		public void ConfirmComponentsInstallOrder_ComplexScenario_CorrectOrder()
-		{
+        [Test]
+        public void ConfirmComponentsInstallOrder_ComplexScenario_CorrectOrder()
+        {
 
-			var componentA = new ModComponent
-			{
-				Name = "A",
-				Guid = Guid.NewGuid(),
-			};
-			var componentB = new ModComponent
-			{
-				Name = "B",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentA.Guid,
-				],
-			};
-			var componentC = new ModComponent
-			{
-				Name = "C",
-				Guid = Guid.NewGuid(),
-				InstallBefore =
-				[
-					componentA.Guid,
-				],
-			};
-			var componentD = new ModComponent
-			{
-				Name = "D",
-				Guid = Guid.NewGuid(),
-				InstallBefore =
-				[
-					componentB.Guid,
-				],
-			};
-			var componentFGuid = Guid.Empty;
-			var componentE = new ModComponent
-			{
-				Name = "E",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentB.Guid,
-				],
-				InstallBefore =
-				[
-					componentFGuid,
-				],
-			};
-			var componentF = new ModComponent
-			{
-				Name = "F",
-				Guid = componentFGuid,
-				InstallAfter =
-				[
-					componentE.Guid, componentB.Guid,
-				],
-			};
-			var componentG = new ModComponent
-			{
-				Name = "G",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentD.Guid, componentF.Guid,
-				],
-			};
-			var componentH = new ModComponent
-			{
-				Name = "H",
-				Guid = Guid.NewGuid(),
-				InstallBefore =
-				[
-					componentG.Guid,
-				],
-			};
-			var componentI = new ModComponent
-			{
-				Name = "I",
-				Guid = Guid.NewGuid(),
-				InstallBefore =
-				[
-					componentG.Guid,
-				],
-			};
-			var componentJ = new ModComponent
-			{
-				Name = "J",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentH.Guid, componentI.Guid,
-				],
-			};
+            var componentA = new ModComponent
+            {
+                Name = "A",
+                Guid = Guid.NewGuid(),
+            };
+            var componentB = new ModComponent
+            {
+                Name = "B",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentA.Guid,
+                ],
+            };
+            var componentC = new ModComponent
+            {
+                Name = "C",
+                Guid = Guid.NewGuid(),
+                InstallBefore =
+                [
+                    componentA.Guid,
+                ],
+            };
+            var componentD = new ModComponent
+            {
+                Name = "D",
+                Guid = Guid.NewGuid(),
+                InstallBefore =
+                [
+                    componentB.Guid,
+                ],
+            };
+            var componentFGuid = Guid.Empty;
+            var componentE = new ModComponent
+            {
+                Name = "E",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentB.Guid,
+                ],
+                InstallBefore =
+                [
+                    componentFGuid,
+                ],
+            };
+            var componentF = new ModComponent
+            {
+                Name = "F",
+                Guid = componentFGuid,
+                InstallAfter =
+                [
+                    componentE.Guid, componentB.Guid,
+                ],
+            };
+            var componentG = new ModComponent
+            {
+                Name = "G",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentD.Guid, componentF.Guid,
+                ],
+            };
+            var componentH = new ModComponent
+            {
+                Name = "H",
+                Guid = Guid.NewGuid(),
+                InstallBefore =
+                [
+                    componentG.Guid,
+                ],
+            };
+            var componentI = new ModComponent
+            {
+                Name = "I",
+                Guid = Guid.NewGuid(),
+                InstallBefore =
+                [
+                    componentG.Guid,
+                ],
+            };
+            var componentJ = new ModComponent
+            {
+                Name = "J",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentH.Guid, componentI.Guid,
+                ],
+            };
 
-			var correctOrderedComponentsList = new List<ModComponent>
-			{
-				componentC,
-				componentD,
-				componentA,
-				componentB,
-				componentE,
-				componentF,
-				componentH,
-				componentI,
-				componentG,
-				componentJ, };
+            var correctOrderedComponentsList = new List<ModComponent>
+            {
+                componentC,
+                componentD,
+                componentA,
+                componentB,
+                componentE,
+                componentF,
+                componentH,
+                componentI,
+                componentG,
+                componentJ, };
 
-			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
-				ModComponent.ConfirmComponentsInstallOrder(correctOrderedComponentsList);
+            (bool isCorrectOrder, List<ModComponent> reorderedComponents) =
+                ModComponent.ConfirmComponentsInstallOrder(correctOrderedComponentsList);
 
-			foreach (ModComponent component in reorderedComponents)
-			{
-				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
-				int expectedIndex = correctOrderedComponentsList.FindIndex(c => c.Guid == component.Guid);
-				Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
-			}
+            foreach (ModComponent component in reorderedComponents)
+            {
+                int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
+                int expectedIndex = correctOrderedComponentsList.FindIndex(c => c.Guid == component.Guid);
+                Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent {component.Name} is out of order.");
+            }
 
-			Assert.Multiple(
-				() =>
-				{
-					Assert.That(isCorrectOrder, Is.True);
-					Assert.That(reorderedComponents, Is.Not.Empty);
-				}
-			);
-		}
+            Assert.Multiple(
+                () =>
+                {
+                    Assert.That(isCorrectOrder, Is.True);
+                    Assert.That(reorderedComponents, Is.Not.Empty);
+                }
+            );
+        }
 
-		[Test]
-		public void ConfirmComponentsInstallOrder_ComplexScenario_Unordered()
-		{
+        [Test]
+        public void ConfirmComponentsInstallOrder_ComplexScenario_Unordered()
+        {
 
-			var componentA = new ModComponent
-			{
-				Name = "A",
-				Guid = Guid.NewGuid(),
-			};
-			var componentB = new ModComponent
-			{
-				Name = "B",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentA.Guid,
-				],
-			};
-			var componentC = new ModComponent
-			{
-				Name = "C",
-				Guid = Guid.NewGuid(),
-				InstallBefore =
-				[
-					componentA.Guid,
-				],
-			};
-			var componentD = new ModComponent
-			{
-				Name = "D",
-				Guid = Guid.NewGuid(),
-				InstallBefore =
-				[
-					componentB.Guid,
-				],
-			};
-			var componentFGuid = Guid.Empty;
-			var componentE = new ModComponent
-			{
-				Name = "E",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentB.Guid,
-				],
-				InstallBefore =
-				[
-					componentFGuid,
-				],
-			};
-			var componentF = new ModComponent
-			{
-				Name = "F",
-				Guid = componentFGuid,
-				InstallAfter =
-				[
-					componentE.Guid, componentB.Guid,
-				],
-			};
-			var componentG = new ModComponent
-			{
-				Name = "G",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentD.Guid, componentF.Guid,
-				],
-			};
-			var componentH = new ModComponent
-			{
-				Name = "H",
-				Guid = Guid.NewGuid(),
-				InstallBefore =
-				[
-					componentG.Guid,
-				],
-			};
-			var componentI = new ModComponent
-			{
-				Name = "I",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentH.Guid,
-				],
-				InstallBefore =
-				[
-					componentG.Guid,
-				],
-			};
-			var componentJ = new ModComponent
-			{
-				Name = "J",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentH.Guid, componentI.Guid,
-				],
-			};
+            var componentA = new ModComponent
+            {
+                Name = "A",
+                Guid = Guid.NewGuid(),
+            };
+            var componentB = new ModComponent
+            {
+                Name = "B",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentA.Guid,
+                ],
+            };
+            var componentC = new ModComponent
+            {
+                Name = "C",
+                Guid = Guid.NewGuid(),
+                InstallBefore =
+                [
+                    componentA.Guid,
+                ],
+            };
+            var componentD = new ModComponent
+            {
+                Name = "D",
+                Guid = Guid.NewGuid(),
+                InstallBefore =
+                [
+                    componentB.Guid,
+                ],
+            };
+            var componentFGuid = Guid.Empty;
+            var componentE = new ModComponent
+            {
+                Name = "E",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentB.Guid,
+                ],
+                InstallBefore =
+                [
+                    componentFGuid,
+                ],
+            };
+            var componentF = new ModComponent
+            {
+                Name = "F",
+                Guid = componentFGuid,
+                InstallAfter =
+                [
+                    componentE.Guid, componentB.Guid,
+                ],
+            };
+            var componentG = new ModComponent
+            {
+                Name = "G",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentD.Guid, componentF.Guid,
+                ],
+            };
+            var componentH = new ModComponent
+            {
+                Name = "H",
+                Guid = Guid.NewGuid(),
+                InstallBefore =
+                [
+                    componentG.Guid,
+                ],
+            };
+            var componentI = new ModComponent
+            {
+                Name = "I",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentH.Guid,
+                ],
+                InstallBefore =
+                [
+                    componentG.Guid,
+                ],
+            };
+            var componentJ = new ModComponent
+            {
+                Name = "J",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentH.Guid, componentI.Guid,
+                ],
+            };
 
-			var unorderedComponentsList = new List<ModComponent>
-			{
-				componentA,
-				componentB,
-				componentC,
-				componentD,
-				componentE,
-				componentF,
-				componentG,
-				componentH,
-				componentI,
-				componentJ, };
-			var correctOrderedComponentsList = new List<ModComponent>
-			{
-				componentC,
-				componentA,
-				componentD,
-				componentB,
-				componentE,
-				componentF,
-				componentH,
-				componentI,
-				componentG,
-				componentJ, };
+            var unorderedComponentsList = new List<ModComponent>
+            {
+                componentA,
+                componentB,
+                componentC,
+                componentD,
+                componentE,
+                componentF,
+                componentG,
+                componentH,
+                componentI,
+                componentJ, };
+            var correctOrderedComponentsList = new List<ModComponent>
+            {
+                componentC,
+                componentA,
+                componentD,
+                componentB,
+                componentE,
+                componentF,
+                componentH,
+                componentI,
+                componentG,
+                componentJ, };
 
-			(bool isCorrectOrder, List<ModComponent> reorderedComponents) =
-				ModComponent.ConfirmComponentsInstallOrder(unorderedComponentsList);
+            (bool isCorrectOrder, List<ModComponent> reorderedComponents) =
+                ModComponent.ConfirmComponentsInstallOrder(unorderedComponentsList);
 
-			foreach (ModComponent component in reorderedComponents)
-			{
-				int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
-				int expectedIndex = correctOrderedComponentsList.FindIndex(c => c.Guid == component.Guid);
-				Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent '{component.Name}' is out of order.");
-			}
+            foreach (ModComponent component in reorderedComponents)
+            {
+                int actualIndex = reorderedComponents.FindIndex(c => c.Guid == component.Guid);
+                int expectedIndex = correctOrderedComponentsList.FindIndex(c => c.Guid == component.Guid);
+                Assert.That(actualIndex, Is.EqualTo(expectedIndex), $"ModComponent '{component.Name}' is out of order.");
+            }
 
-			Assert.Multiple(
-				() =>
-				{
-					Assert.That(isCorrectOrder, Is.False);
-					Assert.That(reorderedComponents, Is.Not.Empty);
-				}
-			);
-		}
+            Assert.Multiple(
+                () =>
+                {
+                    Assert.That(isCorrectOrder, Is.False);
+                    Assert.That(reorderedComponents, Is.Not.Empty);
+                }
+            );
+        }
 
-		[Test]
-		public void ConfirmComponentsInstallOrder_ImpossibleScenario_ReturnsFalse()
-		{
+        [Test]
+        public void ConfirmComponentsInstallOrder_ImpossibleScenario_ReturnsFalse()
+        {
 
-			var componentA = new ModComponent
-			{
-				Name = "A",
-				Guid = Guid.NewGuid(),
-				InstallBefore =
-				[
-					Guid.NewGuid(),
-				],
-			};
-			var componentB = new ModComponent
-			{
-				Name = "B",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentA.Guid,
-				],
-			};
-			var componentC = new ModComponent
-			{
-				Name = "C",
-				Guid = Guid.NewGuid(),
-				InstallAfter =
-				[
-					componentB.Guid,
-				],
-				InstallBefore =
-				[
-					componentA.Guid,
-				],
-			};
+            var componentA = new ModComponent
+            {
+                Name = "A",
+                Guid = Guid.NewGuid(),
+                InstallBefore =
+                [
+                    Guid.NewGuid(),
+                ],
+            };
+            var componentB = new ModComponent
+            {
+                Name = "B",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentA.Guid,
+                ],
+            };
+            var componentC = new ModComponent
+            {
+                Name = "C",
+                Guid = Guid.NewGuid(),
+                InstallAfter =
+                [
+                    componentB.Guid,
+                ],
+                InstallBefore =
+                [
+                    componentA.Guid,
+                ],
+            };
 
-			var componentsList = new List<ModComponent>
-			{
-				componentA, componentB, componentC,
-			};
+            var componentsList = new List<ModComponent>
+            {
+                componentA, componentB, componentC,
+            };
 
-			_ = Assert.Throws<KeyNotFoundException>(
-				() => { _ = ModComponent.ConfirmComponentsInstallOrder(componentsList); },
-				message: "ConfirmComponentsInstallOrder should have raised a KeyNotFoundException"
-			);
-		}
+            _ = Assert.Throws<KeyNotFoundException>(
+                () => { _ = ModComponent.ConfirmComponentsInstallOrder(componentsList); },
+                message: "ConfirmComponentsInstallOrder should have raised a KeyNotFoundException"
+            );
+        }
 
-		private static void Swap<T>(IList<T> list, int index1, int index2) =>
-			(list[index1], list[index2]) = (list[index2], list[index1]);
-	}
+        private static void Swap<T>(IList<T> list, int index1, int index2) =>
+            (list[index1], list[index2]) = (list[index2], list[index1]);
+    }
 }

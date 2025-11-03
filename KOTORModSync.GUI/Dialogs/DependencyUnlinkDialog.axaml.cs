@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -16,137 +16,153 @@ using KOTORModSync.Core;
 
 namespace KOTORModSync.Dialogs
 {
-	public partial class DependencyUnlinkDialog : Window
-	{
-		public DependencyUnlinkViewModel ViewModel { get; }
-		public bool UserConfirmed { get; private set; }
-		public List<ModComponent> ComponentsToUnlink => ViewModel?.DependentComponents
-			.Where( c => c.IsSelected )
-			.Select( c => c.ModComponent )
-			.ToList();
-		private bool _mouseDownForWindowMoving;
-		private PointerPoint _originalPoint;
+    public partial class DependencyUnlinkDialog : Window
+    {
+        public DependencyUnlinkViewModel ViewModel { get; }
+        public bool UserConfirmed { get; private set; }
+        public List<ModComponent> ComponentsToUnlink => ViewModel?.DependentComponents
+            .Where(c => c.IsSelected)
+            .Select(c => c.ModComponent)
+            .ToList();
+        private bool _mouseDownForWindowMoving;
+        private PointerPoint _originalPoint;
 
-		public DependencyUnlinkDialog()
-		{
-			InitializeComponent();
+        public DependencyUnlinkDialog()
+        {
+            InitializeComponent();
 
-			PointerPressed += InputElement_OnPointerPressed;
-			PointerMoved += InputElement_OnPointerMoved;
-			PointerReleased += InputElement_OnPointerReleased;
-			PointerExited += InputElement_OnPointerReleased;
-		}
+            PointerPressed += InputElement_OnPointerPressed;
+            PointerMoved += InputElement_OnPointerMoved;
+            PointerReleased += InputElement_OnPointerReleased;
+            PointerExited += InputElement_OnPointerReleased;
 
-		public DependencyUnlinkDialog( ModComponent componentToDelete, List<ModComponent> dependentComponents )
-		{
-			InitializeComponent();
-			ViewModel = new DependencyUnlinkViewModel( componentToDelete, dependentComponents );
-			DataContext = ViewModel;
+            // Apply current theme
+            ThemeManager.ApplyCurrentToWindow(this);
+        }
 
-			PointerPressed += InputElement_OnPointerPressed;
-			PointerMoved += InputElement_OnPointerMoved;
-			PointerReleased += InputElement_OnPointerReleased;
-			PointerExited += InputElement_OnPointerReleased;
-		}
+        public DependencyUnlinkDialog(ModComponent componentToDelete, List<ModComponent> dependentComponents)
+        {
+            InitializeComponent();
+            ViewModel = new DependencyUnlinkViewModel(componentToDelete, dependentComponents);
+            DataContext = ViewModel;
 
-		private void InitializeComponent()
-		{
-			AvaloniaXamlLoader.Load( this );
-		}
+            PointerPressed += InputElement_OnPointerPressed;
+            PointerMoved += InputElement_OnPointerMoved;
+            PointerReleased += InputElement_OnPointerReleased;
+            PointerExited += InputElement_OnPointerReleased;
 
-		private void UnlinkAndDelete_Click( object sender, RoutedEventArgs e )
-		{
-			UserConfirmed = true;
-			Close();
-		}
+            // Apply current theme
+            ThemeManager.ApplyCurrentToWindow(this);
+        }
 
-		private void Cancel_Click( object sender, RoutedEventArgs e )
-		{
-			UserConfirmed = false;
-			Close();
-		}
+        private void InitializeComponent()
+        {
+            AvaloniaXamlLoader.Load(this);
+        }
 
-		public static async System.Threading.Tasks.Task<(bool confirmed, List<ModComponent> componentsToUnlink)> ShowUnlinkDialog(
-			Window owner,
-			ModComponent componentToDelete,
-			List<ModComponent> dependentComponents )
-		{
+        private void UnlinkAndDelete_Click(object sender, RoutedEventArgs e)
+        {
+            UserConfirmed = true;
+            Close();
+        }
 
-			if (dependentComponents is null || !dependentComponents.Any())
-				return (true, new List<ModComponent>());
+        private void Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            UserConfirmed = false;
+            Close();
+        }
 
-			var dialog = new DependencyUnlinkDialog( componentToDelete, dependentComponents );
+        public static async System.Threading.Tasks.Task<(bool confirmed, List<ModComponent> componentsToUnlink)> ShowUnlinkDialog(
+            Window owner,
+            ModComponent componentToDelete,
+            List<ModComponent> dependentComponents)
+        {
+
+            if (dependentComponents is null || !dependentComponents.Any())
+            {
+                return (true, new List<ModComponent>());
+            }
+
+            var dialog = new DependencyUnlinkDialog(componentToDelete, dependentComponents);
 
 
-			await dialog.ShowDialog( owner ).ConfigureAwait( true );
-			return (dialog.UserConfirmed, dialog.ComponentsToUnlink);
-		}
+            await dialog.ShowDialog(owner).ConfigureAwait(true);
+            return (dialog.UserConfirmed, dialog.ComponentsToUnlink);
+        }
 
-		private void CloseButton_Click( object sender, RoutedEventArgs e ) => Close();
+        private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
-		private void InputElement_OnPointerMoved( object sender, PointerEventArgs e )
-		{
-			if (!_mouseDownForWindowMoving)
-				return;
+        private void InputElement_OnPointerMoved(object sender, PointerEventArgs e)
+        {
+            if (!_mouseDownForWindowMoving)
+            {
+                return;
+            }
 
-			PointerPoint currentPoint = e.GetCurrentPoint( this );
-			Position = new PixelPoint(
-				Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
-				Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
-			);
-		}
+            PointerPoint currentPoint = e.GetCurrentPoint(this);
+            Position = new PixelPoint(
+                Position.X + (int)(currentPoint.Position.X - _originalPoint.Position.X),
+                Position.Y + (int)(currentPoint.Position.Y - _originalPoint.Position.Y)
+            );
+        }
 
-		private void InputElement_OnPointerPressed( object sender, PointerPressedEventArgs e )
-		{
-			if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
-				return;
+        private void InputElement_OnPointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            if (WindowState == WindowState.Maximized || WindowState == WindowState.FullScreen)
+            {
+                return;
+            }
 
-			if (ShouldIgnorePointerForWindowDrag( e ))
-				return;
+            if (ShouldIgnorePointerForWindowDrag(e))
+            {
+                return;
+            }
 
-			_mouseDownForWindowMoving = true;
-			_originalPoint = e.GetCurrentPoint( this );
-		}
+            _mouseDownForWindowMoving = true;
+            _originalPoint = e.GetCurrentPoint(this);
+        }
 
-		private void InputElement_OnPointerReleased( object sender, PointerEventArgs e ) =>
-			_mouseDownForWindowMoving = false;
+        private void InputElement_OnPointerReleased(object sender, PointerEventArgs e) =>
+            _mouseDownForWindowMoving = false;
 
-		private bool ShouldIgnorePointerForWindowDrag( PointerEventArgs e )
-		{
+        private bool ShouldIgnorePointerForWindowDrag(PointerEventArgs e)
+        {
 
-			if (!(e.Source is Visual source))
-				return false;
+            if (!(e.Source is Visual source))
+            {
+                return false;
+            }
 
-			Visual current = source;
-			while (current != null && current != this)
-			{
-				switch (current)
-				{
+            Visual current = source;
+            while (current != null && current != this)
+            {
+                switch (current)
+                {
 
-					case Button _:
-					case TextBox _:
-					case ComboBox _:
-					case ListBox _:
-					case MenuItem _:
-					case Menu _:
-					case Expander _:
-					case Slider _:
-					case TabControl _:
-					case TabItem _:
-					case ProgressBar _:
-					case ScrollViewer _:
+                    case Button _:
+                    case TextBox _:
+                    case ComboBox _:
+                    case ListBox _:
+                    case MenuItem _:
+                    case Menu _:
+                    case Expander _:
+                    case Slider _:
+                    case TabControl _:
+                    case TabItem _:
+                    case ProgressBar _:
+                    case ScrollViewer _:
 
-					case Control control when control.ContextMenu?.IsOpen == true:
-						return true;
-					case Control control when control.ContextFlyout?.IsOpen == true:
-						return true;
-					default:
-						current = current.GetVisualParent();
-						break;
-				}
-			}
+                    case Control control when control.ContextMenu?.IsOpen == true:
+                        return true;
+                    case Control control when control.ContextFlyout?.IsOpen == true:
+                        return true;
+                    default:
+                        current = current.GetVisualParent();
+                        break;
+                }
+            }
 
-			return false;
-		}
-	}
+            return false;
+        }
+    }
 }

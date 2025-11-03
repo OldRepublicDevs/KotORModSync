@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -13,79 +13,82 @@ using KOTORModSync.Core.Services;
 
 namespace KOTORModSync.Dialogs
 {
-	public partial class TelemetryConsentDialog : Window
-	{
-		public TelemetryConfiguration Configuration { get; private set; }
-		public bool UserAccepted { get; private set; }
+    public partial class TelemetryConsentDialog : Window
+    {
+        public TelemetryConfiguration Configuration { get; private set; }
+        public bool UserAccepted { get; private set; }
 
-		public TelemetryConsentDialog()
-		{
-			InitializeComponent();
-			Configuration = TelemetryConfiguration.Load();
-		}
+        public TelemetryConsentDialog()
+        {
+            InitializeComponent();
+            Configuration = TelemetryConfiguration.Load();
 
-		private void EnableButton_Click( object sender, RoutedEventArgs e )
-		{
-			try
-			{
+            // Apply current theme
+            ThemeManager.ApplyCurrentToWindow(this);
+        }
 
-				Configuration.SetUserConsent( true );
-				Configuration.CollectUsageData = CollectUsageCheckBox?.IsChecked ?? true;
-				Configuration.CollectPerformanceMetrics = CollectPerformanceCheckBox?.IsChecked ?? true;
-				Configuration.CollectCrashReports = CollectCrashReportsCheckBox?.IsChecked ?? true;
-				Configuration.CollectMachineInfo = CollectMachineInfoCheckBox?.IsChecked ?? false;
+        private void EnableButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
 
-				bool localOnly = LocalOnlyRadio?.IsChecked ?? true;
-				Configuration.EnableFileExporter = localOnly;
-				Configuration.EnableOtlpExporter = !localOnly;
+                Configuration.SetUserConsent(true);
+                Configuration.CollectUsageData = CollectUsageCheckBox?.IsChecked ?? true;
+                Configuration.CollectPerformanceMetrics = CollectPerformanceCheckBox?.IsChecked ?? true;
+                Configuration.CollectCrashReports = CollectCrashReportsCheckBox?.IsChecked ?? true;
+                Configuration.CollectMachineInfo = CollectMachineInfoCheckBox?.IsChecked ?? false;
 
-				if (!localOnly)
-				{
+                bool localOnly = LocalOnlyRadio?.IsChecked ?? true;
+                Configuration.EnableFileExporter = localOnly;
+                Configuration.EnableOtlpExporter = !localOnly;
 
-					Configuration.OtlpEndpoint = "https://telemetry.kotormodsync.com/v1/traces";
-				}
+                if (!localOnly)
+                {
 
-				Configuration.Save();
+                    Configuration.OtlpEndpoint = "https://telemetry.kotormodsync.com/v1/traces";
+                }
 
-				UserAccepted = true;
-				Logger.Log( "[Telemetry] User consented to telemetry collection" );
-				Close( true );
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex, "[Telemetry] Error saving telemetry consent" );
-				Close( false );
-			}
-		}
+                Configuration.Save();
 
-		private void DeclineButton_Click( object sender, RoutedEventArgs e )
-		{
-			try
-			{
-				Configuration.SetUserConsent( false );
-				Configuration.Save();
+                UserAccepted = true;
+                Logger.Log("[Telemetry] User consented to telemetry collection");
+                Close(true);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "[Telemetry] Error saving telemetry consent");
+                Close(false);
+            }
+        }
 
-				UserAccepted = false;
-				Logger.Log( "[Telemetry] User declined telemetry collection" );
-				Close( false );
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex, "[Telemetry] Error saving telemetry decline" );
-				Close( false );
-			}
-		}
+        private void DeclineButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Configuration.SetUserConsent(false);
+                Configuration.Save();
 
-		public static bool? ShowConsentDialog( Window parent )
-		{
-			bool? result = null;
-			Dispatcher.UIThread.InvokeAsync( () =>
-			{
-				var dialog = new TelemetryConsentDialog();
-				dialog.ShowDialog( parent );
-				result = dialog.UserAccepted;
-			} ).Wait();
-			return result;
-		}
-	}
+                UserAccepted = false;
+                Logger.Log("[Telemetry] User declined telemetry collection");
+                Close(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "[Telemetry] Error saving telemetry decline");
+                Close(false);
+            }
+        }
+
+        public static bool? ShowConsentDialog(Window parent)
+        {
+            bool? result = null;
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var dialog = new TelemetryConsentDialog();
+                _ = dialog.ShowDialog(parent);
+                result = dialog.UserAccepted;
+            }).Wait();
+            return result;
+        }
+    }
 }

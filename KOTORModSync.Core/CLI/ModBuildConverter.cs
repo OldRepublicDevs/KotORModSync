@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -108,17 +108,17 @@ namespace KOTORModSync.Core.CLI
 
     public static class ModBuildConverter
     {
-        private static MainConfig _config;
-        private static ConsoleProgressDisplay _progressDisplay;
-        private static DownloadCacheService _globalDownloadCache;
-        private static ErrorCollector _errorCollector;
+        private static MainConfig s_config;
+        private static ConsoleProgressDisplay s_progressDisplay;
+        private static DownloadCacheService s_globalDownloadCache;
+        private static ErrorCollector s_errorCollector;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private static void EnsureConfigInitialized()
         {
-            if (_config is null)
+            if (s_config is null)
             {
-                _config = new MainConfig();
+                s_config = new MainConfig();
                 Logger.LogVerbose("MainConfig initialized");
 
                 try
@@ -139,31 +139,31 @@ namespace KOTORModSync.Core.CLI
                         {
                             if (!string.IsNullOrWhiteSpace(settings.NexusModsApiKey))
                             {
-                                _config.nexusModsApiKey = settings.NexusModsApiKey;
+                                s_config.nexusModsApiKey = settings.NexusModsApiKey;
                                 Logger.LogVerbose("Loaded Nexus Mods API key from settings.json");
                             }
 
                             if (!string.IsNullOrEmpty(settings.SourcePath) && Directory.Exists(settings.SourcePath))
                             {
-                                _config.sourcePath = new DirectoryInfo(settings.SourcePath);
+                                s_config.sourcePath = new DirectoryInfo(settings.SourcePath);
                                 Logger.LogVerbose($"Loaded source path from settings: {settings.SourcePath}");
                             }
 
                             if (!string.IsNullOrEmpty(settings.DestinationPath) && Directory.Exists(settings.DestinationPath))
                             {
-                                _config.destinationPath = new DirectoryInfo(settings.DestinationPath);
+                                s_config.destinationPath = new DirectoryInfo(settings.DestinationPath);
                                 Logger.LogVerbose($"Loaded destination path from settings: {settings.DestinationPath}");
                             }
 
-                            _config.debugLogging = settings.DebugLogging;
-                            _config.attemptFixes = settings.AttemptFixes;
-                            _config.noAdmin = settings.NoAdmin;
-                            _config.caseInsensitivePathing = settings.CaseInsensitivePathing;
-                            _config.archiveDeepCheck = settings.ArchiveDeepCheck;
-                            _config.useMultiThreadedIO = settings.UseMultiThreadedIO;
-                            _config.useCopyForMoveActions = settings.UseCopyForMoveActions;
-                            _config.validateAndReplaceInvalidArchives = settings.ValidateAndReplaceInvalidArchives;
-                            _config.filterDownloadsByResolution = settings.FilterDownloadsByResolution;
+                            s_config.debugLogging = settings.DebugLogging;
+                            s_config.attemptFixes = settings.AttemptFixes;
+                            s_config.noAdmin = settings.NoAdmin;
+                            s_config.caseInsensitivePathing = settings.CaseInsensitivePathing;
+                            s_config.archiveDeepCheck = settings.ArchiveDeepCheck;
+                            s_config.useMultiThreadedIO = settings.UseMultiThreadedIO;
+                            s_config.useCopyForMoveActions = settings.UseCopyForMoveActions;
+                            s_config.validateAndReplaceInvalidArchives = settings.ValidateAndReplaceInvalidArchives;
+                            s_config.filterDownloadsByResolution = settings.FilterDownloadsByResolution;
 
                             Logger.LogVerbose("Settings loaded successfully from settings.json");
                         }
@@ -178,7 +178,7 @@ namespace KOTORModSync.Core.CLI
                     Logger.LogWarning($"Failed to load settings.json: {ex.Message}");
                 }
 
-                if (string.IsNullOrWhiteSpace(_config.nexusModsApiKey))
+                if (string.IsNullOrWhiteSpace(s_config.nexusModsApiKey))
                 {
                     try
                     {
@@ -193,7 +193,7 @@ namespace KOTORModSync.Core.CLI
                             string apiKey = File.ReadAllText(legacyConfigFile).Trim();
                             if (!string.IsNullOrWhiteSpace(apiKey))
                             {
-                                _config.nexusModsApiKey = apiKey;
+                                s_config.nexusModsApiKey = apiKey;
                                 Logger.LogVerbose($"Loaded Nexus Mods API key from legacy config: {legacyConfigFile}");
 
                                 SaveSettings();
@@ -241,21 +241,23 @@ namespace KOTORModSync.Core.CLI
                 }
 
                 if (string.IsNullOrEmpty(settings.Theme))
+                {
                     settings.Theme = "SukiUI.Light";
+                }
 
-                settings.SourcePath = _config.sourcePathFullName;
-                settings.DestinationPath = _config.destinationPathFullName;
-                settings.DebugLogging = _config.debugLogging;
-                settings.AttemptFixes = _config.attemptFixes;
-                settings.NoAdmin = _config.noAdmin;
-                settings.CaseInsensitivePathing = _config.caseInsensitivePathing;
-                settings.ArchiveDeepCheck = _config.archiveDeepCheck;
-                settings.UseMultiThreadedIO = _config.useMultiThreadedIO;
-                settings.UseCopyForMoveActions = _config.useCopyForMoveActions;
-                settings.LastOutputDirectory = _config.lastOutputDirectory?.FullName;
-                settings.ValidateAndReplaceInvalidArchives = _config.validateAndReplaceInvalidArchives;
-                settings.FilterDownloadsByResolution = _config.filterDownloadsByResolution;
-                settings.NexusModsApiKey = _config.nexusModsApiKey;
+                settings.SourcePath = s_config.sourcePathFullName;
+                settings.DestinationPath = s_config.destinationPathFullName;
+                settings.DebugLogging = s_config.debugLogging;
+                settings.AttemptFixes = s_config.attemptFixes;
+                settings.NoAdmin = s_config.noAdmin;
+                settings.CaseInsensitivePathing = s_config.caseInsensitivePathing;
+                settings.ArchiveDeepCheck = s_config.archiveDeepCheck;
+                settings.UseMultiThreadedIO = s_config.useMultiThreadedIO;
+                settings.UseCopyForMoveActions = s_config.useCopyForMoveActions;
+                settings.LastOutputDirectory = s_config.lastOutputDirectory?.FullName;
+                settings.ValidateAndReplaceInvalidArchives = s_config.validateAndReplaceInvalidArchives;
+                settings.FilterDownloadsByResolution = s_config.filterDownloadsByResolution;
+                settings.NexusModsApiKey = s_config.nexusModsApiKey;
 
                 string json = JsonConvert.SerializeObject(settings, Formatting.Indented);
                 File.WriteAllText(settingsPath, json);
@@ -608,7 +610,7 @@ namespace KOTORModSync.Core.CLI
 
             Logger.Initialize();
 
-            Parser parser = new Parser(with => with.HelpWriter = Console.Out);
+            var parser = new Parser(with => with.HelpWriter = Console.Out);
 
             return parser.ParseArguments<ConvertOptions, MergeOptions, ValidateOptions, InstallOptions, SetNexusApiKeyOptions, InstallPythonDepsOptions, HolopatcherOptions, CacheStatsOptions, CacheClearOptions, CacheBlockOptions>(args)
             .MapResult(
@@ -635,14 +637,14 @@ namespace KOTORModSync.Core.CLI
         /// If ignoreErrors is true, attempts to resolve with errors ignored.
         /// Otherwise, prints comprehensive error information and fails.
         /// </summary>
-        private static List<ModComponent> HandleDependencyResolutionErrors(
+        private static IReadOnlyList<ModComponent> HandleDependencyResolutionErrors(
             List<ModComponent> components,
             bool ignoreErrors,
             string operationContext)
         {
             try
             {
-                DependencyResolutionResult resolutionResult = Core.Services.DependencyResolverService.ResolveDependencies(components, ignoreErrors);
+                DependencyResolutionResult resolutionResult = DependencyResolverService.ResolveDependencies(components, ignoreErrors);
 
                 if (resolutionResult.Success)
                 {
@@ -700,7 +702,7 @@ namespace KOTORModSync.Core.CLI
         private static void LogAllErrors(DownloadCacheService downloadCache, bool forceConsoleOutput = false)
         {
             bool hasDownloadFailures = downloadCache?.GetFailures().Count > 0;
-            bool hasOtherErrors = _errorCollector?.GetErrorCount() > 0;
+            bool hasOtherErrors = s_errorCollector?.GetErrorCount() > 0;
 
             if (!hasDownloadFailures && !hasOtherErrors)
             {
@@ -719,9 +721,9 @@ namespace KOTORModSync.Core.CLI
                     Console.WriteLine(message);
                     Console.Out.Flush();
                 }
-                else if (_progressDisplay != null)
+                else if (s_progressDisplay != null)
                 {
-                    _progressDisplay.WriteScrollingLog(message);
+                    s_progressDisplay.WriteScrollingLog(message);
                 }
                 else
                 {
@@ -737,7 +739,7 @@ namespace KOTORModSync.Core.CLI
             // Display errors by category
             if (hasOtherErrors)
             {
-                IReadOnlyDictionary<ErrorCollector.ErrorCategory, List<ErrorCollector.ErrorInfo>> errorsByCategory = _errorCollector.GetErrorsByCategory();
+                IReadOnlyDictionary<ErrorCollector.ErrorCategory, List<ErrorCollector.ErrorInfo>> errorsByCategory = s_errorCollector.GetErrorsByCategory();
 
                 foreach (KeyValuePair<ErrorCollector.ErrorCategory, List<ErrorCollector.ErrorInfo>> categoryGroup in errorsByCategory.OrderBy(kvp => kvp.Key.ToString(), StringComparer.Ordinal))
                 {
@@ -795,9 +797,9 @@ namespace KOTORModSync.Core.CLI
             if (hasDownloadFailures)
             {
                 IReadOnlyList<DownloadCacheService.DownloadFailureInfo> failures = downloadCache.GetFailures();
-                List<DownloadCacheService.DownloadFailureInfo> failuresWithBoth = new List<DownloadCacheService.DownloadFailureInfo>();
-                List<DownloadCacheService.DownloadFailureInfo> failuresUrlOnly = new List<DownloadCacheService.DownloadFailureInfo>();
-                List<DownloadCacheService.DownloadFailureInfo> failuresFileOnly = new List<DownloadCacheService.DownloadFailureInfo>();
+                var failuresWithBoth = new List<DownloadCacheService.DownloadFailureInfo>();
+                var failuresUrlOnly = new List<DownloadCacheService.DownloadFailureInfo>();
+                var failuresFileOnly = new List<DownloadCacheService.DownloadFailureInfo>();
 
                 foreach (DownloadCacheService.DownloadFailureInfo failure in failures)
                 {
@@ -805,11 +807,17 @@ namespace KOTORModSync.Core.CLI
                     bool hasFile = !string.IsNullOrWhiteSpace(failure.ExpectedFileName);
 
                     if (hasUrl && hasFile)
+                    {
                         failuresWithBoth.Add(failure);
+                    }
                     else if (hasUrl)
+                    {
                         failuresUrlOnly.Add(failure);
+                    }
                     else if (hasFile)
+                    {
                         failuresFileOnly.Add(failure);
+                    }
                 }
 
                 WriteOutput("");
@@ -825,7 +833,9 @@ namespace KOTORModSync.Core.CLI
                     {
                         WriteOutput($"    [{failure.ComponentName}] {failure.Url} → {failure.ExpectedFileName}");
                         if (!string.IsNullOrWhiteSpace(failure.ErrorMessage))
+                        {
                             WriteOutput($"      Error: {failure.ErrorMessage}");
+                        }
 
                         // Display full log context leading up to the failure
                         if (failure.LogContext != null && failure.LogContext.Count > 0)
@@ -851,7 +861,9 @@ namespace KOTORModSync.Core.CLI
                     {
                         WriteOutput($"    [{failure.ComponentName}] {failure.Url}");
                         if (!string.IsNullOrWhiteSpace(failure.ErrorMessage))
+                        {
                             WriteOutput($"      Error: {failure.ErrorMessage}");
+                        }
 
                         // Display full log context leading up to the failure
                         if (failure.LogContext != null && failure.LogContext.Count > 0)
@@ -877,7 +889,9 @@ namespace KOTORModSync.Core.CLI
                     {
                         WriteOutput($"    [{failure.ComponentName}] {failure.ExpectedFileName}");
                         if (!string.IsNullOrWhiteSpace(failure.ErrorMessage))
+                        {
                             WriteOutput($"      Error: {failure.ErrorMessage}");
+                        }
 
                         // Display full log context leading up to the failure
                         if (failure.LogContext != null && failure.LogContext.Count > 0)
@@ -897,7 +911,7 @@ namespace KOTORModSync.Core.CLI
 
             WriteOutput("");
             WriteOutput(new string('=', 80));
-            int totalErrors = (_errorCollector?.GetErrorCount() ?? 0) + (downloadCache?.GetFailures()?.Count ?? 0);
+            int totalErrors = (s_errorCollector?.GetErrorCount() ?? 0) + (downloadCache?.GetFailures()?.Count ?? 0);
             WriteOutput($"TOTAL ERRORS/FAILURES: {totalErrors}");
             WriteOutput(new string('=', 80));
         }
@@ -905,46 +919,53 @@ namespace KOTORModSync.Core.CLI
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private static async Task<DownloadCacheService> DownloadAllModFilesAsync(List<ModComponent> components, string destinationDirectory, bool verbose, bool sequential = true, CancellationToken cancellationToken = default)
         {
-            int componentCount = components.Count(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0);
+            int componentCount = components.Count(c => c.ResourceRegistry != null && c.ResourceRegistry.Count > 0);
             if (componentCount == 0)
             {
-                if (_progressDisplay != null)
-                    _progressDisplay.WriteScrollingLog("No components with URLs found to download");
+                if (s_progressDisplay != null)
+                {
+                    s_progressDisplay.WriteScrollingLog("No components with URLs found to download");
+                }
                 else
-
-
+                {
                     await Logger.LogVerboseAsync("No components with URLs found to download").ConfigureAwait(false);
+                }
+
                 return null;
             }
 
             string message = $"Processing {componentCount} component(s) for download...";
-            if (_progressDisplay != null)
-                _progressDisplay.WriteScrollingLog(message);
+            if (s_progressDisplay != null)
+            {
+                s_progressDisplay.WriteScrollingLog(message);
+            }
             else
+            {
                 await Logger.LogAsync(message).ConfigureAwait(false);
+            }
 
-            DownloadCacheService downloadCache = new DownloadCacheService();
-            _globalDownloadCache = downloadCache;
+            var downloadCache = new DownloadCacheService();
+            s_globalDownloadCache = downloadCache;
 
             DownloadManager downloadManager = Services.Download.DownloadHandlerFactory.CreateDownloadManager(
-                nexusModsApiKey: _config.nexusModsApiKey);
+                nexusModsApiKey: s_config.nexusModsApiKey);
 
             downloadCache.SetDownloadManager(downloadManager);
 
-            Dictionary<string, double> lastLoggedProgress = new Dictionary<string, double>(StringComparer.Ordinal);
+            var lastLoggedProgress = new Dictionary<string, double>(StringComparer.Ordinal);
             object progressLock = new object();
 
-            Progress<DownloadProgress> progressReporter = new Progress<DownloadProgress>(progress =>
+            var progressReporter = new Progress<DownloadProgress>(progress =>
             {
                 string fileName = Path.GetFileName(progress.FilePath ?? progress.Url);
                 string progressKey = $"{progress.ModName}:{fileName}";
 
                 if (progress.Status == DownloadStatus.InProgress)
                 {
-                    if (_progressDisplay != null)
+                    if (s_progressDisplay != null)
                     {
                         string displayText = $"{progress.ModName}: {fileName}";
-                        _progressDisplay.UpdateProgress(progressKey, displayText, progress.ProgressPercentage, "downloading");
+                        s_progressDisplay.UpdateProgress(progressKey, displayText, progress.ProgressPercentage, "downloading");
                     }
                     else if (verbose)
                     {
@@ -974,10 +995,10 @@ namespace KOTORModSync.Core.CLI
                 }
                 else if (progress.Status == DownloadStatus.Completed)
                 {
-                    if (_progressDisplay != null)
+                    if (s_progressDisplay != null)
                     {
-                        _progressDisplay.RemoveProgress(progressKey);
-                        _progressDisplay.WriteScrollingLog($"✓ Downloaded: {fileName}");
+                        s_progressDisplay.RemoveProgress(progressKey);
+                        s_progressDisplay.WriteScrollingLog($"✓ Downloaded: {fileName}");
                     }
                     else
                     {
@@ -990,11 +1011,11 @@ namespace KOTORModSync.Core.CLI
                 }
                 else if (progress.Status == DownloadStatus.Failed)
                 {
-                    if (_progressDisplay != null)
+                    if (s_progressDisplay != null)
                     {
-                        _progressDisplay.RemoveProgress(progressKey);
-                        _progressDisplay.AddFailedItem(progress.Url, progress.ErrorMessage);
-                        _progressDisplay.WriteScrollingLog($"✗ Failed: {fileName}");
+                        s_progressDisplay.RemoveProgress(progressKey);
+                        s_progressDisplay.AddFailedItem(progress.Url, progress.ErrorMessage);
+                        s_progressDisplay.WriteScrollingLog($"✗ Failed: {fileName}");
                     }
                     else
                     {
@@ -1007,9 +1028,9 @@ namespace KOTORModSync.Core.CLI
                 }
                 else if (progress.Status == DownloadStatus.Skipped)
                 {
-                    if (_progressDisplay != null)
+                    if (s_progressDisplay != null)
                     {
-                        _progressDisplay.WriteScrollingLog($"⊙ Skipped (exists): {fileName}");
+                        s_progressDisplay.WriteScrollingLog($"⊙ Skipped (exists): {fileName}");
                     }
                     else
                     {
@@ -1020,21 +1041,21 @@ namespace KOTORModSync.Core.CLI
 
             try
             {
-                List<ModComponent> componentsToProcess = components.Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0).ToList();
+                var componentsToProcess = components.Where(c => c.ResourceRegistry != null && c.ResourceRegistry.Count > 0).ToList();
 
 
                 await Logger.LogVerboseAsync($"[Download] Processing {componentsToProcess.Count} components with concurrency limit of 10").ConfigureAwait(false);
 
-                using (SemaphoreSlim semaphore = new SemaphoreSlim(10))
+                using (var semaphore = new SemaphoreSlim(10))
                 {
-                    List<Task<(ModComponent component, List<DownloadCacheService.DownloadCacheEntry> results, int successCount, string error)>> downloadTasks = componentsToProcess.Select(async component =>
+                    var downloadTasks = componentsToProcess.Select(async component =>
 
 
                 {
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     try
                     {
-                        await Logger.LogVerboseAsync($"[Download] Processing component: {component.Name} ({component.ModLinkFilenames.Count} URL(s))").ConfigureAwait(false);
+                        await Logger.LogVerboseAsync($"[Download] Processing component: {component.Name} ({component.ResourceRegistry.Count} URL(s))").ConfigureAwait(false);
 
                         try
                         {
@@ -1043,10 +1064,8 @@ namespace KOTORModSync.Core.CLI
                                 destinationDirectory,
                                 progressReporter,
                                 sequential: sequential,
-
-
-                                cancellationToken).ConfigureAwait(true);
-                            List<DownloadCacheService.DownloadCacheEntry> results = readOnlyResults.ToList();
+                                cancellationToken).ConfigureAwait(false);
+                            var results = readOnlyResults.ToList();
 
                             int successCount = results.Count(entry =>
                             {
@@ -1061,24 +1080,28 @@ namespace KOTORModSync.Core.CLI
                         catch (Exception ex)
                         {
                             string errorMsg = $"Error processing component {component.Name}: {ex.Message}";
-                            if (_progressDisplay != null)
-                                _progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+                            if (s_progressDisplay != null)
+                            {
+                                s_progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+                            }
                             else
+                            {
                                 await Logger.LogErrorAsync(errorMsg).ConfigureAwait(false);
+                            }
 
                             if (verbose)
                             {
                                 await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
                             }
 
-                            _errorCollector?.RecordError(
+                            s_errorCollector?.RecordError(
                                 ErrorCollector.ErrorCategory.Download,
                                 component.Name,
                                 "Failed to process component for download",
                                 errorMsg,
                                 ex);
 
-                            return (component, results: new List<KOTORModSync.Core.Services.DownloadCacheService.DownloadCacheEntry>(), successCount: 0, error: errorMsg);
+                            return (component, results: new List<DownloadCacheService.DownloadCacheEntry>(), successCount: 0, error: errorMsg);
                         }
                     }
                     finally
@@ -1087,41 +1110,53 @@ namespace KOTORModSync.Core.CLI
                     }
                 }).ToList();
 
-                    (ModComponent component, List<DownloadCacheService.DownloadCacheEntry> results, int successCount, string error)[] downloadResults = await Task.WhenAll(downloadTasks).ConfigureAwait(true);
+                    (ModComponent component, List<DownloadCacheService.DownloadCacheEntry> results, int successCount, string error)[] downloadResults = await Task.WhenAll(downloadTasks).ConfigureAwait(false);
 
                     int totalSuccessCount = downloadResults.Sum(r => r.successCount);
                     int totalFailCount = downloadResults.Count(r => r.error != null);
 
                     string summaryMsg = $"Download results: {totalSuccessCount} files available, {totalFailCount} failed";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(summaryMsg);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(summaryMsg);
+                    }
                     else
+                    {
                         await Logger.LogAsync(summaryMsg).ConfigureAwait(false);
+                    }
 
                     if (totalFailCount > 0)
                     {
                         string warningMsg = "Some downloads failed. Check logs for details.";
-                        if (_progressDisplay != null)
-                            _progressDisplay.WriteScrollingLog($"⚠ {warningMsg}");
+                        if (s_progressDisplay != null)
+                        {
+                            s_progressDisplay.WriteScrollingLog($"⚠ {warningMsg}");
+                        }
                         else
+                        {
                             await Logger.LogWarningAsync(warningMsg).ConfigureAwait(false);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
                 string errorMsg = $"Error during download: {ex.Message}";
-                if (_progressDisplay != null)
-                    _progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+                if (s_progressDisplay != null)
+                {
+                    s_progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+                }
                 else
+                {
                     await Logger.LogErrorAsync(errorMsg).ConfigureAwait(false);
+                }
 
                 if (verbose)
                 {
                     await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
                 }
 
-                _errorCollector?.RecordError(
+                s_errorCollector?.RecordError(
                     ErrorCollector.ErrorCategory.Download,
                     null,
                     "Critical error during download process",
@@ -1139,7 +1174,9 @@ namespace KOTORModSync.Core.CLI
             IEnumerable<string> selections)
         {
             if (components is null)
+            {
                 return;
+            }
 
             if (selections is null || !selections.Any())
             {
@@ -1150,13 +1187,15 @@ namespace KOTORModSync.Core.CLI
                 return;
             }
 
-            HashSet<string> selectedCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            HashSet<string> selectedTiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var selectedCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var selectedTiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (string selection in selections)
             {
                 if (string.IsNullOrWhiteSpace(selection))
+                {
                     continue;
+                }
 
                 string[] parts = selection.Split(new[] { ':' }, 2);
                 if (parts.Length != 2)
@@ -1184,7 +1223,7 @@ namespace KOTORModSync.Core.CLI
                 }
             }
 
-            Dictionary<string, int> tierPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            var tierPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
                 { "Essential", 1 },
                 { "Recommended", 2 },
@@ -1203,7 +1242,7 @@ namespace KOTORModSync.Core.CLI
                 {
                     if (component.Category != null && component.Category.Count > 0)
                     {
-                        includeByCategory = component.Category.Exists(cat => selectedCategories.Contains(cat));
+                        includeByCategory = component.Category.Any(cat => selectedCategories.Contains(cat));
                     }
                 }
                 else
@@ -1277,7 +1316,7 @@ namespace KOTORModSync.Core.CLI
 
             try
             {
-                string content = await Task.Run(() => System.IO.File.ReadAllText(spoilerFreePath)).ConfigureAwait(false);
+                string content = await Task.Run(() => File.ReadAllText(spoilerFreePath)).ConfigureAwait(false);
                 Dictionary<string, Dictionary<string, string>> componentSpoilerFreeData = ParseSpoilerFreeMarkdown(content);
 
                 if (componentSpoilerFreeData.Count == 0)
@@ -1346,7 +1385,7 @@ namespace KOTORModSync.Core.CLI
             }
             catch (Exception ex)
             {
-                _errorCollector?.RecordError(
+                s_errorCollector?.RecordError(
                     ErrorCollector.ErrorCategory.FileOperation,
                     null,
                     "Failed to parse spoiler-free markdown file",
@@ -1387,9 +1426,10 @@ namespace KOTORModSync.Core.CLI
         /// ":::note" blocks with "Installation Instructions" are mapped to "Directions".
         /// Only fields with non-empty values will be applied to components.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
         private static Dictionary<string, Dictionary<string, string>> ParseSpoilerFreeMarkdown(string content)
         {
-            Dictionary<string, Dictionary<string, string>> result = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+            var result = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
             string[] lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
             string currentComponentName = null;
@@ -1505,7 +1545,7 @@ namespace KOTORModSync.Core.CLI
             }
 
             // Save last field and component
-            if (currentFieldName != null && currentFieldValue != null && currentFields != null)
+            if (currentFieldName != null)
             {
                 currentFields[currentFieldName] = currentFieldValue.ToString().Trim();
             }
@@ -1518,8 +1558,8 @@ namespace KOTORModSync.Core.CLI
         {
             SetVerboseMode(opts.Verbose);
 
-            _progressDisplay = new ConsoleProgressDisplay(usePlainText: opts.PlainText);
-            _errorCollector = new ErrorCollector();
+            s_progressDisplay = new ConsoleProgressDisplay(usePlainText: opts.PlainText);
+            s_errorCollector = new ErrorCollector();
 
             DownloadCacheService downloadCache = null;
 
@@ -1538,15 +1578,15 @@ namespace KOTORModSync.Core.CLI
 
                     try
                     {
-                        _progressDisplay?.Dispose();
-                        _progressDisplay = null;
+                        s_progressDisplay?.Dispose();
+                        s_progressDisplay = null;
                     }
                     catch (Exception disposeEx)
                     {
                         Console.Error.WriteLine($"Warning: Error disposing progress display: {disposeEx.Message}");
                     }
 
-                    if (_globalDownloadCache != null)
+                    if (s_globalDownloadCache != null)
                     {
                         try
                         {
@@ -1554,7 +1594,7 @@ namespace KOTORModSync.Core.CLI
                             Console.Error.WriteLine("Logging all errors and failures...");
                             Console.Error.Flush();
 
-                            LogAllErrors(_globalDownloadCache, forceConsoleOutput: true);
+                            LogAllErrors(s_globalDownloadCache, forceConsoleOutput: true);
 
                             Console.Error.WriteLine();
                             Console.Error.WriteLine("Error logging complete.");
@@ -1598,7 +1638,7 @@ namespace KOTORModSync.Core.CLI
 
                 if (!string.IsNullOrWhiteSpace(opts.NexusModsApiKey))
                 {
-                    _config.nexusModsApiKey = opts.NexusModsApiKey;
+                    s_config.nexusModsApiKey = opts.NexusModsApiKey;
 
 
                     await Logger.LogVerboseAsync("Using Nexus Mods API key from command line argument").ConfigureAwait(false);
@@ -1607,10 +1647,10 @@ namespace KOTORModSync.Core.CLI
                 // Backward compatibility: redirect to RunMergeAsync if using --merge flag
                 if (opts.Merge)
                 {
-                    _progressDisplay?.Dispose();
-                    _progressDisplay = null;
+                    s_progressDisplay?.Dispose();
+                    s_progressDisplay = null;
 
-                    MergeOptions mergeOpts = new MergeOptions
+                    var mergeOpts = new MergeOptions
                     {
                         ExistingPath = opts.ExistingPath,
                         IncomingPath = opts.IncomingPath,
@@ -1650,36 +1690,20 @@ namespace KOTORModSync.Core.CLI
 
 
                     await Logger.LogErrorAsync("--input is required for convert mode").ConfigureAwait(false);
-                    Logger.Log("Usage: convert --input <file> [options]");
-                    Logger.Log("   OR: Use the 'merge' command to merge two instruction sets");
-                    Logger.Log("       merge --existing <file> --incoming <file> [options]");
-                    Logger.Log("   OR: convert --merge --existing <file> --incoming <file> [options] (backward compatible)");
+                    await Logger.LogAsync("Usage: convert --input <file> [options]").ConfigureAwait(false);
+                    await Logger.LogAsync("   OR: Use the 'merge' command to merge two instruction sets").ConfigureAwait(false);
+                    await Logger.LogAsync("       merge --existing <file> --incoming <file> [options]").ConfigureAwait(false);
+                    await Logger.LogAsync("   OR: convert --merge --existing <file> --incoming <file> [options] (backward compatible)").ConfigureAwait(false);
                     return 1;
                 }
 
                 if (!File.Exists(opts.InputPath))
                 {
-
-
                     await Logger.LogErrorAsync($"Input file not found: {opts.InputPath}").ConfigureAwait(false);
                     return 1;
                 }
 
-
-
-                await Logger.LogVerboseAsync($"Convert mode: {opts.InputPath}")
-
-
-
-
-
-
-
-
-
-
-
-.ConfigureAwait(false);
+                await Logger.LogVerboseAsync($"Convert mode: {opts.InputPath}").ConfigureAwait(false);
                 await Logger.LogVerboseAsync($"Output format: {opts.Format}").ConfigureAwait(false);
 
                 if (opts.Download && string.IsNullOrEmpty(opts.SourcePath))
@@ -1697,37 +1721,43 @@ namespace KOTORModSync.Core.CLI
                         Directory.CreateDirectory(opts.SourcePath);
                     }
 
-                    _config.sourcePath = new DirectoryInfo(opts.SourcePath);
-                    _config.debugLogging = opts.Verbose;
+                    s_config.sourcePath = new DirectoryInfo(opts.SourcePath);
+                    s_config.debugLogging = opts.Verbose;
                     await Logger.LogVerboseAsync($"Source path set to: {opts.SourcePath}").ConfigureAwait(false);
                 }
 
                 // Convert mode only (merge is now handled in RunMergeAsync)
                 string msg = "Loading components from input file...";
-                if (_progressDisplay != null)
-                    _progressDisplay.WriteScrollingLog(msg);
+                if (s_progressDisplay != null)
+                {
+                    s_progressDisplay.WriteScrollingLog(msg);
+                }
                 else
+                {
                     await Logger.LogVerboseAsync(msg).ConfigureAwait(false);
+                }
 
                 List<ModComponent> components;
                 try
                 {
-                    components = await FileLoadingService.LoadFromFileAsync(opts.InputPath)
-
-.ConfigureAwait(false);
+                    components = await FileLoadingService.LoadFromFileAsync(opts.InputPath).ConfigureAwait(false);
 
                     // Handle dependency resolution
-                    components = HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Convert");
+                    components = (List<ModComponent>)HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Convert");
 
                     msg = $"Loaded {components.Count} components";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(msg);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(msg);
+                    }
                     else
+                    {
                         await Logger.LogVerboseAsync(msg).ConfigureAwait(false);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _errorCollector?.RecordError(
+                    s_errorCollector?.RecordError(
                         ErrorCollector.ErrorCategory.FileOperation,
                         null,
                         "Failed to load components from file",
@@ -1739,12 +1769,16 @@ namespace KOTORModSync.Core.CLI
                 if (opts.Download)
                 {
                     msg = "Starting download of mod files...";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(msg);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(msg);
+                    }
                     else
-                        Logger.Log(msg);
+                    {
+                        await Logger.LogAsync(msg).ConfigureAwait(false);
+                    }
 
-                    using (CancellationTokenSource downloadCts = new CancellationTokenSource(TimeSpan.FromHours(2)))
+                    using (var downloadCts = new CancellationTokenSource(TimeSpan.FromHours(2)))
 
 
                     {
@@ -1752,37 +1786,49 @@ namespace KOTORModSync.Core.CLI
                     }
 
                     msg = "Download complete";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(msg);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(msg);
+                    }
                     else
+                    {
                         await Logger.LogAsync(msg).ConfigureAwait(false);
+                    }
                 }
 
                 if (opts.AutoGenerate)
                 {
                     string message = "Auto-generating instructions from URLs...";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(message);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(message);
+                    }
                     else
+                    {
                         await Logger.LogVerboseAsync(message).ConfigureAwait(false);
+                    }
 
                     if (downloadCache is null)
                     {
-                        downloadCache = new Services.DownloadCacheService();
+                        downloadCache = new DownloadCacheService();
                         downloadCache.SetDownloadManager();
-                        _globalDownloadCache = downloadCache;
+                        s_globalDownloadCache = downloadCache;
                     }
 
-                    int totalComponents = components.Count(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0);
+                    int totalComponents = components.Count(c => c.ResourceRegistry != null && c.ResourceRegistry.Count > 0);
                     message = $"Processing {totalComponents} components sequentially...";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(message);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(message);
+                    }
                     else
+                    {
                         await Logger.LogVerboseAsync(message).ConfigureAwait(false);
+                    }
 
                     int successCount = 0;
                     int currentIndex = 0;
-                    foreach (ModComponent component in components.Where(c => c.ModLinkFilenames != null && c.ModLinkFilenames.Count > 0))
+                    foreach (ModComponent component in components.Where(c => c.ResourceRegistry != null && c.ResourceRegistry.Count > 0))
                     {
                         component.IsSelected = true;
                         currentIndex++;
@@ -1790,10 +1836,10 @@ namespace KOTORModSync.Core.CLI
                         string progressKey = $"autogen:{component.Name}";
                         double progressPercent = (double)currentIndex / totalComponents * 100.0;
 
-                        if (_progressDisplay != null)
+                        if (s_progressDisplay != null)
                         {
-                            _progressDisplay.UpdateProgress(progressKey, component.Name, progressPercent, "processing");
-                            _progressDisplay.WriteScrollingLog($"[{currentIndex}/{totalComponents}] Processing: {component.Name}");
+                            s_progressDisplay.UpdateProgress(progressKey, component.Name, progressPercent, "processing");
+                            s_progressDisplay.WriteScrollingLog($"[{currentIndex}/{totalComponents}] Processing: {component.Name}");
                         }
                         else
                         {
@@ -1808,7 +1854,7 @@ namespace KOTORModSync.Core.CLI
                         }
                         catch (Exception ex)
                         {
-                            _errorCollector?.RecordError(
+                            s_errorCollector?.RecordError(
                                 ErrorCollector.ErrorCategory.General,
                                 component.Name,
                                 "Auto-instruction generation failed",
@@ -1817,28 +1863,35 @@ namespace KOTORModSync.Core.CLI
                             success = false;
                         }
 
-                        if (_progressDisplay != null)
+                        if (s_progressDisplay != null)
                         {
-                            _progressDisplay.RemoveProgress(progressKey);
+                            s_progressDisplay.RemoveProgress(progressKey);
                         }
 
                         if (success)
                         {
-                            if (_progressDisplay != null)
-                                _progressDisplay.WriteScrollingLog($"✓ {component.Name}");
+                            if (s_progressDisplay != null)
+                            {
+                                s_progressDisplay.WriteScrollingLog($"✓ {component.Name}");
+                            }
                             else
+                            {
                                 await Logger.LogVerboseAsync($"Auto-generation successful for component: {component.Name}").ConfigureAwait(false);
+                            }
+
                             successCount++;
                         }
                         else
                         {
-                            if (_progressDisplay != null)
-                                _progressDisplay.WriteScrollingLog($"✗ Failed: {component.Name}");
+                            if (s_progressDisplay != null)
+                            {
+                                s_progressDisplay.WriteScrollingLog($"✗ Failed: {component.Name}");
+                            }
 
                             // Record as error if not already recorded
                             if (!success)
                             {
-                                _errorCollector?.RecordError(
+                                s_errorCollector?.RecordError(
                                     ErrorCollector.ErrorCategory.General,
                                     component.Name,
                                     "Auto-instruction generation returned false",
@@ -1848,10 +1901,14 @@ namespace KOTORModSync.Core.CLI
                     }
 
                     message = $"Auto-generation complete: {successCount}/{totalComponents} components processed successfully";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(message);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(message);
+                    }
                     else
+                    {
                         await Logger.LogVerboseAsync(message).ConfigureAwait(false);
+                    }
                 }
 
                 ApplySelectionFilters(components, opts.Select);
@@ -1862,14 +1919,11 @@ namespace KOTORModSync.Core.CLI
                     await ApplySpoilerFreeContentAsync(components, opts.SpoilerFreePath).ConfigureAwait(false);
                 }
 
-                // Populate ModLinkFilenames from download cache before serialization
-                if (downloadCache != null)
-                {
-                    await PopulateModLinkFilenamesFromCacheAsync(components).ConfigureAwait(false);
-                }
+                // ResourceRegistry is already populated during PreResolveUrlsAsync
+                // No additional population needed before serialization
 
                 // Create validation context to track issues for serialization
-                ComponentValidationContext validationContext = new ComponentValidationContext();
+                var validationContext = new ComponentValidationContext();
 
                 // Collect download failures from cache
                 if (downloadCache != null)
@@ -1882,9 +1936,9 @@ namespace KOTORModSync.Core.CLI
                 }
 
                 // Collect validation issues from error collector
-                if (_errorCollector != null)
+                if (s_errorCollector != null)
                 {
-                    foreach (ErrorCollector.ErrorInfo error in _errorCollector.GetErrors())
+                    foreach (ErrorCollector.ErrorInfo error in s_errorCollector.GetErrors())
                     {
                         // Try to find the component by name
                         ModComponent component = components.Find(c => string.Equals(c.Name, error.ComponentName, StringComparison.Ordinal));
@@ -1895,10 +1949,14 @@ namespace KOTORModSync.Core.CLI
                     }
                 }
 
-                if (_progressDisplay != null)
-                    _progressDisplay.WriteScrollingLog("Serializing to output format...");
+                if (s_progressDisplay != null)
+                {
+                    s_progressDisplay.WriteScrollingLog("Serializing to output format...");
+                }
                 else
+                {
                     await Logger.LogVerboseAsync("Serializing to output format...").ConfigureAwait(false);
+                }
 
                 string output = ModComponentSerializationService.SerializeModComponentAsString(components, opts.Format, validationContext);
 
@@ -1908,30 +1966,38 @@ namespace KOTORModSync.Core.CLI
                     if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
                     {
                         Directory.CreateDirectory(outputDir);
-                        if (_progressDisplay != null)
-                            _progressDisplay.WriteScrollingLog($"Created output directory: {outputDir}");
+                        if (s_progressDisplay != null)
+                        {
+                            s_progressDisplay.WriteScrollingLog($"Created output directory: {outputDir}");
+                        }
                         else
+                        {
                             await Logger.LogVerboseAsync($"Created output directory: {outputDir}").ConfigureAwait(false);
+                        }
                     }
 
-                    File.WriteAllText(opts.OutputPath, output);
+                    await File.WriteAllTextAsync(opts.OutputPath, output).ConfigureAwait(false);
 
                     string successMsg = $"✓ Conversion completed successfully, saved to: {opts.OutputPath}";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(successMsg);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(successMsg);
+                    }
                     else
+                    {
                         await Logger.LogVerboseAsync($"Conversion completed successfully, saved to: {opts.OutputPath}").ConfigureAwait(false);
+                    }
                 }
                 else
                 {
-                    _progressDisplay?.Dispose();
-                    _progressDisplay = null;
+                    s_progressDisplay?.Dispose();
+                    s_progressDisplay = null;
 
                     await Logger.LogAsync(output).ConfigureAwait(false);
                     await Logger.LogVerboseAsync("Conversion completed successfully (output to stdout)").ConfigureAwait(false);
                 }
 
-                if (downloadCache != null || _errorCollector != null)
+                if (downloadCache != null || s_errorCollector != null)
                 {
                     LogAllErrors(downloadCache);
                 }
@@ -1941,17 +2007,21 @@ namespace KOTORModSync.Core.CLI
             catch (Exception ex)
             {
                 string errorMsg = $"Error during conversion: {ex.Message}";
-                if (_progressDisplay != null)
-                    _progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+                if (s_progressDisplay != null)
+                {
+                    s_progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+                }
                 else
+                {
                     await Logger.LogErrorAsync(errorMsg).ConfigureAwait(false);
+                }
 
                 if (opts.Verbose)
                 {
                     await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
                 }
 
-                if (downloadCache != null || _errorCollector != null)
+                if (downloadCache != null || s_errorCollector != null)
                 {
                     LogAllErrors(downloadCache);
                 }
@@ -1962,11 +2032,11 @@ namespace KOTORModSync.Core.CLI
             {
                 Console.CancelKeyPress -= cancelHandler;
 
-                _progressDisplay?.Dispose();
-                _progressDisplay = null;
+                s_progressDisplay?.Dispose();
+                s_progressDisplay = null;
 
-                _globalDownloadCache = null;
-                _errorCollector = null;
+                s_globalDownloadCache = null;
+                s_errorCollector = null;
             }
         }
 
@@ -1974,8 +2044,8 @@ namespace KOTORModSync.Core.CLI
         {
             SetVerboseMode(opts.Verbose);
 
-            _progressDisplay = new ConsoleProgressDisplay(usePlainText: opts.PlainText);
-            _errorCollector = new ErrorCollector();
+            s_progressDisplay = new ConsoleProgressDisplay(usePlainText: opts.PlainText);
+            s_errorCollector = new ErrorCollector();
 
             DownloadCacheService downloadCache = null;
 
@@ -1994,15 +2064,15 @@ namespace KOTORModSync.Core.CLI
 
                     try
                     {
-                        _progressDisplay?.Dispose();
-                        _progressDisplay = null;
+                        s_progressDisplay?.Dispose();
+                        s_progressDisplay = null;
                     }
                     catch (Exception disposeEx)
                     {
                         Console.Error.WriteLine($"Warning: Error disposing progress display: {disposeEx.Message}");
                     }
 
-                    if (_globalDownloadCache != null)
+                    if (s_globalDownloadCache != null)
                     {
                         try
                         {
@@ -2010,7 +2080,7 @@ namespace KOTORModSync.Core.CLI
                             Console.Error.WriteLine("Logging all errors and failures...");
                             Console.Error.Flush();
 
-                            LogAllErrors(_globalDownloadCache, forceConsoleOutput: true);
+                            LogAllErrors(s_globalDownloadCache, forceConsoleOutput: true);
 
                             Console.Error.WriteLine();
                             Console.Error.WriteLine("Error logging complete.");
@@ -2054,7 +2124,7 @@ namespace KOTORModSync.Core.CLI
 
                 if (!string.IsNullOrWhiteSpace(opts.NexusModsApiKey))
                 {
-                    _config.nexusModsApiKey = opts.NexusModsApiKey;
+                    s_config.nexusModsApiKey = opts.NexusModsApiKey;
                     await Logger.LogVerboseAsync("Using Nexus Mods API key from command line argument").ConfigureAwait(false);
                 }
 
@@ -2089,17 +2159,21 @@ namespace KOTORModSync.Core.CLI
                         Directory.CreateDirectory(opts.SourcePath);
                     }
 
-                    _config.sourcePath = new DirectoryInfo(opts.SourcePath);
-                    _config.debugLogging = opts.Verbose;
+                    s_config.sourcePath = new DirectoryInfo(opts.SourcePath);
+                    s_config.debugLogging = opts.Verbose;
                     await Logger.LogVerboseAsync($"Source path set to: {opts.SourcePath}").ConfigureAwait(false);
                 }
 
                 // Merge instruction sets
                 string msg = "Merging instruction sets...";
-                if (_progressDisplay != null)
-                    _progressDisplay.WriteScrollingLog(msg);
+                if (s_progressDisplay != null)
+                {
+                    s_progressDisplay.WriteScrollingLog(msg);
+                }
                 else
+                {
                     await Logger.LogVerboseAsync(msg).ConfigureAwait(false);
+                }
 
                 List<ModComponent> components;
                 try
@@ -2109,10 +2183,10 @@ namespace KOTORModSync.Core.CLI
                     {
                         downloadCache = new DownloadCacheService();
                         downloadCache.SetDownloadManager();
-                        _globalDownloadCache = downloadCache;
+                        s_globalDownloadCache = downloadCache;
                     }
 
-                    Services.MergeOptions mergeOptions = new Services.MergeOptions
+                    var mergeOptions = new Services.MergeOptions
                     {
                         ExcludeExistingOnly = opts.ExcludeExistingOnly,
                         ExcludeIncomingOnly = opts.ExcludeIncomingOnly,
@@ -2132,28 +2206,57 @@ namespace KOTORModSync.Core.CLI
 
                     // Individual field preferences override global settings
                     if (opts.PreferExistingName)
+                    {
                         mergeOptions.PreferExistingName = true;
+                    }
+
                     if (opts.PreferExistingAuthor)
+                    {
                         mergeOptions.PreferExistingAuthor = true;
+                    }
+
                     if (opts.PreferExistingDescription)
+                    {
                         mergeOptions.PreferExistingDescription = true;
+                    }
+
                     if (opts.PreferExistingDirections)
+                    {
                         mergeOptions.PreferExistingDirections = true;
+                    }
+
                     if (opts.PreferExistingCategory)
+                    {
                         mergeOptions.PreferExistingCategory = true;
+                    }
+
                     if (opts.PreferExistingTier)
+                    {
                         mergeOptions.PreferExistingTier = true;
+                    }
+
                     if (opts.PreferExistingInstallationMethod)
+                    {
                         mergeOptions.PreferExistingInstallationMethod = true;
+                    }
+
                     if (opts.PreferExistingInstructions)
+                    {
                         mergeOptions.PreferExistingInstructions = true;
+                    }
+
                     if (opts.PreferExistingOptions)
+                    {
                         mergeOptions.PreferExistingOptions = true;
+                    }
+
                     if (opts.PreferExistingModLinks)
-                        mergeOptions.PreferExistingModLinkFilenames = true;
+                    {
+                        mergeOptions.PreferExistingResourceRegistry = true;
+                    }
 
                     // Use async merge to support URL validation with sequential flag
-                    using (CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromHours(2)))
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromHours(2)))
                     {
                         components = await ComponentMergeService.MergeInstructionSetsAsync(
                             opts.ExistingPath,
@@ -2164,15 +2267,19 @@ namespace KOTORModSync.Core.CLI
                             cancellationToken: cts.Token).ConfigureAwait(false);
 
                         msg = $"Merged result contains {components.Count} unique components";
-                        if (_progressDisplay != null)
-                            _progressDisplay.WriteScrollingLog(msg);
+                        if (s_progressDisplay != null)
+                        {
+                            s_progressDisplay.WriteScrollingLog(msg);
+                        }
                         else
+                        {
                             await Logger.LogVerboseAsync(msg).ConfigureAwait(false);
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _errorCollector?.RecordError(
+                    s_errorCollector?.RecordError(
                         ErrorCollector.ErrorCategory.General,
                         null,
                         "Failed to merge instruction sets",
@@ -2189,20 +2296,28 @@ namespace KOTORModSync.Core.CLI
                     }
 
                     msg = "Downloading files for merged components...";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(msg);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(msg);
+                    }
                     else
+                    {
                         await Logger.LogAsync(msg).ConfigureAwait(false);
+                    }
 
-                    using (CancellationTokenSource downloadCts = new CancellationTokenSource(TimeSpan.FromHours(2)))
+                    using (var downloadCts = new CancellationTokenSource(TimeSpan.FromHours(2)))
                     {
                         downloadCache = await DownloadAllModFilesAsync(components, opts.SourcePath, opts.Verbose, sequential: !opts.Concurrent, downloadCts.Token).ConfigureAwait(false);
 
                         msg = "Download complete for all components";
-                        if (_progressDisplay != null)
-                            _progressDisplay.WriteScrollingLog(msg);
+                        if (s_progressDisplay != null)
+                        {
+                            s_progressDisplay.WriteScrollingLog(msg);
+                        }
                         else
+                        {
                             await Logger.LogAsync(msg).ConfigureAwait(false);
+                        }
                     }
                 }
 
@@ -2214,14 +2329,11 @@ namespace KOTORModSync.Core.CLI
                     await ApplySpoilerFreeContentAsync(components, opts.SpoilerFreePath).ConfigureAwait(false);
                 }
 
-                // Populate ModLinkFilenames from download cache before serialization
-                if (downloadCache != null)
-                {
-                    await PopulateModLinkFilenamesFromCacheAsync(components).ConfigureAwait(false);
-                }
+                // ResourceRegistry is already populated during PreResolveUrlsAsync
+                // No additional population needed before serialization
 
                 // Create validation context to track issues for serialization
-                ComponentValidationContext validationContext = new ComponentValidationContext();
+                var validationContext = new ComponentValidationContext();
 
                 // Collect download failures from cache
                 if (downloadCache != null)
@@ -2234,9 +2346,9 @@ namespace KOTORModSync.Core.CLI
                 }
 
                 // Collect validation issues from error collector
-                if (_errorCollector != null)
+                if (s_errorCollector != null)
                 {
-                    foreach (ErrorCollector.ErrorInfo error in _errorCollector.GetErrors())
+                    foreach (ErrorCollector.ErrorInfo error in s_errorCollector.GetErrors())
                     {
                         // Try to find the component by name
                         ModComponent component = components.Find(c => string.Equals(c.Name, error.ComponentName, StringComparison.Ordinal));
@@ -2247,10 +2359,14 @@ namespace KOTORModSync.Core.CLI
                     }
                 }
 
-                if (_progressDisplay != null)
-                    _progressDisplay.WriteScrollingLog("Serializing to output format...");
+                if (s_progressDisplay != null)
+                {
+                    s_progressDisplay.WriteScrollingLog("Serializing to output format...");
+                }
                 else
+                {
                     await Logger.LogVerboseAsync("Serializing to output format...").ConfigureAwait(false);
+                }
 
                 string output = ModComponentSerializationService.SerializeModComponentAsString(components, opts.Format, validationContext);
 
@@ -2260,30 +2376,38 @@ namespace KOTORModSync.Core.CLI
                     if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
                     {
                         Directory.CreateDirectory(outputDir);
-                        if (_progressDisplay != null)
-                            _progressDisplay.WriteScrollingLog($"Created output directory: {outputDir}");
+                        if (s_progressDisplay != null)
+                        {
+                            s_progressDisplay.WriteScrollingLog($"Created output directory: {outputDir}");
+                        }
                         else
+                        {
                             await Logger.LogVerboseAsync($"Created output directory: {outputDir}").ConfigureAwait(false);
+                        }
                     }
 
-                    File.WriteAllText(opts.OutputPath, output);
+                    await File.WriteAllTextAsync(opts.OutputPath, output).ConfigureAwait(false);
 
                     string successMsg = $"✓ Merge completed successfully, saved to: {opts.OutputPath}";
-                    if (_progressDisplay != null)
-                        _progressDisplay.WriteScrollingLog(successMsg);
+                    if (s_progressDisplay != null)
+                    {
+                        s_progressDisplay.WriteScrollingLog(successMsg);
+                    }
                     else
+                    {
                         await Logger.LogVerboseAsync($"Merge completed successfully, saved to: {opts.OutputPath}").ConfigureAwait(false);
+                    }
                 }
                 else
                 {
-                    _progressDisplay?.Dispose();
-                    _progressDisplay = null;
+                    s_progressDisplay?.Dispose();
+                    s_progressDisplay = null;
 
                     await Logger.LogAsync(output).ConfigureAwait(false);
                     await Logger.LogVerboseAsync("Merge completed successfully (output to stdout)").ConfigureAwait(false);
                 }
 
-                if (downloadCache != null || _errorCollector != null)
+                if (downloadCache != null || s_errorCollector != null)
                 {
                     LogAllErrors(downloadCache);
                 }
@@ -2293,17 +2417,21 @@ namespace KOTORModSync.Core.CLI
             catch (Exception ex)
             {
                 string errorMsg = $"Error during merge: {ex.Message}";
-                if (_progressDisplay != null)
-                    _progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+                if (s_progressDisplay != null)
+                {
+                    s_progressDisplay.WriteScrollingLog($"✗ {errorMsg}");
+                }
                 else
+                {
                     await Logger.LogErrorAsync(errorMsg).ConfigureAwait(false);
+                }
 
                 if (opts.Verbose)
                 {
                     await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
                 }
 
-                if (downloadCache != null || _errorCollector != null)
+                if (downloadCache != null || s_errorCollector != null)
                 {
                     LogAllErrors(downloadCache);
                 }
@@ -2314,24 +2442,24 @@ namespace KOTORModSync.Core.CLI
             {
                 Console.CancelKeyPress -= cancelHandler;
 
-                _progressDisplay?.Dispose();
-                _progressDisplay = null;
+                s_progressDisplay?.Dispose();
+                s_progressDisplay = null;
 
-                _globalDownloadCache = null;
-                _errorCollector = null;
+                s_globalDownloadCache = null;
+                s_errorCollector = null;
             }
         }
 
         private static async Task<int> RunValidateAsync(ValidateOptions opts)
         {
             SetVerboseMode(opts.Verbose);
-            _errorCollector = new ErrorCollector();
+            s_errorCollector = new ErrorCollector();
 
             try
             {
                 if (!File.Exists(opts.InputPath))
                 {
-                    Console.Error.WriteLine($"Error: Input file not found: {opts.InputPath}");
+                    await Logger.LogErrorAsync($"Error: Input file not found: {opts.InputPath}").ConfigureAwait(false);
                     return 1;
                 }
 
@@ -2339,19 +2467,19 @@ namespace KOTORModSync.Core.CLI
                 {
                     if (string.IsNullOrEmpty(opts.GameDirectory) || string.IsNullOrEmpty(opts.SourceDirectory))
                     {
-                        Console.Error.WriteLine("Error: Full validation requires both --game-dir and --source-dir");
+                        await Logger.LogErrorAsync("Error: Full validation requires both --game-dir and --source-dir").ConfigureAwait(false);
                         return 1;
                     }
 
                     if (!Directory.Exists(opts.GameDirectory))
                     {
-                        Console.Error.WriteLine($"Error: Game directory not found: {opts.GameDirectory}");
+                        await Logger.LogErrorAsync($"Error: Game directory not found: {opts.GameDirectory}").ConfigureAwait(false);
                         return 1;
                     }
 
                     if (!Directory.Exists(opts.SourceDirectory))
                     {
-                        Console.Error.WriteLine($"Error: Source directory not found: {opts.SourceDirectory}");
+                        await Logger.LogErrorAsync($"Error: Source directory not found: {opts.SourceDirectory}").ConfigureAwait(false);
                         return 1;
                     }
                 }
@@ -2364,18 +2492,18 @@ namespace KOTORModSync.Core.CLI
                     components = await FileLoadingService.LoadFromFileAsync(opts.InputPath).ConfigureAwait(false);
 
                     // Handle dependency resolution
-                    components = HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Validate");
+                    components = (List<ModComponent>)HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Validate");
                 }
                 catch (Exception ex)
                 {
-                    await Console.Error.WriteLineAsync($"Error loading instruction file: {ex.Message}").ConfigureAwait(false);
+                    await Logger.LogErrorAsync($"Error loading instruction file: {ex.Message}").ConfigureAwait(false);
                     if (opts.Verbose)
                     {
-                        await Console.Error.WriteLineAsync("Stack trace:").ConfigureAwait(false);
-                        await Console.Error.WriteLineAsync(ex.StackTrace).ConfigureAwait(false);
+                        await Logger.LogErrorAsync("Stack trace:").ConfigureAwait(false);
+                        await Logger.LogErrorAsync(ex.StackTrace).ConfigureAwait(false);
                     }
 
-                    _errorCollector?.RecordError(
+                    s_errorCollector?.RecordError(
                         ErrorCollector.ErrorCategory.FileOperation,
                         null,
                         "Failed to load instruction file",
@@ -2387,7 +2515,7 @@ namespace KOTORModSync.Core.CLI
 
                 if (components is null || components.Count == 0)
                 {
-                    await Console.Error.WriteLineAsync("Error: No components loaded from instruction file.").ConfigureAwait(false);
+                    await Logger.LogErrorAsync("Error: No components loaded from instruction file.").ConfigureAwait(false);
                     return 1;
                 }
 
@@ -2397,16 +2525,18 @@ namespace KOTORModSync.Core.CLI
                 if (opts.FullValidation)
                 {
                     EnsureConfigInitialized();
-                    _config.sourcePath = new DirectoryInfo(opts.SourceDirectory);
-                    _config.destinationPath = new DirectoryInfo(opts.GameDirectory);
-                    _config.allComponents = components;
+                    s_config.sourcePath = new DirectoryInfo(opts.SourceDirectory);
+                    s_config.destinationPath = new DirectoryInfo(opts.GameDirectory);
+                    s_config.allComponents = components;
                 }
 
                 List<ModComponent> componentsToValidate = components;
                 if (opts.Select != null && opts.Select.Any())
                 {
                     if (!opts.ErrorsOnly)
+                    {
                         await Logger.LogAsync("Applying selection filters...").ConfigureAwait(false);
+                    }
 
                     componentsToValidate = new List<ModComponent>(components);
                     ApplySelectionFilters(componentsToValidate, opts.Select);
@@ -2414,12 +2544,14 @@ namespace KOTORModSync.Core.CLI
 
                     if (componentsToValidate.Count == 0)
                     {
-                        await Console.Error.WriteLineAsync("Error: No components match the selection criteria.").ConfigureAwait(false);
+                        await Logger.LogErrorAsync("Error: No components match the selection criteria.").ConfigureAwait(false);
                         return 1;
                     }
 
                     if (!opts.ErrorsOnly)
+                    {
                         await Logger.LogAsync($"{componentsToValidate.Count} component(s) selected for validation.").ConfigureAwait(false);
+                    }
                 }
 
                 if (opts.FullValidation)
@@ -2430,14 +2562,17 @@ namespace KOTORModSync.Core.CLI
                         await Logger.LogAsync(new string('-', 50)).ConfigureAwait(false);
                     }
 
-                    (bool success, string message) = await InstallationService.ValidateInstallationEnvironmentAsync(_config).ConfigureAwait(false);
+                    (bool success, string message) = await InstallationService.ValidateInstallationEnvironmentAsync(s_config).ConfigureAwait(false);
 
                     if (!success)
                     {
-                        await Console.Error.WriteLineAsync("Environment validation failed:").ConfigureAwait(false);
-                        await Console.Error.WriteLineAsync(message).ConfigureAwait(false);
+                        await Logger.LogErrorAsync("Environment validation failed:").ConfigureAwait(false);
+                        await Logger.LogErrorAsync(message).ConfigureAwait(false);
                         if (!opts.ErrorsOnly)
+                        {
                             await Logger.LogAsync(new string('-', 50)).ConfigureAwait(false);
+                        }
+
                         return 1;
                     }
 
@@ -2459,12 +2594,12 @@ namespace KOTORModSync.Core.CLI
                 int validComponents = 0;
                 int componentsWithErrors = 0;
                 int componentsWithWarnings = 0;
-                List<(ModComponent component, List<string> errors)> allErrors = new List<(ModComponent component, List<string> errors)>();
-                List<(ModComponent component, List<string> warnings)> allWarnings = new List<(ModComponent component, List<string> warnings)>();
+                var allErrors = new List<(ModComponent component, List<string> errors)>();
+                var allWarnings = new List<(ModComponent component, List<string> warnings)>();
 
                 foreach (ModComponent component in componentsToValidate)
                 {
-                    ComponentValidation validator = new ComponentValidation(component, components);
+                    var validator = new ComponentValidation(component, components);
                     bool isValid = validator.Run();
 
                     List<string> errors = validator.GetErrors();
@@ -2478,7 +2613,7 @@ namespace KOTORModSync.Core.CLI
                         // Record validation errors in error collector
                         foreach (string error in errors)
                         {
-                            _errorCollector?.RecordError(
+                            s_errorCollector?.RecordError(
                                 ErrorCollector.ErrorCategory.Validation,
                                 component.Name,
                                 error,
@@ -2501,7 +2636,9 @@ namespace KOTORModSync.Core.CLI
                         if (isValid && errors.Count == 0 && warnings.Count == 0)
                         {
                             if (!opts.ErrorsOnly)
+                            {
                                 await Logger.LogAsync($"✓ {component.Name}").ConfigureAwait(false);
+                            }
                         }
                         else
                         {
@@ -2509,13 +2646,17 @@ namespace KOTORModSync.Core.CLI
                             {
                                 await Logger.LogAsync($"✗ {component.Name}").ConfigureAwait(false);
                                 foreach (string error in errors)
+                                {
                                     await Logger.LogAsync($"    ERROR: {error}").ConfigureAwait(false);
+                                }
                             }
                             else if (warnings.Count > 0 && !opts.ErrorsOnly)
                             {
                                 await Logger.LogAsync($"⚠ {component.Name}").ConfigureAwait(false);
                                 foreach (string warning in warnings)
+                                {
                                     await Logger.LogAsync($"    WARNING: {warning}").ConfigureAwait(false);
+                                }
                             }
                         }
                     }
@@ -2529,9 +2670,15 @@ namespace KOTORModSync.Core.CLI
                     await Logger.LogAsync($"  Total components validated: {totalComponents}").ConfigureAwait(false);
                     await Logger.LogAsync($"  ✓ Valid: {validComponents}").ConfigureAwait(false);
                     if (componentsWithWarnings > 0)
+                    {
                         await Logger.LogAsync($"  ⚠ With warnings: {componentsWithWarnings}").ConfigureAwait(false);
+                    }
+
                     if (componentsWithErrors > 0)
+                    {
                         await Logger.LogAsync($"  ✗ With errors: {componentsWithErrors}").ConfigureAwait(false);
+                    }
+
                     await Logger.LogAsync().ConfigureAwait(false);
                 }
 
@@ -2550,23 +2697,29 @@ namespace KOTORModSync.Core.CLI
                 else if (componentsWithWarnings > 0)
                 {
                     if (!opts.ErrorsOnly)
+                    {
                         await Logger.LogAsync("⚠️ Validation passed with warnings").ConfigureAwait(false);
+                    }
+
                     return 0;
                 }
                 else
                 {
                     if (!opts.ErrorsOnly)
+                    {
                         await Logger.LogAsync("✅ All validations passed!").ConfigureAwait(false);
+                    }
+
                     return 0;
                 }
             }
             catch (Exception ex)
             {
-                await Console.Error.WriteLineAsync($"Error during validation: {ex.Message}").ConfigureAwait(false);
+                await Logger.LogErrorAsync($"Error during validation: {ex.Message}").ConfigureAwait(false);
                 if (opts.Verbose)
                 {
-                    await Console.Error.WriteLineAsync("Stack trace:").ConfigureAwait(false);
-                    await Console.Error.WriteLineAsync(ex.StackTrace).ConfigureAwait(false);
+                    await Logger.LogErrorAsync("Stack trace:").ConfigureAwait(false);
+                    await Logger.LogErrorAsync(ex.StackTrace).ConfigureAwait(false);
                 }
                 return 1;
             }
@@ -2575,19 +2728,19 @@ namespace KOTORModSync.Core.CLI
         private static async Task<int> RunInstallAsync(InstallOptions opts)
         {
             SetVerboseMode(opts.Verbose);
-            _errorCollector = new ErrorCollector();
+            s_errorCollector = new ErrorCollector();
 
             try
             {
                 if (!File.Exists(opts.InputPath))
                 {
-                    await Console.Error.WriteLineAsync($"Error: Input file not found: {opts.InputPath}").ConfigureAwait(false);
+                    await Logger.LogErrorAsync($"Error: Input file not found: {opts.InputPath}").ConfigureAwait(false);
                     return 1;
                 }
 
                 if (!Directory.Exists(opts.GameDirectory))
                 {
-                    await Console.Error.WriteLineAsync($"Error: Game directory not found: {opts.GameDirectory}").ConfigureAwait(false);
+                    await Logger.LogErrorAsync($"Error: Game directory not found: {opts.GameDirectory}").ConfigureAwait(false);
                     return 1;
                 }
 
@@ -2600,28 +2753,28 @@ namespace KOTORModSync.Core.CLI
 
                 if (!Directory.Exists(sourceDir))
                 {
-                    await Console.Error.WriteLineAsync($"Error: Source directory not found: {sourceDir}").ConfigureAwait(false);
+                    await Logger.LogErrorAsync($"Error: Source directory not found: {sourceDir}").ConfigureAwait(false);
                     return 1;
                 }
 
                 EnsureConfigInitialized();
-                _config.sourcePath = new DirectoryInfo(sourceDir);
-                _config.destinationPath = new DirectoryInfo(opts.GameDirectory);
+                s_config.sourcePath = new DirectoryInfo(sourceDir);
+                s_config.destinationPath = new DirectoryInfo(opts.GameDirectory);
 
                 await Logger.LogAsync($"Loading instruction file: {opts.InputPath}").ConfigureAwait(false);
 
                 List<ModComponent> components = await FileLoadingService.LoadFromFileAsync(opts.InputPath).ConfigureAwait(false);
 
                 // Handle dependency resolution
-                components = HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Install");
+                components = (List<ModComponent>)HandleDependencyResolutionErrors(components, opts.IgnoreErrors, "Install");
 
                 if (components is null || components.Count == 0)
                 {
-                    await Console.Error.WriteLineAsync("Error: No components loaded from instruction file.").ConfigureAwait(false);
+                    await Logger.LogErrorAsync("Error: No components loaded from instruction file.").ConfigureAwait(false);
                     return 1;
                 }
 
-                _config.allComponents = components;
+                s_config.allComponents = components;
                 await Logger.LogAsync($"Loaded {components.Count} component(s) from instruction file.").ConfigureAwait(false);
 
                 if (opts.Select != null && opts.Select.Any())
@@ -2633,8 +2786,8 @@ namespace KOTORModSync.Core.CLI
                 int selectedCount = components.Count(c => c.IsSelected);
                 if (selectedCount == 0)
                 {
-                    await Console.Error.WriteLineAsync("Error: No components selected for installation.").ConfigureAwait(false);
-                    await Console.Error.WriteLineAsync("Use --select to specify components, or ensure components are marked as selected in the instruction file.").ConfigureAwait(false);
+                    await Logger.LogErrorAsync("Error: No components selected for installation.").ConfigureAwait(false);
+                    await Logger.LogErrorAsync("Use --select to specify components, or ensure components are marked as selected in the instruction file.").ConfigureAwait(false);
                     return 1;
                 }
 
@@ -2672,11 +2825,14 @@ namespace KOTORModSync.Core.CLI
                 {
                     await Logger.LogAsync("Validating installation environment...").ConfigureAwait(false);
                     (bool success, string message) = await InstallationService.ValidateInstallationEnvironmentAsync(
-                        _config,
+                        s_config,
                         (confirmMessage) =>
                         {
                             if (opts.AutoConfirm)
+                            {
                                 return Task.FromResult<bool?>(true);
+                            }
+
                             Console.Write($"{confirmMessage} [y/N]: ");
                             string response = Console.ReadLine()?.Trim().ToLowerInvariant();
                             bool? result = string.Equals(response, "y", StringComparison.Ordinal) || string.Equals(response, "yes", StringComparison.Ordinal);
@@ -2686,8 +2842,8 @@ namespace KOTORModSync.Core.CLI
 
                     if (!success)
                     {
-                        await Console.Error.WriteLineAsync("Validation failed:").ConfigureAwait(false);
-                        await Console.Error.WriteLineAsync(message).ConfigureAwait(false);
+                        await Logger.LogErrorAsync("Validation failed:").ConfigureAwait(false);
+                        await Logger.LogErrorAsync(message).ConfigureAwait(false);
                         return 1;
                     }
                     await Logger.LogAsync("Validation passed.").ConfigureAwait(false);
@@ -2699,9 +2855,9 @@ namespace KOTORModSync.Core.CLI
 
                 ModComponent.InstallExitCode exitCode = await InstallationService.InstallAllSelectedComponentsAsync(
                     components,
-                    (currentIndex, total, componentName) =>
+                    async (currentIndex, total, componentName) =>
                     {
-                        Logger.Log($"[{currentIndex + 1}/{total}] Installing: {componentName}");
+                        await Logger.LogAsync($"[{currentIndex + 1}/{total}] Installing: {componentName}").ConfigureAwait(false);
                     }
                 ).ConfigureAwait(false);
 
@@ -2714,21 +2870,21 @@ namespace KOTORModSync.Core.CLI
                 }
                 else
                 {
-                    await Console.Error.WriteLineAsync($"Installation failed with exit code: {exitCode}").ConfigureAwait(false);
-                    await Console.Error.WriteLineAsync("Check the logs above for more details.").ConfigureAwait(false);
+                    await Logger.LogErrorAsync($"Installation failed with exit code: {exitCode}").ConfigureAwait(false);
+                    await Logger.LogErrorAsync("Check the logs above for more details.").ConfigureAwait(false);
                     return 1;
                 }
             }
             catch (Exception ex)
             {
-                await Console.Error.WriteLineAsync($"Error during installation: {ex.Message}").ConfigureAwait(false);
+                await Logger.LogErrorAsync($"Error during installation: {ex.Message}").ConfigureAwait(false);
                 if (opts.Verbose)
                 {
-                    await Console.Error.WriteLineAsync("Stack trace:").ConfigureAwait(false);
-                    await Console.Error.WriteLineAsync(ex.StackTrace).ConfigureAwait(false);
+                    await Logger.LogErrorAsync("Stack trace:").ConfigureAwait(false);
+                    await Logger.LogErrorAsync(ex.StackTrace).ConfigureAwait(false);
                 }
 
-                _errorCollector?.RecordError(
+                s_errorCollector?.RecordError(
                     ErrorCollector.ErrorCategory.Installation,
                     null,
                     "Installation failed with exception",
@@ -2772,7 +2928,7 @@ namespace KOTORModSync.Core.CLI
                     await Logger.LogAsync("Skipping validation (--skip-validation specified)").ConfigureAwait(false);
                 }
 
-                _config.nexusModsApiKey = opts.ApiKey;
+                s_config.nexusModsApiKey = opts.ApiKey;
                 await Logger.LogAsync("API key stored in MainConfig").ConfigureAwait(false);
 
                 SaveSettings();
@@ -3212,50 +3368,6 @@ namespace KOTORModSync.Core.CLI
 
         #endregion
 
-        /// <summary>
-        /// Populates ModLinkFilenames from download cache for all components before serialization.
-        /// This ensures cached filenames are included in the output even if they weren't in the original source.
-        /// </summary>
-        private static async Task PopulateModLinkFilenamesFromCacheAsync(
-            List<ModComponent> components)
-        {
-            int populatedCount = 0;
-            foreach (var component in components)
-            {
-                if (component.ModLinkFilenames is null)
-                    component.ModLinkFilenames = new Dictionary<string, Dictionary<string, bool?>>(StringComparer.OrdinalIgnoreCase);
-
-                foreach (string url in component.ModLinkFilenames.Keys.Where(url => !string.IsNullOrWhiteSpace(url)))
-                {
-                    // Check resource-index for this URL - get ALL filenames
-                    ResourceMetadata cachedMeta = DownloadCacheService.TryGetResourceMetadataByUrl(url);
-                    if (cachedMeta != null && cachedMeta.Files != null && cachedMeta.Files.Count > 0)
-                    {
-                        // Ensure ModLinkFilenames dictionary exists for this URL
-                        if (!component.ModLinkFilenames.TryGetValue(url, out Dictionary<string, bool?> filenameDict))
-                        {
-                            filenameDict = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
-                            component.ModLinkFilenames[url] = filenameDict;
-                        }
-
-                        // Add ALL cached filenames if not already present (don't override explicit values)
-                        foreach (KeyValuePair<string, bool?> fileEntry in cachedMeta.Files)
-                        {
-                            if (!filenameDict.ContainsKey(fileEntry.Key))
-                            {
-                                filenameDict[fileEntry.Key] = fileEntry.Value ?? null; // Preserve exists flag, default to null (auto-discover)
-                                populatedCount++;
-                                await Logger.LogVerboseAsync($"[ModBuildConverter] Populated ModLinkFilenames from resource-index: {url} -> {fileEntry.Key}").ConfigureAwait(false);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (populatedCount > 0)
-            {
-                await Logger.LogVerboseAsync($"[ModBuildConverter] Populated {populatedCount} filename(s) from download cache into ModLinkFilenames before serialization").ConfigureAwait(false);
-            }
-        }
+        // DEPRECATED: ModLinkFilenames population is now handled via ResourceRegistry during PreResolveUrlsAsync
     }
 }

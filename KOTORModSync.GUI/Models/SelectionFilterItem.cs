@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -7,59 +7,59 @@ using System.Runtime.CompilerServices;
 
 namespace KOTORModSync.Models
 {
-	public class SelectionFilterItem : INotifyPropertyChanged
-	{
-		private bool _isSelected;
-		private string _name;
-		private int _count;
+    public class SelectionFilterItem : INotifyPropertyChanged
+    {
+        private bool _isSelected;
+        private string _name;
+        private int _count;
 
-		public string Name
-		{
-			get => _name;
-			set
-			{
-				if (!string.Equals( _name, value, System.StringComparison.Ordinal ))
-				{
-					_name = value;
-					OnPropertyChanged();
-				}
-			}
-		}
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                if (!string.Equals(_name, value, System.StringComparison.Ordinal))
+                {
+                    _name = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
-		public int Count
-		{
-			get => _count;
-			set
-			{
-				if (_count != value)
-				{
-					_count = value;
-					OnPropertyChanged();
-					OnPropertyChanged( nameof( DisplayText ) );
-				}
-			}
-		}
+        public int Count
+        {
+            get => _count;
+            set
+            {
+                if (_count != value)
+                {
+                    _count = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(DisplayText));
+                }
+            }
+        }
 
-		public bool IsSelected
-		{
-			get => _isSelected;
-			set
-			{
-				if (_isSelected != value)
-				{
-					_isSelected = value;
-					OnPropertyChanged();
-				}
-			}
-		}
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
-		public string DisplayText => $"{Name} ({Count})";
+        public string DisplayText => $"{Name} ({Count})";
 
-		public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
 
-		protected virtual void OnPropertyChanged( [CallerMemberName] string propertyName = null )
-		{
-			PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
-		}
-	}
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
 }

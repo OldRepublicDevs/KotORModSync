@@ -14,238 +14,250 @@ using KOTORModSync.Core;
 namespace KOTORModSync.Services
 {
 
-	public class ValidationDisplayService
-	{
-		private readonly ValidationService _validationService;
-		private readonly Func<List<ModComponent>> _getMainComponents;
-		private readonly List<ModComponent> _validationErrors = new List<ModComponent>();
-		private int _currentErrorIndex;
+    public class ValidationDisplayService
+    {
+        private readonly ValidationService _validationService;
+        private readonly Func<List<ModComponent>> _getMainComponents;
+        private readonly List<ModComponent> _validationErrors = new List<ModComponent>();
+        private int _currentErrorIndex;
 
-		public ValidationDisplayService( ValidationService validationService, Func<List<ModComponent>> getMainComponents )
-		{
-			_validationService = validationService ?? throw new ArgumentNullException( nameof( validationService ) );
-			_getMainComponents = getMainComponents ?? throw new ArgumentNullException( nameof( getMainComponents ) );
-		}
+        public ValidationDisplayService(ValidationService validationService, Func<List<ModComponent>> getMainComponents)
+        {
+            _validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
+            _getMainComponents = getMainComponents ?? throw new ArgumentNullException(nameof(getMainComponents));
+        }
 
-		public void ShowValidationResults(
-			Border validationResultsArea,
-			TextBlock validationSummaryText,
-			Border errorNavigationArea,
-			Border errorDetailsArea,
-			Border validationSuccessArea,
-			Func<ModComponent, bool> isComponentValid )
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(() => ShowValidationResults(validationResultsArea, validationSummaryText, errorNavigationArea, errorDetailsArea, validationSuccessArea, isComponentValid), DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
-				var mainComponents = _getMainComponents();
-				var selectedComponents = mainComponents.Where( c => c.IsSelected ).ToList();
-				_validationErrors.Clear();
+        public void ShowValidationResults(
+            Border validationResultsArea,
+            TextBlock validationSummaryText,
+            StackPanel errorNavigationArea,
+            Border errorDetailsArea,
+            Border validationSuccessArea,
+            Func<ModComponent, bool> isComponentValid)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() => ShowValidationResults(validationResultsArea, validationSummaryText, errorNavigationArea, errorDetailsArea, validationSuccessArea, isComponentValid), DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
+                var mainComponents = _getMainComponents();
+                var selectedComponents = mainComponents.Where(c => c.IsSelected).ToList();
+                _validationErrors.Clear();
 
-				foreach (ModComponent component in selectedComponents)
-				{
-					if (!isComponentValid( component ))
-						_validationErrors.Add( component );
-				}
+                foreach (ModComponent component in selectedComponents)
+                {
+                    if (!isComponentValid(component))
+                    {
+                        _validationErrors.Add(component);
+                    }
+                }
 
-				if (validationResultsArea is null)
-					return;
+                if (validationResultsArea is null)
+                {
+                    return;
+                }
 
-				validationResultsArea.IsVisible = true;
+                validationResultsArea.IsVisible = true;
 
-				if (_validationErrors.Count == 0)
-				{
+                if (_validationErrors.Count == 0)
+                {
 
-					if (validationSummaryText != null)
-						validationSummaryText.Text = $"✅ All {selectedComponents.Count} mods validated successfully!";
-					if (errorNavigationArea != null)
-						errorNavigationArea.IsVisible = false;
-					if (errorDetailsArea != null)
-						errorDetailsArea.IsVisible = false;
-					if (validationSuccessArea != null)
-						validationSuccessArea.IsVisible = true;
-				}
-				else
-				{
+                    if (validationSummaryText != null)
+                    {
+                        validationSummaryText.Text = $"✅ All {selectedComponents.Count} mods validated successfully!";
+                    }
 
-					int validCount = selectedComponents.Count - _validationErrors.Count;
-					if (validationSummaryText != null)
-						validationSummaryText.Text = $"⚠️ {validCount}/{selectedComponents.Count} mods validated successfully";
-					if (errorNavigationArea != null)
-						errorNavigationArea.IsVisible = true;
-					if (errorDetailsArea != null)
-						errorDetailsArea.IsVisible = true;
-					if (validationSuccessArea != null)
-						validationSuccessArea.IsVisible = false;
+                    if (errorNavigationArea != null)
+                    {
+                        errorNavigationArea.IsVisible = false;
+                    }
 
-					_currentErrorIndex = 0;
-					UpdateErrorDisplay( null, null, null, null, null, null, null );
-				}
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex );
-			}
-		}
+                    if (errorDetailsArea != null)
+                    {
+                        errorDetailsArea.IsVisible = false;
+                    }
 
-		public void UpdateErrorDisplay(
-			TextBlock errorCounterText,
-			TextBlock errorModNameText,
-			TextBlock errorTypeText,
-			TextBlock errorDescriptionText,
-			Button autoFixButton,
-			Button prevErrorButton,
-			Button nextErrorButton )
-		{
-			if (!Dispatcher.UIThread.CheckAccess())
-			{
-				Dispatcher.UIThread.Post(() => UpdateErrorDisplay(errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton), DispatcherPriority.Normal);
-				return;
-			}
-			try
-			{
-				if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
-					return;
+                    if (validationSuccessArea != null)
+                    {
+                        validationSuccessArea.IsVisible = true;
+                    }
+                }
+                else
+                {
 
-				ModComponent currentError = _validationErrors[_currentErrorIndex];
+                    int validCount = selectedComponents.Count - _validationErrors.Count;
+                    if (validationSummaryText != null)
+                    {
+                        validationSummaryText.Text = $"⚠️ {validCount}/{selectedComponents.Count} mods validated successfully";
+                    }
 
-				if (errorCounterText != null)
-					errorCounterText.Text = $"Error {_currentErrorIndex + 1} of {_validationErrors.Count}";
+                    if (errorNavigationArea != null)
+                    {
+                        errorNavigationArea.IsVisible = true;
+                    }
 
-				if (errorModNameText != null)
-					errorModNameText.Text = currentError.Name;
+                    if (errorDetailsArea != null)
+                    {
+                        errorDetailsArea.IsVisible = true;
+                    }
 
-				if (prevErrorButton != null)
-					prevErrorButton.IsEnabled = _currentErrorIndex > 0;
+                    if (validationSuccessArea != null)
+                    {
+                        validationSuccessArea.IsVisible = false;
+                    }
 
-				if (nextErrorButton != null)
-					nextErrorButton.IsEnabled = _currentErrorIndex < _validationErrors.Count - 1;
+                    _currentErrorIndex = 0;
+                    UpdateErrorDisplay(null, null, null, null, null, null, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
 
-				(string ErrorType, string Description, bool CanAutoFix) errorDetails = _validationService.GetComponentErrorDetails( currentError );
+        public void UpdateErrorDisplay(
+            TextBlock errorCounterText,
+            TextBlock errorModNameText,
+            TextBlock errorTypeText,
+            TextBlock errorDescriptionText,
+            Button autoFixButton,
+            Button prevErrorButton,
+            Button nextErrorButton)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() => UpdateErrorDisplay(errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton), DispatcherPriority.Normal);
+                return;
+            }
+            try
+            {
+                if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
+                {
+                    return;
+                }
 
-				if (errorTypeText != null)
-					errorTypeText.Text = errorDetails.ErrorType;
+                ModComponent currentError = _validationErrors[_currentErrorIndex];
 
-				if (errorDescriptionText != null)
-					errorDescriptionText.Text = errorDetails.Description;
+                if (errorCounterText != null)
+                {
+                    errorCounterText.Text = $"Error {_currentErrorIndex + 1} of {_validationErrors.Count}";
+                }
 
-				if (autoFixButton != null)
-					autoFixButton.IsVisible = errorDetails.CanAutoFix;
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex );
-			}
-		}
+                if (errorModNameText != null)
+                {
+                    errorModNameText.Text = currentError.Name;
+                }
 
-		public void NavigateToPreviousError(
-			TextBlock errorCounterText,
-			TextBlock errorModNameText,
-			TextBlock errorTypeText,
-			TextBlock errorDescriptionText,
-			Button autoFixButton,
-			Button prevErrorButton,
-			Button nextErrorButton )
-		{
-			if (_currentErrorIndex > 0)
-			{
-				_currentErrorIndex--;
-				UpdateErrorDisplay( errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton );
-			}
-		}
+                if (prevErrorButton != null)
+                {
+                    prevErrorButton.IsEnabled = _currentErrorIndex > 0;
+                }
 
-		public void NavigateToNextError(
-			TextBlock errorCounterText,
-			TextBlock errorModNameText,
-			TextBlock errorTypeText,
-			TextBlock errorDescriptionText,
-			Button autoFixButton,
-			Button prevErrorButton,
-			Button nextErrorButton )
-		{
-			if (_currentErrorIndex < _validationErrors.Count - 1)
-			{
-				_currentErrorIndex++;
-				UpdateErrorDisplay( errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton );
-			}
-		}
+                if (nextErrorButton != null)
+                {
+                    nextErrorButton.IsEnabled = _currentErrorIndex < _validationErrors.Count - 1;
+                }
 
-		public bool AutoFixCurrentError( Action<ModComponent> refreshModListVisuals )
-		{
-			try
-			{
-				if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
-					return false;
+                (string ErrorType, string Description, bool CanAutoFix) errorDetails = _validationService.GetComponentErrorDetails(currentError);
 
-				ModComponent currentError = _validationErrors[_currentErrorIndex];
-				(string ErrorType, string Description, bool CanAutoFix) errorDetails = _validationService.GetComponentErrorDetails( currentError );
+                if (errorTypeText != null)
+                {
+                    errorTypeText.Text = errorDetails.ErrorType;
+                }
 
-				if (!errorDetails.CanAutoFix)
-					return false;
+                if (errorDescriptionText != null)
+                {
+                    errorDescriptionText.Text = errorDetails.Description;
+                }
 
-				if (errorDetails.ErrorType.Contains( "Missing required dependencies" ))
-				{
-					AutoFixMissingDependencies( currentError );
-				}
-				else if (errorDetails.ErrorType.Contains( "Conflicting mods selected" ))
-				{
-					AutoFixConflictingMods( currentError );
-				}
+                if (autoFixButton != null)
+                {
+                    autoFixButton.IsVisible = errorDetails.CanAutoFix;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
 
-				refreshModListVisuals?.Invoke( currentError );
-				return true;
-			}
-			catch (Exception ex)
-			{
-				Logger.LogException( ex );
-				return false;
-			}
-		}
+        public void NavigateToPreviousError(
+            TextBlock errorCounterText,
+            TextBlock errorModNameText,
+            TextBlock errorTypeText,
+            TextBlock errorDescriptionText,
+            Button autoFixButton,
+            Button prevErrorButton,
+            Button nextErrorButton)
+        {
+            if (_currentErrorIndex > 0)
+            {
+                _currentErrorIndex--;
+                UpdateErrorDisplay(errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton);
+            }
+        }
 
-		public ModComponent GetCurrentError()
-		{
-			if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
-				return null;
+        public void NavigateToNextError(
+            TextBlock errorCounterText,
+            TextBlock errorModNameText,
+            TextBlock errorTypeText,
+            TextBlock errorDescriptionText,
+            Button autoFixButton,
+            Button prevErrorButton,
+            Button nextErrorButton)
+        {
+            if (_currentErrorIndex < _validationErrors.Count - 1)
+            {
+                _currentErrorIndex++;
+                UpdateErrorDisplay(errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton);
+            }
+        }
 
-			return _validationErrors[_currentErrorIndex];
-		}
+        public bool AutoFixCurrentError(Action<ModComponent> refreshModListVisuals)
+        {
+            // Auto-fix functionality has been moved to ModComponentSerializationService
+            // and runs automatically after deserialization if MainConfig.AttemptFixes is enabled.
+            // This method is kept for backward compatibility but no longer performs fixes.
+            try
+            {
+                if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
+                {
+                    return false;
+                }
 
-		#region Private Helper Methods
+                ModComponent currentError = _validationErrors[_currentErrorIndex];
+                (string ErrorType, string Description, bool CanAutoFix) errorDetails = _validationService.GetComponentErrorDetails(currentError);
 
-		private void AutoFixMissingDependencies( ModComponent component )
-		{
-			List<ModComponent> mainComponents = _getMainComponents();
-			if (component.Dependencies.Count == 0 || mainComponents is null)
-				return;
+                if (!errorDetails.CanAutoFix)
+                {
+                    return false;
+                }
 
-			List<ModComponent> dependencyComponents = ModComponent.FindComponentsFromGuidList( component.Dependencies, mainComponents );
+                // Note: Auto-fix now happens automatically during file loading/deserialization
+                // if the "Auto-Fix Config Errors" setting is enabled in Settings.
+                // This method now just refreshes the display to reflect any fixes that may have
+                // been applied during loading.
+                refreshModListVisuals?.Invoke(currentError);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+                return false;
+            }
+        }
 
-			foreach (ModComponent dep in dependencyComponents)
-			{
-				if (dep != null && !dep.IsSelected)
-					dep.IsSelected = true;
-			}
-		}
+        public ModComponent GetCurrentError()
+        {
+            if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
+            {
+                return null;
+            }
 
-		private void AutoFixConflictingMods( ModComponent component )
-		{
-			List<ModComponent> mainComponents = _getMainComponents();
-			if (component.Restrictions.Count == 0 || mainComponents is null)
-				return;
-
-			List<ModComponent> restrictionComponents = ModComponent.FindComponentsFromGuidList( component.Restrictions, mainComponents );
-
-			foreach (ModComponent restriction in restrictionComponents)
-			{
-				if (restriction != null && restriction.IsSelected)
-					restriction.IsSelected = false;
-			}
-		}
-
-		#endregion
-	}
+            return _validationErrors[_currentErrorIndex];
+        }
+    }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -15,25 +15,25 @@ using NUnit.Framework;
 
 namespace KOTORModSync.Tests
 {
-	/// <summary>
-	/// Tests that incoming component fields take priority during merge operations,
-	/// specifically testing the --exclude-existing-only scenario where incoming
-	/// Directions should override existing Directions.
-	/// </summary>
-	[TestFixture]
-	public class MergeDirectionsPriorityTest
-	{
-		[Test]
-		public async Task Merge_WithExcludeExistingOnly_ShouldPreferIncomingDirections()
-		{
-			// Arrange - Create temp directory for test files
-			string tempDir = Path.Combine(Path.GetTempPath(), "KOTORModSyncTest_" + Guid.NewGuid().ToString("N"));
-			Directory.CreateDirectory(tempDir);
+    /// <summary>
+    /// Tests that incoming component fields take priority during merge operations,
+    /// specifically testing the --exclude-existing-only scenario where incoming
+    /// Directions should override existing Directions.
+    /// </summary>
+    [TestFixture]
+    public class MergeDirectionsPriorityTest
+    {
+        [Test]
+        public async Task Merge_WithExcludeExistingOnly_ShouldPreferIncomingDirections()
+        {
+            // Arrange - Create temp directory for test files
+            string tempDir = Path.Combine(Path.GetTempPath(), "KOTORModSyncTest_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
 
-			try
-			{
-				// Create incoming markdown content with NEW Directions
-				string incomingMarkdown = @"### KOTOR Dialogue Fixes
+            try
+            {
+                // Create incoming markdown content with NEW Directions
+                string incomingMarkdown = @"### KOTOR Dialogue Fixes
 
 **Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
 
@@ -52,8 +52,8 @@ namespace KOTORModSync.Tests
 ___
 ";
 
-				// Create existing TOML content with OLD Directions
-				string existingToml = @"
+                // Create existing TOML content with OLD Directions
+                string existingToml = @"
 [[thisMod]]
 Guid = ""a9aa5bf5-b4ac-4aa3-acbb-402337235e54""
 Name = ""KOTOR Dialogue Fixes""
@@ -104,92 +104,92 @@ Overwrite = true
 Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation version\\dialog.tlk""]
 ";
 
-				// Write files to disk
-				string incomingPath = Path.Combine(tempDir, "incoming.md");
-				string existingPath = Path.Combine(tempDir, "existing.toml");
+                // Write files to disk
+                string incomingPath = Path.Combine(tempDir, "incoming.md");
+                string existingPath = Path.Combine(tempDir, "existing.toml");
 
-				await File.WriteAllTextAsync(incomingPath, incomingMarkdown);
-				await File.WriteAllTextAsync(existingPath, existingToml);
+                await File.WriteAllTextAsync(incomingPath, incomingMarkdown);
+                await File.WriteAllTextAsync(existingPath, existingToml);
 
-				// Act - Perform merge using ComponentMergeService
-				var mergeOptions = new MergeOptions
-				{
-					ExcludeExistingOnly = true,
-					ExcludeIncomingOnly = false,
-					UseExistingOrder = false,
-					HeuristicsOptions = MergeHeuristicsOptions.CreateDefault(),
-					// Default: prefer incoming (all PreferExisting* flags are false)
-					PreferExistingName = false,
-					PreferExistingAuthor = false,
-					PreferExistingDescription = false,
-					PreferExistingDirections = false,
-					PreferExistingCategory = false,
-					PreferExistingTier = false,
-					PreferExistingInstallationMethod = false,
-					PreferExistingInstructions = false,
-					PreferExistingOptions = false,
-					PreferExistingModLinkFilenames = false,
-				};
+                // Act - Perform merge using ComponentMergeService
+                var mergeOptions = new MergeOptions
+                {
+                    ExcludeExistingOnly = true,
+                    ExcludeIncomingOnly = false,
+                    UseExistingOrder = false,
+                    HeuristicsOptions = MergeHeuristicsOptions.CreateDefault(),
+                    // Default: prefer incoming (all PreferExisting* flags are false)
+                    PreferExistingName = false,
+                    PreferExistingAuthor = false,
+                    PreferExistingDescription = false,
+                    PreferExistingDirections = false,
+                    PreferExistingCategory = false,
+                    PreferExistingTier = false,
+                    PreferExistingInstallationMethod = false,
+                    PreferExistingInstructions = false,
+                    PreferExistingOptions = false,
+                    PreferExistingModLinkFilenames = false,
+                };
 
-				List<ModComponent> mergedComponents = await ComponentMergeService.MergeInstructionSetsAsync(
-					existingPath,
-					incomingPath,
-					mergeOptions,
-					downloadCache: null,
-					cancellationToken: default
-				);
+                List<ModComponent> mergedComponents = await ComponentMergeService.MergeInstructionSetsAsync(
+                    existingPath,
+                    incomingPath,
+                    mergeOptions,
+                    downloadCache: null,
+                    cancellationToken: default
+                );
 
-				// Assert
-				Assert.That(mergedComponents, Is.Not.Null);
-				Assert.That(mergedComponents.Count, Is.EqualTo(1));
+                // Assert
+                Assert.That(mergedComponents, Is.Not.Null);
+                Assert.That(mergedComponents.Count, Is.EqualTo(1));
 
-				ModComponent mergedComponent = mergedComponents[0];
-				Assert.That(mergedComponent.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
-				Assert.That(mergedComponent.Author, Is.EqualTo("Salk & Kainzorus Prime"));
+                ModComponent mergedComponent = mergedComponents[0];
+                Assert.That(mergedComponent.Name, Is.EqualTo("KOTOR Dialogue Fixes"));
+                Assert.That(mergedComponent.Author, Is.EqualTo("Salk & Kainzorus Prime"));
 
-				// The critical assertion: Directions should come from INCOMING (markdown), not existing (TOML)
-				string expectedDirections = "The choice of which version to use is up to you; I recommend PC Response Moderation, as it makes your character sound less like a giddy little schoolchild following every little dialogue, but if you prefer only bugfixes it is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable is)—in this very specific case, NOT the override.";
-				string actualDirections = mergedComponent.Directions;
+                // The critical assertion: Directions should come from INCOMING (markdown), not existing (TOML)
+                string expectedDirections = "The choice of which version to use is up to you; I recommend PC Response Moderation, as it makes your character sound less like a giddy little schoolchild following every little dialogue, but if you prefer only bugfixes it is compatible. Just move your chosen dialog.tlk file to the *main game directory* (where the executable is)—in this very specific case, NOT the override.";
+                string actualDirections = mergedComponent.Directions;
 
-				Assert.That(actualDirections, Is.EqualTo(expectedDirections),
-					$"Directions should come from INCOMING file, not EXISTING file.\nExpected (incoming): {expectedDirections}\nActual: {actualDirections}");
+                Assert.That(actualDirections, Is.EqualTo(expectedDirections),
+                    $"Directions should come from INCOMING file, not EXISTING file.\nExpected (incoming): {expectedDirections}\nActual: {actualDirections}");
 
-				// Also verify other incoming fields are preserved
-				Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"));
-				Assert.That(mergedComponent.Tier, Is.EqualTo("1 - Essential"));
-				Assert.That(mergedComponent.Category.Count, Is.EqualTo(1));
-				Assert.That(mergedComponent.Category[0], Is.EqualTo("Immersion"));
-				Assert.That(mergedComponent.Language.Count, Is.EqualTo(1));
-				Assert.That(mergedComponent.Language[0], Is.EqualTo("NO"));
-			}
-			finally
-			{
-				// Cleanup
-				if (Directory.Exists(tempDir))
-				{
-					try
-					{
-						Directory.Delete(tempDir, true);
-					}
-					catch
-					{
-						// Ignore cleanup errors
-					}
-				}
-			}
-		}
+                // Also verify other incoming fields are preserved
+                Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"));
+                Assert.That(mergedComponent.Tier, Is.EqualTo("1 - Essential"));
+                Assert.That(mergedComponent.Category.Count, Is.EqualTo(1));
+                Assert.That(mergedComponent.Category[0], Is.EqualTo("Immersion"));
+                Assert.That(mergedComponent.Language.Count, Is.EqualTo(1));
+                Assert.That(mergedComponent.Language[0], Is.EqualTo("NO"));
+            }
+            finally
+            {
+                // Cleanup
+                if (Directory.Exists(tempDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
+            }
+        }
 
-		[Test]
-		public async Task Merge_WithExcludeExistingOnly_ShouldUseIncomingOrder()
-		{
-			// Arrange - Create temp directory for test files
-			string tempDir = Path.Combine(Path.GetTempPath(), "KOTORModSyncTest_" + Guid.NewGuid().ToString("N"));
-			Directory.CreateDirectory(tempDir);
+        [Test]
+        public async Task Merge_WithExcludeExistingOnly_ShouldUseIncomingOrder()
+        {
+            // Arrange - Create temp directory for test files
+            string tempDir = Path.Combine(Path.GetTempPath(), "KOTORModSyncTest_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
 
-			try
-			{
-				// Create incoming markdown with component
-				string incomingMarkdown = @"### KOTOR Dialogue Fixes
+            try
+            {
+                // Create incoming markdown with component
+                string incomingMarkdown = @"### KOTOR Dialogue Fixes
 
 **Name:** [KOTOR Dialogue Fixes](https://deadlystream.com/files/file/1313-kotor-dialogue-fixes/)
 
@@ -208,8 +208,8 @@ Source = [""<<modDirectory>>\\KotOR_Dialogue_Fixes*\\PC Response Moderation vers
 ___
 ";
 
-				// Create existing TOML
-				string existingToml = @"
+                // Create existing TOML
+                string existingToml = @"
 [[thisMod]]
 Guid = ""a9aa5bf5-b4ac-4aa3-acbb-402337235e54""
 Name = ""KOTOR Dialogue Fixes""
@@ -221,62 +221,62 @@ Directions = ""Existing directions text""
 IsSelected = true
 ";
 
-				// Write files to disk
-				string incomingPath = Path.Combine(tempDir, "incoming.md");
-				string existingPath = Path.Combine(tempDir, "existing.toml");
+                // Write files to disk
+                string incomingPath = Path.Combine(tempDir, "incoming.md");
+                string existingPath = Path.Combine(tempDir, "existing.toml");
 
-				await File.WriteAllTextAsync(incomingPath, incomingMarkdown);
-				await File.WriteAllTextAsync(existingPath, existingToml);
+                await File.WriteAllTextAsync(incomingPath, incomingMarkdown);
+                await File.WriteAllTextAsync(existingPath, existingToml);
 
-				// Act - Merge with default options (UseExistingOrder = false means use incoming order)
-				var mergeOptions = new MergeOptions
-				{
-					ExcludeExistingOnly = true,
-					UseExistingOrder = false, // Use incoming order
-					HeuristicsOptions = MergeHeuristicsOptions.CreateDefault(),
-				};
+                // Act - Merge with default options (UseExistingOrder = false means use incoming order)
+                var mergeOptions = new MergeOptions
+                {
+                    ExcludeExistingOnly = true,
+                    UseExistingOrder = false, // Use incoming order
+                    HeuristicsOptions = MergeHeuristicsOptions.CreateDefault(),
+                };
 
-				List<ModComponent> mergedComponents = await ComponentMergeService.MergeInstructionSetsAsync(
-					existingPath,
-					incomingPath,
-					mergeOptions,
-					downloadCache: null,
-					cancellationToken: default
-				);
+                List<ModComponent> mergedComponents = await ComponentMergeService.MergeInstructionSetsAsync(
+                    existingPath,
+                    incomingPath,
+                    mergeOptions,
+                    downloadCache: null,
+                    cancellationToken: default
+                );
 
-				// Assert - Incoming values should be preserved
-				Assert.That(mergedComponents, Is.Not.Null);
-				Assert.That(mergedComponents.Count, Is.EqualTo(1));
+                // Assert - Incoming values should be preserved
+                Assert.That(mergedComponents, Is.Not.Null);
+                Assert.That(mergedComponents.Count, Is.EqualTo(1));
 
-				ModComponent mergedComponent = mergedComponents[0];
+                ModComponent mergedComponent = mergedComponents[0];
 
-				// Description should come from INCOMING
-				Assert.That(mergedComponent.Description, Is.EqualTo("Incoming description"),
-					"Description should come from INCOMING file");
+                // Description should come from INCOMING
+                Assert.That(mergedComponent.Description, Is.EqualTo("Incoming description"),
+                    "Description should come from INCOMING file");
 
-				// Directions should come from INCOMING
-				Assert.That(mergedComponent.Directions, Is.EqualTo("Incoming directions text"),
-					"Directions should come from INCOMING file");
+                // Directions should come from INCOMING
+                Assert.That(mergedComponent.Directions, Is.EqualTo("Incoming directions text"),
+                    "Directions should come from INCOMING file");
 
-				// InstallationMethod only exists in incoming
-				Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"),
-					"InstallationMethod should come from INCOMING file");
-			}
-			finally
-			{
-				// Cleanup
-				if (Directory.Exists(tempDir))
-				{
-					try
-					{
-						Directory.Delete(tempDir, true);
-					}
-					catch
-					{
-						// Ignore cleanup errors
-					}
-				}
-			}
-		}
-	}
+                // InstallationMethod only exists in incoming
+                Assert.That(mergedComponent.InstallationMethod, Is.EqualTo("Loose-File Mod"),
+                    "InstallationMethod should come from INCOMING file");
+            }
+            finally
+            {
+                // Cleanup
+                if (Directory.Exists(tempDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
+            }
+        }
+    }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -14,177 +14,201 @@ using KOTORModSync.Core.FileSystemUtils;
 
 namespace KOTORModSync.Core.Utility
 {
-	public static class UtilityHelper
-	{
-		[NotNull]
-		public static string ReplaceCustomVariables( [NotNull] string path )
-		{
-			if (path is null)
-				throw new ArgumentNullException( nameof( path ) );
+    public static class UtilityHelper
+    {
+        [NotNull]
+        public static string ReplaceCustomVariables([NotNull] string path)
+        {
+            if (path is null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
 
-			return path.Replace(
-				oldValue: "<<modDirectory>>",
-				newValue: MainConfig.SourcePath?.FullName
-			).Replace(
-				oldValue: "<<kotorDirectory>>",
-				newValue: MainConfig.DestinationPath?.FullName
-			);
-		}
+            return path.Replace(
+                oldValue: "<<modDirectory>>",
+                newValue: MainConfig.SourcePath?.FullName
+            ).Replace(
+                oldValue: "<<kotorDirectory>>",
+                newValue: MainConfig.DestinationPath?.FullName
+            );
+        }
 
-		[NotNull]
-		public static string RestoreCustomVariables( [NotNull] string fullPath )
-		{
-			if (fullPath is null)
-				throw new ArgumentNullException( nameof( fullPath ) );
+        [NotNull]
+        public static string RestoreCustomVariables([NotNull] string fullPath)
+        {
+            if (fullPath is null)
+            {
+                throw new ArgumentNullException(nameof(fullPath));
+            }
 
-			return fullPath.Replace(
-				oldValue: MainConfig.SourcePath?.FullName ?? string.Empty,
-				newValue: "<<modDirectory>>"
-			).Replace(
-				oldValue: MainConfig.DestinationPath?.FullName ?? string.Empty,
-				newValue: "<<kotorDirectory>>"
-			);
-		}
+            return fullPath.Replace(
+                oldValue: MainConfig.SourcePath?.FullName ?? string.Empty,
+                newValue: "<<modDirectory>>"
+            ).Replace(
+                oldValue: MainConfig.DestinationPath?.FullName ?? string.Empty,
+                newValue: "<<kotorDirectory>>"
+            );
+        }
 
-		public static bool IsRunningInsideAppBundle( string baseDirectory = null )
-		{
-			baseDirectory = baseDirectory ?? GetBaseDirectory();
-			return baseDirectory.IndexOf( value: ".app/Contents/MacOS", StringComparison.OrdinalIgnoreCase ) >= 0;
-		}
+        public static bool IsRunningInsideAppBundle(string baseDirectory = null)
+        {
+            baseDirectory = baseDirectory ?? GetBaseDirectory();
+            return baseDirectory.IndexOf(value: ".app/Contents/MacOS", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
 
-		[NotNull]
-		public static string GetBaseDirectory()
-		{
-			string baseDirectory = Assembly.GetEntryAssembly()?.Location;
-			return (
-				!(baseDirectory is null)
-					? Path.GetDirectoryName( baseDirectory )
-					: Path.GetDirectoryName( Assembly.GetExecutingAssembly().Location )
-			) ?? AppDomain.CurrentDomain.BaseDirectory;
-		}
+        [NotNull]
+        public static string GetBaseDirectory()
+        {
+            string baseDirectory = Assembly.GetEntryAssembly()?.Location;
+            return (
+                !(baseDirectory is null)
+                    ? Path.GetDirectoryName(baseDirectory)
+                    : Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+            ) ?? AppDomain.CurrentDomain.BaseDirectory;
+        }
 
-		[NotNull]
-		public static OSPlatform GetOperatingSystem()
-		{
-			if (RuntimeInformation.IsOSPlatform( OSPlatform.OSX ))
-				return OSPlatform.OSX;
-			if (RuntimeInformation.IsOSPlatform( OSPlatform.Windows ))
-				return OSPlatform.Windows;
-			if (RuntimeInformation.IsOSPlatform( OSPlatform.Linux ))
-				return OSPlatform.Linux;
+        [NotNull]
+        public static OSPlatform GetOperatingSystem()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return OSPlatform.OSX;
+            }
 
-			switch (Environment.OSVersion.Platform)
-			{
-				case PlatformID.Win32NT:
-				case PlatformID.Win32S:
-				case PlatformID.Win32Windows:
-				case PlatformID.WinCE:
-				case PlatformID.Xbox:
-					return OSPlatform.Windows;
-				case PlatformID.MacOSX:
-					return OSPlatform.OSX;
-				case PlatformID.Unix:
-					return OSPlatform.Linux;
-				default:
-					throw new InvalidOperationException( "Unknown/unsupported operating system, cannot continue" );
-			}
-		}
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return OSPlatform.Windows;
+            }
 
-		[NotNull]
-		public static string GetResourcesDirectory( string baseDirectory = null )
-		{
-			baseDirectory = baseDirectory ?? GetBaseDirectory();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return OSPlatform.Linux;
+            }
 
-			if (!IsRunningInsideAppBundle( baseDirectory ))
-			{
-				return Path.Combine(
-					baseDirectory,
-					path2: "Resources"
-				);
-			}
+            switch (Environment.OSVersion.Platform)
+            {
+                case PlatformID.Win32NT:
+                case PlatformID.Win32S:
+                case PlatformID.Win32Windows:
+                case PlatformID.WinCE:
+                case PlatformID.Xbox:
+                    return OSPlatform.Windows;
+                case PlatformID.MacOSX:
+                    return OSPlatform.OSX;
+                case PlatformID.Unix:
+                    return OSPlatform.Linux;
+                default:
+                    throw new InvalidOperationException("Unknown/unsupported operating system, cannot continue");
+            }
+        }
 
-			DirectoryInfo directoryInfo = new DirectoryInfo( baseDirectory );
-			if (!(directoryInfo.Parent?.Parent is null))
-				baseDirectory = directoryInfo.Parent.Parent.FullName;
+        [NotNull]
+        public static string GetResourcesDirectory(string baseDirectory = null)
+        {
+            baseDirectory = baseDirectory ?? GetBaseDirectory();
 
-			return Path.Combine(
-				baseDirectory,
-				path2: "Resources"
-			);
+            if (!IsRunningInsideAppBundle(baseDirectory))
+            {
+                return Path.Combine(
+                    baseDirectory,
+                    path2: "Resources"
+                );
+            }
 
-		}
+            var directoryInfo = new DirectoryInfo(baseDirectory);
+            if (!(directoryInfo.Parent?.Parent is null))
+            {
+                baseDirectory = directoryInfo.Parent.Parent.FullName;
+            }
 
-		[CanBeNull]
-		public static object GetEnumDescription( [NotNull] Enum value )
-		{
-			if (value is null)
-				throw new ArgumentNullException( nameof( value ) );
+            return Path.Combine(
+                baseDirectory,
+                path2: "Resources"
+            );
 
-			Type type = value.GetType();
-			string name = Enum.GetName( type, value );
-			if (name is null)
-				return null;
+        }
 
-			FieldInfo field = type.GetField( name );
+        [CanBeNull]
+        public static object GetEnumDescription([NotNull] Enum value)
+        {
+            if (value is null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
 
-			DescriptionAttribute attribute = field?.GetCustomAttribute<DescriptionAttribute>();
-			return attribute?.Description ?? name;
-		}
+            Type type = value.GetType();
+            string name = Enum.GetName(type, value);
+            if (name is null)
+            {
+                return null;
+            }
 
-		public static bool IsDirectoryWritable( [NotNull] DirectoryInfo dirPath )
-		{
-			if (dirPath is null)
-				throw new ArgumentNullException( nameof( dirPath ) );
+            FieldInfo field = type.GetField(name);
 
-			try
-			{
-				string testFile = Path.Combine(
-					PathHelper.GetCaseSensitivePath( dirPath ).FullName,
-					Path.GetRandomFileName()
-				);
-				using (File.Create(
-						testFile,
-						bufferSize: 1,
-						FileOptions.DeleteOnClose
-					)) { }
+            DescriptionAttribute attribute = field?.GetCustomAttribute<DescriptionAttribute>();
+            return attribute?.Description ?? name;
+        }
 
-				return true;
-			}
-			catch (UnauthorizedAccessException ex)
-			{
-				Logger.LogException(ex, $"Failed to access files in the destination directory: {ex.Message}" );
-			}
-			catch (PathTooLongException ex)
-			{
-				Logger.LogException( ex, $"The pathname is too long: '{dirPath.FullName}'" );
-				Logger.LogError(
-					"Please utilize the registry patch that increases the Windows legacy path limit higher than 260 characters"
-					+ " or move your folder/file above to a shorter directory path."
-				);
-			}
-			catch (IOException ex)
-			{
-				Logger.LogError( $"Failed to access files in the destination directory: {ex.Message}" );
-			}
+        public static bool IsDirectoryWritable([NotNull] DirectoryInfo dirPath)
+        {
+            if (dirPath is null)
+            {
+                throw new ArgumentNullException(nameof(dirPath));
+            }
 
-			return false;
-		}
+            try
+            {
+                string testFile = Path.Combine(
+                    PathHelper.GetCaseSensitivePath(dirPath).FullName,
+                    Path.GetRandomFileName()
+                );
+                using (File.Create(
+                        testFile,
+                        bufferSize: 1,
+                        FileOptions.DeleteOnClose
+                    )) { }
 
-		[CanBeNull]
-		public static DirectoryInfo ChooseDirectory()
-		{
-			Console.Write( "Enter the path: " );
-			string thisPath = Console.ReadLine();
-			if (string.IsNullOrEmpty( thisPath ))
-				return default;
+                return true;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Logger.LogException(ex, $"Failed to access files in the destination directory: {ex.Message}");
+            }
+            catch (PathTooLongException ex)
+            {
+                Logger.LogException(ex, $"The pathname is too long: '{dirPath.FullName}'");
+                Logger.LogError(
+                    "Please utilize the registry patch that increases the Windows legacy path limit higher than 260 characters"
+                    + " or move your folder/file above to a shorter directory path."
+                );
+            }
+            catch (IOException ex)
+            {
+                Logger.LogError($"Failed to access files in the destination directory: {ex.Message}");
+            }
 
-			thisPath = thisPath.Trim();
+            return false;
+        }
 
-			if (Directory.Exists( thisPath ))
-				return new DirectoryInfo( thisPath );
+        [CanBeNull]
+        public static DirectoryInfo ChooseDirectory()
+        {
+            Console.Write("Enter the path: ");
+            string thisPath = Console.ReadLine();
+            if (string.IsNullOrEmpty(thisPath))
+            {
+                return default;
+            }
 
-			Console.Write( $"Directory '{thisPath}' does not exist." );
-			return default;
-		}
-	}
+            thisPath = thisPath.Trim();
+
+            if (Directory.Exists(thisPath))
+            {
+                return new DirectoryInfo(thisPath);
+            }
+
+            Console.Write($"Directory '{thisPath}' does not exist.");
+            return default;
+        }
+    }
 }

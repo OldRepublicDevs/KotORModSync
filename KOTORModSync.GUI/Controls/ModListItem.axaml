@@ -110,7 +110,7 @@
                             Click="DownloadButton_Click"
                             Cursor="Hand"
                             FontSize="12"
-                            IsVisible="{Binding ModLinkFilenames, Converter={StaticResource ListToVisibilityConverter}}"
+                            IsVisible="{Binding ResourceRegistry, Converter={StaticResource ListToVisibilityConverter}}"
                             Tag="{Binding}"
                             ToolTip.Tip="Download this mod">
                             <Button.Content>

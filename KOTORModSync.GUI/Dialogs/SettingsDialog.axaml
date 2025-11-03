@@ -103,7 +103,7 @@
                                 Margin="0,5,0,0"
                                 Content="Auto-Fix Config Errors"
                                 IsChecked="{Binding attemptFixes}"
-                                ToolTip.Tip="Sometimes config files have simple mistakes, this attempts to use some common sense to fix common errors in a TOML file. This only executes when an error is detected during a validation." />
+                                ToolTip.Tip="When enabled, automatically fixes common config issues (missing dependencies, conflicting mods) when loading mod files. Fixes are applied after deserialization and before the components are available in the UI." />
 
                             <CheckBox
                                 Margin="0,5,0,0"

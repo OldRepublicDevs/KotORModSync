@@ -1,4 +1,4 @@
-﻿// Copyright 2021-2025 KOTORModSync
+// Copyright 2021-2025 KOTORModSync
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
@@ -18,229 +18,266 @@ using ModComponent = KOTORModSync.Core.ModComponent;
 
 namespace KOTORModSync.Dialogs
 {
-	public class DependencyUnlinkViewModel : INotifyPropertyChanged
-	{
-		private string _statusText;
+    public class DependencyUnlinkViewModel : INotifyPropertyChanged
+    {
+        private string _statusText;
 
-		public ObservableCollection<DependentComponentItem> DependentComponents { get; }
-		public ObservableCollection<QuickActionItem> QuickActions { get; }
-		public ModComponent ComponentToDelete { get; }
-		public string SummaryText { get; }
-		public string DetailedDependencyInfo { get; }
-		public ICommand ApplyQuickActionCommand { get; }
+        public ObservableCollection<DependentComponentItem> DependentComponents { get; }
+        public ObservableCollection<QuickActionItem> QuickActions { get; }
+        public ModComponent ComponentToDelete { get; }
+        public string SummaryText { get; }
+        public string DetailedDependencyInfo { get; }
+        public ICommand ApplyQuickActionCommand { get; }
 
-		public string StatusText
-		{
-			get => _statusText;
-			set
-			{
-				if (string.Equals(_statusText, value, StringComparison.Ordinal)) return;
-				_statusText = value;
-				OnPropertyChanged();
-			}
-		}
+        public string StatusText
+        {
+            get => _statusText;
+            set
+            {
+                if (string.Equals(_statusText, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
 
-		public DependencyUnlinkViewModel(ModComponent componentToDelete, List<ModComponent> dependentComponents)
-		{
-			ComponentToDelete = componentToDelete;
-			DependentComponents = new ObservableCollection<DependentComponentItem>();
-			QuickActions = new ObservableCollection<QuickActionItem>();
-			ApplyQuickActionCommand = new RelayCommand(ApplyQuickAction);
+                _statusText = value;
+                OnPropertyChanged();
+            }
+        }
 
-			int dependentCount = dependentComponents.Count;
-			SummaryText = $"Cannot delete '{componentToDelete.Name}' because {dependentCount} component{(dependentCount > 1 ? "s" : "")} depend on it. " +
-						  "You must first unlink these dependencies by unchecking the dependent components below.";
+        public DependencyUnlinkViewModel(ModComponent componentToDelete, List<ModComponent> dependentComponents)
+        {
+            ComponentToDelete = componentToDelete;
+            DependentComponents = new ObservableCollection<DependentComponentItem>();
+            QuickActions = new ObservableCollection<QuickActionItem>();
+            ApplyQuickActionCommand = new RelayCommand(ApplyQuickAction);
 
-			DetailedDependencyInfo = DependencyUnlinkViewModel.BuildDetailedDependencyInfo(componentToDelete, dependentComponents);
+            int dependentCount = dependentComponents.Count;
+            SummaryText = $"Cannot delete '{componentToDelete.Name}' because {dependentCount} component{(dependentCount > 1 ? "s" : "")} depend on it. " +
+                          "You must first unlink these dependencies by unchecking the dependent components below.";
 
-			foreach (ModComponent component in dependentComponents)
-			{
-				var item = new DependentComponentItem(component, componentToDelete);
-				item.PropertyChanged += OnComponentSelectionChanged;
-				DependentComponents.Add(item);
-			}
+            DetailedDependencyInfo = DependencyUnlinkViewModel.BuildDetailedDependencyInfo(componentToDelete, dependentComponents);
 
-			BuildQuickActions(dependentComponents);
+            foreach (ModComponent component in dependentComponents)
+            {
+                var item = new DependentComponentItem(component, componentToDelete);
+                item.PropertyChanged += OnComponentSelectionChanged;
+                DependentComponents.Add(item);
+            }
 
-			UpdateStatus();
-		}
+            BuildQuickActions(dependentComponents);
 
-		private static string BuildDetailedDependencyInfo(ModComponent componentToDelete, List<ModComponent> dependentComponents)
-		{
-			var info = new List<string>
-			{
-				$"ModComponent to delete: {componentToDelete.Name} (GUID: {componentToDelete.Guid})", "",
-				"Dependent components:",
-			};
+            UpdateStatus();
+        }
 
-			foreach (ModComponent dependent in dependentComponents)
-			{
-				var dependencyTypes = new List<string>();
+        private static string BuildDetailedDependencyInfo(ModComponent componentToDelete, List<ModComponent> dependentComponents)
+        {
+            var info = new List<string>
+            {
+                $"ModComponent to delete: {componentToDelete.Name} (GUID: {componentToDelete.Guid})", "",
+                "Dependent components:",
+            };
 
-				if (dependent.Dependencies.Contains(componentToDelete.Guid))
-					dependencyTypes.Add("Dependency");
-				if (dependent.Restrictions.Contains(componentToDelete.Guid))
-					dependencyTypes.Add("Restriction");
-				if (dependent.InstallBefore.Contains(componentToDelete.Guid))
-					dependencyTypes.Add("InstallBefore");
-				if (dependent.InstallAfter.Contains(componentToDelete.Guid))
-					dependencyTypes.Add("InstallAfter");
+            foreach (ModComponent dependent in dependentComponents)
+            {
+                var dependencyTypes = new List<string>();
 
-				info.Add($"  • {dependent.Name} (GUID: {dependent.Guid})");
-				info.Add($"    Dependency types: {string.Join(", ", dependencyTypes)}");
-			}
+                if (dependent.Dependencies.Contains(componentToDelete.Guid))
+                {
+                    dependencyTypes.Add("Dependency");
+                }
 
-			return string.Join(Environment.NewLine, info);
-		}
+                if (dependent.Restrictions.Contains(componentToDelete.Guid))
+                {
+                    dependencyTypes.Add("Restriction");
+                }
 
-		private void BuildQuickActions(List<ModComponent> dependentComponents)
-		{
+                if (dependent.InstallBefore.Contains(componentToDelete.Guid))
+                {
+                    dependencyTypes.Add("InstallBefore");
+                }
 
-			QuickActions.Add(new QuickActionItem
-			{
-				ActionType = QuickActionType.UncheckAll,
-				Text = "❌ Uncheck All Dependencies",
-			});
+                if (dependent.InstallAfter.Contains(componentToDelete.Guid))
+                {
+                    dependencyTypes.Add("InstallAfter");
+                }
 
-			QuickActions.Add(new QuickActionItem
-			{
-				ActionType = QuickActionType.UncheckSelectedOnly,
-				Text = "☑️ Uncheck Only Selected Dependencies",
-			});
+                info.Add($"  • {dependent.Name} (GUID: {dependent.Guid})");
+                info.Add($"    Dependency types: {string.Join(", ", dependencyTypes)}");
+            }
 
-			foreach (ModComponent component in dependentComponents.Take(5))
-			{
-				QuickActions.Add(new QuickActionItem
-				{
-					ActionType = QuickActionType.UncheckSpecific,
-					ModComponent = component,
-					Text = $"❌ Uncheck: {component.Name}",
-				});
-			}
-		}
+            return string.Join(Environment.NewLine, info);
+        }
 
-		private void OnComponentSelectionChanged(object sender, PropertyChangedEventArgs e)
-		{
-			if (string.Equals(e.PropertyName, nameof(DependentComponentItem.IsSelected), StringComparison.Ordinal))
-				UpdateStatus();
-		}
+        private void BuildQuickActions(List<ModComponent> dependentComponents)
+        {
 
-		private void UpdateStatus()
-		{
-			int selectedCount = DependentComponents.Count(c => c.IsSelected);
-			int totalCount = DependentComponents.Count;
-			int uncheckedCount = totalCount - selectedCount;
+            QuickActions.Add(new QuickActionItem
+            {
+                ActionType = QuickActionType.UncheckAll,
+                Text = "❌ Uncheck All Dependencies",
+            });
 
-			StatusText = uncheckedCount > 0
-						 ? $"✅ {uncheckedCount}/{totalCount} dependencies will be unlinked. Click 'Unlink & Delete' to proceed."
-						 : $"⚠️ {totalCount}/{totalCount} dependencies still linked. Uncheck at least one dependent component to proceed.";
-		}
+            QuickActions.Add(new QuickActionItem
+            {
+                ActionType = QuickActionType.UncheckSelectedOnly,
+                Text = "☑️ Uncheck Only Selected Dependencies",
+            });
 
-		private void ApplyQuickAction(object parameter)
-		{
-			if (!(parameter is QuickActionItem action))
-				return;
+            foreach (ModComponent component in dependentComponents.Take(5))
+            {
+                QuickActions.Add(new QuickActionItem
+                {
+                    ActionType = QuickActionType.UncheckSpecific,
+                    ModComponent = component,
+                    Text = $"❌ Uncheck: {component.Name}",
+                });
+            }
+        }
 
-			switch (action.ActionType)
-			{
-				case QuickActionType.UncheckAll:
-					foreach (DependentComponentItem item in DependentComponents)
-						item.IsSelected = false;
-					break;
+        private void OnComponentSelectionChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (string.Equals(e.PropertyName, nameof(DependentComponentItem.IsSelected), StringComparison.Ordinal))
+            {
+                UpdateStatus();
+            }
+        }
 
-				case QuickActionType.UncheckSelectedOnly:
+        private void UpdateStatus()
+        {
+            int selectedCount = DependentComponents.Count(c => c.IsSelected);
+            int totalCount = DependentComponents.Count;
+            int uncheckedCount = totalCount - selectedCount;
 
-					foreach (DependentComponentItem item in DependentComponents.Where(c => c.ModComponent.IsSelected))
-					{
-						item.IsSelected = false;
-					}
-					break;
+            StatusText = uncheckedCount > 0
+                         ? $"✅ {uncheckedCount}/{totalCount} dependencies will be unlinked. Click 'Unlink & Delete' to proceed."
+                         : $"⚠️ {totalCount}/{totalCount} dependencies still linked. Uncheck at least one dependent component to proceed.";
+        }
 
-				case QuickActionType.UncheckSpecific:
-					if (action.ModComponent != null)
-					{
-						DependentComponentItem componentItem = DependentComponents.FirstOrDefault(c => c.ModComponent == action.ModComponent);
-						if (componentItem != null)
-						{
-							componentItem.IsSelected = false;
-						}
-					}
-					break;
-				default:
-					throw new ArgumentOutOfRangeException();
-			}
-		}
+        private void ApplyQuickAction(object parameter)
+        {
+            if (!(parameter is QuickActionItem action))
+            {
+                return;
+            }
 
-		public event PropertyChangedEventHandler PropertyChanged;
+            switch (action.ActionType)
+            {
+                case QuickActionType.UncheckAll:
+                    foreach (DependentComponentItem item in DependentComponents)
+                    {
+                        item.IsSelected = false;
+                    }
 
-		[NotifyPropertyChangedInvocator]
-		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-	}
+                    break;
 
-	public class DependentComponentItem : INotifyPropertyChanged
-	{
-		private bool _isSelected;
+                case QuickActionType.UncheckSelectedOnly:
 
-		public ModComponent ModComponent { get; }
-		public string Name => ModComponent.Name;
-		public string Author => ModComponent.Author;
-		public string DependencyInfo { get; }
-		public IBrush DependencyInfoColor { get; }
-		public string StatusIcon { get; }
-		public string StatusTooltip { get; }
-		public IBrush BackgroundBrush { get; }
-		public IBrush BorderBrush { get; }
+                    foreach (DependentComponentItem item in DependentComponents.Where(c => c.ModComponent.IsSelected))
+                    {
+                        item.IsSelected = false;
+                    }
+                    break;
 
-		public bool IsSelected
-		{
-			get => _isSelected;
-			set
-			{
-				if (_isSelected == value) return;
-				_isSelected = value;
-				OnPropertyChanged();
-			}
-		}
+                case QuickActionType.UncheckSpecific:
+                    if (action.ModComponent != null)
+                    {
+                        DependentComponentItem componentItem = DependentComponents.FirstOrDefault(c => c.ModComponent == action.ModComponent);
+                        if (componentItem != null)
+                        {
+                            componentItem.IsSelected = false;
+                        }
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
 
-		public DependentComponentItem(ModComponent component, ModComponent componentToDelete)
-		{
-			ModComponent = component;
-			_isSelected = true;
+        public event PropertyChangedEventHandler PropertyChanged;
 
-			var dependencyTypes = new List<string>();
-			if (component.Dependencies.Contains(componentToDelete.Guid))
-				dependencyTypes.Add("Dependency");
-			if (component.Restrictions.Contains(componentToDelete.Guid))
-				dependencyTypes.Add("Restriction");
-			if (component.InstallBefore.Contains(componentToDelete.Guid))
-				dependencyTypes.Add("InstallBefore");
-			if (component.InstallAfter.Contains(componentToDelete.Guid))
-				dependencyTypes.Add("InstallAfter");
+        [NotifyPropertyChangedInvocator]
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 
-			DependencyInfo = $"🔗 Depends on: {string.Join(", ", dependencyTypes)}";
-			DependencyInfoColor = ThemeResourceHelper.DependencyWarningForeground;
-			StatusIcon = "🔗";
-			StatusTooltip = "This component depends on the component you want to delete. Uncheck to unlink the dependency.";
-			BackgroundBrush = ThemeResourceHelper.DependencyWarningBackground;
-			BorderBrush = ThemeResourceHelper.DependencyWarningBorder;
-		}
+    public class DependentComponentItem : INotifyPropertyChanged
+    {
+        private bool _isSelected;
 
-		public event PropertyChangedEventHandler PropertyChanged;
+        public ModComponent ModComponent { get; }
+        public string Name => ModComponent.Name;
+        public string Author => ModComponent.Author;
+        public string DependencyInfo { get; }
+        public IBrush DependencyInfoColor { get; }
+        public string StatusIcon { get; }
+        public string StatusTooltip { get; }
+        public IBrush BackgroundBrush { get; }
+        public IBrush BorderBrush { get; }
 
-		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-	}
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected == value)
+                {
+                    return;
+                }
 
-	public class QuickActionItem
-	{
-		public QuickActionType ActionType { get; set; }
-		public ModComponent ModComponent { get; set; }
-		public string Text { get; set; }
-	}
+                _isSelected = value;
+                OnPropertyChanged();
+            }
+        }
 
-	public enum QuickActionType
-	{
-		UncheckAll,
-		UncheckSelectedOnly,
-		UncheckSpecific,
-	}
+        public DependentComponentItem(ModComponent component, ModComponent componentToDelete)
+        {
+            ModComponent = component;
+            _isSelected = true;
+
+            var dependencyTypes = new List<string>();
+            if (component.Dependencies.Contains(componentToDelete.Guid))
+            {
+                dependencyTypes.Add("Dependency");
+            }
+
+            if (component.Restrictions.Contains(componentToDelete.Guid))
+            {
+                dependencyTypes.Add("Restriction");
+            }
+
+            if (component.InstallBefore.Contains(componentToDelete.Guid))
+            {
+                dependencyTypes.Add("InstallBefore");
+            }
+
+            if (component.InstallAfter.Contains(componentToDelete.Guid))
+            {
+                dependencyTypes.Add("InstallAfter");
+            }
+
+            DependencyInfo = $"🔗 Depends on: {string.Join(", ", dependencyTypes)}";
+            DependencyInfoColor = ThemeResourceHelper.DependencyWarningForeground;
+            StatusIcon = "🔗";
+            StatusTooltip = "This component depends on the component you want to delete. Uncheck to unlink the dependency.";
+            BackgroundBrush = ThemeResourceHelper.DependencyWarningBackground;
+            BorderBrush = ThemeResourceHelper.DependencyWarningBorder;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public class QuickActionItem
+    {
+        public QuickActionType ActionType { get; set; }
+        public ModComponent ModComponent { get; set; }
+        public string Text { get; set; }
+    }
+
+    public enum QuickActionType
+    {
+        UncheckAll,
+        UncheckSelectedOnly,
+        UncheckSpecific,
+    }
 }

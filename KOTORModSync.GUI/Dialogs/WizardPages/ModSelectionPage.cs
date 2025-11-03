@@ -88,8 +88,8 @@ namespace KOTORModSync.Dialogs.WizardPages
             // Group mods by category if available
             var categorizedMods = _allComponents
                 .Where(c => !c.WidescreenOnly) // Exclude widescreen mods from base selection
-                .GroupBy(c => c.Category?.FirstOrDefault() ?? "Other")
-                .OrderBy(g => g.Key);
+                .GroupBy(c => c.Category?.FirstOrDefault() ?? "Other", StringComparer.Ordinal)
+                .OrderBy(g => g.Key, StringComparer.Ordinal);
 
             foreach (var categoryGroup in categorizedMods)
             {
@@ -103,7 +103,7 @@ namespace KOTORModSync.Dialogs.WizardPages
                 });
 
                 // Mods in this category
-                foreach (var component in categoryGroup.OrderBy(c => c.Name))
+                foreach (var component in categoryGroup.OrderBy(c => c.Name, StringComparer.Ordinal))
                 {
                     var checkBox = new CheckBox
                     {

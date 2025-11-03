@@ -6,7 +6,9 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using JetBrains.Annotations;
 using KOTORModSync.Controls;
 using KOTORModSync.Core;
@@ -31,58 +33,328 @@ namespace KOTORModSync.Dialogs.WizardPages
         {
             _mainConfig = mainConfig ?? throw new ArgumentNullException(nameof(mainConfig));
 
-            var panel = new StackPanel
+            var scrollViewer = new ScrollViewer
             {
-                Spacing = 16
+                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+                Padding = new Thickness(40, 20, 40, 20)
             };
 
-            // Instructions
-            panel.Children.Add(new TextBlock
+            var mainPanel = new StackPanel
             {
-                Text = "Configure your mod installation directories:",
-                FontSize = 16,
-                FontWeight = Avalonia.Media.FontWeight.SemiBold
+                Spacing = 24,
+                MaxWidth = 900
+            };
+
+            // Header
+            var headerPanel = new StackPanel
+            {
+                Spacing = 12,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 20)
+            };
+
+            headerPanel.Children.Add(new TextBlock
+            {
+                Text = "⚙️",
+                FontSize = 48,
+                TextAlignment = Avalonia.Media.TextAlignment.Center
             });
 
-            // Source directory
-            panel.Children.Add(new TextBlock
+            headerPanel.Children.Add(new TextBlock
             {
-                Text = "Mod Files Directory (where downloaded mods are stored):",
-                FontSize = 14
+                Text = "Directory Setup",
+                FontSize = 28,
+                FontWeight = Avalonia.Media.FontWeight.Bold,
+                TextAlignment = Avalonia.Media.TextAlignment.Center
             });
+
+            headerPanel.Children.Add(new TextBlock
+            {
+                Text = "Configure your workspace and game directories",
+                FontSize = 16,
+                TextAlignment = Avalonia.Media.TextAlignment.Center,
+                Opacity = 0.8
+            });
+
+            mainPanel.Children.Add(headerPanel);
+
+            // Step 1: Mod Workspace Directory Card
+            var modDirCard = new Border
+            {
+                Padding = new Thickness(24),
+                CornerRadius = new CornerRadius(12, 12, 12, 12)
+            };
+
+            var modDirPanel = new StackPanel { Spacing = 12 };
+
+            var modDirHeader = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 12
+            };
+
+            modDirHeader.Children.Add(new Border
+            {
+                Width = 32,
+                Height = 32,
+                CornerRadius = new CornerRadius(16, 16, 16, 16),
+                Child = new TextBlock
+                {
+                    Text = "1",
+                    FontWeight = Avalonia.Media.FontWeight.Bold,
+                    TextAlignment = Avalonia.Media.TextAlignment.Center,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                }
+            });
+
+            modDirHeader.Children.Add(new TextBlock
+            {
+                Text = "📁 Mod Workspace Directory",
+                FontSize = 20,
+                FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            });
+
+            modDirPanel.Children.Add(modDirHeader);
+
+            modDirPanel.Children.Add(new TextBlock
+            {
+                Text = "Choose a folder where mod archives will be downloaded and processed. This should be a dedicated folder with plenty of space (at least 10GB recommended).",
+                FontSize = 14,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Opacity = 0.9,
+                LineHeight = 20
+            });
+
+            var tipPanel1 = new Border
+            {
+                Padding = new Thickness(12),
+                CornerRadius = new CornerRadius(6, 6, 6, 6),
+                Margin = new Thickness(0, 8, 0, 0)
+            };
+
+            var tipContent1 = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 8
+            };
+
+            tipContent1.Children.Add(new TextBlock
+            {
+                Text = "💡",
+                FontSize = 16,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+            });
+
+            tipContent1.Children.Add(new TextBlock
+            {
+                Text = "Tip: Create a new folder like 'C:\\KOTORMods' or use your Documents folder",
+                FontSize = 13,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Opacity = 0.8
+            });
+
+            tipPanel1.Child = tipContent1;
+            modDirPanel.Children.Add(tipPanel1);
 
             _sourcePathPicker = new DirectoryPickerControl
             {
-                Height = 40,
-                PickerType = DirectoryPickerType.ModDirectory
+                Height = 44,
+                PickerType = DirectoryPickerType.ModDirectory,
+                Margin = new Thickness(0, 12, 0, 0)
             };
-            panel.Children.Add(_sourcePathPicker);
+            modDirPanel.Children.Add(_sourcePathPicker);
 
-            // Destination directory
-            panel.Children.Add(new TextBlock
+            modDirCard.Child = modDirPanel;
+            mainPanel.Children.Add(modDirCard);
+
+            // Step 2: KOTOR Installation Directory Card
+            var kotorDirCard = new Border
             {
-                Text = "Game Installation Directory (where KOTOR is installed):",
-                FontSize = 14,
-                Margin = new Avalonia.Thickness(0, 16, 0, 0)
+                Padding = new Thickness(24),
+                CornerRadius = new CornerRadius(12, 12, 12, 12)
+            };
+
+            var kotorDirPanel = new StackPanel { Spacing = 12 };
+
+            var kotorDirHeader = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 12
+            };
+
+            kotorDirHeader.Children.Add(new Border
+            {
+                Width = 32,
+                Height = 32,
+                CornerRadius = new CornerRadius(16, 16, 16, 16),
+                Child = new TextBlock
+                {
+                    Text = "2",
+                    FontWeight = Avalonia.Media.FontWeight.Bold,
+                    TextAlignment = Avalonia.Media.TextAlignment.Center,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                }
             });
+
+            kotorDirHeader.Children.Add(new TextBlock
+            {
+                Text = "🎮 KOTOR Installation Directory",
+                FontSize = 20,
+                FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            });
+
+            kotorDirPanel.Children.Add(kotorDirHeader);
+
+            kotorDirPanel.Children.Add(new TextBlock
+            {
+                Text = "Select your KOTOR game installation folder. This is where the game executable (swkotor.exe or swkotor2.exe) is located.",
+                FontSize = 14,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Opacity = 0.9,
+                LineHeight = 20
+            });
+
+            var tipPanel2 = new Border
+            {
+                Padding = new Thickness(12),
+                CornerRadius = new CornerRadius(6, 6, 6, 6),
+                Margin = new Thickness(0, 8, 0, 0)
+            };
+
+            var tipContent2 = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 8
+            };
+
+            tipContent2.Children.Add(new TextBlock
+            {
+                Text = "💡",
+                FontSize = 16,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+            });
+
+            var commonPathsText = new TextBlock
+            {
+                FontSize = 13,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Opacity = 0.8
+            };
+            commonPathsText.Inlines.AddRange(new Avalonia.Controls.Documents.Inline[]
+            {
+                new Avalonia.Controls.Documents.Run { Text = "Common locations:\n• Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\swkotor\n• GOG: C:\\GOG Games\\Star Wars - KotOR" }
+            });
+
+            tipContent2.Children.Add(commonPathsText);
+            tipPanel2.Child = tipContent2;
+            kotorDirPanel.Children.Add(tipPanel2);
 
             _destinationPathPicker = new DirectoryPickerControl
             {
-                Height = 40,
-                PickerType = DirectoryPickerType.KotorDirectory
+                Height = 44,
+                PickerType = DirectoryPickerType.KotorDirectory,
+                Margin = new Thickness(0, 12, 0, 0)
             };
-            panel.Children.Add(_destinationPathPicker);
+            kotorDirPanel.Children.Add(_destinationPathPicker);
 
-            // Status
+            kotorDirCard.Child = kotorDirPanel;
+            mainPanel.Children.Add(kotorDirCard);
+
+            // Step 3: Load Instruction File Card
+            var loadFileCard = new Border
+            {
+                Padding = new Thickness(24),
+                CornerRadius = new CornerRadius(12, 12, 12, 12)
+            };
+
+            var loadFilePanel = new StackPanel { Spacing = 12 };
+
+            var loadFileHeader = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 12
+            };
+
+            loadFileHeader.Children.Add(new Border
+            {
+                Width = 32,
+                Height = 32,
+                CornerRadius = new CornerRadius(16, 16, 16, 16),
+                Child = new TextBlock
+                {
+                    Text = "3",
+                    FontWeight = Avalonia.Media.FontWeight.Bold,
+                    TextAlignment = Avalonia.Media.TextAlignment.Center,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                }
+            });
+
+            loadFileHeader.Children.Add(new TextBlock
+            {
+                Text = "📄 Load Instruction File",
+                FontSize = 20,
+                FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            });
+
+            loadFilePanel.Children.Add(loadFileHeader);
+
+            loadFilePanel.Children.Add(new TextBlock
+            {
+                Text = "Load a mod build configuration file (.toml) that contains the list of mods to install and their installation instructions.",
+                FontSize = 14,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                Opacity = 0.9,
+                LineHeight = 20
+            });
+
+            var loadFileButton = new Button
+            {
+                Content = "📂 Browse for Instruction File",
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 12, 0, 0),
+                Padding = new Thickness(16, 12),
+                FontSize = 15
+            };
+            loadFileButton.Click += (s, e) =>
+            {
+                if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    var mainWindow = desktop.MainWindow as MainWindow;
+                    mainWindow?.LoadFile_Click(s, e);
+                    UpdateStatus();
+                }
+            };
+            loadFilePanel.Children.Add(loadFileButton);
+
+            loadFileCard.Child = loadFilePanel;
+            mainPanel.Children.Add(loadFileCard);
+
+            // Status indicator
+            var statusCard = new Border
+            {
+                Padding = new Thickness(20),
+                CornerRadius = new CornerRadius(8, 8, 8, 8)
+            };
+
             _statusText = new TextBlock
             {
-                FontSize = 12,
-                Opacity = 0.7,
-                Margin = new Avalonia.Thickness(0, 16, 0, 0)
+                FontSize = 14,
+                FontWeight = Avalonia.Media.FontWeight.Medium,
+                TextAlignment = Avalonia.Media.TextAlignment.Center
             };
-            panel.Children.Add(_statusText);
 
-            Content = panel;
+            statusCard.Child = _statusText;
+            mainPanel.Children.Add(statusCard);
+
+            scrollViewer.Content = mainPanel;
+            Content = scrollViewer;
         }
 
         public async Task OnNavigatedToAsync(CancellationToken cancellationToken)

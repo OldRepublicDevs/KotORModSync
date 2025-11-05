@@ -346,6 +346,9 @@ namespace KOTORModSync
                     await InitializeTelemetryIfEnabled();
                     UpdateHolopatcherVersionDisplay();
 
+                    // Update theme button states now that UI is fully loaded
+                    UpdateThemeButtonStates();
+
                     // Detect game version if destination path is set
                     if (MainConfig.DestinationPath?.Exists == true)
                     {
@@ -454,6 +457,11 @@ namespace KOTORModSync
 
                 // Update HoloPatcher version display
                 UpdateHolopatcherVersionDisplay();
+
+                // Update theme button states to reflect current theme
+                // Note: Buttons may not exist yet if called before UI is fully loaded,
+                // so we also call this in the Opened event handler
+                UpdateThemeButtonStates();
 
                 Logger.LogVerbose("Settings loaded and applied successfully");
             }
@@ -581,6 +589,9 @@ namespace KOTORModSync
 
                 // Update HoloPatcher version display
                 UpdateHolopatcherVersionDisplay();
+
+                // Update theme button states to reflect current theme
+                UpdateThemeButtonStates();
 
                 Logger.LogVerbose("MainWindow.RefreshFromSettings - completed successfully");
             }
@@ -1339,7 +1350,7 @@ namespace KOTORModSync
                     // Cancel any pending updates since we might already be showing the correct file
                     _dragOverlayDebounceTimer?.Stop();
                     _pendingDragOverlayUpdate = false;
-                    
+
                     // Always check actual UI state on UI thread for consistency
                     Dispatcher.UIThread.Post(() =>
                     {
@@ -1364,7 +1375,7 @@ namespace KOTORModSync
                             Logger.LogException(ex, "[DragOver] Error checking overlay state");
                         }
                     });
-                    
+
                     // Return early to prevent scheduling another update
                     // The UI thread check above will fix the flag if needed
                     Logger.LogVerbose("[DragOver] Overlay flag says visible for same file, cancelling debounce and returning early");
@@ -1427,7 +1438,7 @@ namespace KOTORModSync
                                                 Logger.LogException(ex, "[DragOver.Timer] Error checking overlay state");
                                             }
                                         });
-                                        
+
                                         // Trust the flag for now, but the UI thread check will verify
                                         shouldUpdate = false;
                                         Logger.LogVerbose("[DragOver.Timer] Flag says overlay visible for same file, skipping update");
@@ -3075,11 +3086,80 @@ namespace KOTORModSync
         [UsedImplicitly]
         private void MinimizeButton_Click([NotNull] object sender, [NotNull] RoutedEventArgs e) => WindowState = WindowState.Minimized;
         [UsedImplicitly]
-        private void SwitchToLightTheme_Click(object sender, RoutedEventArgs e) => ThemeManager.UpdateStyle("/Styles/FluentLightStyle.axaml");
+        private void SwitchToLightTheme_Click(object sender, RoutedEventArgs e)
+        {
+            ThemeService.ApplyTheme("FluentLightStyle.axaml");
+            SaveThemeToSettings();
+            UpdateThemeButtonStates();
+        }
+
         [UsedImplicitly]
-        private void SwitchToK1Theme_Click(object sender, RoutedEventArgs e) => ThemeManager.UpdateStyle("/Styles/KotorStyle.axaml");
+        private void SwitchToK1Theme_Click(object sender, RoutedEventArgs e)
+        {
+            ThemeService.ApplyTheme("KotorStyle.axaml");
+            SaveThemeToSettings();
+            UpdateThemeButtonStates();
+        }
+
         [UsedImplicitly]
-        private void SwitchToTslTheme_Click(object sender, RoutedEventArgs e) => ThemeManager.UpdateStyle("/Styles/Kotor2Style.axaml");
+        private void SwitchToTslTheme_Click(object sender, RoutedEventArgs e)
+        {
+            ThemeService.ApplyTheme("Kotor2Style.axaml");
+            SaveThemeToSettings();
+            UpdateThemeButtonStates();
+        }
+
+        private void SaveThemeToSettings()
+        {
+            try
+            {
+                string currentTheme = ThemeService.GetCurrentTheme();
+                if (string.IsNullOrEmpty(currentTheme))
+                {
+                    currentTheme = "/Styles/FluentLightStyle.axaml";
+                }
+
+                var settings = AppSettings.FromCurrentState(MainConfigInstance, currentTheme, SpoilerFreeMode);
+                Models.SettingsManager.SaveSettings(settings);
+                Logger.LogVerbose($"Theme saved to settings: {currentTheme}");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Failed to save theme to settings");
+            }
+        }
+
+        private void UpdateThemeButtonStates()
+        {
+            try
+            {
+                string currentTheme = ThemeService.GetCurrentTheme();
+
+                Button lightButton = this.FindControl<Button>("LightThemeButton");
+                Button k1Button = this.FindControl<Button>("K1ThemeButton");
+                Button tslButton = this.FindControl<Button>("TslThemeButton");
+
+                if (lightButton != null)
+                {
+                    lightButton.IsEnabled = !string.Equals(currentTheme, "FluentLightStyle.axaml", StringComparison.Ordinal);
+                }
+
+                if (k1Button != null)
+                {
+                    k1Button.IsEnabled = !string.Equals(currentTheme, "KotorStyle.axaml", StringComparison.Ordinal);
+                }
+
+                if (tslButton != null)
+                {
+                    tslButton.IsEnabled = !string.Equals(currentTheme, "Kotor2Style.axaml", StringComparison.Ordinal);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex, "Failed to update theme button states");
+            }
+        }
+
         [ItemCanBeNull]
         public async Task<string> SaveFileAsync(
             string saveFileName = null

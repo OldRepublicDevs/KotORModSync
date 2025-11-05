@@ -414,3 +414,10 @@ IMPLEMENTATION_PROGRESS.md
 IMPLEMENTATION_STATUS.md
 PHASE_6_COMPLETION_SUMMARY.md
 TODO.txt
+test_output/changes.ini
+.gitignore
+.gitignore
+tslpatchdata/test_kotordiff_profile.prof
+tslpatchdata/append.tlk
+tslpatchdata/changes.ini
+validation_logs.txt

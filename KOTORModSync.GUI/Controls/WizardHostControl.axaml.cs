@@ -191,19 +191,16 @@ namespace KOTORModSync.Controls
             NextButton.IsEnabled = page.CanNavigateForward;
             NextButton.IsVisible = pageIndex < _pages.Count - 1;
             FinishButton.IsVisible = pageIndex == _pages.Count - 1;
-            CancelButton.IsEnabled = page.CanCancel;
 
             // Update button text
             if (page is InstallingPage || page is WidescreenInstallingPage)
             {
                 NextButton.Content = "Continue";
                 BackButton.IsEnabled = false;
-                CancelButton.Content = "Stop Install";
             }
             else
             {
                 NextButton.Content = "Next →";
-                CancelButton.Content = "Cancel";
             }
 
             // Call page activation
@@ -272,50 +269,6 @@ namespace KOTORModSync.Controls
             catch (Exception ex)
             {
                 await Logger.LogExceptionAsync(ex, "Error navigating to previous page");
-            }
-        }
-
-        private async void CancelButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                IWizardPage currentPage = _pages[_currentPageIndex];
-
-                // If on installing page, confirm cancellation
-                if (currentPage is InstallingPage || currentPage is WidescreenInstallingPage)
-                {
-                    bool? result = await ConfirmationDialog.ShowConfirmationDialogAsync(
-                        _parentWindow,
-                        "Are you sure you want to stop the installation?\n\nThe current mod will finish installing, but no further mods will be installed."
-                    );
-
-                    if (result != true)
-                    {
-                        return;
-                    }
-
-                    await _cancellationTokenSource.CancelAsync();
-                    InstallationCancelled = true;
-                    WizardCancelled?.Invoke(this, EventArgs.Empty);
-                    return;
-                }
-
-                // Regular cancel
-                bool? confirmCancel = await ConfirmationDialog.ShowConfirmationDialogAsync(
-                    _parentWindow,
-                    "Are you sure you want to exit the installation wizard?"
-                );
-
-                if (confirmCancel == true)
-                {
-                    InstallationCancelled = true;
-                    await _cancellationTokenSource.CancelAsync();
-                    WizardCancelled?.Invoke(this, EventArgs.Empty);
-                }
-            }
-            catch (Exception ex)
-            {
-                await Logger.LogExceptionAsync(ex, "Error cancelling wizard");
             }
         }
 

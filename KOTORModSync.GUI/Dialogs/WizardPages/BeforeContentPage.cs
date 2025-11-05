@@ -27,14 +27,30 @@ namespace KOTORModSync.Dialogs.WizardPages
             {
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-                Padding = new Avalonia.Thickness(40, 20, 40, 20),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
             };
+
+            // Container to center content with equal margins
+            var contentContainer = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Avalonia.Thickness(40, 20, 40, 20),
+            };
+            contentContainer.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+            contentContainer.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            contentContainer.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
 
             var mainPanel = new StackPanel
             {
                 Spacing = 20,
-                MaxWidth = 900,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                MaxWidth = 1200,
+                MinWidth = 600,
             };
+
+            Grid.SetColumn(mainPanel, 1);
+            contentContainer.Children.Add(mainPanel);
 
             // Icon and header
             var headerPanel = new StackPanel
@@ -61,18 +77,23 @@ namespace KOTORModSync.Dialogs.WizardPages
 
             mainPanel.Children.Add(headerPanel);
 
-            // Content card with markdown rendering
+            // Content card with markdown rendering - use RenderToPanel for block-level markdown support
             var contentCard = new Border
             {
                 Padding = new Avalonia.Thickness(32),
                 CornerRadius = new Avalonia.CornerRadius(12),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                MinWidth = 600,
             };
 
-            // Use the markdown renderer to convert markdown to TextBlock
-            var renderedContent = MarkdownRenderer.RenderToTextBlock(beforeContent ?? string.Empty);
-            renderedContent.TextWrapping = TextWrapping.Wrap;
-            renderedContent.LineHeight = 24;
-            renderedContent.FontSize = 15;
+            // Use the markdown renderer to convert markdown to Panel (supports headings, warning blocks, etc.)
+            var renderedContent = MarkdownRenderer.RenderToPanel(
+                beforeContent ?? string.Empty,
+                url => Core.Utility.UrlUtilities.OpenUrl(url)
+            );
+
+            // Ensure rendered content expands to fill available width
+            renderedContent.HorizontalAlignment = HorizontalAlignment.Stretch;
 
             contentCard.Child = renderedContent;
             mainPanel.Children.Add(contentCard);
@@ -83,33 +104,39 @@ namespace KOTORModSync.Dialogs.WizardPages
                 Padding = new Avalonia.Thickness(20),
                 CornerRadius = new Avalonia.CornerRadius(8),
                 Margin = new Avalonia.Thickness(0, 20, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
             };
 
-            var tipContent = new StackPanel
+            var tipContent = new Grid
             {
-                Orientation = Orientation.Horizontal,
-                Spacing = 12,
+                ColumnDefinitions = new ColumnDefinitions("Auto,*"),
             };
 
-            tipContent.Children.Add(new TextBlock
+            var tipIcon = new TextBlock
             {
                 Text = "💡",
                 FontSize = 24,
                 VerticalAlignment = VerticalAlignment.Top,
-            });
+                Margin = new Avalonia.Thickness(0, 0, 12, 0),
+            };
 
-            tipContent.Children.Add(new TextBlock
+            var tipText = new TextBlock
             {
                 Text = "Take a moment to read through this information carefully. It contains important details that will help ensure a successful installation.",
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 14,
                 Opacity = 0.9,
-            });
+            };
+
+            Grid.SetColumn(tipIcon, 0);
+            Grid.SetColumn(tipText, 1);
+            tipContent.Children.Add(tipIcon);
+            tipContent.Children.Add(tipText);
 
             tipPanel.Child = tipContent;
             mainPanel.Children.Add(tipPanel);
 
-            scrollViewer.Content = mainPanel;
+            scrollViewer.Content = contentContainer;
             Content = scrollViewer;
         }
 

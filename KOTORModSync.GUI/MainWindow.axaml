@@ -133,11 +133,11 @@
                             Margin="0"
                             Padding="8,4"
                             Click="SwitchToTslTheme_Click"
-                            Content="K2"
+                            Content="TSL"
                             CornerRadius="0,4,4,0"
                             FontSize="11"
                             FontWeight="Bold"
-                            ToolTip.Tip="KOTOR 2 Theme" />
+                            ToolTip.Tip="KOTOR 2: TSL Theme" />
                     </StackPanel>
                 </Border>
 

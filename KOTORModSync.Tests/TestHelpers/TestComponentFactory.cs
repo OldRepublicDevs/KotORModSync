@@ -45,7 +45,11 @@ namespace KOTORModSync.Tests.TestHelpers
         private static void CreateMinimalZip(string path)
         {
             string dir = Path.GetDirectoryName(path);
-            if (dir != null) Directory.CreateDirectory(dir);
+            if (dir != null)
+            {
+                Directory.CreateDirectory(dir);
+            }
+
             byte[] emptyZip = new byte[]
             {
                 0x50, 0x4B, 0x05, 0x06,

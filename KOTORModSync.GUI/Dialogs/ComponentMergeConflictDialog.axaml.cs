@@ -158,11 +158,11 @@ namespace KOTORModSync.Dialogs
                 }
 
                 // Find corresponding items in Existing and Incoming lists
-                var existingItem = ViewModel.ExistingComponents.FirstOrDefault(item =>
+                ComponentConflictItem existingItem = ViewModel.ExistingComponents.FirstOrDefault(item =>
                     item.ModComponent == previewItem.ModComponent ||
                     string.Equals(item.Name, previewItem.Name, StringComparison.Ordinal));
 
-                var incomingItem = ViewModel.IncomingComponents.FirstOrDefault(item =>
+                ComponentConflictItem incomingItem = ViewModel.IncomingComponents.FirstOrDefault(item =>
                     item.ModComponent == previewItem.ModComponent ||
                     string.Equals(item.Name, previewItem.Name, StringComparison.Ordinal));
 

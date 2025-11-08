@@ -241,7 +241,7 @@ namespace KOTORModSync.Dialogs
                 return;
             }
 
-            var position = e.GetPosition(_previewTextBox);
+            Point position = e.GetPosition(_previewTextBox);
             int caretPosition = GetCharacterIndexFromPoint(_previewTextBox, position);
 
             if (caretPosition >= 0)
@@ -283,7 +283,7 @@ namespace KOTORModSync.Dialogs
             }
 
             _previewTextBox.Inlines?.Clear();
-            foreach (var inline in ViewModel.HighlightedPreview)
+            foreach (Inline inline in ViewModel.HighlightedPreview)
             {
                 _previewTextBox.Inlines?.Add(inline);
             }
@@ -299,7 +299,7 @@ namespace KOTORModSync.Dialogs
                 var textBuilder = new System.Text.StringBuilder();
                 if (textBox.Inlines != null)
                 {
-                    foreach (var inline in textBox.Inlines)
+                    foreach (Inline inline in textBox.Inlines)
                     {
                         if (inline is Run run)
                         {
@@ -356,17 +356,17 @@ namespace KOTORModSync.Dialogs
             }
 
             // Find the Simple tab
-            var simpleTab = this.FindControl<TabItem>("SimpleTab");
+            TabItem simpleTab = this.FindControl<TabItem>("SimpleTab");
             if (simpleTab == null)
             {
                 return;
             }
 
             // Find all TextBoxes in the Simple tab
-            var textBoxes = simpleTab.GetVisualDescendants().OfType<TextBox>()
+            System.Collections.Generic.IEnumerable<TextBox> textBoxes = simpleTab.GetVisualDescendants().OfType<TextBox>()
                 .Where(tb => tb.Name != null && tb.Name.IndexOf(textBoxName, StringComparison.OrdinalIgnoreCase) >= 0);
 
-            var textBox = textBoxes.FirstOrDefault();
+            TextBox textBox = textBoxes.FirstOrDefault();
             if (textBox != null && _currentlyHighlightedTextBox != textBox)
             {
                 ClearTextBoxHighlight();
@@ -398,15 +398,15 @@ namespace KOTORModSync.Dialogs
             Logger.LogVerbose("Find dialog not yet supported for highlighted preview");
 
             // Create a simple find panel at the top of the preview area
-            var findPanel = CreateFindPanel();
-            var previewBorder = this.FindControl<Border>("PreviewBorder");
+            Border findPanel = CreateFindPanel();
+            Border previewBorder = this.FindControl<Border>("PreviewBorder");
             if (previewBorder?.Child is Grid previewGrid)
             {
                 // Check if find panel already exists
-                var existingPanel = previewGrid.Children.OfType<Border>().FirstOrDefault(b => string.Equals(b.Name, "FindPanel", StringComparison.Ordinal));
+                Border existingPanel = previewGrid.Children.OfType<Border>().FirstOrDefault(b => string.Equals(b.Name, "FindPanel", StringComparison.Ordinal));
                 if (existingPanel != null)
                 {
-                    var findTextBox = existingPanel.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
+                    TextBox findTextBox = existingPanel.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
                     findTextBox?.Focus();
                     findTextBox?.SelectAll();
                     return;
@@ -418,7 +418,7 @@ namespace KOTORModSync.Dialogs
                 Grid.SetRowSpan(previewGrid.Children[previewGrid.Children.Count - 1], 1); // Adjust preview textbox row span
                 previewGrid.Children.Insert(0, findPanel);
 
-                var findTextBox2 = findPanel.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
+                TextBox findTextBox2 = findPanel.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
                 findTextBox2?.Focus();
             }
         }
@@ -490,10 +490,10 @@ namespace KOTORModSync.Dialogs
 
         private void CloseFindPanel()
         {
-            var previewBorder = this.FindControl<Border>("PreviewBorder");
+            Border previewBorder = this.FindControl<Border>("PreviewBorder");
             if (previewBorder?.Child is Grid previewGrid)
             {
-                var findPanel = previewGrid.Children.OfType<Border>().FirstOrDefault(b => string.Equals(b.Name, "FindPanel", StringComparison.Ordinal));
+                Border findPanel = previewGrid.Children.OfType<Border>().FirstOrDefault(b => string.Equals(b.Name, "FindPanel", StringComparison.Ordinal));
                 if (findPanel != null)
                 {
                     previewGrid.Children.Remove(findPanel);

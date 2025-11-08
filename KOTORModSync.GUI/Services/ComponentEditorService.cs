@@ -233,7 +233,7 @@ namespace KOTORModSync.Services
                 }
 
                 var dependentComponents = new System.Collections.Generic.List<ModComponent>();
-                foreach (var c in _mainConfig.allComponents)
+                foreach (ModComponent c in _mainConfig.allComponents)
                 {
                     if (c.Dependencies.Contains(component.Guid) ||
                         c.Restrictions.Contains(component.Guid) ||

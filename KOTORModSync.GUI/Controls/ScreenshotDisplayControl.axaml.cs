@@ -48,8 +48,8 @@ namespace KOTORModSync.Controls
 
         private void UpdateScreenshotDisplay()
         {
-            var imageItemsControl = this.FindControl<ItemsControl>("ImageItemsControl");
-            var fallbackTextBlock = this.FindControl<TextBlock>("FallbackTextBlock");
+            ItemsControl imageItemsControl = this.FindControl<ItemsControl>("ImageItemsControl");
+            TextBlock fallbackTextBlock = this.FindControl<TextBlock>("FallbackTextBlock");
 
             if (imageItemsControl is null || fallbackTextBlock is null)
             {

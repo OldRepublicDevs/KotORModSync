@@ -46,11 +46,11 @@ namespace KOTORModSync.Dialogs
             {
                 try
                 {
-                    var contentTextBlock = this.FindControl<TextBlock>("ContentTextBlock");
+                    TextBlock contentTextBlock = this.FindControl<TextBlock>("ContentTextBlock");
                     if (contentTextBlock != null && !string.IsNullOrWhiteSpace(widescreenContent))
                     {
 
-                        var renderedTextBlock = MarkdownRenderer.RenderToTextBlock(
+                        TextBlock renderedTextBlock = MarkdownRenderer.RenderToTextBlock(
                             widescreenContent,
                             url => Core.Utility.UrlUtilities.OpenUrl(url)
                         );
@@ -62,7 +62,8 @@ namespace KOTORModSync.Dialogs
 
                             // Ensure the ContentTextBlock has the proper foreground color for the current theme
                             string currentTheme = ThemeManager.GetCurrentStylePath();
-                            if (currentTheme.Contains("FluentLightStyle"))
+                            if (currentTheme.Contains("LightStyle")
+                                || currentTheme.Contains("FluentLightStyle"))
                             {
                                 contentTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
                             }
@@ -85,7 +86,7 @@ namespace KOTORModSync.Dialogs
                                         if (!string.IsNullOrEmpty(fullText))
                                         {
                                             string linkPattern = @"🔗([^🔗]+)🔗";
-                                            var match = System.Text.RegularExpressions.Regex.Match(
+                                            System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(
                                                 fullText,
                                                 linkPattern,
                                                 System.Text.RegularExpressions.RegexOptions.None,
@@ -123,7 +124,7 @@ namespace KOTORModSync.Dialogs
             }
 
             var text = new System.Text.StringBuilder();
-            foreach (var inline in textBlock.Inlines)
+            foreach (Avalonia.Controls.Documents.Inline inline in textBlock.Inlines)
             {
                 if (inline is Avalonia.Controls.Documents.Run run)
                 {
@@ -135,7 +136,7 @@ namespace KOTORModSync.Dialogs
 
         private void ContinueButton_Click(object sender, RoutedEventArgs e)
         {
-            var dontShowCheckBox = this.FindControl<CheckBox>("DontShowAgainCheckBox");
+            CheckBox dontShowCheckBox = this.FindControl<CheckBox>("DontShowAgainCheckBox");
             DontShowAgain = dontShowCheckBox?.IsChecked == true;
             UserCancelled = false;
             Close(true);

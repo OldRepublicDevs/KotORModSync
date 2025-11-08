@@ -11,11 +11,8 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 using KOTORModSync.Core.FileSystemUtils;
-
+using KOTORModSync.Core.Utility;
 using SharpCompress.Archives;
-using SharpCompress.Archives.Rar;
-using SharpCompress.Archives.SevenZip;
-using SharpCompress.Archives.Zip;
 
 namespace KOTORModSync.Core.Services.FileSystem
 {
@@ -53,7 +50,7 @@ namespace KOTORModSync.Core.Services.FileSystem
             {
                 lock (_lockObject)
                 {
-                    var files = new DirectoryInfo(rootPath).GetFilesSafely("*.*", SearchOption.AllDirectories).ToList();
+                    List<FileInfo> files = new DirectoryInfo(rootPath).GetFilesSafely("*.*", SearchOption.AllDirectories).ToList();
                     foreach (string filePath in files.Select(file => file.FullName))
                     {
                         _virtualFiles.Add(filePath);
@@ -302,88 +299,39 @@ namespace KOTORModSync.Core.Services.FileSystem
                 return;
             }
 
-            var contents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            try
+            if (!ArchiveHelper.HasArchiveExtension(archivePath))
             {
-                using (FileStream stream = File.OpenRead(archivePath))
-                {
-                    IArchive archive = GetArchiveFromPath(archivePath, stream);
-                    if (archive is null)
-                    {
-                        AddIssue(ValidationSeverity.Warning, "ArchiveValidation",
-                            $"Could not determine archive type: {Path.GetFileName(archivePath)} - may not be a valid archive", archivePath);
-                        _archiveContents[archivePath] = contents;
-                        await Task.CompletedTask.ConfigureAwait(false);
-                        return;
-                    }
-
-                    using (archive)
-                    {
-                        foreach (IArchiveEntry entry in archive.Entries.Where(e => !e.IsDirectory))
-                        {
-                            _ = contents.Add(entry.Key);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                AddIssue(ValidationSeverity.Warning, "ArchiveValidation",
-                    $"Unable to scan archive '{Path.GetFileName(archivePath)}' - may be corrupted or not an archive: {ex.Message}", archivePath);
-                _archiveContents[archivePath] = contents;
+                _archiveContents[archivePath] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 await Task.CompletedTask.ConfigureAwait(false);
                 return;
             }
 
-            _archiveContents[archivePath] = contents;
+            if (ArchiveHelper.TryGetArchiveEntries(archivePath, out HashSet<string> entries, out string failureReason))
+            {
+                _archiveContents[archivePath] = entries;
+            }
+            else
+            {
+                string message = string.IsNullOrEmpty(failureReason)
+                    ? $"Unable to scan archive '{Path.GetFileName(archivePath)}' - may be corrupted or not an archive."
+                    : $"Unable to scan archive '{Path.GetFileName(archivePath)}': {failureReason}";
+
+                AddIssue(
+                    ValidationSeverity.Warning,
+                    "ArchiveValidation",
+                    message,
+                    archivePath);
+
+                _archiveContents[archivePath] = entries ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+
             await Task.CompletedTask.ConfigureAwait(false);
         }
 
-        private static IArchive GetArchiveFromPath([NotNull] string path, [NotNull] Stream stream)
-        {
-            string extension = Path.GetExtension(path).ToLowerInvariant();
+        private static IArchive GetArchiveFromPath([NotNull] string path, [NotNull] Stream stream) =>
+            ArchiveHelper.OpenArchiveFromStream(Path.GetExtension(path), stream);
 
-            try
-            {
-
-                if (string.Equals(extension, ".zip", StringComparison.Ordinal))
-                {
-                    return ZipArchive.Open(stream);
-                }
-
-                if (string.Equals(extension, ".rar", StringComparison.Ordinal))
-                {
-                    return RarArchive.Open(stream);
-                }
-
-                if (string.Equals(extension, ".7z", StringComparison.Ordinal))
-                {
-                    return SevenZipArchive.Open(stream);
-                }
-
-                if (string.Equals(extension, ".exe", StringComparison.Ordinal))
-                {
-                    return SevenZipArchive.Open(stream);
-                }
-
-                return ArchiveFactory.Open(stream);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private static bool IsArchiveFile([NotNull] string path)
-        {
-            string extension = Path.GetExtension(path).ToLowerInvariant();
-
-            return string.Equals(extension, ".zip"
-                , StringComparison.Ordinal) || string.Equals(extension, ".rar"
-                , StringComparison.Ordinal) || string.Equals(extension, ".7z"
-                , StringComparison.Ordinal) || string.Equals(extension, ".exe", StringComparison.Ordinal);
-        }
+        private static bool IsArchiveFile([NotNull] string path) => ArchiveHelper.HasArchiveExtension(path);
 
         public bool FileExists(string path)
         {

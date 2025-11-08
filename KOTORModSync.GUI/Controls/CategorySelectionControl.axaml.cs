@@ -118,7 +118,7 @@ namespace KOTORModSync.Controls
             if (_categoryItems.Any(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase)))
             {
 
-                var existingItem = _categoryItems.First(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase));
+                SelectionFilterItem existingItem = _categoryItems.First(item => string.Equals(item.Name, newCategoryText, StringComparison.OrdinalIgnoreCase));
                 existingItem.IsSelected = true;
             }
             else

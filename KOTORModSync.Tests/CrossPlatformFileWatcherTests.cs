@@ -3,18 +3,16 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-
 using KOTORModSync.Core.FileSystemUtils;
-
 using NUnit.Framework;
 using Xunit;
 using Assert = Xunit.Assert;
-using System.Threading;
-using System.Linq;
 
 namespace KOTORModSync.Tests
 {
@@ -39,7 +37,7 @@ namespace KOTORModSync.Tests
 
         public void Dispose()
         {
-            foreach (var watcher in _watchers)
+            foreach (CrossPlatformFileWatcher watcher in _watchers)
             {
                 try { watcher.Dispose(); }
                 catch { }
@@ -113,7 +111,7 @@ namespace KOTORModSync.Tests
         public void Constructor_WithNullPath_ThrowsArgumentNullException()
         {
 
-            var exception = Assert.Throws<ArgumentNullException>(() => new CrossPlatformFileWatcher(null));
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CrossPlatformFileWatcher(null));
             Assert.Equal("path", exception.ParamName);
         }
 

@@ -437,29 +437,30 @@ namespace KOTORModSync.Core.Services
                     return;
                 }
 
+                var mainConfig = new MainConfig();
                 if (metadataDict.TryGetValue("FileFormatVersion", out object versionObj) || metadataDict.TryGetValue("fileFormatVersion", out versionObj))
                 {
-                    MainConfig.FileFormatVersion = versionObj?.ToString() ?? "2.0";
+                    mainConfig.fileFormatVersion = versionObj?.ToString() ?? "2.0";
                 }
 
                 if (metadataDict.TryGetValue("TargetGame", out object gameObj) || metadataDict.TryGetValue("targetGame", out gameObj))
                 {
-                    MainConfig.TargetGame = gameObj?.ToString() ?? string.Empty;
+                    mainConfig.targetGame = gameObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataDict.TryGetValue("BuildName", out object nameObj) || metadataDict.TryGetValue("buildName", out nameObj))
                 {
-                    MainConfig.BuildName = nameObj?.ToString() ?? string.Empty;
+                    mainConfig.buildName = nameObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataDict.TryGetValue("BuildAuthor", out object authorObj) || metadataDict.TryGetValue("buildAuthor", out authorObj))
                 {
-                    MainConfig.BuildAuthor = authorObj?.ToString() ?? string.Empty;
+                    mainConfig.buildAuthor = authorObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataDict.TryGetValue("BuildDescription", out object descObj) || metadataDict.TryGetValue("buildDescription", out descObj))
                 {
-                    MainConfig.BuildDescription = descObj?.ToString() ?? string.Empty;
+                    mainConfig.buildDescription = descObj?.ToString() ?? string.Empty;
                 }
 
                 if (
@@ -468,35 +469,35 @@ namespace KOTORModSync.Core.Services
                     DateTime.TryParse(modifiedObj?.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate)
                 )
                 {
-                    MainConfig.LastModified = parsedDate;
+                    mainConfig.lastModified = parsedDate;
                 }
                 // Always load content sections if present
                 if (metadataDict.TryGetValue("PreambleContent", out object preambleObj) || metadataDict.TryGetValue("preambleContent", out preambleObj))
                 {
-                    MainConfig.PreambleContent = preambleObj?.ToString() ?? string.Empty;
+                    mainConfig.preambleContent = preambleObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataDict.TryGetValue("EpilogueContent", out object epilogueObj) || metadataDict.TryGetValue("epilogueContent", out epilogueObj))
                 {
-                    MainConfig.EpilogueContent = epilogueObj?.ToString() ?? string.Empty;
+                    mainConfig.epilogueContent = epilogueObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataDict.TryGetValue("WidescreenWarningContent", out object widescreenObj) || metadataDict.TryGetValue("widescreenWarningContent", out widescreenObj))
                 {
-                    MainConfig.WidescreenWarningContent = widescreenObj?.ToString() ?? string.Empty;
+                    mainConfig.widescreenWarningContent = widescreenObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataDict.TryGetValue("AspyrExclusiveWarningContent", out object aspyrObj) || metadataDict.TryGetValue("aspyrExclusiveWarningContent", out aspyrObj))
                 {
-                    MainConfig.AspyrExclusiveWarningContent = aspyrObj?.ToString() ?? string.Empty;
+                    mainConfig.aspyrExclusiveWarningContent = aspyrObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataDict.TryGetValue("InstallationWarningContent", out object installationWarningObj) || metadataDict.TryGetValue("installationWarningContent", out installationWarningObj))
                 {
-                    MainConfig.InstallationWarningContent = installationWarningObj?.ToString() ?? string.Empty;
+                    mainConfig.installationWarningContent = installationWarningObj?.ToString() ?? string.Empty;
                 }
 
-                Logger.LogVerbose($"Loaded YAML metadata: Game={MainConfig.TargetGame}, Version={MainConfig.FileFormatVersion}, Build={MainConfig.BuildName}");
+                Logger.LogVerbose($"Loaded YAML metadata: Game={mainConfig.targetGame}, Version={mainConfig.fileFormatVersion}, Build={mainConfig.buildName}");
             }
             catch (Exception ex)
             {
@@ -526,29 +527,30 @@ namespace KOTORModSync.Core.Services
                 }
 
                 // Update MainConfig with content sections from markdown
+                var mainConfig = new MainConfig();
                 if (!string.IsNullOrWhiteSpace(result.PreambleContent))
                 {
-                    MainConfig.PreambleContent = result.PreambleContent;
+                    mainConfig.preambleContent = result.PreambleContent;
                 }
 
                 if (!string.IsNullOrWhiteSpace(result.EpilogueContent))
                 {
-                    MainConfig.EpilogueContent = result.EpilogueContent;
+                    mainConfig.epilogueContent = result.EpilogueContent;
                 }
 
                 if (!string.IsNullOrWhiteSpace(result.WidescreenWarningContent))
                 {
-                    MainConfig.WidescreenWarningContent = result.WidescreenWarningContent;
+                    mainConfig.widescreenWarningContent = result.WidescreenWarningContent;
                 }
 
                 if (!string.IsNullOrWhiteSpace(result.AspyrExclusiveWarningContent))
                 {
-                    MainConfig.AspyrExclusiveWarningContent = result.AspyrExclusiveWarningContent;
+                    mainConfig.aspyrExclusiveWarningContent = result.AspyrExclusiveWarningContent;
                 }
 
                 if (!string.IsNullOrWhiteSpace(result.InstallationWarningContent))
                 {
-                    MainConfig.InstallationWarningContent = result.InstallationWarningContent;
+                    mainConfig.installationWarningContent = result.InstallationWarningContent;
                 }
 
                 return result.Components.ToList();
@@ -575,25 +577,26 @@ namespace KOTORModSync.Core.Services
                 throw new ArgumentNullException(nameof(jsonContent));
             }
 
+            var mainConfig = new MainConfig();
             jsonContent = SanitizeUtf8(jsonContent);
             var jsonObject = JObject.Parse(jsonContent);
             if (jsonObject["metadata"] is JObject metadataObj)
             {
-                MainConfig.FileFormatVersion = metadataObj["fileFormatVersion"]?.ToString() ?? "2.0";
-                MainConfig.TargetGame = metadataObj["targetGame"]?.ToString() ?? string.Empty;
-                MainConfig.BuildName = metadataObj["buildName"]?.ToString() ?? string.Empty;
-                MainConfig.BuildAuthor = metadataObj["buildAuthor"]?.ToString() ?? string.Empty;
-                MainConfig.BuildDescription = metadataObj["buildDescription"]?.ToString() ?? string.Empty;
+                mainConfig.fileFormatVersion = metadataObj["fileFormatVersion"]?.ToString() ?? "2.0";
+                mainConfig.targetGame = metadataObj["targetGame"]?.ToString() ?? string.Empty;
+                mainConfig.buildName = metadataObj["buildName"]?.ToString() ?? string.Empty;
+                mainConfig.buildAuthor = metadataObj["buildAuthor"]?.ToString() ?? string.Empty;
+                mainConfig.buildDescription = metadataObj["buildDescription"]?.ToString() ?? string.Empty;
                 if (metadataObj["lastModified"] != null)
                 {
-                    MainConfig.LastModified = metadataObj["lastModified"].ToObject<DateTime?>();
+                    mainConfig.lastModified = metadataObj["lastModified"].ToObject<DateTime?>();
                 }
                 // Always load content sections if present
-                MainConfig.PreambleContent = metadataObj["preambleContent"]?.ToString() ?? string.Empty;
-                MainConfig.EpilogueContent = metadataObj["epilogueContent"]?.ToString() ?? string.Empty;
-                MainConfig.WidescreenWarningContent = metadataObj["widescreenWarningContent"]?.ToString() ?? string.Empty;
-                MainConfig.AspyrExclusiveWarningContent = metadataObj["aspyrExclusiveWarningContent"]?.ToString() ?? string.Empty;
-                MainConfig.InstallationWarningContent = metadataObj["installationWarningContent"]?.ToString() ?? string.Empty;
+                mainConfig.preambleContent = metadataObj["preambleContent"]?.ToString() ?? string.Empty;
+                mainConfig.epilogueContent = metadataObj["epilogueContent"]?.ToString() ?? string.Empty;
+                mainConfig.widescreenWarningContent = metadataObj["widescreenWarningContent"]?.ToString() ?? string.Empty;
+                mainConfig.aspyrExclusiveWarningContent = metadataObj["aspyrExclusiveWarningContent"]?.ToString() ?? string.Empty;
+                mainConfig.installationWarningContent = metadataObj["installationWarningContent"]?.ToString() ?? string.Empty;
             }
             var components = new List<ModComponent>();
             if (jsonObject["components"] is JArray componentsArray)
@@ -1803,17 +1806,19 @@ namespace KOTORModSync.Core.Services
                 return;
             }
 
-            MainConfig.FileFormatVersion = "2.0";
-            MainConfig.TargetGame = string.Empty;
-            MainConfig.BuildName = string.Empty;
-            MainConfig.BuildAuthor = string.Empty;
-            MainConfig.BuildDescription = string.Empty;
-            MainConfig.LastModified = null;
-            MainConfig.PreambleContent = string.Empty;
-            MainConfig.EpilogueContent = string.Empty;
-            MainConfig.WidescreenWarningContent = string.Empty;
-            MainConfig.AspyrExclusiveWarningContent = string.Empty;
-            MainConfig.InstallationWarningContent = string.Empty;
+            var mainConfig = new MainConfig();
+
+            mainConfig.fileFormatVersion = "2.0";
+            mainConfig.targetGame = string.Empty;
+            mainConfig.buildName = string.Empty;
+            mainConfig.buildAuthor = string.Empty;
+            mainConfig.buildDescription = string.Empty;
+            mainConfig.lastModified = null;
+            mainConfig.preambleContent = string.Empty;
+            mainConfig.epilogueContent = string.Empty;
+            mainConfig.widescreenWarningContent = string.Empty;
+            mainConfig.aspyrExclusiveWarningContent = string.Empty;
+            mainConfig.installationWarningContent = string.Empty;
             try
             {
                 if (!tomlTable.TryGetValue("metadata", out object metadataObj) || !(metadataObj is TomlTable metadataTable))
@@ -1823,58 +1828,58 @@ namespace KOTORModSync.Core.Services
 
                 if (metadataTable.TryGetValue("fileFormatVersion", out object versionObj))
                 {
-                    MainConfig.FileFormatVersion = versionObj.ToString() ?? "2.0";
+                    mainConfig.fileFormatVersion = versionObj.ToString() ?? "2.0";
                 }
 
                 if (metadataTable.TryGetValue("targetGame", out object gameObj))
                 {
-                    MainConfig.TargetGame = gameObj.ToString() ?? string.Empty;
+                    mainConfig.targetGame = gameObj.ToString() ?? string.Empty;
                 }
 
                 if (metadataTable.TryGetValue("buildName", out object nameObj))
                 {
-                    MainConfig.BuildName = nameObj.ToString() ?? string.Empty;
+                    mainConfig.buildName = nameObj.ToString() ?? string.Empty;
                 }
 
                 if (metadataTable.TryGetValue("buildAuthor", out object authorObj))
                 {
-                    MainConfig.BuildAuthor = authorObj.ToString() ?? string.Empty;
+                    mainConfig.buildAuthor = authorObj.ToString() ?? string.Empty;
                 }
 
                 if (metadataTable.TryGetValue("buildDescription", out object descObj))
                 {
-                    MainConfig.BuildDescription = descObj.ToString() ?? string.Empty;
+                    mainConfig.buildDescription = descObj.ToString() ?? string.Empty;
                 }
 
                 if (metadataTable.TryGetValue("lastModified", out object modifiedObj) &&
                     DateTime.TryParse(modifiedObj.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
                 {
-                    MainConfig.LastModified = parsedDate;
+                    mainConfig.lastModified = parsedDate;
                 }
                 // Always load content sections if present (check both Pascal and camel case for backward compatibility)
                 if (metadataTable.TryGetValue("preambleContent", out object preambleObj) || metadataTable.TryGetValue("PreambleContent", out preambleObj))
                 {
-                    MainConfig.PreambleContent = preambleObj?.ToString() ?? string.Empty;
+                    mainConfig.preambleContent = preambleObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataTable.TryGetValue("epilogueContent", out object epilogueObj) || metadataTable.TryGetValue("EpilogueContent", out epilogueObj))
                 {
-                    MainConfig.EpilogueContent = epilogueObj?.ToString() ?? string.Empty;
+                    mainConfig.epilogueContent = epilogueObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataTable.TryGetValue("widescreenWarningContent", out object widescreenObj) || metadataTable.TryGetValue("WidescreenWarningContent", out widescreenObj))
                 {
-                    MainConfig.WidescreenWarningContent = widescreenObj?.ToString() ?? string.Empty;
+                    mainConfig.widescreenWarningContent = widescreenObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataTable.TryGetValue("aspyrExclusiveWarningContent", out object aspyrObj) || metadataTable.TryGetValue("AspyrExclusiveWarningContent", out aspyrObj))
                 {
-                    MainConfig.AspyrExclusiveWarningContent = aspyrObj?.ToString() ?? string.Empty;
+                    mainConfig.aspyrExclusiveWarningContent = aspyrObj?.ToString() ?? string.Empty;
                 }
 
                 if (metadataTable.TryGetValue("installationWarningContent", out object installationWarningObj) || metadataTable.TryGetValue("InstallationWarningContent", out installationWarningObj))
                 {
-                    MainConfig.InstallationWarningContent = installationWarningObj?.ToString() ?? string.Empty;
+                    mainConfig.installationWarningContent = installationWarningObj?.ToString() ?? string.Empty;
                 }
 
                 Logger.LogVerbose($"Loaded metadata: Game={MainConfig.TargetGame}, Version={MainConfig.FileFormatVersion}, Build={MainConfig.BuildName}");
@@ -3264,6 +3269,141 @@ namespace KOTORModSync.Core.Services
                 // If conversion fails, return the value as-is (might be already the correct type)
                 return value;
             }
+        }
+
+        private static Dictionary<string, object> ConvertToStringObjectDictionary(object value)
+        {
+            if (value is null)
+            {
+                return null;
+            }
+
+            if (value is Dictionary<string, object> stringObjectDict)
+            {
+                return new Dictionary<string, object>(stringObjectDict, StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (value is IDictionary<object, object> objectDict)
+            {
+                var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                foreach (KeyValuePair<object, object> kvp in objectDict)
+                {
+                    string key = kvp.Key?.ToString();
+                    if (string.IsNullOrEmpty(key))
+                    {
+                        continue;
+                    }
+
+                    result[key] = kvp.Value;
+                }
+                return result;
+            }
+
+            if (value is TomlTable tomlTable)
+            {
+                return ConvertTomlTableToDictionary(tomlTable);
+            }
+
+            if (value is JObject jobj)
+            {
+                return JTokenToDictionary(jobj);
+            }
+
+            return null;
+        }
+
+        private static Dictionary<string, bool?> ConvertToStringBoolNullableDictionary(object value)
+        {
+            if (value is null)
+            {
+                return null;
+            }
+
+            if (value is Dictionary<string, bool?> boolDict)
+            {
+                return new Dictionary<string, bool?>(boolDict, StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (value is Dictionary<string, object> stringObjectDict)
+            {
+                return ConvertStringObjectToBoolDictionary(stringObjectDict);
+            }
+
+            if (value is IDictionary<object, object> objectDict)
+            {
+                var temp = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                foreach (KeyValuePair<object, object> kvp in objectDict)
+                {
+                    string key = kvp.Key?.ToString();
+                    if (string.IsNullOrEmpty(key))
+                    {
+                        continue;
+                    }
+
+                    temp[key] = kvp.Value;
+                }
+                return ConvertStringObjectToBoolDictionary(temp);
+            }
+
+            if (value is TomlTable tomlTable)
+            {
+                Dictionary<string, object> converted = ConvertTomlTableToDictionary(tomlTable);
+                return ConvertStringObjectToBoolDictionary(converted);
+            }
+
+            if (value is JObject jobj)
+            {
+                return ConvertStringObjectToBoolDictionary(JTokenToDictionary(jobj));
+            }
+
+            return null;
+        }
+
+        private static Dictionary<string, bool?> ConvertStringObjectToBoolDictionary(Dictionary<string, object> source)
+        {
+            if (source is null)
+            {
+                return null;
+            }
+
+            var result = new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, object> kvp in source)
+            {
+                bool? shouldDownload = null;
+                object value = kvp.Value;
+
+                if (value is null)
+                {
+                    shouldDownload = null;
+                }
+                else if (value is bool boolVal)
+                {
+                    shouldDownload = boolVal;
+                }
+                else if (value is string strVal && string.Equals(strVal, "null", StringComparison.OrdinalIgnoreCase))
+                {
+                    shouldDownload = null;
+                }
+                else if (value is string strBool && bool.TryParse(strBool, out bool parsedBool))
+                {
+                    shouldDownload = parsedBool;
+                }
+                else if (value is IConvertible convertible)
+                {
+                    try
+                    {
+                        shouldDownload = convertible.ToBoolean(System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    catch
+                    {
+                        shouldDownload = null;
+                    }
+                }
+
+                result[kvp.Key] = shouldDownload;
+            }
+
+            return result;
         }
 
         [CanBeNull]
@@ -5482,14 +5622,18 @@ namespace KOTORModSync.Core.Services
                             ContentId = GetValueOrDefault<string>(metaDict, "ContentId"),
                             ContentHashSHA256 = GetValueOrDefault<string>(metaDict, "ContentHashSHA256"),
                             MetadataHash = GetValueOrDefault<string>(metaDict, "MetadataHash"),
-                            HandlerMetadata = GetValueOrDefault<Dictionary<string, object>>(metaDict, "HandlerMetadata")
-                                            ?? new Dictionary<string, object>(StringComparer.Ordinal),
-                            Files = GetValueOrDefault<Dictionary<string, bool?>>(metaDict, "Files")
-                                  ?? new Dictionary<string, bool?>(StringComparer.Ordinal),
                             FileSize = GetValueOrDefault<long>(metaDict, "FileSize"),
                             PieceLength = GetValueOrDefault<int>(metaDict, "PieceLength"),
                             PieceHashes = GetValueOrDefault<string>(metaDict, "PieceHashes"),
                         };
+
+                        Dictionary<string, object> handlerMetadata =
+                            ConvertToStringObjectDictionary(GetValueOrDefault<object>(metaDict, "HandlerMetadata"));
+                        meta.HandlerMetadata = handlerMetadata ?? new Dictionary<string, object>(StringComparer.Ordinal);
+
+                        Dictionary<string, bool?> filesDictionary =
+                            ConvertToStringBoolNullableDictionary(GetValueOrDefault<object>(metaDict, "Files"));
+                        meta.Files = filesDictionary ?? new Dictionary<string, bool?>(StringComparer.Ordinal);
 
                         if (Enum.TryParse(GetValueOrDefault<string>(metaDict, "TrustLevel"), out MappingTrustLevel trustLevel))
                         {
@@ -5532,7 +5676,7 @@ namespace KOTORModSync.Core.Services
                         if (kvp.Value is TomlTable table)
                         {
                             // Convert TomlTable to Dictionary<object, object> for processing
-                            var converted = ConvertTomlTableToDictionary(table);
+                            Dictionary<string, object> converted = ConvertTomlTableToDictionary(table);
                             metaObjDict = new Dictionary<object, object>();
                             foreach (KeyValuePair<string, object> convertedKvp in converted)
                             {
@@ -5574,12 +5718,18 @@ namespace KOTORModSync.Core.Services
                             ContentId = GetValueOrDefault<string>(metaDict, "ContentId"),
                             ContentHashSHA256 = GetValueOrDefault<string>(metaDict, "ContentHashSHA256"),
                             MetadataHash = GetValueOrDefault<string>(metaDict, "MetadataHash"),
-                            HandlerMetadata = GetValueOrDefault<Dictionary<string, object>>(metaDict, "HandlerMetadata") ?? new Dictionary<string, object>(StringComparer.Ordinal),
-                            Files = GetValueOrDefault<Dictionary<string, bool?>>(metaDict, "Files") ?? new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase),
                             FileSize = GetValueOrDefault<long>(metaDict, "FileSize"),
                             PieceLength = GetValueOrDefault<int>(metaDict, "PieceLength"),
                             PieceHashes = GetValueOrDefault<string>(metaDict, "PieceHashes"),
                         };
+
+                        Dictionary<string, object> handlerMetadata =
+                            ConvertToStringObjectDictionary(GetValueOrDefault<object>(metaDict, "HandlerMetadata"));
+                        meta.HandlerMetadata = handlerMetadata ?? new Dictionary<string, object>(StringComparer.Ordinal);
+
+                        Dictionary<string, bool?> filesDictionary =
+                            ConvertToStringBoolNullableDictionary(GetValueOrDefault<object>(metaDict, "Files"));
+                        meta.Files = filesDictionary ?? new Dictionary<string, bool?>(StringComparer.OrdinalIgnoreCase);
 
                         if (Enum.TryParse(GetValueOrDefault<string>(metaDict, "TrustLevel"), out MappingTrustLevel trustLevel))
                         {
@@ -5637,7 +5787,7 @@ namespace KOTORModSync.Core.Services
 
         public void AddInstructionIssue(Guid componentGuid, int instructionIndex, string issue)
         {
-            var key = (componentGuid, instructionIndex);
+            (Guid componentGuid, int instructionIndex) key = (componentGuid, instructionIndex);
             if (!InstructionIssues.ContainsKey(key))
             {
                 InstructionIssues[key] = new List<string>();
@@ -5663,7 +5813,7 @@ namespace KOTORModSync.Core.Services
 
         public List<string> GetInstructionIssues(Guid componentGuid, int instructionIndex)
         {
-            var key = (componentGuid, instructionIndex);
+            (Guid componentGuid, int instructionIndex) key = (componentGuid, instructionIndex);
             return InstructionIssues.TryGetValue(key, out List<string> issues) ? issues : new List<string>();
         }
 
@@ -5679,7 +5829,7 @@ namespace KOTORModSync.Core.Services
 
         public bool HasInstructionIssues(Guid componentGuid, int instructionIndex)
         {
-            var key = (componentGuid, instructionIndex);
+            (Guid componentGuid, int instructionIndex) key = (componentGuid, instructionIndex);
             return InstructionIssues.ContainsKey(key);
         }
 

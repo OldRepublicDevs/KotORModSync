@@ -83,7 +83,7 @@ namespace KOTORModSync.Controls
 
                 List<string> extensions = ParseExtensionsFromArguments(instruction.Arguments);
                 Logger.LogVerbose($"InstructionEditorControl.UpdateFileExtensionsControl: Arguments='{instruction.Arguments}', Parsed extensions: [{string.Join(", ", extensions)}]");
-                var fileExtensionsControl = this.FindControl<FileExtensionsControl>("FileExtensionsControl");
+                FileExtensionsControl fileExtensionsControl = this.FindControl<FileExtensionsControl>("FileExtensionsControl");
                 if (fileExtensionsControl != null)
                 {
                     Logger.LogVerbose("Found FileExtensionsControl, calling SetExtensions");
@@ -115,8 +115,8 @@ namespace KOTORModSync.Controls
         {
             if (DataContext is Instruction instruction && instruction.Action == Instruction.ActionType.DelDuplicate)
             {
-                var fileExtensionsControl = this.FindControl<FileExtensionsControl>("FileExtensionsControl");
-                var extensions = fileExtensionsControl?.GetValidExtensions() ?? new List<string>();
+                FileExtensionsControl fileExtensionsControl = this.FindControl<FileExtensionsControl>("FileExtensionsControl");
+                List<string> extensions = fileExtensionsControl?.GetValidExtensions() ?? new List<string>();
                 instruction.Arguments = string.Join(" ", extensions.Where(ext => !string.IsNullOrWhiteSpace(ext)));
             }
         }

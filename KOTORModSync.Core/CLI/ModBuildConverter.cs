@@ -601,6 +601,35 @@ namespace KOTORModSync.Core.CLI
             public string Reason { get; set; }
         }
 
+        [Verb("cache-test", HelpText = "Run distributed cache integration tests")]
+        public class CacheTestOptions : BaseOptions
+        {
+            [Option('c', "category", Required = false, HelpText = "Test category to run (ContentId, Seeding, Port, Engine, Integration, All)")]
+            public string Category { get; set; } = "All";
+
+            [Option('d', "docker", Required = false, Default = false, HelpText = "Include Docker-based tests (requires Docker/Podman)")]
+            public bool IncludeDocker { get; set; }
+
+            [Option("timeout", Required = false, Default = 300, HelpText = "Test timeout in seconds")]
+            public int TimeoutSeconds { get; set; }
+        }
+
+        [Verb("cache-seed", HelpText = "Start long-running seeding operation for distributed cache")]
+        public class CacheSeedOptions : BaseOptions
+        {
+            [Option('t', "toml", Required = true, HelpText = "Path to TOML file to seed")]
+            public string TomlPath { get; set; }
+
+            [Option('d', "duration", Required = false, Default = 21600, HelpText = "Seeding duration in seconds (default: 6 hours)")]
+            public int DurationSeconds { get; set; }
+
+            [Option('l', "limit", Required = false, Default = 10, HelpText = "Maximum number of concurrent seeds")]
+            public int ConcurrentLimit { get; set; }
+
+            [Option('s', "source-path", Required = true, HelpText = "Path to directory containing downloaded mod files")]
+            public string SourcePath { get; set; }
+        }
+
         public static int Run(string[] args)
         {
             // Disable keyring BEFORE any Python initialization to prevent pip hanging
@@ -612,7 +641,7 @@ namespace KOTORModSync.Core.CLI
 
             var parser = new Parser(with => with.HelpWriter = Console.Out);
 
-            return parser.ParseArguments<ConvertOptions, MergeOptions, ValidateOptions, InstallOptions, SetNexusApiKeyOptions, InstallPythonDepsOptions, HolopatcherOptions, CacheStatsOptions, CacheClearOptions, CacheBlockOptions>(args)
+            return parser.ParseArguments<ConvertOptions, MergeOptions, ValidateOptions, InstallOptions, SetNexusApiKeyOptions, InstallPythonDepsOptions, HolopatcherOptions, CacheStatsOptions, CacheClearOptions, CacheBlockOptions, CacheTestOptions, CacheSeedOptions>(args)
             .MapResult(
                 (ConvertOptions opts) => RunConvertAsync(opts).GetAwaiter().GetResult(),
                 (MergeOptions opts) => RunMergeAsync(opts).GetAwaiter().GetResult(),
@@ -624,6 +653,8 @@ namespace KOTORModSync.Core.CLI
                 (CacheStatsOptions opts) => RunCacheStatsAsync(opts).GetAwaiter().GetResult(),
                 (CacheClearOptions opts) => RunCacheClearAsync(opts).GetAwaiter().GetResult(),
                 (CacheBlockOptions opts) => RunCacheBlockAsync(opts).GetAwaiter().GetResult(),
+                (CacheTestOptions opts) => RunCacheTestAsync(opts).GetAwaiter().GetResult(),
+                (CacheSeedOptions opts) => RunCacheSeedAsync(opts).GetAwaiter().GetResult(),
                 errs => 1);
         }
 
@@ -3364,6 +3395,181 @@ namespace KOTORModSync.Core.CLI
             }
 
             return $"{size:F2} {suffixes[suffixIndex]}";
+        }
+
+        private static async Task<int> RunCacheTestAsync(CacheTestOptions opts)
+        {
+            try
+            {
+                SetVerboseMode(opts.Verbose);
+
+                await Console.Out.WriteLineAsync("=== KOTORModSync Distributed Cache Tests ===").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync($"Category: {opts.Category}").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync($"Include Docker Tests: {opts.IncludeDocker}").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync($"Timeout: {opts.TimeoutSeconds}s").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync().ConfigureAwait(false);
+
+                // Note: Actual test execution would require xUnit test runner integration
+                // For now, this provides a CLI entry point for test execution
+
+                await Console.Out.WriteLineAsync("To run tests, use:").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync("  dotnet test KOTORModSync.Tests --filter Category=DistributedCache").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync().ConfigureAwait(false);
+
+                if (opts.IncludeDocker)
+                {
+                    await Console.Out.WriteLineAsync("Docker tests can be run with:").ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync("  dotnet test KOTORModSync.Tests --filter \"Category=DistributedCache&RequiresDocker=true\"").ConfigureAwait(false);
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogErrorAsync($"Error running cache tests: {ex.Message}").ConfigureAwait(false);
+                if (opts.Verbose)
+                {
+                    await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+                }
+                return 1;
+            }
+        }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
+        private static async Task<int> RunCacheSeedAsync(CacheSeedOptions opts)
+        {
+            try
+            {
+                SetVerboseMode(opts.Verbose);
+
+                await Console.Out.WriteLineAsync("=== KOTORModSync Distributed Cache Seeding ===").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync($"TOML: {opts.TomlPath}").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync($"Duration: {opts.DurationSeconds}s ({opts.DurationSeconds / 3600.0:F1} hours)").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync($"Source: {opts.SourcePath}").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync().ConfigureAwait(false);
+
+                if (!File.Exists(opts.TomlPath))
+                {
+                    await Console.Error.WriteLineAsync($"Error: TOML file not found: {opts.TomlPath}").ConfigureAwait(false);
+                    return 1;
+                }
+
+                if (!Directory.Exists(opts.SourcePath))
+                {
+                    await Console.Error.WriteLineAsync($"Error: Source directory not found: {opts.SourcePath}").ConfigureAwait(false);
+                    return 1;
+                }
+
+                EnsureConfigInitialized();
+                s_config.sourcePath = new DirectoryInfo(opts.SourcePath);
+
+                // Load components
+                await Console.Out.WriteLineAsync("Loading components...").ConfigureAwait(false);
+                List<ModComponent> components = await FileLoadingService.LoadFromFileAsync(opts.TomlPath).ConfigureAwait(false);
+                await Console.Out.WriteLineAsync($"Loaded {components.Count} components").ConfigureAwait(false);
+
+                // Initialize distributed cache engine
+                await Console.Out.WriteLineAsync("Initializing distributed cache engine...").ConfigureAwait(false);
+                await DownloadCacheOptimizer.EnsureInitializedAsync().ConfigureAwait(false);
+
+                (int activeShares, long totalUploadBytes, int connectedSources) stats = DownloadCacheOptimizer.GetNetworkCacheStats();
+                await Console.Out.WriteLineAsync($"Cache engine initialized (Port in use, {stats.activeShares} active shares)").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync().ConfigureAwait(false);
+
+                // Start seeding files
+                await Console.Out.WriteLineAsync("Starting seeding operation...").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync($"This will run for {opts.DurationSeconds}s. Press Ctrl+C to stop early.").ConfigureAwait(false);
+                await Console.Out.WriteLineAsync().ConfigureAwait(false);
+
+                DateTime startTime = DateTime.UtcNow;
+                DateTime deadline = startTime.AddSeconds(opts.DurationSeconds);
+                int filesSeeded = 0;
+
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(opts.DurationSeconds + 60)))
+                {
+                    // Find all files in source directory
+                    var sourceFiles = Directory.GetFiles(opts.SourcePath, "*.*", SearchOption.TopDirectoryOnly)
+                        .Where(f => !f.EndsWith(".partial", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    await Console.Out.WriteLineAsync($"Found {sourceFiles.Count} files to seed").ConfigureAwait(false);
+
+                    // For each file, start background sharing
+                    foreach (string filePath in sourceFiles.Take(opts.ConcurrentLimit))
+                    {
+                        try
+                        {
+                            await DownloadCacheOptimizer.StartBackgroundSharingAsync(
+                                filePath,
+                                filePath,
+                                contentKeyOrHash: null).ConfigureAwait(false);
+                            filesSeeded++;
+                            await Console.Out.WriteLineAsync($"[{filesSeeded}/{sourceFiles.Count}] Seeding: {Path.GetFileName(filePath)}").ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            await Console.Out.WriteLineAsync($"Failed to seed {Path.GetFileName(filePath)}: {ex.Message}").ConfigureAwait(false);
+                        }
+                    }
+
+                    await Console.Out.WriteLineAsync().ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync($"Seeding {filesSeeded} files for {opts.DurationSeconds}s...").ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync().ConfigureAwait(false);
+
+                    // Periodic stats reporting
+                    int reportIntervalSeconds = Math.Min(300, opts.DurationSeconds / 10); // Report every 5 min or 10% of duration
+                    DateTime nextReport = DateTime.UtcNow.AddSeconds(reportIntervalSeconds);
+
+                    while (DateTime.UtcNow < deadline && !cts.Token.IsCancellationRequested)
+                    {
+                        await Task.Delay(10000, cts.Token).ConfigureAwait(false); // Check every 10 seconds
+
+                        if (DateTime.UtcNow >= nextReport)
+                        {
+                            stats = DownloadCacheOptimizer.GetNetworkCacheStats();
+                            TimeSpan elapsed = DateTime.UtcNow - startTime;
+                            TimeSpan remaining = deadline - DateTime.UtcNow;
+
+                            await Console.Out.WriteLineAsync($"[{elapsed.TotalMinutes:F1}m elapsed, {remaining.TotalMinutes:F1}m remaining] " +
+                                $"Active: {stats.activeShares}, Uploaded: {stats.totalUploadBytes / 1024 / 1024:F2} MB, " +
+                                $"Sources: {stats.connectedSources}").ConfigureAwait(false);
+
+                            nextReport = DateTime.UtcNow.AddSeconds(reportIntervalSeconds);
+                        }
+                    }
+
+                    await Console.Out.WriteLineAsync().ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync("Seeding period complete. Shutting down...").ConfigureAwait(false);
+
+                    // Final stats
+                    stats = DownloadCacheOptimizer.GetNetworkCacheStats();
+                    TimeSpan totalElapsed = DateTime.UtcNow - startTime;
+
+                    await Console.Out.WriteLineAsync().ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync("=== Final Statistics ===").ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync($"Duration: {totalElapsed.TotalMinutes:F1} minutes").ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync($"Files seeded: {filesSeeded}").ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync($"Active shares: {stats.activeShares}").ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync($"Total uploaded: {stats.totalUploadBytes / 1024.0 / 1024.0:F2} MB").ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync($"Connected sources: {stats.connectedSources}").ConfigureAwait(false);
+
+                    // Graceful shutdown
+                    await DownloadCacheOptimizer.GracefulShutdownAsync().ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync().ConfigureAwait(false);
+                    await Console.Out.WriteLineAsync("✓ Seeding operation completed successfully").ConfigureAwait(false);
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                await Logger.LogErrorAsync($"Error during seeding operation: {ex.Message}").ConfigureAwait(false);
+                if (opts.Verbose)
+                {
+                    await Logger.LogExceptionAsync(ex).ConfigureAwait(false);
+                }
+                return 1;
+            }
         }
 
         #endregion

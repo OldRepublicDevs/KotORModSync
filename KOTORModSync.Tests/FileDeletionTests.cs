@@ -78,7 +78,7 @@ namespace KOTORModSync.Tests
                 destinationPath = _originalConfig.destinationPath,
             };
         }
-        private async Task<(VirtualFileSystemProvider virtualProvider, string realSource, string realDest)> RunBothProviders(List<Instruction> instructions, string sourceDir, string destDir)
+        private async Task<(VirtualFileSystemProvider virtualProvider, string realSource, string realDest)> RunBothProviders(List<Instruction> instructions, string sourceDir, string destinationDir)
         {
 
             var virtualInstructions = new List<Instruction>();
@@ -109,6 +109,10 @@ namespace KOTORModSync.Tests
             _ = Directory.CreateDirectory(virtualSource);
             _ = Directory.CreateDirectory(virtualDest);
             VirtualFileSystemTests.CopyDirectory(sourceDir, virtualSource);
+            if (!string.IsNullOrEmpty(destinationDir) && Directory.Exists(destinationDir))
+            {
+                VirtualFileSystemTests.CopyDirectory(destinationDir, virtualDest);
+            }
 
             var virtualProvider = new VirtualFileSystemProvider();
             await virtualProvider.InitializeFromRealFileSystemAsync(virtualSource);
@@ -128,6 +132,10 @@ namespace KOTORModSync.Tests
             _ = Directory.CreateDirectory(realSource);
             _ = Directory.CreateDirectory(realDest);
             VirtualFileSystemTests.CopyDirectory(sourceDir, realSource);
+            if (!string.IsNullOrEmpty(destinationDir) && Directory.Exists(destinationDir))
+            {
+                VirtualFileSystemTests.CopyDirectory(destinationDir, realDest);
+            }
 
             var realProvider = new RealFileSystemProvider();
             var realComponent = new ModComponent { Name = "TestComponent", Instructions = new System.Collections.ObjectModel.ObservableCollection<Instruction>(realInstructions) };
@@ -155,7 +163,7 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, directory, directory);
+            (VirtualFileSystemProvider virtualProvider, string realSource, string realDest) = await RunBothProviders(instructions, directory, directory);
 
             Assert.That(virtualProvider.GetValidationIssues(), Is.Empty);
             Assert.That(Directory.GetFiles(directory).Count, Is.EqualTo(0));
@@ -180,7 +188,7 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+            (VirtualFileSystemProvider virtualProvider, string realSource, string realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
             Assert.Multiple(() =>
             {
@@ -211,7 +219,7 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+            (VirtualFileSystemProvider virtualProvider, string realSource, string realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
             Assert.Multiple(() =>
             {
@@ -241,7 +249,7 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+            (VirtualFileSystemProvider virtualProvider, string realSource, string realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
             Assert.Multiple(() =>
             {
@@ -270,7 +278,7 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+            (VirtualFileSystemProvider virtualProvider, string realSource, string realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
             Assert.Multiple(() =>
             {
@@ -294,7 +302,7 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+            (VirtualFileSystemProvider virtualProvider, string realSource, string realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
             Assert.Multiple(() =>
             {
@@ -324,7 +332,7 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            var (virtualProvider, realSource, realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
+            (VirtualFileSystemProvider virtualProvider, string realSource, string realDest) = await RunBothProviders(instructions, _sourceDir, _destinationDir);
 
             Assert.Multiple(() =>
             {

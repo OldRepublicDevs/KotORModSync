@@ -125,7 +125,7 @@ namespace KOTORModSync.Dialogs
                 // If MainConfig doesn't have paths, try loading from AppSettings
                 if (string.IsNullOrEmpty(modPath) || string.IsNullOrEmpty(kotorPath))
                 {
-                    var appSettings = Models.SettingsManager.LoadSettings();
+                    Models.AppSettings appSettings = Models.SettingsManager.LoadSettings();
                     if (
                         string.IsNullOrEmpty(modPath)
                         && !string.IsNullOrEmpty(appSettings.SourcePath)
@@ -328,7 +328,7 @@ namespace KOTORModSync.Dialogs
                 // If MainConfig doesn't have the API key, try loading from AppSettings
                 if (string.IsNullOrEmpty(apiKey))
                 {
-                    var appSettings = Models.SettingsManager.LoadSettings();
+                    Models.AppSettings appSettings = Models.SettingsManager.LoadSettings();
                     apiKey = appSettings.NexusModsApiKey;
                 }
 
@@ -359,7 +359,7 @@ namespace KOTORModSync.Dialogs
                 // If MainConfig doesn't have the setting, try loading from AppSettings
                 if (!enableFileWatcher)
                 {
-                    var appSettings = Models.SettingsManager.LoadSettings();
+                    Models.AppSettings appSettings = Models.SettingsManager.LoadSettings();
                     enableFileWatcher = appSettings.EnableFileWatcher;
                 }
 
@@ -419,7 +419,7 @@ namespace KOTORModSync.Dialogs
             try
             {
                 // Load existing settings
-                var settings = Models.SettingsManager.LoadSettings();
+                Models.AppSettings settings = Models.SettingsManager.LoadSettings();
 
                 // Update only the theme
                 string currentTheme = ThemeService.GetCurrentTheme();
@@ -937,7 +937,7 @@ namespace KOTORModSync.Dialogs
                     ;
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    var button = this.FindControl<Button>("RefreshVersionsButton");
+                    Button button = this.FindControl<Button>("RefreshVersionsButton");
                     if (button != null)
                     {
                         button.IsEnabled = true;
@@ -956,7 +956,7 @@ namespace KOTORModSync.Dialogs
                     return;
                 }
 
-                var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
+                ComboBox comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
                 if (comboBox?.SelectedItem is null)
                 {
                     await InformationDialog
@@ -1017,7 +1017,7 @@ namespace KOTORModSync.Dialogs
 
                     string url = "https://api.github.com/repos/NickHugi/PyKotor/releases";
 
-                    var response = await client.GetAsync(url);
+                    HttpResponseMessage response = await client.GetAsync(url);
                     response.EnsureSuccessStatusCode();
 
                     string json = await response.Content.ReadAsStringAsync();
@@ -1047,7 +1047,7 @@ namespace KOTORModSync.Dialogs
                                 Name = releaseElement.GetProperty("name").GetString(),
                                 PreRelease = releaseElement.GetProperty("prerelease").GetBoolean(),
                                 Draft = releaseElement.GetProperty("draft").GetBoolean(),
-                                Body = releaseElement.TryGetProperty("body", out var body)
+                                Body = releaseElement.TryGetProperty("body", out JsonElement body)
                                     ? body.GetString()
                                     : "",
                                 Assets = new List<GitHubAsset>(),
@@ -1085,7 +1085,7 @@ namespace KOTORModSync.Dialogs
                 // Update ComboBox on UI thread
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
+                    ComboBox comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
                     if (comboBox != null)
                     {
                         comboBox.ItemsSource = _holopatcherReleases;
@@ -1183,7 +1183,7 @@ namespace KOTORModSync.Dialogs
                     client.Timeout = TimeSpan.FromMinutes(10);
                     client.DefaultRequestHeaders.UserAgent.ParseAdd("KOTORModSync/1.0");
 
-                    var response = await client.GetAsync(downloadUrl);
+                    HttpResponseMessage response = await client.GetAsync(downloadUrl);
                     response.EnsureSuccessStatusCode();
 
                     using (
@@ -1289,7 +1289,7 @@ namespace KOTORModSync.Dialogs
                     );
 
                     // Ensure the combobox still shows the selected version after installation
-                    var comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
+                    ComboBox comboBox = this.FindControl<ComboBox>("HolopatcherVersionComboBox");
                     if (comboBox != null && comboBox.SelectedItem is null)
                     {
                         // Re-fetch releases to ensure combobox is properly populated
@@ -1442,10 +1442,10 @@ namespace KOTORModSync.Dialogs
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    var progressBar = this.FindControl<ProgressBar>("DownloadProgressBar");
-                    var statusTextBlock = this.FindControl<TextBlock>("DownloadStatusText");
-                    var refreshButton = this.FindControl<Button>("RefreshVersionsButton");
-                    var downloadButton = this.FindControl<Button>("DownloadVersionButton");
+                    ProgressBar progressBar = this.FindControl<ProgressBar>("DownloadProgressBar");
+                    TextBlock statusTextBlock = this.FindControl<TextBlock>("DownloadStatusText");
+                    Button refreshButton = this.FindControl<Button>("RefreshVersionsButton");
+                    Button downloadButton = this.FindControl<Button>("DownloadVersionButton");
 
                     if (progressBar != null)
                     {
@@ -1482,7 +1482,7 @@ namespace KOTORModSync.Dialogs
         {
             try
             {
-                var label = this.FindControl<TextBlock>("CurrentVersionLabel");
+                TextBlock label = this.FindControl<TextBlock>("CurrentVersionLabel");
                 if (label is null)
                 {
                     return;
@@ -1508,7 +1508,7 @@ namespace KOTORModSync.Dialogs
                     // Update UI on main thread
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        var label = this.FindControl<TextBlock>("CurrentVersionLabel");
+                        TextBlock label = this.FindControl<TextBlock>("CurrentVersionLabel");
                         if (label is null)
                         {
                             return;
@@ -1762,8 +1762,8 @@ namespace KOTORModSync.Dialogs
         {
             try
             {
-                var button = this.FindControl<Button>("CheckForUpdatesButton");
-                var statusText = this.FindControl<TextBlock>("UpdateStatusText");
+                Button button = this.FindControl<Button>("CheckForUpdatesButton");
+                TextBlock statusText = this.FindControl<TextBlock>("UpdateStatusText");
 
                 if (button != null)
                 {
@@ -1814,7 +1814,7 @@ namespace KOTORModSync.Dialogs
                 await Logger.LogExceptionAsync(ex, "Failed to check for updates");
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    var statusText = this.FindControl<TextBlock>("UpdateStatusText");
+                    TextBlock statusText = this.FindControl<TextBlock>("UpdateStatusText");
                     if (statusText != null)
                     {
                         statusText.Text = $"Error checking for updates: {ex.Message}";
@@ -1825,7 +1825,7 @@ namespace KOTORModSync.Dialogs
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    var button = this.FindControl<Button>("CheckForUpdatesButton");
+                    Button button = this.FindControl<Button>("CheckForUpdatesButton");
                     if (button != null)
                     {
                         button.IsEnabled = true;

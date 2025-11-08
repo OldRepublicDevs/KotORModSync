@@ -108,7 +108,7 @@ namespace KOTORModSync.Tests
                     }
                 }
             }
-            catch {}
+            catch { }
 
             throw new InvalidOperationException("7-Zip not found. Please install 7-Zip to run these tests.");
         }

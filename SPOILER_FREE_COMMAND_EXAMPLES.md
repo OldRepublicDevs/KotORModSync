@@ -3,6 +3,7 @@
 ## Your Original Command - Enhanced with Spoiler-Free
 
 Your original command was:
+
 ```bash
 dotnet run --project KOTORModSync.Core --framework net8.0 convert `
   --source-path="$Env:USERPROFILE\OneDrive\Documents\rev12_modbuild_workspace" `
@@ -21,6 +22,7 @@ dotnet run --project KOTORModSync.Core --framework net8.0 convert `
 ### Enhanced with Spoiler-Free Support
 
 **Using the `convert` command with `--spoiler-free`:**
+
 ```bash
 dotnet run --project KOTORModSync.Core --framework net8.0 convert `
   --source-path="$Env:USERPROFILE\OneDrive\Documents\rev12_modbuild_workspace" `
@@ -38,6 +40,7 @@ dotnet run --project KOTORModSync.Core --framework net8.0 convert `
 ```
 
 **Or using the `merge` command (recommended for clarity):**
+
 ```bash
 dotnet run --project KOTORModSync.Core --framework net8.0 merge `
   --source-path="$Env:USERPROFILE\OneDrive\Documents\rev12_modbuild_workspace" `
@@ -120,6 +123,7 @@ ___
 ## Verbosity and Logging
 
 With `--verbose`, you'll see:
+
 ```
 Applied spoiler-free content to component: KOTOR Dialogue Fixes
 Applied spoiler-free content to component: Thematic KOTOR Companions

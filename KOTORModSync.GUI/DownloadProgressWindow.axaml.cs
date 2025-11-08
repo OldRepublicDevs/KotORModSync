@@ -11,9 +11,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
-
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -21,9 +21,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-
 using JetBrains.Annotations;
-
 using KOTORModSync.Core;
 using KOTORModSync.Core.Services.Download;
 using KOTORModSync.Core.Utility;
@@ -49,17 +47,19 @@ namespace KOTORModSync
         private bool _mouseDownForWindowMoving;
         private PointerPoint _originalPoint;
         private int _downloadTimeoutMinutes = 10080; // 7 days
+        private bool _forceCloseRequested;
 
 
         public event EventHandler<DownloadControlEventArgs> DownloadControlRequested;
+        public event EventHandler WindowHidden;
 
         public void UpdateCheckpointProgress(string message, int current, int total)
         {
             Dispatcher.UIThread.Post(() =>
             {
-                var checkpointPanel = this.FindControl<StackPanel>("CheckpointProgressPanel");
-                var checkpointText = this.FindControl<TextBlock>("CheckpointProgressText");
-                var checkpointBar = this.FindControl<ProgressBar>("CheckpointProgressBar");
+                StackPanel checkpointPanel = this.FindControl<StackPanel>("CheckpointProgressPanel");
+                TextBlock checkpointText = this.FindControl<TextBlock>("CheckpointProgressText");
+                ProgressBar checkpointBar = this.FindControl<ProgressBar>("CheckpointProgressBar");
 
                 if (checkpointPanel != null)
                 {
@@ -87,7 +87,7 @@ namespace KOTORModSync
         {
             Dispatcher.UIThread.Post(() =>
             {
-                var checkpointPanel = this.FindControl<StackPanel>("CheckpointProgressPanel");
+                StackPanel checkpointPanel = this.FindControl<StackPanel>("CheckpointProgressPanel");
                 if (checkpointPanel != null)
                 {
                     checkpointPanel.IsVisible = false;
@@ -148,25 +148,25 @@ namespace KOTORModSync
             }
 
             // Bind filtered collections for tabs
-            var activeDirectControl = this.FindControl<ItemsControl>("ActiveDirectDownloadsControl");
+            ItemsControl activeDirectControl = this.FindControl<ItemsControl>("ActiveDirectDownloadsControl");
             if (activeDirectControl != null)
             {
                 activeDirectControl.ItemsSource = _activeDirectDownloads;
             }
 
-            var completedDirectControl = this.FindControl<ItemsControl>("CompletedDirectDownloadsControl");
+            ItemsControl completedDirectControl = this.FindControl<ItemsControl>("CompletedDirectDownloadsControl");
             if (completedDirectControl != null)
             {
                 completedDirectControl.ItemsSource = _completedDirectDownloads;
             }
 
-            var activeOptimizedControl = this.FindControl<ItemsControl>("ActiveOptimizedDownloadsControl");
+            ItemsControl activeOptimizedControl = this.FindControl<ItemsControl>("ActiveOptimizedDownloadsControl");
             if (activeOptimizedControl != null)
             {
                 activeOptimizedControl.ItemsSource = _activeOptimizedDownloads;
             }
 
-            var completedOptimizedControl = this.FindControl<ItemsControl>("CompletedOptimizedDownloadsControl");
+            ItemsControl completedOptimizedControl = this.FindControl<ItemsControl>("CompletedOptimizedDownloadsControl");
             if (completedOptimizedControl != null)
             {
                 completedOptimizedControl.ItemsSource = _completedOptimizedDownloads;
@@ -402,7 +402,7 @@ namespace KOTORModSync
         {
             Dispatcher.UIThread.Post(() =>
             {
-                var existing = _allDownloadItems.Find(p => string.Equals(p.Url, progress.Url, StringComparison.Ordinal));
+                DownloadProgress existing = _allDownloadItems.Find(p => string.Equals(p.Url, progress.Url, StringComparison.Ordinal));
                 if (existing != null)
                 {
 
@@ -415,6 +415,7 @@ namespace KOTORModSync
                     existing.BytesDownloaded = progress.BytesDownloaded;
                     existing.TotalBytes = progress.TotalBytes;
                     existing.FilePath = progress.FilePath;
+                    existing.CompletedFromCache = progress.CompletedFromCache;
                     existing.StartTime = progress.StartTime;
                     existing.EndTime = progress.EndTime;
                     existing.ErrorMessage = progress.ErrorMessage;
@@ -521,6 +522,8 @@ namespace KOTORModSync
 
 
             int completedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Completed);
+            int cachedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Completed && x.CompletedFromCache);
+            int downloadedCount = completedCount - cachedCount;
             int skippedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Skipped);
             int failedCount = _completedDownloads.Count(x => x.Status == DownloadStatus.Failed);
             int totalFinished = completedCount + skippedCount + failedCount;
@@ -535,9 +538,14 @@ namespace KOTORModSync
                 if (completedCount > 0 || skippedCount > 0 || failedCount > 0)
                 {
                     var parts = new System.Collections.Generic.List<string>();
-                    if (completedCount > 0)
+                    if (downloadedCount > 0)
                     {
-                        parts.Add($"{completedCount} downloaded");
+                        parts.Add($"{downloadedCount} downloaded");
+                    }
+
+                    if (cachedCount > 0)
+                    {
+                        parts.Add($"{cachedCount} cached");
                     }
 
                     if (skippedCount > 0)
@@ -574,9 +582,14 @@ namespace KOTORModSync
                 }
 
                 var messageParts = new System.Collections.Generic.List<string>();
-                if (completedCount > 0)
+                if (downloadedCount > 0)
                 {
-                    messageParts.Add($"{completedCount} downloaded");
+                    messageParts.Add($"{downloadedCount} downloaded");
+                }
+
+                if (cachedCount > 0)
+                {
+                    messageParts.Add($"{cachedCount} cached");
                 }
 
                 if (skippedCount > 0)
@@ -598,7 +611,7 @@ namespace KOTORModSync
             {
                 if (inProgress > 0)
                 {
-                    summaryText.Text = $"Downloading {inProgress} URL(s)... {completedCount + skippedCount}/{_allDownloadItems.Count} complete";
+                    summaryText.Text = $"Downloading {inProgress} URL(s)... {downloadedCount + cachedCount + skippedCount}/{_allDownloadItems.Count} complete";
                 }
                 else if (pending > 0)
                 {
@@ -660,7 +673,7 @@ namespace KOTORModSync
                     }
 
 
-                    foreach (var download in _allDownloadItems.Where(d => d.Status == DownloadStatus.InProgress))
+                    foreach (DownloadProgress download in _allDownloadItems.Where(d => d.Status == DownloadStatus.InProgress))
                     {
                         download.Status = DownloadStatus.Failed;
                         download.StatusMessage = "Download cancelled by user";
@@ -683,11 +696,20 @@ namespace KOTORModSync
         protected override void OnClosing(WindowClosingEventArgs e)
         {
 
-            if (!_isCompleted && _allDownloadItems.Exists(
-                download => download.Status == DownloadStatus.InProgress
-                            || download.Status == DownloadStatus.Pending))
+            if (!_forceCloseRequested && !_isCompleted && HasActiveOrPendingDownloads())
             {
-                _cancellationTokenSource?.Cancel();
+                if (ShouldEmbedIntoWizardMode())
+                {
+                    e.Cancel = true;
+                    Hide();
+                    WindowHidden?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+
+                e.Cancel = true;
+                Hide();
+                WindowHidden?.Invoke(this, EventArgs.Empty);
+                return;
             }
 
             base.OnClosing(e);
@@ -948,6 +970,34 @@ namespace KOTORModSync
                         current = current.GetVisualParent();
                         break;
                 }
+            }
+
+            return false;
+        }
+
+        public void AllowClose()
+        {
+            _forceCloseRequested = true;
+        }
+
+        private bool HasActiveOrPendingDownloads()
+        {
+            return _allDownloadItems.Exists(
+                download => download.Status == DownloadStatus.InProgress
+                            || download.Status == DownloadStatus.Pending);
+        }
+
+        private bool ShouldEmbedIntoWizardMode()
+        {
+            if (Owner is MainWindow mainWindow)
+            {
+                return mainWindow.WizardMode;
+            }
+
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktopLifetime &&
+                desktopLifetime.MainWindow is MainWindow lifetimeMainWindow)
+            {
+                return lifetimeMainWindow.WizardMode;
             }
 
             return false;

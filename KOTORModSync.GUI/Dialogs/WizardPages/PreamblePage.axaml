@@ -1,0 +1,68 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.PreamblePage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="40,20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel
+            Grid.Column="1"
+            x:Name="MainPanel"
+            HorizontalAlignment="Center"
+            MaxWidth="1200"
+            MinWidth="600"
+            Spacing="20">
+            <StackPanel
+                x:Name="HeaderPanel"
+                HorizontalAlignment="Center"
+                Margin="0,0,0,20"
+                Spacing="12">
+                <TextBlock HorizontalAlignment="Center" Text="📖" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="Before You Begin"
+                    TextAlignment="Center" />
+            </StackPanel>
+
+            <Border
+                x:Name="ContentCard"
+                CornerRadius="12"
+                HorizontalAlignment="Stretch"
+                MinWidth="600"
+                Padding="32">
+                <ScrollViewer
+                    x:Name="ContentScrollViewer"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto" />
+            </Border>
+
+            <Border
+                Margin="0,20,0,0"
+                Padding="20"
+                CornerRadius="8"
+                HorizontalAlignment="Stretch">
+                <Grid ColumnDefinitions="Auto,*">
+                    <TextBlock
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Top"
+                        Text="💡" />
+                    <TextBlock
+                        Grid.Column="1"
+                        Opacity="0.9"
+                        Text="Take a moment to read through this information carefully. It contains important details that will help ensure a successful installation."
+                        TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>
+
+

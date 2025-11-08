@@ -23,8 +23,10 @@ namespace KOTORModSync.Services
 
         public ValidationDisplayService(ValidationService validationService, Func<List<ModComponent>> getMainComponents)
         {
-            _validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
-            _getMainComponents = getMainComponents ?? throw new ArgumentNullException(nameof(getMainComponents));
+            _validationService = validationService
+                                 ?? throw new ArgumentNullException(nameof(validationService));
+            _getMainComponents = getMainComponents
+                                 ?? throw new ArgumentNullException(nameof(getMainComponents));
         }
 
         public void ShowValidationResults(
@@ -42,7 +44,7 @@ namespace KOTORModSync.Services
             }
             try
             {
-                var mainComponents = _getMainComponents();
+                List<ModComponent> mainComponents = _getMainComponents();
                 var selectedComponents = mainComponents.Where(c => c.IsSelected).ToList();
                 _validationErrors.Clear();
 
@@ -109,7 +111,14 @@ namespace KOTORModSync.Services
                     }
 
                     _currentErrorIndex = 0;
-                    UpdateErrorDisplay(null, null, null, null, null, null, null);
+                    UpdateErrorDisplay(
+                        errorCounterText: null,
+                        errorModNameText: null,
+                        errorTypeText: null,
+                        errorDescriptionText: null,
+                        autoFixButton: null,
+                        prevErrorButton: null,
+                        nextErrorButton: null);
                 }
             }
             catch (Exception ex)
@@ -129,12 +138,21 @@ namespace KOTORModSync.Services
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
-                Dispatcher.UIThread.Post(() => UpdateErrorDisplay(errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton), DispatcherPriority.Normal);
+                Dispatcher.UIThread.Post(() => UpdateErrorDisplay(
+                    errorCounterText,
+                    errorModNameText,
+                    errorTypeText,
+                    errorDescriptionText,
+                    autoFixButton,
+                    prevErrorButton,
+                    nextErrorButton), DispatcherPriority.Normal);
                 return;
             }
             try
             {
-                if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
+                if (_validationErrors.Count == 0
+                    || _currentErrorIndex < 0
+                    || _currentErrorIndex >= _validationErrors.Count)
                 {
                     return;
                 }
@@ -161,21 +179,21 @@ namespace KOTORModSync.Services
                     nextErrorButton.IsEnabled = _currentErrorIndex < _validationErrors.Count - 1;
                 }
 
-                (string ErrorType, string Description, bool CanAutoFix) errorDetails = _validationService.GetComponentErrorDetails(currentError);
+                (string ErrorType, string Description, bool CanAutoFix) = _validationService.GetComponentErrorDetails(currentError);
 
                 if (errorTypeText != null)
                 {
-                    errorTypeText.Text = errorDetails.ErrorType;
+                    errorTypeText.Text = ErrorType;
                 }
 
                 if (errorDescriptionText != null)
                 {
-                    errorDescriptionText.Text = errorDetails.Description;
+                    errorDescriptionText.Text = Description;
                 }
 
                 if (autoFixButton != null)
                 {
-                    autoFixButton.IsVisible = errorDetails.CanAutoFix;
+                    autoFixButton.IsVisible = CanAutoFix;
                 }
             }
             catch (Exception ex)
@@ -196,7 +214,14 @@ namespace KOTORModSync.Services
             if (_currentErrorIndex > 0)
             {
                 _currentErrorIndex--;
-                UpdateErrorDisplay(errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton);
+                UpdateErrorDisplay(
+                    errorCounterText,
+                    errorModNameText,
+                    errorTypeText,
+                    errorDescriptionText,
+                    autoFixButton,
+                    prevErrorButton,
+                    nextErrorButton);
             }
         }
 
@@ -212,7 +237,14 @@ namespace KOTORModSync.Services
             if (_currentErrorIndex < _validationErrors.Count - 1)
             {
                 _currentErrorIndex++;
-                UpdateErrorDisplay(errorCounterText, errorModNameText, errorTypeText, errorDescriptionText, autoFixButton, prevErrorButton, nextErrorButton);
+                UpdateErrorDisplay(
+                    errorCounterText,
+                    errorModNameText,
+                    errorTypeText,
+                    errorDescriptionText,
+                    autoFixButton,
+                    prevErrorButton,
+                    nextErrorButton);
             }
         }
 
@@ -223,15 +255,17 @@ namespace KOTORModSync.Services
             // This method is kept for backward compatibility but no longer performs fixes.
             try
             {
-                if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
+                if (_validationErrors.Count == 0
+                || _currentErrorIndex < 0
+                || _currentErrorIndex >= _validationErrors.Count)
                 {
                     return false;
                 }
 
                 ModComponent currentError = _validationErrors[_currentErrorIndex];
-                (string ErrorType, string Description, bool CanAutoFix) errorDetails = _validationService.GetComponentErrorDetails(currentError);
+                (string ErrorType, string Description, bool CanAutoFix) = _validationService.GetComponentErrorDetails(currentError);
 
-                if (!errorDetails.CanAutoFix)
+                if (!CanAutoFix)
                 {
                     return false;
                 }
@@ -252,7 +286,9 @@ namespace KOTORModSync.Services
 
         public ModComponent GetCurrentError()
         {
-            if (_validationErrors.Count == 0 || _currentErrorIndex < 0 || _currentErrorIndex >= _validationErrors.Count)
+            if (_validationErrors.Count == 0
+            || _currentErrorIndex < 0
+            || _currentErrorIndex >= _validationErrors.Count)
             {
                 return null;
             }

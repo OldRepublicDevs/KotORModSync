@@ -241,6 +241,8 @@ namespace KOTORModSync.Core.Services
                 return new Dictionary<string, List<string>>(StringComparer.Ordinal);
             }
 
+            // First, check which URLs actually need downloads based on file existence
+            List<string> urlsNeedingDownloads = new List<string>();
             if (!string.IsNullOrEmpty(modSourceDirectory))
             {
                 await Logger.LogVerboseAsync($"[DownloadCacheService] Analyzing download necessity for {urls.Count} URLs").ConfigureAwait(false);
@@ -248,11 +250,16 @@ namespace KOTORModSync.Core.Services
 
                 if (urlsNeedingAnalysis.Count > 0)
                 {
-                    await Logger.LogWarningAsync($"[DownloadCacheService] Simulation detected {urlsNeedingAnalysis.Count} missing file(s) for component '{component.Name}'").ConfigureAwait(false);
+                    await Logger.LogVerboseAsync($"[DownloadCacheService] {urlsNeedingAnalysis.Count} URL(s) need cache/disk existence check for component '{component.Name}'").ConfigureAwait(false);
                     foreach (string url in urlsNeedingAnalysis)
                     {
-                        await Logger.LogWarningAsync($"  • Missing file for URL: {url}").ConfigureAwait(false);
+                        await Logger.LogVerboseAsync($"  • URL to check: {url}").ConfigureAwait(false);
                     }
+                    urlsNeedingDownloads = urlsNeedingAnalysis;
+                }
+                else
+                {
+                    await Logger.LogVerboseAsync($"[DownloadCacheService] All files already exist on disk for component '{component.Name}', no downloads needed").ConfigureAwait(false);
                 }
             }
 
@@ -313,20 +320,39 @@ namespace KOTORModSync.Core.Services
             }
 
             // Only extract metadata for URLs that don't already have files in ResourceRegistry
-            // Extract metadata for each URL and populate ResourceRegistry
-            await Logger.LogVerboseAsync($"[DownloadCacheService] Extracting metadata for {filteredUrls.Count} URL(s)").ConfigureAwait(false);
-            foreach (string url in filteredUrls)
+            // AND only if files don't exist on disk (i.e., urlsNeedingDownloads)
+            // This prevents unnecessary network calls when files already exist
+            var urlsNeedingMetadata = filteredUrls.Where(url =>
+            {
+                // If we checked file existence and this URL doesn't need downloads, skip metadata extraction
+                if (urlsNeedingDownloads.Count > 0 && !urlsNeedingDownloads.Contains(url, StringComparer.Ordinal))
+                {
+                    return false;
+                }
+
+                // If ResourceRegistry already has files for this URL, skip metadata extraction
+                if (component.ResourceRegistry.TryGetValue(url, out ResourceMetadata existingMeta) &&
+                    existingMeta?.Files != null && existingMeta.Files.Count > 0)
+                {
+                    return false;
+                }
+
+                return true;
+            }).ToList();
+
+            if (urlsNeedingMetadata.Count > 0)
+            {
+                await Logger.LogVerboseAsync($"[DownloadCacheService] Extracting metadata for {urlsNeedingMetadata.Count} URL(s) that need downloads").ConfigureAwait(false);
+            }
+            else
+            {
+                await Logger.LogVerboseAsync($"[DownloadCacheService] No URLs need metadata extraction - all files exist on disk or already cached").ConfigureAwait(false);
+            }
+
+            foreach (string url in urlsNeedingMetadata)
             {
                 try
                 {
-                    // Skip metadata extraction if ResourceRegistry already has files for this URL
-                    if (component.ResourceRegistry.TryGetValue(url, out ResourceMetadata existingMetaForUrl) &&
-                        existingMetaForUrl?.Files != null && existingMetaForUrl.Files.Count > 0)
-                    {
-                        await Logger.LogVerboseAsync($"[DownloadCacheService] Skipping metadata extraction for URL: {url} (already has {existingMetaForUrl.Files.Count} file(s) in ResourceRegistry)").ConfigureAwait(false);
-                        continue;
-                    }
-
                     IDownloadHandler handler = downloadManager.GetHandlerForUrl(url);
                     if (handler != null)
                     {
@@ -615,7 +641,7 @@ namespace KOTORModSync.Core.Services
                     await Logger.LogVerboseAsync($"[DownloadCacheService]   {url}").ConfigureAwait(false);
                 }
 
-                Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken, sequential: false).ConfigureAwait(false); // FIXME(th3w1zard1): sequential is so slow it's unusable.
+                Dictionary<string, List<string>> resolvedResults = await downloadManager.ResolveUrlsToFilenamesAsync(urlsToResolve, cancellationToken, sequential: false).ConfigureAwait(false);
 
                 await Logger.LogVerboseAsync($"[DownloadCacheService] Received {resolvedResults.Count} resolved results from download manager").ConfigureAwait(false);
                 foreach (KeyValuePair<string, List<string>> kvp in resolvedResults)
@@ -655,7 +681,7 @@ namespace KOTORModSync.Core.Services
             {
                 await Logger.LogWarningAsync($"[DownloadCacheService] Pre-resolve summary for '{component.Name}': {filteredResults.Count} URLs resolved, {missingFiles.Count} files missing on disk").ConfigureAwait(false);
                 await Logger.LogWarningAsync("[DownloadCacheService] Missing files that need to be downloaded:").ConfigureAwait(false);
-                foreach (var item in missingFiles)
+                foreach ((string url, string filename) item in missingFiles)
                 {
                     string url = item.url;
                     string filename = item.filename;
@@ -754,6 +780,8 @@ namespace KOTORModSync.Core.Services
             ResourceMetadata cachedMeta = TryGetResourceMetadataByUrl(url);
             if (cachedMeta != null && cachedMeta.Files != null && cachedMeta.Files.Count > 0)
             {
+                await Logger.LogVerboseAsync($"[DownloadCacheService] Checking {cachedMeta.Files.Count} file(s) from resource-index for URL: {url}").ConfigureAwait(false);
+
                 // Check if ALL files from resource-index exist and update ResourceMetadata.Files
                 bool allFilesExist = true;
                 string firstExistingFile = null;
@@ -765,9 +793,7 @@ namespace KOTORModSync.Core.Services
                     }
 
 
-                    string existingFilePath = MainConfig.SourcePath != null
-                        ? Path.Combine(MainConfig.SourcePath.FullName, cachedFileName)
-                        : cachedFileName;
+                    string existingFilePath = ResolveSourceFilePath(cachedFileName, modSourceDirectory, destinationDirectory);
 
                     // Update ResourceMetadata.Files based on file existence
                     if (File.Exists(existingFilePath))
@@ -778,7 +804,7 @@ namespace KOTORModSync.Core.Services
                         {
                             firstExistingFile = cachedFileName;
                         }
-
+                        await Logger.LogVerboseAsync($"[DownloadCacheService]   ✓ File exists: {cachedFileName}").ConfigureAwait(false);
                     }
                     else
                     {
@@ -788,7 +814,7 @@ namespace KOTORModSync.Core.Services
                             resourceMeta.Files[cachedFileName] = null;
                         }
 
-
+                        await Logger.LogVerboseAsync($"[DownloadCacheService]   ✗ File not found: {cachedFileName} (will need to download)").ConfigureAwait(false);
                         allFilesExist = false;
                         break;
                     }
@@ -797,9 +823,7 @@ namespace KOTORModSync.Core.Services
                 // Only skip download if ALL files exist
                 if (allFilesExist && firstExistingFile != null)
                 {
-                    string existingFilePath = MainConfig.SourcePath != null
-                        ? Path.Combine(MainConfig.SourcePath.FullName, firstExistingFile)
-                        : firstExistingFile;
+                    string existingFilePath = ResolveSourceFilePath(firstExistingFile, modSourceDirectory, destinationDirectory);
 
                     // VERIFY INTEGRITY: Check if existing file matches cached integrity data
                     bool integrityValid = true;
@@ -862,9 +886,7 @@ namespace KOTORModSync.Core.Services
                         }
 
 
-                        string expectedFilePath = MainConfig.SourcePath != null
-                            ? Path.Combine(MainConfig.SourcePath.FullName, resolvedFileName)
-                            : Path.Combine(destinationDirectory, resolvedFileName);
+                        string expectedFilePath = ResolveSourceFilePath(resolvedFileName, modSourceDirectory, destinationDirectory);
 
                         // Update ModLinkFilenames based on file existence
                         if (File.Exists(expectedFilePath))
@@ -893,9 +915,7 @@ namespace KOTORModSync.Core.Services
                     // Only skip download if ALL resolved files exist
                     if (allResolvedFilesExist && firstExistingResolvedFile != null)
                     {
-                        string existingFilePath = MainConfig.SourcePath != null
-                            ? Path.Combine(MainConfig.SourcePath.FullName, firstExistingResolvedFile)
-                            : Path.Combine(destinationDirectory, firstExistingResolvedFile);
+                        string existingFilePath = ResolveSourceFilePath(firstExistingResolvedFile, modSourceDirectory, destinationDirectory);
 
                         bool shouldValidate = MainConfig.ValidateAndReplaceInvalidArchives;
 
@@ -910,8 +930,9 @@ namespace KOTORModSync.Core.Services
                         {
                             ModName = component.Name,
                             Url = url,
-                            Status = DownloadStatus.Skipped,
-                            StatusMessage = $"All {filteredFilenames.Count} file(s) already exist, skipping download",
+                            Status = DownloadStatus.Completed,
+                            CompletedFromCache = true,
+                            StatusMessage = $"Using cached file(s) ({filteredFilenames.Count})",
                             ProgressPercentage = 100,
                             FilePath = existingFilePath,
                             TotalBytes = new FileInfo(existingFilePath).Length,
@@ -1168,7 +1189,7 @@ namespace KOTORModSync.Core.Services
                 cacheCheckResults = (await Task.WhenAll(cacheCheckTasks).ConfigureAwait(false)).ToList();
             }
 
-            foreach (var result in cacheCheckResults)
+            foreach ((string, string, bool) result in cacheCheckResults)
             {
                 string url = result.Item1;
                 string fileName = result.Item2;
@@ -1210,7 +1231,7 @@ namespace KOTORModSync.Core.Services
 
                 foreach (string url in urlsNeedingDownload)
                 {
-                    var progressTracker = new DownloadProgress
+                    var progressState = new DownloadProgress
                     {
                         ModName = component.Name,
                         Url = url,
@@ -1224,7 +1245,7 @@ namespace KOTORModSync.Core.Services
                     {
                         // Use all filenames from resource-index
                         var cachedFilenames = cachedMeta.Files.Keys.ToList();
-                        progressTracker.TargetFilenames = cachedFilenames;
+                        progressState.TargetFilenames = cachedFilenames;
                         await Logger.LogVerboseAsync($"[DownloadCacheService] Set target filename(s) from resource-index for {url}: {string.Join(", ", cachedFilenames)}").ConfigureAwait(false);
                     }
                     else
@@ -1238,7 +1259,7 @@ namespace KOTORModSync.Core.Services
 
                             if (targetFiles.Count > 0)
                             {
-                                progressTracker.TargetFilenames = targetFiles.ToList();
+                                progressState.TargetFilenames = targetFiles.ToList();
                                 await Logger.LogVerboseAsync($"[DownloadCacheService] Set target filename(s) for {url}: {string.Join(", ", targetFiles)} (filtered by ModLinkFilenames)").ConfigureAwait(false);
                             }
                             else
@@ -1247,43 +1268,43 @@ namespace KOTORModSync.Core.Services
 
                                 if (!string.IsNullOrWhiteSpace(bestMatch))
                                 {
-                                    progressTracker.TargetFilenames = new List<string> { bestMatch };
+                                    progressState.TargetFilenames = new List<string> { bestMatch };
                                     await Logger.LogVerboseAsync($"[DownloadCacheService] Set target filename for {url}: {bestMatch} (pattern matched)").ConfigureAwait(false);
                                 }
                                 else if (filteredFilenames.Count > 0)
                                 {
-                                    progressTracker.TargetFilenames = filteredFilenames;
+                                    progressState.TargetFilenames = filteredFilenames;
                                     await Logger.LogVerboseAsync($"[DownloadCacheService] No ModLinkFilenames or pattern match, will use all {filteredFilenames.Count} file(s) for {url}").ConfigureAwait(false);
                                 }
                             }
                         }
                     }
 
-                    urlToProgressMap[url] = progressTracker;
+                    urlToProgressMap[url] = progressState;
                 }
 
                 var progressForwarder = new Progress<DownloadProgress>(p =>
                 {
-                    if (urlToProgressMap.TryGetValue(p.Url, out DownloadProgress tracker))
+                    if (urlToProgressMap.TryGetValue(p.Url, out DownloadProgress progressSnapshot))
                     {
-                        tracker.Status = p.Status;
-                        tracker.StatusMessage = p.StatusMessage;
-                        tracker.ProgressPercentage = p.ProgressPercentage;
-                        tracker.BytesDownloaded = p.BytesDownloaded;
-                        tracker.TotalBytes = p.TotalBytes;
-                        tracker.FilePath = p.FilePath;
-                        tracker.StartTime = p.StartTime;
-                        tracker.EndTime = p.EndTime;
-                        tracker.ErrorMessage = p.ErrorMessage;
-                        tracker.Exception = p.Exception;
+                        progressSnapshot.Status = p.Status;
+                        progressSnapshot.StatusMessage = p.StatusMessage;
+                        progressSnapshot.ProgressPercentage = p.ProgressPercentage;
+                        progressSnapshot.BytesDownloaded = p.BytesDownloaded;
+                        progressSnapshot.TotalBytes = p.TotalBytes;
+                        progressSnapshot.FilePath = p.FilePath;
+                        progressSnapshot.StartTime = p.StartTime;
+                        progressSnapshot.EndTime = p.EndTime;
+                        progressSnapshot.ErrorMessage = p.ErrorMessage;
+                        progressSnapshot.Exception = p.Exception;
 
-                        if (tracker.Status == DownloadStatus.Pending ||
-                             tracker.Status == DownloadStatus.Completed ||
-                             tracker.Status == DownloadStatus.Failed)
+                        if (progressSnapshot.Status == DownloadStatus.Pending ||
+                             progressSnapshot.Status == DownloadStatus.Completed ||
+                             progressSnapshot.Status == DownloadStatus.Failed)
                         {
-                            Logger.LogVerbose($"[DownloadCache] {tracker.Status}: {tracker.StatusMessage}");
+                            Logger.LogVerbose($"[DownloadCache] {progressSnapshot.Status}: {progressSnapshot.StatusMessage}");
                         }
-                        progress?.Report(tracker);
+                        progress?.Report(progressSnapshot);
                     }
                 });
 
@@ -1292,7 +1313,7 @@ namespace KOTORModSync.Core.Services
                 foreach (KeyValuePair<string, DownloadProgress> urlProgress in urlToProgressMap)
                 {
                     string url = urlProgress.Key;
-                    DownloadProgress tracker = urlProgress.Value;
+                    DownloadProgress progressEntry = urlProgress.Value;
 
                     // Look up ContentId from ResourceRegistry (computed during PreResolve)
                     string contentId = null;
@@ -1313,7 +1334,7 @@ namespace KOTORModSync.Core.Services
                     {
                         var singleUrlMap = new Dictionary<string, DownloadProgress>(StringComparer.Ordinal)
                         {
-                            [url] = tracker,
+                            [url] = progressEntry,
                         };
                         List<DownloadResult> results = await DownloadManager.DownloadAllWithProgressAsync(
                             singleUrlMap,
@@ -1332,10 +1353,10 @@ namespace KOTORModSync.Core.Services
                         cancellationToken,
                         contentId).ConfigureAwait(false);
 
-                    // Set DownloadSource on the tracker
-                    if (result.Success && tracker != null)
+                    // Set DownloadSource on the progress entry
+                    if (result.Success && progressEntry != null)
                     {
-                        tracker.DownloadSource = result.DownloadSource;
+                        progressEntry.DownloadSource = result.DownloadSource;
                     }
 
                     downloadResults.Add(result);
@@ -1599,6 +1620,12 @@ namespace KOTORModSync.Core.Services
                 }
                 else
                 {
+                    if (!MainConfig.EditorMode)
+                    {
+                        await Logger.LogVerboseAsync($"[DownloadCacheService] EditorMode disabled; skipping auto instruction creation for '{entry.FileName}'").ConfigureAwait(false);
+                        continue;
+                    }
+
                     int initialInstructionCount = component.Instructions.Count;
 
                     string entryFilePath = !string.IsNullOrEmpty(entry.FileName) && MainConfig.SourcePath != null
@@ -1607,7 +1634,12 @@ namespace KOTORModSync.Core.Services
 
                     if (entry.IsArchiveFile && !string.IsNullOrEmpty(entryFilePath) && File.Exists(entryFilePath))
                     {
-                        bool generated = AutoInstructionGenerator.GenerateInstructions(component, entryFilePath);
+                        // Only auto-generate instructions in EditorMode
+                        bool generated = false;
+                        if (MainConfig.EditorMode)
+                        {
+                            generated = AutoInstructionGenerator.GenerateInstructions(component, entryFilePath);
+                        }
 
                         if (!File.Exists(entryFilePath))
                         {
@@ -1769,6 +1801,39 @@ namespace KOTORModSync.Core.Services
         {
             (List<string> urls, bool simulationFailed) = await _validationService.AnalyzeDownloadNecessityAsync(component, modSourceDirectory, cancellationToken).ConfigureAwait(false);
             return (urls, simulationFailed);
+        }
+
+        private static string ResolveSourceFilePath(string fileName, string modSourceDirectory, string destinationDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return fileName;
+            }
+
+            string normalizedName = fileName.Replace('/', Path.DirectorySeparatorChar);
+
+            if (Path.IsPathRooted(normalizedName))
+            {
+                return normalizedName;
+            }
+
+            string baseDirectory = MainConfig.SourcePath?.FullName;
+            if (string.IsNullOrEmpty(baseDirectory))
+            {
+                baseDirectory = modSourceDirectory;
+            }
+
+            if (string.IsNullOrEmpty(baseDirectory))
+            {
+                baseDirectory = destinationDirectory;
+            }
+
+            if (string.IsNullOrEmpty(baseDirectory))
+            {
+                return Path.GetFullPath(normalizedName);
+            }
+
+            return Path.Combine(baseDirectory, normalizedName);
         }
 
         private static string ExtractFilenameFromSource(string sourcePath)
@@ -3501,9 +3566,9 @@ namespace KOTORModSync.Core.Services
                 {
                     UnlockAsync().GetAwaiter().GetResult();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore exceptions during disposal
+                    Logger.LogException(ex, "(ignorable) error unlocking file during disposal");
                 }
                 finally
                 {

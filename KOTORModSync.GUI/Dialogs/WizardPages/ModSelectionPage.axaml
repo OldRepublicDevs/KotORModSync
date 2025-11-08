@@ -1,0 +1,165 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.ModSelectionPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <!--  Header & Stats Row  -->
+        <Border
+            Grid.Row="0"
+            Margin="0,0,0,12"
+            Padding="16,12"
+            CornerRadius="8">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <TextBlock
+                        x:Name="SelectionCountText"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Text="0 of 0 mods selected" />
+                    <TextBlock
+                        x:Name="SelectionDetailsText"
+                        FontSize="12"
+                        Opacity="0.7"
+                        Text="Select the mods you want to install" />
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        x:Name="SelectAllButton"
+                        Padding="12,6"
+                        Content="✓ Select All"
+                        ToolTip.Tip="Select all visible mods" />
+                    <Button
+                        x:Name="DeselectAllButton"
+                        Padding="12,6"
+                        Content="✗ Deselect All"
+                        ToolTip.Tip="Deselect all mods" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--  Filter & Search Toolbar  -->
+        <Border
+            Grid.Row="1"
+            Margin="0,0,0,12"
+            Padding="16,12"
+            CornerRadius="8">
+            <Grid ColumnDefinitions="*,12,Auto,12,Auto,12,Auto" RowDefinitions="Auto,8,Auto">
+                <!--  Search Box  -->
+                <TextBox
+                    x:Name="SearchTextBox"
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    ToolTip.Tip="Type to filter mods by name or description"
+                    Watermark="🔍 Search mods by name or description..." />
+
+                <!--  Category Filter  -->
+                <ComboBox
+                    x:Name="CategoryFilterComboBox"
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    MinWidth="160"
+                    PlaceholderText="All Categories"
+                    ToolTip.Tip="Filter by mod category" />
+
+                <!--  Tier Filter  -->
+                <ComboBox
+                    x:Name="TierFilterComboBox"
+                    Grid.Row="0"
+                    Grid.Column="4"
+                    MinWidth="140"
+                    PlaceholderText="All Tiers"
+                    ToolTip.Tip="Filter by mod quality tier" />
+
+                <!--  Spoiler-Free Toggle  -->
+                <ToggleSwitch
+                    x:Name="SpoilerFreeToggle"
+                    Grid.Row="0"
+                    Grid.Column="6"
+                    Content="Spoiler-Free"
+                    ToolTip.Tip="Hide spoiler content in mod names and descriptions" />
+
+                <!--  Filter Summary  -->
+                <TextBlock
+                    x:Name="FilterSummaryText"
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="7"
+                    FontSize="12"
+                    Opacity="0.6"
+                    Text="Showing all mods" />
+            </Grid>
+        </Border>
+
+        <!--  Mod List with ScrollViewer  -->
+        <Border
+            Grid.Row="2"
+            Padding="8"
+            CornerRadius="8">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="ModListPanel" Spacing="0" />
+            </ScrollViewer>
+        </Border>
+
+        <!--  Footer with Quick Stats  -->
+        <Border
+            Grid.Row="3"
+            Margin="0,12,0,0"
+            Padding="16,12"
+            CornerRadius="8">
+            <Grid ColumnDefinitions="Auto,16,Auto,16,Auto,*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock
+                        FontSize="11"
+                        Opacity="0.6"
+                        Text="SELECTED" />
+                    <TextBlock
+                        x:Name="SelectedCountBadge"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="0" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Spacing="2">
+                    <TextBlock
+                        FontSize="11"
+                        Opacity="0.6"
+                        Text="REQUIRED" />
+                    <TextBlock
+                        x:Name="RequiredCountBadge"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="0" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="4" Spacing="2">
+                    <TextBlock
+                        FontSize="11"
+                        Opacity="0.6"
+                        Text="OPTIONAL" />
+                    <TextBlock
+                        x:Name="OptionalCountBadge"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="0" />
+                </StackPanel>
+
+                <Button
+                    x:Name="ClearFiltersButton"
+                    Grid.Column="6"
+                    Padding="12,6"
+                    Content="Clear Filters"
+                    IsVisible="False"
+                    ToolTip.Tip="Reset all filters and search" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

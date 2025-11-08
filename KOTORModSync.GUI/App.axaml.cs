@@ -18,7 +18,6 @@ namespace KOTORModSync
 {
     public class App : Application
     {
-        private AutoUpdateService _autoUpdateService;
 
         public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
@@ -29,7 +28,7 @@ namespace KOTORModSync
                 try
                 {
                     // Load default theme BEFORE creating MainWindow to ensure control templates are available
-                    ThemeManager.UpdateStyle("/Styles/FluentLightStyle.axaml");
+                    ThemeManager.UpdateStyle("/Styles/LightStyle.axaml");
 
                     TaskScheduler.UnobservedTaskException += HandleUnobservedTaskException;
 
@@ -120,9 +119,9 @@ namespace KOTORModSync
         {
             try
             {
-                _autoUpdateService = new AutoUpdateService();
-                _autoUpdateService.Initialize();
-                _autoUpdateService.StartUpdateCheckLoop();
+                var autoUpdateService = new AutoUpdateService();
+                autoUpdateService.Initialize();
+                autoUpdateService.StartUpdateCheckLoop();
                 Logger.Log("Auto-update service started successfully.");
             }
             catch (Exception ex)

@@ -139,8 +139,8 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
                 return;
             }
 
-            using (var sourceStream = _casStore.OpenReadStream(delta.SourceCASHash))
-            using (var deltaStream = _casStore.OpenReadStream(delta.ForwardDeltaCASHash))
+            using (Stream sourceStream = _casStore.OpenReadStream(delta.SourceCASHash))
+            using (Stream deltaStream = _casStore.OpenReadStream(delta.ForwardDeltaCASHash))
             {
                 await ApplyOctodiffDeltaAsync(sourceStream, deltaStream, outputFilePath, cancellationToken).ConfigureAwait(false);
             }
@@ -164,8 +164,8 @@ namespace KOTORModSync.Core.Services.ImmutableCheckpoint
                 return;
             }
 
-            using (var targetStream = _casStore.OpenReadStream(delta.TargetCASHash))
-            using (var reverseDeltaStream = _casStore.OpenReadStream(delta.ReverseDeltaCASHash))
+            using (Stream targetStream = _casStore.OpenReadStream(delta.TargetCASHash))
+            using (Stream reverseDeltaStream = _casStore.OpenReadStream(delta.ReverseDeltaCASHash))
             {
                 await ApplyOctodiffDeltaAsync(targetStream, reverseDeltaStream, outputFilePath, cancellationToken).ConfigureAwait(false);
             }

@@ -86,6 +86,7 @@ namespace KOTORModSync.Controls
         public DirectoryPickerControl()
         {
             InitializeComponent();
+            CaptureNamedControls();
             DataContext = this;
             // Initialize cached value for thread-safe access
             _pickerType = PickerType;
@@ -102,11 +103,7 @@ namespace KOTORModSync.Controls
         {
             base.OnApplyTemplate(e);
 
-            _titleTextBlock = this.FindControl<TextBlock>("TitleTextBlock");
-            _descriptionTextBlock = this.FindControl<TextBlock>("DescriptionTextBlock");
-            _currentPathDisplay = this.FindControl<TextBlock>("CurrentPathDisplay");
-            _pathInput = this.FindControl<TextBox>("PathInput");
-            _pathSuggestions = this.FindControl<ComboBox>("PathSuggestions");
+            CaptureNamedControls();
 
             Logger.LogVerbose("DirectoryPickerControl.OnApplyTemplate");
             UpdateTitle();
@@ -129,6 +126,7 @@ namespace KOTORModSync.Controls
             base.OnAttachedToVisualTree(e);
             Logger.LogVerbose("DirectoryPickerControl.OnAttachedToVisualTree");
 
+            CaptureNamedControls();
             InitializePathSuggestions();
             if (string.IsNullOrEmpty(_pendingPath))
             {
@@ -166,6 +164,22 @@ namespace KOTORModSync.Controls
                 InitializePathSuggestions();
             }
 
+        }
+
+        private void CaptureNamedControls()
+        {
+            try
+            {
+                _titleTextBlock = this.FindControl<TextBlock>("TitleTextBlock");
+                _descriptionTextBlock = this.FindControl<TextBlock>("DescriptionTextBlock");
+                _currentPathDisplay = this.FindControl<TextBlock>("CurrentPathDisplay");
+                _pathInput = this.FindControl<TextBox>("PathInput");
+                _pathSuggestions = this.FindControl<ComboBox>("PathSuggestions");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogVerbose($"DirectoryPickerControl[{PickerType}] CaptureNamedControls failed: {ex.Message}");
+            }
         }
 
         private void UpdateTitle()
@@ -821,7 +835,7 @@ namespace KOTORModSync.Controls
                 _suppressEvents = true;
                 _suppressSelection = true;
 
-                var currentItems = (_pathSuggestions.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
+                List<string> currentItems = (_pathSuggestions.ItemsSource as IEnumerable<string>)?.ToList() ?? new List<string>();
 
 
                 if (!currentItems.Contains(path, StringComparer.OrdinalIgnoreCase))

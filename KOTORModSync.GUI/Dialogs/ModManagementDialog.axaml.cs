@@ -702,7 +702,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
         {
             var sb = new System.Text.StringBuilder();
 
-            foreach (var kvp in graph)
+            foreach (KeyValuePair<ModComponent, List<ModComponent>> kvp in graph)
             {
                 ModComponent component = kvp.Key;
                 List<ModComponent> dependencies = kvp.Value;
@@ -812,7 +812,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
                     analysis += $"Average size per mod: {FormatBytes(totalSize / Math.Max(1, modsWithSize))}\n\n";
 
                     analysis += "Size Distribution:\n";
-                    foreach (var kvp in sizeBreakdown.OrderByDescending(kvp => kvp.Value.Size))
+                    foreach (KeyValuePair<string, (long Size, int Count)> kvp in sizeBreakdown.OrderByDescending(kvp => kvp.Value.Size))
                     {
                         string category = kvp.Key;
                         long size = kvp.Value.Size;
@@ -947,7 +947,7 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
                     {
                         string report = $"Found {actualRedundantFiles.Count} potentially redundant files:\n\n";
 
-                        foreach (var kvp in actualRedundantFiles.Take(10))
+                        foreach (KeyValuePair<string, List<ModComponent>> kvp in actualRedundantFiles.Take(10))
                         {
                             string fileName = kvp.Key;
                             List<ModComponent> components = kvp.Value;
@@ -1531,12 +1531,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
 
         private void SortCategoriesByName_Click(object sender, RoutedEventArgs e)
         {
-            var categoriesListBox = this.FindControl<ListBox>("CategoriesListBox");
+            ListBox categoriesListBox = this.FindControl<ListBox>("CategoriesListBox");
             if (categoriesListBox?.ItemsSource is Dictionary<string, int> categories)
             {
                 var sorted = categories.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
                 var newDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                foreach (var kvp in sorted)
+                foreach (KeyValuePair<string, int> kvp in sorted)
                 {
                     newDict[kvp.Key] = kvp.Value;
                 }
@@ -1546,12 +1546,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
 
         private void SortTiersByName_Click(object sender, RoutedEventArgs e)
         {
-            var tiersListBox = this.FindControl<ListBox>("TiersListBox");
+            ListBox tiersListBox = this.FindControl<ListBox>("TiersListBox");
             if (tiersListBox?.ItemsSource is Dictionary<string, int> tiers)
             {
                 var sorted = tiers.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
                 var newDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                foreach (var kvp in sorted)
+                foreach (KeyValuePair<string, int> kvp in sorted)
                 {
                     newDict[kvp.Key] = kvp.Value;
                 }
@@ -1561,12 +1561,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
 
         private void SortAuthorsByName_Click(object sender, RoutedEventArgs e)
         {
-            var authorsListBox = this.FindControl<ListBox>("AuthorsListBox");
+            ListBox authorsListBox = this.FindControl<ListBox>("AuthorsListBox");
             if (authorsListBox?.ItemsSource is Dictionary<string, int> authors)
             {
                 var sorted = authors.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
                 var newDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                foreach (var kvp in sorted)
+                foreach (KeyValuePair<string, int> kvp in sorted)
                 {
                     newDict[kvp.Key] = kvp.Value;
                 }
@@ -1576,12 +1576,12 @@ Dictionary<ModComponent, List<ModComponent>> BuildDependencyGraph(List<ModCompon
 
         private void SortAuthorsByCount_Click(object sender, RoutedEventArgs e)
         {
-            var authorsListBox = this.FindControl<ListBox>("AuthorsListBox");
+            ListBox authorsListBox = this.FindControl<ListBox>("AuthorsListBox");
             if (authorsListBox?.ItemsSource is Dictionary<string, int> authors)
             {
                 var sorted = authors.OrderByDescending(kvp => kvp.Value).ThenBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
                 var newDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                foreach (var kvp in sorted)
+                foreach (KeyValuePair<string, int> kvp in sorted)
                 {
                     newDict[kvp.Key] = kvp.Value;
                 }

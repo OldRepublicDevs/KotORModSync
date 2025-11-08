@@ -87,6 +87,8 @@ namespace KOTORModSync
         public static IBrush DownloadLedActiveBrush => GetBrush("DownloadLed.ActiveBrush", new SolidColorBrush(Color.FromRgb(0, 255, 0)));
         public static IBrush DownloadLedInactiveBrush => GetBrush("DownloadLed.InactiveBrush", new SolidColorBrush(Color.FromRgb(128, 128, 128)));
 
+        public static IBrush CheckpointProgressForegroundBrush => GetBrush("CheckpointProgress.ForegroundBrush", new SolidColorBrush(Color.FromRgb(33, 150, 243)));
+
         public static IBrush DragDropErrorForegroundBrush => GetBrush("DragDrop.ErrorForegroundBrush", new SolidColorBrush(Color.FromRgb(255, 87, 34)));
         public static IBrush DragDropErrorBackgroundBrush => GetBrush("DragDrop.ErrorBackgroundBrush", new SolidColorBrush(Color.FromRgb(255, 235, 238)));
         public static IBrush DragDropErrorBorderBrush => GetBrush("DragDrop.ErrorBorderBrush", new SolidColorBrush(Color.FromRgb(244, 67, 54)));

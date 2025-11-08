@@ -14,9 +14,6 @@ using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Utility;
 
 using SharpCompress.Archives;
-using SharpCompress.Archives.Rar;
-using SharpCompress.Archives.SevenZip;
-using SharpCompress.Archives.Zip;
 using SharpCompress.Readers;
 
 namespace KOTORModSync.Core.Services.FileSystem
@@ -250,20 +247,8 @@ namespace KOTORModSync.Core.Services.FileSystem
                 }
             }
 
-            IArchive GetArchiveByExtension(string extension, Stream stream)
-            {
-                switch (extension.ToLowerInvariant())
-                {
-                    case ".zip":
-                        return ZipArchive.Open(stream);
-                    case ".rar":
-                        return RarArchive.Open(stream);
-                    case ".7z":
-                        return SevenZipArchive.Open(stream);
-                    default:
-                        return ArchiveFactory.Open(stream);
-                }
-            }
+            IArchive GetArchiveByExtension(string extension, Stream stream) =>
+                ArchiveHelper.OpenArchiveFromStream(extension, stream);
         }
 
         public List<string> GetFilesInDirectory(string directoryPath, string searchPattern = "*.*", SearchOption searchOption = SearchOption.TopDirectoryOnly) => !Directory.Exists(directoryPath)

@@ -440,7 +440,7 @@ namespace KOTORModSync.Controls
             }
 
             // Check for path validation errors
-            var pathErrors = GetPathValidationErrors(component);
+            List<string> pathErrors = GetPathValidationErrors(component);
             if (pathErrors.Count > 0)
             {
                 hasErrors = true;
@@ -731,10 +731,10 @@ namespace KOTORModSync.Controls
                 {
                     _ = sb.Append("❗ Missing Download").AppendLine();
 
-                    var mainWindow = Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                    MainWindow mainWindow = Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
                         ? desktop.MainWindow as MainWindow
                         : null;
-                    var downloadCacheService = mainWindow?.DownloadCacheService;
+                    Core.Services.DownloadCacheService downloadCacheService = mainWindow?.DownloadCacheService;
                     if (downloadCacheService != null && component.ResourceRegistry.Count > 0)
                     {
                         var missingUrls = new List<string>();

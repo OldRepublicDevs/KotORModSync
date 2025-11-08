@@ -107,7 +107,8 @@ namespace KOTORModSync.Dialogs
                     if (InfoTextBlock != null)
                     {
                         string currentTheme = ThemeManager.GetCurrentStylePath();
-                        if (currentTheme.Contains("FluentLightStyle"))
+                        if (currentTheme.Contains("LightStyle")
+                            || currentTheme.Contains("FluentLightStyle"))
                         {
                             InfoTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
                         }

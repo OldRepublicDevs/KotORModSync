@@ -1,0 +1,31 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.GameDirectoryPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:KOTORModSync.Controls">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,24" Spacing="16">
+            <TextBlock Text="Select the folder that contains swkotor.exe or swkotor2.exe. This is where mods will be installed." TextWrapping="Wrap" />
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Common locations:" />
+                <TextBlock Text="• Steam: C:\Program Files (x86)\Steam\steamapps\common\swkotor" />
+                <TextBlock Text="• GOG: C:\Program Files (x86)\GOG Galaxy\Games\Star Wars - KotOR" />
+            </StackPanel>
+
+            <controls:DirectoryPickerControl
+                x:Name="DestinationPathPicker"
+                Title="KOTOR Game Directory:"
+                Margin="0,12,0,0"
+                Description="Select the folder where your KOTOR game is installed."
+                PickerType="KotorDirectory"
+                Watermark="Select or enter your KOTOR installation folder" />
+
+            <TextBlock x:Name="StatusText" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

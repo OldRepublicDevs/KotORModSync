@@ -20,8 +20,8 @@ namespace KOTORModSync.Dialogs
 
         public ProgressDialog(string title, string message) : this()
         {
-            var titleText = this.FindControl<TextBlock>("TitleText");
-            var messageText = this.FindControl<TextBlock>("MessageText");
+            TextBlock titleText = this.FindControl<TextBlock>("TitleText");
+            TextBlock messageText = this.FindControl<TextBlock>("MessageText");
 
             if (titleText != null)
             {
@@ -43,8 +43,8 @@ namespace KOTORModSync.Dialogs
         {
             Dispatcher.UIThread.Post(() =>
             {
-                var messageText = this.FindControl<TextBlock>("MessageText");
-                var progressBar = this.FindControl<ProgressBar>("ProgressBar");
+                TextBlock messageText = this.FindControl<TextBlock>("MessageText");
+                ProgressBar progressBar = this.FindControl<ProgressBar>("ProgressBar");
 
                 if (messageText != null)
                 {
@@ -64,8 +64,8 @@ namespace KOTORModSync.Dialogs
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                var messageText = this.FindControl<TextBlock>("MessageText");
-                var progressBar = this.FindControl<ProgressBar>("ProgressBar");
+                TextBlock messageText = this.FindControl<TextBlock>("MessageText");
+                ProgressBar progressBar = this.FindControl<ProgressBar>("ProgressBar");
 
                 if (messageText != null)
                 {

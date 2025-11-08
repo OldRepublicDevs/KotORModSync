@@ -49,13 +49,13 @@ namespace KOTORModSync.Dialogs
             _destinationPath = destinationPath;
             _checkpointService = new CheckpointService(destinationPath);
 
-            var sessionsControl = this.FindControl<ItemsControl>("SessionsListControl");
+            ItemsControl sessionsControl = this.FindControl<ItemsControl>("SessionsListControl");
             if (sessionsControl != null)
             {
                 sessionsControl.ItemsSource = _sessions;
             }
 
-            var checkpointsControl = this.FindControl<ItemsControl>("CheckpointsListControl");
+            ItemsControl checkpointsControl = this.FindControl<ItemsControl>("CheckpointsListControl");
             if (checkpointsControl != null)
             {
                 checkpointsControl.ItemsSource = _checkpoints;
@@ -75,12 +75,12 @@ namespace KOTORModSync.Dialogs
         {
             try
             {
-                var sessions = await _checkpointService.ListSessionsAsync();
+                List<CheckpointSession> sessions = await _checkpointService.ListSessionsAsync();
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     _sessions.Clear();
-                    foreach (var session in sessions)
+                    foreach (CheckpointSession session in sessions)
                     {
                         _sessions.Add(new SessionViewModel(session));
                     }
@@ -96,7 +96,7 @@ namespace KOTORModSync.Dialogs
 
         private void UpdateStorageInfo(List<CheckpointSession> sessions)
         {
-            var storageText = this.FindControl<TextBlock>("StorageInfoText");
+            TextBlock storageText = this.FindControl<TextBlock>("StorageInfoText");
             if (storageText is null)
             {
                 return;
@@ -167,15 +167,15 @@ namespace KOTORModSync.Dialogs
         {
             try
             {
-                var titleText = this.FindControl<TextBlock>("SelectedSessionTitle");
-                var infoText = this.FindControl<TextBlock>("SelectedSessionInfo");
+                TextBlock titleText = this.FindControl<TextBlock>("SelectedSessionTitle");
+                TextBlock infoText = this.FindControl<TextBlock>("SelectedSessionInfo");
 
                 if (titleText != null)
                 {
                     titleText.Text = session.SessionName;
                 }
 
-                var checkpoints = await _checkpointService.ListCheckpointsAsync(session.Session.Id);
+                List<Checkpoint> checkpoints = await _checkpointService.ListCheckpointsAsync(session.Session.Id);
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -192,7 +192,7 @@ namespace KOTORModSync.Dialogs
 
                     _checkpoints.Clear();
 
-                    foreach (var checkpoint in checkpoints.OrderBy(c => c.Sequence))
+                    foreach (Checkpoint checkpoint in checkpoints.OrderBy(c => c.Sequence))
                     {
                         _checkpoints.Add(new CheckpointViewModel(checkpoint, session.Session));
                     }

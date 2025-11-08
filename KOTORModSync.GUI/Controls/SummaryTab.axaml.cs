@@ -104,7 +104,7 @@ namespace KOTORModSync.Controls
                 // Find ALL TextBlocks in the visual tree
                 var allTextBlocks = this.GetVisualDescendants().OfType<TextBlock>().ToList();
 
-                foreach (var textBlock in allTextBlocks)
+                foreach (TextBlock textBlock in allTextBlocks)
                 {
                     // Skip TextBlocks that are part of headers, labels, or other UI chrome
                     if (IsUiChromeTextBlock(textBlock))
@@ -182,7 +182,8 @@ namespace KOTORModSync.Controls
 
                             // Ensure the TextBlock has the proper foreground color for the current theme
                             string currentTheme = ThemeManager.GetCurrentStylePath();
-                            if (currentTheme.Contains("FluentLightStyle"))
+                            if (currentTheme.Contains("LightStyle")
+                                || currentTheme.Contains("FluentLightStyle"))
                             {
                                 textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
                             }
@@ -329,7 +330,7 @@ namespace KOTORModSync.Controls
                         .Where(sp => string.Equals(sp.Name, "SummaryFilenamesPanel", StringComparison.Ordinal)).ToList();
 
                     int urlIndex = 0;
-                    foreach (var panel in panels)
+                    foreach (StackPanel panel in panels)
                     {
                         var urls = CurrentComponent.ResourceRegistry.Keys.ToList();
                         if (urlIndex < urls.Count)
@@ -367,7 +368,7 @@ namespace KOTORModSync.Controls
                 return;
             }
 
-            if (!CurrentComponent.ResourceRegistry.TryGetValue(url, out var resourceMetadata) || resourceMetadata.Files.Count == 0)
+            if (!CurrentComponent.ResourceRegistry.TryGetValue(url, out ResourceMetadata resourceMetadata) || resourceMetadata.Files.Count == 0)
             {
                 return;
             }
@@ -381,7 +382,7 @@ namespace KOTORModSync.Controls
             };
             panel.Children.Add(headerText);
 
-            foreach (var filenameEntry in resourceMetadata.Files)
+            foreach (System.Collections.Generic.KeyValuePair<string, bool?> filenameEntry in resourceMetadata.Files)
             {
                 string filename = filenameEntry.Key;
                 bool? shouldDownload = resourceMetadata.Files[filename];
@@ -431,7 +432,7 @@ namespace KOTORModSync.Controls
                         // Find all TextBlocks and trigger markdown rendering
                         var allTextBlocks = this.GetVisualDescendants().OfType<TextBlock>().ToList();
 
-                        foreach (var textBlock in allTextBlocks)
+                        foreach (TextBlock textBlock in allTextBlocks)
                         {
                             // Skip UI chrome TextBlocks
                             if (IsUiChromeTextBlock(textBlock))
@@ -446,7 +447,8 @@ namespace KOTORModSync.Controls
 
                                 // Ensure the TextBlock has the proper foreground color for the current theme
                                 string currentTheme = ThemeManager.GetCurrentStylePath();
-                                if (currentTheme.Contains("FluentLightStyle"))
+                                if (currentTheme.Contains("LightStyle")
+                                    || currentTheme.Contains("FluentLightStyle"))
                                 {
                                     textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
                                 }

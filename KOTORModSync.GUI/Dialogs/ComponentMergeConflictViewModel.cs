@@ -2104,7 +2104,7 @@ namespace KOTORModSync.Dialogs
 
             if (existingDict != null)
             {
-                foreach (var kvp in existingDict)
+                foreach (KeyValuePair<string, ResourceMetadata> kvp in existingDict)
                 {
                     result[kvp.Key] = kvp.Value;
                 }
@@ -2112,7 +2112,7 @@ namespace KOTORModSync.Dialogs
 
             if (incomingDict != null)
             {
-                foreach (var kvp in incomingDict)
+                foreach (KeyValuePair<string, ResourceMetadata> kvp in incomingDict)
                 {
                     if (!result.ContainsKey(kvp.Key))
                     {
@@ -2122,10 +2122,10 @@ namespace KOTORModSync.Dialogs
                     else
                     {
                         // Merge filename dictionaries - prefer incoming by default when both have explicit values
-                        var existingMetadata = result[kvp.Key];
-                        var incomingMetadata = kvp.Value;
+                        ResourceMetadata existingMetadata = result[kvp.Key];
+                        ResourceMetadata incomingMetadata = kvp.Value;
 
-                        foreach (var fileKvp in incomingMetadata.Files)
+                        foreach (KeyValuePair<string, bool?> fileKvp in incomingMetadata.Files)
                         {
                             if (!existingMetadata.Files.TryGetValue(fileKvp.Key, out bool? value))
                             {

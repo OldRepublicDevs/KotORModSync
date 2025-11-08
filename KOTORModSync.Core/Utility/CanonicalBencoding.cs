@@ -8,7 +8,7 @@ using System.Text;
 namespace KOTORModSync.Core.Utility
 {
     /// <summary>
-    /// Provides canonical bencoding for BitTorrent-compatible content identification.
+    /// Provides canonical bencoding for network cache content identification.
     /// Implements deterministic encoding to ensure identical output across all platforms.
     /// </summary>
     public static class CanonicalBencoding
@@ -48,9 +48,10 @@ namespace KOTORModSync.Core.Utility
         {
             if (value is null)
             {
-                throw new ArgumentException("Null values are not allowed in bencoding");
+                throw new ArgumentException("Null values are not allowed in bencoding", nameof(value));
             }
-            else if (value is long longVal)
+
+            if (value is long longVal)
             {
                 EncodeInteger(longVal, output);
             }
@@ -76,7 +77,7 @@ namespace KOTORModSync.Core.Utility
             }
             else
             {
-                throw new ArgumentException($"Unsupported type for bencoding: {value.GetType()}");
+                throw new ArgumentException($"Unsupported type for bencoding: {value.GetType()}", nameof(value));
             }
         }
 

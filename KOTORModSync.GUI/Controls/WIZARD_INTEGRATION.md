@@ -45,10 +45,10 @@ The wizard activates automatically when:
 **Code Location**: `MainWindow.axaml.cs` → `LoadInstructionFileAsync()`
 
 ```csharp
-// If not in Editor Mode, activate wizard mode
-if (!EditorMode && MainConfig.AllComponents != null && MainConfig.AllComponents.Count > 0)
+// If not in Editor Mode, activate (or refresh) wizard mode
+if (!EditorMode && WizardMode)
 {
-    EnterWizardMode();
+    EnterWizardMode(forceRefresh: true);
 }
 ```
 
@@ -56,7 +56,7 @@ if (!EditorMode && MainConfig.AllComponents != null && MainConfig.AllComponents.
 
 Four key methods manage wizard state:
 
-- **`EnterWizardMode()`**: Shows wizard, hides main grid
+- **`EnterWizardMode(bool forceRefresh = false)`**: Shows or refreshes the wizard interface
 - **`ExitWizardMode()`**: Hides wizard, shows main grid
 - **`OnWizardCompleted()`**: Called when wizard finishes successfully
 - **`OnWizardCancelled()`**: Called when user cancels wizard

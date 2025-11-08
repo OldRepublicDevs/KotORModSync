@@ -217,6 +217,31 @@
                     </StackPanel>
                 </Border>
 
+                <!--  Downloaded Files  -->
+                <Border
+                    x:Name="FilesSection"
+                    Classes="download-section"
+                    IsVisible="False">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            Text="Downloaded Files" />
+                        <ItemsControl x:Name="FilesItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock
+                                            Classes="download-status-text"
+                                            Text="{Binding}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
                 <!--  Download Logs  -->
                 <Border Classes="download-section">
                     <StackPanel Spacing="8">

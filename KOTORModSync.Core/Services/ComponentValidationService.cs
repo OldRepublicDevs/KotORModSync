@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ using JetBrains.Annotations;
 
 using KOTORModSync.Core.FileSystemUtils;
 using KOTORModSync.Core.Services.FileSystem;
+using KOTORModSync.Core.Utility;
 
 namespace KOTORModSync.Core.Services
 {
@@ -32,6 +34,47 @@ namespace KOTORModSync.Core.Services
         public ComponentValidationService()
         {
 
+        }
+
+        private static string NormalizeFileNameForComparison(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return string.Empty;
+            }
+
+            string trimmed = fileName
+                .Replace("<<modDirectory>>\\", "", StringComparison.OrdinalIgnoreCase)
+                .Replace("<<modDirectory>>/", "", StringComparison.OrdinalIgnoreCase)
+                .Replace('/', Path.DirectorySeparatorChar)
+                .Trim(Path.DirectorySeparatorChar);
+
+            if (trimmed.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            // Remove wildcards and quotes that may be present in patterns
+            trimmed = trimmed.Replace("*", string.Empty, StringComparison.Ordinal)
+                             .Replace("?", string.Empty, StringComparison.Ordinal)
+                             .Trim('"');
+
+            string nameOnly = Path.GetFileNameWithoutExtension(trimmed);
+            if (string.IsNullOrEmpty(nameOnly))
+            {
+                nameOnly = trimmed;
+            }
+
+            var sb = new StringBuilder(nameOnly.Length);
+            foreach (char c in nameOnly)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    _ = sb.Append(char.ToLowerInvariant(c));
+                }
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>
@@ -137,9 +180,7 @@ namespace KOTORModSync.Core.Services
                         {
                             availableFilenames.Add(fname);
                             // Identify ZIP/RAR/7z files as mod archives
-                            if (fname.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                                fname.EndsWith(".rar", StringComparison.OrdinalIgnoreCase) ||
-                                fname.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
+                            if (ArchiveHelper.HasArchiveExtension(fname))
                             {
                                 archiveFiles.Add(file);
                             }
@@ -148,43 +189,13 @@ namespace KOTORModSync.Core.Services
                 }
 
                 // Scan inside all discovered mod archives for contained files
-                var archiveContents = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, HashSet<string>> archiveContents = ArchiveHelper.GetArchiveContentsByFileName(archiveFiles);
                 foreach (string archivePath in archiveFiles)
                 {
                     string archiveFileName = Path.GetFileName(archivePath);
-                    var fileList = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                    try
+                    if (!string.IsNullOrEmpty(archiveFileName))
                     {
-                        // Support ZIP, fallback for RAR/7z if libraries available (only ZIP here)
-                        if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                        {
-                            using (var zip = System.IO.Compression.ZipFile.OpenRead(archivePath))
-                            {
-                                foreach (var entry in zip.Entries)
-                                {
-                                    if (!string.IsNullOrWhiteSpace(entry.FullName))
-                                    {
-                                        string norm = entry.FullName.Trim('\\', '/');
-                                        if (!string.IsNullOrEmpty(norm))
-                                        {
-                                            fileList.Add(norm);
-                                            fileList.Add(Path.GetFileName(norm));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        // TODO: Add support for .rar/.7z using external libs if needed
-                        if (fileList.Count > 0)
-                        {
-                            availableFilenames.Add(archiveFileName); // the archive itself is available
-                            archiveContents[archiveFileName] = fileList;
-                        }
-                    }
-                    catch (Exception zex)
-                    {
-                        await Logger.LogWarningAsync($"[ComponentValidationService] Failed to scan archive '{archiveFileName}': {zex.Message}").ConfigureAwait(false);
+                        availableFilenames.Add(archiveFileName);
                     }
                 }
 
@@ -223,6 +234,11 @@ namespace KOTORModSync.Core.Services
                 }
 
                 // Try to match patterns against available filenames and archive contents
+                var normalizedAvailableNames = availableFilenames
+                    .Select(name => (Original: name, Normalized: NormalizeFileNameForComparison(name)))
+                    .Where(tuple => !string.IsNullOrEmpty(tuple.Normalized))
+                    .ToList();
+
                 var unmatchedPatterns = new List<string>();
                 foreach (string pattern in extractPatterns)
                 {
@@ -233,6 +249,8 @@ namespace KOTORModSync.Core.Services
                         .Replace("<<modDirectory>>\\", "")
                         .Replace("<<modDirectory>>/", "")
                         .TrimStart('\\', '/');
+
+                    string normalizedPatternName = NormalizeFileNameForComparison(patternFileName);
 
                     // 1. Try matching against available filenames on disk/registry
                     foreach (string filename in availableFilenames)
@@ -249,10 +267,10 @@ namespace KOTORModSync.Core.Services
                     // 2. Try matching inside archive file listings if not matched already
                     if (!matched)
                     {
-                        foreach (var kvp in archiveContents)
+                        foreach (KeyValuePair<string, HashSet<string>> kvp in archiveContents)
                         {
                             string archiveName = kvp.Key;
-                            var insideArchive = kvp.Value;
+                            HashSet<string> insideArchive = kvp.Value;
                             // For patterns like <<modDirectory>>\ArchiveName*\Subfolder\*
                             if (pattern.Contains(archiveName, StringComparison.OrdinalIgnoreCase))
                             {
@@ -285,15 +303,86 @@ namespace KOTORModSync.Core.Services
 
                     if (!matched)
                     {
-                        unmatchedPatterns.Add(pattern);
-                        await Logger.LogVerboseAsync($"[ComponentValidationService] Unmatched Extract pattern: {pattern}").ConfigureAwait(false);
+                        bool satisfiedBySimilarFile = false;
+
+                        if (!string.IsNullOrEmpty(normalizedPatternName))
+                        {
+                            satisfiedBySimilarFile = normalizedAvailableNames.Any(tuple =>
+                                string.Equals(tuple.Normalized, normalizedPatternName, StringComparison.Ordinal));
+
+                            if (!satisfiedBySimilarFile)
+                            {
+                                // Allow lenient comparison where available file name contains the pattern token entirely
+                                satisfiedBySimilarFile = normalizedAvailableNames.Any(tuple =>
+                                    tuple.Normalized.Contains(normalizedPatternName, StringComparison.Ordinal));
+
+                                if (!satisfiedBySimilarFile)
+                                {
+                                    satisfiedBySimilarFile = normalizedPatternName.Length > 3 &&
+                                        normalizedAvailableNames.Any(tuple =>
+                                            normalizedPatternName.Contains(tuple.Normalized, StringComparison.Ordinal));
+                                }
+                            }
+                        }
+
+                        if (satisfiedBySimilarFile)
+                        {
+                            await Logger.LogVerboseAsync($"[ComponentValidationService] Pattern '{pattern}' satisfied by existing file with different extension or naming.").ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            unmatchedPatterns.Add(pattern);
+                            await Logger.LogVerboseAsync($"[ComponentValidationService] Unmatched Extract pattern: {pattern}").ConfigureAwait(false);
+                        }
                     }
                 }
 
                 if (unmatchedPatterns.Count > 0)
                 {
                     await Logger.LogWarningAsync($"[ComponentValidationService] Found {unmatchedPatterns.Count} unmatched Extract pattern(s)").ConfigureAwait(false);
-                    urlsNeedingDownload.UnionWith(component.ResourceRegistry.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
+                    var targetedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                    foreach (string unmatched in unmatchedPatterns)
+                    {
+                        string normalized = NormalizeFileNameForComparison(Path.GetFileName(unmatched));
+                        if (string.IsNullOrEmpty(normalized))
+                        {
+                            continue;
+                        }
+
+                        foreach (KeyValuePair<string, ResourceMetadata> kvp in component.ResourceRegistry)
+                        {
+                            if (string.IsNullOrWhiteSpace(kvp.Key))
+                            {
+                                continue;
+                            }
+
+                            if (kvp.Value?.Files is null || kvp.Value.Files.Count == 0)
+                            {
+                                continue;
+                            }
+
+                            bool matchesResource = kvp.Value.Files.Keys.Any(fileName =>
+                                string.Equals(
+                                    NormalizeFileNameForComparison(fileName),
+                                    normalized,
+                                    StringComparison.Ordinal));
+
+                            if (matchesResource)
+                            {
+                                targetedUrls.Add(kvp.Key);
+                            }
+                        }
+                    }
+
+                    if (targetedUrls.Count > 0)
+                    {
+                        urlsNeedingDownload.UnionWith(targetedUrls);
+                    }
+                    else
+                    {
+                        urlsNeedingDownload.UnionWith(component.ResourceRegistry.Keys.Where(url => !string.IsNullOrWhiteSpace(url)));
+                    }
                 }
                 else
                 {
@@ -335,29 +424,10 @@ namespace KOTORModSync.Core.Services
             }
 
             // Get all extracted archives and check which have nested folders
-            var nestedArchives = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (string archivePath in virtualFileSystem.GetTrackedFiles().Where(f =>
-                f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                f.EndsWith(".rar", StringComparison.OrdinalIgnoreCase) ||
-                f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase)))
+            HashSet<string> nestedArchives = ArchiveHelper.GetNestedArchiveRoots(virtualFileSystem.GetTrackedFiles());
+            foreach (string archiveName in nestedArchives)
             {
-                string archiveName = Path.GetFileNameWithoutExtension(archivePath);
-                if (string.IsNullOrEmpty(archiveName))
-                {
-                    continue;
-                }
-
-                // Check if files exist in the nested pattern: workspace\ArchiveName\ArchiveName\
-                string nestedPattern = Path.DirectorySeparatorChar + archiveName + Path.DirectorySeparatorChar + archiveName + Path.DirectorySeparatorChar;
-                bool hasNestedStructure = virtualFileSystem.GetTrackedFiles()
-                    .Exists(f => f.IndexOf(nestedPattern, StringComparison.OrdinalIgnoreCase) >= 0);
-
-                if (hasNestedStructure)
-                {
-                    nestedArchives.Add(archiveName);
-                    Logger.LogVerbose($"[ComponentValidationService] Detected nested archive structure for: {archiveName}");
-                }
+                Logger.LogVerbose($"[ComponentValidationService] Detected nested archive structure for: {archiveName}");
             }
 
             if (nestedArchives.Count == 0)
@@ -1057,7 +1127,7 @@ namespace KOTORModSync.Core.Services
             // Gather known archive filenames from the component's ResourceRegistry (resource-index)
             var archiveFilenames = component.ResourceRegistry.Values
                 .SelectMany(meta => meta.Files?.Keys ?? Enumerable.Empty<string>())
-                .Where(fn => !string.IsNullOrWhiteSpace(fn) && Utility.ArchiveHelper.IsArchive(fn))
+                .Where(fn => !string.IsNullOrWhiteSpace(fn) && ArchiveHelper.IsArchive(fn))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -1096,7 +1166,7 @@ namespace KOTORModSync.Core.Services
                 foreach (string failedPattern in failedPatterns)
                 {
                     string expectedArchive = ExtractFilenameFromSource(failedPattern);
-                    if (string.IsNullOrEmpty(expectedArchive) || !Utility.ArchiveHelper.IsArchive(expectedArchive))
+                    if (string.IsNullOrEmpty(expectedArchive) || !ArchiveHelper.IsArchive(expectedArchive))
                     {
                         continue;
                     }

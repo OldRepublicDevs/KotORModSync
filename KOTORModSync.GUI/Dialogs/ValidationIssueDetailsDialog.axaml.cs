@@ -97,7 +97,7 @@ namespace KOTORModSync.Dialogs
             TextBlock instructionText = this.FindControl<TextBlock>("InstructionText");
             if (instructionText != null && _validationIssue.VfsIssue != null && _validationIssue.VfsIssue.AffectedInstruction != null)
             {
-                var instr = _validationIssue.VfsIssue.AffectedInstruction;
+                Instruction instr = _validationIssue.VfsIssue.AffectedInstruction;
                 string instrText = $"Action: {instr.Action}";
                 if (instr.Source != null && instr.Source.Count > 0)
                 {
@@ -144,7 +144,7 @@ namespace KOTORModSync.Dialogs
 
                     for (int i = 0; i < _validationIssue.AllVfsIssues.Count; i++)
                     {
-                        var vfsIssue = _validationIssue.AllVfsIssues[i];
+                        Core.Services.FileSystem.ValidationIssue vfsIssue = _validationIssue.AllVfsIssues[i];
                         logLines.Add($"--- Issue #{i + 1} ---");
                         logLines.Add($"Timestamp: {vfsIssue.Timestamp:yyyy-MM-dd HH:mm:ss}");
                         logLines.Add($"Severity: {vfsIssue.Severity}");
@@ -171,7 +171,7 @@ namespace KOTORModSync.Dialogs
                 }
                 else if (_validationIssue.VfsIssue != null)
                 {
-                    var vfsIssue = _validationIssue.VfsIssue;
+                    Core.Services.FileSystem.ValidationIssue vfsIssue = _validationIssue.VfsIssue;
                     logLines.Add($"Timestamp: {vfsIssue.Timestamp:yyyy-MM-dd HH:mm:ss}");
                     logLines.Add($"Severity: {vfsIssue.Severity}");
                     logLines.Add($"Category: {vfsIssue.Category}");

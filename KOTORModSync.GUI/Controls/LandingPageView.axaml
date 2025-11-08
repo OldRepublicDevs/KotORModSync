@@ -1,0 +1,85 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Controls.LandingPageView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="Root"
+    mc:Ignorable="d">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="32" Spacing="24">
+            <StackPanel Spacing="4">
+                <TextBlock x:Name="HeaderText" Text="Welcome to KOTORModSync" />
+                <TextBlock x:Name="SubHeaderText" Text="Pick how you want to get started." />
+            </StackPanel>
+
+            <WrapPanel x:Name="CardPanel" MinWidth="200">
+                <Border
+                    Margin="0,0,16,16"
+                    Padding="20"
+                    CornerRadius="8">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Load instruction file" />
+                        <TextBlock Text="Import a curated build (.toml, .json, .yaml, .md) to preconfigure everything automatically." />
+                        <Button
+                            x:Name="LoadInstructionButton"
+                            Padding="18,10"
+                            HorizontalAlignment="Left"
+                            Content="Load Instruction File" />
+                        <TextBlock
+                            x:Name="InstructionStatusText"
+                            Text="No instruction file loaded yet."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Margin="0,0,16,16"
+                    Padding="20"
+                    CornerRadius="8">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Create new instructions" />
+                        <TextBlock Text="Switch to editor mode to author or edit instruction sets manually." />
+                        <Button
+                            x:Name="CreateInstructionsButton"
+                            Padding="18,10"
+                            HorizontalAlignment="Left"
+                            Content="Start a New Instruction Set" />
+                        <TextBlock
+                            x:Name="EditorStatusText"
+                            Text="Editor mode is currently off."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Margin="0,0,16,16"
+                    Padding="20"
+                    CornerRadius="8">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Configure directories" />
+                        <TextBlock Text="Set or review your mod workspace and KOTOR installation folders." />
+                        <Button
+                            x:Name="ConfigureDirectoriesButton"
+                            Padding="18,10"
+                            HorizontalAlignment="Left"
+                            Content="Choose Directories" />
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                x:Name="ModDirectoryStatusText"
+                                Text="Mod workspace: not set"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                x:Name="GameDirectoryStatusText"
+                                Text="Game directory: not set"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

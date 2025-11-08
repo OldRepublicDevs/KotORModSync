@@ -1,0 +1,59 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.FinishedPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
+        <TextBlock
+            HorizontalAlignment="Center"
+            Text="🎉 Installation Complete!"
+            TextAlignment="Center" />
+
+        <TextBlock
+            HorizontalAlignment="Center"
+            Text="All mods have been successfully installed."
+            TextAlignment="Center" />
+
+        <Border CornerRadius="8" MaxWidth="600" Padding="24">
+            <StackPanel Spacing="12">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="🎮 Next Steps:"
+                    TextAlignment="Center" />
+                <TextBlock Text="• Launch the game and enjoy your modded experience!" />
+                <TextBlock Text="• If you encounter issues, you can rollback to previous checkpoints." />
+                <TextBlock Text="• Check the output log for detailed installation information." />
+            </StackPanel>
+        </Border>
+
+        <Border CornerRadius="8" MaxWidth="500" Padding="20">
+            <StackPanel Spacing="8">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="💝 Support the Project"
+                    TextAlignment="Center" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="If you found KOTORModSync helpful, consider supporting the project!"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Opacity="0.8"
+                    Text="Visit our sponsor page to learn more."
+                    TextAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <TextBlock
+            HorizontalAlignment="Center"
+            Opacity="0.7"
+            Text="Click 'Finish' to close the wizard."
+            TextAlignment="Center" />
+    </StackPanel>
+</UserControl>
+
+

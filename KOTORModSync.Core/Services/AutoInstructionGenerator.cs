@@ -70,8 +70,7 @@ namespace KOTORModSync.Core.Services
                 string searchTerm = ExtractSearchTermFromModLink(firstModLink, component.Name);
                 Logger.LogVerbose($"[TryGenerateInstructions] Component '{component.Name}': Searching for archive matching '{searchTerm}'");
 
-                string[] archiveExtensions = { "*.zip", "*.rar", "*.7z", "*.exe" };
-                var allArchives = archiveExtensions
+                var allArchives = ArchiveHelper.DefaultArchiveSearchPatterns
                     .SelectMany(ext => MainConfig.SourcePath.GetFiles(ext, SearchOption.TopDirectoryOnly))
                     .Where(f => f.Exists)
                     .ToList();
@@ -240,8 +239,7 @@ namespace KOTORModSync.Core.Services
                     searchTerm = component.Name;
                 }
                 Logger.LogVerbose($"[TryGenerateInstructions] Component '{component.Name}': Searching for archive matching '{searchTerm}'");
-                string[] archiveExtensions = { "*.zip", "*.rar", "*.7z", "*.exe" };
-                var allArchives = archiveExtensions
+                var allArchives = ArchiveHelper.DefaultArchiveSearchPatterns
                         .SelectMany(ext => MainConfig.SourcePath.GetFiles(ext, SearchOption.TopDirectoryOnly))
                         .Where(f => f.Exists)
                         .ToList();
@@ -875,7 +873,7 @@ namespace KOTORModSync.Core.Services
 
             foreach (Instruction potentialInstr in potential.Instructions)
             {
-                foreach (var existingInstr in existing.Instructions.Where(existingInstr => AreInstructionsEquivalent(existingInstr, potentialInstr)))
+                foreach (Instruction existingInstr in existing.Instructions.Where(existingInstr => AreInstructionsEquivalent(existingInstr, potentialInstr)))
                 {
                     if (AreInstructionsEquivalent(existingInstr, potentialInstr))
                     {

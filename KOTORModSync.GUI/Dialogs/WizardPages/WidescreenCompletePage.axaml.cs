@@ -1,0 +1,37 @@
+// Copyright 2021-2025 KOTORModSync
+// Licensed under the Business Source License 1.1 (BSL 1.1).
+// See LICENSE.txt file in the project root for full license information.
+
+using System.Threading;
+using System.Threading.Tasks;
+using Avalonia.Markup.Xaml;
+
+namespace KOTORModSync.Dialogs.WizardPages
+{
+    public partial class WidescreenCompletePage : WizardPageBase
+    {
+        public WidescreenCompletePage()
+        {
+            InitializeComponent();
+        }
+
+        public override string Title => "Widescreen Installation Complete";
+
+        public override string Subtitle => "All widescreen mods have been installed";
+
+        public override bool CanNavigateBack => false;
+
+        public override bool CanCancel => false;
+
+        public override Task OnNavigatedToAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public override Task OnNavigatingFromAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public override Task<(bool isValid, string errorMessage)> ValidateAsync(CancellationToken cancellationToken)
+            => Task.FromResult((true, (string)null));
+
+        private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+    }
+}
+
+

@@ -88,13 +88,13 @@ namespace KOTORModSync.Dialogs
 
             // Populate collections
             GeneratedComponents.Clear();
-            foreach (var result in Results.ComponentResults.Where(r => r.Success))
+            foreach (ComponentResult result in Results.ComponentResults.Where(r => r.Success))
             {
                 GeneratedComponents.Add(result);
             }
 
             SkippedComponents.Clear();
-            foreach (var result in Results.ComponentResults.Where(r => !r.Success))
+            foreach (ComponentResult result in Results.ComponentResults.Where(r => !r.Success))
             {
                 SkippedComponents.Add(result);
             }

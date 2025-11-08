@@ -2,7 +2,7 @@
 // Licensed under the Business Source License 1.1 (BSL 1.1).
 // See LICENSE.txt file in the project root for full license information.
 
- using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -298,7 +298,7 @@ namespace KOTORModSync.Tests
                 },
             };
 
-            foreach (var components in rounds)
+            foreach (List<ModComponent> components in rounds)
             {
                 FileLoadingService.SaveToFile(components, _filePath);
                 List<ModComponent> loadedComponents = FileLoadingService.LoadFromFile(_filePath).ToList()

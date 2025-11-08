@@ -1,0 +1,50 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.BaseInstallCompletePage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
+        <TextBlock
+            HorizontalAlignment="Center"
+            Text="✅ Base Installation Complete!"
+            TextAlignment="Center" />
+
+        <TextBlock
+            HorizontalAlignment="Center"
+            Text="All selected mods have been installed successfully."
+            TextAlignment="Center" />
+
+        <Border Padding="24" CornerRadius="8" MaxWidth="500">
+            <StackPanel Spacing="12">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="📊 Installation Summary" />
+
+                <ItemsControl x:Name="SummaryItems">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock
+                                    Text="{Binding Label}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{Binding Value}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <TextBlock
+            HorizontalAlignment="Center"
+            Opacity="0.7"
+            Text="Click 'Next' to continue..."
+            TextAlignment="Center" />
+    </StackPanel>
+</UserControl>
+
+

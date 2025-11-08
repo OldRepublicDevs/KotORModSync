@@ -110,7 +110,7 @@ namespace KOTORModSync.Services
                     return;
                 }
 
-                var currentItems = modListBox.ItemsSource;
+                IEnumerable currentItems = modListBox.ItemsSource;
                 modListBox.ItemsSource = null;
                 modListBox.ItemsSource = currentItems;
 

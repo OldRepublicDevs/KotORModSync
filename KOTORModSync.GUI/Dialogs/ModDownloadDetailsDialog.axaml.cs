@@ -3,8 +3,10 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 using Avalonia;
@@ -184,9 +186,10 @@ namespace KOTORModSync.Dialogs
             TextBox logsTextBox = this.FindControl<TextBox>("LogsTextBox");
             if (logsTextBox != null)
             {
-                logsTextBox.Text = string.Join(Environment.NewLine, _downloadProgress.GetLogs());
+                logsTextBox.Text = string.Join(Environment.NewLine, CollectDetailedLogs());
             }
 
+            PopulateFilesSection();
 
             Button openFolderButton = this.FindControl<Button>("OpenFolderButton");
             if (openFolderButton != null)
@@ -475,5 +478,192 @@ namespace KOTORModSync.Dialogs
 
             return false;
         }
+
+        private void PopulateFilesSection()
+        {
+            Border filesSection = this.FindControl<Border>("FilesSection");
+            ItemsControl filesItemsControl = this.FindControl<ItemsControl>("FilesItemsControl");
+
+            if (filesSection is null || filesItemsControl is null)
+            {
+                return;
+            }
+
+            List<string> fileDetails = CollectFileDetails();
+
+            if (fileDetails.Count == 0)
+            {
+                filesSection.IsVisible = false;
+                filesItemsControl.ItemsSource = null;
+                return;
+            }
+
+            filesItemsControl.ItemsSource = fileDetails;
+            filesSection.IsVisible = true;
+        }
+
+        private List<string> CollectFileDetails()
+        {
+            var details = new List<string>();
+
+            if (_downloadProgress is null)
+            {
+                return details;
+            }
+
+            void AppendDetails(DownloadProgress progress, int? index = null, int? total = null)
+            {
+                if (progress is null)
+                {
+                    return;
+                }
+
+                string status = progress.Status.ToString();
+                string url = string.IsNullOrWhiteSpace(progress.Url) ? "Unknown URL" : progress.Url;
+
+                List<string> filenames = ExtractFilenames(progress);
+                if (filenames.Count == 0)
+                {
+                    filenames.Add("Unknown file");
+                }
+
+                foreach (string filename in filenames)
+                {
+                    string prefix = index.HasValue && total.HasValue
+                        ? $"[{index.Value}/{total.Value}] "
+                        : string.Empty;
+
+                    string detail = $"{prefix}{status}: {filename}";
+                    if (!string.IsNullOrWhiteSpace(url))
+                    {
+                        detail += $" ← {url}";
+                    }
+
+                    details.Add(detail);
+                }
+            }
+
+            if (_downloadProgress.IsGrouped && _downloadProgress.ChildDownloads.Count > 0)
+            {
+                int total = _downloadProgress.ChildDownloads.Count;
+                for (int i = 0; i < total; i++)
+                {
+                    AppendDetails(_downloadProgress.ChildDownloads[i], i + 1, total);
+                }
+            }
+            else
+            {
+                AppendDetails(_downloadProgress);
+            }
+
+            return details;
+        }
+
+        private static List<string> ExtractFilenames(DownloadProgress progress)
+        {
+            var result = new List<string>();
+
+            if (progress is null)
+            {
+                return result;
+            }
+
+            if (progress.TargetFilenames != null && progress.TargetFilenames.Count > 0)
+            {
+                result.AddRange(progress.TargetFilenames.Where(f => !string.IsNullOrWhiteSpace(f)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(progress.FilePath))
+            {
+                string name = Path.GetFileName(progress.FilePath);
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    result.Add(name);
+                }
+            }
+
+            if (result.Count == 0 && !string.IsNullOrWhiteSpace(progress.Url))
+            {
+                try
+                {
+                    string name = Path.GetFileName(new Uri(progress.Url).AbsolutePath);
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        result.Add(name);
+                    }
+                }
+                catch (UriFormatException)
+                {
+                    string fallback = Path.GetFileName(progress.Url);
+                    if (!string.IsNullOrWhiteSpace(fallback))
+                    {
+                        result.Add(fallback);
+                    }
+                }
+            }
+
+            return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private List<string> CollectDetailedLogs()
+        {
+            var collected = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+
+            void AddLine(string line)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    return;
+                }
+
+                string trimmed = line.TrimEnd();
+                if (seen.Add(trimmed))
+                {
+                    collected.Add(trimmed);
+                }
+            }
+
+            foreach (string log in _downloadProgress.GetLogs())
+            {
+                AddLine(log);
+            }
+
+            if (_downloadProgress.IsGrouped)
+            {
+                foreach (DownloadProgress child in _downloadProgress.ChildDownloads)
+                {
+                    foreach (string log in child.GetLogs())
+                    {
+                        AddLine(log);
+                    }
+                }
+            }
+
+            Guid? componentGuid = _downloadProgress.ComponentGuid;
+            if (!componentGuid.HasValue && _downloadProgress.IsGrouped)
+            {
+                DownloadProgress firstChildWithGuid = _downloadProgress.ChildDownloads.FirstOrDefault(child => child.ComponentGuid.HasValue);
+                if (firstChildWithGuid != null)
+                {
+                    componentGuid = firstChildWithGuid.ComponentGuid;
+                }
+            }
+
+            IReadOnlyList<string> capturedLogs = DownloadLogCaptureManager.GetCapturedLogs(componentGuid);
+            foreach (string log in capturedLogs)
+            {
+                AddLine(log);
+            }
+
+            if (collected.Count == 0)
+            {
+                collected.Add("No logs were recorded for this download.");
+            }
+
+            return collected;
+        }
+
+        // Pattern-based log matching removed; logs are now captured via DownloadLogCaptureManager scopes.
     }
 }

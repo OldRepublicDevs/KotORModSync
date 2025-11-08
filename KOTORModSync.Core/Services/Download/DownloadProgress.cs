@@ -27,6 +27,7 @@ namespace KOTORModSync.Core.Services.Download
         private DownloadSource _downloadSource = DownloadSource.Direct;
         private readonly List<string> _logs = new List<string>();
         private readonly object _logLock = new object();
+        private bool _completedFromCache;
 
         public List<string> TargetFilenames { get; set; } = new List<string>();
 
@@ -40,6 +41,7 @@ namespace KOTORModSync.Core.Services.Download
 
         private readonly List<DownloadProgress> _childDownloads = new List<DownloadProgress>();
         private bool _isGrouped;
+        private Guid? _componentGuid;
 
         public string ModName
         {
@@ -177,6 +179,22 @@ Url
             }
         }
 
+        public bool CompletedFromCache
+        {
+            get => _completedFromCache;
+            set
+            {
+                if (_completedFromCache == value)
+                {
+                    return;
+                }
+
+                _completedFromCache = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GroupStatusMessage));
+            }
+        }
+
         public string ErrorMessage
         {
             get => _errorMessage;
@@ -291,6 +309,21 @@ Url
 
         public List<DownloadProgress> ChildDownloads => _childDownloads;
 
+        public Guid? ComponentGuid
+        {
+            get => _componentGuid;
+            set
+            {
+                if (_componentGuid == value)
+                {
+                    return;
+                }
+
+                _componentGuid = value;
+                OnPropertyChanged();
+            }
+        }
+
         public string GroupStatusMessage
         {
             get
@@ -300,7 +333,9 @@ Url
                     return StatusMessage;
                 }
 
-                int completed = _childDownloads.Count(c => c.Status == DownloadStatus.Completed);
+                int cached = _childDownloads.Count(c => c.Status == DownloadStatus.Completed && c.CompletedFromCache);
+                int downloaded = _childDownloads.Count(c => c.Status == DownloadStatus.Completed && !c.CompletedFromCache);
+                int completed = cached + downloaded;
                 int failed = _childDownloads.Count(c => c.Status == DownloadStatus.Failed);
                 int skipped = _childDownloads.Count(c => c.Status == DownloadStatus.Skipped);
                 int inProgress = _childDownloads.Count(c => c.Status == DownloadStatus.InProgress);
@@ -308,7 +343,17 @@ Url
 
                 if (completed == _childDownloads.Count)
                 {
-                    return $"All {_childDownloads.Count} files downloaded successfully";
+                    if (downloaded > 0 && cached > 0)
+                    {
+                        return $"All {_childDownloads.Count} files ready ({downloaded} downloaded, {cached} cached)";
+                    }
+
+                    if (downloaded > 0)
+                    {
+                        return $"All {_childDownloads.Count} files downloaded successfully";
+                    }
+
+                    return $"All {_childDownloads.Count} files already cached";
                 }
 
                 if (failed == _childDownloads.Count)
@@ -318,7 +363,23 @@ Url
 
                 if (completed + skipped == _childDownloads.Count)
                 {
-                    return $"All {_childDownloads.Count} files completed ({completed} downloaded, {skipped} skipped)";
+                    var partsAll = new List<string>();
+                    if (downloaded > 0)
+                    {
+                        partsAll.Add($"{downloaded} downloaded");
+                    }
+
+                    if (cached > 0)
+                    {
+                        partsAll.Add($"{cached} cached");
+                    }
+
+                    if (skipped > 0)
+                    {
+                        partsAll.Add($"{skipped} skipped");
+                    }
+
+                    return $"All {_childDownloads.Count} files completed ({string.Join(", ", partsAll)})";
                 }
 
                 if (inProgress > 0)
@@ -333,9 +394,14 @@ Url
 
                 int totalFinished = completed + skipped + failed;
                 var parts = new List<string>();
-                if (completed > 0)
+                if (downloaded > 0)
                 {
-                    parts.Add($"{completed} downloaded");
+                    parts.Add($"{downloaded} downloaded");
+                }
+
+                if (cached > 0)
+                {
+                    parts.Add($"{cached} cached");
                 }
 
                 if (skipped > 0)

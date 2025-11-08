@@ -137,7 +137,7 @@
                                 HorizontalAlignment="Stretch"
                                 SelectionChanged="ThemeComboBox_SelectionChanged"
                                 ToolTip.Tip="Select the application theme">
-                                <ComboBoxItem Content="Fluent Light" Tag="FluentLight" />
+                                <ComboBoxItem Content="Light Theme" Tag="Light" />
                                 <ComboBoxItem Content="KOTOR Theme" Tag="KOTOR" />
                                 <ComboBoxItem Content="KOTOR 2 Theme" Tag="KOTOR2" />
                             </ComboBox>

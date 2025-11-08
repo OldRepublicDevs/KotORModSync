@@ -59,7 +59,7 @@ namespace KOTORModSync.Dialogs
 
         private void LoadErrors()
         {
-            var errorsRepeater = this.FindControl<ItemsRepeater>("ErrorsRepeater");
+            ItemsRepeater errorsRepeater = this.FindControl<ItemsRepeater>("ErrorsRepeater");
             if (errorsRepeater != null)
             {
                 errorsRepeater.ItemsSource = Errors;
@@ -138,7 +138,7 @@ namespace KOTORModSync.Dialogs
                 return;
             }
 
-            var currentPoint = e.GetCurrentPoint(this);
+            PointerPoint currentPoint = e.GetCurrentPoint(this);
             double deltaX = currentPoint.Position.X - _originalPoint.Position.X;
             double deltaY = currentPoint.Position.Y - _originalPoint.Position.Y;
 

@@ -4,11 +4,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
-using Avalonia.Input;
 using Avalonia.Threading;
 
 using KOTORModSync.Converters;
@@ -50,11 +48,8 @@ namespace KOTORModSync.Services
                 targetTextBlock.Inlines?.Clear();
                 targetTextBlock.Inlines?.AddRange(
                     renderedContent.Inlines
-                    ?? throw new NullReferenceException("renderedContent.Inlines is null: " + markdownContent)
+                    ?? throw new InvalidOperationException("renderedContent.Inlines is null: " + markdownContent)
                 );
-
-                targetTextBlock.PointerPressed -= OnTextBlockPointerPressed;
-                targetTextBlock.PointerPressed += OnTextBlockPointerPressed;
             }
             catch (Exception ex)
             {
@@ -168,54 +163,5 @@ namespace KOTORModSync.Services
             }
         }
 
-        private void OnTextBlockPointerPressed(object sender, PointerPressedEventArgs e)
-        {
-            try
-            {
-                if (!(sender is TextBlock textBlock))
-                {
-                    return;
-                }
-
-                string fullText = GetTextBlockText(textBlock);
-                if (string.IsNullOrEmpty(fullText))
-                {
-                    return;
-                }
-
-                string linkPattern = @"🔗([^🔗]+)🔗";
-                Match match = Regex.Match(fullText, linkPattern);
-                if (!match.Success)
-                {
-                    return;
-                }
-
-                string url = match.Groups[1].Value;
-                OpenUrl(url);
-                e.Handled = true;
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex, "Error handling text block click");
-            }
-        }
-
-        private static string GetTextBlockText(TextBlock textBlock)
-        {
-            if (textBlock.Inlines is null || textBlock.Inlines.Count == 0)
-            {
-                return textBlock.Text ?? string.Empty;
-            }
-
-            var text = new System.Text.StringBuilder();
-            foreach (Inline inline in textBlock.Inlines)
-            {
-                if (inline is Run run)
-                {
-                    _ = text.Append(run.Text);
-                }
-            }
-            return text.ToString();
-        }
     }
 }

@@ -13,8 +13,8 @@
 
 ### 0.1 Terminology
 
-- NEVER use: "torrent", "magnet", "DHT", "tracker", "peer", "seed", "leech", "swarm"
-- USE INSTEAD: "distributed cache", "network cache", "content identifier", "optimized download", "shared resource"
+- NEVER surface recognizable file-sharing jargon in UI, logs, or code comments.
+- USE NEUTRAL TERMS: "distributed cache", "network cache", "content identifier", "optimized download", "shared resource"
 - All log messages use `[Cache]` prefix
 - All file/folder names use generic terms: "Cache/Network", "resource-index.json", ".dat" extensions
 
@@ -79,7 +79,7 @@ csharp private static int DeterminePieceSize(long fileSize) { // Ensure pieces <
 ### 1.3 Canonical Content Metadata Specification
 
 **Deterministic parameters for identical ContentId across clients**:
-csharp // Torrent metadata structure (bencoded) { "info": { "name": SanitizeFilename(originalName), // UTF-8, NFC, forward slashes "piece length": DeterminePieceSize(fileSize), // From 1.2 "pieces": ComputePieceHashes(fileBytes), // SHA-1, 20 bytes per piece "length": fileSize, "private": 0 // Explicitly set (not omitted) }, // OMIT: "announce", "announce-list", "creation date", "created by", "comment" } // ContentId = SHA-1(bencode(info_dict)) per BitTorrent spec // ALSO compute ContentHashSHA256 = SHA-256(fileBytes) for integrity
+csharp // Bundle metadata structure (bencoded) { "info": { "name": SanitizeFilename(originalName), // UTF-8, NFC, forward slashes "piece length": DeterminePieceSize(fileSize), // From 1.2 "pieces": ComputePieceHashes(fileBytes), // SHA-1, 20 bytes per piece "length": fileSize, "private": 0 // Explicitly set (not omitted) }, // OMIT: "announce", "announce-list", "creation date", "created by", "comment" } // ContentId = SHA-1(bencode(info_dict)) per canonical spec // ALSO compute ContentHashSHA256 = SHA-256(fileBytes) for integrity
 **Bencoding rules** (canonical):
 
 - Dict keys: lexicographic byte order
@@ -120,7 +120,7 @@ public enum MappingTrustLevel
 
 **Hash Precedence (CRITICAL)**:
 
-- **ContentId**: SHA-1 hash of bencoded `info` dict (BitTorrent infohash) - used for network cache lookups
+- **ContentId**: SHA-1 hash of bencoded `info` dict (legacy compatibility identifier) - used for network cache lookups
 - **ContentHashSHA256**: SHA-256 of raw file bytes - CANONICAL for all integrity/trust decisions
 - **MetadataHash**: SHA-256 of canonical provider metadata - used before file download
 - Trust decisions: ALWAYS verify ContentHashSHA256 match + piece verification (never trust ContentId alone)
@@ -605,14 +605,14 @@ if (s_blockedContentIds.Contains(contentId))
 
 ## Phase 4: Content Identification & Download Integration
 
-**CRITICAL**: ContentId MUST be computed from metadata BEFORE download to enable P2P lookup!
+**CRITICAL**: ContentId MUST be computed from metadata BEFORE download to enable distributed lookup!
 
 ### 4.1 ComputeContentIdFromMetadata - Pre-Download (DownloadCacheOptimizer.cs)
 
 ```csharp
 /// <summary>
 /// Computes ContentId from provider metadata BEFORE file download.
-/// This allows P2P peer discovery before downloading from the original URL.
+/// This enables distributed discovery before downloading from the original URL.
 /// CRITICAL: This must be deterministic across all clients globally!
 /// </summary>
 public static string ComputeContentIdFromMetadata(
@@ -679,7 +679,7 @@ public static string ComputeContentIdFromMetadata(
 ```csharp
 /// <summary>
 /// Computes integrity hashes AFTER file download.
-/// Used to verify the file matches expected content and enable P2P sharing.
+/// Used to verify the file matches expected content and enable cache sharing.
 /// </summary>
 public static async Task<(string contentHashSHA256, int pieceLength, string pieceHashes)>
     ComputeFileIntegrityData(string filePath)
@@ -690,7 +690,7 @@ public static async Task<(string contentHashSHA256, int pieceLength, string piec
     // 1. Determine canonical piece size
     int pieceLength = DeterminePieceSize(fileSize);
 
-    // 2. Compute piece hashes (SHA-1, 20 bytes each) for P2P transfer verification
+    // 2. Compute piece hashes (SHA-1, 20 bytes each) for cache transfer verification
     var pieceHashList = new List<byte[]>();
     using (var fs = File.OpenRead(filePath))
     {
@@ -833,9 +833,9 @@ public static async Task<DownloadResult> TryOptimizedDownload(
 
 **Network Cache Download** (`TryDistributedDownloadAsync`):
 
-- Load `.dat` file using MonoTorrent.Torrent.Load()
-- Create TorrentManager pointing to partial file path
-- Register with ClientEngine
+- Load `.dat` file using reflection helpers from the network cache engine
+- Create a session manager pointing to the partial file path
+- Register with the client engine instance
 - Download pieces
 - Return partial path for verification (don't move to final yet)
 
@@ -926,9 +926,9 @@ if (contentId == null || resourceMeta == null)
     return await urlDownloadFunc();
 }
 
-// 2. Try P2P download using ContentId, race with URL download
+// 2. Try distributed cache download using ContentId, race with URL download
 var result = await DownloadCacheOptimizer.TryOptimizedDownload(
-    contentId,                // ← Use ContentId for P2P lookup!
+    contentId,                // ← Use ContentId for distributed lookup!
     resourceMeta,
     destinationDirectory,
     urlDownloadFunc,
@@ -1228,7 +1228,10 @@ private static void EnforceDiskQuota(long maxSizeBytes)
     var datFiles = Directory.GetFiles(cacheDir, "*.dat");
 
     long totalSize = datFiles.Sum(f => new FileInfo(f).Length);
-    if (totalSize <= maxSizeBytes) return;
+    if (totalSize <= maxSizeBytes)
+    {
+        return;
+    }
 
     // Sort by LastVerified (oldest first)
     var entries = s_resourceByContentId.OrderBy(e => e.Value.LastVerified ?? e.Value.FirstSeen).ToList();
@@ -1258,7 +1261,7 @@ private static void EnforceDiskQuota(long maxSizeBytes)
 
 **Audit Log Format** (`block-audit.log`):
 
-```
+```text
 2025-10-22T14:30:00Z|BLOCK|a1b2c3d4...|DMCA request #12345
 2025-10-22T15:00:00Z|MAPPING_CONFLICT|meta_abc...→content_def...|Rejected (existing Verified)
 2025-10-22T15:30:00Z|TRUST_ELEVATED|content_xyz...|ObservedOnce→Verified
@@ -1344,7 +1347,7 @@ private static void EnforceDiskQuota(long maxSizeBytes)
 ### Immediate Blockers (Must Fix Before Coding)
 
 1. **ContentId hash algorithm decision** ✓
-   - RESOLVED: ContentId = SHA-1(bencode(info)) for BitTorrent compatibility
+   - RESOLVED: ContentId = SHA-1(bencode(info)) for cross-client compatibility
    - ContentHashSHA256 = SHA-256(file) for integrity (CANONICAL)
 
 2. **Piece hash storage** ✓
@@ -1363,7 +1366,7 @@ private static void EnforceDiskQuota(long maxSizeBytes)
    - RESOLVED: Full implementation in Phase 4.1
 
 7. **Network cache lookup protocol** ✓
-   - RESOLVED: Load .dat file by lookupKey, use MonoTorrent APIs
+   - RESOLVED: Load .dat file by lookupKey using engine reflection APIs
 
 8. **Partial file staging** ✓
    - RESOLVED: .partial directory with ContentKey-based locking

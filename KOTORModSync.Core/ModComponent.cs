@@ -863,6 +863,144 @@ namespace KOTORModSync.Core
             return InstallExitCode.UnknownError;
         }
         /// <summary>
+        /// Attempts to find and extract files from archives if they're missing.
+        /// Returns true if files were found and extracted (or don't need extraction).
+        /// </summary>
+        private async Task<bool> TryAutoExtractMissingFilesAsync(
+            [NotNull] Instruction instruction,
+            [NotNull] Services.FileSystem.IFileSystemProvider fileSystemProvider
+        )
+        {
+            if (instruction?.Source == null || instruction.Source.Count == 0)
+            {
+                return true;
+            }
+
+            // Get the parent component to access ResourceRegistry
+            ModComponent parentComponent = instruction.GetParentComponent();
+            if (parentComponent?.ResourceRegistry == null || parentComponent.ResourceRegistry.Count == 0)
+            {
+                return false;
+            }
+
+            // Check which source files are missing
+            var missingFiles = new List<string>();
+            foreach (string sourcePath in instruction.Source)
+            {
+                string resolvedPath = UtilityHelper.ReplaceCustomVariables(sourcePath);
+                if (!fileSystemProvider.FileExists(resolvedPath))
+                {
+                    missingFiles.Add(Path.GetFileName(resolvedPath));
+                }
+            }
+
+            if (missingFiles.Count == 0)
+            {
+                return true; // All files exist
+            }
+
+            // Search for missing files in ResourceRegistry archives
+            var archiveMatches = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            
+            foreach (string missingFile in missingFiles)
+            {
+                foreach (var resource in parentComponent.ResourceRegistry)
+                {
+                    if (resource.Value?.Files == null)
+                    {
+                        continue;
+                    }
+
+                    // Check if this resource contains the missing file
+                    foreach (var file in resource.Value.Files)
+                    {
+                        if (file.Value == true && 
+                            (string.Equals(file.Key, missingFile, StringComparison.OrdinalIgnoreCase) ||
+                             file.Key.EndsWith($"/{missingFile}", StringComparison.OrdinalIgnoreCase) ||
+                             file.Key.EndsWith($"\\{missingFile}", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            if (!archiveMatches.ContainsKey(missingFile))
+                            {
+                                archiveMatches[missingFile] = new List<string>();
+                            }
+                            archiveMatches[missingFile].Add(resource.Key);
+                        }
+                    }
+                }
+            }
+
+            // Check for ambiguous matches
+            bool hasWarnings = false;
+            foreach (var match in archiveMatches)
+            {
+                if (match.Value.Count > 1)
+                {
+                    await Logger.LogWarningAsync(
+                        $"File '{match.Key}' found in multiple archives: {string.Join(", ", match.Value)}. " +
+                        "Please add an explicit Extract instruction to specify which archive to use."
+                    ).ConfigureAwait(false);
+                    hasWarnings = true;
+                }
+                else if (match.Value.Count == 1)
+                {
+                    // Found exactly one archive containing this file - extract it
+                    string archiveName = match.Value[0];
+                    string archivePath = Path.Combine(MainConfig.SourcePath.FullName, archiveName);
+                    
+                    if (fileSystemProvider.FileExists(archivePath))
+                    {
+                        await Logger.LogAsync(
+                            $"Auto-extracting '{archiveName}' to provide missing file '{match.Key}'"
+                        ).ConfigureAwait(false);
+
+                        var extractInstruction = new Instruction
+                        {
+                            Action = Instruction.ActionType.Extract,
+                            Source = new List<string> { archivePath }
+                        };
+                        extractInstruction.SetFileSystemProvider(fileSystemProvider);
+                        extractInstruction.SetParentComponent(parentComponent);
+
+                        try
+                        {
+                            extractInstruction.SetRealPaths();
+                            var extractResult = await extractInstruction.ExtractFileAsync().ConfigureAwait(false);
+                            
+                            if (extractResult != Instruction.ActionExitCode.Success)
+                            {
+                                await Logger.LogWarningAsync(
+                                    $"Failed to auto-extract '{archiveName}' (exit code: {extractResult})"
+                                ).ConfigureAwait(false);
+                                return false;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            await Logger.LogWarningAsync(
+                                $"Failed to auto-extract '{archiveName}': {ex.Message}"
+                            ).ConfigureAwait(false);
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // Check if we found all missing files
+            foreach (string missingFile in missingFiles)
+            {
+                if (!archiveMatches.ContainsKey(missingFile) || archiveMatches[missingFile].Count == 0)
+                {
+                    await Logger.LogWarningAsync(
+                        $"File '{missingFile}' not found in any ResourceRegistry archives"
+                    ).ConfigureAwait(false);
+                    return false;
+                }
+            }
+
+            return !hasWarnings;
+        }
+
+        /// <summary>
         /// Executes a single instruction using the unified instruction execution pipeline.
         /// This method is used by both real installations and dry-run validation.
         /// </summary>
@@ -908,11 +1046,67 @@ namespace KOTORModSync.Core
                     exitCode = Instruction.ActionExitCode.Success;
                     break;
                 case Instruction.ActionType.Copy:
-                    instruction.SetRealPaths();
+                    // Try auto-extraction if files are missing
+                    try
+                    {
+                        instruction.SetRealPaths();
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        await Logger.LogVerboseAsync("Source files not found, attempting auto-extraction...").ConfigureAwait(false);
+                        if (await TryAutoExtractMissingFilesAsync(instruction, fileSystemProvider).ConfigureAwait(false))
+                        {
+                            instruction.SetRealPaths(); // Retry after extraction
+                        }
+                        else
+                        {
+                            throw; // Re-throw if auto-extraction failed
+                        }
+                    }
+                    catch (Exceptions.WildcardPatternNotFoundException)
+                    {
+                        await Logger.LogVerboseAsync("Source pattern not found, attempting auto-extraction...").ConfigureAwait(false);
+                        if (await TryAutoExtractMissingFilesAsync(instruction, fileSystemProvider).ConfigureAwait(false))
+                        {
+                            instruction.SetRealPaths(); // Retry after extraction
+                        }
+                        else
+                        {
+                            throw; // Re-throw if auto-extraction failed
+                        }
+                    }
                     exitCode = await instruction.CopyFileAsync().ConfigureAwait(false);
                     break;
                 case Instruction.ActionType.Move:
-                    instruction.SetRealPaths();
+                    // Try auto-extraction if files are missing
+                    try
+                    {
+                        instruction.SetRealPaths();
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        await Logger.LogVerboseAsync("Source files not found, attempting auto-extraction...").ConfigureAwait(false);
+                        if (await TryAutoExtractMissingFilesAsync(instruction, fileSystemProvider).ConfigureAwait(false))
+                        {
+                            instruction.SetRealPaths(); // Retry after extraction
+                        }
+                        else
+                        {
+                            throw; // Re-throw if auto-extraction failed
+                        }
+                    }
+                    catch (Exceptions.WildcardPatternNotFoundException)
+                    {
+                        await Logger.LogVerboseAsync("Source pattern not found, attempting auto-extraction...").ConfigureAwait(false);
+                        if (await TryAutoExtractMissingFilesAsync(instruction, fileSystemProvider).ConfigureAwait(false))
+                        {
+                            instruction.SetRealPaths(); // Retry after extraction
+                        }
+                        else
+                        {
+                            throw; // Re-throw if auto-extraction failed
+                        }
+                    }
                     exitCode = await instruction.MoveFileAsync().ConfigureAwait(false);
                     break;
                 case Instruction.ActionType.Rename:
@@ -920,7 +1114,35 @@ namespace KOTORModSync.Core
                     exitCode = instruction.RenameFile();
                     break;
                 case Instruction.ActionType.Patcher:
-                    instruction.SetRealPaths();
+                    // Try auto-extraction if files are missing
+                    try
+                    {
+                        instruction.SetRealPaths();
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        await Logger.LogVerboseAsync("Source files not found, attempting auto-extraction...").ConfigureAwait(false);
+                        if (await TryAutoExtractMissingFilesAsync(instruction, fileSystemProvider).ConfigureAwait(false))
+                        {
+                            instruction.SetRealPaths(); // Retry after extraction
+                        }
+                        else
+                        {
+                            throw; // Re-throw if auto-extraction failed
+                        }
+                    }
+                    catch (Exceptions.WildcardPatternNotFoundException)
+                    {
+                        await Logger.LogVerboseAsync("Source pattern not found, attempting auto-extraction...").ConfigureAwait(false);
+                        if (await TryAutoExtractMissingFilesAsync(instruction, fileSystemProvider).ConfigureAwait(false))
+                        {
+                            instruction.SetRealPaths(); // Retry after extraction
+                        }
+                        else
+                        {
+                            throw; // Re-throw if auto-extraction failed
+                        }
+                    }
                     exitCode = await instruction.ExecuteTSLPatcherAsync().ConfigureAwait(false);
                     break;
                 case Instruction.ActionType.Execute:
@@ -1572,7 +1794,7 @@ namespace KOTORModSync.Core
         /// <summary>Current lookup key (MetadataHash initially, ContentId after download)</summary>
         public string ContentKey { get; set; }
 
-        /// <summary>SHA-1 of bencoded info dict (BitTorrent infohash) - null pre-download</summary>
+        /// <summary>SHA-1 of canonical bundle descriptor (network cache identifier) - null pre-download</summary>
         public string ContentId { get; set; }
 
         /// <summary>SHA-256 of file bytes - CANONICAL for integrity (null pre-download)</summary>

@@ -176,7 +176,7 @@ namespace KOTORModSync.Converters
 
             // Start async resolution in background, return unresolved path immediately
             Logger.LogVerbose($"[PathResolverConverter.ResolvePath] Call #{_resolvePathCallCount} - Starting async resolution, returning unresolved path");
-            var resolutionTask = ResolvePathAsync(path, sourcePath, destPath);
+            Task<string> resolutionTask = ResolvePathAsync(path, sourcePath, destPath);
             _pendingResolutions.TryAdd(path, resolutionTask);
             _ = ContinuePendingResolution(path, resolutionTask);
 

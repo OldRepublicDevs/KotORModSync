@@ -248,7 +248,7 @@ namespace KOTORModSync.Tests
 		public async Task CheckpointService_TracksFileChanges()
 		{
 			_currentSessionId = await _checkpointService.StartInstallationSessionAsync();
-			var mod = CreateTestModComponent("Change Tracker Test", 1);
+			var mod = CreateTestModComponent("Change Monitor Test", 1);
 			var fileSystemProvider = new RealFileSystemProvider();
 
 			int initialFileCount = Directory.GetFiles(_gameDirectory.FullName, "*", SearchOption.AllDirectories).Length;

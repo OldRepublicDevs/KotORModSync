@@ -130,7 +130,7 @@ namespace KOTORModSync
             // This avoids file access conflicts with NLog's file target
             try
             {
-                var recentLogs = Logger.GetRecentLogMessages(_maxLinesShown);
+                List<string> recentLogs = Logger.GetRecentLogMessages(_maxLinesShown);
                 foreach (string logMessage in recentLogs)
                 {
                     AppendLog(logMessage);

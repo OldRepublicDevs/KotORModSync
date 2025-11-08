@@ -140,8 +140,8 @@ namespace KOTORModSync.Services
             string primaryError = errorReasons[0];
             string description = string.Join(", ", errorReasons);
 
-            bool canAutoFix = primaryError.ToLowerInvariant().Contains("missing required dependencies") ||
-                              primaryError.ToLowerInvariant().Contains("conflicting mods selected");
+            bool canAutoFix = primaryError.Contains("missing required dependencies", StringComparison.OrdinalIgnoreCase) ||
+                              primaryError.Contains("conflicting mods selected", StringComparison.OrdinalIgnoreCase);
 
             return (primaryError, description, canAutoFix);
         }
@@ -179,8 +179,9 @@ namespace KOTORModSync.Services
             }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]
-        public async Task AnalyzeValidationFailures(List<Dialogs.ValidationIssue> modIssues, List<string> systemIssues)
+        public async Task AnalyzeValidationFailures(
+            List<Dialogs.ValidationIssue> modIssues,
+            List<string> systemIssues)
         {
             try
             {
@@ -263,7 +264,7 @@ namespace KOTORModSync.Services
 
                         // Collect validation issues from VFS and mark them with this component
                         List<Core.Services.FileSystem.ValidationIssue> vfsIssues = vfs.GetValidationIssues();
-                        foreach (var issue in vfsIssues)
+                        foreach (ValidationIssue issue in vfsIssues)
                         {
                             if (issue.AffectedComponent == null)
                             {

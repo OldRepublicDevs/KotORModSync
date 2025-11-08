@@ -3,20 +3,18 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-
 using KOTORModSync.Core;
 using KOTORModSync.Core.FileSystemUtils;
-
 using NUnit.Framework;
-using System.Linq;
 using Xunit;
 using Assert = Xunit.Assert;
-using System.Threading;
 
 namespace KOTORModSync.Tests
 {

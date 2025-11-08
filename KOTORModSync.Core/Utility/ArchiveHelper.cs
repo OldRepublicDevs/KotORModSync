@@ -35,15 +35,57 @@ namespace KOTORModSync.Core.Utility
             PreserveFileTime = true,
         };
 
-        public static bool IsArchive([NotNull] string filePath) => IsArchive(
-            new FileInfo(filePath ?? throw new ArgumentNullException(nameof(filePath)))
-        );
+        public static readonly string[] DefaultArchiveSearchPatterns =
+        {
+            "*.zip",
+            "*.rar",
+            "*.7z",
+            "*.exe",
+        };
 
-        public static bool IsArchive([NotNull] FileInfo thisFile) =>
-            thisFile.Extension.Equals(value: ".zip", StringComparison.OrdinalIgnoreCase)
-            || thisFile.Extension.Equals(value: ".7z", StringComparison.OrdinalIgnoreCase)
-            || thisFile.Extension.Equals(value: ".rar", StringComparison.OrdinalIgnoreCase)
-            || thisFile.Extension.Equals(value: ".exe", StringComparison.OrdinalIgnoreCase);
+        public static bool IsArchive([NotNull] string filePath)
+        {
+            if (filePath is null)
+            {
+                throw new ArgumentNullException(nameof(filePath));
+            }
+
+            return HasArchiveExtension(Path.GetExtension(filePath));
+        }
+
+        public static bool IsArchive([NotNull] FileInfo thisFile)
+        {
+            if (thisFile is null)
+            {
+                throw new ArgumentNullException(nameof(thisFile));
+            }
+
+            return HasArchiveExtension(thisFile.Extension);
+        }
+
+        public static bool HasArchiveExtension([CanBeNull] string pathOrExtension)
+        {
+            if (string.IsNullOrWhiteSpace(pathOrExtension))
+            {
+                return false;
+            }
+
+            string extension = pathOrExtension.StartsWith(".", StringComparison.Ordinal)
+                ? pathOrExtension
+                : Path.GetExtension(pathOrExtension);
+
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                return false;
+            }
+
+            return extension.Equals(".zip", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".7z", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".rar", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".exe", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".tar", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".gz", StringComparison.OrdinalIgnoreCase);
+        }
 
         public static (IArchive, FileStream) OpenArchive(string archivePath)
         {
@@ -812,6 +854,331 @@ namespace KOTORModSync.Core.Utility
                     existingDirectory.Add(child);
                     currentDirectory = child;
                 }
+            }
+        }
+
+        public static Dictionary<string, HashSet<string>> GetArchiveContentsByFileName([CanBeNull] IEnumerable<string> archivePaths)
+        {
+            var result = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
+            if (archivePaths is null)
+            {
+                return result;
+            }
+
+            foreach (string archivePath in archivePaths)
+            {
+                if (string.IsNullOrWhiteSpace(archivePath))
+                {
+                    continue;
+                }
+
+                if (TryGetArchiveEntries(archivePath, out HashSet<string> entries, out string failureMessage))
+                {
+                    if (entries.Count > 0)
+                    {
+                        string archiveFileName = Path.GetFileName(archivePath);
+                        result[archiveFileName] = entries;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(failureMessage))
+                {
+                    Logger.LogVerbose($"[ArchiveHelper] Failed to enumerate archive '{archivePath}': {failureMessage}");
+                }
+            }
+
+            return result;
+        }
+
+        public static bool TryGetArchiveEntries([CanBeNull] string archivePath, out HashSet<string> entries, out string failureMessage)
+        {
+            entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            failureMessage = null;
+
+            if (string.IsNullOrWhiteSpace(archivePath))
+            {
+                failureMessage = "Archive path is empty";
+                return false;
+            }
+
+            if (!HasArchiveExtension(archivePath))
+            {
+                failureMessage = "Path does not reference a supported archive";
+                return false;
+            }
+
+            if (archivePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                // Treat self-extracting archives as a successful lookup without enumerated contents.
+                return true;
+            }
+
+            try
+            {
+                (IArchive archive, FileStream stream) = OpenArchive(archivePath);
+                if (archive != null && stream != null)
+                {
+                    using (archive)
+                    using (stream)
+                    {
+                        foreach (IArchiveEntry entry in archive.Entries.Where(e => !e.IsDirectory))
+                        {
+                            string normalizedKey = entry.Key
+                                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
+                                .Trim(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                            if (string.IsNullOrEmpty(normalizedKey))
+                            {
+                                continue;
+                            }
+
+                            entries.Add(normalizedKey);
+                            string fileName = Path.GetFileName(normalizedKey);
+                            if (!string.IsNullOrEmpty(fileName))
+                            {
+                                entries.Add(fileName);
+                            }
+                        }
+                    }
+                    return true;
+                }
+                else
+                {
+                    stream?.Dispose();
+                }
+
+                if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.OpenRead(archivePath))
+                    {
+                        foreach (System.IO.Compression.ZipArchiveEntry entry in zip.Entries)
+                        {
+                            if (string.IsNullOrWhiteSpace(entry.FullName))
+                            {
+                                continue;
+                            }
+
+                            string normalizedKey = entry.FullName
+                                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
+                                .Trim(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                            if (string.IsNullOrEmpty(normalizedKey))
+                            {
+                                continue;
+                            }
+
+                            entries.Add(normalizedKey);
+                            string fileName = Path.GetFileName(normalizedKey);
+                            if (!string.IsNullOrEmpty(fileName))
+                            {
+                                entries.Add(fileName);
+                            }
+                        }
+                    }
+                    return true;
+                }
+
+                failureMessage = "Unknown archive format";
+                return false;
+            }
+            catch (Exception ex)
+            {
+                failureMessage = ex.Message;
+                Logger.LogVerbose($"[ArchiveHelper] Failed to enumerate archive '{archivePath}': {ex.Message}");
+                return false;
+            }
+        }
+
+        public static HashSet<string> GetArchiveEntries([CanBeNull] string archivePath)
+        {
+            _ = TryGetArchiveEntries(archivePath, out HashSet<string> entries, out _);
+            return entries;
+        }
+
+        public static HashSet<string> GetNestedArchiveRoots([CanBeNull] IEnumerable<string> trackedFiles)
+        {
+            var nestedArchives = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (trackedFiles is null)
+            {
+                return nestedArchives;
+            }
+
+            List<string> trackedList = trackedFiles.Where(f => !string.IsNullOrWhiteSpace(f)).ToList();
+
+            foreach (string trackedFile in trackedList)
+            {
+                if (!HasArchiveExtension(trackedFile))
+                {
+                    continue;
+                }
+
+                string archiveName = Path.GetFileNameWithoutExtension(trackedFile);
+                if (string.IsNullOrEmpty(archiveName))
+                {
+                    continue;
+                }
+
+                string nestedPattern = Path.DirectorySeparatorChar + archiveName + Path.DirectorySeparatorChar + archiveName + Path.DirectorySeparatorChar;
+                if (trackedList.Any(path => path.IndexOf(nestedPattern, StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    nestedArchives.Add(archiveName);
+                }
+            }
+
+            return nestedArchives;
+        }
+
+        public static IArchive OpenArchiveFromStream([CanBeNull] string extension, [CanBeNull] Stream stream)
+        {
+            if (stream is null)
+            {
+                return null;
+            }
+
+            string normalizedExtension = string.IsNullOrWhiteSpace(extension)
+                ? string.Empty
+                : extension.ToLowerInvariant();
+
+            try
+            {
+                if (normalizedExtension.Equals(".zip", StringComparison.Ordinal))
+                {
+                    return SharpCompress.Archives.Zip.ZipArchive.Open(stream);
+                }
+                else if (normalizedExtension.Equals(".rar", StringComparison.Ordinal))
+                {
+                    return SharpCompress.Archives.Rar.RarArchive.Open(stream);
+                }
+                else if (normalizedExtension.Equals(".7z", StringComparison.Ordinal) || normalizedExtension.Equals(".exe", StringComparison.Ordinal))
+                {
+                    return SharpCompress.Archives.SevenZip.SevenZipArchive.Open(stream);
+                }
+                else
+                {
+                    return ArchiveFactory.Open(stream);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public sealed class ArchiveMatchResult
+        {
+            public bool IsArchiveFile { get; set; }
+
+            public bool CouldOpen { get; set; }
+
+            public bool Matches { get; set; }
+        }
+
+        public static ArchiveMatchResult MatchArchivePath([NotNull] string archivePath, [NotNull] string relativePattern)
+        {
+            if (archivePath is null)
+            {
+                throw new ArgumentNullException(nameof(archivePath));
+            }
+
+            if (relativePattern is null)
+            {
+                throw new ArgumentNullException(nameof(relativePattern));
+            }
+
+            if (!HasArchiveExtension(archivePath))
+            {
+                return new ArchiveMatchResult
+                {
+                    IsArchiveFile = false,
+                    CouldOpen = false,
+                    Matches = false,
+                };
+            }
+
+            if (archivePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ArchiveMatchResult
+                {
+                    IsArchiveFile = true,
+                    CouldOpen = true,
+                    Matches = true,
+                };
+            }
+
+            try
+            {
+                (IArchive archive, FileStream stream) = OpenArchive(archivePath);
+                if (archive == null || stream == null)
+                {
+                    return new ArchiveMatchResult
+                    {
+                        IsArchiveFile = true,
+                        CouldOpen = false,
+                        Matches = false,
+                    };
+                }
+
+                using (archive)
+                using (stream)
+                {
+                    string archiveRoot = Path.GetFileNameWithoutExtension(archivePath);
+
+                    if (PathHelper.WildcardPathMatch(archiveRoot, relativePattern))
+                    {
+                        return new ArchiveMatchResult
+                        {
+                            IsArchiveFile = true,
+                            CouldOpen = true,
+                            Matches = true,
+                        };
+                    }
+
+                    var folderPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                    foreach (IArchiveEntry entry in archive.Entries)
+                    {
+                        string entryPath = entry.Key.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+                        entryPath = entryPath.TrimStart(Path.DirectorySeparatorChar);
+                        string pathWithRoot = string.IsNullOrEmpty(entryPath)
+                            ? archiveRoot
+                            : $"{archiveRoot}{Path.DirectorySeparatorChar}{entryPath}";
+
+                        if (PathHelper.WildcardPathMatch(pathWithRoot, relativePattern))
+                        {
+                            return new ArchiveMatchResult
+                            {
+                                IsArchiveFile = true,
+                                CouldOpen = true,
+                                Matches = true,
+                            };
+                        }
+
+                        string folder = entry.IsDirectory ? pathWithRoot : Path.GetDirectoryName(pathWithRoot);
+                        if (!string.IsNullOrEmpty(folder))
+                        {
+                            folderPaths.Add(folder.TrimEnd(Path.DirectorySeparatorChar));
+                        }
+                    }
+
+                    bool folderMatch = folderPaths.Any(folder => PathHelper.WildcardPathMatch(folder, relativePattern));
+                    return new ArchiveMatchResult
+                    {
+                        IsArchiveFile = true,
+                        CouldOpen = true,
+                        Matches = folderMatch,
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"[ArchiveHelper] Failed to match archive path '{archivePath}': {ex.Message}");
+                return new ArchiveMatchResult
+                {
+                    IsArchiveFile = true,
+                    CouldOpen = false,
+                    Matches = false,
+                };
             }
         }
     }

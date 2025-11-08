@@ -68,7 +68,7 @@ namespace KOTORModSync.Services
 
                 if (_currentComponent.ResourceRegistry != null)
                 {
-                    foreach (var resource in _currentComponent.ResourceRegistry)
+                    foreach (KeyValuePair<string, ResourceMetadata> resource in _currentComponent.ResourceRegistry)
                     {
                         if (resource.Value?.Files != null)
                         {
@@ -122,7 +122,7 @@ namespace KOTORModSync.Services
         {
             lock (_lockObject)
             {
-                foreach (var watcher in _fileWatchers)
+                foreach (CrossPlatformFileWatcher watcher in _fileWatchers)
                 {
                     try
                     {

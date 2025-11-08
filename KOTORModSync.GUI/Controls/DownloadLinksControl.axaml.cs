@@ -87,7 +87,7 @@ namespace KOTORModSync.Controls
             try
             {
                 var textBoxes = this.GetVisualDescendants().OfType<TextBox>().ToList();
-                foreach (var textBox in textBoxes)
+                foreach (TextBox textBox in textBoxes)
                 {
                     UpdateUrlValidation(textBox);
                 }
@@ -131,7 +131,7 @@ namespace KOTORModSync.Controls
             DownloadLinks = newList;
 
             // Also update ResourceRegistry on the component
-            var component = GetCurrentComponent();
+            ModComponent component = GetCurrentComponent();
             if (component != null)
             {
 
@@ -188,7 +188,7 @@ namespace KOTORModSync.Controls
             DownloadLinks = newList;
 
             // Also remove from ResourceRegistry
-            var component = GetCurrentComponent();
+            ModComponent component = GetCurrentComponent();
             if (component != null && !string.IsNullOrWhiteSpace(urlToRemove))
             {
                 component.ResourceRegistry.Remove(urlToRemove);
@@ -258,7 +258,7 @@ namespace KOTORModSync.Controls
                 DownloadLinks = newList;
 
                 // Update ResourceRegistry on component
-                var component = GetCurrentComponent();
+                ModComponent component = GetCurrentComponent();
                 if (component != null)
                 {
                     // Remove old URL entry if it existed
@@ -433,7 +433,7 @@ namespace KOTORModSync.Controls
 
                 using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
                 {
-                    var resolved = await DownloadCacheService.DownloadManager.ResolveUrlsToFilenamesAsync(
+                    Dictionary<string, List<string>> resolved = await DownloadCacheService.DownloadManager.ResolveUrlsToFilenamesAsync(
                         new List<string> { url },
                         cts.Token);
 
@@ -454,7 +454,7 @@ namespace KOTORModSync.Controls
                                 };
                                 component.ResourceRegistry[url] = resourceMeta;
                             }
-                            var filenameDict = resourceMeta.Files;
+                            Dictionary<string, bool?> filenameDict = resourceMeta.Files;
 
                             foreach (string filename in filenames)
                             {
@@ -469,7 +469,7 @@ namespace KOTORModSync.Controls
                     }
                     else
                     {
-                        var component = GetCurrentComponent();
+                        ModComponent component = GetCurrentComponent();
                         string componentInfo = component != null ? $" [Component: '{component.Name}']" : "";
                         string expectedFilenames = component?.ResourceRegistry.TryGetValue(url, out ResourceMetadata resourceMeta) == true
                             ? string.Join(", ", resourceMeta.Files.Keys)
@@ -480,7 +480,7 @@ namespace KOTORModSync.Controls
             }
             catch (Exception ex)
             {
-                var component = GetCurrentComponent();
+                ModComponent component = GetCurrentComponent();
                 string componentInfo = component != null ? $" [Component: '{component.Name}']" : "";
                 await Logger.LogExceptionAsync(ex, $"Error resolving filenames for URL: {button.Tag}{componentInfo}");
             }
@@ -536,14 +536,14 @@ namespace KOTORModSync.Controls
 
                     .Where(b => b.Classes.Contains("url-item", StringComparer.Ordinal)).ToList();
 
-                foreach (var border in borders)
+                foreach (Border border in borders)
                 {
-                    var textBox = border.GetVisualDescendants().OfType<TextBox>()
+                    TextBox textBox = border.GetVisualDescendants().OfType<TextBox>()
                         .FirstOrDefault(tb => string.Equals(tb.Text, url, StringComparison.Ordinal));
 
                     if (textBox != null)
                     {
-                        var filenamesPanel = border.GetVisualDescendants().OfType<StackPanel>()
+                        StackPanel filenamesPanel = border.GetVisualDescendants().OfType<StackPanel>()
                             .FirstOrDefault(sp => string.Equals(sp.Name, "FilenamesPanel", StringComparison.Ordinal));
 
                         if (filenamesPanel != null)
@@ -570,7 +570,7 @@ namespace KOTORModSync.Controls
 
             panel.Children.Clear();
 
-            var component = GetCurrentComponent();
+            ModComponent component = GetCurrentComponent();
             if (component is null)
             {
                 return;
@@ -585,7 +585,7 @@ namespace KOTORModSync.Controls
                 };
                 component.ResourceRegistry[url] = resourceMeta;
             }
-            var filenameDict = resourceMeta.Files;
+            Dictionary<string, bool?> filenameDict = resourceMeta.Files;
 
             if (filenameDict.Count == 0)
             {
@@ -619,7 +619,7 @@ namespace KOTORModSync.Controls
             };
             panel.Children.Add(helpText);
 
-            foreach (var filenameEntry in filenameDict)
+            foreach (KeyValuePair<string, bool?> filenameEntry in filenameDict)
             {
                 string filename = filenameEntry.Key;
                 bool? shouldDownload = filenameEntry.Value;
@@ -672,7 +672,7 @@ namespace KOTORModSync.Controls
             string filename = tag.Item2;
             bool shouldDownload = checkBox.IsChecked ?? true;
 
-            var component = GetCurrentComponent();
+            ModComponent component = GetCurrentComponent();
             if (component is null)
             {
                 return;
@@ -738,7 +738,7 @@ namespace KOTORModSync.Controls
                 return;
             }
 
-            var component = GetCurrentComponent();
+            ModComponent component = GetCurrentComponent();
             if (component is null)
             {
                 return;
@@ -844,7 +844,7 @@ namespace KOTORModSync.Controls
             string url = tag.Item1;
             string filename = tag.Item2;
 
-            var component = GetCurrentComponent();
+            ModComponent component = GetCurrentComponent();
             if (component is null)
             {
                 return;
@@ -862,7 +862,7 @@ namespace KOTORModSync.Controls
 
         private async void DownloadMod_Click(object sender, RoutedEventArgs e)
         {
-            var component = GetCurrentComponent();
+            ModComponent component = GetCurrentComponent();
             if (component is null)
             {
                 return;

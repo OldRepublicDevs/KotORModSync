@@ -3,13 +3,14 @@
 // See LICENSE.txt file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml.Styling;
-using Avalonia.Media;
+using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
 
@@ -17,51 +18,36 @@ namespace KOTORModSync
 {
     internal static class ThemeManager
     {
+        private const string DefaultThemePath = "/Styles/LightStyle.axaml";
+        private static readonly object ThemeCacheLock = new object();
+        private static string[] s_cachedThemePaths;
+
         private static Uri s_currentStyleUri;
-        private static string s_currentTheme = "/Styles/FluentLightStyle.axaml"; // Track current theme
+        private static string s_currentTheme = DefaultThemePath; // Track current theme
 
         public static event Action<Uri> StyleChanged;
 
         public static void UpdateStyle([JetBrains.Annotations.CanBeNull] string stylePath = null)
         {
-            // Default to Fluent Light if null or empty
-            if (string.IsNullOrWhiteSpace(stylePath))
-            {
-                stylePath = "/Styles/FluentLightStyle.axaml";
-            }
+            string normalizedPath = NormalizeStylePath(stylePath);
 
-            // Handle Fluent Light theme
-            if (string.Equals(stylePath, "Fluent.Light", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(s_currentTheme, normalizedPath, StringComparison.OrdinalIgnoreCase) && s_currentStyleUri != null)
             {
-                // Redirect to custom FluentLightStyle.axaml
-                UpdateStyle("/Styles/FluentLightStyle.axaml");
                 return;
             }
 
-            // Handle custom themes (dynamically loaded)
-            if (stylePath.EndsWith("KotorStyle.axaml", StringComparison.OrdinalIgnoreCase) || stylePath.EndsWith("Kotor2Style.axaml", StringComparison.OrdinalIgnoreCase) || stylePath.EndsWith("FluentLightStyle.axaml", StringComparison.OrdinalIgnoreCase))
+            s_currentTheme = normalizedPath;
+            s_currentStyleUri = new Uri("avares://KOTORModSync" + normalizedPath);
+
+            // Ensure all UI operations happen on UI thread
+            if (Dispatcher.UIThread.CheckAccess())
             {
-                var newUri = new Uri("avares://KOTORModSync" + stylePath);
-                s_currentStyleUri = newUri;
-                s_currentTheme = stylePath;
-
-                // Ensure all UI operations happen on UI thread
-                if (Dispatcher.UIThread.CheckAccess())
-                {
-                    // Already on UI thread - execute directly
-                    ApplyStyleInternal(stylePath);
-                }
-                else
-                {
-                    // Not on UI thread - marshal to UI thread
-                    Dispatcher.UIThread.Post(() => ApplyStyleInternal(stylePath), DispatcherPriority.Normal);
-                }
-
-                return;
+                ApplyStyleInternal(normalizedPath);
             }
-
-            // Fallback to Fluent Light for unknown themes
-            UpdateStyle("/Styles/FluentLightStyle.axaml");
+            else
+            {
+                Dispatcher.UIThread.Post(() => ApplyStyleInternal(normalizedPath), DispatcherPriority.Normal);
+            }
         }
 
         private static void ApplyStyleInternal(string stylePath)
@@ -81,6 +67,98 @@ namespace KOTORModSync
 
             ApplyToAllOpenWindows();
             StyleChanged?.Invoke(s_currentStyleUri);
+        }
+
+        private static string NormalizeStylePath(string stylePath)
+        {
+            if (string.IsNullOrWhiteSpace(stylePath))
+            {
+                return DefaultThemePath;
+            }
+
+            stylePath = stylePath.Trim();
+
+            if (string.Equals(stylePath, "Fluent.Light", StringComparison.OrdinalIgnoreCase))
+            {
+                return DefaultThemePath;
+            }
+
+            stylePath = stylePath.Replace('\\', '/');
+
+            const string assemblyPrefix = "avares://KOTORModSync";
+            if (stylePath.StartsWith(assemblyPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                stylePath = stylePath.Substring(assemblyPrefix.Length);
+            }
+            else if (stylePath.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
+            {
+                var parsedUri = new Uri(stylePath);
+                stylePath = parsedUri.AbsolutePath;
+            }
+
+            if (stylePath.EndsWith("FluentLightStyle.axaml", StringComparison.OrdinalIgnoreCase))
+            {
+                stylePath = DefaultThemePath;
+            }
+            else if (!stylePath.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
+            {
+                stylePath += ".axaml";
+            }
+
+            if (!stylePath.StartsWith("/", StringComparison.Ordinal))
+            {
+                if (stylePath.StartsWith("Styles/", StringComparison.OrdinalIgnoreCase))
+                {
+                    stylePath = "/" + stylePath;
+                }
+                else
+                {
+                    stylePath = "/Styles/" + stylePath;
+                }
+            }
+
+            return stylePath;
+        }
+
+        public static IReadOnlyList<string> GetAvailableThemePaths(bool forceRefresh = false)
+        {
+            if (!forceRefresh && s_cachedThemePaths != null)
+            {
+                return s_cachedThemePaths;
+            }
+
+            lock (ThemeCacheLock)
+            {
+                if (!forceRefresh && s_cachedThemePaths != null)
+                {
+                    return s_cachedThemePaths;
+                }
+
+                var themes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    DefaultThemePath,
+                };
+
+                try
+                {
+                    var baseUri = new Uri("avares://KOTORModSync/Styles/");
+                    foreach (Uri assetUri in AssetLoader.GetAssets(baseUri, null))
+                    {
+                        string normalized = NormalizeStylePath(assetUri.ToString());
+                        themes.Add(normalized);
+                    }
+                }
+                catch
+                {
+                    // If asset enumeration fails, fall back to whatever we have cached/default.
+                }
+
+                s_cachedThemePaths = themes
+                    .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                return s_cachedThemePaths;
+            }
         }
 
         public static void ApplyCurrentToWindow(Window window)
@@ -110,7 +188,7 @@ namespace KOTORModSync
 
             if (s_currentStyleUri is null)
             {
-                return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
+                return "/Styles/LightStyle.axaml"; // Default to Light Style
             }
 
             string path = s_currentStyleUri.ToString();
@@ -119,7 +197,7 @@ namespace KOTORModSync
             {
                 return path.Substring("avares://KOTORModSync".Length);
             }
-            return "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light
+            return "/Styles/LightStyle.axaml"; // Default to Light Style
         }
 
         private static void ApplyToAllOpenWindows()
@@ -143,7 +221,7 @@ namespace KOTORModSync
                 return;
             }
 
-            // CRITICAL: Always set Light theme variant for FluentLightStyle
+            // CRITICAL: Always set Light theme variant for LightStyle
             window.RequestedThemeVariant = ThemeVariant.Light;
 
             // Clear all window styles to prevent conflicts

@@ -4,38 +4,29 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
+using Avalonia.Markup.Xaml;
 
 namespace KOTORModSync.Dialogs.WizardPages
 {
-    public partial class WelcomePage : UserControl, IWizardPage
+    public partial class WelcomePage : WizardPageBase
     {
-        public string Title => "Welcome";
-        public string Subtitle => "Welcome to the KOTORModSync Installation Wizard";
-        Control IWizardPage.Content => this;
-        public bool CanNavigateBack => false;
-        public bool CanNavigateForward => true;
-        public bool CanCancel => true;
+        public override string Title => "Welcome";
+        public override string Subtitle => "Welcome to the KOTORModSync Installation Wizard";
+        public override bool CanNavigateBack => false;
 
         public WelcomePage()
         {
             InitializeComponent();
         }
 
-        public Task OnNavigatedToAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
+        public override Task OnNavigatedToAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public Task OnNavigatingFromAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
+        public override Task OnNavigatingFromAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public Task<(bool isValid, string errorMessage)> ValidateAsync(CancellationToken cancellationToken)
-        {
-            return Task.FromResult((true, (string)null));
-        }
+        public override Task<(bool isValid, string errorMessage)> ValidateAsync(CancellationToken cancellationToken)
+            => Task.FromResult((true, (string)null));
+
+        private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
     }
 }
 

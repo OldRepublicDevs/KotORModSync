@@ -1,0 +1,91 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.ValidatePage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <!--  Header Section  -->
+        <Border Grid.Row="0" Padding="20,16" CornerRadius="10" Margin="0,0,0,16">
+            <StackPanel Spacing="12">
+                <TextBlock
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Text="🔍 Pre-Installation Validation" />
+                <TextBlock
+                    FontSize="14"
+                    Opacity="0.85"
+                    Text="We'll check for potential issues before starting the installation to ensure everything works smoothly."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <!--  Action Bar  -->
+        <Border Grid.Row="1" Padding="16,12" CornerRadius="8" Margin="0,0,0,12">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Button
+                    x:Name="ValidateButton"
+                    Grid.Column="0"
+                    Padding="16,10"
+                    Content="🔍 Run Validation"
+                    ToolTip.Tip="Check for compatibility issues and missing files" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <ProgressBar
+                        x:Name="ValidationProgress"
+                        Width="200"
+                        Height="8"
+                        IsIndeterminate="True"
+                        IsVisible="False" />
+                    <TextBlock
+                        x:Name="StatusText"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--  Results Area  -->
+        <Border Grid.Row="2" Padding="12" CornerRadius="8">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="ResultsPanel" Spacing="10" />
+            </ScrollViewer>
+        </Border>
+
+        <!--  Summary Footer  -->
+        <Border Grid.Row="3" Padding="20,16" CornerRadius="10" Margin="0,16,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="8">
+                    <TextBlock
+                        x:Name="SummaryText"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="Click 'Run Validation' to begin" />
+                    <TextBlock
+                        x:Name="SummaryDetails"
+                        FontSize="13"
+                        Opacity="0.7"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                    <StackPanel Spacing="4">
+                        <TextBlock FontSize="11" Opacity="0.6" Text="ERRORS" TextAlignment="Center" />
+                        <TextBlock x:Name="ErrorCountBadge" FontSize="20" FontWeight="Bold" Text="0" TextAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock FontSize="11" Opacity="0.6" Text="WARNINGS" TextAlignment="Center" />
+                        <TextBlock x:Name="WarningCountBadge" FontSize="20" FontWeight="Bold" Text="0" TextAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock FontSize="11" Opacity="0.6" Text="PASSED" TextAlignment="Center" />
+                        <TextBlock x:Name="PassedCountBadge" FontSize="20" FontWeight="Bold" Text="0" TextAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using KOTORModSync.Core.Services.Download;
+using KOTORModSync.Core.Utility;
 
 using DownloadCacheEntry = KOTORModSync.Core.Services.DownloadCacheService.DownloadCacheEntry;
 
@@ -144,7 +145,7 @@ namespace KOTORModSync.Core.Services
                     }
 
                     string fileName = Path.GetFileName(filePath);
-                    bool isArchive = Utility.ArchiveHelper.IsArchive(filePath);
+                    bool isArchive = ArchiveHelper.IsArchive(filePath);
 
                     await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] Processing file: {fileName}, IsArchive: {isArchive}").ConfigureAwait(false);
 
@@ -179,18 +180,24 @@ namespace KOTORModSync.Core.Services
 
                     if (isArchive)
                     {
-
-                        var extractInstruction = new Instruction
+                        if (MainConfig.EditorMode)
                         {
-                            Action = Instruction.ActionType.Extract,
-                            Source = new List<string> { $@"<<modDirectory>>\{fileName}" },
-                            Destination = $@"<<modDirectory>>\{Path.GetFileNameWithoutExtension(fileName)}",
-                        };
-                        extractInstruction.SetParentComponent(component);
+                            var extractInstruction = new Instruction
+                            {
+                                Action = Instruction.ActionType.Extract,
+                                Source = new List<string> { $@"<<modDirectory>>\{fileName}" },
+                                Destination = $@"<<modDirectory>>\{Path.GetFileNameWithoutExtension(fileName)}",
+                            };
+                            extractInstruction.SetParentComponent(component);
 
-                        component.Instructions.Insert(0, extractInstruction);
+                            component.Instructions.Insert(0, extractInstruction);
 
-                        await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] Created Extract instruction for archive: {fileName}").ConfigureAwait(false);
+                            await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] Created Extract instruction for archive: {fileName}").ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await Logger.LogVerboseAsync($"[ProcessDownloadCompletions] EditorMode disabled; not generating instructions for archive: {fileName}").ConfigureAwait(false);
+                        }
 
                         // Update resource-index and ResourceRegistry
                         await DownloadCacheService.UpdateResourceMetadataWithFilenamesAsync(component, modLink, new List<string> { fileName }).ConfigureAwait(false);

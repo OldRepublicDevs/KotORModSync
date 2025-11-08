@@ -10,7 +10,7 @@ namespace KOTORModSync.Services
 {
     public enum ThemeType
     {
-        FluentLight,
+        Light,
         KOTOR,
         KOTOR2,
     }
@@ -60,12 +60,12 @@ namespace KOTORModSync.Services
             string currentTheme = GetCurrentTheme();
             if (string.IsNullOrEmpty(currentTheme))
             {
-                return ThemeType.FluentLight; // Default
+                return ThemeType.Light; // Default
             }
 
-            if (currentTheme.Contains("FluentLightStyle"))
+            if (currentTheme.Contains("LightStyle") || currentTheme.Contains("FluentLightStyle"))
             {
-                return ThemeType.FluentLight;
+                return ThemeType.Light;
             }
 
             if (currentTheme.Contains("Kotor2Style"))
@@ -78,21 +78,21 @@ namespace KOTORModSync.Services
                 return ThemeType.KOTOR;
             }
 
-            return ThemeType.FluentLight; // Default
+            return ThemeType.Light; // Default
         }
 
         public static string GetStylePathForTheme(ThemeType themeType)
         {
             switch (themeType)
             {
-                case ThemeType.FluentLight:
-                    return "/Styles/FluentLightStyle.axaml";
+                case ThemeType.Light:
+                    return "/Styles/LightStyle.axaml";
                 case ThemeType.KOTOR:
                     return "/Styles/KotorStyle.axaml";
                 case ThemeType.KOTOR2:
                     return "/Styles/Kotor2Style.axaml";
                 default:
-                    return "/Styles/FluentLightStyle.axaml";
+                    return "/Styles/LightStyle.axaml";
             }
         }
     }

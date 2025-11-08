@@ -88,6 +88,12 @@ namespace KOTORModSync.Core.Services
             }
             catch (Exception ex)
             {
+                LogDependencyResolutionException(
+                    ex,
+                    components,
+                    componentDict,
+                    dependencyGraph);
+
                 // Add the exception as a DependencyError and set it ONCE
                 allErrors.Add(new DependencyError
                 {
@@ -392,6 +398,89 @@ namespace KOTORModSync.Core.Services
             if (componentDict.TryGetValue(current, out ModComponent component))
             {
                 result.Add(component);
+            }
+        }
+
+        private static void LogDependencyResolutionException(
+            Exception exception,
+            IReadOnlyList<ModComponent> components,
+            Dictionary<Guid, ModComponent> componentDict,
+            Dictionary<Guid, HashSet<Guid>> dependencyGraph)
+        {
+            Logger.LogError($"DependencyResolverService.ResolveDependencies encountered {exception.GetType().Name}: {exception.Message}");
+
+            if (exception is ArgumentOutOfRangeException outOfRangeException)
+            {
+                int? attemptedIndex = ExtractIndexValue(outOfRangeException.ActualValue);
+                int maxIndex = components.Count > 0 ? components.Count - 1 : -1;
+
+                Logger.LogError($"ArgumentOutOfRangeException details: ParamName='{outOfRangeException.ParamName ?? "(null)"}', ActualValue='{outOfRangeException.ActualValue ?? "(null)"}', AttemptedIndex={attemptedIndex?.ToString() ?? "unknown"}, ValidRange=0..{maxIndex}");
+
+                LogComponentSnapshot(components, "components");
+            }
+            else if (exception is IndexOutOfRangeException)
+            {
+                LogComponentSnapshot(components, "components");
+            }
+
+            LogDependencyGraphSnapshot(dependencyGraph, componentDict);
+
+            Logger.LogError($"Full exception stack trace:{Environment.NewLine}{exception}");
+        }
+
+        private static void LogComponentSnapshot(IReadOnlyList<ModComponent> components, string label)
+        {
+            Logger.LogError($"{label} snapshot (Count={components.Count}):");
+            for (int i = 0; i < components.Count; i++)
+            {
+                ModComponent component = components[i];
+                if (component is null)
+                {
+                    Logger.LogError($"  [{i}] null");
+                    continue;
+                }
+
+                Logger.LogError($"  [{i}] Name='{component.Name}', Guid={component.Guid}, Dependencies={component.Dependencies.Count}, InstallBefore={component.InstallBefore.Count}, InstallAfter={component.InstallAfter.Count}");
+            }
+        }
+
+        private static void LogDependencyGraphSnapshot(
+            Dictionary<Guid, HashSet<Guid>> dependencyGraph,
+            Dictionary<Guid, ModComponent> componentDict)
+        {
+            Logger.LogError($"Dependency graph snapshot (Nodes={dependencyGraph.Count}):");
+
+            foreach (KeyValuePair<Guid, HashSet<Guid>> kvp in dependencyGraph)
+            {
+                string componentName = componentDict.TryGetValue(kvp.Key, out ModComponent component)
+                    ? component.Name
+                    : "(missing component)";
+
+                string dependencies = kvp.Value.Count == 0
+                    ? "(no dependencies)"
+                    : string.Join(", ", kvp.Value.Select(guid =>
+                        componentDict.TryGetValue(guid, out ModComponent dependencyComponent)
+                            ? $"{dependencyComponent.Name} ({guid})"
+                            : guid.ToString()));
+
+                Logger.LogError($"  Node Guid={kvp.Key}, Name='{componentName}' depends on -> {dependencies}");
+            }
+        }
+
+        private static int? ExtractIndexValue(object actualValue)
+        {
+            if (actualValue is null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return Convert.ToInt32(actualValue, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                return null;
             }
         }
     }

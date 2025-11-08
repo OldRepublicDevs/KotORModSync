@@ -32,9 +32,9 @@ namespace KOTORModSync.Converters
                 return false;
             }
 
-            var allArchives = NamespacesIniOptionConverter.GetAllArchivesFromInstructions(instruction.GetParentComponent());
+            List<string> allArchives = NamespacesIniOptionConverter.GetAllArchivesFromInstructions(instruction.GetParentComponent());
 
-            var relevantArchives = GetArchivesForSpecificInstruction(instruction, allArchives);
+            List<string> relevantArchives = GetArchivesForSpecificInstruction(instruction, allArchives);
 
             foreach (string archivePath in relevantArchives)
             {
@@ -43,7 +43,7 @@ namespace KOTORModSync.Converters
                     continue;
                 }
 
-                var result = Core.TSLPatcher.IniHelper.ReadNamespacesIniFromArchive(archivePath);
+                Dictionary<string, Dictionary<string, string>> result = Core.TSLPatcher.IniHelper.ReadNamespacesIniFromArchive(archivePath);
                 if (result != null && result.Any())
                 {
 

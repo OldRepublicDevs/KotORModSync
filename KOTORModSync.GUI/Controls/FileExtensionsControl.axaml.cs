@@ -54,8 +54,8 @@ namespace KOTORModSync.Controls
                 return;
             }
 
-            var extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
-            var emptyStateBorder = this.FindControl<Border>("EmptyStateBorder");
+            ItemsControl extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
+            Border emptyStateBorder = this.FindControl<Border>("EmptyStateBorder");
             if (extensionsItemsControl is null || emptyStateBorder is null)
             {
                 return;
@@ -67,7 +67,7 @@ namespace KOTORModSync.Controls
 
         private void UpdateExtensionsDisplay()
         {
-            var extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
+            ItemsControl extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
             if (extensionsItemsControl?.ItemsSource == FileExtensions)
             {
                 return;
@@ -81,7 +81,7 @@ namespace KOTORModSync.Controls
 
         private void UpdateEmptyStateVisibility()
         {
-            var emptyStateBorder = this.FindControl<Border>("EmptyStateBorder");
+            Border emptyStateBorder = this.FindControl<Border>("EmptyStateBorder");
             if (emptyStateBorder is null)
             {
                 return;
@@ -189,7 +189,7 @@ namespace KOTORModSync.Controls
 
         private int GetTextBoxIndex(TextBox textBox)
         {
-            var extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
+            ItemsControl extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
             if (extensionsItemsControl is null || !(extensionsItemsControl.ItemsSource is List<string> extensions) || textBox is null)
             {
                 return -1;
@@ -301,11 +301,11 @@ namespace KOTORModSync.Controls
 
         public void SetExtensions([NotNull] IEnumerable<string> extensions)
         {
-            var extensionsList = extensions?.ToList() ?? new List<string>();
+            List<string> extensionsList = extensions?.ToList() ?? new List<string>();
             Logger.LogVerbose($"FileExtensionsControl.SetExtensions called with {extensionsList.Count} extensions: [{string.Join(", ", extensionsList)}]");
 
-            var extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
-            var emptyStateBorder = this.FindControl<Border>("EmptyStateBorder");
+            ItemsControl extensionsItemsControl = this.FindControl<ItemsControl>("ExtensionsItemsControl");
+            Border emptyStateBorder = this.FindControl<Border>("EmptyStateBorder");
             if (extensionsItemsControl is null || emptyStateBorder is null)
             {
                 Logger.LogVerbose("FileExtensionsControl not fully loaded yet, deferring SetExtensions");

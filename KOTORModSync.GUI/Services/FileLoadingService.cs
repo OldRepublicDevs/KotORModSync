@@ -305,7 +305,7 @@ namespace KOTORModSync.Services
                         if (confirmResult == true)
                         {
                             // Create the dialog on the UI thread
-                            var conflictDialog = await Dispatcher.UIThread.InvokeAsync(() => new ComponentMergeConflictDialog(
+                            ComponentMergeConflictDialog conflictDialog = await Dispatcher.UIThread.InvokeAsync(() => new ComponentMergeConflictDialog(
                                 _mainConfig.allComponents,
                                 new List<ModComponent>(
                                     parseResult.Components

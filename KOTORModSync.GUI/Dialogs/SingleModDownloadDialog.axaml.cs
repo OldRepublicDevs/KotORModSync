@@ -46,13 +46,13 @@ namespace KOTORModSync.Dialogs
 
             InitializeComponent();
 
-            var modNameText = this.FindControl<TextBlock>("ModNameText");
+            TextBlock modNameText = this.FindControl<TextBlock>("ModNameText");
             if (modNameText != null)
             {
                 modNameText.Text = $"Downloading: {component.Name}";
             }
 
-            var filesListControl = this.FindControl<ItemsControl>("FilesListControl");
+            ItemsControl filesListControl = this.FindControl<ItemsControl>("FilesListControl");
             if (filesListControl != null)
             {
                 filesListControl.ItemsSource = _fileDownloads;
@@ -71,7 +71,7 @@ namespace KOTORModSync.Dialogs
             {
                 await Logger.LogVerboseAsync($"[SingleModDownloadDialog] Starting download for component: {_component.Name}");
 
-                var statusText = this.FindControl<TextBlock>("StatusText");
+                TextBlock statusText = this.FindControl<TextBlock>("StatusText");
                 if (statusText != null)
                 {
                     statusText.Text = "Resolving download URLs...";
@@ -130,8 +130,8 @@ namespace KOTORModSync.Dialogs
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    var errorBorder = this.FindControl<Border>("ErrorBorder");
-                    var errorMessageText = this.FindControl<TextBlock>("ErrorMessageText");
+                    Border errorBorder = this.FindControl<Border>("ErrorBorder");
+                    TextBlock errorMessageText = this.FindControl<TextBlock>("ErrorMessageText");
 
                     if (errorBorder != null)
                     {
@@ -150,7 +150,7 @@ namespace KOTORModSync.Dialogs
 
         private void UpdateFileProgress(DownloadProgress progress)
         {
-            var existing = _fileDownloads.FirstOrDefault(p => string.Equals(p.Url, progress.Url, StringComparison.Ordinal));
+            DownloadProgress existing = _fileDownloads.FirstOrDefault(p => string.Equals(p.Url, progress.Url, StringComparison.Ordinal));
             if (existing != null)
             {
                 // Update existing entry
@@ -173,10 +173,10 @@ namespace KOTORModSync.Dialogs
 
         private void UpdateOverallProgress()
         {
-            var overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
-            var overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
-            var statusText = this.FindControl<TextBlock>("StatusText");
-            var footerStatusText = this.FindControl<TextBlock>("FooterStatusText");
+            ProgressBar overallProgressBar = this.FindControl<ProgressBar>("OverallProgressBar");
+            TextBlock overallProgressText = this.FindControl<TextBlock>("OverallProgressText");
+            TextBlock statusText = this.FindControl<TextBlock>("StatusText");
+            TextBlock footerStatusText = this.FindControl<TextBlock>("FooterStatusText");
 
             if (_fileDownloads.Count == 0)
             {
@@ -231,10 +231,10 @@ namespace KOTORModSync.Dialogs
         {
             _isCompleted = true;
 
-            var closeButton = this.FindControl<Button>("CloseButton");
-            var cancelButton = this.FindControl<Button>("CancelButton");
-            var statusText = this.FindControl<TextBlock>("StatusText");
-            var footerStatusText = this.FindControl<TextBlock>("FooterStatusText");
+            Button closeButton = this.FindControl<Button>("CloseButton");
+            Button cancelButton = this.FindControl<Button>("CancelButton");
+            TextBlock statusText = this.FindControl<TextBlock>("StatusText");
+            TextBlock footerStatusText = this.FindControl<TextBlock>("FooterStatusText");
 
             if (closeButton != null)
             {
@@ -281,14 +281,14 @@ namespace KOTORModSync.Dialogs
             {
                 _cancellationTokenSource?.Cancel();
 
-                var cancelButton = this.FindControl<Button>("CancelButton");
+                Button cancelButton = this.FindControl<Button>("CancelButton");
                 if (cancelButton != null)
                 {
                     cancelButton.IsEnabled = false;
                     cancelButton.Content = "Cancelling...";
                 }
 
-                foreach (var download in _fileDownloads.Where(d => d.Status == DownloadStatus.InProgress))
+                foreach (DownloadProgress download in _fileDownloads.Where(d => d.Status == DownloadStatus.InProgress))
                 {
                     download.Status = DownloadStatus.Failed;
                     download.StatusMessage = "Cancelled by user";

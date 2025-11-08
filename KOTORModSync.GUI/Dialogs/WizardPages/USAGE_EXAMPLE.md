@@ -140,7 +140,9 @@ private void InitializePages()
 {
     _pages.Add(new WelcomePage());
     _pages.Add(new MyCustomPage()); // Your custom page
-    _pages.Add(new SetupPage(_mainConfig));
+    _pages.Add(new LoadInstructionPage(_mainConfig));
+    _pages.Add(new ModDirectoryPage(_mainConfig));
+    _pages.Add(new GameDirectoryPage(_mainConfig));
     // ... rest of pages
 }
 ```
@@ -165,7 +167,9 @@ Simply rearrange the `_pages.Add()` calls in `InitializePages()`:
 // Move validation earlier:
 _pages.Add(new WelcomePage());
 _pages.Add(new ValidatePage(_allComponents, _mainConfig)); // Earlier
-_pages.Add(new SetupPage(_mainConfig));
+_pages.Add(new LoadInstructionPage(_mainConfig));
+_pages.Add(new ModDirectoryPage(_mainConfig));
+_pages.Add(new GameDirectoryPage(_mainConfig));
 // ...
 ```
 

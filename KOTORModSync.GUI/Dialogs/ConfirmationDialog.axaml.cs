@@ -618,7 +618,8 @@ namespace KOTORModSync.Dialogs
                 string currentTheme = ThemeManager.GetCurrentStylePath();
                 Logger.LogInfo($"Current theme: {currentTheme}");
 
-                if (currentTheme.Contains("FluentLightStyle"))
+                if (currentTheme.Contains("LightStyle")
+                    || currentTheme.Contains("FluentLightStyle"))
                 {
                     ConfirmTextBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)); // #212121
                 }

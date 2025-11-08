@@ -702,6 +702,11 @@
         <Setter Property="BorderThickness" Value="0,1,0,0" />
     </Style>
 
+    <Style Selector="TextBlock.checkpoint-progress-text">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource CheckpointProgress.ForegroundBrush}" />
+    </Style>
+
     <Style Selector="TextBlock.download-status-text">
         <Setter Property="FontSize" Value="12" />
         <Setter Property="Foreground" Value="#888888" />
@@ -1031,6 +1036,12 @@
             <SolidColorBrush x:Key="DragDrop.InfoBackgroundBrush" Color="#000F2A" />
             <!--  Dark blue background matching theme  -->
             <SolidColorBrush x:Key="DragDrop.InfoBorderBrush" Color="#3AAAFF" />
+            <!--  Theme primary blue border  -->
+            <SolidColorBrush x:Key="CheckpointProgress.ForegroundBrush" Color="#3AAAFF" />
+            <!--  Theme primary blue for checkpoint progress  -->
+            <SolidColorBrush x:Key="CheckpointProgress.BackgroundBrush" Color="#000F2A" />
+            <!--  Dark blue background matching theme  -->
+            <SolidColorBrush x:Key="CheckpointProgress.BorderBrush" Color="#3AAAFF" />
             <!--  Theme primary blue border  -->
         </ResourceDictionary>
     </Styles.Resources>

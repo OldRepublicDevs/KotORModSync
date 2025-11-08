@@ -1,0 +1,38 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.InstallStartPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="16">
+        <TextBlock x:Name="HeaderText" Text="🚀 Ready to Begin Installation" />
+
+        <TextBlock Text="Review your mod selection below. Click 'Next' to begin the installation process." TextWrapping="Wrap" />
+
+        <Border Padding="12" CornerRadius="8">
+            <StackPanel Spacing="12">
+                <TextBlock x:Name="SelectedModsText" />
+
+                <Border MaxHeight="250">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="ModListPanel" Spacing="4" />
+                    </ScrollViewer>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <Border Padding="12" CornerRadius="4">
+            <StackPanel Spacing="8">
+                <TextBlock Text="⚠️ Important" />
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="• The installation process cannot be fully reversed" />
+                    <TextBlock Text="• Checkpoints will be created so you can roll back if needed" />
+                    <TextBlock Text="• Do not close the application during installation" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

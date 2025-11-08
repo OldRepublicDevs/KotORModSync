@@ -19,7 +19,7 @@ namespace KOTORModSync.Models
 
         [JsonPropertyName("theme")]
         [CanBeNull]
-        public string Theme { get; set; } = "/Styles/FluentLightStyle.axaml";
+        public string Theme { get; set; } = "/Styles/LightStyle.axaml";
 
         [JsonPropertyName("sourcePath")]
         [CanBeNull]
@@ -97,7 +97,7 @@ namespace KOTORModSync.Models
 
             return new AppSettings
             {
-                Theme = currentTheme ?? "/Styles/FluentLightStyle.axaml",
+                Theme = currentTheme ?? "/Styles/LightStyle.axaml",
                 SourcePath = mainConfig.sourcePathFullName,
                 DestinationPath = mainConfig.destinationPathFullName,
                 DebugLogging = mainConfig.debugLogging,
@@ -170,7 +170,7 @@ namespace KOTORModSync.Models
                 mainConfig.lastOutputDirectory = new DirectoryInfo(LastOutputDirectory);
             }
 
-            theme = Theme ?? "/Styles/FluentLightStyle.axaml"; // Default to Fluent Light theme
+            theme = Theme ?? "/Styles/LightStyle.axaml"; // Default to Light theme
             spoilerFreeMode = SpoilerFreeMode;
 
             // Set TargetGame from theme (they're the same thing)
@@ -188,8 +188,9 @@ namespace KOTORModSync.Models
                 return null; // No game-specific theme
             }
 
-            // Handle Fluent theme (not game-specific)
-            if (themePath.Contains("FluentLightStyle"))
+            // Handle Light theme (not game-specific)
+            if (themePath.IndexOf("LightStyle", StringComparison.OrdinalIgnoreCase) >= 0
+                || themePath.IndexOf("FluentLightStyle", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return null;
             }

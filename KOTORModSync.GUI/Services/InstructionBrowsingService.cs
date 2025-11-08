@@ -39,9 +39,9 @@ namespace KOTORModSync.Services
                     throw new ArgumentNullException(nameof(instruction));
                 }
 
-                var startFolder = _mainConfig.sourcePath != null
-                    ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName)
- : null;
+                Avalonia.Platform.Storage.IStorageFolder startFolder = _mainConfig.sourcePath != null
+                                                                          ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName)
+                                                                          : null as Avalonia.Platform.Storage.IStorageFolder;
 
                 string[] filePaths = await _dialogService.ShowFileDialogAsync(
                     isFolderDialog: false,
@@ -111,8 +111,9 @@ namespace KOTORModSync.Services
                     throw new ArgumentNullException(nameof(instruction));
                 }
 
-                var startFolder = _mainConfig.sourcePath != null
-                    ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName) : null;
+                Avalonia.Platform.Storage.IStorageFolder startFolder = _mainConfig.sourcePath != null
+                                                                          ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.sourcePath.FullName)
+                                                                          : null as Avalonia.Platform.Storage.IStorageFolder;
 
                 string[] folderPaths = await _dialogService.ShowFileDialogAsync(
                     isFolderDialog: true,
@@ -164,8 +165,9 @@ namespace KOTORModSync.Services
                     throw new ArgumentNullException(nameof(instruction));
                 }
 
-                var startFolder = _mainConfig.destinationPath != null
-                    ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.destinationPath.FullName) : null;
+                Avalonia.Platform.Storage.IStorageFolder startFolder = _mainConfig.destinationPath != null
+                                                                          ? await _dialogService.GetStorageFolderFromPathAsync(_mainConfig.destinationPath.FullName)
+                                                                          : null as Avalonia.Platform.Storage.IStorageFolder;
 
                 string[] result = await _dialogService.ShowFileDialogAsync(
                     isFolderDialog: true,

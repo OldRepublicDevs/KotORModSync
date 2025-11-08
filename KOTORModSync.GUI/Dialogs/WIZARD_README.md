@@ -152,21 +152,21 @@ Dialogs/
 ├── InstallWizardDialog.axaml.cs       # Wizard logic & navigation
 ├── WIZARD_README.md                   # This file
 └── WizardPages/
-    ├── WelcomePage.cs                 # Step 1
-    ├── BeforeContentPage.cs           # Step 2 (conditional)
-    ├── SetupPage.cs                   # Step 3
-    ├── AspyrNoticePage.cs             # Step 4 (conditional)
-    ├── ModSelectionPage.cs            # Step 5
-    ├── DownloadsExplainPage.cs        # Step 6
-    ├── ValidatePage.cs                # Step 7
-    ├── InstallStartPage.cs            # Step 8
-    ├── InstallingPage.cs              # Step 9 (core install logic)
-    ├── BaseInstallCompletePage.cs     # Step 10
-    ├── WidescreenNoticePage.cs        # Step 11 (conditional)
-    ├── WidescreenModSelectionPage.cs  # Step 12 (conditional)
-    ├── WidescreenInstallingPage.cs    # Step 13 (conditional)
-    ├── WidescreenCompletePage.cs      # Step 14 (conditional)
-    └── FinishedPage.cs                # Step 15
+    ├── SetupPage.cs                   # LoadInstructionPage (Step 1), ModDirectoryPage (Step 4), GameDirectoryPage (Step 5)
+    ├── WelcomePage.cs                 # Step 2
+    ├── BeforeContentPage.cs           # Step 3 (conditional)
+    ├── AspyrNoticePage.cs             # Step 6 (conditional)
+    ├── ModSelectionPage.cs            # Step 7
+    ├── DownloadsExplainPage.cs        # Step 8
+    ├── ValidatePage.cs                # Step 9
+    ├── InstallStartPage.cs            # Step 10
+    ├── InstallingPage.cs              # Step 11 (core install logic)
+    ├── BaseInstallCompletePage.cs     # Step 12
+    ├── WidescreenNoticePage.cs        # Step 13 (conditional)
+    ├── WidescreenModSelectionPage.cs  # Step 14 (conditional)
+    ├── WidescreenInstallingPage.cs    # Step 15 (conditional)
+    ├── WidescreenCompletePage.cs      # Step 16 (conditional)
+    └── FinishedPage.cs                # Final step
 
 MainWindowWizardExtensions.cs          # Integration (can be removed safely)
 ```

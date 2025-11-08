@@ -476,9 +476,7 @@ namespace KOTORModSync.Core.Services.Download
                             }
 
 
-                            string multiFileResultMessage = multiFileDownloads.Count == 1
-                                ? "Downloaded from DeadlyStream"
-                                : $"Downloaded {multiFileDownloads.Count} files from DeadlyStream";
+                            string multiFileResultMessage = BuildCompletionMessage(multiFileDownloads);
 
                             progress?.Report(new DownloadProgress
                             {
@@ -585,9 +583,7 @@ namespace KOTORModSync.Core.Services.Download
                 }
 
 
-                string resultMessage = downloadedFiles.Count == 1
-                    ? "Downloaded from DeadlyStream"
-                    : $"Downloaded {downloadedFiles.Count} files from DeadlyStream";
+                string resultMessage = BuildCompletionMessage(downloadedFiles);
 
                 progress?.Report(new DownloadProgress
                 {
@@ -805,7 +801,14 @@ namespace KOTORModSync.Core.Services.Download
                 catch (Exception moveEx)
                 {
                     await Logger.LogErrorAsync(string.Format(CultureInfo.InvariantCulture, "[DeadlyStream] Failed to move temporary file to final destination: {0}", moveEx.Message)).ConfigureAwait(false);
-                    try { File.Delete(tempPath); } catch { }
+                    try
+                    {
+                        File.Delete(tempPath);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        await Logger.LogExceptionAsync(deleteEx, $"[DeadlyStream] Failed to delete temporary file: {tempPath}").ConfigureAwait(false);
+                    }
                     throw;
                 }
 
@@ -928,6 +931,39 @@ namespace KOTORModSync.Core.Services.Download
             }
 
             return downloadLinks;
+        }
+
+        private static string BuildCompletionMessage(IReadOnlyList<string> filePaths)
+        {
+            if (filePaths is null || filePaths.Count == 0)
+            {
+                return "Downloaded from DeadlyStream";
+            }
+
+            var fileNames = filePaths
+                .Select(path => Path.GetFileName(path ?? string.Empty))
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (fileNames.Count == 0)
+            {
+                return $"Downloaded {filePaths.Count} files from DeadlyStream";
+            }
+
+            if (fileNames.Count == 1)
+            {
+                return $"Downloaded {fileNames[0]} from DeadlyStream";
+            }
+
+            const int maxDisplay = 3;
+            string summary = string.Join(", ", fileNames.Take(maxDisplay));
+            if (fileNames.Count > maxDisplay)
+            {
+                summary += $", +{fileNames.Count - maxDisplay} more";
+            }
+
+            return $"Downloaded {fileNames.Count} files from DeadlyStream: {summary}";
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0051:Method is too long", Justification = "<Pending>")]

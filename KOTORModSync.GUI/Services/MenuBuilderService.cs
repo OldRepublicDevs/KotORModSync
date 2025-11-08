@@ -312,7 +312,7 @@ namespace KOTORModSync.Services
                 Header = "➕ Add New Mod",
                 Command = ReactiveCommand.Create(() =>
                 {
-                    var newMod = onCreate();
+                    ModComponent newMod = onCreate();
                     if (newMod is null)
                     {
                         return;

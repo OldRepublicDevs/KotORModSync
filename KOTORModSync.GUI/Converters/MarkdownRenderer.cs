@@ -12,93 +12,267 @@ using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 using JetBrains.Annotations;
-
-using KOTORModSync;
 
 namespace KOTORModSync.Converters
 {
     public static class MarkdownRenderer
     {
-        private static IBrush GetThemeForegroundBrush()
+        private sealed class ThemeAwareRegistration
         {
-            // Try to get the brush from resources using ThemeResourceHelper which handles proper lookup
-            IBrush brush = ThemeResourceHelper.GetBrush("ThemeForegroundBrush");
-            if (brush != null && brush != Brushes.Transparent)
+            public ThemeAwareRegistration(WeakReference<AvaloniaObject> target, Action<AvaloniaObject> apply)
             {
-                return brush;
+                Target = target;
+                Apply = apply;
             }
 
-            // Fallback: try direct resource lookup with multiple strategies
-            if (Application.Current != null)
+            public WeakReference<AvaloniaObject> Target { get; }
+
+            public Action<AvaloniaObject> Apply { get; }
+        }
+
+        private static readonly object ThemeRegistrationLock = new object();
+        private static readonly List<ThemeAwareRegistration> ThemeAwareElements = new List<ThemeAwareRegistration>();
+
+        static MarkdownRenderer()
+        {
+            ThemeManager.StyleChanged += _ => ReapplyThemeAwareElements();
+        }
+
+        private static void RegisterThemeAwareElement(AvaloniaObject target, Action<AvaloniaObject> apply)
+        {
+            if (target is null || apply is null)
             {
-                // Try Application.Resources first
-                if (Application.Current.Resources.TryGetResource("ThemeForegroundBrush", theme: null, out object resource) && resource is IBrush appBrush)
+                return;
+            }
+
+            lock (ThemeRegistrationLock)
+            {
+                for (int i = ThemeAwareElements.Count - 1; i >= 0; i--)
                 {
-                    return appBrush;
+                    if (!ThemeAwareElements[i].Target.TryGetTarget(out AvaloniaObject existing) || existing is null)
+                    {
+                        ThemeAwareElements.RemoveAt(i);
+                        continue;
+                    }
+
+                    if (ReferenceEquals(existing, target))
+                    {
+                        ThemeAwareElements.RemoveAt(i);
+                    }
                 }
 
-                // Try each Style's resources - iterate in reverse to get the most recently added (custom theme) first
-                if (Application.Current.Styles != null)
-                {
-                    // Iterate backwards to check custom theme (added last) before base Fluent theme
-                    for (int i = Application.Current.Styles.Count - 1; i >= 0; i--)
-                    {
-                        Avalonia.Styling.IStyle style = Application.Current.Styles[i];
-                        if (style is Avalonia.Markup.Xaml.Styling.StyleInclude styleInclude)
-                        {
-                            // Try Loaded resources first (most reliable)
-                            if (styleInclude.Loaded is Avalonia.Styling.Styles loadedStyles
-                                && loadedStyles.Resources.TryGetResource("ThemeForegroundBrush", theme: null, out object loadedRes)
-                                && loadedRes is IBrush loadedBrush)
-                            {
-                                return loadedBrush;
-                            }
+                ThemeAwareElements.Add(new ThemeAwareRegistration(new WeakReference<AvaloniaObject>(target), apply));
+            }
+        }
 
-                            // If Loaded is null, try to load from Source
-                            if (styleInclude.Source != null && styleInclude.Loaded == null)
-                            {
-                                try
-                                {
-                                    object styleResource = Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(styleInclude.Source);
-                                    if (styleResource is Avalonia.Styling.Styles tempStyles
-                                        && tempStyles.Resources.TryGetResource("ThemeForegroundBrush", theme: null, out object sourceRes)
-                                        && sourceRes is IBrush sourceBrush)
-                                    {
-                                        return sourceBrush;
-                                    }
-                                }
-                                catch
-                                {
-                                    // Ignore errors in fallback
-                                }
-                            }
+        private static void ReapplyThemeAwareElements()
+        {
+            void ApplyAll()
+            {
+                lock (ThemeRegistrationLock)
+                {
+                    for (int i = ThemeAwareElements.Count - 1; i >= 0; i--)
+                    {
+                        ThemeAwareRegistration registration = ThemeAwareElements[i];
+                        if (!registration.Target.TryGetTarget(out AvaloniaObject target) || target is null)
+                        {
+                            ThemeAwareElements.RemoveAt(i);
+                            continue;
                         }
+
+                        registration.Apply(target);
                     }
                 }
             }
 
-            // Final fallback: determine color based on current theme path
-            string currentTheme = ThemeManager.GetCurrentStylePath();
-            if (!string.IsNullOrEmpty(currentTheme))
+            if (Dispatcher.UIThread.CheckAccess())
             {
-                if (currentTheme.Contains("FluentLightStyle", StringComparison.OrdinalIgnoreCase))
+                ApplyAll();
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(ApplyAll, DispatcherPriority.Normal);
+            }
+        }
+
+        private static void ApplyThemeBrush(
+            AvaloniaObject target,
+            AvaloniaProperty<IBrush> property,
+            string resourceKey,
+            [CanBeNull] Func<IBrush> fallbackFactory = null)
+        {
+            if (target is null)
+            {
+                return;
+            }
+
+            void Apply(AvaloniaObject obj)
+            {
+                if (obj is null)
                 {
-                    return new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00)); // #000000 - black for light theme
+                    return;
                 }
-                else if (currentTheme.Contains("Kotor2Style", StringComparison.OrdinalIgnoreCase))
+
+                IBrush brush = ThemeResourceHelper.GetBrush(resourceKey);
+                if (brush is null || Equals(brush, Brushes.Transparent))
                 {
-                    return new SolidColorBrush(Color.FromRgb(0x18, 0xae, 0x88)); // #18ae88 - green for KOTOR 2
+                    brush = fallbackFactory?.Invoke();
                 }
-                else if (currentTheme.Contains("KotorStyle", StringComparison.OrdinalIgnoreCase))
+
+                if (brush is null)
                 {
-                    return new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // #3AAAFF - blue for KOTOR 1
+                    brush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
+                }
+
+                obj.SetValue(property, brush);
+            }
+
+            Apply(target);
+            RegisterThemeAwareElement(target, Apply);
+        }
+
+        private static void ApplyThemeForeground(AvaloniaObject target, AvaloniaProperty<IBrush> property)
+        {
+            ApplyThemeBrush(target, property, "ThemeForegroundBrush", CreateThemeForegroundBrush);
+        }
+
+        private static void ApplyLinkForeground(AvaloniaObject target, AvaloniaProperty<IBrush> property)
+        {
+            ApplyThemeBrush(target, property, "LinkForegroundBrush", () => new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC)));
+        }
+
+        private sealed class MarkdownHyperlinkInline : InlineUIContainer
+        {
+            private readonly string _linkUrl;
+            private readonly Action<string> _onClick;
+            private readonly Border _host;
+            private readonly TextBlock _textBlock;
+
+            public MarkdownHyperlinkInline(string linkText, string linkUrl, Action<string> onClick)
+            {
+                _linkUrl = linkUrl ?? string.Empty;
+                _onClick = onClick;
+
+                _textBlock = new TextBlock
+                {
+                    Text = linkText ?? string.Empty,
+                    Margin = new Thickness(0),
+                    Padding = new Thickness(0),
+                    TextWrapping = TextWrapping.WrapWithOverflow,
+                    TextDecorations = new TextDecorationCollection
+                    {
+                        new TextDecoration
+                        {
+                            Location = TextDecorationLocation.Underline,
+                        },
+                    },
+                };
+                ApplyLinkForeground(_textBlock, TextElement.ForegroundProperty);
+
+                _host = new Border
+                {
+                    Child = _textBlock,
+                    Margin = new Thickness(0),
+                    Padding = new Thickness(0),
+                    Background = Brushes.Transparent,
+                    Cursor = new Cursor(StandardCursorType.Hand),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Focusable = true,
+                };
+
+                _host.PointerReleased += OnPointerReleased;
+                _host.PointerPressed += OnPointerPressed;
+                _host.KeyDown += OnHostKeyDown;
+
+                Child = _host;
+
+                PropertyChanged += OnInlinePropertyChanged;
+
+                SyncTextStyling();
+            }
+
+            private void OnInlinePropertyChanged(object sender, AvaloniaPropertyChangedEventArgs change)
+            {
+                if (change.Property == FontSizeProperty ||
+                    change.Property == FontFamilyProperty ||
+                    change.Property == FontStyleProperty ||
+                    change.Property == FontWeightProperty ||
+                    change.Property == FontStretchProperty)
+                {
+                    SyncTextStyling();
                 }
             }
 
-            // Default fallback
-            return new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00)); // #000000
+            private void SyncTextStyling()
+            {
+                if (!double.IsNaN(FontSize) && FontSize > 0)
+                {
+                    _textBlock.FontSize = FontSize;
+                }
+
+                if (FontFamily != null)
+                {
+                    _textBlock.FontFamily = FontFamily;
+                }
+
+                _textBlock.FontStyle = FontStyle;
+                _textBlock.FontWeight = FontWeight;
+                _textBlock.FontStretch = FontStretch;
+            }
+
+            private void OnPointerPressed(object sender, PointerPressedEventArgs e)
+            {
+                if (e.GetCurrentPoint(_host).Properties.IsLeftButtonPressed)
+                {
+                    e.Handled = true;
+                }
+            }
+
+            private void OnPointerReleased(object sender, PointerReleasedEventArgs e)
+            {
+                if (!e.Handled && e.InitialPressMouseButton == MouseButton.Left)
+                {
+                    ActivateLink();
+                    e.Handled = true;
+                }
+            }
+
+            private void OnHostKeyDown(object sender, KeyEventArgs e)
+            {
+                if (!e.Handled && (e.Key == Key.Enter || e.Key == Key.Space))
+                {
+                    ActivateLink();
+                    e.Handled = true;
+                }
+            }
+
+            private void ActivateLink()
+            {
+                _onClick?.Invoke(_linkUrl);
+            }
+        }
+
+        private static IBrush CreateThemeForegroundBrush()
+        {
+            string currentTheme = ThemeManager.GetCurrentStylePath();
+            if (!string.IsNullOrEmpty(currentTheme))
+            {
+                if (currentTheme.Contains("Kotor2Style", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new SolidColorBrush(Color.FromRgb(0x18, 0xAE, 0x88)); // #18AE88
+                }
+
+                if (currentTheme.Contains("KotorStyle", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new SolidColorBrush(Color.FromRgb(0x3A, 0xAA, 0xFF)); // #3AAAFF
+                }
+            }
+
+            return new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00)); // Light theme default
         }
 
         [NotNull]
@@ -111,6 +285,7 @@ namespace KOTORModSync.Converters
                 TextWrapping = TextWrapping.WrapWithOverflow,
                 TextTrimming = TextTrimming.None,
             };
+            ApplyThemeForeground(textBlock, TextBlock.ForegroundProperty);
 
             if (string.IsNullOrWhiteSpace(markdownText))
             {
@@ -152,14 +327,10 @@ namespace KOTORModSync.Converters
                 return mainPanel;
             }
 
-            var textBlocksWithLinks = new List<TextBlock>();
-            var runToUrlMap = new Dictionary<Run, string>(); // Map Run to URL for click handling
-
             try
             {
                 string[] lines = markdownText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
                 int i = 0;
-                IBrush foregroundBrush = GetThemeForegroundBrush();
 
                 while (i < lines.Length)
                 {
@@ -168,7 +339,7 @@ namespace KOTORModSync.Converters
                     // Handle warning blocks (:::warning ... :::)
                     if (line.StartsWith(":::warning", StringComparison.OrdinalIgnoreCase))
                     {
-                        Border warningBlock = ParseWarningBlock(lines, ref i, onLinkClick, foregroundBrush);
+                        Border warningBlock = ParseWarningBlock(lines, ref i, onLinkClick);
                         if (warningBlock != null)
                         {
                             mainPanel.Children.Add(warningBlock);
@@ -191,9 +362,9 @@ namespace KOTORModSync.Converters
                             var headingBlock = new TextBlock
                             {
                                 TextWrapping = TextWrapping.Wrap,
-                                Foreground = foregroundBrush,
                                 HorizontalAlignment = HorizontalAlignment.Stretch,
                             };
+                            ApplyThemeForeground(headingBlock, TextBlock.ForegroundProperty);
 
                             // Set font size based on heading level
                             switch (headingLevel)
@@ -220,11 +391,6 @@ namespace KOTORModSync.Converters
                             if (headingBlock.Inlines != null)
                             {
                                 headingBlock.Inlines.AddRange(ParseMarkdownInlines(headingText, onLinkClick));
-                                if (onLinkClick != null && HasLinks(headingBlock.Inlines))
-                                {
-                                    ProcessLinkRuns(headingBlock.Inlines, runToUrlMap);
-                                    textBlocksWithLinks.Add(headingBlock);
-                                }
                             }
 
                             mainPanel.Children.Add(headingBlock);
@@ -285,20 +451,14 @@ namespace KOTORModSync.Converters
                             var paragraphBlock = new TextBlock
                             {
                                 TextWrapping = TextWrapping.Wrap,
-                                Foreground = foregroundBrush,
                                 FontSize = 15,
                                 LineHeight = 24,
                                 Margin = new Thickness(0, 0, 0, 8),
                                 HorizontalAlignment = HorizontalAlignment.Stretch,
                             };
+                            ApplyThemeForeground(paragraphBlock, TextBlock.ForegroundProperty);
 
                             paragraphBlock.Inlines?.AddRange(ParseMarkdownInlines(paragraphText, onLinkClick));
-
-                            if (onLinkClick != null && paragraphBlock.Inlines != null && HasLinks(paragraphBlock.Inlines))
-                            {
-                                ProcessLinkRuns(paragraphBlock.Inlines, runToUrlMap);
-                                textBlocksWithLinks.Add(paragraphBlock);
-                            }
 
                             mainPanel.Children.Add(paragraphBlock);
                         }
@@ -315,129 +475,18 @@ namespace KOTORModSync.Converters
                 {
                     Text = markdownText,
                     TextWrapping = TextWrapping.Wrap,
-                    Foreground = GetThemeForegroundBrush(),
                 };
+                ApplyThemeForeground(fallbackBlock, TextBlock.ForegroundProperty);
                 mainPanel.Children.Add(fallbackBlock);
-            }
-
-            // Attach click handlers to TextBlocks with links
-            if (onLinkClick != null && runToUrlMap.Count > 0)
-            {
-                foreach (var textBlock in textBlocksWithLinks)
-                {
-                    // Capture runToUrlMap in closure
-                    var urlMap = runToUrlMap;
-                    textBlock.PointerPressed += (sender, e) => OnTextBlockLinkClicked(sender, e, onLinkClick, urlMap);
-                    textBlock.Cursor = new Cursor(StandardCursorType.Hand);
-                }
             }
 
             return mainPanel;
         }
 
-        private static bool HasLinks(InlineCollection inlines)
-        {
-            if (inlines == null)
-            {
-                return false;
-            }
-
-            foreach (var inline in inlines)
-            {
-                if (inline is Run run && run.Text != null && run.Text.Contains("🔗"))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static void ProcessLinkRuns(InlineCollection inlines, Dictionary<Run, string> runToUrlMap)
-        {
-            if (inlines == null)
-            {
-                return;
-            }
-
-            // Process each Run to extract just the display text from encoded format
-            for (int i = 0; i < inlines.Count; i++)
-            {
-                if (inlines[i] is Run run && run.Text != null && run.Text.Contains("🔗"))
-                {
-                    // Extract URL and display text from format: 🔗{url}🔗{text}
-                    string linkPattern = @"🔗([^🔗]+)🔗(.+)";
-                    Match match = Regex.Match(run.Text, linkPattern, RegexOptions.None, TimeSpan.FromSeconds(1));
-                    if (match.Success && match.Groups.Count >= 3)
-                    {
-                        string url = match.Groups[1].Value;
-                        string displayText = match.Groups[2].Value;
-
-                        // Store URL mapping
-                        runToUrlMap[run] = url;
-
-                        // Replace the Run's text with just the display text
-                        run.Text = displayText;
-                    }
-                }
-            }
-        }
-
-        private static void OnTextBlockLinkClicked(object sender, PointerPressedEventArgs e, Action<string> onLinkClick, Dictionary<Run, string> runToUrlMap)
-        {
-            try
-            {
-                if (!(sender is TextBlock textBlock))
-                {
-                    return;
-                }
-
-                // Find which Run was clicked by checking if pointer is over a link Run
-                if (textBlock.Inlines != null)
-                {
-                    // Get the pointer position relative to the TextBlock
-                    var point = e.GetPosition(textBlock);
-
-                    // Check each Run in the Inlines collection
-                    foreach (var inline in textBlock.Inlines)
-                    {
-                        if (inline is Run run && runToUrlMap.ContainsKey(run))
-                        {
-                            // Check if click is within this Run's bounds (simplified - check if it's in the text block)
-                            // For now, if any link is clicked, use the first one found
-                            // A more precise implementation would check the actual character position
-                            string url = runToUrlMap[run];
-                            onLinkClick?.Invoke(url);
-                            e.Handled = true;
-                            return;
-                        }
-                    }
-
-                    // Fallback: try to find any link Run (less precise but works)
-                    foreach (var inline in textBlock.Inlines)
-                    {
-                        if (inline is Run run && runToUrlMap.ContainsKey(run))
-                        {
-                            string url = runToUrlMap[run];
-                            onLinkClick?.Invoke(url);
-                            e.Handled = true;
-                            return;
-                        }
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Silently fail on link click errors
-            }
-        }
-
-
         private static Border ParseWarningBlock(
             string[] lines,
             ref int currentIndex,
-            Action<string> onLinkClick,
-            IBrush foregroundBrush)
+            Action<string> onLinkClick)
         {
             var warningPanel = new Grid
             {
@@ -475,18 +524,13 @@ namespace KOTORModSync.Converters
                     FontSize = 14,
                     FontWeight = FontWeight.Bold,
                     TextWrapping = TextWrapping.Wrap,
-                    Foreground = foregroundBrush,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                 };
+                ApplyThemeForeground(titleBlock, TextBlock.ForegroundProperty);
 
                 if (titleBlock.Inlines != null)
                 {
                     titleBlock.Inlines.AddRange(ParseMarkdownInlines(titleLine, onLinkClick));
-                    if (onLinkClick != null && HasLinks(titleBlock.Inlines))
-                    {
-                        // Note: Warning block title blocks would need to be tracked if we want click handlers
-                        // For now, links in warning titles won't be clickable
-                    }
                 }
 
                 textPanel.Children.Add(titleBlock);
@@ -519,14 +563,11 @@ namespace KOTORModSync.Converters
                     FontSize = 11,
                     Opacity = 0.9,
                     TextWrapping = TextWrapping.Wrap,
-                    Foreground = foregroundBrush,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                 };
+                ApplyThemeForeground(contentBlock, TextBlock.ForegroundProperty);
 
                 contentBlock.Inlines?.AddRange(ParseMarkdownInlines(contentText, onLinkClick));
-
-                // Note: Warning block content blocks would need to be tracked separately if we want click handlers
-                // For now, links in warning blocks won't be clickable
 
                 textPanel.Children.Add(contentBlock);
             }
@@ -583,46 +624,31 @@ namespace KOTORModSync.Converters
 
             foreach (Match match in linkMatches)
             {
-
                 if (match.Index > currentIndex)
                 {
                     string beforeText = text.Substring(currentIndex, match.Index - currentIndex);
                     AddTextWithFormatting(beforeText, inlines);
                 }
 
-
                 string linkText = match.Groups[1].Value;
                 string linkUrl = match.Groups[2].Value;
 
-                // Create a Run with the link text
-                var linkRun = new Run
+                if (onLinkClick != null)
                 {
-                    // Display only the link text, but store URL in encoded format for click detection
-                    // Format: 🔗{url}🔗{text} - the click handler will extract the URL
-                    Text = onLinkClick != null ? $"🔗{linkUrl}🔗{linkText}" : linkText,
-                    TextDecorations = TextDecorations.Underline,
-                };
-
-                // Set link color - try to get link color from theme, fallback to blue
-                try
-                {
-                    if (Application.Current?.Resources.TryGetResource("LinkForegroundBrush", theme: null, out object linkResource) == true
-                        && linkResource is IBrush linkBrush)
-                    {
-                        linkRun.Foreground = linkBrush;
-                    }
-                    else
-                    {
-                        // Default link color - blue
-                        linkRun.Foreground = new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
-                    }
+                    var hyperlink = new MarkdownHyperlinkInline(linkText, linkUrl, onLinkClick);
+                    inlines.Add(hyperlink);
                 }
-                catch
+                else
                 {
-                    linkRun.Foreground = new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+                    var linkRun = new Run
+                    {
+                        Text = linkText,
+                        TextDecorations = TextDecorations.Underline,
+                    };
+                    ApplyLinkForeground(linkRun, TextElement.ForegroundProperty);
+                    inlines.Add(linkRun);
                 }
 
-                inlines.Add(linkRun);
                 currentIndex = match.Index + match.Length;
             }
 
@@ -660,19 +686,17 @@ namespace KOTORModSync.Converters
                     AddTextWithItalic(beforeText, inlines);
                 }
 
-
                 string boldText = match.Groups[2].Value;
                 var boldRun = new Run
                 {
                     Text = boldText,
                     FontWeight = FontWeight.Bold,
-                    Foreground = GetThemeForegroundBrush(),
                 };
+                ApplyThemeForeground(boldRun, TextElement.ForegroundProperty);
                 inlines.Add(boldRun);
 
                 currentIndex = match.Index + match.Length;
             }
-
 
             if (currentIndex < text.Length)
             {
@@ -704,27 +728,29 @@ namespace KOTORModSync.Converters
                 if (match.Index > currentIndex)
                 {
                     string beforeText = text.Substring(currentIndex, match.Index - currentIndex);
-                    inlines.Add(new Run { Text = beforeText, Foreground = GetThemeForegroundBrush() });
+                    var beforeRun = new Run { Text = beforeText };
+                    ApplyThemeForeground(beforeRun, TextElement.ForegroundProperty);
+                    inlines.Add(beforeRun);
                 }
-
 
                 string italicText = match.Groups[2].Value;
                 var italicRun = new Run
                 {
                     Text = italicText,
                     FontStyle = FontStyle.Italic,
-                    Foreground = GetThemeForegroundBrush(),
                 };
+                ApplyThemeForeground(italicRun, TextElement.ForegroundProperty);
                 inlines.Add(italicRun);
 
                 currentIndex = match.Index + match.Length;
             }
 
-
             if (currentIndex < text.Length)
             {
                 string remainingText = text.Substring(currentIndex);
-                inlines.Add(new Run { Text = remainingText, Foreground = GetThemeForegroundBrush() });
+                var remainingRun = new Run { Text = remainingText };
+                ApplyThemeForeground(remainingRun, TextElement.ForegroundProperty);
+                inlines.Add(remainingRun);
             }
         }
     }

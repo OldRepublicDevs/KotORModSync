@@ -259,7 +259,7 @@ namespace KOTORModSync.Dialogs
             var allRanges = new List<(int start, int end, string groupName)>();
 
             // Store matches for position lookup
-            foreach (var match in result.Trace.Matches.Where(m => m.WasUsed))
+            foreach (MatchTrace match in result.Trace.Matches.Where(m => m.WasUsed))
             {
                 allRanges.Add((match.StartIndex, match.EndIndex, match.GroupName));
 
@@ -273,7 +273,7 @@ namespace KOTORModSync.Dialogs
             }
 
             // Store sections for position lookup
-            foreach (var section in result.Trace.Sections)
+            foreach (SectionTrace section in result.Trace.Sections)
             {
                 int middlePos = (section.StartIndex + section.EndIndex) / 2;
                 _positionToSection[middlePos] = section;
@@ -286,7 +286,7 @@ namespace KOTORModSync.Dialogs
             string markdown = PreviewMarkdown;
             int pos = 0;
 
-            foreach (var (start, end, groupName) in allRanges)
+            foreach ((int start, int end, string groupName) in allRanges)
             {
                 // Skip if this range starts before current position (overlap handling)
                 if (start < pos)
@@ -398,7 +398,7 @@ namespace KOTORModSync.Dialogs
         public string GetGroupNameForPosition(int position)
         {
             // Use ranges already populated from trace data
-            foreach (var range in _highlightedRanges.Values)
+            foreach ((int start, int end, string groupName) range in _highlightedRanges.Values)
             {
                 if (position >= range.start && position <= range.end)
                 {
@@ -417,7 +417,7 @@ namespace KOTORModSync.Dialogs
             }
 
             // Find the section that contains this position
-            var containingSection = _lastParseResult.Trace.Sections.Find(s => position >= s.StartIndex && position <= s.EndIndex);
+            SectionTrace containingSection = _lastParseResult.Trace.Sections.Find(s => position >= s.StartIndex && position <= s.EndIndex);
             if (containingSection == null)
             {
                 return null;
@@ -427,7 +427,7 @@ namespace KOTORModSync.Dialogs
             if (containingSection.ResultedInComponent && _lastParseResult.Components.Count > 0)
             {
                 // Find component by matching ComponentIndex (1-based)
-                var component = _lastParseResult.Components.FirstOrDefault(c =>
+                ModComponent component = _lastParseResult.Components.FirstOrDefault(c =>
                     _lastParseResult.Trace.Sections.IndexOf(containingSection) + 1 == containingSection.ComponentIndex
                 );
 

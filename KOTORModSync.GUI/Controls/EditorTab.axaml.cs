@@ -202,7 +202,7 @@ namespace KOTORModSync.Controls
                     try
                     {
                         // Trigger property change to update bindings
-                        var temp = CurrentComponent;
+                        ModComponent temp = CurrentComponent;
                         CurrentComponent = null;
                         CurrentComponent = temp;
                     }

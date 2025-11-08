@@ -8,13 +8,12 @@ to ensure only authentic KOTORModSync clients can send telemetry data.
 Used with Traefik ForwardAuth middleware.
 """
 
-import hmac
 import hashlib
+import hmac
 import os
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
-
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs, urlparse
 
 # Load signing secret from environment or file
 SIGNING_SECRET = os.getenv('KOTORMODSYNC_SIGNING_SECRET')

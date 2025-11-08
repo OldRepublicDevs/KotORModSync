@@ -1,0 +1,19 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.WidescreenInstallingPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="16">
+        <TextBlock x:Name="StatusText" />
+        <ProgressBar
+            x:Name="ProgressBar"
+            Height="18"
+            Maximum="1"
+            Minimum="0" />
+    </StackPanel>
+</UserControl>
+
+

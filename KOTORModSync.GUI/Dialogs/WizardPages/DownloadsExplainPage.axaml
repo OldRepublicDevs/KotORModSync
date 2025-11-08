@@ -1,0 +1,32 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.DownloadsExplainPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Spacing="16">
+        <TextBlock
+            HorizontalAlignment="Center"
+            Text="⬇️ Downloading Mod Files"
+            TextAlignment="Center" />
+
+        <TextBlock
+            MaxWidth="600"
+            Text="KOTORModSync will now begin downloading the required mod files in the background."
+            TextWrapping="Wrap" />
+
+        <Border Padding="16" CornerRadius="8">
+            <StackPanel Spacing="12">
+                <TextBlock Text="What's happening:" />
+                <TextBlock Text="• Mod files are being downloaded from their respective sources" />
+                <TextBlock Text="• Downloads will continue while you proceed through the wizard" />
+                <TextBlock Text="• You can view download progress using the 'Show Downloads' button" />
+                <TextBlock Text="• Installation will wait for downloads to complete if needed" />
+            </StackPanel>
+        </Border>
+
+        <TextBlock Text="💡 Tip: You can continue to the next steps while downloads are in progress." TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

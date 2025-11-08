@@ -1,0 +1,38 @@
+<!--  Copyright 2021-2025 KOTORModSync  -->
+<!--  Licensed under the Business Source License 1.1 (BSL 1.1).  -->
+<!--  See LICENSE.txt file in the project root for full license information.  -->
+<UserControl
+    x:Class="KOTORModSync.Dialogs.WizardPages.ModDirectoryPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:KOTORModSync.Controls">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,24" Spacing="16">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="📁" />
+                <TextBlock Text="Mod Directory (Workspace):" />
+            </StackPanel>
+
+            <TextBlock Text="Choose any folder on your computer to use as your mod workspace. This is where:" TextWrapping="Wrap" />
+
+            <StackPanel Margin="16,8,0,8" Spacing="4">
+                <TextBlock Text="• Mod files will be downloaded from the internet" />
+                <TextBlock Text="• Mod archives will be extracted and processed" />
+                <TextBlock Text="• Temporary files will be stored during installation" />
+            </StackPanel>
+
+            <TextBlock Text="Tip: Create a dedicated folder like 'C:\KOTORMODS' or use your Documents folder" TextWrapping="Wrap" />
+
+            <controls:DirectoryPickerControl
+                x:Name="SourcePathPicker"
+                Title="Mod Workspace Directory:"
+                Margin="0,12,0,0"
+                Description="Choose a folder where mod archives will be downloaded, extracted, and processed."
+                PickerType="ModDirectory"
+                Watermark="Select or enter your mod workspace directory" />
+
+            <TextBlock x:Name="StatusText" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

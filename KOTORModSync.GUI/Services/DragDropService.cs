@@ -51,7 +51,7 @@ namespace KOTORModSync.Services
                     return;
                 }
 
-                var textBlock = FindDragHandle(visual);
+                TextBlock textBlock = FindDragHandle(visual);
                 if (!string.Equals(textBlock?.Text, "⋮⋮", StringComparison.Ordinal))
                 {
                     return;

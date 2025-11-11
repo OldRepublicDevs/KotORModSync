@@ -122,7 +122,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet Packages
-        run: nuget restore KOTORModSync.sln
+        run: msbuild KOTORModSync.sln /t:Restore /p:TargetFramework=net48 /p:Configuration=Release
 
       - name: Build (Development - No Telemetry Secret)
         if: github.event_name == 'pull_request'
@@ -313,11 +313,11 @@ jobs:
 
       - name: Restore Dependencies (Windows - NuGet)
         if: runner.os == 'Windows'
-        run: nuget restore KOTORModSync.sln
+        run: msbuild KOTORModSync.sln /t:Restore /p:TargetFramework=${{ matrix.framework }} /p:Configuration=Release
 
       - name: Restore Dependencies (Linux/macOS - dotnet)
         if: runner.os != 'Windows'
-        run: dotnet restore
+        run: dotnet restore --framework ${{ matrix.framework }}
 
       - name: Publish ${{ matrix.rid }} (Windows - MSBuild)
         if: runner.os == 'Windows'
@@ -636,7 +636,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore Dependencies
-        run: dotnet restore
+        run: dotnet restore --framework net8.0
 
       - name: Run Security Audit
         run: dotnet list package --vulnerable --include-transitive

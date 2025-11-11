@@ -105,7 +105,7 @@ jobs:
 
       - name: Restore dependencies
         if: steps.hash.outputs.changed == 'true'
-        run: dotnet restore
+        run: dotnet restore --framework net8.0
 
       - name: Build
         if: steps.hash.outputs.changed == 'true'

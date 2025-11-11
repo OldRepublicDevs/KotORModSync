@@ -220,8 +220,8 @@ namespace KOTORModSync.Core.FileSystemUtils
                 .Replace(oldValue: "/", Path.DirectorySeparatorChar.ToString());
 
             formattedPath = Utility.UtilityHelper.GetOperatingSystem() == OSPlatform.Windows
-                ? Regex.Replace(formattedPath, pattern: @"\\{2,}", replacement: @"\")
-                : Regex.Replace(formattedPath, pattern: @"/{2,}", replacement: "/");
+                ? Regex.Replace(formattedPath, pattern: @"\\{2,}", replacement: @"\", RegexOptions.None, TimeSpan.FromSeconds(5))
+                : Regex.Replace(formattedPath, pattern: @"/{2,}", replacement: "/", RegexOptions.None, TimeSpan.FromSeconds(5));
 
             return formattedPath.TrimEnd(Path.DirectorySeparatorChar);
         }

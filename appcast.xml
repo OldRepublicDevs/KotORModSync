@@ -8,12 +8,12 @@
 
     <!-- Latest Release -->
     <item>
-      <title>Version 2.0.0</title>
-      <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0</sparkle:releaseNotesLink>
+      <title>Version 2.0.0a1</title>
+      <sparkle:releaseNotesLink>https://github.com/th3w1zard1/KOTORModSync/releases/tag/v2.0.0a1</sparkle:releaseNotesLink>
       <pubDate>Thu, 26 Oct 2025 12:00:00 +0000</pubDate>
       <enclosure
-        url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0/KOTORModSync-v2.0.0-win-x64.zip"
-        sparkle:version="2.0.0"
+        url="https://github.com/th3w1zard1/KOTORModSync/releases/download/v2.0.0a1/KOTORModSync-v2.0.0a1-win-x64.zip"
+        sparkle:version="2.0.0a1"
         sparkle:os="windows"
         length="50000000"
         type="application/octet-stream"

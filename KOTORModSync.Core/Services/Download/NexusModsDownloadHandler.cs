@@ -39,7 +39,7 @@ namespace KOTORModSync.Core.Services.Download
         {
             if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
             {
-                const string userAgent = "KOTORModSync/2.0.0 (https://github.com/th3w1zard1/KOTORModSync)";
+                const string userAgent = "KOTORModSync/2.0.0a1 (https://github.com/th3w1zard1/KOTORModSync)";
                 _httpClient.DefaultRequestHeaders.Add("User-Agent", userAgent);
                 Logger.LogVerbose($"[NexusMods] Added User-Agent header: {userAgent}");
             }
@@ -71,7 +71,7 @@ namespace KOTORModSync.Core.Services.Download
         private void SetApiRequestHeaders(HttpRequestMessage request)
         {
             request.Headers.Add("Application-Name", "KOTORModSync");
-            request.Headers.Add("Application-Version", "2.0.0");
+            request.Headers.Add("Application-Version", "2.0.0a1");
 
             if (!string.IsNullOrWhiteSpace(_apiKey))
             {
@@ -80,7 +80,7 @@ namespace KOTORModSync.Core.Services.Download
 
             if (!request.Headers.Contains("User-Agent"))
             {
-                request.Headers.Add("User-Agent", "KOTORModSync/2.0.0 (https://github.com/th3w1zard1/KOTORModSync)");
+                request.Headers.Add("User-Agent", "KOTORModSync/2.0.0a1 (https://github.com/th3w1zard1/KOTORModSync)");
             }
         }
 
@@ -130,7 +130,7 @@ namespace KOTORModSync.Core.Services.Download
                     // Use basic headers for unauthenticated API requests
                     if (!request.Headers.Contains("User-Agent"))
                     {
-                        request.Headers.Add("User-Agent", "KOTORModSync/2.0.0 (https://github.com/th3w1zard1/KOTORModSync)");
+                        request.Headers.Add("User-Agent", "KOTORModSync/2.0.0a1 (https://github.com/th3w1zard1/KOTORModSync)");
                     }
                     if (!request.Headers.Contains("Accept"))
                     {
@@ -395,7 +395,7 @@ namespace KOTORModSync.Core.Services.Download
                 await Logger.LogVerboseAsync($"[NexusMods] Making HTTP GET request to download URL").ConfigureAwait(false);
                 var request = new HttpRequestMessage(HttpMethod.Get, linkInfo.Url);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
-                request.Headers.Add("User-Agent", "KOTORModSync/2.0.0 (https://github.com/th3w1zard1/KOTORModSync)");
+                request.Headers.Add("User-Agent", "KOTORModSync/2.0.0a1 (https://github.com/th3w1zard1/KOTORModSync)");
 
                 HttpResponseMessage response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                 await Logger.LogVerboseAsync($"[NexusMods] Received response with status code: {response.StatusCode}").ConfigureAwait(false);
@@ -721,9 +721,9 @@ namespace KOTORModSync.Core.Services.Download
                     await Logger.LogAsync("[NexusMods] Testing API key authentication...").ConfigureAwait(false);
                     var request = new HttpRequestMessage(HttpMethod.Get, "https://api.nexusmods.com/v1/users/validate.json");
                     request.Headers.Add("Application-Name", "KOTORModSync");
-                    request.Headers.Add("Application-Version", "2.0.0");
+                    request.Headers.Add("Application-Version", "2.0.0a1");
                     request.Headers.Add("apikey", apiKey);
-                    request.Headers.Add("User-Agent", "KOTORModSync/2.0.0 (https://github.com/th3w1zard1/KOTORModSync)");
+                    request.Headers.Add("User-Agent", "KOTORModSync/2.0.0a1 (https://github.com/th3w1zard1/KOTORModSync)");
 
                     HttpResponseMessage response = await httpClient.SendAsync(request).ConfigureAwait(false);
 
@@ -807,7 +807,7 @@ namespace KOTORModSync.Core.Services.Download
                     var request = new HttpRequestMessage(HttpMethod.Get,
                         $"https://api.nexusmods.com/v1/games/{gameDomain}/mods/{modId}/files/{fileId}.json");
                     request.Headers.Add("apikey", MainConfig.NexusModsApiKey);
-                    request.Headers.Add("User-Agent", "KOTORModSync/2.0.0");
+                    request.Headers.Add("User-Agent", "KOTORModSync/2.0.0a1");
 
                     HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
